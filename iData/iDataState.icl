@@ -27,7 +27,6 @@ import PMDB
 				{ fstates 	:: *FStates					// internal tree of states
 				, triplets	:: [(Triplet,String)]		// indicates what has changed: which form, which postion, which value
 				, updateid	:: String					// which form has changed
-				, server	:: ServerKind				// is an external server required
 				}		
 
 :: FStates		:== Tree_ (String,FormState)			// each form needs a different string id
@@ -79,7 +78,7 @@ where
 	(<) _ _ = True
 
 emptyFormStates :: *FormStates
-emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = "", server = Internal}
+emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = ""}
 
 getTriplets :: !String !*FormStates -> (Triplets,!*FormStates)
 getTriplets id formstates=:{triplets} = ([mytrips \\ mytrips=:((tripid,_,_),_) <- triplets | id == tripid] ,formstates)
@@ -91,7 +90,7 @@ getUpdate :: !*FormStates -> (String,!*FormStates)
 getUpdate formStates = ("",formStates)
 
 findState :: !(FormId a) !*FormStates *NWorld -> (Bool,Maybe a,*FormStates,*NWorld)	| iPrint, iParse, iSpecialStore a	
-findState formid formstates=:{fstates,server} world
+findState formid formstates=:{fstates} world
 # (bool,ma,fstates,world) = findState` formid fstates world
 = (bool,ma,{formstates & fstates = fstates},world)
 where
@@ -207,7 +206,7 @@ where
 	order l1 l2			= if (l1 < l2) l2 l1	// longest lifetime chosen will be the final setting Database > DataFile > TxtFile > Session > Page > temp
 
 deleteStates :: !String !*FormStates *NWorld -> (*FormStates,*NWorld)	
-deleteStates prefix formstates=:{fstates,server} world
+deleteStates prefix formstates=:{fstates} world
 # (fstates,world)		= deleteStates` fstates world
 = ({formstates & fstates = fstates},world)
 where
@@ -251,9 +250,9 @@ where
 //
 // De-serialize information from server to the internally used form states
 
-retrieveFormStates :: ServerKind (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 					// retrieves all form states hidden in the html page
-retrieveFormStates serverkind args world 
-	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets, server = serverkind },world)
+retrieveFormStates :: (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 					// retrieves all form states hidden in the html page
+retrieveFormStates args world 
+	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets},world)
 where
 	retrieveFStates 
 		= Balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
@@ -264,7 +263,7 @@ where
 		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
 		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
 
-	(htmlStates,triplets)	= DecodeHtmlStatesAndUpdate serverkind args
+	(htmlStates,triplets)	= DecodeHtmlStatesAndUpdate args
 	
 	calc_updateid [] 	= ""		
 	calc_updateid [(triplet,upd):_]	= case triplet of
@@ -276,7 +275,7 @@ where
 // or store them in a persistent file, all depending on the kind of states
 
 storeFormStates :: !FormStates *NWorld -> (BodyTag,*NWorld)
-storeFormStates {fstates = allFormStates,server} world
+storeFormStates {fstates = allFormStates} world
 #	world							= writeAllTxtFileStates allFormStates world			// first write all persistens states
 =	(BodyTag
 	[ submitscript    
@@ -404,11 +403,11 @@ derive gMap Tree_
 
 initTestFormStates :: *NWorld -> (*FormStates,*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
-	= ({ fstates = Leaf_, triplets = [], updateid = "" , server = JustTesting},world)
+	= ({ fstates = Leaf_, triplets = [], updateid = ""},world)
 
 setTestFormStates :: [(Triplet,String)] String String *FormStates *NWorld -> (*FormStates,*NWorld)			// retrieves all form states hidden in the html page
 setTestFormStates triplets updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid, server = JustTesting},world)
+	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid},world)
 where
 	toOldState (s,NewState fstate)	= (s,OldState fstate)
 	toOldState else					= else

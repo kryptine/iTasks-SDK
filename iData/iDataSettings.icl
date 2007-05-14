@@ -10,11 +10,16 @@ ThisExe = myName
 
 myName =: toString (reverse (takeWhile (\c -> (<>) c '\\') (drop 4 (reverse [x \\ x <-: getCommandLine.[0]])))) // +++ " iTasks"
 
-
-
 MyDir ::  String
 MyDir  =: mkString (takeWhile ((<>) '.') (mkList ThisExe))
 
-
 MyAbsDir ::  String
 MyAbsDir  =:  toString (reverse (dropWhile (\c -> (<>) c '\\') (drop 4 (reverse [x \\ x <-: getCommandLine.[0]]))))
+
+instance == ServerType
+where
+	(==) Internal Internal = True	
+	(==) External External = True
+	(==) TestMode TestMode = True
+	(==) _ _ = False
+	

@@ -11,10 +11,6 @@ import iDataFormData
 :: Formid			:== String		// uniquely named !
 :: SerializedState 	:== String 		// not encoded !
 
-:: ServerKind
-	= JustTesting					// No Server attached, intended for testing (in collaboration with Gast)
-	| Internal						// A server is atached
-
 // Triplet handling
 
 :: Triplet			:== (String,Int,UpdValue)
@@ -42,7 +38,7 @@ globalstateform 			:: !Value -> BodyTag
 // serializing, de-serializing of iData states to strings stored in the html page
 
 EncodeHtmlStates 			:: ![HtmlState] -> String
-DecodeHtmlStatesAndUpdate 	:: !ServerKind (Maybe [(String, String)]) -> (![HtmlState],!Triplets) // hidden state stored in Client + triplets
+DecodeHtmlStatesAndUpdate 	:: (Maybe [(String, String)]) -> (![HtmlState],!Triplets) // hidden state stored in Client + triplets
 
 // serializing, de-serializing of iData state stored in files
 
@@ -52,7 +48,7 @@ deleteState 				:: !String !*NWorld -> *NWorld
 
 // constants that maybe useful
 
-traceHtmlInput				:: !ServerKind !(Maybe [(String, String)]) -> BodyTag					// for debugging showing the information received from browser
+traceHtmlInput				:: !(Maybe [(String, String)]) -> BodyTag					// for debugging showing the information received from browser
 trace_to_file 				:: !String !*World -> *World											// for storing debug information to file
 
 

@@ -124,16 +124,16 @@ where
 
 // reconstruct HtmlState out of the information obtained from browser
 
-DecodeHtmlStatesAndUpdate :: !ServerKind (Maybe [(String, String)]) -> (![HtmlState],!Triplets)
-DecodeHtmlStatesAndUpdate serverkind args
-# (_,triplets,state)				= DecodeArguments serverkind args
+DecodeHtmlStatesAndUpdate ::  (Maybe [(String, String)]) -> (![HtmlState],!Triplets)
+DecodeHtmlStatesAndUpdate args
+# (_,triplets,state)				= DecodeArguments args
 = ([states \\states=:(id,_,_,nstate) <- DecodeHtmlStates state | id <> "" || nstate <> ""],triplets) // to be sure that no rubbish is passed on
 
 // Parse and decode low level information obtained from server 
 // In case of using a php script and external server:
 
-DecodeArguments :: !ServerKind (Maybe [(String, String)]) -> (!String,!Triplets,!String)
-DecodeArguments Internal (Just args)	
+DecodeArguments ::  (Maybe [(String, String)]) -> (!String,!Triplets,!String)
+DecodeArguments (Just args)	
 # nargs = length args
 | nargs == 0 		= ("clean",[],"")
 | nargs == 1		= DecodeCleanServerArguments (foldl (+++) "" [name +++ "=" +++ value +++ ";" \\ (name,value) <- args])
@@ -190,8 +190,8 @@ where
 
 // traceHtmlInput utility used to see what kind of rubbish is received from client 
 
-traceHtmlInput :: !ServerKind !(Maybe [(String, String)]) -> BodyTag
-traceHtmlInput serverkind args=:(Just input)
+traceHtmlInput ::  !(Maybe [(String, String)]) -> BodyTag
+traceHtmlInput args=:(Just input)
 =	BodyTag	[ Br, B [] "State values received from client when application started:", Br,
 				STable [] [ [B [] "Triplets:",Br]
 							, showTriplet triplets
@@ -204,7 +204,7 @@ traceHtmlInput serverkind args=:(Just input)
 			, STable [] [[Txt name,Txt value] \\ (name,value) <- input]
 			]
 where
-	(htmlState,triplets)	= DecodeHtmlStatesAndUpdate serverkind args
+	(htmlState,triplets)	= DecodeHtmlStatesAndUpdate args
 
 	showTriplet triplets	= [STable [] [[Txt (printToString triplet)] \\ triplet <- triplets]]
 	showl life				= toString life
@@ -410,16 +410,14 @@ where
 
 trace_to_file :: !String !*World -> *World
 trace_to_file s world
-	# (ok,file,world) = fopen filename FAppendText world
+	# (ok,file,world) = fopen TraceFile FAppendText world
 	| not ok
-		= abort ("Could not open "+++filename)
+		= abort ("Could not open "+++ TraceFile)
 	# file = fwrites s file
 	# file = fwritec '\n' file
 	# (ok,world) = fclose file world
 	| not ok
-		= abort ("Could not close "+++filename)
+		= abort ("Could not close "+++ TraceFile)
 	= world
-
-filename =: MyAbsDir +++ ThisExe +++ "-trace.txt"
 
 

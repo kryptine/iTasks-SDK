@@ -45,11 +45,14 @@ closeGerda` gerda world
 
 doHtmlServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
 doHtmlServer userpage world
-= StartServer 80 [("clean", \_ _ args -> doHtmlServer2 args userpage)] world
+| ServerKind == Internal		// link in http 1.0 server
+= StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlServer2 args userpage)] world
+| ServerKind == External		// connect with http 1.1 server
+= doHtmlSubServer userpage world
 
 doHtmlServer2 :: [(String, String)] .(*HSt -> (Html,!*HSt)) *World -> ([String],String,*World)
 doHtmlServer2 args userpage world
-# (inout,world)			= doHtmlPage Internal (Just args) userpage [|] world
+# (inout,world)			= doHtmlPage (Just args) userpage [|] world
 # n_chars				= count_chars inout 0
 	with
 		count_chars [|]    n = n
@@ -71,10 +74,9 @@ doHtmlServer2 args userpage world
 				= d_s
 = ([],allhtmlcode,world)
 
-
-doHtmlSubServer :: !(!Int,!Int,!Int,!String) !(*HSt -> (Html,!*HSt)) !*World -> *World
-doHtmlSubServer (prio,min,max,location) userpage world
-	# result = RegisterSubProcToServer 1 0 1 ".*" ".*"
+doHtmlSubServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+doHtmlSubServer userpage world
+	# result = RegisterSubProcToServer 1 0 1 ".*" (ThisExe +++ ".*")
 	| result == 1
 		# (console,world) = stdio world
 		# (_,world) = fclose (fwrites ("Error: SubServer \"" +++ location +++ "\" could *NOT* registered to an HTTP 1.1 main server\n") console) world
@@ -83,56 +85,39 @@ doHtmlSubServer (prio,min,max,location) userpage world
 		# (console,world) = stdio world
 		# (_,world) = fclose (fwrites ("SubServer \"" +++ location +++ "\" successfully registered to an HTTP 1.1 main server\n") console) world
 		= world
-
-	#! world = trace_to_file "WaitForMessageLoop" world
-
-	# world 		= WaitForMessageLoop mycallbackfun 80 world
+	# world 		= WaitForMessageLoop mycallbackfun SocketNr world
 	= world
 where
 	mycallbackfun :: [String] Int Socket *World -> (Socket,*World)
 	mycallbackfun header contentlength socket world
-
-	#! world = trace_to_file "mycallbackfun" world
-
 	# (method,rlocation,getDataArray,version) 		= GetFirstLine (hd header)
 	# (alldatareceived,datafromclient,socket,world)	= ReceiveString 0 contentlength socket world
 	| socket==0 						= (0,world)				//socket closed or timed out
-	| alldatareceived== -1 && location == rlocation
-		#! world = trace_to_file ("mycallbackfun alldatareceived == -1," +++ "loc=" +++ location +++ ";rloc=" +++ rlocation ) world
-
-
+	| alldatareceived == -1 && location == rlocation
+		#! world = trace ("alldatareceived == -1, page request" +++ ";rloc=" +++ rlocation ) world
 		#! (_,htmlcode,world) 				= doHtmlServer2 [] userpage world
-
-		# world = trace_to_file ("na doHtmlServer2 "+++toString (size htmlcode)) world
-
 		= SendString htmlcode "text/html" header socket world
-
-	| alldatareceived== -1 && location <> rlocation
-
-		#! world = trace_to_file ("alldatareceived2 == -1," +++ "loc =" +++ location +++ "; rloc =" +++ rlocation +++ "; myabsdir =" +++ MyAbsDir +++ ";;") world
-
-
+	| alldatareceived == -1 && location <> rlocation
+		#! world = trace ("alldatareceived == -1, file request" +++ ";rloc=" +++ rlocation ) world
 		= SendFile MyAbsDir header socket world 
-
-	| alldatareceived<>0
-		#! world = trace_to_file "mycallbackfun alldatareceived <> 0" world
-		# data = "THERE ARE "+++(toString alldatareceived)+++" BYTES OF DATA LEFT, DATA SO FAR: " +++ datafromclient
-		# data = data+++"\r\nMethod="+++method+++"\r\nLocation="+++rlocation+++
-				"\r\nVersion="+++version+++"\r\nHost="+++(GetHeaderData header "HOST:")
-		= SendString data "text/plain" header socket world
-
-	| alldatareceived==0 && rlocation <> location 			// server asks for files
-			#! world = trace_to_file ("mycallbackfun alldatareceived3==0 &&" +++ rlocation +++ "<>" +++ location)world
+	| alldatareceived <> 0
+		#! world = trace ("alldatareceived <> 0, more data requested... cannot handle this" +++ ";rloc=" +++ rlocation ) world
+		= SendString "Unexpected request " "text/plain" header socket world
+	| alldatareceived == 0 && rlocation <> location 			// server asks for files
+			#! world = trace ("alldatareceived == 0, file request" +++ ";rloc=" +++ rlocation ) world
 			= SendFile (MyAbsDir +++ rlocation) header socket world 
 	# (_,htmlcode,world) 	= doHtmlServer2 (makeArguments datafromclient) userpage world
+	#! world = trace ("alldatareceived == 0,  page request" +++ ";rloc=" +++ rlocation ) world
 	= SendString htmlcode "text/html" header socket world
 
+	trace s world = if TraceHttp11 (trace_to_file s world) world
+	location = "\/" +++ ThisExe
 
-doHtmlPage :: !ServerKind !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
-doHtmlPage serverkind args userpage inout world
+doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
+doHtmlPage args userpage inout world
 # (gerda,world)				= openGerda` ODCBDataBase world	
 # nworld 					= { worldC = world, inout = inout, gerda = gerda}	
-# (initforms,nworld)	 	= retrieveFormStates serverkind args nworld
+# (initforms,nworld)	 	= retrieveFormStates args nworld
 # (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
 							= userpage (mkHSt initforms nworld)
 # (debufOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)
@@ -144,10 +129,9 @@ doHtmlPage serverkind args userpage inout world
 # world						= closeGerda` gerda worldC
 = (inout,world)
 where
-	extra_body_attr			= [Batt_background "back35.jpg",`Batt_Std [CleanStyle]]
+	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
 	extra_style				= Hd_Style [] CleanStyles	
-	debugInput				= if TraceInput (traceHtmlInput serverkind args) EmptyBody
-
+	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
 
 // swiss army knife editor that makes coffee too ...
 

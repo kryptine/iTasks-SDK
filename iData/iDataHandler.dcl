@@ -20,11 +20,12 @@ derive bimap Form, FormId
 				  }	
 
 // doHtml main wrapper for generating & handling of a Html form
+// depending on the option set (see iDataSettings) it will either 
+//			- link in an http 1.0 server
+//			- administrate itself as subserver to an http 1.1 server
 
-doHtmlServer 		:: !(*HSt -> (Html,!*HSt))  !*World -> *World 							// use this application with the built-in Clean server
-																							// 	it will combine both into one application : http://localhost/clean;
-doHtmlSubServer 	:: !(!Int,!Int,!Int,!String) !(*HSt -> (Html,!*HSt)) !*World -> *World	// use this application as a subserver in combination with an external (Clean) server;
-																							// 	priority (higher number = higher prio), min number, max number of subservers, location, html code 
+doHtmlServer 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
+
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!
 

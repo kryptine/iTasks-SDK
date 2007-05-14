@@ -24,7 +24,7 @@ deleteStates 		:: !String !*FormStates *NWorld -> (*FormStates,*NWorld)
 
 // storage and retrieval of FormStates
 
-retrieveFormStates 	:: ServerKind (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 	// retrieves all form states hidden in the html page
+retrieveFormStates 	:: (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 	// retrieves all form states hidden in the html page
 storeFormStates 	:: !FormStates *NWorld -> (BodyTag,*NWorld)
 
 
