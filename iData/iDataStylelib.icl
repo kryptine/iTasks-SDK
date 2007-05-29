@@ -20,7 +20,7 @@ DisplayBoxStyle		= Std_Class "DisplayBox"
 CleanStyles :: [Style]
 CleanStyles 
 	=:	[ Style "CleanStyle" 
-			[ 	BgImage (`Img_URL "images/back35.jpg")
+			[ 	BgImage (`Img_URL "back35.jpg")
 			,  	FntFamily "Arial, Helvetica, sans-serif"
 			, 	FntStyle Fst_Normal
 			,	FntWeight Fwo_Normal
