@@ -395,12 +395,23 @@ where
 	(==) _ _								= False
 
 derive gLexOrd HtmlTime, HtmlDate
-instance < HtmlTime where (<) ht1 ht2		= gEq{|*|} (gLexOrd{|*|} ht1 ht2) LT
 instance + HtmlTime where (+) (Time h1 m1 s1) (Time h2 m2 s2)
 											= Time (h1 + h2) (m1 + m2) (s1 + s2)
 instance - HtmlTime where (-) (Time h1 m1 s1) (Time h2 m2 s2)
 											= Time (h1 - h2) (m1 - m2) (s1 - s2)
-instance < HtmlDate where (<) hd1 hd2		= gEq{|*|} (gLexOrd{|*|} hd1 hd2) LT
+instance < HtmlTime 
+where 
+	(<) (Time h1 m1 s1) (Time h2 m2 s2)
+	| h1 <> h2 = h1 < h2
+	| m1 <> m2 = m1 < m2
+	= s1 < s2
+
+instance < HtmlDate 
+where 
+	(<) (Date d1 m1 y1) (Date d2 m2 y2) 
+	| y1 <> y2 = y1 < y2
+	| m1 <> m2 = m1 < m2
+	= d1 < d2
 
 instance toString HtmlTime where
 	toString (Time hrs min sec)				= toString hrs <+++ ":" <+++ min <+++ ":" <+++ sec

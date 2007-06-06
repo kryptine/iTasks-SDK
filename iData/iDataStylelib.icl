@@ -1,6 +1,6 @@
 implementation module iDataStylelib
 
-import iDataStyleDef
+import iDataStyleDef, iDataSettings, StdString
 
 TableHeaderStyle :: Standard_Attr
 TableHeaderStyle	= Std_Class "TableHeader"
@@ -20,7 +20,7 @@ DisplayBoxStyle		= Std_Class "DisplayBox"
 CleanStyles :: [Style]
 CleanStyles 
 	=:	[ Style "CleanStyle" 
-			[ 	BgImage (`Img_URL "back35.jpg")
+			[ 	BgImage (`Img_URL (ThisExe +++ "/back35.jpg"))
 			,  	FntFamily "Arial, Helvetica, sans-serif"
 			, 	FntStyle Fst_Normal
 			,	FntWeight Fwo_Normal
