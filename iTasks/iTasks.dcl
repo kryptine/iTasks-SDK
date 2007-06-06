@@ -38,7 +38,7 @@ multiUserTask2  :: !(!Int,!Int) !Int !Bool !(Task a) !*HSt -> (Html,*HSt) 	| iCr
 /* Setting options for any collection of iTask workflows
 (<<@)			:: set iData attribute globally for indicated (composition of) iTask(s) 
 */
-class (<<@) infix 3 b :: (Task a) b -> Task a 
+class (<<@) infixl 3 b :: (Task a) b -> Task a 
 
 :: GarbageCollect =	Collect | NoCollect
 

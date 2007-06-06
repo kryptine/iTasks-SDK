@@ -52,7 +52,7 @@ initialOptions	=	{ tasklife 		= Session
 					, gc			= Collect
 					}
 
-class 	(<<@) infix 3 b ::  (Task a) b  -> (Task a) 
+class 	(<<@) infixl 3 b ::  (Task a) b  -> (Task a) 
 instance <<@  Lifespan
 where   (<<@) task lifespan			= \tst -> task {tst & options.tasklife = lifespan}
 instance <<@  StorageFormat
