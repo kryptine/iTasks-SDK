@@ -606,7 +606,7 @@ None				:== [NoAttr]
 					| RelLength			Int
 
 :: Standard_Attr	= Std_Class			String  					// Core_Attr - All except base,head,html,meta,param,script,style and title
-					| Std_Id			QString						// Core_Attr - All except base,head,html,meta,param,script,style and title
+					| Std_Id			String						// Core_Attr - All except base,head,html,meta,param,script,style and title
 					| Std_Style			String						// Core_Attr - All except base,head,html,meta,param,script,style and title
 					| Std_Title			String						// Core_Attr - All except base,head,html,meta,param,script,style and title
 					| Std_Dir			TxtDir  					// Language_Attr - All except base,br,frame,frameset,hr,iframe,param and script

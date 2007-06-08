@@ -74,9 +74,11 @@ doHtmlServer2 args userpage world
 				= d_s
 = ([],allhtmlcode,world)
 
+import Semaphore
+
 doHtmlSubServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
 doHtmlSubServer userpage world
-	# result = RegisterSubProcToServer 1 0 1 ".*" (ThisExe +++ ".*")
+	# result = RegisterSubProcToServer 1 0 10 ".*" (ThisExe +++ ".*")
 	| result == 1
 		# (console,world) = stdio world
 		# (_,world) = fclose (fwrites ("Error: SubServer \"" +++ location +++ "\" could *NOT* registered to an HTTP 1.1 main server\n") console) world
@@ -85,17 +87,21 @@ doHtmlSubServer userpage world
 		# (console,world) = stdio world
 		# (_,world) = fclose (fwrites ("SubServer \"" +++ location +++ "\" successfully registered to an HTTP 1.1 main server\n") console) world
 		= world
-	# world 		= WaitForMessageLoop mycallbackfun SocketNr world
+	# (semaphore,world) = CreateSemaphore 0 1 1 ThisExe world
+	| semaphore == 0	= abort "CreateSemaphore failed"
+	# world 			= WaitForMessageLoop (mycallbackfun semaphore) SocketNr world
+	# (ok,world) 		= CloseHandle semaphore world
+	| ok==0				= abort "CloseHandle failed"
 	= world
 where
-	mycallbackfun :: [String] Int Socket *World -> (Socket,*World)
-	mycallbackfun header contentlength socket world
+	mycallbackfun :: !Int [String] Int Socket *World -> (Socket,*World)
+	mycallbackfun semaphore header contentlength socket world
 	# (method,rlocation,getDataArray,version) 		= GetFirstLine (hd header)
 	# (alldatareceived,datafromclient,socket,world)	= ReceiveString 0 contentlength socket world
 	| socket==0 						= (0,world)				//socket closed or timed out
 	| alldatareceived == -1 && location == rlocation
 		#! world = trace ("alldatareceived == -1, page request" +++ ";rloc=" +++ rlocation ) world
-		#! (_,htmlcode,world) 				= doHtmlServer2 [] userpage world
+		#! (_,htmlcode,world) 				= indivisable (doHtmlServer2 [] userpage) world
 		= SendString htmlcode "text/html" header socket world
 	| alldatareceived == -1 && location <> rlocation
 		#! world = trace ("alldatareceived == -1, file request" +++ ";rloc=" +++ rlocation ) world
@@ -106,12 +112,23 @@ where
 	| alldatareceived == 0 && rlocation <> location 			// server asks for files
 			#! world = trace ("alldatareceived == 0, file request" +++ ";rloc=" +++ rlocation ) world
 			= SendFile (MyAbsDir +++ rlocation) header socket world 
-	# (_,htmlcode,world) 	= doHtmlServer2 (makeArguments datafromclient) userpage world
+	# (_,htmlcode,world) 	= indivisable (doHtmlServer2 (makeArguments datafromclient) userpage) world
 	#! world = trace ("alldatareceived == 0,  page request" +++ ";rloc=" +++ rlocation ) world
 	= SendString htmlcode "text/html" header socket world
+	where
+		indivisable doServer world
+		# (_,world) 			= WaitForSingleObject semaphore -1 world
+		# (r,htmlcode,world) 	= doServer world
+		# (ok,world) 			= ReleaseSemaphore semaphore 1 0 world
+		= (r,htmlcode,world)
+		
+
 
 	trace s world = if TraceHttp11 (trace_to_file s world) world
 	location = "\/" +++ ThisExe
+
+	
+
 
 doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
 doHtmlPage args userpage inout world

@@ -10,10 +10,10 @@ where
 
 gHpr{|Head|}    prev (Head attr tags)			= prev <+> htmlAttrCmnd "head"			attr tags
 
-gHpr{|HeadTag|} prev (Hd_Base attr)				= prev <+> openCmnd 	"base"			attr
-gHpr{|HeadTag|} prev (Hd_Basefont attr)			= prev <+> openCmnd 	"basefont"		attr
-gHpr{|HeadTag|} prev (Hd_Link attr)				= prev <+> openCmnd 	"link"			attr
-gHpr{|HeadTag|} prev (Hd_Meta attr)				= prev <+> openCmnd 	"meta"			attr
+gHpr{|HeadTag|} prev (Hd_Base attr)				= prev <+> htmlAttrCmnd	"base"			attr None
+gHpr{|HeadTag|} prev (Hd_Basefont attr)			= prev <+> htmlAttrCmnd	"basefont"		attr None
+gHpr{|HeadTag|} prev (Hd_Link attr)				= prev <+> htmlAttrCmnd	"link"			attr None
+gHpr{|HeadTag|} prev (Hd_Meta attr)				= prev <+> htmlAttrCmnd	"meta"			attr None
 gHpr{|HeadTag|} prev (Hd_Object attr param)		= prev <+> htmlAttrCmnd "object" 		attr param
 gHpr{|HeadTag|} prev (Hd_Script attr text)		= prev <+> htmlAttrCmnd "script"		attr text
 gHpr{|HeadTag|} prev (Hd_Style attr text)		= prev <+> htmlAttrCmnd "style"			attr text
@@ -22,7 +22,7 @@ gHpr{|HeadTag|} prev (Hd_Title text)			= prev <+> htmlAttrCmnd "title" 		None te
 gHpr{|Rest|}    prev (Body attr body) 			= prev <+> htmlAttrCmnd "body"			attr body
 gHpr{|Rest|}    prev (Frameset attr frames)		= prev <+> htmlAttrCmnd "frameset"		attr frames
 
-gHpr{|Frame|}   prev (Frame attr)				= prev <+> openCmnd 	"frame"			attr
+gHpr{|Frame|}   prev (Frame attr)				= prev <+> htmlAttrCmnd	"frame"			attr None
 gHpr{|Frame|}   prev (NoFrames attr body)		= prev <+> htmlAttrCmnd "noframes"		attr body
 
 gHpr{|BodyTag|} prev (A attr body)  			= prev <+> htmlAttrCmnd "a" 			attr body
@@ -30,13 +30,13 @@ gHpr{|BodyTag|} prev (Abbr attr text)  			= prev <+> htmlAttrCmnd "abbr" 			attr
 gHpr{|BodyTag|} prev (Acronym attr text)		= prev <+> htmlAttrCmnd "acronym"		attr text
 gHpr{|BodyTag|} prev (Address attr text)		= prev <+> htmlAttrCmnd "address"		attr text
 gHpr{|BodyTag|} prev (Applet attr text)			= prev <+> htmlAttrCmnd "applet"		attr text
-gHpr{|BodyTag|} prev (Area attr)				= prev <+> openCmnd 	"area"			attr
+gHpr{|BodyTag|} prev (Area attr)				= prev <+> htmlAttrCmnd	"area"			attr None
 gHpr{|BodyTag|} prev (B attr text)  			= prev <+> htmlAttrCmnd "b" 			attr text
 gHpr{|BodyTag|} prev (Bdo attr text)			= prev <+> htmlAttrCmnd "bdo" 			attr text
 gHpr{|BodyTag|} prev (Big attr text)			= prev <+> htmlAttrCmnd "big" 			attr text
 gHpr{|BodyTag|} prev (Blink attr text)	 		= prev <+> htmlAttrCmnd "blink" 		attr text
 gHpr{|BodyTag|} prev (Blockquote attr text)		= prev <+> htmlAttrCmnd "blockquote"	attr text
-gHpr{|BodyTag|} prev Br							= prev <+ "<br>"
+gHpr{|BodyTag|} prev Br							= prev <+ "<br />"
 gHpr{|BodyTag|} prev (Button attr text)			= prev <+> htmlAttrCmnd "button" 		attr text
 gHpr{|BodyTag|} prev (Caption attr text)		= prev <+> htmlAttrCmnd "caption" 		attr text
 gHpr{|BodyTag|} prev (Center attr text)			= prev <+> htmlAttrCmnd "center" 		attr text
@@ -62,10 +62,10 @@ gHpr{|BodyTag|} prev (H3 attr text)		 		= prev <+> htmlAttrCmnd "h3" 			attr tex
 gHpr{|BodyTag|} prev (H4 attr text) 			= prev <+> htmlAttrCmnd "h4"	 		attr text
 gHpr{|BodyTag|} prev (H5 attr text) 			= prev <+> htmlAttrCmnd "h5" 			attr text
 gHpr{|BodyTag|} prev (H6 attr text) 			= prev <+> htmlAttrCmnd "h6" 			attr text
-gHpr{|BodyTag|} prev (Hr attr)					= prev <+> openCmnd 	"hr"			attr
+gHpr{|BodyTag|} prev (Hr attr)					= prev <+> htmlAttrCmnd	"hr"			attr None
 gHpr{|BodyTag|} prev (I attr text)				= prev <+> htmlAttrCmnd "i" 			attr text
 gHpr{|BodyTag|} prev (Iframe attr)				= prev <+> htmlAttrCmnd "iframe"		attr None
-gHpr{|BodyTag|} prev (Img attr)					= prev <+> openCmnd 	"img"			attr
+gHpr{|BodyTag|} prev (Img attr)					= prev <+> htmlAttrCmnd	"img"			attr None
 gHpr{|BodyTag|} prev (Input attr text)			= prev <+> htmlAttrCmnd "input"			attr text
 gHpr{|BodyTag|} prev (Ins attr text) 			= prev <+> htmlAttrCmnd "ins" 			attr text
 gHpr{|BodyTag|} prev (Kbd attr text)			= prev <+> htmlAttrCmnd "kbd" 			attr text
@@ -121,10 +121,10 @@ gHpr{|BodyTag|} prev (BodyTag listofbodies)		= prev <+ listofbodies
 gHpr{|Script|}  prev (SScript string)			= prev <+ string
 gHpr{|Script|}  prev (FScript fof)				= prev <+> fof
 
-gHpr{|Option|}  prev (Option attr text)			= prev <+> htmlAttrCmnd  "option"		attr text
-gHpr{|Option|}  prev (Optgroup attr)			= prev <+> openCmnd "optgroup"			attr
+gHpr{|Option|}  prev (Option attr text)			= prev <+> htmlAttrCmnd "option"		attr text
+gHpr{|Option|}  prev (Optgroup attr)			= prev <+> htmlAttrCmnd "optgroup"		attr None
 
-gHpr{|Value|}   prev (SV string)				= prev <+ "\"" <+ string <+ "\""			
+gHpr{|Value|}   prev (SV string)				= prev <+ string 			
 gHpr{|Value|}   prev (IV int)  					= prev <+ toString int  		
 gHpr{|Value|}   prev (RV real) 					= prev <+ toString real		
 gHpr{|Value|}   prev (BV bool) 					= prev <+ toString bool		
@@ -137,9 +137,9 @@ gHpr{|ScriptType|} prev (TypeVbscript)			= prev <+ "\"text/Vbscript\""
 gHpr{|ScriptType|} prev (TypeVbs)				= prev <+ "\"text/Vbs\""		
 gHpr{|ScriptType|} prev (TypeXml)				= prev <+ "\"text/Xml\""		
 
-gHpr{|SizeOption|} prev (Pixels num)			= prev  <+ "\"" <+ num <+ "\"" 
-gHpr{|SizeOption|} prev (Percent num)			= prev  <+ "\"" <+ num <+ "%\"" 
-gHpr{|SizeOption|} prev (RelLength num)			= prev  <+ "\"" <+ num <+ "*\"" 
+gHpr{|SizeOption|} prev (Pixels num)			= prev  <+ num 
+gHpr{|SizeOption|} prev (Percent num)			= prev  <+ num <+ "%" 
+gHpr{|SizeOption|} prev (RelLength num)			= prev  <+ num <+ "*" 
 
 //gHpr{|Ins_Attr|} prev (Ins_Datetime y m d)	= prev  <+ " datetime=\"" <+ y <+ m <+ d <+ "\"" 
 
@@ -166,7 +166,7 @@ gHpr{|HN|}     prev H_F 						= prev  <+ "F"
 
 gHpr{|NoAttr|} prev _							= prev 
 
-gHpr{|Param|}  prev (Param attr)				= prev <+> openCmnd "param" attr
+gHpr{|Param|}  prev (Param attr)				= prev <+> htmlAttrCmnd "param" attr None
 
 gHpr{|QString|}  prev (QS s)					= prev <+ "\"" <+ s <+ "\""
 

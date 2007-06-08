@@ -26,8 +26,8 @@ gHpr{|CONS of t|} gPrHtmlc prev (CONS c)		// constructor names are printed, pref
 = case t.gcd_name.[0] of
 	'`' 	= 	gPrHtmlc prev c					// just skip this constructor name
 	else	=	case t.gcd_arity of
-					0 = prev <+ " " <+ myprint t.gcd_name	 
-					1 = gPrHtmlc (prev <+ " " <+ myprint t.gcd_name <+ " = ") c	
+					0 = prev <+ myprint t.gcd_name	 
+					1 = gPrHtmlc (prev <+ " " <+ myprint t.gcd_name <+ "=\"") c	<+ "\"" 
 					n = gPrHtmlc (prev <+ " " <+ myprint t.gcd_name         ) c
 where
 	myprint :: String -> String
