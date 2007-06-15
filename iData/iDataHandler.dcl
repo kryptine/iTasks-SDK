@@ -25,6 +25,7 @@ derive bimap Form, FormId
 //			- administrate itself as subserver to an http 1.1 server
 
 doHtmlServer 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
+doHtmlClient 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

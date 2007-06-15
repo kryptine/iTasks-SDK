@@ -58,7 +58,7 @@ print a			= \f -> [|a:f]
 (<+>) file new	= new file
 
 print_to_stdout :: !a !*NWorld -> *NWorld | gHpr{|*|} a
-print_to_stdout value nw=:{worldC,inout}
+print_to_stdout value nw=:{inout}
 # inout = inout <+ value
 = {nw & inout = inout}
 

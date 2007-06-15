@@ -122,12 +122,8 @@ where
 		# (ok,world) 			= ReleaseSemaphore semaphore 1 0 world
 		= (r,htmlcode,world)
 		
-
-
 	trace s world = if TraceHttp11 (trace_to_file s world) world
 	location = "\/" +++ ThisExe
-
-	
 
 
 doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
@@ -137,11 +133,11 @@ doHtmlPage args userpage inout world
 # (initforms,nworld)	 	= retrieveFormStates args nworld
 # (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
 							= userpage (mkHSt initforms nworld)
-# (debufOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)
+# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)
 # (allformbodies,world)		= storeFormStates states world
 # {worldC,gerda,inout}		= print_to_stdout 
 								(Html (Head headattr [extra_style:headtags]) 
-								(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debufOutput]]))
+								(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
 								world
 # world						= closeGerda` gerda worldC
 = (inout,world)
@@ -149,6 +145,58 @@ where
 	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
 	extra_style				= Hd_Style [] CleanStyles	
 	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
+
+doHtmlClient :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+doHtmlClient userpage world
+= callSapl (\args ->  doHtmlClient2 args userpage) world
+
+callSapl :: ([(String, String)] *World -> ([String],String,*World)) !*World -> *World
+callSapl f world 
+# (_,allhtmlcode,world) = f [] world
+= abort allhtmlcode
+//= world
+
+doHtmlClient2 :: [(String, String)] .(*HSt -> (Html,!*HSt)) *World -> ([String],String,*World)
+doHtmlClient2 args userpage world
+# (inout,world)			= doHtmlClientPage (Just args) userpage [|] world
+# n_chars				= count_chars inout 0
+	with
+		count_chars [|]    n = n
+		count_chars [|s:l] n = count_chars l (n+size s)
+# allhtmlcode			= copy_strings inout n_chars (createArray n_chars '\0')
+	with
+		copy_strings [|e:l] i s
+			# size_e	= size e
+			# i			= i-size_e
+			= copy_strings l i (copy_chars e 0 i size_e s)
+		copy_strings [|] 0 s
+			= s
+
+		copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
+		copy_chars s_s s_i d_i n d_s
+			| s_i<n
+				# d_s	= {d_s & [d_i]=s_s.[s_i]}
+				= copy_chars s_s (s_i+1) (d_i+1) n d_s
+				= d_s
+= ([],allhtmlcode,world)
+
+doHtmlClientPage args userpage inout world
+# nworld 					= { worldC = world, inout = inout, gerda = abort "Cannot open Gerda database on Client"}	
+# (initforms,nworld)	 	= retrieveFormStates args nworld
+# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
+							= userpage (mkHSt initforms nworld)
+# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)
+# (allformbodies,world)		= storeFormStates states world
+# {worldC,gerda,inout}		= print_to_stdout 
+								(Html (Head headattr [extra_style:headtags]) 
+								(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
+								world
+= (inout,worldC)
+where
+	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
+	extra_style				= Hd_Style [] CleanStyles	
+	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
+
 
 // swiss army knife editor that makes coffee too ...
 
