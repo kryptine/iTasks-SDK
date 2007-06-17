@@ -10,32 +10,31 @@ derive gParse 	Void, Maybe
 derive gPrint 	Void, Maybe
 derive gerda 	Void
 
-:: *TSt 		=	{ tasknr 		:: !TaskNr				// for generating unique form-id's
-					, activated		:: !Bool   				// if true activate task, if set as result task completed	
-					, userId		:: !UserID				// id of user to which task is assigned
-					, currentUserId	:: !UserID				// id of application user 
-					, html			:: !HtmlTree			// accumulator for html code
-					, options		:: !Options				// iData lifespan and storage format
-					, trace			:: !Maybe [Trace]		// for displaying task trace
-					, hst			:: !HSt					// iData state
+:: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
+					, activated		:: !Bool   			// if true activate task, if set as result task completed	
+					, userId		:: !Int				// id of user to which task is assigned
+					, currentUserId	:: !Int				// id of application user 
+					, html			:: !HtmlTree		// accumulator for html code
+					, options		:: !Options			// iData lifespan and storage format
+					, trace			:: !Maybe [Trace]	// for displaying task trace
+					, hst			:: !HSt				// iData state
 					}
-:: TaskNr		:== [Int]									// task nr i.j is adminstrated as [j,i]
-:: UserID		:== Int										// the identification number of users
-:: HtmlTree		=	BT [BodyTag]							// simple code
-				|	(@@:) infix  0 (UserID,String) HtmlTree	// code with id of user attached to it
-				|	(-@:) infix  0 UserID          HtmlTree	// skip code with this id if it is the id of the user 
-				|	(+-+) infixl 1 HtmlTree HtmlTree		// code to be placed next to each other				
-				|	(+|+) infixl 1 HtmlTree HtmlTree		// code to be placed below each other				
+:: TaskNr		:== [Int]								// task nr i.j is adminstrated as [j,i]
+:: HtmlTree		=	BT [BodyTag]						// simple code
+				|	(@@:) infix  0 (Int,String) HtmlTree// code with id of user attached to it
+				|	(-@:) infix  0 Int 			HtmlTree// skip code with this id if it is the id of the user 
+				|	(+-+) infixl 1 HtmlTree HtmlTree	// code to be placed next to each other				
+				|	(+|+) infixl 1 HtmlTree HtmlTree	// code to be placed below each other				
 
-:: Options		=	{ tasklife		:: !Lifespan			// default: Session		
-					, taskstorage	:: !StorageFormat		// default: PlainString
-					, taskmode		:: !Mode				// default: Edit
-					, gc			:: !GarbageCollect		// default: Collect
+:: Options		=	{ tasklife		:: !Lifespan		// default: Session		
+					, taskstorage	:: !StorageFormat	// default: PlainString
+					, taskmode		:: !Mode			// default: Edit
+					, gc			:: !GarbageCollect	// default: Collect
 					}
 :: GarbageCollect =	Collect | NoCollect
-:: Trace		=	Trace TraceInfo [Trace]					// traceinfo with possibly subprocess
+:: Trace		=	Trace TraceInfo [Trace]				// traceinfo with possibly subprocess
 
-:: TraceInfo	:== Maybe (Bool,(UserID,TaskNr,String,String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe (Bool,(Int,TaskNr,String,String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 // *** First some small utility functions
 
@@ -94,9 +93,9 @@ where
 
 // *** wrappers, to be used in combination with an iData wrapper...
 
-startTask :: !UserID !Bool !(Task a) !*HSt -> (a,[BodyTag],!*HSt) | iCreate a 
-startTask thisUser traceOn taska hst 
-# (a,body,tst) = startTstTask thisUser traceOn taska tst
+startTask :: !Int !Bool !Bool !(Task a) !*HSt -> (a,[BodyTag],!*HSt) | iCreate a 
+startTask thisUser traceOn versionsOn taska hst 
+# (a,body,tst) = startTstTask thisUser traceOn versionsOn taska tst
 = (a,body,tst.hst)
 where
 	tst	=	{ tasknr		= [-1]
@@ -109,16 +108,16 @@ where
 			, options 		= initialOptions
 			}
 
-startNewTask :: !UserID !Bool !(Task a) -> Task a | iCreateAndPrint a 
+startNewTask :: !Int !Bool !(Task a) -> Task a | iCreateAndPrint a 
 startNewTask newUser traceOn taska = mkTask "startNewTask" startNewTask`
 where
 	startNewTask` tst=:{html} 
-	# (a,body,tst) 	= startTstTask newUser traceOn taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
+	# (a,body,tst) 	= startTstTask newUser traceOn True taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
 	= (a,{tst & html = html +|+ BT body})
 
-singleUserTask :: !UserID !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
+singleUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
 singleUserTask userId traceOn task hst 
-# (_,html,hst) = startTask userId traceOn task hst
+# (_,html,hst) = startTask userId traceOn False task hst
 = mkHtml "stest" html hst
 
 multiUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
@@ -126,7 +125,7 @@ multiUserTask nusers traceOn task  hst
 # (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
 						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker	= snd idform.value
-# (_,html,hst) 	= startTask currentWorker traceOn task hst
+# (_,html,hst) 	= startTask currentWorker traceOn False task hst
 = mkHtml "mtest" (ifTraceOn idform.form ++ html) hst
 where
 	ifTraceOn form = if traceOn form []
@@ -136,7 +135,7 @@ multiUserTask2 (minutes,seconds) nusers traceOn task  hst
 # (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
 						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker	= snd idform.value
-# (_,html,hst) 	= startTask currentWorker traceOn task hst
+# (_,html,hst) 	= startTask currentWorker traceOn False task hst
 = mkxHtml "mtest" (idform.form ++ html) hst
 where
 	mkxHtml s tags hst 	= (Html (header s) (body tags),hst)
@@ -146,20 +145,21 @@ where
 	scriptName 			= "beginrefresh()"
 
 
-startTstTask :: !UserID !Bool !(Task a) !*TSt -> (a,[BodyTag],!*TSt) | iCreate a 
-startTstTask thisUser traceOn taska tst=:{hst}
+startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (a,[BodyTag],!*TSt) | iCreate a 
+startTstTask thisUser traceOn versionsOn taska tst=:{hst}
 | thisUser < 0 
 	# (a,tst=:{html}) 	= taska {tst & hst = hst}
 	= (a, noFilter html, {tst & html = html})
 # userVersionNr			= "User" <+++ thisUser <+++ "_VersionPNr"
 # sessionVersionNr		= "User" <+++ thisUser <+++ "_VersionSNr" 
 # traceId				= "User" <+++ thisUser <+++ "_Trace" 
-# (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) id hst
 # (refresh,hst) 		= simpleButton userVersionNr "Refresh" id hst
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
+# (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) id hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId sessionVersionNr pversion.value) (if refresh.changed (\_ -> pversion.value) id) hst
-| sversion.value < pversion.value	= (createDefault,  refresh.form ++ [Br,Br, Hr [],Br] <|.|>
+| sversion.value < pversion.value &&
+  versionsOn			= (createDefault,  refresh.form ++ [Br,Br, Hr [],Br] <|.|>
 														[Font [Fnt_Color (`Colorname Yellow)]
 													   [B [] "Sorry, cannot apply command.",Br, 
 													    B [] "Your page is not up-to date!",Br]],{tst & hst = hst})
@@ -222,7 +222,7 @@ where
 	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
 
-mkTaskButtons :: !String !String !UserID !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
+mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
 mkTaskButtons header myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames
@@ -435,7 +435,7 @@ where
 
 // assigning tasks to users, each user is identified by a number
 
-(@:) infix 3 :: !(!String,!UserID) (Task a)	-> (Task a)			| iCreateAndPrint a
+(@:) infix 3 :: !(!String,!Int) (Task a)	-> (Task a)			| iCreateAndPrint a
 (@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTask` userId {tst & userId = nuserId}
 where
 	assignTask` userId tst=:{html=ohtml,activated,userId = nuserId}
@@ -451,7 +451,7 @@ where
 						((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ // show requested by
 												 nhtml)})									// plus new one tagged				
 
-(@::) infix 3 :: !UserID (Task a)	-> (Task a)			| iCreate  a
+(@::) infix 3 :: !Int (Task a)	-> (Task a)			| iCreate  a
 (@::) nuserId taska = \tst=:{userId} -> assignTask` userId {tst & userId = nuserId}
 where
 	assignTask` userId tst=:{html,activated}
@@ -724,7 +724,7 @@ where
 								(userId -@: allhtml)
 					})
 
-andTasks_mu :: String [(UserID,Task a)] -> (Task [a]) | iData a
+andTasks_mu :: String [(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu taskid tasks = newTask "andTasks_mu" (domu_andTasks tasks)
 where
 	domu_andTasks list = andTasks [(taskid <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
@@ -832,10 +832,10 @@ where
 
 // functions on TSt
 
-taskId :: TSt -> (UserID,TSt)
+taskId :: TSt -> (Int,TSt)
 taskId tst=:{userId} = (userId,tst)
 
-userId :: TSt -> (UserID,TSt)
+userId :: TSt -> (Int,TSt)
 userId tst=:{currentUserId} = (currentUserId,tst)
 
 addHtml :: [BodyTag] TSt -> TSt
@@ -951,7 +951,7 @@ showTaskNr [] 		= ""
 showTaskNr [i] 		= toString i
 showTaskNr [i:is] 	= showTaskNr is <+++ "." <+++ toString i 
 
-iTaskId :: !UserID !TaskNr String -> String
+iTaskId :: !Int !TaskNr String -> String
 iTaskId userid tasknr postfix 
 | postfix == ""
 	| userid < 0	= "iLog_"  <+++ (showTaskNr tasknr) 
@@ -959,10 +959,10 @@ iTaskId userid tasknr postfix
 | userid < 0		= "iLog_"  <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix
 | otherwise			= "iTask_" <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix <+++ "+" <+++ userid
 
-InsertTrace :: !Bool !TaskNr !UserID String !String ![Trace] -> [Trace]
+InsertTrace :: !Bool !TaskNr !Int String !String ![Trace] -> [Trace]
 InsertTrace finished idx who taskname val trace = InsertTrace` ridx who val trace
 where
-	InsertTrace` :: !TaskNr !UserID !String ![Trace] -> [Trace]
+	InsertTrace` :: !TaskNr !Int !String ![Trace] -> [Trace]
 	InsertTrace` [i] 	who str traces
 	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr idx <+++ "," <+++ who <+++ "," <+++ taskname)
 	# (Trace _ itraces)		= select i traces
