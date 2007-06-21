@@ -95,7 +95,7 @@ repeatTask		:: repeat Task until predict is valid
 */
 newTask 		:: !String (Task a) 		-> (Task a) 		| iData a 
 foreverTask		:: (Task a) 				-> Task a 			| iData a
-repeatTask_Std	:: (a -> Task a) (a -> Bool) -> a -> Task a		| iCreateAndPrint a
+repeatTask		:: (a -> Task a) (a -> Bool) -> a -> Task a		| iCreateAndPrint a
 
 /*	Sequencing Tasks:
 seqTasks		:: do all iTasks one after another, task completed when all done

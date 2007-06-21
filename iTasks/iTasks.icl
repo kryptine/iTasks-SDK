@@ -367,13 +367,13 @@ internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` pro
 // they work, but are NOT suited for big applications
 // I will kick them out some day....
 
-repeatTask_Std :: (a -> Task a) (a -> Bool) -> a -> Task a | iCreateAndPrint a
-repeatTask_Std task pred = \a -> mkTask "repeatTask_Std" (dorepeatTask_Std a)
+repeatTask :: (a -> Task a) (a -> Bool) -> a -> Task a | iCreateAndPrint a
+repeatTask task pred = \a -> mkTask "repeatTask" (dorepeatTask a)
 where
-	dorepeatTask_Std a tst
+	dorepeatTask a tst
 	# (na,tst)	= task a (newSubTaskNr tst)
 	| pred na	= (na,tst)
-	= dorepeatTask_Std na (incTaskNr tst)
+	= dorepeatTask na (incTaskNr tst)
 
 
 foreverTask_Std :: (Task a) -> Task a | iCreateAndPrint a
