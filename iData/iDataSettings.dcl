@@ -32,7 +32,7 @@ class iSpecialStore a
 										// OPTION: Comment out the next two lines if you do not have access to an ODCB database on your machine !!!!
 										// and enable the third line 
 //		, pmdb  {|*|} 	 				// To store and retrieve a value in a poor mans database DataFile
-//		, gerda {|*|} 	 				// To store and retrieve a value in a database
+		, gerda {|*|} 	 				// To store and retrieve a value in a database
 		a
 
 // Set here the kind of server 
@@ -44,16 +44,17 @@ class iSpecialStore a
 
 instance == ServerType
 
-ServerKind				:==	Internal	// Choose one of the options above
+ServerKind				:==	Internal	// Enable this one for developing an iData or iTask application
+//ServerKind				:==	External	// or: Enable this one for the final version using an http 1.1 server
 SocketNr				:== 80			// Socket you wnat to work on
 
 // Set here the storage options you would like to have
 
 // OPTION: Comment out the next line if you do not have access to an ODCB database on your machine !!!!
-//IF_GERDA gerda no_gerda :== gerda		// If database option is used
+IF_GERDA gerda no_gerda :== gerda		// If database option is used
 
 // OPTION: Remove the comment from the next line if you do not have access to an ODCB database on your machine !!!!
-IF_GERDA gerda no_gerda :== no_gerda	// otherwise, BUT manually flag of ", gerda{|*|}" in the class definition above
+//IF_GERDA gerda no_gerda :== no_gerda	// otherwise, BUT manually flag of ", gerda{|*|}" in the class definition above
 
 // OPTION: Comment out the next line if you do not want to use the poor mans database option
 //IF_PMDB pmdb no_pmdb :== pmdb			// If the poor mans database option is used

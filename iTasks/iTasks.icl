@@ -2,7 +2,7 @@ implementation module iTasks
 
 // (c) MJP 2006 - 2007
 
-import StdEnv, StdiData
+import StdEnv, StdiData, StdBimap
 
 derive gForm 	[], Void, Maybe
 derive gUpd 	[], Void, Maybe

@@ -4,7 +4,7 @@ implementation module EncodeDecode
 // (c) 2005 MJP
 
 import StdArray, StdBool, StdInt, StdList, StdOrdList, StdString, StdTuple, ArgEnv, StdMaybe, Directory
-import iDataTrivial, iDataFormData
+import iDataTrivial, iDataFormData, StdBimap
 import GenPrint, GenParse
 import dynamic_string
 import EstherBackend

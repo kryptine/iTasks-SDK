@@ -7,8 +7,7 @@ definition module iTasks
 // Version 1.0 - april 2007 - MJP
 // This library is still under construction - MJP
 
-import iDataSettings, iDataButtons
-
+import iDataSettings, iDataButtons, StdBimap
 derive gForm 	Void						
 derive gUpd 	Void, TCl
 derive gPrint 	Void, TCl

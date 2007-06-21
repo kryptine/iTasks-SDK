@@ -6,12 +6,13 @@ import iDataHtmlDef, iDataTrivial, iDataSettings, iDataStylelib, iDataState
 import StdGeneric, GenParse, GenPrint
 import httpServer, httpSubServer
 import Gerda
+import StdBimap
 
 derive gPrint (,), (,,), (,,,), UpdValue
 derive gParse (,), (,,), (,,,), UpdValue
 derive gHpr   (,), (,,), (,,,)
 derive gUpd		   (,,), (,,,)
-derive bimap Form, [], FormId
+derive bimap Form, FormId
 
 :: Inline = Inline String
 

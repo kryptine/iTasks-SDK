@@ -35,3 +35,4 @@ import
 // of general use:
 
 		,	iDataTrivial		// some trivial generic bimap derives
+		,	StdBimap			// some trival derives for bimap

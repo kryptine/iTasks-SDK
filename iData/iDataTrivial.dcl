@@ -2,7 +2,7 @@ definition module iDataTrivial
 
 import StdMaybe, StdGeneric, StdOverloaded
 
-derive bimap Maybe, (,) 
+//derive bimap Maybe, (,) 
 
 // utility 
 

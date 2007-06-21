@@ -5,7 +5,7 @@ implementation module iDataFormlib
 
 import StdEnum, StdFunc, StdList, StdString, StdTuple
 import iDataButtons, iDataFormData, iDataTrivial, iDataStylelib
-import StdLib
+import StdLib, StdBimap
 
 derive gForm []; derive gUpd []
 

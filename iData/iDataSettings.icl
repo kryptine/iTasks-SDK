@@ -7,8 +7,9 @@ import iDataHandler, ArgEnv, StdList, iDataTrivial, StdArray
 
 ThisExe ::  String
 ThisExe = myName 
+//ThisExe = "clean" 
 
-myName =: toString (reverse (takeWhile (\c -> (<>) c '\\') (drop 4 (reverse [x \\ x <-: getCommandLine.[0]])))) // +++ " iTasks"
+myName =: toString (reverse (takeWhile (\c -> (<>) c '\\') (drop 4 (reverse [x \\ x <-: getCommandLine.[0]])))) 
 
 MyDir ::  String
 MyDir  =: mkString (takeWhile ((<>) '.') (mkList ThisExe))
