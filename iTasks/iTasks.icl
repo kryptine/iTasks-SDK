@@ -2,7 +2,8 @@ implementation module iTasks
 
 // (c) MJP 2006 - 2007
 
-import StdEnv, StdiData, StdBimap
+import StdEnv, StdBimap
+import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
 
 derive gForm 	[], Void, Maybe
 derive gUpd 	[], Void, Maybe
@@ -367,24 +368,16 @@ internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` pro
 // they work, but are NOT suited for big applications
 // I will kick them out some day....
 
-repeatTask :: (a -> Task a) (a -> Bool) -> a -> Task a | iCreateAndPrint a
-repeatTask task pred = \a -> mkTask "repeatTask" (dorepeatTask a)
+repeatTask :: (a -> Task a) (a -> Bool) -> a -> Task a | iData a
+repeatTask task pred = dorepeatTask
 where
-	dorepeatTask a tst
-	# (na,tst)	= task a (newSubTaskNr tst)
-	| pred na	= (na,tst)
-	= dorepeatTask na (incTaskNr tst)
-
-
-foreverTask_Std :: (Task a) -> Task a | iCreateAndPrint a
-foreverTask_Std task = mkTask "foreverTask_Std" doforeverTask_Std
-where
-	doforeverTask_Std tst		
-	# (_,tst)	= task (newSubTaskNr tst)		
-	= foreverTask_Std task tst						
-
-newTask_Std :: !String (Task a) -> (Task a) | iCreateAndPrint a
-newTask_Std taskname mytask = mkTask taskname (mytask o newSubTaskNr)
+	dorepeatTask a 
+	= newTask "doReapeatTask" dorepeatTask`
+	where
+		dorepeatTask` tst
+		| pred a	= (a,tst) 
+		# (na,tst)	= task a tst	
+		= dorepeatTask na tst
 
 // same, but by remembering task results stack space can be saved
 newTask :: !String (Task a) -> (Task a) 	| iData a 
@@ -421,6 +414,18 @@ where
 		# (currtasknr,tst)		= LiftHst (mkStoreForm (Init,cFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
 		= foreverTask` {tst & tasknr = tasknr, options = options}										// initialize new task
 	= (val,tst)					
+
+(<!) infix 6 :: (Task a) (a -> .Bool) -> Task a | iCreate a
+(<!) taska pred = doTask
+where
+	doTask tst=:{activated, tasknr}
+	| not activated 		= (createDefault,tst)
+	# (a,tst=:{activated}) 	= taska tst
+	| not activated 		= (a,tst)
+	| not (pred a)			
+		# tst = deleteSubTasks tasknr tst
+		= (a,{tst & activated = False})
+	= (a,tst)
 
 // parallel subtask creation utility
 

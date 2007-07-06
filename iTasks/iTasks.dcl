@@ -69,7 +69,8 @@ return_V 		:: a 						-> Task a 				| iCreateAndPrint a
 /* prompting variants
 (?>>)			:: prompt as long as task is active but not finished
 (!>>)			:: prompt when task is activated
-(<|)			:: repeat task (from scratch) as long as predicate does not hold, and give error message otherwise
+(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
+(<!)			:: repeat task (as a loop)   as long as predicate does not hold
 return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
 */
@@ -78,6 +79,7 @@ return_D		:: return the value and show it in iData display format
 (!>>) infix  5 	:: [BodyTag] (Task a) 		-> Task a			| iCreate a
 (<|)  infix  6 	:: (Task a) (a -> .Bool, a -> [BodyTag]) 
 											-> Task a 			| iCreate a
+(<!) infix 6 	:: (Task a) (a -> .Bool) 	-> Task a 			| iCreate a
 return_VF 		:: a [BodyTag] 		  		-> Task a			| iCreateAndPrint a
 return_D		:: a 						-> Task a			| gForm {|*|}, iCreateAndPrint a
 
@@ -95,7 +97,7 @@ repeatTask		:: repeat Task until predict is valid
 */
 newTask 		:: !String (Task a) 		-> (Task a) 		| iData a 
 foreverTask		:: (Task a) 				-> Task a 			| iData a
-repeatTask		:: (a -> Task a) (a -> Bool) -> a -> Task a		| iCreateAndPrint a
+repeatTask		:: (a -> Task a) (a -> Bool) -> a -> Task a		| iData a
 
 /*	Sequencing Tasks:
 seqTasks		:: do all iTasks one after another, task completed when all done
