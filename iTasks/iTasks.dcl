@@ -70,7 +70,7 @@ return_V 		:: a 						-> Task a 				| iCreateAndPrint a
 (?>>)			:: prompt as long as task is active but not finished
 (!>>)			:: prompt when task is activated
 (<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
-(<!)			:: repeat task (as a loop)   as long as predicate does not hold
+(<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
 return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
 */
@@ -79,7 +79,7 @@ return_D		:: return the value and show it in iData display format
 (!>>) infix  5 	:: [BodyTag] (Task a) 		-> Task a			| iCreate a
 (<|)  infix  6 	:: (Task a) (a -> .Bool, a -> [BodyTag]) 
 											-> Task a 			| iCreate a
-(<!) infix 6 	:: (Task a) (a -> .Bool) 	-> Task a 			| iCreate a
+(<!)  infix  6 	:: (Task a) (a -> .Bool) 	-> Task a 			| iCreateAndPrint a
 return_VF 		:: a [BodyTag] 		  		-> Task a			| iCreateAndPrint a
 return_D		:: a 						-> Task a			| gForm {|*|}, iCreateAndPrint a
 
@@ -183,14 +183,14 @@ addHtml 		:: [BodyTag] TSt -> TSt
 (*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 
 (@>>)			:: lift functions of (TSt -> TSt) to iTask domain 
 appIData		:: lift iData editors to iTask domain
-appHSt			:: lift HSt domain to TSt domain, will be executed only once
-appHSt2			:: lift HSt domain to TSt domain, will be executed on each invocation
+appHSt			:: lift HSt domain to TSt domain, will be executed only once; string used for tracing
+appHSt2			:: lift HSt domain to TSt domain, will be executed on each invocation; string used for tracing
 */
 (*>>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 	-> Task b
 (@>>) infix 4 	:: (TSt -> TSt) (Task a) 			-> Task a
 appIData 		:: (IDataFun a) 					-> Task a 			| iData a
-appHSt 			:: (HSt -> (a,HSt)) 				-> Task a			| iData a
-appHSt2			:: (HSt -> (a,HSt)) 				-> Task a			| iData a
+appHSt 			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
+appHSt2			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
 
 /* Controlling side effects
 Once			:; 	task will be done only once, the value of the task will be remembered

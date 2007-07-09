@@ -1,6 +1,7 @@
 implementation module iTasks
 
 // (c) MJP 2006 - 2007
+// This module contains the implementation of the iTask concept. It is based on the iData toolkit.
 
 import StdEnv, StdBimap
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
@@ -13,6 +14,7 @@ derive gerda 	Void
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
+					, sessionNr		:: !Int				// current session number
 					, userId		:: !Int				// id of user to which task is assigned
 					, currentUserId	:: !Int				// id of application user 
 					, html			:: !HtmlTree		// accumulator for html code
@@ -71,8 +73,11 @@ LiftHst fun tst=:{hst}
 
 // Storage options settings
 
-cFormId  {tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = tasklife, storage = taskstorage, mode = taskmode}
-cdFormId {tasklife,taskstorage,taskmode} s d = {sdFormId s d & lifespan = tasklife, storage = taskstorage, mode = taskmode}
+cFormId  		{tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = tasklife, storage = taskstorage, mode = taskmode} 
+
+sessionFormId  	options s d = cFormId options s d <@ Session
+pageFormId  	options s d = cFormId options s d <@ Page
+storageFormId  	options s d = cFormId options s d <@ NoForm
 
 // Garbage collection on iTask administration is done dependening on gc option chosen
 
@@ -83,14 +88,6 @@ deleteSubTasks :: !TaskNr TSt -> TSt
 deleteSubTasks tasknr tst=:{hst,userId,options} 
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
-//| otherwise					= {tst & hst = deleteIData (subtasksids tasknr) hst}
-where
-	subtasksids tasknr formid
-	# prefix 	= iTaskId userId tasknr ""
-	# lprefix 	= size prefix
-	# lformid	= size formid
-	| lformid < lprefix	= False
-	= debug "deleted " (debug "prefix " prefix == debug "formid " formid%(0,lprefix-1))
 
 // *** wrappers, to be used in combination with an iData wrapper...
 
@@ -101,6 +98,7 @@ startTask thisUser traceOn versionsOn taska hst
 where
 	tst	=	{ tasknr		= [-1]
 			, activated 	= True
+			, sessionNr		= -1
 			, currentUserId	= thisUser 
 			, userId		= if (thisUser >= 0) defaultUser thisUser
 			, html 			= BT []
@@ -148,27 +146,38 @@ where
 
 startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (a,[BodyTag],!*TSt) | iCreate a 
 startTstTask thisUser traceOn versionsOn taska tst=:{hst}
+
+// prolog
+
 | thisUser < 0 
 	# (a,tst=:{html}) 	= taska {tst & hst = hst}
 	= (a, noFilter html, {tst & html = html})
 # userVersionNr			= "User" <+++ thisUser <+++ "_VersionPNr"
-# sessionVersionNr		= "User" <+++ thisUser <+++ "_VersionSNr" 
+# usersessionVersionNr	= "User" <+++ thisUser <+++ "_VersionSNr" 
+# applicationVersionNr	= ThisExe <+++ "_Version" 
 # traceId				= "User" <+++ thisUser <+++ "_Trace" 
 # (refresh,hst) 		= simpleButton userVersionNr "Refresh" id hst
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
+# (appversion,hst)	 	= mkStoreForm (Init, pFormId applicationVersionNr 0) id hst
+# nonewversion			= refresh.changed || traceAsked.changed
+# (appversion,hst)	 	= mkStoreForm (Init, pFormId applicationVersionNr 0) (mbinc nonewversion) hst
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) id hst
-# (sversion,hst)	 	= mkStoreForm (Init, nFormId sessionVersionNr pversion.value) (if refresh.changed (\_ -> pversion.value) id) hst
+# (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (if refresh.changed (\_ -> pversion.value) id) hst
 | sversion.value < pversion.value &&
   versionsOn			= (createDefault,  refresh.form ++ [Br,Br, Hr [],Br] <|.|>
 														[Font [Fnt_Color (`Colorname Yellow)]
 													   [B [] "Sorry, cannot apply command.",Br, 
 													    B [] "Your page is not up-to date!",Br]],{tst & hst = hst})
-# (a,tst=:{html,hst,trace}) = taska {tst & hst = hst, trace = if doTrace (Just []) Nothing}
-# (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) inc hst
-# (sversion,hst)	 	= mkStoreForm (Init, nFormId sessionVersionNr pversion.value) inc hst
+// Here the iTask starts...
+													    
+# (a,tst=:{html,hst,trace}) = taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value}
+
+// epilog
+# (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
+# (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	(a,	refresh.form ++ ifTraceOn traceAsked.form ++
+= 	(a,	refresh.form ++ ifTraceOn traceAsked.form ++ [Txt (" i-Task interaction nr: " <+++ appversion.value)] ++
 		[Br,Hr [],showUser thisUser,Br,Br] ++ 
 		if (doTrace && traceOn)
 			[ printTrace2 trace ]
@@ -177,6 +186,9 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst}
 			] 
 	,{tst & hst = hst})
 where
+	mbinc True = id
+	mbinc _ = inc
+
 	ifTraceOn form = if traceOn form []
 
 	mkSTable2 :: [[BodyTag]] -> BodyTag
@@ -233,8 +245,8 @@ mkTaskButtons header myid userId tasknr info btnnames hst
 # (buttons,hst)		= SelectButtons Set btnsId info (chosen,btnnames) hst				// adjust look of that button
 = ((chosen,[red header, Br: buttons.form],[yellow (btnnames!!chosen),Br,Br]),hst)
 where
-	SelectButtons init id info (idx,btnnames) hst = TableFuncBut2 (init,cFormId info id 
-															[[(mode idx n, but txt,\_ -> n)] \\ txt <- btnnames & n <- [0..]] <@ Page) hst
+	SelectButtons init id info (idx,btnnames) hst = TableFuncBut2 (init,pageFormId info id 
+															[[(mode idx n, but txt,\_ -> n)] \\ txt <- btnnames & n <- [0..]]) hst
 	but i = LButton defpixel i
 
 	mode i j
@@ -245,7 +257,7 @@ where
 	SelectStore :: !(String,Int) !TaskNr !Options (Int -> Int) *HSt -> (Int,*HSt)
 	SelectStore (myid,idx) tasknr info fun hst 
 	# storeId 			= iTaskId userId tasknr (myid <+++ "BtnsS" <+++ idx)
-	# (storeform,hst)	= mkStoreForm (Init,cFormId info storeId 0) fun hst
+	# (storeform,hst)	= mkStoreForm (Init,storageFormId info storeId 0) fun hst
 	= (storeform.value,hst)
 
 
@@ -258,9 +270,9 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 # taskId			= iTaskId userId tasknr "EdFin"
 # editId			= iTaskId userId tasknr "EdVal"
 # buttonId			= iTaskId userId tasknr "EdBut"
-# (taskdone,hst) 	= mkStoreForm (Init,cFormId tst.options taskId False) id hst  			// remember if the task has been done
+# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  			// remember if the task has been done
 | taskdone.value																			// test if task has completed
-	# (editor,hst) 	= (mkEditForm  (Init,cdFormId tst.options editId a <@ Display) hst)		// yes, read out current value, make editor passive
+	# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)		// yes, read out current value, make editor passive
 	= (editor.value,{tst & activated = True, html = html +|+ BT editor.form, hst = hst})	// return result task
 # (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a) hst					// no, read out current value from active editor
 # (finbut,hst)  	= simpleButton buttonId prompt (\_ -> True) hst							// add button for marking task as done
@@ -276,8 +288,8 @@ where
 	mybind tst=:{options}
 	# (a,tst=:{activated}) = taska tst
 	= taskb a {tst & options = options}
-/*	| activated	= taskb a {tst & options = options}
-	= (createDefault,tst)*/
+//	| activated	= taskb a {tst & options = options}
+//	= (createDefault,tst)
 
 (#>>) infixl 1 :: (Task a) (Task b) -> Task b
 (#>>) taska taskb = mybind
@@ -385,13 +397,13 @@ newTask taskname mytask = mkTask taskname newTask`
 where
 	newTask` tst=:{tasknr,userId,options}		
 	# taskId					= iTaskId userId tasknr taskname
-	# (taskval,tst) 			= LiftHst (mkStoreForm (Init,cFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
+	# (taskval,tst) 			= LiftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
 	# (taskdone,taskvalue)		= taskval.value										// select values
 	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
 	# (val,tst=:{activated})	= mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
 	| not activated				= (val,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
 	# tst						= deleteSubTasks tasknr tst							// task ready, garbage collect it
-	# (_,tst) 					= LiftHst (mkStoreForm (Init,cFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
+	# (_,tst) 					= LiftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
 	= (val,{tst & tasknr = tasknr, options = options})
 
 // foreverTask is a loop
@@ -407,20 +419,19 @@ where
 		| activated 			= foreverTask` (deleteSubTasks tasknr {tst & tasknr = tasknr, options = options}) 			// loop
 		= (val,tst)					
 	# taskId					= iTaskId userId tasknr "ForSt"											// create store id
-	# (currtasknr,tst)			= LiftHst (mkStoreForm (Init,cFormId options taskId tasknr) id) tst		// fetch actual tasknr
+	# (currtasknr,tst)			= LiftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst		// fetch actual tasknr
 	# (val,tst=:{activated})	= task {tst & tasknr = [-1:currtasknr.value]}
 	| activated 																						// task is completed	
 		# ntasknr				= incNr currtasknr.value												// incr tasknr
-		# (currtasknr,tst)		= LiftHst (mkStoreForm (Init,cFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
+		# (currtasknr,tst)		= LiftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
 		= foreverTask` {tst & tasknr = tasknr, options = options}										// initialize new task
 	= (val,tst)					
 
-(<!) infix 6 :: (Task a) (a -> .Bool) -> Task a | iCreate a
-(<!) taska pred = doTask
+(<!) infix 6 :: (Task a) (a -> .Bool) -> Task a | iCreateAndPrint a
+(<!) taska pred = mkTask "less!" doTask
 where
 	doTask tst=:{activated, tasknr}
-	| not activated 		= (createDefault,tst)
-	# (a,tst=:{activated}) 	= taska tst
+	# (a,tst=:{activated}) 	= taska {tst & tasknr = [-1:tasknr]}
 	| not activated 		= (a,tst)
 	| not (pred a)			
 		# tst = deleteSubTasks tasknr tst
@@ -502,13 +513,13 @@ dochooseTask _ [] tst			= return createDefault tst
 dochooseTask horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 # taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
 # buttonId						= iTaskId userId tasknr "ChoBut"
-# (chosen,tst)					= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) id) tst
+# (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 | chosen.value == -1			// no choice made yet
 	# allButtons				= if horizontal 
 										[[(but txt,\_ -> n) \\ txt <- map fst taskOptions & n <- [0..]]]
 										[[(but txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
-	# (choice,tst)				= LiftHst (TableFuncBut (Init,cFormId options buttonId allButtons <@ Page)) tst
-	# (chosen,tst)				= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) choice.value) tst
+	# (choice,tst)				= LiftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
+	# (chosen,tst)				= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst
 	| chosen.value == -1		= (createDefault,{tst & activated =False,html = html +|+ BT choice.form})
 	# chosenTask				= snd (taskOptions!!chosen.value)
 	# (a,tst=:{activated=adone,html=ahtml}) = chosenTask {tst & tasknr = [-1:tasknr], activated = True, html = BT []}
@@ -525,7 +536,7 @@ where
 	dochooseTask_pdm [] tst			= (createDefault,{tst& activated = True})	
 	dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}								// choose one subtask out of the list
 	# taskId						= iTaskId userId tasknr ("ChoPdm" <+++ length taskOptions)
-	# (choice,tst)					= LiftHst (FuncMenu  (Init,cFormId options taskId (0,[(txt,id) \\ txt <- map fst taskOptions]))) tst
+	# (choice,tst)					= LiftHst (FuncMenu  (Init,sessionFormId options taskId (0,[(txt,id) \\ txt <- map fst taskOptions]))) tst
 	# (_,tst=:{activated=adone,html=ahtml})	
 									= internEditSTask "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
 	| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
@@ -542,14 +553,14 @@ where
 	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 	# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
 	# donetaskId			= iTaskId userId tasknr "MtpChSt"
-	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
-	# (done,tst)			= LiftHst (mkStoreForm      (Init,cFormId options donetaskId False) id) tst
+	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,sessionFormId options seltaskId initCheckboxes)) tst
+	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
 	# optionsform			= cboxes.form <=|> [Txt text \\ (text,_) <- taskOptions]
 	| done.value			= seqTasks [option \\ option <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
 	# (_,tst=:{html=ahtml,activated = adone})
 							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
 	| not adone				= ([],{tst & html = html +|+ BT [optionsform] +|+ ahtml})
-	# (_,tst)				= LiftHst (mkStoreForm      (Init,cFormId options donetaskId False) (\_ -> True)) tst
+	# (_,tst)				= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
 	= domchoiceTasks taskOptions {tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True}									// choose one subtask out of the list
 
 	initCheckboxes  = 
@@ -565,7 +576,7 @@ orTask (taska,taskb) = mkTask "orTask" (doOrTask (taska,taskb))
 
 doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
 # taskId								= iTaskId userId tasknr "orTaskSt"
-# (chosen,tst)							= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) id) tst
+# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 | chosen.value == 0						// task a was finished first in the past
 	# (a,tst)							= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
 	= (a,{tst & html = html})
@@ -576,11 +587,11 @@ doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
 | adone
 	# tst 								= deleteSubTasks [1:tasknr] {tst & tasknr = tasknr}
-	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
+	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
 	= (a,{tst & html = html, activated = True})
 | bdone
 	# tst 								= deleteSubTasks [0:tasknr] {tst & tasknr = tasknr}
-	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) (\_ -> 1)) {tst & html = BT []}
+	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 1)) {tst & html = BT []}
 	= (b,{tst & html = html, activated = True})
 = (a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
  
@@ -590,7 +601,7 @@ orTask2 (taska,taskb) = mkTask "orTask2" (doorTask2 (taska,taskb))
 where
 	doorTask2 (taska,taskb) tst=:{tasknr,html,options,userId}
 	# taskId								= iTaskId userId tasknr "orTask2St"
-	# (chosen,tst)							= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) id) tst
+	# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 	| chosen.value == 0						// task a was finished first in the past
 		# (a,tst=:{html=ahtml})				= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
 		= (LEFT a,{tst & html = html})
@@ -601,11 +612,11 @@ where
 	# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 	| adone
 		# tst 								= deleteSubTasks [1:tasknr] {tst & tasknr = tasknr}
-		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,cFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
+		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
 		= (LEFT a,{tst & html = html, activated = True})
 	| bdone
 		# tst 								= deleteSubTasks [0:tasknr] {tst & tasknr = tasknr}
-		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,cFormId tst.options taskId -1) (\_ -> 1)) {tst & html = BT []}
+		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId tst.options taskId -1) (\_ -> 1)) {tst & html = BT []}
 		= (RIGHT b,{tst & html = html, activated = True})
 	= (LEFT a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
 
@@ -622,7 +633,7 @@ where
 	doorTasks [] tst	= return createDefault tst
 	doorTasks tasks tst=:{tasknr,html,options,userId}
 	# taskId			= iTaskId userId tasknr "orTasksChosen"
-	# (chosenS,tst)		= LiftHst (mkStoreForm  (Init,cFormId options taskId (-1,createDefault)) id) tst
+	# (chosenS,tst)		= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) id) tst
 	# (pchosen,avalue)	= chosenS.value
 	| pchosen <> -1		// one of the tasks has been finished already
 		= (avalue,{tst & activated = True, html = html}) 
@@ -640,7 +651,7 @@ where
 												(userId -@: allhtml)
 							})
 	# tst 				= deleteSubTasks tasknr {tst & tasknr = tasknr}
-	# (_,tst)			= LiftHst (mkStoreForm  (Init,cFormId options taskId (-1,createDefault)) (\_ -> (chosenvalue,a)))  {tst & html = BT []} // remember finished task for next tim
+	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) (\_ -> (chosenvalue,a)))  {tst & html = BT []} // remember finished task for next tim
 	= (a,{tst & activated = adone, html = html, tasknr = tasknr}) 
 
 // Parallel tasks ending if all complete
@@ -806,14 +817,14 @@ where
 		= (val,{tst & html = html +|+ BT [Txt ("Waiting for completion of "<+++ name)], tasknr = tasknr})
 
 		sharedStoreId	= iTaskId userId tasknr "Shared_Store"
-		sharedMem fun	= LiftHst (mkStoreForm (Init,cFormId options sharedStoreId False) fun)
+		sharedMem fun	= LiftHst (mkStoreForm (Init,storageFormId options sharedStoreId False) fun)
 
 waitForTimeTask:: HtmlTime	-> (Task HtmlTime)
 waitForTimeTask time = mkTask "waitForTimeTask" waitForTimeTask`
 where
 	waitForTimeTask` tst=:{tasknr,userId,hst}
 	# taskId				= iTaskId userId tasknr "Time_"
-	# (stime,hst) 			= mkStoreForm (Init,cFormId tst.options taskId time) id hst  			// remember time
+	# (stime,hst) 			= mkStoreForm (Init,storageFormId tst.options taskId time) id hst  			// remember time
 	# ((currtime,_),hst)	= getTimeAndDate hst
 	| currtime < stime.value= (stime.value,{tst & activated = False,hst = hst})
 	= (currtime - stime.value,{tst & hst = hst})
@@ -830,7 +841,7 @@ waitForDateTask date = mkTask "waitForDateTask" waitForDateTask`
 where
 	waitForDateTask` tst=:{tasknr,userId,hst}
 	# taskId				= iTaskId userId tasknr "Date_"
-	# (taskdone,hst) 		= mkStoreForm (Init,cFormId tst.options taskId (False,date)) id hst  			// remember date
+	# (taskdone,hst) 		= mkStoreForm (Init,storageFormId tst.options taskId (False,date)) id hst  			// remember date
 	# ((_,currdate),hst) 	= getTimeAndDate hst
 	| currdate < date		= (date,{tst & activated = False, hst = hst})
 	= (date,{tst & hst = hst})
@@ -872,36 +883,41 @@ where
 	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
 															(if activated (BT idata.form) (BT idata.form +|+ ahtml)), hst = hst})
 
-appHSt2 :: (HSt -> (a,HSt)) -> (Task a) | iData a
-appHSt2 fun = mkTask "appHSt" doit
+appHSt2 :: !String (HSt -> (a,HSt)) -> (Task a) | iData a
+appHSt2 name fun = mkTask name doit
 where
 	doit tst=:{hst}
 	# (value,hst)		= fun hst
 	= (value,{tst & hst = hst, activated = True})													// task is now completed, handle as previously
 
-appHSt :: (HSt -> (a,HSt)) -> (Task a) | iData a
-appHSt fun = mkTask "appHSt" doit
+appHSt :: !String (HSt -> (a,HSt)) -> (Task a) | iData a
+appHSt name fun = mkTask name doit 
 where
-	doit tst=:{activated,html,tasknr,hst,userId,options}
-	# taskId			= iTaskId userId tasknr "appHst"
-	# (store,hst) 		= mkStoreForm (Init,cFormId options taskId (False,createDefault)) id hst  			
-	# (done,value)		= store.value
-	| done 				= (value,{tst & hst = hst})													// if task has completed, don't do it again
-	# (value,hst)		= fun hst
-	# (store,hst) 		= mkStoreForm (Init,cFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
-	# (done,value)		= store.value
-	= (value,{tst & activated = done, hst = hst})													// task is now completed, handle as previously
+	doit tst=:{tasknr,hst,userId,options,sessionNr}
+//	# taskId			= iTaskId userId tasknr ""
+	# taskId			= iTaskId userId tasknr name //"appHst"
+//	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (sessionNr,createDefault )) id hst  			
+	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault )) id hst  			
+	# (done,svalue)		= store.value
+	| done				= (svalue,{tst & hst = hst, activated = True})			// if task has completed, don't do it again
+//	| when < sessionNr	= (svalue,{tst & hst = hst})			// if task has completed, don't do it again
+	# (fvalue,hst)		= fun hst
+//	# (store,hst)  		= mkStoreForm (Init,storageFormId options taskId (sessionNr,createDefault)) (\_ -> (sessionNr,fvalue)) hst 	// remember task status for next time
+	# (store,hst)  		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,fvalue)) hst 	// remember task status for next time
+	# (_,nvalue)		= store.value
+//	= (nvalue,{tst &  hst = hst})				// task is now completed, handle as previously
+	= (nvalue,{tst & activated = True, hst = hst})				// task is now completed, handle as previously
 	
 Once :: (Task a) -> (Task a) | iData a
 Once fun = mkTask "Once" doit
 where
 	doit tst=:{activated,html,tasknr,hst,userId,options}
 	# taskId			= iTaskId userId tasknr "Once_"
-	# (store,hst) 		= mkStoreForm (Init,cFormId options taskId (False,createDefault)) id hst  			
+	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
 	# (done,value)		= store.value
 	| done 				= (value,{tst & hst = hst})													// if task has completed, don't do it again
 	# (value,tst=:{hst})= fun {tst & hst = hst}
-	# (store,hst) 		= mkStoreForm (Init,cFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
+	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
 	# (done,value)		= store.value
 	= (value,{tst & activated = done, hst = hst})													// task is now completed, handle as previously
 
