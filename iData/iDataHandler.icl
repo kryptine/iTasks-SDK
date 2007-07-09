@@ -14,8 +14,6 @@ derive gHpr   (,), (,,), (,,,)
 derive gUpd		   (,,), (,,,)
 derive bimap Form, FormId
 
-:: Inline = Inline String
-
 gParse{|(->)|} gArg gRes _ 		= Nothing 
 gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic storage option!\n" 
 
@@ -26,6 +24,16 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 				  }	
 :: InputId	 	:== Int						// unique id for every constructor and basic value appearing in the state
 :: FormUpdate	:== (InputId,UpdValue)		// info obtained when form is updated
+
+:: Inline 		= Inline String
+
+// OPTIONS
+
+openGerda` database world
+:== IF_GERDA (openGerda database world) (abort "Trying to open database while options are switched off",world)
+closeGerda` gerda world
+:== IF_GERDA (closeGerda gerda world) world
+
 
 mkHSt :: *FormStates *NWorld -> *HSt
 mkHSt states nworld = { cntr=0, states=states, world=nworld, submits = False }
@@ -39,12 +47,23 @@ doHtmlServer2 userpages world
 //| ServerKind == External		// connect with http 1.1 server
 //= doHtmlSubServer userpage world
 
+// Experimental version of doHtmlServer for Client site evaluation ....
+
+doHtmlClient :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+doHtmlClient userpage world
+= callSapl (\args ->  doHtmlPageAndPrint args userpage) world
+
+callSapl :: ([(String, String)] *World -> ([String],String,*World)) !*World -> *World
+callSapl f world 
+# (_,allhtmlcode,world) = f [] world
+= abort allhtmlcode
+//= world
+
+/////////////////////////////////
 
 
-
-// doHtmlServer: top level function given to end user
-
-// It sets up the communication with a (sub)server, depending on the option chosen
+// doHtmlServer: top level function given to end user.
+// It sets up the communication with a (sub)server, depending on the option chosen.
 
 doHtmlServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
 doHtmlServer userpage world
@@ -53,9 +72,59 @@ doHtmlServer userpage world
 | ServerKind == External		// connect with http 1.1 server
 = doHtmlSubServer userpage world
 
-// Same, but now make a subserver talking to an http 1.1 server
+// doHtmlPageAndPrint is the main driver shared by all server options.
+// It initiates all internal administration and calls the user defined iData or iTask function userpage.
+// It converts the Html value into html code which is handed over to the server.  
 
-import Semaphore	// all calls to a specific iData&iTask application are serialized
+doHtmlPageAndPrint :: [(String, String)] .(*HSt -> (Html,!*HSt)) *World -> ([String],String,*World)
+doHtmlPageAndPrint args userpage world
+# (inout,world)			= doHtmlPage (Just args) userpage [|] world
+# n_chars				= count_chars inout 0
+# allhtmlcode			= copy_strings inout n_chars (createArray n_chars '\0')
+= ([],allhtmlcode,world)
+where
+	doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
+	doHtmlPage args userpage inout world
+	# (gerda,world)				= openGerda` ODCBDataBase world								// open the relational database if option chosen
+	# nworld 					= { worldC = world, inout = inout, gerda = gerda}	
+	# (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
+	# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
+								= userpage (mkHSt initforms nworld)							// Call the user application
+	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
+	# (allformbodies,world)		= storeFormStates states world								// Store all state information
+	# {worldC,gerda,inout}		= print_to_stdout 											// Print out all html code
+									(Html (Head headattr [extra_style:headtags]) 
+									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
+									world
+	# world						= closeGerda` gerda worldC									// close the relational database if option chosen
+	= (inout,world)
+	where
+		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
+		extra_style				= Hd_Style [] CleanStyles	
+		debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
+
+	count_chars [|]    n = n
+	count_chars [|s:l] n = count_chars l (n+size s)
+
+	copy_strings [|e:l] i s
+		# size_e	= size e
+		# i			= i-size_e
+		= copy_strings l i (copy_chars e 0 i size_e s)
+	copy_strings [|] 0 s
+		= s
+
+	copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
+	copy_chars s_s s_i d_i n d_s
+		| s_i<n
+			# d_s	= {d_s & [d_i]=s_s.[s_i]}
+			= copy_chars s_s (s_i+1) (d_i+1) n d_s
+			= d_s
+
+// Create subserver(s) talking to an http 1.1 server.
+// One needs to create several copies of the same subserver to handle parallel request issues by an http 1.1 server.
+// To prevent race conditions, calls to such a subserver copy is serialized using a semaphore. 
+
+import Semaphore	
 
 doHtmlSubServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
 doHtmlSubServer userpage world
@@ -106,73 +175,9 @@ where
 	trace s world = if TraceHttp11 (trace_to_file s world) world
 	location = "\/" +++ ThisExe
 
-// Experimental version of doHtmlServer for Client site evaluation ....
-
-doHtmlClient :: !(*HSt -> (Html,!*HSt)) !*World -> *World
-doHtmlClient userpage world
-= callSapl (\args ->  doHtmlPageAndPrint args userpage) world
-
-callSapl :: ([(String, String)] *World -> ([String],String,*World)) !*World -> *World
-callSapl f world 
-# (_,allhtmlcode,world) = f [] world
-= abort allhtmlcode
-//= world
-
-// Main entrance: doHtmlPageAndPrint will initiate everyting and calls the user defined iData or iTask function userpage.
-// It converts the page into a string which is handed over to the server  
-
-// OPTIONS
-openGerda` database world
-:== IF_GERDA (openGerda database world) (abort "Trying to open database while options are switched off",world)
-closeGerda` gerda world
-:== IF_GERDA (closeGerda gerda world) world
-
-doHtmlPageAndPrint :: [(String, String)] .(*HSt -> (Html,!*HSt)) *World -> ([String],String,*World)
-doHtmlPageAndPrint args userpage world
-# (inout,world)			= doHtmlPage (Just args) userpage [|] world
-# n_chars				= count_chars inout 0
-# allhtmlcode			= copy_strings inout n_chars (createArray n_chars '\0')
-= ([],allhtmlcode,world)
-where
-	doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
-	doHtmlPage args userpage inout world
-	# (gerda,world)				= openGerda` ODCBDataBase world								// open the relational database if option chosen
-	# nworld 					= { worldC = world, inout = inout, gerda = gerda}	
-	# (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
-	# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
-								= userpage (mkHSt initforms nworld)							// Call the user application
-	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-	# (allformbodies,world)		= storeFormStates states world								// Store all state information
-	# {worldC,gerda,inout}		= print_to_stdout 											// Print out all html code
-									(Html (Head headattr [extra_style:headtags]) 
-									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
-									world
-	# world						= closeGerda` gerda worldC									// close the relational database if option chosen
-	= (inout,world)
-	where
-		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
-		extra_style				= Hd_Style [] CleanStyles	
-		debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
-
-	count_chars [|]    n = n
-	count_chars [|s:l] n = count_chars l (n+size s)
-
-	copy_strings [|e:l] i s
-		# size_e	= size e
-		# i			= i-size_e
-		= copy_strings l i (copy_chars e 0 i size_e s)
-	copy_strings [|] 0 s
-		= s
-
-	copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
-	copy_chars s_s s_i d_i n d_s
-		| s_i<n
-			# d_s	= {d_s & [d_i]=s_s.[s_i]}
-			= copy_chars s_s (s_i+1) (d_i+1) n d_s
-			= d_s
-
-// The function mkViewForm is the main function that handles all idata
-// swiss army knife editor that makes coffee too ...
+// The function mkViewForm is *the* magic main function 
+// All idata /itasks end up in this function
+// It does everything, a swiss army knife editor that makes coffee too ...
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
 mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{states,world,submits} 
@@ -267,19 +272,12 @@ where
 
 // It can be convenient to explicitly delete IData, in particular for persistent IData obejct
 // or to optimize iTasks
-// All IData objects satisfying the predicate will be deleted, no matter where they are stored
+// All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
 
 deleteIData :: !String !*HSt -> *HSt
 deleteIData prefix hst=:{states,world}
 # (states,world) = deleteStates prefix states world
 = {hst & states = states, world = world}
-
-/*
-deleteIData :: !(String -> Bool) !*HSt -> *HSt
-deleteIData pred hst=:{states,world}
-# (states,world) = deleteStates pred states world
-= {hst & states = states, world = world}
-*/
 
 // specialize has to be used if a programmer wants to specialize gForm.
 // It remembers the current value of the index in the expression and creates an editor to show this value.
@@ -472,8 +470,6 @@ where
 	| otherwise				= ndefsize max (def + defsize)
 gForm{|(->)|} garg gres (init,formid) hst 	
 = ({ changed = False, value = formid.ival, form = []},hst)
-
-
 
 // gUpd calculates a new value given the current value and a change in the value.
 // If necessary it invents new default values (e.g. when switching from Nil to Cons)

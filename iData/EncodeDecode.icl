@@ -201,7 +201,9 @@ traceHtmlInput args=:(Just input)
 						  ]
 						]
 			, Br
-			, STable [] [[Txt name,Txt value] \\ (name,value) <- input]
+			, B [] "Undecoded information from client received:", Br, Br
+			, BodyTag (foldl (++) [] [[B [] "name = ", Txt name,Br,Br,B [] "value = ", Txt value,Br,Br] \\ (name,value) <- input])
+//			, STable [] [[Txt ("name = " <+++ name),Br,Txt ("value = " <+++ value)] \\ (name,value) <- input]
 			]
 where
 	(htmlState,triplets)	= DecodeHtmlStatesAndUpdate args
