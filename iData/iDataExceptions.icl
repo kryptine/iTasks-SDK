@@ -7,6 +7,9 @@ derive gForm 	Maybe
 derive gUpd 	Maybe
 derive gPrint 	Maybe
 derive gParse 	Maybe
+derive read 	Maybe
+derive write 	Maybe
+
 derive bimap    Maybe, (,)
 
 // Exception handling 

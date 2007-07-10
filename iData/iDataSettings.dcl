@@ -3,8 +3,10 @@ definition module iDataSettings
 // iData & iTask Library
 // Concept & Programming (c) 2005 - 2007 Rinus Plasmeijer
 
-import iDataHandler, PMDB
-import Gerda							// Clean's GEneRic Database Access
+import iDataHandler
+import Gerda							// OPTION: GEneRic Database Access to a standard relational database, made by Arjen van Weelden
+import DataFile							// OPTION: A fast generic database stored in a file, made by Arjen van Weelden
+
 
 // Global settings of iData applications
 
@@ -29,10 +31,14 @@ class iParse a
 		
 class iSpecialStore a
 		| TC 							// To be able to store values in a dynamic
-										// OPTION: Comment out the next two lines if you do not have access to an ODCB database on your machine !!!!
-										// and enable the third line 
-//		, pmdb  {|*|} 	 				// To store and retrieve a value in a poor mans database DataFile
-//		, gerda {|*|} 	 				// To store and retrieve a value in a database
+		
+										// OPTION: Comment out the next line if you do not have access to an ODCB database on your machine !!!!
+										// -or- if you do not want to make use of the Database option
+		, gerda {|*|} 	 				// To store and retrieve any Clean value in a standard relational database (slow but standard)
+
+										// OPTION: Comment out the next line if you do not want to use the DataFile option
+		, read  {|*|}, write {|*|}		// To store and retrieve any Clean value in a special database for which a file is used (fast but non standard)
+
 		a
 
 // Set here the kind of server 
@@ -50,18 +56,19 @@ SocketNr				:== 80			// Socket you wnat to work on
 
 // Set here the storage options you would like to have
 
-// OPTION: Comment out the next line if you do not have access to an ODCB database on your machine !!!!
-//IF_GERDA gerda no_gerda :== gerda		// If database option is used
+// Database OPTION : comment out *one* of the following macro definitions
+// Use the first line if you *do* want to use the Database option *and* you have an ODCB database interface installed on your machine !!!!
+// otherwise use the second line
 
-// OPTION: Remove the comment from the next line if you do not have access to an ODCB database on your machine !!!!
-IF_GERDA gerda no_gerda :== no_gerda	// otherwise, BUT manually flag of ", gerda{|*|}" in the class definition above
+IF_Database db no_db 	:== db			// If Database option is used
+//IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the class definition above
 
-// OPTION: Comment out the next line if you do not want to use the poor mans database option
-//IF_PMDB pmdb no_pmdb :== pmdb			// If the poor mans database option is used
+// DataFile OPTION : comment out *one* of the following macro definitions
+// Use the first line if you *do* want to use the storage in a file
+// otherwise use the second line
 
-// OPTION: Remove the comment from the next line if you do not want to use the poor mans database option
-IF_PMDB pmdb no_pmdb :== no_pmdb		// otherwise, BUT manually flag of ", gerda{|*|}" in the class definition above
-
+IF_DataFile df no_df 	:== df			// If DataFile option is used
+//IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the class definition above
 
 
 // Global Settings
@@ -71,16 +78,17 @@ MyAbsDir			:: String			// absolute path name of directory in which this execuatb
 
 iDataStorageDir 	:== MyAbsDir +++ ThisExe +++ "-iStore"		// directory name where iData and iTask files are stored
 
-ODCBDataBase		:== ThisExe +++ "-ODCB"	// name of ODCB database being used by iData applications
-PMDBDataBase		:== ThisExe +++ "-PMDB"	// name of Poor Mans Data Base database being used by iData applications
+ODCBDataBaseName	:== ThisExe +++ "-ODCB"	// name of ODCB Database being used by iData applications
+DataFileName		:== ThisExe +++ "-CLDB"	// name of 		DataFile being used by iData applications
 
 iDataIdSeparator 	 :== "."			// used as separator when combining iData form id's
 radioButtonSeparator :== '.'			// used as extension for family of radiobuttons
 
+
 // Debug switches								
 
-TraceInput			:== True			// show what kind of information is received from Client
-TraceOutput			:== True			// show what kind of information is stored
+TraceInput			:== False			// show what kind of information is received from Client
+TraceOutput			:== False			// show what kind of information is stored
 
 TraceHttp10			:== True			// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11			:== False			// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile

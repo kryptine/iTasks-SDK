@@ -116,7 +116,7 @@ instance toInt Lifespan where toInt Temp			= 0
 							  toInt Session			= 2
 							  toInt TxtFileRO		= 3
 							  toInt TxtFile			= 4
-//							  toInt DataFile		= 5
+							  toInt DataFile		= 5
 							  toInt Database		= 6
 
 instance toString Lifespan where 	
@@ -125,6 +125,6 @@ instance toString Lifespan where
 							  toString Session		= "Session"
 							  toString TxtFileRO	= "TxtFileRO"
 							  toString TxtFile		= "TxtFile"
-//							  toString DataFile		= "DataFile"
+							  toString DataFile		= "DataFile"
 							  toString Database		= "Database"
 

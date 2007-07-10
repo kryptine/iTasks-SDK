@@ -8,7 +8,6 @@ import iDataHtmlDef, iDataTrivial, iDataFormData, EncodeDecode
 import GenPrint, GenParse
 import dynamic_string
 import EstherBackend
-import PMDB
 //import Debug // TEMP
 
 
@@ -23,53 +22,55 @@ import PMDB
 // A distinction is made between old states (states retrieved from the html form)
 // and new states (states of newly created forms and updated forms)
 
-:: *FormStates 	=										// collection of states of all forms
-				{ fstates 	:: *FStates					// internal tree of states
-				, triplets	:: [(Triplet,String)]		// indicates what has changed: which form, which postion, which value
-				, updateid	:: String					// which form has changed
+:: *FormStates 	=												// collection of states of all forms
+				{ fstates 	:: *FStates							// internal tree of states
+				, triplets	:: [(Triplet,String)]				// indicates what has changed: which form, which postion, which value
+				, updateid	:: String							// which form has changed
 				}		
 
-:: FStates		:== Tree_ (String,FormState)			// each form needs a different string id
+:: FStates		:== Tree_ (String,FormState)					// each form needs a different string id
 :: Tree_ a 		= Node_ (Tree_ a) a (Tree_ a) | Leaf_
-:: FormState 	= OldState !FState						// Old states are the states from the previous calculation
-				| NewState !FState 						// New states are newly created states or old states that have been inspected and updated
-:: FState		= { format	:: !Format					// Encoding method used for serialization
-				  , life	:: !Lifespan				// Its life span
+:: FormState 	= OldState !FState								// Old states are the states from the previous calculation
+				| NewState !FState 								// New states are newly created states or old states that have been inspected and updated
+:: FState		= { format	:: !Format							// Encoding method used for serialization
+				  , life	:: !Lifespan						// Its life span
 				  }
-:: Format		= PlainStr 	!.String 					// Either a string is used for serialization
-				| StatDyn	!Dynamic 					// Or a dynamic which enables serialization of functions defined in the application (no plug ins yet)
-				| DBStr		!.String (*Gerda -> *Gerda)	// In case a new value has to bestored in the database 
-//				| PMDBStr   !.String !PMDB				// In case a new value has to bestored in a poor mans database file
+:: Format		= PlainStr 	!.String 							// Either a string is used for serialization
+				| StatDyn	!Dynamic 							// Or a dynamic which enables serialization of functions defined in the application (no plug ins yet)
+				| DBStr		!.String (*Gerda -> *Gerda)			// In case a new value has to bestored in the relational database 
+				| CLDBStr   !.String (*DataFile -> *DataFile)	// In case a new value has to bestored in a Cleans database file
 				
-// Options
+// Database OPTION
 
 readGerda` id gerda 
-:== IF_GERDA (readGerda id gerda)
-					(abort "Reading Database, yet option is swiched off\n", 
-					 abort "Reading Database, yet option is swiched off\n")
+:== IF_Database (readGerda id gerda)
+					(abort "Reading from relational Database, yet option is swiched off\n", 
+					 abort "Reading from relational Database, yet option is swiched off\n")
 
 writeGerda` id val 
-:== IF_GERDA (writeGerda id val)
-					(\_ -> abort "Writing Database, yet option is swiched off\n")
+:== IF_Database (writeGerda id val)
+					(\_ -> abort "Writing to relational Database, yet option is swiched off\n")
 
-readPMDB` pmdb
-:== IF_PMDB (readPMDB pmdb)
-					(abort "Reading Poor Mans Database, yet option is swiched off\n", 
-					 abort "Reading Poor Mans Database, yet option is swiched off\n")
+deleteGerda` id gerda
+:== IF_Database (deleteGerda id gerda)
+					(abort "Deleting data from Database, yet option is swiched off\n")
 
-writePMDB` a pmdb
-:== IF_PMDB (writePMDB a pmdb)
-					(\_ -> abort "Writing Poor Mans Database, yet option is swiched off\n")
 
-readPMDB :: !*PMDB -> (!a, !*PMDB) | pmdb{|*|} a
-readPMDB pmdb
-# (chunka,pmdb)	= chunk pmdb
-= chunkValue chunka pmdb
+// DataFile OPTION
 
-writePMDB :: !a !*PMDB -> !*PMDB | pmdb{|*|} a
-writePMDB a pmdb
-# (chunka,pmdb)	= chunk pmdb
-= updateChunk  chunka a pmdb
+readDataFile id datafile 
+:== IF_DataFile (loadDataFile id datafile)
+					(abort "Reading from DataFile, yet option is swiched off\n", 
+					 abort "Reading from DataFile, yet option is swiched off\n")
+
+writeDataFile id val 
+:== IF_DataFile (storeDataFile id val)
+					(\_ -> abort "Writing to DataFile, yet option is swiched off\n")
+
+deleteDataFile id datafile
+:== IF_DataFile (removeDataFile id datafile)
+					(abort "Deleting data from DataFile, yet option is swiched off\n")
+
 
 // functions defined on the FormStates abstract data type
 
@@ -101,7 +102,8 @@ where
 	with
 		fetchFState :: FState -> Maybe a | TC a & gParse{|*|} a
 		fetchFState {format = PlainStr string}	= parseString string
-		fetchFState {format = DBStr string pmdb}= parseString string
+		fetchFState {format = DBStr string _}	= parseString string
+		fetchFState {format = CLDBStr string _}	= parseString string
 		fetchFState {format = StatDyn (v::a^)}	= Just v    
 		fetchFState _							= Nothing
 	| formid.id  < fid 	= (bool,parsed, Node_ leftformstates (fid,info) right,nworld)
@@ -113,7 +115,8 @@ where
 
 	// value is not yet available in the tree storage...
 	// all stuff read out from persistent store is now marked as OldState (was NewState)	
-	// read out database and store as string 
+
+	// read out relational Database and store as string 
 
 	findState` {id,lifespan = Database,storage = PlainString} Leaf_ world=:{gerda} 
 	# (value,gerda)		= readGerda` id	gerda
@@ -122,7 +125,7 @@ where
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = Database}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
-	// read out database and store as dynamic
+	// read out relational Database and store as dynamic
 
 	findState` {id,lifespan = Database,storage = StaticDynamic} Leaf_ world=:{gerda} 
 	# (value,gerda)		= readGerda` id	gerda
@@ -133,6 +136,25 @@ where
 							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = Database}) Leaf_,world)
 							else				-> (False,Nothing,    Leaf_,world)
 
+	// read out DataFile and store as string 
+
+	findState` {id,lifespan = DataFile,storage = PlainString} Leaf_ world=:{datafile} 
+	# (value,datafile)	= readDataFile id datafile
+	# world				= {world & datafile = datafile}
+	= case value of
+		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = DataFile}) Leaf_,world)
+		Nothing			= (False,Nothing,Leaf_,world)
+
+	// read out DataFile and store as dynamic
+
+	findState` {id,lifespan = DataFile,storage = StaticDynamic} Leaf_ world=:{datafile} 
+	# (value,datafile)	= readDataFile id datafile
+	# world				= {world & datafile = datafile}
+	= case value of 
+		Nothing 		= (False,Nothing,Leaf_,world)
+		Just string		= case string_to_dynamic` string of
+							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = DataFile}) Leaf_,world)
+							else				-> (False,Nothing,    Leaf_,world)
 	// read out file and store as string
 
 	findState` {id,lifespan = TxtFile,storage = PlainString} Leaf_ world 
@@ -193,12 +215,13 @@ where
 	// NewState Handling routines 
 
 	initNewState :: !String !Lifespan !Lifespan !StorageFormat !a  -> FState | iPrint,  iSpecialStore a	
-	initNewState id Database olifespan PlainString   nv = {format = DBStr    (printToString nv) (writeGerda` id nv), life = order Database olifespan}
-	initNewState id lifespan olifespan PlainString   nv = {format = PlainStr (printToString nv),                     life = order lifespan olifespan}
-	initNewState id lifespan olifespan StaticDynamic nv = {format = StatDyn  (dynamic nv),                           life = order lifespan olifespan}// convert the hidden state information stored in the html page
+	initNewState id Database olifespan PlainString   nv = {format = DBStr    (printToString nv) (writeGerda`   id nv), 	life = order Database olifespan}
+	initNewState id DataFile olifespan PlainString   nv = {format = CLDBStr  (printToString nv) (writeDataFile id nv), 	life = order DataFile olifespan}
+	initNewState id lifespan olifespan PlainString   nv = {format = PlainStr (printToString nv),                     	life = order lifespan olifespan}
+	initNewState id lifespan olifespan StaticDynamic nv = {format = StatDyn  (dynamic nv),                           	life = order lifespan olifespan}// convert the hidden state information stored in the html page
 
-	adjustlife TxtFileRO = TxtFile		// to enforce that a read only persistent file is written once
-	adjustlife life		= life
+	adjustlife TxtFileRO 	= TxtFile		// to enforce that a read only persistent file is written once
+	adjustlife life			= life
 
 	detlifespan (OldState formstate) = formstate.life
 	detlifespan (NewState formstate) = formstate.life
@@ -240,10 +263,11 @@ where
 		deleteTxtFileIData (fid,OldState {life}) world 	= deleteTxtFile fid life world
 		deleteTxtFileIData (fid,NewState {life}) world 	= deleteTxtFile fid life world
 
-		deleteTxtFile fid Database 		world=:{gerda}	= {world & gerda  = deleteGerda fid gerda}
-		deleteTxtFile fid TxtFile 		world 			= deleteState fid world
-		deleteTxtFile fid TxtFileRO 	world			= deleteState fid world
-		deleteTxtFile fid _ 			world 			= world
+		deleteTxtFile fid Database 		world=:{gerda}		= {world & gerda  	 = deleteGerda`    fid gerda}
+		deleteTxtFile fid DataFile 		world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
+		deleteTxtFile fid TxtFile 		world 				= deleteState fid world
+		deleteTxtFile fid TxtFileRO 	world				= deleteState fid world
+		deleteTxtFile fid _ 			world 				= world
 
 
 // Serialization and De-Serialization of states
@@ -302,9 +326,9 @@ where
 		// temperal form don't need to be stored and can be skipped as well
 		// the state of all other new forms created are stored in the page 
 		htmlStateOf (fid,NewState {life})
-			| isMember life [Database,TxtFile,TxtFileRO,Temp]			= Nothing
-		htmlStateOf (fid,NewState {format = PlainStr string,life})			= Just (fid,life,PlainString,string)
-		htmlStateOf (fid,NewState {format = StatDyn dynval, life})			= Just (fid,life,StaticDynamic,dynamic_to_string dynval)
+			| isMember life [Database,TxtFile,TxtFileRO,Temp,DataFile]	= Nothing
+		htmlStateOf (fid,NewState {format = PlainStr string,life})		= Just (fid,life,PlainString,string)
+		htmlStateOf (fid,NewState {format = StatDyn dynval, life})		= Just (fid,life,StaticDynamic,dynamic_to_string dynval)
 
 	writeAllTxtFileStates :: !FStates *NWorld -> *NWorld				// store states in persistent stores
 	writeAllTxtFileStates Leaf_ nworld = nworld
@@ -314,14 +338,20 @@ where
 	// only new states need to be stored, since old states have not been changed (assertion)
 		writeTxtFileState (sid,NewState {format,life = Database}) nworld=:{gerda}
 		= case format of
-			DBStr string gerdafun	= {nworld & gerda = gerdafun gerda}										// last value is stored in curried write function
-			StatDyn dynval			= {nworld & gerda = writeGerda sid (dynamic_to_string dynval) gerda}	// write the dynamic as a string to the database
+			DBStr   string gerdafun		= {nworld & gerda = gerdafun gerda}										// last value is stored in curried write function
+			StatDyn dynval				= {nworld & gerda = writeGerda` sid (dynamic_to_string dynval) gerda}	// write the dynamic as a string to the relational database
+
+		writeTxtFileState (sid,NewState {format,life = DataFile}) nworld=:{datafile}
+		= case format of
+			CLDBStr   string dfilefun	= {nworld & datafile = dfilefun datafile}										// last value is stored in curried write function
+			StatDyn dynval				= {nworld & datafile = writeDataFile sid (dynamic_to_string dynval) datafile}	// write the dynamic as a string to the datafile
+
 		writeTxtFileState (sid,NewState {format,life  = TxtFile}) nworld
 		= case format of
-				PlainStr string		= writeState sid string nworld
-				StatDyn  dynval		= writeState sid (dynamic_to_string dynval) nworld
-		writeTxtFileState _ nworld
-		= nworld
+				PlainStr string			= writeState sid string nworld
+				StatDyn  dynval			= writeState sid (dynamic_to_string dynval) nworld
+
+		writeTxtFileState _ nworld		= nworld
 
 // trace States
  
@@ -343,9 +373,10 @@ where
 	nodeTrace (id,OldState fstate=:{format,life}) = [[Txt id,Txt "No", Txt (toString life):toStr format]]
 	nodeTrace (id,NewState fstate=:{format,life}) = [[Txt id,Txt "Yes",Txt (toString life):toStr format]]
 	
-	toStr (PlainStr str) = [Txt "String", Txt str]
-	toStr (StatDyn  dyn) = [Txt "S_Dynamic", Txt (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]
-	toStr (DBStr    str _) = [Txt "Database", Txt str]
+	toStr (PlainStr str) 	= [Txt "String", Txt str]
+	toStr (StatDyn  dyn) 	= [Txt "S_Dynamic", Txt (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]
+	toStr (DBStr    str _) 	= [Txt "Database", Txt str]
+	toStr (CLDBStr  str _) 	= [Txt "DataFile", Txt str]
 	
 strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
 

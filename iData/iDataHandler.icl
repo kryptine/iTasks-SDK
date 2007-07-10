@@ -27,16 +27,19 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 
 :: Inline 		= Inline String
 
-// OPTIONS
+// Database OPTION
 
-openGerda` database world
-:== IF_GERDA (openGerda database world) (abort "Trying to open database while options are switched off",world)
-closeGerda` gerda world
-:== IF_GERDA (closeGerda gerda world) world
+openDatabase database world
+:== IF_Database (openGerda database world) (abort "Trying to open a relational database while this option is switched off",world)
+closeDatabase database world
+:== IF_Database (closeGerda database world) world
 
+// DataFile OPTION
 
-mkHSt :: *FormStates *NWorld -> *HSt
-mkHSt states nworld = { cntr=0, states=states, world=nworld, submits = False }
+openmDataFile datafile world
+:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
+closemDataFile datafile world
+:== IF_DataFile (closeDataFile datafile world) world
 
 //////////////////  EXPERIMENTAL
 
@@ -85,18 +88,21 @@ doHtmlPageAndPrint args userpage world
 where
 	doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
 	doHtmlPage args userpage inout world
-	# (gerda,world)				= openGerda` ODCBDataBase world								// open the relational database if option chosen
-	# nworld 					= { worldC = world, inout = inout, gerda = gerda}	
+	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
+	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
+	# nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
 	# (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
 	# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
 								= userpage (mkHSt initforms nworld)							// Call the user application
 	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-	# (allformbodies,world)		= storeFormStates states world								// Store all state information
-	# {worldC,gerda,inout}		= print_to_stdout 											// Print out all html code
+	# (allformbodies,nworld)	= storeFormStates states world								// Store all state information
+	# {worldC,gerda,inout,datafile}		
+								= print_to_stdout 											// Print out all html code
 									(Html (Head headattr [extra_style:headtags]) 
 									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
-									world
-	# world						= closeGerda` gerda worldC									// close the relational database if option chosen
+									nworld
+	# world						= closeDatabase gerda worldC								// close the relational database if option chosen
+	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= (inout,world)
 	where
 		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
@@ -119,6 +125,9 @@ where
 			# d_s	= {d_s & [d_i]=s_s.[s_i]}
 			= copy_chars s_s (s_i+1) (d_i+1) n d_s
 			= d_s
+
+mkHSt :: *FormStates *NWorld -> *HSt
+mkHSt states nworld = {cntr=0, states=states, world=nworld, submits = False }
 
 // Create subserver(s) talking to an http 1.1 server.
 // One needs to create several copies of the same subserver to handle parallel request issues by an http 1.1 server.
@@ -606,6 +615,8 @@ derive gUpd 	Inline
 derive gParse 	Inline
 derive gPrint 	Inline
 derive gerda 	Inline
+derive read 	Inline
+derive write 	Inline
 
 gForm{|Inline|} (init,formid) hst
 # (Inline string) =  formid.ival 	

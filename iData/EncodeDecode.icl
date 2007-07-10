@@ -81,13 +81,13 @@ where
 	fromLivetime Session 		PlainString		= "S"
 	fromLivetime TxtFile 		PlainString		= "P"
 	fromLivetime TxtFileRO 		PlainString		= "R"
-//	fromLivetime DataFile 		PlainString		= "F"
+	fromLivetime DataFile 		PlainString		= "F"
 	fromLivetime Database	 	PlainString		= "D"
 	fromLivetime Page 			StaticDynamic	= "n"
 	fromLivetime Session 		StaticDynamic	= "s"
 	fromLivetime TxtFile 		StaticDynamic	= "p"
 	fromLivetime TxtFileRO 		StaticDynamic	= "r"
-//	fromLivetime DataFile 		StaticDynamic	= "f"
+	fromLivetime DataFile 		StaticDynamic	= "f"
 	fromLivetime Database	 	StaticDynamic	= "d"
 
 // de-serialize Html State
@@ -114,12 +114,14 @@ where
 											['n':_]		= (Page,        StaticDynamic)
 											['S':_]		= (Session,     PlainString  )
 											['s':_] 	= (Session,     StaticDynamic)
-											['P':_] 	= (TxtFile,  PlainString  )
-											['p':_]		= (TxtFile,  StaticDynamic)
-											['R':_]		= (TxtFileRO,PlainString  )
-											['r':_] 	= (TxtFileRO,StaticDynamic)
+											['P':_] 	= (TxtFile,  	PlainString  )
+											['p':_]		= (TxtFile,  	StaticDynamic)
+											['R':_]		= (TxtFileRO,	PlainString  )
+											['r':_] 	= (TxtFileRO,	StaticDynamic)
 											['D':_] 	= (Database,    PlainString  )
 											['d':_] 	= (Database,    StaticDynamic)
+											['F':_] 	= (DataFile,    PlainString  )
+											['f':_] 	= (DataFile,    StaticDynamic)
 											_			= (Page,        PlainString  )
 
 // reconstruct HtmlState out of the information obtained from browser
@@ -196,7 +198,7 @@ traceHtmlInput args=:(Just input)
 				STable [] [ [B [] "Triplets:",Br]
 							, showTriplet triplets
 						  ,[B [] "Id:", B [] "Lifespan:", B [] "Format:", B [] "Value:"]
-						: [  [Txt id, Txt (showl life), Txt (showf storage), Txt (shows storage state)] 
+						: [  [Txt id, Txt (showl life), Txt ( showf storage), Txt (shows storage state)] 
 						  \\ (id,life,storage,state) <- htmlState
 						  ]
 						]

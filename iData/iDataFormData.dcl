@@ -24,7 +24,7 @@ import GenEq
 	=	Database								//	persistent form stored in Database using generic db functions from Gerda
 	|	TxtFile									// 	persistent form stored in a file in StorageFormat
 	|	TxtFileRO								//	persistent form stored in a file in StorageFormat, which is used Read-Only
-//	|	DataFile								//	persistent form stored in a file using the Poor-Mans-Database-Format
+	|	DataFile								//	persistent form stored in a file using the Poor-Mans-Database-Format
 	| 	Session									// 	form in StorageFormat will live as long as one browses between the pages offered by the application
 	| 	Page									// 	form in StorageFormat will be automatically garbage collected when no reference is made to it in a page			
 	|	Temp									//	form setting is not stored at all, only lives temporaly in the Clean application	

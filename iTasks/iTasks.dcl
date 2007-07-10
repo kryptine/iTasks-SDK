@@ -13,6 +13,8 @@ derive gUpd 	Void, TCl
 derive gPrint 	Void, TCl
 derive gParse 	Void
 derive gerda 	Void
+derive read 	Void
+derive write 	Void
 
 :: *TSt										// task state
 :: Task a		:== St *TSt a				// an interactive task

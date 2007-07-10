@@ -11,6 +11,8 @@ derive gUpd 	[], Void, Maybe
 derive gParse 	Void, Maybe
 derive gPrint 	Void, Maybe
 derive gerda 	Void
+derive read 	Void
+derive write 	Void
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -177,7 +179,7 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst}
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	(a,	refresh.form ++ ifTraceOn traceAsked.form ++ [Txt (" i-Task interaction nr: " <+++ appversion.value)] ++
+= 	(a,	refresh.form ++ ifTraceOn traceAsked.form ++ [red " i-Task ", yellow appversion.value] ++
 		[Br,Hr [],showUser thisUser,Br,Br] ++ 
 		if (doTrace && traceOn)
 			[ printTrace2 trace ]
@@ -958,13 +960,13 @@ showUser nr
 = yellow ("User " <+++ nr)
 
 yellow message
-= Font [Fnt_Color (`Colorname Yellow)] [B [] message]
+= Font [Fnt_Color (`Colorname Yellow)] [B [] (toString message)]
 
 silver message
-= Font [Fnt_Color (`Colorname Silver)] [B [] message]
+= Font [Fnt_Color (`Colorname Silver)] [B [] (toString message)]
 
 red message
-= Font [Fnt_Color (`Colorname Red)] [B [] message]
+= Font [Fnt_Color (`Colorname Red)] [B [] (toString message)]
 
 // task number generation
 

@@ -13,11 +13,21 @@ derive gForm Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 derive gUpd  Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 derive bimap Form, FormId
 
+derive gForm	Inline
+derive gUpd 	Inline
+derive gParse 	Inline
+derive gPrint 	Inline
+derive gerda 	Inline
+derive read 	Inline
+derive write 	Inline
+
 :: *HSt 		= { cntr 	:: Int 			// counts position in expression
 				  , submits	:: Bool			// True if we are in submitting mode
 				  , states	:: *FormStates  // all form states are collected here ... 	
 				  , world	:: *NWorld		// to enable all other kinds of I/O
 				  }	
+
+:: Inline = Inline String
 
 // doHtml main wrapper for generating & handling of a Html form
 // depending on the option set (see iDataSettings) it will either 
@@ -50,13 +60,6 @@ toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] 						// toHtmlForm disp
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toBody 				:: (Form a) -> BodyTag											// just (BodyTag form.body)
 createDefault 		:: a						| gUpd{|*|} a 						// creates a default value of requested type
-
-:: Inline = Inline String
-derive gForm	Inline
-derive gUpd 	Inline
-derive gParse 	Inline
-derive gPrint 	Inline
-derive gerda 	Inline
 
 showHtml 			:: [BodyTag] -> Inline											// enabling to show Html code in Clean data
 

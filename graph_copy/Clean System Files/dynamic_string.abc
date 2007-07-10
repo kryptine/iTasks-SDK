@@ -1,0 +1,252 @@
+.comp 920 000110010
+.start _nostart_
+.depend "_SystemEnum" "20061218140208"
+.depend "StdEnum" "20061218140208"
+.depend "StdMisc" "20061218140208"
+.depend "StdFunc" "20061218140208"
+.depend "StdCharList" "20061218140208"
+.depend "StdTuple" "20061218140208"
+.depend "StdOrdList" "20061218140208"
+.depend "StdList" "20061218140208"
+.depend "StdFile" "20061218140208"
+.depend "StdString" "20061218140208"
+.depend "_SystemArray" "20061218140208"
+.depend "StdArray" "20061218140208"
+.depend "StdChar" "20061218140208"
+.depend "StdReal" "20061218140208"
+.depend "StdInt" "20061218140208"
+.depend "StdEnv" "20061218140208"
+.depend "StdBool" "20061218140208"
+.depend "StdClass" "20061218140208"
+.depend "StdDynamic" "20061208183212"
+.depend "StdOverloaded" "20061218140208"
+.depend "_SystemDynamic" "20061208183212"
+.depend "StdCleanTypes" "20061208183212"
+.depend "dynamic_string" "20070709113944"
+.impobj "copy_graph_to_string_interface.obj"
+.impobj "copy_graph_to_string.obj"
+.impobj "copy_string_to_graph_interface.obj"
+.impobj "copy_string_to_graph.obj"
+.module m_dynamic_string "dynamic_string" "20070709114033"
+.endinfo
+.implab _cycle_in_spine
+.implab _type_error
+.implab _hnf
+.impdesc _ind
+.implab _indirection _eaind
+.impdesc e_system_dif
+.implab e_system_nif e_system_eaif
+.implab e_system_sif
+.impdesc e_system_dAP
+.implab e_system_nAP e_system_eaAP
+.implab e_system_sAP
+.impdesc _Nil
+.impdesc _Cons
+.impdesc _Conss
+.implab n_Conss ea_Conss
+.impdesc _Consts
+.implab n_Consts ea_Consts
+.impdesc _Conssts
+.implab n_Conssts ea_Conssts
+.impdesc _Tuple
+.impdesc d_S.1
+.implab n_S.1 ea_S.1
+.impdesc d_S.2
+.implab n_S.2 ea_S.2
+.impdesc d_S.3
+.implab n_S.3 ea_S.3
+.impdesc d_S.4
+.implab n_S.4 ea_S.4
+.impdesc d_S.5
+.implab n_S.5 ea_S.5
+.impdesc d_S.6
+.implab n_S.6 ea_S.6
+.implab _driver
+.export e_dynamic_string_sstring_to_dynamic
+.descexp e_dynamic_string_dstring_to_dynamic e_dynamic_string_nstring_to_dynamic e_dynamic_string_lstring_to_dynamic 1 0 "string_to_dynamic"
+.pb "string_to_dynamic"
+.pld
+.o 2 0
+e_dynamic_string_lstring_to_dynamic
+	pop_a 1
+.d 1 0
+	jsr ea2
+.o 2 0
+	build_r e__SystemDynamic_rDynamicTemp 2 0 0 0
+	updatepop_a 0 2
+.d 1 0
+	rtn
+.pd
+.n 1 e_dynamic_string_dstring_to_dynamic
+.o 1 0
+e_dynamic_string_nstring_to_dynamic
+	push_node _cycle_in_spine 1
+.d 1 0
+	jsr ea2
+.o 2 0
+	fill_r e__SystemDynamic_rDynamicTemp 2 0 2 0 0
+	pop_a 2
+.d 1 0
+	rtn
+.o 1 0
+e_dynamic_string_sstring_to_dynamic
+.pd
+.d 1 0
+.pn
+	jmp ea2
+.o 1 0
+.pn
+ea2
+	jsr_eval 0
+	push_array 0
+	update_a 0 1
+	pop_a 1
+.o 1 0
+s2
+	push_a 0
+	updatepop_a 0 1
+.d 1 0
+	jsr s4
+.o 1 1 i
+	pop_b 1
+	jsr_eval 0
+	repl_r_args 2 0
+.d 2 0
+	rtn
+.pe
+.export e_dynamic_string_scopy_from_string
+.descexp e_dynamic_string_dcopy_from_string e_dynamic_string_ncopy_from_string e_dynamic_string_lcopy_from_string 1 0 "copy_from_string"
+.pb "copy_from_string"
+.pld
+.o 2 0
+e_dynamic_string_lcopy_from_string
+	pop_a 1
+.d 1 0
+	jsr ea4
+.o 1 1 i
+	buildI_b 0
+	push_a 1
+	buildh _Tuple 2
+	updatepop_a 0 1
+	pop_b 1
+.d 1 0
+	rtn
+.pd
+.n 1 e_dynamic_string_dcopy_from_string
+.o 1 0
+e_dynamic_string_ncopy_from_string
+	push_node _cycle_in_spine 1
+.d 1 0
+	jsr ea4
+.o 1 1 i
+	buildI_b 0
+	push_a 1
+	fillh _Tuple 2 3
+	pop_a 1
+	pop_b 1
+.d 1 0
+	rtn
+.o 1 0
+.pn
+ea4
+	jsr_eval 0
+	push_array 0
+	update_a 0 1
+	pop_a 1
+.o 1 0
+e_dynamic_string_scopy_from_string
+.o 1 0
+s4
+.d 1 0
+	jsr _copy_string_to_graph
+.o 1 0
+	pushI 0
+
+.d 1 1 i
+	rtn
+.pe
+.export e_dynamic_string_sdynamic_to_string
+.descexp e_dynamic_string_ddynamic_to_string e_dynamic_string_ndynamic_to_string e_dynamic_string_ldynamic_to_string 1 0 "dynamic_to_string"
+.pb "dynamic_to_string"
+.pld
+.o 2 0
+e_dynamic_string_ldynamic_to_string
+	pop_a 1
+.d 1 0
+	jsr ea1
+.o 1 0
+	push_a 0
+	buildh ARRAY 1
+	updatepop_a 0 1
+.d 1 0
+	rtn
+.pd
+.n 1 e_dynamic_string_ddynamic_to_string
+.o 1 0
+e_dynamic_string_ndynamic_to_string
+	push_node _cycle_in_spine 1
+.d 1 0
+	jsr ea1
+.o 1 0
+	push_a 0
+	fillh ARRAY 1 2
+	pop_a 1
+.d 1 0
+	rtn
+.o 1 0
+.pn
+ea1
+	jsr_eval 0
+	repl_r_args 2 0
+.o 2 0
+e_dynamic_string_sdynamic_to_string
+.o 2 0
+s1
+	build_r e__SystemDynamic_rDynamicTemp 2 0 0 0
+	updatepop_a 0 2
+.d 1 0
+	jmp s3
+.pe
+.export e_dynamic_string_scopy_to_string
+.descexp e_dynamic_string_dcopy_to_string e_dynamic_string_ncopy_to_string e_dynamic_string_lcopy_to_string 1 0 "copy_to_string"
+.pb "copy_to_string"
+.pld
+.o 2 0
+e_dynamic_string_lcopy_to_string
+	pop_a 1
+.d 1 0
+	jsr ea3
+.o 1 0
+	push_a 0
+	buildh ARRAY 1
+	updatepop_a 0 1
+.d 1 0
+	rtn
+.pd
+.n 1 e_dynamic_string_dcopy_to_string
+.o 1 0
+e_dynamic_string_ncopy_to_string
+	push_node _cycle_in_spine 1
+.d 1 0
+	jsr ea3
+.o 1 0
+	push_a 0
+	fillh ARRAY 1 2
+	pop_a 1
+.d 1 0
+	rtn
+.o 1 0
+.pn
+ea3
+	jsr_eval 0
+.o 1 0
+e_dynamic_string_scopy_to_string
+.o 1 0
+s3
+.d 1 0
+	jsr _copy_graph_to_string
+.o 1 0
+
+.d 1 0
+	rtn
+.pe
