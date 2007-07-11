@@ -45,6 +45,11 @@ derive write 	Void
 
 import dynamic_string
 
+getTripletNames :: *TSt -> *([String],*TSt)
+getTripletNames tst=:{hst=hst=:{states}}
+	# (triplets,states) = getAllTriplets states
+	= ([s \\ ((s,_,_),_) <- triplets],{tst & hst = {hst & states = states}})
+
 :: ThreadTable	:== [TaskThread]
 :: TaskThread	:== (TaskNr,String)
 
@@ -70,6 +75,41 @@ where
 	lookupThread tableKey n [(key,entry):next]
 		| showTaskNr tableKey == showTaskNr key	= (n,entry)		// thread is administrated
 		= lookupThread tableKey (inc n) next
+
+findThreadToCall :: *TSt -> *(Maybe TaskThread,*TSt)
+findThreadToCall tst
+# (table,tst)	 	= ThreadTableStorage id tst					// read thread table
+# (triplets,tst) 	= getTripletNames tst							// get all triplets
+| isNil triplets 	= (Nothing,tst)								// no info on page
+# (pos,_)			= findMyThread table triplets
+= (Just (table!!pos),tst) 
+where
+	isNil [] = True
+	isNil _  = False
+
+	findMyThread table triplets
+	# lowestTrip 		= lowestTripletNr triplets
+	# allTaskEntries 	= filter (\(i,nr) -> nr <= lowestTrip) [(i,reverse tasknr) \\ (tasknr,_) <- table & i <- [0..]]
+	= highest (hd allTaskEntries) (stl allTaskEntries)
+	where
+		lowestTripletNr triplets
+		# allTasknrs = map strip triplets
+		= lowest (hd allTasknrs) (tl allTasknrs)
+	
+		lowest x [] 	= x
+		lowest x [y:ys]
+		| x < y = lowest x ys
+		= lowest y ys
+	
+		highest (i,x) [] 	= (i,x)
+		highest (i,x) [(j,y):ys]
+		| x > y = highest (i,x) ys
+		= highest (j,y) ys
+	
+		strip :: String -> TaskNr
+		strip iTaskname 
+			= map toInt (takeWhile ((<>) '-') (stl (dropWhile ((<>) '_') (mkList iTaskname)))) // assuming "taskname_tasknr-moreinfo"
+	
 
 insertInThreadTable :: TaskThread *TSt -> *TSt
 insertInThreadTable thread tst
@@ -100,28 +140,27 @@ where
 evalTaskThread :: TaskThread -> Task a 	
 evalTaskThread (thrTasknr,thrCode) = evalTaskThread` 
 where
-	evalTaskThread` tst=:{tasknr}										// execute the thread !!!!
+	evalTaskThread` tst=:{tasknr}								// execute the thread !!!!
 	# (a,tst=:{activated}) =  fst (copy_from_string {s` \\ s` <-: thrCode}) {tst & tasknr = thrTasknr} 
-	| activated												// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTasknr tst				// remove entry
+	| activated													// thread is finished, delete the entry...
+		# tst =  deleteThreads thrTasknr tst					// remove entry
 		= (a,{tst & tasknr = tasknr})
 	= (a,{tst & tasknr = tasknr})
 	
 startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) 
 startThreadTask thisUser traceOn versionsOn taska hst
 # tst=:{tasknr}				= initTst thisUser hst			// initialize tst 
-# (mbthread,tst)			= lookupInThreadTable tasknr {tst & tasknr = tasknr}
-| isNothing mbthread										// no main thread, start main task as a thread ...
+# (mbmain,tst)				= lookupInThreadTable tasknr {tst & tasknr = tasknr}
+| isNothing mbmain											// no main thread, start main task as a thread ...
 	# (_,body,tst=:{hst}) 	= startTstTask thisUser traceOn versionsOn (mkTaskThread taska) tst	 	
+	= mkHtml "main thread" body hst 
+# (mbthread,tst)			= findThreadToCall tst			// see if there are any events, i.e. triplets received
+| isNothing mbthread										// no, start main thread
+	# (_,body,tst=:{hst}) 	= startTstTask thisUser traceOn versionsOn (evalTaskThread (snd (fromJust mbmain))) tst 								// no
 	= mkHtml "main thread" body hst
-# (_,thread)				= fromJust mbthread				// main task found
-# (_,body,tst=:{hst}) 		= startTstTask thisUser traceOn versionsOn (evalTaskThread thread) tst		// no threads, start main thread ...
-= mkHtml "main thread" body hst
+# (_,body,tst=:{hst}) 		= startTstTask thisUser traceOn versionsOn (evalTaskThread (fromJust mbthread)) tst		// no threads, start main thread ...
+= mkHtml "sub thread" body hst
 		
-getTripletNames :: *TSt -> *([String],*TSt)
-getTripletNames tst=:{hst=hst=:{states}}
-	# (triplets,states) = getAllTriplets states
-	= ([s \\ ((s,_,_),_) <- triplets],{tst & hst = {hst & states = states}})
 
 // *** First some small utility functions
 
@@ -220,7 +259,7 @@ deleteSubTasks tasknr tst=:{hst,userId,options}
 
 // *** wrappers, to be used in combination with an iData wrapper...
 
-startTask :: !Int !Bool !Bool !(Task a) !*HSt -> ([BodyTag],!*HSt)// | iCreate a 
+startTask :: !Int !Bool !Bool !(Task a) !*HSt -> ([BodyTag],!*HSt)
 startTask thisUser traceOn versionsOn taska hst 
 # (_,body,tst) = startTstTask thisUser traceOn versionsOn taska (initTst thisUser hst)
 = (body,tst.hst)

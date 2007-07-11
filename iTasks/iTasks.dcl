@@ -29,8 +29,8 @@ multiUserTask 	:: start wrapper function for user with indicated id with option 
 
 startNewTask	:: to be used after login ritual					
 */
-singleUserTask 	:: !Int	!Bool !(Task a) 	!*HSt -> (Html,*HSt) 			| iCreate a
-multiUserTask 	:: !Int !Bool !(Task a)  	!*HSt -> (Html,*HSt) 			| iCreate a
+singleUserTask 	:: !Int	!Bool !(Task a) 	!*HSt -> (Html,*HSt) 	| iCreate a
+multiUserTask 	:: !Int !Bool !(Task a)  	!*HSt -> (Html,*HSt) 	| iCreate a
 
 /* Setting options for any collection of iTask workflows
 (<<@)			:: set iData attribute globally for indicated (composition of) iTask(s) 
@@ -202,6 +202,6 @@ Once 			:: (Task a) 						-> (Task a) 		| iData a
 
 // VERY EXPERIMENTAL
 
-mkTaskThread 	:: (Task a) -> Task a //| iData a				// make a thread
-startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) //| iData a 
+mkTaskThread 	:: (Task a) -> Task a 									// make a thread
+startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) 		// start a threaded application
 
