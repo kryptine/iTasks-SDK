@@ -41,7 +41,7 @@ derive write 	Void
 
 :: TraceInfo	:== Maybe (Bool,(Int,TaskNr,String,String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
-// experimental
+// experimental and very very very dangerous !!!
 
 import dynamic_string
 
@@ -88,7 +88,8 @@ deleteThreads tasknr tst
 mkTaskThread :: (Task a) -> Task a 								// execute a thread
 mkTaskThread task = doit
 where
-	doit tst=:{tasknr,activate}											// thread - task is not yet finished
+	doit tst=:{tasknr,activated}								// thread - task is not yet finished
+	| not activated		= task tst								// WOW : let the task go: it won't start but will generate a default value !!!
 	# (mbthread,tst)	= lookupInThreadTable tasknr tst		// look if there is an entry for this task
 	| isNothing mbthread										// not yet, insert new entry		
 		# tst = insertInThreadTable (tasknr,copy_to_string task) tst 
@@ -99,12 +100,12 @@ where
 evalTaskThread :: TaskThread -> Task a 	
 evalTaskThread (thrTasknr,thrCode) = evalTaskThread` 
 where
-	evalTaskThread` tst										// execute the thread !!!!
+	evalTaskThread` tst=:{tasknr}										// execute the thread !!!!
 	# (a,tst=:{activated}) =  fst (copy_from_string {s` \\ s` <-: thrCode}) {tst & tasknr = thrTasknr} 
 	| activated												// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTasknr tst				// remove entry
-		= (a,tst)
-	= (a,tst)
+		= (a,{tst & tasknr = tasknr})
+	= (a,{tst & tasknr = tasknr})
 	
 startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) 
 startThreadTask thisUser traceOn versionsOn taska hst
@@ -173,6 +174,39 @@ cFormId  		{tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = task
 sessionFormId  	options s d = cFormId options s d <@ Session
 pageFormId  	options s d = cFormId options s d <@ Page
 storageFormId  	options s d = cFormId options s d <@ NoForm
+
+// Task makers are wrappers which take care of
+//		- deciding whether a task should be called (activated) or not
+//		- adding trace information
+//		- generating task numbers in a systematic way
+// It is very important that the numbering of the tasks is done systematically
+// Every task should have a unique number
+// Every sequential task should increase the task number
+// If a task j is a subtask of task i, than it will get number i.j in reverse order
+	
+mkTask :: !String (Task a) -> (Task a) | iCreateAndPrint a
+mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr
+
+mkTaskNoInc :: !String (Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
+mkTaskNoInc taskname mytask = mkTaskNoInc`
+where
+	mkTaskNoInc` tst=:{activated,tasknr,userId}		
+	| not activated							= (createDefault,tst)	// not active, don't call task, return default value
+	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
+	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
+	= (val,{tst & tasknr = tasknr
+				, trace = Just (InsertTrace activated tasknr userId taskname (printToString val) (fromJust trace))}) // adjust trace
+
+incTaskNr tst 		= {tst & tasknr = incNr tst.tasknr}
+newSubTaskNr tst	= {tst & tasknr = [-1:tst.tasknr]}
+
+incNr [] = [0]
+incNr [i:is] = [i+1:is]
+
+addTasknr [] j = [j]
+addTasknr [i:is] j = [i+j:is]
+
+internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` prompt task <<@ Page) <<@ Edit) tst
 
 // Garbage collection on iTask administration is done dependening on gc option chosen
 
@@ -425,38 +459,6 @@ where
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-// Task makers are wrappers which take care of
-//		- deciding whether a task should be called (activated) or not
-//		- adding trace information
-//		- generating task numbers in a systematic way
-// It is very important that the numbering of the tasks is done systematically
-// Every task should have a unique number
-// Every sequential task should increase the task number
-// If a task j is a subtask of task i, than it will get number i.j in reverse order
-	
-mkTask :: !String (Task a) -> (Task a) | iCreateAndPrint a
-mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr
-
-mkTaskNoInc :: !String (Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
-mkTaskNoInc taskname mytask = mkTaskNoInc`
-where
-	mkTaskNoInc` tst=:{activated,tasknr,userId}		
-	| not activated							= (createDefault,tst)	// not active, don't call task, return default value
-	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
-	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
-	= (val,{tst & tasknr = tasknr
-				, trace = Just (InsertTrace activated tasknr userId taskname (printToString val) (fromJust trace))}) // adjust trace
-
-incTaskNr tst 		= {tst & tasknr = incNr tst.tasknr}
-newSubTaskNr tst	= {tst & tasknr = [-1:tst.tasknr]}
-
-incNr [] = [0]
-incNr [i:is] = [i+1:is]
-
-addTasknr [] j = [j]
-addTasknr [i:is] j = [i+j:is]
-
-internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` prompt task <<@ Page) <<@ Edit) tst
 
 /////////////////////////////////////
 
