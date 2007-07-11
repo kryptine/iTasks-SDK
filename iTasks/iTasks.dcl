@@ -51,7 +51,7 @@ defaultUser		:== 0						// default id of user
 /* to start a task after a login ritual (negative id)
 startNewTask	:: id of mian task, trace optiion on
 */
-startNewTask 	:: !Int !Bool !(Task a) 	-> Task a 				| iCreateAndPrint a 
+startNewTask 	:: !Int !Bool !(Task a) 	-> Task (Maybe a)		| iCreateAndPrint a 
 
 /* promote any iData editor to the iTask domain
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task
@@ -200,4 +200,8 @@ Once			:; 	task will be done only once, the value of the task will be remembered
 
 Once 			:: (Task a) 						-> (Task a) 		| iData a
 
+// VERY EXPERIMENTAL
+
+mkTaskThread 	:: (Task a) -> Task a //| iData a				// make a thread
+startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) //| iData a 
 
