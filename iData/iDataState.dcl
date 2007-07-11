@@ -28,7 +28,8 @@ retrieveFormStates 	:: (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorl
 storeFormStates 	:: !FormStates *NWorld -> (BodyTag,*NWorld)
 
 
-getTriplets 		:: !String !*FormStates -> (Triplets,!*FormStates)	// retrieve triplets
+getTriplets 		:: !String !*FormStates -> (Triplets,!*FormStates)	// retrieve triplets matching given id
+getAllTriplets 		:: !*FormStates -> (Triplets,!*FormStates)	// retrieve all triplets
 
 // tracing all states ...
 

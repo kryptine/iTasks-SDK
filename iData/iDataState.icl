@@ -84,6 +84,9 @@ emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = ""}
 getTriplets :: !String !*FormStates -> (Triplets,!*FormStates)
 getTriplets id formstates=:{triplets} = ([mytrips \\ mytrips=:((tripid,_,_),_) <- triplets | id == tripid] ,formstates)
 
+getAllTriplets :: !*FormStates -> (Triplets,!*FormStates)
+getAllTriplets formstates=:{triplets} = (triplets,formstates)
+
 getUpdateId :: !*FormStates -> ([String],!*FormStates)
 getUpdateId formStates=:{triplets} = (removeDup [tripid \\ ((tripid,_,_),_) <- triplets] ,formStates)
 

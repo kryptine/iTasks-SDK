@@ -87,8 +87,8 @@ radioButtonSeparator :== '.'			// used as extension for family of radiobuttons
 
 // Debug switches								
 
-TraceInput			:== False			// show what kind of information is received from Client
-TraceOutput			:== False			// show what kind of information is stored
+TraceInput			:== True			// show what kind of information is received from Client
+TraceOutput			:== True			// show what kind of information is stored
 
 TraceHttp10			:== True			// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11			:== False			// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
