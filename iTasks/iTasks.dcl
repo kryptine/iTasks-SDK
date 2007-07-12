@@ -203,5 +203,4 @@ Once 			:: (Task a) 						-> (Task a) 		| iData a
 // VERY EXPERIMENTAL
 
 mkTaskThread 	:: (Task a) -> Task a 									// make a thread
-startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) 		// start a threaded application
 

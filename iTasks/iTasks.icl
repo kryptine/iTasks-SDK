@@ -6,13 +6,13 @@ implementation module iTasks
 import StdEnv, StdBimap
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
 
-derive gForm 	[], Void, Maybe
-derive gUpd 	[], Void, Maybe
-derive gParse 	Void, Maybe
-derive gPrint 	Void, Maybe
-derive gerda 	Void
-derive read 	Void
-derive write 	Void
+derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe, []
+derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe, []
+derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe
+derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe
+derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
+derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
+derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -41,126 +41,25 @@ derive write 	Void
 
 :: TraceInfo	:== Maybe (Bool,(Int,TaskNr,String,String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
-// experimental and very very very dangerous !!!
+// Initial values for Task State TSt
 
-import dynamic_string
+initTst thisUser hst
+				=	{ tasknr		= [-1]
+					, activated 	= True
+					, sessionNr		= -1
+					, currentUserId	= thisUser 
+					, userId		= if (thisUser >= 0) defaultUser thisUser
+					, html 			= BT []
+					, trace			= Nothing
+					, hst 			= hst
+					, options 		= initialOptions
+					}
 
-getTripletNames :: *TSt -> *([String],*TSt)
-getTripletNames tst=:{hst=hst=:{states}}
-	# (triplets,states) = getAllTriplets states
-	= ([s \\ ((s,_,_),_) <- triplets],{tst & hst = {hst & states = states}})
-
-:: ThreadTable	:== [TaskThread]
-:: TaskThread	:== (TaskNr,String)
-
-ThreadTableStorage :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)
-ThreadTableStorage fun = handleTable
-where
-	handleTable tst=:{options}  
-	# (table,tst) = LiftHst (mkStoreForm (Init,storageFormId options storageId_ThTa []) fun) tst
-	= (table.value,tst)
-
-	storageId_ThTa = ThisExe +++ "-ThreadTable"
-
-lookupInThreadTable :: TaskNr *TSt -> *(Maybe (Int,TaskThread),*TSt)
-lookupInThreadTable tasknr tst
-# (table,tst)		= ThreadTableStorage id tst					// read thread table
-# (pos,thrCode)		= lookupThread tasknr 0 table				// look if there is an entry for this task
-| pos < 0			= (Nothing, tst)
-= (Just (pos,(tasknr,thrCode)),tst) 
-where
-	lookupThread :: TaskNr Int ThreadTable -> (Int,String)
-	lookupThread tableKey n []			
-		= (-1,"")
-	lookupThread tableKey n [(key,entry):next]
-		| showTaskNr tableKey == showTaskNr key	= (n,entry)		// thread is administrated
-		= lookupThread tableKey (inc n) next
-
-findThreadToCall :: *TSt -> *(Maybe TaskThread,*TSt)
-findThreadToCall tst
-# (table,tst)	 	= ThreadTableStorage id tst					// read thread table
-# (triplets,tst) 	= getTripletNames tst							// get all triplets
-| isNil triplets 	= (Nothing,tst)								// no info on page
-# (pos,_)			= findMyThread table triplets
-= (Just (table!!pos),tst) 
-where
-	isNil [] = True
-	isNil _  = False
-
-	findMyThread table triplets
-	# lowestTrip 		= lowestTripletNr triplets
-	# allTaskEntries 	= filter (\(i,nr) -> nr <= lowestTrip) [(i,reverse tasknr) \\ (tasknr,_) <- table & i <- [0..]]
-	= highest (hd allTaskEntries) (stl allTaskEntries)
-	where
-		lowestTripletNr triplets
-		# allTasknrs = map strip triplets
-		= lowest (hd allTasknrs) (tl allTasknrs)
-	
-		lowest x [] 	= x
-		lowest x [y:ys]
-		| x < y = lowest x ys
-		= lowest y ys
-	
-		highest (i,x) [] 	= (i,x)
-		highest (i,x) [(j,y):ys]
-		| x > y = highest (i,x) ys
-		= highest (j,y) ys
-	
-		strip :: String -> TaskNr
-		strip iTaskname 
-			= map toInt (takeWhile ((<>) '-') (stl (dropWhile ((<>) '_') (mkList iTaskname)))) // assuming "taskname_tasknr-moreinfo"
-	
-
-insertInThreadTable :: TaskThread *TSt -> *TSt
-insertInThreadTable thread tst
-# (table,tst)	= ThreadTableStorage id tst						// read thread table
-# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst // insert the new thread
-= tst
-
-deleteThreads :: TaskNr *TSt -> *TSt
-deleteThreads tasknr tst			
-# (mbthread,tst)		= lookupInThreadTable tasknr tst				// find the thread entry in the table
-| isNothing mbthread	= abort "cannot find thread entry anymore ???"										
-# (pos,_)				= fromJust mbthread
-# (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst // remove entry
-= tst
-
-mkTaskThread :: (Task a) -> Task a 								// execute a thread
-mkTaskThread task = doit
-where
-	doit tst=:{tasknr,activated}								// thread - task is not yet finished
-	| not activated		= task tst								// WOW : let the task go: it won't start but will generate a default value !!!
-	# (mbthread,tst)	= lookupInThreadTable tasknr tst		// look if there is an entry for this task
-	| isNothing mbthread										// not yet, insert new entry		
-		# tst = insertInThreadTable (tasknr,copy_to_string task) tst 
-		= doit tst												// try it again, entry point should be there
-	# (_,thread)		= fromJust mbthread						// entry point found
-	= evalTaskThread thread tst									// and evaluate it
-
-evalTaskThread :: TaskThread -> Task a 	
-evalTaskThread (thrTasknr,thrCode) = evalTaskThread` 
-where
-	evalTaskThread` tst=:{tasknr}								// execute the thread !!!!
-	# (a,tst=:{activated}) =  fst (copy_from_string {s` \\ s` <-: thrCode}) {tst & tasknr = thrTasknr} 
-	| activated													// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTasknr tst					// remove entry
-		= (a,{tst & tasknr = tasknr})
-	= (a,{tst & tasknr = tasknr})
-	
-startThreadTask :: !Int !Bool !Bool !(Task a) !*HSt -> (Html,*HSt) 
-startThreadTask thisUser traceOn versionsOn taska hst
-# tst=:{tasknr}				= initTst thisUser hst			// initialize tst 
-# (mbmain,tst)				= lookupInThreadTable tasknr {tst & tasknr = tasknr}
-| isNothing mbmain											// no main thread, start main task as a thread ...
-	# (_,body,tst=:{hst}) 	= startTstTask thisUser traceOn versionsOn (mkTaskThread taska) tst	 	
-	= mkHtml "main thread" body hst 
-# (mbthread,tst)			= findThreadToCall tst			// see if there are any events, i.e. triplets received
-| isNothing mbthread										// no, start main thread
-	# (_,body,tst=:{hst}) 	= startTstTask thisUser traceOn versionsOn (evalTaskThread (snd (fromJust mbmain))) tst 								// no
-	= mkHtml "main thread" body hst
-# (_,body,tst=:{hst}) 		= startTstTask thisUser traceOn versionsOn (evalTaskThread (fromJust mbthread)) tst		// no threads, start main thread ...
-= mkHtml "sub thread" body hst
-		
+initialOptions	=	{ tasklife 		= Session
+					, taskstorage 	= PlainString
+					, taskmode 		= Edit 
+					, gc			= Collect
+					}
 
 // *** First some small utility functions
 
@@ -169,26 +68,6 @@ where
 	(==) Collect Collect 		= True
 	(==) NoCollect NoCollect 	= True
 	(==) _ _ 					= False
-
-// setting global iData options for tasks
-
-initTst thisUser hst
-=	{ tasknr		= [-1]
-	, activated 	= True
-	, sessionNr		= -1
-	, currentUserId	= thisUser 
-	, userId		= if (thisUser >= 0) defaultUser thisUser
-	, html 			= BT []
-	, trace			= Nothing
-	, hst 			= hst
-	, options 		= initialOptions
-	}
-
-initialOptions	=	{ tasklife 		= Session
-					, taskstorage 	= PlainString
-					, taskmode 		= Edit 
-					, gc			= Collect
-					}
 
 class 	(<<@) infixl 3 b ::  (Task a) b  -> (Task a) 
 instance <<@  Lifespan
@@ -200,13 +79,16 @@ where   (<<@) task mode 			= \tst -> task {tst & options.taskmode = mode}
 instance <<@  GarbageCollect
 where   (<<@) task gc 				= \tst -> task {tst & options.gc = gc}
 
-// Lifting hst domain to the tst domain, for convenience
+// Lifting HSt domain to the TSt domain, for convenience
 
 LiftHst fun tst=:{hst}
 # (form,hst) = fun hst
 = (form,{tst & hst = hst})
 
-// Storage options settings
+isNil [] = True
+isNil _ = False
+
+// Storages utility functions used
 
 cFormId  		{tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = tasklife, storage = taskstorage, mode = taskmode} 
 
@@ -214,9 +96,10 @@ sessionFormId  	options s d = cFormId options s d <@ Session
 pageFormId  	options s d = cFormId options s d <@ Page
 storageFormId  	options s d = cFormId options s d <@ NoForm
 
-// Task makers are wrappers which take care of
-//		- deciding whether a task should be called (activated) or not
-//		- adding trace information
+// mkTask is an important wrapper function which should be wrapped around any task
+// It takes care of
+//		- deciding whether the task should be called (activated) or not
+//		- adding of trace information
 //		- generating task numbers in a systematic way
 // It is very important that the numbering of the tasks is done systematically
 // Every task should have a unique number
@@ -257,13 +140,12 @@ deleteSubTasks tasknr tst=:{hst,userId,options}
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
 
-// *** wrappers, to be used in combination with an iData wrapper...
+// *** wrappers for the end user, to be used in combination with an iData wrapper...
 
 startTask :: !Int !Bool !Bool !(Task a) !*HSt -> ([BodyTag],!*HSt)
 startTask thisUser traceOn versionsOn taska hst 
 # (_,body,tst) = startTstTask thisUser traceOn versionsOn taska (initTst thisUser hst)
 = (body,tst.hst)
-
 
 startNewTask :: !Int !Bool !(Task a) -> Task (Maybe a) | iCreateAndPrint a 
 startNewTask newUser traceOn taska = mkTask "startNewTask" startNewTask`
@@ -287,22 +169,21 @@ multiUserTask nusers traceOn task  hst
 where
 	ifTraceOn form = if traceOn form []
 
-multiUserTask2 :: !(!Int,!Int) !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
-multiUserTask2 (minutes,seconds) nusers traceOn task  hst 
-# (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
-						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
-# currentWorker	= snd idform.value
-# (html,hst) 	= startTask currentWorker traceOn False task hst
-= mkxHtml "mtest" (idform.form ++ html) hst
-where
-	mkxHtml s tags hst 	= (Html (header s) (body tags),hst)
-	header s 			= Head [`Hd_Std [Std_Title s]] [Hd_Script [] (autoRefresh minutes seconds)]
-	body tags 			= Body [onloadBody] tags
-	onloadBody 			= `Batt_Events [OnLoad (SScript scriptName)]
-	scriptName 			= "beginrefresh()"
+startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr),*TSt) 
+startApplication taska tst=:{tasknr,options,html,trace}
+# (mbthread,tst)			= findThreadToCall tst			// see if there are any events, i.e. triplets received
+| isNothing mbthread										// no, start main task
+	# (a,tst) 	= taska tst	
+	= ((Just a,tasknr), tst)
+# (thrTasknr,thrUserId,thrOptions,entryCode)	= fromJust mbthread				// yes, there are events, start thread closest to event
+# (_,tst=:{hst,activated}) 	= evalTaskThread (fromJust mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
+| not activated
+	= ((Nothing,thrTasknr),tst)								// thread not finished, aks user for more input
+# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, html = html, trace = trace}		// thread finished, show the whole enchilada..
+= ((Just a,tasknr), tst)
 
 startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt)// | iCreate a 
-startTstTask thisUser traceOn versionsOn taska tst=:{hst}
+startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 
 // prolog
 
@@ -328,19 +209,22 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst}
 													    B [] "Your page is not up-to date!",Br]],{tst & hst = hst})
 // Here the iTask starts...
 													    
-# (a,tst=:{html,hst,trace}) = taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value}
+//# (a,tst=:{html,hst,trace}) = taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value}
+# ((a,thrtasknr),tst=:{html,hst,trace})	= startApplication taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True}
 
 // epilog
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	(Just a, refresh.form ++ ifTraceOn traceAsked.form ++ [red " i-Task ", yellow appversion.value] ++
-		[Br,Hr [],showUser thisUser,Br,Br] ++ 
-		if (doTrace && traceOn)
-			[ printTrace2 trace ]
-			[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
-						]
-			] 
+= 	( a,	refresh.form ++ ifTraceOn traceAsked.form ++
+				[Br, Br, silver " - iTask Workflow System - "] ++  
+				[Txt "Thread nr: ", yellow (showTaskNr (incNr thrtasknr)), Txt " - Querie nr: ", yellow appversion.value] ++
+				[Br,Hr [],showUser thisUser,Br,Br] ++ 
+				if (doTrace && traceOn)
+					[ printTrace2 trace ]
+					[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
+								]
+					] 
 	,{tst & hst = hst})
 where
 	mbinc True = id
@@ -383,8 +267,6 @@ where
 	| thisuser == nuser 	= ([],accu)
 	| otherwise				= Collect thisuser taskuser accu tree
 
-	isNil [] = True
-	isNil _ = False
 
 	noFilter (BT body) 			= body
 	noFilter (_ @@: html) 		= noFilter html
@@ -417,6 +299,7 @@ where
 	# (storeform,hst)	= mkStoreForm (Init,storageFormId info storeId 0) fun hst
 	= (storeform.value,hst)
 
+// Below we define the iTask Combinators...
 
 // make an iTask editor
 
@@ -1077,7 +960,7 @@ silver message
 red message
 = Font [Fnt_Color (`Colorname Red)] [B [] (toString message)]
 
-// task number generation
+// Printing and tracing stuf...
 
 showTaskNr [] 		= ""
 showTaskNr [i] 		= toString i
@@ -1166,3 +1049,130 @@ where
 
 	font color message
 	= Font [Fnt_Color (`Colorname color), Fnt_Size -1] [B [] message]
+
+
+// experimental and very very very dangerous !!!
+/*
+:: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
+					, activated		:: !Bool   			// if true activate task, if set as result task completed	
+					, sessionNr		:: !Int				// current session number
+					, userId		:: !Int				// id of user to which task is assigned
+					, currentUserId	:: !Int				// id of application user 
+					, html			:: !HtmlTree		// accumulator for html code
+					, options		:: !Options			// iData lifespan and storage format
+					, trace			:: !Maybe [Trace]	// for displaying task trace
+
+*/
+import dynamic_string
+
+
+:: ThreadTable	:== [TaskThread]
+:: TaskThread	:== (TaskNr,Int,Options,String)					// tasknr, task user, options, serialized callback function
+
+ThreadTableStorage :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)
+ThreadTableStorage fun = handleTable
+where
+	handleTable tst=:{options}  
+	# (table,tst) = LiftHst (mkStoreForm (Init,storageFormId options storageId_ThTa []) fun) tst
+	= (table.value,tst)
+
+	storageId_ThTa = ThisExe +++ "-ThreadTable"
+
+lookupInThreadTable :: TaskNr *TSt -> *(Maybe (Int,TaskThread),*TSt)
+lookupInThreadTable tasknr tst
+# (table,tst)	= ThreadTableStorage id tst						// read thread table
+# pos			= lookupThread tasknr 0 table					// look if there is an entry for this task
+| pos < 0		= (Nothing, tst)
+= (Just (pos,table!!pos),tst) 
+where
+	lookupThread :: TaskNr Int ThreadTable -> Int
+	lookupThread tableKey n []			
+		= -1													// no, cannot find thread
+	lookupThread tasknrToFind n [(tasknr,_,_,_):next]
+		| showTaskNr tasknrToFind == showTaskNr tasknr	= n		// yes, thread is administrated
+		= lookupThread tasknrToFind (inc n) next
+
+findThreadToCall :: *TSt -> *(Maybe TaskThread,*TSt)
+findThreadToCall tst
+# (table,tst)	 	= ThreadTableStorage id tst					// read thread table
+| isNil table		= (Nothing,tst)								// no threads in table
+# (tripTasknrs,tst) = getTripletTaskNrs tst						// get all triplets events
+| isNil tripTasknrs	= (Nothing,tst)								// no triplets, what to do ??? <<<<
+# thread			= findMyThread tripTasknrs table 			// find thread "closest" to triplet events
+= (Just thread,tst) 
+where
+	isNil [] = True
+	isNil _  = False
+
+	findMyThread ::  [TaskNr] ThreadTable -> TaskThread
+	findMyThread tripTasknrs table
+	# lowestTrip 		= lowest (hd tripTasknrs) (stl tripTasknrs)
+	# allTaskEntries 	= filter (\(tasknr,_,_,_) -> tasknr <= lowestTrip) table
+	= highest (hd allTaskEntries) (stl allTaskEntries)
+	where
+		lowest :: TaskNr [TaskNr] -> TaskNr
+		lowest x [] 	= x
+		lowest x [y:ys]
+		| x < y = lowest x ys
+		= lowest y ys
+	
+		highest :: TaskThread ThreadTable -> TaskThread
+		highest thread [] 	= thread
+		highest x=:(tasknrx,ux,ox,cx) [y=:(tasknry,uy,oy,cy):ys]
+		| tasknrx > tasknry = highest x ys
+		= highest y ys
+
+	getTripletTaskNrs :: *TSt -> *([TaskNr],*TSt)
+	getTripletTaskNrs tst=:{hst=hst=:{states}}
+		# (triplets,states) = getAllTriplets states
+		= ([strip s \\ ((s,_,_),_) <- triplets | s%(0,5) == "iTask_"],{tst & hst = {hst & states = states}})
+	where
+		strip :: String -> TaskNr
+		strip iTaskname 
+			= map toInt (takeWhile ((<>) '-') (stl (dropWhile ((<>) '_') (mkList iTaskname)))) 
+
+insertInThreadTable :: TaskThread *TSt -> *TSt
+insertInThreadTable thread tst
+# (table,tst)	= ThreadTableStorage id tst											// read thread table
+# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 					// insert the new thread
+= tst
+
+deleteThreads :: TaskNr *TSt -> *TSt
+deleteThreads tasknr tst			
+# (mbthread,tst)		= lookupInThreadTable tasknr tst							// find the thread entry in the table
+| isNothing mbthread	= abort "cannot find thread entry anymore ???"										
+# (pos,_)				= fromJust mbthread
+# (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst 	// remove entry
+# (table,tst)	 		= ThreadTableStorage id tst									// read thread table
+# allChildsPos			= [pos \\ (childTasknr,_,_,_) <- table & pos <- [0..] | childTasknr <= tasknr ]
+| isNil allChildsPos	= tst
+# table					= deleteChilds (reverse (sort allChildsPos)) table
+# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst									// read thread table
+= tst
+where
+	deleteChilds [] table 			= table
+	deleteChilds [pos:next] table 	= deleteChilds next (removeAt pos table)
+
+mkTaskThread :: (Task a) -> Task a 								// execute a thread
+mkTaskThread task = doit
+where
+	doit tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
+	| not activated		= task tst								// WOW : let the task go: it won't start but will generate a default value !!!
+	# (mbthread,tst)	= lookupInThreadTable tasknr tst		// look if there is an entry for this task
+	| isNothing mbthread										// not yet, insert new entry		
+		# tst = insertInThreadTable (tasknr,userId,options,copy_to_string task) tst 
+		= doit tst												// try it again, entry point should be there
+	# (_,thread)		= fromJust mbthread						// entry point found
+	= evalTaskThread thread tst									// and evaluate it
+
+evalTaskThread :: TaskThread -> Task a 	
+evalTaskThread (thrTasknr,thrUserId,thrOptions,thrCode) = evalTaskThread` 
+where
+	evalTaskThread` tst=:{tasknr}								// execute the thread !!!!
+	# (a,tst=:{activated}) =  fst (copy_from_string {s` \\ s` <-: thrCode}) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId} 
+	| activated													// thread is finished, delete the entry...
+		# tst =  deleteThreads thrTasknr tst					// remove entry
+		= (a,{tst & tasknr = tasknr})
+	= (a,{tst & tasknr = tasknr})
+	
+	
