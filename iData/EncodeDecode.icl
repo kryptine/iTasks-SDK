@@ -204,10 +204,21 @@ traceHtmlInput args=:(Just input)
 						]
 			, Br
 			, B [] "Undecoded information from client received:", Br, Br
-			, BodyTag (foldl (++) [] [[B [] "name = ", Txt name,Br,Br,B [] "value = ", Txt value,Br,Br] \\ (name,value) <- input])
+			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (decodeName (urlDecode name) (urlDecode value)),Br,B [] "value = ", Txt (decodeValue (urlDecode name) (urlDecode value)),Br] \\ (name,value) <- input])
+//			, BodyTag (foldl (++) [] [[B [] "name = ", Txt name,Br,B [] "value = ", Txt value,Br] \\ (name,value) <- input])
 //			, STable [] [[Txt ("name = " <+++ name),Br,Txt ("value = " <+++ value)] \\ (name,value) <- input]
 			]
 where
+	decodeName  name value
+	| name == "hidden"	= name
+	| isSelector name	= decodeString value 
+	= decodeString name
+
+	decodeValue name value
+	| name == "hidden"	= value
+	| isSelector name	= getSelector name
+	= value
+
 	(htmlState,triplets)	= DecodeHtmlStatesAndUpdate args
 
 	showTriplet triplets	= [STable [] [[Txt (printToString triplet)] \\ triplet <- triplets]]
@@ -215,6 +226,7 @@ where
 	showf storage			= case storage of PlainString -> "String";  _ -> "S_Dynamic"
 	shows PlainString s		= s
 	shows StaticDynamic d	= toStr (string_to_dynamic` d)											// "cannot show dynamic value" 
+
 
 	toStr dyn = ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn
 
