@@ -4,8 +4,9 @@ definition module iTasks
 // defined on top of the iData library
 
 // (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
-// Version 1.0 - april 2007 - MJP
 // This library is still under construction - MJP
+
+iTaskVersion :== "0.93 - juli 2007"
 
 import iDataSettings, iDataButtons, StdBimap
 derive gForm 	Void						

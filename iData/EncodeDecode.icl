@@ -190,6 +190,16 @@ where
 		updated ((_,_,UpdB b1),b2)  		= False
 		updated ((_,_,UpdS s1),s2) 	= s1 <> s2
 
+decodeName  name value 
+| name == "hidden"	= name
+| isSelector name	= decodeString value 
+= decodeString name
+
+decodeValue name value
+| name == "hidden"	= value
+| isSelector name	= getSelector name
+= value
+
 // traceHtmlInput utility used to see what kind of rubbish is received from client 
 
 traceHtmlInput ::  !(Maybe [(String, String)]) -> BodyTag
@@ -209,15 +219,6 @@ traceHtmlInput args=:(Just input)
 //			, STable [] [[Txt ("name = " <+++ name),Br,Txt ("value = " <+++ value)] \\ (name,value) <- input]
 			]
 where
-	decodeName  name value
-	| name == "hidden"	= name
-	| isSelector name	= decodeString value 
-	= decodeString name
-
-	decodeValue name value
-	| name == "hidden"	= value
-	| isSelector name	= getSelector name
-	= value
 
 	(htmlState,triplets)	= DecodeHtmlStatesAndUpdate args
 

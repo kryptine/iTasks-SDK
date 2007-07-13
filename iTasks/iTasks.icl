@@ -169,19 +169,6 @@ multiUserTask nusers traceOn task  hst
 where
 	ifTraceOn form = if traceOn form []
 
-startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr),*TSt) 
-startApplication taska tst=:{tasknr,options,html,trace}
-# (mbthread,tst)			= findThreadToCall tst			// see if there are any events, i.e. triplets received
-| isNothing mbthread										// no, start main task
-	# (a,tst) 	= taska tst	
-	= ((Just a,tasknr), tst)
-# (thrTasknr,thrUserId,thrOptions,entryCode)	= fromJust mbthread				// yes, there are events, start thread closest to event
-# (_,tst=:{hst,activated}) 	= evalTaskThread (fromJust mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
-| not activated
-	= ((Nothing,thrTasknr),tst)								// thread not finished, aks user for more input
-# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, html = html, trace = trace}		// thread finished, show the whole enchilada..
-= ((Just a,tasknr), tst)
-
 startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt)// | iCreate a 
 startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 
@@ -217,16 +204,28 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
 = 	( a,	refresh.form ++ ifTraceOn traceAsked.form ++
-				[Br, Br, silver " - iTask Workflow System - "] ++  
-				[Txt "Thread nr: ", yellow (showTaskNr (incNr thrtasknr)), Txt " - Querie nr: ", yellow appversion.value] ++
-				[Br,Hr [],showUser thisUser,Br,Br] ++ 
-				if (doTrace && traceOn)
-					[ printTrace2 trace ]
-					[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
-								]
-					] 
+			[Br,Br, Hr [], yellow " -  ", red "i-Task", yellow " - Workflow System - ",Txt "Version nr: ", silver iTaskVersion] ++
+			[Txt " - User nr: " , silver thisUser, Txt " - Querie nr: ", silver appversion.value,Txt " - Thread nr: ", silver (showTaskNr (incNr thrtasknr)),Br,Hr []] ++
+			if (doTrace && traceOn)
+				[ printTrace2 trace ]
+				[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
+							]
+				] 
 	,{tst & hst = hst})
 where
+	startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr),*TSt) 
+	startApplication taska tst=:{tasknr,options,html,trace}
+	# (mbthread,tst)			= findThreadToCall tst			// see if there are any events, i.e. triplets received
+	| isNothing mbthread										// no, start main task
+		# (a,tst) 	= taska tst	
+		= ((Just a,tasknr), tst)
+	# (thrTasknr,thrUserId,thrOptions,entryCode)	= fromJust mbthread				// yes, there are events, start thread closest to event
+	# (_,tst=:{hst,activated}) 	= evalTaskThread (fromJust mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
+	| not activated
+		= ((Nothing,thrTasknr),tst)								// thread not finished, aks user for more input
+	# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, html = html, trace = trace}		// thread finished, show the whole enchilada..
+	= ((Just a,tasknr), tst)
+
 	mbinc True = id
 	mbinc _ = inc
 
@@ -1144,7 +1143,7 @@ deleteThreads tasknr tst
 # (pos,_)				= fromJust mbthread
 # (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst 	// remove entry
 # (table,tst)	 		= ThreadTableStorage id tst									// read thread table
-# allChildsPos			= [pos \\ (childTasknr,_,_,_) <- table & pos <- [0..] | childTasknr <= tasknr ]
+# allChildsPos			= [pos \\ (childTasknr,_,_,_) <- table & pos <- [0..] | take (length tasknr) childTasknr == tasknr ]
 | isNil allChildsPos	= tst
 # table					= deleteChilds (reverse (sort allChildsPos)) table
 # (table,tst)	 		= ThreadTableStorage (\_ -> table) tst									// read thread table
