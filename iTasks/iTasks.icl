@@ -147,12 +147,14 @@ startTask thisUser traceOn versionsOn taska hst
 # (_,body,tst) = startTstTask thisUser traceOn versionsOn taska (initTst thisUser hst)
 = (body,tst.hst)
 
-startNewTask :: !Int !Bool !(Task a) -> Task (Maybe a) | iCreateAndPrint a 
+startNewTask :: !Int !Bool !(Task a) -> Task a | iCreateAndPrint a 
 startNewTask newUser traceOn taska = mkTask "startNewTask" startNewTask`
 where
 	startNewTask` tst=:{html} 
-	# (a,body,tst) 	= startTstTask newUser traceOn True taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
-	= (a,{tst & html = html +|+ BT body})
+	# (mba,body,tst) 	= startTstTask newUser traceOn True taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
+	= case mba of
+		(Just a) 	-> (a,{tst & html = html +|+ BT body})
+		Nothing 	-> (createDefault,{tst & html = html +|+ BT body})
 
 singleUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
 singleUserTask userId traceOn task hst 
@@ -203,9 +205,9 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	( a,	refresh.form ++ ifTraceOn traceAsked.form ++
-			[Br,Br, Hr [], yellow " -  ", red "i-Task", yellow " - Workflow System - ",Txt "Version nr: ", silver iTaskVersion] ++
-			[Txt " - User nr: " , silver thisUser, Txt " - Querie nr: ", silver appversion.value,Txt " - Thread nr: ", silver (showTaskNr (incNr thrtasknr)),Br,Hr []] ++
+= 	(  a,	refresh.form ++ ifTraceOn traceAsked.form ++
+			[Br,Br, Hr [], yellow " -  ", red "i-Task", yellow " - Multi-User Workflow System - ",Txt "Version nr: ", silver iTaskVersion] ++
+			[Br,Br, Txt " - User nr: " , silver thisUser, Txt " - Querie nr: ", silver appversion.value,Txt " - Thread nr: ", silver (showTaskNr (incNr thrtasknr)),Br,Hr []] ++
 			if (doTrace && traceOn)
 				[ printTrace2 trace ]
 				[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
@@ -1051,17 +1053,7 @@ where
 
 
 // experimental and very very very dangerous !!!
-/*
-:: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
-					, activated		:: !Bool   			// if true activate task, if set as result task completed	
-					, sessionNr		:: !Int				// current session number
-					, userId		:: !Int				// id of user to which task is assigned
-					, currentUserId	:: !Int				// id of application user 
-					, html			:: !HtmlTree		// accumulator for html code
-					, options		:: !Options			// iData lifespan and storage format
-					, trace			:: !Maybe [Trace]	// for displaying task trace
 
-*/
 import dynamic_string
 
 
@@ -1146,32 +1138,36 @@ deleteThreads tasknr tst
 # allChildsPos			= [pos \\ (childTasknr,_,_,_) <- table & pos <- [0..] | take (length tasknr) childTasknr == tasknr ]
 | isNil allChildsPos	= tst
 # table					= deleteChilds (reverse (sort allChildsPos)) table
-# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst									// read thread table
+# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst						// read thread table
 = tst
 where
 	deleteChilds [] table 			= table
 	deleteChilds [pos:next] table 	= deleteChilds next (removeAt pos table)
 
-mkTaskThread :: (Task a) -> Task a 								// execute a thread
-mkTaskThread task = doit
+mkTaskThread :: (Task a) -> Task a 	| iData a							// execute a thread
+mkTaskThread taska = \tst=:{tasknr} -> newTask "Thread" (mkTaskThread` taska) tst
 where
-	doit tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
-	| not activated		= task tst								// WOW : let the task go: it won't start but will generate a default value !!!
-	# (mbthread,tst)	= lookupInThreadTable tasknr tst		// look if there is an entry for this task
-	| isNothing mbthread										// not yet, insert new entry		
-		# tst = insertInThreadTable (tasknr,userId,options,copy_to_string task) tst 
-		= doit tst												// try it again, entry point should be there
-	# (_,thread)		= fromJust mbthread						// entry point found
-	= evalTaskThread thread tst									// and evaluate it
+	mkTaskThread` :: (Task a) -> Task a 								// execute a thread
+	mkTaskThread` task = evalTask
+	where
+		evalTask tst=:{tasknr,activated,options,userId}				// thread - task is not yet finished
+		# (mbthread,tst)	= lookupInThreadTable tasknr tst		// look if there is an entry for this task
+		| isNothing mbthread										// not yet, insert new entry		
+			# tst = insertInThreadTable (tasknr,userId,options,copy_to_string task) tst 
+			= evalTask tst											// try it again, entry point should be there
+		# (_,thread)		= fromJust mbthread						// entry point found
+		= evalTaskThread thread tst		// and evaluate it
+//		= task tst		// and evaluate it
 
 evalTaskThread :: TaskThread -> Task a 	
 evalTaskThread (thrTasknr,thrUserId,thrOptions,thrCode) = evalTaskThread` 
 where
-	evalTaskThread` tst=:{tasknr}								// execute the thread !!!!
-	# (a,tst=:{activated}) =  fst (copy_from_string {s` \\ s` <-: thrCode}) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId} 
+	evalTaskThread` tst=:{tasknr,options,userId}								// execute the thread !!!!
+	# myCallBackFunction 	= fst (copy_from_string {s` \\ s` <-: thrCode})
+	# (a,tst=:{activated}) 	= myCallBackFunction {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId} 
 	| activated													// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTasknr tst					// remove entry
-		= (a,{tst & tasknr = tasknr})
-	= (a,{tst & tasknr = tasknr})
+		= (a,{tst & tasknr = tasknr, options = options, userId = userId})
+	= (a,{tst & tasknr = tasknr, options = options, userId = userId})
 	
 	
