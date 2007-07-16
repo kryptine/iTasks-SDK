@@ -213,6 +213,7 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 													    
 //# (a,tst=:{html,hst,trace}) = taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value}
 # ((a,event,threads),tst=:{html,hst,trace})	= startApplication taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True}
+
 // epilog
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
@@ -221,8 +222,8 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 //# threadsText			= foldl (+++) "" [showTaskNr (incNr tasknrs) +++ " + " \\ tasknrs <- threads]
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
 = 	(  a,	refresh.form ++ ifTraceOn traceAsked.form ++
-			[Br,Br, Hr [], CTxt Yellow " -  ", CTxt Yellow "i-Task", CTxt Yellow " - Multi-User Workflow System - ",Txt "Version nr: ", CTxt Silver iTaskVersion] ++
-			[Br,Br, Txt " - User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value,
+			[Br,Br, Hr [], CTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System - ",Txt "Version nr: ", CTxt Silver iTaskVersion] ++
+			[Br,Br, Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value,
 			 Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []] ++
 			if (doTrace && traceOn)
 				(threadtrace ++ [printTrace2 trace ])
@@ -1089,23 +1090,25 @@ insertNewThread thread tst
 deleteThreads :: TaskNr *TSt -> *TSt
 deleteThreads tasknr tst															// delte a thread and all its children
 # (mbthread,tst)		= findThreadInTable tasknr tst								// find the thread entry in the table
-| isNothing mbthread	= deleteChildren tst										// no entry, but delete children
+# mytasknr				= reverse tasknr
+| isNothing mbthread	= deleteChildren mytasknr tst								// no entry, but delete children
 # (pos,_)				= fromJust mbthread
 # (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst 	// remove entry
-= deleteChildren tst																// and all children
+= deleteChildren mytasknr tst														// and all children
 where
-	deleteChildren tst
-	# (table,tst)	 		= ThreadTableStorage id tst									// read thread table
-	# allChildsPos			= [pos \\ (mbchild,_,_,_) <- table & pos <- [0..] | isChild tasknr mbchild ]
+	deleteChildren mytasknr tst
+	# (table,tst)	 		= ThreadTableStorage id tst								// read thread table
+	# allChildsPos			= [pos \\ (mbchild,_,_,_) <- table & pos <- [0..] | isChild mytasknr mbchild ]
 	| isNil allChildsPos	= tst
-	# table					= deleteChilds (reverse (sort allChildsPos)) table
-	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst						// read thread table
+	# table					= deleteChilds (reverse (sort allChildsPos)) table		// delete highest entries first !
+	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst					// read thread table
 	= tst
 
 	deleteChilds [] table 			= table
 	deleteChilds [pos:next] table 	= deleteChilds next (removeAt pos table)
 
-	isChild parent mbchild = take ((length parent) - 1) (reverse mbchild) == (reverse parent)
+	isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
+
 
 getTripletTaskNrs :: *TSt -> *(Maybe TaskNr,*TSt)									// get list of tasknr belonging to events received
 getTripletTaskNrs tst=:{hst = hst=:{states}}
@@ -1129,7 +1132,8 @@ findParentThread ::  TaskNr *TSt -> *([TaskThread],*TSt)							// finds parent t
 findParentThread tasknr tst
 # (table,tst)		= ThreadTableStorage id tst										// read thread table
 | isNil table		= ([], tst)														// nothing in table, no parents
-# entries 			= filter (\(ptasknr,_,_,_) -> ptasknr <= tasknr) table			// finds thread closest to this one
+# revtasknr			= reverse (tl tasknr)
+# entries 			= filter (\(ptasknr,_,_,_) -> revtasknr%(0,length ptasknr - 2) == reverse (tl ptasknr)) table			// finds thread closest to this one
 | isNil entries		= ([], tst)
 = (sortBy compare entries,tst)
 where
@@ -1172,28 +1176,30 @@ startApplication taska tst=:{tasknr,options,html,trace,userId}
 # event					= fromJust mbevent
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst) 			= taska tst															// evaluate main application from scratch
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,event,[tasknr]), tst)
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found ??
-	# (a,tst) 	= taska tst															// evaluate main application from scratch
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,event,[tasknr]), tst)
 # (thrTasknr,thrUserId,thrOptions,entryCode)	= hd mbthread						// event and thread found, start thread closest to event
 # (_,tst=:{hst,activated}) 	= evalTaskThread (hd mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
 | not activated																		// thread not yet finished
 	= ((Nothing,event,[thrTasknr]),tst)												// no further evaluation, aks user for more input
-= doParent (tl mbthread) taska event [thrTasknr] tst								// more to evaluate, call thread one level higher
+# (mbthread,tst)		= findParentThread thrTasknr tst							// look for thread to evaluate
+= doParent mbthread taska event [thrTasknr] tst										// more to evaluate, call thread one level higher
 where
 	doParent [] taska event accu tst												// no more parents of current event, do main task
 	# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, userId = userId, html = html}														// start main task
-	= ((Just a,event,reverse accu), tst)
+	= ((Just a,event,reverse [tasknr:accu]), tst)
 
 	doParent [parent:next] taska event accu tst										// do parent of current thread
 	# (parTaskNr,_,_,_) 	= parent												// do next parents
 	# (_,tst=:{activated}) 	= evalTaskThread parent tst								// start parent
 	| not activated																	// parent thread not yet finished
-		= ((Nothing,event, reverse [parTaskNr:accu]),tst)								// no further evaluation, aks user for more input
-	= doParent next taska event [parTaskNr:accu] tst									// continue with grand parent ...
+		= ((Nothing,event, reverse [parTaskNr:accu]),tst)							// no further evaluation, aks user for more input
+	# (mbthread,tst)		= findParentThread parTaskNr tst						// look for thread to evaluate
+	= doParent mbthread taska event [parTaskNr:accu] tst							// continue with grand parent ...
 	
 	
 	
