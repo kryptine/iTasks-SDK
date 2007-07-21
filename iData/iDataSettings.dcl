@@ -34,10 +34,10 @@ class iSpecialStore a
 		
 										// OPTION: Comment out the next line if you do not have access to an ODCB database on your machine !!!!
 										// -or- if you do not want to make use of the Database option
-		, gerda {|*|} 	 				// To store and retrieve any Clean value in a standard relational database (slow but standard)
+		,  gerda {|*|} 	 				// To store and retrieve any Clean value in a standard relational database (slow but standard)
 
 										// OPTION: Comment out the next line if you do not want to use the DataFile option
-		, read  {|*|}, write {|*|}		// To store and retrieve any Clean value in a special database for which a file is used (fast but non standard)
+		,  read  {|*|}, write {|*|}		// To store and retrieve any Clean value in a special database for which a file is used (fast but non standard)
 
 		a
 
@@ -54,7 +54,8 @@ ServerKind				:==	Internal	// Enable this one for developing an iData or iTask a
 //ServerKind				:==	External	// or: Enable this one for the final version using an http 1.1 server
 SocketNr				:== 80			// Socket you wnat to work on
 
-// Set here the storage options you would like to have
+// Set here the options you would like to use
+// Switching off options you don't use increases the efficiency of the application.
 
 // Database OPTION : comment out *one* of the following macro definitions
 // Use the first line if you *do* want to use the Database option *and* you have an ODCB database interface installed on your machine !!!!
@@ -63,12 +64,11 @@ SocketNr				:== 80			// Socket you wnat to work on
 IF_Database db no_db 	:== db			// If Database option is used
 //IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the class definition above
 
-// DataFile OPTION : comment out *one* of the following macro definitions
-// Use the first line if you *do* want to use the storage in a file
-// otherwise use the second line
-
 IF_DataFile df no_df 	:== df			// If DataFile option is used
 //IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the class definition above
+
+//IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
+IF_Ajax th no_th		:== no_th		// Otherwise
 
 
 // Global Settings
@@ -87,8 +87,9 @@ radioButtonSeparator :== '.'			// used as extension for family of radiobuttons
 
 // Debug switches								
 
-TraceInput			:== True			// show what kind of information is received from Client
-TraceOutput			:== True			// show what kind of information is stored
+TraceInput			:== False			// show what kind of information is received from Client
+TraceOutput			:== False			// show what kind of information is stored
+TraceThreads		:== True			// show the threadtable
 
 TraceHttp10			:== True			// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11			:== False			// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
