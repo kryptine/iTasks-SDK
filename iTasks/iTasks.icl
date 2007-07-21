@@ -184,7 +184,7 @@ multiUserTask nusers traceOn task  hst
 where
 	ifTraceOn form = if traceOn form []
 
-startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt)// | iCreate a 
+startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
 startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 
 // prolog
@@ -211,31 +211,50 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 													    B [] "Your page is not up-to date!",Br]],{tst & hst = hst})
 // Here the iTask starts...
 													    
-//# (a,tst=:{html,hst,trace}) = taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value}
-# ((a,event,threads),tst=:{html,hst,trace})	= startApplication taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True}
+# ((a,event,threads),tst=:{html,hst,trace})	
+						= IF_Ajax
+							(startApplication taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True})
+							(startMainTask    taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True})
 
 // epilog
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
-# (threadtrace,tst=:{hst})	= (if TraceThreads showThreadTable (\tst -> ([],tst))) {tst & hst = hst}
+# (threadtrace,tst=:{hst})	
+						= IF_Ajax (if TraceThreads showThreadTable (\tst -> ([],tst)) {tst & hst = hst}) ([],{tst & hst = hst})
 # threadsText			= foldl (+++) "" [showTaskNr tasknrs +++ " + " \\ tasknrs <- threads]
 //# threadsText			= foldl (+++) "" [showTaskNr (incNr tasknrs) +++ " + " \\ tasknrs <- threads]
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
 = 	(  a,	refresh.form ++ ifTraceOn traceAsked.form ++
-			[Br,Br, Hr [], CTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System - ",Txt "Version nr: ", CTxt Silver iTaskVersion] ++
-			[Br,Br, Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value,
-			 Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []] ++
+			[Br,Br, Hr [], CTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System - "] ++
+			[Br,Br, Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value] ++
+			IF_Ajax
+				[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []]
+				[Br,Hr []]
+			++
 			if (doTrace && traceOn)
-				(threadtrace ++ [printTrace2 trace ])
+				(showOptions ++ threadtrace ++ [printTrace2 trace ])
 				[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
 							]
 				] 
 	,{tst & hst = hst})
 where
+	startMainTask :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 	// No threads, always start from scratch		
+	startMainTask task tst
+	# (a,tst) = task tst
+	= ((Just a,[0],[]),tst)
+
 	mbinc True = id
 	mbinc _ = inc
 
 	ifTraceOn form = if traceOn form []
+
+	showOptions
+	= [Txt "Version nr: ", CTxt Silver iTaskVersion,Br,Br] ++
+	  [Txt " Database: "	, CTxt Silver (IF_Database 	"On" "Off")] ++
+	  [Txt " - DataFile: "	, CTxt Silver (IF_DataFile 	"On" "Off")] ++
+	  [Txt " - Ajax: "		, CTxt Silver (IF_Ajax 		"On" "Off")] ++
+	  [Br,Hr []]
+
 
 	mkSTable2 :: [[BodyTag]] -> BodyTag
 	mkSTable2 table
@@ -1042,7 +1061,80 @@ where
 
 // experimental and very very very dangerous !!!
 
+// The following experimental fucntions are defined to support "Ajax technologie" and Client site evaluation of i-Tasks.
+// To make this possible, a part of the iTask task tree must be assigened to be a thread such that it can be evaluated as a stand-alone i-Task.
+// Currently, the programmer has to decide which iTask should become a thread.
+// For each event (iData triplet), the system will search for the thread to handle it.
+// If a thread task is finished, the parent thread task is activated, and so on.
 
+
+// mkTaskThread creates a thread for an iTask
+
+mkTaskThread :: (Task a) -> Task a 	| iData a										// execute a thread
+mkTaskThread taska = \tst=:{tasknr} -> IF_Ajax 										// only if Ajax & threads enabled
+											(newTask "Thread" (mkTaskThread` taska) tst)
+											(taska tst)
+where
+	mkTaskThread` :: (Task a) -> Task a 											// execute a thread
+	mkTaskThread` task = evalTask
+	where
+		evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
+		# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
+		| isNothing mbthread														// not yet, insert new entry		
+			# tst = insertNewThread (tasknr,userId,options,copy_to_string task) tst 
+			= evalTask tst															// try it again, entry point should be there
+		# (_,thread)		= fromJust mbthread										// entry point found
+		= evalTaskThread thread tst													// and evaluate it
+//		= task tst		// and evaluate it
+
+evalTaskThread :: TaskThread -> Task a 												// execute the thread !!!!
+evalTaskThread (thrTasknr,thrUserId,thrOptions,thrCode) = evalTaskThread` 
+where
+	evalTaskThread` tst=:{tasknr,options,userId}									
+	# myCallBackFunction 	= fst (copy_from_string {s` \\ s` <-: thrCode})			// reconstruct fucntion by de-serialization
+	# (a,tst=:{activated}) 	= myCallBackFunction {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId} 
+	| activated																		// thread is finished, delete the entry...
+		# tst =  deleteThreads thrTasknr tst										// thread finished
+		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
+	= (a,{tst & tasknr = tasknr, options = options, userId = userId})
+
+startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 			// determines which threads to execute and calls them..
+startApplication taska tst=:{tasknr,options,html,trace,userId}
+# (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
+| isNothing mbevent 																// no events
+	# (a,tst) 	= taska tst															// evaluate main application from scratch
+	= ((Just a,tasknr,[tasknr]), tst)
+# event					= fromJust mbevent
+# (table,tst)			= ThreadTableStorage id tst									// read thread table
+| isNil table																		// events, but no threads, evaluate main application from scratch
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
+	= ((Just a,event,[tasknr]), tst)
+# (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
+| isNil mbthread																	// no thread can be found ??
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
+	= ((Just a,event,[tasknr]), tst)
+# (thrTasknr,thrUserId,thrOptions,entryCode)	= hd mbthread						// event and thread found, start thread closest to event
+# (_,tst=:{hst,activated}) 	= evalTaskThread (hd mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
+| not activated																		// thread not yet finished
+	= ((Nothing,event,[thrTasknr]),tst)												// no further evaluation, aks user for more input
+# (mbthread,tst)		= findParentThread thrTasknr tst							// look for thread to evaluate
+= doParent mbthread taska event [thrTasknr] tst										// more to evaluate, call thread one level higher
+where
+	doParent [] taska event accu tst												// no more parents of current event, do main task
+	# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, userId = userId, html = html}														// start main task
+	= ((Just a,event,reverse [tasknr:accu]), tst)
+
+	doParent [parent:next] taska event accu tst										// do parent of current thread
+	# (parTaskNr,_,_,_) 	= parent												// do next parents
+	# (_,tst=:{activated}) 	= evalTaskThread parent tst								// start parent
+	| not activated																	// parent thread not yet finished
+		= ((Nothing,event, reverse [parTaskNr:accu]),tst)							// no further evaluation, aks user for more input
+	# (mbthread,tst)		= findParentThread parTaskNr tst						// look for thread to evaluate
+	= doParent mbthread taska event [parTaskNr:accu] tst							// continue with grand parent ...
+
+	
+	
+	
 // Thread Table Manipulation functions
 
 import dynamic_string
@@ -1141,66 +1233,5 @@ where
 	compare x=:(tasknrx,ux,ox,cx) y=:(tasknry,uy,oy,cy) = tasknrx > tasknry
 
 
-mkTaskThread :: (Task a) -> Task a 	| iData a										// execute a thread
-mkTaskThread taska = \tst=:{tasknr} -> newTask "Thread" (mkTaskThread` taska) tst
-where
-	mkTaskThread` :: (Task a) -> Task a 											// execute a thread
-	mkTaskThread` task = evalTask
-	where
-		evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
-		# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
-		| isNothing mbthread														// not yet, insert new entry		
-			# tst = insertNewThread (tasknr,userId,options,copy_to_string task) tst 
-			= evalTask tst															// try it again, entry point should be there
-		# (_,thread)		= fromJust mbthread										// entry point found
-		= evalTaskThread thread tst													// and evaluate it
-//		= task tst		// and evaluate it
-
-evalTaskThread :: TaskThread -> Task a 												// execute the thread !!!!
-evalTaskThread (thrTasknr,thrUserId,thrOptions,thrCode) = evalTaskThread` 
-where
-	evalTaskThread` tst=:{tasknr,options,userId}									
-	# myCallBackFunction 	= fst (copy_from_string {s` \\ s` <-: thrCode})			// reconstruct fucntion by de-serialization
-	# (a,tst=:{activated}) 	= myCallBackFunction {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId} 
-	| activated																		// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTasknr tst										// thread finished
-		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
-	= (a,{tst & tasknr = tasknr, options = options, userId = userId})
-	
-startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 			// determines which threads to execute and calls them..
-startApplication taska tst=:{tasknr,options,html,trace,userId}
-# (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
-| isNothing mbevent 																// no events
-	# (a,tst) 	= taska tst															// evaluate main application from scratch
-	= ((Just a,tasknr,[tasknr]), tst)
-# event					= fromJust mbevent
-# (table,tst)			= ThreadTableStorage id tst									// read thread table
-| isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,event,[tasknr]), tst)
-# (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
-| isNil mbthread																	// no thread can be found ??
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,event,[tasknr]), tst)
-# (thrTasknr,thrUserId,thrOptions,entryCode)	= hd mbthread						// event and thread found, start thread closest to event
-# (_,tst=:{hst,activated}) 	= evalTaskThread (hd mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
-| not activated																		// thread not yet finished
-	= ((Nothing,event,[thrTasknr]),tst)												// no further evaluation, aks user for more input
-# (mbthread,tst)		= findParentThread thrTasknr tst							// look for thread to evaluate
-= doParent mbthread taska event [thrTasknr] tst										// more to evaluate, call thread one level higher
-where
-	doParent [] taska event accu tst												// no more parents of current event, do main task
-	# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, userId = userId, html = html}														// start main task
-	= ((Just a,event,reverse [tasknr:accu]), tst)
-
-	doParent [parent:next] taska event accu tst										// do parent of current thread
-	# (parTaskNr,_,_,_) 	= parent												// do next parents
-	# (_,tst=:{activated}) 	= evalTaskThread parent tst								// start parent
-	| not activated																	// parent thread not yet finished
-		= ((Nothing,event, reverse [parTaskNr:accu]),tst)							// no further evaluation, aks user for more input
-	# (mbthread,tst)		= findParentThread parTaskNr tst						// look for thread to evaluate
-	= doParent mbthread taska event [parTaskNr:accu] tst							// continue with grand parent ...
-	
-	
 	
 	
