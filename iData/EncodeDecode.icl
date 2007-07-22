@@ -139,14 +139,20 @@ DecodeArguments (Just args)
 # nargs = length args
 | nargs == 0 		= ("clean",[],"")
 | nargs == 1		= DecodeCleanServerArguments (foldl (+++) "" [name +++ "=" +++ value +++ ";" \\ (name,value) <- args])
+
 # tripargs 			= reverse args													// state hidden in last field, rest are triplets
 # (state,tripargs)	= (urlDecode (snd (hd tripargs)),tl tripargs)					// decode state, get triplets highest positions first	
+
+
+# alltriplets		= ordertriplets [(triplet,string) \\ (mbtriplet,string) <-  map decodeNameValue tripargs, Just triplet <- [parseString mbtriplet]] []
+/*
 # constriplets		= filter (\(name,_) -> isSelector name) tripargs				// select constructor triplets  
 # nconstriplets		= [(constrip,getSelector name) \\ (name,codedtrip) <- constriplets, (Just constrip) <- [parseString (decodeString (urlDecode codedtrip))]] // and decode
 # valtriplets		= filter (\(name,_) -> not (isSelector name)) tripargs			// select all other triplets 
 # nvaltriplets		= [(mytrip,new) \\ (codedtrip,new) <- valtriplets, (Just mytrip) <- [parseString (decodeString (urlDecode codedtrip))]] // and decode
 # alltriplets		= ordertriplets (nconstriplets ++ nvaltriplets) []
-= ("clean",determineChanged alltriplets ,state)								// order is important, first the structure than the values ...
+*/
+= ("clean",determineChanged alltriplets ,state)										// order is important, first the structure than the values ...
 where
 	DecodeCleanServerArguments :: !String -> (!String,!Triplets,!String)			// executable, id + update , new , state
 	DecodeCleanServerArguments args
@@ -190,15 +196,14 @@ where
 		updated ((_,_,UpdB b1),b2)  		= False
 		updated ((_,_,UpdS s1),s2) 	= s1 <> s2
 
-decodeName  name value 
-| name == "hidden"	= name
-| isSelector name	= decodeString value 
-= decodeString name
-
-decodeValue name value
-| name == "hidden"	= value
-| isSelector name	= getSelector name
-= value
+decodeNameValue :: !(!String,!String) -> (!String,!String)
+decodeNameValue  (encname,encvalue)
+= decodeNameValue`  (urlDecode encname,urlDecode encvalue)
+where
+	decodeNameValue` (name,value)
+	| name == "hidden"	= (name,value) 
+	| isSelector name	= (decodeString value, getSelector name)
+	| otherwise			= (decodeString name, value)
 
 // traceHtmlInput utility used to see what kind of rubbish is received from client 
 
@@ -214,7 +219,8 @@ traceHtmlInput args=:(Just input)
 						]
 			, Br
 			, B [] "Undecoded information from client received:", Br, Br
-			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (decodeName (urlDecode name) (urlDecode value)),Br,B [] "value = ", Txt (decodeValue (urlDecode name) (urlDecode value)),Br] \\ (name,value) <- input])
+			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (fst (decodeNameValue (name,value))),Br,B [] "value = ", Txt (snd (decodeNameValue (name,value))),Br] \\ (name,value) <- input])
+//			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (decodeName (urlDecode name) (urlDecode value)),Br,B [] "value = ", Txt (decodeValue (urlDecode name) (urlDecode value)),Br] \\ (name,value) <- input])
 //			, BodyTag (foldl (++) [] [[B [] "name = ", Txt name,Br,B [] "value = ", Txt value,Br] \\ (name,value) <- input])
 //			, STable [] [[Txt ("name = " <+++ name),Br,Txt ("value = " <+++ value)] \\ (name,value) <- input]
 			]
@@ -436,5 +442,4 @@ trace_to_file s world
 	| not ok
 		= abort ("Could not close "+++ TraceFile)
 	= world
-
 
