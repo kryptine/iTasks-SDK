@@ -1,7 +1,7 @@
 definition module iTasks
 
-// iTasks library for defining interactive multi-user workflow tasks (iTask) for the web
-// defined on top of the iData library
+// iTasks library for defining interactive multi-user workflow tasks (iTask) for the web.
+// Defined on top of the iData library.
 
 // (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
 // This library is still under construction - MJP
@@ -17,42 +17,38 @@ derive gerda 	Void
 derive read 	Void
 derive write 	Void
 
-:: *TSt										// task state
-:: Task a		:== St *TSt a				// an interactive task
-:: Void 		= Void						// for tasks returning non interesting results, won't show up in editors either
+:: *TSt												// abstract task state
+:: Task a			:== St *TSt a					// an interactive task
 
-/* Initiating the iTask library: to be used with an iData server wrapper such as doHtmlServer!
-					Int:  id of user to start with, commonly 0; used id < 0 for login purposes only
-					Bool: True if you want the trace option on
+:: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
+:: GarbageCollect 	= Collect | NoCollect			// option for iTasks
+
+defaultUser			:== 0							// default id of user
+
+// Setting options for any collection of iTask workflows
+
+class (<<@) infixl 3 b :: (Task a) b -> Task a 		// to set iData attribute globally for indicated (composition of) iTask(s) 
+
+instance <<@		Lifespan						// default: Session
+				, 	StorageFormat					// default: PlainString
+				, 	Mode							// default: Edit
+				, 	GarbageCollect					// deafult: Collect
+
+/* Initiate the iTask library with an iData server wrapper such as doHtmlServer! in combination with one of the following functions:
 					
-singleUserTask 	:: start wrapper function for single user
-multiUserTask 	:: start wrapper function for user with indicated id with option to switch between [0..users - 1]  
-
+singleUserTask 	:: iTask start function for defining tasks for one, single user
+multiUserTask 	:: iTask start function for multi-users, with option to switch between [0..users - 1]  
 startNewTask	:: to be used after login ritual					
+
+Int:  id of user to start with, commonly 0; used id < 0 for login purposes only
+Bool: True if you want the trace option on
 */
 singleUserTask 	:: !Int	!Bool !(Task a) 	!*HSt -> (Html,*HSt) 	| iCreate a
 multiUserTask 	:: !Int !Bool !(Task a)  	!*HSt -> (Html,*HSt) 	| iCreate a
 
-/* Setting options for any collection of iTask workflows
-(<<@)			:: set iData attribute globally for indicated (composition of) iTask(s) 
-*/
-class (<<@) infixl 3 b :: (Task a) b -> Task a 
-
-:: GarbageCollect =	Collect | NoCollect
-
-instance <<@		Lifespan				// default: Session
-				, 	StorageFormat			// default: PlainString
-				, 	Mode					// default: Edit
-				, 	GarbageCollect			// deafult: Collect
-
-defaultUser		:== 0						// default id of user
+startNewTask 	:: !Int !Bool !(Task a) 	-> Task a				| iCreateAndPrint a 
 
 // Here follow the iTasks combinators:
-
-/* to start a task after a login ritual (negative id)
-startNewTask	:: id of mian task, trace optiion on
-*/
-startNewTask 	:: !Int !Bool !(Task a) 	-> Task a				| iCreateAndPrint a 
 
 /* promote any iData editor to the iTask domain
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task

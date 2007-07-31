@@ -155,23 +155,19 @@ deleteSubTasks tasknr tst
 
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 
-startTask :: !Int !Bool !Bool !(Task a) !*HSt -> ([BodyTag],!*HSt)
-startTask thisUser traceOn versionsOn taska hst 
-# (_,body,tst) = startTstTask thisUser traceOn versionsOn taska (initTst thisUser hst)
-= (body,tst.hst)
 
 startNewTask :: !Int !Bool !(Task a) -> Task a | iCreateAndPrint a 
 startNewTask newUser traceOn taska = mkTask "startNewTask" startNewTask`
 where
 	startNewTask` tst=:{html} 
-	# (mba,body,tst) 	= startTstTask newUser traceOn True taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
+	# (mba,body,tst) 	= startTstTask newUser True [] traceOn True taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
 	= case mba of
 		(Just a) 	-> (a,{tst & html = html +|+ BT body})
 		Nothing 	-> (createDefault,{tst & html = html +|+ BT body})
 
 singleUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
 singleUserTask userId traceOn task hst 
-# (html,hst) = startTask userId traceOn False task hst
+# (html,hst) = startTask userId False [] traceOn False task hst
 = mkHtml "stest" html hst
 
 multiUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
@@ -179,13 +175,18 @@ multiUserTask nusers traceOn task  hst
 # (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
 						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker	= snd idform.value
-# (html,hst) 	= startTask currentWorker traceOn False task hst
-= mkHtml "mtest" (ifTraceOn idform.form ++ html) hst
+# (html,hst) 	= startTask currentWorker True (ifTraceOn idform.form) traceOn False task hst
+= mkHtml "mtest" html hst
 where
 	ifTraceOn form = if traceOn form []
 
-startTstTask :: !Int !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
-startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
+startTask :: !Int !Bool ![BodyTag] !Bool !Bool !(Task a) !*HSt -> ([BodyTag],!*HSt)
+startTask thisUser multiuser chooseoption traceOn versionsOn taska hst 
+# (_,body,tst) = startTstTask thisUser multiuser chooseoption traceOn versionsOn taska (initTst thisUser hst)
+= (body,tst.hst)
+
+startTstTask :: !Int !Bool ![BodyTag] !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
+startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,tasknr}
 
 // prolog
 
@@ -212,9 +213,8 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 // Here the iTask starts...
 													    
 # ((a,event,threads),tst=:{html,hst,trace})	
-						= IF_Ajax
-							(startApplication taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True})
-							(startMainTask    taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True})
+						= (IF_Ajax startApplication startMainTask)
+							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True}
 
 // epilog
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
@@ -222,14 +222,18 @@ startTstTask thisUser traceOn versionsOn taska tst=:{hst,tasknr}
 # (threadtrace,tst=:{hst})	
 						= IF_Ajax (if TraceThreads showThreadTable (\tst -> ([],tst)) {tst & hst = hst}) ([],{tst & hst = hst})
 # threadsText			= foldl (+++) "" [showTaskNr tasknrs +++ " + " \\ tasknrs <- threads]
-//# threadsText			= foldl (+++) "" [showTaskNr (incNr tasknrs) +++ " + " \\ tasknrs <- threads]
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	(  a,	refresh.form ++ ifTraceOn traceAsked.form ++
-			[Br,Br, Hr [], CTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System - "] ++
-			[Br,Br, Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value] ++
+= 	(  a,	
+			[Table [Tbl_Width (Percent 100)] [Tr [] 
+				[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
+				, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
+			[Hr []] ++
+			if multiuser 
+				[Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value]
+				[Txt "Querie nr: ", CTxt Silver appversion.value] ++
 			IF_Ajax
 				[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []]
-				[Br,Hr []]
+				[Hr []]
 			++
 			if (doTrace && traceOn)
 				(showOptions ++ threadtrace ++ [printTrace2 trace ])
@@ -249,8 +253,8 @@ where
 	ifTraceOn form = if traceOn form []
 
 	showOptions
-	= [Txt "Version nr: ", CTxt Silver iTaskVersion,Br,Br] ++
-	  [Txt " Database: "	, CTxt Silver (IF_Database 	"On" "Off")] ++
+	= [Txt "Version nr: ", CTxt Silver iTaskVersion] ++
+	  [Txt " - Database: "	, CTxt Silver (IF_Database 	"On" "Off")] ++
 	  [Txt " - DataFile: "	, CTxt Silver (IF_DataFile 	"On" "Off")] ++
 	  [Txt " - Ajax: "		, CTxt Silver (IF_Ajax 		"On" "Off")] ++
 	  [Br,Hr []]
@@ -977,6 +981,9 @@ showUser nr
 
 CTxt color message
 = Font [Fnt_Color (`Colorname color)] [B [] (toString message)]
+
+BCTxt color message
+= Font [Fnt_Color (`Colorname color)] [Big [] (toString message)]
 
 // Printing and tracing stuf...
 
