@@ -30,6 +30,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
 				|	(-@:) infix  0 Int 			HtmlTree// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 HtmlTree HtmlTree	// code to be placed next to each other				
 				|	(+|+) infixl 1 HtmlTree HtmlTree	// code to be placed below each other				
+				|	DivCode String HtmlTree				// code that should be labeled with a div, used for Ajax and Client technology
 
 :: Options		=	{ tasklife		:: !Lifespan		// default: Session		
 					, taskstorage	:: !StorageFormat	// default: PlainString
@@ -294,13 +295,17 @@ where
 	Collect thisuser taskuser accu (nuser -@: tree)
 	| thisuser == nuser 	= ([],accu)
 	| otherwise				= Collect thisuser taskuser accu tree
-
+	Collect thisuser taskuser accu (DivCode id tree)
+	# (html,accu)			= Collect thisuser taskuser accu tree
+	= (mkDiv id html,accu)
 
 	noFilter (BT body) 			= body
 	noFilter (_ @@: html) 		= noFilter html
 	noFilter (_ -@: html) 		= noFilter html
 	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
+
+
 
 mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
 mkTaskButtons header myid userId tasknr info btnnames hst
@@ -985,6 +990,11 @@ CTxt color message
 BCTxt color message
 = Font [Fnt_Color (`Colorname color)] [Big [] (toString message)]
 
+mkDiv :: String [BodyTag] -> [BodyTag]
+mkDiv id bodytag = [normaldiv]
+where
+	normaldiv = Div [`Div_Std [Std_Id id]] bodytag
+
 // Printing and tracing stuf...
 
 
@@ -1092,34 +1102,39 @@ where
 			= evalTask tst															// try it again, entry point should be there
 		# (_,thread)		= fromJust mbthread										// entry point found
 		= evalTaskThread thread tst													// and evaluate it
-//		= task tst		// and evaluate it
+
+	insertNewThread :: TaskThread *TSt -> *TSt										// insert new thread in table
+	insertNewThread thread tst		
+	# (table,tst)	= ThreadTableStorage id tst										// read thread table
+	# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
+	= tst
 
 evalTaskThread :: TaskThread -> Task a 												// execute the thread !!!!
 evalTaskThread (thrTasknr,thrUserId,thrOptions,thrCode) = evalTaskThread` 
 where
-	evalTaskThread` tst=:{tasknr,options,userId}									
-	# myCallBackFunction 	= fst (copy_from_string {s` \\ s` <-: thrCode})			// reconstruct fucntion by de-serialization
-	# (a,tst=:{activated}) 	= myCallBackFunction {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId} 
+	evalTaskThread` tst=:{tasknr,options,userId,html}									
+	# myCallBackFunction 		= fst (copy_from_string {s` \\ s` <-: thrCode})		// reconstruct fucntion by de-serialization !!!!!!
+	# (a,tst=:{activated,html=nhtml}) = myCallBackFunction {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId,html = BT []} 
 	| activated																		// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTasknr tst										// thread finished
+		# tst =  deleteThreads thrTasknr {tst & html = html +|+ nhtml}				// thread finished
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
-	= (a,{tst & tasknr = tasknr, options = options, userId = userId})
+	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTasknr) nhtml})
 
 startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 			// determines which threads to execute and calls them..
 startApplication taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
-	# (a,tst) 	= taska tst															// evaluate main application from scratch
-	= ((Just a,tasknr,[tasknr]), tst)
+	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch
+	= ((Just a,tasknr,[tasknr]), {tst & html = DivCode "main" html})
 # event					= fromJust mbevent
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,event,[tasknr]), tst)
+	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch
+	= ((Just a,event,[tasknr]), {tst & html = DivCode "main" html})
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found ??
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,event,[tasknr]), tst)
+	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch
+	= ((Just a,event,[tasknr]), {tst & html = DivCode "main" html})
 # (thrTasknr,thrUserId,thrOptions,entryCode)	= hd mbthread						// event and thread found, start thread closest to event
 # (_,tst=:{hst,activated}) 	= evalTaskThread (hd mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
 | not activated																		// thread not yet finished
@@ -1128,8 +1143,8 @@ startApplication taska tst=:{tasknr,options,html,trace,userId}
 = doParent mbthread taska event [thrTasknr] tst										// more to evaluate, call thread one level higher
 where
 	doParent [] taska event accu tst												// no more parents of current event, do main task
-	# (a,tst) 	= taska {tst & tasknr = tasknr, options = options, userId = userId, html = html}														// start main task
-	= ((Just a,event,reverse [tasknr:accu]), tst)
+	# (a,tst=:{html}) 	= taska {tst & tasknr = tasknr, options = options, userId = userId, html = html}														// start main task
+	= ((Just a,event,reverse [tasknr:accu]), {tst & html = DivCode "main" html})
 
 	doParent [parent:next] taska event accu tst										// do parent of current thread
 	# (parTaskNr,_,_,_) 	= parent												// do next parents
@@ -1138,9 +1153,6 @@ where
 		= ((Nothing,event, reverse [parTaskNr:accu]),tst)							// no further evaluation, aks user for more input
 	# (mbthread,tst)		= findParentThread parTaskNr tst						// look for thread to evaluate
 	= doParent mbthread taska event [parTaskNr:accu] tst							// continue with grand parent ...
-
-	
-	
 	
 // Thread Table Manipulation functions
 
@@ -1180,12 +1192,6 @@ where
 		| showTaskNr tasknrToFind == showTaskNr tasknr	= n							// yes, thread is administrated
 		= lookupThread tasknrToFind (inc n) next
 
-insertNewThread :: TaskThread *TSt -> *TSt											// insert new thread in table
-insertNewThread thread tst		
-# (table,tst)	= ThreadTableStorage id tst											// read thread table
-# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 					// insert the new thread
-= tst
-
 deleteThreads :: TaskNr *TSt -> *TSt
 deleteThreads tasknr tst															// delte a thread and all its children
 # (mbthread,tst)		= findThreadInTable tasknr tst								// find the thread entry in the table
@@ -1219,7 +1225,7 @@ where
 	mkTasknr list = reverse (map digitToInt [c \\ c <- list | isDigit c])
 
 	lowestTaskNr [] 	= Nothing
-	lowestTaskNr [x:xs] = Just (lowest x xs)												// lowest number gives highest position in tree
+	lowestTaskNr [x:xs] = Just (lowest x xs)										// lowest number gives highest position in tree
 
 	lowest :: TaskNr [TaskNr] -> TaskNr
 	lowest x [] 	= x
