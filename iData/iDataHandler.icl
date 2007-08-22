@@ -64,23 +64,7 @@ callSapl f world
 
 // doMyHtmlServerAjax has an extra function in the list for the default case
 // the other one generates the inner html
-doMyHtmlServerAjax :: !(*HSt -> (Html,!*HSt)) !*World -> *World
-doMyHtmlServerAjax userpage world
-= StartServer SocketNr [(ThisExe, \_ _ args -> defaultpage args),  // empty page with script and div
-                        (ThisExe +++ "_ajax", \_ _ args -> doHtmlPageAndPrint args userpage)] world
 
-defaultpage  _ world =  ([], page,world)
-where  page = 	"<html>" +++
-					"<head>" +++
-						"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ThisExe +++ "/clean.css\" />" +++		// clean styles now code in sepparate style sheet
-						"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
-//						"<script language=\"JavaScript\" src=\"" +++ ThisExe +++ "/jsxml/rexml.js\"></script>" +++		// script to turn the response text into dom document format
-					"</head>" +++
-             		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
-             		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
-             		 "<div id=\"theState\" class=\"thread\"></div>" +++ 
-               		 "</body>" +++
-              	"</html>"
 
 /////////////////////////////////
 
@@ -91,9 +75,28 @@ where  page = 	"<html>" +++
 doHtmlServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
 doHtmlServer userpage world
 | ServerKind == Internal		// link in http 1.0 server
-= StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world
+= IF_Ajax 
+	(StartAjax   userpage world)
+	(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)
 | ServerKind == External		// connect with http 1.1 server
 = doHtmlSubServer userpage world
+
+StartAjax :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+StartAjax userpage world
+= StartServer SocketNr [(ThisExe, \_ _ args -> defaultpage args),  // empty page with script and div
+                        (ThisExe +++ "_ajax", \_ _ args -> doHtmlPageAndPrint args userpage)] world
+where
+	defaultpage  _ world =  ([], page,world)
+	where  page = 	"<html>" +++
+						"<head>" +++
+							"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ThisExe +++ "/clean.css\" />" +++		// clean styles now code in sepparate style sheet
+							"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
+						"</head>" +++
+	             		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
+	             		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
+	             		 "<div id=\"theState\" class=\"thread\"></div>" +++ 
+	               		 "</body>" +++
+	              	"</html>"
 
 // doHtmlPageAndPrint is the main driver shared by all server options.
 // It initiates all internal administration and calls the user defined iData or iTask function userpage.
@@ -118,13 +121,13 @@ where
 	# (allformbodies,world=:{worldC,gerda,inout,datafile})	
 								= storeFormStates states world								// Store all state information
 	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
-	# worldC					= closemDataFile datafile worldC								// close the datafile if option chosen
+	# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
 	# inout						= IF_Ajax
 									(print_to_stdout "" inout <+
-									allformbodies <+ "##;" <+
-            		 				bodytags
+									allformbodies <+ State_FormList_Separator <+								// state information
+            		 				bodytags												// page, or part of a page
 									)
-									(print_to_stdout 											// Print out all html code
+									(print_to_stdout 										// Print out all html code
 										(Html (Head headattr [extra_style:headtags]) 
 										(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
 										inout

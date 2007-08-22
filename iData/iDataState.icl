@@ -305,8 +305,7 @@ storeFormStates :: !FormStates *NWorld -> (BodyTag,*NWorld)
 storeFormStates {fstates = allFormStates} world
 #	world							= writeAllTxtFileStates allFormStates world			// first write all persistens states
 =	(BodyTag
-	[ IF_Ajax EmptyBody submitscript    
-//	, Div [`Div_Std [Std_Id "theState", Std_Class "thread"]] [globalstateform (SV encodedglobalstate)] 
+	[ IF_Ajax EmptyBody submitscript													// submitscript defined in ajaxscript    
 	, globalstateform (SV encodedglobalstate) 
 	],world)
 where

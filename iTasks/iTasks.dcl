@@ -6,7 +6,7 @@ definition module iTasks
 // (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
 // This library is still under construction - MJP
 
-iTaskVersion :== "0.93 - juli 2007"
+iTaskVersion :== "0.94 - august 2007"
 
 import iDataSettings, iDataButtons, StdBimap
 derive gForm 	Void						
@@ -21,18 +21,27 @@ derive write 	Void
 :: Task a			:== St *TSt a					// an interactive task
 
 :: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
-:: GarbageCollect 	= Collect | NoCollect			// option for iTasks
 
 defaultUser			:== 0							// default id of user
 
 // Setting options for any collection of iTask workflows
 
-class (<<@) infixl 3 b :: (Task a) b -> Task a 		// to set iData attribute globally for indicated (composition of) iTask(s) 
+:: GarbageCollect 	= Collect 						// garbage collect iTask administration
+					| NoCollect						// no garbage collection
+
+class (<<@) infixl 3 b :: !(Task a) !b -> Task a 		// to set iData attribute globally for indicated (composition of) iTask(s) 
 
 instance <<@		Lifespan						// default: Session
 				, 	StorageFormat					// default: PlainString
 				, 	Mode							// default: Edit
-				, 	GarbageCollect					// deafult: Collect
+				, 	GarbageCollect					// default: Collect
+
+:: SubPage			= UseAjax						// use Ajax technology to update part of a page, only works if Ajax enabled 
+					| OnClient						// RESERVED FOR FUTURE: use SAPL to update part of a page on the client
+
+class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a	
+
+instance @>>		SubPage							// default: the *whole* page will be updated when a form has been modified
 
 /* Initiate the iTask library with an iData server wrapper such as doHtmlServer! in combination with one of the following functions:
 					
@@ -186,7 +195,7 @@ appHSt			:: lift HSt domain to TSt domain, will be executed only once; string us
 appHSt2			:: lift HSt domain to TSt domain, will be executed on each invocation; string used for tracing
 */
 (*>>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 	-> Task b
-(@>>) infix 4 	:: (TSt -> TSt) (Task a) 			-> Task a
+(*@>) infix 4 	:: (TSt -> TSt) (Task a) 			-> Task a
 appIData 		:: (IDataFun a) 					-> Task a 			| iData a
 appHSt 			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
 appHSt2			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
@@ -197,7 +206,4 @@ Once			:; 	task will be done only once, the value of the task will be remembered
 
 Once 			:: (Task a) 						-> (Task a) 		| iData a
 
-// VERY EXPERIMENTAL
-
-mkTaskThread 	:: (Task a) -> Task a 	| iData a								// make a thread
 

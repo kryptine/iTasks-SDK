@@ -70,7 +70,7 @@ where
 	(==) NoCollect NoCollect 	= True
 	(==) _ _ 					= False
 
-class 	(<<@) infixl 3 b ::  (Task a) b  -> (Task a) 
+class 	(<<@) infixl 3 b ::  !(Task a) !b  -> (Task a)
 instance <<@  Lifespan
 where   (<<@) task lifespan			= \tst -> task {tst & options.tasklife = lifespan}
 instance <<@  StorageFormat
@@ -79,6 +79,13 @@ instance <<@  Mode
 where   (<<@) task mode 			= \tst -> task {tst & options.taskmode = mode}
 instance <<@  GarbageCollect
 where   (<<@) task gc 				= \tst -> task {tst & options.gc = gc}
+
+class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a
+instance @>>  SubPage
+where   (@>>) UseAjax task			= \tst -> IF_Ajax 
+												(mkTaskThread task tst)
+												(task tst) 
+		(@>>) OnClient task 		= \tst -> abort ("Sorry, Client site evaluation not implemented yet")
 
 // Lifting HSt domain to the TSt domain, for convenience
 
@@ -214,7 +221,7 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 // Here the iTask starts...
 													    
 # ((a,event,threads),tst=:{html,hst,trace})	
-						= (IF_Ajax startApplication startMainTask)
+						= (IF_Ajax startAjaxApplication startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True}
 
 // epilog
@@ -224,25 +231,35 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 						= IF_Ajax (if TraceThreads showThreadTable (\tst -> ([],tst)) {tst & hst = hst}) ([],{tst & hst = hst})
 # threadsText			= foldl (+++) "" [showTaskNr tasknrs +++ " + " \\ tasknrs <- threads]
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	(  a,	//mkDiv "thePage"
-			(	[Table [Tbl_Width (Percent 100)] [Tr [] 
-					[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
-					, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
-				[Hr []] ++
-				if multiuser 
-					[Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value]
-					[Txt "Querie nr: ", CTxt Silver appversion.value] ++
-				IF_Ajax
-					[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []]
-					[Hr []]
-				++
-				if (doTrace && traceOn)
-					(showOptions ++ threadtrace ++ [printTrace2 trace ])
-					[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
-								]
-					] 
-			)
-	,{tst & hst = hst})
+
+# iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
+							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
+							, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
+							[Hr []]
+# iTaskInfo				= 	mkDiv "iTaskInfo" 
+							(	if multiuser 
+									[Txt "User nr: " , CTxt Silver thisUser, Txt " - "] [] ++
+								[Txt "Querie nr: ", CTxt Silver appversion.value] ++
+								IF_Ajax
+									[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br] [] ++
+								[Hr []]
+							)
+# iTaskTraceInfo		=	showOptions ++ threadtrace ++ [printTrace2 trace ]
+# showCompletePage		= 	IF_Ajax (if (hd threads == [-1]) True False) True
+| showCompletePage		=	(  a,	[Ajax [("thePage",	iTaskHeader ++
+														iTaskInfo	++
+														if (doTrace && traceOn)
+																iTaskTraceInfo
+																[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
+																			]
+																]
+											)]
+									] 
+							,{tst & hst = hst})
+| otherwise				=	(  a,	[Ajax 	[ ("iTaskInfo", iTaskInfo)	
+											, (showTaskNr (hd threads), seltask)
+											]]
+							,{tst & hst = hst})
 where
 	startMainTask :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
@@ -909,8 +926,8 @@ where
 	# (a,tst) = ftst tst
 	= b a tst
 
-(@>>) infix 4 :: (TSt -> TSt) (Task a) -> Task a
-(@>>) ftst b = doit
+(*@>) infix 4 :: (TSt -> TSt) (Task a) -> Task a
+(*@>) ftst b = doit
 where
 	doit tst
 	# tst = ftst tst
@@ -1121,8 +1138,8 @@ where
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTasknr) nhtml})
 
-startApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 			// determines which threads to execute and calls them..
-startApplication taska tst=:{tasknr,options,html,trace,userId}
+startAjaxApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 		// determines which threads to execute and calls them..
+startAjaxApplication taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
 	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch

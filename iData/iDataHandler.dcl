@@ -29,17 +29,16 @@ derive write 	Inline
 
 :: Inline = Inline String
 
-// doHtml main wrapper for generating & handling of a Html form
+// doHtmlServer main wrapper for generating & handling of an Html form
 // depending on the option set (see iDataSettings) it will either 
 //			- link in an http 1.0 server
 //			- administrate itself as subserver to an http 1.1 server
 
 doHtmlServer 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
+doHtmlServer2 		:: ![(String,*HSt -> (Html,!*HSt))] !*World -> *World
 
 // don't use the following experimental functions
 doHtmlClient 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
-doHtmlServer2 		:: ![(String,*HSt -> (Html,!*HSt))] !*World -> *World
-doMyHtmlServerAjax 	:: !(*HSt -> (Html,!*HSt)) !*World -> *World
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

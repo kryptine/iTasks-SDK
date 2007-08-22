@@ -1,7 +1,7 @@
 implementation module iDataHtmlDef
 
 import StdStrictLists, StdString
-import iDataStyleDef, iDataStylelib
+import iDataStyleDef, iDataStylelib, iDataSettings, StdList
 
 gHpr{|Html|}    prev (Html head rest)			= prev <+ htmlbegin <+ head <+ rest <+ htmlend 
 where
@@ -101,6 +101,17 @@ gHpr{|BodyTag|} prev (Textarea attr text)	 	= prev <+> htmlAttrCmnd "textarea"		
 gHpr{|BodyTag|} prev (Tr attr body)				= prev <+> htmlAttrCmnd "tr"			attr body
 gHpr{|BodyTag|} prev (Tt attr text)				= prev <+> htmlAttrCmnd "tt" 			attr text
 gHpr{|BodyTag|} prev (Txt text)  				= prev <+ text
+
+
+
+
+gHpr{|BodyTag|} prev (Ajax parts)	// to Handle Ajax calls
+= IF_Ajax 
+	(MapAjax prev parts)
+	(prev <+ map (\(_,b) -> b) parts)
+where
+	MapAjax prev [] 			= prev	 
+	MapAjax prev [(s,b):xs] 	= MapAjax (prev <+ s <+ FormName_Content_Separator <+ b <+ FormElem_Separator) xs	 
 
 gHpr{|BodyTag|} prev (InlineCode text)	 		= [|text:prev]
 

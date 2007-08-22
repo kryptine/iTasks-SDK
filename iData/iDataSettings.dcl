@@ -70,8 +70,8 @@ IF_Database db no_db 	:== db			// If Database option is used
 IF_DataFile df no_df 	:== df			// If DataFile option is used
 //IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
-IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
-//IF_Ajax th no_th		:== no_th		// Otherwise
+//IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
+IF_Ajax th no_th		:== no_th		// Otherwise
 
 
 // Global Settings determining where files are stored
@@ -86,14 +86,24 @@ DataFileName			:== ThisExe +++ "-CLDB"						// name of 		DataFile being used by 
 
 TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file in which trace information from subserver is stored
 
-iDataIdSeparator 		:== "."										// used as separator when combining iData form id's
-radioButtonSeparator 	:== '.'										// used as extension for family of radiobuttons
-
 // Debug switches								
 
-TraceInput				:== False									// show what kind of information is received from Client
+TraceInput				:== True									// show what kind of information is received from Client
 TraceOutput				:== False									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
 TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11				:== False									// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
+
+// separators
+
+iDataIdSeparator 		:== "."										// used for combining iData form id's
+radioButtonSeparator 	:== '.'										// used as extension for family of radiobuttons
+
+// Ajax separators
+
+State_FormList_Separator	:== "##;"								// separator between state info and list of form info
+FormElem_Separator			:== "#;;"								// separator between form elements in form list
+FormName_Content_Separator	:== "###"								// separator between name of form and the contents of a form element
+
+
