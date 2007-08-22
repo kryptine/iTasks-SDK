@@ -70,8 +70,8 @@ IF_Database db no_db 	:== db			// If Database option is used
 IF_DataFile df no_df 	:== df			// If DataFile option is used
 //IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
-//IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
-IF_Ajax th no_th		:== no_th		// Otherwise
+IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
+//IF_Ajax th no_th		:== no_th		// Otherwise
 
 
 // Global Settings determining where files are stored
@@ -88,11 +88,11 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== True									// show what kind of information is received from Client
+TraceInput				:== False									// show what kind of information is received from Client
 TraceOutput				:== False									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
-TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
+TraceHttp10				:== False									// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11				:== False									// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
 
 // separators

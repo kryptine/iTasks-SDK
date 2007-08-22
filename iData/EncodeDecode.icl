@@ -145,13 +145,6 @@ DecodeArguments (Just args)
 
 
 # alltriplets		= ordertriplets [(triplet,string) \\ (mbtriplet,string) <-  map decodeNameValue tripargs, Just triplet <- [parseString mbtriplet]] []
-/*
-# constriplets		= filter (\(name,_) -> isSelector name) tripargs				// select constructor triplets  
-# nconstriplets		= [(constrip,getSelector name) \\ (name,codedtrip) <- constriplets, (Just constrip) <- [parseString (decodeString (urlDecode codedtrip))]] // and decode
-# valtriplets		= filter (\(name,_) -> not (isSelector name)) tripargs			// select all other triplets 
-# nvaltriplets		= [(mytrip,new) \\ (codedtrip,new) <- valtriplets, (Just mytrip) <- [parseString (decodeString (urlDecode codedtrip))]] // and decode
-# alltriplets		= ordertriplets (nconstriplets ++ nvaltriplets) []
-*/
 = ("clean",determineChanged alltriplets ,state)										// order is important, first the structure than the values ...
 where
 	DecodeCleanServerArguments :: !String -> (!String,!Triplets,!String)			// executable, id + update , new , state
@@ -220,9 +213,6 @@ traceHtmlInput args=:(Just input)
 			, Br
 			, B [] "Undecoded information from client received:", Br, Br
 			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (fst (decodeNameValue (name,value))),Br,B [] "value = ", Txt (snd (decodeNameValue (name,value))),Br] \\ (name,value) <- input])
-//			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (decodeName (urlDecode name) (urlDecode value)),Br,B [] "value = ", Txt (decodeValue (urlDecode name) (urlDecode value)),Br] \\ (name,value) <- input])
-//			, BodyTag (foldl (++) [] [[B [] "name = ", Txt name,Br,B [] "value = ", Txt value,Br] \\ (name,value) <- input])
-//			, STable [] [[Txt ("name = " <+++ name),Br,Txt ("value = " <+++ value)] \\ (name,value) <- input]
 			]
 where
 

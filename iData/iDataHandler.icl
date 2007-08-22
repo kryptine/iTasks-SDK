@@ -95,6 +95,7 @@ where
 	             		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
 	             		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
 	             		 "<div id=\"theState\" class=\"thread\"></div>" +++ 
+	             		 "<div id=\"debug\" class=\"thread\"></div>" +++ 
 	               		 "</body>" +++
 	              	"</html>"
 
@@ -124,8 +125,8 @@ where
 	# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
 	# inout						= IF_Ajax
 									(print_to_stdout "" inout <+
-									allformbodies <+ State_FormList_Separator <+								// state information
-            		 				bodytags												// page, or part of a page
+									allformbodies <+ State_FormList_Separator <+			// state information
+            		 				AjaxCombine bodytags [debugInput,debugOutput]												// page, or part of a page
 									)
 									(print_to_stdout 										// Print out all html code
 										(Html (Head headattr [extra_style:headtags]) 
@@ -134,6 +135,9 @@ where
 									)
 	= (inout,worldC)
 	where
+		AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
+		AjaxCombine [Ajax bodytags:ys] debug 	= [Ajax [("debug",debug):bodytags]:ys]
+		
 		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
 		extra_style				= Hd_Style [] CleanStyles	
 		debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
