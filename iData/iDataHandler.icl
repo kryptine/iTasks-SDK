@@ -78,22 +78,10 @@ where  page = 	"<html>" +++
 					"</head>" +++
              		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
              		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
+             		 "<div id=\"theState\" class=\"thread\"></div>" +++ 
                		 "</body>" +++
               	"</html>"
 
-
-/*
-defaultpage2 args world
-# inout						= print_to_stdout 											// Print out all html code
-								(Html (Head [] [extra_style]) 
-								(Body extra_body_attr [[debugInput]]))
-								[|]
-= ([],inout,world)
-where
-	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
-	extra_style				= Hd_Style [] CleanStyles	
-	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
-*/
 /////////////////////////////////
 
 
@@ -131,18 +119,16 @@ where
 								= storeFormStates states world								// Store all state information
 	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 	# worldC					= closemDataFile datafile worldC								// close the datafile if option chosen
-	# inout						= //IF_Ajax
-									//(print_to_stdout
-//            		 					("<div id=\"theNewPage\" class=\"thread\">" +++ "Zal dit werken" +++ "</div>")
-	//	("<div id=\"theNewPage\" class=\"thread\">" +++ "Zal dit werken" +++ "</div>")
-
-//										([allformbodies:bodytags])
-//										(Body attr [allformbodies:bodytags++[debugInput,debugOutput]])
-								//		inout)
+	# inout						= IF_Ajax
+									(print_to_stdout "" inout <+
+									allformbodies <+ "##;" <+
+            		 				bodytags
+									)
 									(print_to_stdout 											// Print out all html code
 										(Html (Head headattr [extra_style:headtags]) 
 										(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
-										inout)
+										inout
+									)
 	= (inout,worldC)
 	where
 		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
