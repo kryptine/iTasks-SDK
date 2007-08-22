@@ -3,10 +3,7 @@ implementation module PrintUtil
 import StdArray, StdFile, StdList, StdString, ArgEnv
 import StdGeneric
 import StdStrictLists
-import Gerda
-import DataFile
-
-:: Url 	:== String
+import iDataSettings
 
 generic gHpr a :: !*HtmlStream !a -> *HtmlStream
 
@@ -58,10 +55,8 @@ print a			= \f -> [|a:f]
 (<+>) infixl	:: !*HtmlStream !FoF -> *HtmlStream
 (<+>) file new	= new file
 
-print_to_stdout :: !a !*NWorld -> *NWorld | gHpr{|*|} a
-print_to_stdout value nw=:{inout}
-# inout = inout <+ value
-= {nw & inout = inout}
+print_to_stdout :: !a !*HtmlStream			-> *HtmlStream | gHpr{|*|} a
+print_to_stdout value inout = inout <+ value
 
 htmlCmnd		:: !a !b -> FoF | gHpr{|*|} a & gHpr{|*|} b
 htmlCmnd		hdr txt			= \file -> closeCmnd hdr (openCmnd hdr "" file <+ txt)

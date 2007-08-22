@@ -39,6 +39,7 @@ doHtmlServer 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World
 // don't use the following experimental functions
 doHtmlClient 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
 doHtmlServer2 		:: ![(String,*HSt -> (Html,!*HSt))] !*World -> *World
+doMyHtmlServerAjax 	:: !(*HSt -> (Html,!*HSt)) !*World -> *World
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

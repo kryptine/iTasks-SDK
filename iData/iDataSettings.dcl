@@ -70,8 +70,8 @@ IF_Database db no_db 	:== db			// If Database option is used
 IF_DataFile df no_df 	:== df			// If DataFile option is used
 //IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
-//IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
-IF_Ajax th no_th		:== no_th		// Otherwise
+IF_Ajax th no_th		:== th			// If you want to create sub-pages, threads and "Ajax" technologie
+//IF_Ajax th no_th		:== no_th		// Otherwise
 
 
 // Global Settings determining where files are stored

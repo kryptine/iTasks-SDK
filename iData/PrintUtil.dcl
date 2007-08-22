@@ -15,7 +15,7 @@ import DataFile
 :: *NWorld								// io states...
 	= 	{ worldC	:: !*World			// world for any io
 		, inout		:: !*HtmlStream		// to read from stdin and write to stdout
-		, gerda		:: !*Gerda			// to read and write to a relational database
+		, gerda		:: *Gerda			// to read and write to a relational database
 		, datafile	:: !*DataFile		// to read and write to a Clean database in a file
 		}				
 instance FileSystem NWorld
@@ -35,7 +35,7 @@ derive gHpr Int, Real, Bool, String, Char, []
 
 // the main print routine
 
-print_to_stdout :: !a !*NWorld			-> *NWorld | gHpr{|*|} a
+print_to_stdout :: !a !*HtmlStream			-> *HtmlStream | gHpr{|*|} a
 
 // handy utility print routines	
 

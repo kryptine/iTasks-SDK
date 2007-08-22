@@ -224,23 +224,24 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 						= IF_Ajax (if TraceThreads showThreadTable (\tst -> ([],tst)) {tst & hst = hst}) ([],{tst & hst = hst})
 # threadsText			= foldl (+++) "" [showTaskNr tasknrs +++ " + " \\ tasknrs <- threads]
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
-= 	(  a,	
-			[Table [Tbl_Width (Percent 100)] [Tr [] 
-				[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
-				, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
-			[Hr []] ++
-			if multiuser 
-				[Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value]
-				[Txt "Querie nr: ", CTxt Silver appversion.value] ++
-			IF_Ajax
-				[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []]
-				[Hr []]
-			++
-			if (doTrace && traceOn)
-				(showOptions ++ threadtrace ++ [printTrace2 trace ])
-				[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
-							]
-				] 
+= 	(  a,	//mkDiv "thePage"
+			(	[Table [Tbl_Width (Percent 100)] [Tr [] 
+					[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
+					, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
+				[Hr []] ++
+				if multiuser 
+					[Txt "User nr: " , CTxt Silver thisUser, Txt " - Querie nr: ", CTxt Silver appversion.value]
+					[Txt "Querie nr: ", CTxt Silver appversion.value] ++
+				IF_Ajax
+					[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br,Hr []]
+					[Hr []]
+				++
+				if (doTrace && traceOn)
+					(showOptions ++ threadtrace ++ [printTrace2 trace ])
+					[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
+								]
+					] 
+			)
 	,{tst & hst = hst})
 where
 	startMainTask :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 	// No threads, always start from scratch		
@@ -993,7 +994,7 @@ BCTxt color message
 mkDiv :: String [BodyTag] -> [BodyTag]
 mkDiv id bodytag = [normaldiv]
 where
-	normaldiv = Div [`Div_Std [Std_Id id]] bodytag
+	normaldiv = Div [`Div_Std [Std_Id id, Std_Class	"thread"]] bodytag
 
 // Printing and tracing stuf...
 

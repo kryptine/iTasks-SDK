@@ -691,4 +691,4 @@ None				:== [NoAttr]
 
 import PrintUtil
 
-derive gHpr Html, BodyTag, ColorOption, TxtDir
+derive gHpr Html, BodyTag, ColorOption, TxtDir, Rest

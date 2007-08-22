@@ -62,6 +62,38 @@ callSapl f world
 = abort allhtmlcode
 //= world
 
+// doMyHtmlServerAjax has an extra function in the list for the default case
+// the other one generates the inner html
+doMyHtmlServerAjax :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+doMyHtmlServerAjax userpage world
+= StartServer SocketNr [(ThisExe, \_ _ args -> defaultpage args),  // empty page with script and div
+                        (ThisExe +++ "_ajax", \_ _ args -> doHtmlPageAndPrint args userpage)] world
+
+defaultpage  _ world =  ([], page,world)
+where  page = 	"<html>" +++
+					"<head>" +++
+						"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ThisExe +++ "/clean.css\" />" +++		// clean styles now code in sepparate style sheet
+						"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
+//						"<script language=\"JavaScript\" src=\"" +++ ThisExe +++ "/jsxml/rexml.js\"></script>" +++		// script to turn the response text into dom document format
+					"</head>" +++
+             		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
+             		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
+               		 "</body>" +++
+              	"</html>"
+
+
+/*
+defaultpage2 args world
+# inout						= print_to_stdout 											// Print out all html code
+								(Html (Head [] [extra_style]) 
+								(Body extra_body_attr [[debugInput]]))
+								[|]
+= ([],inout,world)
+where
+	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
+	extra_style				= Hd_Style [] CleanStyles	
+	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
+*/
 /////////////////////////////////
 
 
@@ -95,15 +127,23 @@ where
 	# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
 								= userpage (mkHSt initforms nworld)							// Call the user application
 	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-	# (allformbodies,nworld)	= storeFormStates states world								// Store all state information
-	# {worldC,gerda,inout,datafile}		
-								= print_to_stdout 											// Print out all html code
-									(Html (Head headattr [extra_style:headtags]) 
-									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
-									nworld
-	# world						= closeDatabase gerda worldC								// close the relational database if option chosen
-	# world						= closemDataFile datafile world								// close the datafile if option chosen
-	= (inout,world)
+	# (allformbodies,world=:{worldC,gerda,inout,datafile})	
+								= storeFormStates states world								// Store all state information
+	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
+	# worldC					= closemDataFile datafile worldC								// close the datafile if option chosen
+	# inout						= //IF_Ajax
+									//(print_to_stdout
+//            		 					("<div id=\"theNewPage\" class=\"thread\">" +++ "Zal dit werken" +++ "</div>")
+	//	("<div id=\"theNewPage\" class=\"thread\">" +++ "Zal dit werken" +++ "</div>")
+
+//										([allformbodies:bodytags])
+//										(Body attr [allformbodies:bodytags++[debugInput,debugOutput]])
+								//		inout)
+									(print_to_stdout 											// Print out all html code
+										(Html (Head headattr [extra_style:headtags]) 
+										(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
+										inout)
+	= (inout,worldC)
 	where
 		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
 		extra_style				= Hd_Style [] CleanStyles	
