@@ -232,6 +232,7 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 # threadsText			= foldl (+++) "" [showTaskNr tasknrs +++ " + " \\ tasknrs <- threads]
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
 
+# ajaxStatus			=	mkDiv "ajaxStatus" []
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
 							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
 							, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
@@ -245,9 +246,9 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions ++ threadtrace ++ [printTrace2 trace ]
-# showCompletePage		= 	IF_Ajax (if (hd threads == [-1]) True False) True
+# showCompletePage		= 	IF_Ajax (if (hd (reverse threads) == [-1]) True False) True
 | showCompletePage		=	(  a,	[Ajax [("thePage",	iTaskHeader ++
-														iTaskInfo	++
+														iTaskInfo  ++
 														if (doTrace && traceOn)
 																iTaskTraceInfo
 																[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
@@ -256,7 +257,7 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 											)]
 									] 
 							,{tst & hst = hst})
-| otherwise				=	(  a,	[Ajax 	[ ("iTaskInfo", iTaskInfo)	
+| otherwise				=	(  a,	[Ajax 	[ ("iTaskInfo", iTaskInfo)
 											, (showTaskNr (hd threads), seltask)
 											]]
 							,{tst & hst = hst})
