@@ -136,7 +136,9 @@ where
 	= (inout,worldC)
 	where
 		AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
-		AjaxCombine [Ajax bodytags:ys] debug 	= [Ajax [("debug",debug):bodytags]:ys]
+		AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
+		AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
+//		AjaxCombine any debug 									= [Ajax ("thePage",[any])]
 		
 		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
 		extra_style				= Hd_Style [] CleanStyles	

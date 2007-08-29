@@ -222,17 +222,16 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 													    
 # ((a,event,threads),tst=:{html,hst,trace})	
 						= (IF_Ajax startAjaxApplication startMainTask)
-							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True}
+							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, sessionNr = appversion.value, activated = True, html = BT []}
 
 // epilog
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 # (threadtrace,tst=:{hst})	
 						= IF_Ajax (if TraceThreads showThreadTable (\tst -> ([],tst)) {tst & hst = hst}) ([],{tst & hst = hst})
-# threadsText			= foldl (+++) "" [showTaskNr tasknrs +++ " + " \\ tasknrs <- threads]
+# threadsText			= if (hd threads == [-1]) "Whole Page" ("Task(s) " +++ foldl (+++) "" [showTaskNr (incNr tasknrs) +++ " + " \\ tasknrs <- threads])
 # (selbuts,selname,seltask,hst)	= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
 
-# ajaxStatus			=	mkDiv "ajaxStatus" []
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
 							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
 							, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
@@ -242,7 +241,7 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 									[Txt "User nr: " , CTxt Silver thisUser, Txt " - "] [] ++
 								[Txt "Querie nr: ", CTxt Silver appversion.value] ++
 								IF_Ajax
-									[Txt " - Event nr: ", CTxt Silver (showTaskNr  event),Txt " - Thread nr(s): ", CTxt Silver threadsText,Br] [] ++
+									[Txt " - Task Submitted: ", CTxt Silver (showTaskNr  event),Txt " - Updated: ", CTxt Silver threadsText,Br] [] ++
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions ++ threadtrace ++ [printTrace2 trace ]
@@ -257,9 +256,12 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 											)]
 									] 
 							,{tst & hst = hst})
-| otherwise				=	(  a,	[Ajax 	[ ("iTaskInfo", iTaskInfo)
-											, (showTaskNr (hd threads), seltask)
-											]]
+# (newthread,oldthreads)=	let allthreads = reverse threads in (hd allthreads,reverse (tl allthreads))
+| otherwise				=	(  a,	[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
+											[(showTaskNr childthreads,[Txt " "]) \\ childthreads <- oldthreads] ++ //clear childthreads
+											[(showTaskNr newthread, seltask)]	// task info
+										   )
+									]
 							,{tst & hst = hst})
 where
 	startMainTask :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 	// No threads, always start from scratch		
@@ -416,12 +418,14 @@ where
 	| not activated || pred a			= (a,{tst & html = ohtml +|+ nhtml})
 	= doTask {tst & html = ohtml +|+ BT (message a)}
 
-(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iCreate a
+(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iData a
+//(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iCreate a
 (?>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
+	# (a,tst=:{activated,html=nhtml}) 	= IF_Ajax (UseAjax @>> task) task {tst & html = BT []}
+//	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
@@ -1143,27 +1147,31 @@ startAjaxApplication :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 		//
 startAjaxApplication taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
-	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch
-	= ((Just a,tasknr,[tasknr]), {tst & html = DivCode "main" html})
-# event					= fromJust mbevent
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
+	= ((Just a,tasknr,[tasknr]), tst)
+
+# event					= fromJust mbevent											// event found
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch
-	= ((Just a,event,[tasknr]), {tst & html = DivCode "main" html})
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
+	= ((Just a,event,[tasknr]), tst)
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found ??
-	# (a,tst=:{html}) 	= taska tst													// evaluate main application from scratch
-	= ((Just a,event,[tasknr]), {tst & html = DivCode "main" html})
-# (thrTasknr,thrUserId,thrOptions,entryCode)	= hd mbthread						// event and thread found, start thread closest to event
-# (_,tst=:{hst,activated}) 	= evalTaskThread (hd mbthread) {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
+	# (a,tst) 			= taska tst													// evaluate main application from scratch
+	= ((Just a,event,[tasknr]), tst)
+
+# thread 				= hd mbthread												// thread found
+# (thrTasknr,thrUserId,thrOptions,entryCode)	= thread							// event and thread found, start thread closest to event
+# (_,tst=:{activated}) 	= evalTaskThread thread {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId}	// no threads, start main thread ...
 | not activated																		// thread not yet finished
 	= ((Nothing,event,[thrTasknr]),tst)												// no further evaluation, aks user for more input
+
 # (mbthread,tst)		= findParentThread thrTasknr tst							// look for thread to evaluate
 = doParent mbthread taska event [thrTasknr] tst										// more to evaluate, call thread one level higher
 where
 	doParent [] taska event accu tst												// no more parents of current event, do main task
-	# (a,tst=:{html}) 	= taska {tst & tasknr = tasknr, options = options, userId = userId, html = html}														// start main task
-	= ((Just a,event,reverse [tasknr:accu]), {tst & html = DivCode "main" html})
+	# (a,tst) 			= taska {tst & tasknr = tasknr, options = options, userId = userId, html = BT []}														// start main task
+	= ((Just a,event,reverse [tasknr:accu]), tst)
 
 	doParent [parent:next] taska event accu tst										// do parent of current thread
 	# (parTaskNr,_,_,_) 	= parent												// do next parents
@@ -1185,7 +1193,7 @@ import dynamic_string
 showThreadTable :: *TSt -> ([BodyTag],*TSt)
 showThreadTable tst
 # (table,tst)	= ThreadTableStorage id tst											// read thread table
-# body			= [Br, B [] "Threads: "] ++ foldl (++) [] [[Br, Txt (showTaskNr tasknr)] \\ (tasknr,_,_,_) <- table]
+# body			= [Br, B [] "Threaded Tasks: "] ++ foldl (++) [] [[Br, Txt (showTaskNr (incNr tasknr))] \\ (tasknr,_,_,_) <- table]
 = (body,tst)
 
 ThreadTableStorage :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)			// used to store Tasknr of callbackfunctions / threads
@@ -1256,6 +1264,7 @@ findParentThread ::  TaskNr *TSt -> *([TaskThread],*TSt)							// finds parent t
 findParentThread tasknr tst
 # (table,tst)		= ThreadTableStorage id tst										// read thread table
 | isNil table		= ([], tst)														// nothing in table, no parents
+| length tasknr <= 1 = ([], tst)													// no tasks left up
 # revtasknr			= reverse (tl tasknr)
 # entries 			= filter (\(ptasknr,_,_,_) -> revtasknr%(0,length ptasknr - 2) == reverse (tl ptasknr)) table			// finds thread closest to this one
 | isNil entries		= ([], tst)
