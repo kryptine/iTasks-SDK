@@ -95,9 +95,11 @@ return_D		:: a 						-> Task a			| gForm {|*|}, iCreateAndPrint a
 (@:)			:: will prompt who is waiting for task with give name
 (@::)			:: same, default task name given
 */
-(@:)  infix 3 	:: !(!String,!Int) (Task a)	-> (Task a)			| iCreateAndPrint a
-(@::) infix 3 	:: !Int (Task a)		    -> (Task a)			| iCreate a
+//(@:)  infix 3 	:: !(!String,!Int) (Task a)	-> (Task a)			| iCreateAndPrint a
+//(@::) infix 3 	:: !Int (Task a)		    -> (Task a)			| iCreate a
 
+(@:)  infix 3 	:: !(!String,!Int) (Task a)	-> (Task a)			| iData a
+(@::) infix 3 	:: !Int (Task a)		    -> (Task a)			| iData a
 /* Handling recursion and loops
 newTask			:: use the to promote a (recursively) defined user function to as task
 foreverTask		:: infinitely repeating Task
