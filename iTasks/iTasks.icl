@@ -7,13 +7,13 @@ import StdEnv, StdBimap, StdOrdList
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
 import dynamic_string
 
-derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe, []
-derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe, []
-derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe
-derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Maybe
-derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
-derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
-derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
+derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe, []
+derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe, []
+derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe
+derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe
+derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread
+derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread
+derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -45,7 +45,11 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect
 
 
 :: ThreadTable	:== [TaskThread]
-:: TaskThread	:== (!TaskNr,!Int,!Options,!String)										// tasknr, task user, options, serialized callback function
+:: TaskThread	=	{ thrTaskNr		:: !TaskNr			// task number to recover
+					, thrUserId		:: !Int				// which user has to perform the task
+					, thrOptions	:: !Options			// options of the task
+					, thrCallback	:: !String			// serialized callback function
+					}
 
 // Initial values for Task State TSt
 
@@ -90,7 +94,9 @@ instance @>>  SubPage
 where   (@>>) UseAjax task			= \tst -> IF_Ajax 
 												(mkTaskThread UseAjax task tst)
 												(task tst) 
-		(@>>) OnClient task 		= \tst -> abort ("Sorry, Client site evaluation not implemented yet")
+		(@>>) OnClient task 		= \tst -> IF_Ajax 
+												(mkTaskThread OnClient task tst)
+												(task tst) 
 
 // Lifting HSt domain to the TSt domain, for convenience
 
@@ -276,10 +282,10 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 									]
 							,{tst & hst = hst})
 where
-	startMainTask :: !(Task a) !*TSt -> ((Maybe a,TaskNr,[TaskNr]),*TSt) 	// No threads, always start from scratch		
+	startMainTask :: !(Task a) !*TSt -> ((!Maybe a,!Int,!TaskNr,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
 	# (a,tst) = task tst
-	= ((Just a,[0],[]),tst)
+	= ((Just a,defaultUser,[0],[]),tst)
 
 	mbinc True = id
 	mbinc _ = inc
@@ -288,9 +294,10 @@ where
 
 	showOptions
 	= [Txt "Version nr: ", CTxt Silver iTaskVersion] ++
+	  [Txt " - UseAjax: "	, CTxt Silver (IF_Ajax 		"On" "Off")] ++
+	  [Txt " - OnClient: "	, CTxt Silver (IF_OnClient	(IF_Ajax "On" "Ajax") "Off")] ++
 	  [Txt " - Database: "	, CTxt Silver (IF_Database 	"On" "Off")] ++
 	  [Txt " - DataFile: "	, CTxt Silver (IF_DataFile 	"On" "Off")] ++
-	  [Txt " - Ajax: "		, CTxt Silver (IF_Ajax 		"On" "Off")] ++
 	  [Br,Hr []]
 
 
@@ -1077,9 +1084,10 @@ where
 
 	pr _ Nothing 			= []
 	pr dprev (Just (dtask,(w,i,tn,s)))	
-	| dprev && (not dtask)	= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
-	| not dtask	&& tn == "Ajax_Thread"	= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
-	| not dtask						= showTask cellattr1b White Navy Maroon Silver (w,i,tn,s)
+	| dprev && (not dtask)					= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
+	| not dtask	&& tn == "Ajax_Thread"		= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
+	| not dtask	&& tn == "Client_Thread"	= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
+	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,tn,s)
 	= showTask cellattr1a White Yellow Red White (w,i,tn,s)
 	
 	showTask2 attr1 c1 c2 c3 c4 (w,i,tn,s)
@@ -1125,21 +1133,29 @@ where
 
 // mkTaskThread creates a thread for an iTask
 
-mkTaskThread :: SubPage (Task a) -> Task a 	| iData a										// execute a thread
-mkTaskThread ajaxOrClient taska = \tst=:{tasknr} -> IF_Ajax 										// only if Ajax & threads enabled
-											(newTask "Ajax_Thread" (mkTaskThread` taska) tst)
-											(taska tst)
+mkTaskThread :: !SubPage !(Task a) -> Task a 	| iData a										// execute a thread
+mkTaskThread UseAjax taska = IF_Ajax 															// only if Ajax & threads enabled
+									(newTask "Ajax_Thread" (mkTaskThread2 False taska))
+									taska 
+
+mkTaskThread OnClient taska = IF_Ajax 															// only if Ajax & threads enabled
+									(IF_OnClient
+										(newTask "Client_Thread" (mkTaskThread2 True  taska))	// evaluate on client if possible
+										(newTask "Ajax_Thread"   (mkTaskThread2 False taska)) 	// otherwise use Ajax
+									)
+									taska 
+
+mkTaskThread2 :: !Bool !(Task a) -> Task a 										// execute a thread
+mkTaskThread2 onclient task = evalTask
 where
-	mkTaskThread` :: (Task a) -> Task a 											// execute a thread
-	mkTaskThread` task = evalTask
-	where
-		evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
-		# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
-		| isNothing mbthread														// not yet, insert new entry		
-			# tst = insertNewThread (tasknr,userId,options,copy_to_string task) tst 
-			= evalTask tst															// try it again, entry point should be there
-		# (_,thread)		= fromJust mbthread										// entry point found
-		= evalTaskThread thread tst													// and evaluate it
+	evalTask tst=:{tasknr,activated,options,userId}									// thread - task is not yet finished
+	# (mbthread,tst)	= findThreadInTable tasknr tst								// look if there is an entry for this task
+	| isNothing mbthread															// not yet, insert new entry		
+		# options = {options & tasklife = if onclient Client options.tasklife}
+		# tst = insertNewThread {thrTaskNr = tasknr, thrUserId = userId, thrOptions = options, thrCallback = copy_to_string task} tst 
+		= evalTask tst																// try it again, entry point should be there
+	# (_,thread)		= fromJust mbthread											// entry point found
+	= evalTaskThread thread tst														// and evaluate it
 
 	insertNewThread :: !TaskThread *TSt -> *TSt										// insert new thread in table
 	insertNewThread thread tst		
@@ -1147,17 +1163,16 @@ where
 	# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
 	= tst
 
-evalTaskThread :: !TaskThread -> Task a 												// execute the thread !!!!
-evalTaskThread (thrTasknr,thrUserId,thrOptions,thrCode) = evalTaskThread` 
+evalTaskThread :: !TaskThread -> Task a 											// execute the thread !!!!
+evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback} = evalTaskThread` 
 where
 	evalTaskThread` tst=:{tasknr,options,userId,html}									
-	# myCallBackFunction 		= fst (copy_from_string {s` \\ s` <-: thrCode})		// reconstruct fucntion by de-serialization !!!!!!
-	# (a,tst=:{activated,html=nhtml}) = myCallBackFunction {tst & tasknr = thrTasknr, options = thrOptions, userId = thrUserId,html = BT []} 
+	# myCallBackFunction 				= fst (copy_from_string {s` \\ s` <-: thrCallback})		// reconstruct fucntion by de-serialization !!!!!!
+	# (a,tst=:{activated,html=nhtml}) 	= myCallBackFunction {tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
 	| activated																		// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTasknr {tst & html = html +|+ nhtml}				// thread finished
+		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}				// thread finished
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
-//	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ (thrUserId +@: DivCode (showTaskNr thrTasknr) nhtml)})
-	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTasknr) nhtml})
+	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
 startAjaxApplication :: !Int !(Task a) !*TSt -> ((Maybe a,!Int,TaskNr,[TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
@@ -1178,33 +1193,31 @@ startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
 	= ((Just a,defaultUser,event,[tasknr]), tst)
 
 # thread 				= hd mbthread												// thread found
-# (thrTasknr,thrUser,_,_)= thread													// event and thread found, start thread closest to event
-| thrUser <> thisUser																// updating becomes too complicated
+| thread.thrUserId <> thisUser														// updating becomes too complicated
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,defaultUser,event,[tasknr]), tst)
 
 # (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// no threads, start main thread ...
 | not activated																		// thread not yet finished
-	= ((Nothing,thrUser,event,[thrTasknr]),tst)										// no further evaluation, aks user for more input
+	= ((Nothing,thisUser,event,[thread.thrTaskNr]),tst)								// no further evaluation, aks user for more input
 
-# (mbthread,tst)		= findParentThread thrTasknr tst							// look for thread to evaluate
-= doParent mbthread taska event [thrTasknr] {tst & html = BT []}					// more to evaluate, call thread one level higher
+# (mbthread,tst)		= findParentThread thread.thrTaskNr tst						// look for thread to evaluate
+= doParent mbthread taska event [thread.thrTaskNr] {tst & html = BT []}				// more to evaluate, call thread one level higher
 where
 	doParent [] taska event accu tst												// no more parents of current event, do main task
 	# (a,tst) 			= taska {tst & html = BT []}								// start main task
 	= ((Just a,defaultUser,event, [tasknr:accu]), tst)
 
 	doParent [parent:next] taska event accu tst										// do parent of current thread
-	# (parTaskNr,thrUser,_,_) 	= parent											// do next parents
-	| thrUser <> thisUser															// updating becomes too complicated
+	| parent.thrUserId <> thisUser													// updating becomes too complicated
 		# (a,tst) 			= taska tst												// evaluate main application from scratch
 		= ((Just a,defaultUser,event,[tasknr]), tst)
 
 	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}			// start parent
 	| not activated																	// parent thread not yet finished
-		= ((Nothing,thrUser,event, [parTaskNr:accu]),tst)							// no further evaluation, aks user for more input
-	# (mbthread,tst)		= findParentThread parTaskNr tst						// look for thread to evaluate
-	= doParent mbthread taska event [parTaskNr:accu] tst							// continue with grand parent ...
+		= ((Nothing,thisUser,event, [parent.thrTaskNr:accu]),tst)					// no further evaluation, aks user for more input
+	# (mbthread,tst)		= findParentThread parent.thrTaskNr tst					// look for thread to evaluate
+	= doParent mbthread taska event [parent.thrTaskNr:accu] tst						// continue with grand parent ...
 	
 // Thread Table Manipulation functions
 
@@ -1214,8 +1227,12 @@ where
 showThreadTable :: *TSt -> ([BodyTag],*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 showThreadTable tst
 # (table,tst)	= ThreadTableStorage id tst											// read thread table
-# body			= [Br, B [] "Threaded Tasks: "] ++ foldl (++) [] [[Br, Txt (showThreadNr tasknr)] \\ (tasknr,_,_,_) <- table]
+# body			= [Br, B [] "Threaded Tasks: "] ++ foldl (++) [] [[Br, showWhere entry.thrOptions.tasklife,Txt (showThreadNr entry.thrTaskNr)] \\ entry <- table]
 = (body,tst)
+where
+	showWhere lifespan
+	| lifespan == Client	= Txt "On Client: " 
+	| otherwise				= Txt "On Server: " 
 
 ThreadTableStorage :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)			// used to store Tasknr of callbackfunctions / threads
 ThreadTableStorage fun = handleTable
@@ -1226,7 +1243,7 @@ where
 
 	storageId_ThTa = ThisExe +++ "-ThreadTable"
 
-findThreadInTable :: TaskNr *TSt -> *(Maybe (Int,TaskThread),*TSt)					// find thread that belongs to given tasknr
+findThreadInTable :: TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)				// find thread that belongs to given tasknr
 findThreadInTable tasknr tst
 # (table,tst)	= ThreadTableStorage id tst											// read thread table
 # pos			= lookupThread tasknr 0 table										// look if there is an entry for this task
@@ -1236,8 +1253,8 @@ where
 	lookupThread :: TaskNr Int ThreadTable -> Int
 	lookupThread tableKey n []			
 		= -1																		// no, cannot find thread
-	lookupThread tasknrToFind n [(tasknr,_,_,_):next]
-		| showTaskNr tasknrToFind == showTaskNr tasknr	= n							// yes, thread is administrated
+	lookupThread tasknrToFind n [entry:next]
+		| showTaskNr tasknrToFind == showTaskNr entry.thrTaskNr	= n					// yes, thread is administrated
 		= lookupThread tasknrToFind (inc n) next
 
 deleteThreads :: TaskNr *TSt -> *TSt
@@ -1251,7 +1268,8 @@ deleteThreads tasknr tst															// delte a thread and all its children
 where
 	deleteChildren mytasknr tst
 	# (table,tst)	 		= ThreadTableStorage id tst								// read thread table
-	# allChildsPos			= [pos \\ (mbchild,_,_,_) <- table & pos <- [0..] | isChild mytasknr mbchild ]
+//	# allChildsPos			= [pos \\ (mbchild,_,_,_,_) <- table & pos <- [0..] | isChild mytasknr mbchild ]
+	# allChildsPos			= [pos \\ entry <- table & pos <- [0..] | isChild mytasknr entry.thrTaskNr ]
 	| isNil allChildsPos	= tst
 	# table					= deleteChilds (reverse (sort allChildsPos)) table		// delete highest entries first !
 	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst					// read thread table
@@ -1287,12 +1305,14 @@ findParentThread tasknr tst
 | isNil table		= ([], tst)														// nothing in table, no parents
 | length tasknr <= 1 = ([], tst)													// no tasks left up
 # revtasknr			= reverse (tl tasknr)											// not relevant
-# entries 			= filter (\(ptasknr,_,_,_) -> revtasknr%(0,length ptasknr - 2) == (reverse (tl ptasknr))) table			// finds thread closest to this one
+//# entries 			= filter (\(ptasknr,_,_,_,_) -> revtasknr%(0,length ptasknr - 2) == (reverse (tl ptasknr))) table			// finds thread closest to this one
+# entries 			= filter (\entry -> revtasknr%(0,length entry.thrTaskNr - 2) == (reverse (tl entry.thrTaskNr))) table			// finds thread closest to this one
 | isNil entries		= ([], tst)
 = (sortBy compare entries,tst)
 where
 	compare :: TaskThread TaskThread -> Bool
-	compare x=:(tasknrx,ux,ox,cx) y=:(tasknry,uy,oy,cy) = length tasknrx > length tasknry
+	compare x y = length x.thrTaskNr > length y.thrTaskNr
+//	compare x=:(tasknrx,ux,ox,cx) y=:(tasknry,uy,oy,cy) = length tasknrx > length tasknry
 
 
 	

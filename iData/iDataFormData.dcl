@@ -27,6 +27,7 @@ import GenEq
 	|	DataFile								//	persistent form stored in a file using the Poor-Mans-Database-Format
 	| 	Session									// 	form in StorageFormat will live as long as one browses between the pages offered by the application
 	| 	Page									// 	form in StorageFormat will be automatically garbage collected when no reference is made to it in a page			
+	|	Client									//	form will be handled on Client, if option enabled, otherwise as Session
 	|	Temp									//	form setting is not stored at all, only lives temporaly in the Clean application	
 
 :: Mode											// one can choose:

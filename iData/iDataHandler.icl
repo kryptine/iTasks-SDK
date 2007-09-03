@@ -352,7 +352,7 @@ mkForm (init,formid=:{mode = Submit}) hst=:{submits = False}
 						] ""
 # submit		= Input [ Inp_Type Inp_Button
 						, Inp_Value (SV "Submit")
-						,`Inp_Events (callClean OnClick Submit formname)
+						,`Inp_Events (callClean OnClick Submit formname formid.lifespan)
 						] ""
 # clear			= Input [ Inp_Type Inp_Reset, Inp_Value (SV "Clear")] ""
 # sform			= [Form [ Frm_Method Post
@@ -463,7 +463,7 @@ where
 		where
 			styles			= case formid.mode of
 								Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle]
-										   , `Sel_Events (if submits [] (callClean OnChange Edit formid.id))
+										   , `Sel_Events (if submits [] (callClean OnChange Edit formid.id formid.lifespan))
 										   ]
 								Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle]
 										   ]
@@ -614,7 +614,7 @@ mkInput size (init,formid=:{mode}) val updval hst=:{cntr,submits}
 				, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
 				, Inp_Size		size
 				, `Inp_Std		[EditBoxStyle, Std_Title (showType val)]
-				, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange formid.mode "") []
+				, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange formid.mode "" formid.lifespan) []
 				] ""
 	  , setCntr (cntr+1) hst)
 | mode == Display

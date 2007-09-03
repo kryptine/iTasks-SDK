@@ -31,7 +31,7 @@ urlDecode 			:: !String -> *String
 
 // Form submission handling
 
-callClean 					:: !(Script -> ElementEvents) !Mode !String -> [ElementEvents]
+callClean 					:: !(Script -> ElementEvents) !Mode !String !Lifespan -> [ElementEvents]
 submitscript 				::  BodyTag
 globalstateform 			:: !Value -> BodyTag
 

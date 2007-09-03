@@ -17,21 +17,24 @@ derive gPrint UpdValue, (,,), (,)
 
 // script for transmitting name and value of changed input 
 
-callClean :: !(Script -> ElementEvents) !Mode !String -> [ElementEvents]
-callClean  onSomething Edit		_    =  [onSomething (SScript "toclean(this)")]
-callClean  onSomething Submit 	myid =  [onSomething (SScript ("toclean2(" <+++ myid <+++ ")"))]
-callClean  onSomething _ 		_	 =  []
+callClean :: !(Script -> ElementEvents) !Mode !String !Lifespan -> [ElementEvents]
+callClean  onSomething Edit		_    lsp =  [onSomething (SScript ("toclean(this," <+++ isOnClient lsp <+++ ")"))]
+callClean  onSomething Submit 	myid lsp =  [onSomething (SScript ("toclean2(" <+++ myid <+++ "," <+++ isOnClient lsp <+++ ")"))]
+callClean  onSomething _ 		_	 _ =  []
+
+isOnClient Client 	= "true"
+isOnClient _ 		= "false"
 
 submitscript :: BodyTag
 submitscript 
 =	BodyTag 
     [ Script [] (SScript
-		(	" function toclean(inp)" +++
+		(	" function toclean(inp,onclient)" +++
 			" { document." +++ globalFormName +++ "." +++	updateInpName +++ ".value=inp.name+\"=\"+inp.value;" +++
 			   "document." +++ globalFormName +++ ".submit(); }"
 		))
 	,	Script [] (SScript
-		(	" function toclean2(form)" +++
+		(	" function toclean2(form,onclient)" +++
 			" { "  +++
 				"form.hidden.value=" +++ "document." +++ globalFormName +++ "." +++ globalInpName +++ ".value;" +++
 				"form.submit();" +++
@@ -77,12 +80,14 @@ EncodeHtmlStates [(id,lifespan,storageformat,state):xsys]
 	  "$" +++ 											// end mark
 	  EncodeHtmlStates xsys
 where
+	fromLivetime Client			PlainString		= "C"	// encode Lifespan & StorageFormat in first character
 	fromLivetime Page 			PlainString		= "N"	// encode Lifespan & StorageFormat in first character
 	fromLivetime Session 		PlainString		= "S"
 	fromLivetime TxtFile 		PlainString		= "P"
 	fromLivetime TxtFileRO 		PlainString		= "R"
 	fromLivetime DataFile 		PlainString		= "F"
 	fromLivetime Database	 	PlainString		= "D"
+	fromLivetime Client			StaticDynamic	= "c"
 	fromLivetime Page 			StaticDynamic	= "n"
 	fromLivetime Session 		StaticDynamic	= "s"
 	fromLivetime TxtFile 		StaticDynamic	= "p"
@@ -110,6 +115,8 @@ where
 		where
 			(fid,formvalue)				= mscan '"' (stl (stl elem)) 							// skip '("'
 			(lifespan,format)			= case fid of
+											['C':_]		= (Client,      PlainString  )
+											['c':_]		= (Client,      StaticDynamic)
 											['N':_]		= (Page,        PlainString  )
 											['n':_]		= (Page,        StaticDynamic)
 											['S':_]		= (Session,     PlainString  )

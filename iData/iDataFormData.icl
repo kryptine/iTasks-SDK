@@ -112,15 +112,17 @@ instance < Lifespan     where (<) l1 l2 = toInt l1 < toInt l2
 instance toBool Init    where toBool Set = True
 							  toBool _   = False
 instance toInt Lifespan where toInt Temp			= 0
-							  toInt Page			= 1
-							  toInt Session			= 2
-							  toInt TxtFileRO		= 3
-							  toInt TxtFile			= 4
-							  toInt DataFile		= 5
-							  toInt Database		= 6
+							  toInt Client			= 1
+							  toInt Page			= 2
+							  toInt Session			= 3
+							  toInt TxtFileRO		= 4
+							  toInt TxtFile			= 5
+							  toInt DataFile		= 6
+							  toInt Database		= 7
 
 instance toString Lifespan where 	
 							  toString Temp			= "Temp"
+							  toString Client		= "Client"
 							  toString Page			= "Page"
 							  toString Session		= "Session"
 							  toString TxtFileRO	= "TxtFileRO"
