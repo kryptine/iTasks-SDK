@@ -334,12 +334,13 @@ where
 	| thisuser == taskuser 	= (mkDiv id html,accu)
 	= ([],accu)
 
+	noFilter :: HtmlTree -> [BodyTag]
 	noFilter (BT body) 			= body
 	noFilter (_ @@: html) 		= noFilter html
 	noFilter (_ -@: html) 		= noFilter html
 	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
-
+	noFilter (DivCode str html) =  noFilter html
 
 
 mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
@@ -1170,6 +1171,7 @@ startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
 | isNil table																		// events, but no threads, evaluate main application from scratch
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,defaultUser,event,[tasknr]), tst)
+
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found ??
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
