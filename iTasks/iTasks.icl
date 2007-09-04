@@ -178,16 +178,6 @@ deleteSubTasks tasknr tst
 
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 
-
-startNewTask :: !Int !Bool !(Task a) -> Task a | iCreateAndPrint a 
-startNewTask newUser traceOn taska = mkTask "startNewTask" startNewTask`
-where
-	startNewTask` tst=:{html} 
-	# (mba,body,tst) 	= startTstTask newUser True [] traceOn True taska {tst & html = BT [], currentUserId = newUser, userId = defaultUser, tasknr = [-1]}
-	= case mba of
-		(Just a) 	-> (a,{tst & html = html +|+ BT body})
-		Nothing 	-> (createDefault,{tst & html = html +|+ BT body})
-
 singleUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
 singleUserTask userId traceOn task hst 
 # (html,hst) = startTask userId False [] traceOn False task hst
@@ -208,14 +198,34 @@ startTask thisUser multiuser chooseoption traceOn versionsOn taska hst
 # (_,body,tst) = startTstTask thisUser multiuser chooseoption traceOn versionsOn taska (initTst thisUser hst)
 = (body,tst.hst)
 
+workFlowTask :: !Bool !(Task (Int,a)) !((Int,a) -> Task b) !*HSt -> (Html,*HSt) | iCreate a 
+workFlowTask  traceOn taska iataskb hst 
+# ((i,a),tst=:{activated,html,hst})	= taska (initTst -1 hst)
+| not activated
+	# iTaskHeader			= [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System ",Hr []]
+	# iTaskInfo				= mkDiv "iTaskInfo" [Txt "Login procedure... ", Hr []]
+	= mkHtml "login" 	[Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html)
+								]
+						] hst
+# (mba,body,tst=:{hst}) = startTstTask i True [] traceOn True (iataskb (i,a)) {tst & html = BT [], currentUserId = i, userId = defaultUser, tasknr = [-1], hst = hst}
+= mkHtml "login" body hst
+where
+	noFilter :: HtmlTree -> [BodyTag]
+	noFilter (BT body) 			= body
+	noFilter (_ @@: html) 		= noFilter html
+	noFilter (_ -@: html) 		= noFilter html
+	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
+	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
+	noFilter (DivCode str html) =  noFilter html
+
+// Main routine for the creation of the workflow page
+
 startTstTask :: !Int !Bool ![BodyTag] !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
 startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,tasknr}
 
 // prolog
 
-| thisUser < 0 
-	# (a,tst=:{html}) 	= taska {tst & hst = hst}
-	= (Just a,noFilter html, {tst & html = html})
+| thisUser < 0 			= abort "Users should have id's >= 0 !"
 # userVersionNr			= "User" <+++ thisUser <+++ "_VersionPNr"
 # usersessionVersionNr	= "User" <+++ thisUser <+++ "_VersionSNr" 
 # applicationVersionNr	= ThisExe <+++ "_Version" 
@@ -243,12 +253,11 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 # (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
 # (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
 
-# showCompletePage		= 	IF_Ajax (hd threads == [-1]) True
+# showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
 						= IF_Ajax (if TraceThreads showThreadTable (\tst -> ([],tst)) {tst & hst = hst}) ([],{tst & hst = hst})
 # threadsText			= if showCompletePage "Whole Page" ("Task(s) " +++ foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
 # (threadcode,selbuts,selname,seltask,hst)	
-//						= Filter thisUser defaultUser ((defaultUser,"Main") @@: html) hst
 						= Filter showCompletePage thrOwner html hst
 
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
@@ -294,10 +303,11 @@ where
 
 	showOptions
 	= [Txt "Version nr: ", CTxt Silver iTaskVersion] ++
-	  [Txt " - UseAjax: "	, CTxt Silver (IF_Ajax 		"On" "Off")] ++
-	  [Txt " - OnClient: "	, CTxt Silver (IF_OnClient	(IF_Ajax "On" "Ajax") "Off")] ++
-	  [Txt " - Database: "	, CTxt Silver (IF_Database 	"On" "Off")] ++
-	  [Txt " - DataFile: "	, CTxt Silver (IF_DataFile 	"On" "Off")] ++
+	  [Txt " - iTask Options: "] ++
+	  [CTxt Silver (IF_Ajax 	" Ajax " " No Ajax ")] ++
+	  [CTxt Silver (IF_OnClient	(IF_Ajax " + Client" "") "")] ++
+	  [CTxt Silver (IF_Database " + Database" "")] ++
+	  [CTxt Silver (IF_DataFile " + Datafile" "")] ++
 	  [Br,Hr []]
 
 
@@ -340,14 +350,6 @@ where
 	# (html,accu)			= Collect thisuser taskuser accu tree
 	| thisuser == taskuser 	= (mkDiv id html,accu)
 	= ([],accu)
-
-	noFilter :: HtmlTree -> [BodyTag]
-	noFilter (BT body) 			= body
-	noFilter (_ @@: html) 		= noFilter html
-	noFilter (_ -@: html) 		= noFilter html
-	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
-	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
-	noFilter (DivCode str html) =  noFilter html
 
 
 mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
