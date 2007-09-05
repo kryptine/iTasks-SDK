@@ -39,9 +39,9 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Task
 					, gc			:: !GarbageCollect	// default: Collect
 					}
 :: GarbageCollect =	Collect | NoCollect
-:: Trace		=	Trace TraceInfo [Trace]				// traceinfo with possibly subprocess
+:: Trace		=	Trace !TraceInfo ![Trace]				// traceinfo with possibly subprocess
 
-:: TraceInfo	:== Maybe (Bool,(Int,TaskNr,String,String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe !(!Bool,!(!Int,!TaskNr,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 
 :: ThreadTable	:== [TaskThread]
@@ -125,10 +125,10 @@ storageFormId  	options s d = cFormId options s d <@ NoForm
 // Every sequential task should increase the task number
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 	
-mkTask :: !String (Task a) -> (Task a) | iCreateAndPrint a
+mkTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr
 
-mkTaskNoInc :: !String (Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
+mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
 mkTaskNoInc taskname mytask = mkTaskNoInc`
 where
 	mkTaskNoInc` tst=:{activated,tasknr,userId}		
@@ -155,7 +155,7 @@ showThreadNr [-1]		= "Root"
 showThreadNr [-1:is]	= showTaskNr is
 showThreadNr else		= "*" <+++ showTaskNr else
 
-iTaskId :: !Int !TaskNr String -> String
+iTaskId :: !Int !TaskNr !String -> String
 iTaskId userid tasknr postfix 
 | postfix == ""
 	| userid < 0	= "iLog_"  <+++ (showTaskNr tasknr) 
@@ -181,7 +181,7 @@ deleteSubTasks tasknr tst
 singleUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
 singleUserTask userId traceOn task hst 
 # (html,hst) = startTask userId False [] traceOn False task hst
-= mkHtml "stest" html hst
+= mkHtml "singleUser" html hst
 
 multiUserTask :: !Int !Bool !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
 multiUserTask nusers traceOn task  hst 
@@ -189,7 +189,7 @@ multiUserTask nusers traceOn task  hst
 						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker	= snd idform.value
 # (html,hst) 	= startTask currentWorker True (ifTraceOn idform.form) traceOn False task hst
-= mkHtml "mtest" html hst
+= mkHtml "multiUser" html hst
 where
 	ifTraceOn form = if traceOn form []
 
@@ -200,15 +200,15 @@ startTask thisUser multiuser chooseoption traceOn versionsOn taska hst
 
 workFlowTask :: !Bool !(Task (Int,a)) !((Int,a) -> Task b) !*HSt -> (Html,*HSt) | iCreate a 
 workFlowTask  traceOn taska iataskb hst 
-# ((i,a),tst=:{activated,html,hst})	= taska (initTst -1 hst)
+# ((i,a),tst=:{activated,html,hst})	= taska (initTst -1 hst)		// for doing the login 
 | not activated
 	# iTaskHeader			= [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System ",Hr []]
 	# iTaskInfo				= mkDiv "iTaskInfo" [Txt "Login procedure... ", Hr []]
-	= mkHtml "login" 	[Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html)
+	= mkHtml "workFlow" [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html)
 								]
 						] hst
-# (mba,body,tst=:{hst}) = startTstTask i True [] traceOn True (iataskb (i,a)) {tst & html = BT [], currentUserId = i, userId = defaultUser, tasknr = [-1], hst = hst}
-= mkHtml "login" body hst
+# (_,body,tst=:{hst}) = startTstTask i True [] traceOn True (iataskb (i,a)) (initTst i hst)
+= mkHtml "workFlow" body hst
 where
 	noFilter :: HtmlTree -> [BodyTag]
 	noFilter (BT body) 			= body
@@ -266,10 +266,10 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 							[Hr []]
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
 							(	if multiuser 
-									[Txt "User nr: " , CTxt Silver thisUser, Txt " - "] [] ++
-								[Txt "Querie nr: ", CTxt Silver appversion.value] ++
+									[Txt "User nr: " , CTxt Silver thisUser, Txt " - ", Txt "User Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
+								[Txt "iTask Querie: ", CTxt Silver appversion.value] ++
 								IF_Ajax
-									[Txt " - Task Submitted: ", CTxt Silver (showTaskNr  event),Txt " - Updated: ", CTxt Silver threadsText,Br] [] ++
+									[Txt " - Task: ", CTxt Silver (showTaskNr  event),Txt " - Updated: ", CTxt Silver threadsText,Br] [] ++
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions ++ threadtrace ++ [printTrace2 trace ]
@@ -381,7 +381,7 @@ where
 
 // make an iTask editor
 
-editTask :: String a -> (Task a) | iData a 
+editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkTask "editTask" (editTask` prompt a)
 
 editTask` prompt a tst=:{tasknr,html,hst,userId}
@@ -400,7 +400,7 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 
 // monads for combining itasks
 
-(=>>) infix 1 :: (Task a) (a -> Task b) -> Task b | iCreateAndPrint b
+(=>>) infix 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
 (=>>) taska taskb = mybind
 where
 	mybind tst=:{options}
@@ -409,31 +409,31 @@ where
 //	| activated	= taskb a {tst & options = options}
 //	= (createDefault,tst)
 
-(#>>) infixl 1 :: (Task a) (Task b) -> Task b
+(#>>) infixl 1 :: !(Task a) !(Task b) -> Task b
 (#>>) taska taskb = mybind
 where
 	mybind tst=:{options}
 	# (a,tst) = taska tst
 	= taskb {tst & options = options}
 
-return_V :: a -> (Task a) | iCreateAndPrint a
+return_V :: !a -> (Task a) | iCreateAndPrint a
 return_V a  = mkTask "return_V" (return a) 
 
 // some simple variants
 
-return_D :: a -> (Task a) | gForm {|*|}, iCreateAndPrint a
+return_D :: !a -> (Task a) | gForm {|*|}, iCreateAndPrint a
 return_D a = mkTask "return_D" return_Display`
 where
 	return_Display` tst
 	= (a,{tst & html = tst.html +|+ BT [toHtml a ]})		// return result task
 
-return_VF :: a [BodyTag] -> (Task a) | iCreateAndPrint a
+return_VF :: !a ![BodyTag] -> (Task a) | iCreateAndPrint a
 return_VF a bodytag = mkTask "return_VF" return_VF`
 where
 	return_VF` tst
 	= (a,{tst & html = tst.html +|+ BT bodytag})
 
-(<|) infix 6 :: (Task a) (a -> .Bool, a -> [BodyTag]) -> Task a | iCreate a
+(<|) infix 6 :: !(Task a) !(a -> .Bool, a -> [BodyTag]) -> Task a | iCreate a
 (<|) taska (pred,message) = doTask
 where
 	doTask tst=:{html = ohtml,activated}
@@ -442,7 +442,7 @@ where
 	| not activated || pred a			= (a,{tst & html = ohtml +|+ nhtml})
 	= doTask {tst & html = ohtml +|+ BT (message a)}
 
-(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iData a
+(?>>) infix 5 :: ![BodyTag] !(Task a) -> (Task a) | iData a
 //(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iCreate a
 (?>>) prompt task = doTask
 where
@@ -453,7 +453,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(!>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iCreate a
+(!>>) infix 5 :: ![BodyTag] !(Task a) -> (Task a) | iCreate a
 (!>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -468,7 +468,7 @@ where
 // they work, but are NOT suited for big applications
 // I will kick them out some day....
 
-repeatTask :: (a -> Task a) (a -> Bool) -> a -> Task a | iData a
+repeatTask :: !(a -> Task a) !(a -> Bool) -> a -> Task a | iData a
 repeatTask task pred = dorepeatTask
 where
 	dorepeatTask a 
@@ -480,7 +480,7 @@ where
 		= dorepeatTask na tst
 
 // same, but by remembering task results stack space can be saved
-newTask :: !String (Task a) -> (Task a) 	| iData a 
+newTask :: !String !(Task a) -> (Task a) 	| iData a 
 newTask taskname mytask = mkTask taskname newTask`
 where
 	newTask` tst=:{tasknr,userId,options}		
@@ -498,7 +498,7 @@ where
 // when gc option set and task finished, it will throw away all subtasks and start all over
 // otherwise, when task finshed it will remember the new tasknr to prevent checking of previously finished tasks
 
-foreverTask :: (Task a) -> Task a | iData a
+foreverTask :: !(Task a) -> Task a | iData a
 foreverTask task = mkTask "foreverTask" foreverTask`
 where
 	foreverTask` tst=:{tasknr,activated,userId,options} 
@@ -515,7 +515,7 @@ where
 		= foreverTask` {tst & tasknr = tasknr, options = options}										// initialize new task
 	= (val,tst)					
 
-(<!) infix 6 :: (Task a) (a -> .Bool) -> Task a | iCreateAndPrint a
+(<!) infix 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
 (<!) taska pred = mkTask "less!" doTask
 where
 	doTask tst=:{activated, tasknr}
@@ -539,7 +539,7 @@ where
 
 // assigning tasks to users, each user is identified by a number
 
-(@:) infix 3 :: !(!String,!Int) (Task a)	-> (Task a)			| iData a			// force thread if Ajax is used
+(@:) infix 3 :: !(!String,!Int) !(Task a)	-> (Task a)			| iData a			// force thread if Ajax is used
 (@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTask` userId {tst & userId = nuserId}
 where
 	assignTask` userId tst=:{html=ohtml,activated,userId = nuserId}
@@ -555,7 +555,7 @@ where
 						((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ // show requested by
 												 nhtml)})									// plus new one tagged				
 
-(@::) infix 3 :: !Int (Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
+(@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
 (@::) nuserId taska = \tst=:{userId} -> assignTask` userId {tst & userId = nuserId}
 where
 	assignTask` userId tst=:{html,activated}
@@ -571,7 +571,7 @@ where
 
 // sequential tasks
 
-seqTasks :: [(String,Task a)] -> (Task [a])| iCreateAndPrint a
+seqTasks :: ![(String,Task a)] -> (Task [a])| iCreateAndPrint a
 seqTasks options = mkTask "seqTasks" seqTasks`
 where
 	seqTasks` tst=:{tasknr}
@@ -586,15 +586,15 @@ where
 	= doseqTasks ts [a:accu] {tst & html = html +|+ ahtml, options = options}
 
 // choose one or more tasks out of a collection
-buttonTask :: String (Task a) -> (Task a) | iCreateAndPrint a
+buttonTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 buttonTask s task = iCTask_button "buttonTask" [(s,task)]
 
 iCTask_button tracename options = mkTask tracename (dochooseTask True options)
 
-chooseTask :: [(String,Task a)] -> (Task a) | iCreateAndPrint a
+chooseTask :: ![(String,Task a)] -> (Task a) | iCreateAndPrint a
 chooseTask options = mkTask "chooseTask" (dochooseTask True options)
 
-chooseTaskV :: [(String,Task a)] -> (Task a) | iCreateAndPrint a
+chooseTaskV :: ![(String,Task a)] -> (Task a) | iCreateAndPrint a
 chooseTaskV options = mkTask "chooseTask" (dochooseTask False options)
 
 dochooseTask _ [] tst			= return createDefault tst				
@@ -618,7 +618,7 @@ dochooseTask horizontal taskOptions tst=:{tasknr,html,options,userId}									//
 
 but i = LButton defpixel i
 
-chooseTask_pdm :: [(String,Task a)] -> (Task a) |iCreateAndPrint a
+chooseTask_pdm :: ![(String,Task a)] -> (Task a) |iCreateAndPrint a
 chooseTask_pdm taskOptions = mkTask "chooseTask_pdm" (dochooseTask_pdm taskOptions)
 where
 	dochooseTask_pdm [] tst			= (createDefault,{tst& activated = True})	
@@ -634,7 +634,7 @@ where
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
 	= (a,{tst & activated = adone&&bdone, html = html +|+ bhtml, tasknr = tasknr})
 
-mchoiceTasks :: [(String,Task a)] -> (Task [a]) | iCreateAndPrint a
+mchoiceTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
 mchoiceTasks taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
@@ -656,10 +656,10 @@ where
 
 // tasks ending as soon as one of its subtasks completes
 
-(-||-) infixr 3 :: (Task a) (Task a) -> (Task a) | iCreateAndPrint a
+(-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iCreateAndPrint a
 (-||-) taska taskb = mkTask "-||-" (doOrTask (taska,taskb))
 
-orTask :: (Task a,Task a) -> (Task a) | iCreateAndPrint a
+orTask :: !(Task a,Task a) -> (Task a) | iCreateAndPrint a
 orTask (taska,taskb) = mkTask "orTask" (doOrTask (taska,taskb))
 
 doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
@@ -684,7 +684,7 @@ doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
 = (a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
  
 
-orTask2 :: (Task a,Task b) -> (Task (EITHER a b)) | iCreateAndPrint a & iCreateAndPrint b
+orTask2 :: !(Task a,Task b) -> (Task (EITHER a b)) | iCreateAndPrint a & iCreateAndPrint b
 orTask2 (taska,taskb) = mkTask "orTask2" (doorTask2 (taska,taskb))
 where
 	doorTask2 (taska,taskb) tst=:{tasknr,html,options,userId}
@@ -715,7 +715,7 @@ checkAnyTasks traceid taskoptions (ctasknr,skipnr) (bool,which) tst=:{tasknr}
 # (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True}
 = checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool||adone,if adone ctasknr which) {tst & tasknr = tasknr, activated = True}
 
-orTasks :: [(String,Task a)] -> (Task a) | iData a
+orTasks :: ![(String,Task a)] -> (Task a) | iData a
 orTasks taskOptions = mkTask "orTasks" (doorTasks taskOptions)
 where
 	doorTasks [] tst	= return createDefault tst
@@ -744,10 +744,10 @@ where
 
 // Parallel tasks ending if all complete
 
-(-&&-) infixr 4 ::  (Task a) (Task b) -> (Task (a,b)) | iCreateAndPrint a & iCreateAndPrint b
+(-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iCreateAndPrint a & iCreateAndPrint b
 (-&&-) taska taskb = mkTask "-&&-" (doAndTask (taska,taskb))
 
-andTask :: (Task a,Task b) -> (Task (a,b)) | iCreateAndPrint a & iCreateAndPrint b
+andTask :: !(Task a,Task b) -> (Task (a,b)) | iCreateAndPrint a & iCreateAndPrint b
 andTask (taska,taskb) = mkTask "andTask" (doAndTask (taska,taskb))
 
 doAndTask (taska,taskb) tst=:{tasknr,html}
@@ -755,7 +755,7 @@ doAndTask (taska,taskb) tst=:{tasknr,html}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "andTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 = ((a,b),{tst & activated = adone&&bdone, html = html +|+ ahtml +|+ bhtml})
 
-andTasks :: [(String,Task a)] -> (Task [a]) | iCreateAndPrint a
+andTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
 andTasks taskOptions = mkTask "andTasks" (doandTasks taskOptions)
 where
 	doandTasks [] tst	= return [] tst
@@ -828,7 +828,7 @@ where
 								(userId -@: allhtml)
 					})
 
-andTasks_mu :: String [(Int,Task a)] -> (Task [a]) | iData a
+andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu taskid tasks = newTask "andTasks_mu" (domu_andTasks tasks)
 where
 	domu_andTasks list = andTasks [(taskid <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
@@ -907,7 +907,7 @@ where
 		sharedStoreId	= iTaskId userId tasknr "Shared_Store"
 		sharedMem fun	= LiftHst (mkStoreForm (Init,storageFormId options sharedStoreId False) fun)
 
-waitForTimeTask:: HtmlTime	-> (Task HtmlTime)
+waitForTimeTask:: !HtmlTime	-> (Task HtmlTime)
 waitForTimeTask time = mkTask "waitForTimeTask" waitForTimeTask`
 where
 	waitForTimeTask` tst=:{tasknr,userId,hst}
@@ -917,14 +917,14 @@ where
 	| currtime < stime.value= (stime.value,{tst & activated = False,hst = hst})
 	= (currtime - stime.value,{tst & hst = hst})
 
-waitForTimerTask:: HtmlTime	-> (Task HtmlTime)
+waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
 waitForTimerTask time  = waitForTimerTask`
 where
 	waitForTimerTask` tst=:{hst}
 	# ((ctime,_),hst)	= getTimeAndDate hst
 	= waitForTimeTask (ctime + time) {tst & hst = hst}
 
-waitForDateTask:: HtmlDate	-> (Task HtmlDate)
+waitForDateTask:: !HtmlDate	-> (Task HtmlDate)
 waitForDateTask date = mkTask "waitForDateTask" waitForDateTask`
 where
 	waitForDateTask` tst=:{tasknr,userId,hst}
@@ -1012,7 +1012,17 @@ where
 // the type Task need to be wrapped into TCl for which the generic functions are defined below
 // Tested for iTrace, will not work for iData
 
-gPrint{|TCl|} gpa a ps = ps <<- "Task Closure"
+//:: TCl a 		= TCl (Task a)			
+
+gPrint{|TCl|} ga (TCl task) ps = ps <<- copy_to_string task
+
+gParse{|TCl|} ga expr
+# mbstring = parseString expr
+| isNothing mbstring = Nothing
+= Just (TCl (fst(copy_from_string {s` \\ s` <-: fromJust mbstring})))
+where
+	parseString :: Expr -> Maybe String
+	parseString expr = gParse{|*|} expr
 
 gUpd{|TCl|} gc (UpdSearch _ 0)	  	 c		= (UpdDone, c)								
 gUpd{|TCl|} gc (UpdSearch val cnt)  c		= (UpdSearch val (cnt - 2),c)						
@@ -1023,6 +1033,7 @@ gUpd{|TCl|} gc mode                 b		= (mode, b)
 
 gForm{|TCl|} gfa (init,formid) hst
 = ({value=formid.ival,changed=False,form=[]},hst)
+
 
 // *** utility section ***
 
@@ -1283,7 +1294,7 @@ where
 	isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
 
 
-getTripletTaskNrs :: *TSt -> *(Maybe TaskNr,*TSt)									// get list of tasknr belonging to events received
+getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)									// get list of tasknr belonging to events received
 getTripletTaskNrs tst=:{hst = hst=:{states}}
 # (triplets,states) = getAllTriplets states
 = (lowestTaskNr [mkTasknr (getDigits s) \\ ((s,_,_),_) <- triplets | s%(0,5) == "iTask_"],{tst & hst = {hst & states = states}})
@@ -1301,21 +1312,18 @@ where
 	| x < y = lowest x ys
 	= lowest y ys
 
-findParentThread ::  TaskNr *TSt -> *([TaskThread],*TSt)							// finds parent thread closest to given set of task numbers
+findParentThread ::  !TaskNr !*TSt -> *([TaskThread],*TSt)							// finds parent thread closest to given set of task numbers
 findParentThread tasknr tst
 # (table,tst)		= ThreadTableStorage id tst										// read thread table
 | isNil table		= ([], tst)														// nothing in table, no parents
 | length tasknr <= 1 = ([], tst)													// no tasks left up
 # revtasknr			= reverse (tl tasknr)											// not relevant
-//# entries 			= filter (\(ptasknr,_,_,_,_) -> revtasknr%(0,length ptasknr - 2) == (reverse (tl ptasknr))) table			// finds thread closest to this one
 # entries 			= filter (\entry -> revtasknr%(0,length entry.thrTaskNr - 2) == (reverse (tl entry.thrTaskNr))) table			// finds thread closest to this one
 | isNil entries		= ([], tst)
 = (sortBy compare entries,tst)
 where
-	compare :: TaskThread TaskThread -> Bool
+	compare :: !TaskThread !TaskThread -> Bool
 	compare x y = length x.thrTaskNr > length y.thrTaskNr
-//	compare x=:(tasknrx,ux,ox,cx) y=:(tasknry,uy,oy,cy) = length tasknrx > length tasknry
 
-
-	
+//:: TCl a 		= TCl (Task a)	
 	
