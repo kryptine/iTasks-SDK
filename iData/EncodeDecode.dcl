@@ -26,6 +26,7 @@ import iDataFormData
 
 encodeTriplet		:: !Triplet -> String						// encoding of triplets
 encodeString 		:: !String  -> String						// encoding of string 
+decodeString 		:: !String -> *String
 urlEncode 			:: !String ->  String
 urlDecode 			:: !String -> *String
 

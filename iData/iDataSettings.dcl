@@ -37,7 +37,7 @@ class iSpecialStore a
 //		,  gerda {|*|} 	 				// To store and retrieve any Clean value in a standard relational database (slow but standard)
 
 										// OPTION: Comment out the next line if you do not want to use the DataFile option
-//		,  read  {|*|}, write {|*|}		// To store and retrieve any Clean value in a special database for which a file is used (fast but non standard)
+		,  read  {|*|}, write {|*|}		// To store and retrieve any Clean value in a special database for which a file is used (fast but non standard)
 
 		a
 
@@ -67,8 +67,8 @@ SocketNr				:== 80			// Socket you wnat to work on, default = 80
 //IF_Database db no_db 	:== db			// If Database option is used
 IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the iSpecialStore class definition above
 
-//IF_DataFile df no_df 	:== df			// If DataFile option is used
-IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
+IF_DataFile df no_df 	:== df			// If DataFile option is used
+//IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
 IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
 //IF_Ajax th no_th		:== no_th		// Otherwise

@@ -50,14 +50,15 @@ multiUserTask 	:: iTask start function for multi-users, with option in window to
 workFlowTask	:: iTask start function for a real workflow, expects a login task and the actual task
 				   a predefined login task is defined in iTaskLogin.dcl				
 
-Int:  id of user to start with, commonly 0; used id < 0 for login purposes only
-Bool: True if you want the trace option on
+Int:  			id of user to start with, commonly 0, should be >= 0
+Bool: 			True if you want the trace option on
+Lifespan:		where to store threadinformation, default Session, only used for Ajax handling
 */
-singleUserTask 	:: !Int	!Bool !(Task a) 	!*HSt -> (Html,*HSt) 	| iCreate a
-multiUserTask 	:: !Int !Bool !(Task a)  	!*HSt -> (Html,*HSt) 	| iCreate a
-workFlowTask	:: 		!Bool !(Task (Int,a)) 
-							  !((Int,a) -> Task b) 
-							  				!*HSt -> (Html,*HSt) 	| iCreate a 
+singleUserTask 	:: !Int	!Bool !(Maybe Lifespan) !(Task a) 	!*HSt -> (Html,*HSt) 	| iCreate a
+multiUserTask 	:: !Int !Bool !(Maybe Lifespan) !(Task a)  	!*HSt -> (Html,*HSt) 	| iCreate a
+workFlowTask	:: 		!Bool !(Maybe Lifespan) !(Task (Int,a)) 
+							  					!((Int,a) -> Task b) 
+							  								!*HSt -> (Html,*HSt) 	| iCreate a 
 
 
 // Here follow the iTasks combinators:
