@@ -5,7 +5,7 @@ implementation module iTasks
 
 import StdEnv, StdBimap, StdOrdList
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
-import dynamic_string
+import dynamic_string, graph_to_string_with_descriptors
 
 derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe, []
 derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe, []
@@ -40,16 +40,17 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Task
 					, threadTableLoc:: !Lifespan		// where to store the server thread table, default is Session
 					}
 :: GarbageCollect =	Collect | NoCollect
-:: Trace		=	Trace !TraceInfo ![Trace]				// traceinfo with possibly subprocess
+:: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
 
 :: TraceInfo	:== Maybe !(!Bool,!(!Int,!TaskNr,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 
 :: ThreadTable	:== [TaskThread]
-:: TaskThread	=	{ thrTaskNr		:: !TaskNr			// task number to recover
-					, thrUserId		:: !Int				// which user has to perform the task
-					, thrOptions	:: !Options			// options of the task
-					, thrCallback	:: !String			// serialized callback function
+:: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
+					, thrUserId			:: !Int			// which user has to perform the task
+					, thrOptions		:: !Options		// options of the task
+					, thrCallback		:: !String		// serialized callback function for the server
+					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
 					}
 
 // Initial values for Task State TSt
@@ -72,9 +73,8 @@ initialOptions	=	{ tasklife 		= Session
 					}
 initStaticInfo thisUser mblocation
 =					{ currentUserId	= thisUser 
-					, threadTableLoc= if (isNothing mblocation) Session (fromJust mblocation)
+					, threadTableLoc= if (isNothing mblocation) Session (IF_Ajax (IF_OnClient Session (fromJust mblocation)) (fromJust mblocation))
 					}
-
 
 // *** First some small utility functions
 
@@ -225,24 +225,33 @@ where
 
 // Main routine for the creation of the workflow page
 
+traceId							= "User_Trace" 
+refreshId						= "User_refresh"
+applicationVersionNr			= ThisExe <+++ "_Version" 
+
+userVersionNr thisUser			= "User" <+++ thisUser <+++ "_VersionPNr"
+usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr" 
+
+setAppversion    f hst			= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 f hst
+setPversion user f hst 	 		= mkStoreForm (Init, pFormId (userVersionNr user) 0) 	 f hst
+setSversion user f hst			= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0) f hst
+
+
+
 startTstTask :: !Int !Bool ![BodyTag] !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
 startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,tasknr,staticInfo}
 
 // prolog
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !"
-# userVersionNr			= "User" <+++ thisUser <+++ "_VersionPNr"
-# usersessionVersionNr	= "User" <+++ thisUser <+++ "_VersionSNr" 
-# applicationVersionNr	= ThisExe <+++ "_Version" 
-# traceId				= "User" <+++ thisUser <+++ "_Trace" 
-# (refresh,hst) 		= simpleButton userVersionNr "Refresh" id hst
+# (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
-# (appversion,hst)	 	= mkStoreForm (Init, pFormId applicationVersionNr 0) id hst
+# (appversion,hst)	 	= setAppversion id hst
 # nonewversion			= refresh.changed || traceAsked.changed
-# (appversion,hst)	 	= mkStoreForm (Init, pFormId applicationVersionNr 0) (mbinc nonewversion) hst
-# (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) id hst
-# (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (if refresh.changed (\_ -> pversion.value) id) hst
+# (appversion,hst)	 	= setAppversion (mbinc nonewversion) hst
+# (pversion,hst)	 	= setPversion thisUser id hst
+# (sversion,hst)	 	= setSversion thisUser (if refresh.changed (\_ -> pversion.value) id) hst
 | sversion.value < pversion.value &&
   versionsOn			= (Nothing,refresh.form ++ [Br,Br, Hr [],Br] <|.|>
 														[Font [Fnt_Color (`Colorname Yellow)]
@@ -255,8 +264,8 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilog
-# (pversion,hst)	 	= mkStoreForm (Init, pFormId userVersionNr 0) (mbinc nonewversion) hst
-# (sversion,hst)	 	= mkStoreForm (Init, nFormId usersessionVersionNr pversion.value) (mbinc nonewversion) hst
+# (pversion,hst)	 	= setPversion thisUser (mbinc nonewversion) hst
+# (sversion,hst)	 	= setSversion thisUser (mbinc nonewversion) hst
 
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
@@ -1150,11 +1159,13 @@ where
 
 serializeThread :: !(Task a) -> String
 serializeThread task =  (copy_to_string task)
-//serializeThread task = encodeString (copy_to_string task)
 
 deserializethread :: String -> Task a
 deserializethread thread = fst (copy_from_string {c \\ c <-: thread} )	
-//deserializethread thread = fst (copy_from_string (decodeString thread))	
+
+serializeThreadClient :: !(Task a) -> String
+serializeThreadClient task =  IF_Ajax (IF_OnClient (graph_to_string_with_descriptors task) "") ""
+
 
 // mkTaskThread creates a thread for an iTask
 
@@ -1177,7 +1188,12 @@ where
 	# (mbthread,tst)	= findThreadInTable tasknr tst								// look if there is an entry for this task
 	| isNothing mbthread															// not yet, insert new entry		
 		# options = {options & tasklife = if onclient Client options.tasklife}
-		# tst = insertNewThread {thrTaskNr = tasknr, thrUserId = userId, thrOptions = options, thrCallback = serializeThread task} tst 
+		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
+									, thrUserId 		= userId
+									, thrOptions 		= options
+									, thrCallback 		= serializeThread task
+									, thrCallbackClient = serializeThreadClient task
+									} tst 
 		= evalTask tst																// try it again, entry point should be there
 	# (_,thread)		= fromJust mbthread											// entry point found
 	= evalTaskThread thread tst														// and evaluate it
@@ -1194,7 +1210,8 @@ where
 	evalTaskThread` tst=:{tasknr,options,userId,html}									
 	# (a,tst=:{activated,html=nhtml}) 	= (deserializethread thrCallback) {tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
 	| activated																		// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}				// thread finished
+		# tst =  deleteSubTasks thrTaskNr {tst & html = html +|+ nhtml}				// thread and subtasks finished
+//		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}				// thread finished
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
@@ -1208,8 +1225,8 @@ startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
 # event					= fromJust mbevent											// event found
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"No Thread(s)",[tasknr]), tst)
+	# (a,tst=:{activated}) 	= taska tst												// evaluate main application from scratch
+	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",[tasknr]), {tst & activated = activated})
 
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found ??
@@ -1287,7 +1304,7 @@ where
 		= lookupThread tasknrToFind (inc n) next
 
 deleteThreads :: TaskNr *TSt -> *TSt
-deleteThreads tasknr tst															// delte a thread and all its children
+deleteThreads tasknr tst															// delete a thread and all its children
 # (mbthread,tst)		= findThreadInTable tasknr tst								// find the thread entry in the table
 # mytasknr				= reverse tasknr
 | isNothing mbthread	= deleteChildren mytasknr tst								// no entry, but delete children
