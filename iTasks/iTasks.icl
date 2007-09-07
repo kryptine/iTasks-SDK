@@ -193,7 +193,7 @@ multiUserTask nusers traceOn tableloc task  hst
 # (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
 						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker	= snd idform.value
-# (html,hst) 	= startTask currentWorker True tableloc (ifTraceOn idform.form) traceOn False task hst
+# (html,hst) 	= startTask currentWorker True tableloc (ifTraceOn idform.form) traceOn True task hst
 = mkHtml "multiUser" html hst
 where
 	ifTraceOn form = if traceOn form []
@@ -236,8 +236,6 @@ setAppversion    f hst			= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 
 setPversion user f hst 	 		= mkStoreForm (Init, pFormId (userVersionNr user) 0) 	 f hst
 setSversion user f hst			= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0) f hst
 
-
-
 startTstTask :: !Int !Bool ![BodyTag] !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
 startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,tasknr,staticInfo}
 
@@ -253,10 +251,17 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 # (pversion,hst)	 	= setPversion thisUser id hst
 # (sversion,hst)	 	= setSversion thisUser (if refresh.changed (\_ -> pversion.value) id) hst
 | sversion.value < pversion.value &&
-  versionsOn			= (Nothing,refresh.form ++ [Br,Br, Hr [],Br] <|.|>
-														[Font [Fnt_Color (`Colorname Yellow)]
-													   [B [] "Sorry, cannot apply command.",Br, 
-													    B [] "Your page is not up-to date!",Br]],{tst & hst = hst})
+  versionsOn				
+	# iTaskHeader		=	[Table [Tbl_Width (Percent 100)] [Tr [] 
+							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
+							, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
+							[Hr []]
+	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Sorry, cannot apply command. Your page is not up-to date!", Hr []]
+	= (Nothing, [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
+						]
+				],{tst & hst = hst})
+
+
 // Here the iTask starts...
 													    
 # ((a,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace})	
@@ -1312,10 +1317,12 @@ deleteThreads tasknr tst															// delete a thread and all its children
 # (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst 	// remove entry
 = deleteChildren mytasknr tst														// and all children
 where
-	deleteChildren mytasknr tst
+	deleteChildren mytasknr tst=:{staticInfo}
 	# (table,tst)	 		= ThreadTableStorage id tst								// read thread table
 	# allChildsPos			= [pos \\ entry <- table & pos <- [0..] | isChild mytasknr entry.thrTaskNr ]
 	| isNil allChildsPos	= tst
+	# otherUsers			= [ (table!!entry).thrUserId  \\ entry <- allChildsPos | (table!!entry).thrUserId <> staticInfo.currentUserId]
+	# tst					= forceNewPage otherUsers tst 
 	# table					= deleteChilds (reverse (sort allChildsPos)) table		// delete highest entries first !
 	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst					// read thread table
 	= tst
@@ -1324,6 +1331,16 @@ where
 	deleteChilds [pos:next] table 	= deleteChilds next (removeAt pos table)
 
 	isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
+
+forceNewPage users tst=:{hst}
+# (appVersion,hst)	= setAppversion id hst						// read out current version number of application
+# hst				= forceUser users appVersion.value hst		// and store it in the version number of the users
+= {tst & hst = hst}												// such that they are forced to recalculate the whole page
+where
+	forceUser []  _ hst = hst
+	forceUser [i:is] versionnr hst
+	# (_,hst)	= setPversion i (\_ -> versionnr) hst		// and store it in the version number of the user
+	= forceUser is versionnr hst	
 
 
 getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)									// get list of tasknr belonging to events received
