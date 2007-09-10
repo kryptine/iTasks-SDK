@@ -223,7 +223,12 @@ where
 	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
 	noFilter (DivCode str html) =  noFilter html
 
-// Main routine for the creation of the workflow page
+// Version number control for multiple user workflows
+// To support Ajax calls, it is remembered which of the threads of a user has been deleted by someone else
+// 		if information from that thread still arives, the input is thrown away since the thread does not exists anymore.
+// 		if information from another thread is received, the task tree is calculated starting from the root
+// To support Ajax calls, it is remembered whther new threads have been created for the user by other users
+//		if so, the task tree is calculated starting from the root 
 
 traceId							= "User_Trace" 
 refreshId						= "User_refresh"
@@ -232,9 +237,16 @@ applicationVersionNr			= ThisExe <+++ "_Version"
 userVersionNr thisUser			= "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr" 
 
-setAppversion    f hst			= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 f hst
-setPversion user f hst 	 		= mkStoreForm (Init, pFormId (userVersionNr user) 0) 	 f hst
-setSversion user f hst			= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0) f hst
+setAppversion :: !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
+setAppversion    f hst	= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 f hst
+
+setPversion :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
+setPversion user f hst	= mkStoreForm (Init, pFormId (userVersionNr user) 0) 	 f hst
+
+setSversion :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
+setSversion user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0) f hst
+
+// Main routine for the creation of the workflow page
 
 startTstTask :: !Int !Bool ![BodyTag] !Bool !Bool !(Task a) !*TSt -> (Maybe a,[BodyTag],!*TSt) //| iCreate a 
 startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,tasknr,staticInfo}
@@ -559,21 +571,28 @@ where
 // assigning tasks to users, each user is identified by a number
 
 (@:) infix 3 :: !(!String,!Int) !(Task a)	-> (Task a)			| iData a			// force thread if Ajax is used
-(@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTask` userId {tst & userId = nuserId}
-where
-	assignTask` userId tst=:{html=ohtml,activated,userId = nuserId}
-	| not activated						= (createDefault,tst)
-	# (a,tst=:{html=nhtml,activated})	=  IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
-	| activated 						= (a,{tst & activated = True						// work is done	
-												  ,	userId = userId							// restore previous user id						
-												  ,	html = ohtml +|+ 						// show old code						
-														   ((nuserId,taskname) @@: nhtml)})	// plus new one tagged
-	= (a,{tst & userId = userId																// restore user Id
-			  , html = 	ohtml +|+ 															// show old code
-						BT [Br, Txt ("Waiting for Task "), CTxt Yellow taskname, Txt " from ", showUser nuserId,Br] +|+  // show waiting for
-						((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ // show requested by
-												 nhtml)})									// plus new one tagged				
+(@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
 
+(@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
+(@::) nuserId taska = \tst=:{userId} -> assignTaskTo False ("Task from " <+++ userId) userId taska {tst & userId = nuserId}
+
+assignTaskTo :: !Bool !String !Int !(Task a) !*TSt -> (a,!*TSt)			| iData a	
+assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = nuserId}
+| not activated						= (createDefault,tst)
+# (a,tst=:{html=nhtml,activated})	=  IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
+| activated 						= (a,{tst & activated = True						// work is done	
+											  ,	userId = userId							// restore previous user id						
+											  ,	html = ohtml /*+|+ 						// show old code						
+													   ((nuserId,taskname) @@: nhtml)*/})	// plus new one tagged
+= (a,{tst & userId = userId																// restore user Id
+		  , html = 	ohtml +|+ 															// show old code
+					if verbose 
+						( BT [Br, Txt ("Waiting for Task "), CTxt Yellow taskname, Txt " from ", showUser nuserId,Br] +|+  // show waiting for
+						  ((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
+						((nuserId,taskname) @@: nhtml)
+	 })									// plus new one tagged				
+
+/*
 (@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
 (@::) nuserId taska = \tst=:{userId} -> assignTask` userId {tst & userId = nuserId}
 where
@@ -587,6 +606,8 @@ where
 			  			BT [Br, Txt "Waiting for ", CTxt Yellow ("Task " <+++ userId), Txt " from ", showUser nuserId,Br] +|+ 
 						((nuserId,"Task " <+++ userId) @@: 
 							BT [Txt "Requested by ", showUser userId,Br,Br] +|+ nhtml)})				// combine html code, filter later					
+
+*/
 
 // sequential tasks
 
@@ -1234,9 +1255,9 @@ startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
 	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",[tasknr]), {tst & activated = activated})
 
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
-| isNil mbthread																	// no thread can be found ??
+| isNil mbthread																	// no thread can be found, happens e.g. when one switches from tasks
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"No Parent",[tasknr]), tst)
+	= ((Just a,defaultUser,event,"Page",[tasknr]), tst)
 
 # thread 				= hd mbthread												// thread found
 | thread.thrUserId <> thisUser														// updating becomes too complicated
