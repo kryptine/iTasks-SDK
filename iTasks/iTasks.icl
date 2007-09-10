@@ -7,13 +7,13 @@ import StdEnv, StdBimap, StdOrdList
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
 import dynamic_string, graph_to_string_with_descriptors
 
-derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe, []
-derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe, []
-derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe
-derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread, Maybe
-derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread
-derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread
-derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, TaskThread
+derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe, []
+derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe, []
+derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe
+derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe
+derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread
+derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread
+derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -39,19 +39,20 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Task
 :: StaticInfo	=	{ currentUserId	:: !Int				// id of application user 
 					, threadTableLoc:: !Lifespan		// where to store the server thread table, default is Session
 					}
-:: GarbageCollect =	Collect | NoCollect
-:: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
 
+:: GarbageCollect =	Collect | NoCollect
+
+:: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
 :: TraceInfo	:== Maybe !(!Bool,!(!Int,!TaskNr,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
-
-:: ThreadTable	:== [TaskThread]
+:: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
 					, thrUserId			:: !Int			// which user has to perform the task
 					, thrOptions		:: !Options		// options of the task
 					, thrCallback		:: !String		// serialized callback function for the server
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
 					}
+
 
 // Initial values for Task State TSt
 
@@ -177,7 +178,7 @@ debug name a = debugValue (\a -> ["\n*** " <+++ name <+++ a]) a
 
 deleteSubTasks :: !TaskNr TSt -> TSt
 deleteSubTasks tasknr tst 
-# tst=:{hst,userId,options}	= deleteThreads tasknr tst
+# tst=:{hst,userId,options}	= IF_Ajax (deleteThreads tasknr tst) tst
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
 
@@ -240,11 +241,31 @@ usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr"
 setAppversion :: !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
 setAppversion    f hst	= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 f hst
 
-setPversion :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
-setPversion user f hst	= mkStoreForm (Init, pFormId (userVersionNr user) 0) 	 f hst
+:: VersionInfo	=	{ versionNr			:: !Int			// latest querie number of a user
+					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
+					, deletedThreads	:: ![TaskNr]	// are there threads deleted (used for Ajax)?
+					}
 
-setSversion :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
-setSversion user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0) f hst
+setPUser :: !Int !(VersionInfo -> VersionInfo) !*HSt -> (Form !VersionInfo,!*HSt) 
+setPUser user f hst	= mkStoreForm (Init, pFormId (userVersionNr user) 	{ versionNr 	= 0
+																		, newThread		= False
+																		, deletedThreads= []
+																		} <@ NoForm) 	 f hst
+
+addPUserDeletedThread :: !Int !TaskNr !*HSt -> (Form !VersionInfo,!*HSt) 
+addPUserDeletedThread user thread hst	= setPUser user (\r -> {r & deletedThreads = [thread:r.deletedThreads]}) hst
+
+setPUserNr :: !Int !(Int -> Int) !*HSt -> (Form !VersionInfo,!*HSt) 
+setPUserNr user f hst	= setPUser user (\r -> {r & versionNr = f r.versionNr}) hst
+
+setPUserNewThread :: !Int !*HSt -> (Form !VersionInfo,!*HSt) 
+setPUserNewThread user hst	= setPUser user (\r -> {r & newThread = True}) hst
+
+clearPUser :: !Int !*HSt -> (Form !VersionInfo,!*HSt) 
+clearPUser user hst	= setPUser user (\r -> {r & newThread = False, deletedThreads = []}) hst
+
+setSVersionNr :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
+setSVersionNr user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
 
 // Main routine for the creation of the workflow page
 
@@ -260,15 +281,15 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 # (appversion,hst)	 	= setAppversion id hst
 # nonewversion			= refresh.changed || traceAsked.changed
 # (appversion,hst)	 	= setAppversion (mbinc nonewversion) hst
-# (pversion,hst)	 	= setPversion thisUser id hst
-# (sversion,hst)	 	= setSversion thisUser (if refresh.changed (\_ -> pversion.value) id) hst
-| sversion.value < pversion.value &&
-  versionsOn				
+# (pversion,hst)	 	= setPUserNr thisUser id hst
+# (sversion,hst)	 	= setSVersionNr thisUser (if refresh.changed (\_ -> pversion.value.versionNr) id) hst
+# versionconflict		= sversion.value < pversion.value.versionNr && versionsOn				
+| versionconflict	 
 	# iTaskHeader		=	[Table [Tbl_Width (Percent 100)] [Tr [] 
 							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
 							, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
-	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Sorry, cannot apply command. Your page is not up-to date!", Hr []]
+	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Sorry, cannot apply command. Version conflict, your page was not up-to date!", Hr []]
 	= (Nothing, [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
 						]
 				],{tst & hst = hst})
@@ -277,12 +298,12 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 // Here the iTask starts...
 													    
 # ((a,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace})	
-						= (IF_Ajax (startAjaxApplication thisUser) startMainTask)
+						= (IF_Ajax (startAjaxApplication thisUser pversion.value) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilog
-# (pversion,hst)	 	= setPversion thisUser (mbinc nonewversion) hst
-# (sversion,hst)	 	= setSversion thisUser (mbinc nonewversion) hst
+# (pversion,hst)	 	= setPUserNr thisUser (mbinc nonewversion) hst
+# (sversion,hst)	 	= setSVersionNr thisUser (mbinc nonewversion) hst
 
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
@@ -579,7 +600,8 @@ where
 assignTaskTo :: !Bool !String !Int !(Task a) !*TSt -> (a,!*TSt)			| iData a	
 assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = nuserId}
 | not activated						= (createDefault,tst)
-# (a,tst=:{html=nhtml,activated})	=  IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
+# tst								= IF_Ajax (administrateNewThread userId tst) tst 
+# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
 | activated 						= (a,{tst & activated = True						// work is done	
 											  ,	userId = userId							// restore previous user id						
 											  ,	html = ohtml /*+|+ 						// show old code						
@@ -591,6 +613,17 @@ assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = n
 						  ((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
 						((nuserId,taskname) @@: nhtml)
 	 })									// plus new one tagged				
+
+administrateNewThread ouserId tst =: {tasknr,userId,options}
+| ouserId == userId		= tst
+# newTaskId				= iTaskId userId tasknr "_newthread"
+# (chosen,tst=:{hst})	= LiftHst (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
+| not chosen.value
+	# (_,hst) 			= setPUserNewThread userId hst													// yes, new thread created
+	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options newTaskId False) (\_ -> True)) {tst & hst = hst}
+	= tst
+= tst	
+
 
 /*
 (@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
@@ -1237,12 +1270,11 @@ where
 	# (a,tst=:{activated,html=nhtml}) 	= (deserializethread thrCallback) {tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
 	| activated																		// thread is finished, delete the entry...
 		# tst =  deleteSubTasks thrTaskNr {tst & html = html +|+ nhtml}				// thread and subtasks finished
-//		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}				// thread finished
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
-startAjaxApplication :: !Int !(Task a) !*TSt -> ((Maybe a,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
-startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
+startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((Maybe a,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
+startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
@@ -1259,12 +1291,25 @@ startAjaxApplication thisUser taska tst=:{tasknr,options,html,trace,userId}
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,defaultUser,event,"Page",[tasknr]), tst)
 
+| versioninfo.newThread																// newthread added by someone
+	# (a,tst=:{hst})	= taska tst													// evaluate main application from scratch
+	# (_,hst)			= clearPUser thisUser hst										// once is enough
+	= ((Just a,defaultUser,event,"Page, new task has been added",[tasknr]), {tst & hst = hst})
+
 # thread 				= hd mbthread												// thread found
+| isMember thread.thrTaskNr versioninfo.deletedThreads								// thread has been deleted is some past, version conflict
+	# tst=:{hst}		= tst
+	# (_,hst)			= clearPUser thisUser hst									// once is enough
+	= ((Nothing,defaultUser,event,"Thread does not exist anymore, version conflict",[tasknr]), {tst & hst = hst})
+
+# tst=:{hst}			= tst
+# (_,hst)				= clearPUser thisUser hst									// clear versioninfo
+
 | thread.thrUserId <> thisUser														// updating becomes too complicated
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,defaultUser,event,"Thread of " <+++ thread.thrUserId,[tasknr]), tst)
 
-# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, we heave a thread ...
+# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, finally, we heave a thread ...
 | not activated																		// thread not yet finished
 	= ((Nothing,thisUser,event,"Thread",[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
 
@@ -1315,21 +1360,21 @@ where
 
 	storageId_ThTa = ThisExe +++ "-ThreadTable"
 
-findThreadInTable :: TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)				// find thread that belongs to given tasknr
+findThreadInTable :: !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)				// find thread that belongs to given tasknr
 findThreadInTable tasknr tst
 # (table,tst)	= ThreadTableStorage id tst											// read thread table
 # pos			= lookupThread tasknr 0 table										// look if there is an entry for this task
 | pos < 0		= (Nothing, tst)
 = (Just (pos,table!!pos),tst) 
 where
-	lookupThread :: TaskNr Int ThreadTable -> Int
+	lookupThread :: !TaskNr !Int !ThreadTable -> Int
 	lookupThread tableKey n []			
 		= -1																		// no, cannot find thread
 	lookupThread tasknrToFind n [entry:next]
 		| showTaskNr tasknrToFind == showTaskNr entry.thrTaskNr	= n					// yes, thread is administrated
 		= lookupThread tasknrToFind (inc n) next
 
-deleteThreads :: TaskNr *TSt -> *TSt
+deleteThreads :: !TaskNr !*TSt -> *TSt
 deleteThreads tasknr tst															// delete a thread and all its children
 # (mbthread,tst)		= findThreadInTable tasknr tst								// find the thread entry in the table
 # mytasknr				= reverse tasknr
@@ -1342,8 +1387,8 @@ where
 	# (table,tst)	 		= ThreadTableStorage id tst								// read thread table
 	# allChildsPos			= [pos \\ entry <- table & pos <- [0..] | isChild mytasknr entry.thrTaskNr ]
 	| isNil allChildsPos	= tst
-	# otherUsers			= [ (table!!entry).thrUserId  \\ entry <- allChildsPos | (table!!entry).thrUserId <> staticInfo.currentUserId]
-	# tst					= forceNewPage otherUsers tst 
+	# otherUsersThreads		= [ ((table!!entry).thrUserId,(table!!entry).thrTaskNr) \\ entry <- allChildsPos | (table!!entry).thrUserId <> staticInfo.currentUserId]
+	# tst					= administrateDeletedThreads otherUsersThreads tst 
 	# table					= deleteChilds (reverse (sort allChildsPos)) table		// delete highest entries first !
 	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst					// read thread table
 	= tst
@@ -1353,6 +1398,12 @@ where
 
 	isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
 
+administrateDeletedThreads [] tst = tst
+administrateDeletedThreads [(user,tasknr):users] tst=:{hst}
+# (_,hst)	= addPUserDeletedThread user tasknr hst				// administrate deleted thread in user administration
+= administrateDeletedThreads users {tst & hst = hst}				// such that they are forced to recalculate the whole page
+
+/*
 forceNewPage users tst=:{hst}
 # (appVersion,hst)	= setAppversion id hst						// read out current version number of application
 # hst				= forceUser users appVersion.value hst		// and store it in the version number of the users
@@ -1360,9 +1411,9 @@ forceNewPage users tst=:{hst}
 where
 	forceUser []  _ hst = hst
 	forceUser [i:is] versionnr hst
-	# (_,hst)	= setPversion i (\_ -> versionnr) hst		// and store it in the version number of the user
+	# (_,hst)	= setPUserNr i (\_ -> versionnr) hst		// and store it in the version number of the user
 	= forceUser is versionnr hst	
-
+*/
 
 getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)									// get list of tasknr belonging to events received
 getTripletTaskNrs tst=:{hst = hst=:{states}}
