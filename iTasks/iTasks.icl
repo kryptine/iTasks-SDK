@@ -168,6 +168,7 @@ showThreadNr else		= "*" <+++ showTaskNr else
 
 iTaskId :: !Int !TaskNr !String -> String
 iTaskId userid tasknr postfix 
+# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }			// throw away characters not allowed in a file name
 | postfix == ""
 	| userid < 0	= "iLog_"  <+++ (showTaskNr tasknr) 
 	| otherwise		= "iTask_" <+++ (showTaskNr tasknr) 
@@ -535,18 +536,18 @@ where
 		= dorepeatTask na tst
 
 // same, but by remembering task results stack space can be saved
-newTask :: !String !(Task a) -> (Task a) 	| iData a 			/// BUG !!!!!!!!!
+newTask :: !String !(Task a) -> (Task a) 	| iData a 
 newTask taskname mytask = mkTask taskname newTask`
 where
 	newTask` tst=:{tasknr,userId,options}		
 	# taskId					= iTaskId userId tasknr taskname
-	# (taskval,tst) 			= LiftHst (mkStoreForm (Init,storageFormId {options & tasklife = TxtFile} taskId (False,createDefault)) id) tst  // remember if the task has been done
+	# (taskval,tst) 			= LiftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
 	# (taskdone,taskvalue)		= taskval.value										// select values
 	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
 	# (val,tst=:{activated})	= mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
 	| not activated				= (val,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
 	# tst						= deleteSubTasks tasknr tst							// task ready, garbage collect it
-	# (_,tst) 					= LiftHst (mkStoreForm (Init,storageFormId {options & tasklife = TxtFile} taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
+	# (_,tst) 					= LiftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
 	= (val,{tst & tasknr = tasknr, options = options})
 
 // foreverTask is a loop
@@ -1305,13 +1306,13 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 	# (a,tst) 	= taska tst															// evaluate main application from scratch
 	= ((Just a,defaultUser,event,"Page, no thread",[tasknr]), tst)
 
-| versioninfo.newThread																// newthread added by someone
-	# (a,tst)	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, new task has been added",[tasknr]), tst)
-
 # thread 				= hd mbthread												// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads								// thread has been deleted is some past, version conflict
 	= ((Nothing,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
+
+| versioninfo.newThread																// newthread added by someone
+	# (a,tst)	= taska tst															// evaluate main application from scratch
+	= ((Just a,defaultUser,event,"Page, new task has been added",[tasknr]), tst)
 
 | not (isNil versioninfo.deletedThreads) 											// some thread has been deleted										
 	# (a,tst) 	= taska tst															// administartion not up to date, evaluate main application from scratch
