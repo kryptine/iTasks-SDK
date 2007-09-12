@@ -6,7 +6,7 @@ definition module iTasks
 // (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
 // This library is still under construction - MJP
 
-iTaskVersion :== "0.94 - august 2007"
+iTaskVersion :== "0.95 - September 2007"
 
 import iDataSettings, iDataButtons, StdBimap
 derive gForm 	Void, TCl						
@@ -36,8 +36,8 @@ instance <<@		Lifespan						// default: Session
 				, 	Mode							// default: Edit
 				, 	GarbageCollect					// default: Collect
 
-:: SubPage			= UseAjax						// use Ajax technology to update part of a page, only works if Ajax enabled 
-					| OnClient						// RESERVED FOR FUTURE: use SAPL to update part of a page on the client
+:: SubPage			= UseAjax  !String				// use Ajax technology to update part of a page, only works if Ajax enabled 
+					| OnClient !String				// RESERVED FOR FUTURE: use SAPL to update part of a page on the client
 
 class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a	
 

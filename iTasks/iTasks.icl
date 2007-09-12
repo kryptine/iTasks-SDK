@@ -53,6 +53,10 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Vers
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
 					}
 
+:: VersionInfo	=	{ versionNr			:: !Int			// latest querie number of a user
+					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
+					, deletedThreads	:: ![TaskNr]	// are there threads deleted (used for Ajax)?
+					}
 
 // Initial values for Task State TSt
 
@@ -97,11 +101,11 @@ where   (<<@) task gc 				= \tst -> task {tst & options.gc = gc}
 
 class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a
 instance @>>  SubPage
-where   (@>>) UseAjax task			= \tst -> IF_Ajax 
-												(mkTaskThread UseAjax task tst)
+where   (@>>) (UseAjax string) task			= \tst -> IF_Ajax 
+												(mkTaskThread (UseAjax string) task tst)
 												(task tst) 
-		(@>>) OnClient task 		= \tst -> IF_Ajax 
-												(mkTaskThread OnClient task tst)
+		(@>>) (OnClient string) task 		= \tst -> IF_Ajax 
+												(mkTaskThread (OnClient string) task tst)
 												(task tst) 
 
 // Lifting HSt domain to the TSt domain, for convenience
@@ -241,11 +245,6 @@ usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr"
 setAppversion :: !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
 setAppversion    f hst	= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 f hst
 
-:: VersionInfo	=	{ versionNr			:: !Int			// latest querie number of a user
-					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
-					, deletedThreads	:: ![TaskNr]	// are there threads deleted (used for Ajax)?
-					}
-
 setPUser :: !Int !(VersionInfo -> VersionInfo) !*HSt -> (Form !VersionInfo,!*HSt) 
 setPUser user f hst	= mkStoreForm (Init, pFormId (userVersionNr user) 	{ versionNr 	= 0
 																		, newThread		= False
@@ -289,7 +288,7 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
 							, Td [Td_Align Aln_Right] (chooseoption ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
-	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Sorry, cannot apply command. Version conflict, your page was not up-to date!", Hr []]
+	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
 	= (Nothing, [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
 						]
 				],{tst & hst = hst})
@@ -318,7 +317,7 @@ startTstTask thisUser multiuser chooseoption traceOn versionsOn taska tst=:{hst,
 							[Hr []]
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
 							(	if multiuser 
-									[Txt "User nr: " , CTxt Silver thisUser, Txt " - ", Txt "User Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
+									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
 								[Txt "iTask Querie: ", CTxt Silver appversion.value] ++
 								IF_Ajax
 									[Txt " - Task: ", CTxt Silver (showTaskNr  event),Txt " - Updated: ", CTxt Silver threadsText,Br] [] ++
@@ -500,7 +499,7 @@ where
 where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= IF_Ajax (UseAjax @>> task) task {tst & html = BT []}
+	# (a,tst=:{activated,html=nhtml}) 	= IF_Ajax (UseAjax "?>>" @>> task) task {tst & html = BT []}
 //	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
@@ -580,7 +579,7 @@ where
 
 // parallel subtask creation utility
 
-mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a		// two shifts are needed
+mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
 mkParSubTask name i task = mkParSubTask`
 where
 	mkParSubTask` tst=:{tasknr}
@@ -591,7 +590,7 @@ where
 
 // assigning tasks to users, each user is identified by a number
 
-(@:) infix 3 :: !(!String,!Int) !(Task a)	-> (Task a)			| iData a			// force thread if Ajax is used
+(@:) infix 3 :: !(!String,!Int) !(Task a)	-> (Task a)			| iData a				// force thread if Ajax is used
 (@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
 
 (@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
@@ -601,7 +600,7 @@ assignTaskTo :: !Bool !String !Int !(Task a) !*TSt -> (a,!*TSt)			| iData a
 assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = nuserId}
 | not activated						= (createDefault,tst)
 # tst								= IF_Ajax (administrateNewThread userId tst) tst 
-# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
+# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax "@::" @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
 | activated 						= (a,{tst & activated = True						// work is done	
 											  ,	userId = userId							// restore previous user id						
 											  ,	html = ohtml /*+|+ 						// show old code						
@@ -612,7 +611,7 @@ assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = n
 						( BT [Br, Txt ("Waiting for Task "), CTxt Yellow taskname, Txt " from ", showUser nuserId,Br] +|+  // show waiting for
 						  ((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
 						((nuserId,taskname) @@: nhtml)
-	 })									// plus new one tagged				
+	 })												
 
 administrateNewThread ouserId tst =: {tasknr,userId,options}
 | ouserId == userId		= tst
@@ -1171,8 +1170,8 @@ where
 	pr _ Nothing 			= []
 	pr dprev (Just (dtask,(w,i,tn,s)))	
 	| dprev && (not dtask)					= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
-	| not dtask	&& tn == "Ajax_Thread"		= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
-	| not dtask	&& tn == "Client_Thread"	= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
+	| not dtask	&& tn%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
+	| not dtask	&& tn%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
 	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,tn,s)
 	= showTask cellattr1a White Yellow Red White (w,i,tn,s)
 	
@@ -1229,14 +1228,14 @@ serializeThreadClient task =  IF_Ajax (IF_OnClient (graph_to_string_with_descrip
 // mkTaskThread creates a thread for an iTask
 
 mkTaskThread :: !SubPage !(Task a) -> Task a 	| iData a										// execute a thread
-mkTaskThread UseAjax taska = IF_Ajax 															// only if Ajax & threads enabled
-									(newTask "Ajax_Thread" (mkTaskThread2 False taska))
+mkTaskThread (UseAjax string) taska = IF_Ajax 															// only if Ajax & threads enabled
+									(newTask ("Ajax " +++ string) (mkTaskThread2 False taska))
 									taska 
 
-mkTaskThread OnClient taska = IF_Ajax 															// only if Ajax & threads enabled
+mkTaskThread (OnClient string) taska = IF_Ajax 															// only if Ajax & threads enabled
 									(IF_OnClient
-										(newTask "Client_Thread" (mkTaskThread2 True  taska))	// evaluate on client if possible
-										(newTask "Ajax_Thread"   (mkTaskThread2 False taska)) 	// otherwise use Ajax
+										(newTask ("Client " +++ string) (mkTaskThread2 True  taska))	// evaluate on client if possible
+										(newTask ("Ajax "   +++ string)  (mkTaskThread2 False taska)) 	// otherwise use Ajax
 									)
 									taska 
 
@@ -1277,30 +1276,38 @@ startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((Maybe a,!Int,Task
 startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,defaultUser,tasknr,"Page",[tasknr]), tst)
+	# (a,tst=:{hst})	= taska tst													// evaluate main application from scratch
+	# (_,hst)			= clearPUser thisUser hst									// clear administration
+	= ((Just a,defaultUser,tasknr,"Page",[tasknr]), {tst & hst = hst})
 
 # event					= fromJust mbevent											// event found
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst=:{activated}) 	= taska tst												// evaluate main application from scratch
-	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",[tasknr]), {tst & activated = activated})
+	# (a,tst=:{activated,hst}) 	= taska tst											// evaluate main application from scratch
+	# (_,hst)			= clearPUser thisUser hst									// clear administration
+	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",[tasknr]), {tst & activated = activated, hst = hst})
 
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found, happens e.g. when one switches from tasks
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page",[tasknr]), tst)
+	# (a,tst=:{hst}) 	= taska tst													// evaluate main application from scratch
+	# (_,hst)			= clearPUser thisUser hst									// clear administration
+	= ((Just a,defaultUser,event,"Page",[tasknr]), {tst & hst = hst})
 
 | versioninfo.newThread																// newthread added by someone
 	# (a,tst=:{hst})	= taska tst													// evaluate main application from scratch
-	# (_,hst)			= clearPUser thisUser hst										// once is enough
+	# (_,hst)			= clearPUser thisUser hst									// clear administration
 	= ((Just a,defaultUser,event,"Page, new task has been added",[tasknr]), {tst & hst = hst})
 
 # thread 				= hd mbthread												// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads								// thread has been deleted is some past, version conflict
 	# tst=:{hst}		= tst
-	# (_,hst)			= clearPUser thisUser hst									// once is enough
-	= ((Nothing,defaultUser,event,"Thread does not exist anymore, version conflict",[tasknr]), {tst & hst = hst})
+	# (_,hst)			= clearPUser thisUser hst									// clear info
+	= ((Nothing,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), {tst & hst = hst})
+
+| not (isNil versioninfo.deletedThreads) 											// some thread has been deleted										
+	# (a,tst=:{activated,hst}) 	= taska tst											// administartion not up to date, evaluate main application from scratch
+	# (_,hst)				= clearPUser thisUser hst								// clear versioninfo
+	= ((Just a,defaultUser,event,"Page, another task has been deleted",[tasknr]), {tst & activated = activated, hst = hst})
 
 # tst=:{hst}			= tst
 # (_,hst)				= clearPUser thisUser hst									// clear versioninfo
@@ -1309,7 +1316,7 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
 	= ((Just a,defaultUser,event,"Thread of " <+++ thread.thrUserId,[tasknr]), tst)
 
-# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, finally, we heave a thread ...
+# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, *finally*, we heave a thread ...
 | not activated																		// thread not yet finished
 	= ((Nothing,thisUser,event,"Thread",[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
 
