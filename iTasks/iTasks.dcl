@@ -14,8 +14,8 @@ derive gUpd 	Void, TCl
 derive gPrint 	Void, TCl
 derive gParse 	Void, TCl
 derive gerda 	Void
-derive read 	Void
-derive write 	Void
+derive read 	Void, TCl
+derive write 	Void, TCl
 
 :: *TSt												// abstract task state
 :: Task a			:== St !*TSt !a					// an interactive task
@@ -49,24 +49,25 @@ singleUserTask 	:: iTask start function for defining tasks for one, single user
 multiUserTask 	:: iTask start function for multi-users, with option in window to switch between [0..users - 1]  
 workFlowTask	:: iTask start function for a real workflow, expects a login task and the actual task
 				   a predefined login task is defined in iTaskLogin.dcl				
-
-Int:  			id of user to start with, commonly 0, should be >= 0
-Bool: 			True if you want the trace option on
-Lifespan:		where to store threadinformation, default Session, only used for Ajax handling
 */
-singleUserTask 	:: !Int	!Bool !(Maybe Lifespan) !(Task a) 	!*HSt -> (Html,*HSt) 	| iCreate a
-multiUserTask 	:: !Int !Bool !(Maybe Lifespan) !(Task a)  	!*HSt -> (Html,*HSt) 	| iCreate a
-workFlowTask	:: 		!Bool !(Maybe Lifespan) !(Task (Int,a)) 
-							  					!((Int,a) -> Task b) 
-							  								!*HSt -> (Html,*HSt) 	| iCreate a 
+singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (Html,*HSt) 	| iCreate a
+multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (Html,*HSt) 	| iCreate a
+workFlowTask	:: ![StartUpOptions] !(Task (Int,a)) 
+									 !((Int,a) -> Task b)	!*HSt -> (Html,*HSt) 	| iCreate a 
 
+:: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser only: default = TraceOn
+					| ThreadStorage Lifespan			// for Ajax only: where to store threadinformation: default = TxtFile
+					| ShowUsers Int						// for multiUserTask only, toggle between given maximum number of users, default: ShowUser 5 
+					| VersionCheck | VersionNoCheck		// for single & multiUser only: default = VersionNoCheck 
 
 // Here follow the iTasks combinators:
 
 /* promote any iData editor to the iTask domain
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task
+editTask		:: create a task editor (with submit button) to edit a value of given type, finish only if predicate holds 
 */
-editTask 		:: !String !a 				-> Task a				| iData a 
+editTask 		:: !String 	!a 								-> Task a		| iData a 
+editTaskPred 	:: 			!a !(a -> Bool, a -> [BodyTag])	-> Task a		| iData a 
 
 /* standard monadic combinators on iTasks
 (=>>)			:: for sequencing: bind
@@ -125,7 +126,7 @@ chooseTaskV		:: Choose one iTask from list, depending on button pressed, buttons
 chooseTask_pdm	:: Choose one iTask from list, depending on pulldownmenu item selected
 mchoiceTask		:: Multiple Choice of iTasks, depending on marked checkboxes
 */
-buttonTask		:: !String !(Task a)		-> (Task a) 			| iCreateAndPrint a
+buttonTask		:: !String !(Task a)	-> (Task a) 			| iCreateAndPrint a
 chooseTask		:: ![(String,Task a)] 	-> (Task a) 			| iCreateAndPrint a
 chooseTaskV 	:: ![(String,Task a)] 	-> (Task a) 			| iCreateAndPrint a
 chooseTask_pdm 	:: ![(String,Task a)] 	-> (Task a)	 			| iCreateAndPrint a
@@ -176,7 +177,7 @@ closureTask		:: The task is executed as usual, but a receiver closure is returne
 				   Handy for passing a result to several interested parties.
 closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
 */
-:: TCl a 		= TCl (Task a)			
+:: TCl a 		= TCl .(Task a)			
 
 (-!>) infix 4 	:: (Task stop) (Task a) -> (Task (Maybe stop,TCl a)) 	| iCreateAndPrint stop & iCreateAndPrint a
 channel  		:: String (Task a) 		-> (Task (TCl a,TCl a)) 		| iCreateAndPrint a
