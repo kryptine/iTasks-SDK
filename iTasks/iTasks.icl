@@ -102,11 +102,11 @@ where   (<<@) task gc 				= \tst -> task {tst & options.gc = gc}
 
 class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a
 instance @>>  SubPage
-where   (@>>) (UseAjax string) task			= \tst -> IF_Ajax 
-												(mkTaskThread (UseAjax string) task tst)
+where   (@>>) UseAjax task			= \tst -> IF_Ajax 
+												(mkTaskThread UseAjax task tst)
 												(task tst) 
-		(@>>) (OnClient string) task 		= \tst -> IF_Ajax 
-												(mkTaskThread (OnClient string) task tst)
+		(@>>) OnClient  task 		= \tst -> IF_Ajax 
+												(mkTaskThread OnClient task tst)
 												(task tst) 
 
 // Lifting HSt domain to the TSt domain, for convenience
@@ -308,7 +308,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 
 // Here the iTask starts...
 													    
-# ((a,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace})	
+# ((_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
 						= (IF_Ajax (startAjaxApplication thisUser pversion.value) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
@@ -332,7 +332,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
 								if versionsOn [Txt "iTask Querie: ", CTxt Silver appversion.value] [Txt "iTask Querie: - "] ++
 								IF_Ajax
-									[Txt " - Task: ", CTxt Silver (showTaskNr  event),Txt " - Updated: ", CTxt Silver threadsText,Br] [] ++
+									[Txt " - Task: ", CTxt Silver (showTaskNr  event),Txt (if onserver " - Server Updated: " " - Client Updated: "), CTxt Silver threadsText,Br] [] ++
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
@@ -354,10 +354,10 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 									]
 							,hst)
 where
-	startMainTask :: !(Task a) !*TSt -> ((!Maybe a,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
+	startMainTask :: !(Task a) !*TSt -> ((!Maybe a,!Int,!TaskNr,!String,!Bool,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
 	# (a,tst) = task tst
-	= ((Just a,defaultUser,[0],"",[]),tst)
+	= ((Just a,defaultUser,[0],"",True,[]),tst)
 
 	mbinc True = id
 	mbinc _ = inc
@@ -461,8 +461,8 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 | taskdone.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
 = (editor.value,{tst & activated = taskdone.value, html = html +|+ BT (editor.form ++ finbut.form), hst = hst})
 
-editTaskPred :: !a !(a -> Bool, a -> [BodyTag])-> (Task a) | iData a 
-editTaskPred  a (pred,errormessage) = mkTask "editTask" (editTaskPred` a)
+editTaskPred :: !a !(a -> (Bool, [BodyTag]))-> (Task a) | iData a 
+editTaskPred  a pred = mkTask "editTask" (editTaskPred` a)
 where
 	editTaskPred` a tst=:{tasknr,html,hst,userId}
 	# taskId			= iTaskId userId tasknr "EdFin"
@@ -473,10 +473,10 @@ where
 		= (editor.value,{tst & activated = True, html = html +|+ BT editor.form, hst = hst})	// return result task
 	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a <@ Submit) hst			// no, read out current value from active editor
 	| editor.changed
-		| pred editor.value
+		| fst (pred editor.value)
 			# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) (\_ -> True) hst 	// remember task status for next time
 			= editTaskPred` a {tst & hst = hst, html = html}									// task is now completed, handle as previously
-		= (editor.value,{tst & activated = taskdone.value, html = html +|+ BT (editor.form ++ errormessage editor.value), hst = hst})
+		= (editor.value,{tst & activated = taskdone.value, html = html +|+ BT (editor.form ++ snd (pred editor.value)), hst = hst})
 	= (editor.value,{tst & activated = taskdone.value, html = html +|+ BT editor.form, hst = hst})
 
 // monads for combining itasks
@@ -486,9 +486,9 @@ where
 where
 	mybind tst=:{options}
 	# (a,tst=:{activated}) = taska tst
-	= taskb a {tst & options = options}
-//	| activated	= taskb a {tst & options = options}
-//	= (createDefault,tst)
+//	= taskb a {tst & options = options}
+	| activated	= taskb a {tst & options = options}
+	= (createDefault,tst)
 
 (#>>) infixl 1 :: !(Task a) !(Task b) -> Task b
 (#>>) taska taskb = mybind
@@ -514,14 +514,14 @@ where
 	return_VF` tst
 	= (a,{tst & html = tst.html +|+ BT bodytag})
 
-(<|) infix 6 :: !(Task a) !(a -> .Bool, a -> [BodyTag]) -> Task a | iCreate a
-(<|) taska (pred,message) = doTask
+(<|) infix 6 :: !(Task a) !(a -> (Bool, [BodyTag])) -> Task a | iCreate a
+(<|) taska pred = doTask
 where
 	doTask tst=:{html = ohtml,activated}
 	| not activated 					= (createDefault,tst)
 	# (a,tst=:{activated,html= nhtml}) 	= taska {tst & html = BT []}
-	| not activated || pred a			= (a,{tst & html = ohtml +|+ nhtml})
-	= doTask {tst & html = ohtml +|+ BT (message a)}
+	| not activated || fst (pred a)		= (a,{tst & html = ohtml +|+ nhtml})
+	= doTask {tst & html = ohtml +|+ BT (snd (pred a))}
 
 (?>>) infix 5 :: ![BodyTag] !(Task a) -> (Task a) | iData a
 //(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iCreate a
@@ -529,8 +529,8 @@ where
 where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= IF_Ajax (UseAjax "edit" @>> task) task {tst & html = BT []}
-//	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
+//	# (a,tst=:{activated,html=nhtml}) 	= IF_Ajax (UseAjax @>> task) task {tst & html = BT []}
+	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
@@ -630,7 +630,7 @@ assignTaskTo :: !Bool !String !Int !(Task a) !*TSt -> (a,!*TSt)			| iData a
 assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = nuserId}
 | not activated						= (createDefault,tst)
 # tst								= IF_Ajax (administrateNewThread userId tst) tst 
-# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax "new task" @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
+# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
 | activated 						= (a,{tst & activated = True						// work is done	
 											  ,	userId = userId							// restore previous user id						
 											  ,	html = ohtml /*+|+ 						// show old code						
@@ -1073,6 +1073,16 @@ where
 	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
 															(if activated (BT idata.form) (BT idata.form +|+ ahtml)), hst = hst})
 
+appIData2 :: (String *HSt -> *(Form a,*HSt)) -> (Task a) | iData a 
+appIData2 idatafun = \tst -> mkTask "appIData" (appIData` idatafun) tst
+where
+	appIData` idata tst=:{tasknr,html,hst,userId}
+	# taskId											= iTaskId userId tasknr "iData"
+	# (idata,hst) 										= idatafun taskId hst
+	# (_,{tasknr,activated,html=ahtml,hst}) 			= internEditSTask "appIDataDone" "Done" Void {tst & activated = True, html = BT [],hst = hst}	
+	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
+															(if activated (BT idata.form) (BT idata.form +|+ ahtml)), hst = hst})
+
 appHSt2 :: !String (HSt -> (a,HSt)) -> (Task a) | iData a
 appHSt2 name fun = mkTask name doit
 where
@@ -1268,14 +1278,14 @@ serializeThreadClient task =  IF_Ajax (IF_OnClient (graph_to_string_with_descrip
 // mkTaskThread creates a thread for an iTask
 
 mkTaskThread :: !SubPage !(Task a) -> Task a 	| iData a										// execute a thread
-mkTaskThread (UseAjax string) taska = IF_Ajax 															// only if Ajax & threads enabled
-									(newTask ("Ajax " +++ string) (mkTaskThread2 False taska))
+mkTaskThread UseAjax taska = IF_Ajax 															// only if Ajax & threads enabled
+									(newTask ("Ajax Thread") (mkTaskThread2 False taska))
 									taska 
 
-mkTaskThread (OnClient string) taska = IF_Ajax 															// only if Ajax & threads enabled
+mkTaskThread OnClient taska = IF_Ajax 															// only if Ajax & threads enabled
 									(IF_OnClient
-										(newTask ("Client " +++ string) (mkTaskThread2 True  taska))	// evaluate on client if possible
-										(newTask ("Ajax C "   +++ string)  (mkTaskThread2 False taska)) 	// otherwise use Ajax
+										(newTask "Client Thread" (mkTaskThread2 True  taska))	// evaluate on client if possible
+										(newTask "Ajax NoClient Thread" (mkTaskThread2 False taska)) 	// otherwise use Ajax
 									)
 									taska 
 
@@ -1290,7 +1300,7 @@ where
 									, thrUserId 		= userId
 									, thrOptions 		= options
 									, thrCallback 		= serializeThread task
-									, thrCallbackClient = ""//serializeThreadClient task
+									, thrCallbackClient = serializeThreadClient task 
 									, thrDone			= False
 									} tst 
 		= evalTask tst																// try it again, entry point should be there
@@ -1316,50 +1326,52 @@ where
 										, thrUserId 		= thrUserId
 										, thrOptions 		= thrOptions
 										, thrCallback 		= serializeThread (\tst -> (a,{tst & activated = True}))
-										, thrCallbackClient = ""//serializeThreadClient (\tst -> (a,tst))
+										, thrCallbackClient = serializeThreadClient (\tst -> (a,tst))
 										, thrDone 			= True
 										} tst 
 			= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
-startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((Maybe a,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
+
+
+startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
 	# (a,tst)	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,tasknr,"Page",[tasknr]), tst)
+	= ((Just a,defaultUser,tasknr,"Page",True,[tasknr]), tst)
 
 # event					= fromJust mbevent											// event found
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
 	# (a,tst=:{activated}) 	= taska tst												// evaluate main application from scratch
-	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",[tasknr]), {tst & activated = activated})
+	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",True,[tasknr]), {tst & activated = activated})
 
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found, happens e.g. when one switches from tasks
 	# (a,tst) 	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, no thread",[tasknr]), tst)
+	= ((Just a,defaultUser,event,"Page, no thread",True,[tasknr]), tst)
 
 # thread 				= hd mbthread												// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads								// thread has been deleted is some past, version conflict
-	= ((Nothing,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
+	= ((Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
 
 | versioninfo.newThread																// newthread added by someone
 	# (a,tst)	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, new task has been added",[tasknr]), tst)
+	= ((Just a,defaultUser,event,"Page, new task has been added",True,[tasknr]), tst)
 
 | not (isNil versioninfo.deletedThreads) 											// some thread has been deleted										
 	# (a,tst) 	= taska tst															// administartion not up to date, evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, another task has been deleted",[tasknr]), tst)
+	= ((Just a,defaultUser,event,"Page, another task has been deleted",True,[tasknr]), tst)
 
 | thread.thrUserId <> thisUser														// updating becomes too complicated
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Thread of " <+++ thread.thrUserId,[tasknr]), tst)
+	= ((Just a,defaultUser,event,"Thread of " <+++ thread.thrUserId,True,[tasknr]), tst)
 
 # (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, *finally*, we heave a thread ...
 | not activated																		// thread not yet finished
-	= ((Nothing,thisUser,event,"Thread",[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
+	= ((Nothing,thisUser,event,"Thread",thread.thrOptions.tasklife <> Client,[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
 
 # (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst						// look for thread to evaluate
 = doParent mbthread taska event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
@@ -1367,16 +1379,16 @@ where
 	doParent [] taska event accu tst												// no more parents of current event, do main task
 	# (a,tst=:{activated}) 	= taska {tst & html = BT []}							// start main task
 	# message				= if activated "iData application ended" "iData Root"
-	= ((Just a,defaultUser,event,message, [tasknr:accu]), {tst & activated = activated})
+	= ((Just a,defaultUser,event,message, True,[tasknr:accu]), {tst & activated = activated})
 
 	doParent [parent:next] taska event accu tst										// do parent of current thread
 	| parent.thrUserId <> thisUser													// updating becomes too complicated
 		# (a,tst) 			= taska tst												// evaluate main application from scratch
-		= ((Just a,defaultUser,event,"Parent of " <+++ parent.thrUserId,[tasknr]), tst)
+		= ((Just a,defaultUser,event,"Parent of " <+++ parent.thrUserId,True,[tasknr]), tst)
 
 	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}			// start parent
 	| not activated																	// parent thread not yet finished
-		= ((Nothing,thisUser,event, "Thread(s)", [parent.thrTaskNr:accu]),tst)		// no further evaluation, aks user for more input
+		= ((Nothing,thisUser,event, "Thread(s)", parent.thrOptions.tasklife <> Client,[parent.thrTaskNr:accu]),tst)		// no further evaluation, aks user for more input
 	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst			// look for thread to evaluate
 	= doParent mbthread taska event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
 	

@@ -36,8 +36,8 @@ instance <<@		Lifespan						// default: Session
 				, 	Mode							// default: Edit
 				, 	GarbageCollect					// default: Collect
 
-:: SubPage			= UseAjax  !String				// use Ajax technology to update part of a page, only works if Ajax enabled 
-					| OnClient !String				// RESERVED FOR FUTURE: use SAPL to update part of a page on the client
+:: SubPage			= UseAjax  						// use Ajax technology to update part of a page, only works if Ajax enabled 
+					| OnClient 						// RESERVED FOR FUTURE: use SAPL to update part of a page on the client
 
 class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a	
 
@@ -67,7 +67,7 @@ editTask		:: create a task editor to edit a value of given type, and add a butto
 editTask		:: create a task editor (with submit button) to edit a value of given type, finish only if predicate holds 
 */
 editTask 		:: !String 	!a 								-> Task a		| iData a 
-editTaskPred 	:: 			!a !(a -> Bool, a -> [BodyTag])	-> Task a		| iData a 
+editTaskPred 	:: 			!a !(a -> (Bool, [BodyTag]))	-> Task a		| iData a 
 
 /* standard monadic combinators on iTasks
 (=>>)			:: for sequencing: bind
@@ -90,7 +90,7 @@ return_D		:: return the value and show it in iData display format
 
 (?>>) infix  5 	:: ![BodyTag] !(Task a) 		-> Task a			| iData a
 (!>>) infix  5 	:: ![BodyTag] !(Task a) 		-> Task a			| iCreate a
-(<|)  infix  6 	:: !(Task a)  !(a -> .Bool, a -> [BodyTag]) 
+(<|)  infix  6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 
 												-> Task a 			| iCreate a
 (<!)  infix  6 	:: !(Task a)  !(a -> .Bool) 	-> Task a 			| iCreateAndPrint a
 return_VF 		:: !a ![BodyTag] 		  		-> Task a			| iCreateAndPrint a
@@ -198,12 +198,14 @@ addHtml 		:: [BodyTag] TSt -> TSt
 (*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 
 (@>>)			:: lift functions of (TSt -> TSt) to iTask domain 
 appIData		:: lift iData editors to iTask domain
+appIData2		:: lift iData editors to iTask domain, and pass iDataTasknumber for naming convenience
 appHSt			:: lift HSt domain to TSt domain, will be executed only once; string used for tracing
 appHSt2			:: lift HSt domain to TSt domain, will be executed on each invocation; string used for tracing
 */
 (*>>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 	-> Task b
 (*@>) infix 4 	:: (TSt -> TSt) (Task a) 			-> Task a
 appIData 		:: (IDataFun a) 					-> Task a 			| iData a
+appIData2 		:: (String *HSt -> *(Form a,*HSt)) -> (Task a) | iData a 
 appHSt 			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
 appHSt2			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
 
