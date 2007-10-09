@@ -1,7 +1,9 @@
 implementation module iTasks
 
-// (c) MJP 2006 - 2007
-// This module contains the implementation of the iTask concept. It is based on the iData toolkit.
+// (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
+
+// iTasks library for defining interactive multi-user workflow tasks (iTask) for the web.
+// Defined on top of the iData library.
 
 import StdEnv, StdBimap, StdOrdList
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
@@ -179,9 +181,6 @@ internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` pro
 
 // Garbage collection on iTask administration is done dependening on gc option chosen
 
-import Debug
-debug name a = debugValue (\a -> ["\n*** " <+++ name <+++ a]) a
-
 deleteSubTasks :: !TaskNr TSt -> TSt
 deleteSubTasks tasknr tst 
 # tst=:{hst,userId,options}	= IF_Ajax (deleteThreads tasknr tst) tst
@@ -234,8 +233,8 @@ where
 	noFilter (_ @@: html) 		= noFilter html
 	noFilter (_ -@: html) 		= noFilter html
 	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
-	noFilter (htmlL +|+ htmlR) 	=  noFilter htmlL <|.|> noFilter htmlR
-	noFilter (DivCode str html) =  noFilter html
+	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
+	noFilter (DivCode str html) = noFilter html
 
 // Version number control for multiple user workflows
 // To support Ajax calls, it is remembered which of the threads of a user has been deleted by someone else
@@ -295,12 +294,18 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # (pversion,hst)	 	= setPUserNr thisUser id hst
 # (sversion,hst)	 	= setSVersionNr thisUser (if nonewversion /*refresh.changed*/ (\_ -> pversion.value.versionNr) id) hst
 # versionconflict		= sversion.value < pversion.value.versionNr && versionsOn				
-| versionconflict	 
-	# iTaskHeader		=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
+# iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
+							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
+									,BCTxt Aqua "i -Task", CTxt Yellow " Workflow System "]
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
-	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
+| versionconflict	 
+/*
+	# iTaskHeader		=	[Table [Tbl_Width (Percent 100)] [Tr [] 
+							[ Td [] [BCTxt Aqua "i-Task", Br, CTxt Yellow " - Multi-User Workflow System "]
+							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
+							[Hr []]
+*/	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
 	= ([Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
 						]
 				],hst)
@@ -323,10 +328,13 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # (threadcode,selbuts,selname,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
 
+/*
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
+							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
+							,BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
+*/
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
 							(	if multiuser 
 									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
@@ -624,7 +632,7 @@ where
 (@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
 
 (@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
-(@::) nuserId taska = \tst=:{userId} -> assignTaskTo False ("Task from " <+++ userId) userId taska {tst & userId = nuserId}
+(@::) nuserId taska = \tst=:{userId} -> assignTaskTo False ("Task for " <+++ userId) userId taska {tst & userId = nuserId}
 
 assignTaskTo :: !Bool !String !Int !(Task a) !*TSt -> (a,!*TSt)			| iData a	
 assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = nuserId}

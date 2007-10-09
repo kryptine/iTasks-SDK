@@ -52,18 +52,16 @@ doHtmlServer2 userpages world
 
 // Experimental version of doHtmlServer for Client site evaluation ....
 
-doHtmlClient :: !(*HSt -> (Html,!*HSt)) !*World -> *World
-doHtmlClient userpage world
-= callSapl (\args ->  doHtmlPageAndPrint args userpage) world
-
-callSapl :: ([(String, String)] *World -> ([String],String,*World)) !*World -> *World
-callSapl f world 
-# (_,allhtmlcode,world) = f [] world
-= abort allhtmlcode
-//= world
-
-// doMyHtmlServerAjax has an extra function in the list for the default case
-// the other one generates the inner html
+doHtmlClient :: !*World  !.(*HSt -> (Html,!*HSt))  ! [(String, String)] -> (!String,!*World)
+doHtmlClient world userpage args  
+# (inout,world)			= doHtmlPage (Just args) userpage [|] world
+= (makeString inout,world)
+where
+	makeString html = stringconcat (reverse(strict2normallist html))
+	strict2normallist [|] = []
+	strict2normallist [|a:as] = [a:strict2normallist as]
+	stringconcat [|] = ""
+	stringconcat [|str:ss] = str +++ stringconcat ss
 
 
 /////////////////////////////////
@@ -74,11 +72,16 @@ callSapl f world
 
 doHtmlServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
 doHtmlServer userpage world
-| ServerKind == Internal		// link in http 1.0 server
-= IF_Ajax 
-	(StartAjax   userpage world)
-	(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)
-| ServerKind == External		// connect with http 1.1 server
+| ServerKind == Internal											// link in http 1.0 server
+= 	IF_Sapl
+		(	snd (doHtmlClient world userpage [("dontcare","")])  	// code generation for SAPL
+
+		)
+		(	IF_Ajax 
+			(StartAjax   userpage world)							// all communication via Ajax
+			(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)	// all communication invole a new page
+		)
+| ServerKind == External											// connect with http 1.1 server
 = doHtmlSubServer userpage world
 
 StartAjax :: !(*HSt -> (Html,!*HSt)) !*World -> *World
@@ -95,6 +98,7 @@ where
 	             		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
 	             		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
 	             		 "<div id=\"theState\" class=\"thread\"></div>" +++ 
+						 IF_OnClient ("") ("") +++ 	
 	             		 "<div id=\"debug\" class=\"thread\"></div>" +++ 
 	               		 "</body>" +++
 	              	"</html>"
@@ -110,39 +114,6 @@ doHtmlPageAndPrint args userpage world
 # allhtmlcode			= copy_strings inout n_chars (createArray n_chars '\0')
 = ([],allhtmlcode,world)
 where
-	doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
-	doHtmlPage args userpage inout world
-	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
-	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
-	# nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
-	# (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
-	# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
-								= userpage (mkHSt initforms nworld)							// Call the user application
-	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-	# (allformbodies,world=:{worldC,gerda,inout,datafile})	
-								= storeFormStates states world								// Store all state information
-	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
-	# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
-	# inout						= IF_Ajax
-									(print_to_stdout "" inout <+
-									allformbodies <+ State_FormList_Separator <+			// state information
-            		 				AjaxCombine bodytags [debugInput,debugOutput]												// page, or part of a page
-									)
-									(print_to_stdout 										// Print out all html code
-										(Html (Head headattr [extra_style:headtags]) 
-										(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
-										inout
-									)
-	= (inout,worldC)
-	where
-		AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
-		AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
-		AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
-		
-		extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
-		extra_style				= Hd_Style [] CleanStyles	
-		debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
-
 	count_chars [|]    n = n
 	count_chars [|s:l] n = count_chars l (n+size s)
 
@@ -159,6 +130,40 @@ where
 			# d_s	= {d_s & [d_i]=s_s.[s_i]}
 			= copy_chars s_s (s_i+1) (d_i+1) n d_s
 			= d_s
+
+doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
+doHtmlPage args userpage inout world
+# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
+# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
+# nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
+# (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
+# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
+							= userpage (mkHSt initforms nworld)							// Call the user application
+# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
+# (allformbodies,world=:{worldC,gerda,inout,datafile})	
+							= storeFormStates states world								// Store all state information
+# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
+# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
+# inout						= IF_Ajax
+								(print_to_stdout "" inout <+
+								allformbodies <+ State_FormList_Separator <+			// state information
+        		 				AjaxCombine bodytags [debugInput,debugOutput]												// page, or part of a page
+								)
+								(print_to_stdout 										// Print out all html code
+									(Html (Head headattr [extra_style:headtags]) 
+									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
+									inout
+								)
+= (inout,worldC)
+where
+	AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
+	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
+	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
+	
+	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
+	extra_style				= Hd_Style [] CleanStyles	
+	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
+
 
 mkHSt :: *FormStates *NWorld -> *HSt
 mkHSt states nworld = {cntr=0, states=states, world=nworld, submits = False }

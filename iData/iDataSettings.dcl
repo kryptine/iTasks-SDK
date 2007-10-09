@@ -73,8 +73,8 @@ IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read
 //IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
 IF_Ajax th no_th		:== no_th		// Otherwise
 
-IF_OnClient th no_th	:== th			// If you want to enable sub-page (thread) handling on the Client using Sapl
-//IF_OnClient th no_th	:== no_th		// Otherwise
+//IF_OnClient th no_th	:== th			// If you want to enable sub-page (thread) handling on the Client using Sapl
+IF_OnClient th no_th	:== no_th		// Otherwise
 
 //IF_Sapl sp no_sp		:== sp			// If Sapl code for the client has to be generated
 IF_Sapl sp no_sp		:== no_sp		// Otherwise

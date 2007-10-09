@@ -141,6 +141,8 @@ DecodeHtmlStatesAndUpdate args
 // Parse and decode low level information obtained from server 
 // In case of using a php script and external server:
 
+MK_List = IF_Sapl mkString toString
+
 DecodeArguments ::  (Maybe [(String, String)]) -> (!String,!Triplets,!String)
 DecodeArguments (Just args)	
 # nargs = length args
@@ -156,7 +158,9 @@ DecodeArguments (Just args)
 where
 	DecodeCleanServerArguments :: !String -> (!String,!Triplets,!String)			// executable, id + update , new , state
 	DecodeCleanServerArguments args
-	# input 							= [c \\ c <-: args | not (isControl c) ]	// get rid of communication noise
+	# input 							= IF_Sapl
+												[c \\ c <- mkList args  | not (isControl c) ]	// get rid of communication noise
+												[c \\ c <-: args | not (isControl c) ]	// get rid of communication noise
 	# (thisexe,input) 					= mscan '\"'          input					// get rid of garbage
 	# input								= skipping ['UD\"']   input
 	# (triplet, input)					= mscan '='           input					// should give triplet
@@ -166,12 +170,12 @@ where
 	# input								= skipping ['\"GS\"'] input
 	# (found,index) 					= FindSubstr ['---']  input
 	# state								= if found (take index input) ['']
-	# striplet	= toString triplet
+	# striplet	= MK_List triplet
 	= if (striplet == "")
-			("clean", [], toString state)
+			("clean", [], MK_List state)
 			(if (isSelector striplet) 
-					("clean", [(fromJust` (decodeChars new) 	(parseString (decodeChars new)), "")], toString state)
-					("clean", [(fromJust` (decodeChars triplet) (parseString (decodeChars triplet)) , toString new)], toString state))
+					("clean", [(fromJust` (decodeChars new) 	(parseString (decodeChars new)), "")], MK_List state)
+					("clean", [(fromJust` (decodeChars triplet) (parseString (decodeChars triplet)) , MK_List new)], MK_List state))
 
 	fromJust` _ (Just value) = value
 	fromJust` string Nothing = ("",0,UpdI 0)
@@ -290,12 +294,43 @@ deleteState  filename env
 // low level url encoding decoding of Strings
 
 encodeString :: !String -> String
-encodeString s							= /* see also urlEncode */ string_to_string52 s	// using the whole alphabet 
-//encodeString s							= urlEncode s
+encodeString s							= IF_Sapl
+											(encodeString_sapl s)
+											(string_to_string52 s)
 
 decodeString :: !String -> *String
-decodeString s							= /* see also urlDecode */ string52_to_string s	// using the whole alphabet
-//decodeString s							= urlDecode s
+decodeString s							= IF_Sapl
+											(decodeString_sapl s)
+											(string52_to_string s)
+
+// special Sapl versions which work on [Char] instead of Strings
+
+encodeString_sapl :: !String -> *String
+encodeString_sapl s = mkString (sts52 (mkList s))
+
+sts52 :: [Char] -> [Char]
+sts52 [] = []
+sts52 [a] = [int52_to_alpha_char i1,int52_to_alpha_char r0]
+where 
+  i = toInt a
+  i1 = i/52
+  r0 = i-i1*52
+sts52 [a,b:as] = [int52_to_alpha_char i2,int52_to_alpha_char r1,int52_to_alpha_char r0 : sts52 as]
+where i=toInt a<<8+toInt b
+	  i1=i/52
+	  i2=i1/52
+	  r0=i-i1*52
+	  r1=i1-i2*52
+
+decodeString_sapl :: !String -> *String
+decodeString_sapl s = mkString (s52ts (mkList s))
+
+s52ts :: [Char] -> [Char]
+s52ts [] = []
+s52ts [a,b]      = [toChar (alpha_to_int52 a*52+alpha_to_int52 b)]
+s52ts [a,b,c:as] = [toChar (i>>8),toChar i : s52ts as]
+where i = (alpha_to_int52 a*52+alpha_to_int52 b)*52+alpha_to_int52 c
+s52ts _  = []
 
 // to encode triplets in htmlpages
 
@@ -314,7 +349,9 @@ decodeInfo :: !String -> Maybe a | gParse{|*|} a
 decodeInfo str							= parseString (decodeString str)
 
 decodeChars :: ![Char] -> *String
-decodeChars cs							= decodeString (mkString cs)
+decodeChars cs							= IF_Sapl
+											(mkString  (s52ts cs))
+											(decodeString (mkString cs))
 
 // compact John van Groningen encoding-decoding to lower and uppercase alpabeth
 
