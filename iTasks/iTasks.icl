@@ -189,11 +189,11 @@ deleteSubTasks tasknr tst
 
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 
-singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
+singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 singleUserTask startUpOptions task hst 
 # (traceOn,tableloc,_,versionsOn) 	= checkOptions startUpOptions 
-# (html,hst) 			= startTstTask 0 False traceOn versionsOn (False,[])  task (initTst 0 tableloc hst)
-= mkHtml "singleUser" html hst
+# (exception,html,hst) 				= startTstTask 0 False traceOn versionsOn (False,[])  task (initTst 0 tableloc hst)
+= mkHtmlExcep "singleUser" exception html hst
 
 checkOptions :: ![StartUpOptions] -> (!Bool,!Lifespan,!Int,!Bool)	// traceOn, threadtable location, max number of users resp,checkversion.
 checkOptions startUpOptions = checkOptions` startUpOptions (True,TxtFile,5,False)
@@ -206,27 +206,26 @@ where
 	checkOptions` [VersionCheck:xs] 		(trace,tableloc,n,chk) 	= checkOptions` xs (trace,tableloc,n,True)
 	checkOptions` [VersionNoCheck:xs] 		(trace,tableloc,n,chk) 	= checkOptions` xs (trace,tableloc,n,False)
 
-multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (Html,*HSt) | iCreate a 
+multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 multiUserTask startUpOptions task  hst 
 # (traceOn,tableloc,nusers,versionsOn) = checkOptions startUpOptions 
 # (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
 						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker	= snd idform.value
-# (html,hst) 	= startTstTask currentWorker True traceOn versionsOn  (if traceOn (idform.changed,idform.form) (False,[])) task (initTst currentWorker tableloc hst)
-= mkHtml "multiUser" html hst
+# (exception,html,hst) 	= startTstTask currentWorker True traceOn versionsOn  (if traceOn (idform.changed,idform.form) (False,[])) task (initTst currentWorker tableloc hst)
+= mkHtmlExcep "multiUser" exception html hst
 
-workFlowTask :: ![StartUpOptions] !(Task (Int,a)) !((Int,a) -> Task b) !*HSt -> (Html,*HSt) | iCreate a 
+workFlowTask :: ![StartUpOptions] !(Task (Int,a)) !((Int,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 workFlowTask  startUpOptions taska iataskb hst 
 # (traceOn,tableloc,_,chk) 			= checkOptions startUpOptions 
 # ((i,a),tst=:{activated,html,hst})	= taska (initTst -1 tableloc hst)		// for doing the login 
 | not activated
 	# iTaskHeader					= [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System ",Hr []]
 	# iTaskInfo						= mkDiv "iTaskInfo" [Txt "Login procedure... ", Hr []]
-	= mkHtml "workFlow" [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html)
-								]
-						] hst
-# (body,hst) 				= startTstTask i True traceOn True (False,[]) (iataskb (i,a)) (initTst i tableloc hst)
-= mkHtml "workFlow" body hst
+	= mkHtmlExcep "workFlow" True [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
+						]] hst
+# (exception,body,hst) 				= startTstTask i True traceOn True (False,[]) (iataskb (i,a)) (initTst i tableloc hst)
+= mkHtmlExcep "workFlow" exception body hst
 where
 	noFilter :: HtmlTree -> [BodyTag]
 	noFilter (BT body) 			= body
@@ -251,10 +250,10 @@ userVersionNr thisUser			= "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr" 
 
 setAppversion :: !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
-setAppversion    f hst	= mkStoreForm (Init, pFormId applicationVersionNr 0) 	 f hst
+setAppversion    f hst	= mkStoreForm (Init, IF_Sapl nFormId pFormId applicationVersionNr 0) 	 f hst
 
 setPUser :: !Int !(VersionInfo -> VersionInfo) !*HSt -> (Form !VersionInfo,!*HSt) 
-setPUser user f hst	= mkStoreForm (Init, pFormId (userVersionNr user) 	{ versionNr 	= 0
+setPUser user f hst	= mkStoreForm (Init, IF_Sapl nFormId pFormId (userVersionNr user) 	{ versionNr 	= 0
 																		, newThread		= False
 																		, deletedThreads= []
 																		} <@ NoForm) 	 f hst
@@ -281,7 +280,7 @@ setSVersionNr user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user
 // Main routine for the creation of the workflow page
 // ******************************************************************************************************
 
-startTstTask :: !Int !Bool !Bool !Bool !(!Bool,![BodyTag])  !(Task a) !*TSt -> (![BodyTag],!*HSt) //| iCreate a 
+startTstTask :: !Int !Bool !Bool !Bool !(!Bool,![BodyTag])  !(Task a) !*TSt -> (!Bool,![BodyTag],!*HSt) //| iCreate a 
 startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  taska tst=:{hst,tasknr,staticInfo}
 
 // prolog
@@ -303,14 +302,14 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 							[Hr []]
 | versionconflict	 
 	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
-	= ([Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
+	= (True,[Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
 						]
 				],hst)
 
 
 // Here the iTask starts...
 													    
-# ((_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
+# ((exception,_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
 						= (IF_Ajax (startAjaxApplication thisUser pversion.value) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
@@ -325,15 +324,9 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # (threadcode,selbuts,selname,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
 
-/*
-# iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
-							,BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System "]
-							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
-							[Hr []]
-*/
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
-							(	if multiuser 
+							(	IF_Ajax (IF_OnClient (IF_Sapl [CTxt Yellow "Client: "] [CTxt Yellow "Server: "]) "") "" ++
+								if multiuser 
 									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
 								if versionsOn [Txt "iTask Querie: ", CTxt Silver appversion.value] [Txt "iTask Querie: - "] ++
 								IF_Ajax
@@ -341,28 +334,28 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
-| showCompletePage		=	([Ajax [("thePage",	iTaskHeader ++
-														iTaskInfo  ++
-														if (doTrace && traceOn)
-																iTaskTraceInfo
-																[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
-																			]
-																]
+| showCompletePage		=	(exception,[Ajax [("thePage",	iTaskHeader ++
+															iTaskInfo  ++
+															if (doTrace && traceOn)
+																	iTaskTraceInfo
+																	[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
+																				]
+																	]
 											)]
 									] 
 							,hst)
 # (newthread,oldthreads)=	(hd threads, tl threads)
-| otherwise				=	([Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
+| otherwise				=	(exception,[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
 											[(showTaskNr childthreads,[Txt " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
 											[(showTaskNr newthread, if (isNil threadcode) seltask threadcode)]	// task info
 										   )
 									]
 							,hst)
 where
-	startMainTask :: !(Task a) !*TSt -> ((!Maybe a,!Int,!TaskNr,!String,!Bool,![TaskNr]),*TSt) 	// No threads, always start from scratch		
+	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Maybe a,!Int,!TaskNr,!String,!Bool,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
 	# (a,tst) = task tst
-	= ((Just a,defaultUser,[0],"",True,[]),tst)
+	= ((True,Just a,defaultUser,[0],"",True,[]),tst)
 
 	mbinc True = id
 	mbinc _ = inc
@@ -371,11 +364,16 @@ where
 
 	showOptions location
 	= [Txt "Version nr: ", CTxt Silver iTaskVersion] ++
-	  [Txt " - iTask Options: "] ++
-	  [CTxt Silver (IF_Ajax 	(" Ajax (" <+++ location <+++ ") ") " No Ajax ")] ++
+	  [Txt " - Enabled: "] ++
+	  [CTxt Silver (IF_Ajax 	(" Ajax (" <+++ location <+++ ") ") "")] ++
 	  [CTxt Silver (IF_OnClient	(IF_Ajax " + Client" "") "")] ++
 	  [CTxt Silver (IF_Database " + Database" "")] ++
-	  [CTxt Silver (IF_DataFile " + Datafile" "")] ++
+	  [CTxt Silver (IF_DataFile " + DataFile" "")] ++
+	  [Txt " - Disabled: "] ++
+	  [CTxt Silver (IF_Ajax 	"" " Ajax " )] ++
+	  [CTxt Silver (IF_OnClient	"" " + Client" )] ++
+	  [CTxt Silver (IF_Database "" " + Database" )] ++
+	  [CTxt Silver (IF_DataFile "" " + DataFile" )] ++
 	  [Br,Hr []]
 
 
@@ -1138,7 +1136,7 @@ write{|TCl|} write_a (TCl task) wst
 
 read {|TCl|} read_a  wst 
 	# (Read str i file) = read{|*|} wst
-	= Read (TCl  (deserializethread str)) i file
+	= Read (TCl  (deserializeThread str)) i file
 
 gPrint{|TCl|} ga (TCl task) ps = ps <<- serializeThread task
 
@@ -1270,15 +1268,18 @@ where
 // If a thread task is finished, the parent thread task is activated, and so on.
 
 serializeThread :: !.(Task .a) -> .String
-serializeThread task = copy_to_string task
+serializeThread task = IF_Sapl (abort "Cannot serialize Server thread on Client") copy_to_string task					
 
-//deserializethread :: String -> Task a
-deserializethread :: .String -> .(Task .a)
-deserializethread thread = fst (copy_from_string {c \\ c <-: thread} )	
+deserializeThread :: .String -> .(Task .a)
+deserializeThread thread = IF_Sapl (abort "Cannot de-serialize Server thread on Client") (fst (copy_from_string {c \\ c <-: thread} ))	
 
 serializeThreadClient :: !(Task a) -> String
-serializeThreadClient task =  IF_Ajax (IF_OnClient (graph_to_string_with_descriptors task) "") ""
+serializeThreadClient task =  IF_Ajax (IF_OnClient (IF_Sapl "Cannot (yet) serialize Client thread on Client" (graph_to_string_with_descriptors task)) "") ""
 
+deserializeThreadClient :: .String -> .(Task .a)
+deserializeThreadClient thread = IF_Sapl (deserializeSapl thread) (abort "cannot de-serialize Client thread on Server")	
+
+deserializeSapl thread = abort "This de-serialization can only be performed by Sapl"
 
 // mkTaskThread creates a thread for an iTask
 
@@ -1295,12 +1296,12 @@ mkTaskThread OnClient taska = IF_Ajax 															// only if Ajax & threads e
 									taska 
 
 mkTaskThread2 :: !Bool !(Task a) -> Task a 										// execute a thread
-mkTaskThread2 onclient task = evalTask
+mkTaskThread2 onclient task = evalTask								
 where
-	evalTask tst=:{tasknr,activated,options,userId}									// thread - task is not yet finished
-	# (mbthread,tst)	= findThreadInTable tasknr tst								// look if there is an entry for this task
-	| isNothing mbthread															// not yet, insert new entry		
-		# options = {options & tasklife = if onclient Client options.tasklife}
+	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
+	# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
+	| isNothing mbthread														// not yet, insert new entry		
+		# options 		= {options & tasklife = if onclient Client options.tasklife}
 		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
 									, thrUserId 		= userId
 									, thrOptions 		= options
@@ -1308,9 +1309,9 @@ where
 									, thrCallbackClient = serializeThreadClient task 
 									, thrDone			= False
 									} tst 
-		= evalTask tst																// try it again, entry point should be there
-	# (_,thread)		= fromJust mbthread											// entry point found
-	= evalTaskThread thread tst														// and evaluate it
+		= evalTask tst															// try it again, entry point should be there
+	# (_,thread)		= fromJust mbthread										// entry point found
+	= evalTaskThread thread tst													// and evaluate it
 
 insertNewThread :: !TaskThread *TSt -> *TSt										// insert new thread in table
 insertNewThread thread tst		
@@ -1319,81 +1320,87 @@ insertNewThread thread tst
 = tst
 
 evalTaskThread :: !TaskThread -> Task a 											// execute the thread !!!!
-evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrDone} = evalTaskThread` 
+evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrDone} = evalTaskThread` 
 where
 	evalTaskThread` tst=:{tasknr,options,userId,html}									
-	# (a,tst=:{activated,html=nhtml}) 	= (deserializethread thrCallback) {tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
+	# (doClient,noThread)  				= IF_Sapl (True,thrCallbackClient == "") (False,False)  
+	| doClient && noThread				= abort "Cannot execute thread on Client" 
+	# (a,tst=:{activated,html=nhtml}) 	=IF_Sapl
+											(deserializeThreadClient thrCallbackClient)
+											(deserializeThread thrCallback) 
+												{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
 	| not thrDone
 		| activated																		// thread is finished, delete the entry...
 			# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}				// remove thread from administration
 	//		# tst =  deleteSubTasks thrTaskNr {tst & html = html +|+ nhtml}				// thread and subtasks finished
-			# tst = insertNewThread 	{ thrTaskNr 		= thrTaskNr					// administrate resulting value
+	/*		# tst = insertNewThread 	{ thrTaskNr 		= thrTaskNr					// administrate resulting value
 										, thrUserId 		= thrUserId
 										, thrOptions 		= thrOptions
 										, thrCallback 		= serializeThread (\tst -> (a,{tst & activated = True}))
 										, thrCallbackClient = serializeThreadClient (\tst -> (a,tst))
 										, thrDone 			= True
-										} tst 
+										} tst */
 			= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
+// Any action requiering the calculation of the Task Tree from scratch will be done one the server
+// The Client cannot create new (Client or Server) threads
+// The first Boolean is set to True if the Client has to ask the Server to handle the situation
 
-
-startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
+startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((!Bool,Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
 # (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
 | isNothing mbevent 																// no events
 	# (a,tst)	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,tasknr,"Page",True,[tasknr]), tst)
+	= ((True,Just a,defaultUser,tasknr,"Page",True,[tasknr]), tst)
 
 # event					= fromJust mbevent											// event found
 # (table,tst)			= ThreadTableStorage id tst									// read thread table
 | isNil table																		// events, but no threads, evaluate main application from scratch
 	# (a,tst=:{activated}) 	= taska tst												// evaluate main application from scratch
-	= ((Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",True,[tasknr]), {tst & activated = activated})
+	= ((True,Just a,defaultUser,event,if activated "iData application ended" "No Thread(s)",True,[tasknr]), {tst & activated = activated})
 
 # (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
 | isNil mbthread																	// no thread can be found, happens e.g. when one switches from tasks
 	# (a,tst) 	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, no thread",True,[tasknr]), tst)
+	= ((True,Just a,defaultUser,event,"Page, no thread",True,[tasknr]), tst)
 
 # thread 				= hd mbthread												// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads								// thread has been deleted is some past, version conflict
-	= ((Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
+	= ((True,Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
 
 | versioninfo.newThread																// newthread added by someone
 	# (a,tst)	= taska tst															// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, new task has been added",True,[tasknr]), tst)
+	= ((True,Just a,defaultUser,event,"Page, new task has been added",True,[tasknr]), tst)
 
 | not (isNil versioninfo.deletedThreads) 											// some thread has been deleted										
 	# (a,tst) 	= taska tst															// administartion not up to date, evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Page, another task has been deleted",True,[tasknr]), tst)
+	= ((True,Just a,defaultUser,event,"Page, another task has been deleted",True,[tasknr]), tst)
 
 | thread.thrUserId <> thisUser														// updating becomes too complicated
 	# (a,tst) 			= taska tst													// evaluate main application from scratch
-	= ((Just a,defaultUser,event,"Thread of " <+++ thread.thrUserId,True,[tasknr]), tst)
-
+	= ((True,Just a,defaultUser,event,"Thread of " <+++ thread.thrUserId,True,[tasknr]), tst)
 # (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, *finally*, we heave a thread ...
 | not activated																		// thread not yet finished
-	= ((Nothing,thisUser,event,"Thread",thread.thrOptions.tasklife <> Client,[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
+	= ((False,Nothing,thisUser,event,"Thread",thread.thrOptions.tasklife <> Client,[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
 
 # (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst						// look for thread to evaluate
 = doParent mbthread taska event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
 where
 	doParent [] taska event accu tst												// no more parents of current event, do main task
 	# (a,tst=:{activated}) 	= taska {tst & html = BT []}							// start main task
-	# message				= if activated "iData application ended" "iData Root"
-	= ((Just a,defaultUser,event,message, True,[tasknr:accu]), {tst & activated = activated})
+	# message				= if activated "iData application ended" "iTask Root"
+	= ((True,Just a,defaultUser,event,message, True,[tasknr:accu]), {tst & activated = activated})
 
 	doParent [parent:next] taska event accu tst										// do parent of current thread
 	| parent.thrUserId <> thisUser													// updating becomes too complicated
 		# (a,tst) 			= taska tst												// evaluate main application from scratch
-		= ((Just a,defaultUser,event,"Parent of " <+++ parent.thrUserId,True,[tasknr]), tst)
+		= ((True,Just a,defaultUser,event,"Parent of " <+++ parent.thrUserId,True,[tasknr]), tst)
 
 	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}			// start parent
 	| not activated																	// parent thread not yet finished
-		= ((Nothing,thisUser,event, "Thread(s)", parent.thrOptions.tasklife <> Client,[parent.thrTaskNr:accu]),tst)		// no further evaluation, aks user for more input
+		= ((False,Nothing,thisUser,event, "Thread(s)", parent.thrOptions.tasklife <> Client,[parent.thrTaskNr:accu]),tst)		// no further evaluation, aks user for more input
 	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst			// look for thread to evaluate
 	= doParent mbthread taska event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
 	

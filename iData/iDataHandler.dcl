@@ -21,21 +21,23 @@ derive gerda 	Inline
 derive read 	Inline
 derive write 	Inline
 
-:: *HSt 		= { cntr 	:: Int 			// counts position in expression
-				  , submits	:: Bool			// True if we are in submitting mode
-				  , states	:: *FormStates  // all form states are collected here ... 	
-				  , world	:: *NWorld		// to enable all other kinds of I/O
+:: *HSt 		= { cntr 	:: !Int 			// counts position in expression
+				  , submits	:: !Bool			// True if we are in submitting mode
+				  , states	:: !*FormStates  	// all form states are collected here ... 	
+				  , world	:: !*NWorld			// to enable all other kinds of I/O
 				  }	
 
-:: Inline = Inline String
+:: Inline 		= Inline String
+
+:: UserPage 	:== !.(*HSt -> .(!Bool,Html,!*HSt))
 
 // doHtmlServer main wrapper for generating & handling of an Html form
 // depending on the option set (see iDataSettings) it will either 
 //			- link in an http 1.0 server
 //			- administrate itself as subserver to an http 1.1 server
 
-doHtmlServer 		:: !(*HSt -> (Html,!*HSt)) !*World -> *World 					
-doHtmlServer2 		:: ![(String,*HSt -> (Html,!*HSt))] !*World -> *World
+doHtmlServer 		:: UserPage !*World -> *World 					
+doHtmlServer2 		:: ![(String,UserPage)] !*World -> *World
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

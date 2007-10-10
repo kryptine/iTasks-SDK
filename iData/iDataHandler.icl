@@ -17,10 +17,10 @@ derive bimap Form, FormId
 gParse{|(->)|} gArg gRes _ 		= Nothing 
 gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic storage option!\n" 
 
-:: *HSt 		= { cntr 	:: Int 			// counts position in expression
-				  , submits	:: Bool			// True if we are in submit form
-				  , states	:: *FormStates  // all form states are collected here ... 	
-				  , world	:: *NWorld		// to enable all other kinds of I/O
+:: *HSt 		= { cntr 	:: !Int 			// counts position in expression
+				  , submits	:: !Bool			// True if we are in submit form
+				  , states	:: !*FormStates  // all form states are collected here ... 	
+				  , world	:: !*NWorld		// to enable all other kinds of I/O
 				  }	
 :: InputId	 	:== Int						// unique id for every constructor and basic value appearing in the state
 :: FormUpdate	:== (InputId,UpdValue)		// info obtained when form is updated
@@ -43,7 +43,7 @@ closemDataFile datafile world
 
 //////////////////  EXPERIMENTAL
 
-doHtmlServer2 :: ![(String,*HSt -> (Html,!*HSt))] !*World -> *World
+doHtmlServer2 :: ![(String,UserPage)] !*World -> *World
 doHtmlServer2 userpages world
 | ServerKind == Internal		// link in http 1.0 server
 = StartServer SocketNr [(thisExe, \_ _ args -> doHtmlPageAndPrint args userpage) \\ (thisExe,userpage) <- userpages] world
@@ -52,39 +52,29 @@ doHtmlServer2 userpages world
 
 // Experimental version of doHtmlServer for Client site evaluation ....
 
-doHtmlClient :: !*World  !.(*HSt -> (Html,!*HSt))  ! [(String, String)] -> (!String,!*World)
-doHtmlClient world userpage args  
-# (inout,world)			= doHtmlPage (Just args) userpage [|] world
-= (makeString inout,world)
-where
-	makeString html = stringconcat (reverse(strict2normallist html))
-	strict2normallist [|] = []
-	strict2normallist [|a:as] = [a:strict2normallist as]
-	stringconcat [|] = ""
-	stringconcat [|str:ss] = str +++ stringconcat ss
 
 
 /////////////////////////////////
 
 
 // doHtmlServer: top level function given to end user.
-// It sets up the communication with a (sub)server, depending on the option chosen.
+// It sets up the communication with a (sub)server or client, depending on the option chosen.
 
-doHtmlServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+doHtmlServer :: UserPage !*World -> *World
 doHtmlServer userpage world
-| ServerKind == Internal											// link in http 1.0 server
+| ServerKind == Internal											// link in the Clean http 1.0 server
 = 	IF_Sapl
-		(	snd (doHtmlClient world userpage [("dontcare","")])  	// code generation for SAPL
+		(	snd (doHtmlClient world userpage [("dontcare","")])  	// on Client side calculate page using SAPL
 
 		)
-		(	IF_Ajax 
-			(StartAjax   userpage world)							// all communication via Ajax
-			(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)	// all communication invole a new page
+		(	IF_Ajax													// on Sever side: 
+			(StartAjax   userpage world)							// handle all communication via Ajax
+			(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)	// all communication will invoke a new page
 		)
 | ServerKind == External											// connect with http 1.1 server
-= doHtmlSubServer userpage world
+= doHtmlSubServer userpage world									// currently only standard communication is implemented
 
-StartAjax :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+StartAjax :: !UserPage !*World -> *World
 StartAjax userpage world
 = StartServer SocketNr [(ThisExe, \_ _ args -> defaultpage args),  // empty page with script and div
                         (ThisExe +++ "_ajax", \_ _ args -> doHtmlPageAndPrint args userpage)] world
@@ -103,15 +93,26 @@ where
 	               		 "</body>" +++
 	              	"</html>"
 
+doHtmlClient :: !*World  !UserPage  ! [(String, String)] -> (!Bool,!String,!*World)
+doHtmlClient world userpage args  
+# (exception,inout,world)			= doHtmlPage (Just args) userpage [|] world
+= (exception,makeString inout,world)
+where
+	makeString html = stringconcat (reverse(strict2normallist html))
+	strict2normallist [|] = []
+	strict2normallist [|a:as] = [a:strict2normallist as]
+	stringconcat [|] = ""
+	stringconcat [|str:ss] = str +++ stringconcat ss
+
 // doHtmlPageAndPrint is the main driver shared by all server options.
 // It initiates all internal administration and calls the user defined iData or iTask function userpage.
 // It converts the Html value into html code which is handed over to the server.  
 
-doHtmlPageAndPrint :: [(String, String)] .(*HSt -> (Html,!*HSt)) *World -> ([String],String,*World)
+doHtmlPageAndPrint :: [(String, String)] .(*HSt -> (!Bool,Html,!*HSt)) *World -> ([String],String,*World)
 doHtmlPageAndPrint args userpage world
-# (inout,world)			= doHtmlPage (Just args) userpage [|] world
-# n_chars				= count_chars inout 0
-# allhtmlcode			= copy_strings inout n_chars (createArray n_chars '\0')
+# (exception,inout,world)	= doHtmlPage (Just args) userpage [|] world
+# n_chars					= count_chars inout 0
+# allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
 = ([],allhtmlcode,world)
 where
 	count_chars [|]    n = n
@@ -131,13 +132,15 @@ where
 			= copy_chars s_s (s_i+1) (d_i+1) n d_s
 			= d_s
 
-doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (Html,!*HSt)) !*HtmlStream !*World -> (!*HtmlStream,!*World)
+// General entry used by all servers and client to calculate the next page
+
+doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (!Bool,Html,!*HSt)) !*HtmlStream !*World -> (!Bool,!*HtmlStream,!*World)
 doHtmlPage args userpage inout world
 # (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 # (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 # nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
 # (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
-# (Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
+# (exception,Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
 							= userpage (mkHSt initforms nworld)							// Call the user application
 # (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
 # (allformbodies,world=:{worldC,gerda,inout,datafile})	
@@ -154,7 +157,7 @@ doHtmlPage args userpage inout world
 									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
 									inout
 								)
-= (inout,worldC)
+= (exception,inout,worldC)
 where
 	AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
 	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
@@ -174,7 +177,7 @@ mkHSt states nworld = {cntr=0, states=states, world=nworld, submits = False }
 
 import Semaphore	
 
-doHtmlSubServer :: !(*HSt -> (Html,!*HSt)) !*World -> *World
+doHtmlSubServer :: !UserPage !*World -> *World
 doHtmlSubServer userpage world
 	# result = RegisterSubProcToServer 1 0 100 ".*" (ThisExe +++ ".*")
 	| result == 1
