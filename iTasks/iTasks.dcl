@@ -24,6 +24,7 @@ derive write 	Void, TCl
 
 defaultUser			:== 0							// default id of user
 
+// *********************************************************************************************************************************
 // Setting options for any collection of iTask workflows
 
 :: GarbageCollect 	= Collect 						// garbage collect iTask administration
@@ -37,13 +38,14 @@ instance <<@		Lifespan						// default: Session
 				, 	GarbageCollect					// default: Collect
 
 :: SubPage			= UseAjax  						// use Ajax technology to update part of a page, only works if Ajax enabled 
-					| OnClient 						// RESERVED FOR FUTURE: use SAPL to update part of a page on the client
+					| OnClient 						// use SAPL to update part of a page on the client, only works if Client enabled and Sapl is running...
 
 class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a	
 
 instance @>>		SubPage							// default: the *whole* page will be updated when a form has been modified
 
-/* Initiate the iTask library with an iData server wrapper such as doHtmlServer! in combination with one of the following functions:
+// *********************************************************************************************************************************
+/* Initiate the iTask library with an iData server wrapper such as doHtmlServer in combination with one of the following functions:
 					
 singleUserTask 	:: iTask start function for defining tasks for one, single user
 multiUserTask 	:: iTask start function for multi-users, with option in window to switch between [0..users - 1]  
@@ -55,11 +57,12 @@ multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (Html,*HSt) 	| iCreat
 workFlowTask	:: ![StartUpOptions] !(Task (Int,a)) 
 									 !((Int,a) -> Task b)	!*HSt -> (Html,*HSt) 	| iCreate a 
 
-:: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser only: default = TraceOn
-					| ThreadStorage Lifespan			// for Ajax only: where to store threadinformation: default = TxtFile
-					| ShowUsers Int						// for multiUserTask only, toggle between given maximum number of users, default: ShowUser 5 
-					| VersionCheck | VersionNoCheck		// for single & multiUser only: default = VersionNoCheck 
+:: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser: default = TraceOn
+					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
+					| ShowUsers Int						// for multiUserTask, toggle between given maximum number of users, default: ShowUser 5 
+					| VersionCheck | VersionNoCheck		// for single & multiUser: default = VersionNoCheck 
 
+// *********************************************************************************************************************************
 // Here follow the iTasks combinators:
 
 /* promote any iData editor to the iTask domain
@@ -75,9 +78,9 @@ editTaskPred 	:: 			!a !(a -> (Bool, [BodyTag]))	-> Task a		| iData a
 return_V		:: lift a value to the iTask domain and return it
 */
 
-(=>>) infix  1 	:: !(Task a) !(a -> Task b) -> Task b				| iCreateAndPrint b
-(#>>) infixl 1 	:: !(Task a) !(Task b) 		-> Task b
-return_V 		:: !a 						-> Task a 				| iCreateAndPrint a
+(=>>) infix  1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
+(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b
+return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
 /* prompting variants
 (?>>)			:: prompt as long as task is active but not finished
@@ -88,13 +91,12 @@ return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
 */
 
-(?>>) infix  5 	:: ![BodyTag] !(Task a) 		-> Task a			| iData a
-(!>>) infix  5 	:: ![BodyTag] !(Task a) 		-> Task a			| iCreate a
-(<|)  infix  6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 
-												-> Task a 			| iCreate a
-(<!)  infix  6 	:: !(Task a)  !(a -> .Bool) 	-> Task a 			| iCreateAndPrint a
-return_VF 		:: !a ![BodyTag] 		  		-> Task a			| iCreateAndPrint a
-return_D		:: !a 							-> Task a			| gForm {|*|}, iCreateAndPrint a
+(?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iData a
+(!>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
+(<|)  infix  6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 	-> Task a 		| iCreate a
+(<!)  infix  6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
+return_VF 		:: !a ![BodyTag] 		  					-> Task a		| iCreateAndPrint a
+return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
 /* Assign tasks to user with indicated id
 (@:)			:: will prompt who is waiting for task with give name
@@ -103,21 +105,21 @@ return_D		:: !a 							-> Task a			| gForm {|*|}, iCreateAndPrint a
 //(@:)  infix 3 	:: !(!String,!Int) (Task a)	-> (Task a)			| iCreateAndPrint a
 //(@::) infix 3 	:: !Int (Task a)		    -> (Task a)			| iCreate a
 
-(@:)  infix 3 	:: !(!String,!Int) !(Task a)	-> (Task a)			| iData a
-(@::) infix 3 	:: !Int !(Task a)		    	-> (Task a)			| iData a
+(@:)  infix 3 	:: !(!String,!Int) !(Task a)				-> Task a		| iData a
+(@::) infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
 /* Handling recursion and loops
 newTask			:: use the to promote a (recursively) defined user function to as task
 foreverTask		:: infinitely repeating Task
 repeatTask		:: repeat Task until predict is valid
 */
-newTask 		:: !String !(Task a) 		-> (Task a) 			| iData a 
-foreverTask		:: !(Task a) 				-> Task a 				| iData a
-repeatTask		:: !(a -> Task a) !(a -> Bool) -> a -> Task a		| iData a
+newTask 		:: !String !(Task a) 						-> Task a		| iData a 
+foreverTask		:: !(Task a) 								-> Task a 		| iData a
+repeatTask		:: !(a -> Task a) !(a -> Bool) -> a 		-> Task a		| iData a
 
 /*	Sequencing Tasks:
 seqTasks		:: do all iTasks one after another, task completed when all done
 */
-seqTasks		:: ![(String,Task a)] 		-> (Task [a])			| iCreateAndPrint a
+seqTasks		:: ![(String,Task a)] 						-> Task [a]		| iCreateAndPrint a
 
 /* Choose Tasks
 buttonTask		:: Choose the iTask when button pressed
@@ -126,11 +128,11 @@ chooseTaskV		:: Choose one iTask from list, depending on button pressed, buttons
 chooseTask_pdm	:: Choose one iTask from list, depending on pulldownmenu item selected
 mchoiceTask		:: Multiple Choice of iTasks, depending on marked checkboxes
 */
-buttonTask		:: !String !(Task a)	-> (Task a) 			| iCreateAndPrint a
-chooseTask		:: ![(String,Task a)] 	-> (Task a) 			| iCreateAndPrint a
-chooseTaskV 	:: ![(String,Task a)] 	-> (Task a) 			| iCreateAndPrint a
-chooseTask_pdm 	:: ![(String,Task a)] 	-> (Task a)	 			| iCreateAndPrint a
-mchoiceTasks 	:: ![(String,Task a)] 	-> (Task [a]) 			| iCreateAndPrint a
+buttonTask		:: !String !(Task a)						-> Task a 		| iCreateAndPrint a
+chooseTask		:: ![(String,Task a)] 						-> Task a 		| iCreateAndPrint a
+chooseTaskV 	:: ![(String,Task a)] 						-> Task a 		| iCreateAndPrint a
+chooseTask_pdm 	:: ![(String,Task a)] 						-> Task a	 	| iCreateAndPrint a
+mchoiceTasks 	:: ![(String,Task a)] 						-> Task [a] 	| iCreateAndPrint a
 
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 orTask			:: do both iTasks in any order, task completed and ends as soon as first one done
@@ -138,10 +140,11 @@ orTask			:: do both iTasks in any order, task completed and ends as soon as firs
 orTask2			:: do both iTasks in any order, task completed and ends as soon as first one done
 orTasks			:: do all  iTasks in any order, task completed and ends as soon as first one done
 */
-orTask 			:: !(Task a,Task a) 	-> (Task a) 			| iCreateAndPrint a
-(-||-) infixr 3 :: !(Task a) !(Task a) 	-> (Task a) 			| iCreateAndPrint a
-orTask2			:: !(Task a,Task b) 	-> (Task (EITHER a b)) 	| iCreateAndPrint a & iCreateAndPrint b
-orTasks			:: ![(String,Task a)] 	-> (Task a)				| iData a 
+orTask 			:: !(Task a,Task a) 						-> Task a 		| iCreateAndPrint a
+(-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iCreateAndPrint a
+orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 	
+																			| iCreateAndPrint a & iCreateAndPrint b
+orTasks			:: ![(String,Task a)] 						-> Task a		| iData a 
 
 /* Do Tasks parallel / interleaved and FINISH when ALL Tasks done:
 andTask			:: do both iTasks in any order (interleaved), task completed when both done
@@ -149,10 +152,10 @@ andTask			:: do both iTasks in any order (interleaved), task completed when both
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
 andTasks_mu		:: assign task to indicated users, task completed when all done
 */
-andTask			:: !(Task a,Task b) 	-> (Task (a,b)) 		| iCreateAndPrint a & iCreateAndPrint b
-(-&&-) infixr 4 :: !(Task a) !(Task b) 	-> (Task (a,b)) 		| iCreateAndPrint a & iCreateAndPrint b
-andTasks		:: ![(String,Task a)]	-> (Task [a])			| iCreateAndPrint a
-andTasks_mu 	:: !String ![(Int,Task a)]-> (Task [a]) 			| iData a
+andTask			:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
+(-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
+andTasks		:: ![(String,Task a)]						-> Task [a]		| iCreateAndPrint a
+andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
 
 
 /* Time and Date management:
@@ -160,9 +163,9 @@ waitForTimeTask	:: Task is done when time has come
 waitForTimerTask:: Task is done when specified amount of time has passed 
 waitForDateTask	:: Task is done when date has come
 */
-waitForTimeTask	:: !HtmlTime	-> (Task HtmlTime)
-waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
-waitForDateTask	:: !HtmlDate	-> (Task HtmlDate)
+waitForTimeTask	:: !HtmlTime								-> Task HtmlTime
+waitForTimerTask:: !HtmlTime								-> Task HtmlTime
+waitForDateTask	:: !HtmlDate								-> Task HtmlDate
 
 /* Experimental department
    Will not work when the tasks are garbage collected to soon !!
@@ -179,20 +182,11 @@ closureLZTask	:: Same, but now the original task will not be done unless someone
 */
 :: TCl a 		= TCl .(Task a)			
 
-(-!>) infix 4 	:: (Task stop) (Task a) -> (Task (Maybe stop,TCl a)) 	| iCreateAndPrint stop & iCreateAndPrint a
-channel  		:: String (Task a) 		-> (Task (TCl a,TCl a)) 		| iCreateAndPrint a
-closureTask  	:: String (Task a) 		-> (Task (TCl a)) 				| iCreateAndPrint a
-closureLzTask  	:: String (Task a) 		-> (Task (TCl a)) 				| iCreateAndPrint a
+(-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,TCl a) 	| iCreateAndPrint stop & iCreateAndPrint a
+channel  		:: String (Task a) 							-> Task (TCl a,TCl a) 		| iCreateAndPrint a
+closureTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
+closureLzTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
 
-/* Operations on Task state
-taskId			:: id assigned to task
-userId			:: id of application user
-addHtml			:: add html code
-*/
-
-taskId			:: TSt -> (Int,TSt)
-userId 			:: TSt -> (Int,TSt)
-addHtml 		:: [BodyTag] TSt -> TSt
 
 /* Lifting to iTask domain
 (*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 
@@ -202,17 +196,26 @@ appIData2		:: lift iData editors to iTask domain, and pass iDataTasknumber for n
 appHSt			:: lift HSt domain to TSt domain, will be executed only once; string used for tracing
 appHSt2			:: lift HSt domain to TSt domain, will be executed on each invocation; string used for tracing
 */
-(*>>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 	-> Task b
-(*@>) infix 4 	:: (TSt -> TSt) (Task a) 			-> Task a
-appIData 		:: (IDataFun a) 					-> Task a 			| iData a
-appIData2 		:: (String *HSt -> *(Form a,*HSt)) -> (Task a) | iData a 
-appHSt 			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
-appHSt2			:: !String (HSt -> (a,HSt)) 		-> Task a			| iData a
+(*>>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 			-> Task b
+(*@>) infix 4 	:: (TSt -> TSt) (Task a) 					-> Task a
+appIData 		:: (IDataFun a) 							-> Task a 			| iData a
+appIData2 		:: (String *HSt -> *(Form a,*HSt)) 			-> Task a			| iData a 
+appHSt 			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
+appHSt2			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
 
 /* Controlling side effects
 Once			:; 	task will be done only once, the value of the task will be remembered
 */
 
-Once 			:: (Task a) 						-> (Task a) 		| iData a
+Once 			:: (Task a) 								-> Task a 			| iData a
 
+/* Operations on Task state
+taskId			:: id assigned to task
+userId			:: id of application user
+addHtml			:: add html code
+*/
+
+taskId			:: TSt 				-> (Int,TSt)
+userId 			:: TSt 				-> (Int,TSt)
+addHtml 		:: [BodyTag] TSt 	-> TSt
 

@@ -277,7 +277,9 @@ clearIncPUser user f hst	= setPUser user (\r -> {r & newThread = False, deletedT
 setSVersionNr :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
 setSVersionNr user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
 
+// ******************************************************************************************************
 // Main routine for the creation of the workflow page
+// ******************************************************************************************************
 
 startTstTask :: !Int !Bool !Bool !Bool !(!Bool,![BodyTag])  !(Task a) !*TSt -> (![BodyTag],!*HSt) //| iCreate a 
 startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  taska tst=:{hst,tasknr,staticInfo}
@@ -300,12 +302,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
 | versionconflict	 
-/*
-	# iTaskHeader		=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [BCTxt Aqua "i-Task", Br, CTxt Yellow " - Multi-User Workflow System "]
-							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
-							[Hr []]
-*/	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
+	# iTaskInfo			= mkDiv "iTaskInfo" [CTxt Yellow "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
 	= ([Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
 						]
 				],hst)
