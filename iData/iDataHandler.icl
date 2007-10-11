@@ -64,7 +64,7 @@ doHtmlServer :: UserPage !*World -> *World
 doHtmlServer userpage world
 | ServerKind == Internal											// link in the Clean http 1.0 server
 = 	IF_Sapl
-		(	snd (doHtmlClient world userpage [("dontcare","")])  	// on Client side calculate page using SAPL
+		(	thd3 (doHtmlClient world userpage [("dontcare","")])  	// on Client side calculate page using SAPL
 
 		)
 		(	IF_Ajax													// on Sever side: 
@@ -79,19 +79,20 @@ StartAjax userpage world
 = StartServer SocketNr [(ThisExe, \_ _ args -> defaultpage args),  // empty page with script and div
                         (ThisExe +++ "_ajax", \_ _ args -> doHtmlPageAndPrint args userpage)] world
 where
-	defaultpage  _ world =  ([], page,world)
-	where  page = 	"<html>" +++
-						"<head>" +++
-							"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ThisExe +++ "/clean.css\" />" +++		// clean styles now code in sepparate style sheet
-							"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
-						"</head>" +++
-	             		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
-	             		 "<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
-	             		 "<div id=\"theState\" class=\"thread\"></div>" +++ 
-						 IF_OnClient ("") ("") +++ 	
-	             		 "<div id=\"debug\" class=\"thread\"></div>" +++ 
-	               		 "</body>" +++
-	              	"</html>"
+	defaultpage  _ world =  ([], initAjaxPage,world)
+
+initAjaxPage = 	"<html>" +++
+				"<head>" +++
+					"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ThisExe +++ "/clean.css\" />" +++		// clean styles now code in sepparate style sheet
+					"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
+				 "</head>" +++
+         		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
+         		 	"<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
+         		 	"<div id=\"theState\" class=\"thread\"></div>" +++ 
+         		 	"<div id=\"debug\" class=\"thread\"></div>" +++ 
+            	 	IF_OnClient "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
+           		 "</body>" +++
+          	"</html>"
 
 doHtmlClient :: !*World  !UserPage  ! [(String, String)] -> (!Bool,!String,!*World)
 doHtmlClient world userpage args  

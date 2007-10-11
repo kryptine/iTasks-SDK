@@ -93,8 +93,8 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== False									// show what kind of information is received from Client
-TraceOutput				:== False									// show what kind of information is stored when application is finished
+TraceInput				:== True									// show what kind of information is received from Client
+TraceOutput				:== True									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
 TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
