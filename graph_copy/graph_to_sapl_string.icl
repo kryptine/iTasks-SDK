@@ -49,6 +49,8 @@ sapl_from_string  str = (undef,3)
 graph_to_sapl_string :: !a -> String
 graph_to_sapl_string a = makeSaplExpression (graph_to_sapl_dynamic a)
 
+string_to_graph :: !String -> .a
+string_to_graph thread = abort "Cannot create Sapl graph while you are in Clean.\n"
 
 graph_to_sapl_dynamic :: !a -> DynamicSapl
 graph_to_sapl_dynamic graph  
@@ -351,3 +353,13 @@ makeName name | name.[0] == '\\' = "anon"
 
 startsWith :: String String -> Bool
 startsWith s1 s2 = s1 == s2%(0,size s1-1)
+
+print_graph :: !a -> String
+print_graph g = des2string (string_to_int_array a,"[" +++ printlist [b\\ b <-:bs],"[" +++ printlist [c\\ c <-:cs])
+where (a,bs,cs) = (graph_to_string_with_descriptor_and_module_table g)
+des2string (ia,des,mods) = printintarray ia +++ "\n" +++ des +++ "\n" +++ mods +++ "\n" 
+
+printintarray ia = "[" +++ printlist [toString a\\ a <-: ia]
+printlist [] = "]"
+printlist [a] =  a +++ "]"
+printlist [a:as] =  a +++ ", " +++ printlist as

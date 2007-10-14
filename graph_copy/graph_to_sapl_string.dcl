@@ -10,9 +10,13 @@ definition module graph_to_sapl_string
 
 // Conversion to a SAPL string
 graph_to_sapl_string :: !a -> String
+string_to_graph :: !String -> .a
 
 // Conversion to a SAPL intermediate format, only for debugging
 graph_to_sapl_dynamic :: !a -> DynamicSapl
 
 // Testing function for debugging, also gives decoding
 graph_to_sapl_dynamic_test :: !a -> (({#Int},Char,{#String},Char,{#String}),Char,DynamicSapl,Char,String)
+
+// Testing function for debugging, also gives decoding
+print_graph :: !a -> String
