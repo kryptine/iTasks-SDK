@@ -73,8 +73,8 @@ IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read
 IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
 //IF_Ajax th no_th		:== no_th		// Otherwise
 
-IF_OnClient th no_th	:== th			// If you want to enable sub-page (thread) handling on the Client using Sapl
-//IF_OnClient th no_th	:== no_th		// Otherwise
+//IF_OnClient th no_th	:== th			// If you want to enable sub-page (thread) handling on the Client using Sapl
+IF_OnClient th no_th	:== no_th		// Otherwise
 
 //IF_Sapl sp no_sp		:== sp			// If Sapl code for the client has to be generated
 IF_Sapl sp no_sp		:== no_sp		// Otherwise
@@ -93,11 +93,11 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== True									// show what kind of information is received from Client
-TraceOutput				:== True									// show what kind of information is stored when application is finished
+TraceInput				:== False									// show what kind of information is received from Client
+TraceOutput				:== False									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
-TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
+TraceHttp10				:== False									// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11				:== False									// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
 
 // separators

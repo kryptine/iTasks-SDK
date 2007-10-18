@@ -89,6 +89,7 @@ initAjaxPage = 	"<html>" +++
          		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
          		 	"<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
          		 	"<div id=\"theState\" class=\"thread\"></div>" +++ 
+         		 	"<div id=\"iTaskInfo\" class=\"thread\"></div>" +++ 
          		 	"<div id=\"debug\" class=\"thread\"></div>" +++ 
             	 	IF_OnClient "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
            		 "</body>" +++
