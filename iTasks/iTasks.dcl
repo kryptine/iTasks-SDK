@@ -91,7 +91,7 @@ return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
 */
 
-(?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iData a
+(?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
 (!>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
 (<|)  infix  6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 	-> Task a 		| iCreate a
 (<!)  infix  6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a

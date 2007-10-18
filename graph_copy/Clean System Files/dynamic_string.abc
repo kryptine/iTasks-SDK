@@ -1,5 +1,6 @@
 .comp 920 000110010
 .start _nostart_
+.depend "StdDynamic" "20061208183212"
 .depend "_SystemEnum" "20061218140208"
 .depend "StdEnum" "20061218140208"
 .depend "StdMisc" "20061218140208"
@@ -8,6 +9,7 @@
 .depend "StdTuple" "20061218140208"
 .depend "StdOrdList" "20061218140208"
 .depend "StdList" "20061218140208"
+.depend "StdClass" "20061218140208"
 .depend "StdFile" "20061218140208"
 .depend "StdString" "20061218140208"
 .depend "_SystemArray" "20061218140208"
@@ -15,19 +17,17 @@
 .depend "StdChar" "20061218140208"
 .depend "StdReal" "20061218140208"
 .depend "StdInt" "20061218140208"
-.depend "StdEnv" "20061218140208"
 .depend "StdBool" "20061218140208"
-.depend "StdClass" "20061218140208"
-.depend "StdDynamic" "20061208183212"
+.depend "StdEnv" "20061218140208"
 .depend "StdOverloaded" "20061218140208"
 .depend "_SystemDynamic" "20061208183212"
 .depend "StdCleanTypes" "20061208183212"
-.depend "dynamic_string" "20070709113944"
+.depend "dynamic_string" "20070913164239"
 .impobj "copy_graph_to_string_interface.obj"
 .impobj "copy_graph_to_string.obj"
 .impobj "copy_string_to_graph_interface.obj"
 .impobj "copy_string_to_graph.obj"
-.module m_dynamic_string "dynamic_string" "20070709114033"
+.module m_dynamic_string "dynamic_string" "20070913164251"
 .endinfo
 .implab _cycle_in_spine
 .implab _type_error

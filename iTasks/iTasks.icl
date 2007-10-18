@@ -541,8 +541,9 @@ where
 	| not activated || fst (pred a)		= (a,{tst & html = ohtml +|+ nhtml})
 	= doTask {tst & html = ohtml +|+ BT (snd (pred a))}
 
-(?>>) infix 5 :: ![BodyTag] !(Task a) -> (Task a) | iData a
-//(?>>) infix 5 :: [BodyTag] (Task a) -> (Task a) | iCreate a
+//(?>>) infix 5 :: ![BodyTag] !(Task a) -> (Task a) | iData a
+//(?>>) infix 5 :: [BodyTag] !(Task a) -> (Task a) | iCreate a
+(?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
 (?>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -1289,14 +1290,15 @@ deserializeThread :: .String -> .(Task .a)
 deserializeThread thread = IF_Sapl (abort "Cannot de-serialize Server thread on Client\n") (fst (copy_from_string {c \\ c <-: thread} ))	
 
 serializeThreadClient :: !(Task a) -> String
-serializeThreadClient task =  IF_Ajax (IF_OnClient (IF_Sapl "Cannot (yet) serialize Client thread on Client\n" (graph_to_sapl_string task)) "") ""
+//serializeThreadClient task =  IF_Ajax (IF_OnClient (IF_Sapl "Cannot (yet) serialize Client thread on Client\n" (graph_to_sapl_string task)) "") ""
+serializeThreadClient task =  IF_Ajax (IF_OnClient (IF_Sapl (graph_to_sapl_string task) (graph_to_sapl_string task)) "") ""
 
 deserializeThreadClient :: .String -> .(Task .a)
 deserializeThreadClient thread = IF_Sapl (deserializeSapl thread) (abort "cannot de-serialize Client thread on Server\n")	
 
 deserializeSapl thread = string_to_graph thread
 
-string_to_graph thread = abort "Cannot create Sapl graph while you are in Clean.\n"
+//string_to_graph thread = abort "Cannot create Sapl graph while you are in Clean.\n"
 
 // mkTaskThread creates a thread for an iTask
 
@@ -1313,7 +1315,7 @@ mkTaskThread OnClient taska = IF_Ajax 															// only if Ajax & threads e
 									taska 
 
 mkTaskThread2 :: !Bool !(Task a) -> Task a 										// execute a thread
-mkTaskThread2 onclient task = IF_Sapl task evalTask								// XXX THREADS CANNOT BE CREATED ON CLIENT !!! XXX							
+mkTaskThread2 onclient task = /*IF_Sapl task */ evalTask								// XXX THREADS CANNOT BE CREATED ON CLIENT !!! XXX							
 where
 	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
