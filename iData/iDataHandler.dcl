@@ -24,7 +24,7 @@ derive write 	Inline
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submitting mode
 				  , states	:: !*FormStates  	// all form states are collected here ... 	
-				  , world	:: !*NWorld			// to enable all other kinds of I/O
+				  , world	:: *NWorld			// to enable all other kinds of I/O
 				  }	
 
 :: Inline 		= Inline String

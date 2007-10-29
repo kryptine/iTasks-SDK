@@ -33,7 +33,7 @@ gParse{|HTML|} st					= case gParse {|*|} st of
 										Just "XYX" -> Just (HTML [EmptyBody])
 										_          -> Just (HTML [EmptyBody])
 
-gerda{|HTML|}  = undef
+gerda{|HTML|}  = abort "illegal gerda call for type HTML"
 
 // Tuples are placed next to each other, pairs below each other ...
 layoutTableAtts	:== [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)]	// default table attributes for arranging layout

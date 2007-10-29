@@ -20,7 +20,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submit form
 				  , states	:: !*FormStates  // all form states are collected here ... 	
-				  , world	:: !*NWorld		// to enable all other kinds of I/O
+				  , world	:: *NWorld		// to enable all other kinds of I/O
 				  }	
 :: InputId	 	:== Int						// unique id for every constructor and basic value appearing in the state
 :: FormUpdate	:== (InputId,UpdValue)		// info obtained when form is updated
@@ -644,7 +644,7 @@ where
 		
 toHtml :: a -> BodyTag | gForm {|*|} a
 toHtml a
-# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates undef)
+# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml"))
 = BodyTag na.form
 
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a

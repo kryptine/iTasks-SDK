@@ -14,7 +14,7 @@ import DataFile
 
 :: *NWorld								// io states...
 	= 	{ worldC	:: !*World			// world for any io
-		, inout		:: !*HtmlStream		// to read from stdin and write to stdout
+		, inout		:: *HtmlStream		// to read from stdin and write to stdout
 		, gerda		:: *Gerda			// to read and write to a relational database
 		, datafile	:: *DataFile		// to read and write to a Clean database in a file
 		}				
