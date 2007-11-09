@@ -29,7 +29,7 @@ derive write 	Inline
 
 :: Inline 		= Inline String
 
-:: UserPage 	:== !.(*HSt -> .(!Bool,Html,!*HSt))
+:: UserPage 	:== .(*HSt -> .(!Bool,Html,!*HSt))
 
 // doHtmlServer main wrapper for generating & handling of an Html form
 // depending on the option set (see iDataSettings) it will either 

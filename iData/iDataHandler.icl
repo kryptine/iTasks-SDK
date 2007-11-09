@@ -8,6 +8,7 @@ import httpServer, httpSubServer
 import Gerda
 import StdBimap
 
+
 derive gPrint (,), (,,), (,,,), UpdValue
 derive gParse (,), (,,), (,,,), UpdValue
 derive gHpr   (,), (,,), (,,,)
@@ -322,7 +323,7 @@ where
 	where
 		parseTriplet :: TripletUpdate -> (Triplet,Maybe b) | gParse {|*|} b
 		parseTriplet (triplet,update) = (triplet,parseString update)
-
+showList strs = "["+++foldr (\str strs -> str +++ "," +++ strs) "]" strs
 // It can be convenient to explicitly delete IData, in particular for persistent IData obejct
 // or to optimize iTasks
 // All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
