@@ -46,7 +46,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Vers
 :: GarbageCollect =	Collect | NoCollect
 
 :: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
-:: TraceInfo	:== Maybe !(!Bool,!(!Int,!TaskNr,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe (!Bool,!(!Int,!TaskNr,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
@@ -255,31 +255,31 @@ applicationVersionNr			= ThisExe <+++ "_Version"
 userVersionNr thisUser			= "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr" 
 
-setAppversion :: !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
+setAppversion :: !(Int -> Int) !*HSt -> (Form Int,!*HSt) 
 setAppversion    f hst	= mkStoreForm (Init, IF_Sapl nFormId pFormId applicationVersionNr 0) 	 f hst
 
-setPUser :: !Int !(VersionInfo -> VersionInfo) !*HSt -> (Form !VersionInfo,!*HSt) 
+setPUser :: !Int !(VersionInfo -> VersionInfo) !*HSt -> (Form VersionInfo,!*HSt) 
 setPUser user f hst	= mkStoreForm (Init, IF_Sapl nFormId pFormId (userVersionNr user) 	{ versionNr 	= 0
 																		, newThread		= False
 																		, deletedThreads= []
 																		} <@ NoForm) 	 f hst
 
-addPUserDeletedThread :: !Int !TaskNr !*HSt -> (Form !VersionInfo,!*HSt) 
+addPUserDeletedThread :: !Int !TaskNr !*HSt -> (Form VersionInfo,!*HSt) 
 addPUserDeletedThread user thread hst	= setPUser user (\r -> {r & deletedThreads = [thread:r.deletedThreads]}) hst
 
-setPUserNr :: !Int !(Int -> Int) !*HSt -> (Form !VersionInfo,!*HSt) 
+setPUserNr :: !Int !(Int -> Int) !*HSt -> (Form VersionInfo,!*HSt) 
 setPUserNr user f hst	= setPUser user (\r -> {r & versionNr = f r.versionNr}) hst
 
-setPUserNewThread :: !Int !*HSt -> (Form !VersionInfo,!*HSt) 
+setPUserNewThread :: !Int !*HSt -> (Form VersionInfo,!*HSt) 
 setPUserNewThread user hst	= setPUser user (\r -> {r & newThread = True}) hst
 
 //clearPUser :: !Int !*HSt -> (Form !VersionInfo,!*HSt) 
 //clearPUser user hst	= setPUser user (\r -> {r & newThread = False, deletedThreads = []}) hst
 
-clearIncPUser :: !Int !(Int -> Int) !*HSt -> (Form !VersionInfo,!*HSt) 
+clearIncPUser :: !Int !(Int -> Int) !*HSt -> (Form VersionInfo,!*HSt) 
 clearIncPUser user f hst	= setPUser user (\r -> {r & newThread = False, deletedThreads = [], versionNr = f r.versionNr}) hst
 
-setSVersionNr :: !Int !(Int -> Int) !*HSt -> (Form !Int,!*HSt) 
+setSVersionNr :: !Int !(Int -> Int) !*HSt -> (Form Int,!*HSt) 
 setSVersionNr user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
 
 // ******************************************************************************************************
@@ -289,7 +289,7 @@ setSVersionNr user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user
 startTstTask :: !Int !Bool !Bool !Bool !(!Bool,![BodyTag])  !(Task a) !*TSt -> (!Bool,![BodyTag],!*HSt) //| iCreate a 
 startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  taska tst=:{hst,tasknr,staticInfo}
 
-// prolog
+// prologue
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
@@ -319,7 +319,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 						= (IF_Ajax (startAjaxApplication thisUser pversion.value) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
-// epilog
+// epilogue
 # (_,hst)				= clearIncPUser thisUser (mbinc nonewversion) hst									// clear administration
 # (sversion,hst)	 	= setSVersionNr thisUser (mbinc nonewversion) hst
 
@@ -601,10 +601,10 @@ where
 foreverTask :: !(Task a) -> Task a | iData a
 foreverTask task = mkTask "foreverTask" foreverTask`
 where
-	foreverTask` tst=:{tasknr,activated,userId,options} 
+	foreverTask` tst=:{tasknr,activated,userId,options,html} 
 	| options.gc == Collect																				// garbace collect everything when task finsihed
 		# (val,tst=:{activated})= task {tst & tasknr = [-1:tasknr]}										// shift tasknr
-		| activated 			= foreverTask` (deleteSubTasks tasknr {tst & tasknr = tasknr, options = options}) 			// loop
+		| activated 			= foreverTask` (deleteSubTasks tasknr {tst & tasknr = tasknr, options = options, html = html}) 			// loop
 		= (val,tst)					
 	# taskId					= iTaskId userId tasknr "ForSt"											// create store id
 	# (currtasknr,tst)			= LiftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst		// fetch actual tasknr
@@ -612,7 +612,7 @@ where
 	| activated 																						// task is completed	
 		# ntasknr				= incNr currtasknr.value												// incr tasknr
 		# (currtasknr,tst)		= LiftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
-		= foreverTask` {tst & tasknr = tasknr, options = options}										// initialize new task
+		= foreverTask` {tst & tasknr = tasknr, options = options, html = html}										// initialize new task
 	= (val,tst)					
 
 (<!) infix 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a

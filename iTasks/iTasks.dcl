@@ -18,7 +18,7 @@ derive read 	Void, TCl
 derive write 	Void, TCl
 
 :: *TSt												// abstract task state
-:: Task a			:== St !*TSt !a					// an interactive task
+:: Task a			:== St *TSt a					// an interactive task
 
 :: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
 
