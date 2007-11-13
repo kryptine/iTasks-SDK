@@ -85,6 +85,8 @@ return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 /* prompting variants
 (?>>)			:: prompt as long as task is active but not finished
 (!>>)			:: prompt when task is activated
+(<<?)			:: same as ?>>, except that prompt is displayed *after* task
+(<<!)			:: same as !>>, except that prompt is displayed *after* task
 (<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
 (<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
 return_VF		:: return the value and show the Html code specified
@@ -93,9 +95,11 @@ return_D		:: return the value and show it in iData display format
 
 (?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
 (!>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
+(<<?) infix  5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
+(<<!) infix  5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
 (<|)  infix  6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 	-> Task a 		| iCreate a
 (<!)  infix  6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
-return_VF 		:: !a ![BodyTag] 		  					-> Task a		| iCreateAndPrint a
+return_VF 		:: ![BodyTag] !a 		  					-> Task a		| iCreateAndPrint a
 return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
 /* Assign tasks to user with indicated id

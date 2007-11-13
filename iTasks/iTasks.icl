@@ -526,8 +526,8 @@ where
 	return_Display` tst
 	= (a,{tst & html = tst.html +|+ BT [toHtml a ]})		// return result task
 
-return_VF :: !a ![BodyTag] -> (Task a) | iCreateAndPrint a
-return_VF a bodytag = mkTask "return_VF" return_VF`
+return_VF :: ![BodyTag] !a -> (Task a) | iCreateAndPrint a
+return_VF bodytag a = mkTask "return_VF" return_VF`
 where
 	return_VF` tst
 	= (a,{tst & html = tst.html +|+ BT bodytag})
@@ -560,6 +560,24 @@ where
 	| not myturn			= (createDefault,tst)
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
+
+(<<?) infix  5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
+(<<?) task prompt = doTask
+where
+	doTask tst=:{html=ohtml,activated}
+	| not activated						= (createDefault,tst)
+//	# (a,tst=:{activated,html=nhtml}) 	= IF_Ajax (UseAjax @>> task) task {tst & html = BT []}
+	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
+	| activated 						= (a,{tst & html = ohtml})
+	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
+
+(<<!) infix 5 :: !(Task a) ![BodyTag] -> (Task a) | iCreate a
+(<<!) task prompt = doTask
+where
+	doTask tst=:{html=ohtml,activated=myturn}
+	| not myturn			= (createDefault,tst)
+	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
+	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
 
 /////////////////////////////////////
