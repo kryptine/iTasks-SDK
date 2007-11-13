@@ -21,6 +21,7 @@ CleanStyles :: [Style]
 CleanStyles 
 	=:	[ Style "CleanStyle" 
 			[ 	BgImage (`Img_URL (ThisExe +++ "/back35.jpg"))
+			,	BgColor (`Color (`Colorname Teal))
 			,  	FntFamily "Arial, Helvetica, sans-serif"
 			, 	FntStyle Fst_Normal
 			,	FntWeight Fwo_Normal
