@@ -139,10 +139,10 @@ chooseTask_pdm 	:: ![(String,Task a)] 						-> Task a	 	| iCreateAndPrint a
 mchoiceTasks 	:: ![(String,Task a)] 						-> Task [a] 	| iCreateAndPrint a
 
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
-orTask			:: do both iTasks in any order, task completed and ends as soon as first one done
+orTask			:: do both iTasks in any order, combined task completed as any subtask is done
 (-||-)			:: same, now as infix combinator
-orTask2			:: do both iTasks in any order, task completed and ends as soon as first one done
-orTasks			:: do all  iTasks in any order, task completed and ends as soon as first one done
+orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
+orTasks			:: do all  iTasks in any order, combined task completed as any subtask is done
 */
 orTask 			:: !(Task a,Task a) 						-> Task a 		| iCreateAndPrint a
 (-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iCreateAndPrint a
