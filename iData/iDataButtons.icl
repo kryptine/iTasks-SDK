@@ -1,6 +1,6 @@
 implementation module iDataButtons
 
-import StdFunc, StdList, StdString
+import StdFunc, StdList, StdString, StdArray
 import iDataFormlib, iDataHandler, iDataStylelib, iDataTrivial, StdBimap
 
 derive gUpd  	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode/*, Button, CheckBox*/, RadioButton /*, PullDownMenu, TextInput , TextArea, PasswordBox*/
