@@ -124,6 +124,12 @@ gForm{|DisplayMode|} gHa (init,formid) hst
 			},incrHSt 1 hst)
 
 // Buttons to press
+cleanString :: !String -> String
+cleanString name = {clean_char c \\ c<-: name}
+where
+	clean_char '"' = ' '
+	clean_char c   = c
+
 
 gForm{|Button|} (init,formid) hst 
 # (cntr,hst)			= CntrHSt hst
@@ -133,7 +139,7 @@ gForm{|Button|} (init,formid) hst
 		, value			= v
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type		Inp_Button
-							, Inp_Value		(SV bname)
+							, Inp_Value		(SV (cleanString bname))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS bname))
 							, `Inp_Std		[Std_Style ("width:" <+++ size)]
 							, `Inp_Events	(callClean OnClick Edit "" formid.lifespan)
@@ -144,7 +150,7 @@ gForm{|Button|} (init,formid) hst
 		, value			= v
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type		Inp_Image
-							, Inp_Value		(SV ref)
+							, Inp_Value		(SV (cleanString ref))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS ref))
 							, `Inp_Std		[Std_Style ("width:" <+++ width <+++ " height:" <+++ height)]
 							, `Inp_Events	(callClean OnClick Edit "" formid.lifespan)
@@ -162,7 +168,7 @@ gForm{|CheckBox|} (init,formid) hst
 		, value			= v
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type		Inp_Checkbox
-							, Inp_Value		(SV name)
+							, Inp_Value		(SV (cleanString name))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
 							, Inp_Checked	Checked
 							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan)
@@ -173,7 +179,7 @@ gForm{|CheckBox|} (init,formid) hst
 		, value			= v
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type		Inp_Checkbox
-							, Inp_Value		(SV name)
+							, Inp_Value		(SV (cleanString name))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
 							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan)
 							]) ""]
@@ -187,7 +193,7 @@ gForm{|RadioButton|} (init,formid) hst
 		, value			= v
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type			Inp_Radio
-							, Inp_Value			(SV name)
+							, Inp_Value			(SV (cleanString name))
 							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
 							, Inp_Checked		Checked
 							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan)
@@ -198,7 +204,7 @@ gForm{|RadioButton|} (init,formid) hst
 		, value			= v
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type			Inp_Radio
-							, Inp_Value			(SV name)
+							, Inp_Value			(SV (cleanString name))
 							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
 							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan)
 							]) ""]
@@ -234,7 +240,7 @@ where
 	(size,v,updv)		= case formid.ival of
 							(TI size i) = (size,IV i,UpdI i)
 							(TR size r) = (size,RV r,UpdR r)
-							(TS size s) = (size,SV s,UpdS s)
+							(TS size s) = (size,SV (cleanString s),UpdS s)
 
 gForm{|TextArea|} (init,formid) hst 
 # (cntr,hst)			= CntrHSt hst
@@ -274,7 +280,7 @@ where
 	mkPswInput size (init,formid=:{mode}) sval updval hst=:{cntr,submits}
 	| mode == Edit || mode == Submit
 		= ( Input 	[ Inp_Type		Inp_Password
-					, Inp_Value		(SV sval)
+					, Inp_Value		(SV (cleanString sval))
 					, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
 					, Inp_Size		size
 					, `Inp_Std		[EditBoxStyle, Std_Title "::Password"]
@@ -283,7 +289,7 @@ where
 			,incrHSt 1 hst)
 	| mode == Display
 		= ( Input 	[ Inp_Type		Inp_Password
-					, Inp_Value		(SV sval)
+					, Inp_Value		(SV (cleanString sval))
 					, Inp_ReadOnly	ReadOnly
 					, `Inp_Std		[DisplayBoxStyle]
 					, Inp_Size		size
