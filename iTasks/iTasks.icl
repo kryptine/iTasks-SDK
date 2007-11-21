@@ -1329,8 +1329,8 @@ where
 // Exception Handling
 // ******************************************************************************************************
 
-// to be implemented
-
+// WORK IN PROGRESS
+// the following implementation is not finished, nor tested, not working
 
 serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String
 serializeExceptionHandler task = IF_Sapl (abort "Cannot serialize Server thread on Client\n") (copy_to_string task)					
@@ -1338,8 +1338,11 @@ serializeExceptionHandler task = IF_Sapl (abort "Cannot serialize Server thread 
 deserializeExceptionHandler :: .String -> .(!Dynamic -> Task a.)
 deserializeExceptionHandler thread = IF_Sapl (abort "Cannot de-serialize Server thread on Client\n") (fst (copy_from_string {c \\ c <-: thread} ))	
 
-mkExceptionHandler :: !(a -> Bool) !(Task a) -> Task a | iData a				// create an exception Handler
-mkExceptionHandler pred task = newTask "exceptionHandler" evalTask			
+Raise :: e -> Task a | iCreate a & TC e	
+Raise e = RaiseDyn (dynamic e)
+
+(<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e			// create an exception Handler
+(<^>) pred task = newTask "exceptionHandler" evalTask			
 where
 	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
@@ -1347,31 +1350,47 @@ where
 		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
 									, thrUserId 		= userId
 									, thrOptions 		= options
-									, thrCallback 		= serializeExceptionHandler (Catch pred)
-									, thrCallbackClient = abort "no exceptions implemented" //serializeThreadClient (Catch pred) 
+									, thrCallback 		= serializeExceptionHandler (Try pred)
+									, thrCallbackClient = "" //abort "no exceptions implemented" //serializeThreadClient (Catch pred) 
 									, thrKind			= ExceptionHandler
 									} tst 
 		= task tst																// do the regular task
 	= task tst																	// do the regular task
 
-	Catch :: !(a -> Bool) !Dynamic  -> Task a | iData a
-	Catch pred (value :: a^) 
-	| pred value = return_V value 
+	Try :: !(e -> a) !Dynamic  -> Task a | iData a & TC e
+	Try handler (exception :: e^) = catch1 
+	with 
+		catch1 tst=:{tasknr} 
+		# tst = deleteSubTasks tasknr tst
+		= return_V (handler exception) tst
+	Try handler dyn = catch2
+	with
+		catch2 tst=:{tasknr} 
+		# tst = deleteSubTasks tasknr tst
+		= RaiseDyn dyn tst
 
-
-Raise :: !a -> Task a | iData a
-Raise value = raise
+RaiseDyn :: !Dynamic -> Task a | iCreate a
+RaiseDyn value = raise
 where
-	raise tst=:{tasknr}
-	# (mbthread,tst)		= findParentThread tasknr tst							// look for exception handler
-	| isNil mbthread		= abort	("Exception raised, value: " +++ printToString  value +++ ", but no handler installed")										// no handler installed
-/*
+	raise tst=:{tasknr,staticInfo,activated}
+	| not activated = (createDefault,tst)	
+	# (mbthread,tst=:{hst})	= findParentThread tasknr tst						// look for exception handler
+	| isNil mbthread		= abort	("\nException raised, but no handler installed\n")	// no handler installed
+	# thread 				= hd mbthread										// thread found
+	# (version,hst)	 		= setPUserNr staticInfo.currentUserId id hst		// inspect global effects administration
+	| isMember thread.thrTaskNr version.value.deletedThreads					// thread has been deleted is some past, version conflict
+							= abort	("\nException raised, but  handler thread was deleted\n")		
+	= evalException thread value {tst & html = BT [], hst = hst}						// yes, *finally*, we heave found an handler
 
-# thread 				= hd mbthread											// thread found
-| isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
-	= ((True,Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
-*/
-
+evalException :: !TaskThread !Dynamic -> Task a 										// execute the thread !!!!
+evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = evalException` 
+where
+	evalException` tst=:{tasknr,options,userId,html}									
+	# (doClient,noThread)  				= IF_Sapl (True,thrCallbackClient == "") (False,False)  
+	| doClient && noThread				= abort "Cannot execute thread on Client\n" 
+	= IF_Sapl
+		(abort "exception handling not implemeneted") //(deserializeThreadClient thrCallbackClient)
+		(deserializeExceptionHandler thrCallback dynval	{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []})
 
 // ******************************************************************************************************
 // Task Creation and Deletion Utilities

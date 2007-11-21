@@ -25,7 +25,7 @@ derive write 	Void, TCl
 defaultUser			:== 0							// default id of user
 
 // *********************************************************************************************************************************
-// Setting options for any collection of iTask workflows
+// Setting options for any collection of iTask workflows:
 
 :: GarbageCollect 	= Collect 						// garbage collect iTask administration
 					| NoCollect						// no garbage collection
@@ -72,7 +72,7 @@ editTask		:: create a task editor (with submit button) to edit a value of given 
 editTask 		:: !String 	!a 								-> Task a		| iData a 
 editTaskPred 	:: 			!a !(a -> (Bool, [BodyTag]))	-> Task a		| iData a 
 
-/* standard monadic combinators on iTasks
+/* standard monadic combinators on iTasks:
 (=>>)			:: for sequencing: bind
 (#>>)			:: for sequencing: bind, but no argument passed
 return_V		:: lift a value to the iTask domain and return it
@@ -82,7 +82,7 @@ return_V		:: lift a value to the iTask domain and return it
 (#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b
 return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
-/* prompting variants
+/* prompting variants:
 (?>>)			:: prompt as long as task is active but not finished
 (!>>)			:: prompt when task is activated
 (<<?)			:: same as ?>>, except that prompt is displayed *after* task
@@ -102,7 +102,7 @@ return_D		:: return the value and show it in iData display format
 return_VF 		:: ![BodyTag] !a 		  					-> Task a		| iCreateAndPrint a
 return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
-/* Assign tasks to user with indicated id
+/* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
 (@::)			:: same, default task name given
 */
@@ -111,7 +111,7 @@ return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
 (@:)  infix 3 	:: !(!String,!Int) !(Task a)				-> Task a		| iData a
 (@::) infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
-/* Handling recursion and loops
+/* Handling recursion and loops:
 newTask			:: use the to promote a (recursively) defined user function to as task
 foreverTask		:: infinitely repeating Task
 repeatTask		:: repeat Task until predict is valid
@@ -125,7 +125,7 @@ seqTasks		:: do all iTasks one after another, task completed when all done
 */
 seqTasks		:: ![(String,Task a)] 						-> Task [a]		| iCreateAndPrint a
 
-/* Choose Tasks
+/* Choose Tasks:
 buttonTask		:: Choose the iTask when button pressed
 chooseTask		:: Choose one iTask from list, depending on button pressed, button horizontal displayed
 chooseTaskV		:: Choose one iTask from list, depending on button pressed, buttons vertical displayed
@@ -171,7 +171,7 @@ waitForTimeTask	:: !HtmlTime								-> Task HtmlTime
 waitForTimerTask:: !HtmlTime								-> Task HtmlTime
 waitForDateTask	:: !HtmlDate								-> Task HtmlDate
 
-/* Experimental department
+/* Experimental department:
    Will not work when the tasks are garbage collected to soon !!
 -!>				:: a task, either finished or interrupted (by completion of the first task) is returned in the closure
 				   if interrupted, the work done so far is returned (!) which can be continued somewhere else
@@ -190,6 +190,14 @@ closureLZTask	:: Same, but now the original task will not be done unless someone
 channel  		:: String (Task a) 							-> Task (TCl a,TCl a) 		| iCreateAndPrint a
 closureTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
 closureLzTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
+
+/* Exception Handling:
+<^>				:: When exception of type e is Raised in Task a, catch it here and transfer it to type a.
+				   Otherwise try a parent handler.
+Raise 			:: Raises an exception; the type stored in the dynamic determines the handlers who can catch it
+*/
+(<^>) infix  1  :: !(e -> a) !(Task a) -> Task a 		| iData   a & TC e			// assigns an exception Handler
+Raise 			:: e -> Task a 							| iCreate a & TC e			// rases an exception
 
 
 /* Lifting to iTask domain
