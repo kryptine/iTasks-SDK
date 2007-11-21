@@ -10,13 +10,13 @@ import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iD
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 
-derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe, []
-derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe, []
-derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe
-derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, Maybe
-derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread
-derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread
-derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread
+derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind, Maybe, []
+derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind, Maybe, []
+derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind, Maybe
+derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind, Maybe
+derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind
+derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind
+derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, VersionInfo, TaskThread, ThrKind
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -54,8 +54,11 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Vers
 					, thrOptions		:: !Options		// options of the task
 					, thrCallback		:: !String		// serialized callback function for the server
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
+					, thrKind			:: !ThrKind 	// kind of thread
 					}
-
+:: ThrKind		=	ServerThread
+				|	ClientThread
+				|	ExceptionHandler
 :: VersionInfo	=	{ versionNr			:: !Int			// latest querie number of a user
 					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
 					, deletedThreads	:: ![TaskNr]	// are there threads deleted (used for Ajax)?
@@ -436,16 +439,17 @@ where
 									, thrOptions 		= options
 									, thrCallback 		= serializeThread task
 									, thrCallbackClient = serializeThreadClient task 
+									, thrKind			= if onclient ClientThread ServerThread
 									} tst 
 		= evalTask tst															// try it again, entry point should be there
 	# (_,thread)		= fromJust mbthread										// entry point found
 	= evalTaskThread thread tst													// and evaluate it
 
-	insertNewThread :: !TaskThread *TSt -> *TSt									// insert new thread in table
-	insertNewThread thread tst		
-	# (table,tst)	= ThreadTableStorage id tst									// read thread table
-	# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 			// insert the new thread
-	= tst
+insertNewThread :: !TaskThread *TSt -> *TSt										// insert new thread in table
+insertNewThread thread tst		
+# (table,tst)	= ThreadTableStorage id tst										// read thread table
+# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
+= tst
 
 evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
 evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} = evalTaskThread` 
@@ -800,7 +804,6 @@ where
 		# tst = deleteSubTasks tasknr tst
 		= (a,{tst & activated = False})
 	= (a,tst)
-
 
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
@@ -1327,6 +1330,48 @@ where
 // ******************************************************************************************************
 
 // to be implemented
+
+
+serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String
+serializeExceptionHandler task = IF_Sapl (abort "Cannot serialize Server thread on Client\n") (copy_to_string task)					
+
+deserializeExceptionHandler :: .String -> .(!Dynamic -> Task a.)
+deserializeExceptionHandler thread = IF_Sapl (abort "Cannot de-serialize Server thread on Client\n") (fst (copy_from_string {c \\ c <-: thread} ))	
+
+mkExceptionHandler :: !(a -> Bool) !(Task a) -> Task a | iData a				// create an exception Handler
+mkExceptionHandler pred task = newTask "exceptionHandler" evalTask			
+where
+	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
+	# (mbthread,tst)	= findThreadInTable tasknr tst							// look if there is an entry for this task
+	| isNothing mbthread														// not yet, insert new entry		
+		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
+									, thrUserId 		= userId
+									, thrOptions 		= options
+									, thrCallback 		= serializeExceptionHandler (Catch pred)
+									, thrCallbackClient = abort "no exceptions implemented" //serializeThreadClient (Catch pred) 
+									, thrKind			= ExceptionHandler
+									} tst 
+		= task tst																// do the regular task
+	= task tst																	// do the regular task
+
+	Catch :: !(a -> Bool) !Dynamic  -> Task a | iData a
+	Catch pred (value :: a^) 
+	| pred value = return_V value 
+
+
+Raise :: !a -> Task a | iData a
+Raise value = raise
+where
+	raise tst=:{tasknr}
+	# (mbthread,tst)		= findParentThread tasknr tst							// look for exception handler
+	| isNil mbthread		= abort	("Exception raised, value: " +++ printToString  value +++ ", but no handler installed")										// no handler installed
+/*
+
+# thread 				= hd mbthread											// thread found
+| isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
+	= ((True,Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
+*/
+
 
 // ******************************************************************************************************
 // Task Creation and Deletion Utilities
