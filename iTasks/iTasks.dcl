@@ -208,7 +208,7 @@ appHSt 			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
 appHSt2			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
 
 /* Controlling side effects
-Once			:; 	task will be done only once, the value of the task will be remembered
+Once			:: 	task will be done only once, the value of the task will be remembered, maybe useful for some lifted iData
 */
 
 Once 			:: (Task a) 								-> Task a 			| iData a

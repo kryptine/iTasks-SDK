@@ -54,7 +54,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Vers
 					, thrOptions		:: !Options		// options of the task
 					, thrCallback		:: !String		// serialized callback function for the server
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
-					, thrDone			:: !Bool		// thread task is ready
+//					, thrDone			:: !Bool		// thread task is ready
 					}
 
 :: VersionInfo	=	{ versionNr			:: !Int			// latest querie number of a user
@@ -1344,7 +1344,6 @@ where
 									, thrOptions 		= options
 									, thrCallback 		= serializeThread task
 									, thrCallbackClient = serializeThreadClient task 
-									, thrDone			= False
 									} tst 
 		= evalTask tst															// try it again, entry point should be there
 	# (_,thread)		= fromJust mbthread										// entry point found
@@ -1356,8 +1355,8 @@ insertNewThread thread tst
 # (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
 = tst
 
-evalTaskThread :: !TaskThread -> Task a 											// execute the thread !!!!
-evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrDone} = evalTaskThread` 
+evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
+evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} = evalTaskThread` 
 where
 	evalTaskThread` tst=:{tasknr,options,userId,html}									
 	# (doClient,noThread)  				= IF_Sapl (True,thrCallbackClient == "") (False,False)  
@@ -1366,19 +1365,9 @@ where
 											(deserializeThreadClient thrCallbackClient)
 											(deserializeThread thrCallback) 
 												{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
-	| not thrDone
-		| activated																		// thread is finished, delete the entry...
-			# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}				// remove thread from administration
-	//		# tst =  deleteSubTasks thrTaskNr {tst & html = html +|+ nhtml}				// thread and subtasks finished
-	/*		# tst = insertNewThread 	{ thrTaskNr 		= thrTaskNr					// administrate resulting value
-										, thrUserId 		= thrUserId
-										, thrOptions 		= thrOptions
-										, thrCallback 		= serializeThread (\tst -> (a,{tst & activated = True}))
-										, thrCallbackClient = serializeThreadClient (\tst -> (a,tst))
-										, thrDone 			= True
-										} tst */
-			= (a,{tst & tasknr = tasknr, options = options, userId = userId})			// remove entry from table
-		= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
+	| activated																	// thread is finished, delete the entry...
+		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}			// remove thread from administration
+		= (a,{tst & tasknr = tasknr, options = options, userId = userId})		// remove entry from table
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
 // Any action requiering the calculation of the Task Tree from scratch will be done one the server
@@ -1387,58 +1376,58 @@ where
 
 startAjaxApplication :: !Int !VersionInfo !(Task a) !*TSt -> ((!Bool,Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
-# (mbevent,tst)			= getTripletTaskNrs tst										// see if there are any events, i.e. triplets received
-| isNothing mbevent 																// no events
-	# (a,tst)	= taska tst															// evaluate main application from scratch
+# (mbevent,tst)			= getTripletTaskNrs tst									// see if there are any events, i.e. triplets received
+| isNothing mbevent 															// no events
+	# (a,tst)	= taska tst														// evaluate main application from scratch
 	= ((True,Just a,defaultUser,tasknr,"Page",True,[tasknr]), tst)
 
-# event					= fromJust mbevent											// event found
-# (table,tst)			= ThreadTableStorage id tst									// read thread table
-| isNil table																		// events, but no threads, evaluate main application from scratch
-	# (a,tst=:{activated}) 	= taska tst												// evaluate main application from scratch
+# event					= fromJust mbevent										// event found
+# (table,tst)			= ThreadTableStorage id tst								// read thread table
+| isNil table																	// events, but no threads, evaluate main application from scratch
+	# (a,tst=:{activated}) 	= taska tst											// evaluate main application from scratch
 	= ((True,Just a,defaultUser,event,if activated "iData application ended" "None",True,[tasknr]), {tst & activated = activated})
 
-# (mbthread,tst)		= findParentThread event tst								// look for thread to evaluate
-| isNil mbthread																	// no thread can be found, happens e.g. when one switches from tasks
-	# (a,tst) 	= taska tst															// evaluate main application from scratch
+# (mbthread,tst)		= findParentThread event tst							// look for thread to evaluate
+| isNil mbthread																// no thread can be found, happens e.g. when one switches from tasks
+	# (a,tst) 	= taska tst														// evaluate main application from scratch
 	= ((True,Just a,defaultUser,event,"Page, no thread",True,[tasknr]), tst)
 
-# thread 				= hd mbthread												// thread found
-| isMember thread.thrTaskNr versioninfo.deletedThreads								// thread has been deleted is some past, version conflict
+# thread 				= hd mbthread											// thread found
+| isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
 	= ((True,Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
 
-| versioninfo.newThread																// newthread added by someone
-	# (a,tst)	= taska tst															// evaluate main application from scratch
+| versioninfo.newThread															// newthread added by someone
+	# (a,tst)	= taska tst														// evaluate main application from scratch
 	= ((True,Just a,defaultUser,event,"Page, new task has been added",True,[tasknr]), tst)
 
-| not (isNil versioninfo.deletedThreads) 											// some thread has been deleted										
-	# (a,tst) 	= taska tst															// administartion not up to date, evaluate main application from scratch
+| not (isNil versioninfo.deletedThreads) 										// some thread has been deleted										
+	# (a,tst) 	= taska tst														// administartion not up to date, evaluate main application from scratch
 	= ((True,Just a,defaultUser,event,"Page, another task has been deleted",True,[tasknr]), tst)
 
-| thread.thrUserId <> thisUser														// updating becomes too complicated
-	# (a,tst) 			= taska tst													// evaluate main application from scratch
+| thread.thrUserId <> thisUser													// updating becomes too complicated
+	# (a,tst) 			= taska tst												// evaluate main application from scratch
 	= ((True,Just a,defaultUser,event,"of " <+++ thread.thrUserId,True,[tasknr]), tst)
-# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}				// yes, *finally*, we heave a thread ...
-| not activated																		// thread not yet finished
+# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}			// yes, *finally*, we heave a thread ...
+| not activated																	// thread not yet finished
 	= ((False,Nothing,thisUser,event,"",thread.thrOptions.tasklife <> Client,[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
 
-# (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst						// look for thread to evaluate
+# (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst			// look for thread to evaluate
 = doParent mbthread taska event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
 where
-	doParent [] taska event accu tst												// no more parents of current event, do main task
-	# (a,tst=:{activated}) 	= taska {tst & html = BT []}							// start main task
+	doParent [] taska event accu tst											// no more parents of current event, do main task
+	# (a,tst=:{activated}) 	= taska {tst & html = BT []}						// start main task
 	# message				= if activated "iData application ended" "iTask Root"
 	= ((True,Just a,defaultUser,event,message, True,[tasknr:accu]), {tst & activated = activated})
 
-	doParent [parent:next] taska event accu tst										// do parent of current thread
-	| parent.thrUserId <> thisUser													// updating becomes too complicated
-		# (a,tst) 			= taska tst												// evaluate main application from scratch
+	doParent [parent:next] taska event accu tst									// do parent of current thread
+	| parent.thrUserId <> thisUser												// updating becomes too complicated
+		# (a,tst) 			= taska tst											// evaluate main application from scratch
 		= ((True,Just a,defaultUser,event,"of parent" <+++ parent.thrUserId,True,[tasknr]), tst)
 
-	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}			// start parent
-	| not activated																	// parent thread not yet finished
+	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}		// start parent
+	| not activated																// parent thread not yet finished
 		= ((False,Nothing,thisUser,event, "", parent.thrOptions.tasklife <> Client,[parent.thrTaskNr:accu]),tst)		// no further evaluation, aks user for more input
-	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst			// look for thread to evaluate
+	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst		// look for thread to evaluate
 	= doParent mbthread taska event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
 	
 // Thread Table Manipulation functions
@@ -1447,7 +1436,7 @@ where
 // Currently for testing an unordered table is used, should become a ordered tree someday...
 
 
-ThreadTableStorage :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)			// used to store Tasknr of callbackfunctions / threads
+ThreadTableStorage :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
 ThreadTableStorage fun = handleTable
 where
 	handleTable tst=:{options,staticInfo}  
@@ -1460,37 +1449,37 @@ where
 
 	storageId_ThTa = ThisExe +++ "-ThreadTable"
 
-findThreadInTable :: !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)				// find thread that belongs to given tasknr
+findThreadInTable :: !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)			// find thread that belongs to given tasknr
 findThreadInTable tasknr tst
-# (table,tst)	= ThreadTableStorage id tst											// read thread table
-# pos			= lookupThread tasknr 0 table										// look if there is an entry for this task
+# (table,tst)	= ThreadTableStorage id tst										// read thread table
+# pos			= lookupThread tasknr 0 table									// look if there is an entry for this task
 | pos < 0		= (Nothing, tst)
 = (Just (pos,table!!pos),tst) 
 where
 	lookupThread :: !TaskNr !Int !ThreadTable -> Int
 	lookupThread tableKey n []			
-		= -1																		// no, cannot find thread
+		= -1																	// no, cannot find thread
 	lookupThread tasknrToFind n [entry:next]
-		| showTaskNr tasknrToFind == showTaskNr entry.thrTaskNr	= n					// yes, thread is administrated
+		| showTaskNr tasknrToFind == showTaskNr entry.thrTaskNr	= n				// yes, thread is administrated
 		= lookupThread tasknrToFind (inc n) next
 
 deleteThreads :: !TaskNr !*TSt -> *TSt
-deleteThreads tasknr tst															// delete a thread and all its children
-# (mbthread,tst)		= findThreadInTable tasknr tst								// find the thread entry in the table
+deleteThreads tasknr tst														// delete a thread and all its children
+# (mbthread,tst)		= findThreadInTable tasknr tst							// find the thread entry in the table
 # mytasknr				= reverse tasknr
-| isNothing mbthread	= deleteChildren mytasknr tst								// no entry, but delete children
+| isNothing mbthread	= deleteChildren mytasknr tst							// no entry, but delete children
 # (pos,_)				= fromJust mbthread
-# (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst 	// remove entry
-= deleteChildren mytasknr tst														// and all children
+# (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst // remove entry
+= deleteChildren mytasknr tst													// and all children
 where
 	deleteChildren mytasknr tst=:{staticInfo}
-	# (table,tst)	 		= ThreadTableStorage id tst								// read thread table
+	# (table,tst)	 		= ThreadTableStorage id tst							// read thread table
 	# allChildsPos			= [pos \\ entry <- table & pos <- [0..] | isChild mytasknr entry.thrTaskNr ]
 	| isNil allChildsPos	= tst
 	# otherUsersThreads		= [ ((table!!entry).thrUserId,(table!!entry).thrTaskNr) \\ entry <- allChildsPos | (table!!entry).thrUserId <> staticInfo.currentUserId]
 	# tst					= administrateDeletedThreads otherUsersThreads tst 
-	# table					= deleteChilds (reverse (sort allChildsPos)) table		// delete highest entries first !
-	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst					// read thread table
+	# table					= deleteChilds (reverse (sort allChildsPos)) table	// delete highest entries first !
+	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst				// read thread table
 	= tst
 
 	deleteChilds [] table 			= table
@@ -1500,10 +1489,10 @@ where
 
 administrateDeletedThreads [] tst = tst
 administrateDeletedThreads [(user,tasknr):users] tst=:{hst}
-# (_,hst)	= addPUserDeletedThread user tasknr hst				// administrate deleted thread in user administration
-= administrateDeletedThreads users {tst & hst = hst}				// such that they are forced to recalculate the whole page
+# (_,hst)	= addPUserDeletedThread user tasknr hst								// administrate deleted thread in user administration
+= administrateDeletedThreads users {tst & hst = hst}							// such that they are forced to recalculate the whole page
 
-getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)									// get list of tasknr belonging to events received
+getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)								// get list of tasknr belonging to events received
 getTripletTaskNrs tst=:{hst = hst=:{states}}
 # (triplets,states) = getAllTriplets states
 = (lowestTaskNr [mkTasknr (getDigits s) \\ ((s,_,_),_) <- triplets | s%(0,5) == "iTask_"],{tst & hst = {hst & states = states}})
@@ -1513,7 +1502,7 @@ where
 	mkTasknr list = reverse (map digitToInt [c \\ c <- list | isDigit c])
 
 	lowestTaskNr [] 	= Nothing
-	lowestTaskNr [x:xs] = Just (lowest x xs)										// lowest number gives highest position in tree
+	lowestTaskNr [x:xs] = Just (lowest x xs)									// lowest number gives highest position in tree
 
 	lowest :: TaskNr [TaskNr] -> TaskNr
 	lowest x [] 	= x
@@ -1521,12 +1510,12 @@ where
 	| x < y = lowest x ys
 	= lowest y ys
 
-findParentThread ::  !TaskNr !*TSt -> *([TaskThread],*TSt)							// finds parent thread closest to given set of task numbers
+findParentThread ::  !TaskNr !*TSt -> *([TaskThread],*TSt)						// finds parent thread closest to given set of task numbers
 findParentThread tasknr tst
-# (table,tst)		= ThreadTableStorage id tst										// read thread table
-| isNil table		= ([], tst)														// nothing in table, no parents
-| length tasknr <= 1 = ([], tst)													// no tasks left up
-# revtasknr			= reverse (tl tasknr)											// not relevant
+# (table,tst)		= ThreadTableStorage id tst									// read thread table
+| isNil table		= ([], tst)													// nothing in table, no parents
+| length tasknr <= 1 = ([], tst)												// no tasks left up
+# revtasknr			= reverse (tl tasknr)										// not relevant
 # entries 			= filter (\entry -> revtasknr%(0,length entry.thrTaskNr - 2) == (reverse (tl entry.thrTaskNr))) table			// finds thread closest to this one
 | isNil entries		= ([], tst)
 = (sortBy compare entries,tst)
