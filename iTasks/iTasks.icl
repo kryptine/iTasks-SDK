@@ -664,7 +664,7 @@ where
 // ******************************************************************************************************
 // monads for combining iTasks
 
-(=>>) infix 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
+(=>>) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
 (=>>) taska taskb = mybind
 where
 	mybind tst=:{options}
@@ -700,7 +700,7 @@ where
 // adding Html code for prompting and feedback
 
 //(?>>) infix 5 :: [BodyTag] !(Task a) -> (Task a) | iCreate a
-(?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
+(?>>) infixr 5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
 (?>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -709,7 +709,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(<<?) infix  5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
+(<<?) infixl 5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
 (<<?) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -718,7 +718,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
-(!>>) infix 5 :: ![BodyTag] !(Task a) -> (Task a) | iCreate a
+(!>>) infixr 5 :: ![BodyTag] !(Task a) -> (Task a) | iCreate a
 (!>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -726,7 +726,7 @@ where
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(<<!) infix 5 :: !(Task a) ![BodyTag] -> (Task a) | iCreate a
+(<<!) infixl 5 :: !(Task a) ![BodyTag] -> (Task a) | iCreate a
 (<<!) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -734,7 +734,7 @@ where
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
-(<|) infix 6 :: !(Task a) !(a -> (Bool, [BodyTag])) -> Task a | iCreate a
+(<|) infixl 6 :: !(Task a) !(a -> (Bool, [BodyTag])) -> Task a | iCreate a
 (<|) taska pred = doTask
 where
 	doTask tst=:{html = ohtml,activated}
@@ -794,7 +794,7 @@ where
 		# (na,tst)	= task a tst	
 		= dorepeatTask na tst
 
-(<!) infix 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
+(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
 (<!) taska pred = mkTask "less!" doTask
 where
 	doTask tst=:{activated, tasknr}
@@ -879,7 +879,7 @@ dochooseTask horizontal taskOptions tst=:{tasknr,html,options,userId}									//
 # (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 | chosen.value == -1			// no choice made yet
 	# allButtons				= if horizontal 
-										[[(but txt,\_ -> n) \\ txt <- map fst taskOptions & n <- [0..]]]
+										[[(but txt,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
 										[[(but txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
 	# (choice,tst)				= LiftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 	# (chosen,tst)				= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst

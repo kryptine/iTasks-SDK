@@ -78,7 +78,7 @@ editTaskPred 	:: 			!a !(a -> (Bool, [BodyTag]))	-> Task a		| iData a
 return_V		:: lift a value to the iTask domain and return it
 */
 
-(=>>) infix  1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
+(=>>) infixl 1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
 (#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b
 return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
@@ -93,12 +93,12 @@ return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
 */
 
-(?>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
-(!>>) infix  5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
-(<<?) infix  5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
-(<<!) infix  5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
-(<|)  infix  6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 	-> Task a 		| iCreate a
-(<!)  infix  6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
+(?>>) infixr 5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
+(!>>) infixr 5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
+(<<?) infixl 5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
+(<<!) infixl 5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
+(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [BodyTag])) 	-> Task a 		| iCreate a
+(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
 return_VF 		:: ![BodyTag] !a 		  					-> Task a		| iCreateAndPrint a
 return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
