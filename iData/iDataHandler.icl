@@ -99,13 +99,27 @@ initAjaxPage = 	"<html>" +++
 doHtmlClient :: !*World  !UserPage  ! [(String, String)] -> (!Bool,!String,!*World)
 doHtmlClient world userpage args  
 # (exception,inout,world)			= doHtmlPage (Just args) userpage [|] world
-= (exception,makeString inout,world)
+# (exception,inout,world)	= doHtmlPage (Just args) userpage [|] world
+# n_chars					= count_chars inout 0
+# allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
+= (exception,allhtmlcode,world)
 where
-	makeString html = stringconcat (reverse(strict2normallist html))
-	strict2normallist [|] = []
-	strict2normallist [|a:as] = [a:strict2normallist as]
-	stringconcat [|] = ""
-	stringconcat [|str:ss] = str +++ stringconcat ss
+	count_chars [|]    n = n
+	count_chars [|s:l] n = count_chars l (n+size s)
+
+	copy_strings [|e:l] i s
+		# size_e	= size e
+		# i			= i-size_e
+		= copy_strings l i (copy_chars e 0 i size_e s)
+	copy_strings [|] 0 s
+		= s
+
+	copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
+	copy_chars s_s s_i d_i n d_s
+		| s_i<n
+			# d_s	= {d_s & [d_i]=s_s.[s_i]}
+			= copy_chars s_s (s_i+1) (d_i+1) n d_s
+			= d_s
 
 // doHtmlPageAndPrint is the main driver shared by all server options.
 // It initiates all internal administration and calls the user defined iData or iTask function userpage.
@@ -323,7 +337,7 @@ where
 	where
 		parseTriplet :: TripletUpdate -> (Triplet,Maybe b) | gParse {|*|} b
 		parseTriplet (triplet,update) = (triplet,parseString update)
-showList strs = "["+++foldr (\str strs -> str +++ "," +++ strs) "]" strs
+
 // It can be convenient to explicitly delete IData, in particular for persistent IData obejct
 // or to optimize iTasks
 // All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
