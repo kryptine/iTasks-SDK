@@ -161,13 +161,13 @@ where
 	// read out file and store as string
 
 	findState` {id,lifespan = TxtFile,storage = PlainString} Leaf_ world 
-	# (string,world)	= IF_Sapl ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readState id world)
 	= case parseString string of
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFile}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
 	findState` {id,lifespan = TxtFileRO,storage = PlainString} Leaf_ world 
-	# (string,world)	= IF_Sapl ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readState id world)
 	= case parseString string of
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFileRO}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
@@ -175,7 +175,7 @@ where
 	// read out file and store as dynamic
 
 	findState` {id,lifespan = TxtFile,storage = StaticDynamic} Leaf_ world 
-	# (string,world)	= IF_Sapl ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readState id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
 		_				= case string_to_dynamic` string of
@@ -183,7 +183,7 @@ where
 							else				= (False,Nothing,    Leaf_,world)
 
 	findState` {id,lifespan = TxtFileRO,storage = StaticDynamic} Leaf_ world 
-	# (string,world)	= IF_Sapl ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readState id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
 		_				= case string_to_dynamic` string of
@@ -350,7 +350,7 @@ where
 			StatDyn dynval				= {nworld & datafile = writeDataFile sid (dynamic_to_string dynval) datafile}	// write the dynamic as a string to the datafile
 
 		writeTxtFileState (sid,NewState {format,life  = TxtFile}) nworld
-		= IF_Sapl nworld 
+		= IF_Client nworld 
 		 ( case format of
 				PlainStr string			= writeState sid string nworld
 				StatDyn  dynval			= writeState sid (dynamic_to_string dynval) nworld)

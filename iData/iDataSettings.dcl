@@ -70,14 +70,14 @@ IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerd
 //IF_DataFile df no_df 	:== df			// If DataFile option is used
 IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
-IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
-//IF_Ajax th no_th		:== no_th		// Otherwise
+//IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
+IF_Ajax th no_th		:== no_th		// Otherwise
 
-IF_ClientServer th no_th	:== th		// If we have a client server architecture (Sapl running on the client)
-//IF_ClientServer th no_th	:== no_th		// Otherwise
+//IF_ClientServer th no_th	:== th		// If you want to have a client server architecture (with Sapl running on the client)
+IF_ClientServer th no_th	:== no_th		// Otherwise
 
-//IF_Sapl sp no_sp		:== sp			// If Sapl code for the client has to be generated
-IF_Sapl sp no_sp		:== no_sp		// Otherwise
+//IF_Client sp no_sp		:== sp			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well
+IF_Client sp no_sp		:== no_sp		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
 
 // Global Settings determining where files are stored
 

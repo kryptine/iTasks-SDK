@@ -6,7 +6,7 @@ import iDataHandler, ArgEnv, StdList, iDataTrivial, StdArray
 // global names setting depending on kind of server used
 
 ThisExe ::  String
-ThisExe = IF_Sapl "clean" myName 
+ThisExe = IF_Client "clean" myName 
 
 myName =: toString (reverse (takeWhile (\c -> (<>) c '\\') (drop 4 (reverse [x \\ x <-: getCommandLine.[0]])))) 
 

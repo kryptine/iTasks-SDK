@@ -64,7 +64,7 @@ doHtmlServer2 userpages world
 doHtmlServer :: UserPage !*World -> *World
 doHtmlServer userpage world
 | ServerKind == Internal											// link in the Clean http 1.0 server
-= 	IF_Sapl
+= 	IF_Client
 		(	thd3 (doHtmlClient world userpage [("dontcare","")])  	// on Client side calculate page using SAPL
 
 		)

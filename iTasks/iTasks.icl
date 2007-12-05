@@ -56,11 +56,11 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
 					, thrKind			:: !ThreadKind 	// kind of thread
 					}
-:: ThreadKind	=	ServerThread						// Thread to be executed on server
-				|	ClientThread						// Thread preferably to be executed on client
-				|	SaplThread							// Thread which can only be executed on the client 
-				|	ExceptionHandler					// Exception handler
-				|	AnyThread							// Anything in thread table
+:: ThreadKind	=	ServerThread						// Thread which can only be executed on Server
+				|	ClientServerThread					// Thread preferably to be executed on Client, but also runs on Server
+				|	ClientThread						// Thread which can only be executed on the Client 
+				|	ExceptionHandler					// Exception handler, currently works only on Server
+				|	AnyThread							// Used for garbage collection
 :: GlobalInfo	=	{ versionNr			:: !Int			// latest querie number of a user
 					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
 					, deletedThreads	:: ![TaskNr]	// are there threads deleted (used for Ajax)?
@@ -156,7 +156,7 @@ workFlowTask  startUpOptions taska iataskb hst
 | not activated
 	# iTaskHeader					= [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System ",Hr []]
 	# iTaskInfo						= mkDiv "iTaskInfo" [Txt "Login procedure... ", Hr []]
-	= mkHtmlExcep "workFlow" True [Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
+	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
 						]] hst
 # (exception,body,hst) 				= startTstTask i True traceOn True (False,[]) (iataskb (i,a)) (initTst i tableloc hst)
 = mkHtmlExcep "workFlow" exception body hst
@@ -218,7 +218,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 						= Filter showCompletePage thrOwner html hst
 
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
-							(	IF_Ajax (IF_ClientServer (IF_Sapl [CTxt Yellow "Client: "] [CTxt Yellow "Server: "]) []) [] ++
+							(	IF_Ajax (IF_ClientServer (IF_Client [CTxt Yellow "Client: "] [CTxt Yellow "Server: "]) []) [] ++
 								if multiuser 
 									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
 								if versionsOn [Txt "iTask Querie: ", CTxt Silver appversion.value] [Txt "iTask Querie: - "] ++
@@ -419,24 +419,24 @@ where
 // ******************************************************************************************************
 
 mkTaskThread :: !SubPage !(Task a) -> Task a 	| iData a										
+
 mkTaskThread UseAjax taska 
 = IF_Ajax 																		// create an thread only if Ajax is enabled
 	(IF_ClientServer															// we running both client and server
-		(IF_Sapl												
-			(abort "Cannot make Server thread on Client\n"))					// cannot create server thread on client
-//			taska																// cannot create server thread on client
+		(IF_Client												
+			(abort "Cannot make Server thread on Client\n")						// cannot create server thread on client
+//			taska																// ignore this ????
 			(newTask "Server Thread" (mkTaskThread2 ServerThread taska))		// create client thread, but executed on server
 		)
-		(newTask "Ajax Thread" (mkTaskThread2 ServerThread taska) 				// create a server thread, no clients
+		(newTask "Ajax Thread" (mkTaskThread2 ServerThread taska))				// create a server thread, no clients
 	)
 	taska 																		// no threads made at all
-
 mkTaskThread OnClient taska 
 = IF_Ajax 																		// create threads only if Ajax is enabled
 	(IF_ClientServer															// we running both client and server
-		(IF_Sapl												
-			(newTask "Client Thread by Client" (mkTaskThread2 SaplThread  taska))			// create and execute client thread on client
-			(newTask "Client Thread by Server" (mkTaskThread2 ClientThread taska)) // create client thread, but executed on server
+		(IF_Client												
+			(newTask "Client Thread" (mkTaskThread2 ClientThread  taska))			// create and execute client thread on client
+			(newTask "Client Server Thread" (mkTaskThread2 ClientServerThread taska)) // create client thread, but executed on server
 		)
 		(newTask "Ajax Thread (no Client)" (mkTaskThread2 ServerThread taska))	// create a server thread, no clients
 	)
@@ -446,7 +446,7 @@ mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
 mkTaskThread2 threadkind task = evalTask																
 where
 	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
-	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
+	# (mbthread,tst)	= findThreadInTable AnyThread tasknr tst				// look if there is an entry for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# options 		= {options & tasklife = case threadkind of
 													ServerThread = options.tasklife
@@ -472,13 +472,21 @@ evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
 evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = evalTaskThread` 
 where
 	evalTaskThread` tst=:{tasknr,options,userId,html}									
-	# (a,tst=:{activated,html=nhtml}) 	= IF_Sapl
-											(case thrKind of
-												 ServerThread = abort "Cannot evaluate server thread on client\n"
-												 else = deserializeThreadClient thrCallbackClient
-											)
-											(deserializeThread thrCallback) 
-												{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
+	# (a,tst=:{activated,html=nhtml}) 	
+		= IF_Client	
+			(case thrKind of		// we are running on Client, assume that IF_ClientServer and IF_Ajax is set
+				 ClientThread 		= deserializeThreadClient thrCallbackClient
+				 ClientServerThread	= deserializeThreadClient thrCallbackClient
+				 ServerThread 		= abort "Cannot evaluate Server thread on Client\n"
+				 else 				= abort "Thread administration error in evalTaskThread"
+			)
+			(case thrKind of		// we are running on the Server
+				 ClientThread 		= abort "Cannot evaluate Client thread on Server\n"
+				 ClientServerThread	= deserializeThread thrCallback
+				 ServerThread 		= deserializeThread thrCallback
+				 else 				= abort "Thread administration error in evalTaskThread"
+			)
+			{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
 	| activated																	// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}			// remove thread from administration
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})		// remove entry from table
@@ -519,15 +527,16 @@ where
 		= lookupThread tasknrToFind (inc n) next
 
 	foundThread ServerThread     		ServerThread 	   		= True
-	foundThread ServerThread     		ClientThread 	   		= True
-	foundThread ServerThread     		SaplThread	 	   		= False
+	foundThread ServerThread     		ClientServerThread 	   	= True
+	foundThread ServerThread     		ClientThread	 	   	= True
 	foundThread ClientThread    		ClientThread 	   		= True
-	foundThread ClientThread    		ServerThread 	   		= IF_ClientServer (IF_Sapl False True) True
-	foundThread ClientThread    		SaplThread 	   			= True
-	foundThread SaplThread    			SaplThread 	   			= True
-	foundThread SaplThread    			ServerThread   			= False
-	foundThread SaplThread    			ClientThread 	   		= False
+	foundThread ClientThread    		ServerThread   			= True
+	foundThread ClientThread    		ClientServerThread 	   	= True
+	foundThread ClientServerThread    	ClientServerThread 	   	= True
+	foundThread ClientServerThread    	ServerThread 	   		= True // IF_ClientServer (IF_Client False True) True
+	foundThread ClientServerThread    	ClientThread 	   		= True
 	foundThread ExceptionHandler 		ExceptionHandler		= True
+	foundThread AnyThread    			_				 	   	= True
 	foundThread _ 						_ 						= False
 
 
@@ -598,21 +607,23 @@ where
 // Watch it:  only works for one and the same application !!!!!
 // Each time the application is recompiled, the existing administration has to be removed !!!!
 // 
-// On the server both server and client threads can be created depending on the options set
-// On the client currently only client threads can be created
+// The Client cannot make Server threads, so we have the following options:
+// Server thread, made by Server, must be executed on Server
+// Client thread, made by Server, also a Server thread is made: thread can be excuted either on Client or Server
+// Sapl   thread, made by Client, can only be executed on Client
 //
 // IF_Ajax 
 //	(IF_ClientServer 
-//		(IF_Sapl (we are running in sapl on the client) 
+//		(IF_Client (we are running in sapl on the client) 
 //				 (we are running in clean on the server)
-//		) (there is no client, all on server) 
+//		) (there is no client, all threads are on server) 
 //  ) (there are no threads)
 
 serializeThread :: !.(Task .a) -> .String
 serializeThread task 
 = IF_Ajax 
 	(IF_ClientServer 
-		(IF_Sapl ""														// cannot create server thread on client
+		(IF_Client ""													// cannot create server thread on client
 				 (copy_to_string task)									// store server thread
 		)
 		(copy_to_string task)											// store server thread
@@ -623,7 +634,7 @@ deserializeThread :: .String -> .(Task .a)
 deserializeThread thread 
 = IF_Ajax 
 	(IF_ClientServer 
-		(IF_Sapl (abort "Cannot de-serialize Server thread on Client\n")// this call should not happen 
+		(IF_Client (abort "Cannot de-serialize Server thread on Client\n")// this call should not happen 
 				 (fst (copy_from_string {c \\ c <-: thread} ))			// retrieve server thread
 		)
 		(fst (copy_from_string {c \\ c <-: thread} ))					// retrieve server thread
@@ -634,7 +645,7 @@ serializeThreadClient :: !(Task a) -> String
 serializeThreadClient task
 = IF_Ajax 
 	(IF_ClientServer 
-		(IF_Sapl (graph_to_sapl_string task)							// create client thread on client
+		(IF_Client (graph_to_sapl_string task)							// create client thread on client
 				 (graph_to_sapl_string task)							// create client thread on server
 		)
 		""																// no clients, no need to create client thread
@@ -645,7 +656,7 @@ deserializeThreadClient :: .String -> .(Task .a)
 deserializeThreadClient thread
 = IF_Ajax 
 	(IF_ClientServer 
-		(IF_Sapl (deserializeSapl thread)								// retrieve client thread
+		(IF_Client (deserializeSapl thread)								// retrieve client thread
 				 (abort "Cannot de-serialize Client thread on Server\n")// this call should not happen
 		)
 		(abort "Cannot de-serialize Client thread on Server\n")			// this call should not happen
@@ -673,10 +684,10 @@ userVersionNr thisUser			= "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr" 
 
 setAppversion :: !(Int -> Int) !*HSt -> (Form Int,!*HSt) 
-setAppversion    f hst	= mkStoreForm (Init, IF_Sapl nFormId pFormId applicationVersionNr 0) 	 f hst
+setAppversion    f hst	= mkStoreForm (Init, IF_Client nFormId pFormId applicationVersionNr 0) 	 f hst
 
 setPUser :: !Int !(GlobalInfo -> GlobalInfo) !*HSt -> (Form GlobalInfo,!*HSt) 
-setPUser user f hst	= mkStoreForm (Init, IF_Sapl nFormId pFormId (userVersionNr user) 	{ versionNr 	= 0
+setPUser user f hst	= mkStoreForm (Init, IF_Client nFormId pFormId (userVersionNr user) 	{ versionNr 	= 0
 																		, newThread		= False
 																		, deletedThreads= []
 																		} <@ NoForm) 	 f hst
@@ -1414,12 +1425,12 @@ where
 
 serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String
 serializeExceptionHandler task = IF_ClientServer
-									(IF_Sapl (abort "Cannot serialize exception handler on Client\n") (copy_to_string task))
+									(IF_Client (abort "Cannot serialize exception handler on Client\n") (copy_to_string task))
 									(copy_to_string task)				
 
 deserializeExceptionHandler :: .String -> .(!Dynamic -> Task a.)
 deserializeExceptionHandler thread = IF_ClientServer
-										(IF_Sapl (abort "Cannot de-serialize exception handler thread on Client\n") (fst (copy_from_string {c \\ c <-: thread})))	
+										(IF_Client (abort "Cannot de-serialize exception handler thread on Client\n") (fst (copy_from_string {c \\ c <-: thread})))	
 										(fst (copy_from_string {c \\ c <-: thread}))
 
 Raise :: e -> Task a | iCreate a & TC e	
@@ -1470,9 +1481,9 @@ evalException :: !TaskThread !Dynamic -> Task a 										// execute the thread 
 evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = evalException` 
 where
 	evalException` tst=:{tasknr,options,userId,html}									
-	# (doClient,noThread)  				= IF_Sapl (True,thrCallbackClient == "") (False,False)  
+	# (doClient,noThread)  				= IF_Client (True,thrCallbackClient == "") (False,False)  
 	| doClient && noThread				= abort "Cannot execute thread on Client\n" 
-	= IF_Sapl
+	= IF_Client
 		(abort "exception handling not implemeneted") //(deserializeThreadClient thrCallbackClient)
 		(deserializeExceptionHandler thrCallback dynval	{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []})
 
