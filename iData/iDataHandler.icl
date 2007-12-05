@@ -92,13 +92,12 @@ initAjaxPage = 	"<html>" +++
          		 	"<div id=\"theState\" class=\"thread\"></div>" +++ 
          		 	"<div id=\"iTaskInfo\" class=\"thread\"></div>" +++ 
          		 	"<div id=\"debug\" class=\"thread\"></div>" +++ 
-            	 	IF_OnClient "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
+            	 	IF_ClientServer "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
            		 "</body>" +++
           	"</html>"
 
 doHtmlClient :: !*World  !UserPage  ! [(String, String)] -> (!Bool,!String,!*World)
 doHtmlClient world userpage args  
-# (exception,inout,world)			= doHtmlPage (Just args) userpage [|] world
 # (exception,inout,world)	= doHtmlPage (Just args) userpage [|] world
 # n_chars					= count_chars inout 0
 # allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
