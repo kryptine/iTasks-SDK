@@ -22,4 +22,8 @@ where
 	(==) External External = True
 	(==) TestMode TestMode = True
 	(==) _ _ = False
-	
+
+IF_ClientTasks :: .a .a -> .a
+IF_ClientTasks x y = IF_Client x y
+
+

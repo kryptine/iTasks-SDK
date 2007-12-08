@@ -10,6 +10,31 @@ import DataFile							// OPTION: A fast generic database stored in a file, made 
 
 // Global settings of iData applications
 
+// The following options are switched on or off by a Clean macro definition.
+// Switching off options you don't use increases the efficiency of the application.
+
+// Database OPTION : comment out *one* of the following macro definitions
+// Use the first line if you *do* want to use the Database option *and* you have an ODCB database interface installed on your machine !!!!
+// otherwise use the second line
+
+//IF_Database db no_db 	:== db			// If Database option is used
+IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the iSpecialStore class definition above
+
+//IF_DataFile df no_df 	:== df			// If DataFile option is used
+IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
+
+IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
+//IF_Ajax th no_th		:== no_th		// Otherwise
+
+IF_ClientServer th no_th	:== th		// If you want to have a client server architecture (with Sapl running on the client)
+//IF_ClientServer th no_th	:== no_th		// Otherwise
+
+//IF_Client sp no_sp		:== sp			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well
+IF_Client sp no_sp		:== no_sp		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
+
+IF_ClientTasks :: .a .a -> .a
+
+
 class iData a							// The collection of generic functions needed to make iData:	
 		| gForm {|*|}					// Creates an Html Form
 		, iCreateAndPrint				
@@ -57,27 +82,6 @@ ServerKind				:==	Internal	// Enable this one for developing an iData or iTask a
 
 SocketNr				:== 80			// Socket you wnat to work on, default = 80
 
-// The following options are switched on or off by a Clean macro definition.
-// Switching off options you don't use increases the efficiency of the application.
-
-// Database OPTION : comment out *one* of the following macro definitions
-// Use the first line if you *do* want to use the Database option *and* you have an ODCB database interface installed on your machine !!!!
-// otherwise use the second line
-
-//IF_Database db no_db 	:== db			// If Database option is used
-IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the iSpecialStore class definition above
-
-//IF_DataFile df no_df 	:== df			// If DataFile option is used
-IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
-
-//IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
-IF_Ajax th no_th		:== no_th		// Otherwise
-
-//IF_ClientServer th no_th	:== th		// If you want to have a client server architecture (with Sapl running on the client)
-IF_ClientServer th no_th	:== no_th		// Otherwise
-
-//IF_Client sp no_sp		:== sp			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well
-IF_Client sp no_sp		:== no_sp		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
 
 // Global Settings determining where files are stored
 
@@ -93,8 +97,8 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== False									// show what kind of information is received from Client
-TraceOutput				:== False									// show what kind of information is stored when application is finished
+TraceInput				:== True									// show what kind of information is received from Client
+TraceOutput				:== True									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
 TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
