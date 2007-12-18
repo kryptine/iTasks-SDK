@@ -64,11 +64,7 @@ doHtmlServer2 userpages world
 doHtmlServer :: UserPage !*World -> *World
 doHtmlServer userpage world
 | ServerKind == Internal											// link in the Clean http 1.0 server
-= 	IF_Client
-		(	thd3 (doHtmlClient world userpage [("dontcare","")])  	// on Client side calculate page using SAPL
-
-		)
-		(	IF_Ajax													// on Sever side: 
+= 			(	IF_Ajax													// on Sever side: 
 			(StartAjax   userpage world)							// handle all communication via Ajax
 			(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)	// all communication will invoke a new page
 		)
@@ -96,12 +92,12 @@ initAjaxPage = 	"<html>" +++
            		 "</body>" +++
           	"</html>"
 
-doHtmlClient :: !*World  !UserPage  ! [(String, String)] -> (!Bool,!String,!*World)
+doHtmlClient :: !*World  !UserPage  !String -> String
 doHtmlClient world userpage args  
-# (exception,inout,world)	= doHtmlPage (Just args) userpage [|] world
+# (toServer,inout,world)	= doHtmlPage (Just (makeArguments args)) userpage [|] world
 # n_chars					= count_chars inout 0
 # allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
-= (exception,allhtmlcode,world)
+= toString toServer +++ "#0#" +++ allhtmlcode
 where
 	count_chars [|]    n = n
 	count_chars [|s:l] n = count_chars l (n+size s)
@@ -126,7 +122,7 @@ where
 
 doHtmlPageAndPrint :: [(String, String)] .(*HSt -> (!Bool,Html,!*HSt)) *World -> ([String],String,*World)
 doHtmlPageAndPrint args userpage world
-# (exception,inout,world)	= doHtmlPage (Just args) userpage [|] world
+# (toServer,inout,world)	= doHtmlPage (Just args) userpage [|] world
 # n_chars					= count_chars inout 0
 # allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
 = ([],allhtmlcode,world)
@@ -156,7 +152,7 @@ doHtmlPage args userpage inout world
 # (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 # nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
 # (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
-# (exception,Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
+# (toServer,Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
 							= userpage (mkHSt initforms nworld)							// Call the user application
 # (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
 # (allformbodies,world=:{worldC,gerda,inout,datafile})	
@@ -173,7 +169,7 @@ doHtmlPage args userpage inout world
 									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
 									inout
 								)
-= (exception,inout,worldC)
+= (toServer,inout,worldC)
 where
 	AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
 	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]

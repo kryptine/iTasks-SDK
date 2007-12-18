@@ -38,7 +38,7 @@ derive write 	Inline
 
 doHtmlServer 		:: UserPage !*World -> *World 					
 doHtmlServer2 		:: ![(String,UserPage)] !*World -> *World
-doHtmlClient 		:: !*World  !UserPage  ! [(String, String)] -> (!Bool,!String,!*World)
+doHtmlClient 		:: !*World  !UserPage  !String -> String
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!
