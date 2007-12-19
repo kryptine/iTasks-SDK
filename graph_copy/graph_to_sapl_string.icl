@@ -21,7 +21,7 @@ where
  mkse (BoolS b)             = toString b
  mkse (CharS c)         	= toString c
  mkse (StringS s)       	= "\"" +++  s  +++ "\""
- mkse (CstrS mod name _ []) = mod +++ "_" +++ makeSaplName name
+ mkse (CstrS mod name _ []) = makePrintableName (mod +++ "_" +++ makeSaplName name)
  mkse (CstrS mod name _ as) = "(" +++ makePrintableName (mod +++ "_"  +++ makeSaplName name) +++ args as +++ ")"
  mkse (FunctionS mod name _ []) = makePrintableName (mod +++ "_"  +++ makeSaplName name)
  mkse (FunctionS mod name _ as) = "(" +++ makePrintableName (mod +++ "_"  +++ makeSaplName name) +++ args as +++ ")"
