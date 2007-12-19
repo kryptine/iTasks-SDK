@@ -108,10 +108,10 @@ class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a
 instance @>>  SubPage
 where   (@>>) UseAjax task			= \tst -> IF_Ajax 
 												(mkTaskThread UseAjax task tst)
-												(task tst) 
+												(newTask "Ajax Thread Disabled" task tst) 
 		(@>>) OnClient  task 		= \tst -> IF_Ajax 
 												(mkTaskThread OnClient task tst)
-												(task tst) 
+												(newTask "Client Thread Disabled" task tst) 
 
 instance == GarbageCollect
 where
@@ -127,6 +127,15 @@ where
 	(==) ExceptionHandler 		ExceptionHandler		= True
 	(==) AnyThread    			_				 	   	= True
 	(==) _ 						_ 						= False
+
+instance toString ThreadKind
+where
+	toString ServerThread     	= "ServerThread"
+	toString ClientThread    	= "ClientThread"
+	toString ClientServerThread	= "ClientServerThread"
+	toString ExceptionHandler 	= "ExceptionHandler"
+	toString AnyThread    		= "AnyThread"
+	toString _    				= "??? print error in thread"
 
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
@@ -191,12 +200,14 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
-# (appversion,hst)	 	= setAppversion id hst
-# nonewversion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 
-# (appversion,hst)	 	= setAppversion (mbinc nonewversion) hst
+
+# versionsOn			= IF_ClientTasks False versionsOn											// no version control on client
+# noNewVersion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 	// no version control in these cases
+# (appversion,hst)	 	= setAppversion inc hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst
-# (sversion,hst)	 	= setSVersionNr thisUser (if nonewversion /*refresh.changed*/ (\_ -> pversion.value.versionNr) id) hst
-# versionconflict		= sversion.value < pversion.value.versionNr && versionsOn				
+# (sversion,hst)	 	= setSVersionNr thisUser id hst
+# versionconflict		= sversion > 0 && sversion < pversion.versionNr && not noNewVersion 		// test if there is a version conflict				
+
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
 							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
 									,BCTxt Aqua "i -Task", CTxt Yellow " Workflow System "]
@@ -212,12 +223,14 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 // Here the iTask starts...
 													    
 # ((exception,_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
-						= (IF_Ajax (startAjaxApplication thisUser pversion.value) startMainTask)
+						= (IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
-# (_,hst)				= clearIncPUser thisUser (mbinc nonewversion) hst									// clear administration
-# (sversion,hst)	 	= setSVersionNr thisUser (mbinc nonewversion) hst
+
+# newUserVersionNr		= 1 + if (pversion.versionNr > sversion) pversion.versionNr sversion					// increment user querie version number
+# (_,hst)				= clearIncPUser thisUser (\_ -> newUserVersionNr) hst			// store in session
+# (sversion,hst)	 	= setSVersionNr thisUser (\_ -> newUserVersionNr) hst									// store in persistent memory
 
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
@@ -229,10 +242,10 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
 							(	IF_Ajax (IF_ClientServer (IF_ClientTasks [CTxt Yellow "Client: "] [CTxt Yellow "Server: "]) []) [] ++
 								if multiuser 
-									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "Querie: " , CTxt Silver sversion.value, Txt " - "] [] ++
-								if versionsOn [Txt "iTask Querie: ", CTxt Silver appversion.value] [Txt "iTask Querie: - "] ++
+									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "#User Queries: " , CTxt Silver sversion, Txt " - "] [] ++
+								if versionsOn [Txt "#Server Queries: ", CTxt Silver appversion] [Txt "#Server Queries: - "] ++
 								IF_Ajax
-									[Txt " - Task: ", CTxt Silver (showTaskNr  event),Txt " - Thread(s): ", CTxt Silver threadsText,Br] [] ++
+									[Txt " - Task#: ", CTxt Silver (showTaskNr  event),Txt " - Thread(s)#: ", CTxt Silver threadsText,Br] [] ++
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
@@ -261,8 +274,8 @@ where
 	# (a,tst) = task tst
 	= ((True,Just a,defaultUser,[0],"",True,[]),tst)
 
-	mbinc True = id
-	mbinc _ = inc
+	mbUpdate True _ = id
+	mbUpdate _ f = f
 
 	ifTraceOn form = if traceOn form []
 
@@ -322,14 +335,35 @@ where
 	= ([],accu)
 
 	showThreadTable :: *TSt -> ([BodyTag],*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
-	showThreadTable tst
-	# (table,tst)	= ThreadTableStorage id tst											// read thread table
-	# body			= [Br, B [] "Threaded Tasks: "] ++ foldl (++) [] [[Br, showWhere entry.thrOptions.tasklife,Txt (showThreadNr entry.thrTaskNr)] \\ entry <- table]
-	= (body,tst)
-	where
-		showWhere lifespan
-		| lifespan == Client	= Txt "On Client: " 
-		| otherwise				= Txt "On Server: " 
+	showThreadTable tst=:{staticInfo}
+	# thisUser		= staticInfo.currentUserId
+	# (tableS,tst)	= ThreadTableStorage id tst																// read thread table from server
+	# (tableC,tst)	= IF_ClientTasks
+						(\tst -> ThreadTableStorageGen (clientThreadTableId thisUser) Client id tst)		// read thread table from client
+						(\tst -> ([],tst)) tst
+	# bodyS			= [Br, BCTxt Yellow "Server Thread Table: ",
+						STable []	(   [[BCTxt White "UserNr:", BCTxt White "Kind:", BCTxt White "TaskNr:", BCTxt White "Created:"]] ++
+										[	[ Txt (toString entry.thrUserId)
+											, Txt (toString entry.thrKind)
+											, Txt (showThreadNr entry.thrTaskNr)
+											, Txt (toString entry.thrVersionNr)
+											] 
+											\\ entry <- tableS
+										]
+									)
+						]
+	# bodyC			= [Br, BCTxt Yellow ("Client " +++ toString thisUser +++ " Thread Table: "),
+						STable []	(   [[BCTxt White "UserNr:", BCTxt White "Kind:", BCTxt White "TaskNr:", BCTxt White "Created:"]] ++
+										[	[ Txt (toString entry.thrUserId)
+											, Txt (toString entry.thrKind)
+											, Txt (showThreadNr entry.thrTaskNr)
+											, Txt (toString entry.thrVersionNr)
+											] 
+											\\ entry <- tableC
+										]
+									)
+						]
+	= (bodyS ++ bodyC,tst)
 
 mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
 mkTaskButtons header myid userId tasknr info btnnames hst
@@ -462,8 +496,8 @@ mkTaskThread OnClient taska
 = IF_Ajax 																		// create threads only if Ajax is enabled
 	(IF_ClientServer															// we running both client and server
 		(IF_ClientTasks												
-			(newTask /*Client*/ "Client Thread" (mkTaskThread2 ClientThread  taska))			// create and execute client thread on client
-			(newTask /*Client Server*/ "Client Thread" (mkTaskThread2 ClientServerThread taska)) // create client thread, but executed on server
+			(newTask "Client Thread" (mkTaskThread2 ClientThread  taska))			// create and execute client thread on client
+			(newTask "Client Thread" (mkTaskThread2 ClientServerThread taska)) // create client thread, but executed on server
 		)
 		(newTask "Ajax Thread (no Client)" (mkTaskThread2 ServerThread taska))	// create a server thread, no clients
 	)
@@ -527,21 +561,8 @@ where
 // ******************************************************************************************************
 
 // Currently for testing an unordered table is used, should become a ordered tree someday...
-/*
-ThreadTableStorageX :: (ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
-ThreadTableStorageX fun = handleTable
-where
-	handleTable tst=:{staticInfo}  
-	# (table,tst) = LiftHst (mkStoreForm (Init,storageFormId 
-						{ tasklife 		= staticInfo.threadTableLoc
-						, taskstorage 	= PlainString 
-						, taskmode		= NoForm
-						, gc			= NoCollect} storageId_ThTa []) fun) tst
-	= (table.value,tst)
 
-	storageId_ThTa = "clean" +++ "-ThreadTable"
-*/
-serverThreadTableId 		= ThisExe +++  "-ThreadTable"
+serverThreadTableId 		= "Application" +++  "-ThreadTable"
 clientThreadTableId userid	= "User" <+++ userid  <+++ "-ThreadTable"
 
 ThreadTableStorage :: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
@@ -795,36 +816,51 @@ applicationVersionNr			= ThisExe <+++ "_Version"
 userVersionNr thisUser			= "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	= "User" <+++ thisUser <+++ "_VersionSNr" 
 
-// THIS HAS TO BE FIXED 
-
-setAppversion :: !(Int -> Int) !*HSt -> (Form Int,!*HSt) 
-setAppversion    f hst	= mkStoreForm (Init, IF_ClientTasks nFormId pFormId applicationVersionNr 0) 	 f hst
+setAppversion :: !(Int -> Int) !*HSt -> (!Int,!*HSt) 
+setAppversion f hst	
+= IF_ClientTasks 
+	(\hst -> (0,hst))						// application version number cannot be set by client
+	(\hst -> myStoreForm f hst)				// else set application version number
+	hst
+where
+	myStoreForm f hst
+	# (form,hst) = mkStoreForm (Init, pFormId applicationVersionNr 0) f hst
+	= (form.value,hst)
 
 getCurrentAppVersionNr :: !*TSt -> !(!Int,!*TSt)
 getCurrentAppVersionNr tst=:{hst}
 # (nr,hst) = setAppversion id hst
-= (nr.value,{tst & hst = hst})
+= (nr,{tst & hst = hst})
 
-setPUser :: !Int !(GlobalInfo -> GlobalInfo) !*HSt -> (Form GlobalInfo,!*HSt) 
-setPUser user f hst	= mkStoreForm (Init, IF_ClientTasks nFormId pFormId (userVersionNr user) 	{ versionNr 	= 0
-																		, newThread		= False
-																		, deletedThreads= []
-																		} <@ NoForm) 	 f hst
+setPUser :: !Int !(GlobalInfo -> GlobalInfo) !*HSt -> (!GlobalInfo,!*HSt) 
+setPUser user f hst	
+= IF_ClientTasks
+	(\hst -> (defaultGlobalInfo,hst))		// persistent version number cannot be set by client
+	(\hst -> myStoreForm user f hst)
+	hst
+where
+	myStoreForm user f hst 
+	# (form,hst) = mkStoreForm (Init, pFormId (userVersionNr user) defaultGlobalInfo <@ NoForm) f hst
+	= (form.value,hst)
 
-addPUserDeletedThread :: !Int !TaskNr !*HSt -> (Form GlobalInfo,!*HSt) 
+	defaultGlobalInfo = { versionNr = 0, newThread = False, deletedThreads = []}
+
+addPUserDeletedThread :: !Int !TaskNr !*HSt -> (!GlobalInfo,!*HSt) 
 addPUserDeletedThread user thread hst	= setPUser user (\r -> {r & deletedThreads = [thread:r.deletedThreads]}) hst
 
-setPUserNr :: !Int !(Int -> Int) !*HSt -> (Form GlobalInfo,!*HSt) 
+setPUserNr :: !Int !(Int -> Int) !*HSt -> (!GlobalInfo,!*HSt) 
 setPUserNr user f hst	= setPUser user (\r -> {r & versionNr = f r.versionNr}) hst
 
-setPUserNewThread :: !Int !*HSt -> (Form GlobalInfo,!*HSt) 
+setPUserNewThread :: !Int !*HSt -> (!GlobalInfo,!*HSt) 
 setPUserNewThread user hst	= setPUser user (\r -> {r & newThread = True}) hst
 
-clearIncPUser :: !Int !(Int -> Int) !*HSt -> (Form GlobalInfo,!*HSt) 
+clearIncPUser :: !Int !(Int -> Int) !*HSt -> (!GlobalInfo,!*HSt) 
 clearIncPUser user f hst	= setPUser user (\r -> {r & newThread = False, deletedThreads = [], versionNr = f r.versionNr}) hst
 
-setSVersionNr :: !Int !(Int -> Int) !*HSt -> (Form Int,!*HSt) 
-setSVersionNr user f hst	= mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst// Below we define the iTask Combinators...
+setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt) 
+setSVersionNr user f hst	
+# (form,hst) = mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
+= (form.value,hst)
 
 // ******************************************************************************************************
 // Finally: The iTask Combinators
@@ -1148,10 +1184,10 @@ doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
 # taskId								= iTaskId userId tasknr "orTaskSt"
 # (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 | chosen.value == 0						// task a was finished first in the past
-	# (a,tst)							= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
+	# (a,tst)							= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
 	= (a,{tst & html = html})
 | chosen.value == 1						// task b was finished first in the past
-	# (b,tst)							= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
+	# (b,tst)							= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
 	= (b,{tst & html = html})
 # (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
@@ -1597,18 +1633,18 @@ where
 	| isNil mbthread		= abort	("\nException raised, but no handler installed\n")	// no handler installed
 	# thread 				= hd mbthread										// thread found
 	# (version,hst)	 		= setPUserNr staticInfo.currentUserId id hst		// inspect global effects administration
-	| isMember thread.thrTaskNr version.value.deletedThreads					// thread has been deleted is some past, version conflict
+	| isMember thread.thrTaskNr version.deletedThreads							// thread has been deleted is some past, version conflict
 							= abort	("\nException raised, but  handler thread was deleted\n")		
-	= evalException thread value {tst & html = BT [], hst = hst}						// yes, *finally*, we heave found an handler
+	= evalException thread value {tst & html = BT [], hst = hst}				// yes, *finally*, we heave found an handler
 
-evalException :: !TaskThread !Dynamic -> Task a 										// execute the thread !!!!
+evalException :: !TaskThread !Dynamic -> Task a 								// execute the thread !!!!
 evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = evalException` 
 where
 	evalException` tst=:{tasknr,options,userId,html}									
 	# (doClient,noThread)  				= IF_ClientTasks (True,thrCallbackClient == "") (False,False)  
 	| doClient && noThread				= abort "Cannot execute thread on Client\n" 
 	= IF_ClientTasks
-		(abort "exception handling not implemeneted") //(deserializeThreadClient thrCallbackClient)
+		(abort "exception handling not implemeneted") 							//(deserializeThreadClient thrCallbackClient)
 		(deserializeExceptionHandler thrCallback dynval	{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []})
 
 // ******************************************************************************************************
@@ -1631,19 +1667,19 @@ mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr
 mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
 mkTaskNoInc taskname mytask = mkTaskNoInc`
 where
-	mkTaskNoInc` tst=:{activated,tasknr,userId}		
+	mkTaskNoInc` tst=:{activated,tasknr,userId,options}		
 	| not activated							= (createDefault,tst)	// not active, don't call task, return default value
 	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
+	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
-	= (val,{tst & tasknr = tasknr
-				, trace = Just (InsertTrace activated tasknr userId taskname (printToString val) (fromJust trace))}) // adjust trace
+	= (val,{tst & trace = Just (InsertTrace activated tasknr userId taskname (printToString val) (fromJust trace))}) // adjust trace
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
 mkParSubTask name i task = mkParSubTask`
 where
-	mkParSubTask` tst=:{tasknr}
+	mkParSubTask` tst=:{tasknr, options}
 	# (v,tst) = mkTaskNoInc (name <+++ "." <+++ i) mysubtask {tst & tasknr = [i:tasknr],activated = True} // shift task
-	= (v,{tst & tasknr = tasknr})
+	= (v,{tst & tasknr = tasknr, options = options})
 	where
 		mysubtask tst=:{tasknr} = task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
 
@@ -1746,7 +1782,7 @@ where
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
 printTrace2 Nothing 	= EmptyBody
-printTrace2 (Just a)  	= BodyTag [Br, Br, B [] "Task Tree:", Br, STable emptyBackground (print False a)]
+printTrace2 (Just a)  	= BodyTag [Br, BCTxt Yellow "Task Tree:", Br, STable emptyBackground (print False a)]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
