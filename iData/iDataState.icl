@@ -323,6 +323,10 @@ where
 		// other old states will have lifespan page or are persistent; they need not to be stored
 		htmlStateOf (fid,OldState {life=Session,format=PlainStr stringval})	= Just  (fid,Session,PlainString,stringval)
 		htmlStateOf (fid,OldState {life=Session,format=StatDyn  dynval})	= Just  (fid,Session,StaticDynamic,dynamic_to_string dynval)
+
+		htmlStateOf (fid,OldState {life=Client, format=PlainStr stringval})	= Just  (fid,Client, PlainString,stringval)
+		htmlStateOf (fid,OldState {life=Client, format=StatDyn  dynval})	= Just  (fid,Client, StaticDynamic,dynamic_to_string dynval)
+
 		htmlStateOf (fid,OldState s)										= Nothing
 
 		// persistent stores (either old or new) have already been stored in files and can be skipped here
