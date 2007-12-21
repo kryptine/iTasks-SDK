@@ -46,7 +46,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 :: GarbageCollect =	Collect | NoCollect
 
 :: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
-:: TraceInfo	:== Maybe (!Bool,!(!Int,!TaskNr,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe (!Bool,!(!Int,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
@@ -222,7 +222,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 
 // Here the iTask starts...
 													    
-# ((exception,_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
+# ((toServer,_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
 						= (IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
@@ -249,7 +249,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 								[Hr []]
 							)
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
-| showCompletePage		=	(exception,[Ajax [("thePage",	iTaskHeader ++
+| showCompletePage		=	(toServer,[Ajax [("thePage",	iTaskHeader ++
 															iTaskInfo  ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
@@ -260,7 +260,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 									] 
 							,hst)
 # (newthread,oldthreads)=	(hd threads, tl threads)
-| otherwise				=	(exception,[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
+| otherwise				=	(toServer,[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
 											[(showTaskNr childthreads,[Txt " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
 											[(showTaskNr newthread, if (isNil threadcode) seltask threadcode)]	// task info
 										   )
@@ -338,8 +338,8 @@ where
 	showThreadTable tst=:{staticInfo}
 	# thisUser		= staticInfo.currentUserId
 	# (tableS,tst)	= ThreadTableStorage id tst																// read thread table from server
-	# (tableC,tst)	= IF_ClientTasks
-						(\tst -> ThreadTableStorageGen (clientThreadTableId thisUser) Client id tst)		// read thread table from client
+	# (tableC,tst)	= IF_ClientServer
+						(\tst -> ClientThreadTableStorage id tst)											// read thread table from client
 						(\tst -> ([],tst)) tst
 	# bodyS			= [Br, BCTxt Yellow "Server Thread Table: ",
 						STable []	(   [[BCTxt White "UserNr:", BCTxt White "Kind:", BCTxt White "TaskNr:", BCTxt White "Created:"]] ++
@@ -352,7 +352,7 @@ where
 										]
 									)
 						]
-	# bodyC			= [Br, BCTxt Yellow ("Client " +++ toString thisUser +++ " Thread Table: "),
+	# bodyC			= [Br, BCTxt Yellow ("User " +++ toString thisUser +++ " Thread Table: "),
 						STable []	(   [[BCTxt White "UserNr:", BCTxt White "Kind:", BCTxt White "TaskNr:", BCTxt White "Created:"]] ++
 										[	[ Txt (toString entry.thrUserId)
 											, Txt (toString entry.thrKind)
@@ -487,7 +487,7 @@ mkTaskThread UseAjax taska
 	(IF_ClientServer															// we running both client and server
 		(IF_ClientTasks												
 			(abort "Cannot make Server thread on Client\n")						// cannot create server thread on client
-			(newTask /*Server */"Server Thread" (mkTaskThread2 ServerThread taska))		// create client thread, but executed on server
+			(newTask "Server Thread" (mkTaskThread2 ServerThread taska))		// create client thread, but executed on server
 		)
 		(newTask "Ajax Thread" (mkTaskThread2 ServerThread taska))				// create a server thread, no clients
 	)
@@ -496,8 +496,8 @@ mkTaskThread OnClient taska
 = IF_Ajax 																		// create threads only if Ajax is enabled
 	(IF_ClientServer															// we running both client and server
 		(IF_ClientTasks												
-			(newTask "Client Thread" (mkTaskThread2 ClientThread  taska))			// create and execute client thread on client
-			(newTask "Client Thread" (mkTaskThread2 ClientServerThread taska)) // create client thread, but executed on server
+			(newTask "Client Thread" (mkTaskThread2 ClientThread  taska))		// create and execute client thread on client
+			(newTask "Client Thread" (mkTaskThread2 ClientServerThread taska)) 	// create client thread, but executed on server
 		)
 		(newTask "Ajax Thread (no Client)" (mkTaskThread2 ServerThread taska))	// create a server thread, no clients
 	)
@@ -506,13 +506,16 @@ mkTaskThread OnClient taska
 mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
 mkTaskThread2 threadkind task = evalTask																
 where
-	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
+	evalTask tst=:{tasknr,activated,options,userId,staticInfo}					// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
 	| isNothing mbthread														// not yet, insert new entry		
-		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
 		# options 			= {options & tasklife = case threadkind of
-													ServerThread = options.tasklife
-													else = Client}
+													ServerThread 		= options.tasklife // staticInfo.threadTableLoc
+													ClientServerThread 	= Client
+													ClientThread 		= Client
+													ExceptionHandler 	= options.tasklife  // staticInfo.threadTableLoc
+													else 				= abort "Storing unexpected thread kind"}
+		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
 		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
 									, thrUserId 		= userId
 									, thrOptions 		= options
@@ -521,7 +524,7 @@ where
 									, thrKind			= threadkind
 									, thrVersionNr		= versionNr
 									} tst 
-		= evalTask tst															// try it again, entry point should be there
+		= evalTask tst															// try it again, entry point should now be there
 	# (_,thread)		= fromJust mbthread										// entry point found
 	= evalTaskThread thread tst													// and evaluate it
 
@@ -560,33 +563,41 @@ where
 // Thread Table Storage Manipulation functions
 // ******************************************************************************************************
 
-// Currently for testing an unordered table is used, should become a ordered tree someday...
-
-serverThreadTableId 		= "Application" +++  "-ThreadTable"
-clientThreadTableId userid	= "User" <+++ userid  <+++ "-ThreadTable"
+// TODO : Currently an unordered list is used, should become an ordered tree someday...
 
 ThreadTableStorage :: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
 ThreadTableStorage fun = handleTable
 where
-	handleTable tst=:{staticInfo} 
-	# userid 	= staticInfo.currentUserId
-	# location 	= staticInfo.threadTableLoc
+	handleTable tst 
 	= IF_Ajax 																	// threads only used when Ajax is enabled
 		(IF_ClientServer														// we running both client and server
 			(IF_ClientTasks												
-				(ThreadTableStorageGen (clientThreadTableId userid) Client fun)	// thread table on client
-				(ThreadTableStorageGen serverThreadTableId location fun)		// threadtable on server
-				tst
+				ClientThreadTableStorage										// thread table on client
+				ServerThreadTableStorage										// threadtable on server
+				fun tst
 			)
-			(ThreadTableStorageGen serverThreadTableId location fun tst)		// thread table on server when ajax used
+			(ServerThreadTableStorage fun tst)									// thread table on server when ajax used
 		)
 		(abort "Thread table storage only used when Ajax enabled")				// no threads made at all
 
+ServerThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
+ServerThreadTableStorage fun = handleTable
+where
+	handleTable tst=:{staticInfo} = ThreadTableStorageGen serverThreadTableId staticInfo.threadTableLoc fun tst 
+
+	serverThreadTableId 		= "Application" +++  "-ThreadTable"
+
+ClientThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
+ClientThreadTableStorage fun = handleTable
+where
+	handleTable tst=:{staticInfo} = ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) Client fun tst 
+
+	clientThreadTableId userid	= "User" <+++ userid  <+++ "-ThreadTable"
 
 ThreadTableStorageGen :: !String !Lifespan !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
 ThreadTableStorageGen tableid lifespan fun = handleTable						// to handle the table on server as well as on client
 where
-	handleTable tst=:{options,staticInfo}  
+	handleTable tst
 	# (table,tst) = LiftHst (mkStoreForm (Init,storageFormId 
 						{ tasklife 		= lifespan
 						, taskstorage 	= PlainString 
@@ -601,20 +612,23 @@ copyThreadTableToClient tst
 		tst
 
 copyThreadTableToClient` :: !*TSt -> !*TSt										// copies all threads for this user from server to client thread table
-copyThreadTableToClient` tst=:{staticInfo}
-# userid 				= staticInfo.currentUserId
-# ((mythreads,_),tst)	= splitThreadsByUser tst															// get thread table on server
-# (clientThreads,tst)	= ThreadTableStorageGen (clientThreadTableId userid) Client (\_ -> mythreads) tst	// and store in client
+copyThreadTableToClient` tst
+# ((mythreads,_),tst)	= splitServerThreadsByUser tst												// get thread table on server
+# (clientThreads,tst)	= ClientThreadTableStorage (\_ -> mythreads) tst							// and store in client
 = tst
 
-splitThreadsByUser :: !*TSt -> !(!(!ThreadTable,!ThreadTable),!*TSt)								// get all threads from a given user from the server thread table
-splitThreadsByUser tst=:{staticInfo}
+splitServerThreadsByUser :: !*TSt -> !(!(!ThreadTable,!ThreadTable),!*TSt)							// get all threads from a given user from the server thread table
+splitServerThreadsByUser tst=:{staticInfo}
 # userid 				= staticInfo.currentUserId
-# location 				= staticInfo.threadTableLoc
-# (serverThreads,tst)	= ThreadTableStorageGen serverThreadTableId location id tst					// get thread table on server
-# splitedthreads		= span (\thread -> thread.thrUserId == userid && 							// only copy relevant part of thread table to client
-								    		(thread.thrKind == ClientServerThread || thread.thrKind == ClientThread)) serverThreads
+# (serverThreads,tst)	= ServerThreadTableStorage id tst											// get thread table on server
+# splitedthreads		= filterZip (\thr -> thr.thrUserId == userid &&								// only copy relevant part of thread table to client
+							      (thr.thrKind == ClientServerThread || thr.thrKind == ClientThread)) serverThreads ([],[])
 = (splitedthreads,tst)
+where
+	filterZip pred [] accu = accu
+	filterZip pred [x:xs] (yes,no)
+	| pred x = filterZip pred xs ([x:yes],no)
+	| otherwise = filterZip pred xs (yes,[x:no])
 
 copyThreadTableFromClient :: !GlobalInfo !*TSt -> !*TSt												// copies all threads for this user from server to client thread table
 copyThreadTableFromClient versioninfo tst
@@ -623,11 +637,9 @@ copyThreadTableFromClient versioninfo tst
 		tst
 
 copyThreadTableFromClient` :: !GlobalInfo !*TSt -> !*TSt											// copies all threads for this user from server to client thread table
-copyThreadTableFromClient` {newThread,deletedThreads} tst=:{staticInfo}
-# userid 				= staticInfo.currentUserId
-# location 				= staticInfo.threadTableLoc
-# ((oldclient,table),tst)= splitThreadsByUser tst													// get thread table on server
-# (newclients,tst)		= ThreadTableStorageGen (clientThreadTableId userid) Client id tst			// get thread table from client
+copyThreadTableFromClient` {newThread,deletedThreads} tst
+# ((oldclient,table),tst)= splitServerThreadsByUser tst												// get thread table on server
+# (newclients,tst)		= ClientThreadTableStorage id tst											// get thread table from client
 # newclients			= if newThread										
 								(newclients ++ 														// determine new threads being added by global effects
 								 addNewClients (foldl (\x y -> if (x > y) x y) 0 [thr.thrVersionNr \\ thr <- oldclient]) oldclient)
@@ -638,7 +650,7 @@ copyThreadTableFromClient` {newThread,deletedThreads} tst=:{staticInfo}
 										\\ client <- newclients | not (isMember client.thrTaskNr deletedThreads) // remove deleted threads
 										]
 # newtable				= newclients ++ table														// determine new thread situation
-# (serverThreads,tst)	= ThreadTableStorageGen serverThreadTableId location (\_ -> newtable) tst	// store table on server
+# (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst								// store table on server
 = tst
 where
 	addNewClients max table = [thread \\ thread <- table | thread.thrVersionNr > max]
@@ -657,6 +669,8 @@ where
 		| (showTaskNr tasknrToFind == showTaskNr entry.thrTaskNr &&	foundThread threadkind entry.thrKind) =  n	// yes, thread is administrated
 		= lookupThread tasknrToFind (inc n) next
 
+// TODO foundThread kan niet kloppen !!!
+
 	foundThread ServerThread     		ServerThread 	   		= True
 	foundThread ServerThread     		ClientServerThread 	   	= True
 	foundThread ServerThread     		ClientThread	 	   	= True
@@ -668,7 +682,7 @@ where
 	foundThread ClientServerThread    	ClientThread 	   		= True
 	foundThread ExceptionHandler 		ExceptionHandler		= True
 	foundThread AnyThread    			_				 	   	= True
-	foundThread _ 						_ 						= False
+	foundThread _ 						_ 						= abort "ZOU NIET MOGEN\n" //False
 
 
 deleteThreads :: !TaskNr !*TSt -> *TSt
@@ -914,12 +928,13 @@ where
 	| activated	= taskb a {tst & options = options}
 	= (createDefault,tst)
 
-(#>>) infixl 1 :: !(Task a) !(Task b) -> Task b
+(#>>) infixl 1 :: !(Task a) !(Task b) -> Task b | iCreateAndPrint b
 (#>>) taska taskb = mybind
 where
 	mybind tst=:{options}
-	# (a,tst) = taska tst
-	= taskb {tst & options = options}
+	# (a,tst=:{activated}) = taska tst
+	| activated	= taskb {tst & options = options}
+	= (createDefault,tst)
 
 return_V :: !a -> (Task a) | iCreateAndPrint a
 return_V a  = mkTask "return_V" (return a) 
@@ -1672,7 +1687,7 @@ where
 	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
-	= (val,{tst & trace = Just (InsertTrace activated tasknr userId taskname (printToString val) (fromJust trace))}) // adjust trace
+	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val) (fromJust trace))}) // adjust trace
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
 mkParSubTask name i task = mkParSubTask`
@@ -1748,14 +1763,14 @@ isNil _ = False
 // Trace Printing...
 // ******************************************************************************************************
 
-InsertTrace :: !Bool !TaskNr !Int String !String ![Trace] -> [Trace]
-InsertTrace finished idx who taskname val trace = InsertTrace` ridx who val trace
+InsertTrace :: !Bool !TaskNr !Int !Options String !String ![Trace] -> [Trace]
+InsertTrace finished idx who options taskname val trace = InsertTrace` ridx who val trace
 where
 	InsertTrace` :: !TaskNr !Int !String ![Trace] -> [Trace]
 	InsertTrace` [i] 	who str traces
 	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr idx <+++ "," <+++ who <+++ "," <+++ taskname)
 	# (Trace _ itraces)		= select i traces
-	= updateAt` i (Trace (Just (finished,(who,show,taskname,str))) itraces)  traces
+	= updateAt` i (Trace (Just (finished,(who,show,options,taskname,str))) itraces)  traces
 	InsertTrace` [i:is] who str traces
 	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr idx <+++ "," <+++ who <+++ "," <+++ taskname)
 	# (Trace ni itraces)	= select i traces
@@ -1788,30 +1803,38 @@ where
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
 
 	pr _ Nothing 			= []
-	pr dprev (Just (dtask,(w,i,tn,s)))	
+	pr dprev (Just (dtask,(w,i,op,tn,s)))	
 	| dprev && (not dtask)					= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
-	| not dtask	&& tn%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
-	| not dtask	&& tn%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
-	| not dtask	&& tn%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver (w,i,tn,s)
-	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,tn,s)
-	= showTask cellattr1a White Yellow Red White (w,i,tn,s)
+	| not dtask	&& tn%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
+	| not dtask	&& tn%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
+	| not dtask	&& tn%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
+	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,op,tn,s)
+	= showTask cellattr1a White Yellow Red White (w,i,op,tn,s)
 	
-	showTask2 attr1 c1 c2 c3 c4 (w,i,tn,s)
+	showTask2 attr1 c1 c2 c3 c4 (w,i,op,tn,s)
 	= [Table doneBackground 	[ Tr [] [Td attr1 [font c1 (toString (last (reverse i)))],	Td cellattr2 [font c2 tn]]
 								, Tr [] [Td attr1 [font c3 (toString w)], 					Td cellattr2 [font c4 s]]
 								]
 	  ,Br]
 
-	showTask att c1 c2 c3 c4 (w,i,tn,s)
+	showTask att c1 c2 c3 c4 (w,i,op,tn,s)
 	= [STable doneBackground 	
 		[ [font c1 (toString w),font c2 ("T" <+++ showTaskNr i)]
-		, [EmptyBody, font c3 tn]
+		, [showStorage op.tasklife, font c3 tn]
 		, [EmptyBody, font c4 s]
 		]
 		]
 	isDone Nothing = False
-	isDone (Just (b,(w,i,tn,s))) = b
+	isDone (Just (b,(w,i,op,tn,s))) = b
 
+	showStorage Temp		= font Silver "--"
+	showStorage Client		= font Green "CL"
+	showStorage Page		= font Green "PG"
+	showStorage Session		= font Green "SS"
+	showStorage TxtFileRO	= font Red   "TF0"
+	showStorage TxtFile		= font Red   "TF"
+	showStorage DataFile	= font Red   "DF"
+	showStorage Database	= font Red   "DB"
 
 	doneBackground = 	[ Tbl_CellPadding (Pixels 1), Tbl_CellSpacing (Pixels 0), cellwidth
 						, Tbl_Rules Rul_None, Tbl_Frame Frm_Border 

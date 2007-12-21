@@ -79,7 +79,7 @@ return_V		:: lift a value to the iTask domain and return it
 */
 
 (=>>) infixl 1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
-(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b
+(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b		| iCreateAndPrint b
 return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
 /* prompting variants:
