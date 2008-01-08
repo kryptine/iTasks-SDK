@@ -161,13 +161,13 @@ where
 	// read out file and store as string
 
 	findState` {id,lifespan = TxtFile,storage = PlainString} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case parseString string of
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFile}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
 	findState` {id,lifespan = TxtFileRO,storage = PlainString} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case parseString string of
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFileRO}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
@@ -175,7 +175,7 @@ where
 	// read out file and store as dynamic
 
 	findState` {id,lifespan = TxtFile,storage = StaticDynamic} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
 		_				= case string_to_dynamic` string of
@@ -183,7 +183,7 @@ where
 							else				= (False,Nothing,    Leaf_,world)
 
 	findState` {id,lifespan = TxtFileRO,storage = StaticDynamic} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readState id world)
+	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
 		_				= case string_to_dynamic` string of
@@ -249,7 +249,7 @@ where
 	= (Node_ nleft a nright,world)
 	
 	deleteIData left right a world
-	# world = deleteTxtFileIData a world
+	# world = deletePersistentStorageIData a world
 	= (join left right,world)
 	where
 		join Leaf_  right 	= right
@@ -263,15 +263,14 @@ where
 			where
 				(largest,nright) = FindRemoveLargest right
 
-		deleteTxtFileIData (fid,OldState {life}) world 	= deleteTxtFile fid life world
-		deleteTxtFileIData (fid,NewState {life}) world 	= deleteTxtFile fid life world
+		deletePersistentStorageIData (fid,OldState {life}) world 	= deleteStorage fid life world
+		deletePersistentStorageIData (fid,NewState {life}) world 	= deleteStorage fid life world
 
-		deleteTxtFile fid Database 		world=:{gerda}		= {world & gerda  	 = deleteGerda`    fid gerda}
-		deleteTxtFile fid DataFile 		world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
-		deleteTxtFile fid TxtFile 		world 				= deleteState fid world
-		deleteTxtFile fid TxtFileRO 	world				= deleteState fid world
-		deleteTxtFile fid _ 			world 				= world
-
+		deleteStorage fid Database 		world=:{gerda}		= {world & gerda  	 = deleteGerda`    fid gerda}
+		deleteStorage fid DataFile 		world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
+		deleteStorage fid TxtFile 		world 				= deleteStateFile fid world
+		deleteStorage fid TxtFileRO 	world				= deleteStateFile fid world
+		deleteStorage fid _ 			world 				= world
 
 // Serialization and De-Serialization of states
 //
@@ -356,8 +355,8 @@ where
 		writeTxtFileState (sid,NewState {format,life  = TxtFile}) nworld
 		= IF_Client nworld 
 		 ( case format of
-				PlainStr string			= writeState sid string nworld
-				StatDyn  dynval			= writeState sid (dynamic_to_string dynval) nworld)
+				PlainStr string			= writeStateFile sid string nworld
+				StatDyn  dynval			= writeStateFile sid (dynamic_to_string dynval) nworld)
 
 		writeTxtFileState _ nworld		= nworld
 

@@ -248,8 +248,8 @@ where
 
 // writing and reading of persistent states to a file
 
-writeState :: !String !String !*NWorld -> *NWorld 
-writeState filename serializedstate env
+writeStateFile :: !String !String !*NWorld -> *NWorld 
+writeStateFile filename serializedstate env
 # ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
 | not ok = abort ("writeState: cannot create path to " +++ iDataStorageDir)
 #(_,env)		= case getFileInfo mydir env of
@@ -261,8 +261,8 @@ writeState filename serializedstate env
 # (ok,env)		= fclose file env
 = env
 
-readState :: !String !*NWorld -> (!String,!*NWorld) 
-readState  filename env
+readStateFile :: !String !*NWorld -> (!String,!*NWorld) 
+readStateFile  filename env
 # ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
 | not ok = abort ("readState: cannot create path to " +++ iDataStorageDir)
 #(_,env)		= case getFileInfo mydir env of
@@ -277,8 +277,8 @@ readState  filename env
 where
 	big			= 1000000
 
-deleteState :: !String !*NWorld -> *NWorld
-deleteState  filename env
+deleteStateFile :: !String !*NWorld -> *NWorld
+deleteStateFile  filename env
 # directory								= iDataStorageDir
 # ((ok,path),env) 						= pd_StringToPath (directory +++ "\\" +++ filename +++ ".txt") env
 | not ok								= abort "Cannot delete indicated iData"

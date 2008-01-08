@@ -43,9 +43,9 @@ DecodeHtmlStatesAndUpdate 	:: (Maybe [(String, String)]) -> (![HtmlState],!Tripl
 
 // serializing, de-serializing of iData state stored in files
 
-writeState		 			:: !String !String !*NWorld -> *NWorld 
-readState				 	:: !String !*NWorld -> (!String,!*NWorld) 
-deleteState 				:: !String !*NWorld -> *NWorld
+writeStateFile		 		:: !String !String !*NWorld -> *NWorld 
+readStateFile				:: !String !*NWorld -> (!String,!*NWorld) 
+deleteStateFile 			:: !String !*NWorld -> *NWorld
 
 // constants that maybe useful
 

@@ -23,16 +23,16 @@ IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerd
 //IF_DataFile df no_df 	:== df			// If DataFile option is used
 IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
-IF_Ajax th no_th		:== th			// If you want to enable sub-page (thread) handling using "Ajax" technology
-//IF_Ajax th no_th		:== no_th		// Otherwise
+IF_Ajax aj no_aj		:== aj			// If you want to enable sub-page (thread) handling using "Ajax" technology
+//IF_Ajax aj no_aj		:== no_aj		// Otherwise
 
-IF_ClientServer th no_th	:== th		// If you want to have a client server architecture (with Sapl running on the client)
-//IF_ClientServer th no_th	:== no_th		// Otherwise
+IF_ClientServer cs no_cs	:== cs		// If you want to have a client server architecture (with Sapl running on the client)
+//IF_ClientServer cs no_cs	:== no_cs		// Otherwise
 
-//IF_Client sp no_sp		:== sp			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well
-IF_Client sp no_sp		:== no_sp		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
+//IF_Client cl no_cl		:== cl			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well//
+IF_Client cl no_cl		:== no_cl		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
 
-IF_ClientTasks :: .a .a -> .a
+IF_ClientTasks :: .a .a -> .a			// Follows IF_Client setting
 
 
 class iData a							// The collection of generic functions needed to make iData:	
@@ -97,11 +97,11 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== True									// show what kind of information is received from Client
-TraceOutput				:== True									// show what kind of information is stored when application is finished
+TraceInput				:== False									// show what kind of information is received from Client
+TraceOutput				:== False									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
-TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
+TraceHttp10				:== False									// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11				:== False									// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
 
 // separators
