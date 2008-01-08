@@ -242,7 +242,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
 							(	IF_Ajax (IF_ClientServer (IF_ClientTasks [CTxt Yellow "Client: "] [CTxt Yellow "Server: "]) []) [] ++
 								if multiuser 
-									[Txt "User: " , CTxt Silver thisUser, Txt " - ", Txt "#User Queries: " , CTxt Silver sversion, Txt " - "] [] ++
+									[Txt "User: " , CTxt Yellow thisUser, Txt " - ", Txt "#User Queries: " , CTxt Silver sversion, Txt " - "] [] ++
 								if versionsOn [Txt "#Server Queries: ", CTxt Silver appversion] [Txt "#Server Queries: - "] ++
 								IF_Ajax
 									[Txt " - Task#: ", CTxt Silver (showTaskNr  event),Txt " - Thread(s)#: ", CTxt Silver threadsText,Br] [] ++
@@ -449,9 +449,10 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 						= startFromRoot versioninfo event [tasknr] "No matching thread, page refreshed" taska tst			
 # thread 				= hd mbthread											// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
-	# tst				= deleteAllSubTasks versioninfo.deletedThreads tst		// delete subtasks being obsolute
+//	# tst				= deleteAllSubTasks versioninfo.deletedThreads tst		// delete subtasks being obsolute
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
 	= ((True,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
+//						= startFromRoot versioninfo event [tasknr] "Task does not exist anymore, page refresh" taska tst			
 | versioninfo.newThread															// newthread added by someone
 						= startFromRoot versioninfo event [tasknr] "New tasks added, page refreshed" taska tst			
 | not (isNil versioninfo.deletedThreads) 										// some thread has been deleted										
@@ -569,7 +570,7 @@ where
 // Thread Table Storage Manipulation functions
 // ******************************************************************************************************
 
-// TODO : Currently an unordered list is used, should become an ordered tree someday...
+// TO DO : Currently an unordered list is used, should become an ordered tree someday...
 
 ThreadTableStorage :: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
 ThreadTableStorage fun = handleTable
@@ -593,7 +594,7 @@ where
 
 	serverThreadTableId 		= "Application" +++  "-ThreadTable"
 
-ClientThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
+ClientThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
 ClientThreadTableStorage fun = handleTable
 where
 	handleTable tst=:{staticInfo} = ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) Client fun tst 
@@ -608,26 +609,26 @@ where
 						{ tasklife 		= lifespan
 						, taskstorage 	= PlainString 
 						, taskmode		= NoForm
-						, gc			= NoCollect} tableid []) fun) tst
+						, gc			= /*NoCollect*/ Collect} tableid []) fun) tst
 	= (table.value,tst)
 
 copyThreadTableToClient ::  !*TSt -> !*TSt										// copies all threads for this user from server to client thread table
 copyThreadTableToClient tst
 =	IF_ClientServer										
-		(IF_ClientTasks id copyThreadTableToClient` tst)
+		(IF_ClientTasks id copyThreadTableToClient` tst)						// only if we are on the server the copied can be made
 		tst
 
 copyThreadTableToClient` :: !*TSt -> !*TSt										// copies all threads for this user from server to client thread table
 copyThreadTableToClient` tst
-# ((mythreads,_),tst)	= splitServerThreadsByUser tst												// get thread table on server
-# (clientThreads,tst)	= ClientThreadTableStorage (\_ -> mythreads) tst							// and store in client
+# ((mythreads,_),tst)	= splitServerThreadsByUser tst							// get thread table on server
+# (clientThreads,tst)	= ClientThreadTableStorage (\_ -> mythreads) tst		// and store in client
 = tst
 
-splitServerThreadsByUser :: !*TSt -> !(!(!ThreadTable,!ThreadTable),!*TSt)							// get all threads from a given user from the server thread table
+splitServerThreadsByUser :: !*TSt -> !(!(!ThreadTable,!ThreadTable),!*TSt)		// get all threads from a given user from the server thread table
 splitServerThreadsByUser tst=:{staticInfo}
 # userid 				= staticInfo.currentUserId
-# (serverThreads,tst)	= ServerThreadTableStorage id tst											// get thread table on server
-# splitedthreads		= filterZip (\thr -> thr.thrUserId == userid &&								// only copy relevant part of thread table to client
+# (serverThreads,tst)	= ServerThreadTableStorage id tst						// get thread table on server
+# splitedthreads		= filterZip (\thr -> thr.thrUserId == userid &&			// only copy relevant part of thread table to client
 							      (thr.thrKind == ClientServerThread || thr.thrKind == ClientThread)) serverThreads ([],[])
 = (splitedthreads,tst)
 where
@@ -636,35 +637,39 @@ where
 	| pred x = filterZip pred xs ([x:yes],no)
 	| otherwise = filterZip pred xs (yes,[x:no])
 
-copyThreadTableFromClient :: !GlobalInfo !*TSt -> !*TSt												// copies all threads for this user from server to client thread table
+copyThreadTableFromClient :: !GlobalInfo !*TSt -> !*TSt							// copies all threads for this user from client to server thread table
 copyThreadTableFromClient versioninfo tst
 =	IF_ClientServer										
-		(IF_ClientTasks id (copyThreadTableFromClient` versioninfo) tst)
+		(IF_ClientTasks id (copyThreadTableFromClient` versioninfo) tst)		// only iff we are on the server the copied can be made
 		tst
 
-copyThreadTableFromClient` :: !GlobalInfo !*TSt -> !*TSt											// copies all threads for this user from server to client thread table
+copyThreadTableFromClient` :: !GlobalInfo !*TSt -> !*TSt						// copies all threads for this user from client to server thread table
 copyThreadTableFromClient` {newThread,deletedThreads} tst
 # ((clienttableOnServer,otherClientsTable),tst)
-						= splitServerThreadsByUser tst												// get latest thread table on server
+						= splitServerThreadsByUser tst							// get latest thread table stored on server
 # (clienttableOnClient,tst)		
-						= ClientThreadTableStorage id tst											// get latest thread table from client
+						= ClientThreadTableStorage id tst						// get latest thread table stored on client
 # clienttableOnClient	= case deletedThreads of
-								[] -> 	clienttableOnClient											// remove threads deleted by global effect											
+								[] -> 	clienttableOnClient						// remove threads in client table which have been deleted by global effects											
 								_  -> 	[client 
 										\\ client <- clienttableOnClient | not (isChildOf client.thrTaskNr deletedThreads) 
 										]
-# tst					= deleteAllSubTasks deletedThreads tst										// remove corresponding tasks
-/*
-# newclientsOnServer	= if newThread																// add new threads being added in the meantime										
-								(determineNewThreads (foldl (\x y -> if (x > y) x y) 0 [thr.thrVersionNr \\ thr <- clienttableOnClient]) clienttableOnServer)
-								[]																	// no threads have been added		
-
-*/
-# thrNrsActiveOnClient	= [thread.thrTaskNr \\ thread <- clienttableOnClient]						// all active thread numbers on client
+# (clienttableOnClient,tst)		
+						= ClientThreadTableStorage (\_ -> []) tst				// clear thread table stored on client
+# tst					= deleteAllSubTasks deletedThreads tst					// remove corresponding tasks
+# thrNrsActiveOnClient	= [thread.thrTaskNr \\ thread <- clienttableOnClient]	// all active thread numbers on client
 # newClientsOnServer	= [thread \\ thread <- clienttableOnServer | not (isMember (thread.thrTaskNr) thrNrsActiveOnClient)]
 # newtable				= newClientsOnServer ++ clienttableOnClient ++ otherClientsTable			// determine new thread situation
-# (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst								// store table on server
+# (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst			// store table on server
 = tst
+
+/*
+# newclientsOnServer	= if newThread											// add new threads being added in the meantime										
+								(determineNewThreads (foldl (\x y -> if (x > y) x y) 0 [thr.thrVersionNr \\ thr <- clienttableOnClient]) clienttableOnServer)
+								[]												// no threads have been added		
+
+*/
+
 
 findThreadInTable :: !ThreadKind !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)// find thread that belongs to given tasknr
 findThreadInTable threadkind tasknr tst
@@ -726,8 +731,7 @@ where
 isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
 
 isChildOf mytasknr [] = False
-isChildOf mytasknr [x:xs] = isChild mytasknr x || isChildOf mytasknr xs
-
+isChildOf mytasknr [x:xs] = isChild (reverse mytasknr) x || isChildOf mytasknr xs
 
 administrateDeletedThreads [] tst = tst
 administrateDeletedThreads [(user,tasknr):users] tst=:{hst}
@@ -1033,7 +1037,7 @@ where
 	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
 	# (val,tst=:{activated})	= mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
 	| not activated				= (val,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
-	# tst						= deleteSubTasks tasknr tst							// task ready, garbage collect it
+	# tst						= deleteSubTasksAndThreads tasknr tst				// task ready, garbage collect it
 	# (_,tst) 					= LiftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
 	= (val,{tst & tasknr = tasknr, options = options})
 
@@ -1049,7 +1053,7 @@ where
 	foreverTask` tst=:{tasknr,activated,userId,options,html} 
 	| options.gc == Collect																				// garbace collect everything when task finsihed
 		# (val,tst=:{activated})= task {tst & tasknr = [-1:tasknr]}										// shift tasknr
-		| activated 			= foreverTask` (deleteSubTasks tasknr {tst & tasknr = tasknr, options = options, html = html}) 			// loop
+		| activated 			= foreverTask` (deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr, options = options, html = html}) 			// loop
 		= (val,tst)					
 	# taskId					= iTaskId userId tasknr "ForSt"											// create store id
 	# (currtasknr,tst)			= LiftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst		// fetch actual tasknr
@@ -1078,7 +1082,7 @@ where
 	# (a,tst=:{activated}) 	= taska {tst & tasknr = [-1:tasknr]}
 	| not activated 		= (a,tst)
 	| not (pred a)			
-		# tst = deleteSubTasks tasknr tst
+		# tst = deleteSubTasksAndThreads tasknr tst
 		= (a,{tst & activated = False})
 	= (a,tst)
 
@@ -1227,11 +1231,11 @@ doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
 # (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
 | adone
-	# tst 								= deleteSubTasks [1:tasknr] {tst & tasknr = tasknr}
+	# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
 	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
 	= (a,{tst & html = html, activated = True})
 | bdone
-	# tst 								= deleteSubTasks [0:tasknr] {tst & tasknr = tasknr}
+	# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
 	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 1)) {tst & html = BT []}
 	= (b,{tst & html = html, activated = True})
 = (a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
@@ -1251,11 +1255,11 @@ where
 	# (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
 	# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 	| adone
-		# tst 								= deleteSubTasks [1:tasknr] {tst & tasknr = tasknr}
+		# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
 		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
 		= (LEFT a,{tst & html = html, activated = True})
 	| bdone
-		# tst 								= deleteSubTasks [0:tasknr] {tst & tasknr = tasknr}
+		# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
 		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId tst.options taskId -1) (\_ -> 1)) {tst & html = BT []}
 		= (RIGHT b,{tst & html = html, activated = True})
 	= (LEFT a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
@@ -1290,7 +1294,7 @@ where
 												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
 												(userId -@: allhtml)
 							})
-	# tst 				= deleteSubTasks tasknr {tst & tasknr = tasknr}
+	# tst 				= deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr}
 	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) (\_ -> (chosenvalue,a)))  {tst & html = BT []} // remember finished task for next tim
 	= (a,{tst & activated = adone, html = html, tasknr = tasknr}) 
 
@@ -1651,12 +1655,12 @@ where
 	Try handler (exception :: e^) = catch1 
 	with 
 		catch1 tst=:{tasknr} 
-		# tst = deleteSubTasks tasknr tst
+		# tst = deleteSubTasksAndThreads tasknr tst
 		= return_V (handler exception) tst
 	Try handler dyn = catch2
 	with
 		catch2 tst=:{tasknr} 
-		# tst = deleteSubTasks tasknr tst
+		# tst = deleteSubTasksAndThreads tasknr tst
 		= RaiseDyn dyn tst
 
 RaiseDyn :: !Dynamic -> Task a | iCreate a
@@ -1748,17 +1752,24 @@ internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` pro
 
 // Garbage collection on iTask administration is done dependening on gc option chosen
 
-deleteSubTasks :: !TaskNr TSt -> TSt
-deleteSubTasks tasknr tst 
+deleteSubTasksAndThreads :: !TaskNr TSt -> TSt
+deleteSubTasksAndThreads tasknr tst 
 # tst=:{hst,userId,options}	= IF_Ajax (deleteThreads tasknr tst) tst
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
 
+deleteAllSubTasksAndThreads :: ![TaskNr] TSt -> TSt
+deleteAllSubTasksAndThreads [] tst = tst
+deleteAllSubTasksAndThreads [tx:txs] tst 
+# tst = deleteSubTasksAndThreads tx tst
+= deleteAllSubTasksAndThreads txs tst
+
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
-deleteAllSubTasks [tx:txs] tst 
-# tst = deleteSubTasks tx tst
-= deleteAllSubTasks txs tst
+deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
+# hst	= deleteIData  (iTaskId userId (tl tx) "") hst
+= deleteAllSubTasks txs {tst & hst = hst}
+
 
 // ******************************************************************************************************
 // iTask Storage Utilities
@@ -1821,7 +1832,7 @@ where
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
 printTrace2 Nothing 	= EmptyBody
-printTrace2 (Just a)  	= BodyTag [Br, CTxt Yellow "Task Tree:", Br, STable emptyBackground (print False a)]
+printTrace2 (Just a)  	= BodyTag [CTxt Yellow "Task Tree:", Br, STable emptyBackground (print False a),Hr []]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
