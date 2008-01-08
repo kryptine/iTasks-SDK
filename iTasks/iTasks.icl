@@ -222,7 +222,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 
 // Here the iTask starts...
 													    
-# ((toServer,_,thrOwner,event,thrinfo,onserver,threads),tst=:{html,hst,trace})	
+# ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace})	
 						= (IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
 							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
@@ -269,10 +269,10 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 where
 	nilTable tst = 	([],tst)
 
-	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Maybe a,!Int,!TaskNr,!String,!Bool,![TaskNr]),*TSt) 	// No threads, always start from scratch		
+	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
-	# (a,tst) = task tst
-	= ((True,Just a,defaultUser,[0],"",True,[]),tst)
+	# (_,tst) = task tst
+	= ((True,defaultUser,[0],"",[]),tst)
 
 	mbUpdate True _ = id
 	mbUpdate _ f = f
@@ -341,8 +341,10 @@ where
 	# (tableC,tst)	= IF_ClientServer
 						(\tst -> ClientThreadTableStorage id tst)											// read thread table from client
 						(\tst -> ([],tst)) tst
-	# bodyS			= [Br, BCTxt Yellow "Server Thread Table: ",
-						STable []	(   [[BCTxt White "UserNr:", BCTxt White "Kind:", BCTxt White "TaskNr:", BCTxt White "Created:"]] ++
+	# bodyS			= 	if (isNil tableS)
+						[]
+						[CTxt Yellow "Server Thread Table: ",
+						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Querie:"]] ++
 										[	[ Txt (toString entry.thrUserId)
 											, Txt (toString entry.thrKind)
 											, Txt (showThreadNr entry.thrTaskNr)
@@ -350,10 +352,13 @@ where
 											] 
 											\\ entry <- tableS
 										]
-									)
+									),
+						Hr []
 						]
-	# bodyC			= [Br, BCTxt Yellow ("User " +++ toString thisUser +++ " Thread Table: "),
-						STable []	(   [[BCTxt White "UserNr:", BCTxt White "Kind:", BCTxt White "TaskNr:", BCTxt White "Created:"]] ++
+	# bodyC			= if (isNil tableC)
+						[]
+						[CTxt Yellow ("Client User " +++ toString thisUser +++ " Thread Table: "),
+						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Created:"]] ++
 										[	[ Txt (toString entry.thrUserId)
 											, Txt (toString entry.thrKind)
 											, Txt (showThreadNr entry.thrTaskNr)
@@ -361,7 +366,8 @@ where
 											] 
 											\\ entry <- tableC
 										]
-									)
+									),
+						Hr []
 						]
 	= (bodyS ++ bodyC,tst)
 
@@ -403,27 +409,28 @@ where
 // Watch it: the Client cannot create new Server threads
 
 
-startFromScratch :: !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt)
-startFromScratch eventnr tasknrs message taska tst
+startFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
+startFromRoot versioninfo eventnr tasknrs message taska tst
 =	IF_ClientServer																// we are running client server
 		(IF_ClientTasks
-			(stopClient eventnr tasknrs message )								// client cannot evaluate from scratch, give it up
-			(evaluateFromScratch eventnr tasknrs message taska) tst				// sever can evaluate from scratch
+			(stopClient eventnr tasknrs message )								// client cannot evaluate from root of task tree, give it up
+			(evaluateFromRoot versioninfo eventnr tasknrs message taska) tst	// sever can evaluate from scratch
 		)
-	(evaluateFromScratch eventnr tasknrs message taska tst)						// ajax can evaluate from scratch as well
+	(evaluateFromRoot eventnr tasknrs message taska tst)						// ajax can evaluate from scratch as well
+where
+	stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
+	stopClient eventnr tasknrs message tst
+	= ((True,defaultUser,eventnr,message,tasknrs), tst)
+	
+	evaluateFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
+	evaluateFromRoot versioninfo eventnr tasknrs message taska tst
+	# tst					= deleteAllSubTasks versioninfo.deletedThreads tst	// delete subtasks being obsolute
+	# (_,tst) 				= taska tst											// evaluate main application from scratch
+	# tst=:{activated}		= copyThreadTableToClient tst						// copy thread table to client, if applicable
+	# message				= if activated "iTask application finished" message
+	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
 
-stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt)
-stopClient eventnr tasknrs message tst
-= ((True,Nothing,defaultUser,eventnr,message,True,tasknrs), tst)
-
-evaluateFromScratch :: !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt)
-evaluateFromScratch eventnr tasknrs message taska tst
-# (a,tst) 				= taska tst												// evaluate main application from scratch
-# tst=:{activated}		= copyThreadTableToClient tst							// copy thread table to client, if applicable
-# message				= if activated "iTask application finished" message
-= (((True,Nothing,defaultUser,eventnr,message,True,tasknrs), {tst & activated = activated}))
-
-startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,Maybe a,!Int,TaskNr,!String,!Bool,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
+startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
 
 # tst					= copyThreadTableFromClient	versioninfo tst				// synchronize thread tables of client and server, if applicable
@@ -432,46 +439,47 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 
 # (mbevent,tst)			= getTripletTaskNrs tst									// see if there are any events, i.e. triplets received
 | isNothing mbevent																// no events
-						= startFromScratch tasknr [tasknr] "No events, page refreshed" taska tst			
+						= startFromRoot versioninfo tasknr [tasknr] "No events, page refreshed" taska tst			
 # event					= fromJust mbevent										// event found
 # (table,tst)			= ThreadTableStorage id tst								// read thread table
 | isNil table																	// events, but no threads, evaluate main application from scratch
-						= startFromScratch event [tasknr] "No threads, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "No threads, page refreshed" taska tst			
 # (mbthread,tst)		= findParentThread event tst							// look for thread to evaluate
 | isNil mbthread																// no thread can be found, happens e.g. when one switches from tasks
-						= startFromScratch event [tasknr] "No matching thread, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "No matching thread, page refreshed" taska tst			
 # thread 				= hd mbthread											// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
+	# tst				= deleteAllSubTasks versioninfo.deletedThreads tst		// delete subtasks being obsolute
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
-	= ((True,Nothing,defaultUser,event,"Task does not exist anymore, please refresh",True,[tasknr]), tst)
+	= ((True,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
 | versioninfo.newThread															// newthread added by someone
-						= startFromScratch event [tasknr] "New tasks added, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "New tasks added, page refreshed" taska tst			
 | not (isNil versioninfo.deletedThreads) 										// some thread has been deleted										
-						= startFromScratch event [tasknr] "Tasks deleted, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "Tasks deleted, page refreshed" taska tst			
 | thread.thrUserId <> thisUser													// updating becomes too complicated
-						= startFromScratch event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ " ,page refreshed") taska tst			
+						= startFromRoot versioninfo event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ " ,page refreshed") taska tst			
 
 // ok, we have found a matching thread
 
 # (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}			// evaluate the thread
 | not activated																	// thread / task not yet finished
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
-	= ((False,Nothing,thisUser,event,"",thread.thrOptions.tasklife <> Client,[thread.thrTaskNr]),tst)					// no further evaluation, aks user for more input
+	= ((False,thisUser,event,"",[thread.thrTaskNr]),tst)						// no further evaluation, aks user for more input
 
 # (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst			// look for thread to evaluate
 = doParent mbthread taska event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
 where
 	doParent [] taska event accu tst											// no more parents of current event, do main task
-						= startFromScratch event [tasknr:accu] "No more threads, page refreshed" taska {tst & html = BT []}			
+						= startFromRoot versioninfo event [tasknr:accu] "No more threads, page refreshed" taska {tst & html = BT []}			
 
 	doParent [parent:next] taska event accu tst									// do parent of current thread
 	| parent.thrUserId <> thisUser												// updating becomes too complicated
-						= startFromScratch event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ " ,page refreshed") taska {tst & html = BT []}			
+						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ " ,page refreshed") taska {tst & html = BT []}			
 
 	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}		// start parent
 	| not activated																// parent thread not yet finished
 		# tst				= copyThreadTableToClient tst						// copy thread table to client
-		= ((False,Nothing,thisUser,event, "", parent.thrOptions.tasklife <> Client,[parent.thrTaskNr:accu]),tst)		// no further evaluation, aks user for more input
+		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
 	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst		// look for thread to evaluate
 	= doParent mbthread taska event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
 
@@ -506,7 +514,7 @@ mkTaskThread OnClient taska
 mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
 mkTaskThread2 threadkind task = evalTask																
 where
-	evalTask tst=:{tasknr,activated,options,userId,staticInfo}					// thread - task is not yet finished
+	evalTask tst=:{tasknr,activated,options,userId}					// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# options 			= {options & tasklife = case threadkind of
@@ -528,16 +536,14 @@ where
 	# (_,thread)		= fromJust mbthread										// entry point found
 	= evalTaskThread thread tst													// and evaluate it
 
-insertNewThread :: !TaskThread *TSt -> *TSt										// insert new thread in table
-insertNewThread thread tst		
-# (table,tst)	= ThreadTableStorage id tst										// read thread table
-# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
-= tst
-
 evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
 evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = evalTaskThread` 
 where
-	evalTaskThread` tst=:{tasknr,options,userId,html}									
+	evalTaskThread` tst=:{tasknr,options,userId,staticInfo,html}									
+	# newThrOptions					= if (thrOptions.tasklife == Client && thrUserId <> staticInfo.currentUserId) 
+											{thrOptions & tasklife = Temp}		// the information is not intended for this client, so dot store
+											thrOptions
+			
 	# (a,tst=:{activated,html=nhtml}) 	
 		= IF_ClientTasks	
 			(case thrKind of		// we are running on Client, assume that IF_ClientServer and IF_Ajax is set
@@ -552,7 +558,7 @@ where
 				 ServerThread 		= deserializeThread thrCallback
 				 else 				= abort "Thread administration error in evalTaskThread"
 			)
-			{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT []} 
+			{tst & tasknr = thrTaskNr, options = newThrOptions, userId = thrUserId,html = BT []} 
 	| activated																	// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}			// remove thread from administration
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})		// remove entry from table
@@ -638,22 +644,27 @@ copyThreadTableFromClient versioninfo tst
 
 copyThreadTableFromClient` :: !GlobalInfo !*TSt -> !*TSt											// copies all threads for this user from server to client thread table
 copyThreadTableFromClient` {newThread,deletedThreads} tst
-# ((oldclient,table),tst)= splitServerThreadsByUser tst												// get thread table on server
-# (newclients,tst)		= ClientThreadTableStorage id tst											// get thread table from client
-# newclients			= if newThread										
-								(newclients ++ 														// determine new threads being added by global effects
-								 addNewClients (foldl (\x y -> if (x > y) x y) 0 [thr.thrVersionNr \\ thr <- oldclient]) oldclient)
-								newclients															// no threads have been added		
-# newclients			= case deletedThreads of
-								[] -> 	newclients													// no threads deleted by global effect											
+# ((clienttableOnServer,otherClientsTable),tst)
+						= splitServerThreadsByUser tst												// get latest thread table on server
+# (clienttableOnClient,tst)		
+						= ClientThreadTableStorage id tst											// get latest thread table from client
+# clienttableOnClient	= case deletedThreads of
+								[] -> 	clienttableOnClient											// remove threads deleted by global effect											
 								_  -> 	[client 
-										\\ client <- newclients | not (isMember client.thrTaskNr deletedThreads) // remove deleted threads
+										\\ client <- clienttableOnClient | not (isChildOf client.thrTaskNr deletedThreads) 
 										]
-# newtable				= newclients ++ table														// determine new thread situation
+# tst					= deleteAllSubTasks deletedThreads tst										// remove corresponding tasks
+/*
+# newclientsOnServer	= if newThread																// add new threads being added in the meantime										
+								(determineNewThreads (foldl (\x y -> if (x > y) x y) 0 [thr.thrVersionNr \\ thr <- clienttableOnClient]) clienttableOnServer)
+								[]																	// no threads have been added		
+
+*/
+# thrNrsActiveOnClient	= [thread.thrTaskNr \\ thread <- clienttableOnClient]						// all active thread numbers on client
+# newClientsOnServer	= [thread \\ thread <- clienttableOnServer | not (isMember (thread.thrTaskNr) thrNrsActiveOnClient)]
+# newtable				= newClientsOnServer ++ clienttableOnClient ++ otherClientsTable			// determine new thread situation
 # (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst								// store table on server
 = tst
-where
-	addNewClients max table = [thread \\ thread <- table | thread.thrVersionNr > max]
 
 findThreadInTable :: !ThreadKind !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)// find thread that belongs to given tasknr
 findThreadInTable threadkind tasknr tst
@@ -684,6 +695,11 @@ where
 	foundThread AnyThread    			_				 	   	= True
 	foundThread _ 						_ 						= abort "ZOU NIET MOGEN\n" //False
 
+insertNewThread :: !TaskThread *TSt -> *TSt										// insert new thread in table
+insertNewThread thread tst		
+# (table,tst)	= ThreadTableStorage id tst										// read thread table
+# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
+= tst
 
 deleteThreads :: !TaskNr !*TSt -> *TSt
 deleteThreads tasknr tst														// delete a thread and all its children
@@ -707,7 +723,11 @@ where
 	deleteChilds [] table 			= table
 	deleteChilds [pos:next] table 	= deleteChilds next (removeAt pos table)
 
-	isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
+isChild mytasknr mbchild = take (length mytasknr) (reverse mbchild) == mytasknr
+
+isChildOf mytasknr [] = False
+isChildOf mytasknr [x:xs] = isChild mytasknr x || isChildOf mytasknr xs
+
 
 administrateDeletedThreads [] tst = tst
 administrateDeletedThreads [(user,tasknr):users] tst=:{hst}
@@ -1734,7 +1754,11 @@ deleteSubTasks tasknr tst
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
 
-
+deleteAllSubTasks :: ![TaskNr] TSt -> TSt
+deleteAllSubTasks [] tst = tst
+deleteAllSubTasks [tx:txs] tst 
+# tst = deleteSubTasks tx tst
+= deleteAllSubTasks txs tst
 
 // ******************************************************************************************************
 // iTask Storage Utilities
@@ -1797,7 +1821,7 @@ where
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
 printTrace2 Nothing 	= EmptyBody
-printTrace2 (Just a)  	= BodyTag [Br, BCTxt Yellow "Task Tree:", Br, STable emptyBackground (print False a)]
+printTrace2 (Just a)  	= BodyTag [Br, CTxt Yellow "Task Tree:", Br, STable emptyBackground (print False a)]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
@@ -1828,9 +1852,9 @@ where
 	isDone (Just (b,(w,i,op,tn,s))) = b
 
 	showStorage Temp		= font Silver "--"
-	showStorage Client		= font Green "CL"
-	showStorage Page		= font Green "PG"
-	showStorage Session		= font Green "SS"
+	showStorage Client		= font Aqua "CL"
+	showStorage Page		= font Aqua "PG"
+	showStorage Session		= font Aqua "SS"
 	showStorage TxtFileRO	= font Red   "TF0"
 	showStorage TxtFile		= font Red   "TF"
 	showStorage DataFile	= font Red   "DF"
