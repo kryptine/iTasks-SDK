@@ -413,10 +413,10 @@ startFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Boo
 startFromRoot versioninfo eventnr tasknrs message taska tst
 =	IF_ClientServer																// we are running client server
 		(IF_ClientTasks
-			(stopClient eventnr tasknrs message )								// client cannot evaluate from root of task tree, give it up
+			(stopClient eventnr tasknrs message)								// client cannot evaluate from root of task tree, give it up
 			(evaluateFromRoot versioninfo eventnr tasknrs message taska) tst	// sever can evaluate from scratch
 		)
-	(evaluateFromRoot eventnr tasknrs message taska tst)						// ajax can evaluate from scratch as well
+	(evaluateFromRoot versioninfo eventnr tasknrs message taska tst)						// ajax can evaluate from scratch as well
 where
 	stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
 	stopClient eventnr tasknrs message tst
@@ -1862,14 +1862,14 @@ where
 	isDone Nothing = False
 	isDone (Just (b,(w,i,op,tn,s))) = b
 
-	showStorage Temp		= font Silver "--"
-	showStorage Client		= font Aqua "CL"
-	showStorage Page		= font Aqua "PG"
-	showStorage Session		= font Aqua "SS"
-	showStorage TxtFileRO	= font Red   "TF0"
-	showStorage TxtFile		= font Red   "TF"
-	showStorage DataFile	= font Red   "DF"
-	showStorage Database	= font Red   "DB"
+	showStorage Temp		= font Silver "Tmp"
+	showStorage Client		= font Aqua "Cli"
+	showStorage Page		= font Navy "Pag"
+	showStorage Session		= font Navy "Ssn"
+	showStorage TxtFileRO	= font Red   "TxF0"
+	showStorage TxtFile		= font Red   "TxF"
+	showStorage DataFile	= font Red   "DaF"
+	showStorage Database	= font Red   "DaB"
 
 	doneBackground = 	[ Tbl_CellPadding (Pixels 1), Tbl_CellSpacing (Pixels 0), cellwidth
 						, Tbl_Rules Rul_None, Tbl_Frame Frm_Border 
