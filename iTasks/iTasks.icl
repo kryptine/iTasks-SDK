@@ -344,7 +344,7 @@ where
 	# bodyS			= 	if (isNil tableS)
 						[]
 						[CTxt Yellow "Server Thread Table: ",
-						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Querie:"]] ++
+						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Created:"]] ++
 										[	[ Txt (toString entry.thrUserId)
 											, Txt (toString entry.thrKind)
 											, Txt (showThreadNr entry.thrTaskNr)
