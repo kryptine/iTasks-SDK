@@ -235,18 +235,23 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
 						= IF_Ajax (if TraceThreads showThreadTable nilTable {tst & hst = hst}) ([],{tst & hst = hst})
-# threadsText			= if showCompletePage thrinfo ((thrinfo +++ " ") +++ foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
+# threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
 # (threadcode,selbuts,selname,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
 
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
 							(	IF_Ajax (IF_ClientServer (IF_ClientTasks [CTxt Yellow "Client: "] [CTxt Yellow "Server: "]) []) [] ++
 								if multiuser 
-									[Txt "User: " , CTxt Yellow thisUser, Txt " - ", Txt "#User Queries: " , CTxt Silver sversion, Txt " - "] [] ++
+									[CTxt White "User: " , CTxt Yellow thisUser, Txt " - "] [] ++
+								[CTxt Aqua thrinfo, Txt " - "] ++
+								if multiuser
+									 [Txt "#User Queries: " , CTxt Silver sversion, Txt " - "] [] ++
 								if versionsOn [Txt "#Server Queries: ", CTxt Silver appversion] [Txt "#Server Queries: - "] ++
 								IF_Ajax
-									[Txt " - Task#: ", CTxt Silver (showTaskNr  event),Txt " - Thread(s)#: ", CTxt Silver threadsText,Br] [] ++
-								[Hr []]
+									( [Txt " - Task#: ", CTxt Silver (showTaskNr  event)] ++
+									  if (isNil threads || showCompletePage) [] [Txt " - Thread(s)#: ", CTxt Silver threadsText]
+									 ) [] ++
+								[Br,Hr []]
 							)
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
 | showCompletePage		=	(toServer,[Ajax [("thePage",	iTaskHeader ++
@@ -458,7 +463,7 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 | not (isNil versioninfo.deletedThreads) 										// some thread has been deleted										
 						= startFromRoot versioninfo event [tasknr] "Tasks deleted, page refreshed" taska tst			
 | thread.thrUserId <> thisUser													// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ " ,page refreshed") taska tst			
+						= startFromRoot versioninfo event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ ", page refreshed") taska tst			
 
 // ok, we have found a matching thread
 
@@ -475,7 +480,7 @@ where
 
 	doParent [parent:next] taska event accu tst									// do parent of current thread
 	| parent.thrUserId <> thisUser												// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ " ,page refreshed") taska {tst & html = BT []}			
+						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") taska {tst & html = BT []}			
 
 	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}		// start parent
 	| not activated																// parent thread not yet finished
@@ -1102,8 +1107,7 @@ assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = n
 # (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
 | activated 						= (a,{tst & activated = True						// work is done	
 											  ,	userId = userId							// restore previous user id						
-											  ,	html = ohtml /*+|+ 						// show old code						
-													   ((nuserId,taskname) @@: nhtml)*/})	// plus new one tagged
+											  ,	html = ohtml })							// plus new one tagged
 = (a,{tst & userId = userId																// restore user Id
 		  , html = 	ohtml +|+ 															// show old code
 					if verbose 
@@ -1700,6 +1704,13 @@ where
 // Every sequential task should increase the task number
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 	
+condTask :: !(Task a) -> (Task a) | iCreate a
+condTask taska = dotask
+where
+	dotask tst=:{activated}
+	| not activated = (createDefault,tst)
+	= taska tst
+
 mkTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr
 
