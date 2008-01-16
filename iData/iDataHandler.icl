@@ -342,6 +342,12 @@ deleteIData prefix hst=:{states,world}
 # (states,world) = deleteStates prefix states world
 = {hst & states = states, world = world}
 
+changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
+changeLifespanIData prefix oldspan newspan hst=:{states,world}
+# (states,world) = changeLifetimeStates  prefix oldspan newspan states world
+= {hst & states = states, world = world}
+
+
 // specialize has to be used if a programmer wants to specialize gForm.
 // It remembers the current value of the index in the expression and creates an editor to show this value.
 // The value might have been changed with this editor, so the value returned might differ from the value you started with!

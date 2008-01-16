@@ -20,7 +20,9 @@ replaceState 		:: !(FormId a) a !*FormStates *NWorld 		// replace state given Fo
 
 getUpdateId 		:: !*FormStates -> ([String],!*FormStates)	// id of previously changed form
 
-deleteStates 		:: !String !*FormStates *NWorld -> (*FormStates,*NWorld)	
+deleteStates 		:: !String !*FormStates *NWorld -> (*FormStates,*NWorld) // delete iData administration of all iData with this prefix	
+
+changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates *NWorld -> (*FormStates,*NWorld) // change lifespan of all iData with is prefix and given old lifespan	
 
 // storage and retrieval of FormStates
 

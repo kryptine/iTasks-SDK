@@ -45,9 +45,11 @@ doHtmlClient 		:: !*World  !UserPage  !String -> String
 
 mkViewForm 			:: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
 
-// Explicit removal of all (Persistent) IData for which the predicate holds applied on the IData form id
+// Explicit removal of all (Persistent) IData for with the same prefix IData form id
+// Change lifespan of all IData with the same prefix IData form id
 
 deleteIData			:: !String !*HSt -> *HSt
+changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
 
 // specialize has to be used if one wants to specialize gForm for a user-defined type
 

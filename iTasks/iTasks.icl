@@ -96,7 +96,23 @@ initStaticInfo thisUser location
 
 class 	(<<@) infixl 3 b ::  !(Task a) !b  -> (Task a)
 instance <<@  Lifespan
-where   (<<@) task lifespan			= \tst -> task {tst & options.tasklife = lifespan}
+where   (<<@) task lifespan			= setTaskLifespan
+		where
+			setTaskLifespan tst=:{options}
+			
+			= IF_Ajax 
+				(IF_ClientServer															// we running both client and server
+					(IF_ClientTasks												
+						(if (options.tasklife == Client && (lifespan == TxtFile || lifespan == DataFile || lifespan == Database))
+							(abort "Cannot make persistent storage on Client\n")
+							(\tst -> task {tst & options.tasklife = lifespan}))						// assign option on client
+						(\tst -> task {tst & options.tasklife = lifespan})tst							// assign option on server
+					)
+					(task {tst & options.tasklife = lifespan})								// assign option on server
+				)
+				(task {tst & options.tasklife = lifespan}) 									// assign option on server
+
+
 instance <<@  StorageFormat
 where   (<<@) task storageformat 	= \tst -> task {tst & options.taskstorage = storageformat}
 instance <<@  Mode
@@ -349,11 +365,13 @@ where
 	# bodyS			= 	if (isNil tableS)
 						[]
 						[CTxt Yellow "Server Thread Table: ",
-						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Created:"]] ++
+						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Created:"
+										 ,CTxt White "Storage"]] ++
 										[	[ Txt (toString entry.thrUserId)
 											, Txt (toString entry.thrKind)
 											, Txt (showThreadNr entry.thrTaskNr)
 											, Txt (toString entry.thrVersionNr)
+											, Txt (toString entry.thrOptions.tasklife)
 											] 
 											\\ entry <- tableS
 										]
@@ -363,11 +381,13 @@ where
 	# bodyC			= if (isNil tableC)
 						[]
 						[CTxt Yellow ("Client User " +++ toString thisUser +++ " Thread Table: "),
-						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Created:"]] ++
+						STable []	(   [[CTxt White "UserNr:", CTxt White "Kind:", CTxt White "TaskNr:", CTxt White "Created:"
+										 ,CTxt White "Storage"]] ++
 										[	[ Txt (toString entry.thrUserId)
 											, Txt (toString entry.thrKind)
 											, Txt (showThreadNr entry.thrTaskNr)
 											, Txt (toString entry.thrVersionNr)
+											, Txt (toString entry.thrOptions.tasklife)
 											] 
 											\\ entry <- tableC
 										]
@@ -454,10 +474,8 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 						= startFromRoot versioninfo event [tasknr] "No matching thread, page refreshed" taska tst			
 # thread 				= hd mbthread											// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
-//	# tst				= deleteAllSubTasks versioninfo.deletedThreads tst		// delete subtasks being obsolute
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
 	= ((True,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
-//						= startFromRoot versioninfo event [tasknr] "Task does not exist anymore, page refresh" taska tst			
 | versioninfo.newThread															// newthread added by someone
 						= startFromRoot versioninfo event [tasknr] "New tasks added, page refreshed" taska tst			
 | not (isNil versioninfo.deletedThreads) 										// some thread has been deleted										
@@ -495,7 +513,7 @@ where
 // ******************************************************************************************************
 
 mkTaskThread :: !SubPage !(Task a) -> Task a 	| iData a										
-
+// wil only be called with IF_Ajax enabled
 mkTaskThread UseAjax taska 
 = IF_Ajax 																		// create an thread only if Ajax is enabled
 	(IF_ClientServer															// we running both client and server
@@ -520,7 +538,7 @@ mkTaskThread OnClient taska
 mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
 mkTaskThread2 threadkind task = evalTask																
 where
-	evalTask tst=:{tasknr,activated,options,userId}					// thread - task is not yet finished
+	evalTask tst=:{tasknr,activated,options,userId,staticInfo}					// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# options 			= {options & tasklife = case threadkind of
@@ -540,7 +558,43 @@ where
 									} tst 
 		= evalTask tst															// try it again, entry point should now be there
 	# (_,thread)		= fromJust mbthread										// entry point found
+	# tst				= if (options.tasklife == Client && 					// if iTasks for this thread are stored on client
+								(thread.thrOptions.tasklife <> Client ||		// but new thread is not to be stored on client 
+								 staticInfo.currentUserId <> userId))			// or new thread is for someone else
+							forceEvalutionOnServer id tst						// storing on client is no longer possible
 	= evalTaskThread thread tst													// and evaluate it
+
+forceEvalutionOnServer tst
+=	IF_ClientServer																// we running both client and server
+		(IF_ClientTasks												
+			id																	// on client we cannot do anything
+			forceEvalutionOnServer`												// force evaluation on server
+			tst
+		)
+	tst
+where
+	forceEvalutionOnServer` tst=:{userId,tasknr} 
+	# (mbparent,tst=:{hst})	= findNoClientParentThread tasknr tst
+	| isNothing mbparent = {tst & hst = hst}									// cannot find parent, we should abort ????
+	# parent 	= fromJust mbparent												// parent thread found which lifespan should be modified 
+	# hst		= changeLifespanIData (iTaskId userId (tl parent.thrTaskNr) "") Client parent.thrOptions.tasklife hst
+	# tst 		= changeLifespanThreadTable parent.thrTaskNr parent.thrOptions.tasklife {tst & hst = hst}
+	= tst
+
+	findNoClientParentThread tasknr tst
+	# (mbparent,tst) 	= findParentThread tasknr tst
+	| isNil mbparent 	= (Nothing,tst)
+	# parent 			= hd mbparent										// thread found
+	| parent.thrOptions.tasklife == Client = findNoClientParentThread (tl parent.thrTaskNr) tst
+	= (Just parent,tst)
+
+	changeLifespanThreadTable :: !TaskNr !Lifespan *TSt -> *TSt						// change lifespan of of indicated thread in threadtable
+	changeLifespanThreadTable tasknr lifespan tst
+	# (table,tst)	= ThreadTableStorage id tst										// read thread table on server
+	# revtasknr		= reverse (tl tasknr)									
+	# ntable 		= [{thread & thrOptions.tasklife = if (isChild revtasknr thread.thrTaskNr) lifespan thread.thrOptions.tasklife} \\ thread <- table]
+	# (_,tst)		= ThreadTableStorage (\_ -> ntable) tst							// store thread table
+	= tst
 
 evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
 evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = evalTaskThread` 
@@ -576,6 +630,7 @@ where
 // ******************************************************************************************************
 
 // TO DO : Currently an unordered list is used, should become an ordered tree someday...
+// TO DO: Put this stuf in another module
 
 ThreadTableStorage :: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
 ThreadTableStorage fun = handleTable
@@ -614,7 +669,7 @@ where
 						{ tasklife 		= lifespan
 						, taskstorage 	= PlainString 
 						, taskmode		= NoForm
-						, gc			= /*NoCollect*/ Collect} tableid []) fun) tst
+						, gc			= Collect} tableid []) fun) tst
 	= (table.value,tst)
 
 copyThreadTableToClient ::  !*TSt -> !*TSt										// copies all threads for this user from server to client thread table
@@ -667,14 +722,6 @@ copyThreadTableFromClient` {newThread,deletedThreads} tst
 # newtable				= newClientsOnServer ++ clienttableOnClient ++ otherClientsTable			// determine new thread situation
 # (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst			// store table on server
 = tst
-
-/*
-# newclientsOnServer	= if newThread											// add new threads being added in the meantime										
-								(determineNewThreads (foldl (\x y -> if (x > y) x y) 0 [thr.thrVersionNr \\ thr <- clienttableOnClient]) clienttableOnServer)
-								[]												// no threads have been added		
-
-*/
-
 
 findThreadInTable :: !ThreadKind !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)// find thread that belongs to given tasknr
 findThreadInTable threadkind tasknr tst
@@ -1704,12 +1751,6 @@ where
 // Every sequential task should increase the task number
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 	
-condTask :: !(Task a) -> (Task a) | iCreate a
-condTask taska = dotask
-where
-	dotask tst=:{activated}
-	| not activated = (createDefault,tst)
-	= taska tst
 
 mkTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr

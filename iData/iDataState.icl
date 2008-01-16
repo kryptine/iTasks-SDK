@@ -240,7 +240,7 @@ where
 
 	deleteStates` :: *FStates *NWorld -> (*FStates,*NWorld)	
 	deleteStates` Leaf_ world 			= (Leaf_,world)
-	deleteStates` (Node_ left a=:(fid,fstate) right) world
+	deleteStates` (Node_ left a=:(fid,_) right) world
 	# prefid			= if (size fid <= lprefix) fid (fid%(0,lprefix-1))  // determine prefix of this form
 	# lessegthen		= if (prefid == prefix) 0 (if (prefix < prefid) -1 1)
 	# (nleft, world) 	= if (lessegthen <= 0) (deleteStates` left  world) (left,world)
@@ -271,6 +271,32 @@ where
 		deleteStorage fid TxtFile 		world 				= deleteStateFile fid world
 		deleteStorage fid TxtFileRO 	world				= deleteStateFile fid world
 		deleteStorage fid _ 			world 				= world
+
+// change storage option
+
+changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates *NWorld -> (*FormStates,*NWorld)	
+changeLifetimeStates prefix oldlifespan newlifespan formstates=:{fstates} world
+# (fstates,world)		= changeLifetimeStates` fstates world
+= ({formstates & fstates = fstates},world)
+where
+	lprefix 	= size prefix		
+
+	changeLifetimeStates` :: *FStates *NWorld -> (*FStates,*NWorld)	
+	changeLifetimeStates` Leaf_ world 			= (Leaf_,world)
+	changeLifetimeStates` (Node_ left a=:(fid,_) right) world
+	# prefid			= if (size fid <= lprefix) fid (fid%(0,lprefix-1))  // determine prefix of this form
+	# lessegthen		= if (prefid == prefix) 0 (if (prefix < prefid) -1 1)
+	# (nleft, world) 	= if (lessegthen <= 0) (changeLifetimeStates` left  world) (left,world)
+	# (nright,world)	= if (lessegthen >= 0) (changeLifetimeStates` right world) (right,world)  
+	| prefid == prefix	= changeLifetime nleft nright a world
+	= (Node_ nleft a nright,world)
+	
+	changeLifetime left right a=:(fid,OldState fstate=:{life}) world
+	| life == oldlifespan	= (Node_ left (fid,OldState {fstate & life = newlifespan}) right,world)	
+	= (Node_ left a right,world)
+	changeLifetime left right a=:(fid,NewState fstate=:{life}) world
+	| life == oldlifespan	= (Node_ left (fid,NewState {fstate & life = newlifespan}) right,world)	
+	= (Node_ left a right,world)
 
 // Serialization and De-Serialization of states
 //
