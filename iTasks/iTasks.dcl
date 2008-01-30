@@ -154,11 +154,13 @@ orTasks			:: ![(String,Task a)] 						-> Task a		| iData a
 andTask			:: do both iTasks in any order (interleaved), task completed when both done
 (-&&-)			:: same, now as infix combinator
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
+andTasksPred 	:: like andTasks, but completion forced when predicate holds
 andTasks_mu		:: assign task to indicated users, task completed when all done
 */
 andTask			:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
 andTasks		:: ![(String,Task a)]						-> Task [a]		| iCreateAndPrint a
+andTasksPred 	:: ([a] -> Bool) ![(String,Task a)] 		-> Task [a]		| iData a 
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
 
 

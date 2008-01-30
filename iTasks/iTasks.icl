@@ -292,8 +292,8 @@ where
 
 	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
-	# (_,tst) = task tst
-	= ((True,defaultUser,[0],"",[]),tst)
+	# (_,tst=:{activated}) = task tst
+	= ((True,defaultUser,[0],if activated "iTask application has ended" "",[]),{tst & activated = activated})
 
 	mbUpdate True _ = id
 	mbUpdate _ f = f
@@ -1363,6 +1363,40 @@ doAndTask (taska,taskb) tst=:{tasknr,html}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "andTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 = ((a,b),{tst & activated = adone&&bdone, html = html +|+ ahtml +|+ bhtml})
 
+andTasksPred :: ([a] -> Bool) ![(String,Task a)] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
+andTasksPred pred taskOptions = newTask "andTasksPred" (doandTasks taskOptions)
+where
+	doandTasks [] tst	= return [] tst
+	doandTasks taskOptions tst=:{tasknr,html,options,userId}
+	# (alist,tst=:{activated=finished})		
+						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
+	# myalist			= map snd alist
+	| finished			= (myalist,{tst & html = html}) 			// stop, all andTasks are finished
+	| pred myalist		= (myalist,{tst & html = html, activated = True})  // stop, all work done so far satisfies predicate
+	# ((chosen,buttons,chosenname),tst) 							// user can select one of the tasks to work on
+						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
+	# chosenTask		= snd (taskOptions!!chosen)
+	# chosenTaskName	= fst (taskOptions!!chosen)
+	# (a,tst=:{activated=adone,html=ahtml}) 						// enable the selected task (finished or not)
+						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
+	# (alist,tst=:{activated=finished,html=allhtml})				// check again whether all other tasks are now finished, collect their code		
+						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
+	| not adone			= ([a],{tst &	activated = False 			// not done, since chosen task not finished
+									, 	html = 	html +|+ 
+												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+												(userId -@: allhtml) // code for non selected alternatives are not shown for the owner of this task
+							})
+	# (alist,tst=:{activated=finished,html=allhtml})		
+						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [],activated = True} 
+	# myalist			= map snd alist
+	| finished			= (myalist,{tst & html = html}) 			// stop, all andTasks are finished
+	| pred myalist		= (myalist,{tst & html = html, activated = True}) // stop, all work done so far satisfies predicate
+	= (map snd alist,{tst 	& activated = finished
+							, html = 	html +|+ 
+										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+										(userId -@: allhtml)
+						})
+
 andTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
 andTasks taskOptions = mkTask "andTasks" (doandTasks taskOptions)
 where
@@ -1393,12 +1427,14 @@ where
 										(userId -@: allhtml)
 						})
 
+checkAllTasks :: !String [(String,(*TSt -> *(a,*TSt)))] (Int,Int) Bool [(String,a)] *TSt -> *([(String,a)],*TSt) | iCreateAndPrint a
 checkAllTasks traceid options (ctasknr,skipnr) bool alist tst=:{tasknr}
-| ctasknr == length options 	= (reverse alist,{tst & activated = bool})
-| ctasknr == skipnr				= checkAllTasks traceid options (inc ctasknr,skipnr) bool alist tst
+| ctasknr == length options 	= (reverse alist,{tst & activated = bool})			// all tasks tested
+| ctasknr == skipnr				= checkAllTasks traceid options (inc ctasknr,skipnr) bool alist tst // skip this task such that it is not included
 # (taskname,task)				= options!!ctasknr
-# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True}
-= checkAllTasks traceid options (inc ctasknr,skipnr) (bool&&adone) [(taskname,a):alist] {tst & tasknr = tasknr, activated = True}
+# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True} // check tasks
+| adone							= checkAllTasks traceid options (inc ctasknr,skipnr) bool [(taskname,a):alist] {tst & tasknr = tasknr, activated = True}
+= checkAllTasks traceid options (inc ctasknr,skipnr) False alist {tst & tasknr = tasknr, activated = True}
 
 /* Don't use this one!!
 andTasks_mstone :: do all iTasks in any order (interleaved), task completed when all done
