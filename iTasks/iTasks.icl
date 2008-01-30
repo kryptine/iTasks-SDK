@@ -1032,7 +1032,6 @@ where
 // ******************************************************************************************************
 // adding Html code for prompting and feedback
 
-//(?>>) infix 5 :: [BodyTag] !(Task a) -> (Task a) | iCreate a
 (?>>) infixr 5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
 (?>>) prompt task = doTask
 where
@@ -1270,84 +1269,41 @@ where
 orTask :: !(Task a,Task a) -> (Task a) | iCreateAndPrint a
 orTask (taska,taskb) = mkTask "orTask" (doOrTask (taska,taskb))
 
+doOrTask :: !(Task a,Task a) *TSt -> *(a,*TSt) | iCreateAndPrint a
 doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
-# taskId								= iTaskId userId tasknr "orTaskSt"
-# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-| chosen.value == 0						// task a was finished first in the past
-	# (a,tst)							= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
-	= (a,{tst & html = html})
-| chosen.value == 1						// task b was finished first in the past
-	# (b,tst)							= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
-	= (b,{tst & html = html})
-# (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
-# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
-| adone
-	# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
-	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
-	= (a,{tst & html = html, activated = True})
-| bdone
-	# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
-	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 1)) {tst & html = BT []}
-	= (b,{tst & html = html, activated = True})
-= (a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
+# (at,tst)					= doorTask2 (taska,taskb) tst
+= case at of
+	(LEFT a) -> (a,tst)
+	(RIGHT b) -> (b,tst)
 
 orTask2 :: !(Task a,Task b) -> (Task (EITHER a b)) | iCreateAndPrint a & iCreateAndPrint b
 orTask2 (taska,taskb) = mkTask "orTask2" (doorTask2 (taska,taskb))
-where
-	doorTask2 (taska,taskb) tst=:{tasknr,html,options,userId}
-	# taskId								= iTaskId userId tasknr "orTask2St"
-	# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-	| chosen.value == 0						// task a was finished first in the past
-		# (a,tst=:{html=ahtml})				= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
-		= (LEFT a,{tst & html = html})
-	| chosen.value == 1						// task b was finished first in the past
-		# (b,tst=:{html=bhtml})				= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
-		= (RIGHT b,{tst & html = html})
-	# (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
-	# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
-	| adone
-		# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
-		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
-		= (LEFT a,{tst & html = html, activated = True})
-	| bdone
-		# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
-		# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId tst.options taskId -1) (\_ -> 1)) {tst & html = BT []}
-		= (RIGHT b,{tst & html = html, activated = True})
-	= (LEFT a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
 
-checkAnyTasks traceid taskoptions (ctasknr,skipnr) (bool,which) tst=:{tasknr}
-| ctasknr == length taskoptions	= (bool,which,tst)
-| ctasknr == skipnr				= checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool,which) tst
-# task							= taskoptions!!ctasknr
-# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True}
-= checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool||adone,if adone ctasknr which) {tst & tasknr = tasknr, activated = True}
+doorTask2 (taska,taskb) tst=:{tasknr,html,options,userId}
+# taskId								= iTaskId userId tasknr "orTask2St"
+# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+| chosen.value == 0						// task a was finished first in the past
+	# (a,tst=:{html=ahtml})				= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
+	= (LEFT a,{tst & html = html})
+| chosen.value == 1						// task b was finished first in the past
+	# (b,tst=:{html=bhtml})				= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
+	= (RIGHT b,{tst & html = html})
+# (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT []}
+# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
+| adone
+	# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
+	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
+	= (LEFT a,{tst & html = html, activated = True})
+| bdone
+	# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
+	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId tst.options taskId -1) (\_ -> 1)) {tst & html = BT []}
+	= (RIGHT b,{tst & html = html, activated = True})
+= (LEFT a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
 
 orTasks :: ![(String,Task a)] -> (Task a) | iData a
-orTasks taskOptions = mkTask "orTasks" (doorTasks taskOptions)
-where
-	doorTasks [] tst	= return createDefault tst
-	doorTasks tasks tst=:{tasknr,html,options,userId}
-	# taskId			= iTaskId userId tasknr "orTasksChosen"
-	# (chosenS,tst)		= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) id) tst
-	# (pchosen,avalue)	= chosenS.value
-	| pchosen <> -1		// one of the tasks has been finished already
-		= (avalue,{tst & activated = True, html = html}) 
-	# ((chosen,buttons,chosenname),tst) 
-						= LiftHst (mkTaskButtons "or Tasks:" "or" userId tasknr options (map fst taskOptions)) {tst & html = BT []}
-	# (finished,which,tst=:{html=allhtml})= checkAnyTasks "orTasks" (map snd taskOptions) (0,chosen) (False,0) {tst & html = BT [], activated = True}
-	# chosenvalue		= if finished which chosen			// it can be the case that someone else has finshed one of the tasks
-	# chosenTaskName	= fst (taskOptions!!chosenvalue)
-	# chosenTask		= snd (taskOptions!!chosenvalue)
-	# (a,tst=:{activated=adone,html=ahtml}) 
-						= mkParSubTask "orTasks" chosenvalue chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-	| not adone			= (a,{tst 	& activated = adone
-									, html =	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-												(userId -@: allhtml)
-							})
-	# tst 				= deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr}
-	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) (\_ -> (chosenvalue,a)))  {tst & html = BT []} // remember finished task for next tim
-	= (a,{tst & activated = adone, html = html, tasknr = tasknr}) 
+orTasks []				= return createDefault
+orTasks taskCollection	= newTask "orTasks" (andTasksPredGen "or Tasks" (\list -> length list >= 1) taskCollection)
+							=>> \list -> return  (hd list)
 
 // ******************************************************************************************************
 // Parallel task ends when all it subtask are ended as well
@@ -1363,64 +1319,40 @@ doAndTask (taska,taskb) tst=:{tasknr,html}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "andTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 = ((a,b),{tst & activated = adone&&bdone, html = html +|+ ahtml +|+ bhtml})
 
-andTasksPred :: ([a] -> Bool) ![(String,Task a)] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
-andTasksPred pred taskOptions = newTask "andTasksPred" (doandTasks taskOptions)
+andTasks :: ![(String,Task a)] -> (Task [a]) | iData a
+andTasks taskCollection = newTask "andTasks" (andTasksPredGen "and Tasks" (\_ -> False) taskCollection)
+
+andTasksCond :: !([a] -> Bool) ![(String,Task a)] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
+andTasksCond pred taskCollection = newTask "andTasksCond" (andTasksPredGen "cond Tasks" pred taskCollection)
+
+andTasksPredGen :: !String !([a] -> Bool) ![(String,Task a)] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
+andTasksPredGen label pred taskCollection = mkTask "andTasksPred" (doandTasks taskCollection)
 where
 	doandTasks [] tst	= return [] tst
-	doandTasks taskOptions tst=:{tasknr,html,options,userId}
+	doandTasks taskCollection tst=:{tasknr,html,options,userId}
 	# (alist,tst=:{activated=finished})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
+						= checkAllTasks label taskCollection (0,-1) True [] {tst & html = BT [], activated = True}
 	# myalist			= map snd alist
 	| finished			= (myalist,{tst & html = html}) 			// stop, all andTasks are finished
 	| pred myalist		= (myalist,{tst & html = html, activated = True})  // stop, all work done so far satisfies predicate
 	# ((chosen,buttons,chosenname),tst) 							// user can select one of the tasks to work on
-						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
-	# chosenTask		= snd (taskOptions!!chosen)
-	# chosenTaskName	= fst (taskOptions!!chosen)
+						= LiftHst (mkTaskButtons label "" userId tasknr options (map fst taskCollection)) tst
+	# chosenTask		= snd (taskCollection!!chosen)
+	# chosenTaskName	= fst (taskCollection!!chosen)
 	# (a,tst=:{activated=adone,html=ahtml}) 						// enable the selected task (finished or not)
-						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
+						= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
 	# (alist,tst=:{activated=finished,html=allhtml})				// check again whether all other tasks are now finished, collect their code		
-						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
+						= checkAllTasks label taskCollection (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
 	| not adone			= ([a],{tst &	activated = False 			// not done, since chosen task not finished
 									, 	html = 	html +|+ 
 												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
 												(userId -@: allhtml) // code for non selected alternatives are not shown for the owner of this task
 							})
 	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [],activated = True} 
+						= checkAllTasks label taskCollection (0,-1) True [] {tst & html = BT [],activated = True} 
 	# myalist			= map snd alist
 	| finished			= (myalist,{tst & html = html}) 			// stop, all andTasks are finished
 	| pred myalist		= (myalist,{tst & html = html, activated = True}) // stop, all work done so far satisfies predicate
-	= (map snd alist,{tst 	& activated = finished
-							, html = 	html +|+ 
-										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-										(userId -@: allhtml)
-						})
-
-andTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
-andTasks taskOptions = mkTask "andTasks" (doandTasks taskOptions)
-where
-	doandTasks [] tst	= return [] tst
-	doandTasks taskOptions tst=:{tasknr,html,options,userId}
-	# (alist,tst=:{activated=finished})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
-	| finished			= (map snd alist,{tst & html = html}) 		// all andTasks are finished
-	# ((chosen,buttons,chosenname),tst) 							// user can select one of the tasks to work on
-						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
-	# chosenTask		= snd (taskOptions!!chosen)
-	# chosenTaskName	= fst (taskOptions!!chosen)
-	# (a,tst=:{activated=adone,html=ahtml}) 						// enable the selected task (finished or not)
-						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-	# (alist,tst=:{activated=finished,html=allhtml})				// check again whether all other tasks are now finished, collect their code		
-						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
-	| not adone			= ([a],{tst &	activated = False 			// not done, since chosen task not finished
-									, 	html = 	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-												(userId -@: allhtml) // code for non selected alternatives are not shown for the owner of this task
-							})
-	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [],activated = True} 
-	| finished			= (map snd alist,{tst & activated = finished, html = html}) // since selected task and others are finished
 	= (map snd alist,{tst 	& activated = finished
 							, html = 	html +|+ 
 										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
@@ -1436,41 +1368,6 @@ checkAllTasks traceid options (ctasknr,skipnr) bool alist tst=:{tasknr}
 | adone							= checkAllTasks traceid options (inc ctasknr,skipnr) bool [(taskname,a):alist] {tst & tasknr = tasknr, activated = True}
 = checkAllTasks traceid options (inc ctasknr,skipnr) False alist {tst & tasknr = tasknr, activated = True}
 
-/* Don't use this one!!
-andTasks_mstone :: do all iTasks in any order (interleaved), task completed when all done
-					but continue with next task as soon as one of the tasks is completed
-					string indicates which task delivered what
-*/
-
-andTasks_mstone :: [(String,Task a)] -> (Task [(String,a)]) | iCreateAndPrint a
-andTasks_mstone taskOptions = mkTask "andTasks_mstone" (PMilestoneTasks` taskOptions)
-where
-	PMilestoneTasks` [] tst	= return [] tst
-	PMilestoneTasks` taskOptions tst=:{tasknr,html,options,userId}
-	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
-	| finished			= (alist,{tst & html = html}) 
-	# ((chosen,buttons,chosenname),tst) 
-						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
-	# chosenTask		= snd (taskOptions!!chosen)
-	# chosenTaskName	= fst (taskOptions!!chosen)
-	# (a,tst=:{activated=adone,html=ahtml}) 
-						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-	# (milestoneReached,_,tst)	
-						= checkAnyTasks "andTasks_mstone" (map snd taskOptions) (0,-1) (False,-1) {tst & html = BT []}
-	| not adone			= (alist,{tst & activated = adone || milestoneReached
-									, 	html = 	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-												(userId -@: allhtml) 
-							})
-	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & html = BT []}
-	| finished			= (alist,{tst & activated = finished, html = html })
-	= (alist,{tst 	& 	activated = finished || milestoneReached
-					, html = 	html +|+ 
-								BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-								(userId -@: allhtml)
-					})
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu taskid tasks = newTask "andTasks_mu" (domu_andTasks tasks)
@@ -1552,16 +1449,17 @@ where
 		sharedStoreId	= iTaskId userId tasknr "Shared_Store"
 		sharedMem fun	= LiftHst (mkStoreForm (Init,storageFormId options sharedStoreId False) fun)
 
-
-
 write{|TCl|} write_a (TCl task) wst
-	= write{|*|} (serializeThread task) wst
+	= write{|*|} (copy_to_string task) wst
 
 read {|TCl|} read_a  wst 
 	# (Read str i file) = read{|*|} wst
-	= Read (TCl  (deserializeThread str)) i file
+	= Read (TCl  (deserialize str)) i file
+where
+	deserialize :: .String -> .(Task .a)
+	deserialize str = fst (copy_from_string {c \\ c <-: str })
 
-gPrint{|TCl|} ga (TCl task) ps = ps <<- serializeThread task
+gPrint{|TCl|} ga (TCl task) ps = ps <<- copy_to_string task
 
 gParse{|TCl|} ga expr
 # mbstring = parseString expr
@@ -1991,3 +1889,132 @@ mkDiv id bodytag = [normaldiv]
 where
 	normaldiv = Div [`Div_Std [Std_Id id, Std_Class	"thread"]] bodytag
 
+// to be garbage collected ....
+
+/*
+andTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
+andTasks taskOptions = mkTask "andTasks" (doandTasks taskOptions)
+where
+	doandTasks [] tst	= return [] tst
+	doandTasks taskOptions tst=:{tasknr,html,options,userId}
+	# (alist,tst=:{activated=finished})		
+						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
+	| finished			= (map snd alist,{tst & html = html}) 		// all andTasks are finished
+	# ((chosen,buttons,chosenname),tst) 							// user can select one of the tasks to work on
+						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
+	# chosenTask		= snd (taskOptions!!chosen)
+	# chosenTaskName	= fst (taskOptions!!chosen)
+	# (a,tst=:{activated=adone,html=ahtml}) 						// enable the selected task (finished or not)
+						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
+	# (alist,tst=:{activated=finished,html=allhtml})				// check again whether all other tasks are now finished, collect their code		
+						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
+	| not adone			= ([a],{tst &	activated = False 			// not done, since chosen task not finished
+									, 	html = 	html +|+ 
+												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+												(userId -@: allhtml) // code for non selected alternatives are not shown for the owner of this task
+							})
+	# (alist,tst=:{activated=finished,html=allhtml})		
+						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [],activated = True} 
+	| finished			= (map snd alist,{tst & activated = finished, html = html}) // since selected task and others are finished
+	= (map snd alist,{tst 	& activated = finished
+							, html = 	html +|+ 
+										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+										(userId -@: allhtml)
+						})
+*/
+/*
+orTasks :: ![(String,Task a)] -> (Task a) | iData a
+orTasks taskOptions = mkTask "orTasks" (doorTasks taskOptions)
+where
+	doorTasks [] tst	= return createDefault tst
+	doorTasks tasks tst=:{tasknr,html,options,userId}
+	# taskId			= iTaskId userId tasknr "orTasksChosen"
+	# (chosenS,tst)		= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) id) tst
+	# (pchosen,avalue)	= chosenS.value
+	| pchosen <> -1		// one of the tasks has been finished already
+		= (avalue,{tst & activated = True, html = html}) 
+	# ((chosen,buttons,chosenname),tst) 
+						= LiftHst (mkTaskButtons "or Tasks:" "or" userId tasknr options (map fst taskOptions)) {tst & html = BT []}
+	# (finished,which,tst=:{html=allhtml})= checkAnyTasks "orTasks" (map snd taskOptions) (0,chosen) (False,0) {tst & html = BT [], activated = True}
+	# chosenvalue		= if finished which chosen			// it can be the case that someone else has finshed one of the tasks
+	# chosenTaskName	= fst (taskOptions!!chosenvalue)
+	# chosenTask		= snd (taskOptions!!chosenvalue)
+	# (a,tst=:{activated=adone,html=ahtml}) 
+						= mkParSubTask "orTasks" chosenvalue chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
+	| not adone			= (a,{tst 	& activated = adone
+									, html =	html +|+ 
+												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+												(userId -@: allhtml)
+							})
+	# tst 				= deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr}
+	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) (\_ -> (chosenvalue,a)))  {tst & html = BT []} // remember finished task for next tim
+	= (a,{tst & activated = adone, html = html, tasknr = tasknr}) 
+
+checkAnyTasks traceid taskoptions (ctasknr,skipnr) (bool,which) tst=:{tasknr}
+| ctasknr == length taskoptions	= (bool,which,tst)
+| ctasknr == skipnr				= checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool,which) tst
+# task							= taskoptions!!ctasknr
+# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True}
+= checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool||adone,if adone ctasknr which) {tst & tasknr = tasknr, activated = True}
+
+*/
+
+/* Don't use this one!!
+andTasks_mstone :: do all iTasks in any order (interleaved), task completed when all done
+					but continue with next task as soon as one of the tasks is completed
+					string indicates which task delivered what
+*/
+/*
+andTasks_mstone :: [(String,Task a)] -> (Task [(String,a)]) | iCreateAndPrint a
+andTasks_mstone taskOptions = mkTask "andTasks_mstone" (PMilestoneTasks` taskOptions)
+where
+	PMilestoneTasks` [] tst	= return [] tst
+	PMilestoneTasks` taskOptions tst=:{tasknr,html,options,userId}
+	# (alist,tst=:{activated=finished,html=allhtml})		
+						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
+	| finished			= (alist,{tst & html = html}) 
+	# ((chosen,buttons,chosenname),tst) 
+						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
+	# chosenTask		= snd (taskOptions!!chosen)
+	# chosenTaskName	= fst (taskOptions!!chosen)
+	# (a,tst=:{activated=adone,html=ahtml}) 
+						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
+	# (milestoneReached,_,tst)	
+						= checkAnyTasks "andTasks_mstone" (map snd taskOptions) (0,-1) (False,-1) {tst & html = BT []}
+	| not adone			= (alist,{tst & activated = adone || milestoneReached
+									, 	html = 	html +|+ 
+												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+												(userId -@: allhtml) 
+							})
+	# (alist,tst=:{activated=finished,html=allhtml})		
+						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & html = BT []}
+	| finished			= (alist,{tst & activated = finished, html = html })
+	= (alist,{tst 	& 	activated = finished || milestoneReached
+					, html = 	html +|+ 
+								BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+								(userId -@: allhtml)
+					})
+*/
+/*
+doOrTask :: !(Task a,Task a) *TSt -> *(a,*TSt) | iCreateAndPrint a
+doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
+# taskId								= iTaskId userId tasknr "orTaskSt"
+# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+| chosen.value == 0						// task a was finished first in the past
+	# (a,tst)							= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
+	= (a,{tst & html = html})
+| chosen.value == 1						// task b was finished first in the past
+	# (b,tst)							= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
+	= (b,{tst & html = html})
+# (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
+# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
+| adone
+	# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
+	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
+	= (a,{tst & html = html, activated = True})
+| bdone
+	# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
+	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 1)) {tst & html = BT []}
+	= (b,{tst & html = html, activated = True})
+= (a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
+*/

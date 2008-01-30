@@ -6,7 +6,7 @@ definition module iTasks
 // (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
 // This library is still under construction - MJP
 
-iTaskVersion :== "0.97 - January 2008 - Happy New Year !!"
+iTaskVersion :== "0.97 - Februari 2008 - "
 
 import iDataSettings, iDataButtons, StdBimap
 derive gForm 	Void, TCl						
@@ -154,13 +154,13 @@ orTasks			:: ![(String,Task a)] 						-> Task a		| iData a
 andTask			:: do both iTasks in any order (interleaved), task completed when both done
 (-&&-)			:: same, now as infix combinator
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
-andTasksPred 	:: like andTasks, but completion forced when predicate holds
+andTasksCond 	:: like andTasks, but completion forced as soon as predicate holds
 andTasks_mu		:: assign task to indicated users, task completed when all done
 */
 andTask			:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
-andTasks		:: ![(String,Task a)]						-> Task [a]		| iCreateAndPrint a
-andTasksPred 	:: ([a] -> Bool) ![(String,Task a)] 		-> Task [a]		| iData a 
+andTasks		:: ![(String,Task a)]						-> Task [a]		| iData a
+andTasksCond 	:: !([a] -> Bool) ![(String,Task a)] 		-> Task [a]		| iData a 
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
 
 
