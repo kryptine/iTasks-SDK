@@ -133,9 +133,9 @@ chooseTask_pdm	:: Choose one iTask from list, depending on pulldownmenu item sel
 mchoiceTask		:: Multiple Choice of iTasks, depending on marked checkboxes
 */
 buttonTask		:: !String !(Task a)						-> Task a 		| iCreateAndPrint a
-chooseTask		:: ![(String,Task a)] 						-> Task a 		| iCreateAndPrint a
-chooseTaskV 	:: ![(String,Task a)] 						-> Task a 		| iCreateAndPrint a
-chooseTask_pdm 	:: ![(String,Task a)] 						-> Task a	 	| iCreateAndPrint a
+chooseTask		:: ![BodyTag] ![(String,Task a)] 			-> Task a 		| iCreateAndPrint a
+chooseTaskV 	:: ![BodyTag] ![(String,Task a)] 			-> Task a 		| iCreateAndPrint a
+chooseTask_pdm 	:: ![BodyTag] ![(String,Task a)] 			-> Task a	 	| iCreateAndPrint a
 mchoiceTasks 	:: ![(String,Task a)] 						-> Task [a] 	| iCreateAndPrint a
 
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
@@ -194,12 +194,12 @@ closureTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
 closureLzTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
 
 /* Exception Handling:
-<^>				:: When exception of type e is Raised in Task a, catch it here and transfer it to type a.
-				   Otherwise try a parent handler.
-Raise 			:: Raises an exception; the type stored in the dynamic determines the handlers who can catch it
+<^>				:: Evaluate the task; An exception of type e raised by this task, will be catched by the closest handler.
+				   One can use the function create a proper task value or signal the fact that an exception has occured.  
+Raise 			:: Raises an exception of type e which will be catched by the closest parent handler for this type
 */
-(<^>) infix  1  :: !(e -> a) !(Task a) -> Task a 		| iData   a & TC e			// assigns an exception Handler
-Raise 			:: e -> Task a 							| iCreate a & TC e			// rases an exception
+(<^>) infix  1  :: !(e -> a) !(Task a) 						-> Task a 					| iData a   & TC e			// assigns an exception Handler
+Raise 			:: e 										-> Task a 					| iCreate a & TC e			// rases an exception
 
 
 /* Lifting to iTask domain
@@ -224,8 +224,8 @@ Once			:: 	task will be done only once, the value of the task will be remembered
 Once 			:: (Task a) 								-> Task a 			| iData a
 
 /* Operations on Task state
-taskId			:: id assigned to task
-userId			:: id of application user
+taskId			:: give id of user assigned to task
+userId			:: give id of application user
 addHtml			:: add html code
 */
 

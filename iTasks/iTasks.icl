@@ -60,7 +60,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 :: ThreadKind	=	ServerThread						// Thread which can only be executed on Server
 				|	ClientServerThread					// Thread preferably to be executed on Client, but also runs on Server
 				|	ClientThread						// Thread which can only be executed on the Client 
-				|	ExceptionHandler					// Exception handler, currently works only on Server
+				|	ExceptionHandler					// Exception handler only works on server
 				|	AnyThread							// Used for garbage collection
 :: GlobalInfo	=	{ versionNr			:: !Int			// latest querie number of a user
 					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
@@ -250,7 +250,8 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
-						= IF_Ajax (if TraceThreads showThreadTable nilTable {tst & hst = hst}) ([],{tst & hst = hst})
+//						= IF_Ajax (if TraceThreads showThreadTable nilTable {tst & hst = hst}) ([],{tst & hst = hst})
+						= if TraceThreads showThreadTable nilTable {tst & hst = hst} 
 # threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
 # (threadcode,selbuts,selname,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
@@ -645,7 +646,8 @@ where
 			)
 			(ServerThreadTableStorage fun tst)									// thread table on server when ajax used
 		)
-		(abort "Thread table storage only used when Ajax enabled")				// no threads made at all
+		(ServerThreadTableStorage fun tst)										// thread table used for exception handling only ???
+//		(abort "Thread table storage only used when Ajax enabled")				// no threads made at all
 
 ServerThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
 ServerThreadTableStorage fun = handleTable
@@ -1195,16 +1197,17 @@ where
 buttonTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 buttonTask s task = iCTask_button "buttonTask" [(s,task)]
 
-iCTask_button tracename options = mkTask tracename (dochooseTask True options)
+iCTask_button tracename options = mkTask tracename (dochooseTask True [] options)
 
-chooseTask :: ![(String,Task a)] -> (Task a) | iCreateAndPrint a
-chooseTask options = mkTask "chooseTask" (dochooseTask True options)
+chooseTask :: ![BodyTag] ![(String,Task a)] -> (Task a) | iCreateAndPrint a
+chooseTask prompt options = mkTask "chooseTask" (dochooseTask True prompt options)
 
-chooseTaskV :: ![(String,Task a)] -> (Task a) | iCreateAndPrint a
-chooseTaskV options = mkTask "chooseTask" (dochooseTask False options)
+chooseTaskV :: ![BodyTag] ![(String,Task a)] -> (Task a) | iCreateAndPrint a
+chooseTaskV prompt options = mkTask "chooseTask" (dochooseTask False prompt options)
 
-dochooseTask _ [] tst			= return createDefault tst				
-dochooseTask horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
+dochooseTask :: !Bool ![BodyTag] ![(String,Task a)] *TSt-> *(a,*TSt) | iCreateAndPrint a
+dochooseTask _ _ [] tst			= return createDefault tst				
+dochooseTask horizontal prompt taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 # taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
 # buttonId						= iTaskId userId tasknr "ChoBut"
 # (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
@@ -1214,7 +1217,7 @@ dochooseTask horizontal taskOptions tst=:{tasknr,html,options,userId}									//
 										[[(but txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
 	# (choice,tst)				= LiftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 	# (chosen,tst)				= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst
-	| chosen.value == -1		= (createDefault,{tst & activated =False,html = html +|+ BT choice.form})
+	| chosen.value == -1		= (createDefault,{tst & activated =False,html = html +|+ BT prompt +|+ BT choice.form})
 	# chosenTask				= snd (taskOptions!!chosen.value)
 	# (a,tst=:{activated=adone,html=ahtml}) = chosenTask {tst & tasknr = [-1:tasknr], activated = True, html = BT []}
 	= (a,{tst & tasknr = tasknr, activated = adone, html = html +|+ ahtml})
@@ -1224,8 +1227,8 @@ dochooseTask horizontal taskOptions tst=:{tasknr,html,options,userId}									//
 
 but i = LButton defpixel i
 
-chooseTask_pdm :: ![(String,Task a)] -> (Task a) |iCreateAndPrint a
-chooseTask_pdm taskOptions = mkTask "chooseTask_pdm" (dochooseTask_pdm taskOptions)
+chooseTask_pdm :: ![BodyTag] ![(String,Task a)] -> (Task a) |iCreateAndPrint a
+chooseTask_pdm prompt taskOptions = mkTask "chooseTask_pdm" (dochooseTask_pdm taskOptions)
 where
 	dochooseTask_pdm [] tst			= (createDefault,{tst& activated = True})	
 	dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}								// choose one subtask out of the list
@@ -1233,7 +1236,7 @@ where
 	# (choice,tst)					= LiftHst (FuncMenu  (Init,sessionFormId options taskId (0,[(txt,id) \\ txt <- map fst taskOptions]))) tst
 	# (_,tst=:{activated=adone,html=ahtml})	
 									= internEditSTask "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
-	| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
+	| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT prompt +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
 	# chosenIdx						= snd choice.value
 	# chosenTask					= snd (taskOptions!!chosenIdx)
 	# (a,tst=:{activated=bdone,html=bhtml}) 
@@ -1602,7 +1605,7 @@ where
 // An abort is raised instead, in the hope that the Sapl interpreter will give up and pass the evaluation to the server.
 
 
-serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String
+serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String 
 serializeExceptionHandler task = IF_ClientServer
 									(IF_ClientTasks (abort "Cannot serialize exception handler on Client\n") (copy_to_string task))
 									(copy_to_string task)				
@@ -1618,48 +1621,53 @@ fetchException thread = fst (copy_from_string {c \\ c <-: thread})
 Raise :: e -> Task a | iCreate a & TC e	
 Raise e = RaiseDyn (dynamic e)
 
-(<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e				// create an exception Handler
-(<^>) pred task = newTask "exceptionHandler" evalTask			
+(<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e			// create an exception Handler
+(<^>) exceptionfun task = newTask "exceptionHandler" evalTask			
 where
 	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable ExceptionHandler tasknr tst			// look if there is an exceptionhandler for this task
-	# (versionNr,tst)	= getCurrentAppVersionNr tst							// get current version number of the application
 	| isNothing mbthread														// not yet, insert new entry		
+		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
 		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
 									, thrUserId 		= userId
 									, thrOptions 		= options
-									, thrCallback 		= serializeExceptionHandler (Try pred)
-									, thrCallbackClient = "" //abort "no exceptions implemented" //serializeThreadClient (Catch pred) 
+									, thrCallback 		= serializeExceptionHandler (Try exceptionfun)
+									, thrCallbackClient = ""
 									, thrKind			= ExceptionHandler
 									, thrVersionNr		= versionNr
 									} tst 
 		= task tst																// do the regular task
 	= task tst																	// do the regular task
+	where
+		taskId = iTaskId userId tasknr "exception"
 
-	Try :: !(e -> a) !Dynamic  -> Task a | iData a & TC e
-	Try handler (exception :: e^) = catch1 
-	with 
-		catch1 tst=:{tasknr} 
-		# tst = deleteSubTasksAndThreads tasknr tst
-		= return_V (handler exception) tst
-	Try handler dyn = catch2
-	with
-		catch2 tst=:{tasknr} 
-		# tst = deleteSubTasksAndThreads tasknr tst
-		= RaiseDyn dyn tst
+//		Try :: !(e -> a) !Dynamic  -> Task a |  iCreateAndPrint a & TC e
+		Try exceptionfun (exception :: e^) = catch1 
+		with 
+			catch1 tst
+			# tst 			= deleteSubTasksAndThreads tasknr tst
+//			# tst 			= deleteSubTasksAndThreads (tl tasknr) tst
+			= return_V (exceptionfun exception){tst & tasknr = tl tasknr, activated = True, userId = userId, options = options}
+		Try _ dynamicValue = catch2
+		with
+			catch2 tst=:{tasknr} 
+			# tst = deleteSubTasksAndThreads tasknr tst
+//			# tst = deleteSubTasksAndThreads (tl tasknr) tst
+			= RaiseDyn dynamicValue tst
 
 RaiseDyn :: !Dynamic -> Task a | iCreate a
-RaiseDyn value = raise
+RaiseDyn dynamicValue = raise
 where
 	raise tst=:{tasknr,staticInfo,activated}
 	| not activated = (createDefault,tst)	
-	# (mbthread,tst=:{hst})	= findParentThread tasknr tst						// look for exception handler
-	| isNil mbthread		= abort	("\nException raised, but no handler installed\n")	// no handler installed
-	# thread 				= hd mbthread										// thread found
+	# (mbthread,tst=:{hst})	= findParentThread tasknr tst						// look for parent threads
 	# (version,hst)	 		= setPUserNr staticInfo.currentUserId id hst		// inspect global effects administration
-	| isMember thread.thrTaskNr version.deletedThreads							// thread has been deleted is some past, version conflict
-							= abort	("\nException raised, but  handler thread was deleted\n")		
-	= evalException thread value {tst & html = BT [], hst = hst}				// yes, *finally*, we heave found an handler
+	# mbthread				= [thread \\ thread <- mbthread 
+									| thread.thrKind == ExceptionHandler		// which are exceptionhandlers
+									&& not (isMember thread.thrTaskNr version.deletedThreads) // and not deleted by some global actions	
+							  ] 
+	| isNil mbthread		= abort	("\nException raised, but no handler installed or activa anymore\n")	// no handler installed
+	= evalException (hd mbthread) dynamicValue {tst & html = BT [], hst = hst}				// yes, *finally*, we heave found an handler
 
 evalException :: !TaskThread !Dynamic -> Task a 								// execute the thread !!!!
 evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = evalException` 
@@ -1740,7 +1748,8 @@ internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` pro
 
 deleteSubTasksAndThreads :: !TaskNr TSt -> TSt
 deleteSubTasksAndThreads tasknr tst 
-# tst=:{hst,userId,options}	= IF_Ajax (deleteThreads tasknr tst) tst
+//# tst=:{hst,userId,options}	= IF_Ajax (deleteThreads tasknr tst) tst
+# tst=:{hst,userId,options}	= deleteThreads tasknr tst
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
 
