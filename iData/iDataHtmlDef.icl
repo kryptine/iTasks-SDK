@@ -136,9 +136,9 @@ gHpr{|Option|}  prev (Option attr text)			= prev <+> htmlAttrCmnd "option"		attr
 gHpr{|Option|}  prev (Optgroup attr)			= prev <+> htmlAttrCmnd "optgroup"		attr None
 
 gHpr{|Value|}   prev (SV string)				= prev <+ string 			
-gHpr{|Value|}   prev (IV int)  					= prev <+ toString int  		
-gHpr{|Value|}   prev (RV real) 					= prev <+ toString real		
-gHpr{|Value|}   prev (BV bool) 					= prev <+ toString bool		
+gHpr{|Value|}   prev (IV int)  					= prev <+ printToString int  		
+gHpr{|Value|}   prev (RV real) 					= prev <+ printToString real		
+gHpr{|Value|}   prev (BV bool) 					= prev <+ printToString bool		
 gHpr{|Value|}   prev (NQV string)				= prev <+ string 			
 
 gHpr{|ScriptType|} prev (TypeEcmascript) 		= prev <+ "\"text/Emacscript\""		
