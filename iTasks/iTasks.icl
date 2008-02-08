@@ -1015,7 +1015,9 @@ where
 	= (createDefault,tst)
 
 return_V :: !a -> (Task a) | iCreateAndPrint a
-return_V a  = mkTask "return_V" (return a) 
+return_V a  = mkTask "return_V" dotask
+where
+	dotask tst = (a,{tst & activated = True}) 
 
 // monads variant which show information
 
@@ -1089,7 +1091,7 @@ where
 	# (taskdone,taskvalue)		= taskval.value										// select values
 	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
 	# (val,tst=:{activated})	= mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
-	| not activated				= (val,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
+	| not activated				= (createDefault,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
 	# tst						= deleteSubTasksAndThreads tasknr tst				// task ready, garbage collect it
 	# (_,tst) 					= LiftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
 	= (val,{tst & tasknr = tasknr, options = options})
@@ -1624,13 +1626,13 @@ Raise e = RaiseDyn (dynamic e)
 (<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e			// create an exception Handler
 (<^>) exceptionfun task = newTask "exceptionHandler" evalTask			
 where
-	evalTask tst=:{tasknr,activated,options,userId}								// thread - task is not yet finished
-	# (mbthread,tst)	= findThreadInTable ExceptionHandler tasknr tst			// look if there is an exceptionhandler for this task
+	evalTask tst=:{tasknr=mytasknr,options=myoptions,userId=myuserId}			// thread - task is not yet finished
+	# (mbthread,tst)		= findThreadInTable ExceptionHandler mytasknr tst		// look if there is an exceptionhandler for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
-		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
-									, thrUserId 		= userId
-									, thrOptions 		= options
+		# tst = insertNewThread 	{ thrTaskNr 		= mytasknr
+									, thrUserId 		= myuserId
+									, thrOptions 		= myoptions
 									, thrCallback 		= serializeExceptionHandler (Try exceptionfun)
 									, thrCallbackClient = ""
 									, thrKind			= ExceptionHandler
@@ -1639,21 +1641,17 @@ where
 		= task tst																// do the regular task
 	= task tst																	// do the regular task
 	where
-		taskId = iTaskId userId tasknr "exception"
-
-//		Try :: !(e -> a) !Dynamic  -> Task a |  iCreateAndPrint a & TC e
-		Try exceptionfun (exception :: e^) = catch1 
+		Try :: !(e -> a) !Dynamic  -> Task a |  iCreateAndPrint a & TC e
+		Try exceptionfun (exception :: e^) = catch1 							// handler for this type found
 		with 
-			catch1 tst
-			# tst 			= deleteSubTasksAndThreads tasknr tst
-//			# tst 			= deleteSubTasksAndThreads (tl tasknr) tst
-			= return_V (exceptionfun exception){tst & tasknr = tl tasknr, activated = True, userId = userId, options = options}
-		Try _ dynamicValue = catch2
+			catch1 tst=:{tasknr,userId,options}
+			# tst 		= deleteSubTasksAndThreads mytasknr tst					// remove all work administrated below handler
+			= return_V (exceptionfun exception) tst								// return exceptional result
+		Try _ dynamicValue = catch2												// wrong handler
 		with
 			catch2 tst=:{tasknr} 
-			# tst = deleteSubTasksAndThreads tasknr tst
-//			# tst = deleteSubTasksAndThreads (tl tasknr) tst
-			= RaiseDyn dynamicValue tst
+			# tst = deleteSubTasksAndThreads (tl tasknr) tst					// delete handler + task
+			= RaiseDyn dynamicValue tst											// look for another handler
 
 RaiseDyn :: !Dynamic -> Task a | iCreate a
 RaiseDyn dynamicValue = raise
