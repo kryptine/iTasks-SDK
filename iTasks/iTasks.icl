@@ -27,6 +27,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, trace			:: !Maybe [Trace]	// for displaying task trace
 					, hst			:: !HSt				// iData state
 					}
+:: UserId		:== !Int
 :: TaskNr		:== [Int]								// task nr i.j is adminstrated as [j,i]
 :: HtmlTree		=	BT [BodyTag]						// simple code
 				|	(@@:) infix  0 (Int,String) HtmlTree// code with id of user attached to it
@@ -39,7 +40,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, taskmode		:: !Mode			// default: Edit
 					, gc			:: !GarbageCollect	// default: Collect
 					}
-:: StaticInfo	=	{ currentUserId	:: !Int				// id of application user 
+:: StaticInfo	=	{ currentUserId	:: UserId			// id of application user 
 					, threadTableLoc:: !Lifespan		// where to store the server thread table, default is Session
 					}
 
@@ -50,7 +51,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
-					, thrUserId			:: !Int			// which user has to perform the task
+					, thrUserId			:: UserId		// which user has to perform the task
 					, thrOptions		:: !Options		// options of the task
 					, thrCallback		:: !String		// serialized callback function for the server
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
@@ -66,9 +67,17 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, newThread			:: !Bool		// is a new thread assigned to this user (used for Ajax)?
 					, deletedThreads	:: ![TaskNr]	// are there threads deleted (used for Ajax)?
 					}
+:: UserStartUpOptions
+				= 	{ traceOn			:: !Bool			
+					, threadStorageLoc	:: !Lifespan		
+					, showUsersOn		:: !Maybe Int	
+					, versionCheckOn	:: !Bool
+					, headerOff			:: !Maybe [BodyTag]
+					}
 
-// Initial values for Task State TSt
+// Initial values
 
+initTst :: UserId !Lifespan !*HSt -> *TSt
 initTst thisUser location hst
 				=	{ tasknr		= [-1]
 					, activated 	= True
@@ -80,15 +89,27 @@ initTst thisUser location hst
 					, options 		= initialOptions
 					}
 
+initialOptions :: Options
 initialOptions	=	{ tasklife 		= Session
 					, taskstorage 	= PlainString
 					, taskmode 		= Edit 
 					, gc			= Collect
 					}
+
+initStaticInfo :: UserId !Lifespan -> StaticInfo
 initStaticInfo thisUser location
 =					{ currentUserId	= thisUser 
 					, threadTableLoc= location
 					}
+
+defaultStartUpOptions :: UserStartUpOptions
+defaultStartUpOptions
+= 	{ traceOn			= True		
+	, threadStorageLoc	= IF_ClientServer Session TxtFile		// KLOPT DIT WEL ????		
+	, showUsersOn		= Just 5	
+	, versionCheckOn	= False
+	, headerOff			= Nothing
+	}
 
 // ******************************************************************************************************
 // Overloaded Functions on Tasks
@@ -153,46 +174,57 @@ where
 	toString AnyThread    		= "AnyThread"
 	toString _    				= "??? print error in thread"
 
+
+determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
+determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
+where
+	determineUserOptions` [] 						options = options
+	determineUserOptions` [TraceOn:xs] 				options	= determineUserOptions` xs {options & traceOn = True}
+	determineUserOptions` [TraceOff:xs] 			options	= determineUserOptions` xs {options & traceOn = False}
+	determineUserOptions` [ThreadStorage nloc:xs] 	options = determineUserOptions` xs {options & threadStorageLoc = nloc}
+	determineUserOptions` [ShowUsers max:xs] 		options = determineUserOptions` xs {options & showUsersOn = if (max <= 0) Nothing (Just max)}
+	determineUserOptions` [VersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = True}
+	determineUserOptions` [VersionNoCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
+	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
+
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 // ******************************************************************************************************
 
 singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 singleUserTask startUpOptions task hst 
-# (traceOn,tableloc,_,versionsOn) 	= checkOptions startUpOptions 
-# (exception,html,hst) 				= startTstTask 0 False traceOn versionsOn (False,[])  task (initTst 0 tableloc hst)
+# userOptions			= determineUserOptions startUpOptions
+# tst					= initTst 0 userOptions.threadStorageLoc hst
+# (exception,html,hst)	= startTstTask 0 False (False,[]) userOptions task tst
 = mkHtmlExcep "singleUser" exception html hst
-
-checkOptions :: ![StartUpOptions] -> (!Bool,!Lifespan,!Int,!Bool)	// traceOn, threadtable location, max number of users resp,checkversion.
-checkOptions startUpOptions = checkOptions` startUpOptions (True,IF_ClientServer Session TxtFile,5,False) // XXXXXXX Temp fix
-where
-	checkOptions` [] options 										= options
-	checkOptions` [TraceOn:xs] 				(trace,tableloc,n,chk)	= checkOptions` xs (True,tableloc,n,chk)
-	checkOptions` [TraceOff:xs] 			(trace,tableloc,n,chk)	= checkOptions` xs (False,tableloc,n,chk)
-	checkOptions` [ThreadStorage nloc:xs] 	(trace,tableloc,n,chk) 	= checkOptions` xs (trace,nloc,n,chk)
-	checkOptions` [ShowUsers max:xs] 		(trace,tableloc,n,chk) 	= checkOptions` xs (trace,tableloc,max,chk)
-	checkOptions` [VersionCheck:xs] 		(trace,tableloc,n,chk) 	= checkOptions` xs (trace,tableloc,n,True)
-	checkOptions` [VersionNoCheck:xs] 		(trace,tableloc,n,chk) 	= checkOptions` xs (trace,tableloc,n,False)
 
 multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 multiUserTask startUpOptions task  hst 
-# (traceOn,tableloc,nusers,versionsOn) = checkOptions [VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-# (idform,hst) 	= FuncMenu (Init,nFormId "User_Selected" 
-						(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
-# currentWorker	= snd idform.value
-# (exception,html,hst) 	= startTstTask currentWorker True traceOn versionsOn  (if traceOn (idform.changed,idform.form) (False,[])) task (initTst currentWorker tableloc hst)
+# userOptions 			= determineUserOptions [VersionCheck, ThreadStorage TxtFile:startUpOptions] 
+# nusers				= case userOptions.showUsersOn of
+							Nothing -> 0
+							Just n	-> n
+| nusers == 0			= singleUserTask startUpOptions task  hst 
+# (idform,hst) 			= FuncMenu (Init,nFormId "User_Selected" 
+							(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
+# currentWorker			= snd idform.value
+# tst					= initTst currentWorker userOptions.threadStorageLoc hst
+# (exception,html,hst) 	= startTstTask currentWorker True 
+							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions task tst
 = mkHtmlExcep "multiUser" exception html hst
 
 workFlowTask :: ![StartUpOptions] !(Task (Int,a)) !((Int,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 workFlowTask  startUpOptions taska iataskb hst 
-# (traceOn,tableloc,_,chk) 			= checkOptions startUpOptions 
-# ((i,a),tst=:{activated,html,hst})	= taska (initTst -1 tableloc hst)		// for doing the login 
+# userOptions 						= determineUserOptions startUpOptions 
+# tst								= initTst -1 userOptions.threadStorageLoc hst
+# ((i,a),tst=:{activated,html,hst})	= taska tst									// for doing the login 
 | not activated
 	# iTaskHeader					= [BCTxt Aqua "i-Task", CTxt Yellow " - Multi-User Workflow System ",Hr []]
 	# iTaskInfo						= mkDiv "iTaskInfo" [Txt "Login procedure... ", Hr []]
 	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
 						]] hst
-# (exception,body,hst) 				= startTstTask i True traceOn True (False,[]) (iataskb (i,a)) (initTst i tableloc hst)
+# tst								= initTst i userOptions.threadStorageLoc hst
+# (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (iataskb (i,a)) tst
 = mkHtmlExcep "workFlow" exception body hst
 where
 	noFilter :: HtmlTree -> [BodyTag]
@@ -203,12 +235,14 @@ where
 	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
 	noFilter (DivCode str html) = noFilter html
 
+
+
 // ******************************************************************************************************
 // Main routine for the creation of the workflow page
 // ******************************************************************************************************
 
-startTstTask :: !Int !Bool !Bool !Bool !(!Bool,![BodyTag])  !(Task a) !*TSt -> (!Bool,![BodyTag],!*HSt) //| iCreate a 
-startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  taska tst=:{hst,tasknr,staticInfo}
+startTstTask :: !Int !Bool  !(!Bool,![BodyTag]) UserStartUpOptions !(Task a) !*TSt -> (!Bool,![BodyTag],!*HSt) //| iCreate a 
+startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff} taska tst=:{hst,tasknr,staticInfo}
 
 // prologue
 
@@ -217,7 +251,7 @@ startTstTask thisUser multiuser traceOn versionsOn (userchanged,multiuserform)  
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
 
-# versionsOn			= IF_ClientTasks False versionsOn											// no version control on client
+# versionsOn			= IF_ClientTasks False versionCheckOn											// no version control on client
 # noNewVersion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 	// no version control in these cases
 # (appversion,hst)	 	= setAppversion inc hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst
@@ -409,7 +443,7 @@ mkTaskButtons header myid userId tasknr info btnnames hst
 where
 	SelectButtons init id info (idx,btnnames) hst = TableFuncBut2 (init,pageFormId info id 
 															[[(mode idx n, but txt,\_ -> n)] \\ txt <- btnnames & n <- [0..]]) hst
-	but i = LButton defpixel i
+	but i = iTaskButton i
 
 	mode i j
 	| i==j = Display
@@ -1119,8 +1153,8 @@ where
 		= foreverTask` {tst & tasknr = tasknr, options = options, html = html}										// initialize new task
 	= (val,tst)					
 
-repeatTask :: !(a -> Task a) !(a -> Bool) -> a -> Task a | iData a
-repeatTask task pred = dorepeatTask
+repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
+repeatTask task pred a = dorepeatTask a
 where
 	dorepeatTask a 
 	= newTask "doReapeatTask" dorepeatTask`
@@ -1211,9 +1245,9 @@ dochooseTask :: !Bool ![BodyTag] ![(String,Task a)] *TSt-> *(a,*TSt) | iCreateAn
 dochooseTask _ _ [] tst			= return createDefault tst				
 dochooseTask horizontal prompt taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 # taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
-# buttonId						= iTaskId userId tasknr "ChoBut"
 # (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 | chosen.value == -1			// no choice made yet
+	# buttonId					= iTaskId userId tasknr "ChoBut"
 	# allButtons				= if horizontal 
 										[[(but txt,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
 										[[(but txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
@@ -1227,43 +1261,82 @@ dochooseTask horizontal prompt taskOptions tst=:{tasknr,html,options,userId}				
 # (a,tst=:{activated=adone,html=ahtml}) = chosenTask {tst & tasknr = [-1:tasknr], activated = True, html = BT []}
 = (a,{tst & tasknr = tasknr, activated = adone, html = html +|+ ahtml})
 
-but i = LButton defpixel i
+but i = iTaskButton i
 
 chooseTask_pdm :: ![BodyTag] ![(String,Task a)] -> (Task a) |iCreateAndPrint a
 chooseTask_pdm prompt taskOptions = mkTask "chooseTask_pdm" (dochooseTask_pdm taskOptions)
 where
-	dochooseTask_pdm [] tst			= (createDefault,{tst& activated = True})	
-	dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}								// choose one subtask out of the list
-	# taskId						= iTaskId userId tasknr ("ChoPdm" <+++ length taskOptions)
-	# (choice,tst)					= LiftHst (FuncMenu  (Init,sessionFormId options taskId (0,[(txt,id) \\ txt <- map fst taskOptions]))) tst
-	# (_,tst=:{activated=adone,html=ahtml})	
-									= internEditSTask "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
-	| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT prompt +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
-	# chosenIdx						= snd choice.value
-	# chosenTask					= snd (taskOptions!!chosenIdx)
-	# (a,tst=:{activated=bdone,html=bhtml}) 
+	dochooseTask_pdm [] tst			= return createDefault tst	
+	dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+	# taskId						= iTaskId userId tasknr ("ChoStPdm" <+++ length taskOptions)
+	# (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+	| chosen.value == -1			// no choice made yet
+		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ length taskOptions)
+		# (choice,tst)					= LiftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (0,[(txt,id) \\ txt <- map fst taskOptions]))) tst
+		# (_,tst=:{activated=adone,html=ahtml})	
+										= internEditSTask "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
+		| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT prompt +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
+		# chosenIdx						= snd choice.value
+		# chosenTask					= snd (taskOptions!!chosenIdx)
+		# (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> chosenIdx)) tst
+		# (a,tst=:{activated=bdone,html=bhtml}) 
+										= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
+		= (a,{tst & tasknr = tasknr, activated = bdone, html = html +|+ bhtml})
+	# chosenTask					= snd (taskOptions!!chosen.value)
+	# (a,tst=:{activated=adone,html=ahtml}) 
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
-	= (a,{tst & activated = adone&&bdone, html = html +|+ bhtml, tasknr = tasknr})
+	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
 
-mchoiceTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
-mchoiceTasks taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
+mchoiceTasks :: ![BodyTag] ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
+mchoiceTasks prompt taskOptions = mchoiceTasks2 prompt [((True,label),task) \\ (label,task) <- taskOptions]
+
+mchoiceTasks2 :: ![BodyTag] ![(!(!Bool,!String),Task a)] -> (Task [a]) | iCreateAndPrint a
+mchoiceTasks2 prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
 	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 	# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
 	# donetaskId			= iTaskId userId tasknr "MtpChSt"
-	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,sessionFormId options seltaskId initCheckboxes)) tst
+	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
 	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
-	# optionsform			= cboxes.form <=|> [Txt text \\ (text,_) <- taskOptions]
-	| done.value			= seqTasks [option \\ option <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
+	# optionsform			= cboxes.form <=|> [Txt text \\ ((_,text),_) <- taskOptions]
+	| done.value			= seqTasks [(label,task) \\ ((_,label),task) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
 	# (_,tst=:{html=ahtml,activated = adone})
 							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
-	| not adone				= ([],{tst & html = html +|+ BT [optionsform] +|+ ahtml})
+	| not adone				= ([],{tst & html = html +|+ BT prompt +|+ BT [optionsform] +|+ ahtml})
 	# (_,tst)				= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
 	= domchoiceTasks taskOptions {tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True}									// choose one subtask out of the list
 
 	initCheckboxes  = 
-		[(CBNotChecked  text,  \ b bs id -> id) \\ (text,_) <- taskOptions]
+		[(if checked CBChecked CBNotChecked  text,  \ b bs id -> id) \\ ((checked,text),_) <- taskOptions]
+
+mchoiceTasks3 :: ![BodyTag] ![((Bool,Bool [Bool] -> Bool,String),Task a)] -> (Task [a]) | iCreateAndPrint a
+mchoiceTasks3 prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
+where
+	domchoiceTasks [] tst	= ([],{tst& activated = True})
+	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
+	# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
+	# donetaskId			= iTaskId userId tasknr "MtpChSt"
+	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
+	# (fun,nblist)			= cboxes.value
+	# nsettings				= fun nblist
+	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
+	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
+	# optionsform			= cboxes.form <=|> [Txt text \\ ((_,_,text),_) <- taskOptions]
+	| done.value			= seqTasks [(label,task) \\ ((_,_,label),task) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
+	# (_,tst=:{html=ahtml,activated = adone})
+							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
+	| not adone				= ([],{tst & html = html +|+ BT prompt +|+ BT [optionsform] +|+ ahtml})
+	# (_,tst)				= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
+	= domchoiceTasks taskOptions {tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True}									// choose one subtask out of the list
+
+	initCheckboxes  = 
+		[(if set CBChecked CBNotChecked  text,  \b bs _ -> if (pred b bs) bs (updateAt i (not b) bs)) \\ ((set,pred,text),_) <- taskOptions & i <- [0..]]
+
+	setCheckboxes  boollist = 
+		[(if set CBChecked CBNotChecked  text,  \b bs _ -> if (pred b bs) bs (updateAt i (not b) bs)) \\ ((_,pred,text),_) <- taskOptions 
+																	& i <- [0..] & set <- boollist]
+
 
 // ******************************************************************************************************
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes
@@ -1776,7 +1849,7 @@ storageFormId  	options s d = cFormId options s d <@ NoForm
 
 mySimpleButton :: !Options !String !String     !(a -> a) 				!*HSt -> (Form (a -> a),!*HSt)
 mySimpleButton options id label fun hst	
-							= FuncBut (Init, (nFormId id (LButton defpixel label,fun)) <@ if (options.tasklife == Client) Client Page) hst
+							= FuncBut (Init, (nFormId id (iTaskButton label,fun)) <@ if (options.tasklife == Client) Client Page) hst
 
 // Lifting HSt domain to the TSt domain, for convenience
 
@@ -1896,132 +1969,13 @@ mkDiv id bodytag = [normaldiv]
 where
 	normaldiv = Div [`Div_Std [Std_Id id, Std_Class	"thread"]] bodytag
 
-// to be garbage collected ....
+iTaskButton :: String -> Button
+iTaskButton label 
+//# buttonsize = (1 + (size label / deffontsize)) * defpixel 
+//= LButton buttonsize label
+= LButton defpixel label
 
-/*
-andTasks :: ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
-andTasks taskOptions = mkTask "andTasks" (doandTasks taskOptions)
-where
-	doandTasks [] tst	= return [] tst
-	doandTasks taskOptions tst=:{tasknr,html,options,userId}
-	# (alist,tst=:{activated=finished})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
-	| finished			= (map snd alist,{tst & html = html}) 		// all andTasks are finished
-	# ((chosen,buttons,chosenname),tst) 							// user can select one of the tasks to work on
-						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
-	# chosenTask		= snd (taskOptions!!chosen)
-	# chosenTaskName	= fst (taskOptions!!chosen)
-	# (a,tst=:{activated=adone,html=ahtml}) 						// enable the selected task (finished or not)
-						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-	# (alist,tst=:{activated=finished,html=allhtml})				// check again whether all other tasks are now finished, collect their code		
-						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
-	| not adone			= ([a],{tst &	activated = False 			// not done, since chosen task not finished
-									, 	html = 	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-												(userId -@: allhtml) // code for non selected alternatives are not shown for the owner of this task
-							})
-	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [],activated = True} 
-	| finished			= (map snd alist,{tst & activated = finished, html = html}) // since selected task and others are finished
-	= (map snd alist,{tst 	& activated = finished
-							, html = 	html +|+ 
-										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-										(userId -@: allhtml)
-						})
-*/
-/*
-orTasks :: ![(String,Task a)] -> (Task a) | iData a
-orTasks taskOptions = mkTask "orTasks" (doorTasks taskOptions)
-where
-	doorTasks [] tst	= return createDefault tst
-	doorTasks tasks tst=:{tasknr,html,options,userId}
-	# taskId			= iTaskId userId tasknr "orTasksChosen"
-	# (chosenS,tst)		= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) id) tst
-	# (pchosen,avalue)	= chosenS.value
-	| pchosen <> -1		// one of the tasks has been finished already
-		= (avalue,{tst & activated = True, html = html}) 
-	# ((chosen,buttons,chosenname),tst) 
-						= LiftHst (mkTaskButtons "or Tasks:" "or" userId tasknr options (map fst taskOptions)) {tst & html = BT []}
-	# (finished,which,tst=:{html=allhtml})= checkAnyTasks "orTasks" (map snd taskOptions) (0,chosen) (False,0) {tst & html = BT [], activated = True}
-	# chosenvalue		= if finished which chosen			// it can be the case that someone else has finshed one of the tasks
-	# chosenTaskName	= fst (taskOptions!!chosenvalue)
-	# chosenTask		= snd (taskOptions!!chosenvalue)
-	# (a,tst=:{activated=adone,html=ahtml}) 
-						= mkParSubTask "orTasks" chosenvalue chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-	| not adone			= (a,{tst 	& activated = adone
-									, html =	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-												(userId -@: allhtml)
-							})
-	# tst 				= deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr}
-	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options taskId (-1,createDefault)) (\_ -> (chosenvalue,a)))  {tst & html = BT []} // remember finished task for next tim
-	= (a,{tst & activated = adone, html = html, tasknr = tasknr}) 
 
-checkAnyTasks traceid taskoptions (ctasknr,skipnr) (bool,which) tst=:{tasknr}
-| ctasknr == length taskoptions	= (bool,which,tst)
-| ctasknr == skipnr				= checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool,which) tst
-# task							= taskoptions!!ctasknr
-# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True}
-= checkAnyTasks traceid taskoptions (inc ctasknr,skipnr) (bool||adone,if adone ctasknr which) {tst & tasknr = tasknr, activated = True}
 
-*/
 
-/* Don't use this one!!
-andTasks_mstone :: do all iTasks in any order (interleaved), task completed when all done
-					but continue with next task as soon as one of the tasks is completed
-					string indicates which task delivered what
-*/
-/*
-andTasks_mstone :: [(String,Task a)] -> (Task [(String,a)]) | iCreateAndPrint a
-andTasks_mstone taskOptions = mkTask "andTasks_mstone" (PMilestoneTasks` taskOptions)
-where
-	PMilestoneTasks` [] tst	= return [] tst
-	PMilestoneTasks` taskOptions tst=:{tasknr,html,options,userId}
-	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,-1) True [] {tst & html = BT [], activated = True}
-	| finished			= (alist,{tst & html = html}) 
-	# ((chosen,buttons,chosenname),tst) 
-						= LiftHst (mkTaskButtons "and Tasks:" "and" userId tasknr options (map fst taskOptions)) tst
-	# chosenTask		= snd (taskOptions!!chosen)
-	# chosenTaskName	= fst (taskOptions!!chosen)
-	# (a,tst=:{activated=adone,html=ahtml}) 
-						= mkParSubTask "andTasks" chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-	# (milestoneReached,_,tst)	
-						= checkAnyTasks "andTasks_mstone" (map snd taskOptions) (0,-1) (False,-1) {tst & html = BT []}
-	| not adone			= (alist,{tst & activated = adone || milestoneReached
-									, 	html = 	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-												(userId -@: allhtml) 
-							})
-	# (alist,tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks "andTasks" taskOptions (0,chosen) True [] {tst & html = BT []}
-	| finished			= (alist,{tst & activated = finished, html = html })
-	= (alist,{tst 	& 	activated = finished || milestoneReached
-					, html = 	html +|+ 
-								BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
-								(userId -@: allhtml)
-					})
-*/
-/*
-doOrTask :: !(Task a,Task a) *TSt -> *(a,*TSt) | iCreateAndPrint a
-doOrTask (taska,taskb) tst=:{tasknr,options,html,userId}
-# taskId								= iTaskId userId tasknr "orTaskSt"
-# (chosen,tst)							= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-| chosen.value == 0						// task a was finished first in the past
-	# (a,tst)							= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
-	= (a,{tst & html = html})
-| chosen.value == 1						// task b was finished first in the past
-	# (b,tst)							= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
-	= (b,{tst & html = html})
-# (a,tst=:{activated=adone,html=ahtml})	= mkParSubTask "orTask" 0 taska {tst & tasknr = tasknr, html = BT [],options = options}
-# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "orTask" 1 taskb {tst & tasknr = tasknr, html = BT [],options = options}
-| adone
-	# tst 								= deleteSubTasksAndThreads [1:tasknr] {tst & tasknr = tasknr}
-	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 0)) {tst & html = BT []}
-	= (a,{tst & html = html, activated = True})
-| bdone
-	# tst 								= deleteSubTasksAndThreads [0:tasknr] {tst & tasknr = tasknr}
-	# (chosen,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> 1)) {tst & html = BT []}
-	= (b,{tst & html = html, activated = True})
-= (a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
-*/
+

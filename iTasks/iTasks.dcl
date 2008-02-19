@@ -61,6 +61,7 @@ workFlowTask	:: ![StartUpOptions] !(Task (Int,a))
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
 					| ShowUsers Int						// for multiUserTask, toggle between given maximum number of users, default: ShowUser 5 
 					| VersionCheck | VersionNoCheck		// for single & multiUser: default = VersionNoCheck 
+					| MyHeader [BodyTag]				// wil replace standard iTask information line
 
 // *********************************************************************************************************************************
 // Here follow the iTasks combinators:
@@ -114,11 +115,11 @@ return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 /* Handling recursion and loops:
 newTask			:: use the to promote a (recursively) defined user function to as task
 foreverTask		:: infinitely repeating Task
-repeatTask		:: repeat Task until predict is valid
+repeatTask		:: repeat Task until predicate is valid
 */
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 
 foreverTask		:: !(Task a) 								-> Task a 		| iData a
-repeatTask		:: !(a -> Task a) !(a -> Bool) -> a 		-> Task a		| iData a
+repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
 
 /*	Sequencing Tasks:
 seqTasks		:: do all iTasks one after another, task completed when all done
@@ -131,12 +132,15 @@ chooseTask		:: Choose one iTask from list, depending on button pressed, button h
 chooseTaskV		:: Choose one iTask from list, depending on button pressed, buttons vertical displayed
 chooseTask_pdm	:: Choose one iTask from list, depending on pulldownmenu item selected
 mchoiceTask		:: Multiple Choice of iTasks, depending on marked checkboxes
+mchoiceTask2	:: Multiple Choice of iTasks, depending on marked checkboxes, boolean used for initial checking
 */
 buttonTask		:: !String !(Task a)						-> Task a 		| iCreateAndPrint a
 chooseTask		:: ![BodyTag] ![(String,Task a)] 			-> Task a 		| iCreateAndPrint a
 chooseTaskV 	:: ![BodyTag] ![(String,Task a)] 			-> Task a 		| iCreateAndPrint a
 chooseTask_pdm 	:: ![BodyTag] ![(String,Task a)] 			-> Task a	 	| iCreateAndPrint a
-mchoiceTasks 	:: ![(String,Task a)] 						-> Task [a] 	| iCreateAndPrint a
+mchoiceTasks 	:: ![BodyTag] ![(String,Task a)] 			-> (Task [a]) | iCreateAndPrint a
+mchoiceTasks2 	:: ![BodyTag] ![(!(!Bool,!String),Task a)] 	-> Task [a] 	| iCreateAndPrint a
+mchoiceTasks3 :: ![BodyTag] ![((Bool,Bool [Bool] -> Bool,String),Task a)] -> (Task [a]) | iCreateAndPrint a
 
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 orTask			:: do both iTasks in any order, combined task completed as any subtask is done
