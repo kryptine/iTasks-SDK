@@ -136,9 +136,10 @@ seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 /* Choose out the tasks you want to do one forehand, labels are used to make the choice:
 
 buttonTask		:: Do the iTask when button pressed
-chooseTask		:: Choose one iTask from list, depending on button pressed, button horizontal displayed
-chooseTaskV		:: Choose one iTask from list, depending on button pressed, buttons vertical displayed
-chooseTask_pdm	:: Choose one iTask from list, depending on pulldownmenu item selected
+chooseTask		:: Choose ONE iTask from list, depending on button pressed, button horizontal displayed
+chooseTaskV		:: as chooseTask, buttons vertical displayed
+chooseTask_pdm	:: as chooseTask, depending on pulldownmenu item selected, Int for initial value
+chooseTask_pdm	:: as chooseTask, depending on radio item selected, Int for initial value 
 
 mchoice: choose tasks depending on the checkboxes set
 
@@ -153,10 +154,12 @@ mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 gchoiceTasks	:: most general mchoice function, can be used e.g. with andTasksCond
 */
 buttonTask		:: !String !(Task a)						-> Task a 		| iCreateAndPrint a
+
 chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
 chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
-chooseTask_pdm 	:: !HtmlCode ![LabeledTask a] 				-> Task a	 	| iCreateAndPrint a
-chooseTask_radio:: !HtmlCode ![LabeledTask a] 				-> Task a		| iCreateAndPrint a
+chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] 			-> Task a	 	| iCreateAndPrint a
+chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
+															-> Task a		| iCreateAndPrint a
 
 mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iData a
 mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
