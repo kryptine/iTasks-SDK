@@ -29,7 +29,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					}
 :: UserId		:== !Int
 :: TaskNr		:== [Int]								// task nr i.j is adminstrated as [j,i]
-:: HtmlTree		=	BT [BodyTag]						// simple code
+:: HtmlTree		=	BT HtmlCode						// simple code
 				|	(@@:) infix  0 (Int,String) HtmlTree// code with id of user attached to it
 				|	(-@:) infix  0 Int 			HtmlTree// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 HtmlTree HtmlTree	// code to be placed next to each other				
@@ -72,7 +72,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, threadStorageLoc	:: !Lifespan		
 					, showUsersOn		:: !Maybe Int	
 					, versionCheckOn	:: !Bool
-					, headerOff			:: !Maybe [BodyTag]
+					, headerOff			:: !Maybe HtmlCode
 					}
 
 // Initial values
@@ -227,7 +227,7 @@ workFlowTask  startUpOptions taska iataskb hst
 # (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (iataskb (i,a)) tst
 = mkHtmlExcep "workFlow" exception body hst
 where
-	noFilter :: HtmlTree -> [BodyTag]
+	noFilter :: HtmlTree -> HtmlCode
 	noFilter (BT body) 			= body
 	noFilter (_ @@: html) 		= noFilter html
 	noFilter (_ -@: html) 		= noFilter html
@@ -241,7 +241,7 @@ where
 // Main routine for the creation of the workflow page
 // ******************************************************************************************************
 
-startTstTask :: !Int !Bool  !(!Bool,![BodyTag]) UserStartUpOptions !(Task a) !*TSt -> (!Bool,![BodyTag],!*HSt) //| iCreate a 
+startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) //| iCreate a 
 startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff} taska tst=:{hst,tasknr,staticInfo}
 
 // prologue
@@ -350,7 +350,7 @@ where
 	  [Br,Hr []]
 
 
-	mkSTable2 :: [[BodyTag]] -> BodyTag
+	mkSTable2 :: [HtmlCode] -> BodyTag
 	mkSTable2 table
 	= Table []	(mktable table)
 	where
@@ -390,7 +390,7 @@ where
 	| thisuser == taskuser 	= (mkDiv id html,accu)
 	= ([],accu)
 
-	showThreadTable :: *TSt -> ([BodyTag],*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
+	showThreadTable :: *TSt -> (HtmlCode,*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 	showThreadTable tst=:{staticInfo}
 	# thisUser		= staticInfo.currentUserId
 	# (tableS,tst)	= ThreadTableStorage id tst																// read thread table from server
@@ -431,7 +431,7 @@ where
 						]
 	= (bodyS ++ bodyC,tst)
 
-mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,[BodyTag],[BodyTag]),*HSt)
+mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,HtmlCode,HtmlCode),*HSt)
 mkTaskButtons header myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames
@@ -1011,7 +1011,7 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 | taskdone.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
 = (editor.value,{tst & activated = taskdone.value, html = html +|+ BT (editor.form ++ finbut.form), hst = hst})
 
-editTaskPred :: !a !(a -> (Bool, [BodyTag]))-> (Task a) | iData a 
+editTaskPred :: !a !(a -> (Bool, HtmlCode))-> (Task a) | iData a 
 editTaskPred  a pred = mkTask "editTask" (editTaskPred` a)
 where
 	editTaskPred` a tst=:{tasknr,html,hst,userId}
@@ -1061,7 +1061,7 @@ where
 	return_Display` tst
 	= (a,{tst & html = tst.html +|+ BT [toHtml a ]})		// return result task
 
-return_VF :: ![BodyTag] !a -> (Task a) | iCreateAndPrint a
+return_VF :: !HtmlCode !a -> (Task a) | iCreateAndPrint a
 return_VF bodytag a = mkTask "return_VF" return_VF`
 where
 	return_VF` tst
@@ -1070,7 +1070,7 @@ where
 // ******************************************************************************************************
 // adding Html code for prompting and feedback
 
-(?>>) infixr 5 	:: ![BodyTag] !(Task a) 					-> Task a		| iCreate a
+(?>>) infixr 5 	:: !HtmlCode !(Task a) 					-> Task a		| iCreate a
 (?>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -1079,7 +1079,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(<<?) infixl 5 	:: !(Task a) ![BodyTag] 					-> Task a		| iCreate a
+(<<?) infixl 5 	:: !(Task a) !HtmlCode 					-> Task a		| iCreate a
 (<<?) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -1088,7 +1088,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
-(!>>) infixr 5 :: ![BodyTag] !(Task a) -> (Task a) | iCreate a
+(!>>) infixr 5 :: !HtmlCode !(Task a) -> (Task a) | iCreate a
 (!>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -1096,7 +1096,7 @@ where
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(<<!) infixl 5 :: !(Task a) ![BodyTag] -> (Task a) | iCreate a
+(<<!) infixl 5 :: !(Task a) !HtmlCode -> (Task a) | iCreate a
 (<<!) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -1104,7 +1104,7 @@ where
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
-(<|) infixl 6 :: !(Task a) !(a -> (Bool, [BodyTag])) -> Task a | iCreate a
+(<|) infixl 6 :: !(Task a) !(a -> (Bool, HtmlCode)) -> Task a | iCreate a
 (<|) taska pred = doTask
 where
 	doTask tst=:{html = ohtml,activated}
@@ -1178,8 +1178,8 @@ where
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
-(@:) infix 3 :: !(!String,!Int) !(Task a)	-> (Task a)			| iData a				// force thread if Ajax is used
-(@:) (taskname,nuserId) taska = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
+(@:)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
+(@:) nuserId (taskname,taska) = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
 
 (@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
 (@::) nuserId taska = \tst=:{userId} -> assignTaskTo False ("Task for " <+++ userId) userId taska {tst & userId = nuserId}
@@ -1213,7 +1213,7 @@ administrateNewThread ouserId tst =: {tasknr,userId,options}
 // ******************************************************************************************************
 // sequencingtasks
 
-seqTasks :: ![(String,Task a)] -> (Task [a])| iCreateAndPrint a
+seqTasks :: ![LabeledTask a] -> (Task [a])| iCreateAndPrint a
 seqTasks options = mkTask "seqTasks" seqTasks`
 where
 	seqTasks` tst=:{tasknr}
@@ -1235,13 +1235,13 @@ buttonTask s task = iCTask_button "buttonTask" [(s,task)]
 
 iCTask_button tracename options = mkTask tracename (dochooseTask True [] options)
 
-chooseTask :: ![BodyTag] ![(String,Task a)] -> (Task a) | iCreateAndPrint a
+chooseTask :: !HtmlCode ![LabeledTask a] -> (Task a) | iCreateAndPrint a
 chooseTask prompt options = mkTask "chooseTask" (dochooseTask True prompt options)
 
-chooseTaskV :: ![BodyTag] ![(String,Task a)] -> (Task a) | iCreateAndPrint a
+chooseTaskV :: !HtmlCode ![LabeledTask a] -> (Task a) | iCreateAndPrint a
 chooseTaskV prompt options = mkTask "chooseTask" (dochooseTask False prompt options)
 
-dochooseTask :: !Bool ![BodyTag] ![(String,Task a)] *TSt-> *(a,*TSt) | iCreateAndPrint a
+dochooseTask :: !Bool !HtmlCode ![LabeledTask a] *TSt-> *(a,*TSt) | iCreateAndPrint a
 dochooseTask _ _ [] tst			= return createDefault tst				
 dochooseTask horizontal prompt taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 # taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
@@ -1263,7 +1263,7 @@ dochooseTask horizontal prompt taskOptions tst=:{tasknr,html,options,userId}				
 
 but i = iTaskButton i
 
-chooseTask_pdm :: ![BodyTag] ![(String,Task a)] -> (Task a) |iCreateAndPrint a
+chooseTask_pdm :: !HtmlCode ![LabeledTask a] -> (Task a) |iCreateAndPrint a
 chooseTask_pdm prompt taskOptions = mkTask "chooseTask_pdm" (dochooseTask_pdm taskOptions)
 where
 	dochooseTask_pdm [] tst			= return createDefault tst	
@@ -1287,30 +1287,14 @@ where
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
 	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
 
-mchoiceTasks :: ![BodyTag] ![(String,Task a)] -> (Task [a]) | iCreateAndPrint a
-mchoiceTasks prompt taskOptions = mchoiceTasks2 prompt [((True,label),task) \\ (label,task) <- taskOptions]
+mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iCreateAndPrint a
+mchoiceTasks prompt taskOptions = mchoiceTasks3 prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
 
-mchoiceTasks2 :: ![BodyTag] ![(!(!Bool,!String),Task a)] -> (Task [a]) | iCreateAndPrint a
-mchoiceTasks2 prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
-where
-	domchoiceTasks [] tst	= ([],{tst& activated = True})
-	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
-	# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
-	# donetaskId			= iTaskId userId tasknr "MtpChSt"
-	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
-	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
-	# optionsform			= cboxes.form <=|> [Txt text \\ ((_,text),_) <- taskOptions]
-	| done.value			= seqTasks [(label,task) \\ ((_,label),task) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
-	# (_,tst=:{html=ahtml,activated = adone})
-							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
-	| not adone				= ([],{tst & html = html +|+ BT prompt +|+ BT [optionsform] +|+ ahtml})
-	# (_,tst)				= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
-	= domchoiceTasks taskOptions {tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True}									// choose one subtask out of the list
+mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iCreateAndPrint a
+mchoiceTasks2 prompt taskOptions = mchoiceTasks3 prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
-	initCheckboxes  = 
-		[(if checked CBChecked CBNotChecked  text,  \ b bs id -> id) \\ ((checked,text),_) <- taskOptions]
-
-mchoiceTasks3 :: ![BodyTag] ![((Bool,Bool [Bool] -> Bool,String),Task a)] -> (Task [a]) | iCreateAndPrint a
+mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+															-> Task [a] 	| iCreateAndPrint a
 mchoiceTasks3 prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
@@ -1322,8 +1306,8 @@ where
 	# nsettings				= fun nblist
 	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
 	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
-	# optionsform			= cboxes.form <=|> [Txt text \\ ((_,_,text),_) <- taskOptions]
-	| done.value			= seqTasks [(label,task) \\ ((_,_,label),task) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
+	# optionsform			= cboxes.form <=|> [[CTxt Yellow label] <||> htmlcode \\ ((_,_,htmlcode),(label,_)) <- taskOptions]
+	| done.value			= seqTasks [labeledTask \\ (_,labeledTask) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
 	# (_,tst=:{html=ahtml,activated = adone})
 							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
 	| not adone				= ([],{tst & html = html +|+ BT prompt +|+ BT [optionsform] +|+ ahtml})
@@ -1331,12 +1315,11 @@ where
 	= domchoiceTasks taskOptions {tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True}									// choose one subtask out of the list
 
 	initCheckboxes  = 
-		[(if set CBChecked CBNotChecked  text,  \b bs _ -> if (pred b bs) bs (updateAt i (not b) bs)) \\ ((set,pred,text),_) <- taskOptions & i <- [0..]]
+		[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ ((set,setfun,_),(label,_)) <- taskOptions & i <- [0..]]
 
 	setCheckboxes  boollist = 
-		[(if set CBChecked CBNotChecked  text,  \b bs _ -> if (pred b bs) bs (updateAt i (not b) bs)) \\ ((_,pred,text),_) <- taskOptions 
+		[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ ((_,setfun,_),(label,_)) <- taskOptions 
 																	& i <- [0..] & set <- boollist]
-
 
 // ******************************************************************************************************
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes
@@ -1378,7 +1361,7 @@ doorTask2 (taska,taskb) tst=:{tasknr,html,options,userId}
 	= (RIGHT b,{tst & html = html, activated = True})
 = (LEFT a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
 
-orTasks :: ![(String,Task a)] -> (Task a) | iData a
+orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= return createDefault
 orTasks taskCollection	= newTask "orTasks" (andTasksPredGen "or Tasks" (\list -> length list >= 1) taskCollection)
 							=>> \list -> return  (hd list)
@@ -1397,13 +1380,13 @@ doAndTask (taska,taskb) tst=:{tasknr,html}
 # (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "andTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 = ((a,b),{tst & activated = adone&&bdone, html = html +|+ ahtml +|+ bhtml})
 
-andTasks :: ![(String,Task a)] -> (Task [a]) | iData a
+andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
 andTasks taskCollection = newTask "andTasks" (andTasksPredGen "and Tasks" (\_ -> False) taskCollection)
 
-andTasksCond :: !([a] -> Bool) ![(String,Task a)] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
+andTasksCond :: !([a] -> Bool) ![LabeledTask a] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
 andTasksCond pred taskCollection = newTask "andTasksCond" (andTasksPredGen "cond Tasks" pred taskCollection)
 
-andTasksPredGen :: !String !([a] -> Bool) ![(String,Task a)] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
+andTasksPredGen :: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
 andTasksPredGen label pred taskCollection = mkTask "andTasksPred" (doandTasks taskCollection)
 where
 	doandTasks [] tst	= return [] tst
@@ -1596,7 +1579,7 @@ taskId tst=:{userId} = (userId,tst)
 userId :: TSt -> (Int,TSt)
 userId tst=:{staticInfo} = (staticInfo.currentUserId,tst)
 
-addHtml :: [BodyTag] TSt -> TSt
+addHtml :: HtmlCode TSt -> TSt
 addHtml bodytag  tst=:{activated, html}  
 | not activated = tst						// not active, return default value
 = {tst & html = html +|+ BT bodytag}		// active, so perform task or get its result
@@ -1964,7 +1947,7 @@ CTxt color message
 BCTxt color message
 = Font [Fnt_Color (`Colorname color)] [Big [] (toString message)]
 
-mkDiv :: String [BodyTag] -> [BodyTag]
+mkDiv :: String HtmlCode -> HtmlCode
 mkDiv id bodytag = [normaldiv]
 where
 	normaldiv = Div [`Div_Std [Std_Id id, Std_Class	"thread"]] bodytag
