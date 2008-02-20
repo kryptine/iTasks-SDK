@@ -10,6 +10,9 @@ import iDataHtmlDef
 CTxt  color message :== Font [Fnt_Color (`Colorname color)] [B []   (toString message)]
 BCTxt color message :== Font [Fnt_Color (`Colorname color)] [Big [] (toString message)]
 
-showText   text	:== CTxt White  text
-showLabel  text	:== CTxt Yellow text
-showTrace  text :== CTxt Silver text
+showText   		text :== Txt          text
+showLabel  		text :== CTxt  Yellow text
+showMainLabel	text :== CTxt  Red    text
+showHighLight	text :== BCTxt Aqua   text
+showLowLight	text :== CTxt  Aqua   text
+showTrace  		text :== CTxt  Silver text

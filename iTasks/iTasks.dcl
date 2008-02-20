@@ -63,7 +63,7 @@ workFlowTask	:: ![StartUpOptions] !(Task (Int,a))
 :: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser: default = TraceOn
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
 					| ShowUsers Int						// for multiUserTask, toggle between given maximum number of users, default: ShowUser 5 
-					| VersionCheck | VersionNoCheck		// for single & multiUser: default = VersionNoCheck 
+					| VersionCheck | NoVersionCheck		// for single & multiUser: default = VersionNoCheck 
 					| MyHeader HtmlCode					// wil replace standard iTask information line
 
 // *********************************************************************************************************************************

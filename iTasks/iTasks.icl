@@ -185,7 +185,7 @@ where
 	determineUserOptions` [ThreadStorage nloc:xs] 	options = determineUserOptions` xs {options & threadStorageLoc = nloc}
 	determineUserOptions` [ShowUsers max:xs] 		options = determineUserOptions` xs {options & showUsersOn = if (max <= 0) Nothing (Just max)}
 	determineUserOptions` [VersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = True}
-	determineUserOptions` [VersionNoCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
+	determineUserOptions` [NoVersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
 	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
 
 // ******************************************************************************************************
@@ -220,8 +220,8 @@ workFlowTask  startUpOptions taska iataskb hst
 # tst								= initTst -1 userOptions.threadStorageLoc hst
 # ((i,a),tst=:{activated,html,hst})	= taska tst									// for doing the login 
 | not activated
-	# iTaskHeader					= [BCTxt Aqua "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
-	# iTaskInfo						= mkDiv "iTaskInfo" [Txt "Login procedure... ", Hr []]
+	# iTaskHeader					= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
+	# iTaskInfo						= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
 	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
 						]] hst
 # tst								= initTst i userOptions.threadStorageLoc hst
@@ -235,8 +235,6 @@ where
 	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
 	noFilter (DivCode str html) = noFilter html
-
-
 
 // ******************************************************************************************************
 // Main routine for the creation of the workflow page
@@ -252,7 +250,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
 
-# versionsOn			= IF_ClientTasks False versionCheckOn											// no version control on client
+# versionsOn			= IF_ClientTasks False versionCheckOn										// no version control on client
 # noNewVersion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 	// no version control in these cases
 # (appversion,hst)	 	= setAppversion inc hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst
@@ -261,7 +259,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
 							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
-									,BCTxt Aqua "i -Task", showLabel " Workflow System "]
+									,showHighLight "i -Task", showLabel " Workflow System "]
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
 | versionconflict	 
@@ -292,19 +290,22 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 						= Filter showCompletePage thrOwner html hst
 
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
-							(	IF_Ajax (IF_ClientServer (IF_ClientTasks [showLabel "Client: "] [showLabel "Server: "]) []) [] ++
-								if multiuser 
-									[showText "User: " , showLabel thisUser, Txt " - "] [] ++
-								[CTxt Aqua thrinfo, Txt " - "] ++
-								if multiuser
-									 [Txt "#User Queries: " , showTrace sversion, Txt " - "] [] ++
-								if versionsOn [Txt "#Server Queries: ", showTrace appversion] [Txt "#Server Queries: - "] ++
-								IF_Ajax
-									( [Txt " - Task#: ", showTrace (showTaskNr  event)] ++
-									  if (isNil threads || showCompletePage) [] [Txt " - Thread(s)#: ", showTrace threadsText]
-									 ) [] ++
-								[Br,Hr []]
-							)
+							case headerOff of
+								Nothing ->
+									(	IF_Ajax (IF_ClientServer (IF_ClientTasks [showLabel "Client: "] [showLabel "Server: "]) []) [] ++
+										if multiuser 
+											[showText "User: " , showLabel thisUser, showText " - "] [] ++
+										[showLowLight thrinfo, showText " - "] ++
+										if multiuser
+											 [showText "#User Queries: " , showTrace sversion, showText " - "] [] ++
+										if versionsOn [showText "#Server Queries: ", showTrace appversion] [showText "#Server Queries: - "] ++
+										IF_Ajax
+											( [showText " - Task#: ", showTrace (showTaskNr  event)] ++
+											  if (isNil threads || showCompletePage) [] [showText " - Thread(s)#: ", showTrace threadsText]
+											 ) [] ++
+										[Br,Hr []]
+									)
+								Just userInfo -> userInfo
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
 | showCompletePage		=	(toServer,[Ajax [("thePage",	iTaskHeader ++
 															iTaskInfo  ++
@@ -318,7 +319,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 							,hst)
 # (newthread,oldthreads)=	(hd threads, tl threads)
 | otherwise				=	(toServer,[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
-											[(showTaskNr childthreads,[Txt " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
+											[(showTaskNr childthreads,[showText " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
 											[(showTaskNr newthread, if (isNil threadcode) seltask threadcode)]	// task info
 										   )
 									]
@@ -337,13 +338,13 @@ where
 	ifTraceOn form = if traceOn form []
 
 	showOptions location
-	= [Txt "Version nr: ", showTrace iTaskVersion] ++
-	  [Txt " - Enabled: "] ++
+	= [showText "Version nr: ", showTrace iTaskVersion] ++
+	  [showText " - Enabled: "] ++
 	  [showTrace (IF_Ajax 	(" + Ajax (" <+++ location <+++ ") ") "")] ++
 	  [showTrace (IF_ClientServer	(IF_Ajax " + Client" "") "")] ++
 	  [showTrace (IF_Database " + Database" "")] ++
 	  [showTrace (IF_DataFile " + DataFile" "")] ++
-	  [Txt " - Disabled: "] ++
+	  [showText " - Disabled: "] ++
 	  [showTrace (IF_Ajax 	"" " - Ajax " )] ++
 	  [showTrace (IF_ClientServer	"" " - Client" )] ++
 	  [showTrace (IF_Database "" " - Database" )] ++
@@ -403,11 +404,11 @@ where
 						[showLabel "Server Thread Table: ",
 						STable []	(   [[showText "UserNr:", showText "Kind:", showText "TaskNr:", showText "Created:"
 										 ,showText "Storage"]] ++
-										[	[ Txt (toString entry.thrUserId)
-											, Txt (toString entry.thrKind)
-											, Txt (showThreadNr entry.thrTaskNr)
-											, Txt (toString entry.thrVersionNr)
-											, Txt (toString entry.thrOptions.tasklife)
+										[	[ showText (toString entry.thrUserId)
+											, showText (toString entry.thrKind)
+											, showText (showThreadNr entry.thrTaskNr)
+											, showText (toString entry.thrVersionNr)
+											, showText (toString entry.thrOptions.tasklife)
 											] 
 											\\ entry <- tableS
 										]
@@ -419,11 +420,11 @@ where
 						[showLabel ("Client User " +++ toString thisUser +++ " Thread Table: "),
 						STable []	(   [[showText "UserNr:", showText "Kind:", showText "TaskNr:", showText "Created:"
 										 ,showText "Storage"]] ++
-										[	[ Txt (toString entry.thrUserId)
-											, Txt (toString entry.thrKind)
-											, Txt (showThreadNr entry.thrTaskNr)
-											, Txt (toString entry.thrVersionNr)
-											, Txt (toString entry.thrOptions.tasklife)
+										[	[ showText (toString entry.thrUserId)
+											, showText (toString entry.thrKind)
+											, showText (showThreadNr entry.thrTaskNr)
+											, showText (toString entry.thrVersionNr)
+											, showText (toString entry.thrOptions.tasklife)
 											] 
 											\\ entry <- tableC
 										]
@@ -436,11 +437,12 @@ mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,H
 mkTaskButtons header myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames
+| myidx == 1		= ((0,[],[]),hst)													// no task button if there is only one task to choose from
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info id hst						// which choice was made in the past
 # (buttons,hst)		= SelectButtons Init btnsId info (chosen,btnnames) hst				// create buttons
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info  buttons.value hst			// maybe a new button was pressed
 # (buttons,hst)		= SelectButtons Set btnsId info (chosen,btnnames) hst				// adjust look of that button
-= ((chosen,[CTxt Red header, Br: buttons.form],[showLabel (btnnames!!chosen),Br,Br]),hst)
+= ((chosen,[showMainLabel header, Br: buttons.form],[showLabel (btnnames!!chosen),Br,Br]),hst)
 where
 	SelectButtons init id info (idx,btnnames) hst = TableFuncBut2 (init,pageFormId info id 
 															[[(mode idx n, but txt,\_ -> n)] \\ txt <- btnnames & n <- [0..]]) hst
@@ -1196,10 +1198,12 @@ assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = n
 = (a,{tst & userId = userId																// restore user Id
 		  , html = 	ohtml +|+ 															// show old code
 					if verbose 
-						( BT [Br, Txt ("Waiting for Task "), showLabel taskname, Txt " from ", showUser nuserId,Br] +|+  // show waiting for
-						  ((nuserId,taskname) @@: BT [Txt "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
+						( BT [Br, showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,Br] +|+  // show waiting for
+						  ((nuserId,taskname) @@: BT [showText "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
 						((nuserId,taskname) @@: nhtml)
 	 })												
+where
+	showUser nr = showLabel ("User " <+++ nr)
 
 administrateNewThread ouserId tst =: {tasknr,userId,options}
 | ouserId == userId		= tst
@@ -1448,7 +1452,7 @@ where
 	# ((chosen,buttons,chosenname),tst) 							// user can select one of the tasks to work on
 						= LiftHst (mkTaskButtons label "" userId tasknr options (map fst taskCollection)) tst
 	# chosenTask		= snd (taskCollection!!chosen)
-	# chosenTaskName	= fst (taskCollection!!chosen)
+//	# chosenTaskName	= fst (taskCollection!!chosen)
 	# (a,tst=:{activated=adone,html=ahtml}) 						// enable the selected task (finished or not)
 						= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
 	# (alist,tst=:{activated=finished,html=allhtml})				// check again whether all other tasks are now finished, collect their code		
@@ -1519,7 +1523,7 @@ where
 	| not activated			 	= (createDefault,tst)
 	# (val,tst=:{activated}) 	= task tst
 	| activated	= (val,{tst & html = html, activated = True , tasknr = tasknr})
-	= (val,{tst & html = html /*+|+ BT [Txt ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
+	= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
 
 closureTask  :: String (Task a) -> (Task (TCl a)) | iCreateAndPrint a
 closureTask name task = mkTask ("closure " +++ name) mkClosure
@@ -1554,7 +1558,7 @@ where
 		# (requested,tst)			= (sharedMem (\_ -> True)) tst  // this task is now demanded !
 		# (val,tst=:{activated}) 	= task tst
 		| activated	= (val,{tst & html = html, activated = True , tasknr = tasknr})
-		= (val,{tst & html = html /*+|+ BT [Txt ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
+		= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
 
 		sharedStoreId	= iTaskId userId tasknr "Shared_Store"
 		sharedMem fun	= LiftHst (mkStoreForm (Init,storageFormId options sharedStoreId False) fun)
@@ -1987,15 +1991,6 @@ where
 // Html Printing Utilities...
 // ******************************************************************************************************
 
-showUser nr = showLabel ("User " <+++ nr)
-/*
-
-CTxt color message
-= Font [Fnt_Color (`Colorname color)] [B [] (toString message)]
-
-BCTxt color message
-= Font [Fnt_Color (`Colorname color)] [Big [] (toString message)]
-*/
 
 mkDiv :: String HtmlCode -> HtmlCode
 mkDiv id bodytag = [normaldiv]
@@ -2004,8 +1999,6 @@ where
 
 iTaskButton :: String -> Button
 iTaskButton label 
-//# buttonsize = (1 + (size label / deffontsize)) * defpixel 
-//= LButton buttonsize label
 = LButton defpixel label
 
 
