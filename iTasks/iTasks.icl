@@ -1287,15 +1287,32 @@ where
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
 	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
 
-mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iCreateAndPrint a
-mchoiceTasks prompt taskOptions = mchoiceTasks3 prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
+mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
+mchoiceTasks prompt taskOptions 
+= gchoiceTasks seqTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
 
-mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iCreateAndPrint a
-mchoiceTasks2 prompt taskOptions = mchoiceTasks3 prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
+mchoiceTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
+mchoiceTasks2 prompt taskOptions 
+= gchoiceTasks seqTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
-mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
-															-> Task [a] 	| iCreateAndPrint a
-mchoiceTasks3 prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
+mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+mchoiceTasks3 prompt taskOptions 
+= gchoiceTasks seqTasks prompt taskOptions
+
+mchoiceAndTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
+mchoiceAndTasks prompt taskOptions 
+= gchoiceTasks andTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
+
+mchoiceAndTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
+mchoiceAndTasks2 prompt taskOptions 
+= gchoiceTasks andTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
+
+mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+mchoiceAndTasks3 prompt taskOptions 
+= gchoiceTasks andTasks prompt taskOptions
+
+gchoiceTasks :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
+gchoiceTasks taskorderfun prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
 	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
@@ -1307,7 +1324,7 @@ where
 	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
 	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
 	# optionsform			= cboxes.form <=|> [[CTxt Yellow label] <||> htmlcode \\ ((_,_,htmlcode),(label,_)) <- taskOptions]
-	| done.value			= seqTasks [labeledTask \\ (_,labeledTask) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
+	| done.value			= taskorderfun [labeledTask \\ (_,labeledTask) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
 	# (_,tst=:{html=ahtml,activated = adone})
 							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
 	| not adone				= ([],{tst & html = html +|+ BT prompt +|+ BT [optionsform] +|+ ahtml})
@@ -1959,6 +1976,34 @@ iTaskButton label
 = LButton defpixel label
 
 
+/*
+mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+															-> Task [a] 	| iCreateAndPrint a
+mchoiceTasks3 prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
+where
+	domchoiceTasks [] tst	= ([],{tst& activated = True})
+	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
+	# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
+	# donetaskId			= iTaskId userId tasknr "MtpChSt"
+	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
+	# (fun,nblist)			= cboxes.value
+	# nsettings				= fun nblist
+	# (cboxes,tst)			= LiftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
+	# (done,tst)			= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
+	# optionsform			= cboxes.form <=|> [[CTxt Yellow label] <||> htmlcode \\ ((_,_,htmlcode),(label,_)) <- taskOptions]
+	| done.value			= seqTasks [labeledTask \\ (_,labeledTask) <- taskOptions & True <- snd cboxes.value] {tst & tasknr = [0:tasknr]}
+	# (_,tst=:{html=ahtml,activated = adone})
+							= (internEditSTask "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
+	| not adone				= ([],{tst & html = html +|+ BT prompt +|+ BT [optionsform] +|+ ahtml})
+	# (_,tst)				= LiftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
+	= domchoiceTasks taskOptions {tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True}									// choose one subtask out of the list
 
+	initCheckboxes  = 
+		[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ ((set,setfun,_),(label,_)) <- taskOptions & i <- [0..]]
+
+	setCheckboxes  boollist = 
+		[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ ((_,setfun,_),(label,_)) <- taskOptions 
+																	& i <- [0..] & set <- boollist]
+*/
 
 

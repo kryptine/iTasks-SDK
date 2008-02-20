@@ -114,8 +114,6 @@ return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 (@:)			:: will prompt who is waiting for task with give name
 (@::)			:: same, default task name given
 */
-//(@:)  infix 3 	:: !(!String,!Int) (Task a)	-> (Task a)			| iCreateAndPrint a
-//(@::) infix 3 	:: !Int (Task a)		    -> (Task a)			| iCreate a
 
 (@:)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
 (@::) infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
@@ -135,26 +133,43 @@ seqTasks		:: do all iTasks one after another, task completed when all done
 */
 seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 
-/* Choose out one or more Tasks sequentially before they are executed sequentially:
+/* Choose out the tasks you want to do one forehand, labels are used to make the choice:
 
-buttonTask		:: Choose the iTask when button pressed
+buttonTask		:: Do the iTask when button pressed
 chooseTask		:: Choose one iTask from list, depending on button pressed, button horizontal displayed
 chooseTaskV		:: Choose one iTask from list, depending on button pressed, buttons vertical displayed
 chooseTask_pdm	:: Choose one iTask from list, depending on pulldownmenu item selected
 
-mchoiceTask		:: Multiple Choice of iTasks, depending on marked checkboxes
-mchoiceTask2	:: as mchoiceTask, boolean used for initial checking
+mchoice: choose tasks depending on the checkboxes set
+
+mchoiceTask		:: Checked tasks will be done SEQUENTIALLY
+mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
 mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
+
+mchoiceTask		:: Checked tasks can be done in INTERLEAVED
+mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
+mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
+
+gchoiceTasks	:: most general mchoice function, can be used e.g. with andTasksCond
 */
 buttonTask		:: !String !(Task a)						-> Task a 		| iCreateAndPrint a
 chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
 chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
 chooseTask_pdm 	:: !HtmlCode ![LabeledTask a] 				-> Task a	 	| iCreateAndPrint a
 
-mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iCreateAndPrint a
-mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iCreateAndPrint a
+mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iData a
+mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
 mchoiceTasks3 	:: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
-															-> Task [a] 	| iCreateAndPrint a
+															-> Task [a] 	| iData a
+
+mchoiceAndTasks :: !HtmlCode ![LabeledTask a] 				-> Task [a]		| iData a
+mchoiceAndTasks2:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
+mchoiceAndTasks3:: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+															-> Task [a] | iData a
+
+gchoiceTasks 	:: !([LabeledTask a] -> Task [a])
+				   !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+															-> Task [a] 	| iData a
 
 :: ChoiseUpdate	:== !Bool [Bool] -> [Bool]									// changed checkbox + current settings -> new settings
 
@@ -172,6 +187,7 @@ orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b)
 orTasks			:: ![LabeledTask a] 						-> Task a		| iData a 
 
 /* Do Tasks parallel / interleaved and FINISH when ALL Tasks done:
+
 andTask			:: do both iTasks in any order (interleaved), task completed when both done
 (-&&-)			:: same, now as infix combinator
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
@@ -181,7 +197,9 @@ andTasks_mu		:: assign task to indicated users, task completed when all done
 andTask			:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
 andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a
+
 andTasksCond 	:: !([a] -> Bool) ![LabeledTask a] 			-> Task [a]		| iData a 
+
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
 
 /* Time and Date management:
