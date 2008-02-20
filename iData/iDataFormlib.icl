@@ -503,6 +503,7 @@ where
 					, resetForm	= Nothing
 					}
 			otherradio b v
+			| isNil b.changedId = v							// repaired 20/2/2008 MJP
 			| stripname (hd b.changedId) == formid.id		// REPAIR TO NEW 
 							= RBNotChecked formid.id
 			| otherwise		= v
@@ -510,6 +511,9 @@ where
 			nformid			= {formid & ival = (const2,-1)} <@ formid.id <+++ iDataIdSeparator <+++ j
 
 			stripname name	= mkString (takeWhile ((<>) radioButtonSeparator) (mkList name))
+			
+			isNil [] = True
+			isNil _ = False
 
 FuncMenu :: !(InIDataId (Int,[(String, a -> a)])) !*HSt -> (Form (a -> a,Int),!*HSt)
 FuncMenu (init,formid) hst	= mkViewForm (init,nformid) bimap hst
