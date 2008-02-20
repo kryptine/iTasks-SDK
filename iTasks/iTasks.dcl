@@ -156,6 +156,7 @@ buttonTask		:: !String !(Task a)						-> Task a 		| iCreateAndPrint a
 chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
 chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
 chooseTask_pdm 	:: !HtmlCode ![LabeledTask a] 				-> Task a	 	| iCreateAndPrint a
+chooseTask_radio:: !HtmlCode ![LabeledTask a] 				-> Task a		| iCreateAndPrint a
 
 mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iData a
 mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a

@@ -1287,6 +1287,33 @@ where
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
 	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
 
+chooseTask_radio :: !HtmlCode ![LabeledTask a] -> (Task a) |iCreateAndPrint a
+chooseTask_radio prompt taskOptions = mkTask "chooseTask_radio" (dochooseTask_pdm taskOptions)
+where
+	dochooseTask_pdm [] tst			= return createDefault tst	
+	dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+	# numberOfButtons				= length taskOptions
+	# taskId						= iTaskId userId tasknr ("ChoStRadio" <+++ numberOfButtons)
+	# (chosen,tst)					= LiftHst (mkStoreForm  (Init,storageFormId options taskId (False,0)) id) tst
+	# (done,choice)					= chosen.value
+	| not done			// no choice made yet
+		# taskRadioMenuId				= iTaskId userId tasknr ("ChoRadio" <+++ numberOfButtons)
+		# (nradio,tst)					= LiftHst (ListFuncRadio (Init,sessionFormId options taskRadioMenuId (0,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
+		# choice						= if nradio.changed (snd nradio.value) choice
+		# (nradio,tst)					= LiftHst (ListFuncRadio (Set, sessionFormId options taskRadioMenuId (choice,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
+		# (_,tst=:{activated=adone,html=ahtml})	
+										= internEditSTask "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
+		# (_,tst)						= LiftHst (mkStoreForm  (Init,storageFormId options taskId (False,0)) (\_ -> (adone,choice))) {tst & activated = adone, html = BT []}
+		| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT prompt +|+ BT nradio.form +|+ ahtml, tasknr = tasknr})
+		# chosenTask					= snd (taskOptions!!choice)
+		# (a,tst=:{activated=bdone,html=bhtml}) 
+										= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
+		= (a,{tst & tasknr = tasknr, activated = bdone, html = html +|+ bhtml})
+	# chosenTask					= snd (taskOptions!!choice)
+	# (a,tst=:{activated=adone,html=ahtml}) 
+									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
+	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
+
 mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
 = gchoiceTasks seqTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
