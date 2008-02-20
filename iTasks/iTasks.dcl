@@ -67,6 +67,14 @@ workFlowTask	:: ![StartUpOptions] !(Task (Int,a))
 					| MyHeader HtmlCode					// wil replace standard iTask information line
 
 // *********************************************************************************************************************************
+/* Important for optimizations
+newTask			:: promote a function to a task, final result will be remembered
+Once			:: task will be done only once, the value of the task will be remembered, maybe useful for some lifted iData
+*/
+newTask 		:: !String !(Task a) 						-> Task a		| iData a 
+Once 			:: (Task a) 								-> Task a 		| iData a
+
+// *********************************************************************************************************************************
 // Here follow the iTasks combinators:
 
 /* promote any iData editor to the iTask domain
@@ -92,10 +100,8 @@ return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
 (?>>)			:: prompt as long as task is active but not finished
 (!>>)			:: prompt when task is activated
-(<<?)			:: same as ?>>, except that prompt is displayed *after* task
-(<<!)			:: same as !>>, except that prompt is displayed *after* task
-(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
-(<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
+(<<?)			:: as ?>>, except that prompt is displayed *after* task
+(<<!)			:: as !>>, except that prompt is displayed *after* task
 return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
 */
@@ -104,28 +110,34 @@ return_D		:: return the value and show it in iData display format
 (!>>) infixr 5 	:: !HtmlCode !(Task a) 						-> Task a		| iCreate a
 (<<?) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
 (<<!) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
-(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iCreate a
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
 return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
 return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
 /* Assign tasks to user with indicated id:
 
 (@:)			:: will prompt who is waiting for task with give name
-(@::)			:: same, default task name given
+(@::)			:: as @:, a default task name is chosen as label
+(@:>)			:: as @:, no prompting
+(@::>)			:: as @::, no prompting
 */
 
-(@:)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
-(@::) infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
+(@:)   infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
+(@::)  infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
+(@:>)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
+(@::>) infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
+
+
 /* Handling recursion and loops:
 
-newTask			:: use the to promote a (recursively) defined user function to as task
 foreverTask		:: infinitely repeating Task
 repeatTask		:: repeat Task until predicate is valid
+(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
+(<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
 */
-newTask 		:: !String !(Task a) 						-> Task a		| iData a 
 foreverTask		:: !(Task a) 								-> Task a 		| iData a
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
+(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iCreate a
+(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
 
 /*	Sequencing Tasks:
 
@@ -262,11 +274,6 @@ appIData2 		:: (String *HSt -> *(Form a,*HSt)) 			-> Task a			| iData a
 appHSt 			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
 appHSt2			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
 
-/* Controlling side effects
-Once			:: 	task will be done only once, the value of the task will be remembered, maybe useful for some lifted iData
-*/
-
-Once 			:: (Task a) 								-> Task a 			| iData a
 
 /* Operations on Task state
 taskId			:: give id of user assigned to task

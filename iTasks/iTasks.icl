@@ -298,7 +298,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 										[showLowLight thrinfo, showText " - "] ++
 										if multiuser
 											 [showText "#User Queries: " , showTrace sversion, showText " - "] [] ++
-										if versionsOn [showText "#Server Queries: ", showTrace appversion] [showText "#Server Queries: - "] ++
+										if versionsOn [showText "#Server Queries: ", showTrace appversion] [] ++
 										IF_Ajax
 											( [showText " - Task#: ", showTrace (showTaskNr  event)] ++
 											  if (isNil threads || showCompletePage) [] [showText " - Thread(s)#: ", showTrace threadsText]
@@ -1182,10 +1182,16 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
-(@:) nuserId (taskname,taska) = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
+(@:) nuserId (taskname,taska) = \tst=:{userId} -> assignTaskTo True taskname userId taska {tst & userId = nuserId}
 
 (@::) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
-(@::) nuserId taska = \tst=:{userId} -> assignTaskTo False ("Task for " <+++ userId) userId taska {tst & userId = nuserId}
+(@::) nuserId taska = \tst=:{userId} -> assignTaskTo True ("Task for " <+++ userId) userId taska {tst & userId = nuserId}
+
+(@:>)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
+(@:>) nuserId (taskname,taska) = \tst=:{userId} -> assignTaskTo False taskname userId taska {tst & userId = nuserId}
+
+(@::>) infix 3 :: !Int !(Task a)	-> (Task a)			| iData  a							// force thread if Ajax is used							
+(@::>) nuserId taska = \tst=:{userId} -> assignTaskTo False ("Task for " <+++ userId) userId taska {tst & userId = nuserId}
 
 assignTaskTo :: !Bool !String !Int !(Task a) !*TSt -> (a,!*TSt)			| iData a	
 assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = nuserId}
@@ -1198,7 +1204,7 @@ assignTaskTo verbose taskname userId taska tst=:{html=ohtml,activated,userId = n
 = (a,{tst & userId = userId																// restore user Id
 		  , html = 	ohtml +|+ 															// show old code
 					if verbose 
-						( BT [Br, showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,Br] +|+  // show waiting for
+						( BT [showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,Br] +|+  // show waiting for
 						  ((nuserId,taskname) @@: BT [showText "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
 						((nuserId,taskname) @@: nhtml)
 	 })												
