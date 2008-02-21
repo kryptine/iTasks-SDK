@@ -1337,7 +1337,7 @@ mchoiceTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks2 prompt taskOptions 
 = gchoiceTasks seqTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
-mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks3 prompt taskOptions 
 = gchoiceTasks seqTasks prompt taskOptions
 
@@ -1349,11 +1349,11 @@ mchoiceAndTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks2 prompt taskOptions 
 = gchoiceTasks andTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
-mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks3 prompt taskOptions 
 = gchoiceTasks andTasks prompt taskOptions
 
-gchoiceTasks :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
+gchoiceTasks :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
 gchoiceTasks taskorderfun prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
