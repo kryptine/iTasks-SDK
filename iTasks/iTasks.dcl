@@ -33,7 +33,7 @@ defaultUser			:== 0							// default id of user
 :: GarbageCollect 	= Collect 						// garbage collect iTask administration
 					| NoCollect						// no garbage collection
 
-class (<<@) infixl 3 b :: !(Task a) !b -> Task a 		// to set iData attribute globally for indicated (composition of) iTask(s) 
+class (<<@) infixl 3 b :: !(Task a) !b -> Task a 	// to set iData attribute globally for indicated (composition of) iTask(s) 
 
 instance <<@		Lifespan						// default: Session
 				, 	StorageFormat					// default: PlainString
@@ -64,7 +64,7 @@ workFlowTask	:: ![StartUpOptions] !(Task (Int,a))
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
 					| ShowUsers Int						// for multiUserTask, toggle between given maximum number of users, default: ShowUser 5 
 					| VersionCheck | NoVersionCheck		// for single & multiUser: default = VersionNoCheck 
-					| MyHeader HtmlCode					// wil replace standard iTask information line
+					| MyHeader HtmlCode					// will replace standard iTask information line
 
 // *********************************************************************************************************************************
 /* Important for optimizations
@@ -145,23 +145,23 @@ seqTasks		:: do all iTasks one after another, task completed when all done
 */
 seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 
-/* Choose out the tasks you want to do one forehand, labels are used to make the choice:
+/* Choose the tasks you want to do one forehand, labels are used to make the choice:
 
-buttonTask		:: Do the iTask when button pressed
-chooseTask		:: Choose ONE iTask from list, depending on button pressed, button horizontal displayed
-chooseTaskV		:: as chooseTask, buttons vertical displayed
-chooseTask_pdm	:: as chooseTask, depending on pulldownmenu item selected, Int for initial value
-chooseTask_pdm	:: as chooseTask, depending on radio item selected, Int for initial value 
+buttonTask		:: do the iTask when button pressed
+chooseTask		:: choose ONE iTask from list, depending on button pressed, button horizontally displayed
+chooseTaskV		:: as chooseTask, buttons vertically displayed
+chooseTask_pdm	:: as chooseTask, depending on pulldownmenu item selected, Int for initially selected task
+chooseTask_pdm	:: as chooseTask, depending on radio item selected, Int for initially selected task 
 
 mchoice: choose tasks depending on the checkboxes set
 
-mchoiceTask		:: Checked tasks will be done SEQUENTIALLY
-mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
-mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
+mchoiceTasks	:: checked tasks will be done SEQUENTIALLY
+mchoiceTasks2	:: as mchoiceTask, boolean used for initial setting of the checks
+mchoiceTasks3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 
-mchoiceTask		:: Checked tasks can be done in INTERLEAVED
-mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
-mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
+mchoiceAndTasks	:: checked tasks can be done INTERLEAVED
+mchoiceAndTasks2:: as mchoiceTasks, boolean used for initial setting of the checks
+mchoiceAndTasks3:: as mchoiceTasks2, function can be used to (re)set the checkboxes
 
 gchoiceTasks	:: most general mchoice function, can be used e.g. with andTasksCond
 */
@@ -175,19 +175,19 @@ chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
 
 mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iData a
 mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
-mchoiceTasks3 	:: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+mchoiceTasks3 	:: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
 															-> Task [a] 	| iData a
 
 mchoiceAndTasks :: !HtmlCode ![LabeledTask a] 				-> Task [a]		| iData a
 mchoiceAndTasks2:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
-mchoiceAndTasks3:: !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+mchoiceAndTasks3:: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
 															-> Task [a] | iData a
 
 gchoiceTasks 	:: !([LabeledTask a] -> Task [a])
-				   !HtmlCode ![((!Bool,!ChoiseUpdate,!HtmlCode),LabeledTask a)] 
+				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
 															-> Task [a] 	| iData a
 
-:: ChoiseUpdate	:== !Bool [Bool] -> [Bool]									// changed checkbox + current settings -> new settings
+:: ChoiceUpdate	:== !Bool [Bool] -> [Bool]									// changed checkbox + current settings -> new settings
 
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 
@@ -206,7 +206,7 @@ orTasks			:: ![LabeledTask a] 						-> Task a		| iData a
 
 andTask			:: do both iTasks in any order (interleaved), task completed when both done
 (-&&-)			:: same, now as infix combinator
-andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
+andTasks		:: do all iTasks in any order (interleaved), task completed when all done
 andTasksCond 	:: like andTasks, but completion forced as soon as predicate holds
 andTasks_mu		:: assign task to indicated users, task completed when all done
 */
@@ -252,11 +252,11 @@ closureLzTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
 /* Exception Handling:
 
 <^>				:: Evaluate the task; An exception of type e raised by this task, will be catched by the closest handler.
-				   One can use the function create a proper task value or signal the fact that an exception has occured.  
+				   One can use the function to create a proper task value or signal the fact that an exception has occured.  
 Raise 			:: Raises an exception of type e which will be catched by the closest parent handler for this type
 */
-(<^>) infix  1  :: !(e -> a) !(Task a) 						-> Task a 					| iData a   & TC e			// assigns an exception Handler
-Raise 			:: e 										-> Task a 					| iCreate a & TC e			// rases an exception
+(<^>) infix  1  :: !(e -> a) !(Task a) 						-> Task a 					| iData a   & TC e			// assigns an exception handler
+Raise 			:: e 										-> Task a 					| iCreate a & TC e			// raises an exception
 
 /* Lifting to iTask domain
 
@@ -284,4 +284,3 @@ addHtml			:: add html code
 taskId			:: TSt 				-> (Int,TSt)
 userId 			:: TSt 				-> (Int,TSt)
 addHtml 		:: HtmlCode TSt 	-> TSt
-
