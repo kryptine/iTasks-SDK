@@ -1302,8 +1302,8 @@ where
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
 	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
 
-mpchoiceTasks :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
-mpchoiceTasks taskorderfun prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
+chooseTask_cb :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
+chooseTask_cb taskorderfun prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
 	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list

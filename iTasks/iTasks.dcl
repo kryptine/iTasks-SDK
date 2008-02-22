@@ -68,30 +68,54 @@ workFlowTask	:: ![StartUpOptions] !(Task (UserId,a))
 
 
 // *********************************************************************************************************************************
-// Here follow the iTasks combinators:
+/* Here follow the iTasks combinators:
 
-/* promote any iData editor to the iTask domain
+Basic editors:
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task
 editTask		:: create a task editor (with submit button) to edit a value of given type, finish only if predicate holds 
-*/
-editTask 		:: !String 	!a 								-> Task a		| iData a 
-editTaskPred 	:: 			!a !(a -> (Bool, HtmlCode))		-> Task a		| iData a 
 
-/* standard monadic combinators on iTasks:
+Standard monadic combinators on iTasks:
 (=>>)			:: for sequencing: bind
 return_V		:: lift a value to the iTask domain and return it
-*/
-(=>>) infixl 1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
-return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
-/* prompting variants:
+Prompting variants:
 (?>>)			:: prompt as long as task is active but not finished
 (!>>)			:: prompt when task is activated
 (<<?)			:: as ?>>, except that prompt is displayed *after* task
 (<<!)			:: as !>>, except that prompt is displayed *after* task
 return_VF		:: return the value and show the Html code specified
 return_D		:: return the value and show it in iData display format
+
+Assign tasks to user with indicated id:
+assignTaskTo 	:: assign task to indicated user, True for verbose reporting
+
+Repetition and loops:
+foreverTask		:: infinitely repeating Task
+(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
+(<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
+
+Sequencing Tasks:
+seqTasks		:: do all iTasks one after another, task completed when all done
+
+Choose the tasks you want to do one forehand:
+chooseTask_btn	:: choose ONE task by pressing a button, True for horizontal buttons, else vertical
+chooseTask_pdm	:: as chooseTask_btn, depending on pulldownmenu item selected, Int for initial value
+chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for initial value, htmlcode for option explanation 
+
+chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on first arg
+				   (initial setting, effect for all when set, explanation) for each option
+
+Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
+orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
+andTask2		:: do both iTasks in any order (interleaved), task completed when both done
+andTasksCond	:: do tasks in any order until pred holds for finished tasks, string used for naming group of task navigation buttons
 */
+
+editTask 		:: !String 	!a 								-> Task a		| iData a 
+editTaskPred 	:: 			!a !(a -> (Bool, HtmlCode))		-> Task a		| iData a 
+
+(=>>) infixl 1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
+return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
 (?>>) infixr 5 	:: !HtmlCode !(Task a) 						-> Task a		| iCreate a
 (!>>) infixr 5 	:: !HtmlCode !(Task a) 						-> Task a		| iCreate a
@@ -100,57 +124,41 @@ return_D		:: return the value and show it in iData display format
 return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
 return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
-/* Assign tasks to user with indicated id:
-assignTaskTo 	:: assign task to indicated user, True for verbose reporting
-*/
 assignTaskTo 	:: !Bool !UserId !(LabeledTask a) 				-> Task a		| iData a	
 
-/* Handling recursion and loops:
-foreverTask		:: infinitely repeating Task
-(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
-(<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
-*/
 foreverTask		:: !(Task a) 								-> Task a 		| iData a
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iCreate a
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
 
-/*	Sequencing Tasks:
-seqTasks		:: do all iTasks one after another, task completed when all done
-*/
 seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 
-/* Choose out the tasks you want to do one forehand, labels are used to make the choice:
-
-chooseTask_btn	:: choose ONE task by pressing a button, True for horizontal buttons, else vertical
-chooseTask_pdm	:: as chooseTask_btn, depending on pulldownmenu item selected, Int for initial value
-chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for initial value, htmlcode for option explanation 
-
-mpchoiceeTasks	:: choice N tasks out of N, order of chosen task depending on first arg
-				   (initial setting, effect for all when set, explanation) for each option
-*/
 chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] 			-> Task a	 	| iCreateAndPrint a
 chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] 			-> Task a	 	| iCreateAndPrint a
 chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
 															-> Task a		| iCreateAndPrint a
-mpchoiceTasks 	:: !([LabeledTask a] -> Task [a])
-				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
-															-> Task [a] 	| iData a
 
 :: ChoiceUpdate	:== !Bool [Bool] -> [Bool]									// changed checkbox + current settings -> new settings
 
-/* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
-orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
-andTask2		:: do both iTasks in any order (interleaved), task completed when both done
-andTasksCond	:: do tasks in any order until pred holds for finished tasks, string used for naming group of task navigation buttons
-*/
+chooseTask_cb 	:: !([LabeledTask a] -> Task [a])
+				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
+															-> Task [a] 	| iData a
+
 orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 	
 																			| iCreateAndPrint a & iCreateAndPrint b
 andTask2		:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
 andTasksCond	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 
+/* Time and Date management:
+waitForTimeTask	:: Task is done when time has come
+waitForDateTask	:: Task is done when date has come
+*/
+waitForTimeTask	:: !HtmlTime								-> Task HtmlTime
+waitForDateTask	:: !HtmlDate								-> Task HtmlDate
+
 /* Experimental department:
 
-   Will not work when the tasks are garbage collected to soon !!
+   May not work when the tasks are garbage collected !!
+
 -!>				:: a task, either finished or interrupted (by completion of the first task) is returned in the closure
 				   if interrupted, the work done so far is returned (!) which can be continued somewhere else
 channel			:: splits a task in respectively a sender task closure and receiver taskclosure; 
@@ -178,19 +186,12 @@ Raise 			:: Raises an exception of type e which will be catched by the closest p
 (<^>) infix  1  :: !(e -> a) !(Task a) 						-> Task a 					| iData a   & TC e			// assigns an exception Handler
 Raise 			:: e 										-> Task a 					| iCreate a & TC e			// rases an exception
 
-/* Time and Date management:
-waitForTimeTask	:: Task is done when time has come
-waitForDateTask	:: Task is done when date has come
-*/
-waitForTimeTask	:: !HtmlTime								-> Task HtmlTime
-waitForDateTask	:: !HtmlDate								-> Task HtmlDate
 
 // *********************************************************************************************************************************
 /* Support for user defined combinators
 mkTask			:: for making a user defined combinator, name will appear intrace 
 newTask			:: same, but optimized: after completion only result will remembered
 Once			:: task will be done only once, the value of the task will be remembered, important for side effecting functions lifted to iData domain
-
 */
 mkTask 			:: !String !(Task a) 						-> Task a 		| iCreateAndPrint a
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 
@@ -198,7 +199,6 @@ Once 			:: !String !(Task a) 						-> Task a 		| iData a
 
 // *********************************************************************************************************************************
 /* Lifting of other domains to the iTask domain
-
 (*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 
 (@>>)			:: lift functions of (TSt -> TSt) to iTask domain 
 appIData		:: lift iData editors to iTask domain
@@ -212,8 +212,8 @@ appIData 		:: (IDataFun a) 							-> Task a 		| iData a
 appIData2 		:: (String *HSt -> *(Form a,*HSt)) 			-> Task a		| iData a 
 appHStOnce 		:: !String (HSt -> (a,HSt)) 				-> Task a		| iData a
 appHSt			:: !String (HSt -> (a,HSt)) 				-> Task a		| iData a
-appWorldOnce 	:: !String (World -> *(a,*World)) 			-> (Task a)		| iData a
-appWorld 		:: !String (World -> *(a,*World)) 			-> (Task a)		| iData a
+appWorldOnce 	:: !String (World -> *(a,*World)) 			-> Task a		| iData a
+appWorld 		:: !String (World -> *(a,*World)) 			-> Task a		| iData a
 
 // *********************************************************************************************************************************
 /* Operations on Task state
