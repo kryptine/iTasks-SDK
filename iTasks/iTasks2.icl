@@ -36,16 +36,16 @@ where
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
-(@:) infix 3 :: !Int !(LabeledTask a) -> Task a | iData a
+(@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
 (@:) nuserId ltask = assignTaskTo True nuserId ltask
 
-(@::) infix 3 :: !Int !(Task a)	-> (Task a) | iData  a												
+(@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
 (@::) nuserId taska = assignTaskTo True nuserId ("Task for " <+++ nuserId,taska)
 
-(@:>) infix 3 :: !Int !(LabeledTask a) -> Task a | iData a
+(@:>) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
 (@:>) nuserId ltask = assignTaskTo False nuserId ltask
 
-(@::>) infix 3 :: !Int !(Task a) -> (Task a) | iData  a												
+(@::>) infix 3 :: !UserId !(Task a) -> (Task a) | iData  a												
 (@::>) nuserId taska = assignTaskTo False nuserId ("Task for " <+++ nuserId,taska)
 
 // ******************************************************************************************************
@@ -120,6 +120,6 @@ waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
 waitForTimerTask time  = waitForTimerTask`
 where
 	waitForTimerTask`
-	=						appHSt2 "getTimeAndDate" getTimeAndDate
+	=						appHStOnce "getTimeAndDate" getTimeAndDate
 		=>> \(ctime,_) ->  	waitForTimeTask (ctime + time)
 

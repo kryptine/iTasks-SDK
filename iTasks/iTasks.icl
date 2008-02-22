@@ -216,7 +216,7 @@ multiUserTask startUpOptions task  hst
 							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions task tst
 = mkHtmlExcep "multiUser" exception html hst
 
-workFlowTask :: ![StartUpOptions] !(Task (Int,a)) !((Int,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
+workFlowTask :: ![StartUpOptions] !(Task (UserId,a)) !((UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
 workFlowTask  startUpOptions taska iataskb hst 
 # userOptions 						= determineUserOptions startUpOptions 
 # tst								= initTst -1 userOptions.threadStorageLoc hst
@@ -225,7 +225,7 @@ workFlowTask  startUpOptions taska iataskb hst
 	# iTaskHeader					= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
 	# iTaskInfo						= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
 	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
-						]] hst
+										]] hst
 # tst								= initTst i userOptions.threadStorageLoc hst
 # (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (iataskb (i,a)) tst
 = mkHtmlExcep "workFlow" exception body hst
@@ -496,7 +496,6 @@ where
 
 startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
-
 # tst					= copyThreadTableFromClient	versioninfo tst				// synchronize thread tables of client and server, if applicable
 
 // first determine whether we should start calculating the task tree from scratch starting at the root
@@ -1174,7 +1173,7 @@ where
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
-assignTaskTo :: !Bool !Int !(LabeledTask a) -> Task a | iData a	
+assignTaskTo :: !Bool !UserId !(LabeledTask a) -> Task a | iData a	
 assignTaskTo verbose nuserId (taskname,taska) = assignTaskTo`
 where
 	assignTaskTo` tst=:{html=ohtml,activated,userId}
@@ -1400,23 +1399,16 @@ where
 										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
 										(userId -@: allhtml)
 						})
-
 	
-checkAllTasks :: !String [(String,(*TSt -> *(a,*TSt)))] (Int,Int) Bool [(String,a)] *TSt -> *([(String,a)],*TSt) | iCreateAndPrint a
-checkAllTasks traceid options (ctasknr,skipnr) bool alist tst=:{tasknr}
-| ctasknr == length options 	= (reverse alist,{tst & activated = bool})			// all tasks tested
-| ctasknr == skipnr				= checkAllTasks traceid options (inc ctasknr,skipnr) bool alist tst // skip this task such that it is not included
-# (taskname,task)				= options!!ctasknr
-# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True} // check tasks
-| adone							= checkAllTasks traceid options (inc ctasknr,skipnr) bool [(taskname,a):alist] {tst & tasknr = tasknr, activated = True}
-= checkAllTasks traceid options (inc ctasknr,skipnr) False alist {tst & tasknr = tasknr, activated = True}
+	checkAllTasks :: !String [(String,(*TSt -> *(a,*TSt)))] (Int,Int) Bool [(String,a)] *TSt -> *([(String,a)],*TSt) | iCreateAndPrint a
+	checkAllTasks traceid options (ctasknr,skipnr) bool alist tst=:{tasknr}
+	| ctasknr == length options 	= (reverse alist,{tst & activated = bool})			// all tasks tested
+	| ctasknr == skipnr				= checkAllTasks traceid options (inc ctasknr,skipnr) bool alist tst // skip this task such that it is not included
+	# (taskname,task)				= options!!ctasknr
+	# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True} // check tasks
+	| adone							= checkAllTasks traceid options (inc ctasknr,skipnr) bool [(taskname,a):alist] {tst & tasknr = tasknr, activated = True}
+	= checkAllTasks traceid options (inc ctasknr,skipnr) False alist {tst & tasknr = tasknr, activated = True}
 
-/*
-andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
-andTasks_mu taskid tasks = newTask "andTasks_mu" (domu_andTasks tasks)
-where
-	domu_andTasks list = andTasks [(taskid <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
-*/
 // ******************************************************************************************************
 // Higher order tasks ! Experimental
 
@@ -1561,15 +1553,17 @@ addHtml bodytag  tst=:{activated, html}
 
 // ******************************************************************************************************
 // lifters to iTask state
-(*>>) infix 4 :: (TSt -> (a,TSt)) (a -> Task b) -> (Task b)
-(*>>) ftst b = doit
+// Lifting HSt domain to the TSt domain, for convenience
+
+(*=>) infix 4 :: (TSt -> (a,TSt)) (a -> Task b) -> (Task b)
+(*=>) ftst b = doit
 where
 	doit tst
 	# (a,tst) = ftst tst
 	= b a tst
 
-(*@>) infix 4 :: (TSt -> TSt) (Task a) -> Task a
-(*@>) ftst b = doit
+(*#>) infix 4 :: (TSt -> TSt) (Task a) -> Task a
+(*#>) ftst b = doit
 where
 	doit tst
 	# tst = ftst tst
@@ -1594,35 +1588,36 @@ where
 	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
 															(if activated (BT idata.form) (BT idata.form +|+ ahtml)), hst = hst})
 
-appHSt2 :: !String (HSt -> (a,HSt)) -> (Task a) | iData a
-appHSt2 name fun = mkTask name doit
-where
-	doit tst=:{hst}
-	# (value,hst)		= fun hst
-	= (value,{tst & hst = hst})													// task is now completed, handle as previously
+appHStOnce :: !String (HSt -> (a,HSt)) -> (Task a) | iData a
+appHStOnce label fun = Once label (liftHst fun)
 
 appHSt :: !String (HSt -> (a,HSt)) -> (Task a) | iData a
-appHSt name fun = mkTask name doit 
-where
-	doit tst=:{tasknr,hst,userId,options}
-	# taskId			= iTaskId userId tasknr name 
-	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault )) id hst  			
-	# (done,svalue)		= store.value
-	| done				= (svalue,{tst & hst = hst, activated = True})		// if task has completed, don't do it again
-	# (fvalue,hst)		= fun hst
-	# (store,hst)  		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,fvalue)) hst 	// remember task status for next time
-	# (_,nvalue)		= store.value
-	= (nvalue,{tst & hst = hst})							// task is now completed, handle as previously
-	
-Once :: (Task a) -> (Task a) | iData a
-Once fun = mkTask "Once" doit
+appHSt label fun = mkTask label (liftHst fun)
+
+liftHst fun tst=:{hst}
+# (fvalue,hst)		= fun hst
+= (fvalue,{tst & hst = hst})	
+
+appWorldOnce :: !String (World -> *(a,*World)) -> (Task a) | iData a
+appWorldOnce label fun = Once label (liftWorld fun)
+
+appWorld :: !String (World -> *(a,*World)) -> (Task a) | iData a
+appWorld label fun = mkTask label (liftWorld fun)
+
+liftWorld fun tst
+#! theWorld = tst.hst.world.worldC
+# (fvalue,theWorld)	= fun theWorld
+= (fvalue,{tst & hst.world.worldC = theWorld})	
+
+Once :: !String !(Task a) -> (Task a) | iData a
+Once label task = mkTask label doit
 where
 	doit tst=:{activated,html,tasknr,hst,userId,options}
-	# taskId			= iTaskId userId tasknr "Once_"
+	# taskId			= iTaskId userId tasknr (label +++ "_")
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
 	# (done,value)		= store.value
 	| done 				= (value,{tst & hst = hst})													// if task has completed, don't do it again
-	# (value,tst=:{hst})= fun {tst & hst = hst}
+	# (value,tst=:{hst})= task {tst & hst = hst}
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
 	# (done,value)		= store.value
 	= (value,{tst & activated = done, hst = hst})													// task is now completed, handle as previously
@@ -1636,7 +1631,6 @@ where
 
 // Exception handling is NOT supported when running on client.
 // An abort is raised instead, in the hope that the Sapl interpreter will give up and pass the evaluation to the server.
-
 
 serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String 
 serializeExceptionHandler task = IF_ClientServer
@@ -1777,7 +1771,6 @@ internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` pro
 
 deleteSubTasksAndThreads :: !TaskNr TSt -> TSt
 deleteSubTasksAndThreads tasknr tst 
-//# tst=:{hst,userId,options}	= IF_Ajax (deleteThreads tasknr tst) tst
 # tst=:{hst,userId,options}	= deleteThreads tasknr tst
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
@@ -1793,30 +1786,6 @@ deleteAllSubTasks [] tst = tst
 deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
 # hst	= deleteIData  (iTaskId userId (tl tx) "") hst
 = deleteAllSubTasks txs {tst & hst = hst}
-
-
-// ******************************************************************************************************
-// iTask Storage Utilities
-// ******************************************************************************************************
-
-cFormId  		{tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = tasklife, storage = taskstorage, mode = taskmode} 
-
-sessionFormId  	options s d = cFormId options s d <@ if (options.tasklife == Client) Client Session
-pageFormId  	options s d = cFormId options s d <@ if (options.tasklife == Client) Client Page
-storageFormId  	options s d = cFormId options s d <@ NoForm
-
-mySimpleButton :: !Options !String !String     !(a -> a) 				!*HSt -> (Form (a -> a),!*HSt)
-mySimpleButton options id label fun hst	
-							= FuncBut (Init, (nFormId id (iTaskButton label,fun)) <@ if (options.tasklife == Client) Client Page) hst
-
-// Lifting HSt domain to the TSt domain, for convenience
-
-LiftHst fun tst=:{hst}
-# (form,hst) = fun hst
-= (form,{tst & hst = hst})
-
-isNil [] = True
-isNil _ = False
 
 // ******************************************************************************************************
 // Trace Printing...
@@ -1910,6 +1879,24 @@ where
 	= Font [Fnt_Color (`Colorname color), Fnt_Size -1] [B [] message]
 
 // ******************************************************************************************************
+// iTask Storage Utilities
+// ******************************************************************************************************
+
+cFormId  		{tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = tasklife, storage = taskstorage, mode = taskmode} 
+
+sessionFormId  	options s d = cFormId options s d <@ if (options.tasklife == Client) Client Session
+pageFormId  	options s d = cFormId options s d <@ if (options.tasklife == Client) Client Page
+storageFormId  	options s d = cFormId options s d <@ NoForm
+
+mySimpleButton :: !Options !String !String     !(a -> a) 				!*HSt -> (Form (a -> a),!*HSt)
+mySimpleButton options id label fun hst	
+							= FuncBut (Init, (nFormId id (iTaskButton label,fun)) <@ if (options.tasklife == Client) Client Page) hst
+
+LiftHst fun tst=:{hst}
+# (form,hst) = fun hst
+= (form,{tst & hst = hst})
+
+// ******************************************************************************************************
 // Html Printing Utilities...
 // ******************************************************************************************************
 
@@ -1921,5 +1908,12 @@ where
 iTaskButton :: String -> Button
 iTaskButton label 
 = LButton defpixel label
+
+// ******************************************************************************************************
+// very small util
+
+isNil [] = True
+isNil _ = False
+
 
 

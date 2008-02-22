@@ -10,13 +10,13 @@ import iTasks, iDataFormlib, StdEnv, iDataTrivial
 // Common db access
 
 readDB	:: (DBid a) -> Task a | iData a
-readDB 	name=:(idn,_) = appHSt ("readDB " +++ idn) (DB name id)
+readDB 	name=:(idn,_) = appHStOnce ("readDB " +++ idn) (DB name id)
 
 writeDB	:: (DBid a) a -> Task a | iData a
-writeDB name=:(idn,_) value = appHSt ("writeDB " +++ idn) (DB name (const value))
+writeDB name=:(idn,_) value = appHStOnce ("writeDB " +++ idn) (DB name (const value))
 
 readDB2	:: (DBid a) -> Task a | iData a
-readDB2 name=:(idn,_) = appHSt2 ("readDB2 " +++ idn) (DB name id)
+readDB2 name=:(idn,_) = appHSt ("readDB2 " +++ idn) (DB name id)
 
 DB :: (DBid a) (a -> a) *HSt -> (a,*HSt) | iData a
 DB (name,storageKind) fun hst 

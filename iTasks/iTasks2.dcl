@@ -19,10 +19,10 @@ import iTasks
 (@:>)			:: as @:, no prompting
 (@::>)			:: as @::, no prompting
 */
-(@:)   infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
-(@::)  infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
-(@:>)  infix 3 	:: !Int !(LabeledTask a)					-> Task a		| iData a
-(@::>) infix 3 	:: !Int !(Task a)		    				-> Task a		| iData a
+(@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a
+(@::)  infix 3 	:: !UserId !(Task a)		    			-> Task a		| iData a
+(@:>)  infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a
+(@::>) infix 3 	:: !UserId !(Task a)		    			-> Task a		| iData a
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid

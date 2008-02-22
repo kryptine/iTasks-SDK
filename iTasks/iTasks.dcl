@@ -20,6 +20,7 @@ derive write 	Void, TCl
 :: *TSt												// abstract task state
 :: Task a			:== St *TSt a					// an interactive task
 :: LabeledTask a	:== !(!String,!Task a)			// a Task with a label used for labeling buttons, pull down menu, and the like
+:: UserId			:== !Int						// unique id of iTask user
 
 :: HtmlCode			:== [BodyTag]					// most programmers will only write bodytags
 
@@ -56,8 +57,8 @@ workFlowTask	:: iTask start function for a real workflow, expects a login task a
 */
 singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iCreate a
 multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iCreate a
-workFlowTask	:: ![StartUpOptions] !(Task (Int,a)) 
-									 !((Int,a) -> Task b)	!*HSt -> (!Bool,Html,*HSt) 	| iCreate a 
+workFlowTask	:: ![StartUpOptions] !(Task (UserId,a)) 
+									 !((UserId,a) -> Task b)!*HSt -> (!Bool,Html,*HSt) 	| iCreate a 
 
 :: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser: default = TraceOn
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
@@ -102,7 +103,7 @@ return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 /* Assign tasks to user with indicated id:
 assignTaskTo 	:: assign task to indicated user, True for verbose reporting
 */
-assignTaskTo 	:: !Bool !Int !(LabeledTask a) 				-> Task a		| iData a	
+assignTaskTo 	:: !Bool !UserId !(LabeledTask a) 				-> Task a		| iData a	
 
 /* Handling recursion and loops:
 foreverTask		:: infinitely repeating Task
@@ -188,12 +189,12 @@ waitForDateTask	:: !HtmlDate								-> Task HtmlDate
 /* Support for user defined combinators
 mkTask			:: for making a user defined combinator, name will appear intrace 
 newTask			:: same, but optimized: after completion only result will remembered
-Once			:: task will be done only once, the value of the task will be remembered, maybe useful for some lifted iData
+Once			:: task will be done only once, the value of the task will be remembered, important for side effecting functions lifted to iData domain
 
 */
 mkTask 			:: !String !(Task a) 						-> Task a 		| iCreateAndPrint a
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 
-Once 			:: (Task a) 								-> Task a 		| iData a
+Once 			:: !String !(Task a) 						-> Task a 		| iData a
 
 // *********************************************************************************************************************************
 /* Lifting of other domains to the iTask domain
@@ -202,15 +203,17 @@ Once 			:: (Task a) 								-> Task a 		| iData a
 (@>>)			:: lift functions of (TSt -> TSt) to iTask domain 
 appIData		:: lift iData editors to iTask domain
 appIData2		:: lift iData editors to iTask domain, and pass iDataTasknumber for naming convenience
-appHSt			:: lift HSt domain to TSt domain, will be executed only once; string used for tracing
-appHSt2			:: lift HSt domain to TSt domain, will be executed on each invocation; string used for tracing
+appHStOnce		:: lift HSt domain to TSt domain, will be executed only once; string used for tracing
+appHSt			:: lift HSt domain to TSt domain, will be executed on each invocation; string used for tracing
 */
-(*>>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 			-> Task b
-(*@>) infix 4 	:: (TSt -> TSt) (Task a) 					-> Task a
-appIData 		:: (IDataFun a) 							-> Task a 			| iData a
-appIData2 		:: (String *HSt -> *(Form a,*HSt)) 			-> Task a			| iData a 
-appHSt 			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
-appHSt2			:: !String (HSt -> (a,HSt)) 				-> Task a			| iData a
+(*=>) infix 4 	:: (TSt -> (a,TSt)) (a -> Task b) 			-> Task b
+(*#>) infix 4 	:: (TSt -> TSt)     (Task a) 				-> Task a
+appIData 		:: (IDataFun a) 							-> Task a 		| iData a
+appIData2 		:: (String *HSt -> *(Form a,*HSt)) 			-> Task a		| iData a 
+appHStOnce 		:: !String (HSt -> (a,HSt)) 				-> Task a		| iData a
+appHSt			:: !String (HSt -> (a,HSt)) 				-> Task a		| iData a
+appWorldOnce 	:: !String (World -> *(a,*World)) 			-> (Task a)		| iData a
+appWorld 		:: !String (World -> *(a,*World)) 			-> (Task a)		| iData a
 
 // *********************************************************************************************************************************
 /* Operations on Task state
