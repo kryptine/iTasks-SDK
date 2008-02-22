@@ -10,8 +10,12 @@ import iTasks
 
 /* standard monadic combinators on iTasks:
 (#>>)			:: for sequencing: bind, but no argument passed
+return_D		:: return the value and show it in iData display format
+return_VF		:: return the value and show the Html code specified
 */
 (#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b		| iCreateAndPrint b
+return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
+return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
 
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
@@ -26,10 +30,13 @@ import iTasks
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid
+(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
 */
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
+(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iData a
 
 /* Choose out the tasks you want to do one forehand, labels are used to make the choice:
+button 			:: return value when button pressed
 buttonTask		:: do the iTask when button pressed
 chooseTask		:: Choose ONE iTask from list, depending on button pressed, button horizontal displayed
 chooseTaskV		:: as chooseTask, buttons vertical displayed
@@ -43,6 +50,7 @@ mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
 mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 
 */
+button 			:: !String 	!a 								-> Task a 		| iCreateAndPrint a
 buttonTask		:: !String   !(Task a)						-> Task a 		| iCreateAndPrint a
 chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
 chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a

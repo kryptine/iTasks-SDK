@@ -1046,21 +1046,7 @@ where
 return_V :: !a -> (Task a) | iCreateAndPrint a
 return_V a  = mkTask "return_V" dotask
 where
-	dotask tst = (a,{tst & activated = True}) 
-
-// monads variant which show information
-
-return_D :: !a -> (Task a) | gForm {|*|}, iCreateAndPrint a
-return_D a = mkTask "return_D" return_Display`
-where
-	return_Display` tst
-	= (a,{tst & html = tst.html +|+ BT [toHtml a ]})		// return result task
-
-return_VF :: !HtmlCode !a -> (Task a) | iCreateAndPrint a
-return_VF bodytag a = mkTask "return_VF" return_VF`
-where
-	return_VF` tst
-	= (a,{tst & html = tst.html +|+ BT bodytag})
+	dotask tst = (a,tst) 
 
 // ******************************************************************************************************
 // adding Html code for prompting and feedback
@@ -1098,15 +1084,6 @@ where
 	| not myturn			= (createDefault,tst)
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
-
-(<|) infixl 6 :: !(Task a) !(a -> (Bool, HtmlCode)) -> Task a | iCreate a
-(<|) taska pred = doTask
-where
-	doTask tst=:{html = ohtml,activated}
-	| not activated 					= (createDefault,tst)
-	# (a,tst=:{activated,html= nhtml}) 	= taska {tst & html = BT []}
-	| not activated || fst (pred a)		= (a,{tst & html = ohtml +|+ nhtml})
-	= doTask {tst & html = ohtml +|+ BT (snd (pred a))}
 
 // ******************************************************************************************************
 // newTask needed for recursive task creation
@@ -1147,17 +1124,6 @@ where
 		# (currtasknr,tst)		= LiftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
 		= foreverTask` {tst & tasknr = tasknr, options = options, html = html}										// initialize new task
 	= (val,tst)					
-
-repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
-repeatTask task pred a = dorepeatTask a
-where
-	dorepeatTask a 
-	= newTask "doReapeatTask" dorepeatTask`
-	where
-		dorepeatTask` tst
-		| pred a	= (a,tst) 
-		# (na,tst)	= task a tst	
-		= dorepeatTask na tst
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
 (<!) taska pred = mkTask "less!" doTask
@@ -1302,8 +1268,8 @@ where
 									= chosenTask {tst & activated = True, html = BT [], tasknr = [0:tasknr]}
 	= (a,{tst & activated = adone, html = html +|+ ahtml, tasknr = tasknr})
 
-chooseTask_cb :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
-chooseTask_cb taskorderfun prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
+chooseTask_cbox :: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] 	| iData a
+chooseTask_cbox taskorderfun prompt taskOptions = mkTask "mchoiceTask" (domchoiceTasks taskOptions)
 where
 	domchoiceTasks [] tst	= ([],{tst& activated = True})
 	domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list

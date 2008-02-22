@@ -19,6 +19,12 @@ derive gUpd  []
 =				taska
 	=>> \_ ->	taskb 
 
+return_VF :: !HtmlCode !a -> (Task a) | iCreateAndPrint a
+return_VF bodytag a = return_V a <<! bodytag
+
+return_D :: !a -> (Task a) | gForm {|*|}, iCreateAndPrint a
+return_D a = return_V a <<! [toHtml a ]
+
 // ******************************************************************************************************
 // repetition
 
@@ -32,6 +38,16 @@ where
 		| pred a	= (a,tst) 
 		# (na,tst)	= task a tst	
 		= dorepeatTask na tst
+
+(<|) infixl 6 :: !(Task a) !(a -> (Bool, HtmlCode)) -> Task a | iData a
+(<|) taska pred = mkTask "repeatTest" doTask
+where
+	doTask
+	=				taska
+		=>> \r -> 		case pred r of
+						(True,_) -> return_V r
+						(False,msg) -> msg ?>> doTask
+
 
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
@@ -51,6 +67,9 @@ where
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
 
+button :: !String !a -> (Task a) | iCreateAndPrint a
+button s a = mkTask "button" (chooseTask_btn [] True [(s,return_V a)])
+
 buttonTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 buttonTask s task = mkTask "buttonTask" (chooseTask_btn [] True [(s,task)])
 
@@ -62,27 +81,27 @@ chooseTaskV prompt options = mkTask "chooseTask" (chooseTask_btn prompt False op
 
 mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
-= mpchoiceTasks seqTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
+= chooseTask_cbox seqTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
 
 mchoiceTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks2 prompt taskOptions 
-= mpchoiceTasks seqTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
+= chooseTask_cbox seqTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
 mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks3 prompt taskOptions 
-= mpchoiceTasks seqTasks prompt taskOptions
+= chooseTask_cbox seqTasks prompt taskOptions
 
 mchoiceAndTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceAndTasks prompt taskOptions 
-= mpchoiceTasks andTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
+= chooseTask_cbox andTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
 
 mchoiceAndTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks2 prompt taskOptions 
-= mpchoiceTasks andTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
+= chooseTask_cbox andTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
 mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks3 prompt taskOptions 
-= mpchoiceTasks andTasks prompt taskOptions
+= chooseTask_cbox andTasks prompt taskOptions
 
 // ******************************************************************************************************
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes

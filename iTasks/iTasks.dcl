@@ -66,7 +66,6 @@ workFlowTask	:: ![StartUpOptions] !(Task (UserId,a))
 					| VersionCheck | NoVersionCheck		// for single & multiUser: default = VersionNoCheck 
 					| MyHeader HtmlCode					// wil replace standard iTask information line
 
-
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:
 
@@ -83,15 +82,12 @@ Prompting variants:
 (!>>)			:: prompt when task is activated
 (<<?)			:: as ?>>, except that prompt is displayed *after* task
 (<<!)			:: as !>>, except that prompt is displayed *after* task
-return_VF		:: return the value and show the Html code specified
-return_D		:: return the value and show it in iData display format
 
 Assign tasks to user with indicated id:
 assignTaskTo 	:: assign task to indicated user, True for verbose reporting
 
 Repetition and loops:
 foreverTask		:: infinitely repeating Task
-(<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
 (<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
 
 Sequencing Tasks:
@@ -121,13 +117,10 @@ return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 (!>>) infixr 5 	:: !HtmlCode !(Task a) 						-> Task a		| iCreate a
 (<<?) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
 (<<!) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
-return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
-return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
 
 assignTaskTo 	:: !Bool !UserId !(LabeledTask a) 				-> Task a		| iData a	
 
 foreverTask		:: !(Task a) 								-> Task a 		| iData a
-(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iCreate a
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
 
 seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
@@ -139,7 +132,7 @@ chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
 
 :: ChoiceUpdate	:== !Bool [Bool] -> [Bool]									// changed checkbox + current settings -> new settings
 
-chooseTask_cb 	:: !([LabeledTask a] -> Task [a])
+chooseTask_cbox	:: !([LabeledTask a] -> Task [a])
 				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
 															-> Task [a] 	| iData a
 
