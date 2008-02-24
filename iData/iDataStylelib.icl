@@ -2,23 +2,8 @@ implementation module iDataStylelib
 
 import iDataStyleDef, iDataSettings, StdString
 
-TableHeaderStyle :: Standard_Attr
-TableHeaderStyle	= Std_Class "TableHeader"
-
-TableRowStyle :: Standard_Attr
-TableRowStyle		= Std_Class "TableRow"
-
-CleanStyle :: Standard_Attr
-CleanStyle			= Std_Class "CleanStyle"
-
-EditBoxStyle :: Standard_Attr
-EditBoxStyle		= Std_Class "EditBox"
-
-DisplayBoxStyle :: Standard_Attr
-DisplayBoxStyle		= Std_Class "DisplayBox"
-
-CleanStyles :: [Style]
-CleanStyles 
+InternalCleanStyles :: [Style]
+InternalCleanStyles 
 	=:	[ Style "CleanStyle" 
 			[ 	BgImage (`Img_URL (ThisExe +++ "/back35.jpg"))
 			,	BgColor (`Color (`Colorname Teal))
@@ -33,9 +18,7 @@ CleanStyles
 		, Style "TableHeader"
 			[	FntFamily "Arial, Helvetica, sans-serif"
 			, 	TxtColor (`HexColor (Hexnum H_F H_E H_D H_B H_1 H_8))
-//			,	BgColor (`Color (`HexColor (Hexnum H_3 H_2 H_7 H_2 H_9 H_D)))
 			,	BgColor (`Color (`Colorname Black))
-//			,	FntWeight Fwo_Bold
 			,	FntWeight Fwo_Normal
 			,	FntSize (Fso_Length	18)
 			]

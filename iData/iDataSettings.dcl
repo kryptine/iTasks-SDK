@@ -23,11 +23,11 @@ IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerd
 //IF_DataFile df no_df 	:== df			// If DataFile option is used
 IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
 
-IF_Ajax aj no_aj		:== aj			// If you want to enable sub-page (thread) handling using "Ajax" technology
-//IF_Ajax aj no_aj		:== no_aj		// Otherwise
+//IF_Ajax aj no_aj		:== aj			// If you want to enable sub-page (thread) handling using "Ajax" technology
+IF_Ajax aj no_aj		:== no_aj		// Otherwise
 
-IF_ClientServer cs no_cs	:== cs		// If you want to have a client server architecture (with Sapl running on the client)
-//IF_ClientServer cs no_cs	:== no_cs		// Otherwise
+//IF_ClientServer cs no_cs	:== cs		// If you want to have a client server architecture (with Sapl running on the client)
+IF_ClientServer cs no_cs	:== no_cs		// Otherwise
 
 //IF_Client cl no_cl		:== cl			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well//
 IF_Client cl no_cl		:== no_cl		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
@@ -81,7 +81,6 @@ ServerKind				:==	Internal	// Enable this one for developing an iData or iTask a
 //ServerKind				:==	External	// or: Enable this one for the final version using an http 1.1 server
 
 SocketNr				:== 80			// Socket you wnat to work on, default = 80
-
 
 // Global Settings determining where files are stored
 

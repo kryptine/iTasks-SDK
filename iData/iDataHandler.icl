@@ -78,20 +78,6 @@ StartAjax userpage world
 where
 	defaultpage  _ world =  ([], initAjaxPage,world)
 
-initAjaxPage = 	"<html>" +++
-				"<head>" +++
-					"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ThisExe +++ "/clean.css\" />" +++		// clean styles now code in sepparate style sheet
-					"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
-				 "</head>" +++
-         		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
-         		 	"<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
-         		 	"<div id=\"theState\" class=\"thread\"></div>" +++ 
-         		 	"<div id=\"iTaskInfo\" class=\"thread\"></div>" +++ 
-         		 	"<div id=\"debug\" class=\"thread\"></div>" +++ 
-            	 	IF_ClientServer "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
-           		 "</body>" +++
-          	"</html>"
-
 doHtmlClient :: !*World  !UserPage  !String -> String
 doHtmlClient world userpage args  
 # (toServer,inout,world)	= doHtmlPage (Just (makeArguments args)) userpage [|] world
@@ -176,9 +162,25 @@ where
 	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
 	
 	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
-	extra_style				= Hd_Style [] CleanStyles	
+	extra_style				= if StyleSheetIntern internal_css external_ccs	
 	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
 
+	internal_css			= Hd_Style [] InternalCleanStyles
+	external_ccs			= Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]
+	
+initAjaxPage = 	"<html>" +++
+				"<head>" +++
+					"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ExternalCleanStyles +++ "\" />" +++	// clean styles now code in sepparate style sheet
+					"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
+				 "</head>" +++
+         		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
+         		 	"<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
+         		 	"<div id=\"theState\" class=\"thread\"></div>" +++ 
+         		 	"<div id=\"iTaskInfo\" class=\"thread\"></div>" +++ 
+         		 	"<div id=\"debug\" class=\"thread\"></div>" +++ 
+            	 	IF_ClientServer "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
+           		 "</body>" +++
+          	"</html>"
 
 mkHSt :: *FormStates *NWorld -> *HSt
 mkHSt states nworld = {cntr=0, states=states, world=nworld, submits = False }
