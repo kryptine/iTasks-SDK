@@ -6,13 +6,13 @@ definition module iTasksSettings
 
 import StdOverloaded
 import iDataHtmlDef 		
+import iDataStylelib
 
-CTxt  color message :== Font [Fnt_Color (`Colorname color)] [B []   (toString message)]
-BCTxt color message :== Font [Fnt_Color (`Colorname color)] [Big [] (toString message)]
+showText   		text :== Txt text
+showLabel  		text :== TxtStyle  LabelStyle 		text
+showMainLabel	text :== TxtStyle  MainLabelStyle   text
+showHighLight	text :== TxtStyle  HighLightStyle   text
+showLowLight	text :== TxtStyle  LowLightStyle	text
+showTrace  		text :== TxtStyle  TraceStyle 		text
 
-showText   		text :== Txt          text
-showLabel  		text :== CTxt  Yellow text
-showMainLabel	text :== CTxt  Red    text
-showHighLight	text :== BCTxt Aqua   text
-showLowLight	text :== CTxt  Aqua   text
-showTrace  		text :== CTxt  Silver text
+TxtStyle style message :== Font [`Fnt_Std [style]] [Txt (toString message)]

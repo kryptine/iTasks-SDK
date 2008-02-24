@@ -38,6 +38,25 @@ InternalCleanStyles
 			, 	TxtColor (`Colorname White)
 			,	BgColor (`Color (`HexColor (Hexnum H_3 H_2 H_7 H_2 H_9 H_D)))
 			]
+		, Style "Label"
+			[	TxtColor (`Colorname Yellow)
+			,	FntWeight Fwo_Bold
+			]
+		, Style "MainLabel"
+			[	TxtColor (`Colorname Red)
+			,	FntWeight Fwo_Bold
+			]
+		, Style "HighLight"
+			[	TxtColor (`Colorname Aqua)
+			,	FntWeight Fwo_Bold
+			]
+		, Style "LowLight"
+			[	TxtColor (`Colorname Aqua)
+			]
+		, Style "Trace"
+			[	TxtColor (`Colorname Silver)
+			,	FntWeight Fwo_Bold
+			]
 		, Style "SectionTitle"
 			[	FntFamily "Arial, Helvetica, sans-serif"
 			, 	TxtColor (`HexColor (Hexnum H_F H_E H_D H_B H_1 H_8))
