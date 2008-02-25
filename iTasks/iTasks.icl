@@ -1564,16 +1564,22 @@ liftHst fun tst=:{hst}
 # (fvalue,hst)		= fun hst
 = (fvalue,{tst & hst = hst})	
 
-appWorldOnce :: !String (World -> *(a,*World)) -> (Task a) | iData a
+appWorldOnce :: !String (*World -> *(a,*World)) -> (Task a) | iData a
 appWorldOnce label fun = Once label (liftWorld fun)
 
-appWorld :: !String (World -> *(a,*World)) -> (Task a) | iData a
+appWorld :: !String (*World -> *(a,*World)) -> (Task a) | iData a
 appWorld label fun = mkTask label (liftWorld fun)
 
-liftWorld fun tst
+liftWorld :: (*World -> *(a,*World)) *TSt -> *(a,*TSt)
+liftWorld fun tst=: {hst = hst=:{world = world=:{worldC}}}
+# (fvalue,theWorld)	= fun worldC
+= (fvalue,{tst & hst = {hst & world = {world & worldC = theWorld}}})	
+
+/*
 #! theWorld = tst.hst.world.worldC
 # (fvalue,theWorld)	= fun theWorld
 = (fvalue,{tst & hst.world.worldC = theWorld})	
+*/
 
 Once :: !String !(Task a) -> (Task a) | iData a
 Once label task = mkTask label doit

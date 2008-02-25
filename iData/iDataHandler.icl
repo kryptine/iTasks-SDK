@@ -20,11 +20,11 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submit form
-				  , states	:: !*FormStates  // all form states are collected here ... 	
-				  , world	:: *NWorld		// to enable all other kinds of I/O
+				  , states	:: !*FormStates  	// all form states are collected here ... 	
+				  , world	:: *NWorld			// to enable all other kinds of I/O
 				  }	
-:: InputId	 	:== Int						// unique id for every constructor and basic value appearing in the state
-:: FormUpdate	:== (InputId,UpdValue)		// info obtained when form is updated
+:: InputId	 	:== Int							// unique id for every constructor and basic value appearing in the state
+:: FormUpdate	:== (InputId,UpdValue)			// info obtained when form is updated
 
 :: Inline 		= Inline String
 

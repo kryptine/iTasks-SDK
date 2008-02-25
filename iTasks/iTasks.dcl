@@ -205,8 +205,8 @@ appIData 		:: (IDataFun a) 							-> Task a 		| iData a
 appIData2 		:: (String *HSt -> *(Form a,*HSt)) 			-> Task a		| iData a 
 appHStOnce 		:: !String (HSt -> (a,HSt)) 				-> Task a		| iData a
 appHSt			:: !String (HSt -> (a,HSt)) 				-> Task a		| iData a
-appWorldOnce 	:: !String (World -> *(a,*World)) 			-> Task a		| iData a
-appWorld 		:: !String (World -> *(a,*World)) 			-> Task a		| iData a
+appWorldOnce 	:: !String (*World -> *(a,*World)) 			-> Task a		| iData a
+appWorld 		:: !String (*World -> *(a,*World)) 			-> Task a		| iData a
 
 // *********************************************************************************************************************************
 /* Operations on Task state
