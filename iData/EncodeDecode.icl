@@ -18,10 +18,10 @@ derive gPrint UpdValue, (,,), (,)
 
 // script for transmitting name and value of changed input 
 
-callClean :: !Bool !Mode !String !Lifespan -> [ElementEvents]
-callClean  onClick Edit		_    lsp =  [(onSomething onClick) (SScript ("toclean(this," <+++ isOnClient lsp <+++ "," <+++ (doSubmit onClick) <+++ ")"))]
-callClean  onClick Submit 	myid lsp =  [(onSomething onClick) (SScript ("toclean2(" <+++ myid <+++ "," <+++ isOnClient lsp <+++ ",true)"))]
-callClean  onClick _ 		_	 _ =  []
+callClean :: !(Script -> ElementEvents) !Mode !String !Lifespan !Bool -> [ElementEvents]
+callClean  onSomething Edit		_    lsp submit =  [onSomething (SScript ("toclean(this," <+++ isOnClient lsp <+++ "," <+++ (doSubmit submit) <+++ ")"))]
+callClean  onSomething Submit 	myid lsp submit =  [onSomething (SScript ("toclean2(" <+++ myid <+++ "," <+++ isOnClient lsp <+++ ",true)"))]
+callClean  onSomething _ 		_	 _  _		=  []
 
 onSomething True	= OnClick
 onSomething False	= OnChange
@@ -75,11 +75,12 @@ submitscript
     [ Script [] (SScript
 		(	" function toclean(inp,onclient,submit) {" +++
 			"   document." +++ globalFormName +++ "." +++ updateInpName +++ ".value=inp.name+\"=\"+inp.value; " +++
-			"   document." +++ globalFormName +++ "." +++ focusInpName +++ ".value=this.name;\n;" +++
+			"   document." +++ globalFormName +++ "." +++ focusInpName +++ ".value=inp.name;\n;" +++
 			"   if(submit) {" +++
 			"     document." +++ globalFormName +++ ".submit();" +++
+			"   } else {" +++
+			"   	cleanUpdated = true;" +++
 			"   }" +++
-			"   cleanUpdated = true;" +++
 			" }"			
 		))
 	,	Script [] (SScript
