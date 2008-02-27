@@ -100,7 +100,7 @@ TraceInput				:== False									// show what kind of information is received fro
 TraceOutput				:== False									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
 
-TraceHttp10				:== False									// show what kind of information is received by the Clean http 1.0 HtmlServer
+TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
 TraceHttp11				:== False									// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
 
 // separators

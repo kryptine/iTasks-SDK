@@ -18,24 +18,72 @@ derive gPrint UpdValue, (,,), (,)
 
 // script for transmitting name and value of changed input 
 
-callClean :: !(Script -> ElementEvents) !Mode !String !Lifespan -> [ElementEvents]
-callClean  onSomething Edit		_    lsp =  [onSomething (SScript ("toclean(this," <+++ isOnClient lsp <+++ ")"))]
-callClean  onSomething Submit 	myid lsp =  [onSomething (SScript ("toclean2(" <+++ myid <+++ "," <+++ isOnClient lsp <+++ ")"))]
-callClean  onSomething _ 		_	 _ =  []
+callClean :: !Bool !Mode !String !Lifespan -> [ElementEvents]
+callClean  onClick Edit		_    lsp =  [(onSomething onClick) (SScript ("toclean(this," <+++ isOnClient lsp <+++ "," <+++ (doSubmit onClick) <+++ ")"))]
+callClean  onClick Submit 	myid lsp =  [(onSomething onClick) (SScript ("toclean2(" <+++ myid <+++ "," <+++ isOnClient lsp <+++ ",true)"))]
+callClean  onClick _ 		_	 _ =  []
+
+onSomething True	= OnClick
+onSomething False	= OnChange
 
 isOnClient Client 	= "true"
 isOnClient _ 		= "false"
+
+doSubmit True 		= "true"
+doSubmit False		= "false"
+
+
+// Initializes a page with javascript after it has been loaded
+// It is currently just used to set the focus back to the place it was before a submit was done
+initscript :: BodyTag
+initscript
+=	BodyTag
+	[ Script [] (SScript
+		(	"var cleanUpdated = false; " +++
+			"function cleanInit() { " +++
+			"  resetFocus();" +++
+			"  attachFocusHandler(\"input\"); " +++
+			"  attachFocusHandler(\"select\"); " +++
+			"  attachFocusHandler(\"textarea\"); " +++
+			"} " +++
+			
+			"function sendToClean() {" +++
+			"  if(cleanUpdated) {" +++
+			"     document." +++ globalFormName +++ "." +++ focusInpName +++ ".value=this.name;" +++
+			"  	  document." +++ globalFormName +++ ".submit();" +++
+			"  }" +++
+			"} " +++
+			
+			"function resetFocus() {" +++
+			"  if(document.getElementById('" +++ focusInpName +++ "').value != '') {" +++
+			"     var inp = document.getElementById(document.getElementById('"+++ focusInpName +++ "').value); " +++
+			"     if (inp != undefined) { inp.focus(); } " +++
+			"  }" +++
+			"} " +++
+			
+			"function attachFocusHandler(tagname) {" +++
+			"  elems = document.getElementsByTagName(tagname);" +++
+			"  for(var i = 0; i < elems.length; i++) {" +++
+			"    elems[i].onfocus = sendToClean;" +++
+			"  }" +++
+			"}"
+		))]
 
 submitscript :: BodyTag
 submitscript 
 =	BodyTag 
     [ Script [] (SScript
-		(	" function toclean(inp,onclient)" +++
-			" { document." +++ globalFormName +++ "." +++	updateInpName +++ ".value=inp.name+\"=\"+inp.value;" +++
-			   "document." +++ globalFormName +++ ".submit(); }"
+		(	" function toclean(inp,onclient,submit) {" +++
+			"   document." +++ globalFormName +++ "." +++ updateInpName +++ ".value=inp.name+\"=\"+inp.value; " +++
+			"   document." +++ globalFormName +++ "." +++ focusInpName +++ ".value=this.name;\n;" +++
+			"   if(submit) {" +++
+			"     document." +++ globalFormName +++ ".submit();" +++
+			"   }" +++
+			"   cleanUpdated = true;" +++
+			" }"			
 		))
 	,	Script [] (SScript
-		(	" function toclean2(form,onclient)" +++
+		(	" function toclean2(form,onclient,submit)" +++
 			" { "  +++
 				"form.hidden.value=" +++ "document." +++ globalFormName +++ "." +++ globalInpName +++ ".value;" +++
 				"form.submit();" +++
@@ -46,8 +94,8 @@ submitscript
 
 // form that contains global state and empty input form for storing updated input
 	
-globalstateform :: !Value -> BodyTag
-globalstateform  globalstate
+globalstateform :: !Value !Value -> BodyTag
+globalstateform  globalstate focus
 =	Form 	[ Frm_Name globalFormName 
 			, Frm_Method Post
 			, Frm_Enctype "multipart/form-data"			// what to do to enable large data ??
@@ -58,6 +106,11 @@ globalstateform  globalstate
 			, Input [ Inp_Name globalInpName
 					, Inp_Type Inp_Hidden
 					, Inp_Value globalstate
+					] ""
+			, Input [ Inp_Name focusInpName
+					, Inp_Type Inp_Hidden
+					, Inp_Value focus
+					, `Inp_Std [Std_Id focusInpName]
 					] ""
 			]		 
 
@@ -134,28 +187,28 @@ where
 
 // reconstruct HtmlState out of the information obtained from browser
 
-DecodeHtmlStatesAndUpdate ::  (Maybe [(String, String)]) -> (![HtmlState],!Triplets)
+DecodeHtmlStatesAndUpdate ::  (Maybe [(String, String)]) -> (![HtmlState],!Triplets, !String)
 DecodeHtmlStatesAndUpdate args
-# (_,triplets,state)				= DecodeArguments args
-= ([states \\states=:(id,_,_,nstate) <- DecodeHtmlStates state | id <> "" || nstate <> ""],triplets) // to be sure that no rubbish is passed on
+# (_,triplets,state,focus)			= DecodeArguments args
+= ([states \\states=:(id,_,_,nstate) <- DecodeHtmlStates state | id <> "" || nstate <> ""],triplets, focus) // to be sure that no rubbish is passed on
 
 // Parse and decode low level information obtained from server 
 // In case of using a php script and external server:
 
-DecodeArguments ::  (Maybe [(String, String)]) -> (!String,!Triplets,!String)
+DecodeArguments ::  (Maybe [(String, String)]) -> (!String,!Triplets,!String, !String)
 DecodeArguments (Just args)	
 # nargs = length args
-| nargs == 0 		= ("clean",[],"")
+| nargs == 0 		= ("clean",[],"","")
 | nargs == 1		= DecodeCleanServerArguments (foldl (+++) "" [name +++ "=" +++ value +++ ";" \\ (name,value) <- args])
-
+//TODO: Get focus from form when CleanServer is not used
 # tripargs 			= reverse args													// state hidden in last field, rest are triplets
 # (state,tripargs)	= (urlDecode (snd (hd tripargs)),tl tripargs)					// decode state, get triplets highest positions first	
 
 
 # alltriplets		= ordertriplets [(triplet,string) \\ (mbtriplet,string) <-  map decodeNameValue tripargs, Just triplet <- [parseString mbtriplet]] []
-= ("clean",determineChanged alltriplets ,state)										// order is important, first the structure than the values ...
+= ("clean",determineChanged alltriplets ,state,"")										// order is important, first the structure than the values ...
 where
-	DecodeCleanServerArguments :: !String -> (!String,!Triplets,!String)			// executable, id + update , new , state
+	DecodeCleanServerArguments :: !String -> (!String,!Triplets,!String, !String)	// executable, id + update , new , state, focus
 	DecodeCleanServerArguments args
 	# input 							= [c \\ c <-: args | not (isControl c) ]	// get rid of communication noise
 	# (thisexe,input) 					= mscan '\"'          input					// get rid of garbage
@@ -166,13 +219,18 @@ where
 	# (_,input)							= mscan '='           input
 	# input								= skipping ['\"GS\"'] input
 	# (found,index) 					= FindSubstr ['---']  input
-	# state								= if found (take index input) ['']
+	# (state, input)					= splitAt index       input
+	# state								= if found (take index state) ['']
+	# (_,input)							= mscan '='           input
+	# input								= skipping ['\"FS\"'] input
+	# (found,index) 					= FindSubstr ['--']   input
+	# focus								= if found (take index input) ['']
 	# striplet	= toString triplet
 	= if (striplet == "")
-			("clean", [], toString state)
+			("clean", [], toString state, toString focus)
 			(if (isSelector striplet) 
-					("clean", [(fromJust` (decodeChars new) 	(parseString (decodeChars new)), "")], toString state)
-					("clean", [(fromJust` (decodeChars triplet) (parseString (decodeChars triplet)) , toString new)], toString state))
+					("clean", [(fromJust` (decodeChars new) 	(parseString (decodeChars new)), "")], toString state, toString focus)
+					("clean", [(fromJust` (decodeChars triplet) (parseString (decodeChars triplet)) , toString new)], toString state, toString focus))
 
 	fromJust` _ (Just value) = value
 	fromJust` string Nothing = ("",0,UpdI 0)
@@ -224,7 +282,7 @@ traceHtmlInput args=:(Just input)
 			]
 where
 
-	(htmlState,triplets)	= DecodeHtmlStatesAndUpdate args
+	(htmlState,triplets,focus)	= DecodeHtmlStatesAndUpdate args
 
 	showTriplet triplets	= [STable [] [[Txt (printToString triplet)] \\ triplet <- triplets]]
 	showl life				= toString life

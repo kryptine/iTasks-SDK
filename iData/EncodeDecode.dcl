@@ -32,14 +32,15 @@ urlDecode 			:: !String -> *String
 
 // Form submission handling
 
-callClean 					:: !(Script -> ElementEvents) !Mode !String !Lifespan -> [ElementEvents]
+callClean 					:: !Bool !Mode !String !Lifespan -> [ElementEvents]
 submitscript 				::  BodyTag
-globalstateform 			:: !Value -> BodyTag
+initscript					::	BodyTag
+globalstateform 			:: !Value !Value -> BodyTag
 
 // serializing, de-serializing of iData states to strings stored in the html page
 
 EncodeHtmlStates 			:: ![HtmlState] -> String
-DecodeHtmlStatesAndUpdate 	:: (Maybe [(String, String)]) -> (![HtmlState],!Triplets) // hidden state stored in Client + triplets
+DecodeHtmlStatesAndUpdate 	:: (Maybe [(String, String)]) -> (![HtmlState],!Triplets,!String) // hidden state stored in Client + triplets
 
 // serializing, de-serializing of iData state stored in files
 
@@ -57,3 +58,4 @@ globalFormName	:== "CleanForm"		// name of hidden Html form in which iData state
 updateInpName	:== "UD"			// marks update information
 globalInpName	:== "GS"			// marks global state information
 selectorInpName	:== "CS_"			// marks constructor update
+focusInpName	:== "FS"			// marks the focus of the cursor at the time the form was sent

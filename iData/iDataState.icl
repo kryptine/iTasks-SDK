@@ -26,6 +26,7 @@ import EstherBackend
 				{ fstates 	:: *FStates							// internal tree of states
 				, triplets	:: [(Triplet,String)]				// indicates what has changed: which form, which postion, which value
 				, updateid	:: String							// which form has changed
+				, focusid	:: String							// which input has the focus
 				}		
 
 :: FStates		:== Tree_ (String,FormState)					// each form needs a different string id
@@ -79,7 +80,7 @@ where
 	(<) _ _ = True
 
 emptyFormStates :: *FormStates
-emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = ""}
+emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = "", focusid = ""}
 
 getTriplets :: !String !*FormStates -> (Triplets,!*FormStates)
 getTriplets id formstates=:{triplets} = ([mytrips \\ mytrips=:((tripid,_,_),_) <- triplets | id == tripid] ,formstates)
@@ -304,7 +305,7 @@ where
 
 retrieveFormStates :: (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 					// retrieves all form states hidden in the html page
 retrieveFormStates args world 
-	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets},world)
+	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets, focusid = focus},world)
 where
 	retrieveFStates 
 		= Balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
@@ -315,7 +316,7 @@ where
 		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
 		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
 
-	(htmlStates,triplets)	= DecodeHtmlStatesAndUpdate args
+	(htmlStates,triplets,focus)	= DecodeHtmlStatesAndUpdate args
 	
 	calc_updateid [] 	= ""		
 	calc_updateid [(triplet,upd):_]	= case triplet of
@@ -327,11 +328,12 @@ where
 // or store them in a persistent file, all depending on the kind of states
 
 storeFormStates :: !FormStates *NWorld -> (BodyTag,*NWorld)
-storeFormStates {fstates = allFormStates} world
+storeFormStates {fstates = allFormStates, focusid = focus} world
 #	world							= writeAllTxtFileStates allFormStates world			// first write all persistens states
 =	(BodyTag
-	[ IF_Ajax EmptyBody submitscript													// submitscript defined in ajaxscript    
-	, globalstateform (SV encodedglobalstate) 
+	[ IF_Ajax EmptyBody submitscript													// submitscript defined in ajaxscript   
+	, initscript																		// initscript does page initialization in javascript
+	, globalstateform (SV encodedglobalstate) (SV focus) 
 	],world)
 where
 	encodedglobalstate				= EncodeHtmlStates (FStateToHtmlState allFormStates [])
@@ -467,11 +469,11 @@ derive gMap Tree_
 
 initTestFormStates :: *NWorld -> (*FormStates,*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
-	= ({ fstates = Leaf_, triplets = [], updateid = ""},world)
+	= ({ fstates = Leaf_, triplets = [], updateid = "", focusid = ""},world)
 
 setTestFormStates :: [(Triplet,String)] String String *FormStates *NWorld -> (*FormStates,*NWorld)			// retrieves all form states hidden in the html page
 setTestFormStates triplets updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid},world)
+	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid, focusid = ""},world)
 where
 	toOldState (s,NewState fstate)	= (s,OldState fstate)
 	toOldState else					= else

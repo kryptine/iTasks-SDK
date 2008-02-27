@@ -161,7 +161,10 @@ where
 	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
 	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
 	
-	extra_body_attr			= [Batt_background (ThisExe +++ "/back35.jpg"),`Batt_Std [CleanStyle]]
+	extra_body_attr			= [	Batt_background (ThisExe +++ "/back35.jpg")
+							,	`Batt_Std [CleanStyle]
+							,	`Batt_Events [OnLoad (SScript "cleanInit()")]
+							]
 	extra_style				= if StyleSheetIntern internal_css external_ccs	
 	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
 
@@ -379,7 +382,7 @@ mkForm (init,formid=:{mode = Submit}) hst=:{submits = False}
 						] ""
 # submit		= Input [ Inp_Type Inp_Button
 						, Inp_Value (SV "Submit")
-						,`Inp_Events (callClean OnClick Submit formname formid.lifespan)
+						,`Inp_Events (callClean True Submit formname formid.lifespan)
 						] ""
 # clear			= Input [ Inp_Type Inp_Reset, Inp_Value (SV "Clear")] ""
 # sform			= [Form [ Frm_Method Post
@@ -490,7 +493,7 @@ where
 		where
 			styles			= case formid.mode of
 								Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle]
-										   , `Sel_Events (if submits [] (callClean OnChange Edit formid.id formid.lifespan))
+										   , `Sel_Events (if submits [] (callClean False Edit formid.id formid.lifespan))
 										   ]
 								Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle]
 										   ]
@@ -640,8 +643,8 @@ mkInput size (init,formid=:{mode}) val updval hst=:{cntr,submits}
 				, Inp_Value		val
 				, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
 				, Inp_Size		size
-				, `Inp_Std		[EditBoxStyle, Std_Title (showType val)]
-				, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange formid.mode "" formid.lifespan) []
+				, `Inp_Std		[EditBoxStyle, Std_Title (showType val), Std_Id (encodeTriplet (formid.id,cntr,updval))]
+				, `Inp_Events	if (mode == Edit && not submits) (callClean False formid.mode "" formid.lifespan) []
 				] ""
 	  , setCntr (cntr+1) hst)
 | mode == Display

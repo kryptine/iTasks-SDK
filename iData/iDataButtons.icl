@@ -141,8 +141,8 @@ gForm{|Button|} (init,formid) hst
 							[ Inp_Type		Inp_Button
 							, Inp_Value		(SV (cleanString bname))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS bname))
-							, `Inp_Std		[Std_Style ("width:" <+++ size)]
-							, `Inp_Events	(callClean OnClick Edit "" formid.lifespan)
+							, `Inp_Std		[Std_Style ("width:" <+++ size), Std_Id (encodeTriplet (formid.id,cntr,UpdS bname))]
+							, `Inp_Events	(callClean True Edit "" formid.lifespan)
 							]) ""]
 		},(incrHSt 1 hst))
 	v=:(PButton (height,width) ref)
@@ -152,8 +152,8 @@ gForm{|Button|} (init,formid) hst
 							[ Inp_Type		Inp_Image
 							, Inp_Value		(SV (cleanString ref))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS ref))
-							, `Inp_Std		[Std_Style ("width:" <+++ width <+++ " height:" <+++ height)]
-							, `Inp_Events	(callClean OnClick Edit "" formid.lifespan)
+							, `Inp_Std		[Std_Style ("width:" <+++ width <+++ " height:" <+++ height), Std_Id (encodeTriplet (formid.id,cntr,UpdS ref))]
+							, `Inp_Events	(callClean True Edit "" formid.lifespan)
 							, Inp_Src ref
 							]) ""]
 		},incrHSt 1 hst)
@@ -171,7 +171,8 @@ gForm{|CheckBox|} (init,formid) hst
 							, Inp_Value		(SV (cleanString name))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
 							, Inp_Checked	Checked
-							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan)
+							, `Inp_Std		[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
+							, `Inp_Events	(callClean True formid.mode "" formid.lifespan)
 							]) ""]
 		},incrHSt 1 hst)
 	v=:(CBNotChecked name)
@@ -181,7 +182,8 @@ gForm{|CheckBox|} (init,formid) hst
 							[ Inp_Type		Inp_Checkbox
 							, Inp_Value		(SV (cleanString name))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
-							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan)
+							, `Inp_Std		[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
+							, `Inp_Events	(callClean True formid.mode "" formid.lifespan)
 							]) ""]
 		},incrHSt 1 hst)
 
@@ -196,7 +198,8 @@ gForm{|RadioButton|} (init,formid) hst
 							, Inp_Value			(SV (cleanString name))
 							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
 							, Inp_Checked		Checked
-							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan)
+							, `Inp_Std			[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
+							, `Inp_Events		(callClean True formid.mode "" formid.lifespan)
 							]) ""]
 		},incrHSt 1 hst)
 	v=:(RBNotChecked name)
@@ -206,7 +209,8 @@ gForm{|RadioButton|} (init,formid) hst
 							[ Inp_Type			Inp_Radio
 							, Inp_Value			(SV (cleanString name))
 							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
-							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan)
+							, `Inp_Std			[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
+							, `Inp_Events		(callClean True formid.mode "" formid.lifespan)
 							]) ""]
 		},incrHSt 1 hst)
 
@@ -220,8 +224,8 @@ gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 							[ Sel_Name			(selectorInpName +++ encodeString 
 													(if (menuindex >= 0 && menuindex < length itemlist) (itemlist!!menuindex) ""))
 							, Sel_Size			size
-							, `Sel_Std			[Std_Style ("width:" <+++ width <+++ "px")]
-							, `Sel_Events		(if submits [] (callClean OnChange formid.mode formid.id formid.lifespan))
+							, `Sel_Std			[Std_Style ("width:" <+++ width <+++ "px"), Std_Id (selectorInpName +++ encodeString (if (menuindex >= 0 && menuindex < length itemlist) (itemlist!!menuindex) ""))]
+							, `Sel_Events		(if submits [] (callClean False formid.mode formid.id formid.lifespan))
 							])
 							[ Option 
 								[ Opt_Value (encodeTriplet (formid.id,cntr,UpdC (itemlist!!j)))
@@ -249,6 +253,7 @@ gForm{|TextArea|} (init,formid) hst
 	, form				= [myTable [	[ Textarea 	[ Txa_Name (encodeTriplet (formid.id,cntr,UpdS string))
 						  				, Txa_Rows (if (row == 0) 10 row)
 						  				, Txa_Cols (if (col == 0) 50 col)
+						  				, `Txa_Std	[Std_Id (encodeTriplet (formid.id,cntr,UpdS string))]
 						  				] string ]
 						  			]
 						  ]
@@ -283,8 +288,8 @@ where
 					, Inp_Value		(SV (cleanString sval))
 					, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
 					, Inp_Size		size
-					, `Inp_Std		[EditBoxStyle, Std_Title "::Password"]
-					, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange Edit "" formid.lifespan) []
+					, `Inp_Std		[EditBoxStyle, Std_Title "::Password", Std_Id (encodeTriplet (formid.id,cntr,updval))]
+					, `Inp_Events	if (mode == Edit && not submits) (callClean False Edit "" formid.lifespan) []
 					] ""
 			,incrHSt 1 hst)
 	| mode == Display
