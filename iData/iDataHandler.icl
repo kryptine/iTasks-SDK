@@ -508,6 +508,11 @@ where
 			width			= "width:" <+++ defpixel <+++ "px"
 gForm{|FIELD of d |} gHx (init,formid) hst 
 # (nx,hst)					= gHx (init,reuseFormId formid x) hst
+| d.gfd_name.[(size d.gfd_name) - 1] == '_' 										 // don't display field names which end with an underscore
+							= ({ changed	= False
+							   , value		= formid.ival
+							   , form		= []
+							   },hst)
 = ({ changed				= nx.changed
    , value					= FIELD nx.value
    , form					= [STable [Tbl_CellPadding (Pixels 1), Tbl_CellSpacing (Pixels 1)] [[fieldname,BodyTag nx.form]]]
