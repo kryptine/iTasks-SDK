@@ -1,0 +1,32 @@
+definition module HttpUtil
+
+import Http
+
+//General utility functions
+http_urlencode :: !String -> String
+http_urldecode :: !String -> String
+
+http_splitMultiPart :: !String !String -> [([HTTPHeader], String)]
+
+//Parsing of HTTP Request messages
+http_parseRequestLine :: !String -> (!String, !String, !String, !String, !Bool)
+http_parseHeader :: !String -> (!HTTPHeader, !Bool)
+
+http_parseArguments :: !HTTPRequest -> HTTPRequest
+http_parseGetArguments :: !HTTPRequest -> [HTTPArgument]
+http_parsePostArguments :: !HTTPRequest -> [HTTPArgument]
+http_parseUrlEncodedArguments :: !String -> [HTTPArgument]
+http_parseMultiPartPostArguments :: !HTTPRequest -> ([HTTPArgument],[HTTPUpload]) 
+
+//Construction of HTTP Response messages
+http_encodeResponse :: !HTTPResponse !Bool !*World -> (!String,!*World)
+
+//Error responses
+http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+
+//Static content
+http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+http_staticFileContent :: !String !*World -> (!Bool, !String, !*World)
+http_staticFileMimeType :: !String !*World -> (!String, !*World)
+
