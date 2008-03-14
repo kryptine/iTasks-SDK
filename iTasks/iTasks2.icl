@@ -149,10 +149,10 @@ where
 	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= return_V (Just (r1,r2))
 	combineResult	_									= return_V Nothing
 
-	noNothing []			= False
+	noNothing []					= False
 	noNothing [LEFT  Nothing:xs]	= True
 	noNothing [RIGHT Nothing:xs]	= True
-	noNothing [x:xs]		= noNothing xs	
+	noNothing [x:xs]				= noNothing xs	
 
 
 multiAndTask :: !(LabeledTask a)  -> Task Void | iData a

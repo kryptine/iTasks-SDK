@@ -3,9 +3,9 @@ definition module iTasks2
 // (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006-2008 - MJP
 
 // *********************************************************************************************************************************
-// a collection of handy iTasks combinators defined in terms of primitive iTask combinators
+// a collection of handy iTasks combinators defined in terms of the basic iTask combinators defined in module iTasks
 
-// with Thanks to Erik Zuurbier for suggesting:  (=?>), (-?&-), multiAndTask
+// with Thanks to Erik Zuurbier for suggesting:  (=>>?), (-&&-?), multiAndTask
 // *********************************************************************************************************************************
 
 import iTasks				 
