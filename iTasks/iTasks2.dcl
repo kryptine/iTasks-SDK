@@ -4,6 +4,8 @@ definition module iTasks2
 
 // *********************************************************************************************************************************
 // a collection of handy iTasks combinators defined in terms of primitive iTask combinators
+
+// with Thanks to Erik Zuurbier for suggesting:  (=?>), (-?&-), multiAndTask
 // *********************************************************************************************************************************
 
 import iTasks				 
@@ -13,9 +15,9 @@ import iTasks
 return_D		:: return the value and show it in iData display format
 return_VF		:: return the value and show the Html code specified
 */
-(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b		| iCreateAndPrint b
-return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
-return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
+(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b			| iCreateAndPrint b
+return_D		:: !a 										-> Task a			| gForm {|*|}, iCreateAndPrint a
+return_VF 		:: !HtmlCode !a 		  					-> Task a			| iCreateAndPrint a
 
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
@@ -78,6 +80,14 @@ orTasks 		:: ![LabeledTask a] 						-> (Task a) 	| iData a
 andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a
 multiAndTask 	:: !(LabeledTask a)  						-> Task Void 	| iData a
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
+
+/* convenient combinators for tasks that maybe return a result:
+(=>>?)			:: as bind, but do the second task only if the first one delivers a result 
+(-&&-?)			:: do both tasks in any order, task completed when all done, or one of them delivers nothing
+*/
+(=>>?) infixl 1 :: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) 	| iCreateAndPrint a & iCreateAndPrint b
+(-&&-?)infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) | iData a & iData b
+
 
 /* Time and Date management:
 waitForTimerTask:: Task is done when specified amount of time has passed 

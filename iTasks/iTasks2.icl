@@ -8,8 +8,12 @@ import StdEnv
 import iTasks
 import iDataTrivial
 
-derive gForm []
-derive gUpd  []
+derive gForm 	[]
+derive gUpd  	[]
+derive gUpd 	Maybe
+derive gForm 	Maybe
+derive gPrint 	Maybe
+derive gParse 	Maybe
 
 // ******************************************************************************************************
 // monads for combining iTasks
@@ -19,6 +23,12 @@ derive gUpd  []
 =				taska
 	=>> \_ ->	taskb 
 
+(=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iCreateAndPrint a & iCreateAndPrint b
+(=>>?) t1 t2 
+= 				t1 
+	=>> \r1 -> 	case r1 of 
+					Nothing 	-> return_V Nothing
+					Just r`1 	-> t2 r`1
 return_VF :: !HtmlCode !a -> (Task a) | iCreateAndPrint a
 return_VF bodytag a = return_V a <<! bodytag
 
@@ -126,6 +136,24 @@ orTasks taskCollection	= newTask "orTasks" (andTasksCond "or Tasks" (\list -> le
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
 andTasks taskCollection = newTask "andTasks" (andTasksCond "and Tasks" (\_ -> False) taskCollection)
+
+
+(-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
+(-&&-?) t1 t2 
+= 		andTasksCond "Maybe Task" noNothing [("Maybe 1",left),("Maybe 2",right)]
+  =>>	combineResult
+where
+	left 	= t1 =>> \tres -> return_V (LEFT tres) 
+	right	= t2 =>> \tres -> return_V (RIGHT tres) 
+
+	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= return_V (Just (r1,r2))
+	combineResult	_									= return_V Nothing
+
+	noNothing []			= False
+	noNothing [LEFT  Nothing:xs]	= True
+	noNothing [RIGHT Nothing:xs]	= True
+	noNothing [x:xs]		= noNothing xs	
+
 
 multiAndTask :: !(LabeledTask a)  -> Task Void | iData a
 multiAndTask (label,task)  
