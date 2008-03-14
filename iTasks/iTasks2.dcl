@@ -69,12 +69,14 @@ mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)]
 (-&&-)			:: do both iTasks in any order (interleaved), task completed when both done
 orTasks			:: do all  iTasks in any order (interleaved), task completed as soon as any subtask is done
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
+multiAndTask	:: start a new instance of the task on demand and do them in any order, task never completes /* not optimized yet */
 andTasks_mu		:: assign task to indicated users, task completed when all done
 */
 (-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iData a
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iData a & iData b
 orTasks 		:: ![LabeledTask a] 						-> (Task a) 	| iData a
 andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a
+multiAndTask 	:: !(LabeledTask a)  						-> Task Void 	| iData a
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
 
 /* Time and Date management:

@@ -118,7 +118,7 @@ return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 (<<?) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
 (<<!) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
 
-assignTaskTo 	:: !Bool !UserId !(LabeledTask a) 				-> Task a		| iData a	
+assignTaskTo 	:: !Bool !UserId !(LabeledTask a) 			-> Task a		| iData a	
 
 foreverTask		:: !(Task a) 								-> Task a 		| iData a
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
