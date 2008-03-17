@@ -148,6 +148,16 @@ where
 		= s % (start, end) 
 
 //Construction of HTTP Response messages
+http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
+http_makeResponse request [] fallback world 										//None of the request handlers matched
+	= if fallback
+		(http_staticResponse request world)											//Use the static response handler
+		(http_notfoundResponse request world)										//Raise an error
+http_makeResponse request [(pred,handler):rest] fallback world
+	| (pred request.req_path)		= handler request world							//Apply handler function
+									= http_makeResponse request rest fallback world	//Search the rest of the list
+
+
 http_encodeResponse :: !HTTPResponse !Bool !*World -> (!String, !*World)
 http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //When used directly the 'Status' header should be converted to 
 	# (date,world)	= getCurrentDate world

@@ -70,7 +70,7 @@ loop options handlers listener rchannels schannels requests world
 			| method_done && headers_done && data_done
 				#  request			= if (getParseOption options) (http_parseArguments request) request
 				// Create a response
-				# (response,world)	= makeResponse options request handlers world
+				# (response,world)	= http_makeResponse request handlers (getStaticOption options)world
 				// Encode the response to the HTTP protocol format
 				# (reply, world) = http_encodeResponse response True world
 				// Send the encoded response to the client
@@ -124,15 +124,6 @@ addRequestData req requestline_done headers_done data_done data
 											= (req,True,True,True,False)	//We have all data and are done
 	//Data is added while we were already done
 	= (req,True,True,True,False) 
-	
-// Calls the request handler for a request and returns the generated response
-makeResponse :: [HTTPServerOption] HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] *World -> (HTTPResponse, *World)
-makeResponse options request [] world //None of the request handlers matched
-	= if (getStaticOption options)
-		(http_staticResponse request world) (http_notfoundResponse request world)
-makeResponse options request [(pred,handler):rest] world
-	| (pred request.req_path)		= handler request world						//Apply virtual page function
-									= makeResponse options request rest world	//Search the rest of the list
 
 
 getPortOption :: [HTTPServerOption] -> Int

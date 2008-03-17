@@ -1,10 +1,12 @@
 module example
-import Http, HttpServer, HttpCGI, HttpUtil
+import Http, HttpServer, HttpCGI, HttpUtil, HttpSubServer
 import StdString, StdList, StdArray, StdInt
-//serverFunction = http_startServer
-//serverOptions = [HTTPServerOptPort 80, HTTPServerOptStaticFallback True, HTTPServerOptParseArguments True]
-serverFunction = http_startCGI
-serverOptions = [HTTPCGIOptParseArguments True]
+serverFunction = http_startServer
+serverOptions = [HTTPServerOptPort 80, HTTPServerOptStaticFallback True, HTTPServerOptParseArguments True]
+//serverFunction = http_startCGI
+//serverOptions = [HTTPCGIOptParseArguments True]
+//serverFunction = http_startSubServer
+//serverOptions = [HTTPSubServerOptPort 80, HTTPSubServerOptStaticFallback True, HTTPSubServerOptParseArguments True]
 Start :: *World -> *World
 Start world = serverFunction serverOptions	[ ((==) "/debug",debug)
 											, ((==) "/upload", upload)

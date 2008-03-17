@@ -32,7 +32,7 @@ http_startCGI options handlers world
 													client_name = getClientName}
 	
 	# request				= if (getParseOption options) (http_parseArguments request) request
-	# (response,world)		= makeResponse options request handlers world
+	# (response,world)		= http_makeResponse request handlers (getStaticOption options) world
 	# (response,world)		= http_encodeResponse response False world
 	# (ok,console)			= freopen console FWriteData
 	# console				= fwrites response console
@@ -66,15 +66,6 @@ makeHeaders [(name,envname):xs]
 	# value		= getEnvironmentVariable envname
 	= case value of	EnvironmentVariableUndefined	= makeHeaders xs
 					(EnvironmentVariable v)			= [(name,v): makeHeaders xs]
-
-// Calls the request handler for a request and returns the generated response
-makeResponse :: [HTTPCGIOption] HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] *World -> (HTTPResponse, *World)
-makeResponse options request [] world //None of the request handlers matched
-	= if (getStaticOption options)
-		(http_staticResponse request world) (http_notfoundResponse request world)
-makeResponse options request [(pred,handler):rest] world
-	| (pred request.req_path)		= handler request world						//Apply handler function
-									= makeResponse options request rest world	//Search the rest of the list
 
 getStaticOption :: [HTTPCGIOption] -> Bool
 getStaticOption [] = False
