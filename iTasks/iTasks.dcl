@@ -3,10 +3,10 @@ definition module iTasks
 // iTasks library for defining interactive multi-user workflow tasks (iTask) for the web.
 // Defined on top of the iData library.
 
-// (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007 - MJP
+// (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006,2007,2008 - MJP
 // This library is still under construction - MJP
 
-iTaskVersion :== "0.97 - Februari 2008 - "
+iTaskVersion :== "0.99 - April 2008 - "
 
 import iDataSettings, iDataButtons, StdBimap
 derive gForm 	Void, TCl						
@@ -55,15 +55,16 @@ multiUserTask 	:: iTask start function for multi-users, with option in window to
 workFlowTask	:: iTask start function for a real workflow, expects a login task and the actual task
 				   a predefined login task is defined in iTaskLogin.dcl				
 */
-singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iCreate a
-multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iCreate a
+singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iData a
+multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iData a
 workFlowTask	:: ![StartUpOptions] !(Task (UserId,a)) 
-									 !((UserId,a) -> Task b)!*HSt -> (!Bool,Html,*HSt) 	| iCreate a 
+									 !((UserId,a) -> Task b)!*HSt -> (!Bool,Html,*HSt) 	| iData b 
 
 :: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser: default = TraceOn
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
 					| ShowUsers Int						// for multiUserTask, toggle between given maximum number of users, default: ShowUser 5 
 					| VersionCheck | NoVersionCheck		// for single & multiUser: default = VersionNoCheck 
+					| TestModeOn | TestModeOff			// emties storages when starting from scratch: On for single and multi-user tasks
 					| MyHeader HtmlCode					// wil replace standard iTask information line
 
 // *********************************************************************************************************************************
@@ -217,4 +218,16 @@ addHtml			:: add html code
 taskId			:: TSt 				-> (Int,TSt)
 userId 			:: TSt 				-> (Int,TSt)
 addHtml 		:: HtmlCode TSt 	-> TSt
+
+// *********************************************************************************************************************************
+:: Wid a			:== Int			// id of workflow process
+
+spawnWorkflow 		:: (LabeledTask a) -> Task (Wid a) | iData a
+waitForResult 		:: (Wid a) -> Task a | iData a
+//activateWorkflows 	:: !*TSt -> (Void,*TSt)
+
+
+
+
+
 

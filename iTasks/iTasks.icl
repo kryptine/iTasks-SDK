@@ -74,6 +74,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, showUsersOn		:: !Maybe Int	
 					, versionCheckOn	:: !Bool
 					, headerOff			:: !Maybe HtmlCode
+					, testModeOn		:: !Bool
 					}
 
 // Initial values
@@ -108,10 +109,11 @@ initStaticInfo thisUser location
 defaultStartUpOptions :: UserStartUpOptions
 defaultStartUpOptions
 = 	{ traceOn			= True		
-	, threadStorageLoc	= IF_ClientServer Session TxtFile		// KLOPT DIT WEL ????		
+	, threadStorageLoc	= TxtFile				// KLOPT DIT WEL ????		
 	, showUsersOn		= Just 5	
 	, versionCheckOn	= False
 	, headerOff			= Nothing
+	, testModeOn		= True
 	}
 
 // ******************************************************************************************************
@@ -189,21 +191,23 @@ where
 	determineUserOptions` [VersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = True}
 	determineUserOptions` [NoVersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
 	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
+	determineUserOptions` [TestModeOn:xs] 			options = determineUserOptions` xs {options & testModeOn = True}
+	determineUserOptions` [TestModeOff:xs] 			options = determineUserOptions` xs {options & testModeOn = False}
 
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 // ******************************************************************************************************
 
-singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
+singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
 singleUserTask startUpOptions task hst 
 # userOptions			= determineUserOptions startUpOptions
 # tst					= initTst 0 userOptions.threadStorageLoc hst
 # (exception,html,hst)	= startTstTask 0 False (False,[]) userOptions task tst
 = mkHtmlExcep "singleUser" exception html hst
 
-multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
+multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
 multiUserTask startUpOptions task  hst 
-# userOptions 			= determineUserOptions [VersionCheck, ThreadStorage TxtFile:startUpOptions] 
+# userOptions 			= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
 # nusers				= case userOptions.showUsersOn of
 							Nothing -> 0
 							Just n	-> n
@@ -216,7 +220,7 @@ multiUserTask startUpOptions task  hst
 							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions task tst
 = mkHtmlExcep "multiUser" exception html hst
 
-workFlowTask :: ![StartUpOptions] !(Task (UserId,a)) !((UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iCreate a 
+workFlowTask :: ![StartUpOptions] !(Task (UserId,a)) !((UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iData b 
 workFlowTask  startUpOptions taska iataskb hst 
 # userOptions 						= determineUserOptions startUpOptions 
 # tst								= initTst -1 userOptions.threadStorageLoc hst
@@ -242,10 +246,12 @@ where
 // Main routine for the creation of the workflow page
 // ******************************************************************************************************
 
-startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) //| iCreate a 
-startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff} taska tst=:{hst,tasknr,staticInfo}
+startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) | iData a 
+startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
 
 // prologue
+
+# maintask				= wrap maintask													// force main process to start on tasknr 0.1
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
@@ -273,9 +279,9 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 
 // Here the iTask starts...
 													    
-# ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace})	
+# ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
 						= (IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
-							taska {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+							maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
 
@@ -285,9 +291,9 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
 # (threadtrace,tst=:{hst})	
-//						= IF_Ajax (if TraceThreads showThreadTable nilTable {tst & hst = hst}) ([],{tst & hst = hst})
 						= if TraceThreads showThreadTable nilTable {tst & hst = hst} 
 # threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
+# (processadmin,hst)	= showWorkflows activated hst
 # (threadcode,selbuts,selname,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
 
@@ -307,7 +313,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 										[Br,Hr []]
 									)
 								Just userInfo -> userInfo
-# iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ threadtrace ++ [printTrace2 trace ]
+# iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [printTrace2 trace ]
 | showCompletePage		=	(toServer,[Ajax [("thePage",	iTaskHeader ++
 															iTaskInfo  ++
 															if (doTrace && traceOn)
@@ -326,6 +332,17 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 									]
 							,hst)
 where
+	wrap maintask = activateWorkflows (newTask "main" maintask)				
+
+//	wrap maintask tst
+//	# (a,tst) =	newTask "main" maintask tst
+//	= (a, activateWorkflows	tst)				
+	where
+		clearIStore hst=:{world}								/* would be nice but don't know how to clear this */
+		# world = if testModeOn deleteAllStateFiles id world
+		= (Void,{hst & world = world})
+
+
 	nilTable tst = 	([],tst)
 
 	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
@@ -396,9 +413,9 @@ where
 	showThreadTable :: *TSt -> (HtmlCode,*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 	showThreadTable tst=:{staticInfo}
 	# thisUser		= staticInfo.currentUserId
-	# (tableS,tst)	= ThreadTableStorage id tst																// read thread table from server
+	# (tableS,tst)	= ThreadTableStorage id tst													// read thread table from server
 	# (tableC,tst)	= IF_ClientServer
-						(\tst -> ClientThreadTableStorage id tst)											// read thread table from client
+						(\tst -> ClientThreadTableStorage id tst)								// read thread table from client
 						(\tst -> ([],tst)) tst
 	# bodyS			= 	if (isNil tableS)
 						[]
@@ -474,52 +491,52 @@ where
 
 
 startFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-startFromRoot versioninfo eventnr tasknrs message taska tst
+startFromRoot versioninfo eventnr tasknrs message maintask tst
 =	IF_ClientServer																// we are running client server
 		(IF_ClientTasks
 			(stopClient eventnr tasknrs message)								// client cannot evaluate from root of task tree, give it up
-			(evaluateFromRoot versioninfo eventnr tasknrs message taska) tst	// sever can evaluate from scratch
+			(evaluateFromRoot versioninfo eventnr tasknrs message maintask) tst	// sever can evaluate from scratch
 		)
-	(evaluateFromRoot versioninfo eventnr tasknrs message taska tst)						// ajax can evaluate from scratch as well
+	(evaluateFromRoot versioninfo eventnr tasknrs message maintask tst)			// ajax can evaluate from scratch as well
 where
 	stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
 	stopClient eventnr tasknrs message tst
 	= ((True,defaultUser,eventnr,message,tasknrs), tst)
 	
 	evaluateFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-	evaluateFromRoot versioninfo eventnr tasknrs message taska tst
+	evaluateFromRoot versioninfo eventnr tasknrs message maintask tst
 	# tst					= deleteAllSubTasks versioninfo.deletedThreads tst	// delete subtasks being obsolute
-	# (_,tst) 				= taska tst											// evaluate main application from scratch
+	# (_,tst) 				= maintask tst										// evaluate main application from scratch
 	# tst=:{activated}		= copyThreadTableToClient tst						// copy thread table to client, if applicable
 	# message				= if activated "iTask application finished" message
 	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
 
 startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
-startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,userId}
+startAjaxApplication thisUser versioninfo maintask tst=:{tasknr,options,html,trace,userId}
 # tst					= copyThreadTableFromClient	versioninfo tst				// synchronize thread tables of client and server, if applicable
 
 // first determine whether we should start calculating the task tree from scratch starting at the root
 
 # (mbevent,tst)			= getTripletTaskNrs tst									// see if there are any events, i.e. triplets received
 | isNothing mbevent																// no events
-						= startFromRoot versioninfo tasknr [tasknr] "No events, page refreshed" taska tst			
+						= startFromRoot versioninfo tasknr [tasknr] "No events, page refreshed" maintask tst			
 # event					= fromJust mbevent										// event found
 # (table,tst)			= ThreadTableStorage id tst								// read thread table
 | isNil table																	// events, but no threads, evaluate main application from scratch
-						= startFromRoot versioninfo event [tasknr] "No threads, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "No threads, page refreshed" maintask tst			
 # (mbthread,tst)		= findParentThread event tst							// look for thread to evaluate
 | isNil mbthread																// no thread can be found, happens e.g. when one switches from tasks
-						= startFromRoot versioninfo event [tasknr] "No matching thread, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "No matching thread, page refreshed" maintask tst			
 # thread 				= hd mbthread											// thread found
 | isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
 	= ((True,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
 | versioninfo.newThread															// newthread added by someone
-						= startFromRoot versioninfo event [tasknr] "New tasks added, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "New tasks added, page refreshed" maintask tst			
 | not (isNil versioninfo.deletedThreads) 										// some thread has been deleted										
-						= startFromRoot versioninfo event [tasknr] "Tasks deleted, page refreshed" taska tst			
+						= startFromRoot versioninfo event [tasknr] "Tasks deleted, page refreshed" maintask tst			
 | thread.thrUserId <> thisUser													// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ ", page refreshed") taska tst			
+						= startFromRoot versioninfo event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ ", page refreshed") maintask tst			
 
 // ok, we have found a matching thread
 
@@ -529,21 +546,125 @@ startAjaxApplication thisUser versioninfo taska tst=:{tasknr,options,html,trace,
 	= ((False,thisUser,event,"",[thread.thrTaskNr]),tst)						// no further evaluation, aks user for more input
 
 # (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst			// look for thread to evaluate
-= doParent mbthread taska event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
+= doParent mbthread maintask event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
 where
-	doParent [] taska event accu tst											// no more parents of current event, do main task
-						= startFromRoot versioninfo event [tasknr:accu] "No more threads, page refreshed" taska {tst & html = BT []}			
+	doParent [] maintask event accu tst											// no more parents of current event, do main task
+						= startFromRoot versioninfo event [tasknr:accu] "No more threads, page refreshed" maintask {tst & html = BT []}			
 
-	doParent [parent:next] taska event accu tst									// do parent of current thread
+	doParent [parent:next] maintask event accu tst								// do parent of current thread
 	| parent.thrUserId <> thisUser												// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") taska {tst & html = BT []}			
+						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask {tst & html = BT []}			
 
 	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}		// start parent
 	| not activated																// parent thread not yet finished
 		# tst				= copyThreadTableToClient tst						// copy thread table to client
 		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
 	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst		// look for thread to evaluate
-	= doParent mbthread taska event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
+	= doParent mbthread maintask event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
+
+// ******************************************************************************************************
+// Workflow process management
+// ******************************************************************************************************
+
+workflowProcessStoreName :== "Application" +++  "-ProcessTable"
+
+derive gForm	WorflowProcess
+derive gUpd		WorflowProcess
+derive gPrint	WorflowProcess
+derive gParse	WorflowProcess
+
+gPrint{|Dynamic|} dyn pst 	= gPrint{|*|} (dynamic_to_string dyn) pst
+gParse{|Dynamic|} expr 		= case parseString expr of
+								(Just string) 	= Just (string_to_dynamic {s` \\ s` <-: string})
+								Nothing			= Nothing
+where
+	parseString :: Expr -> Maybe String
+	parseString expr = gParse{|*|} expr
+	
+gForm{|Dynamic|} (init, formid) hst = ({changed=False,form=[],value=formid.ival},(incrHSt 1 hst))
+gUpd{|Dynamic|} (UpdSearch _ 0) a 	= (UpdDone,a)
+gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
+gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
+gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
+
+:: Wid a			:== Int			// id of workflow process
+
+:: WorflowProcess 	= ActiveWorkflow 	!String !(TCl Dynamic)
+					| FinishedWorkflow 	!String !Dynamic !(TCl Dynamic)
+					| DeletedWorkflow	!String
+
+waitForResult :: (Wid a) -> Task a | iData a
+waitForResult processid = newTask "waitForResult" waitForResult`
+where
+	waitForResult` tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# (done,val)		= case (wfls!!(processid - 1)) of						// update process administration
+								(FinishedWorkflow _ (val::a^) _) -> (True,val)	// finished
+								_ -> (False,createDefault)						// not yet
+	= (val,{tst & hst = hst, activated = done})									// return value and release when done
+
+workflowProcessStore ::  !([WorflowProcess] -> [WorflowProcess]) !*HSt -> (![WorflowProcess],!*HSt) 
+workflowProcessStore wfs hst	
+# (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName [] <@ NoForm) wfs hst
+= (form.value,hst)
+
+spawnWorkflow :: (LabeledTask a) -> Task (Wid a) | iData a
+spawnWorkflow (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
+where
+	spawnWorkflow` options tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# processid			= length wfls + 1										// process id currently given by length list, used as offset in list
+	# wfl				= mkdyntask options processid task 						// convert user task in a dynamic task
+	# nwfls				= wfls ++ [ActiveWorkflow label wfl]					// turn task into a dynamic task
+	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// write workflow process administration
+	= (processid,{tst & hst = hst, activated = True})
+
+	mkdyntask options processid task = TCl (\tst -> convertTask processid label task {tst & tasknr = [processid - 1],activated = True,options = options})
+	
+	convertTask processid label task tst
+	# (a,tst=:{hst,activated})		= newTask label task tst					// execute task
+	# dyn							= dynamic a
+	| not activated					= (dyn,tst)									// not finished, return
+	# (wfls,hst) 					= workflowProcessStore id hst				// read workflow process administration
+	# wfls							= case (wfls!!(processid - 1)) of			// update process administration
+											(ActiveWorkflow _ entry) -> updateAt (processid - 1) (FinishedWorkflow label dyn entry) wfls
+											_ -> wfls
+	# (wfls,hst) 					= workflowProcessStore (\_ -> wfls) hst		// write workflow process administration
+	= (dyn,{tst & hst = hst})												
+
+activateWorkflows :: (Task a) -> (Task a) | iData a
+activateWorkflows maintask = activateWorkflows`
+where
+	activateWorkflows` tst 
+	# (a,tst=:{activated,hst}) 	= maintask tst									// start maintask
+	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
+	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = activated}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
+	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
+	where
+		activateAll done [] _ tst = (done,tst)
+		activateAll done [ActiveWorkflow label (TCl dyntask):wfls] procid tst
+		# (_,tst=:{activated}) = dyntask tst
+		= activateAll (done && activated) wfls (inc procid) {tst & activated = activated}
+		activateAll done [FinishedWorkflow label dyn (TCl dyntask):wfls] procid tst
+		# (_,tst) = dyntask tst
+		= activateAll done wfls (inc procid) tst
+
+showWorkflows :: !Bool !*HSt -> (![BodyTag],*HSt)
+showWorkflows alldone hst
+# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+= (mkTable wfls,hst)
+where
+	mkTable []		= []
+	mkTable wfls	=	[showLabel ("Workflow Process Table:"),
+						STable []	(   [ [showTrace "Id:", showTrace "Name:", showTrace "Status:"]
+										, [Txt "0" , Txt "main", if alldone (Txt "Finished") (Txt "Active")] 
+										: [[Txt (toString i)] ++ showStatus wfl \\ wfl <- wfls & i <- [1..]]
+										]
+									),
+						Hr []
+						]
+	showStatus (ActiveWorkflow 	 label dyntask)		= [Txt label, Txt "Active"]
+	showStatus (FinishedWorkflow label dyn dyntask)	= [Txt label, Txt "Finished"]
 
 
 // ******************************************************************************************************
@@ -1417,7 +1538,7 @@ closureTask name task = mkTask ("closure " +++ name) mkClosure
 where
 	mkClosure tst=:{tasknr,options,userId}
 	# ((TCl sa,ra),tst) 	= doSplit name task tst
-	# (_,tst)     				= sa tst
+	# (_,tst)     			= sa {tst & activated = True}
 	= (ra, {tst & activated = True})
 
 closureLzTask  :: String (Task a) -> (Task (TCl a)) | iCreateAndPrint a
@@ -1425,7 +1546,7 @@ closureLzTask name task = mkTask ("closure " +++ name) mkClosure
 where
 	mkClosure tst=:{tasknr,options,userId}
 	# ((TCl sa,ra),tst) 	= doSplit name task tst
-	# (_,tst)     				= sa tst
+	# (_,tst)     			= sa tst
 	= (ra, {tst & activated = True})
 
 	doSplit name task tst=:{tasknr,options,userId}

@@ -85,8 +85,8 @@ andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
 (=>>?)			:: as bind, but do the second task only if the first one delivers a result 
 (-&&-?)			:: do both tasks in any order, task completed when all done, or one of them delivers nothing
 */
-(=>>?) infixl 1 :: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) 	| iCreateAndPrint a & iCreateAndPrint b
-(-&&-?)infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) | iData a & iData b
+(=>>?) infixl 1 :: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) 		| iCreateAndPrint a & iCreateAndPrint b
+(-&&-?)infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iData a & iData b
 
 
 /* Time and Date management:

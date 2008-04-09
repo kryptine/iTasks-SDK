@@ -137,7 +137,6 @@ orTasks taskCollection	= newTask "orTasks" (andTasksCond "or Tasks" (\list -> le
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
 andTasks taskCollection = newTask "andTasks" (andTasksCond "and Tasks" (\_ -> False) taskCollection)
 
-
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 
 = 		andTasksCond "Maybe Task" noNothing [("Maybe 1",left),("Maybe 2",right)]
@@ -153,7 +152,6 @@ where
 	noNothing [LEFT  Nothing:xs]	= True
 	noNothing [RIGHT Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
-
 
 multiAndTask :: !(LabeledTask a)  -> Task Void | iData a
 multiAndTask (label,task)  
