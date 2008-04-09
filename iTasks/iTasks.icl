@@ -587,28 +587,44 @@ gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
 gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
 
-:: Wid a			:== Int			// id of workflow process
+:: Wid a			:== !(!String,!Int)			// id of workflow process
 
 :: WorflowProcess 	= ActiveWorkflow 	!String !(TCl Dynamic)
+					| SuspendedWorkflow !String !(TCl Dynamic)
 					| FinishedWorkflow 	!String !Dynamic !(TCl Dynamic)
 					| DeletedWorkflow	!String
-
-waitForResult :: (Wid a) -> Task a | iData a
-waitForResult processid = newTask "waitForResult" waitForResult`
-where
-	waitForResult` tst=:{hst}
-	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
-	# (done,val)		= case (wfls!!(processid - 1)) of						// update process administration
-								(FinishedWorkflow _ (val::a^) _) -> (True,val)	// finished
-								_ -> (False,createDefault)						// not yet
-	= (val,{tst & hst = hst, activated = done})									// return value and release when done
 
 workflowProcessStore ::  !([WorflowProcess] -> [WorflowProcess]) !*HSt -> (![WorflowProcess],!*HSt) 
 workflowProcessStore wfs hst	
 # (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName [] <@ NoForm) wfs hst
 = (form.value,hst)
 
-spawnWorkflow :: (LabeledTask a) -> Task (Wid a) | iData a
+activateWorkflows :: !(Task a) -> (Task a) | iData a
+activateWorkflows maintask = activateWorkflows`
+where
+	activateWorkflows` tst 
+	# (a,tst=:{activated,hst}) 	= maintask tst									// start maintask
+	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
+	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = activated}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
+	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
+	where
+		activateAll done [] _ tst = (done,tst)
+		
+		activateAll done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
+		# (_,tst=:{activated}) = dyntask tst
+		= activateAll (done && activated) wfls (inc procid) {tst & activated = activated}
+		
+		activateAll done [SuspendedWorkflow _ _:wfls] procid tst
+		= activateAll done wfls (inc procid) tst
+		
+		activateAll done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
+		# (_,tst) = dyntask tst
+		= activateAll done wfls (inc procid) tst
+		
+		activateAll done [DeletedWorkflow _:wfls] procid tst
+		= activateAll done wfls (inc procid) tst
+
+spawnWorkflow :: !(LabeledTask a) -> Task (Wid a) | iData a
 spawnWorkflow (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
 where
 	spawnWorkflow` options tst=:{hst}
@@ -617,7 +633,7 @@ where
 	# wfl				= mkdyntask options processid task 						// convert user task in a dynamic task
 	# nwfls				= wfls ++ [ActiveWorkflow label wfl]					// turn task into a dynamic task
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// write workflow process administration
-	= (processid,{tst & hst = hst, activated = True})
+	= ((label,processid),{tst & hst = hst, activated = True})
 
 	mkdyntask options processid task = TCl (\tst -> convertTask processid label task {tst & tasknr = [processid - 1],activated = True,options = options})
 	
@@ -632,26 +648,56 @@ where
 	# (wfls,hst) 					= workflowProcessStore (\_ -> wfls) hst		// write workflow process administration
 	= (dyn,{tst & hst = hst})												
 
-activateWorkflows :: (Task a) -> (Task a) | iData a
-activateWorkflows maintask = activateWorkflows`
+waitForWorkflow :: !(Wid a) -> Task a | iData a
+waitForWorkflow (label,processid) = newTask ("waiting for " +++ label) waitForResult`
 where
-	activateWorkflows` tst 
-	# (a,tst=:{activated,hst}) 	= maintask tst									// start maintask
-	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
-	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = activated}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
-	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
-	where
-		activateAll done [] _ tst = (done,tst)
-		activateAll done [ActiveWorkflow label (TCl dyntask):wfls] procid tst
-		# (_,tst=:{activated}) = dyntask tst
-		= activateAll (done && activated) wfls (inc procid) {tst & activated = activated}
-		activateAll done [FinishedWorkflow label dyn (TCl dyntask):wfls] procid tst
-		# (_,tst) = dyntask tst
-		= activateAll done wfls (inc procid) tst
+	waitForResult` tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# (done,val)		= case (wfls!!(processid - 1)) of						// update process administration
+								(FinishedWorkflow _ (val::a^) _) -> (True,val)	// finished
+								_ -> (False,createDefault)						// not yet
+	= (val,{tst & hst = hst, activated = done})									// return value and release when done
+
+deleteWorkflow :: !(Wid a) -> Task Bool | iData a
+deleteWorkflow (label,processid) = newTask ("delete " +++ label) deleteWorkflow`
+where
+	deleteWorkflow` tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# nwfls				= updateAt (processid - 1) (DeletedWorkflow label) wfls	// delete entry in table
+	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
+	= (True,{tst & hst = hst, activated = True})								// if everything is fine it should always succeed
+
+suspendWorkflow :: !(Wid a) -> Task Bool | iData a
+suspendWorkflow (label,processid) = newTask ("suspend " +++ label) deleteWorkflow`
+where
+	deleteWorkflow` tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# (ok,nochange,wfl)	= case (wfls!!(processid - 1)) of
+							(ActiveWorkflow label entry) -> (True,False,SuspendedWorkflow label entry)
+							(DeletedWorkflow label) -> (False,True,DeletedWorkflow label) // a deleted workflow cannot be suspendend
+							wfl -> (True,True,wfl)								// in case of finsihed or already suspended flows
+	| nochange			= (ok,{tst & hst = hst, activated = True})				// no change needed
+	# nwfls				= updateAt (processid - 1) wfl wfls						// update entry
+	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
+	= (ok,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
+
+activateWorkflow :: !(Wid a) -> Task Bool | iData a
+activateWorkflow (label,processid) = newTask ("activate " +++ label) deleteWorkflow`
+where
+	deleteWorkflow` tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# (ok,nochange,wfl)	= case (wfls!!(processid - 1)) of
+							(SuspendedWorkflow label entry) -> (True,False,ActiveWorkflow label entry)
+							(DeletedWorkflow label) -> (False,True,DeletedWorkflow label) // a deleted workflow cannot be suspendend
+							wfl -> (True,True,wfl)								// in case of finsihed or already activated flows
+	| nochange			= (ok,{tst & hst = hst, activated = True})				// no change needed
+	# nwfls				= updateAt (processid - 1) wfl wfls						// update entry
+	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
+	= (ok,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
 
 showWorkflows :: !Bool !*HSt -> (![BodyTag],*HSt)
 showWorkflows alldone hst
-# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+# (wfls,hst) 		= workflowProcessStore id hst								// read workflow process administration
 = (mkTable wfls,hst)
 where
 	mkTable []		= []
@@ -663,9 +709,10 @@ where
 									),
 						Hr []
 						]
-	showStatus (ActiveWorkflow 	 label dyntask)		= [Txt label, Txt "Active"]
-	showStatus (FinishedWorkflow label dyn dyntask)	= [Txt label, Txt "Finished"]
-
+	showStatus (ActiveWorkflow 	 	label dyntask)		= [Txt label, Txt "Active"]
+	showStatus (SuspendedWorkflow 	label dyntask)		= [Txt label, Txt "Suspended"]
+	showStatus (FinishedWorkflow 	label dyn dyntask)	= [Txt label, Txt "Finished"]
+	showStatus (DeletedWorkflow  	label)				= [Txt label, Txt "Deleted"]
 
 // ******************************************************************************************************
 // Thread Creation and Deletion

@@ -17,10 +17,22 @@ derive gerda 	Void
 derive read 	Void, TCl
 derive write 	Void, TCl
 
-:: *TSt												// abstract task state
-:: Task a			:== St *TSt a					// an interactive task
+// iTask types
+
+:: Task a			:== *TSt -> *(a,*TSt)			// an iTask is state stransition 
 :: LabeledTask a	:== !(!String,!Task a)			// a Task with a label used for labeling buttons, pull down menu, and the like
-:: UserId			:== !Int						// unique id of iTask user
+:: *TSt												// TSt is abstract task state
+:: UserId			:== !Int						// a user id of an iTask user must be a unique integer value
+
+// iTask workflow processes types
+
+:: Wid a											// reference to a workflow process
+:: WorkflowStatus	= WflActive						// iTask workflow process is still being processed
+					| WflSuspended					// it is (temporally) suspended
+					| WflFinished					// it is finshed
+					| WflDeleted					// it does not exist anymore because it is deleted
+
+// general types
 
 :: HtmlCode			:== [BodyTag]					// most programmers will only write bodytags
 
@@ -28,24 +40,25 @@ derive write 	Void, TCl
 
 
 // *********************************************************************************************************************************
-// Setting options for any collection of iTask workflows:
+// Setting global options for any collection of iTask workflows:
 
-:: GarbageCollect 	= Collect 						// garbage collect iTask administration
-					| NoCollect						// no garbage collection
-
-class (<<@) infixl 3 b :: !(Task a) !b -> Task a 	// to set iData attribute globally for indicated (composition of) iTask(s) 
+class (<<@) infixl 3 b :: !(Task a) !b 	-> Task a 	 
+class (@>>) infixl 7 b ::  !b !(Task a) -> Task a | iData a	
 
 instance <<@		  Lifespan						// default: Session
 					, StorageFormat					// default: PlainString
 					, Mode							// default: Edit
 					, GarbageCollect				// default: Collect
 
+instance @>>		  SubPage						// default: the *whole* page will be updated when a form has been modified
+
+// Lifespan, StorageFormat, Mode are already defined in iTask library
+
+:: GarbageCollect 	= Collect 						// garbage collect iTask administration
+					| NoCollect						// no garbage collection
+
 :: SubPage			= UseAjax  						// use Ajax technology to update part of a page, only works if Ajax enabled 
 					| OnClient 						// use SAPL to update part of a page on the client, only works if Client enabled and Sapl is running...
-
-class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a	
-
-instance @>>		SubPage							// default: the *whole* page will be updated when a form has been modified
 
 // *********************************************************************************************************************************
 /* Initiate the iTask library with an iData server wrapper such as doHtmlServer in combination with one of the following functions:
@@ -66,6 +79,22 @@ workFlowTask	:: ![StartUpOptions] !(Task (UserId,a))
 					| VersionCheck | NoVersionCheck		// for single & multiUser: default = VersionNoCheck 
 					| TestModeOn | TestModeOff			// emties storages when starting from scratch: On for single and multi-user tasks
 					| MyHeader HtmlCode					// wil replace standard iTask information line
+
+// *********************************************************************************************************************************
+/* iTask Workflow process management:
+
+spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a handle to that process 
+waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value
+deleteWorkflow 		:: delete iTask workflow
+suspendWorkflow 	:: suspend iTask workflow, nobody can add results anymore
+activateWorkflow 	:: activate the iTask workflow again
+*/
+
+spawnWorkflow 		:: !(LabeledTask a) 								-> Task (Wid a) 	| iData a
+waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
+deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		| iData a
+suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		| iData a
+activateWorkflow 	:: !(Wid a) 										-> Task Bool 		| iData a
 
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:
@@ -220,11 +249,6 @@ userId 			:: TSt 				-> (Int,TSt)
 addHtml 		:: HtmlCode TSt 	-> TSt
 
 // *********************************************************************************************************************************
-:: Wid a			:== Int			// id of workflow process
-
-spawnWorkflow 		:: (LabeledTask a) -> Task (Wid a) | iData a
-waitForResult 		:: (Wid a) -> Task a | iData a
-//activateWorkflows 	:: !*TSt -> (Void,*TSt)
 
 
 
