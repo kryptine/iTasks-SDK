@@ -9,17 +9,17 @@ definition module iTasks
 iTaskVersion :== "0.99 - April 2008 - "
 
 import iDataSettings, iDataButtons, StdBimap
-derive gForm 	Void, TCl						
-derive gUpd 	Void, TCl
-derive gPrint 	Void, TCl
-derive gParse 	Void, TCl
-derive gerda 	Void
-derive read 	Void, TCl
-derive write 	Void, TCl
+derive gForm 	Void, Wid, TCl						
+derive gUpd 	Void, Wid,  TCl
+derive gPrint 	Void, Wid,  TCl
+derive gParse 	Void, Wid,  TCl
+derive gerda 	Void, Wid 
+derive read 	Void, Wid, TCl
+derive write 	Void, Wid, TCl
 
 // iTask types
 
-:: Task a			:== *TSt -> *(a,*TSt)			// an iTask is state stransition 
+:: Task a			:== *TSt -> *(!a,!*TSt)			// an iTask is state stransition 
 :: LabeledTask a	:== !(!String,!Task a)			// a Task with a label used for labeling buttons, pull down menu, and the like
 :: *TSt												// TSt is abstract task state
 :: UserId			:== !Int						// a user id of an iTask user must be a unique integer value
@@ -90,11 +90,12 @@ suspendWorkflow 	:: suspend iTask workflow, nobody can add results anymore
 activateWorkflow 	:: activate the iTask workflow again
 */
 
-spawnWorkflow 		:: !(LabeledTask a) 								-> Task (Wid a) 	| iData a
+spawnWorkflow 		:: !UserId !(LabeledTask a) 						-> Task (Wid a) 	| iData a
 waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
-deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		| iData a
-suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		| iData a
-activateWorkflow 	:: !(Wid a) 										-> Task Bool 		| iData a
+deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
+suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		
+activateWorkflow 	:: !(Wid a) 										-> Task Bool 	
+getWorkflowStatus 	:: !(Wid a) 										-> Task WorkflowStatus
 
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:

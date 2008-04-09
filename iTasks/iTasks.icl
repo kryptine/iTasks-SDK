@@ -11,13 +11,13 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 import iTasksSettings
 
-derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Maybe, []
-derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Maybe, []
-derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Maybe
-derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Maybe
-derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind
-derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind
-derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind
+derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus, Maybe, []
+derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus, Maybe, []
+derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus, Maybe
+derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus, Maybe
+derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus
+derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus
+derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -77,9 +77,15 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, testModeOn		:: !Bool
 					}
 
+:: Wid a			= Wid !(!String,!Int)					// id of workflow process
+:: WorflowProcess 	= ActiveWorkflow 	!String !(TCl Dynamic)
+					| SuspendedWorkflow !String !(TCl Dynamic)
+					| FinishedWorkflow 	!String !Dynamic !(TCl Dynamic)
+					| DeletedWorkflow	!String
+
 // Initial values
 
-defaultUser			:== 0							// default id of user
+defaultUser			:== 0								// default id of user
 
 initTst :: UserId !Lifespan !*HSt -> *TSt
 initTst thisUser location hst
@@ -199,25 +205,25 @@ where
 // ******************************************************************************************************
 
 singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
-singleUserTask startUpOptions task hst 
+singleUserTask startUpOptions maintask hst 
 # userOptions			= determineUserOptions startUpOptions
 # tst					= initTst 0 userOptions.threadStorageLoc hst
-# (exception,html,hst)	= startTstTask 0 False (False,[]) userOptions task tst
+# (exception,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
 = mkHtmlExcep "singleUser" exception html hst
 
 multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
-multiUserTask startUpOptions task  hst 
+multiUserTask startUpOptions maintask  hst 
 # userOptions 			= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
 # nusers				= case userOptions.showUsersOn of
 							Nothing -> 0
 							Just n	-> n
-| nusers == 0			= singleUserTask startUpOptions task  hst 
+| nusers == 0			= singleUserTask startUpOptions maintask  hst 
 # (idform,hst) 			= FuncMenu (Init,nFormId "User_Selected" 
 							(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker			= snd idform.value
 # tst					= initTst currentWorker userOptions.threadStorageLoc hst
 # (exception,html,hst) 	= startTstTask currentWorker True 
-							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions task tst
+							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
 = mkHtmlExcep "multiUser" exception html hst
 
 workFlowTask :: ![StartUpOptions] !(Task (UserId,a)) !((UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iData b 
@@ -251,7 +257,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 
 // prologue
 
-# maintask				= wrap maintask													// force main process to start on tasknr 0.1
+# maintask				= activateWorkflows maintask												// force main process to start on tasknr 0.1
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
@@ -332,15 +338,11 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 									]
 							,hst)
 where
-	wrap maintask = activateWorkflows (newTask "main" maintask)				
-
-//	wrap maintask tst
-//	# (a,tst) =	newTask "main" maintask tst
-//	= (a, activateWorkflows	tst)				
-	where
-		clearIStore hst=:{world}								/* would be nice but don't know how to clear this */
-		# world = if testModeOn deleteAllStateFiles id world
-		= (Void,{hst & world = world})
+//	wrap maintask = activateWorkflows (newTask "main" (assignTaskTo False 0 ("main",maintask)))				
+//	where
+//		clearIStore hst=:{world}								/* would be nice but don't know how to clear this */
+//		# world = if testModeOn deleteAllStateFiles id world
+//		= (Void,{hst & world = world})
 
 
 	nilTable tst = 	([],tst)
@@ -455,7 +457,7 @@ mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,H
 mkTaskButtons header myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames
-| myidx == 1		= ((0,[],[]),hst)													// no task button if there is only one task to choose from
+//| myidx == 1		= ((0,[],[]),hst)													// no task button if there is only one task to choose from
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info id hst						// which choice was made in the past
 # (buttons,hst)		= SelectButtons Init btnsId info (chosen,btnnames) hst				// create buttons
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info  buttons.value hst			// maybe a new button was pressed
@@ -587,13 +589,6 @@ gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
 gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
 
-:: Wid a			:== !(!String,!Int)			// id of workflow process
-
-:: WorflowProcess 	= ActiveWorkflow 	!String !(TCl Dynamic)
-					| SuspendedWorkflow !String !(TCl Dynamic)
-					| FinishedWorkflow 	!String !Dynamic !(TCl Dynamic)
-					| DeletedWorkflow	!String
-
 workflowProcessStore ::  !([WorflowProcess] -> [WorflowProcess]) !*HSt -> (![WorflowProcess],!*HSt) 
 workflowProcessStore wfs hst	
 # (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName [] <@ NoForm) wfs hst
@@ -603,7 +598,7 @@ activateWorkflows :: !(Task a) -> (Task a) | iData a
 activateWorkflows maintask = activateWorkflows`
 where
 	activateWorkflows` tst 
-	# (a,tst=:{activated,hst}) 	= maintask tst									// start maintask
+	# (a,tst=:{activated,hst}) 	= newTask "main" (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
 	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
 	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = activated}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
@@ -624,8 +619,8 @@ where
 		activateAll done [DeletedWorkflow _:wfls] procid tst
 		= activateAll done wfls (inc procid) tst
 
-spawnWorkflow :: !(LabeledTask a) -> Task (Wid a) | iData a
-spawnWorkflow (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
+spawnWorkflow :: !UserId !(LabeledTask a) -> Task (Wid a) | iData a
+spawnWorkflow userid (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
 where
 	spawnWorkflow` options tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -633,12 +628,12 @@ where
 	# wfl				= mkdyntask options processid task 						// convert user task in a dynamic task
 	# nwfls				= wfls ++ [ActiveWorkflow label wfl]					// turn task into a dynamic task
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// write workflow process administration
-	= ((label,processid),{tst & hst = hst, activated = True})
+	= (Wid (label,processid),{tst & hst = hst, activated = True})
 
 	mkdyntask options processid task = TCl (\tst -> convertTask processid label task {tst & tasknr = [processid - 1],activated = True,options = options})
 	
 	convertTask processid label task tst
-	# (a,tst=:{hst,activated})		= newTask label task tst					// execute task
+	# (a,tst=:{hst,activated})		= newTask label (assignTaskTo False userid (label,task)) tst//newTask label task tst					// execute task
 	# dyn							= dynamic a
 	| not activated					= (dyn,tst)									// not finished, return
 	# (wfls,hst) 					= workflowProcessStore id hst				// read workflow process administration
@@ -649,7 +644,7 @@ where
 	= (dyn,{tst & hst = hst})												
 
 waitForWorkflow :: !(Wid a) -> Task a | iData a
-waitForWorkflow (label,processid) = newTask ("waiting for " +++ label) waitForResult`
+waitForWorkflow (Wid (label,processid)) = newTask ("waiting for " +++ label) waitForResult`
 where
 	waitForResult` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -658,17 +653,18 @@ where
 								_ -> (False,createDefault)						// not yet
 	= (val,{tst & hst = hst, activated = done})									// return value and release when done
 
-deleteWorkflow :: !(Wid a) -> Task Bool | iData a
-deleteWorkflow (label,processid) = newTask ("delete " +++ label) deleteWorkflow`
+deleteWorkflow :: !(Wid a) -> Task Bool 
+deleteWorkflow (Wid (label,processid)) = newTask ("delete " +++ label) deleteWorkflow`
 where
 	deleteWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
 	# nwfls				= updateAt (processid - 1) (DeletedWorkflow label) wfls	// delete entry in table
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
-	= (True,{tst & hst = hst, activated = True})								// if everything is fine it should always succeed
+	# tst				= deleteSubTasksAndThreads [processid] {tst & hst = hst}		// delete all iTask storage of this process ...
+	= (True,{tst & activated = True})								// if everything is fine it should always succeed
 
-suspendWorkflow :: !(Wid a) -> Task Bool | iData a
-suspendWorkflow (label,processid) = newTask ("suspend " +++ label) deleteWorkflow`
+suspendWorkflow :: !(Wid a) -> Task Bool
+suspendWorkflow (Wid (label,processid)) = newTask ("suspend " +++ label) deleteWorkflow`
 where
 	deleteWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -681,10 +677,10 @@ where
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
 	= (ok,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
 
-activateWorkflow :: !(Wid a) -> Task Bool | iData a
-activateWorkflow (label,processid) = newTask ("activate " +++ label) deleteWorkflow`
+activateWorkflow :: !(Wid a) -> Task Bool
+activateWorkflow (Wid (label,processid)) = newTask ("activate " +++ label) activateWorkflow`
 where
-	deleteWorkflow` tst=:{hst}
+	activateWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
 	# (ok,nochange,wfl)	= case (wfls!!(processid - 1)) of
 							(SuspendedWorkflow label entry) -> (True,False,ActiveWorkflow label entry)
@@ -694,6 +690,18 @@ where
 	# nwfls				= updateAt (processid - 1) wfl wfls						// update entry
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
 	= (ok,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
+
+getWorkflowStatus :: !(Wid a) -> Task WorkflowStatus
+getWorkflowStatus (Wid (label,processid)) = newTask ("get status " +++ label) getWorkflowStatus`
+where
+	getWorkflowStatus` tst=:{hst}
+	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
+	# status			= case (wfls!!(processid - 1)) of
+							(ActiveWorkflow _ _) 		-> WflActive
+							(SuspendedWorkflow _ _) 	-> WflSuspended
+							(FinishedWorkflow _ _ _) 	-> WflFinished
+							(DeletedWorkflow _) 		-> WflDeleted		
+	= (status,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
 
 showWorkflows :: !Bool !*HSt -> (![BodyTag],*HSt)
 showWorkflows alldone hst
