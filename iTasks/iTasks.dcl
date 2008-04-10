@@ -83,14 +83,14 @@ workFlowTask	:: ![StartUpOptions] !(Task (UserId,a))
 // *********************************************************************************************************************************
 /* iTask Workflow process management:
 
-spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a handle to that process 
+spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a handle to that process, bool indicates whether it is active or suspended 
 waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value
 deleteWorkflow 		:: delete iTask workflow
 suspendWorkflow 	:: suspend iTask workflow, nobody can add results anymore
 activateWorkflow 	:: activate the iTask workflow again
 */
 
-spawnWorkflow 		:: !UserId !(LabeledTask a) 						-> Task (Wid a) 	| iData a
+spawnWorkflow 		:: !UserId !Bool !(LabeledTask a) 					-> Task (Wid a) 	| iData a
 waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
 deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
 suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		

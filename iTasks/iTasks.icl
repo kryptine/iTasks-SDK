@@ -12,12 +12,12 @@ import DrupBasic
 import iTasksSettings
 
 derive gForm 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus, Maybe, []
-derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus, Maybe, []
-derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus, Maybe
-derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus, Maybe
-derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus
-derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus
-derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid,  WorkflowStatus
+derive gUpd 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus, Maybe, []
+derive gParse 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus, Maybe
+derive gPrint 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus, Maybe
+derive gerda 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus
+derive read 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus
+derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, GlobalInfo, TaskThread, ThreadKind, Wid, WorkflowStatus
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
@@ -597,10 +597,10 @@ workflowProcessStore wfs hst
 activateWorkflows :: !(Task a) -> (Task a) | iData a
 activateWorkflows maintask = activateWorkflows`
 where
-	activateWorkflows` tst 
+	activateWorkflows` tst=:{hst} 
 	# (a,tst=:{activated,hst}) 	= newTask "main" (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
 	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
-	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = activated}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
+	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = True}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
 	where
 		activateAll done [] _ tst = (done,tst)
@@ -619,14 +619,14 @@ where
 		activateAll done [DeletedWorkflow _:wfls] procid tst
 		= activateAll done wfls (inc procid) tst
 
-spawnWorkflow :: !UserId !(LabeledTask a) -> Task (Wid a) | iData a
-spawnWorkflow userid (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
+spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
+spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
 where
 	spawnWorkflow` options tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
 	# processid			= length wfls + 1										// process id currently given by length list, used as offset in list
 	# wfl				= mkdyntask options processid task 						// convert user task in a dynamic task
-	# nwfls				= wfls ++ [ActiveWorkflow label wfl]					// turn task into a dynamic task
+	# nwfls				= wfls ++ [if active ActiveWorkflow SuspendedWorkflow label wfl]					// turn task into a dynamic task
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// write workflow process administration
 	= (Wid (label,processid),{tst & hst = hst, activated = True})
 
