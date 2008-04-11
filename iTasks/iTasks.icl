@@ -22,6 +22,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 :: *TSt 		=	{ tasknr 		:: !TaskNr			// for generating unique form-id's
 					, activated		:: !Bool   			// if true activate task, if set as result task completed	
 					, userId		:: !Int				// id of user to which task is assigned
+					, workflowName	:: !WorkflowName	// wid and name of the workflow process a task is part of
 					, staticInfo	:: !StaticInfo		// info which does not change during a run
 					, html			:: !HtmlTree		// accumulator for html code
 					, options		:: !Options			// iData lifespan and storage format
@@ -30,12 +31,16 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					}
 :: UserId		:== !Int
 :: TaskNr		:== [Int]								// task nr i.j is adminstrated as [j,i]
-:: HtmlTree		=	BT HtmlCode						// simple code
-				|	(@@:) infix  0 (Int,String) HtmlTree// code with id of user attached to it
-				|	(-@:) infix  0 Int 			HtmlTree// skip code with this id if it is the id of the user 
+:: WorkflowName	:== !(WorkflowId,WorkflowLabel)			// wid and name of the workflow process a task is part of
+:: WorkflowId	:== !Int
+:: WorkflowLabel:== !String
+:: HtmlTree		=	BT HtmlCode							// simple code
+				|	(@@:) infix  0 TaskName HtmlTree	// code with id of user attached to it
+				|	(-@:) infix  0 UserId 	HtmlTree	// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 HtmlTree HtmlTree	// code to be placed next to each other				
 				|	(+|+) infixl 1 HtmlTree HtmlTree	// code to be placed below each other				
 				|	DivCode String HtmlTree				// code that should be labeled with a div, used for Ajax and Client technology
+:: TaskName		:== !(UserId,WorkflowName,!TaskLabel)	// id of user, workflow process name, task name
 :: Options		=	{ tasklife		:: !Lifespan		// default: Session		
 					, taskstorage	:: !StorageFormat	// default: PlainString
 					, taskmode		:: !Mode			// default: Edit
@@ -44,15 +49,14 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 :: StaticInfo	=	{ currentUserId	:: UserId			// id of application user 
 					, threadTableLoc:: !Lifespan		// where to store the server thread table, default is Session
 					}
-
 :: GarbageCollect =	Collect | NoCollect
-
 :: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
-:: TraceInfo	:== Maybe (!Bool,!(!Int,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe (!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
-					, thrUserId			:: UserId		// which user has to perform the task
+					, thrUserId			:: !UserId		// which user has to perform the task
+					, thrWorkflowName	:: !WorkflowName// what was the name of workflow process it was part off
 					, thrOptions		:: !Options		// options of the task
 					, thrCallback		:: !String		// serialized callback function for the server
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)
@@ -76,16 +80,17 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, headerOff			:: !Maybe HtmlCode
 					, testModeOn		:: !Bool
 					}
-
-:: Wid a			= Wid !(!String,!Int)					// id of workflow process
-:: WorflowProcess 	= ActiveWorkflow 	!String !(TCl Dynamic)
-					| SuspendedWorkflow !String !(TCl Dynamic)
-					| FinishedWorkflow 	!String !Dynamic !(TCl Dynamic)
-					| DeletedWorkflow	!String
+:: Wid a			= Wid WorkflowName					// id of workflow process
+:: WorflowProcess 	= ActiveWorkflow 	!WorkflowLabel !(TCl Dynamic)
+					| SuspendedWorkflow !WorkflowLabel !(TCl Dynamic)
+					| FinishedWorkflow 	!WorkflowLabel !Dynamic !(TCl Dynamic)
+					| DeletedWorkflow	!WorkflowLabel
 
 // Initial values
 
 defaultUser			:== 0								// default id of user
+defaultWorkflowName :== "start"							// name of initial workflow process
+defaultWid			:== 0								// initial workflow process id
 
 initTst :: UserId !Lifespan !*HSt -> *TSt
 initTst thisUser location hst
@@ -93,6 +98,7 @@ initTst thisUser location hst
 					, activated 	= True
 					, staticInfo	= initStaticInfo thisUser location
 					, userId		= if (thisUser >= 0) defaultUser thisUser
+					, workflowName	= (defaultWid,defaultWorkflowName)
 					, html 			= BT []
 					, trace			= Nothing
 					, hst 			= hst
@@ -300,7 +306,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 						= if TraceThreads showThreadTable nilTable {tst & hst = hst} 
 # threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
 # (processadmin,hst)	= showWorkflows activated hst
-# (threadcode,selbuts,selname,seltask,hst)	
+# (threadcode,taskname,mainbuts,subbuts,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
 
 # iTaskInfo				= 	mkDiv "iTaskInfo" 
@@ -324,8 +330,8 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 															iTaskInfo  ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
-																	[ STable []	[ [BodyTag  selbuts, selname <||>  seltask ]
-																				]
+																	[	[[BodyTag taskname, Br] <||> mainbuts] <=>
+																		[BodyTag subbuts,Br,Br, BodyTag seltask]
 																	]
 											)]
 									] 
@@ -379,19 +385,36 @@ where
 		mktable table 	= [Tr [] (mkrow rows) \\ rows <- table]	
 		mkrow rows 		= [Td [Td_VAlign Alo_Top] [row] \\ row <- rows] 
 
+	Filter :: !Bool !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 	Filter wholepage thrOwner tree hst
 	# startuser			= if wholepage defaultUser thrOwner
-	# (threadcode,accu) = Collect thisUser startuser [] ((startuser,"Main") @@: tree) 
-	| isNil accu		= (threadcode,[],[],[],hst)
-	# (names,tasks) 	= unzip accu
-	# info				= initialOptions
-	# ((selected,buttons,chosenname),hst) = mkTaskButtons "Main Tasks:" ("User " <+++ thisUser) thisUser [] info names hst 
-	= (threadcode,buttons,chosenname,tasks!!if (selected > length accu) 0 selected,hst)
+	# (threadcode,accu) = Collect thisUser startuser [] ((startuser,(defaultWid,defaultWorkflowName),"main") @@: tree)  // KLOPT DIT WEL ??
+	| isNil accu		= (threadcode,[],[],[],[],hst)
+	# accu				= sortBy (\((i,_),_,_) ((j,_),_,_) -> i < j) accu
+	# (workflownames,subtasks) 						= unziptasks accu
+	# ((mainSelected,mainButtons,chosenMain),hst) 	= mkTaskButtons True ("User " <+++ thisUser) thisUser [] initialOptions workflownames hst 
+	# (subtasksnames,tcode)							= unzipsubtasks (subtasks!!mainSelected)
+	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) 
+																							thisUser [] initialOptions subtasksnames hst 
+	= (threadcode,[showLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
+	where
+		unziptasks [] 			= ([],[])
+		unziptasks all=:[((wid,wlabel),tlabel,tcode):tasks] 
+		# (wsubtask,other) 		= span (\((mwid,_),_,_) ->  mwid == wid) all 
+		# (wlabels,wsubtasks)	= unziptasks other
+		= ([wlabel:wlabels],[wsubtask:wsubtasks])
 
-	Collect thisuser taskuser accu ((ntaskuser,taskname) @@: tree) 	// Collect returns the wanted code, and the remaining code
-	# (myhtml,accu)	= Collect thisuser ntaskuser accu tree			// Collect all code of this user belonging to this task
+		unzipsubtasks []		= ([],[])
+		unzipsubtasks [(_,tlabel,tcode):subtasks]		
+		# (labels,codes)		= unzipsubtasks subtasks
+		= ([tlabel:labels],[tcode:codes])
+
+
+	Collect :: !UserId !UserId [(WorkflowName,TaskLabel,[BodyTag])] !HtmlTree -> (![BodyTag],![(WorkflowName,TaskLabel,[BodyTag])])
+	Collect thisuser taskuser accu ((ntaskuser,workflowName,taskname) @@: tree) 	// Collect returns the wanted code, and the remaining code
+	# (myhtml,accu)	= Collect thisuser ntaskuser accu tree							// Collect all code of this user belonging to this task
 	| thisuser == ntaskuser && not (isNil myhtml)
-							= ([],[(taskname,myhtml):accu])
+							= ([],[(workflowName,taskname,myhtml):accu])
 	| otherwise				= ([],accu)
 	Collect thisuser taskuser accu (nuser -@: tree)
 	| thisuser == nuser 	= ([],accu)
@@ -416,14 +439,17 @@ where
 	showThreadTable tst=:{staticInfo}
 	# thisUser		= staticInfo.currentUserId
 	# (tableS,tst)	= ThreadTableStorage id tst													// read thread table from server
+	# tableS		= sortBy (\e1=:{thrTaskNr = t1} e2=:{thrTaskNr =t2} = t1 < t2) tableS
 	# (tableC,tst)	= IF_ClientServer
 						(\tst -> ClientThreadTableStorage id tst)								// read thread table from client
 						(\tst -> ([],tst)) tst
+	
+	# tableC		= sortBy (\e1=:{thrTaskNr = t1} e2=:{thrTaskNr =t2} = t1 < t2) tableC
 	# bodyS			= 	if (isNil tableS)
 						[]
 						[showLabel "Server Thread Table: ",
-						STable []	(   [[showText "UserNr:", showText "Kind:", showText "TaskNr:", showText "Created:"
-										 ,showText "Storage"]] ++
+						STable []	(   [[showTrace "UserNr:", showTrace "Kind:", showTrace "TaskNr:", showTrace "Created:"
+										 ,showTrace "Storage"]] ++
 										[	[ showText (toString entry.thrUserId)
 											, showText (toString entry.thrKind)
 											, showText (showThreadNr entry.thrTaskNr)
@@ -438,8 +464,8 @@ where
 	# bodyC			= if (isNil tableC)
 						[]
 						[showLabel ("Client User " +++ toString thisUser +++ " Thread Table: "),
-						STable []	(   [[showText "UserNr:", showText "Kind:", showText "TaskNr:", showText "Created:"
-										 ,showText "Storage"]] ++
+						STable []	(   [[showTrace "UserNr:", showTrace "Kind:", showTrace "TaskNr:", showTrace "Created:"
+										 ,showTrace "Storage"]] ++
 										[	[ showText (toString entry.thrUserId)
 											, showText (toString entry.thrKind)
 											, showText (showThreadNr entry.thrTaskNr)
@@ -453,8 +479,8 @@ where
 						]
 	= (bodyS ++ bodyC,tst)
 
-mkTaskButtons :: !String !String !Int !TaskNr !Options ![String] *HSt -> ((Int,HtmlCode,HtmlCode),*HSt)
-mkTaskButtons header myid userId tasknr info btnnames hst
+mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] *HSt -> ((Int,HtmlCode,String),*HSt)
+mkTaskButtons vertical myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames
 //| myidx == 1		= ((0,[],[]),hst)													// no task button if there is only one task to choose from
@@ -462,10 +488,12 @@ mkTaskButtons header myid userId tasknr info btnnames hst
 # (buttons,hst)		= SelectButtons Init btnsId info (chosen,btnnames) hst				// create buttons
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info  buttons.value hst			// maybe a new button was pressed
 # (buttons,hst)		= SelectButtons Set btnsId info (chosen,btnnames) hst				// adjust look of that button
-= ((chosen,[showMainLabel header, Br: buttons.form],[showLabel (btnnames!!chosen),Br,Br]),hst)
+= ((chosen,buttons.form,btnnames!!chosen),hst)
 where
-	SelectButtons init id info (idx,btnnames) hst = TableFuncBut2 (init,pageFormId info id 
-															[[(mode idx n, but txt,\_ -> n)] \\ txt <- btnnames & n <- [0..]]) hst
+	SelectButtons init id info (idx,btnnames) hst 
+		= if vertical
+			(TableFuncBut2 (init,pageFormId info id [[(mode idx n, but txt,\_ -> n)] \\ txt <- btnnames & n <- [0..]]) hst)
+			(TableFuncBut2 (init,pageFormId info id [[(mode idx n, but txt,\_ -> n) \\ txt <- btnnames & n <- [0..]]]) hst)
 	but i = iTaskButton i
 
 	mode i j
@@ -598,7 +626,7 @@ activateWorkflows :: !(Task a) -> (Task a) | iData a
 activateWorkflows maintask = activateWorkflows`
 where
 	activateWorkflows` tst=:{hst} 
-	# (a,tst=:{activated,hst}) 	= newTask "main" (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
+	# (a,tst=:{activated,hst}) 	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
 	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
 	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = True}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
@@ -628,12 +656,13 @@ where
 	# wfl				= mkdyntask options processid task 						// convert user task in a dynamic task
 	# nwfls				= wfls ++ [if active ActiveWorkflow SuspendedWorkflow label wfl]					// turn task into a dynamic task
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// write workflow process administration
-	= (Wid (label,processid),{tst & hst = hst, activated = True})
+	= (Wid (processid,label),{tst & hst = hst, activated = True})
 
-	mkdyntask options processid task = TCl (\tst -> convertTask processid label task {tst & tasknr = [processid - 1],activated = True,options = options})
+	mkdyntask options processid task = TCl (\tst -> convertTask processid label task 
+										{tst & tasknr = [processid - 1],activated = True,options = options,workflowName = (processid,label)})
 	
 	convertTask processid label task tst
-	# (a,tst=:{hst,activated})		= newTask label (assignTaskTo False userid (label,task)) tst//newTask label task tst					// execute task
+	# (a,tst=:{hst,activated})		= newTask label (assignTaskTo False userid ("main",task)) tst//newTask label task tst			
 	# dyn							= dynamic a
 	| not activated					= (dyn,tst)									// not finished, return
 	# (wfls,hst) 					= workflowProcessStore id hst				// read workflow process administration
@@ -644,7 +673,7 @@ where
 	= (dyn,{tst & hst = hst})												
 
 waitForWorkflow :: !(Wid a) -> Task a | iData a
-waitForWorkflow (Wid (label,processid)) = newTask ("waiting for " +++ label) waitForResult`
+waitForWorkflow (Wid (processid,label)) = newTask ("waiting for " +++ label) waitForResult`
 where
 	waitForResult` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -654,7 +683,7 @@ where
 	= (val,{tst & hst = hst, activated = done})									// return value and release when done
 
 deleteWorkflow :: !(Wid a) -> Task Bool 
-deleteWorkflow (Wid (label,processid)) = newTask ("delete " +++ label) deleteWorkflow`
+deleteWorkflow (Wid (processid,label)) = newTask ("delete " +++ label) deleteWorkflow`
 where
 	deleteWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -664,7 +693,7 @@ where
 	= (True,{tst & activated = True})								// if everything is fine it should always succeed
 
 suspendWorkflow :: !(Wid a) -> Task Bool
-suspendWorkflow (Wid (label,processid)) = newTask ("suspend " +++ label) deleteWorkflow`
+suspendWorkflow (Wid (processid,label)) = newTask ("suspend " +++ label) deleteWorkflow`
 where
 	deleteWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -678,7 +707,7 @@ where
 	= (ok,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
 
 activateWorkflow :: !(Wid a) -> Task Bool
-activateWorkflow (Wid (label,processid)) = newTask ("activate " +++ label) activateWorkflow`
+activateWorkflow (Wid (processid,label)) = newTask ("activate " +++ label) activateWorkflow`
 where
 	activateWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -692,7 +721,7 @@ where
 	= (ok,{tst & hst = hst, activated = True})									// if everything is fine it should always succeed
 
 getWorkflowStatus :: !(Wid a) -> Task WorkflowStatus
-getWorkflowStatus (Wid (label,processid)) = newTask ("get status " +++ label) getWorkflowStatus`
+getWorkflowStatus (Wid (processid,label)) = newTask ("get status " +++ label) getWorkflowStatus`
 where
 	getWorkflowStatus` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
@@ -711,7 +740,7 @@ where
 	mkTable []		= []
 	mkTable wfls	=	[showLabel ("Workflow Process Table:"),
 						STable []	(   [ [showTrace "Id:", showTrace "Name:", showTrace "Status:"]
-										, [Txt "0" , Txt "main", if alldone (Txt "Finished") (Txt "Active")] 
+										, [Txt "0" , Txt defaultWorkflowName, if alldone (Txt "Finished") (Txt "Active")] 
 										: [[Txt (toString i)] ++ showStatus wfl \\ wfl <- wfls & i <- [1..]]
 										]
 									),
@@ -752,7 +781,7 @@ mkTaskThread OnClient taska
 mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
 mkTaskThread2 threadkind task = evalTask																
 where
-	evalTask tst=:{tasknr,activated,options,userId,staticInfo}					// thread - task is not yet finished
+	evalTask tst=:{tasknr,activated,options,userId,staticInfo,workflowName}					// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# options 			= {options & tasklife = case threadkind of
@@ -764,6 +793,7 @@ where
 		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
 		# tst = insertNewThread 	{ thrTaskNr 		= tasknr
 									, thrUserId 		= userId
+									, thrWorkflowName	= workflowName
 									, thrOptions 		= options
 									, thrCallback 		= serializeThread task	
 									, thrCallbackClient = serializeThreadClient task 
@@ -1318,7 +1348,7 @@ where
 assignTaskTo :: !Bool !UserId !(LabeledTask a) -> Task a | iData a	
 assignTaskTo verbose nuserId (taskname,taska) = assignTaskTo`
 where
-	assignTaskTo` tst=:{html=ohtml,activated,userId}
+	assignTaskTo` tst=:{html=ohtml,activated,userId,workflowName}
 	| not activated						= (createDefault,tst)
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
 	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
@@ -1329,8 +1359,8 @@ where
 			  , html = 	ohtml +|+ 															// show old code
 						if verbose 
 							( BT [showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,Br] +|+  // show waiting for
-							  ((nuserId,taskname) @@: BT [showText "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
-							((nuserId,taskname) @@: nhtml)
+							  ((nuserId,workflowName,taskname) @@: BT [showText "Requested by ", showUser userId,Br,Br] +|+ nhtml)) 
+							((nuserId,workflowName,taskname) @@: nhtml)
 		 })												
 
 	showUser nr = showLabel ("User " <+++ nr)
@@ -1520,7 +1550,7 @@ where
 	| finished			= (myalist,{tst & html = html}) 					// stop, all andTasks are finished
 	| pred myalist		= (myalist,{tst & html = html, activated = True})  	// stop, all work done so far satisfies predicate
 	# ((chosen,buttons,chosenname),tst) 									// user can select one of the tasks to work on
-						= LiftHst (mkTaskButtons label "" userId tasknr options (map fst taskCollection)) tst
+						= LiftHst (mkTaskButtons True "" userId tasknr options (map fst taskCollection)) tst
 	# chosenTask		= snd (taskCollection!!chosen)
 	# (a,tst=:{activated=adone,html=ahtml}) 								// enable the selected task (finished or not)
 						= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
@@ -1528,7 +1558,7 @@ where
 						= checkAllTasks label taskCollection (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
 	| not adone			= ([a],{tst &	activated = False 					// not done, since chosen task not finished
 									, 	html = 	html +|+ 
-												BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+												BT buttons +-+ 	(BT [showLabel chosenname] +|+ ahtml) +|+ 
 												(userId -@: allhtml) 		// code for non selected alternatives are not shown for the owner of this task
 							})
 	# (alist,tst=:{activated=finished,html=allhtml})		
@@ -1538,7 +1568,7 @@ where
 	| pred myalist		= (myalist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	= (map snd alist,{tst 	& activated = finished
 							, html = 	html +|+ 
-										BT buttons +-+ 	(BT chosenname +|+ ahtml) +|+ 
+										BT buttons +-+ 	(BT [showLabel chosenname] +|+ ahtml) +|+ 
 										(userId -@: allhtml)
 						})
 	
@@ -1799,12 +1829,13 @@ Raise e = RaiseDyn (dynamic e)
 (<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e			// create an exception Handler
 (<^>) exceptionfun task = newTask "exceptionHandler" evalTask			
 where
-	evalTask tst=:{tasknr=mytasknr,options=myoptions,userId=myuserId}			// thread - task is not yet finished
+	evalTask tst=:{tasknr=mytasknr,options=myoptions,userId=myuserId,workflowName}			// thread - task is not yet finished
 	# (mbthread,tst)		= findThreadInTable ExceptionHandler mytasknr tst		// look if there is an exceptionhandler for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
 		# tst = insertNewThread 	{ thrTaskNr 		= mytasknr
 									, thrUserId 		= myuserId
+									, thrWorkflowName	= workflowName
 									, thrOptions 		= myoptions
 									, thrCallback 		= serializeExceptionHandler (Try exceptionfun)
 									, thrCallbackClient = ""

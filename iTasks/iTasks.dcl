@@ -20,8 +20,9 @@ derive write 	Void, Wid, TCl
 // iTask types
 
 :: Task a			:== *TSt -> *(!a,!*TSt)			// an iTask is state stransition 
-:: LabeledTask a	:== !(!String,!Task a)			// a Task with a label used for labeling buttons, pull down menu, and the like
 :: *TSt												// TSt is abstract task state
+:: LabeledTask a	:== !(!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
+:: TaskLabel		:== !String						// label name
 :: UserId			:== !Int						// a user id of an iTask user must be a unique integer value
 
 // iTask workflow processes types
@@ -91,11 +92,11 @@ activateWorkflow 	:: activate the iTask workflow again
 */
 
 spawnWorkflow 		:: !UserId !Bool !(LabeledTask a) 					-> Task (Wid a) 	| iData a
-waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
-deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
-suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		
-activateWorkflow 	:: !(Wid a) 										-> Task Bool 	
 getWorkflowStatus 	:: !(Wid a) 										-> Task WorkflowStatus
+waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
+activateWorkflow 	:: !(Wid a) 										-> Task Bool 	
+suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		
+deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
 
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:
