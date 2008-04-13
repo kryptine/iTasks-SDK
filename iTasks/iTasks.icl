@@ -232,6 +232,30 @@ multiUserTask startUpOptions maintask  hst
 							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
 = mkHtmlExcep "multiUser" exception html hst
 
+workFlowTask :: ![StartUpOptions] !(Task (Bool,UserId,a)) !((Bool,UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iData b 
+workFlowTask  startUpOptions taska iataskb hst 
+# userOptions 						= determineUserOptions startUpOptions 
+# tst								= initTst -1 userOptions.threadStorageLoc hst
+# ((new,i,a),tst=:{activated,html,hst})	= taska tst									// for doing the login 
+| not activated
+	# iTaskHeader					= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
+	# iTaskInfo						= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
+	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
+										]] hst
+# userOptions 						= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
+# tst								= initTst i userOptions.threadStorageLoc hst
+# (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (iataskb (new,i,a)) tst
+= mkHtmlExcep "workFlow" exception body hst
+where
+	noFilter :: HtmlTree -> HtmlCode
+	noFilter (BT body) 			= body
+	noFilter (_ @@: html) 		= noFilter html
+	noFilter (_ -@: html) 		= noFilter html
+	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
+	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
+	noFilter (DivCode str html) = noFilter html
+
+/*
 workFlowTask :: ![StartUpOptions] !(Task (UserId,a)) !((UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iData b 
 workFlowTask  startUpOptions taska iataskb hst 
 # userOptions 						= determineUserOptions startUpOptions 
@@ -253,6 +277,7 @@ where
 	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
 	noFilter (DivCode str html) = noFilter html
+*/
 
 // ******************************************************************************************************
 // Main routine for the creation of the workflow page

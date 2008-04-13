@@ -71,8 +71,8 @@ workFlowTask	:: iTask start function for a real workflow, expects a login task a
 */
 singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iData a
 multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iData a
-workFlowTask	:: ![StartUpOptions] !(Task (UserId,a)) 
-									 !((UserId,a) -> Task b)!*HSt -> (!Bool,Html,*HSt) 	| iData b 
+workFlowTask	:: ![StartUpOptions] !(Task (Bool,UserId,a)) 
+									 !((Bool,UserId,a) -> Task b)!*HSt -> (!Bool,Html,*HSt) 	| iData b 
 
 :: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser: default = TraceOn
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
