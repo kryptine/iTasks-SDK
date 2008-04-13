@@ -396,7 +396,7 @@ where
 	# (subtasksnames,tcode)							= unzipsubtasks (subtasks!!mainSelected)
 	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) 
 																							thisUser [] initialOptions subtasksnames hst 
-	= (threadcode,[showLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
+	= (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
 	where
 		unziptasks [] 			= ([],[])
 		unziptasks all=:[((wid,wlabel),tlabel,tcode):tasks] 
@@ -1558,7 +1558,8 @@ where
 						= checkAllTasks label taskCollection (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
 	| not adone			= ([a],{tst &	activated = False 					// not done, since chosen task not finished
 									, 	html = 	html +|+ 
-												BT buttons +-+ 	(BT [showLabel chosenname] +|+ ahtml) +|+ 
+												(BT [showMainLabel label: buttons]) +-+ 	
+												(BT [showLabel chosenname] +|+ ahtml) +|+ 
 												(userId -@: allhtml) 		// code for non selected alternatives are not shown for the owner of this task
 							})
 	# (alist,tst=:{activated=finished,html=allhtml})		
