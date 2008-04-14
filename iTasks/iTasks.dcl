@@ -66,13 +66,19 @@ instance @>>		  SubPage						// default: the *whole* page will be updated when a
 					
 singleUserTask 	:: iTask start function for defining tasks for one, single user
 multiUserTask 	:: iTask start function for multi-users, with option in window to switch between [0..users - 1]  
-workFlowTask	:: iTask start function for a real workflow, expects a login task and the actual task
+workFlowTask	:: iTask start function for a real workflow
+					- the first arument has to be an itask which is used for login purposes; it should yield
+						Bool: 	True, is the user a new one: if so the second argument is spawned as a separate task for that user
+						UserId:	the id of that user 
+					- the second argument is workflow that will spawned as a task 
+						(True if we have new user,user id of the user, has ) : 
+					- the second one is the actual function for that user  
 				   a predefined login task is defined in iTaskLogin.dcl				
 */
 singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iData a
 multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iData a
-workFlowTask	:: ![StartUpOptions] !(Task (Bool,UserId,a)) 
-									 !((Bool,UserId,a) -> Task b)!*HSt -> (!Bool,Html,*HSt) 	| iData b 
+workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) 
+							!(UserId a -> LabeledTask b) 	!*HSt -> (!Bool,Html,*HSt) | iData b 
 
 :: StartUpOptions	= TraceOn | TraceOff				// for single & multiUser: default = TraceOn
 					| ThreadStorage Lifespan			// for Ajax: where to store threadinformation: default = TxtFile
