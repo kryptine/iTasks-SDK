@@ -20,8 +20,10 @@ derive write 	Void, Wid, TCl
 // iTask types
 
 :: Task a			:== *TSt -> *(!a,!*TSt)			// an iTask is state stransition 
-:: *TSt												// TSt is abstract task state
 :: LabeledTask a	:== !(!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
+:: TCl a 			= 	TCl !.(Task a)				// task closure, container for a task used for higher order tasks (task which deliver a task)			
+
+:: *TSt												// TSt is abstract task state
 :: TaskLabel		:== !String						// label name
 :: UserId			:== !Int						// a user id of an iTask user must be a unique integer value
 
@@ -35,7 +37,7 @@ derive write 	Void, Wid, TCl
 
 // general types
 
-:: HtmlCode			:== [BodyTag]					// most programmers will only write bodytags
+:: HtmlCode			:== ![BodyTag]					// most programmers will only write bodytags
 
 :: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
 
@@ -201,7 +203,6 @@ closureTask		:: The task is executed as usual, but a receiver closure is returne
 				   Handy for passing a result to several interested parties.
 closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
 */
-:: TCl a 		= TCl .(Task a)			
 
 (-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,TCl a) 	| iCreateAndPrint stop & iCreateAndPrint a
 channel  		:: String (Task a) 							-> Task (TCl a,TCl a) 		| iCreateAndPrint a

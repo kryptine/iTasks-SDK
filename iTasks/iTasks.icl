@@ -81,10 +81,10 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					, testModeOn		:: !Bool
 					}
 :: Wid a			= Wid WorkflowName					// id of workflow process
-:: WorflowProcess 	= ActiveWorkflow 	!WorkflowLabel !(TCl Dynamic)
-					| SuspendedWorkflow !WorkflowLabel !(TCl Dynamic)
-					| FinishedWorkflow 	!WorkflowLabel !Dynamic !(TCl Dynamic)
-					| DeletedWorkflow	!WorkflowLabel
+:: WorflowProcess 	= ActiveWorkflow 	!(!UserId,!WorkflowLabel) !(TCl Dynamic)
+					| SuspendedWorkflow !(!UserId,!WorkflowLabel) !(TCl Dynamic)
+					| FinishedWorkflow 	!(!UserId,!WorkflowLabel) !Dynamic !(TCl Dynamic)
+					| DeletedWorkflow	!(!UserId,!WorkflowLabel)
 
 // Initial values
 
@@ -335,8 +335,8 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 															iTaskInfo  ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
-																	[	[[BodyTag taskname, Br] <||> mainbuts] <=>
-																		[BodyTag subbuts,Br,Br, BodyTag seltask]
+																	[	leftright taskname subbuts,Hr []
+																		, mainbuts <=>  seltask
 																	]
 											)]
 									] 
@@ -355,6 +355,11 @@ where
 //		# world = if testModeOn deleteAllStateFiles id world
 //		= (Void,{hst & world = world})
 
+	leftright left right 
+	=	Table [Tbl_Width (Percent 100)] 
+			[Tr []	[ Td [] left
+					, Td [Td_Align Aln_Right] right]
+					]
 
 	nilTable tst = 	([],tst)
 
@@ -401,7 +406,7 @@ where
 	# (subtasksnames,tcode)							= unzipsubtasks (subtasks!!mainSelected)
 	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) 
 																							thisUser [] initialOptions subtasksnames hst 
-	# subButtons		= if (length subButtons > 1) subButtons []
+	# subButtons		= if (length subtasksnames > 1) subButtons []
 	= (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
 	where
 		unziptasks [] 			= ([],[])
@@ -659,12 +664,12 @@ where
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
 	# processid			= length wfls + 1										// process id currently given by length list, used as offset in list
 	# wfl				= mkdyntask options processid task 						// convert user task in a dynamic task
-	# nwfls				= wfls ++ [if active ActiveWorkflow SuspendedWorkflow label wfl]					// turn task into a dynamic task
+	# nwfls				= wfls ++ [if active ActiveWorkflow SuspendedWorkflow (userid,label) wfl]					// turn task into a dynamic task
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// write workflow process administration
 	= (Wid (processid,label),{tst & hst = hst, activated = True})
 
 	mkdyntask options processid task = TCl (\tst -> convertTask processid label task 
-										{tst & tasknr = [processid - 1],activated = True,options = options,workflowName = (processid,label)})
+										{tst & tasknr = [processid - 1],activated = active,userId = userid, options = options,workflowName = (processid,label)})
 	
 	convertTask processid label task tst
 	# (a,tst=:{hst,activated})		= newTask label (assignTaskTo False userid ("main",task)) tst//newTask label task tst			
@@ -672,7 +677,7 @@ where
 	| not activated					= (dyn,tst)									// not finished, return
 	# (wfls,hst) 					= workflowProcessStore id hst				// read workflow process administration
 	# wfls							= case (wfls!!(processid - 1)) of			// update process administration
-											(ActiveWorkflow _ entry) -> updateAt (processid - 1) (FinishedWorkflow label dyn entry) wfls
+											(ActiveWorkflow _ entry) -> updateAt (processid - 1) (FinishedWorkflow (userid,label) dyn entry) wfls
 											_ -> wfls
 	# (wfls,hst) 					= workflowProcessStore (\_ -> wfls) hst		// write workflow process administration
 	= (dyn,{tst & hst = hst})												
@@ -692,7 +697,7 @@ deleteWorkflow (Wid (processid,label)) = newTask ("delete " +++ label) deleteWor
 where
 	deleteWorkflow` tst=:{hst}
 	# (wfls,hst) 		= workflowProcessStore id hst							// read workflow process administration
-	# nwfls				= updateAt (processid - 1) (DeletedWorkflow label) wfls	// delete entry in table
+	# nwfls				= updateAt (processid - 1) (DeletedWorkflow (-1,label)) wfls	// delete entry in table
 	# (wfls,hst) 		= workflowProcessStore (\_ -> nwfls) hst				// update workflow process administration
 	# tst				= deleteSubTasksAndThreads [processid] {tst & hst = hst}		// delete all iTask storage of this process ...
 	= (True,{tst & activated = True})								// if everything is fine it should always succeed
@@ -744,17 +749,17 @@ showWorkflows alldone hst
 where
 	mkTable []		= []
 	mkTable wfls	=	[showLabel ("Workflow Process Table:"),
-						STable []	(   [ [showTrace "Id:", showTrace "Name:", showTrace "Status:"]
-										, [Txt "0" , Txt defaultWorkflowName, if alldone (Txt "Finished") (Txt "Active")] 
+						STable []	(   [ [showTrace "Workflow Id:", showTrace "User Id:", showTrace "Task Name:", showTrace "Status:"]
+										, [Txt "0" , Txt "0", Txt defaultWorkflowName, if alldone (Txt "Finished") (Txt "Active")] 
 										: [[Txt (toString i)] ++ showStatus wfl \\ wfl <- wfls & i <- [1..]]
 										]
 									),
 						Hr []
 						]
-	showStatus (ActiveWorkflow 	 	label dyntask)		= [Txt label, Txt "Active"]
-	showStatus (SuspendedWorkflow 	label dyntask)		= [Txt label, Txt "Suspended"]
-	showStatus (FinishedWorkflow 	label dyn dyntask)	= [Txt label, Txt "Finished"]
-	showStatus (DeletedWorkflow  	label)				= [Txt label, Txt "Deleted"]
+	showStatus (ActiveWorkflow 	 	(userid,label) dyntask)		= [Txt (toString userid), Txt label, Txt "Active"]
+	showStatus (SuspendedWorkflow 	(userid,label) dyntask)		= [Txt (toString userid), Txt label, Txt "Suspended"]
+	showStatus (FinishedWorkflow 	(userid,label) dyn dyntask)	= [Txt (toString userid), Txt label, Txt "Finished"]
+	showStatus (DeletedWorkflow  	(userid,label))				= [Txt (toString userid), Txt label, Txt "Deleted"]
 
 // ******************************************************************************************************
 // Thread Creation and Deletion

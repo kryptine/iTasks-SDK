@@ -153,16 +153,6 @@ where
 	noNothing [RIGHT Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
 
-multiAndTask :: !(LabeledTask a)  -> Task Void | iData a
-multiAndTask (label,task)  
-=				taskId  
-	*=> \id	->	addNewTask` id 0
-where
-	addNewTask` id cnt	
-	= 				id @:> ("New " <+++ label, editTask ("Start " <+++ label) Void)
-		=>> \_ ->   (addNewTask` id (inc cnt) -&&- (id @:> (label <+++ " " <+++ cnt,task))
-		#>> 		return_V Void)
-
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = newTask "andTasks_mu" (domu_andTasks tasks)
 where
