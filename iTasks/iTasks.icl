@@ -259,30 +259,6 @@ where
 	newUserTask _ 				= return_V Void
 
 
-/*
-workFlowTask :: ![StartUpOptions] !(Task (UserId,a)) !((UserId,a) -> Task b) !*HSt -> (!Bool,Html,*HSt) | iData b 
-workFlowTask  startUpOptions taska iataskb hst 
-# userOptions 						= determineUserOptions startUpOptions 
-# tst								= initTst -1 userOptions.threadStorageLoc hst
-# ((i,a),tst=:{activated,html,hst})	= taska tst									// for doing the login 
-| not activated
-	# iTaskHeader					= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
-	# iTaskInfo						= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
-	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
-										]] hst
-# tst								= initTst i userOptions.threadStorageLoc hst
-# (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (iataskb (i,a)) tst
-= mkHtmlExcep "workFlow" exception body hst
-where
-	noFilter :: HtmlTree -> HtmlCode
-	noFilter (BT body) 			= body
-	noFilter (_ @@: html) 		= noFilter html
-	noFilter (_ -@: html) 		= noFilter html
-	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
-	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
-	noFilter (DivCode str html) = noFilter html
-*/
-
 // ******************************************************************************************************
 // Main routine for the creation of the workflow page
 // ******************************************************************************************************
@@ -425,6 +401,7 @@ where
 	# (subtasksnames,tcode)							= unzipsubtasks (subtasks!!mainSelected)
 	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) 
 																							thisUser [] initialOptions subtasksnames hst 
+	# subButtons		= if (length subButtons > 1) subButtons []
 	= (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
 	where
 		unziptasks [] 			= ([],[])
@@ -437,7 +414,6 @@ where
 		unzipsubtasks [(_,tlabel,tcode):subtasks]		
 		# (labels,codes)		= unzipsubtasks subtasks
 		= ([tlabel:labels],[tcode:codes])
-
 
 	Collect :: !UserId !UserId [(WorkflowName,TaskLabel,[BodyTag])] !HtmlTree -> (![BodyTag],![(WorkflowName,TaskLabel,[BodyTag])])
 	Collect thisuser taskuser accu ((ntaskuser,workflowName,taskname) @@: tree) 	// Collect returns the wanted code, and the remaining code
