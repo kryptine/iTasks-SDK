@@ -335,7 +335,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 															iTaskInfo  ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
-																	[	leftright taskname subbuts,Hr []
+																	[	leftright taskname subbuts
 																		, mainbuts <=>  seltask
 																	]
 											)]
@@ -1559,8 +1559,9 @@ where
 	# myalist			= map snd alist
 	| finished			= (myalist,{tst & html = html}) 					// stop, all andTasks are finished
 	| pred myalist		= (myalist,{tst & html = html, activated = True})  	// stop, all work done so far satisfies predicate
+	# buttonnames		= map fst taskCollection
 	# ((chosen,buttons,chosenname),tst) 									// user can select one of the tasks to work on
-						= LiftHst (mkTaskButtons True "" userId tasknr options (map fst taskCollection)) tst
+						= LiftHst (mkTaskButtons True "" userId tasknr options buttonnames) tst
 	# chosenTask		= snd (taskCollection!!chosen)
 	# (a,tst=:{activated=adone,html=ahtml}) 								// enable the selected task (finished or not)
 						= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
@@ -1568,7 +1569,7 @@ where
 						= checkAllTasks label taskCollection (0,chosen) True [] {tst & tasknr = tasknr, html = BT [], activated = True}
 	| not adone			= ([a],{tst &	activated = False 					// not done, since chosen task not finished
 									, 	html = 	html +|+ 
-												(BT [showMainLabel label: buttons]) +-+ 	
+												(BT (if (length buttonnames > 1) [showMainLabel label: buttons] [])) +-+ 	
 												(BT [showLabel chosenname] +|+ ahtml) +|+ 
 												(userId -@: allhtml) 		// code for non selected alternatives are not shown for the owner of this task
 							})
@@ -1579,7 +1580,8 @@ where
 	| pred myalist		= (myalist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	= (map snd alist,{tst 	& activated = finished
 							, html = 	html +|+ 
-										BT buttons +-+ 	(BT [showLabel chosenname] +|+ ahtml) +|+ 
+										(BT (if (length buttonnames > 1) [showMainLabel label: buttons] [])) +-+ 	
+										(BT [showLabel chosenname] +|+ ahtml) +|+ 
 										(userId -@: allhtml)
 						})
 	
