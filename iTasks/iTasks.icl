@@ -264,17 +264,17 @@ where
 // ******************************************************************************************************
 
 startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) | iData a 
-startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
+startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintaskorg tst=:{hst,tasknr,staticInfo}
 
 // prologue
 
-# maintask				= activateWorkflows maintask												// force main process to start on tasknr 0.1
+# maintask				= scheduleWorkflows maintaskorg												// force main process to start on tasknr 0.1
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
 # doTrace				= traceAsked.value False
-
+	
 # versionsOn			= IF_ClientTasks False versionCheckOn										// no version control on client
 # noNewVersion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 	// no version control in these cases
 # (appversion,hst)	 	= setAppversion inc hst
@@ -294,11 +294,11 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 				],hst)
 
 
-// Here the iTask starts...
+// Here the iTasks are evaluated ...
 													    
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						= (IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
-							maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+						= calculateNewWorkflows ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
+							maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
 
@@ -349,7 +349,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) {traceOn, threadStor
 									]
 							,hst)
 where
-//	wrap maintask = activateWorkflows (newTask "main" (assignTaskTo False 0 ("main",maintask)))				
+//	wrap maintask = scheduleWorkflows (newTask "main" (assignTaskTo False 0 ("main",maintask)))				
 //	where
 //		clearIStore hst=:{world}								/* would be nice but don't know how to clear this */
 //		# world = if testModeOn deleteAllStateFiles id world
@@ -632,30 +632,37 @@ workflowProcessStore wfs hst
 # (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName [] <@ NoForm) wfs hst
 = (form.value,hst)
 
-activateWorkflows :: !(Task a) -> (Task a) | iData a
-activateWorkflows maintask = activateWorkflows`
+scheduleWorkflows :: !(Task a) -> (Task a) | iData a
+scheduleWorkflows maintask = scheduleWorkflows`
 where
-	activateWorkflows` tst=:{hst} 
+	scheduleWorkflows` tst=:{hst} 
 	# (a,tst=:{activated,hst}) 	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
-	# (wfls,hst) 				= workflowProcessStore id hst					// read workflow process administration
-	# (done,tst)				= activateAll True wfls 0 {tst & hst = hst,activated = True}		// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
-	= (a,{tst & activated = activated && done})									// whole application ends when all processes have ended
-	where
-		activateAll done [] _ tst = (done,tst)
-		
-		activateAll done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
-		# (_,tst=:{activated}) = dyntask tst
-		= activateAll (done && activated) wfls (inc procid) {tst & activated = activated}
-		
-		activateAll done [SuspendedWorkflow _ _:wfls] procid tst
-		= activateAll done wfls (inc procid) tst
-		
-		activateAll done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
-		# (_,tst) = dyntask tst
-		= activateAll done wfls (inc procid) tst
-		
-		activateAll done [DeletedWorkflow _:wfls] procid tst
-		= activateAll done wfls (inc procid) tst
+	# (wfls,hst) 				= workflowProcessStore id hst												// read workflow process administration
+	# (done,tst)				= calculateWorkflows True wfls 0 {tst & hst = hst,activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
+	= (a,{tst & activated = activated && done})																// whole application ends when all processes have ended
+
+calculateWorkflows done [] _ tst = (done,tst)
+calculateWorkflows done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
+# (_,tst=:{activated}) = dyntask {tst & activated = True}
+= calculateWorkflows (done && activated) wfls (inc procid) {tst & activated = activated}
+calculateWorkflows done [SuspendedWorkflow _ _:wfls] procid tst
+= calculateWorkflows done wfls (inc procid) tst
+calculateWorkflows done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
+# (_,tst) = dyntask tst
+= calculateWorkflows done wfls (inc procid) tst
+calculateWorkflows done [DeletedWorkflow _:wfls] procid tst
+= calculateWorkflows done wfls (inc procid) tst
+
+calculateNewWorkflows main tst=:{hst} 
+# (wfls,hst) 				= workflowProcessStore id hst				// read workflow process administration
+# lengthwfls				= length wfls
+# (res,tst=:{hst})			= main {tst & hst = hst}					// calculate workflows
+# (nwfls,hst) 				= workflowProcessStore id hst				// read workflow process administration
+# lengthnwfls				= length nwfls
+| lengthnwfls > lengthwfls 												// more workflows processes have been added in the mean time
+	# (done,tst) = (calculateWorkflows True (drop (length wfls) nwfls) lengthwfls) {tst & hst = hst,activated = True}	// calculate this one as well
+	= calculateNewWorkflows (\tst -> (res,tst)) tst
+= (res,{tst & hst = hst})
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
 spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
@@ -1920,7 +1927,7 @@ where
 	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
-	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val) (fromJust trace))}) // adjust trace
+	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val%(0,30)) (fromJust trace))}) // adjust trace, don't print to long values
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
 mkParSubTask name i task = mkParSubTask`
