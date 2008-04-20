@@ -264,11 +264,10 @@ where
 // ******************************************************************************************************
 
 startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) | iData a 
-startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintaskorg tst=:{hst,tasknr,staticInfo}
+startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
 
 // prologue
 
-# maintask				= scheduleWorkflows maintaskorg												// force main process to start on tasknr 0.1
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
@@ -296,8 +295,9 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 
 // Here the iTasks are evaluated ...
 													    
+# maintask				= scheduleWorkflows maintask								// 
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						= calculateNewWorkflows ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
+						= scheduleNewWorkflows ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
 							maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
@@ -638,31 +638,36 @@ where
 	scheduleWorkflows` tst=:{hst} 
 	# (a,tst=:{activated,hst}) 	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
 	# (wfls,hst) 				= workflowProcessStore id hst												// read workflow process administration
-	# (done,tst)				= calculateWorkflows True wfls 0 {tst & hst = hst,activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
+	# (done,tst)				= scheduleWorkflowTable True wfls 0 {tst & hst = hst,activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})																// whole application ends when all processes have ended
 
-calculateWorkflows done [] _ tst = (done,tst)
-calculateWorkflows done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
+scheduleWorkflowTable done [] _ tst = (done,tst)
+scheduleWorkflowTable done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
 # (_,tst=:{activated}) = dyntask {tst & activated = True}
-= calculateWorkflows (done && activated) wfls (inc procid) {tst & activated = activated}
-calculateWorkflows done [SuspendedWorkflow _ _:wfls] procid tst
-= calculateWorkflows done wfls (inc procid) tst
-calculateWorkflows done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
+= scheduleWorkflowTable (done && activated) wfls (inc procid) {tst & activated = activated}
+scheduleWorkflowTable done [SuspendedWorkflow _ _:wfls] procid tst
+= scheduleWorkflowTable done wfls (inc procid) tst
+scheduleWorkflowTable done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
 # (_,tst) = dyntask tst
-= calculateWorkflows done wfls (inc procid) tst
-calculateWorkflows done [DeletedWorkflow _:wfls] procid tst
-= calculateWorkflows done wfls (inc procid) tst
+= scheduleWorkflowTable done wfls (inc procid) tst
+scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
+= scheduleWorkflowTable done wfls (inc procid) tst
 
-calculateNewWorkflows main tst=:{hst} 
+//scheduleNewWorkflows main tst = main tst
+scheduleNewWorkflows main tst=:{hst} 
 # (wfls,hst) 				= workflowProcessStore id hst				// read workflow process administration
 # lengthwfls				= length wfls
-# (res,tst=:{hst})			= main {tst & hst = hst}					// calculate workflows
-# (nwfls,hst) 				= workflowProcessStore id hst				// read workflow process administration
-# lengthnwfls				= length nwfls
-| lengthnwfls > lengthwfls 												// more workflows processes have been added in the mean time
-	# (done,tst) = (calculateWorkflows True (drop (length wfls) nwfls) lengthwfls) {tst & hst = hst,activated = True}	// calculate this one as well
-	= calculateNewWorkflows (\tst -> (res,tst)) tst
-= (res,{tst & hst = hst})
+# (res,tst=:{activated})	= main {tst & hst = hst}					// calculate workflows
+# (done,tst)				= scheduleNewProcess lengthwfls tst
+= (res,{tst & activated = activated && done})
+where
+	scheduleNewProcess lengthwfls tst=:{hst}
+	# (nwfls,hst) 			= workflowProcessStore id hst				// read workflow process administration
+	# lengthnwfls			= length nwfls
+	| lengthnwfls > lengthwfls
+		# (done,tst) 		= (scheduleWorkflowTable True (drop lengthwfls nwfls) (lengthwfls + 1)) {tst & hst = hst,activated = True}	// calculate this one as well
+		= scheduleNewProcess lengthnwfls tst
+	= (True,{tst & hst = hst})
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
 spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
