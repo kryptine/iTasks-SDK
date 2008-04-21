@@ -70,6 +70,41 @@ where
 							, part % (index + 4, size part))
 
 //Parsing of HTTP Request messages
+
+//Add new data to a request
+http_addRequestData :: !HTTPRequest !Bool !Bool !Bool !String -> (HTTPRequest, Bool, Bool, Bool, Bool)
+http_addRequestData req requestline_done headers_done data_done data
+	# req	= {req & req_data = req.req_data +++ data}	//Add the new data
+	//Parsing of the request line
+	| not requestline_done
+		# index = text_indexOf "\r\n" req.req_data
+		| index == -1	= (req,False,False,False,False)	//The first line is not complete yet
+		| otherwise
+			# (method,path,query,version,error) = http_parseRequestLine (req.req_data % (0, index - 1))
+			| error	= (req,False,False,False,True)			//We failed to parse the request line
+			# req = {req & req_method = method, req_path = path, req_query = query, req_version = version, req_data = req.req_data % (index + 2, size req.req_data) }
+			= http_addRequestData req True False False ""	//We are done with the request line but still need to inspect the rest of the data
+	//Parsing of headers
+	| not headers_done
+		# index = text_indexOf "\r\n" req.req_data
+		| index == -1	= (req,True,False,False,False)		//We do not have a full line yet
+		| index == 0										//We have an empty line, this means we have received all the headers
+			# req = {req & req_data = req.req_data % (2, size req.req_data)}
+			= http_addRequestData req True True False ""	//Headers are finished, continue with the data part
+		| otherwise
+			# (header,error) = http_parseHeader (req.req_data % (0, index - 1))
+			| error = (req,True,False,False,True)			//We failed to parse the header
+			# req = {req & req_headers = [header:req.req_headers], req_data = req.req_data % (index + 2, size req.req_data)}
+			= http_addRequestData req True False False ""	//We continue to look for more headers
+	//Addition of data
+	| not data_done
+		# datalength	= toInt (http_getValue "Content-Length" req.req_headers "0")
+		| (size req.req_data) < datalength	= (req,True,True,False,False)	//We still need more data
+											= (req,True,True,True,False)	//We have all data and are done
+	//Data is added while we were already done
+	= (req,True,True,True,False) 
+
+
 http_parseRequestLine :: !String -> (!String,!String,!String,!String,!Bool)
 http_parseRequestLine line
 	# parts	= text_split " " line
@@ -116,7 +151,7 @@ http_parseMultiPartPostArguments req
 	# index			= text_indexOf "boundary=" mimetype
 	| index == -1	= ([],[])
 	# boundary		= mimetype % (index + 9, size mimetype)
-	# parts			= http_splitMultiPart boundary req.req_data 
+	# parts			= http_splitMultiPart boundary req.req_data
 	= parseParts parts [] []
 where
 	parseParts [] arguments uploads	= (arguments, uploads)

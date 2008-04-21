@@ -8,6 +8,10 @@ http_urldecode :: !String -> String
 
 http_splitMultiPart :: !String !String -> [([HTTPHeader], String)]
 
+//Incremental construction of a request
+http_addRequestData :: !HTTPRequest !Bool !Bool !Bool !String -> (HTTPRequest, Bool, Bool, Bool, Bool)
+
+
 //Parsing of HTTP Request messages
 http_parseRequestLine :: !String -> (!String, !String, !String, !String, !Bool)
 http_parseHeader :: !String -> (!HTTPHeader, !Bool)
