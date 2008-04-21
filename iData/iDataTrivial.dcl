@@ -8,7 +8,6 @@ import StdMaybe, StdGeneric, StdOverloaded
 
 mkString		:: ![Char] -> *String
 mkList			:: !String -> [Char]
-FindSubstr		:: .[a] !.[a] -> (!Bool,!Int) | == a
 stl				:: !u:[.a] -> v:[.a], [u <= v]
 
 //	Useful string concatenation function

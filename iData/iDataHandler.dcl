@@ -23,7 +23,8 @@ derive write 	Inline
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submitting mode
-				  , states	:: !*FormStates  	// all form states are collected here ... 	
+				  , states	:: !*FormStates  	// all form states are collected here ... 
+				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , world	:: *NWorld			// to enable all other kinds of I/O
 				  }	
 
@@ -31,14 +32,15 @@ derive write 	Inline
 
 :: UserPage 	:== .(*HSt -> .(!Bool,Html,!*HSt))
 
-// doHtmlServer main wrapper for generating & handling of an Html form
-// depending on the option set (see iDataSettings) it will either 
-//			- link in an http 1.0 server
-//			- administrate itself as subserver to an http 1.1 server
+// doHtmlServer & doHtmlClient main wrappers for generating & handling of Html forms
 
-doHtmlServer 		:: UserPage !*World -> *World 					
-doHtmlServer2 		:: ![(String,UserPage)] !*World -> *World
-doHtmlClient 		:: !*World  !UserPage  !String -> String
+doHtmlWrapper		:: UserPage !*World -> *World	//Combined wrapper which starts the server or client wrapper
+
+doHtmlServer 		:: UserPage !*World -> *World	//Server-side engine
+doHtmlClient 		:: UserPage !*World -> *World	//Client-side engine (SAPL)		
+
+//doHtmlServer2 		:: ![(String,UserPage)] !*World -> *World
+
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

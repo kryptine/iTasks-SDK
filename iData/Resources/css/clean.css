@@ -1,0 +1,46 @@
+body {
+	background-image: url('../img/clean-background.jpg');
+	font-family: Arial, Helvetica, sans-serif;
+	font-style: normal;
+	font-weight: normal;
+	font-size: 14pt;
+	color: white;
+}
+form {
+	display: inline;
+}
+h1 {
+	text-align: center;
+	border-bottom: 1px solid;
+}
+.EditBox {
+		font-family: Arial, Helvetica, sans-serif;
+		font-size: 12pt;
+}
+.DisplayBox {
+	font-family: Arial, Helvetica, sans-serif;
+	font-style: normal;
+	font-weight: normal;
+	font-size: 12pt;
+	color: white;
+	background-color: #32729D;
+}
+.Label {
+	color: yellow;
+	font-weight: bold;
+}
+.MainLabel {
+	color: red;
+	font-weight: bold;
+}
+.HighLight {
+	color: aqua;
+	font-weight: bold;
+}
+.LowLight {
+	color: aqua;
+}
+.Trace {
+	color: silver;
+	font-weight: bold;
+}

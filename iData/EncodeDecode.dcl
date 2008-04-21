@@ -25,22 +25,20 @@ import iDataFormData
 	| UpdS String												// new piece of text
 
 encodeTriplet		:: !Triplet -> String						// encoding of triplets
+encodeInputId		:: !Triplet -> String
 encodeString 		:: !String  -> String						// encoding of string 
 decodeString 		:: !String -> *String
 urlEncode 			:: !String ->  String
 urlDecode 			:: !String -> *String
 
 // Form submission handling
-
 callClean 					:: !(Script -> ElementEvents) !Mode !String !Lifespan !Bool -> [ElementEvents]
-submitscript 				::  BodyTag
-initscript					::	BodyTag
-globalstateform 			:: !Value !Value -> BodyTag
+
 
 // serializing, de-serializing of iData states to strings stored in the html page
 
 EncodeHtmlStates 			:: ![HtmlState] -> String
-DecodeHtmlStatesAndUpdate 	:: (Maybe [(String, String)]) -> (![HtmlState],!Triplets,!String) // hidden state stored in Client + triplets
+DecodeHtmlStatesAndUpdate 	:: [(String, String)] -> (![HtmlState],!Triplets,!String) // hidden state stored in Client + triplets
 
 // serializing, de-serializing of iData state stored in files
 
@@ -50,12 +48,10 @@ deleteStateFile 			:: !String !*NWorld -> *NWorld
 
 // constants that maybe useful
 
-traceHtmlInput				:: !(Maybe [(String, String)]) -> BodyTag					// for debugging showing the information received from browser
-trace_to_file 				:: !String !*World -> *World											// for storing debug information to file
+traceHtmlInput				:: [(String, String)] -> BodyTag					// for debugging showing the information received from browser
+trace_to_file 				:: !String !*World -> *World						// for storing debug information to file
 
 
-globalFormName	:== "CleanForm"		// name of hidden Html form in which iData state information is stored
-updateInpName	:== "UD"			// marks update information
 globalInpName	:== "GS"			// marks global state information
 selectorInpName	:== "CS_"			// marks constructor update
 focusInpName	:== "FS"			// marks the focus of the cursor at the time the form was sent

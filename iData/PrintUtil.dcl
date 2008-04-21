@@ -37,6 +37,9 @@ derive gHpr Int, Real, Bool, String, Char, []
 
 print_to_stdout :: !a !*HtmlStream			-> *HtmlStream | gHpr{|*|} a
 
+// instance of toString for an html stream.
+instance toString [# String !]
+
 // handy utility print routines	
 
 print 			:: !String 				-> FoF

@@ -36,7 +36,7 @@ import GenEq
 	| 	Display									// 	a non-editable form
 	|	NoForm									//	do not generate a form, only a value
 
-:: HBimap d v 									// swiss army nife allowing to make a distinction between data and view domain
+:: HBimap d v 									// swiss army knife allowing to make a distinction between data and view domain
 	=	{ toForm   	:: Init d (Maybe v) -> v	// 	converts data to view domain, given current view
 		, updForm 	:: Changed v -> v			// 	update function, True when the form is edited 
 		, fromForm 	:: Changed v -> d			// 	converts view back to data domain, True when form is edited

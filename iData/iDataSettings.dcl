@@ -4,8 +4,10 @@ definition module iDataSettings
 // Concept & Programming (c) 2005 - 2007 Rinus Plasmeijer
 
 import iDataHandler
+import iDataCompileOptions
 import Gerda							// OPTION: GEneRic Database Access to a standard relational database, made by Arjen van Weelden
 import DataFile							// OPTION: A fast generic database stored in a file, made by Arjen van Weelden
+import HttpServer
 
 
 // Global settings of iData applications
@@ -29,8 +31,6 @@ IF_Ajax aj no_aj		:== no_aj		// Otherwise
 //IF_ClientServer cs no_cs	:== cs		// If you want to have a client server architecture (with Sapl running on the client)
 IF_ClientServer cs no_cs	:== no_cs		// Otherwise
 
-//IF_Client cl no_cl		:== cl			// If you want to generatecode for the Client (Sapl); IF_ClientServer should be set as well//
-IF_Client cl no_cl		:== no_cl		// If you want to generatecode for the Sever        ; IF_ClientServer should be set as well
 
 IF_ClientTasks :: .a .a -> .a			// Follows IF_Client setting
 
@@ -70,6 +70,7 @@ class iSpecialStore a
 
 :: ServerType
 	=	Internal						// Default: The application is linked with a Clean http 1.0 server
+	|	CGI								// The application is used through an external server with the Common Gateway Interface
 	|	External						// The application runs as a subserver connected to a http 1.1 server
 	|	TestMode						// The application is tested with Gast (in collaboration with Gast)
 
@@ -78,14 +79,24 @@ instance == ServerType
 // Set here the kind of server you want to use and the port number to use for the communication
 
 ServerKind				:==	Internal	// Enable this one for developing an iData or iTask application
+//ServerKind				:== CGI			// or: Enable this one for running the final version through CGI
 //ServerKind				:==	External	// or: Enable this one for the final version using an http 1.1 server
 
-SocketNr				:== 80			// Socket you wnat to work on, default = 80
+
+ServerOptions			:== [HTTPServerOptPort 80]		//Options for the internal HTTP server.
+//ServerOptions			:== []							//Options for the CGI wrapper
+//ServerOptions			:== [HTTPSubServerOptPort 80]	//Options for the external subserver.
 
 // Global Settings determining where files are stored
 
 ThisExe					:: String									// name of this executable (without .exe)
 MyAbsDir				:: String									// absolute path name of directory in which this execuatble is located in
+
+
+// absolute path name of directory where static resources (css,js,img etc.) are stored 
+//ResourceDir				:== MyAbsDir +++ ThisExe 					
+ResourceDir				:== "C:\\Documents and Settings\\Bas Lijnse\\My Documents\\Clean\\Libraries\\iData\\Resources\\"
+
 
 iDataStorageDir 		:== MyAbsDir +++ ThisExe +++ "-iStore"		// directory name where iData and iTask files are stored
 
@@ -96,12 +107,9 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== False									// show what kind of information is received from Client
+TraceInput				:== True									// show what kind of information is received from Client
 TraceOutput				:== False									// show what kind of information is stored when application is finished
 TraceThreads			:== True									// show the threadtable
-
-TraceHttp10				:== True									// show what kind of information is received by the Clean http 1.0 HtmlServer
-TraceHttp11				:== False									// show what kind of information is received by the Clean http 1.1 SubServer, stored in TraceFile
 
 // separators
 

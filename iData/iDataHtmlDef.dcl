@@ -668,7 +668,7 @@ None				:== [NoAttr]
 					| `Tr_Events		[ElementEvents]
 
 :: TxtA_Attr		= Txa_Cols			Int							// number of columns visible in the text-area
-					| Txa_Disabled									// disables the text-area when it is first displayed
+					| Txa_Disabled		Disabled					// disables the text-area when it is first displayed
 					| Txa_Name			String						// name for the text-area
 					| Txa_Readonly									// the user cannot modify the content in the text-area
 					| Txa_Rows			Int							// number of rows visible in the text-area

@@ -572,8 +572,8 @@ where
 openWindowScript ::  !String !Int !Int !Bool !Bool !Bool !Bool !Bool !Bool !Html -> Script
 openWindowScript scriptname height width toolbar menubar scrollbars resizable location status html
 = FScript( \file -> file <+
-			"\rfunction " <+ scriptname <+ "\r" <+
-			"{\rOpenWindow=window.open(\"\", \"newwin\", \"" <+
+			"function " <+ scriptname <+ 
+			"{var OpenWindow = window.open(\"\", \"newwin\", \"" <+
 					"height="      <+ height        <+
 					",width="      <+ width         <+
 					",toolbar="    <+ yn toolbar    <+
@@ -581,10 +581,10 @@ openWindowScript scriptname height width toolbar menubar scrollbars resizable lo
 					",scrollbars=" <+ yn scrollbars <+
 					",resizable="  <+ yn resizable  <+
 					",location="   <+ yn location   <+
-					",status="     <+ yn status     <+ "\");\r" <+
-				"OpenWindow.document.write(\"" <+ html <+ "</HTML>\");\r" <+
-				"OpenWindow.document.close();\r" <+
-			"}\r")
+					",status="     <+ yn status     <+ "\"); " <+
+				"OpenWindow.document.write('" <+ html <+ "'); " <+
+				"OpenWindow.document.close(); " <+
+			"}")
 where
 	yn bool					= if bool "yes" "no" 
 

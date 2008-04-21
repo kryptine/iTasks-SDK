@@ -20,6 +20,7 @@ instance == ServerType
 where
 	(==) Internal Internal = True	
 	(==) External External = True
+	(==) CGI      CGI      = True
 	(==) TestMode TestMode = True
 	(==) _ _ = False
 

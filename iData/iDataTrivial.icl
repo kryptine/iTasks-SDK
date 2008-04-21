@@ -12,17 +12,6 @@ mkString	listofchar				= {c \\ c <- listofchar }
 mkList		:: !String -> [Char]
 mkList		string					= [c \\ c <-: string ]
 
-FindSubstr	:: .[a] !.[a] -> (!Bool,!Int) | == a
-FindSubstr substr list				= FindSubstr` list 0 
-where
-	lsubstr							= length substr
-	
-	FindSubstr` list=:[] _			= (False,0)
-	FindSubstr` list=:[x:xs] index
-	| substr == take lsubstr list	= (True,index)
-	| otherwise						= FindSubstr` xs (index + 1)
-
-
 stl			:: !u:[.a] -> v:[.a], [u <= v]
 stl []					= []
 stl [x:xs]				= xs 

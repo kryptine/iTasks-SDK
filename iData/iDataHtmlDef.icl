@@ -141,12 +141,12 @@ gHpr{|Value|}   prev (RV real) 					= prev <+ printToString real
 gHpr{|Value|}   prev (BV bool) 					= prev <+ printToString bool		
 gHpr{|Value|}   prev (NQV string)				= prev <+ string 			
 
-gHpr{|ScriptType|} prev (TypeEcmascript) 		= prev <+ "\"text/Emacscript\""		
-gHpr{|ScriptType|} prev (TypeJavascript) 		= prev <+ "\"text/Javascript\""		
-gHpr{|ScriptType|} prev (Typejscript)			= prev <+ "\"text/jscript\""		
-gHpr{|ScriptType|} prev (TypeVbscript)			= prev <+ "\"text/Vbscript\""		
-gHpr{|ScriptType|} prev (TypeVbs)				= prev <+ "\"text/Vbs\""		
-gHpr{|ScriptType|} prev (TypeXml)				= prev <+ "\"text/Xml\""		
+gHpr{|ScriptType|} prev (TypeEcmascript) 		= prev <+ "text/emacscript"		
+gHpr{|ScriptType|} prev (TypeJavascript) 		= prev <+ "text/javascript"		
+gHpr{|ScriptType|} prev (Typejscript)			= prev <+ "text/jscript"		
+gHpr{|ScriptType|} prev (TypeVbscript)			= prev <+ "text/vbscript"		
+gHpr{|ScriptType|} prev (TypeVbs)				= prev <+ "text/vbs"		
+gHpr{|ScriptType|} prev (TypeXml)				= prev <+ "text/xml"		
 
 gHpr{|SizeOption|} prev (Pixels num)			= prev  <+ num 
 gHpr{|SizeOption|} prev (Percent num)			= prev  <+ num <+ "%" 

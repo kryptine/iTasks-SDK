@@ -303,7 +303,7 @@ where
 //
 // De-serialize information from server to the internally used form states
 
-retrieveFormStates :: (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 					// retrieves all form states hidden in the html page
+retrieveFormStates :: [(String, String)] *NWorld -> (*FormStates,*NWorld) 	// retrieves all form states hidden in the html page
 retrieveFormStates args world 
 	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets, focusid = focus},world)
 where
@@ -327,17 +327,13 @@ where
 // Serialize all states in FormStates that have to be remembered to either hidden encoded Html Code
 // or store them in a persistent file, all depending on the kind of states
 
-storeFormStates :: !FormStates *NWorld -> (BodyTag,*NWorld)
+storeFormStates :: !FormStates *NWorld -> (String, String, *NWorld)
 storeFormStates {fstates = allFormStates, focusid = focus} world
-#	world							= writeAllTxtFileStates allFormStates world			// first write all persistens states
-=	(BodyTag
-	[ IF_Ajax EmptyBody submitscript													// submitscript defined in ajaxscript   
-	, initscript																		// initscript does page initialization in javascript
-	, globalstateform (SV encodedglobalstate) (SV focus) 
-	],world)
-where
-	encodedglobalstate				= EncodeHtmlStates (FStateToHtmlState allFormStates [])
+# world						= writeAllTxtFileStates allFormStates world				// first write all persistens states
+# encodedpagestate			= EncodeHtmlStates (FStateToHtmlState allFormStates []) // encode states in the page
+= (encodedpagestate, focus, world)
 
+where
 	FStateToHtmlState :: !(Tree_ (String,.FormState)) *[HtmlState] -> *[HtmlState]
 	FStateToHtmlState Leaf_ accu	= accu
 	FStateToHtmlState (Node_ left x right) accu

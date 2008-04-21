@@ -4,12 +4,13 @@ import StdFunc, StdList, StdString, StdArray
 import iDataFormlib, iDataHandler, iDataStylelib, iDataTrivial, StdBimap
 
 derive gUpd  	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode/*, Button, CheckBox*/, RadioButton /*, PullDownMenu, TextInput , TextArea, PasswordBox*/
-derive gPrint 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, PullDownMenu, TextInput, TextArea, PasswordBox
-derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, PullDownMenu, TextInput, TextArea, PasswordBox
-derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, PullDownMenu, TextInput, TextArea, PasswordBox
-derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, PullDownMenu, TextInput, TextArea, PasswordBox
-derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, PullDownMenu, TextInput, TextArea, PasswordBox
+derive gPrint 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
+derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
+derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
+derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
+derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
 
+/*
 :: TextInput	= TI Int Int						// Input box of size Size for Integers
 				| TR Int Real						// Input box of size Size for Reals
 				| TS Int String						// Input box of size Size for Strings
@@ -18,6 +19,7 @@ derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, Check
 // Types that have an effect on lay-out
 
 :: HTML = HTML [BodyTag]
+*/
 
 gForm {|HTML|} (init,formid ) hst	= specialize myeditor (Set,formid) hst
 where
@@ -141,8 +143,8 @@ gForm{|Button|} (init,formid) hst
 							[ Inp_Type		Inp_Button
 							, Inp_Value		(SV (cleanString bname))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS bname))
-							, `Inp_Std		[Std_Style ("width:" <+++ size), Std_Id (encodeTriplet (formid.id,cntr,UpdS bname))]
-							, `Inp_Events	(callClean OnClick Edit "" formid.lifespan True)
+							, `Inp_Std		[Std_Style ("width:" <+++ size), Std_Id (encodeInputId (formid.id,cntr,UpdS bname))]
+							, `Inp_Events	(callClean OnClick Edit (encodeTriplet (formid.id,cntr,UpdS bname)) formid.lifespan True)
 							]) ""]
 		},(incrHSt 1 hst))
 	v=:(PButton (height,width) ref)
@@ -152,8 +154,8 @@ gForm{|Button|} (init,formid) hst
 							[ Inp_Type		Inp_Image
 							, Inp_Value		(SV (cleanString ref))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS ref))
-							, `Inp_Std		[Std_Style ("width:" <+++ width <+++ " height:" <+++ height), Std_Id (encodeTriplet (formid.id,cntr,UpdS ref))]
-							, `Inp_Events	(callClean OnClick Edit "" formid.lifespan True)
+							, `Inp_Std		[Std_Style ("width: " <+++ width <+++ "px; height: " <+++ height <+++ "px"), Std_Id (encodeInputId (formid.id,cntr,UpdS ref))]
+							, `Inp_Events	(callClean OnClick Edit (encodeTriplet (formid.id,cntr,UpdS ref)) formid.lifespan True)
 							, Inp_Src ref
 							]) ""]
 		},incrHSt 1 hst)
@@ -171,8 +173,8 @@ gForm{|CheckBox|} (init,formid) hst
 							, Inp_Value		(SV (cleanString name))
 							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
 							, Inp_Checked	Checked
-							, `Inp_Std		[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
-							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan True)
+							, `Inp_Std		[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
+							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
 		},incrHSt 1 hst)
 	v=:(CBNotChecked name)
@@ -181,9 +183,9 @@ gForm{|CheckBox|} (init,formid) hst
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type		Inp_Checkbox
 							, Inp_Value		(SV (cleanString name))
-							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
-							, `Inp_Std		[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
-							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan True)
+							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS ""))
+							, `Inp_Std		[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
+							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
 		},incrHSt 1 hst)
 
@@ -198,8 +200,8 @@ gForm{|RadioButton|} (init,formid) hst
 							, Inp_Value			(SV (cleanString name))
 							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
 							, Inp_Checked		Checked
-							, `Inp_Std			[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
-							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan True)
+							, `Inp_Std			[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
+							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
 		},incrHSt 1 hst)
 	v=:(RBNotChecked name)
@@ -208,11 +210,30 @@ gForm{|RadioButton|} (init,formid) hst
 		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
 							[ Inp_Type			Inp_Radio
 							, Inp_Value			(SV (cleanString name))
-							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
-							, `Inp_Std			[Std_Id (encodeTriplet (formid.id,cntr,UpdS name))]
-							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan True)
+							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS ""))
+							, `Inp_Std			[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
+							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
 		},incrHSt 1 hst)
+
+gForm{|RadioGroup|} (init, formid) hst
+# (cntr, hst)			= CntrHSt hst
+= case formid.ival of
+	v=:(RadioGroup (sel, itemlist))
+	= ( { changed		= False
+		, value			= v
+		, form			= flatten [([Input (
+							[ Inp_Type			Inp_Radio
+							, Inp_Value			(SV (toString i))
+							, Inp_Name			(encodeTriplet (formid.id, cntr, UpdI sel))
+							, `Inp_Std			[Std_Id ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)]
+							, `Inp_Events		(callClean OnChange formid.mode "" formid.lifespan False)
+							] ++ (if (i == sel) [Inp_Checked Checked] []) ++ (onMode formid.mode [] [] [Inp_Disabled Disabled] [])) ""
+							] ++ [Label [Lbl_For ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)] body, Br] )
+							\\ body <- itemlist & i <- [0..]
+						  ]
+		},incrHSt 1 hst)
+
 
 gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 # (cntr,hst)			= CntrHSt hst
@@ -224,8 +245,8 @@ gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 							[ Sel_Name			(selectorInpName +++ encodeString 
 													(if (menuindex >= 0 && menuindex < length itemlist) (itemlist!!menuindex) ""))
 							, Sel_Size			size
-							, `Sel_Std			[Std_Style ("width:" <+++ width <+++ "px"), Std_Id (selectorInpName +++ encodeString (if (menuindex >= 0 && menuindex < length itemlist) (itemlist!!menuindex) ""))]
-							, `Sel_Events		(if submits [] (callClean OnChange formid.mode formid.id formid.lifespan True))
+							, `Sel_Std			[Std_Style ("width:" <+++ width <+++ "px"), Std_Id (encodeInputId (formid.id,cntr,UpdS "") )]
+							, `Sel_Events		(if submits [] (callClean OnChange formid.mode "" formid.lifespan False))
 							])
 							[ Option 
 								[ Opt_Value (encodeTriplet (formid.id,cntr,UpdC (itemlist!!j)))
@@ -250,11 +271,13 @@ gForm{|TextArea|} (init,formid) hst
 # (cntr,hst)			= CntrHSt hst
 = (	{ changed			= False
 	, value				= formid.ival
-	, form				= [myTable [	[ Textarea 	[ Txa_Name (encodeTriplet (formid.id,cntr,UpdS string))
-						  				, Txa_Rows (if (row == 0) 10 row)
-						  				, Txa_Cols (if (col == 0) 50 col)
-						  				, `Txa_Std	[Std_Id (encodeTriplet (formid.id,cntr,UpdS string))]
-						  				] string ]
+	, form				= [myTable [	[ Textarea 	((onMode formid.mode [] [] [Txa_Disabled Disabled] []) ++
+											[ Txa_Name (encodeTriplet (formid.id,cntr,UpdS string))
+						  					, Txa_Rows (if (row == 0) 10 row)
+						  					, Txa_Cols (if (col == 0) 50 col)
+						  					, `Txa_Std	[Std_Id (encodeTriplet (formid.id,cntr,UpdS string))]
+						  					, `Txa_Events (callClean OnChange formid.mode formid.id formid.lifespan False)
+						  					]) string ]
 						  			]
 						  ]
 	},incrHSt 1 hst)
@@ -267,9 +290,9 @@ where
 		mktable table 	= [Tr [] (mkrow rows) \\ rows <- table]	
 		mkrow rows 		= [Td [Td_VAlign Alo_Top, Td_Width (Pixels defpixel)] [row] \\ row <- rows] 
 
-gUpd{|TextArea|}       (UpdSearch (UpdS name) 0) (TextArea r c s) 	= (UpdDone,                TextArea r c (urlDecode name))									// update button value
+gUpd{|TextArea|}       (UpdSearch (UpdS name) 0) (TextArea r c s) 	= (UpdDone,                TextArea r c (urlDecode name))			// update button value
 gUpd{|TextArea|}       (UpdSearch val cnt)       t					= (UpdSearch val (cnt - 1),t)										// continue search, don't change
-gUpd{|TextArea|}       (UpdCreate l)             _					= (UpdCreate l,            TextArea defsize defsize "")					// create default value
+gUpd{|TextArea|}       (UpdCreate l)             _					= (UpdCreate l,            TextArea defsize defsize "")				// create default value
 gUpd{|TextArea|}       mode                      t					= (mode,                   t)										// don't change
 
 gForm{|PasswordBox|} (init,formid) hst 	
@@ -288,7 +311,7 @@ where
 					, Inp_Value		(SV (cleanString sval))
 					, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
 					, Inp_Size		size
-					, `Inp_Std		[EditBoxStyle, Std_Title "::Password", Std_Id (encodeTriplet (formid.id,cntr,updval))]
+					, `Inp_Std		[EditBoxStyle, Std_Title "::Password", Std_Id (encodeInputId (formid.id,cntr,updval))]
 					, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange Edit "" formid.lifespan False) []
 					] ""
 			,incrHSt 1 hst)
@@ -353,7 +376,7 @@ gUpd{|PullDownMenu|} mode                      v				= (mode,                   v
 
 gUpd{|Button|}       (UpdSearch (UpdS name) 0) _				= (UpdDone,                Pressed)									// update button value
 gUpd{|Button|}       (UpdSearch val cnt)       b				= (UpdSearch val (cnt - 1),b)										// continue search, don't change
-gUpd{|Button|}       (UpdCreate l)             _				= (UpdCreate l,            LButton defsize "Press")					// create default value
+gUpd{|Button|}       (UpdCreate l)             _				= (UpdCreate l,            LButton defpixel "Press")				// create default value
 gUpd{|Button|}       mode                      b				= (mode,                   b)										// don't change
 
 gUpd{|CheckBox|}     (UpdSearch (UpdS name) 0) (CBChecked    s)	= (UpdDone,                CBNotChecked s)							// update CheckBox value
@@ -361,6 +384,12 @@ gUpd{|CheckBox|}     (UpdSearch (UpdS name) 0) (CBNotChecked s)	= (UpdDone,     
 gUpd{|CheckBox|}     (UpdSearch val cnt)       b				= (UpdSearch val (cnt - 1),b)										// continue search, don't change
 gUpd{|CheckBox|}     (UpdCreate l)             _				= (UpdCreate l,            CBNotChecked "defaultCheckboxName")		// create default value
 gUpd{|CheckBox|}     mode                      b				= (mode,                   b)										// don't change
+
+gUpd{|RadioGroup|} 	(UpdSearch (UpdI sel) 0) (RadioGroup (index,itemlist)) 
+																= (UpdDone,                RadioGroup (sel,itemlist))				// update integer value
+gUpd{|RadioGroup|} 	(UpdSearch val cnt)       v					= (UpdSearch val (cnt - 1),v)										// continue search, don't change
+gUpd{|RadioGroup|} 	(UpdCreate l)             _					= (UpdCreate l,            RadioGroup (0,["error"]))				// create default value
+gUpd{|RadioGroup|}	mode                      v					= (mode,                   v)										// don't change
 
 gUpd{|TextInput|}    (UpdSearch (UpdI ni) 0)   (TI size i)		= (UpdDone,                TI size ni)								// update integer value
 gUpd{|TextInput|}    (UpdSearch (UpdR nr) 0)   (TR size r)		= (UpdDone,                TR size nr)								// update real    value

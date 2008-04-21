@@ -44,6 +44,31 @@ where
 	myfold file [x:xs] = myfold (gHlist file x) xs
 	myfold file [] = file
 
+
+// instance of toString for an html stream.
+instance toString [# String !]
+where
+	toString stream
+		# n_chars						= count_chars stream 0
+		= copy_strings stream n_chars (createArray n_chars '\0')
+	where
+		count_chars [|]    n = n
+		count_chars [|s:l] n = count_chars l (n+size s)
+		
+		copy_strings [|e:l] i s
+			# size_e	= size e
+			# i			= i-size_e
+			= copy_strings l i (copy_chars e 0 i size_e s)
+		copy_strings [|] 0 s
+			= s
+			
+		copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
+		copy_chars s_s s_i d_i n d_s
+			| s_i<n
+				# d_s	= {d_s & [d_i]=s_s.[s_i]}
+				= copy_chars s_s (s_i+1) (d_i+1) n d_s
+				= d_s
+		
 // utility print functions based on gHpr
 
 print			:: !String -> FoF

@@ -26,8 +26,8 @@ changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates *NWorld -> (*Fo
 
 // storage and retrieval of FormStates
 
-retrieveFormStates 	:: (Maybe [(String, String)]) *NWorld -> (*FormStates,*NWorld) 	// retrieves all form states hidden in the html page
-storeFormStates 	:: !FormStates *NWorld -> (BodyTag,*NWorld)
+retrieveFormStates 	:: [(String, String)] *NWorld -> (*FormStates,*NWorld) 	// retrieves all form states hidden in the html page
+storeFormStates 	:: !FormStates *NWorld -> (String, String, *NWorld)
 
 
 getTriplets 		:: !String !*FormStates -> (Triplets,!*FormStates)	// retrieve triplets matching given id

@@ -7,7 +7,7 @@ import iDataStyleDef, StdInt, iDataSettings
 StyleSheetIntern	:== False							// True, if the internlly defined CleanStyles are being used, otherwise use styles defined externally
 
 InternalCleanStyles	:: [Style]							// Internal styles defined in this module
-ExternalCleanStyles	:== ThisExe +++ "\/clean.css"		// External styles can be found here
+ExternalCleanStyles	:== ThisExe +++ "/css/clean.css"	// External styles can be found here
 
 
 

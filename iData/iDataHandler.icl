@@ -4,7 +4,7 @@ import StdArray, StdChar, StdList, StdStrictLists, StdString, StdTuple
 import ArgEnv, StdMaybe
 import iDataHtmlDef, iDataTrivial, iDataSettings, iDataStylelib, iDataState
 import StdGeneric, GenParse, GenPrint
-import httpServer, httpSubServer
+import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import Gerda
 import StdBimap
 
@@ -20,7 +20,8 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submit form
-				  , states	:: !*FormStates  	// all form states are collected here ... 	
+				  , states	:: !*FormStates  	// all form states are collected here ... 
+				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , world	:: *NWorld			// to enable all other kinds of I/O
 				  }	
 :: InputId	 	:== Int							// unique id for every constructor and basic value appearing in the state
@@ -42,117 +43,100 @@ openmDataFile datafile world
 closemDataFile datafile world
 :== IF_DataFile (closeDataFile datafile world) world
 
-//////////////////  EXPERIMENTAL
 
-doHtmlServer2 :: ![(String,UserPage)] !*World -> *World
-doHtmlServer2 userpages world
-| ServerKind == Internal		// link in http 1.0 server
-= StartServer SocketNr [(thisExe, \_ _ args -> doHtmlPageAndPrint args userpage) \\ (thisExe,userpage) <- userpages] world
-//| ServerKind == External		// connect with http 1.1 server
-//= doHtmlSubServer userpage world
+//doHtmlWrapper: When using a client/server architecture, the doHtmlWrapper may be used instead of
+//doHtmlServer. It switches between doHtmlServer and doHtmlClient depending on which compile option
+//is selected.
 
-// Experimental version of doHtmlServer for Client site evaluation ....
-
-
-
-/////////////////////////////////
-
+doHtmlWrapper :: UserPage !*World -> *World
+doHtmlWrapper userpage world = IF_Client (doHtmlClient userpage world) (doHtmlServer userpage world)
 
 // doHtmlServer: top level function given to end user.
 // It sets up the communication with a (sub)server or client, depending on the option chosen.
 
 doHtmlServer :: UserPage !*World -> *World
 doHtmlServer userpage world
-| ServerKind == Internal											// link in the Clean http 1.0 server
-= 			(	IF_Ajax													// on Sever side: 
-			(StartAjax   userpage world)							// handle all communication via Ajax
-			(StartServer SocketNr [(ThisExe, \_ _ args -> doHtmlPageAndPrint args userpage)] world)	// all communication will invoke a new page
-		)
-| ServerKind == External											// connect with http 1.1 server
-= doHtmlSubServer userpage world									// currently only standard communication is implemented
-
-StartAjax :: !UserPage !*World -> *World
-StartAjax userpage world
-= StartServer SocketNr [(ThisExe, \_ _ args -> defaultpage args),  // empty page with script and div
-                        (ThisExe +++ "_ajax", \_ _ args -> doHtmlPageAndPrint args userpage)] world
+| ServerKind == Internal
+	# world	= instructions world
+	= StartServer userpage world									// link in the Clean http 1.0 server	
+//| ServerKind == External											// connect with http 1.1 server
+//| ServerKind == CGI												// build as CGI application
+| otherwise
+	= unimplemented world
 where
-	defaultpage  _ world =  ([], initAjaxPage,world)
+	instructions :: *World -> *World
+	instructions world
+		# (console, world)	= stdio world
+		# console			= fwrites "HTTP server started...\n" console
+		# console			= fwrites ("Please point your browser to http://localhost/" +++ ThisExe +++ "\n") console
+		# (_,world)			= fclose console world
+		= world
+		
+	unimplemented :: *World -> *World
+	unimplemented world
+		# (console, world)	= stdio world
+		# console			= fwrites "The chosen server mode is not supported yet.\n" console
+		# console			= fwrites "Please select ServerKind Internal in iDataSettings.dcl.\n" console
+		# (_,world)			= fclose console world
+		= world
 
-doHtmlClient :: !*World  !UserPage  !String -> String
-doHtmlClient world userpage args  
-# (toServer,inout,world)	= doHtmlPage (Just (makeArguments args)) userpage [|] world
-# n_chars					= count_chars inout 0
-# allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
-= toString toServer +++ "#0#" +++ allhtmlcode
-where
-	count_chars [|]    n = n
-	count_chars [|s:l] n = count_chars l (n+size s)
+StartServer :: !UserPage !*World -> *World
+StartServer userpage world
+= http_startServer ServerOptions [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource userpage))
+								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource userpage) http_notfoundResponse)
+								 ,(\_ -> True, doStaticResource)
+								 ] world
 
-	copy_strings [|e:l] i s
-		# size_e	= size e
-		# i			= i-size_e
-		= copy_strings l i (copy_chars e 0 i size_e s)
-	copy_strings [|] 0 s
-		= s
+// Request handler which serves static resources from the application directory,
+// or a system wide default directory if it is not found locally.
+// This request handler is used for serving system wide javascript, css, images, etc...
+doStaticResource :: !HTTPRequest *World -> (!HTTPResponse, !*World)
+doStaticResource req world
+	# filename				= MyAbsDir +++ req.req_path	
+	# (type, world)			= http_staticFileMimeType filename world
+	# (ok, content, world)	= http_staticFileContent filename world
+	| ok					= ({rsp_headers = [("Status","200 OK"),
+											   ("Content-Type", type),
+											   ("Content-Length", toString (size content))]
+							   ,rsp_data = content}, world)
+	# filename				= ResourceDir +++ (req.req_path % ((size ThisExe) + 1, size req.req_path)) //Remove the /(ThisExe)/ from the filename
+	# (type, world)			= http_staticFileMimeType filename world
+	# (ok, content, world)	= http_staticFileContent filename world
+	|  ok 					= ({rsp_headers = [("Status","200 OK"),
+											   ("Content-Type", type),
+											   ("Content-Length", toString (size content))]
+							   	,rsp_data = content}, world)		 							   
+	= http_notfoundResponse req world
 
-	copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
-	copy_chars s_s s_i d_i n d_s
-		| s_i<n
-			# d_s	= {d_s & [d_i]=s_s.[s_i]}
-			= copy_chars s_s (s_i+1) (d_i+1) n d_s
-			= d_s
-
-// doHtmlPageAndPrint is the main driver shared by all server options.
-// It initiates all internal administration and calls the user defined iData or iTask function userpage.
-// It converts the Html value into html code which is handed over to the server.  
-
-doHtmlPageAndPrint :: [(String, String)] .(*HSt -> (!Bool,Html,!*HSt)) *World -> ([String],String,*World)
-doHtmlPageAndPrint args userpage world
-# (toServer,inout,world)	= doHtmlPage (Just args) userpage [|] world
-# n_chars					= count_chars inout 0
-# allhtmlcode				= copy_strings inout n_chars (createArray n_chars '\0')
-= ([],allhtmlcode,world)
-where
-	count_chars [|]    n = n
-	count_chars [|s:l] n = count_chars l (n+size s)
-
-	copy_strings [|e:l] i s
-		# size_e	= size e
-		# i			= i-size_e
-		= copy_strings l i (copy_chars e 0 i size_e s)
-	copy_strings [|] 0 s
-		= s
-
-	copy_chars :: !{#Char} !Int !Int !Int !*{#Char} -> *{#Char}
-	copy_chars s_s s_i d_i n d_s
-		| s_i<n
-			# d_s	= {d_s & [d_i]=s_s.[s_i]}
-			= copy_chars s_s (s_i+1) (d_i+1) n d_s
-			= d_s
+// Request handler which handles dynamically generated pages.
+doDynamicResource :: !UserPage !HTTPRequest !*World -> (!HTTPResponse, !*World)
+doDynamicResource userpage request world
+	# (toServer,html,world)	= doHtmlPage request userpage [|] world
+	= ({http_emptyResponse & rsp_data = (toString html)}, world)
 
 // General entry used by all servers and client to calculate the next page
-
-doHtmlPage ::  !(Maybe [(String, String)]) !.(*HSt -> (!Bool,Html,!*HSt)) !*HtmlStream !*World -> (!Bool,!*HtmlStream,!*World)
-doHtmlPage args userpage inout world
+doHtmlPage :: !HTTPRequest !.(*HSt -> (!Bool,Html,!*HSt)) !*HtmlStream !*World -> (!Bool,!*HtmlStream,!*World)
+doHtmlPage request userpage inout world
 # (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 # (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 # nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
-# (initforms,nworld)	 	= retrieveFormStates args nworld							// Retrieve the state information stored in an html page, other state information is collected lazily
-# (toServer,Html (Head headattr headtags) (Body attr bodytags),{states,world}) 
-							= userpage (mkHSt initforms nworld)							// Call the user application
+# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
+# hst						= {(mkHSt initforms nworld) & request = request}			// Create the HSt
+# (toServer,Html (Head headattr headtags) (Body bodyattr bodytags),{states,world}) 
+							= userpage hst												// Call the user application
 # (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-# (allformbodies,world=:{worldC,gerda,inout,datafile})	
+# (pagestate, focus, world=:{worldC,gerda,inout,datafile})	
 							= storeFormStates states world								// Store all state information
 # worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 # worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
 # inout						= IF_Ajax
 								(print_to_stdout "" inout <+
-								allformbodies <+ State_FormList_Separator <+			// state information
-        		 				AjaxCombine bodytags [debugInput,debugOutput]												// page, or part of a page
+								(pagestate) <+ State_FormList_Separator <+				// state information
+        		 				AjaxCombine bodytags [debugInput,debugOutput]			// page, or part of a page
 								)
 								(print_to_stdout 										// Print out all html code
-									(Html (Head headattr [extra_style:headtags]) 
-									(Body (extra_body_attr ++ attr) [allformbodies:bodytags++[debugInput,debugOutput]]))
+									(Html (Head headattr [mkJsTag, mkCssTag : headtags]) 
+									(Body bodyattr [mkInfoDiv pagestate focus : bodytags ++ [debugInput,debugOutput]]))
 									inout
 								)
 = (toServer,inout,worldC)
@@ -161,87 +145,64 @@ where
 	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
 	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
 	
-	extra_body_attr			= [	Batt_background (ThisExe +++ "/back35.jpg")
-							,	`Batt_Std [CleanStyle]
-							,	`Batt_Events [OnLoad (SScript "cleanInit()")]
-							]
-	extra_style				= if StyleSheetIntern internal_css external_ccs	
-	debugInput				= if TraceInput (traceHtmlInput args) EmptyBody
+	debugInput				= if TraceInput (traceHtmlInput request.arg_post) EmptyBody
 
-	internal_css			= Hd_Style [] InternalCleanStyles
-	external_ccs			= Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]
-	
-initAjaxPage = 	"<html>" +++
-				"<head>" +++
-					"<link type=\"text/css\" rel=\"stylesheet\" href=\"" +++ ExternalCleanStyles +++ "\" />" +++	// clean styles now code in sepparate style sheet
-					"<script  language=\"JavaScript\" src=\"" +++ ThisExe +++ "/ajaxscript.js\"></script>" +++		// script for handling ajax code
-				 "</head>" +++
-         		 "<body background = " +++ ThisExe +++ "/back35.jpg class = CleanStyle>" +++ 
-         		 	"<div id=\"thePage\" class=\"thread\">" +++ ThisExe +++ "</div>" +++ 
-         		 	"<div id=\"theState\" class=\"thread\"></div>" +++ 
-         		 	"<div id=\"iTaskInfo\" class=\"thread\"></div>" +++ 
-         		 	"<div id=\"debug\" class=\"thread\"></div>" +++ 
-            	 	IF_ClientServer "<applet id=\"saplapplet\" archive=\"jme.jar\" codebase=\".\" code=\"jme.ClientApplet.class\" type=\"hidden\"></applet>"
-           		 "</body>" +++
-          	"</html>"
+mkPage :: [HeadAttr] [HeadTag] [BodyAttr] [BodyTag] -> Html
+mkPage headattr headtags bodyattr bodytags = Html (Head headattr headtags) (Body bodyattr bodytags)
 
-mkHSt :: *FormStates *NWorld -> *HSt
-mkHSt states nworld = {cntr=0, states=states, world=nworld, submits = False }
+mkCssTag :: HeadTag
+mkCssTag = Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]
 
-// Create subserver(s) talking to an http 1.1 server.
-// One needs to create several copies of the same subserver to handle parallel request issues by an http 1.1 server.
-// To prevent race conditions, calls to such a subserver copy is serialized using a semaphore. 
+mkJsTag :: HeadTag
+mkJsTag = Hd_Script [Scr_Src (ThisExe +++ "/js/clean.js"), Scr_Type TypeJavascript ] (SScript "")
 
-import Semaphore	
+mkInfoDiv :: String String -> BodyTag
+mkInfoDiv state focus =
+	Div [`Div_Std [Std_Style "display:none"]] [
+	Div [`Div_Std [Std_Id "GS"]] [Txt state],
+	Div [`Div_Std [Std_Id "FS"]] [Txt focus],
+	Div [`Div_Std [Std_Id "AN"]] [Txt ThisExe],
+	Div [`Div_Std [Std_Id "OPT-ajax"]] [Txt (IF_Ajax "true" "false")]
+	]
 
-doHtmlSubServer :: !UserPage !*World -> *World
-doHtmlSubServer userpage world
-	# result = RegisterSubProcToServer 1 0 100 ".*" (ThisExe +++ ".*")
-	| result == 1
-		# (console,world) = stdio world
-		# (_,world) = fclose (fwrites ("Error: SubServer \"" +++ location +++ "\" could *NOT* registered to an HTTP 1.1 main server\n") console) world
-		= world
-	| result == 2
-		# (console,world) = stdio world
-		# (_,world) = fclose (fwrites ("SubServer \"" +++ location +++ "\" successfully registered to an HTTP 1.1 main server\n") console) world
-		= world
-	# (semaphore,world) = CreateSemaphore 0 1 1 ThisExe world
-	| semaphore == 0	= abort "CreateSemaphore failed"
-	# world 			= WaitForMessageLoop (mycallbackfun semaphore) SocketNr world
-	# (ok,world) 		= CloseHandle semaphore world
-	| ok==0				= abort "CloseHandle failed"
-	= world
+doAjaxInit :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+doAjaxInit req world = ({http_emptyResponse & rsp_data = toString (print_to_stdout page [|])}, world)
 where
-	mycallbackfun :: !Int [String] Int Socket *World -> (Socket,*World)
-	mycallbackfun semaphore header contentlength socket world
-	# (method,rlocation,getDataArray,version) 		= GetFirstLine (hd header)
-	# (alldatareceived,datafromclient,socket,world)	= ReceiveString 0 contentlength socket world
-	| socket==0 						= (0,world)				//socket closed or timed out
-	| alldatareceived == -1 && location == rlocation
-		#! world = trace ("alldatareceived == -1, page request" +++ ";rloc=" +++ rlocation ) world
-		#! (_,htmlcode,world) 				= indivisable (doHtmlPageAndPrint [] userpage) world
-		= SendString htmlcode "text/html" header socket world
-	| alldatareceived == -1 && location <> rlocation
-		#! world = trace ("alldatareceived == -1, file request" +++ ";rloc=" +++ rlocation ) world
-		= SendFile MyAbsDir header socket world 
-	| alldatareceived <> 0
-		#! world = trace ("alldatareceived <> 0, more data requested... cannot handle this" +++ ";rloc=" +++ rlocation ) world
-		= SendString "Unexpected request " "text/plain" header socket world
-	| alldatareceived == 0 && rlocation <> location 			// server asks for files
-			#! world = trace ("alldatareceived == 0, file request" +++ ";rloc=" +++ rlocation ) world
-			= SendFile (MyAbsDir +++ rlocation) header socket world 
-	# (_,htmlcode,world) 	= indivisable (doHtmlPageAndPrint (makeArguments datafromclient) userpage) world
-	#! world = trace ("alldatareceived == 0,  page request" +++ ";rloc=" +++ rlocation ) world
-	= SendString htmlcode "text/html" header socket world
-	where
-		indivisable doServer world
-		# (_,world) 			= WaitForSingleObject semaphore -1 world
-		# (r,htmlcode,world) 	= doServer world
-		# (ok,world) 			= ReleaseSemaphore semaphore 1 0 world
-		= (r,htmlcode,world)
-		
-	trace s world = if TraceHttp11 (trace_to_file s world) world
-	location = "\/" +++ ThisExe
+	page = mkPage [] [mkCssTag, mkJsTag] []	 
+		([ mkInfoDiv "" ""
+		 , Div [`Div_Std [Std_Id "thePage", Std_Class "thread"]] [Txt (ThisExe +++ " loading. Please wait...")]
+		 , Div [`Div_Std [Std_Id "iTaskInfo", Std_Class "thread"]] []
+		 , Div [`Div_Std [Std_Id "debug", Std_Class "thread"]] []
+		 ] ++ (IF_ClientServer 
+		 		[Applet [`Apl_Std [Std_Id "SA", Std_Style "visibility: hidden; width: 1px; height: 1px;"]
+		 				, Apl_Archive (ThisExe +++ "/jar/jme.jar")
+		 				, Apl_Codebase "."
+		 				, Apl_Code "jme.ClientApplet.class"	
+		 				] ""
+		 		]
+		 		[]
+		 	   )
+		)
+				  	
+//This wrapper is used when the program is run on the client in the sapl interpreter
+doHtmlClient :: UserPage !*World -> !*World
+doHtmlClient userpage world
+# (sio,world) 					= stdio world
+# (data,sio)					= freadline sio															//Fetch all input
+# req							= http_emptyRequest
+# (req,mdone,hdone,ddone,error)	= http_addRequestData req False False False data
+# req							= http_parseArguments req												//Parse the parameters int he request
+# (toServer,html,world)			= doHtmlPage req userpage [|] world										//Run the user page
+# sio							= fwrites (toString toServer +++ "#0#" +++ toString html) sio			//Write the output
+# world							= snd (fclose sio world)
+= world
+
+
+
+ 	
+mkHSt :: *FormStates *NWorld -> *HSt
+mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False }
+
 
 // The function mkViewForm is *the* magic main function 
 // All idata /itasks end up in this function
@@ -338,7 +299,7 @@ where
 		parseTriplet :: TripletUpdate -> (Triplet,Maybe b) | gParse {|*|} b
 		parseTriplet (triplet,update) = (triplet,parseString update)
 
-// It can be convenient to explicitly delete IData, in particular for persistent IData obejct
+// It can be convenient to explicitly delete IData, in particular for persistent IData object
 // or to optimize iTasks
 // All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
 
@@ -370,30 +331,29 @@ where
 	# (UpdSearch _ cnt,v)	= gUpd {|*|} (UpdSearch (UpdI 0) -1) v
 	= i + (-1 - cnt)
 
+
 // gForm: automatically derives a Html form for any Clean type
 
 mkForm :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init,formid=:{mode = Submit}) hst=:{submits = False} 
-# (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = True}
-# hst			= {hst & submits = False}
-# hidden		= Input [ Inp_Name "hidden"
-						, Inp_Type Inp_Hidden
-						, Inp_Value (SV "")
-						] ""
-# submit		= Input [ Inp_Type Inp_Button
-						, Inp_Value (SV "Submit")
-						,`Inp_Events (callClean OnClick Submit formname formid.lifespan True)
-						] ""
-# clear			= Input [ Inp_Type Inp_Reset, Inp_Value (SV "Clear")] ""
-# sform			= [Form [ Frm_Method Post
-						, Frm_Name  formname
-						] (form.form ++ [hidden,Br,submit,clear])
+mkForm (init,formid) hst
+# (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = (formid.mode == Submit) }				//Use gForm to create the html form
+# buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
+						[ Br
+						, Input [ Inp_Type Inp_Submit, Inp_Value (SV "Submit")] ""
+						, Input [ Inp_Type Inp_Reset, Inp_Value (SV "Clear")] ""
+						]
+						[ Input [Inp_Type Inp_Submit, `Inp_Std [Std_Style "display: none"] ] ""]	//Add a hidden submit input to allow updates on press of "enter" button 
+
+# sform			= [Form [ Frm_Action ("/" +++ ThisExe)												//Wrap the form in html form tags
+						, Frm_Method Post
+						, Frm_Name  (encodeString formid.id)										//Enable the use of any character in a form name
+						, Frm_Enctype "multipart/form-data"
+						, `Frm_Events [OnSubmit (SScript "return catchSubmit(this);")]
+						, `Frm_Std [Std_Id (encodeString formid.id)]
+						] (form.form ++ buttons)
 				  ] 
 = ({form & form = sform} ,hst)
-where
-	formname = encodeString formid.id				// to enable the use of any character in a form name
-mkForm inidataid hst = gForm{|*|} inidataid hst
-	
+
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
 gForm{|Int|} (init,formid) hst 	
@@ -648,7 +608,7 @@ mkInput size (init,formid=:{mode}) val updval hst=:{cntr,submits}
 				, Inp_Value		val
 				, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
 				, Inp_Size		size
-				, `Inp_Std		[EditBoxStyle, Std_Title (showType val), Std_Id (encodeTriplet (formid.id,cntr,updval))]
+				, `Inp_Std		[EditBoxStyle, Std_Title (showType val), Std_Id (encodeInputId (formid.id,cntr,updval))]
 				, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange formid.mode "" formid.lifespan False) []
 				] ""
 	  , setCntr (cntr+1) hst)
