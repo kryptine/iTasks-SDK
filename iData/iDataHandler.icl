@@ -452,10 +452,10 @@ where
 				 ] 
 		where
 			styles			= case formid.mode of
-								Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (selectorInpName +++ encodeString myname)]
-										   , `Sel_Events (if submits [] (callClean OnChange Edit formid.id formid.lifespan True))
+								Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
+										   , `Sel_Events (if submits [] (callClean OnChange Edit "" formid.lifespan True))
 										   ]
-								Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (selectorInpName +++ encodeString myname)]
+								Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
 										   ]
 								_		-> [ `Sel_Std	[Std_Style width, DisplayBoxStyle]
 										   ,  Sel_Disabled Disabled
