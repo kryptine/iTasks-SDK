@@ -214,12 +214,17 @@ readStateFile  filename env
 						(_,env)							= (NoDirError,env)
 # (ok,file,env)	= fopen (iDataStorageDir +++ "/" +++ filename +++ ".txt") FReadData env
 | not ok 		= ("",env)
-# (string,file)	= freads file big
+# (string,file)	= freadfile file
 | not ok 		= ("",env)
 # (ok,env)		= fclose file env
 = (string,env)
 where
-	big			= 1000000
+	freadfile :: *File -> (String, *File)
+	freadfile file = rec file ""
+	  where rec :: *File String -> (String, *File)
+	        rec file acc # (string, file) = freads file 100
+	                     | string == "" = (acc, file)
+	                     | otherwise    = rec file (acc +++ string)
 
 deleteStateFile :: !String !*NWorld -> *NWorld
 deleteStateFile  filename env
