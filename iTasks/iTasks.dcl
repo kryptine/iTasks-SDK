@@ -29,16 +29,7 @@ derive write 	Void, Wid, TCl
 
 // iTask workflow processes types
 
-//:: Wid a											// reference to a workflow process
-:: Wid a			= Wid WorkflowLink					// id of workflow process
-:: WorkflowLink		:== !(Entry,ProcessIds)						// entry in table together with unique id which is used for checking whether the reference is still valid
-:: ProcessIds		:== !(!UserId,!ProcessNr,!WorkflowLabel)	// user id, process id and name given to a workflow process; is used as unique identifier in process table
-:: WorkflowLabel	:== !String
-:: Entry			:== !Int
-:: ProcessNr		:== !Int
-
-
-
+:: Wid a											// reference to a workflow process
 :: WorkflowStatus	= WflActive						// iTask workflow process is still being processed
 					| WflSuspended					// it is (temporally) suspended
 					| WflFinished					// it is finshed
@@ -103,17 +94,25 @@ workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a))
 
 spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a handle to that process, bool indicates whether it is active or suspended 
 waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value
-deleteWorkflow 		:: delete iTask workflow
-suspendWorkflow 	:: suspend iTask workflow, nobody can add results anymore
-activateWorkflow 	:: activate the iTask workflow again
+getWorkflowStatus 	:: get status of workflow
+deleteWorkflow 		:: delete iTask workflow; returns False if workflow does not exist anymore
+suspendWorkflow 	:: suspend iTask workflow, all corresponding task will vanish temporally; returns False if workflow does not exist anymore
+activateWorkflow 	:: activate the iTask workflow again; returns False if workflow does not exist anymore
+
+suspendMe 			:: suspend current workflow process; no effect on start task
+deleteMe 			:: delete current workflow process;  no effect on start task
+
 */
 
 spawnWorkflow 		:: !UserId !Bool !(LabeledTask a) 					-> Task (Wid a) 	| iData a
-getWorkflowStatus 	:: !(Wid a) 										-> Task WorkflowStatus
 waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
+getWorkflowStatus 	:: !(Wid a) 										-> Task WorkflowStatus
 activateWorkflow 	:: !(Wid a) 										-> Task Bool 	
 suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		
 deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
+
+suspendMe 			:: (Task Void)
+deleteMe 			:: (Task Void)
 
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:

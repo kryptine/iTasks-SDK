@@ -95,8 +95,8 @@ MyAbsDir				:: String									// absolute path name of directory in which this e
 
 // absolute path name of directory where static resources (css,js,img etc.) are stored 
 //ResourceDir				:== MyAbsDir +++ ThisExe 					
-ResourceDir				:== "C:\\Documents and Settings\\rinus\\Desktop\\Clean 2.2\\Libraries\\iData\\Resources\\"
-
+//ResourceDir				:== "C:\\Documents and Settings\\rinus\\Desktop\\Clean 2.2\\Libraries\\iData\\Resources\\"
+ResourceDir				:== "C:\\Documents and Settings\\rinus\\Bureaublad\\Current Work\\Clean 2.2\\Libraries\\iData\\Resources\\"
 iDataStorageDir 		:== MyAbsDir +++ ThisExe +++ "-iStore"		// directory name where iData and iTask files are stored
 
 ODCBDataBaseName		:== ThisExe +++ "-ODCB"						// name of ODCB Database being used by iData applications

@@ -47,7 +47,7 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 					}
 :: GarbageCollect =	Collect | NoCollect
 :: Trace		=	Trace !TraceInfo ![Trace]			// traceinfo with possibly subprocess
-:: TraceInfo	:== Maybe (!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe !(!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
@@ -71,15 +71,15 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
 					, threadStorageLoc	:: !Lifespan		
-					, showUsersOn		:: !Maybe Int	
+					, showUsersOn		:: !Maybe !Int	
 					, versionCheckOn	:: !Bool
 					, headerOff			:: !Maybe HtmlCode
 					, testModeOn		:: !Bool
 					}
 :: Wid a			= Wid WorkflowLink					// id of workflow process
-:: WorflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl Dynamic)
-					| SuspendedWorkflow ProcessIds !(TCl Dynamic)
-					| FinishedWorkflow 	ProcessIds !Dynamic !(TCl Dynamic)
+:: WorflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl !Dynamic)
+					| SuspendedWorkflow ProcessIds !(TCl !Dynamic)
+					| FinishedWorkflow 	ProcessIds !Dynamic !(TCl !Dynamic)
 					| DeletedWorkflow	ProcessIds
 
 :: TaskName			:== !(!UserId,!ProcessNr,!WorkflowLabel,!TaskLabel)	// id of user, workflow process name, task name
@@ -88,7 +88,6 @@ derive write 	Void, Options, Lifespan, Mode, StorageFormat, GarbageCollect, Glob
 :: WorkflowLabel	:== !String
 :: Entry			:== !Int
 :: ProcessNr		:== !Int
-//:: WorkflowId	:== !Int
 
 // Initial values
 
@@ -286,7 +285,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr && not noNewVersion 		// test if there is a version conflict				
 
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [Img [Img_Src (ThisExe +++ "/img/clean-logo.jpg"),Img_Align Alo_Middle]
+							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
 									,showHighLight " i -Task", showLabel " Workflow System "]
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
@@ -636,6 +635,13 @@ gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
 gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
 
+
+isValidWorkflowReference :: WorflowProcess ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
+isValidWorkflowReference (ActiveWorkflow 	ids _)		idsref = ids == idsref
+isValidWorkflowReference (SuspendedWorkflow ids _)		idsref = ids == idsref
+isValidWorkflowReference (FinishedWorkflow 	ids _ _)	idsref = ids == idsref
+isValidWorkflowReference (DeletedWorkflow	ids)		idsref = ids == idsref
+
 workflowProcessStore ::  !((!Int,![WorflowProcess]) -> (!Int,![WorflowProcess])) !*TSt -> (!(!Int,![WorflowProcess]),!*TSt) 
 workflowProcessStore wfs tst=:{hst}	
 # (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName (0,[]) <@ NoForm) wfs hst
@@ -716,69 +722,101 @@ where
 	= (dyn,tst)												
 
 waitForWorkflow :: !(Wid a) -> Task a | iData a
-waitForWorkflow (Wid (entry,(userid,processid,label))) = newTask ("waiting for " +++ label) waitForResult`
+waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) waitForResult`
 where
 	waitForResult` tst
-	# ((_,wfls),tst) 		= workflowProcessStore id tst						// read workflow process administration
-	# (done,val)			= case (wfls!!(entry - 1)) of					// update process administration
-								(FinishedWorkflow _ (val::a^) _) -> (True,val)	// finished
-								_ -> (False,createDefault)						// not yet
-	= (val,{tst & activated = done})											// return value and release when done
+	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (createDefault,{tst & activated = False})				// wid does not refer to the correct entry anymore
+	= case wfl of																// update process administration
+			(FinishedWorkflow _ (val::a^) _) -> (val,{tst & activated = True})	// finished
+			_ 					->  (createDefault,{tst & activated = False})	// not yet
+
+deleteMe :: (Task Void)
+deleteMe = deleteMe`
+where
+	deleteMe` tst=:{workflowLink} 
+	=	(				deleteWorkflow (Wid workflowLink)
+			=>> \_ ->	return_V Void ) tst
 
 deleteWorkflow :: !(Wid a) -> Task Bool 
-deleteWorkflow (Wid (entry,(userid,processid,label))) = newTask ("delete " +++ label) deleteWorkflow`
+deleteWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("delete " +++ label) deleteWorkflow`
 where
 	deleteWorkflow` tst
+	| entry == 0		= (False,tst)											// main task cannot be handled
 	# ((maxid,wfls),tst)= workflowProcessStore id tst							// read workflow process administration
-	# nwfls				= updateAt (entry - 1) (DeletedWorkflow (userid,processid,label)) wfls	// delete entry in table
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
+	# nwfls				= updateAt (entry - 1) (DeletedWorkflow ids) wfls		// delete entry in table
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	# tst				= deleteSubTasksAndThreads [entry] tst				// delete all iTask storage of this process ...
-	= (True,{tst & activated = True})											// if everything is fine it should always succeed
+	# tst				= deleteSubTasksAndThreads [entry] tst					// delete all iTask storage of this process ...
+	= (True,tst)																// if everything is fine it should always succeed
+
+suspendMe :: (Task Void)
+suspendMe = suspendMe`
+where
+	suspendMe` tst=:{workflowLink = workflowLink=:(entry,ids)} 
+	| entry == 0		= (Void,tst)											// main task cannot be handled
+	=	(				suspendWorkflow (Wid workflowLink)
+			=>> \_ ->	return_V Void ) tst
 
 suspendWorkflow :: !(Wid a) -> Task Bool
-suspendWorkflow (Wid (entry,(userid,processid,label))) = newTask ("suspend " +++ label) deleteWorkflow`
+suspendWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("suspend " +++ label) deleteWorkflow`
 where
 	deleteWorkflow` tst
+	| entry == 0		= (False,tst)											// main task cannot be handled
 	# ((maxid,wfls),tst)= workflowProcessStore id tst							// read workflow process administration
-	# (ok,nochange,wfl)	= case (wfls!!(entry - 1)) of
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
+	# (ok,nochange,wfl)	= case wfl of
 							(ActiveWorkflow label acttask) -> (True,False,SuspendedWorkflow label acttask)
 							(DeletedWorkflow label) -> (False,True,DeletedWorkflow label) // a deleted workflow cannot be suspendend
 							wfl -> (True,True,wfl)								// in case of finsihed or already suspended flows
 	| nochange			= (ok,{tst & activated = True})							// no change needed
 	# nwfls				= updateAt (entry - 1) wfl wfls							// update entry
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	= (ok,{tst & activated = True})												// if everything is fine it should always succeed
+	= (ok,tst)																	// if everything is fine it should always succeed
 
 activateWorkflow :: !(Wid a) -> Task Bool
-activateWorkflow (Wid (entry,(userid,processid,label))) = newTask ("activate " +++ label) activateWorkflow`
+activateWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("activate " +++ label) activateWorkflow`
 where
 	activateWorkflow` tst
+	| entry == 0		= (False,tst)											// main task cannot be handled
 	# ((maxid,wfls),tst)= workflowProcessStore id tst							// read workflow process administration
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
 	# (ok,nochange,wfl,tst)	
-						= case (wfls!!(entry - 1)) of
+						= case wfl of
 								(SuspendedWorkflow label susptask) -> activateWorkflow label susptask tst
 								(DeletedWorkflow label) -> (False,True,DeletedWorkflow label,tst) // a deleted workflow cannot be suspendend
 								wfl -> (True,True,wfl,tst)						// in case of finished or already activated flows
 	| nochange			= (ok,{tst & activated = True})							// no change needed
-	# nwfls				= updateAt (entry - 1) wfl wfls						// update entry
+	# nwfls				= updateAt (entry - 1) wfl wfls							// update entry
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	= (ok,{tst & activated = True})												// if everything is fine it should always succeed
+	= (ok,tst)																	// if everything is fine it should always succeed
 
 	activateWorkflow label (TCl wfl) tst										// schedule workflow
 	# (_,tst)	= wfl {tst & activated = True}
 	= (True,False,ActiveWorkflow label (TCl wfl),{tst & activated = True})
 
 getWorkflowStatus :: !(Wid a) -> Task WorkflowStatus
-getWorkflowStatus (Wid (entry,(userid,processid,label))) = newTask ("get status " +++ label) getWorkflowStatus`
+getWorkflowStatus (Wid (entry,ids=:(_,_,label))) = newTask ("get status " +++ label) getWorkflowStatus`
 where
 	getWorkflowStatus` tst
-	# ((_,wfls),tst) 		= workflowProcessStore id tst						// read workflow process administration
-	# status			= case (wfls!!(entry - 1)) of
+	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (WflDeleted,tst)										// wid does not refer to the correct entry anymore
+	# status			= case wfl of
 							(ActiveWorkflow _ _) 		-> WflActive
 							(SuspendedWorkflow _ _) 	-> WflSuspended
 							(FinishedWorkflow _ _ _) 	-> WflFinished
 							(DeletedWorkflow _) 		-> WflDeleted		
-	= (status,{tst & activated = True})											// if everything is fine it should always succeed
+	= (status,tst)																// if everything is fine it should always succeed
 
 showWorkflows :: !Bool !*TSt -> (![BodyTag],*TSt)
 showWorkflows alldone tst
