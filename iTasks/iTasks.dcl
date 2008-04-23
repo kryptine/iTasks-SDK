@@ -206,16 +206,10 @@ channel			:: splits a task in respectively a sender task closure and receiver ta
 				   when the sender is evaluated, the original task is evaluated as usual;
 				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
 				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
-closureTask		:: The task is executed as usual, but a receiver closure is returned immediately.
-				   When the closure is evaluated somewhere, one has to wait until the task is finished.
-				   Handy for passing a result to several interested parties.
-closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
 */
 
 (-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,TCl a) 	| iCreateAndPrint stop & iCreateAndPrint a
 channel  		:: String (Task a) 							-> Task (TCl a,TCl a) 		| iCreateAndPrint a
-closureTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
-closureLzTask  	:: String (Task a) 							-> Task (TCl a) 			| iCreateAndPrint a
 
 /* Exception Handling:
 

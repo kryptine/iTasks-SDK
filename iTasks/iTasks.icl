@@ -684,6 +684,21 @@ where
 		= scheduleNewProcess lengthnwfls tst
 	= (True,{tst & hst = hst})
 */
+(-!!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,TCl a)) | iCreateAndPrint s & iCreateAndPrint a
+(-!!>)  stoptask task 
+=  				mkTask "-!>" stop`
+where
+	stop` tst=:{tasknr,html,options,userId}
+	# (val,tst=:{activated = taskdone,html = taskhtml}) = task     {tst & activated = True, html = BT [], tasknr = normalTaskId,options = options}
+	# (s,  tst=:{activated = stopped, html = stophtml})	= stoptask {tst & activated = True, html = BT [], tasknr = stopTaskId,  options = options}
+	| stopped	= return_V (Just s, TCl (close task))   {tst & html = html, activated = True}
+	| taskdone	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml, activated = True}
+	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}
+	where
+		close t = \tst -> t {tst & tasknr = normalTaskId, options = options, userId = userId} // reset userId because it influences the task id
+
+		stopTaskId 		= [-1,0:tasknr]
+		normalTaskId  	= [-1,1:tasknr]
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
 spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
@@ -1672,6 +1687,23 @@ where
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental
+/* Experimental department:
+
+   May not work when the tasks are garbage collected !!
+
+-!>				:: a task, either finished or interrupted (by completion of the first task) is returned in the closure
+				   if interrupted, the work done so far is returned (!) which can be continued somewhere else
+channel			:: splits a task in respectively a sender task closure and receiver taskclosure; 
+				   when the sender is evaluated, the original task is evaluated as usual;
+				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
+				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
+closureTask		:: The task is executed as usual, but a receiver closure is returned immediately.
+				   When the closure is evaluated somewhere, one has to wait until the task is finished.
+				   Handy for passing a result to several interested parties.
+closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
+*/
+
+
 
 (-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,TCl a)) | iCreateAndPrint s & iCreateAndPrint a
 (-!>)  stoptask task =  mkTask "-!>" stop`
