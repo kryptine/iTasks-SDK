@@ -39,6 +39,10 @@ http_emptyRequest	:: HTTPRequest
 http_emptyResponse	:: HTTPResponse
 http_emptyUpload	:: HTTPUpload
 
+//String instances
+instance toString HTTPRequest
+instance toString HTTPResponse
+
 //Lookup a value in a list of arguments or headers. When the argument or header is not found
 //return the default value.
 //Eg: foo = http_getValue "foo" arguments 0 

@@ -199,7 +199,9 @@ http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //W
 	# (time,world)	= getCurrentTime world
 	# reply = if withreply
 			("HTTP/1.0 " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
-			("Status: " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")	
+			("Status: " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
+	# reply = reply +++ ("Date: " +++ (http_getValue "Date" headers (now date time)) +++ "\r\n")								//Date
+	# reply = reply +++ ("Server: " +++ (http_getValue "Server" headers "Clean HTTP 1.0 Server") +++ "\r\n")					//Server identifier	
 	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
 	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header
 	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now date time)) +++ "\r\n")				//Timestamp for caching
@@ -208,7 +210,7 @@ http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //W
 	= (reply, world)
 where
 	//Do not add these headers two times
-	skipHeader s = isMember s ["Status","Content-Type","Content-Lenght","Last-Modified"]
+	skipHeader s = isMember s ["Status","Date","Server","Content-Type","Content-Lenght","Last-Modified"]
 
 	//Format the current date/time
 	now date time				=	(weekday date.dayNr) +++ ", " +++ (toString date.day) +++ " " +++ (month date.month) +++ " " +++ (toString date.year) +++ " "

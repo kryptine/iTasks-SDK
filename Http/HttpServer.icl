@@ -8,7 +8,7 @@ import StdTCP
 http_startServer :: [HTTPServerOption] [((String -> Bool),(HTTPRequest *World-> (HTTPResponse,*World)))] *World -> *World
 http_startServer options handlers world
 	//Start the listener
-	# (listener,world) = startListener (getPortOption options) world
+	# (listener,world)	= startListener (getPortOption options) world
 	//Enter the endless loop
 	= loop options handlers listener [] [] [] world
 
@@ -36,6 +36,7 @@ loop options handlers listener rchannels schannels requests world
 	# ((TCP_Listeners [listener:_]) :^: (TCP_RChannels rchannels)) = glue
 	//A new client attempts to connect
 	| who == 0
+		# world										= debug "New connection opened" options world
 		# (tReport, mbNewMember, listener, world)	= receive_MT (Just 0) listener world
 		| tReport <> TR_Success						= loop options handlers listener rchannels schannels requests world //Just continue
 		# (ip,{sChannel,rChannel})					= fromJust mbNewMember
@@ -69,14 +70,20 @@ loop options handlers listener rchannels schannels requests world
 			//Process a completed request
 			| method_done && headers_done && data_done
 				#  request			= if (getParseOption options) (http_parseArguments request) request
+				# world				= debug "Processing request:" options world
+				# world				= debug request	options world
 				// Create a response
 				# (response,world)	= http_makeResponse request handlers (getStaticOption options)world
+				# world				= debug "Generated response:" options world
+				# world				= debug response options world
 				// Encode the response to the HTTP protocol format
 				# (reply, world) = http_encodeResponse response True world
+				# world				= debug "Sending encoded reply:" options world
+				# world				= debug reply options world
 				// Send the encoded response to the client
 				# (currentschannel,world) = send (toByteSeq reply) currentschannel world
-				# world = closeRChannel currentrchannel world
 				# world = closeChannel currentschannel world
+				# world = closeRChannel currentrchannel world				
 				= loop options handlers listener rchannels schannels requests world		
 		
 			//We do not have everything we need yet, so continue
@@ -104,9 +111,17 @@ getStaticOption [x:xs] = case x of (HTTPServerOptStaticFallback b) = b
 
 getParseOption :: [HTTPServerOption] -> Bool
 getParseOption [] = True
-getParseOption [x:xs] = case x of (HTTPServerOptParseArguments b)	= b
+getParseOption [x:xs] = case x of (HTTPServerOptParseArguments b)	= b						
 								  _									= getParseOption xs
 
-
-
-	
+getDebugOption :: [HTTPServerOption] -> Bool
+getDebugOption [] = False
+getDebugOption [x:xs] = case x of (HTTPServerOptDebug b)	= b
+								  _							= getDebugOption xs
+								  
+debug:: a [HTTPServerOption] *World -> *World | toString a
+debug msg options world
+	| not (getDebugOption options)	= world
+	# (sio, world)					= stdio world
+	# sio							= fwrites ((toString msg) +++ "\n") sio
+	= snd (fclose sio world)

@@ -11,6 +11,7 @@ import Http
 :: HTTPServerOption	= HTTPServerOptPort Int				// The port on which the server listens (default is 80)
 					| HTTPServerOptStaticFallback Bool	// If all request handlers fail, should the static file handler be tried (default False)
 					| HTTPServerOptParseArguments Bool	// Should the query and body of the request be parsed (default True)
+					| HTTPServerOptDebug Bool			// Should the server write debug info to the stdout
 					
 // Start the HTTP server
 // The first argument is a list of server options
