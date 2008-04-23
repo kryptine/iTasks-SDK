@@ -20,10 +20,10 @@ import HttpServer
 // otherwise use the second line
 
 //IF_Database db no_db 	:== db			// If Database option is used
-IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the iSpecialStore class definition above
+IF_Database db no_db 	:== no_db		// otherwise, BUT also manually flag of ", gerda{|*|}" in the iSpecialStore class definition
 
 //IF_DataFile df no_df 	:== df			// If DataFile option is used
-IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition above
+IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read  {|*|}, write {|*|}" in the iSpecialStore class definition
 
 //IF_Ajax aj no_aj		:== aj			// If you want to enable sub-page (thread) handling using "Ajax" technology
 IF_Ajax aj no_aj		:== no_aj		// Otherwise
@@ -95,8 +95,7 @@ MyAbsDir				:: String									// absolute path name of directory in which this e
 
 // absolute path name of directory where static resources (css,js,img etc.) are stored 
 //ResourceDir				:== MyAbsDir +++ ThisExe 					
-ResourceDir				:== "C:\\Documents and Settings\\Bas Lijnse\\My Documents\\Clean\\Libraries\\iData\\Resources\\"
-
+ResourceDir				:== "C:\\Documents and Settings\\rinus\\Desktop\\Clean 2.2\\Libraries\\iData\\Resources\\"
 
 iDataStorageDir 		:== MyAbsDir +++ ThisExe +++ "-iStore"		// directory name where iData and iTask files are stored
 
@@ -107,9 +106,9 @@ TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file
 
 // Debug switches								
 
-TraceInput				:== True									// show what kind of information is received from Client
+TraceInput				:== False									// show what kind of information is received from Client
 TraceOutput				:== False									// show what kind of information is stored when application is finished
-TraceThreads			:== True									// show the threadtable
+TraceThreads			:== False									// show the threadtable
 
 // separators
 

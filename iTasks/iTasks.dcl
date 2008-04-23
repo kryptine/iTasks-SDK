@@ -29,7 +29,16 @@ derive write 	Void, Wid, TCl
 
 // iTask workflow processes types
 
-:: Wid a											// reference to a workflow process
+//:: Wid a											// reference to a workflow process
+:: Wid a			= Wid WorkflowLink					// id of workflow process
+:: WorkflowLink		:== !(Entry,ProcessIds)						// entry in table together with unique id which is used for checking whether the reference is still valid
+:: ProcessIds		:== !(!UserId,!ProcessNr,!WorkflowLabel)	// user id, process id and name given to a workflow process; is used as unique identifier in process table
+:: WorkflowLabel	:== !String
+:: Entry			:== !Int
+:: ProcessNr		:== !Int
+
+
+
 :: WorkflowStatus	= WflActive						// iTask workflow process is still being processed
 					| WflSuspended					// it is (temporally) suspended
 					| WflFinished					// it is finshed

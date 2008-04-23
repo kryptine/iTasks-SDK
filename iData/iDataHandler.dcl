@@ -36,12 +36,6 @@ derive write 	Inline
 
 doHtmlWrapper		:: UserPage !*World -> *World	//Combined wrapper which starts the server or client wrapper
 
-doHtmlServer 		:: UserPage !*World -> *World	//Server-side engine
-doHtmlClient 		:: UserPage !*World -> *World	//Client-side engine (SAPL)		
-
-//doHtmlServer2 		:: ![(String,UserPage)] !*World -> *World
-
-
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!
 
