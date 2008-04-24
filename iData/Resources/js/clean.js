@@ -143,7 +143,7 @@ function addState(form) {
 
 //Sends the information in a form to the server/client handler
 function sendForm(formid, onclient) {
-
+	
 	var form = document.getElementById(formid);
 	
 	if(form == undefined) {
@@ -159,6 +159,7 @@ function sendForm(formid, onclient) {
 			return;				 //When sapl fails we try sending via ajax or submit.
 		}
 	}
+
 	//Send the form to the server. Either via ajax or with a submit.
 	if(use_ajax) {
 		ajaxSendForm(form);
@@ -209,6 +210,7 @@ function getForm(elem)
 
 //Sends a form by submitting it
 function submitSendForm(form) {
+
 
 	//Always send the values of checkboxes
 	var inputs = form.getElementsByTagName('input');

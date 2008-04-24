@@ -46,7 +46,8 @@ print 			:: !String 				-> FoF
 (<+)  infixl 	:: !*HtmlStream !a 		-> *HtmlStream	| gHpr{|*|} a
 (<+>) infixl 	:: !*HtmlStream !FoF 	-> *HtmlStream
 
-htmlAttrCmnd 	:: !hdr !tag !body  	-> FoF | gHpr{|*|} hdr & gHpr{|*|} tag & gHpr{|*|} body
-openCmnd 		:: !a !b 				-> FoF | gHpr{|*|} a & gHpr{|*|} b
-styleCmnd 		:: !a !b 				-> FoF | gHpr{|*|} a & gHpr{|*|} b
-styleAttrCmnd 	:: !a !b 				-> FoF | gHpr{|*|} a & gHpr{|*|} b
+htmlAttrCmnd 			:: !hdr !tag !body  	-> FoF | gHpr{|*|} hdr & gHpr{|*|} tag & gHpr{|*|} body
+htmlBodylessAttrCmnd	:: !hdr !attr 			-> FoF | gHpr{|*|} hdr & gHpr{|*|} attr
+openCmnd 				:: !a !b 				-> FoF | gHpr{|*|} a & gHpr{|*|} b
+styleCmnd 				:: !a !b 				-> FoF | gHpr{|*|} a & gHpr{|*|} b
+styleAttrCmnd 			:: !a !b 				-> FoF | gHpr{|*|} a & gHpr{|*|} b

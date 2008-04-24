@@ -95,6 +95,9 @@ closeCmnd		hdr				= \file -> print "</" file <+ hdr <+ ">"
 htmlAttrCmnd	:: !hdr !attr !body -> FoF | gHpr{|*|} hdr & gHpr{|*|} attr & gHpr{|*|} body
 htmlAttrCmnd	hdr attr txt	= \file -> closeCmnd hdr (openCmnd hdr attr file <+ txt)
 
+htmlBodylessAttrCmnd	:: !hdr !attr -> FoF | gHpr{|*|} hdr & gHpr{|*|} attr
+htmlBodylessAttrCmnd	hdr attr = \file -> [|"<":file]  <+ hdr <+ attr <+ " />"
+
 styleCmnd		:: !a !b -> FoF | gHpr{|*|} a & gHpr{|*|} b
 styleCmnd		stylename attr	= \file -> print "." file <+ stylename <+ "{" <+ attr <+ "}"
 

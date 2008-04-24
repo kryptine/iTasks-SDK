@@ -23,6 +23,7 @@ derive write 	Inline
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submitting mode
+				  , issub	:: !Bool			// True if this form is a subform of another
 				  , states	:: !*FormStates  	// all form states are collected here ... 
 				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , world	:: *NWorld			// to enable all other kinds of I/O

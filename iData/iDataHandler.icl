@@ -20,6 +20,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submit form
+				  , issub	:: !Bool			// True if this form is a subform of another
 				  , states	:: !*FormStates  	// all form states are collected here ... 
 				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , world	:: *NWorld			// to enable all other kinds of I/O
@@ -201,7 +202,7 @@ doHtmlClient userpage world
 
  	
 mkHSt :: *FormStates *NWorld -> *HSt
-mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False }
+mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False, issub = False }
 
 
 // The function mkViewForm is *the* magic main function 
@@ -209,7 +210,7 @@ mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=
 // It does everything, a swiss army knife editor that makes coffee too ...
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{states,world,submits} 
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{states,world,submits,issub} 
 | init == Const	&& formid.lifespan <> Temp
 = mkViewForm (init,{formid & lifespan = Temp}) bm hst					// constant i-data are never stored
 | init == Const															// constant i-data, no look up of previous value
@@ -238,7 +239,7 @@ where
 		  ,mkHSt states world)
 
 	# (viewform,{states,world})											// make a form for it
-							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt states world & submits = submits})
+							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt states world & submits = submits, issub = issub})
 
 	| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
 							= calcnextView True (Just viewform.value) states world
@@ -335,23 +336,26 @@ where
 // gForm: automatically derives a Html form for any Clean type
 
 mkForm :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init,formid) hst
-# (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = (formid.mode == Submit) }				//Use gForm to create the html form
+mkForm (init,formid) hst =: {issub}
+# (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = (formid.mode == Submit), issub = True}	//Use gForm to create the html form
 # buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
 						[ Br
 						, Input [ Inp_Type Inp_Submit, Inp_Value (SV "Submit")] ""
 						, Input [ Inp_Type Inp_Reset, Inp_Value (SV "Clear")] ""
+						, Br
 						]
 						[ Input [Inp_Type Inp_Submit, `Inp_Std [Std_Style "display: none"] ] ""]	//Add a hidden submit input to allow updates on press of "enter" button 
 
-# sform			= [Form [ Frm_Action ("/" +++ ThisExe)												//Wrap the form in html form tags
+# sform			= if issub
+					form.form
+					[Form [ Frm_Action ("/" +++ ThisExe)												//Wrap the form in html form tags
 						, Frm_Method Post
 						, Frm_Name  (encodeString formid.id)										//Enable the use of any character in a form name
 						, Frm_Enctype "multipart/form-data"
 						, `Frm_Events [OnSubmit (SScript "return catchSubmit(this);")]
 						, `Frm_Std [Std_Id (encodeString formid.id)]
 						] (form.form ++ buttons)
-				  ] 
+				  	] 
 = ({form & form = sform} ,hst)
 
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
