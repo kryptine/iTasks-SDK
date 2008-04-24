@@ -78,12 +78,14 @@ loop options handlers listener rchannels schannels requests world
 				# world				= debug response options world
 				// Encode the response to the HTTP protocol format
 				# (reply, world) = http_encodeResponse response True world
-				# world				= debug "Sending encoded reply:" options world
-				# world				= debug reply options world
 				// Send the encoded response to the client
 				# (currentschannel,world) = send (toByteSeq reply) currentschannel world
+				# world				= debug "Sent encoded reply:" options world
+				# world				= debug reply options world
+				// Close the connection
 				# world = closeChannel currentschannel world
-				# world = closeRChannel currentrchannel world				
+				# world = closeRChannel currentrchannel world
+				# world				= debug "Closed connection" options world			
 				= loop options handlers listener rchannels schannels requests world		
 		
 			//We do not have everything we need yet, so continue
