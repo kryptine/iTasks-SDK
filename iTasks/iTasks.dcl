@@ -35,6 +35,8 @@ derive write 	Void, Wid, TCl
 					| WflFinished					// it is finshed
 					| WflDeleted					// it does not exist anymore because it is deleted
 
+instance ==			WorkflowStatus
+
 // general types
 
 :: HtmlCode			:== ![BodyTag]					// most programmers will only write bodytags
@@ -96,7 +98,7 @@ spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a h
 waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value
 getWorkflowStatus 	:: get status of workflow
 deleteWorkflow 		:: delete iTask workflow; returns False if workflow does not exist anymore
-suspendWorkflow 	:: suspend iTask workflow, all corresponding task will vanish temporally; returns False if workflow does not exist anymore
+suspendWorkflow 	:: suspend iTask workflow, all corresponding tasks will vanish temporally; returns False if workflow does not exist anymore
 activateWorkflow 	:: activate the iTask workflow again; returns False if workflow does not exist anymore
 
 suspendMe 			:: suspend current workflow process; no effect on start task
@@ -113,6 +115,9 @@ deleteWorkflow 		:: !(Wid a) 										-> Task Bool
 
 suspendMe 			:: (Task Void)
 deleteMe 			:: (Task Void)
+
+
+changeWorkflowUser :: !UserId !(Wid a) -> Task Bool 
 
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:

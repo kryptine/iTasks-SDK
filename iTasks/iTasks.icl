@@ -185,6 +185,14 @@ where
 	(==) AnyThread    			_				 	   	= True
 	(==) _ 						_ 						= False
 
+instance == WorkflowStatus
+where
+	(==) WflActive     			WflActive 	   	= True
+	(==) WflSuspended    		WflSuspended 	= True
+	(==) WflFinished    		WflFinished 	= True
+	(==) WflDeleted 			WflDeleted		= True
+	(==) _ 						_ 				= False
+
 instance toString ThreadKind
 where
 	toString ServerThread     	= "ServerThread"
@@ -626,7 +634,7 @@ gParse{|Dynamic|} expr 		= case parseString expr of
 								(Just string) 	= Just (string_to_dynamic {s` \\ s` <-: string})
 								Nothing			= Nothing
 where
-	parseString :: Expr -> Maybe String
+	parseString :: !Expr -> Maybe String
 	parseString expr = gParse{|*|} expr
 	
 gForm{|Dynamic|} (init, formid) hst = ({changed=False,form=[],value=formid.ival},(incrHSt 1 hst))
@@ -635,12 +643,34 @@ gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
 gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
 
+isValidWorkflowReference :: !WorflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
+isValidWorkflowReference (ActiveWorkflow 	ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
+isValidWorkflowReference (SuspendedWorkflow ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
+isValidWorkflowReference (FinishedWorkflow 	ids _ _)	idsref = drop1tuple3 ids == drop1tuple3 idsref
+isValidWorkflowReference (DeletedWorkflow	ids)		idsref = drop1tuple3 ids == drop1tuple3 idsref
 
-isValidWorkflowReference :: WorflowProcess ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
-isValidWorkflowReference (ActiveWorkflow 	ids _)		idsref = ids == idsref
-isValidWorkflowReference (SuspendedWorkflow ids _)		idsref = ids == idsref
-isValidWorkflowReference (FinishedWorkflow 	ids _ _)	idsref = ids == idsref
-isValidWorkflowReference (DeletedWorkflow	ids)		idsref = ids == idsref
+drop1tuple3 (x,y,z) = (y,z)
+
+getWorkflowUser :: !WorflowProcess -> UserId						// fetch user who should do the work
+getWorkflowUser (ActiveWorkflow 	(userid,_,_) _)		= userid 
+getWorkflowUser (SuspendedWorkflow  (userid,_,_) _)		= userid
+getWorkflowUser (FinishedWorkflow 	(userid,_,_) _ _)	= userid
+getWorkflowUser (DeletedWorkflow	(userid,_,_))		= userid
+
+setWorkflowUser :: !UserId !WorflowProcess -> WorflowProcess						// fetch user who should do the work
+setWorkflowUser nuserid (ActiveWorkflow 		(userid,procnr,wflab) task)		= (ActiveWorkflow 		(nuserid,procnr,wflab) task)
+setWorkflowUser nuserid (SuspendedWorkflow  	(userid,procnr,wflab) task)		= (SuspendedWorkflow  	(nuserid,procnr,wflab) task)
+setWorkflowUser nuserid (FinishedWorkflow 		(userid,procnr,wflab) dyn task)	= (FinishedWorkflow 	(userid,procnr,wflab) dyn task)
+setWorkflowUser nuserid (DeletedWorkflow		(userid,procnr,wflab))			= (DeletedWorkflow		(nuserid,procnr,wflab))
+
+getTask :: !WorflowProcess -> Task Dynamic
+getTask (ActiveWorkflow 	(_,_,_) (TCl task))		= task 
+getTask (SuspendedWorkflow  (_,_,_) (TCl task))		= task
+getTask (FinishedWorkflow 	(_,_,_) _ (TCl task))	= task
+
+isDeletedWorkflow :: !WorflowProcess -> Bool
+isDeletedWorkflow (DeletedWorkflow _) = True
+isDeletedWorkflow _	= False
 
 workflowProcessStore ::  !((!Int,![WorflowProcess]) -> (!Int,![WorflowProcess])) !*TSt -> (!(!Int,![WorflowProcess]),!*TSt) 
 workflowProcessStore wfs tst=:{hst}	
@@ -663,7 +693,7 @@ scheduleWorkflowTable done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
 scheduleWorkflowTable done [SuspendedWorkflow _ _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
-# (_,tst) = dyntask tst
+//# (_,tst) = dyntask tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
@@ -684,21 +714,6 @@ where
 		= scheduleNewProcess lengthnwfls tst
 	= (True,{tst & hst = hst})
 */
-(-!!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,TCl a)) | iCreateAndPrint s & iCreateAndPrint a
-(-!!>)  stoptask task 
-=  				mkTask "-!>" stop`
-where
-	stop` tst=:{tasknr,html,options,userId}
-	# (val,tst=:{activated = taskdone,html = taskhtml}) = task     {tst & activated = True, html = BT [], tasknr = normalTaskId,options = options}
-	# (s,  tst=:{activated = stopped, html = stophtml})	= stoptask {tst & activated = True, html = BT [], tasknr = stopTaskId,  options = options}
-	| stopped	= return_V (Just s, TCl (close task))   {tst & html = html, activated = True}
-	| taskdone	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml, activated = True}
-	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}
-	where
-		close t = \tst -> t {tst & tasknr = normalTaskId, options = options, userId = userId} // reset userId because it influences the task id
-
-		stopTaskId 		= [-1,0:tasknr]
-		normalTaskId  	= [-1,1:tasknr]
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
 spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
@@ -726,7 +741,13 @@ where
 				{tst & tasknr = [entry - 1],activated = True,userId = userid, options = options,workflowLink = (entry,(userid,processid,label))})
 	
 	convertTask entry processid label task tst
-	# (a,tst=:{activated})		= newTask label (assignTaskTo False userid ("main",task)) tst			
+
+	# ((processid,wfls),tst) 	= workflowProcessStore id tst				// read workflow process administration
+	# wfl						= wfls!!(entry - 1)							// fetch entry
+	# currentWorker				= getWorkflowUser wfl						// such that worker can be changed dynamically !
+	# (a,tst=:{activated})		= newTask label (assignTaskTo False currentWorker ("main",task)) tst			
+
+//	# (a,tst=:{activated})		= newTask label (assignTaskTo False userid ("main",task)) tst			
 	# dyn						= dynamic a
 	| not activated				= (dyn,tst)									// not finished, return
 	# ((_,wfls),tst) 			= workflowProcessStore id tst				// read workflow process administration
@@ -735,6 +756,20 @@ where
 										_ -> wfls
 	# (wfls,tst) 				= workflowProcessStore (\_ -> (processid,wfls)) tst		// write workflow process administration
 	= (dyn,tst)												
+
+changeWorkflowUser :: !UserId !(Wid a) -> Task Bool 
+changeWorkflowUser nuser (Wid (entry,ids=:(_,_,label))) = newTask ("changeUser " +++ label) deleteWorkflow`
+where
+	deleteWorkflow` tst
+	| entry == 0		= (False,tst)											// main task cannot be handled
+	# ((maxid,wfls),tst)= workflowProcessStore id tst							// read workflow process administration
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
+	# wfl				= setWorkflowUser nuser wfl
+	# nwfls				= updateAt (entry - 1) wfl wfls		// delete entry in table
+	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
+	= (True,tst)																// if everything is fine it should always succeed
 
 waitForWorkflow :: !(Wid a) -> Task a | iData a
 waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) waitForResult`
@@ -762,12 +797,14 @@ where
 	| entry == 0		= (False,tst)											// main task cannot be handled
 	# ((maxid,wfls),tst)= workflowProcessStore id tst							// read workflow process administration
 	# wfl				= wfls!!(entry - 1)										// fetch entry
-	# refok				= isValidWorkflowReference wfl ids
+	# refok				= isValidWorkflowReference wfl ids						// does the Wid indeed refers to this process
 	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
+	| isDeletedWorkflow wfl = (True,tst)										// already deleted
 	# nwfls				= updateAt (entry - 1) (DeletedWorkflow ids) wfls		// delete entry in table
-	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	# tst				= deleteSubTasksAndThreads [entry] tst					// delete all iTask storage of this process ...
-	= (True,tst)																// if everything is fine it should always succeed
+	# (wfls,tst=:{html}) = workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
+	# (_,tst)			= (getTask wfl) {tst & html = BT []}					// calculate workflow to delete for the last time to obtain all its itasks in the task tree
+	# tst				= deleteSubTasksAndThreads [entry] tst				// delete all iTask storage of this process ...
+	= (True,{tst & html = html})												// if everything is fine it should always succeed
 
 suspendMe :: (Task Void)
 suspendMe = suspendMe`
@@ -2063,7 +2100,7 @@ iTaskId userid tasknr postfix
 	| userid < 0	= "iLog_"  <+++ (showTaskNr tasknr) 
 	| otherwise		= "iTask_" <+++ (showTaskNr tasknr) 
 | userid < 0		= "iLog_"  <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix
-| otherwise			= "iTask_" <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix <+++ "+" <+++ userid
+| otherwise			= "iTask_" <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
 
 internEditSTask tracename prompt task = \tst -> mkTask tracename ((editTask` prompt task <<@ Page) <<@ Edit) tst
 
