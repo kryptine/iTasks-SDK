@@ -95,7 +95,7 @@ workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a))
 /* iTask Workflow process management:
 
 spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a handle to that process, bool indicates whether it is active or suspended 
-waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value
+waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value; returns Nothing when process is deleted
 getWorkflowStatus 	:: get status of workflow
 deleteWorkflow 		:: delete iTask workflow; returns False if workflow does not exist anymore
 suspendWorkflow 	:: suspend iTask workflow, all corresponding tasks will vanish temporally; returns False if workflow does not exist anymore
@@ -104,20 +104,20 @@ activateWorkflow 	:: activate the iTask workflow again; returns False if workflo
 suspendMe 			:: suspend current workflow process; no effect on start task
 deleteMe 			:: delete current workflow process;  no effect on start task
 
+changeWorkflowUser :: transfer the workflow task to the indicated user; returns False if workflow does not exist anymore
 */
 
 spawnWorkflow 		:: !UserId !Bool !(LabeledTask a) 					-> Task (Wid a) 	| iData a
-waitForWorkflow 	:: !(Wid a) 										-> Task a 			| iData a
+waitForWorkflow 	:: !(Wid a) 										-> Task (Maybe a )	| iData a
 getWorkflowStatus 	:: !(Wid a) 										-> Task WorkflowStatus
 activateWorkflow 	:: !(Wid a) 										-> Task Bool 	
 suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		
 deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
+changeWorkflowUser	:: !UserId !(Wid a) 								-> Task Bool 
 
 suspendMe 			:: (Task Void)
 deleteMe 			:: (Task Void)
 
-
-changeWorkflowUser :: !UserId !(Wid a) -> Task Bool 
 
 // *********************************************************************************************************************************
 /* Here follow the iTasks combinators:

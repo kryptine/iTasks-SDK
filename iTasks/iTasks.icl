@@ -202,7 +202,6 @@ where
 	toString AnyThread    		= "AnyThread"
 	toString _    				= "??? print error in thread"
 
-
 determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
 determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
 where
@@ -303,12 +302,11 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 						]
 				],hst)
 
-
 // Here the iTasks are evaluated ...
 													    
-# maintask				= scheduleWorkflows maintask								// 
+# maintask				= scheduleWorkflows maintask															// schedule all active tasks, not only maintask
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						= /*scheduleNewWorkflows*/ ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
+						=  ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
 							maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
@@ -406,9 +404,6 @@ where
 		mktable table 	= [Tr [] (mkrow rows) \\ rows <- table]	
 		mkrow rows 		= [Td [Td_VAlign Alo_Top] [row] \\ row <- rows] 
 
-//	Collect :: !UserId !UserId [(WorkflowLabel,TaskLabel,[BodyTag])] !HtmlTree -> (![BodyTag],![(WorkflowLabel,TaskLabel,[BodyTag])])
-
-
 	Filter :: !Bool !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 	Filter wholepage thrOwner tree hst
 	# startuser			= if wholepage defaultUser thrOwner
@@ -438,7 +433,7 @@ where
 
 	Collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
 	Collect thisuser taskuser accu ((nuserid,processnr,workflowLabel,taskname) @@: tree) 	// Collect returns the wanted code, and the remaining code
-	# (myhtml,accu)	= Collect thisuser nuserid accu tree							// Collect all code of this user belonging to this task
+	# (myhtml,accu)	= Collect thisuser nuserid accu tree									// Collect all code of this user belonging to this task
 	| thisuser == nuserid && not (isNil myhtml)
 							= ([],[(processnr,workflowLabel,taskname,myhtml):accu])
 	| otherwise				= ([],accu)
@@ -524,7 +519,6 @@ where
 
 	mode i j
 	| i==j = Display
-
 	= Edit
 
 	SelectStore :: !(String,Int) !TaskNr !Options (Int -> Int) *HSt -> (Int,*HSt)
@@ -673,9 +667,14 @@ isDeletedWorkflow (DeletedWorkflow _) = True
 isDeletedWorkflow _	= False
 
 workflowProcessStore ::  !((!Int,![WorflowProcess]) -> (!Int,![WorflowProcess])) !*TSt -> (!(!Int,![WorflowProcess]),!*TSt) 
-workflowProcessStore wfs tst=:{hst}	
-# (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName (0,[]) <@ NoForm) wfs hst
-= (form.value,{tst & hst = hst})
+workflowProcessStore wfs tst	
+= 	IF_ClientTasks												
+			(abort "Cannot access workflow process table on cleint\n")			// workflow table only on server site
+			(workflowProcessStore` wfs tst)										// access workflow store
+where
+	workflowProcessStore` wfs tst=:{hst}	
+	# (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName (0,[]) <@ NoForm) wfs hst
+	= (form.value,{tst & hst = hst})
 
 scheduleWorkflows :: !(Task a) -> (Task a) | iData a
 scheduleWorkflows maintask = scheduleWorkflows`
@@ -684,7 +683,7 @@ where
 	# (a,tst=:{activated}) 	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
 	# ((_,wfls),tst) 		= workflowProcessStore id tst												// read workflow process administration
 	# (done,tst)			= scheduleWorkflowTable True wfls 0 {tst & activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
-	= (a,{tst & activated = activated && done})																// whole application ends when all processes have ended
+	= (a,{tst & activated = activated && done})															// whole application ends when all processes have ended
 
 scheduleWorkflowTable done [] _ tst = (done,tst)
 scheduleWorkflowTable done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
@@ -697,23 +696,6 @@ scheduleWorkflowTable done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
-
-/*
-scheduleNewWorkflows main tst=:{hst} 
-# (wfls,hst) 				= workflowProcessStore id hst				// read workflow process administration
-# lengthwfls				= length wfls
-# (res,tst=:{activated})	= main {tst & hst = hst}					// calculate workflows
-# (done,tst)				= scheduleNewProcess lengthwfls tst
-= (res,{tst & activated = activated && done})
-where
-	scheduleNewProcess lengthwfls tst=:{hst}
-	# (nwfls,hst) 			= workflowProcessStore id hst				// read workflow process administration
-	# lengthnwfls			= length nwfls
-	| lengthnwfls > lengthwfls
-		# (done,tst) 		= (scheduleWorkflowTable True (drop lengthwfls nwfls) (lengthwfls + 1)) {tst & hst = hst,activated = True}	// calculate this one as well
-		= scheduleNewProcess lengthnwfls tst
-	= (True,{tst & hst = hst})
-*/
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
 spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
@@ -742,17 +724,17 @@ where
 	
 	convertTask entry processid label task tst
 
-	# ((processid,wfls),tst) 	= workflowProcessStore id tst				// read workflow process administration
-	# wfl						= wfls!!(entry - 1)							// fetch entry
-	# currentWorker				= getWorkflowUser wfl						// such that worker can be changed dynamically !
+	# ((processid,wfls),tst) 	= workflowProcessStore id tst					// read workflow process administration
+	# wfl						= wfls!!(entry - 1)								// fetch entry
+	# currentWorker				= getWorkflowUser wfl							// such that worker can be changed dynamically !
 	# (a,tst=:{activated})		= newTask label (assignTaskTo False currentWorker ("main",task)) tst			
 
 //	# (a,tst=:{activated})		= newTask label (assignTaskTo False userid ("main",task)) tst			
 	# dyn						= dynamic a
-	| not activated				= (dyn,tst)									// not finished, return
-	# ((_,wfls),tst) 			= workflowProcessStore id tst				// read workflow process administration
-	# wfls						= case (wfls!!(entry - 1)) of				// update process administration
-										(ActiveWorkflow _ acttask) -> updateAt (entry - 1) (FinishedWorkflow (userid,processid,label) dyn acttask) wfls
+	| not activated				= (dyn,tst)										// not finished, return
+	# ((_,wfls),tst) 			= workflowProcessStore id tst					// read workflow process administration
+	# wfls						= case (wfls!!(entry - 1)) of					// update process administration
+										(ActiveWorkflow _ acttask) -> updateAt (entry - 1) (FinishedWorkflow (currentWorker,processid,label) dyn acttask) wfls
 										_ -> wfls
 	# (wfls,tst) 				= workflowProcessStore (\_ -> (processid,wfls)) tst		// write workflow process administration
 	= (dyn,tst)												
@@ -767,11 +749,11 @@ where
 	# refok				= isValidWorkflowReference wfl ids
 	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
 	# wfl				= setWorkflowUser nuser wfl
-	# nwfls				= updateAt (entry - 1) wfl wfls		// delete entry in table
+	# nwfls				= updateAt (entry - 1) wfl wfls							// delete entry in table
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	= (True,tst)																// if everything is fine it should always succeed
 
-waitForWorkflow :: !(Wid a) -> Task a | iData a
+waitForWorkflow :: !(Wid a) -> Task (Maybe a) | iData a
 waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) waitForResult`
 where
 	waitForResult` tst
@@ -780,8 +762,8 @@ where
 	# refok				= isValidWorkflowReference wfl ids
 	| not refok			= (createDefault,{tst & activated = False})				// wid does not refer to the correct entry anymore
 	= case wfl of																// update process administration
-			(FinishedWorkflow _ (val::a^) _) -> (val,{tst & activated = True})	// finished
-			_ 					->  (createDefault,{tst & activated = False})	// not yet
+			(FinishedWorkflow _ (val::a^) _) -> (Just val,{tst & activated = True})	// finished
+			_ 					->  (Nothing,{tst & activated = False})	// not yet
 
 deleteMe :: (Task Void)
 deleteMe = deleteMe`
@@ -803,7 +785,7 @@ where
 	# nwfls				= updateAt (entry - 1) (DeletedWorkflow ids) wfls		// delete entry in table
 	# (wfls,tst=:{html}) = workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	# (_,tst)			= (getTask wfl) {tst & html = BT []}					// calculate workflow to delete for the last time to obtain all its itasks in the task tree
-	# tst				= deleteSubTasksAndThreads [entry] tst				// delete all iTask storage of this process ...
+	# tst				= deleteSubTasksAndThreads [entry] tst					// delete all iTask storage of this process ...
 	= (True,{tst & html = html})												// if everything is fine it should always succeed
 
 suspendMe :: (Task Void)
@@ -872,9 +854,14 @@ where
 
 showWorkflows :: !Bool !*TSt -> (![BodyTag],*TSt)
 showWorkflows alldone tst
-# ((_,wfls),tst) 		= workflowProcessStore id tst							// read workflow process administration
-= (mkTable wfls,tst)
+= 	IF_ClientTasks												
+		(\tst -> ([],tst))														// workflow table not available on clients
+		(showWorkflows` alldone) tst											// show tables
 where
+	showWorkflows` alldone tst
+	# ((_,wfls),tst) 		= workflowProcessStore id tst						// read workflow process administration
+	= (mkTable wfls,tst)
+
 	mkTable []		= []
 	mkTable wfls	=	[showLabel ("Workflow Process Table:"),
 						STable []	(   [ [showTrace "Entry:", showTrace "User Id:", showTrace "Process Id:", showTrace "Task Name:", showTrace "Status:"]
@@ -919,7 +906,7 @@ mkTaskThread OnClient taska
 mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
 mkTaskThread2 threadkind task = evalTask																
 where
-	evalTask tst=:{tasknr,activated,options,userId,staticInfo,workflowLink}					// thread - task is not yet finished
+	evalTask tst=:{tasknr,activated,options,userId,staticInfo,workflowLink}		// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
 	| isNothing mbthread														// not yet, insert new entry		
 		# options 			= {options & tasklife = case threadkind of
@@ -2162,7 +2149,7 @@ where
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
 printTrace2 Nothing 	= EmptyBody
-printTrace2 (Just a)  	= BodyTag [showLabel "Task Tree:", Br, STable emptyBackground (print False a),Hr []]
+printTrace2 (Just a)  	= BodyTag [showLabel "Task Tree Forest:", Br, STable emptyBackground (print False a),Hr []]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
