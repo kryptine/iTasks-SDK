@@ -292,7 +292,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr && not noNewVersion 		// test if there is a version conflict				
 
 # iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [Img [Img_Src (ThisExe +++ "/scleanlogo.jpg"),Img_Align Alo_Middle]
+							[ Td [] [Img [Img_Src (ThisExe +++ "/img/clean-logo.jpg"),Img_Align Alo_Middle]
 									,showHighLight " i -Task", showLabel " Workflow System "]
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
