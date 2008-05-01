@@ -1,7 +1,7 @@
 definition module iTasksSettings
 
 // *********************************************************************************************************************************
-// Costumize the iTasks
+// Costumize some global constants
 // *********************************************************************************************************************************
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
@@ -9,6 +9,8 @@ definition module iTasksSettings
 import StdOverloaded
 import iDataHtmlDef, iDataStylelib, iDataTrivial
 
+iTaskVersion 					:== "0.991 - May 2008 - "
+defaultWorkflowName 			:== "start"			
 traceId							:== "User_Trace" 
 refreshId						:== "User_refresh"
 applicationVersionNr			:== ThisExe <+++ "_Version" 

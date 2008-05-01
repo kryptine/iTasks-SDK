@@ -47,17 +47,28 @@ import iTasksHandler
 // Here follow some commonly used internal functions
 
 /* Support for user defined combinators
-mkTask			:: for making a user defined combinator, name will appear intrace 
+incNr 				:: increment task number
+mkTask 				:: to promote a function of proper type to a task
+mkParSubTask 		:: create a subtask with indicated task nr
+
+iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
+showTaskNr 			:: for identifier generation
+deleteAllSubTasks 	:: collects all related tasks
+
+printTrace2 		:: show task tree trace
 */
 
-incNr :: !TaskNr -> TaskNr
-mkTask 			:: !String !(Task a) 						-> Task a 		| iCreateAndPrint a
-mkParSubTask 	:: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
+incNr 				:: !TaskNr 					-> TaskNr
+mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
+mkParSubTask 		:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a					// two shifts are needed
 
-showTaskNr 			:: !TaskNr -> String
-printTrace2 		:: !(Maybe ![Trace]) -> BodyTag
-iTaskId 			:: !Int !TaskNr !String -> String
-deleteAllSubTasks 	:: ![TaskNr] TSt -> TSt
+iTaskId 			:: !Int !TaskNr !String 	-> String
+showTaskNr 			:: !TaskNr 					-> String
+deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
+
+printTrace2 		:: !(Maybe ![Trace]) 		-> BodyTag
+
+// general iTask store, session store, page store, store but no form generation
 
 cFormId 			:: !Options !String !a -> FormId a
 sessionFormId 		:: !Options !String !a -> FormId a

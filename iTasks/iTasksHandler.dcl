@@ -19,8 +19,6 @@ derive gerda 	Void
 derive read 	Void
 derive write 	Void
 
-iTaskVersion 		:== "0.991 - May 2008 - "
-defaultWorkflowName :== "start"							// name of initial workflow process
 
 // iTask main task types:
 

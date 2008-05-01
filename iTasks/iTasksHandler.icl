@@ -8,10 +8,8 @@ implementation module iTasksHandler
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import StdEnv, StdBimap, StdOrdList
-import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
-import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
-import DrupBasic
+import StdEnv
+import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 
@@ -41,8 +39,6 @@ where
 // Initial values
 
 defaultUser			:== 0								// default id of user
-defaultWorkflowName :== "start"							// name of initial workflow process
-//defaultWid			:== 0								// initial workflow process id
 
 initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 initTst thisUser itaskstorage threadstorage hst
@@ -120,22 +116,6 @@ where   (@>>) UseAjax task			= \tst -> IF_Ajax
 												(mkTaskThread OnClient task tst)
 												(newTask "Client Thread Disabled" task tst) 
 
-
-
-determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
-determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
-where
-	determineUserOptions` [] 						options = options
-	determineUserOptions` [TraceOn:xs] 				options	= determineUserOptions` xs {options & traceOn = True}
-	determineUserOptions` [TraceOff:xs] 			options	= determineUserOptions` xs {options & traceOn = False}
-	determineUserOptions` [ThreadStorage nloc:xs] 	options = determineUserOptions` xs {options & threadStorageLoc = nloc}
-	determineUserOptions` [ShowUsers max:xs] 		options = determineUserOptions` xs {options & showUsersOn = if (max <= 0) Nothing (Just max)}
-	determineUserOptions` [VersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = True}
-	determineUserOptions` [NoVersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
-	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
-	determineUserOptions` [TestModeOn:xs] 			options = determineUserOptions` xs {options & testModeOn = True}
-	determineUserOptions` [TestModeOff:xs] 			options = determineUserOptions` xs {options & testModeOn = False}
-
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 // ******************************************************************************************************
@@ -164,17 +144,18 @@ multiUserTask startUpOptions maintask  hst
 
 workFlowTask :: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*HSt -> (!Bool,Html,*HSt) | iData b 
 workFlowTask  startUpOptions taska userTask hst 
-# userOptions 						= determineUserOptions startUpOptions 
-# tst								= initTst -1 Session userOptions.threadStorageLoc hst
-# (((new,i),a),tst=:{activated,html,hst})	= taska tst									// for doing the login 
+# userOptions 			= determineUserOptions startUpOptions 
+# tst					= initTst -1 Session userOptions.threadStorageLoc hst
+# (((new,i),a),tst=:{activated,html,hst})	
+						= taska tst									// for doing the login 
 | not activated
-	# iTaskHeader					= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
-	# iTaskInfo						= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
+	# iTaskHeader		= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
+	# iTaskInfo			= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
 	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
 										]] hst
-# userOptions 						= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-# tst								= initTst i Session userOptions.threadStorageLoc hst
-# (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
+# userOptions 			= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
+# tst					= initTst i Session userOptions.threadStorageLoc hst
+# (exception,body,hst) 	= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
 = mkHtmlExcep "workFlow" exception body hst
 where
 	noFilter :: HtmlTree -> HtmlCode
@@ -188,16 +169,28 @@ where
 	newUserTask ((True,i),a) 	= (spawnWorkflow i True (userTask i a)) =>> \_ -> return_V Void
 	newUserTask _ 				= return_V Void
 
+determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
+determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
+where
+	determineUserOptions` [] 						options = options
+	determineUserOptions` [TraceOn:xs] 				options	= determineUserOptions` xs {options & traceOn = True}
+	determineUserOptions` [TraceOff:xs] 			options	= determineUserOptions` xs {options & traceOn = False}
+	determineUserOptions` [ThreadStorage nloc:xs] 	options = determineUserOptions` xs {options & threadStorageLoc = nloc}
+	determineUserOptions` [ShowUsers max:xs] 		options = determineUserOptions` xs {options & showUsersOn = if (max <= 0) Nothing (Just max)}
+	determineUserOptions` [VersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = True}
+	determineUserOptions` [NoVersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
+	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
+	determineUserOptions` [TestModeOn:xs] 			options = determineUserOptions` xs {options & testModeOn = True}
+	determineUserOptions` [TestModeOff:xs] 			options = determineUserOptions` xs {options & testModeOn = False}
 
 // ******************************************************************************************************
-// Main routine for the creation of the workflow page
+// *THE* main routine for the determination of the current state and the creation of a new workflow page
 // ******************************************************************************************************
 
 startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) | iData a 
 startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
 
 // prologue
-
 
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
@@ -218,13 +211,11 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 							[Hr []]
 | versionconflict	 
 	# iTaskInfo			= mkDiv "iTaskInfo" [showLabel "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
-	= (True,[Ajax 	[ ("thePage",iTaskHeader ++ iTaskInfo)
-						]
-				],hst)
+	= (True,[Ajax [("thePage",iTaskHeader ++ iTaskInfo)]],hst)
 
 // Here the iTasks are evaluated ...
 													    
-# maintask				= scheduleWorkflows maintask															// schedule all active tasks, not only maintask
+# maintask				= scheduleWorkflows maintask												// schedule all active tasks, not only maintask
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
 						=  ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
 							maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
@@ -316,14 +307,6 @@ where
 	  [showTrace (IF_DataFile "" " - DataFile" )] ++
 	  [Br,Hr []]
 
-
-	mkSTable2 :: [HtmlCode] -> BodyTag
-	mkSTable2 table
-	= Table []	(mktable table)
-	where
-		mktable table 	= [Tr [] (mkrow rows) \\ rows <- table]	
-		mkrow rows 		= [Td [Td_VAlign Alo_Top] [row] \\ row <- rows] 
-
 	Filter :: !Bool !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 	Filter wholepage thrOwner tree hst
 	# startuser			= if wholepage defaultUser thrOwner
@@ -390,28 +373,6 @@ where
 // Any action requiering the calculation of the Task Tree from scratch will be done one the server
 // Watch it: the Client cannot create new Server threads
 
-
-startFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-startFromRoot versioninfo eventnr tasknrs message maintask tst
-=	IF_ClientServer																// we are running client server
-		(IF_ClientTasks
-			(stopClient eventnr tasknrs message)								// client cannot evaluate from root of task tree, give it up
-			(evaluateFromRoot versioninfo eventnr tasknrs message maintask) tst	// sever can evaluate from scratch
-		)
-	(evaluateFromRoot versioninfo eventnr tasknrs message maintask tst)			// ajax can evaluate from scratch as well
-where
-	stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-	stopClient eventnr tasknrs message tst
-	= ((True,defaultUser,eventnr,message,tasknrs), tst)
-	
-	evaluateFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-	evaluateFromRoot versioninfo eventnr tasknrs message maintask tst
-	# tst					= deleteAllSubTasks versioninfo.deletedThreads tst	// delete subtasks being obsolute
-	# (_,tst) 				= maintask tst										// evaluate main application from scratch
-	# tst=:{activated}		= copyThreadTableToClient tst						// copy thread table to client, if applicable
-	# message				= if activated "iTask application finished" message
-	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
-
 startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
 startAjaxApplication thisUser versioninfo maintask tst=:{tasknr,options,html,trace,userId}
 # tst					= copyThreadTableFromClient	versioninfo tst				// synchronize thread tables of client and server, if applicable
@@ -462,6 +423,27 @@ where
 		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
 	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst		// look for thread to evaluate
 	= doParent mbthread maintask event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
+
+startFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
+startFromRoot versioninfo eventnr tasknrs message maintask tst
+=	IF_ClientServer																// we are running client server
+		(IF_ClientTasks
+			(stopClient eventnr tasknrs message)								// client cannot evaluate from root of task tree, give it up
+			(evaluateFromRoot versioninfo eventnr tasknrs message maintask) tst	// sever can evaluate from scratch
+		)
+	(evaluateFromRoot versioninfo eventnr tasknrs message maintask tst)			// ajax can evaluate from scratch as well
+where
+	stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
+	stopClient eventnr tasknrs message tst
+	= ((True,defaultUser,eventnr,message,tasknrs), tst)
+	
+	evaluateFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
+	evaluateFromRoot versioninfo eventnr tasknrs message maintask tst
+	# tst					= deleteAllSubTasks versioninfo.deletedThreads tst	// delete subtasks being obsolute
+	# (_,tst) 				= maintask tst										// evaluate main application from scratch
+	# tst=:{activated}		= copyThreadTableToClient tst						// copy thread table to client, if applicable
+	# message				= if activated "iTask application finished" message
+	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
 
 
 

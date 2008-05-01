@@ -9,7 +9,6 @@ import iDataHandler, iDataFormData, iDataTrivial
 import iTasksSettings
 import iTasksHandler, InternaliTasksThreadHandling
 
-
 showTaskNr :: !TaskNr -> String
 showTaskNr [] 		= ""
 showTaskNr [i] 		= toString i
@@ -29,7 +28,6 @@ deleteAllSubTasks [] tst = tst
 deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
 # hst	= deleteIData  (iTaskId userId (tl tx) "") hst
 = deleteAllSubTasks txs {tst & hst = hst}
-
 
 // ******************************************************************************************************
 // Task creation and printing
@@ -73,12 +71,9 @@ where
 	where
 		mysubtask tst=:{tasknr} = task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
 
-
 // ******************************************************************************************************
 // Trace Printing...
 // ******************************************************************************************************
-
-
 
 InsertTrace :: !Bool !TaskNr !Int !Options String !String ![Trace] -> [Trace]
 InsertTrace finished idx who options taskname val trace = InsertTrace` ridx who val trace
