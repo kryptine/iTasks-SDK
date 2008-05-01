@@ -1,12 +1,20 @@
 definition module iTasksSettings
 
-// (c) iTask & iData Concept and Implementation by Rinus Plasmeijer, 2006 - 2008 - MJP
-
-// To costumize the iTasks:
-
+// *********************************************************************************************************************************
+// Costumize the iTasks
+// *********************************************************************************************************************************
+// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
+// *********************************************************************************************************************************
+//
 import StdOverloaded
-import iDataHtmlDef 		
-import iDataStylelib
+import iDataHtmlDef, iDataStylelib, iDataTrivial
+
+traceId							:== "User_Trace" 
+refreshId						:== "User_refresh"
+applicationVersionNr			:== ThisExe <+++ "_Version" 
+
+userVersionNr thisUser			:== "User" <+++ thisUser <+++ "_VersionPNr"
+usersessionVersionNr thisUser	:== "User" <+++ thisUser <+++ "_VersionSNr" 
 
 showText   		text :== Txt text
 showLabel  		text :== TxtStyle  LabelStyle 		text

@@ -1,25 +1,18 @@
-definition module iTasksDB
+definition module iTasksEditors
 
 // *********************************************************************************************************************************
-// iTasks for easy database creation and access - based on iData
+// Basic iTasks Editors
 // *********************************************************************************************************************************
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
 import iTasksHandler
 
-db_prefix 		:== "iDBase-"
-
-:: DBid a
-
-
-/*
-mkDBid	:: create a typed database identificator; only Database and TxtFile are currently supported
-readDB	:: read the database
-writeDB :: write the database
+/* 
+editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task
+editTask		:: create a task editor (with submit button) to edit a value of given type, finish only if predicate holds 
 */
+editTask 		:: !String 	!a 								-> Task a		| iData a 
+editTaskPred 	:: 			!a !(a -> (Bool, HtmlCode))		-> Task a		| iData a 
 
-mkDBid 	:: !String !Lifespan -> (DBid a)
-
-readDB	:: !(DBid a) 		-> Task a | iData a
-writeDB	:: !(DBid a) !a 	-> Task a | iData a
+editTaskLabel 	:: !String !String !a -> (Task a) | iData a 
