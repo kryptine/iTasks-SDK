@@ -95,21 +95,22 @@ defaultUser			:== 0								// default id of user
 defaultWorkflowName :== "start"							// name of initial workflow process
 //defaultWid			:== 0								// initial workflow process id
 
-initTst :: UserId !Lifespan !*HSt -> *TSt
-initTst thisUser location hst
+initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
+initTst thisUser itaskstorage threadstorage hst
 				=	{ tasknr		= [-1]
 					, activated 	= True
-					, staticInfo	= initStaticInfo thisUser location
+					, staticInfo	= initStaticInfo thisUser threadstorage
 					, userId		= if (thisUser >= 0) defaultUser thisUser
 					, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
 					, html 			= BT []
 					, trace			= Nothing
 					, hst 			= hst
-					, options 		= initialOptions
+					, options 		= initialOptions thisUser itaskstorage
 					}
 
-initialOptions :: Options
-initialOptions	=	{ tasklife 		= Session
+initialOptions ::  !UserId !Lifespan  -> !Options 
+initialOptions thisUser location 
+				=	{ tasklife 		= if (thisUser >= 0) location Session 
 					, taskstorage 	= PlainString
 					, taskmode 		= Edit 
 					, gc			= Collect
@@ -222,8 +223,8 @@ where
 
 singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
 singleUserTask startUpOptions maintask hst 
-# userOptions			= determineUserOptions startUpOptions
-# tst					= initTst 0 userOptions.threadStorageLoc hst
+# userOptions			= determineUserOptions [ThreadStorage TxtFile:startUpOptions]
+# tst					= initTst 0 Session userOptions.threadStorageLoc hst
 # (exception,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
 = mkHtmlExcep "singleUser" exception html hst
 
@@ -237,7 +238,7 @@ multiUserTask startUpOptions maintask  hst
 # (idform,hst) 			= FuncMenu (Init,nFormId "User_Selected" 
 							(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
 # currentWorker			= snd idform.value
-# tst					= initTst currentWorker userOptions.threadStorageLoc hst
+# tst					= initTst currentWorker TxtFile userOptions.threadStorageLoc hst
 # (exception,html,hst) 	= startTstTask currentWorker True 
 							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
 = mkHtmlExcep "multiUser" exception html hst
@@ -245,7 +246,7 @@ multiUserTask startUpOptions maintask  hst
 workFlowTask :: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*HSt -> (!Bool,Html,*HSt) | iData b 
 workFlowTask  startUpOptions taska userTask hst 
 # userOptions 						= determineUserOptions startUpOptions 
-# tst								= initTst -1 userOptions.threadStorageLoc hst
+# tst								= initTst -1 Session userOptions.threadStorageLoc hst
 # (((new,i),a),tst=:{activated,html,hst})	= taska tst									// for doing the login 
 | not activated
 	# iTaskHeader					= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
@@ -253,7 +254,7 @@ workFlowTask  startUpOptions taska userTask hst
 	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
 										]] hst
 # userOptions 						= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-# tst								= initTst i userOptions.threadStorageLoc hst
+# tst								= initTst i Session userOptions.threadStorageLoc hst
 # (exception,body,hst) 				= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
 = mkHtmlExcep "workFlow" exception body hst
 where
@@ -411,10 +412,11 @@ where
 	| isNil accu		= (threadcode,[],[],[],[],hst)
 	# accu				= sortBy (\(i,_,_,_) (j,_,_,_) -> i < j) accu
 	# (workflownames,subtasks) 						= unziptasks accu
-	# ((mainSelected,mainButtons,chosenMain),hst) 	= mkTaskButtons True ("User " <+++ thisUser) thisUser [] initialOptions workflownames hst 
+	# ((mainSelected,mainButtons,chosenMain),hst) 	= mkTaskButtons True ("User " <+++ thisUser) thisUser [] 
+															(initialOptions thisUser Session) workflownames hst 
 	# (subtasksnames,tcode)							= unzipsubtasks (subtasks!!mainSelected)
-	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) 
-																							thisUser [] initialOptions subtasksnames hst 
+	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) thisUser [] 
+															(initialOptions thisUser Session) subtasksnames hst 
 	# subButtons		= if (length subtasksnames > 1) subButtons []
 	= (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
 	where
