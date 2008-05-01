@@ -9,7 +9,7 @@ implementation module InternaliTasksThreadHandling
 import StdList, StdFunc, StdEnv
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
-import InternaliTasksCommon, iTasksSettings, iTasksBasicCombinators
+import InternaliTasksCommon, iTasksSettings, iTasksBasicCombinators, iTasksLiftingCombinators
 
 derive gForm 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []
 derive gUpd 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []
@@ -206,14 +206,14 @@ where
 	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
 
 	
-administrateNewThread :: UserId *TSt -> *TSt
+administrateNewThread :: !UserId !*TSt -> *TSt
 administrateNewThread ouserId tst =: {tasknr,userId,options}
 | ouserId == userId		= tst
 # newTaskId				= iTaskId userId tasknr "_newthread"
-# (chosen,tst=:{hst})	= LiftHst (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
+# (chosen,tst=:{hst})	= liftHst (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
 | not chosen.value
 	# (_,hst) 			= setPUserNewThread userId hst													// yes, new thread created
-	# (_,tst)			= LiftHst (mkStoreForm  (Init,storageFormId options newTaskId False) (\_ -> True)) {tst & hst = hst}
+	# (_,tst)			= liftHst (mkStoreForm  (Init,storageFormId options newTaskId False) (\_ -> True)) {tst & hst = hst}
 	= tst
 = tst	
 
@@ -258,7 +258,7 @@ ThreadTableStorageGen :: !String !Lifespan !(ThreadTable -> ThreadTable) -> (Tas
 ThreadTableStorageGen tableid lifespan fun = handleTable						// to handle the table on server as well as on client
 where
 	handleTable tst
-	# (table,tst) = LiftHst (mkStoreForm (Init,storageFormId 
+	# (table,tst) = liftHst (mkStoreForm (Init,storageFormId 
 						{ tasklife 		= lifespan
 						, taskstorage 	= PlainString 
 						, taskmode		= NoForm
@@ -316,7 +316,7 @@ copyThreadTableFromClient` {newThread,deletedThreads} tst
 # (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst			// store table on server
 = tst
 
-findThreadInTable :: !ThreadKind !TaskNr *TSt -> *(Maybe (!Int,!TaskThread),*TSt)// find thread that belongs to given tasknr
+findThreadInTable :: !ThreadKind !TaskNr !*TSt -> *(Maybe !(!Int,!TaskThread),!*TSt)// find thread that belongs to given tasknr
 findThreadInTable threadkind tasknr tst
 # (table,tst)	= ThreadTableStorage id tst										// read thread table
 # pos			= lookupThread tasknr 0 table									// look if there is an entry for this task
@@ -345,7 +345,7 @@ where
 	foundThread AnyThread    			_				 	   	= True
 	foundThread _ 						_ 						= abort "ZOU NIET MOGEN\n" //False
 
-insertNewThread :: !TaskThread *TSt -> *TSt										// insert new thread in table
+insertNewThread :: !TaskThread !*TSt -> *TSt										// insert new thread in table
 insertNewThread thread tst		
 # (table,tst)	= ThreadTableStorage id tst										// read thread table
 # (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
@@ -427,7 +427,7 @@ serializeThread task
 	)
 	(abort "Threads cannot be created, Ajax is switched off\n")			// this call should not happen
 						
-deserializeThread :: .String -> .(Task .a)
+deserializeThread :: !.String -> .(Task .a)
 deserializeThread thread 
 = IF_Ajax 
 	(IF_ClientServer 
@@ -451,7 +451,7 @@ serializeThreadClient task
 	)
 	(abort "Threads cannot be created, Ajax is switched off\n")			// this call should not happen
 
-deserializeThreadClient :: .String -> .(Task .a)
+deserializeThreadClient :: !.String -> .(Task .a)
 deserializeThreadClient thread
 = IF_Ajax 
 	(IF_ClientServer 
@@ -464,19 +464,19 @@ deserializeThreadClient thread
 
 deserializeSapl thread = string_to_graph thread
 
-deleteSubTasksAndThreads :: !TaskNr TSt -> TSt
+deleteSubTasksAndThreads :: !TaskNr !*TSt -> *TSt
 deleteSubTasksAndThreads tasknr tst 
 # tst=:{hst,userId,options}	= deleteThreads tasknr tst
 | options.gc == NoCollect 	= tst
 | otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
 
-deleteAllSubTasksAndThreads :: ![TaskNr] TSt -> TSt
+deleteAllSubTasksAndThreads :: ![TaskNr] !*TSt -> *TSt
 deleteAllSubTasksAndThreads [] tst = tst
 deleteAllSubTasksAndThreads [tx:txs] tst 
 # tst = deleteSubTasksAndThreads tx tst
 = deleteAllSubTasksAndThreads txs tst
 
-showThreadTable :: *TSt -> (HtmlCode,*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
+showThreadTable :: !*TSt -> (!HtmlCode,!*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 showThreadTable tst=:{staticInfo}
 # thisUser		= staticInfo.currentUserId
 # (tableS,tst)	= ThreadTableStorage id tst													// read thread table from server
@@ -525,8 +525,3 @@ showThreadNr [-1]		= "Root"
 showThreadNr [-1:is]	= showTaskNr is
 showThreadNr else		= "*" <+++ showTaskNr else
 
-
-
-LiftHst fun tst=:{hst}
-# (form,hst) = fun hst
-= (form,{tst & hst = hst})
