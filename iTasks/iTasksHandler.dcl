@@ -61,25 +61,35 @@ instance <<@		  Lifespan						// default: Session
 
 instance @>>		  SubPage						// default: the *whole* page will be updated when a form has been modified
 
-/* Initiate the iTask library with an iData server wrapper such as doHtmlServer in combination with one of the following functions:
+// Initiate the iTask library with an iData server wrapper such as doHtmlServer in combination with one of the following functions:
 					
-singleUserTask 	:: iTask start function for defining tasks for one, single user
-multiUserTask 	:: iTask start function for multi-users, with option in window to switch between [0..users - 1]  
-workFlowTask	:: iTask start function for a real workflow
+/*
+singleUserTask 	:: iTask start function for defining tasks for one, single user; intended for developing and testing
+*/
+singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iData a
+
+/*
+multiUserTask 	:: iTask start function for multiple -users; intended for developing and testing  
+*/
+multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iData a
+
+/*
+workFlowTask	:: iTask start function to create a real life workflow
 					- the first arument has to be an itask which is used for login purposes; it should yield
 						Bool: 	True, is the user a new one: if so the second argument is spawned as a separate task for that user
 						UserId:	the id of that user 
 					- the second argument is workflow that will spawned as a task 
 						(True if we have new user,user id of the user, has ) : 
 					- the second one is the actual function for that user  
-				   a predefined login task is defined in iTaskLogin.dcl				
+				   a predefined login task is defined as an example in iTaskLogin.dcl				
 */
-singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iData a
-multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iData a
 workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) 
 							!(UserId a -> LabeledTask b) 	!*HSt -> (!Bool,Html,*HSt) | iData b 
 
 
+/*
+getCurrentAppVersionNr delivers current version number of the iTask aplication
+*/
 getCurrentAppVersionNr :: !*TSt -> !(!Int,!*TSt)
 
 

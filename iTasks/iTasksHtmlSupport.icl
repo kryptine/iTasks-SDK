@@ -55,16 +55,15 @@ where
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
 
-addHtml :: HtmlCode TSt -> TSt
+addHtml :: !HtmlCode !*TSt -> *TSt
 addHtml bodytag  tst=:{activated, html}  
 | not activated = tst						// not active, return default value
 = {tst & html = html +|+ BT bodytag}		// active, so perform task or get its result
 
-
-iTaskButton :: String -> Button
+iTaskButton :: !String -> Button
 iTaskButton label = LButton defpixel label
 
-mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] *HSt -> ((Int,HtmlCode,String),*HSt)
+mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,!HtmlCode,!String),!*HSt)
 mkTaskButtons vertical myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames

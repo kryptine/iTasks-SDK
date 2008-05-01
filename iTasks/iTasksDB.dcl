@@ -12,7 +12,6 @@ db_prefix 		:== "iDBase-"
 
 :: DBid a
 
-
 /*
 mkDBid	:: create a typed database identificator; only Database and TxtFile are currently supported
 readDB	:: read the database

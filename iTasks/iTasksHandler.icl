@@ -99,7 +99,6 @@ where   (<<@) task lifespan			= setTaskLifespan
 				)
 				(task {tst & options.tasklife = lifespan}) 									// assign option on server
 
-
 instance <<@  StorageFormat
 where   (<<@) task storageformat 	= \tst -> task {tst & options.taskstorage = storageformat}
 instance <<@  Mode
@@ -445,13 +444,6 @@ where
 	# message				= if activated "iTask application finished" message
 	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
 
-
-
-
-LiftHst fun tst=:{hst}
-# (form,hst) = fun hst
-= (form,{tst & hst = hst})
-
 // ******************************************************************************************************
 // Html Printing Utilities...
 // ******************************************************************************************************
@@ -490,8 +482,6 @@ getCurrentAppVersionNr tst=:{hst}
 # (nr,hst) = setAppversion id hst
 = (nr,{tst & hst = hst})
 
-
-
 setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt) 
 setSVersionNr user f hst	
 # (form,hst) = mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
@@ -514,5 +504,4 @@ where
 	lowest x [y:ys]
 	| x < y = lowest x ys
 	= lowest y ys
-
 

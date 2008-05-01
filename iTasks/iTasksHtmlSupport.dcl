@@ -14,8 +14,6 @@ Prompting variants:
 (!>>)			:: prompt when task is activated
 (<<?)			:: as ?>>, except that prompt is displayed *after* task
 (<<!)			:: as !>>, except that prompt is displayed *after* task
-
-addHtml			:: add html code
 */
 
 (?>>) infixr 5 	:: !HtmlCode !(Task a) 						-> Task a		| iCreate a
@@ -23,6 +21,12 @@ addHtml			:: add html code
 (<<?) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
 (<<!) infixl 5 	:: !(Task a) !HtmlCode 						-> Task a		| iCreate a
 
-addHtml 		:: HtmlCode TSt 	-> TSt
-mkTaskButtons 	:: !Bool !String !Int !TaskNr !Options ![String] *HSt -> ((Int,HtmlCode,String),*HSt)
-iTaskButton 	:: String -> Button
+/*
+addHtml			:: to insert html code 
+iTaskButton		:: a standard button as internally used
+mkTaskButtons	:: vertical anIdentifier userId tasknr options list-of-button-names hst returning (idx of button chosen,the code,the name)
+*/
+
+addHtml 		:: !HtmlCode !*TSt 	-> *TSt
+mkTaskButtons 	:: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,!HtmlCode,!String),!*HSt)
+iTaskButton 	:: !String -> Button

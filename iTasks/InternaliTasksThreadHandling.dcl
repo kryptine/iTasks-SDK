@@ -45,7 +45,6 @@ showThreadTable 			:: !*TSt 											-> (!HtmlCode,!*TSt)					// watch it: the
 
 administrateNewThread 		:: !UserId 					!*TSt 					-> *TSt
 mkTaskThread 				:: !SubPage 	!(Task a) 							-> Task a 	| iData a						
-mkTaskThread2 				:: !ThreadKind 	!(Task a) 							-> Task a 								// execute a thread
 
 // Finding threads and evaluation of a thread
 

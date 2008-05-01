@@ -53,7 +53,8 @@ suspendMe 			:: (Task Void)
 deleteMe 			:: (Task Void)
 
 
-// Internally used:
+
+// internally used...
 
 showWorkflows 		:: !Bool !*TSt -> (![BodyTag],*TSt)
 scheduleWorkflows 	:: !(Task a) -> (Task a) | iData a
