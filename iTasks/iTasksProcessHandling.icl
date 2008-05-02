@@ -206,7 +206,7 @@ where
 	# (wfls,tst=:{html}) = workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	# (_,tst)			= (getTask wfl) {tst & html = BT []}					// calculate workflow to delete for the last time to obtain all its itasks in the task tree
 	# tst				= deleteSubTasksAndThreads [entry] tst					// delete all iTask storage of this process ...
-	= (True,{tst & html = html})												// if everything is fine it should always succeed
+	= (True,{tst & html = html, activated = True})												// if everything is fine it should always succeed
 
 suspendMe :: (Task Void)
 suspendMe = suspendMe`

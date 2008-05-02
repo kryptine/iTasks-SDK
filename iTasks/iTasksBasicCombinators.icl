@@ -99,8 +99,9 @@ where
 	# (a,tst=:{activated}) 	= taska {tst & tasknr = [-1:tasknr]}
 	| not activated 		= (a,tst)
 	| not (pred a)			
-		# tst = deleteSubTasksAndThreads tasknr tst
-		= (a,{tst & activated = False})
+		# tst = deleteSubTasksAndThreads [0:tasknr] tst
+		= doTask {tst & tasknr = tasknr}
+//		= (a,{tst & activated = False})
 	= (a,tst)
 
 // ******************************************************************************************************
