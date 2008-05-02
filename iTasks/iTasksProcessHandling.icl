@@ -28,8 +28,8 @@ derive write 	Wid, WorkflowStatus
 
 instance == WorkflowStatus
 where
-	(==) WflActive     			WflActive 	   	= True
-	(==) WflSuspended    		WflSuspended 	= True
+	(==) (WflActive _) 			(WflActive _)  	= True
+	(==) (WflSuspended _)  		(WflSuspended _)= True
 	(==) WflFinished    		WflFinished 	= True
 	(==) WflDeleted 			WflDeleted		= True
 	(==) _ 						_ 				= False
@@ -171,6 +171,8 @@ where
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	= (True,tst)																// if everything is fine it should always succeed
 
+
+
 waitForWorkflow :: !(Wid a) -> Task (Maybe a) | iData a
 waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) waitForResult`
 where
@@ -264,10 +266,10 @@ where
 	# refok				= isValidWorkflowReference wfl ids
 	| not refok			= (WflDeleted,tst)										// wid does not refer to the correct entry anymore
 	# status			= case wfl of
-							(ActiveWorkflow _ _) 		-> WflActive
-							(SuspendedWorkflow _ _) 	-> WflSuspended
-							(FinishedWorkflow _ _ _) 	-> WflFinished
-							(DeletedWorkflow _) 		-> WflDeleted		
+							(ActiveWorkflow (user,_,_) _) 		-> WflActive user
+							(SuspendedWorkflow (user,_,_) _) 	-> WflSuspended user
+							(FinishedWorkflow _ _ _) 			-> WflFinished
+							(DeletedWorkflow _) 				-> WflDeleted		
 	= (status,tst)																// if everything is fine it should always succeed
 
 showWorkflows :: !Bool !*TSt -> (![BodyTag],*TSt)

@@ -20,15 +20,14 @@ derive write 	Wid
 
 :: Wid a											// reference to a workflow process
 
-:: WorkflowStatus	= WflActive						// iTask workflow process is still being processed
-					| WflSuspended					// it is (temporally) suspended
+:: WorkflowStatus	= WflActive	UserId				// iTask workflow process is still being processed by indicated user
+					| WflSuspended UserId			// it is assigned to indicated user but it is (temporally) suspended
 					| WflFinished					// it is finshed
 					| WflDeleted					// it does not exist anymore because it is deleted
 
 instance ==			WorkflowStatus
 
 /* iTask Workflow process management:
-
 spawnWorkflow 		:: spawn an iTask workflow as a new separate process, Wid is a handle to that process, bool indicates whether it is active or suspended 
 waitForWorkflow		:: wait until the indicated process is finished and obtain the resulting value; returns Nothing when process is deleted
 getWorkflowStatus 	:: get status of workflow
