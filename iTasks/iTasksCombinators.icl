@@ -159,7 +159,7 @@ where
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = newTask "andTasks_mu" (domu_andTasks tasks)
 where
-	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
+	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @::> task) \\ (i,task) <- list] 
 
 // ******************************************************************************************************
 // Timer Tasks ending when timed out
