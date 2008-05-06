@@ -67,7 +67,7 @@ mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,
 mkTaskButtons vertical myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames
-| myidx == 1		= ((0,[],[]),hst)													// no task button if there is only one task to choose from
+//| myidx == 1		= ((0,[],""),hst)													// no task button if there is only one task to choose from
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info id hst						// which choice was made in the past
 # (buttons,hst)		= SelectButtons Init btnsId info (chosen,btnnames) hst				// create buttons
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info  buttons.value hst			// maybe a new button was pressed
