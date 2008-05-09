@@ -76,14 +76,15 @@ where
 	unimplemented :: *World -> *World
 	unimplemented world
 		# (console, world)	= stdio world
-		# console			= fwrites "The chosen server mode is not supported yet.\n" console
+		# console			= fwrites "The chosen server mode is not supported.\n" console
 		# console			= fwrites "Please select ServerKind Internal in iDataSettings.dcl.\n" console
 		# (_,world)			= fclose console world
 		= world
 
 StartServer :: !UserPage !*World -> *World
 StartServer userpage world
-= http_startServer ServerOptions [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource userpage))
+	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
+	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource userpage))
 								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource userpage) http_notfoundResponse)
 								 ,(\_ -> True, doStaticResource)
 								 ] world

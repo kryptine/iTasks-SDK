@@ -9,6 +9,18 @@ import Gerda							// OPTION: GEneRic Database Access to a standard relational d
 import DataFile							// OPTION: A fast generic database stored in a file, made by Arjen van Weelden
 import HttpServer
 
+// Installation options
+
+// Absolute path to the directory where static resources (css,js,img etc.) are stored 
+ResourceDir				:== "C:\\PATH\\TO\\MY CLEAN IDE\\Libraries\\iData\\Resources"
+
+
+// Debug switches								
+TraceInput				:== False									// show what kind of information is received from Client
+TraceOutput				:== False									// show what kind of information is stored when application is finished
+TraceThreads			:== False									// show the threadtable
+TraceHTTP				:== False									// show http traffic in the console
+
 
 // Global settings of iData applications
 
@@ -79,35 +91,23 @@ instance == ServerType
 // Set here the kind of server you want to use and the port number to use for the communication
 
 ServerKind				:==	Internal	// Enable this one for developing an iData or iTask application
-//ServerKind				:== CGI			// or: Enable this one for running the final version through CGI
-//ServerKind				:==	External	// or: Enable this one for the final version using an http 1.1 server
+//ServerKind			:== CGI			// or: Enable this one for running the final version through CGI
+//ServerKind			:==	External	// or: Enable this one for the final version using an http 1.1 server
 
-
+//Options for the internal HTTP server, CGI Wrapper or HTTP subserver.
 ServerOptions			:== []
-
+			
 // Global Settings determining where files are stored
 
-ThisExe					:: String									// name of this executable (without .exe)
-MyAbsDir				:: String									// absolute path name of directory in which this execuatble is located in
+ThisExe					:: String		// name of this executable (without .exe)
+MyAbsDir				:: String		// absolute path name of directory in which this execuatble is located in
 
-
-// absolute path name of directory where static resources (css,js,img etc.) are stored 
-//ResourceDir				:== MyAbsDir +++ ThisExe 					
-//ResourceDir				:== "C:\\Documents and Settings\\rinus\\Desktop\\Clean 2.2\\Libraries\\iData\\Resources\\"
-ResourceDir				:== "C:\\Documents and Settings\\Bas Lijnse\\Desktop\\Clean\\Libraries\\iData\\Resources"
 iDataStorageDir 		:== MyAbsDir +++ ThisExe +++ "-iStore"		// directory name where iData and iTask files are stored
 
 ODCBDataBaseName		:== ThisExe +++ "-ODCB"						// name of ODCB Database being used by iData applications
 DataFileName			:== ThisExe +++ "-CLDB"						// name of 		DataFile being used by iData applications
 
 TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file in which trace information from subserver is stored
-
-// Debug switches								
-
-TraceInput				:== True									// show what kind of information is received from Client
-TraceOutput				:== True									// show what kind of information is stored when application is finished
-TraceThreads			:== True									// show the threadtable
-TraceHTTP				:== True
 
 // separators
 
