@@ -250,7 +250,7 @@ where
 		, value				= newval
 		, form				= viewform.form
 		}
-	  ,mkHSt states world)
+	  ,{mkHSt states world & issub = issub})
 
 	replaceState` vformid view states world
 	| init <> Const			= replaceState vformid view states world
