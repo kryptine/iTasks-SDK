@@ -23,14 +23,14 @@ import EstherBackend
 // and new states (states of newly created forms and updated forms)
 
 :: *FormStates 	=												// collection of states of all forms
-				{ fstates 	:: *FStates							// internal tree of states
-				, triplets	:: [(Triplet,String)]				// indicates what has changed: which form, which postion, which value
-				, updateid	:: String							// which form has changed
-				, focusid	:: String							// which input has the focus
+				{ fstates 	:: !*FStates						// internal tree of states
+				, triplets	:: ![(!Triplet,!String)]			// indicates what has changed: which form, which postion, which value
+				, updateid	:: !String							// which form has changed
+				, focusid	:: !String							// which input has the focus
 				}		
 
-:: FStates		:== Tree_ (String,FormState)					// each form needs a different string id
-:: Tree_ a 		= Node_ (Tree_ a) a (Tree_ a) | Leaf_
+:: FStates		:== Tree_ !(!String,!FormState)					// each form needs a different string id
+:: Tree_ a 		= Node_ !(Tree_ !a) !a !(Tree_ !a) | Leaf_
 :: FormState 	= OldState !FState								// Old states are the states from the previous calculation
 				| NewState !FState 								// New states are newly created states or old states that have been inspected and updated
 :: FState		= { format	:: !Format							// Encoding method used for serialization
@@ -38,8 +38,8 @@ import EstherBackend
 				  }
 :: Format		= PlainStr 	!.String 							// Either a string is used for serialization
 				| StatDyn	!Dynamic 							// Or a dynamic which enables serialization of functions defined in the application (no plug ins yet)
-				| DBStr		!.String (*Gerda -> *Gerda)			// In case a new value has to bestored in the relational database 
-				| CLDBStr   !.String (*DataFile -> *DataFile)	// In case a new value has to bestored in a Cleans database file
+				| DBStr		.String (*Gerda -> *Gerda)			// In case a new value has to bestored in the relational database 
+				| CLDBStr   .String (*DataFile -> *DataFile)	// In case a new value has to bestored in a Cleans database file
 				
 // Database OPTION
 
@@ -82,19 +82,19 @@ where
 emptyFormStates :: *FormStates
 emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = "", focusid = ""}
 
-getTriplets :: !String !*FormStates -> (Triplets,!*FormStates)
+getTriplets :: !String !*FormStates -> (!Triplets,!*FormStates)
 getTriplets id formstates=:{triplets} = ([mytrips \\ mytrips=:((tripid,_,_),_) <- triplets | id == tripid] ,formstates)
 
-getAllTriplets :: !*FormStates -> (Triplets,!*FormStates)
+getAllTriplets :: !*FormStates -> (!Triplets,!*FormStates)
 getAllTriplets formstates=:{triplets} = (triplets,formstates)
 
-getUpdateId :: !*FormStates -> ([String],!*FormStates)
+getUpdateId :: !*FormStates -> (![String],!*FormStates)
 getUpdateId formStates=:{triplets} = (removeDup [tripid \\ ((tripid,_,_),_) <- triplets] ,formStates)
 
 getUpdate :: !*FormStates -> (String,!*FormStates)
 getUpdate formStates = ("",formStates)
 
-findState :: !(FormId a) !*FormStates *NWorld -> (Bool,Maybe a,*FormStates,*NWorld)	| iPrint, iParse, iSpecialStore a	
+findState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a	
 findState formid formstates=:{fstates} world
 # (bool,ma,fstates,world) = findState` formid fstates world
 = (bool,ma,{formstates & fstates = fstates},world)
@@ -196,10 +196,10 @@ where
 	findState` _ Leaf_ world	= (False,Nothing,Leaf_,world)
 	findState` _ _ world		= (False,Nothing,Leaf_,world)
 
-string_to_dynamic` :: {#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
+string_to_dynamic` :: !{#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
 string_to_dynamic` s	= string_to_dynamic {s` \\ s` <-: s}
 
-replaceState ::  !(FormId a) a !*FormStates *NWorld -> (*FormStates,*NWorld)	| iPrint,iSpecialStore a	
+replaceState ::  !(FormId a) a !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	| iPrint,iSpecialStore a	
 replaceState formid val formstates=:{fstates} world
 # (fstates,world)		= replaceState` formid val fstates world
 = ({formstates & fstates = fstates},world)
@@ -232,14 +232,14 @@ where
 
 	order l1 l2			= if (l1 < l2) l2 l1	// longest lifetime chosen will be the final setting Database > DataFile > TxtFile > Session > Page > temp
 
-deleteStates :: !String !*FormStates *NWorld -> (*FormStates,*NWorld)	
+deleteStates :: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	
 deleteStates prefix formstates=:{fstates} world
 # (fstates,world)		= deleteStates` fstates world
 = ({formstates & fstates = fstates},world)
 where
 	lprefix 	= size prefix		
 
-	deleteStates` :: *FStates *NWorld -> (*FStates,*NWorld)	
+	deleteStates` :: !*FStates !*NWorld -> (!*FStates,!*NWorld)	
 	deleteStates` Leaf_ world 			= (Leaf_,world)
 	deleteStates` (Node_ left a=:(fid,_) right) world
 	# prefid			= if (size fid <= lprefix) fid (fid%(0,lprefix-1))  // determine prefix of this form
@@ -275,14 +275,14 @@ where
 
 // change storage option
 
-changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates *NWorld -> (*FormStates,*NWorld)	
+changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	
 changeLifetimeStates prefix oldlifespan newlifespan formstates=:{fstates} world
 # (fstates,world)		= changeLifetimeStates` fstates world
 = ({formstates & fstates = fstates},world)
 where
 	lprefix 	= size prefix		
 
-	changeLifetimeStates` :: *FStates *NWorld -> (*FStates,*NWorld)	
+	changeLifetimeStates` :: !*FStates !*NWorld -> (!*FStates,!*NWorld)	
 	changeLifetimeStates` Leaf_ world 			= (Leaf_,world)
 	changeLifetimeStates` (Node_ left a=:(fid,_) right) world
 	# prefid			= if (size fid <= lprefix) fid (fid%(0,lprefix-1))  // determine prefix of this form
@@ -303,7 +303,7 @@ where
 //
 // De-serialize information from server to the internally used form states
 
-retrieveFormStates :: [(String, String)] *NWorld -> (*FormStates,*NWorld) 	// retrieves all form states hidden in the html page
+retrieveFormStates :: ![(!String, !String)] !*NWorld -> (!*FormStates,!*NWorld) 	// retrieves all form states hidden in the html page
 retrieveFormStates args world 
 	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets, focusid = focus},world)
 where
@@ -327,21 +327,21 @@ where
 // Serialize all states in FormStates that have to be remembered to either hidden encoded Html Code
 // or store them in a persistent file, all depending on the kind of states
 
-storeFormStates :: !FormStates *NWorld -> (String, String, *NWorld)
+storeFormStates :: !FormStates !*NWorld -> (!String, !String, !*NWorld)
 storeFormStates {fstates = allFormStates, focusid = focus} world
 # world						= writeAllTxtFileStates allFormStates world				// first write all persistens states
 # encodedpagestate			= EncodeHtmlStates (FStateToHtmlState allFormStates []) // encode states in the page
 = (encodedpagestate, focus, world)
 
 where
-	FStateToHtmlState :: !(Tree_ (String,.FormState)) *[HtmlState] -> *[HtmlState]
+	FStateToHtmlState :: !(Tree_ !(!String,!.FormState)) !*[HtmlState] -> *[HtmlState]
 	FStateToHtmlState Leaf_ accu	= accu
 	FStateToHtmlState (Node_ left x right) accu
 		= case htmlStateOf x of
 			Just state				= FStateToHtmlState left [state : FStateToHtmlState right accu]
 			nothing					= FStateToHtmlState left         (FStateToHtmlState right accu)
 	where
-		htmlStateOf :: !(String,.FormState) -> Maybe HtmlState
+		htmlStateOf :: !(!String,!.FormState) -> Maybe HtmlState
 		// old states which have not been used this time, but with lifespan session, are stored again in the page
 		// other old states will have lifespan page or are persistent; they need not to be stored
 		htmlStateOf (fid,OldState {life=Session,format=PlainStr stringval})	= Just  (fid,Session,PlainString,stringval)
@@ -360,7 +360,7 @@ where
 		htmlStateOf (fid,NewState {format = PlainStr string,life})		= Just (fid,life,PlainString,string)
 		htmlStateOf (fid,NewState {format = StatDyn dynval, life})		= Just (fid,life,StaticDynamic,dynamic_to_string dynval)
 
-	writeAllTxtFileStates :: !FStates *NWorld -> *NWorld				// store states in persistent stores
+	writeAllTxtFileStates :: !FStates !*NWorld -> *NWorld				// store states in persistent stores
 	writeAllTxtFileStates Leaf_ nworld = nworld
 	writeAllTxtFileStates (Node_ left st right) nworld
 		= writeAllTxtFileStates right (writeAllTxtFileStates left (writeTxtFileState st nworld))
@@ -386,7 +386,7 @@ where
 
 // trace States
  
-traceStates :: !*FormStates -> (BodyTag,!*FormStates)
+traceStates :: !*FormStates -> (!BodyTag,!*FormStates)
 traceStates formstates=:{fstates}
 # (bodytags,fstates) = traceStates` fstates
 = (BodyTag [Br, B [] "State values when application ended:",Br,		
@@ -411,10 +411,10 @@ where
 	
 strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
 
-ShowValueDynamic :: Dynamic -> String
+ShowValueDynamic :: !Dynamic -> String
 ShowValueDynamic d = strip (foldr (+++) "" (fst (toStringDynamic d)) +++ " ")
 
-ShowTypeDynamic :: Dynamic -> String
+ShowTypeDynamic :: !Dynamic -> String
 ShowTypeDynamic d = strip (snd (toStringDynamic d) +++ " ")
 // debugging code 
 
@@ -438,10 +438,10 @@ my_dynamic_to_string d
 = abort ""
 = s;
 
-tohexstring :: {#Char} -> {#Char};
+tohexstring :: !{#Char} -> {#Char};
 tohexstring s = {tohexchar s i \\ i<-[0..2*size s-1]};
 
-tohexchar :: {#Char} Int -> Char;
+tohexchar :: !{#Char} !Int -> Char;
 tohexchar s i
 # c=((toInt s.[i>>1]) >> ((1-(i bitand 1))<<2)) bitand 15;
 | c<10
@@ -463,11 +463,11 @@ derive gMap Tree_
 
 // interfaces added for testing:
 
-initTestFormStates :: *NWorld -> (*FormStates,*NWorld)													// retrieves all form states hidden in the html page
+initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
 	= ({ fstates = Leaf_, triplets = [], updateid = "", focusid = ""},world)
 
-setTestFormStates :: [(Triplet,String)] String String *FormStates *NWorld -> (*FormStates,*NWorld)			// retrieves all form states hidden in the html page
+setTestFormStates :: ![(!Triplet,!String)] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
 setTestFormStates triplets updateid update states world 
 	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid, focusid = ""},world)
 where

@@ -86,19 +86,35 @@ isDeletedWorkflow _	= False
 
 workflowProcessStore ::  !((!Int,![WorflowProcess]) -> (!Int,![WorflowProcess])) !*TSt -> (!(!Int,![WorflowProcess]),!*TSt) 
 workflowProcessStore wfs tst	
-= 	IF_ClientTasks												
-			(abort "Cannot access workflow process table on cleint\n")			// workflow table only on server site
+= IF_Ajax 																		
+	(IF_ClientServer															// we running both client and server
+		(IF_ClientTasks												
+			(abort "Cannot access workflow process table on client\n")			// workflow table only on server site
 			(workflowProcessStore` wfs tst)										// access workflow store
+		)
+		(workflowProcessStore` wfs tst)
+	)
+	(workflowProcessStore` wfs tst)
 where
 	workflowProcessStore` wfs tst=:{hst}	
 	# (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName (0,[]) <@ NoForm) wfs hst
 	= (form.value,{tst & hst = hst})
 
 scheduleWorkflows :: !(Task a) -> (Task a) | iData a
-scheduleWorkflows maintask = scheduleWorkflows`
+scheduleWorkflows maintask 
+# nmaintask	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask))
+= IF_Ajax 																		
+	(IF_ClientServer															// we running both client and server
+		(IF_ClientTasks												
+			nmaintask															// workflow table only on server site, do only maintask
+			(scheduleWorkflows` nmaintask)										// access workflow store
+		)
+		(scheduleWorkflows` nmaintask)
+	)
+	(scheduleWorkflows` nmaintask)
 where
-	scheduleWorkflows` tst 
-	# (a,tst=:{activated}) 	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask)) tst	// start maintask
+	scheduleWorkflows` nmaintask tst 
+	# (a,tst=:{activated}) 	= nmaintask tst	// start maintask
 	# ((_,wfls),tst) 		= workflowProcessStore id tst												// read workflow process administration
 	# (done,tst)			= scheduleWorkflowTable True wfls 0 {tst & activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})															// whole application ends when all processes have ended
@@ -272,7 +288,7 @@ where
 							(DeletedWorkflow _) 				-> WflDeleted		
 	= (status,tst)																// if everything is fine it should always succeed
 
-showWorkflows :: !Bool !*TSt -> (![BodyTag],*TSt)
+showWorkflows :: !Bool !*TSt -> ([BodyTag],*TSt)
 showWorkflows alldone tst
 = 	IF_ClientTasks												
 		(\tst -> ([],tst))														// workflow table not available on clients

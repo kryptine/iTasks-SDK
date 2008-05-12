@@ -216,8 +216,10 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 													    
 # maintask				= scheduleWorkflows maintask												// schedule all active tasks, not only maintask
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						=  ((IF_Ajax (startAjaxApplication thisUser pversion) startMainTask)
-							maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+						=  ((IF_Ajax 
+								(startAjaxApplication thisUser pversion) 
+								startMainTask
+							) maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
 

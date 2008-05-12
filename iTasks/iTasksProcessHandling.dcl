@@ -55,5 +55,5 @@ deleteMe 			:: (Task Void)
 
 // internally used...
 
-showWorkflows 		:: !Bool !*TSt -> (![BodyTag],*TSt)
+showWorkflows 		:: !Bool !*TSt -> ([BodyTag],*TSt)
 scheduleWorkflows 	:: !(Task a) -> (Task a) | iData a

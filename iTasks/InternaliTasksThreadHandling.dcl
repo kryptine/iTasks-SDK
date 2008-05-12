@@ -32,7 +32,6 @@ instance == ThreadKind
 
 // Setting of global information for a particular user
 
-setPUser 					:: !Int !(GlobalInfo -> GlobalInfo) !*HSt 			-> (!GlobalInfo,!*HSt) 
 setPUserNr 					:: !Int !(Int -> Int) 				!*HSt 			-> (!GlobalInfo,!*HSt) 
 clearIncPUser 				:: !Int !(Int -> Int) 				!*HSt 			-> (!GlobalInfo,!*HSt) 
 
@@ -55,31 +54,16 @@ evalTaskThread 				:: !TaskThread 										-> Task a 								// execute the thr
 // Thread table management
 
 insertNewThread 			:: !TaskThread 				!*TSt 					-> *TSt									// insert new thread in table
-deleteThreads 				:: !TaskNr 					!*TSt 					-> *TSt
 deleteSubTasksAndThreads 	:: !TaskNr 					!*TSt 					-> *TSt
-deleteAllSubTasksAndThreads :: ![TaskNr] 				!*TSt 					-> *TSt
 
 // Thread storages
 
 ThreadTableStorage 			:: !(ThreadTable -> ThreadTable) 					-> (Task !ThreadTable)					// used to store Tasknr of callbackfunctions / threads
-ServerThreadTableStorage	:: !(ThreadTable -> ThreadTable) 					-> (Task !ThreadTable)					// used to store Tasknr of callbackfunctions / threads
-ClientThreadTableStorage	:: !(ThreadTable -> ThreadTable) 					-> (Task !ThreadTable)					// used to store Tasknr of callbackfunctions / threads
-ThreadTableStorageGen 		:: !String !Lifespan !(ThreadTable -> ThreadTable) 	-> (Task !ThreadTable)					// used to store Tasknr of callbackfunctions / threads
 
 // Copying thread tables from server to client and vica versa
 
 copyThreadTableToClient 	::  						!*TSt 					-> !*TSt								// copies all threads for this user from server to client thread table
-splitServerThreadsByUser 	:: !*TSt 											-> !(!(!ThreadTable,!ThreadTable),!*TSt)// get all threads from a given user from the server thread table
 copyThreadTableFromClient 	:: !GlobalInfo 				!*TSt 					-> !*TSt								// copies all threads for this user from client to server thread table
 
-// Serialization an de-serialization of closures for Clean running on Server
-
-serializeThread 			:: !.(Task .a)										-> .String
-deserializeThread 			:: !.String 										-> .(Task .a)
-
-// Serialization an de-serialization of closures for Clean interpreted by Sapl on a Client
-
-serializeThreadClient 		:: !(Task a) 										-> String
-deserializeThreadClient 	:: !.String 										-> .(Task .a)
 
 
