@@ -73,10 +73,10 @@ multiUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World   	| iData a
 /*
 workFlowTask	:: iTask start function to create a real life workflow
 					- the first arument has to be an itask which is used for login purposes; it should yield
-						Bool: 	True, is the user a new one: if so the second argument is spawned as a separate task for that user
-						UserId:	the id of that user 
-					- the second argument is workflow that will spawned as a task 
-					- the second one is the actual function for that user  
+						Bool	: True, is the user a new one: if so the second argument is spawned as a separate task for that user
+						UserId	: the id of that user
+						a		: an initial value of some type (eg some data related to the user logged in) 
+					- the second argument is workflow that will spawned as a task if the login was succesful 
 				   a predefined login task is defined as an example in iTaskLogin.dcl				
 */
 workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*World -> *World   | iData b 
