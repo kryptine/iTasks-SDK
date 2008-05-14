@@ -13,7 +13,7 @@ db_prefix 		:== "iDBase-"
 :: DBid a
 
 /*
-mkDBid	:: create a typed database identificator; only Database and TxtFile are currently supported
+mkDBid	:: either TxtFile or DataFile or Datbase (but switched on the appropriate options in iDataSettings)
 readDB	:: read the database
 writeDB :: write the database
 */

@@ -17,11 +17,11 @@ derive gUpd 	Wid, WorkflowStatus, Maybe, []
 derive gParse 	Wid, WorkflowStatus, Maybe
 derive gPrint 	Wid, WorkflowStatus, Maybe
 derive gerda 	Wid, WorkflowStatus
-derive read 	Wid, WorkflowStatus
-derive write 	Wid, WorkflowStatus
+derive read 	Wid, WorkflowStatus, Maybe
+derive write 	Wid, WorkflowStatus, Maybe
 
 :: Wid a			= Wid WorkflowLink											// id of workflow process
-:: WorflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl !Dynamic)
+:: WorkflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl !Dynamic)
 					| SuspendedWorkflow ProcessIds !(TCl !Dynamic)
 					| FinishedWorkflow 	ProcessIds !Dynamic !(TCl !Dynamic)
 					| DeletedWorkflow	ProcessIds
@@ -36,10 +36,12 @@ where
 
 workflowProcessStoreName :== "Application" +++  "-ProcessTable"
 
-derive gForm	WorflowProcess
-derive gUpd		WorflowProcess
-derive gPrint	WorflowProcess
-derive gParse	WorflowProcess
+derive gForm	WorkflowProcess
+derive gUpd		WorkflowProcess
+derive gPrint	WorkflowProcess
+derive gParse	WorkflowProcess
+derive read		WorkflowProcess	
+derive write	WorkflowProcess	
 
 gPrint{|Dynamic|} dyn pst 	= gPrint{|*|} (dynamic_to_string dyn) pst
 gParse{|Dynamic|} expr 		= case parseString expr of
@@ -54,8 +56,18 @@ gUpd{|Dynamic|} (UpdSearch _ 0) a 	= (UpdDone,a)
 gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
 gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
+write{|Dynamic|} dyn pst 	= write{|*|} (dynamic_to_string dyn) pst
+read{|Dynamic|} pst 		= case myread pst of
+								Read  string i f	= Read (string_to_dynamic {s` \\ s` <-: string}) i f
+								Fail f				= Fail f
+where
+	myread :: !*Write -> *Read .String
+	myread pst = read{|*|} pst
 
-isValidWorkflowReference :: !WorflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
+import DrupBasic
+
+
+isValidWorkflowReference :: !WorkflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
 isValidWorkflowReference (ActiveWorkflow 	ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
 isValidWorkflowReference (SuspendedWorkflow ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
 isValidWorkflowReference (FinishedWorkflow 	ids _ _)	idsref = drop1tuple3 ids == drop1tuple3 idsref
@@ -63,28 +75,28 @@ isValidWorkflowReference (DeletedWorkflow	ids)		idsref = drop1tuple3 ids == drop
 
 drop1tuple3 (x,y,z) = (y,z)
 
-getWorkflowUser :: !WorflowProcess -> UserId						// fetch user who should do the work
+getWorkflowUser :: !WorkflowProcess -> UserId						// fetch user who should do the work
 getWorkflowUser (ActiveWorkflow 	(userid,_,_) _)		= userid 
 getWorkflowUser (SuspendedWorkflow  (userid,_,_) _)		= userid
 getWorkflowUser (FinishedWorkflow 	(userid,_,_) _ _)	= userid
 getWorkflowUser (DeletedWorkflow	(userid,_,_))		= userid
 
-setWorkflowUser :: !UserId !WorflowProcess -> WorflowProcess						// fetch user who should do the work
+setWorkflowUser :: !UserId !WorkflowProcess -> WorkflowProcess						// fetch user who should do the work
 setWorkflowUser nuserid (ActiveWorkflow 		(userid,procnr,wflab) task)		= (ActiveWorkflow 		(nuserid,procnr,wflab) task)
 setWorkflowUser nuserid (SuspendedWorkflow  	(userid,procnr,wflab) task)		= (SuspendedWorkflow  	(nuserid,procnr,wflab) task)
 setWorkflowUser nuserid (FinishedWorkflow 		(userid,procnr,wflab) dyn task)	= (FinishedWorkflow 	(userid,procnr,wflab) dyn task)
 setWorkflowUser nuserid (DeletedWorkflow		(userid,procnr,wflab))			= (DeletedWorkflow		(nuserid,procnr,wflab))
 
-getTask :: !WorflowProcess -> Task Dynamic
+getTask :: !WorkflowProcess -> Task Dynamic
 getTask (ActiveWorkflow 	(_,_,_) (TCl task))		= task 
 getTask (SuspendedWorkflow  (_,_,_) (TCl task))		= task
 getTask (FinishedWorkflow 	(_,_,_) _ (TCl task))	= task
 
-isDeletedWorkflow :: !WorflowProcess -> Bool
+isDeletedWorkflow :: !WorkflowProcess -> Bool
 isDeletedWorkflow (DeletedWorkflow _) = True
 isDeletedWorkflow _	= False
 
-workflowProcessStore ::  !((!Int,![WorflowProcess]) -> (!Int,![WorflowProcess])) !*TSt -> (!(!Int,![WorflowProcess]),!*TSt) 
+workflowProcessStore ::  !((!Int,![WorkflowProcess]) -> (!Int,![WorkflowProcess])) !*TSt -> (!(!Int,![WorkflowProcess]),!*TSt) 
 workflowProcessStore wfs tst	
 = IF_Ajax 																		
 	(IF_ClientServer															// we running both client and server
@@ -147,7 +159,7 @@ where
 	# (_,tst)			= if active wfl (\tst -> (undef,tst)) tst				// if new workflow is active, schedule it in
 	= (Wid (entry,(userid,processid,label)),{tst & activated = True})
 
-	findFreeEntry :: [WorflowProcess] Int -> (Bool,Int)
+	findFreeEntry :: [WorkflowProcess] Int -> (Bool,Int)
 	findFreeEntry [] n	= (False,n)
 	findFreeEntry [DeletedWorkflow _:wfls] n = (True,n)
 	findFreeEntry [_:wfls] n = findFreeEntry wfls (n + 1)

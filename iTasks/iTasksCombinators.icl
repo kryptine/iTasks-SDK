@@ -17,7 +17,8 @@ derive gUpd 	Maybe
 derive gForm 	Maybe
 derive gPrint 	Maybe
 derive gParse 	Maybe
-
+derive read		Maybe
+derive write	Maybe
 // ******************************************************************************************************
 // monads for combining iTasks
 
