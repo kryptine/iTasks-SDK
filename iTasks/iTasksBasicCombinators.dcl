@@ -75,7 +75,7 @@ andTasksCond	:: do tasks in any order until pred holds for finished tasks, strin
 orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 	
 																			| iCreateAndPrint a & iCreateAndPrint b
 andTask2		:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
-andTasksCond	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
+andTasksCond	:: !String !([a] -> Bool) ![LabeledTask a] 	-> Task [a] 	| iData a 
 
 /* Support for user defined combinators
 newTask			:: same, but optimized: after completion only result will remembered

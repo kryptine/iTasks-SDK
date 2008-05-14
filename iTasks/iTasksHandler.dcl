@@ -23,7 +23,7 @@ derive write 	Void
 
 :: LabeledTask a	:== !(!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
 :: TaskLabel		:== !String						// label name
-:: Task a			:== !*TSt -> *(!a,!*TSt)		// an iTask is state stransition of some type TSt
+:: Task a			:== !*TSt -> *(!a,!*TSt)		// an iTask is state transition of some type TSt
 
 // StartUp Options used for wrappers:
 
