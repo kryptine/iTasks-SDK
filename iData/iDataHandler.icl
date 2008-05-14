@@ -199,9 +199,6 @@ doHtmlClient userpage world
 # world							= snd (fclose sio world)
 = world
 
-
-
- 	
 mkHSt :: *FormStates *NWorld -> *HSt
 mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False, issub = False }
 
@@ -633,15 +630,32 @@ where
 	showType (RV r) 	= "::Real"
 	showType (BV b) 	= "::Bool"
 		
+// The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
+
 toHtml :: a -> BodyTag | gForm {|*|} a
 toHtml a
-# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml!\n"))
+//# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml!\n"))
+# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates dummy)
 = BodyTag na.form
+where
+	dummy = { worldC 	= abort "dummy world for toHtml!\n"
+			, inout	 	= [# !]
+			, gerda	 	= abort "dummy gerda for toHtml!\n"
+			, datafile	= abort "dummy datafile for toHtml!\n"
+			}
+
 
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toHtmlForm anyform 
+//# (na,hst)					= anyform (mkHSt emptyFormStates (abort "illegal call to toHtmlForm!\n"))
 # (na,hst)						= anyform (mkHSt emptyFormStates (abort "illegal call to toHtmlForm!\n"))
 = na.form
+where
+	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"
+			, inout	 	= [# !]
+			, gerda	 	= abort "dummy gerda for toHtmlForm!\n"
+			, datafile	= abort "dummy datafile for toHtmlForm!\n"
+			}
 
 toBody :: (Form a) -> BodyTag
 toBody form						= BodyTag form.form
