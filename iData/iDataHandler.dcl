@@ -31,11 +31,11 @@ derive write 	Inline
 
 :: Inline 		= Inline String
 
-:: UserPage 	:== .(*HSt -> .(!Bool,Html,!*HSt))
+:: UserPage 	:== .(*HSt -> .((!Bool,!String),Html,!*HSt))
 
 // doHtmlServer & doHtmlClient main wrappers for generating & handling of Html forms
 
-doHtmlWrapper		:: UserPage !*World -> *World	//Combined wrapper which starts the server or client wrapper
+doHtmlWrapper		:: !UserPage !*World -> *World	//Combined wrapper which starts the server or client wrapper
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

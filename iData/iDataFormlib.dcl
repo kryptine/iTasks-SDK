@@ -7,10 +7,10 @@ import iDataButtons
 
 // **** easy creation of a simple html page ****
 
-mkHtml				:: String [BodyTag] *HSt 			-> (!Bool,Html,*HSt)	// string is used for the title of the page
-mkHtmlExcep			:: String !Bool [BodyTag] *HSt 		-> (!Bool,Html,*HSt)	// same, passes on possible exception for client
-mkHtmlB				:: String [BodyAttr] [BodyTag] *HSt -> (!Bool,Html,*HSt)	// same, with bodytags options
-simpleHtml			:: String [BodyAttr] [BodyTag]      -> Html			// as above, without HSt
+mkHtml				:: !String ![BodyTag] 					*HSt 	-> (!(!Bool,!String),Html,*HSt)	// string is used for the title of the page
+mkHtmlExcep			:: !String !(!Bool,!String) ![BodyTag] 	*HSt 	-> (!(!Bool,!String),Html,*HSt)	// same, passes on possible exception for client
+mkHtmlB				:: !String ![BodyAttr] ![BodyTag] 		*HSt 	-> (!(!Bool,!String),Html,*HSt)	// same, with bodytags options
+simpleHtml			:: !String ![BodyAttr] ![BodyTag]      			-> Html							// as above, without HSt
 
 // **** LayOut support ****
 

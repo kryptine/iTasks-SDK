@@ -19,7 +19,6 @@ derive gerda 	Void
 derive read 	Void
 derive write 	Void
 
-
 // iTask main task types:
 
 :: LabeledTask a	:== !(!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
@@ -61,17 +60,15 @@ instance <<@		  Lifespan						// default: Session
 
 instance @>>		  SubPage						// default: the *whole* page will be updated when a form has been modified
 
-// Initiate the iTask library with an iData server wrapper such as doHtmlServer in combination with one of the following functions:
-					
 /*
 singleUserTask 	:: iTask start function for defining tasks for one, single user; intended for developing and testing
 */
-singleUserTask 	:: ![StartUpOptions] !(Task a) 				!*HSt -> (!Bool,Html,*HSt) 	| iData a
+singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
 
 /*
 multiUserTask 	:: iTask start function for multiple -users; intended for developing and testing  
 */
-multiUserTask 	:: ![StartUpOptions] !(Task a)  			!*HSt -> (!Bool,Html,*HSt) 	| iData a
+multiUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World   	| iData a
 
 /*
 workFlowTask	:: iTask start function to create a real life workflow
@@ -79,12 +76,10 @@ workFlowTask	:: iTask start function to create a real life workflow
 						Bool: 	True, is the user a new one: if so the second argument is spawned as a separate task for that user
 						UserId:	the id of that user 
 					- the second argument is workflow that will spawned as a task 
-						(True if we have new user,user id of the user, has ) : 
 					- the second one is the actual function for that user  
 				   a predefined login task is defined as an example in iTaskLogin.dcl				
 */
-workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) 
-							!(UserId a -> LabeledTask b) 	!*HSt -> (!Bool,Html,*HSt) | iData b 
+workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*World -> *World   | iData b 
 
 
 /*

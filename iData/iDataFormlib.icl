@@ -12,20 +12,20 @@ derive gForm []; derive gUpd []
 
 // easy creation of an html page
 
-mkHtml		:: String [BodyTag] *HSt -> (!Bool,Html,*HSt)
-mkHtml s tags hst 			= (False,simpleHtml s [] tags,hst)
+mkHtml		:: !String ![BodyTag] *HSt -> (!(!Bool,!String),Html,*HSt)
+mkHtml s tags hst 			= ((False,""),simpleHtml s [] tags,hst)
 
-mkHtmlExcep	:: String !Bool [BodyTag] *HSt -> (!Bool,Html,*HSt)
-mkHtmlExcep s exception tags hst = (exception,simpleHtml s [] tags,hst)
+mkHtmlExcep	:: !String !(!Bool,!String) ![BodyTag] *HSt -> (!(!Bool,!String),Html,*HSt)
+mkHtmlExcep s (exception,prefix) tags hst = ((exception,prefix),simpleHtml s [] tags,hst)
 
-simpleHtml	:: String [BodyAttr] [BodyTag] -> Html
+simpleHtml	:: !String ![BodyAttr] ![BodyTag] -> Html
 simpleHtml s ba tags	 	= Html (header s) (body tags)
 where
 	header s				= Head [`Hd_Std [Std_Title s]] [] 
 	body tags				= Body ba tags
 
-mkHtmlB		:: String [BodyAttr] [BodyTag] *HSt -> (!Bool,Html,*HSt)
-mkHtmlB s attr tags hst		= (False, simpleHtml s attr tags,hst)
+mkHtmlB		:: !String ![BodyAttr] ![BodyTag] *HSt -> (!(!Bool,!String),Html,*HSt)
+mkHtmlB s attr tags hst		= ((False,""), simpleHtml s attr tags,hst)
 
 // operators for lay-out of html bodys ...
 

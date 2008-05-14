@@ -327,13 +327,15 @@ where
 // Serialize all states in FormStates that have to be remembered to either hidden encoded Html Code
 // or store them in a persistent file, all depending on the kind of states
 
-storeFormStates :: !FormStates !*NWorld -> (!String, !String, !*NWorld)
-storeFormStates {fstates = allFormStates, focusid = focus} world
+storeFormStates :: !String !FormStates !*NWorld -> (!String, !String, !*NWorld)
+storeFormStates prefix {fstates = allFormStates, focusid = focus} world
 # world						= writeAllTxtFileStates allFormStates world				// first write all persistens states
 # encodedpagestate			= EncodeHtmlStates (FStateToHtmlState allFormStates []) // encode states in the page
 = (encodedpagestate, focus, world)
 
 where
+	sprefix = size prefix
+
 	FStateToHtmlState :: !(Tree_ !(!String,!.FormState)) !*[HtmlState] -> *[HtmlState]
 	FStateToHtmlState Leaf_ accu	= accu
 	FStateToHtmlState (Node_ left x right) accu
@@ -350,6 +352,10 @@ where
 		htmlStateOf (fid,OldState {life=Client, format=PlainStr stringval})	= Just  (fid,Client, PlainString,stringval)
 		htmlStateOf (fid,OldState {life=Client, format=StatDyn  dynval})	= Just  (fid,Client, StaticDynamic,dynamic_to_string dynval)
 
+		htmlStateOf (fid,OldState {life=Page, format=PlainStr stringval})	
+		| prefix <> fid%(0,sprefix)											= Just  (fid,Client, PlainString,stringval) // for Ajax calls, remember states not belonging to this thread
+		htmlStateOf (fid,OldState {life=Page, format=StatDyn  dynval})	    
+		| prefix <> fid%(0,sprefix)											= Just  (fid,Client, StaticDynamic,dynamic_to_string dynval)
 		htmlStateOf (fid,OldState s)										= Nothing
 
 		// persistent stores (either old or new) have already been stored in files and can be skipped here

@@ -119,44 +119,51 @@ where   (@>>) UseAjax task			= \tst -> IF_Ajax
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 // ******************************************************************************************************
 
-singleUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
-singleUserTask startUpOptions maintask hst 
-# userOptions			= determineUserOptions [ThreadStorage TxtFile:startUpOptions]
-# tst					= initTst 0 Session userOptions.threadStorageLoc hst
-# (exception,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
-= mkHtmlExcep "singleUser" exception html hst
-
-multiUserTask :: ![StartUpOptions] !(Task a) !*HSt -> (!Bool,Html,*HSt) | iData a 
-multiUserTask startUpOptions maintask  hst 
-# userOptions 			= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-# nusers				= case userOptions.showUsersOn of
-							Nothing -> 0
-							Just n	-> n
-| nusers == 0			= singleUserTask startUpOptions maintask  hst 
-# (idform,hst) 			= FuncMenu (Init,nFormId "User_Selected" 
-							(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
-# currentWorker			= snd idform.value
-# tst					= initTst currentWorker TxtFile userOptions.threadStorageLoc hst
-# (exception,html,hst) 	= startTstTask currentWorker True 
-							(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
-= mkHtmlExcep "multiUser" exception html hst
-
-workFlowTask :: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*HSt -> (!Bool,Html,*HSt) | iData b 
-workFlowTask  startUpOptions taska userTask hst 
-# userOptions 			= determineUserOptions startUpOptions 
-# tst					= initTst -1 Session userOptions.threadStorageLoc hst
-# (((new,i),a),tst=:{activated,html,hst})	
-						= taska tst									// for doing the login 
-| not activated
-	# iTaskHeader		= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
-	# iTaskInfo			= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
-	= mkHtmlExcep "workFlow" True [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
-										]] hst
-# userOptions 			= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-# tst					= initTst i Session userOptions.threadStorageLoc hst
-# (exception,body,hst) 	= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
-= mkHtmlExcep "workFlow" exception body hst
+//singleUserTask :: ![StartUpOptions] !(Task a) -> UserPage  | iData a 
+singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
+singleUserTask startUpOptions maintask world = doHtmlWrapper singleUserTask` world
 where
+	singleUserTask` hst 
+	# userOptions					= determineUserOptions [ThreadStorage TxtFile:startUpOptions]
+	# tst							= initTst 0 Session userOptions.threadStorageLoc hst
+	# (toserver_prefix,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
+	= mkHtmlExcep "singleUser" (toserver_prefix) html hst
+
+multiUserTask :: ![StartUpOptions] !(Task a) !*World -> *World   | iData a 
+multiUserTask startUpOptions maintask world = doHtmlWrapper multiUserTask` world
+where
+	multiUserTask` hst 
+	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
+	# nusers						= case userOptions.showUsersOn of
+										Nothing -> 0
+										Just n	-> n
+//	| nusers == 0			= singleUserTask startUpOptions maintask  hst 
+	# (idform,hst) 					= FuncMenu (Init,nFormId "User_Selected" 
+										(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
+	# currentWorker					= snd idform.value
+	# tst							= initTst currentWorker TxtFile userOptions.threadStorageLoc hst
+	# (toserver_prefix,html,hst) 	= startTstTask currentWorker True 
+										(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
+	= mkHtmlExcep "multiUser" (toserver_prefix) html hst
+
+workFlowTask :: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b)!*World -> *World  | iData b 
+workFlowTask  startUpOptions taska userTask world = doHtmlWrapper workFlowTask` world 
+where
+	workFlowTask` hst 
+	# userOptions 					= determineUserOptions startUpOptions 
+	# tst							= initTst -1 Session userOptions.threadStorageLoc hst
+	# (((new,i),a),tst=:{activated,html,hst})	
+									= taska tst									// for doing the login 
+	| not activated
+		# iTaskHeader				= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
+		# iTaskInfo					= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
+		= mkHtmlExcep "workFlow" (True,"") [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
+											]] hst
+	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
+	# tst							= initTst i Session userOptions.threadStorageLoc hst
+	# (toserver_prefix,body,hst) 	= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
+	= mkHtmlExcep "workFlow" (toserver_prefix) body hst
+
 	noFilter :: HtmlTree -> HtmlCode
 	noFilter (BT body) 			= body
 	noFilter (_ @@: html) 		= noFilter html
@@ -186,7 +193,7 @@ where
 // *THE* main routine for the determination of the current state and the creation of a new workflow page
 // ******************************************************************************************************
 
-startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!Bool,!HtmlCode,!*HSt) | iData a 
+startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!(!Bool,!String),!HtmlCode,!*HSt) | iData a 
 startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
 
 // prologue
@@ -210,7 +217,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 							[Hr []]
 | versionconflict	 
 	# iTaskInfo			= mkDiv "iTaskInfo" [showLabel "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
-	= (True,[Ajax [("thePage",iTaskHeader ++ iTaskInfo)]],hst)
+	= ((True,""),[Ajax [("thePage",iTaskHeader ++ iTaskInfo)]],hst)
 
 // Here the iTasks are evaluated ...
 													    
@@ -228,6 +235,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # (sversion,hst)	 	= setSVersionNr thisUser (\_ -> newUserVersionNr) hst									// store in persistent memory
 
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
+# prefix				= if showCompletePage "" (determine_prefix thisUser threads)
 # (threadtrace,tst)	
 						= if TraceThreads showThreadTable nilTable {tst & hst = hst} 
 # threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
@@ -246,13 +254,13 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 											 [showText "Query " , showTrace ((sversion +++> " / " )<+++ appversion)] [] ++
 										IF_Ajax
 											( [showText " - Task#: ", showTrace (showTaskNr  event)] ++
-											  if (isEmpty threads || showCompletePage) [] [showText " - Thread(s)#: ", showTrace threadsText]
+											  if (isEmpty threads || showCompletePage) [] [showText (" - Thread(s)#: "/* +++ prefix*/), showTrace threadsText]
 											 ) [] ++
 										[Br,Hr []]
 									)
 								Just userInfo -> userInfo
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [printTrace2 trace ]
-| showCompletePage		=	(toServer,[Ajax [("thePage",	iTaskHeader ++
+| showCompletePage		=	((toServer,""),[Ajax [("thePage",	iTaskHeader ++
 															iTaskInfo  ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
@@ -263,7 +271,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 									] 
 							,hst)
 # (newthread,oldthreads)=	(hd threads, tl threads)
-| otherwise				=	(toServer,[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
+| otherwise				=	((toServer,""),[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
 											[(showTaskNr childthreads,[showText " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
 											[(showTaskNr newthread, if (isEmpty threadcode) seltask threadcode)]	// task info
 										   )
@@ -275,6 +283,13 @@ where
 //		clearIStore hst=:{world}								/* would be nice but don't know how to clear this */
 //		# world = if testModeOn deleteAllStateFiles id world
 //		= (Void,{hst & world = world})
+
+	determine_prefix:: !UserId ![TaskNr] -> String
+	determine_prefix user [] 		= ""
+	determine_prefix user [[-1]] 	= ""
+	determine_prefix user threads
+	# smallest	= hd (sortBy (\l1 l2 ->  length l1 <  length l2) (map tl threads))
+	= iTaskId user smallest ""
 
 	leftright left right 
 	=	Table [Tbl_Width (Percent 100)] 

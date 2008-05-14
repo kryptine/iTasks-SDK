@@ -49,13 +49,13 @@ closemDataFile datafile world
 //doHtmlServer. It switches between doHtmlServer and doHtmlClient depending on which compile option
 //is selected.
 
-doHtmlWrapper :: UserPage !*World -> *World
+doHtmlWrapper :: !UserPage !*World -> *World
 doHtmlWrapper userpage world = IF_Client (doHtmlClient userpage world) (doHtmlServer userpage world)
 
 // doHtmlServer: top level function given to end user.
 // It sets up the communication with a (sub)server or client, depending on the option chosen.
 
-doHtmlServer :: UserPage !*World -> *World
+doHtmlServer :: !UserPage !*World -> *World
 doHtmlServer userpage world
 | ServerKind == Internal
 	# world	= instructions world
@@ -117,18 +117,18 @@ doDynamicResource userpage request world
 	= ({http_emptyResponse & rsp_data = (toString html)}, world)
 
 // General entry used by all servers and client to calculate the next page
-doHtmlPage :: !HTTPRequest !.(*HSt -> (!Bool,Html,!*HSt)) !*HtmlStream !*World -> (!Bool,!*HtmlStream,!*World)
+doHtmlPage :: !HTTPRequest !.UserPage !*HtmlStream !*World -> (!Bool,!*HtmlStream,!*World)
 doHtmlPage request userpage inout world
 # (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 # (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 # nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
 # (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
 # hst						= {(mkHSt initforms nworld) & request = request}			// Create the HSt
-# (toServer,Html (Head headattr headtags) (Body bodyattr bodytags),{states,world}) 
+# ((toServer,prefix),Html (Head headattr headtags) (Body bodyattr bodytags),{states,world}) 
 							= userpage hst												// Call the user application
 # (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
 # (pagestate, focus, world=:{worldC,gerda,inout,datafile})	
-							= storeFormStates states world								// Store all state information
+							= storeFormStates prefix states world								// Store all state information
 # worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 # worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
 # inout						= IF_Ajax
@@ -336,7 +336,7 @@ where
 
 // gForm: automatically derives a Html form for any Clean type
 
-mkForm :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	| gForm {|*|} a
+mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
 mkForm (init,formid) hst =: {issub}
 # (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = (formid.mode == Submit), issub = True}	//Use gForm to create the html form
 # buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
@@ -635,12 +635,12 @@ where
 		
 toHtml :: a -> BodyTag | gForm {|*|} a
 toHtml a
-# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml"))
+# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml!\n"))
 = BodyTag na.form
 
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toHtmlForm anyform 
-# (na,hst)						= anyform (mkHSt emptyFormStates undef)
+# (na,hst)						= anyform (mkHSt emptyFormStates (abort "illegal call to toHtmlForm!\n"))
 = na.form
 
 toBody :: (Form a) -> BodyTag
