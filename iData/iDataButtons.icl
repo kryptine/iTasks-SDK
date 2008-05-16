@@ -395,7 +395,7 @@ gUpd{|TextInput|}    (UpdSearch (UpdI ni) 0)   (TI size i)		= (UpdDone,         
 gUpd{|TextInput|}    (UpdSearch (UpdR nr) 0)   (TR size r)		= (UpdDone,                TR size nr)								// update real    value
 gUpd{|TextInput|}    (UpdSearch (UpdS ns) 0)   (TS size s)		= (UpdDone,                TS size ns)								// update string  value
 gUpd{|TextInput|}    (UpdSearch val cnt)       i				= (UpdSearch val (cnt - 3),i)										// continue search, don't change
-gUpd{|TextInput|}    (UpdCreate l)             _				= (UpdCreate l,            TI defsize 0)							// create default value
+gUpd{|TextInput|}    (UpdCreate l)             _				= (UpdCreate l,            TS defsize "")							// create default value
 gUpd{|TextInput|}    mode                      i				= (mode,                   i)										// don't change
 
 gUpd{|PasswordBox|}  (UpdSearch (UpdS name) 0) _				= (UpdDone,                PasswordBox name)						// update password value
