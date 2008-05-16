@@ -54,13 +54,14 @@ where
 		= dorepeatTask na tst
 
 (<|) infixl 6 :: !(Task a) !(a -> (Bool, HtmlCode)) -> Task a | iData a
-(<|) taska pred = mkTask "repeatTest" doTask
+(<|) taska pred = newTask "repeatTest" doTask
 where
 	doTask
 	=				taska
 		=>> \r -> 		case pred r of
 						(True,_) -> return_V r
-						(False,msg) -> msg ?>> doTask
+//						(False,msg) -> msg ?>> doTask
+						(False,msg) -> msg ?>> (taska <| pred)
 
 
 // ******************************************************************************************************
