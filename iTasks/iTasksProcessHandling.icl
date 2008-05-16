@@ -40,6 +40,7 @@ derive gForm	WorkflowProcess
 derive gUpd		WorkflowProcess
 derive gPrint	WorkflowProcess
 derive gParse	WorkflowProcess
+derive gerda	WorkflowProcess	
 derive read		WorkflowProcess	
 derive write	WorkflowProcess	
 
@@ -63,6 +64,9 @@ read{|Dynamic|} pst 		= case myread pst of
 where
 	myread :: !*Write -> *Read .String
 	myread pst = read{|*|} pst
+
+gerda{|Dynamic|} 	= abort "Cannot yet store a Dynamic in a Database\n" 
+gerda{|TCl|} ga		= abort "Cannot yet store an iTask of type TCL in a Database\n" 
 
 import DrupBasic
 
