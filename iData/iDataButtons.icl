@@ -337,8 +337,9 @@ getTimeAndDate hst
 = ((Time time.hours time.minutes time.seconds,Date date.day date.month date.year),hst)
 
 gForm {|HtmlTime|} (init,formid) hst
-	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ Page) hst
+	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
 where
+	nPage = if (formid.lifespan == Client) Client Page
 	toPullDown (Time h m s)	= (hv,mv,sv)
 	where
 		hv					= PullDown (1, defpixel/2) (h,[toString i \\ i <- [0..23]])
@@ -350,8 +351,9 @@ where
 		convert x			= toInt (toString x)
 
 gForm {|HtmlDate|} (init,formid) hst 
-	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ Page) hst
+	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
 where
+	nPage = if (formid.lifespan == Client) Client Page
 	toPullDown (Date d m y)	= (dv,mv,yv)
 	where
 		dv					= PullDown (1,  defpixel/2) (md-1,   [toString i \\ i <- [1..31]])

@@ -11,7 +11,9 @@ import iTasksHandler, InternaliTasksCommon, iTasksBasicCombinators
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
-editTaskLabel tracename prompt task = \tst -> mkTask tracename ((editTask` prompt task <<@ Page) <<@ Edit) tst
+editTaskLabel tracename prompt task = \tst =:{options} -> mkTask tracename ((editTask` prompt task <<@ (nPage options)) <<@ Edit) tst
+where
+	nPage options = if (options.tasklife == Client) Client Page 
 
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkTask "editTask" (editTask` prompt a)
