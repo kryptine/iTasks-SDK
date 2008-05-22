@@ -5,8 +5,8 @@ import StdStrictLists
 import graph_to_string_with_descriptors
 
 
-//import StdDebug
-
+import StdDebug
+//import sapldebug
 // Conversion of dynamic graph string to sapl code
 // JMJ 2007
 
@@ -107,7 +107,7 @@ where
 	| desc_type == 'C' && size str > pos + 4 && sifs (pos+4) str < 0         // shared node in constructor
 	                    = makeBoxedConstr  pos
 	| desc_type == 'C' && size str > pos + 4 && ds.[sifs (pos+4) str - 1].[0] == 's' // String
-	                    =  readString pos
+	                    = readString pos
 	| desc_type == 'C' && size str > pos + 4 &&  ds.[sifs (pos+4) str - 1].[0] == 'a' &&  sifs (pos+12) str <> 0 // unboxed array 
 	                    # typedes = ds.[sifs (pos+12) str-1]
 	                    # ssize = sifs (pos+8) str
@@ -135,7 +135,10 @@ where
 	| desc_type == 's'  = (fst (decodeDyn (pos-4)),newpos)  // string case
 	                    = (fst (decodeDyn (pos-4)),newpos)
 	
-	readString 	pos =  (StringS (str%(pos+12,pos+12+sifs (pos+8) str - 1)), pos + 12 + 4 * ((sifs (pos+8) str - 1) / 4 + 1))
+	readString 	pos = //trace_n ("{DDD " +++ toString pos +++ "__" +++ toString (strsize )+++ "__" +++ toString (newpos ) +++ "}") 
+	                  (StringS (str%(pos+12,pos+12+sifs (pos+8) str - 1)), 	newpos)
+	where strsize = sifs (pos+8) str 
+	      newpos = if (strsize<>0) (pos + 12 + 4 * ((sifs (pos+8) str - 1) / 4 + 1)) (pos + 12)
 	
 	makeUnboxedArray typedes size pos  
 	    | typedes%(0,0) == "i" || typedes%(0,0) == "b" || typedes%(0,0) == "c" 
