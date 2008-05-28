@@ -70,14 +70,24 @@ gerda{|TCl|} ga		= abort "Cannot yet store an iTask of type TCL in a Database\n"
 
 import DrupBasic
 
-
+/*
 isValidWorkflowReference :: !WorkflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
 isValidWorkflowReference (ActiveWorkflow 	ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
 isValidWorkflowReference (SuspendedWorkflow ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
 isValidWorkflowReference (FinishedWorkflow 	ids _ _)	idsref = drop1tuple3 ids == drop1tuple3 idsref
 isValidWorkflowReference (DeletedWorkflow	ids)		idsref = drop1tuple3 ids == drop1tuple3 idsref
+*/
 
-drop1tuple3 (x,y,z) = (y,z)
+isValidWorkflowReference :: !WorkflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
+isValidWorkflowReference workflowprocess idsref = drop1tuple3 (getWorkflowWid workflowprocess) == drop1tuple3 idsref
+where
+	drop1tuple3 (x,y,z) = (y,z)
+
+getWorkflowWid :: !WorkflowProcess -> ProcessIds 								// get wid of a process
+getWorkflowWid (ActiveWorkflow 	ids _)			= ids
+getWorkflowWid (SuspendedWorkflow ids _)		= ids
+getWorkflowWid (FinishedWorkflow 	ids _ _)	= ids
+getWorkflowWid (DeletedWorkflow	ids)			= ids
 
 getWorkflowUser :: !WorkflowProcess -> UserId						// fetch user who should do the work
 getWorkflowUser (ActiveWorkflow 	(userid,_,_) _)		= userid 
@@ -142,7 +152,7 @@ scheduleWorkflowTable done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
 scheduleWorkflowTable done [SuspendedWorkflow _ _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
-//# (_,tst) = dyntask tst
+# (_,tst) = dyntask tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
@@ -183,8 +193,11 @@ where
 	# dyn						= dynamic a
 	| not activated				= (dyn,tst)										// not finished, return
 	# ((_,wfls),tst) 			= workflowProcessStore id tst					// read workflow process administration
+//	# wfls						= case (wfls!!(entry - 1)) of					// update process administration
+//										(ActiveWorkflow _ acttask) -> updateAt (entry - 1) (FinishedWorkflow (currentWorker,processid,label) dyn acttask) wfls
+//										_ -> wfls
 	# wfls						= case (wfls!!(entry - 1)) of					// update process administration
-										(ActiveWorkflow _ acttask) -> updateAt (entry - 1) (FinishedWorkflow (currentWorker,processid,label) dyn acttask) wfls
+										(ActiveWorkflow wid acttask) -> updateAt (entry - 1) (FinishedWorkflow wid dyn acttask) wfls
 										_ -> wfls
 	# (wfls,tst) 				= workflowProcessStore (\_ -> (processid,wfls)) tst		// write workflow process administration
 	= (dyn,tst)												
@@ -203,8 +216,6 @@ where
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	= (True,tst)																// if everything is fine it should always succeed
 
-
-
 waitForWorkflow :: !(Wid a) -> Task (Maybe a) | iData a
 waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) waitForResult`
 where
@@ -212,7 +223,7 @@ where
 	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
 	# wfl				= wfls!!(entry - 1)										// fetch entry
 	# refok				= isValidWorkflowReference wfl ids
-	| not refok			= (createDefault,{tst & activated = False})				// wid does not refer to the correct entry anymore
+	| not refok			= (Nothing,{tst & activated = True})					// wid does not refer to the correct entry anymore
 	= case wfl of																// update process administration
 			(FinishedWorkflow _ (val::a^) _) -> (Just val,{tst & activated = True})	// finished
 			_ 					->  (Nothing,{tst & activated = False})	// not yet
