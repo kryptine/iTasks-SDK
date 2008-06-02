@@ -154,7 +154,7 @@ where
 									= taska tst									// for doing the login 
 	| not activated
 		# iTaskHeader				= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
-		# iTaskInfo					= mkDiv "iTaskInfo" [showText "Login procedure... ", Hr []]
+		# iTaskInfo					= mkDiv True "debug-server" [showText "Login procedure... ", Hr []]
 		= mkHtmlExcep "workFlow" (True,"") [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
 											]] hst
 	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
@@ -214,7 +214,9 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
 | versionconflict	 
-	# iTaskInfo			= mkDiv "iTaskInfo" [showLabel "Cannot apply request. Version conflict. Please refresh the page!", Hr []]
+	# iTaskInfo			=
+		(mkDiv True "debug-client" [showLabel "Client: ", Hr []]) ++
+		(mkDiv True "debug-server" [showLabel "Server: Cannot apply request. Version conflict. Please refresh the page!", Hr []])
 	= ((True,""),[Ajax [("thePage",iTaskHeader ++ iTaskInfo)]],hst)
 
 // Here the iTasks are evaluated ...
@@ -240,9 +242,8 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # (processadmin,tst=:{hst})	= showWorkflows activated tst
 # (threadcode,taskname,mainbuts,subbuts,seltask,hst)	
 						= Filter showCompletePage thrOwner html hst
-
-# iTaskInfo				= 	mkDiv "iTaskInfo" 
-							case headerOff of
+	 	
+# iTaskInfo				=	case headerOff of
 								Nothing ->
 									(	IF_Ajax (IF_ClientServer (IF_ClientTasks [showLabel "Client: "] [showLabel "Server: "]) []) [] ++
 										if multiuser 
@@ -257,9 +258,14 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 										[Br,Hr []]
 									)
 								Just userInfo -> userInfo
+								
+# iTaskInfoDivs			=	(mkDiv showCompletePage "debug-client" [showLabel "Client: ",Hr []]) ++ 
+							(mkDiv showCompletePage "debug-server" iTaskInfo)
+								
+							
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [printTrace2 trace ]
-| showCompletePage		=	((toServer,""),[Ajax [("thePage",	iTaskHeader ++
-															iTaskInfo  ++
+| showCompletePage		=	((toServer,""),[Ajax [("thePage",iTaskHeader ++
+															iTaskInfoDivs ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
 																	[	leftright taskname subbuts
@@ -269,7 +275,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 									] 
 							,hst)
 # (newthread,oldthreads)=	(hd threads, tl threads)
-| otherwise				=	((toServer,""),[Ajax (	[("iTaskInfo", iTaskInfo)] ++			// header ino
+| otherwise				=	((toServer,""),[Ajax ([(IF_Client "debug-client" "debug-server", iTaskInfo)] ++			// header info
 											[(showTaskNr childthreads,[showText " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
 											[(showTaskNr newthread, if (isEmpty threadcode) seltask threadcode)]	// task info
 										   )
@@ -371,17 +377,16 @@ where
 	| otherwise				= ([],accu)
 	Collect thisuser taskuser accu (DivCode id tree)
 	# (html,accu)			= Collect thisuser taskuser accu tree
-	| thisuser == taskuser 	= (mkDiv id html,accu)
+	| thisuser == taskuser 	= (mkDiv True id html,accu)
 	= ([],accu)
 
 // ******************************************************************************************************
 // Html Printing Utilities...
 // ******************************************************************************************************
 
-mkDiv :: String HtmlCode -> HtmlCode
-mkDiv id bodytag = [normaldiv]
-where
-	normaldiv = Div [`Div_Std [Std_Id id, Std_Class	"thread"]] bodytag
+mkDiv :: !Bool !String !HtmlCode -> HtmlCode
+mkDiv False id bodytag = bodytag
+mkDiv True id bodytag = [Div [`Div_Std [Std_Id id, Std_Class "thread"]] bodytag]
 
 
 // ******************************************************************************************************
