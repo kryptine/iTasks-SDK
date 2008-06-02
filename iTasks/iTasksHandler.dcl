@@ -35,6 +35,8 @@ derive write 	Void
 					| MyHeader HtmlCode				// wil replace standard iTask information line
 :: HtmlCode			:== ![BodyTag]					// most programmers will only write bodytags
 
+defaultUser			:== 0							// the system starts with this user id... 
+
 // Additional global options for tasks, see iData options for the others...
 
 :: GarbageCollect 	= Collect 						// garbage collect iTask administration

@@ -38,8 +38,6 @@ where
 
 // Initial values
 
-defaultUser			:== 0								// default id of user
-
 initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 initTst thisUser itaskstorage threadstorage hst
 				=	{ tasknr		= [-1]
@@ -376,91 +374,6 @@ where
 	| thisuser == taskuser 	= (mkDiv id html,accu)
 	= ([],accu)
 
-
-// ******************************************************************************************************
-// Event handling for Ajax calls and Sapl handling on the client
-// ******************************************************************************************************
-
-// The following functions are defined to support "Ajax technologie" and Client site evaluation of i-Tasks.
-// To make this possible, a part of the iTask task tree must be assigened to be a thread such that it can be evaluated as a stand-alone i-Task.
-// The programmer has to decide which iTask should become a thread.
-// For each event (iData triplet), the system will search for the thread to handle it.
-// If a thread task is finished, the parent thread task is activated, and so on.
-// Any action requiering the calculation of the Task Tree from scratch will be done one the server
-// Watch it: the Client cannot create new Server threads
-
-startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt) 		// determines which threads to execute and calls them..
-startAjaxApplication thisUser versioninfo maintask tst=:{tasknr,options,html,trace,userId}
-# tst					= copyThreadTableFromClient	versioninfo tst				// synchronize thread tables of client and server, if applicable
-
-// first determine whether we should start calculating the task tree from scratch starting at the root
-
-# (mbevent,tst)			= getTripletTaskNrs tst									// see if there are any events, i.e. triplets received
-| isNothing mbevent																// no events
-						= startFromRoot versioninfo tasknr [tasknr] "No events, page refreshed" maintask tst			
-# event					= fromJust mbevent										// event found
-# (table,tst)			= ThreadTableStorage id tst								// read thread table
-| isEmpty table																	// events, but no threads, evaluate main application from scratch
-						= startFromRoot versioninfo event [tasknr] "No threads, page refreshed" maintask tst			
-# (mbthread,tst)		= findParentThread event tst							// look for thread to evaluate
-| isEmpty mbthread																// no thread can be found, happens e.g. when one switches from tasks
-						= startFromRoot versioninfo event [tasknr] "No matching thread, page refreshed" maintask tst			
-# thread 				= hd mbthread											// thread found
-| isMember thread.thrTaskNr versioninfo.deletedThreads							// thread has been deleted is some past, version conflict
-	# tst				= copyThreadTableToClient tst							// copy thread table to client
-	= ((True,defaultUser,event,"Task does not exist anymore, please refresh",[tasknr]), tst)
-| versioninfo.newThread															// newthread added by someone
-						= startFromRoot versioninfo event [tasknr] "New tasks added, page refreshed" maintask tst			
-| not (isEmpty versioninfo.deletedThreads) 										// some thread has been deleted										
-						= startFromRoot versioninfo event [tasknr] "Tasks deleted, page refreshed" maintask tst			
-| thread.thrUserId <> thisUser													// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr] ("Thread of user " <+++ thread.thrUserId <+++ ", page refreshed") maintask tst			
-
-// ok, we have found a matching thread
-
-# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}			// evaluate the thread
-| not activated																	// thread / task not yet finished
-	# tst				= copyThreadTableToClient tst							// copy thread table to client
-	= ((False,thisUser,event,"",[thread.thrTaskNr]),tst)						// no further evaluation, aks user for more input
-
-# (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst			// look for thread to evaluate
-= doParent mbthread maintask event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
-where
-	doParent [] maintask event accu tst											// no more parents of current event, do main task
-						= startFromRoot versioninfo event [tasknr:accu] "No more threads, page refreshed" maintask {tst & html = BT []}			
-
-	doParent [parent:next] maintask event accu tst								// do parent of current thread
-	| parent.thrUserId <> thisUser												// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask {tst & html = BT []}			
-
-	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}		// start parent
-	| not activated																// parent thread not yet finished
-		# tst				= copyThreadTableToClient tst						// copy thread table to client
-		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
-	# (mbthread,tst)		= findParentThread (tl parent.thrTaskNr) tst		// look for thread to evaluate
-	= doParent mbthread maintask event [parent.thrTaskNr:accu] {tst & options = options}// continue with grand parent ...
-
-startFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-startFromRoot versioninfo eventnr tasknrs message maintask tst
-=	IF_ClientServer																// we are running client server
-		(IF_ClientTasks
-			(stopClient eventnr tasknrs message)								// client cannot evaluate from root of task tree, give it up
-			(evaluateFromRoot versioninfo eventnr tasknrs message maintask) tst	// sever can evaluate from scratch
-		)
-	(evaluateFromRoot versioninfo eventnr tasknrs message maintask tst)			// ajax can evaluate from scratch as well
-where
-	stopClient :: !TaskNr ![TaskNr]  !String  !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-	stopClient eventnr tasknrs message tst
-	= ((True,defaultUser,eventnr,message,tasknrs), tst)
-	
-	evaluateFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
-	evaluateFromRoot versioninfo eventnr tasknrs message maintask tst
-	# tst					= deleteAllSubTasks versioninfo.deletedThreads tst	// delete subtasks being obsolute
-	# (_,tst) 				= maintask tst										// evaluate main application from scratch
-	# tst=:{activated}		= copyThreadTableToClient tst						// copy thread table to client, if applicable
-	# message				= if activated "iTask application finished" message
-	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
-
 // ******************************************************************************************************
 // Html Printing Utilities...
 // ******************************************************************************************************
@@ -504,21 +417,4 @@ setSVersionNr user f hst
 # (form,hst) = mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
 = (form.value,hst)
 
-getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)								// get list of tasknr belonging to events received
-getTripletTaskNrs tst=:{hst = hst=:{states}}
-# (triplets,states) = getAllTriplets states
-= (lowestTaskNr [mkTasknr (getDigits s) \\ ((s,_,_),_) <- triplets | s%(0,5) == "iTask_"],{tst & hst = {hst & states = states}})
-where
-	getDigits s = takeWhile ((<>) '-') (stl (dropWhile ((<>) '_') (mkList s)))
-
-	mkTasknr list = reverse (map digitToInt [c \\ c <- list | isDigit c])
-
-	lowestTaskNr [] 	= Nothing
-	lowestTaskNr [x:xs] = Just (lowest x xs)									// lowest number gives highest position in tree
-
-	lowest :: TaskNr [TaskNr] -> TaskNr
-	lowest x [] 	= x
-	lowest x [y:ys]
-	| x < y = lowest x ys
-	= lowest y ys
 

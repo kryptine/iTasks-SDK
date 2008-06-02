@@ -30,6 +30,8 @@ import InternaliTasksCommon
 
 instance == ThreadKind
 
+startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),!*TSt) 				// determines which threads to execute and calls them..
+
 // Setting of global information for a particular user
 
 setPUserNr 					:: !Int !(Int -> Int) 				!*HSt 			-> (!GlobalInfo,!*HSt) 
@@ -41,7 +43,6 @@ showThreadNr 				:: !TaskNr 											-> String
 showThreadTable 			:: !*TSt 											-> (!HtmlCode,!*TSt)					// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 
 // Thread creation
-
 administrateNewThread 		:: !UserId 					!*TSt 					-> *TSt
 mkTaskThread 				:: !SubPage 	!(Task a) 							-> Task a 	| iData a						
 
@@ -56,14 +57,7 @@ evalTaskThread 				:: !TaskThread 										-> Task a 								// execute the thr
 insertNewThread 			:: !TaskThread 				!*TSt 					-> *TSt									// insert new thread in table
 deleteSubTasksAndThreads 	:: !TaskNr 					!*TSt 					-> *TSt
 
-// Thread storages
 
-ThreadTableStorage 			:: !(ThreadTable -> ThreadTable) 					-> (Task !ThreadTable)					// used to store Tasknr of callbackfunctions / threads
-
-// Copying thread tables from server to client and vica versa
-
-copyThreadTableToClient 	::  						!*TSt 					-> !*TSt								// copies all threads for this user from server to client thread table
-copyThreadTableFromClient 	:: !GlobalInfo 				!*TSt 					-> !*TSt								// copies all threads for this user from client to server thread table
 
 
 
