@@ -150,6 +150,9 @@ function sendForm(formid, onclient) {
 		return;
 	}
 	
+	serverDebug("");
+	clientDebug("");
+	
 	//Add state and focus information to the form
 	addState(form);
 	
@@ -341,6 +344,9 @@ function ajaxSendForm(form) {
 	//Re-initialize ajax (MAY NOT BE NECCESARY. REQUIRES ADDITIONAL TESTING)
 	initAjax();
 	
+	//Show a short status message
+	serverDebug("handling request...");
+
 	//Send request
 	xmlHttp.open("POST", "/" + getAppName() + "_ajax" ,true);	
   	xmlHttp.setRequestHeader("Content-Type", "multipart/form-data; boundary=" + msg[0]);
@@ -348,10 +354,7 @@ function ajaxSendForm(form) {
 	xmlHttp.setRequestHeader("Connection", "close");
 
 	xmlHttp.onreadystatechange = ajaxCallback;
-	xmlHttp.send(msg[1]);
-	
-	//Show a short status message
-	document.getElementById("iTaskInfo").innerHTML = "<font color=\"yellow\"><b>Server is handling request...</b><hr/>";
+	xmlHttp.send(msg[1]);	
 }
 
 function ajaxCallback() {
@@ -377,9 +380,8 @@ function saplSendForm(form) {
 	}
 	lock = true;
 
-  	document.getElementById("iTaskInfo").innerHTML = "<font color=\"yellow\"><b>Client is handling request...</b></font><hr/>";
-
-	
+	clientDebug("handling request...");
+ 	
 	//Encode the form and create an HTTP request message
 	var msg = multipartEncodeForm(form);
 	var req = "";
@@ -395,11 +397,13 @@ function saplSendForm(form) {
 	var rsp = saplApplet.getOutput();
 
 	if(rsp == null) {
+		clientDebug("Applet returned null");
 		lock = false;
 		return false;
 	}
 
 	if(rsp.substring(0,5) == "ABORT") {
+		clientDebug("Applet aborted: " + rsp);
 		lock = false;
 		return false;
 	}
@@ -407,11 +411,13 @@ function saplSendForm(form) {
 	var parts = rsp.split(Sapl_ToServer_Separator);
 
 	if( parts.length != 2) {
+		clientDebug("Unable to split response" + rsp);
 		lock = false;
 		return false;
 	}
 	
 	if( parts[0] == "True") {
+		clientDebug("Switch to server");
 		lock = false;
 		return false;
 	}
@@ -432,8 +438,6 @@ function splitResponseAndUpdate(response, fromserver) {
 }
 
 function updateDivs(divcodes, fromserver) {
-	
-	
 	for (var i=0; i < divcodes.length ; i++) {
 		
 	 	var thisupdate     	= divcodes[i].split(FormName_Content_Separator);
@@ -442,6 +446,20 @@ function updateDivs(divcodes, fromserver) {
 		if (theCode != undefined) {	// the code does not need to be on the page !!!
 			theCode.innerHTML	= thisupdate[1];
 		}
+	}
+}
+
+function serverDebug(message) {
+	var div = document.getElementById("debug-server");
+	if(div != undefined) {
+		div.innerHTML = "<span style=\"color: yellow; font-weight: bold;\">Server: </span>" + message + "<hr />";
+	}
+}
+
+function clientDebug(message) {
+	var div = document.getElementById("debug-client");
+	if(div != undefined) {
+		div.innerHTML = "<span style=\"color: yellow; font-weight: bold;\">Client: </span>" + message + "<hr />";
 	}
 }
 
