@@ -245,7 +245,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 	 	
 # iTaskInfo				=	case headerOff of
 								Nothing ->
-									(	IF_Ajax (IF_ClientServer (IF_ClientTasks [showLabel "Client: "] [showLabel "Server: "]) []) [] ++
+									(	IF_Ajax (IF_ClientTasks [showLabel "Client: "] [showLabel "Server: "]) [] ++
 										if multiuser 
 											[showText "User: " , showLabel thisUser, showText " - "] [] ++
 										if (thrinfo == "" ) [] [showLowLight thrinfo, showText " - "] ++
@@ -259,9 +259,10 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 									)
 								Just userInfo -> userInfo
 								
-# iTaskInfoDivs			=	(mkDiv showCompletePage "debug-client" [showLabel "Client: ",Hr []]) ++ 
+# iTaskInfoDivs			=	IF_Ajax (
+							(IF_ClientServer (mkDiv showCompletePage "debug-client" [showLabel "Client: ",Hr []]) []) ++ 
 							(mkDiv showCompletePage "debug-server" iTaskInfo)
-								
+							) []
 							
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [printTrace2 trace ]
 | showCompletePage		=	((toServer,""),[Ajax [("thePage",iTaskHeader ++
