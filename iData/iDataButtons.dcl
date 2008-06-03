@@ -6,13 +6,13 @@ definition module iDataButtons
 import iDataHandler
 import GenLexOrd
 
-derive gForm 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox
-derive gUpd  	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox
-derive gPrint 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox
-derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox
-derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox
-derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
-derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
+derive gForm 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox, RefreshTimer
+derive gUpd  	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox, RefreshTimer
+derive gPrint 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox, RefreshTimer
+derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox, RefreshTimer
+derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox, RefreshTimer
+derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
+derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 
 instance toBool		CheckBox, Button, RadioButton	// True if checkbox checked, button pressed
 instance toInt		PullDownMenu					// Current index in pull down list
@@ -66,5 +66,8 @@ instance -			HtmlTime
 
 :: HtmlDate 	= 	Date Int Int Int				// Day Month Year
 :: HtmlTime 	= 	Time Int Int Int				// Hours Minutes Seconds
+
+
+:: RefreshTimer	=	RefreshTimer Int				// The editor for this type refreshes it's form after n milliseconds
 
 getTimeAndDate :: !*HSt -> *(!(!HtmlTime,!HtmlDate),!*HSt)

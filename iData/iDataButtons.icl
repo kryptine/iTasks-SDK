@@ -3,12 +3,13 @@ implementation module iDataButtons
 import StdFunc, StdList, StdString, StdArray
 import iDataFormlib, iDataHandler, iDataStylelib, iDataTrivial, StdBimap
 
+
 derive gUpd  	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode/*, Button, CheckBox*/, RadioButton /*, PullDownMenu, TextInput , TextArea, PasswordBox*/
-derive gPrint 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
-derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
-derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
-derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
-derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox
+derive gPrint 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
+derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
+derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
+derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
+derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 
 /*
 :: TextInput	= TI Int Int						// Input box of size Size for Integers
@@ -325,7 +326,6 @@ where
 			,incrHSt 1 hst)
 	= ( EmptyBody,incrHSt 1 hst )
 
-
 // time and date
 
 import StdTime
@@ -367,6 +367,17 @@ where
 	fromPullDown (dv,mv,yv)	= Date (convert dv) (convert mv) (convert yv)
 	where
 		convert x			= toInt (toString x)
+		
+		
+gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
+		RefreshTimer timeout
+			# (cntr,hst)			= CntrHSt hst
+			# triplet = encodeTriplet (formid.id,cntr,UpdS "timer")
+			# inputid = encodeInputId (formid.id,cntr,UpdS "timer")
+			# timedcode = "toClean(document.getElementById('" +++ inputid +++ "'),'" +++ triplet +++ "',true,false," +++ (IF_ClientTasks "true" "false") +++ ");"
+			# script =  [InlineCode ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
+			= ({ changed = False, value = formid.ival, form = script}, incrHSt 1 hst)
+
 
 // Updates that have to be treated specially:
 
@@ -404,6 +415,12 @@ gUpd{|PasswordBox|}  (UpdSearch (UpdS name) 0) _				= (UpdDone,                P
 gUpd{|PasswordBox|}  (UpdSearch val cnt)       b				= (UpdSearch val (cnt - 2),b)										// continue search, don't change
 gUpd{|PasswordBox|}  (UpdCreate l)             _				= (UpdCreate l,            PasswordBox "")							// create default value
 gUpd{|PasswordBox|}  mode                      b				= (mode,                   b)										// don't change
+
+gUpd{|RefreshTimer|} (UpdSearch (UpdS name) 0) v				= (UpdDone,                v)										// We don't update
+gUpd{|RefreshTimer|} (UpdSearch val cnt)       v				= (UpdSearch val (cnt - 1),v)										// continue search, don't change
+gUpd{|RefreshTimer|} (UpdCreate l)             _				= (UpdCreate l,            RefreshTimer 0)							// create default value
+gUpd{|RefreshTimer|} mode                      v				= (mode,                   v)										// don't change
+
 
 // small utility stuf
 
