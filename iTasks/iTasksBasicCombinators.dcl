@@ -29,9 +29,9 @@ return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 
 /*
 Assign tasks to user with indicated id:
-assignTaskTo 	:: assign task to indicated user, True for verbose reporting
+assignTaskTo 	:: assign task to indicated user
 */
-assignTaskTo 	:: !Bool !UserId !(LabeledTask a) 			-> Task a		| iData a	
+assignTaskTo 	:: !UserId !(LabeledTask a) 			-> Task a		| iData a	
 
 /*
 Repetition and loops:
@@ -48,23 +48,10 @@ seqTasks		:: do all iTasks one after another, task completed when all done
 seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 
 /*
-Choose the tasks you want to do one forehand:
-chooseTask_btn	:: choose ONE task by pressing a button, True for horizontal buttons, else vertical
-chooseTask_pdm	:: as chooseTask_btn, depending on pulldownmenu item selected, Int for initial value
-chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for initial value, htmlcode for option explanation 
-
-chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on first arg
-				   (initial setting, effect for all when set, explanation) for each option
+Select the tasks to do from a given list of tasks:
+selectTasks		:: the first argument is task yielding the task numbers (index in the list) to do; tasks will be done in this order.
 */
-
-chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] 			-> Task a	 	| iCreateAndPrint a
-chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] 			-> Task a	 	| iCreateAndPrint a
-chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
-
-															-> Task a		| iCreateAndPrint a
-chooseTask_cbox	:: !([LabeledTask a] -> Task [a])
-				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
-															-> Task [a] 	| iData a
+selectTasks		:: !([LabeledTask a] -> Task [Int]) [LabeledTask a] -> Task [a] | iData a
 
 /*
 Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:

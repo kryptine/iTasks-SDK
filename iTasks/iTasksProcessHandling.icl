@@ -128,7 +128,7 @@ where
 
 scheduleWorkflows :: !(Task a) -> (Task a) | iData a
 scheduleWorkflows maintask 
-# nmaintask	= newTask defaultWorkflowName (assignTaskTo False 0 ("main",maintask))
+# nmaintask	= newTask defaultWorkflowName (assignTaskTo 0 ("main",maintask))
 = IF_Ajax 																		
 	(IF_ClientServer															// we running both client and server
 		(IF_ClientTasks												
@@ -187,15 +187,11 @@ where
 	# ((processid,wfls),tst) 	= workflowProcessStore id tst					// read workflow process administration
 	# wfl						= wfls!!(entry - 1)								// fetch entry
 	# currentWorker				= getWorkflowUser wfl							// such that worker can be changed dynamically !
-	# (a,tst=:{activated})		= newTask label (assignTaskTo False currentWorker ("main",task)) tst			
+	# (a,tst=:{activated})		= newTask label (assignTaskTo currentWorker ("main",task)) tst			
 
-//	# (a,tst=:{activated})		= newTask label (assignTaskTo False userid ("main",task)) tst			
 	# dyn						= dynamic a
 	| not activated				= (dyn,tst)										// not finished, return
 	# ((_,wfls),tst) 			= workflowProcessStore id tst					// read workflow process administration
-//	# wfls						= case (wfls!!(entry - 1)) of					// update process administration
-//										(ActiveWorkflow _ acttask) -> updateAt (entry - 1) (FinishedWorkflow (currentWorker,processid,label) dyn acttask) wfls
-//										_ -> wfls
 	# wfls						= case (wfls!!(entry - 1)) of					// update process administration
 										(ActiveWorkflow wid acttask) -> updateAt (entry - 1) (FinishedWorkflow wid dyn acttask) wfls
 										_ -> wfls

@@ -36,6 +36,26 @@ repeatTask		:: repeat Task until predicate is valid
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iData a
 
+/*
+Choose the tasks you want to do one forehand:
+chooseTask_btn	:: choose ONE task by pressing a button, True for horizontal buttons, else vertical
+chooseTask_pdm	:: as chooseTask_btn, depending on pulldownmenu item selected, Int for initial value
+chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for initial value, htmlcode for option explanation 
+
+chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on first arg
+				   (initial setting, effect for all when set, explanation) for each option
+*/
+
+chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] 			-> Task a	 	| iData a
+chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] 			-> Task a	 	| iData a
+chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
+
+															-> Task a		| iData a
+chooseTask_cbox	:: !([LabeledTask a] -> Task [a])
+				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
+															-> Task [a]		| iData a
+
+
 /* Choose out the tasks you want to do one forehand, labels are used to make the choice:
 button 			:: return value when button pressed
 buttonTask		:: do the iTask when button pressed
@@ -51,10 +71,10 @@ mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
 mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 
 */
-button 			:: !String 	!a 								-> Task a 		| iCreateAndPrint a
-buttonTask		:: !String   !(Task a)						-> Task a 		| iCreateAndPrint a
-chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
-chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iCreateAndPrint a
+button 			:: !String 	!a 								-> Task a 		| iData a
+buttonTask		:: !String   !(Task a)						-> Task a 		| iData a
+chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iData a
+chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iData a
 
 mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iData a
 mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a

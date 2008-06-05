@@ -7,9 +7,9 @@ implementation module iTasksCombinators
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import StdList, StdFunc
-import iDataTrivial
-import iTasksBasicCombinators, iTasksHtmlSupport, iTasksTimeAndDateHandling, iTasksLiftingCombinators
+import StdList, StdFunc, StdTuple
+import iDataTrivial, iDataFormlib
+import iTasksBasicCombinators, iTasksHtmlSupport, iTasksTimeAndDateHandling, iTasksLiftingCombinators, iTasksSettings, iTasksEditors
 
 derive gForm 	[]
 derive gUpd  	[]
@@ -46,7 +46,7 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
 repeatTask task pred a = dorepeatTask a
 where
 	dorepeatTask a 
-	= newTask "doReapeatTask" dorepeatTask`
+	= newTask "repeatTask" dorepeatTask`
 	where
 		dorepeatTask` tst
 		| pred a	= (a,tst) 
@@ -68,31 +68,156 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:) nuserId ltask = assignTaskTo True nuserId ltask
+(@:) nuserId ltask=:(taskname,task) = assigntask
+where
+	assigntask tst=:{userId} 
+	= 				([showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,Br]
+					?>> assignTaskTo nuserId (taskname,[showText "Requested by ", showUser userId,Br,Br] ?>> task)) tst
+
+	showUser nr = showLabel ("User " <+++ nr)
 
 (@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
-(@::) nuserId taska = assignTaskTo True nuserId ("Task for " <+++ nuserId,taska)
+(@::) nuserId taska = nuserId @: ("Task for " <+++ nuserId,taska)
 
 (@:>) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:>) nuserId ltask = assignTaskTo False nuserId ltask
+(@:>) nuserId ltask = assignTaskTo nuserId ltask
 
 (@::>) infix 3 :: !UserId !(Task a) -> (Task a) | iData  a												
-(@::>) nuserId taska = assignTaskTo False nuserId ("Task for " <+++ nuserId,taska)
+(@::>) nuserId taska = nuserId @:> ("Task for " <+++ nuserId,taska)
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
 
-button :: !String !a -> (Task a) | iCreateAndPrint a
-button s a = mkTask "button" (chooseTask_btn [] True [(s,return_V a)])
+chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] -> Task a | iData a
+chooseTask_btn prompt horizontal ltasks
+= selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) ltasks =>> \la -> return_V (hd la)		
+where
+	selectTask_btn direction ltasks = newTask "selectTask_btn" (selectTask_btn` direction ltasks)		
 
-buttonTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
-buttonTask s task = mkTask "buttonTask" (chooseTask_btn [] True [(s,task)])
+	selectTask_btn` _ [] tst		= return [] tst				
+	selectTask_btn` horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
+	# taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
+	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+	| chosen.value == -1			// no choice made yet
+		# buttonId					= iTaskId userId tasknr "ChoBut"
+		# allButtons				= if horizontal 
+											[[(iTaskButton txt,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
+											[[(iTaskButton txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
+		# (choice,tst)				= liftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
+		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst
+		| chosen.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form})
+		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
+	= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
 
-chooseTask :: !HtmlCode ![LabeledTask a] -> (Task a) | iCreateAndPrint a
-chooseTask prompt options = mkTask "chooseTask" (chooseTask_btn prompt True options)
 
-chooseTaskV :: !HtmlCode ![LabeledTask a] -> (Task a) | iCreateAndPrint a
-chooseTaskV prompt options = mkTask "chooseTask" (chooseTask_btn prompt False options)
+chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] -> Task a | iData a
+chooseTask_pdm prompt initial ltasks
+= selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) ltasks =>> \la -> return_V (hd la)		
+where
+	selectTask_pdm _ [] tst			= return createDefault tst	
+	selectTask_pdm defaultOn taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+	# taskId						= iTaskId userId tasknr ("ChoStPdm" <+++ length taskOptions)
+	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+	| chosen.value == -1			// no choice made yet
+		# numberOfItems					= length taskOptions
+		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfItems  - 1) defaultOn 0 		
+		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ numberOfItems)
+		# (choice,tst)					= liftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (defaultOn,[(txt,id) \\ txt <- map fst taskOptions]))) tst
+		# (_,tst=:{activated=adone,html=ahtml})	
+										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
+		| not adone						= ([],{tst & activated = False, html = html +|+ BT prompt +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
+		# chosenIdx						= snd choice.value
+		# chosenTask					= snd (taskOptions!!chosenIdx)
+		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> chosenIdx)) tst
+		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
+	= ([chosen.value],{tst & activated = True, html = html, tasknr = tasknr})
+/*
+	selectTask_pdm :: !Int ![LabeledTask a] -> Task [Int]
+	selectTask_pdm defaultOn taskOptions = dochooseTask_pdm taskOptions
+	where
+		dochooseTask_pdm [] tst			= return createDefault tst	
+		dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+		# numberOfItems					= length taskOptions
+		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfItems  - 1) defaultOn 0 		
+		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ numberOfItems)
+		# (choice,tst)					= liftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (defaultOn,[(txt,id) \\ txt <- map fst taskOptions]))) tst
+		# (_,tst=:{activated=adone,html=ahtml})	
+										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
+		| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
+		= ([snd choice.value],{tst & activated = True, html = html, tasknr = tasknr})
+*/
+chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)] -> Task a | iData a
+chooseTask_radio prompt initial code_ltasks
+= selectTasks (\lt -> prompt ?>> selectTask_radio initial (map fst code_ltasks) lt) (map snd code_ltasks) =>> \la -> return_V (hd la)		
+where
+	selectTask_radio :: !Int ![HtmlCode] ![LabeledTask a] -> Task [Int]
+	selectTask_radio defaultOn htmlcodes taskOptions = dochooseTask_pdm taskOptions
+	where
+		dochooseTask_pdm [] tst			= return createDefault tst	
+		dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+		# numberOfButtons				= length taskOptions
+		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfButtons - 1) defaultOn 0 		
+		# taskId						= iTaskId userId tasknr ("ChoStRadio" <+++ numberOfButtons)
+		# taskRadioMenuId				= iTaskId userId tasknr ("ChoRadio" <+++ numberOfButtons)
+		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId defaultOn) id) tst
+		# (nradio,tst)					= liftHst (ListFuncRadio (Init,sessionFormId options taskRadioMenuId (defaultOn,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
+		# choice						= if nradio.changed (snd nradio.value) chosen.value
+		# (nradio,tst)					= liftHst (ListFuncRadio (Set, sessionFormId options taskRadioMenuId (choice,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
+		# (_,tst=:{activated=adone,html=ahtml})	
+										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
+		| not adone
+			# (chosen,tst)					= liftHst (mkStoreForm  (Set,storageFormId options taskId choice) id) {tst & activated = adone, html = BT []}
+			# radioform						= nradio.form <=|>  [[showLabel label] <||> htmlcode \\ htmlcode <- htmlcodes & (label,_) <- taskOptions]
+			= (createDefault,{tst & activated = False, html = html +|+ BT [radioform] +|+ ahtml, tasknr = tasknr})
+		= ([choice],{tst & activated = True, html = html, tasknr = tasknr})
+
+chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+
+chooseTask_cbox whatisthis prompt code_ltasks
+= selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) (map snd code_ltasks)		
+where
+	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,!HtmlCode)] ![LabeledTask a] -> Task [Int]
+	selectTask_cbox htmlcodes taskOptions = domchoiceTasks taskOptions
+	where
+		domchoiceTasks [] tst	= ([],{tst& activated = True})
+		domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
+		# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
+		# donetaskId			= iTaskId userId tasknr "MtpChSt"
+		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
+		# (fun,nblist)			= cboxes.value
+		# nsettings				= fun nblist
+		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
+		# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
+	
+		# (_,tst=:{html=ahtml,activated = adone})
+								= (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
+		| not adone	
+			# optionsform		= cboxes.form <=|> [[showLabel label] <||> htmlcode \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
+			= ([],{tst & html = html +|+  BT [optionsform] +|+ ahtml})
+		# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
+		= ([i \\ True <- snd cboxes.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
+	
+		initCheckboxes  = 
+			[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ (set,setfun,_) <- htmlcodes & (label,_) <- taskOptions & i <- [0..]]
+	
+		setCheckboxes  boollist = 
+			[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ (_,setfun,_) <- htmlcodes & (label,_) <- taskOptions 
+																		& i <- [0..] & set <- boollist]
+
+// ******************************************************************************************************
+// choose one or more tasks on forehand out of a set
+
+button :: !String !a -> (Task a) | iData a
+button s a = newTask "button" (chooseTask_btn [] True [(s,return_V a)])
+
+buttonTask :: !String !(Task a) -> (Task a) | iData a
+buttonTask s task = newTask "buttonTask" (chooseTask_btn [] True [(s,task)])
+
+chooseTask :: !HtmlCode ![LabeledTask a] -> (Task a) | iData a
+chooseTask prompt options = newTask "chooseTask" (chooseTask_btn prompt True options)
+
+chooseTaskV :: !HtmlCode ![LabeledTask a] -> (Task a) | iData a
+chooseTaskV prompt options = newTask "chooseTaskV" (chooseTask_btn prompt False options)
 
 mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
