@@ -90,7 +90,7 @@ where
 
 chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) ltasks =>> \la -> return_V (hd la)		
+= selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks =>> \la -> return_V (hd la)		
 where
 	selectTask_btn direction ltasks = newTask "selectTask_btn" (selectTask_btn` direction ltasks)		
 
@@ -106,16 +106,18 @@ where
 		# (choice,tst)				= liftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst
 		| chosen.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form})
-		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
-	= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
+		= ([chosen.value],{tst & activated = True})
+	= ([chosen.value],{tst & activated = True})
 
 
 chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) ltasks =>> \la -> return_V (hd la)		
+= selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la)		
 where
-	selectTask_pdm _ [] tst			= return createDefault tst	
-	selectTask_pdm defaultOn taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+	selectTask_pdm initial ltasks = newTask "selectTask_pdm" (selectTask_pdm` initial ltasks)		
+
+	selectTask_pdm` _ [] tst			= return createDefault tst	
+	selectTask_pdm` defaultOn taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
 	# taskId						= iTaskId userId tasknr ("ChoStPdm" <+++ length taskOptions)
 	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 	| chosen.value == -1			// no choice made yet
@@ -131,30 +133,16 @@ where
 		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> chosenIdx)) tst
 		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
 	= ([chosen.value],{tst & activated = True, html = html, tasknr = tasknr})
-/*
-	selectTask_pdm :: !Int ![LabeledTask a] -> Task [Int]
-	selectTask_pdm defaultOn taskOptions = dochooseTask_pdm taskOptions
-	where
-		dochooseTask_pdm [] tst			= return createDefault tst	
-		dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
-		# numberOfItems					= length taskOptions
-		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfItems  - 1) defaultOn 0 		
-		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ numberOfItems)
-		# (choice,tst)					= liftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (defaultOn,[(txt,id) \\ txt <- map fst taskOptions]))) tst
-		# (_,tst=:{activated=adone,html=ahtml})	
-										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
-		| not adone						= (createDefault,{tst & activated = False, html = html +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
-		= ([snd choice.value],{tst & activated = True, html = html, tasknr = tasknr})
-*/
+
 chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)] -> Task a | iData a
 chooseTask_radio prompt initial code_ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_radio initial (map fst code_ltasks) lt) (map snd code_ltasks) =>> \la -> return_V (hd la)		
+= selectTasks (\lt -> prompt ?>> selectTask_radio initial (map fst code_ltasks) lt) seqTasks (map snd code_ltasks) =>> \la -> return_V (hd la)		
 where
 	selectTask_radio :: !Int ![HtmlCode] ![LabeledTask a] -> Task [Int]
-	selectTask_radio defaultOn htmlcodes taskOptions = dochooseTask_pdm taskOptions
+	selectTask_radio defaultOn htmlcodes taskOptions = newTask "selectTask_radio" (selectTask_radio` taskOptions)
 	where
-		dochooseTask_pdm [] tst			= return createDefault tst	
-		dochooseTask_pdm taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
+		selectTask_radio` [] tst			= return createDefault tst	
+		selectTask_radio` taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
 		# numberOfButtons				= length taskOptions
 		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfButtons - 1) defaultOn 0 		
 		# taskId						= iTaskId userId tasknr ("ChoStRadio" <+++ numberOfButtons)
@@ -171,16 +159,16 @@ where
 			= (createDefault,{tst & activated = False, html = html +|+ BT [radioform] +|+ ahtml, tasknr = tasknr})
 		= ([choice],{tst & activated = True, html = html, tasknr = tasknr})
 
-chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+chooseTask_cbox	:: !(![LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
 
-chooseTask_cbox whatisthis prompt code_ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) (map snd code_ltasks)		
+chooseTask_cbox order prompt code_ltasks
+= selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks)		
 where
 	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,!HtmlCode)] ![LabeledTask a] -> Task [Int]
-	selectTask_cbox htmlcodes taskOptions = domchoiceTasks taskOptions
+	selectTask_cbox htmlcodes taskOptions = newTask "selectTask_cbox" (selectTask_cbox` taskOptions)
 	where
-		domchoiceTasks [] tst	= ([],{tst& activated = True})
-		domchoiceTasks taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
+		selectTask_cbox` [] tst	= ([],{tst& activated = True})
+		selectTask_cbox` taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 		# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
 		# donetaskId			= iTaskId userId tasknr "MtpChSt"
 		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst

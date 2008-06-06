@@ -49,9 +49,10 @@ seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 
 /*
 Select the tasks to do from a given list of tasks:
-selectTasks		:: the first argument is task yielding the task numbers (index in the list) to do; tasks will be done in this order.
+selectTasks		:: the first argument is task yielding the task numbers (index in the list) to do; illegal indices will be ignored
+				   the second argument is a task that should perform these tasks (in any order, sequential or concurrent).
 */
-selectTasks		:: !([LabeledTask a] -> Task [Int]) [LabeledTask a] -> Task [a] | iData a
+selectTasks :: !([LabeledTask a] -> Task [Int]) !(![LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
 
 /*
 Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:

@@ -122,8 +122,6 @@ where
 							((nuserId,processNr,workflowLabel,taskname) @@: nhtml)
 		 })												
 
-	showUser nr = showLabel ("User " <+++ nr)
-
 // ******************************************************************************************************
 // sequencingtasks
 
@@ -145,12 +143,14 @@ where
 // ******************************************************************************************************
 // Select the tasks to do from a list with help of another task for selecting them:
 
-selectTasks :: !([LabeledTask a] -> Task [Int]) [LabeledTask a] -> Task [a] | iData a
-selectTasks chooser ltasks = newTask "selectTask" selectTasks`
+selectTasks :: !([LabeledTask a] -> Task [Int]) !(![LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+selectTasks chooser executer ltasks = newTask "selectTask" selectTasks`
 where
 	selectTasks`
-	=						 chooser ltasks
-			=>> \chosen -> 	seqTasks [ltasks!!i \\ i <- chosen]
+	=						chooser ltasks
+			=>> \chosen -> 	executer [ltasks!!i \\ i <- chosen | i >=0 && i < lengthltask]
+			
+	lengthltask = length ltasks
 
 // ******************************************************************************************************
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes

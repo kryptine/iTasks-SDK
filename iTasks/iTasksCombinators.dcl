@@ -14,9 +14,9 @@ import iTasksBasicCombinators
 return_D		:: return the value and show it in iData display format
 return_VF		:: return the value and show the Html code specified
 */
-(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b			| iCreateAndPrint b
-return_D		:: !a 										-> Task a			| gForm {|*|}, iCreateAndPrint a
-return_VF 		:: !HtmlCode !a 		  					-> Task a			| iCreateAndPrint a
+(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b		| iCreateAndPrint b
+return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
+return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
 
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
@@ -51,8 +51,8 @@ chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] 			-> Task a	 	| iData a
 chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
 
 															-> Task a		| iData a
-chooseTask_cbox	:: !([LabeledTask a] -> Task [a])
-				   !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
+chooseTask_cbox	:: 	!(![LabeledTask a] -> Task [a]) 
+					!HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)]
 															-> Task [a]		| iData a
 
 
