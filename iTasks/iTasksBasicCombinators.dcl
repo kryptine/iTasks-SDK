@@ -31,7 +31,7 @@ return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
 Assign tasks to user with indicated id:
 assignTaskTo 	:: assign task to indicated user
 */
-assignTaskTo 	:: !UserId !(LabeledTask a) 			-> Task a		| iData a	
+assignTaskTo 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a	
 
 /*
 Repetition and loops:
@@ -48,25 +48,26 @@ seqTasks		:: do all iTasks one after another, task completed when all done
 seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 
 /*
-Select the tasks to do from a given list of tasks:
-selectTasks		:: the first argument is task yielding the task numbers (index in the list) to do; illegal indices will be ignored
-				   the second argument is a task that should perform these tasks (in any order, sequential or concurrent).
+selectTasks		:: Select n tasks to do out of m (n <= m) and do them in indicated order (either sequential or interleaved)
 */
-selectTasks :: !([LabeledTask a] -> Task [Int]) !(![LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+:: SelectingTask a 	:== [LabeledTask a] -> Task [Int]	// task selecting which tasks to do
+:: OrderingTask a	:== [LabeledTask a] -> Task [a]		// task determining in which order the selected tasks are done (can be interleaved or sequential)
+
+selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a] | iData a
 
 /*
-Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
-orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
-andTask2		:: do both iTasks in any order (interleaved), task completed when both done
-andTasksCond	:: do tasks in any order until pred holds for finished tasks, string used for naming group of task navigation buttons
+Execute all Tasks in parallel / interleaved and FINISH as soon as the predicate holds for the tasks which are finished:
+allTasksCond	:: 	- string is used to give a useful name to the trace;
+					- TaskToShow is some iData based form such that dynamically can be chosen which tasks to show;  
+					- the predicate is applied on the set of tasks which are finished
 */
-orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 	
-																			| iCreateAndPrint a & iCreateAndPrint b
-andTask2		:: !(Task a,Task b) 						-> Task (a,b) 	| iCreateAndPrint a & iCreateAndPrint b
-andTasksCond	:: !String !([a] -> Bool) ![LabeledTask a] 	-> Task [a] 	| iData a 
+:: TasksToShow a	:== !String ![LabeledTask a] !*TSt  *-> *(([Int],HtmlCode),!*TSt) 	// some iData determining which tasks to show
+:: FinishPred a		:== ![a] -> Bool
+
+allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 
 /* Support for user defined combinators
-newTask			:: same, but optimized: after completion only result will remembered
+newTask			:: lifts a (user defined) task to an abstract unit: after completion of a (complicated task) only i's final result will be remembered
 Once			:: task will be done only once, the value of the task will be remembered, important for side effecting functions lifted to iData domain
 */
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 

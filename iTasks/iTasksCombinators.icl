@@ -109,7 +109,6 @@ where
 		= ([chosen.value],{tst & activated = True})
 	= ([chosen.value],{tst & activated = True})
 
-
 chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la)		
@@ -237,7 +236,7 @@ mchoiceAndTasks3 prompt taskOptions
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
 (-||-) taska taskb =  newTask "-||-" (doOrTask (taska,taskb))
 where
-	doOrTask :: !(Task a,Task a) -> (Task a) | iCreateAndPrint a
+	doOrTask :: !(Task a,Task a) -> (Task a) | iData a
 	doOrTask (taska,taskb)
 	= 			orTask2 (taska,taskb)
 		=>> \at ->  case at of
@@ -251,6 +250,15 @@ orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= return createDefault
 orTasks taskCollection	= newTask "orTasks" (andTasksCond "or Tasks" (\list -> length list >= 1) taskCollection)
 							=>> \list -> return  (hd list)
+
+orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
+orTask2 (taska,taskb) 
+=					allTasksCond "orTask2" showBoth (\list -> length list > 0) [("orTask.0",taska =>> \a -> return_V (LEFT a)),("orTask.0",taskb =>> \b -> return_V (RIGHT b))]
+	=>> \res -> 	return_V (hd res) 
+
+showBoth id list tst=:{hst}
+# (sel,hst)	= mkEditForm (Init,nFormId id [0,1] <@ NoForm) hst
+= ((sel.value,sel.form),{tst & hst = hst})
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
 andTasks taskCollection = newTask "andTasks" (andTasksCond "and Tasks" (\_ -> False) taskCollection)
@@ -271,10 +279,27 @@ where
 	noNothing [RIGHT Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
 
+andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
+andTask2 (taska,taskb) 
+=								allTasksCond "andTask2" showBoth (\l -> False) [("andTask.0",taska =>> \a -> return_V (LEFT a)),("andTask.0",taskb =>> \b -> return_V (RIGHT b))]
+	=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
+
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = newTask "andTasks_mu" (domu_andTasks tasks)
 where
 	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
+
+andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
+andTasksCond label pred taskCollection 
+= allTasksCond label selectButtons pred taskCollection 
+where
+	selectButtons id list tst=:{hst,userId,tasknr,options}
+	# ((i,buttons,chosenname),hst) = mkTaskButtons True "mybut" userId tasknr options (map fst list) hst
+	= (([i],mkbuttons buttons chosenname),{tst & hst = hst})	
+	where
+		mkbuttons buttons chosenname = if (length list > 1) 
+											[showMainLabel "and",showTrace " / ",showLabel chosenname: buttons] 
+											[]
 
 // ******************************************************************************************************
 // Timer Tasks ending when timed out

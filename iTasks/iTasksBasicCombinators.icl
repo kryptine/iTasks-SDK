@@ -143,7 +143,7 @@ where
 // ******************************************************************************************************
 // Select the tasks to do from a list with help of another task for selecting them:
 
-selectTasks :: !([LabeledTask a] -> Task [Int]) !(![LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a] | iData a
 selectTasks chooser executer ltasks = newTask "selectTask" selectTasks`
 where
 	selectTasks`
@@ -153,8 +153,8 @@ where
 	lengthltask = length ltasks
 
 // ******************************************************************************************************
-// Speculative OR-tasks: task ends as soon as one of its subtasks completes
 
+/*
 orTask2 :: !(Task a,Task b) -> (Task (EITHER a b)) | iCreateAndPrint a & iCreateAndPrint b
 orTask2 (taska,taskb) = mkTask "orTask2" (doorTask2 (taska,taskb))
 where
@@ -179,8 +179,6 @@ where
 		= (RIGHT b,{tst & html = html, activated = True})
 	= (LEFT a,{tst & activated = False, html = html +|+ ahtml +|+ bhtml})
 
-// ******************************************************************************************************
-// Parallel task ends when all it subtask are ended as well
 
 andTask2 :: !(Task a,Task b) -> (Task (a,b)) | iCreateAndPrint a & iCreateAndPrint b
 andTask2 (taska,taskb) = mkTask "andTask2" (doAndTask (taska,taskb))
@@ -190,8 +188,9 @@ where
 	# (b,tst=:{activated=bdone,html=bhtml})	= mkParSubTask "andTask" 1 taskb {tst & tasknr = tasknr, html = BT []}
 	= ((a,b),{tst & activated = adone&&bdone, html = html +|+ ahtml +|+ bhtml})
 
+
 andTasksCond :: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) | iData a // predicate used to test whether tasks are finished
-andTasksCond label pred taskCollection = mkTask "andTasksPred" (doandTasks taskCollection)
+andTasksCond label pred taskCollection = mkTask "andTasksCond" (doandTasks taskCollection)
 where
 	doandTasks [] tst	= return [] tst
 	doandTasks taskCollection tst=:{tasknr,html,options,userId}
@@ -234,6 +233,44 @@ where
 	# (a,tst=:{activated = adone})	= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True} // check tasks
 	| adone							= checkAllTasks traceid options (inc ctasknr,skipnr) bool [(taskname,a):alist] {tst & tasknr = tasknr, activated = True}
 	= checkAllTasks traceid options (inc ctasknr,skipnr) False alist {tst & tasknr = tasknr, activated = True}
+*/
+allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
+allTasksCond label chooser pred taskCollection 
+= 					mkTask "andTasksCond" (doandTasks chooser taskCollection)
+where
+	lengthltask = length taskCollection 
+
+	doandTasks chooser [] tst	= return [] tst
+	doandTasks chooser taskCollection tst=:{tasknr,html,options,userId}
+	# ((alist,acode),tst=:{activated=finished,html=allhtml})		
+						= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [],activated = True} 
+	| finished			= (alist,{tst & html = html}) 						// stop, all andTasks are finished
+	| pred alist		= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
+	# selectId			= iTaskId userId tasknr "anTaskSelect"
+	# ((selected,shtml),tst)	= chooser selectId taskCollection {tst & html = BT []}
+	# (_,tst=:{html=ashtml})	= showtasks label [(i,taskCollection!!i) \\ i <- selected | i >= 0 && i < lengthltask] {tst & html = BT [], activated = True}		
+	= (alist,{tst 	& activated = finished
+					, html = 	html +|+ 									// show previous code
+								((BT shtml) +-+ ashtml) +|+ 				// show selection button + selected itasks
+								(userId -@: foldl (+|+) (BT []) [htmlcode \\ htmlcode <- acode & i <- [0..] | not (isMember i selected)]) // dont show non selected itasks, but scan them for task tree info								
+			})
+	where
+		showtasks :: !String ![(!Int,!LabeledTask a)] !*TSt -> *(![a],!*TSt) | iCreateAndPrint a
+		showtasks _ [] tst			= ([],tst)
+		showtasks label [(chosen,(name,chosenTask)):tasks] tst=:{html=html}
+		# (a,tst=:{html=ahtml}) 	= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
+		# (as,tst=:{html=ashtml})	= showtasks label tasks {tst & html = BT []}
+		= ([a:as],{tst & html = html +|+ ahtml +|+ ashtml})			
+
+
+		checkAllTasks :: !String ![LabeledTask a] !Int !Bool !(![a],![HtmlTree]) !*TSt -> *(!(![a],![HtmlTree]),!*TSt) | iCreateAndPrint a
+		checkAllTasks traceid taskCollection ctasknr bool (alist,acode) tst=:{tasknr}
+		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),{tst & activated = bool})			// all tasks tested
+		# (taskname,task)		= taskCollection!!ctasknr
+		# (a,tst=:{activated = adone,html=html})	
+								= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True, html = BT []} // check tasks
+		| adone					= checkAllTasks traceid taskCollection (inc ctasknr) bool ([a:alist],[html:acode]) {tst & tasknr = tasknr, activated = True}
+		= checkAllTasks traceid taskCollection (inc ctasknr) False (alist,[html:acode]) {tst & tasknr = tasknr, activated = True}
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental
