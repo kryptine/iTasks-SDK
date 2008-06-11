@@ -301,6 +301,18 @@ where
 											[showMainLabel "and",showTrace " / ",showLabel chosenname: buttons] 
 											[]
 
+andTasksCond_pdm 	:: !String !([a] -> Bool) ![LabeledTask a] -> Task [a]	| iData a 
+andTasksCond_pdm label pred taskCollection 
+= allTasksCond label selectButtons pred taskCollection 
+where
+	selectButtons ident list tst=:{hst,options}
+	# (result,hst) = FuncMenu (Init,applyoptions (nFormId (ident +++ "andTaskCond_pdm") (0,[(name,id) \\ (name,_) <- list]))) hst
+	= (([snd result.value],[showLabel label] <|.|> result.form),{tst & hst = hst})	
+	where
+		applyoptions nformid = nformid <@ options.tasklife <@ options.taskstorage <@ options.taskmode
+
+
+
 // ******************************************************************************************************
 // Timer Tasks ending when timed out
 

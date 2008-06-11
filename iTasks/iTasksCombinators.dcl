@@ -55,7 +55,6 @@ chooseTask_cbox	:: 	!(![LabeledTask a] -> Task [a])
 					!HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)]
 															-> Task [a]		| iData a
 
-
 /* Choose out the tasks you want to do one forehand, labels are used to make the choice:
 button 			:: return value when button pressed
 buttonTask		:: do the iTask when button pressed
@@ -94,16 +93,18 @@ andTasks		:: do all  iTasks in any order (interleaved), task completed when all 
 andTask2		:: do both iTasks in any order (interleaved), task completed when both done
 andTasks_mu		:: assign task to indicated users, task completed when all done
 andTasksCond 	:: do all  iTasks in any order (interleaved), task completed when predicate holds for finished tasks 
+andTasksCond_pdm:: same as andTasksCond, pull down menu used to select the tasks
 */
 (-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iData a
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iData a & iData b
-orTasks 		:: ![LabeledTask a] 						-> (Task a) 	| iData a
+orTasks 		:: ![LabeledTask a] 						-> Task a 		| iData a
 orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 
 																			| iData a & iData b	
 andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a
 andTask2		:: !(Task a,Task b) 						-> Task (a,b) 	| iData a & iData b
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
-andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
+andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a]	-> Task [a] 	| iData a 
+andTasksCond_pdm:: !String !([a] -> Bool) ![LabeledTask a]	-> Task [a]		| iData a 
 
 /* convenient combinators for tasks that maybe return a result:
 (=>>?)			:: as bind, but do the second task only if the first one delivers a result 
