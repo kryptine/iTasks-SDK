@@ -374,7 +374,9 @@ gForm{|Real|} (init,formid) hst
    },hst)
 where
 	r						= formid.ival 
-gForm{|Bool|} (init,formid) hst 	
+
+/*
+gForm{|Bool|} (init,formid) hst // PK
 # (body,hst)				= mkInput defsize (init,formid) (BV b) (UpdB b) hst
 = ({ changed				= False
    , value					= b
@@ -382,6 +384,13 @@ gForm{|Bool|} (init,formid) hst
    },hst)
 where
 	b						= formid.ival 
+*/
+gForm{|Bool|} (init,formid) hst=:{cntr,submits} // PK
+= ({ changed				= False
+   , value					= formid.ival
+   , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid submits]
+   },hst)
+
 gForm{|String|} (init,formid) hst 	
 # (body,hst)				= mkInput defsize (init,formid) (SV s) (UpdS s) hst
 = ({ changed				= False
@@ -436,38 +445,38 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr,submits}
 where
 	(CONS c)				= formid.ival
 
-	mkConsSelector formid thiscons hst=:{cntr} 
-							= (mkConsSel cntr myname allnames myindex formid, setCntr (cntr+1) hst)
+mkConsSelector formid thiscons hst=:{cntr,submits} // PK: lifted to a global function 
+						= (mkConsSel cntr myname allnames myindex formid submits, setCntr (cntr+1) hst)
+where
+	myname				= thiscons.gcd_name
+	allnames			= map (\n -> n.gcd_name) thiscons.gcd_type_def.gtd_conses
+	myindex				= case allnames ?? myname of
+							-1			-> abort ("cannot find index of " +++ myname )
+							i			-> i
+
+mkConsSel :: Int String [String] Int (FormId x) Bool -> BodyTag  // PK: lifted to a global function 
+mkConsSel cntr myname list nr formid submits
+	= Select [ Sel_Name (selectorInpName +++ encodeString myname) : styles ]		// changed to see changes in case of a submit
+			 [ Option  
+				[Opt_Value (encodeTriplet (formid.id,cntr,UpdC elem)) : if (j == nr) [Opt_Selected Selected:optionstyle] optionstyle] elem
+			 \\ elem <- list & j <- [0..]
+			 ] 
 	where
-		myname				= thiscons.gcd_name
-		allnames			= map (\n -> n.gcd_name) thiscons.gcd_type_def.gtd_conses
-		myindex				= case allnames ?? myname of
-								-1			-> abort ("cannot find index of " +++ myname )
-								i			-> i
+		styles			= case formid.mode of
+							Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
+									   , `Sel_Events (if submits [] (callClean OnChange Edit "" formid.lifespan True))
+									   ]
+							Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
+									   ]
+							_		-> [ `Sel_Std	[Std_Style width, DisplayBoxStyle]
+									   ,  Sel_Disabled Disabled
+									   ]
+		optionstyle		= case formid.mode of
+							Edit	-> []
+							Submit	-> []
+							_	 	-> [`Opt_Std [DisplayBoxStyle]]
 
-	mkConsSel :: Int String [String] Int (FormId x) -> BodyTag
-	mkConsSel cntr myname list nr formid
-		= Select [ Sel_Name (selectorInpName +++ encodeString myname) : styles ]		// changed to see changes in case of a submit
-				 [ Option  
-					[Opt_Value (encodeTriplet (formid.id,cntr,UpdC elem)) : if (j == nr) [Opt_Selected Selected:optionstyle] optionstyle] elem
-				 \\ elem <- list & j <- [0..]
-				 ] 
-		where
-			styles			= case formid.mode of
-								Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
-										   , `Sel_Events (if submits [] (callClean OnChange Edit "" formid.lifespan True))
-										   ]
-								Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
-										   ]
-								_		-> [ `Sel_Std	[Std_Style width, DisplayBoxStyle]
-										   ,  Sel_Disabled Disabled
-										   ]
-			optionstyle		= case formid.mode of
-								Edit	-> []
-								Submit	-> []
-								_	 	-> [`Opt_Std [DisplayBoxStyle]]
-
-			width			= "width:" <+++ defpixel <+++ "px"
+		width			= "width:" <+++ defpixel <+++ "px"
 gForm{|FIELD of d |} gHx (init,formid) hst 
 # (nx,hst)					= gHx (init,reuseFormId formid x) hst
 | d.gfd_name.[(size d.gfd_name) - 1] == '_' 										 // don't display field names which end with an underscore
@@ -532,7 +541,8 @@ gUpd{|Real|} (UpdSearch val cnt)     	r = (UpdSearch val (dec cnt),r)		// contin
 gUpd{|Real|} (UpdCreate l)			 	_ = (UpdCreate l,0.0)				// create default value
 gUpd{|Real|} mode 			  	     	r = (mode,r)						// don't change
 
-gUpd{|Bool|} (UpdSearch (UpdB nb) 0) 	_ = (UpdDone,nb)					// update boolean value
+//gUpd{|Bool|} (UpdSearch (UpdB nb) 0) 	_ = (UpdDone,nb)					// update boolean value
+gUpd{|Bool|} (UpdSearch (UpdC nb) 0) 	_ = (UpdDone,nb=="True")					// update boolean value
 gUpd{|Bool|} (UpdSearch val cnt)     	b = (UpdSearch val (dec cnt),b)		// continue search, don't change
 gUpd{|Bool|} (UpdCreate l)			 	_ = (UpdCreate l,False)				// create default value
 gUpd{|Bool|} mode 			  	     	b = (mode,b)						// don't change
