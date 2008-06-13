@@ -298,7 +298,7 @@ where
 	= (([i],mkbuttons buttons chosenname),{tst & hst = hst})	
 	where
 		mkbuttons buttons chosenname = if (length list > 1) 
-											[showMainLabel "and",showTrace " / ",showLabel chosenname: buttons] 
+											[showMainLabel label,showTrace " / ",showLabel chosenname: buttons] // PK "and"->label
 											[]
 
 andTasksCond_pdm 	:: !String !([a] -> Bool) ![LabeledTask a] -> Task [a]	| iData a 
