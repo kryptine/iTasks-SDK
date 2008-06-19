@@ -389,7 +389,7 @@ gForm{|Bool|} (init,formid) hst=:{cntr,submits} // PK
 = ({ changed				= False
    , value					= formid.ival
    , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid submits]
-   },hst)
+   },setCntr (cntr+1) hst)
 
 gForm{|String|} (init,formid) hst 	
 # (body,hst)				= mkInput defsize (init,formid) (SV s) (UpdS s) hst
