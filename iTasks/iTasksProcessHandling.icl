@@ -70,26 +70,18 @@ gerda{|TCl|} ga		= abort "Cannot yet store an iTask of type TCL in a Database\n"
 
 import DrupBasic
 
-/*
-isValidWorkflowReference :: !WorkflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
-isValidWorkflowReference (ActiveWorkflow 	ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
-isValidWorkflowReference (SuspendedWorkflow ids _)		idsref = drop1tuple3 ids == drop1tuple3 idsref
-isValidWorkflowReference (FinishedWorkflow 	ids _ _)	idsref = drop1tuple3 ids == drop1tuple3 idsref
-isValidWorkflowReference (DeletedWorkflow	ids)		idsref = drop1tuple3 ids == drop1tuple3 idsref
-*/
-
 isValidWorkflowReference :: !WorkflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
 isValidWorkflowReference workflowprocess idsref = drop1tuple3 (getWorkflowWid workflowprocess) == drop1tuple3 idsref
 where
 	drop1tuple3 (x,y,z) = (y,z)
 
-getWorkflowWid :: !WorkflowProcess -> ProcessIds 								// get wid of a process
+getWorkflowWid :: !WorkflowProcess -> ProcessIds 									// get wid of a process
 getWorkflowWid (ActiveWorkflow 	ids _)			= ids
 getWorkflowWid (SuspendedWorkflow ids _)		= ids
 getWorkflowWid (FinishedWorkflow 	ids _ _)	= ids
 getWorkflowWid (DeletedWorkflow	ids)			= ids
 
-getWorkflowUser :: !WorkflowProcess -> UserId						// fetch user who should do the work
+getWorkflowUser :: !WorkflowProcess -> UserId										// fetch user who should do the work
 getWorkflowUser (ActiveWorkflow 	(userid,_,_) _)		= userid 
 getWorkflowUser (SuspendedWorkflow  (userid,_,_) _)		= userid
 getWorkflowUser (FinishedWorkflow 	(userid,_,_) _ _)	= userid
@@ -282,20 +274,43 @@ where
 	# wfl				= wfls!!(entry - 1)										// fetch entry
 	# refok				= isValidWorkflowReference wfl ids
 	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
+	= case wfl of
+		(SuspendedWorkflow label susptask) -> scheduleWorkflow label maxid susptask wfls tst
+		(ActiveWorkflow    label acttask)  -> (True,{tst & activated = True})
+		wfl -> (False,{tst & activated = True})									// in case of finished or deleted task
+
+	scheduleWorkflow label maxid (TCl wfl) wfls tst										
+	# nwfls				= updateAt (entry - 1) (ActiveWorkflow label (TCl wfl)) wfls // mark workflow as activated
+	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
+	# (_,tst)			= wfl {tst & activated = True}							// schedule workflow
+	= (True,tst)																// done
+
+
+/*
+activateWorkflow :: !(Wid a) -> Task Bool
+activateWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("activate " +++ label) activateWorkflow`
+where
+	activateWorkflow` tst
+	| entry == 0		= (False,tst)											// main task cannot be handled
+	# ((maxid,wfls),tst)= workflowProcessStore id tst							// read workflow process administration
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	# refok				= isValidWorkflowReference wfl ids
+	| not refok			= (False,tst)											// wid does not refer to the correct entry anymore
 	# (ok,nochange,wfl,tst)	
 						= case wfl of
-								(SuspendedWorkflow label susptask) -> activateWorkflow label susptask tst
-								(DeletedWorkflow label) -> (False,True,DeletedWorkflow label,tst) // a deleted workflow cannot be suspendend
+								(SuspendedWorkflow label susptask) -> scheduleWorkflow label susptask tst
+//								(DeletedWorkflow label) -> (False,True,DeletedWorkflow label,tst) // a deleted workflow cannot be suspendend
 								wfl -> (True,True,wfl,tst)						// in case of finished or already activated flows
 	| nochange			= (ok,{tst & activated = True})							// no change needed
 	# nwfls				= updateAt (entry - 1) wfl wfls							// update entry
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	= (ok,tst)																	// if everything is fine it should always succeed
 
-	activateWorkflow label (TCl wfl) tst										// schedule workflow
+	scheduleWorkflow label (TCl wfl) tst										// schedule workflow
 	# (_,tst)	= wfl {tst & activated = True}
 	= (True,False,ActiveWorkflow label (TCl wfl),{tst & activated = True})
 
+*/
 getWorkflowStatus :: !(Wid a) -> Task WorkflowStatus
 getWorkflowStatus (Wid (entry,ids=:(_,_,label))) = newTask ("get status " +++ label) getWorkflowStatus`
 where

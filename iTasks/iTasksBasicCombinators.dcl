@@ -95,3 +95,5 @@ channel			:: splits a task in respectively a sender task closure and receiver ta
 (-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,TCl a) 	| iCreateAndPrint stop & iCreateAndPrint a
 channel  		:: String (Task a) 							-> Task (TCl a,TCl a) 		| iCreateAndPrint a
 
+closureTask  	:: (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
+closureLzTask  	:: (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
