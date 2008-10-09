@@ -283,12 +283,6 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 									]
 							,hst)
 where
-//	wrap maintask = scheduleWorkflows (newTask "main" (assignTaskTo False 0 ("main",maintask)))				
-//	where
-//		clearIStore hst=:{world}								/* would be nice but don't know how to clear this */
-//		# world = if testModeOn deleteAllStateFiles id world
-//		= (Void,{hst & world = world})
-
 	determine_prefix:: !UserId ![TaskNr] -> String
 	determine_prefix user [] 		= ""
 	determine_prefix user [[-1]] 	= ""

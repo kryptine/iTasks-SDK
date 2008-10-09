@@ -216,6 +216,36 @@ where
 			(FinishedWorkflow _ (val::a^) _) -> (Just val,{tst & activated = True})	// finished
 			_ 					->  (Nothing,{tst & activated = False})	// not yet
 
+/*
+waitForWorkflowWithName :: !String -> Task (Maybe a) | iData a
+waitForWorkflowWithName labelSearched = newTask ("waiting for " +++ labelSearched) waitForResult`
+where
+	waitForResult` tst
+	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
+	# foundEntries		= [i \\ i <- [0 ..] & wfl <- wfls | thd3 (getWorkflowWid wfl) == labelSearched]
+	| isEmpty foundEntries
+						= (Nothing,{tst & activated = False})					// entry does not exist
+	# entry				= hd foundEntries										// entry found; first entry is taken
+	# wfl				= wfls!!(entry - 1)										// fetch entry
+	= case wfl of																// update process administration
+			(FinishedWorkflow _ (val::a^) _) -> (Just val,{tst & activated = True})	// finished
+			_ 					->  (Nothing,{tst & activated = False})			// not yet
+*/
+
+waitForWorkflowWid :: !String -> Task (Maybe (Wid a)) | iData a
+waitForWorkflowWid labelSearched = newTask ("waiting for " +++ labelSearched) waitForResult`
+where
+	waitForResult` tst
+	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
+	# foundEntries		= [i \\ i <- [1 ..] & wfl <- wfls | thd3 (getWorkflowWid wfl) == labelSearched]
+	| isEmpty foundEntries
+// set True as experiment...
+						= (Nothing,{tst & activated = True})					// entry does not (yet) exist
+	| length foundEntries <> 1
+						= (Nothing,{tst & activated = True})					// there are more; illegal action; it is assumed that there is only one
+	# entry				= hd foundEntries
+	= (Just (Wid (entry,getWorkflowWid (wfls!!(entry - 1)))),{tst & activated = True})						// entry found
+
 deleteMe :: (Task Void)
 deleteMe = deleteMe`
 where

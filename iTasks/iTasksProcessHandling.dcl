@@ -34,7 +34,8 @@ getWorkflowStatus 	:: get status of workflow
 deleteWorkflow 		:: delete iTask workflow; returns False if workflow does not exist anymore
 suspendWorkflow 	:: suspend iTask workflow, all corresponding tasks will vanish temporally; returns False if workflow does not exist anymore
 activateWorkflow 	:: activate the iTask workflow again; returns False if workflow does not exist anymore
-changeWorkflowUser :: transfer the workflow task to the indicated user; returns False if workflow does not exist anymore
+changeWorkflowUser	:: transfer the workflow task to the indicated user; returns False if workflow does not exist anymore
+waitforWorkflowWid 	:: looks in process table to find a workflow process with the indicated name; waits if it does not exist; returns Nothing if name is not unique
 
 suspendMe 			:: suspend current workflow process; no effect on start task
 deleteMe 			:: delete current workflow process;  no effect on start task
@@ -47,6 +48,7 @@ activateWorkflow 	:: !(Wid a) 										-> Task Bool
 suspendWorkflow 	:: !(Wid a) 										-> Task Bool 		
 deleteWorkflow 		:: !(Wid a) 										-> Task Bool 		
 changeWorkflowUser	:: !UserId !(Wid a) 								-> Task Bool 
+waitForWorkflowWid 	:: !String 											-> Task (Maybe (Wid a)) | iData a
 
 suspendMe 			:: (Task Void)
 deleteMe 			:: (Task Void)
