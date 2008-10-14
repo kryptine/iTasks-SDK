@@ -15,6 +15,7 @@ itasks.LoaderWindow = Ext.extend(Ext.Window, {
 
 	initComponent: function() {
 		Ext.apply(this, {
+			y: 150,
 			width: 350,
 			height: 50,
 			hidden: true,

@@ -131,7 +131,7 @@ http_parseArguments req
 		= {req & arg_post = post, arg_uploads = uploads}								//Parse post arguments + uploads
 	| otherwise						= req
 where
-	isPost headers = (http_getValue "Content-Type" headers "") == "application/x-www-form-urlencoded"
+	isPost headers = (http_getValue "Content-Type" headers "") % (0,32) == "application/x-www-form-urlencoded"
 	isMultiPart headers = (http_getValue "Content-Type" headers "") % (0,18) == "multipart/form-data"
 	
 http_parseGetArguments :: !HTTPRequest -> [HTTPArgument]

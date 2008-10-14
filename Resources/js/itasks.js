@@ -9,7 +9,7 @@ Ext.onReady(function(){
 		ld = new itasks.LoaderWindow();
 		ld.show();
 
-		ld.updateProgress(0.5,'Loading SAPL applet...');
+//		ld.updateProgress(0.5,'Loading SAPL applet...');
 
 //		console.log(uid);
 //		console.log(sessionKey);

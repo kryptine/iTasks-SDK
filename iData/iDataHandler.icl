@@ -8,6 +8,9 @@ import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import Gerda
 import StdBimap
 
+//Handler functions for starting the new GUI 
+import IndexHandler, AuthenticationHandler
+
 
 derive gPrint (,), (,,), (,,,), UpdValue
 derive gParse (,), (,,), (,,,), UpdValue
@@ -86,6 +89,8 @@ StartServer userpage world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
 	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource userpage))
 								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource userpage) http_notfoundResponse)
+								 ,((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,(\_ -> True, doStaticResource)
 								 ] world
 

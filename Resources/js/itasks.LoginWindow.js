@@ -16,17 +16,17 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 
 	//The embedded form 
 	loginPanel: new Ext.form.FormPanel({
-		url: 'doLogin.php',
+		url: 'handlers/authenticate',
 		baseCls: 'x-plain',
 		layout: 'absolute',
 		defaultType: 'textfield',
-		buttonAlign:'right',
+		buttonAlign: 'right',
 		waitMsgTarget: true,
 		items: [{
 					x: 0,
 					y: 35,
 					xtype: 'label',
-					text: 'Username:',
+					text: 'Username:'
 				},{
 					x: 55,
 					y: 30,
@@ -44,11 +44,13 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 					anchor: '100%',
 					inputType: 'password'
 				}
-			]
+		]
 	}),
+
+	
 	//Initializion function
 	initComponent: function() {	
-	
+		
 		//PRIVATE EVENT HANDLERS
 		var submitHandler = function() {
 			this.loginPanel.getForm().submit({waitMsg: 'Validating username and password...'});
@@ -69,7 +71,11 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		};
 		var failureHandler = function(form, action) {
 			//Show the error and draw attention to the window
-			this.errorLabel.setText(action.result.error);
+			if(action.failureType == undefined) {
+				this.errorLabel.setText(action.result.error);	
+			} else {
+				this.errorLabel.setText("Could not connect to server");
+			}
 			this.getEl().frame('#ff0000');
 
 			//Focus the username
@@ -77,10 +83,11 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		};
 
 		//CONSTRUCTION OF THE COMPONENT
-	
+		
 		//Construct the login window
 		Ext.apply(this, {
 			title: 'Login to iTasks',
+			y: 150,
 			width: 350,
 			height: 165,
 			layout: 'fit',
@@ -109,13 +116,14 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		this.loginPanel.on('actionfailed', failureHandler, this);
 
 		//Add a keymap to connect <enter> in the form to the submit action
-		var map = new Ext.KeyMap(Ext.getBody(), {
+		new Ext.KeyMap(Ext.getBody(), {
 			key: Ext.EventObject.ENTER,
 			fn: submitHandler,
 			scope: this
 		});
+
 	},
-	focus: function () {
+	focus: function() {
 		this.loginPanel.getForm().findField('username').focus();
 	},
 	startApplication: function(uid, sessionKey) {
