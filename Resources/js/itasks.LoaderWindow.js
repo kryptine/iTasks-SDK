@@ -12,7 +12,14 @@ itasks.LoaderWindow = Ext.extend(Ext.Window, {
 	updateProgress: function(i, msg) {
 		this.progressBar.updateProgress(i,msg);
 	},
-
+	finish: function () {
+		this.getEl().fadeOut({
+			callback: function() {
+				this.continuation();
+			},
+			scope: this
+		});
+	},
 	initComponent: function() {
 		Ext.apply(this, {
 			y: 150,
@@ -26,5 +33,7 @@ itasks.LoaderWindow = Ext.extend(Ext.Window, {
 		});
 
 		itasks.LoaderWindow.superclass.initComponent.apply(this, arguments);	
+	},
+	continuation: function () {
 	}
 });

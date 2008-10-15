@@ -7,7 +7,7 @@ import Html
 handleIndexRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleIndexRequest req world = ({http_emptyResponse & rsp_data = toString mkPage }, world)
 
-mkPage	= HtmlTag [] [mkHead, BodyTag [] []]
+mkPage	= HtmlTag [] [mkHead, BodyTag [ClassAttr "bg"] []]
 mkHead	= HeadTag [] [mkTitle : mkCssLibs ++ mkJsLibs ++ mkStartCss]
 mkTitle	= TitleTag [] [Text "iTasks"]
 
@@ -17,7 +17,8 @@ where
 			 ,"ext/ext-all-debug.js"
 			 ,"js/itasks.LoginWindow.js"
 			 ,"js/itasks.LoaderWindow.js"
-			 ,"js/itasks.ApplicationWindow.js"
+			 ,"js/itasks.ApplicationPanel.js"
+			 ,"js/itasks.Application.js"
 			 ,"js/itasks.js"
 			 ]
 			 
@@ -28,7 +29,7 @@ where
 			 ,"css/itasks.css"
 			 ]
 
-mkStartCss = [StyleTag [TypeAttr "text/css"] [Text htmlStyle, Text bodyStyle ]]
+mkStartCss = [StyleTag [TypeAttr "text/css"] [Text htmlStyle, Text bgStyle]]
 where
-	htmlStyle = "html, body { font: normal 12px Verdana; margin: 0; padding: 0; border: 0 none; overflow: hidden; height: 100%;} "
-	bodyStyle = "body { background: #3a81ad url('img/body.png') top repeat-x;} "
+	htmlStyle = "html, body {font: normal 12px Verdana; margin: 0; padding: 0; border: 0 none; overflow: hidden; height: 100%;} "
+	bgStyle = ".bg {background: #3a81ad url('img/body.png') top repeat-x;} "

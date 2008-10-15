@@ -46,7 +46,6 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 				}
 		]
 	}),
-
 	
 	//Initializion function
 	initComponent: function() {	
@@ -59,12 +58,11 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			//Clear the error message
 			this.errorLabel.setText('');
 
+
 			//Fade out the window
-			this.getEl().switchOff({
+			this.getEl().fadeOut({
 				callback: function() {
-					//this.hide();
-					this.destroy();
-					this.startApplication(action.result.uid, action.result.sessionKey);
+					this.continuation(action.result.uid, action.result.sessionKey);
 				},
 				scope: this
 			});
@@ -91,7 +89,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			width: 350,
 			height: 165,
 			layout: 'fit',
-			plain: true,
+			hidden: true,
 			bodyStyle:'padding: 5px;',
 			closable: false,
 			resizable: false,
@@ -126,7 +124,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 	focus: function() {
 		this.loginPanel.getForm().findField('username').focus();
 	},
-	startApplication: function(uid, sessionKey) {
-		//Must be specialized per object
+	continuation: function(uid, sessionKey) {
 	}
+	
 });
