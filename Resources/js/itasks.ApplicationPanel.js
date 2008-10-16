@@ -15,28 +15,32 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					baseCls: 'bg',
 					height: 75
 				},{
-					xtype: 'treepanel',
+					xtype: 'panel',
 					region: 'west',
+					layout: 'accordion',
+					layoutConfig: {animate: true},
 					split: true,
-					title: 'Current work',
 					border: false,
 					width: 200,
 					minWidth: 100,
 					maxWidth: 400,
-					dataUrl: 'handlers/filters',
-					root: { text: 'All work', nodeType: 'async', id: 'all' }
+					items: [
+						{xtype: 'itasks.cwpanel' },
+						{xtype: 'itasks.nwpanel' },
+						{xtype: 'itasks.debug' }
+					]
 				},{
 					region: 'center',
 					xtype: 'panel',
 					layout: 'border',
 					border: false,
 					items: [ {
+						xtype: 'itasks.worklist',
 						region: 'north',
 						split: true,
-						height: 150,
-						html: 'TASK LIST'
+						height: 150
 					},{
-						xtype: 'tabpanel',
+						xtype: 'itasks.worktabs',
 						border: false,
 						region: 'center'
 					}]

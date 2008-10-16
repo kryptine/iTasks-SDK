@@ -15,10 +15,8 @@ itasks.Application = function () {
 			}	
 		}),
 		
-		saplApplet: undefined,
-		
 		//METHODS
-		start: function() {	
+		start: function() {
 			//Create the login window
 			var loginWindow = new itasks.LoginWindow();
 			var startPanel = this.viewport.getComponent(0);

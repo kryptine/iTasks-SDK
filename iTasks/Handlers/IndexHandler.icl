@@ -7,7 +7,7 @@ import Html
 handleIndexRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleIndexRequest req world = ({http_emptyResponse & rsp_data = toString mkPage }, world)
 
-mkPage	= HtmlTag [] [mkHead, BodyTag [ClassAttr "bg"] []]
+mkPage	= HtmlTag [] [mkHead, BodyTag [] []]
 mkHead	= HeadTag [] [mkTitle : mkCssLibs ++ mkJsLibs ++ mkStartCss]
 mkTitle	= TitleTag [] [Text "iTasks"]
 
@@ -17,6 +17,12 @@ where
 			 ,"ext/ext-all-debug.js"
 			 ,"js/itasks.LoginWindow.js"
 			 ,"js/itasks.LoaderWindow.js"
+			 ,"js/itasks.CurrentWorkPanel.js"
+			 ,"js/itasks.NewWorkPanel.js"
+			 ,"js/itasks.DebugPanel.js"
+			 ,"js/itasks.WorkListPanel.js"
+			 ,"js/itasks.HomeTabPanel.js"
+			 ,"js/itasks.WorkTabsPanel.js"
 			 ,"js/itasks.ApplicationPanel.js"
 			 ,"js/itasks.Application.js"
 			 ,"js/itasks.js"
