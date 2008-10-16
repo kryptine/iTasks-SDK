@@ -9,7 +9,7 @@ import Gerda
 import StdBimap
 
 //Handler functions for starting the new GUI 
-import IndexHandler, AuthenticationHandler, FilterListHandler
+import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler
 
 
 derive gPrint (,), (,,), (,,,), UpdValue
@@ -92,6 +92,7 @@ StartServer userpage world
 								 ,((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest)
 								 ,(\_ -> True, doStaticResource)
 								 ] world
 

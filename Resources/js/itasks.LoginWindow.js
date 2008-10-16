@@ -11,7 +11,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		x: 55,
 		y: 5,
 		xtype: 'label',
-		style: 'color: red; font-style: italic'
+		style: 'color: red; font-weight: bold'
 	}),
 
 	//The embedded form 

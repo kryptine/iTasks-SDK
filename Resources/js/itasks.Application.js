@@ -53,6 +53,7 @@ itasks.Application = function () {
 			this.gui.init();
 			
 			//Finish the loader
+			loaderWindow.updateProgress(1.0,'Done.');
 			loaderWindow.finish();
 		},
 		startUserInterface: function() {
