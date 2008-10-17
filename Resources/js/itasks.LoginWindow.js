@@ -84,6 +84,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		
 		//Construct the login window
 		Ext.apply(this, {
+			id: 'loginWindow',
 			title: 'Login to iTasks',
 			y: 150,
 			width: 350,
@@ -93,7 +94,12 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			bodyStyle:'padding: 5px;',
 			closable: false,
 			resizable: false,
-			items: this.loginPanel
+			items: this.loginPanel,
+			tools: [{
+				id: 'help',
+				handler: this.showHelp,
+				scope: this	
+			}]
 		});
 
 		//initialize the superclass (Ext.Window)
@@ -119,7 +125,18 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			fn: submitHandler,
 			scope: this
 		});
+		
 
+	},
+	showHelp: function () {
+		Ext.Msg.show({
+			title: 'Help',
+			msg: 'In this development version you can use any of the following usernames:<br />president, manager, worker1 or worker2.<br />You don\'t have to enter a password.',
+			icon: Ext.MessageBox.INFO,
+			buttons: Ext.Msg.OK,
+			modal: false,
+			animEl: this.getEl()
+		});
 	},
 	focus: function() {
 		this.loginPanel.getForm().findField('username').focus();
