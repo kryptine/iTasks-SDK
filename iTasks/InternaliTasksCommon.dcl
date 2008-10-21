@@ -6,9 +6,10 @@ definition module InternaliTasksCommon
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iDataHandler, iDataFormData
-import iTasksHandler
+import iDataHandler, iDataFormData, StdBimap
+import iTasksTypes, iTasksSettings, TaskTreeFilters
 
+:: Task a			:== !*TSt -> *(!a,!*TSt)									// an iTask is state transition function
 :: *TSt 		=	{ tasknr 		:: !TaskNr									// for generating unique form-id's
 					, activated		:: !Bool   									// if true activate task, if set as result task completed	
 					, userId		:: !Int										// id of user to which task is assigned
@@ -29,20 +30,21 @@ import iTasksHandler
 :: StaticInfo	=	{ currentUserId	:: UserId									// id of application user 
 					, threadTableLoc:: !Lifespan								// where to store the server thread table, default is Session
 					}
+:: Options		=	{ tasklife		:: !Lifespan								// default: Session		
+					, taskstorage	:: !StorageFormat							// default: PlainString
+					, taskmode		:: !Mode									// default: Edit
+					, gc			:: !GarbageCollect							// default: Collect
+					}
 :: HtmlTree		=	BT HtmlCode													// simple code
 				|	(@@:) infix  0 TaskName HtmlTree							// code with id of user attached to it
 				|	(-@:) infix  0 UserId 	HtmlTree							// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 HtmlTree HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 HtmlTree HtmlTree							// code to be placed below each other				
 				|	DivCode String HtmlTree										// code that should be labeled with a div, used for Ajax and Client technology
-:: Options		=	{ tasklife		:: !Lifespan								// default: Session		
-					, taskstorage	:: !StorageFormat							// default: PlainString
-					, taskmode		:: !Mode									// default: Edit
-					, gc			:: !GarbageCollect							// default: Collect
-					}
 :: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
 :: TraceInfo	:== Maybe !(!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 :: TaskName		:== !(!UserId,!ProcessNr,!WorkflowLabel,!TaskLabel)				// id of user, workflow process name, task name
+
 
 // Here follow some commonly used internal functions
 

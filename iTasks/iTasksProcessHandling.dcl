@@ -6,7 +6,7 @@ definition module iTasksProcessHandling
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import StdOverloaded, iTasksHandler
+import StdOverloaded, iTasksTypes
 
 derive gForm 	Wid
 derive gUpd 	Wid

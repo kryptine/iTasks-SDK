@@ -6,7 +6,7 @@ definition module iTasksExceptionHandling
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksHandler
+import iTasksTypes
 
 /* 
 <^>				:: Evaluate the task; An exception of type e raised by this task, will be catched by the closest handler.

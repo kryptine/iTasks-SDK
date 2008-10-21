@@ -6,7 +6,7 @@ definition module iTasksEditors
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksHandler
+import iTasksTypes
 
 /* 
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task

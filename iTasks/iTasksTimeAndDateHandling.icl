@@ -8,7 +8,7 @@ implementation module iTasksTimeAndDateHandling
 //
 import StdFunc
 import iDataFormlib
-import InternaliTasksCommon, iTasksBasicCombinators
+import iTasksTypes
 
 // Timer Tasks ending when timed out
 

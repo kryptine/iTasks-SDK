@@ -10,7 +10,7 @@ import
 
 // iTask End User modules:
 
-			iTasksHandler				// iTask main module and core engine
+			iTasksHandler				// basic iTask system creator
 		,	iTasksProcessHandling		// creation of iTask Workflow Processes
 
 		,	iTasksEditors				// basic html editors for any type

@@ -7,7 +7,7 @@ implementation module InternaliTasksCommon
 import StdList, StdArray, StdFunc
 import iDataHandler, iDataFormData, iDataTrivial
 import iTasksSettings
-import iTasksHandler, InternaliTasksThreadHandling
+import InternaliTasksThreadHandling
 
 showTaskNr :: !TaskNr -> String
 showTaskNr [] 		= ""

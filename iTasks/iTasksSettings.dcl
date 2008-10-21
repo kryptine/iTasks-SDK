@@ -9,6 +9,8 @@ definition module iTasksSettings
 import StdOverloaded
 import iDataHtmlDef, iDataStylelib, iDataTrivial
 
+defaultUser						:== 0												// the system starts with this user id... 
+
 iTaskVersion 					:== "0.991 - May 2008 - "
 defaultWorkflowName 			:== "start"			
 traceId							:== "User_Trace" 

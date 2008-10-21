@@ -8,7 +8,7 @@ implementation module iTasksDB
 //
 import StdFunc, StdList
 import iDataTrivial, iDataFormlib
-import iTasksHandler, iTasksLiftingCombinators
+import iTasksLiftingCombinators
 
 ::DBid a :== !(!String,!Lifespan)
 

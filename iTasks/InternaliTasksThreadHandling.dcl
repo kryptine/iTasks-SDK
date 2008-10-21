@@ -30,7 +30,12 @@ import InternaliTasksCommon
 
 instance == ThreadKind
 
-startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),!*TSt) 				// determines which threads to execute and calls them..
+// *********************************************************************************************************************************
+// calculateTasks calculates the task tree, either from the root of the task tree or from the root of the parent thread
+// depending on the IF_Ajax setting
+// *********************************************************************************************************************************
+
+calculateTasks :: !Int !GlobalInfo !Bool !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
 
 // Setting of global information for a particular user
 
@@ -44,7 +49,7 @@ showThreadTable 			:: !*TSt 											-> (!HtmlCode,!*TSt)					// watch it: the
 
 // Thread creation
 administrateNewThread 		:: !UserId 					!*TSt 					-> *TSt
-mkTaskThread 				:: !SubPage 	!(Task a) 							-> Task a 	| iData a						
+mkTaskThread 				:: !EvaluationOption !(Task a) 						-> Task a 	| iData a						
 
 // Finding threads and evaluation of a thread
 

@@ -7,7 +7,7 @@ definition module iTasksTimeAndDateHandling
 // *********************************************************************************************************************************
 //
 import iDataButtons
-import iTasksHandler
+import iTasksTypes
 
 /*
 waitForTimeTask	:: Task is done when time has come

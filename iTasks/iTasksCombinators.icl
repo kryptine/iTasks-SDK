@@ -8,7 +8,7 @@ implementation module iTasksCombinators
 // *********************************************************************************************************************************
 //
 import StdList, StdFunc, StdTuple
-import iDataTrivial, iDataFormlib
+import iDataTrivial, iDataFormlib, StdBimap
 import iTasksBasicCombinators, iTasksHtmlSupport, iTasksTimeAndDateHandling, iTasksLiftingCombinators, iTasksSettings, iTasksEditors
 
 derive gForm 	[]

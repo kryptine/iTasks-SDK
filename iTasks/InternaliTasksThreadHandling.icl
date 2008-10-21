@@ -9,7 +9,8 @@ implementation module InternaliTasksThreadHandling
 import StdList, StdFunc, StdEnv
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
-import InternaliTasksCommon, iTasksSettings, iTasksBasicCombinators, iTasksLiftingCombinators
+import InternaliTasksCommon, iTasksSettings, iTasksBasicCombinators, iTasksLiftingCombinators, iTasksProcessHandling
+import iTasksHandler
 
 derive gForm 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []
 derive gUpd 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []
@@ -87,6 +88,23 @@ where
 
 	defaultGlobalInfo = { versionNr = 0, newThread = False, deletedThreads = []}
 
+// ******************************************************************************************************
+// The calculateTasks function calculates the task tree, either from scratch (top down form root) 
+// or by evaluating the corresponding task sub tree using the stored threads
+// ******************************************************************************************************
+
+calculateTasks :: !Int !GlobalInfo !Bool !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
+calculateTasks thisUser pversion doTrace maintask tst=:{hst}
+# maintask				= scheduleWorkflows maintask												
+=  ((IF_Ajax 
+		(startAjaxApplication thisUser pversion) 
+		startMainTask
+	) maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+where
+	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
+	startMainTask task tst
+	# (_,tst=:{activated}) = task tst
+	= ((True,defaultUser,[0],if activated "iTask application has ended" "",[]),{tst & activated = activated})
 
 // ******************************************************************************************************
 // Event handling for Ajax calls and Sapl handling on the client
@@ -194,7 +212,7 @@ where
 // Thread Creation and Deletion
 // ******************************************************************************************************
 
-mkTaskThread :: !SubPage !(Task a) -> Task a 	| iData a										
+mkTaskThread :: !EvaluationOption !(Task a) -> Task a 	| iData a										
 // wil only be called with IF_Ajax enabled
 mkTaskThread UseAjax taska 
 = IF_Ajax 																		// create an thread only if Ajax is enabled

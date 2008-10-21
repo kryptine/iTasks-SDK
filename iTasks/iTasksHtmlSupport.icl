@@ -8,7 +8,7 @@ implementation module iTasksHtmlSupport
 //
 import StdList, StdFunc
 import iDataTrivial, iDataFormlib, iDataStylelib
-import iTasksHandler, InternaliTasksCommon
+import iTasksTypes
 
 /*
 Prompting variants:

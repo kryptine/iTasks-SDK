@@ -6,7 +6,7 @@ implementation module iTasksLiftingCombinators
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksHandler, iTasksEditors, iTasksBasicCombinators
+import iTasksEditors, iTasksBasicCombinators
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
 (*=>) ftst b = doit

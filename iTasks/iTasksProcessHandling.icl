@@ -9,7 +9,7 @@ implementation module iTasksProcessHandling
 import StdEnv 
 import iDataFormlib
 import InternaliTasksCommon, InternaliTasksThreadHandling
-import iTasksHandler, iTasksBasicCombinators, iTasksSettings
+import iTasksBasicCombinators, iTasksSettings
 import dynamic_string
 
 derive gForm 	Wid, WorkflowStatus, Maybe, []

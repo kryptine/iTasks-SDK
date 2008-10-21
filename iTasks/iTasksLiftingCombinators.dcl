@@ -6,7 +6,7 @@ definition module iTasksLiftingCombinators
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksHandler
+import iTasksTypes
 
 /* 
 (*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 

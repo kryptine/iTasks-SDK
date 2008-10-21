@@ -1,23 +1,14 @@
 definition module iTasksBasicCombinators
 
 // *********************************************************************************************************************************
-// This module contains the basic iTasks combinators
+// The iTasks library enables the specification of interactive multi-user workflow tasks (iTask) for the web.
+// This is the kernel module for end users which contains the basic iTasks combinators.
 // *********************************************************************************************************************************
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksHandler
 
-:: TCl a 			= 	TCl !.(Task a)									// task closure, container for a task used for higher order tasks (task which deliver a task)			
-:: ChoiceUpdate		:== !Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
-
-derive gForm 	TCl						
-derive gUpd 	TCl
-derive gPrint 	TCl
-derive gParse 	TCl
-derive read 	TCl
-derive write 	TCl
-
+import iTasksTypes
 
 /*
 Standard monadic combinators on iTasks:

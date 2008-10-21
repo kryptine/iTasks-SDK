@@ -1,33 +1,33 @@
-.comp 920 000111010
+.comp 920 000110010
 .start _nostart_
-.depend "StdDynamic" "20061218140200"
+.depend "StdCharList" "20061218130200"
+.depend "StdEnv" "20061218130200"
+.depend "StdDynamic" "20061208183212"
+.depend "StdOrdList" "20061218130200"
 .depend "_SystemEnum" "20061218130200"
 .depend "StdEnum" "20061218130200"
-.depend "StdMisc" "20061218130200"
-.depend "StdFunc" "20061218130200"
-.depend "StdCharList" "20061218130200"
 .depend "StdTuple" "20061218130200"
-.depend "StdOrdList" "20061218130200"
-.depend "StdList" "20061218130200"
-.depend "StdClass" "20061218130200"
-.depend "StdFile" "20061218130200"
-.depend "StdString" "20061218130200"
-.depend "_SystemArray" "20061218130200"
-.depend "StdArray" "20061218130200"
-.depend "StdChar" "20061218130200"
 .depend "StdReal" "20061218130200"
 .depend "StdInt" "20061218130200"
+.depend "StdClass" "20061218130200"
+.depend "StdList" "20061218130200"
+.depend "StdChar" "20061218130200"
+.depend "_SystemArray" "20061218130200"
+.depend "StdArray" "20061218130200"
+.depend "StdString" "20061218130200"
 .depend "StdBool" "20061218130200"
-.depend "StdEnv" "20061218130200"
+.depend "StdFunc" "20061218130200"
+.depend "StdMisc" "20061218130200"
+.depend "StdFile" "20061218130200"
 .depend "StdOverloaded" "20061218130200"
-.depend "_SystemDynamic" "20061218140200"
-.depend "StdCleanTypes" "20061218140200"
-.depend "dynamic_string" "20081009144835"
+.depend "_SystemDynamic" "20061208183212"
+.depend "StdCleanTypes" "20061208183212"
+.depend "dynamic_string" "20081009165051"
 .impobj "copy_graph_to_string_interface.obj"
 .impobj "copy_graph_to_string.obj"
 .impobj "copy_string_to_graph_interface.obj"
 .impobj "copy_string_to_graph.obj"
-.module m_dynamic_string "dynamic_string" "20081009144835"
+.module m_dynamic_string "dynamic_string" "20081009165051"
 .endinfo
 .implab _cycle_in_spine
 .implab _type_error
@@ -64,6 +64,8 @@
 .implab _driver
 .export e_dynamic_string_sstring_to_dynamic
 .descexp e_dynamic_string_dstring_to_dynamic e_dynamic_string_nstring_to_dynamic e_dynamic_string_lstring_to_dynamic 1 0 "string_to_dynamic"
+.pb "string_to_dynamic"
+.pld
 .o 2 0
 e_dynamic_string_lstring_to_dynamic
 	pop_a 1
@@ -74,6 +76,7 @@ e_dynamic_string_lstring_to_dynamic
 	updatepop_a 0 2
 .d 1 0
 	rtn
+.pd
 .n 1 e_dynamic_string_dstring_to_dynamic
 .o 1 0
 e_dynamic_string_nstring_to_dynamic
@@ -87,7 +90,12 @@ e_dynamic_string_nstring_to_dynamic
 	rtn
 .o 1 0
 e_dynamic_string_sstring_to_dynamic
+.pd
+.d 1 0
+.pn
+	jmp ea2
 .o 1 0
+.pn
 ea2
 	jsr_eval 0
 	push_array 0
@@ -105,8 +113,11 @@ s2
 	repl_r_args 2 0
 .d 2 0
 	rtn
+.pe
 .export e_dynamic_string_scopy_from_string
 .descexp e_dynamic_string_dcopy_from_string e_dynamic_string_ncopy_from_string e_dynamic_string_lcopy_from_string 1 0 "copy_from_string"
+.pb "copy_from_string"
+.pld
 .o 2 0
 e_dynamic_string_lcopy_from_string
 	pop_a 1
@@ -120,6 +131,7 @@ e_dynamic_string_lcopy_from_string
 	pop_b 1
 .d 1 0
 	rtn
+.pd
 .n 1 e_dynamic_string_dcopy_from_string
 .o 1 0
 e_dynamic_string_ncopy_from_string
@@ -135,6 +147,7 @@ e_dynamic_string_ncopy_from_string
 .d 1 0
 	rtn
 .o 1 0
+.pn
 ea4
 	jsr_eval 0
 	push_array 0
@@ -151,8 +164,11 @@ s4
 
 .d 1 1 i
 	rtn
+.pe
 .export e_dynamic_string_sdynamic_to_string
 .descexp e_dynamic_string_ddynamic_to_string e_dynamic_string_ndynamic_to_string e_dynamic_string_ldynamic_to_string 1 0 "dynamic_to_string"
+.pb "dynamic_to_string"
+.pld
 .o 2 0
 e_dynamic_string_ldynamic_to_string
 	pop_a 1
@@ -164,6 +180,7 @@ e_dynamic_string_ldynamic_to_string
 	updatepop_a 0 1
 .d 1 0
 	rtn
+.pd
 .n 1 e_dynamic_string_ddynamic_to_string
 .o 1 0
 e_dynamic_string_ndynamic_to_string
@@ -177,6 +194,7 @@ e_dynamic_string_ndynamic_to_string
 .d 1 0
 	rtn
 .o 1 0
+.pn
 ea1
 	jsr_eval 0
 	repl_r_args 2 0
@@ -188,8 +206,11 @@ s1
 	updatepop_a 0 2
 .d 1 0
 	jmp s3
+.pe
 .export e_dynamic_string_scopy_to_string
 .descexp e_dynamic_string_dcopy_to_string e_dynamic_string_ncopy_to_string e_dynamic_string_lcopy_to_string 1 0 "copy_to_string"
+.pb "copy_to_string"
+.pld
 .o 2 0
 e_dynamic_string_lcopy_to_string
 	pop_a 1
@@ -201,6 +222,7 @@ e_dynamic_string_lcopy_to_string
 	updatepop_a 0 1
 .d 1 0
 	rtn
+.pd
 .n 1 e_dynamic_string_dcopy_to_string
 .o 1 0
 e_dynamic_string_ncopy_to_string
@@ -214,6 +236,7 @@ e_dynamic_string_ncopy_to_string
 .d 1 0
 	rtn
 .o 1 0
+.pn
 ea3
 	jsr_eval 0
 .o 1 0
@@ -226,3 +249,4 @@ s3
 
 .d 1 0
 	rtn
+.pe

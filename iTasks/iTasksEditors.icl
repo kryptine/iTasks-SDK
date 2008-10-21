@@ -7,7 +7,7 @@ implementation module iTasksEditors
 // *********************************************************************************************************************************
 //
 import StdList, StdTuple, StdFunc
-import iTasksHandler, InternaliTasksCommon, iTasksBasicCombinators
+import iTasksTypes
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 

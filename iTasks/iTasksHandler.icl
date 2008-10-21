@@ -13,20 +13,6 @@ import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 
-derive gForm 	Void
-derive gUpd 	Void
-derive gParse 	Void
-derive gPrint 	Void
-derive gerda 	Void
-derive read 	Void
-derive write 	Void
-
-instance == GarbageCollect
-where
-	(==) Collect   Collect 		= True
-	(==) NoCollect NoCollect 	= True
-	(==) _ _ 					= False
-
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
 					, threadStorageLoc	:: !Lifespan		
@@ -74,44 +60,6 @@ defaultStartUpOptions
 	, headerOff			= Nothing
 	, testModeOn		= True
 	}
-
-// ******************************************************************************************************
-// Overloaded Functions on Tasks
-// ******************************************************************************************************
-
-class 	(<<@) infixl 3 b ::  !(Task a) !b  -> (Task a)
-instance <<@  Lifespan
-where   (<<@) task lifespan			= setTaskLifespan
-		where
-			setTaskLifespan tst=:{options}
-			
-			= IF_Ajax 
-				(IF_ClientServer															// we running both client and server
-					(IF_ClientTasks												
-						(if (options.tasklife == Client && (lifespan == TxtFile || lifespan == DataFile || lifespan == Database))
-							(abort "Cannot make persistent storage on Client\n")
-							(\tst -> task {tst & options.tasklife = lifespan}))						// assign option on client
-						(\tst -> task {tst & options.tasklife = lifespan})tst							// assign option on server
-					)
-					(task {tst & options.tasklife = lifespan})								// assign option on server
-				)
-				(task {tst & options.tasklife = lifespan}) 									// assign option on server
-
-instance <<@  StorageFormat
-where   (<<@) task storageformat 	= \tst -> task {tst & options.taskstorage = storageformat}
-instance <<@  Mode
-where   (<<@) task mode 			= \tst -> task {tst & options.taskmode = mode}
-instance <<@  GarbageCollect
-where   (<<@) task gc 				= \tst -> task {tst & options.gc = gc}
-
-class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a
-instance @>>  SubPage
-where   (@>>) UseAjax task			= \tst -> IF_Ajax 
-												(mkTaskThread UseAjax task tst)
-												(newTask "Ajax Thread Disabled" task tst) 
-		(@>>) OnClient  task 		= \tst -> IF_Ajax 
-												(mkTaskThread OnClient task tst)
-												(newTask "Client Thread Disabled" task tst) 
 
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
@@ -221,12 +169,8 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 
 // Here the iTasks are evaluated ...
 													    
-# maintask				= scheduleWorkflows maintask												// schedule all active tasks, not only maintask
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						=  ((IF_Ajax 
-								(startAjaxApplication thisUser pversion) 
-								startMainTask
-							) maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+						=  calculateTasks thisUser pversion doTrace maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
 
 // epilogue
 
@@ -297,11 +241,6 @@ where
 					]
 
 	nilTable tst = 	([],tst)
-
-	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
-	startMainTask task tst
-	# (_,tst=:{activated}) = task tst
-	= ((True,defaultUser,[0],if activated "iTask application has ended" "",[]),{tst & activated = activated})
 
 	mbUpdate True _ = id
 	mbUpdate _ f = f
