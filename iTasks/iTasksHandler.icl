@@ -12,6 +12,7 @@ import StdEnv
 import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
+import TaskTreeFilters
 
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
@@ -110,14 +111,6 @@ where
 	# (toserver_prefix,body,hst) 	= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
 	= mkHtmlExcep "workFlow" (toserver_prefix) body hst
 
-	noFilter :: HtmlTree -> HtmlCode
-	noFilter (BT body) 			= body
-	noFilter (_ @@: html) 		= noFilter html
-	noFilter (_ -@: html) 		= noFilter html
-	noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
-	noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
-	noFilter (DivCode str html) = noFilter html
-
 	newUserTask ((True,i),a) 	= (spawnWorkflow i True (userTask i a)) =>> \_ -> return_V Void
 	newUserTask _ 				= return_V Void
 
@@ -185,7 +178,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
 # (processadmin,tst=:{hst})	= showWorkflows activated tst
 # (threadcode,taskname,mainbuts,subbuts,seltask,hst)	
-						= Filter showCompletePage thrOwner html hst
+						= Filter showCompletePage thisUser thrOwner html hst
 	 	
 # iTaskInfo				=	case headerOff of
 								Nothing ->
@@ -261,58 +254,6 @@ where
 	  [showTrace (IF_DataFile "" " - DataFile" )] ++
 	  [Br,Hr []]
 
-	Filter :: !Bool !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
-	Filter wholepage thrOwner tree hst
-	# startuser			= if wholepage defaultUser thrOwner
-	# (threadcode,accu) = Collect thisUser startuser []((startuser,0,defaultWorkflowName,"main") @@: tree)  // KLOPT DIT WEL ??
-	| isEmpty accu		= (threadcode,[],[],[],[],hst)
-	# accu				= sortBy (\(i,_,_,_) (j,_,_,_) -> i < j) accu
-	# (workflownames,subtasks) 						= unziptasks accu
-	# ((mainSelected,mainButtons,chosenMain),hst) 	= mkTaskButtons True ("User " <+++ thisUser) thisUser [] 
-															(initialOptions thisUser Session) workflownames hst 
-	# (subtasksnames,tcode)							= unzipsubtasks (subtasks!!mainSelected)
-	# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) thisUser [] 
-															(initialOptions thisUser Session) subtasksnames hst 
-	# subButtons		= if (length subtasksnames > 1) subButtons []
-	= (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
-	where
-		unziptasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] -> (![WorkflowLabel],![[(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])]])
-		unziptasks [] 			= ([],[])
-		unziptasks all=:[(pid,wlabel,tlabel,tcode):tasks] 
-		# (wsubtask,other) 		= span (\(mpid,_,_,_) ->  mpid == pid) all 
-		# (wlabels,wsubtasks)	= unziptasks other
-		= ([wlabel:wlabels],[wsubtask:wsubtasks])
-
-		unzipsubtasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] -> (![TaskLabel],![[BodyTag]])
-		unzipsubtasks []		= ([],[])
-		unzipsubtasks [(pid,wlabel,tlabel,tcode):subtasks]		
-		# (labels,codes)		= unzipsubtasks subtasks
-		= ([tlabel:labels],[tcode:codes])
-
-	Collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
-	Collect thisuser taskuser accu ((nuserid,processnr,workflowLabel,taskname) @@: tree) 	// Collect returns the wanted code, and the remaining code
-	# (myhtml,accu)	= Collect thisuser nuserid accu tree									// Collect all code of this user belonging to this task
-	| thisuser == nuserid && not (isEmpty myhtml)
-							= ([],[(processnr,workflowLabel,taskname,myhtml):accu])
-	| otherwise				= ([],accu)
-	Collect thisuser taskuser accu (nuser -@: tree)
-	| thisuser == nuser 	= ([],accu)
-	| otherwise				= Collect thisuser taskuser accu tree
-	Collect thisuser taskuser accu (tree1 +|+ tree2)
-	# (lhtml,accu)	= Collect thisuser taskuser accu tree1
-	# (rhtml,accu)	= Collect thisuser taskuser accu tree2
-	= (lhtml <|.|> rhtml,accu)
-	Collect thisuser taskuser accu (tree1 +-+ tree2)
-	# (lhtml,accu)	= Collect thisuser taskuser accu tree1
-	# (rhtml,accu)	= Collect thisuser taskuser accu tree2
-	= ([lhtml <=> rhtml],accu)
-	Collect thisuser taskuser accu (BT bdtg)
-	| thisuser == taskuser	= (bdtg,accu)
-	| otherwise				= ([],accu)
-	Collect thisuser taskuser accu (DivCode id tree)
-	# (html,accu)			= Collect thisuser taskuser accu tree
-	| thisuser == taskuser 	= (mkDiv True id html,accu)
-	= ([],accu)
 
 // ******************************************************************************************************
 // Html Printing Utilities...
