@@ -28,3 +28,5 @@ showLowLight	text :== TxtStyle  LowLightStyle	text
 showTrace  		text :== TxtStyle  TraceStyle 		text
 
 TxtStyle style message :== Font [`Fnt_Std [style]] [Txt (toString message)]
+
+

@@ -6,10 +6,20 @@ definition module InternaliTasksCommon
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iDataHandler, iDataFormData, StdBimap
-import iTasksTypes, iTasksSettings, TaskTreeFilters
+import iDataFormData
+import iTasksSettings
 
-:: Task a			:== !*TSt -> *(!a,!*TSt)									// an iTask is state transition function
+
+derive gForm 	TCl						
+derive gUpd 	TCl
+derive gPrint 	TCl
+derive gParse 	TCl
+derive read 	TCl
+derive write 	TCl
+
+:: Task a		:== !*TSt -> *(!a,!*TSt)										// an iTask is state transition function
+:: TCl a 		= 	TCl !.(Task a)												// task closure, container for a task used for higher order tasks (task which deliver a task)			
+
 :: *TSt 		=	{ tasknr 		:: !TaskNr									// for generating unique form-id's
 					, activated		:: !Bool   									// if true activate task, if set as result task completed	
 					, userId		:: !Int										// id of user to which task is assigned
@@ -35,16 +45,21 @@ import iTasksTypes, iTasksSettings, TaskTreeFilters
 					, taskmode		:: !Mode									// default: Edit
 					, gc			:: !GarbageCollect							// default: Collect
 					}
+:: GarbageCollect 	
+				=	Collect 													// garbage collect iTask administration
+				|	NoCollect													// no garbage collection
 :: HtmlTree		=	BT HtmlCode													// simple code
-				|	(@@:) infix  0 TaskName HtmlTree							// code with id of user attached to it
-				|	(-@:) infix  0 UserId 	HtmlTree							// skip code with this id if it is the id of the user 
-				|	(+-+) infixl 1 HtmlTree HtmlTree							// code to be placed next to each other				
-				|	(+|+) infixl 1 HtmlTree HtmlTree							// code to be placed below each other				
-				|	DivCode String HtmlTree										// code that should be labeled with a div, used for Ajax and Client technology
+				|	(@@:) infix  0 !TaskName !HtmlTree							// code with id of user attached to it
+				|	(-@:) infix  0 !UserId 	 !HtmlTree							// skip code with this id if it is the id of the user 
+				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
+				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
+				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 :: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
 :: TraceInfo	:== Maybe !(!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
-:: TaskName		:== !(!UserId,!ProcessNr,!WorkflowLabel,!TaskLabel)				// id of user, workflow process name, task name
+:: TaskName		:== !(!UserId,!ProcessNr,!WorkflowLabel,!String)				// id of user, workflow process name, task name
+:: HtmlCode		:== ![BodyTag]													// for prompting /inting html code
 
+instance == GarbageCollect
 
 // Here follow some commonly used internal functions
 
@@ -76,6 +91,5 @@ cFormId 			:: !Options !String !a -> FormId a
 sessionFormId 		:: !Options !String !a -> FormId a
 pageFormId 			:: !Options !String !a -> FormId a
 storageFormId 		:: !Options !String !a -> FormId a
-
 
 

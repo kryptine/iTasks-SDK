@@ -2,8 +2,6 @@ definition module iDataTrivial
 
 import StdMaybe, StdGeneric, StdOverloaded
 
-//derive bimap Maybe, (,) 
-
 // utility 
 
 mkString		:: ![Char] -> *String

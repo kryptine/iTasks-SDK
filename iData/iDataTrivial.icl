@@ -2,8 +2,6 @@ implementation module iDataTrivial
 
 import StdMaybe, StdGeneric, StdArray, StdClass, StdInt, StdList, StdString
 
-derive bimap Maybe, (,)
-
 // converting strings to lists and backwards
 
 mkString	:: ![Char] -> *String

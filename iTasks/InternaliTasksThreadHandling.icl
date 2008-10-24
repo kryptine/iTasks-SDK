@@ -20,6 +20,7 @@ derive gerda 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo
 derive read 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind
 derive write 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind
 
+
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
 					, thrUserId			:: !UserId		// which user has to perform the task
@@ -62,6 +63,8 @@ where
 	toString _    				= "??? print error in thread"
 
 // ******************************************************************************************************
+// Storage Utilities for storing global information for each user
+// ******************************************************************************************************
 
 setPUserNr :: !Int !(Int -> Int) !*HSt -> (!GlobalInfo,!*HSt) 
 setPUserNr user f hst	= setPUser user (\r -> {r & versionNr = f r.versionNr}) hst
@@ -87,6 +90,17 @@ where
 	= (form.value,hst)
 
 	defaultGlobalInfo = { versionNr = 0, newThread = False, deletedThreads = []}
+
+// ******************************************************************************************************
+// Version number management for one user
+// ******************************************************************************************************
+
+
+setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt) 
+setSVersionNr user f hst	
+# (form,hst) = mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
+= (form.value,hst)
+
 
 // ******************************************************************************************************
 // The calculateTasks function calculates the task tree, either from scratch (top down form root) 

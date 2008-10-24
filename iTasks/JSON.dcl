@@ -8,7 +8,7 @@ definition module JSON
 * For more info about JSON see: http://www.json.org/
 */
 
-import StdGeneric, StdMaybe, GenBimap
+import StdGeneric, StdMaybe
 
 //Abstract token type which is the intermediary representation during JSON parsing
 :: Token

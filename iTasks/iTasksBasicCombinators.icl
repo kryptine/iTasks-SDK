@@ -12,10 +12,12 @@ import DrupBasic
 import iDataTrivial, iDataFormlib
 import iTasksTypes, iTasksLiftingCombinators
 import InternaliTasksThreadHandling
+import GenBimap
 
 derive gForm 	Maybe, []
 derive gUpd 	Maybe, []
 derive gPrint	Maybe
+
 
 // ******************************************************************************************************
 // monads for combining iTasks

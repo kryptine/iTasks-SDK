@@ -11,7 +11,6 @@ generic gUpd  a	:: UpdMode a -> (UpdMode,a)											// gUpd can simply be deri
 
 derive gForm Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 derive gUpd  Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
-derive bimap Form, FormId
 
 derive gForm	Inline
 derive gUpd 	Inline
@@ -20,6 +19,8 @@ derive gPrint 	Inline
 derive gerda 	Inline
 derive read 	Inline
 derive write 	Inline
+
+derive bimap Form, FormId
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submitting mode
@@ -36,6 +37,13 @@ derive write 	Inline
 // doHtmlServer & doHtmlClient main wrappers for generating & handling of Html forms
 
 doHtmlWrapper		:: !UserPage !*World -> *World	//Combined wrapper which starts the server or client wrapper
+
+import InternaliTasksCommon
+
+:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
+
+doTaskWrapper		:: !(UserTaskPage a) !(Task a) !*World -> *World  	// Combined wrapper which starts the server or client wrapper
+
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

@@ -6,7 +6,7 @@ definition module InternaliTasksThreadHandling
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import InternaliTasksCommon
+import iTasksTypes
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
@@ -33,14 +33,21 @@ instance == ThreadKind
 // *********************************************************************************************************************************
 // calculateTasks calculates the task tree, either from the root of the task tree or from the root of the parent thread
 // depending on the IF_Ajax setting
+// parameters: 	id of the user, global info of user, trace on?, main task expression to calculate, initial state
+// returns: 	toServer,thrOwner,event,thrinfo,threads
 // *********************************************************************************************************************************
 
+// calculateTasks ::  currentUsserId pversion traceOn maintask -> 
 calculateTasks :: !Int !GlobalInfo !Bool !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
 
 // Setting of global information for a particular user
 
 setPUserNr 					:: !Int !(Int -> Int) 				!*HSt 			-> (!GlobalInfo,!*HSt) 
 clearIncPUser 				:: !Int !(Int -> Int) 				!*HSt 			-> (!GlobalInfo,!*HSt) 
+
+// Session version management
+
+setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt) 
 
 // Displaying thread information
 

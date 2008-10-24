@@ -9,12 +9,12 @@ definition module iTasksTypes
 
 import InternaliTasksCommon
 
-derive gForm 	TCl, Void						
-derive gUpd 	TCl, Void
-derive gPrint 	TCl, Void
-derive gParse 	TCl, Void
-derive read 	TCl, Void
-derive write 	TCl, Void
+derive gForm 	Void						
+derive gUpd 	Void
+derive gPrint 	Void
+derive gParse 	Void
+derive read 	Void
+derive write 	Void
 
 // ******************************************************************************************************
 // iTask end user types.
@@ -24,9 +24,7 @@ derive write 	TCl, Void
 
 :: LabeledTask a	:== !(!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
 :: TaskLabel		:== !String						// a string is used to label tasks
-:: TCl a 			= 	TCl !.(Task a)				// task closure, container for a task used for higher order tasks (task which deliver a task)			
 
-:: HtmlCode			:== ![BodyTag]					// for prompting /inting html code
 :: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
 
 // ******************************************************************************************************
@@ -35,9 +33,6 @@ derive write 	TCl, Void
 // iTasks have as additional option: GarbageCollect and EvaluationOption (default is on server)
 // ******************************************************************************************************
 
-:: GarbageCollect 	= Collect 						// garbage collect iTask administration
-					| NoCollect						// no garbage collection
-instance == GarbageCollect
 
 class (<<@) infixl 3 b :: !(Task a) !b 	-> Task a 	 
 instance <<@		  Lifespan						// default: Session

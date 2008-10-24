@@ -53,16 +53,20 @@ closemDataFile datafile world
 //is selected.
 
 doHtmlWrapper :: !UserPage !*World -> *World
-doHtmlWrapper userpage world = IF_Client (doHtmlClient userpage world) (doHtmlServer userpage world)
+doHtmlWrapper userpage world = IF_Client (doHtmlClient (\_ -> userpage) undef world) (doHtmlServer (\_ -> userpage) undef world)
+
+doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World 	// Combined wrapper which starts the server or client wrapper
+doTaskWrapper userpageHandler mainTask world = IF_Client (doHtmlClient userpageHandler mainTask world) (doHtmlServer userpageHandler mainTask world)
 
 // doHtmlServer: top level function given to end user.
 // It sets up the communication with a (sub)server or client, depending on the option chosen.
 
-doHtmlServer :: !UserPage !*World -> *World
-doHtmlServer userpage world
+//doHtmlServer :: !UserPage !*World -> *World
+doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World 
+doHtmlServer userpageHandler mainTask world
 | ServerKind == Internal
 	# world	= instructions world
-	= StartServer userpage world									// link in the Clean http 1.0 server	
+	= StartServer  userpageHandler mainTask world					// link in the Clean http 1.0 server	
 //| ServerKind == External											// connect with http 1.1 server
 //| ServerKind == CGI												// build as CGI application
 | otherwise
@@ -84,15 +88,15 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-StartServer :: !UserPage !*World -> *World
-StartServer userpage world
+StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World
+StartServer userpageHandler mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
-	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource userpage))
-								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource userpage) http_notfoundResponse)
+	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource (userpageHandler mainTask)))
+								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource (userpageHandler mainTask)) http_notfoundResponse)
 								 ,((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest mainTask)
 								 ,(\_ -> True, doStaticResource)
 								 ] world
 
@@ -155,6 +159,8 @@ where
 	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
 	
 	debugInput				= if TraceInput (traceHtmlInput request.arg_post) EmptyBody
+
+import iDataStylelib
 
 mkPage :: [HeadAttr] [HeadTag] [BodyAttr] [BodyTag] -> Html
 mkPage headattr headtags bodyattr bodytags = Html (Head headattr headtags) (Body bodyattr bodytags)

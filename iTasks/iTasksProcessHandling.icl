@@ -11,6 +11,7 @@ import iDataFormlib
 import InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksSettings
 import dynamic_string
+import GenBimap
 
 derive gForm 	Wid, WorkflowStatus, Maybe, []
 derive gUpd 	Wid, WorkflowStatus, Maybe, []

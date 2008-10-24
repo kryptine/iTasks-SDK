@@ -66,11 +66,12 @@ defaultStartUpOptions
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 // ******************************************************************************************************
 
-//singleUserTask :: ![StartUpOptions] !(Task a) -> UserPage  | iData a 
+
+
 singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
-singleUserTask startUpOptions maintask world = doHtmlWrapper singleUserTask` world
+singleUserTask startUpOptions maintask world = doTaskWrapper singleUserTask` maintask world
 where
-	singleUserTask` hst 
+	singleUserTask` maintask hst 
 	# userOptions					= determineUserOptions [ThreadStorage TxtFile:startUpOptions]
 	# tst							= initTst 0 Session userOptions.threadStorageLoc hst
 	# (toserver_prefix,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
@@ -292,9 +293,5 @@ getCurrentAppVersionNr tst=:{hst}
 # (nr,hst) = setAppversion id hst
 = (nr,{tst & hst = hst})
 
-setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt) 
-setSVersionNr user f hst	
-# (form,hst) = mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
-= (form.value,hst)
 
 

@@ -29,3 +29,4 @@ TraceStyle  		:== Std_Class "Trace"
 defsize  :== 12 						// size of inputfield
 defpixel :== 107						// size in pixels for buttons, pull-down buttons
 
+
