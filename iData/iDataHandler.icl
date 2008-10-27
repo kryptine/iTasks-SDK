@@ -52,17 +52,17 @@ closemDataFile datafile world
 //doHtmlServer. It switches between doHtmlServer and doHtmlClient depending on which compile option
 //is selected.
 
-doHtmlWrapper :: !UserPage !*World -> *World
-doHtmlWrapper userpage world = IF_Client (doHtmlClient (\_ -> userpage) undef world) (doHtmlServer (\_ -> userpage) undef world)
+//doHtmlWrapper :: !UserPage !*World -> *World
+//doHtmlWrapper userpage world = IF_Client (doHtmlClient (\_ -> userpage) undef world) (doHtmlServer (\_ -> userpage) undef world)
 
-doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World 	// Combined wrapper which starts the server or client wrapper
+doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
 doTaskWrapper userpageHandler mainTask world = IF_Client (doHtmlClient userpageHandler mainTask world) (doHtmlServer userpageHandler mainTask world)
 
 // doHtmlServer: top level function given to end user.
 // It sets up the communication with a (sub)server or client, depending on the option chosen.
 
 //doHtmlServer :: !UserPage !*World -> *World
-doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World 
+doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World | iData a
 doHtmlServer userpageHandler mainTask world
 | ServerKind == Internal
 	# world	= instructions world
@@ -88,7 +88,7 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World
+StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World | iData a
 StartServer userpageHandler mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
 	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource (userpageHandler mainTask)))

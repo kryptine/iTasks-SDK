@@ -29,7 +29,7 @@ singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
 /*
 multiUserTask 	:: iTask start function for multiple -users; intended for developing and testing  
 */
-multiUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World   	| iData a
+//multiUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World   	| iData a
 
 /*
 workFlowTask	:: iTask start function to create a real life workflow
@@ -40,7 +40,7 @@ workFlowTask	:: iTask start function to create a real life workflow
 					- the second argument is workflow that will spawned as a task if the login was succesful 
 				   a predefined login task is defined as an example in iTaskLogin.dcl				
 */
-workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*World -> *World   | iData b 
+//workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*World -> *World   | iData b 
 
 
 /*

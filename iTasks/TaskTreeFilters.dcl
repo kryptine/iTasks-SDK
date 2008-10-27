@@ -24,3 +24,6 @@ Filter 			:: Filters out the html code for a specific user
 
 noFilter 		:: !HtmlTree -> HtmlCode
 Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
+
+
+collectTaskList :: !UserId !UserId !HtmlTree -> [(UserId,TaskNr,TaskName)] 	// returns who created the task, the tasknr, and taskname

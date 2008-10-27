@@ -5,7 +5,7 @@ import Http
 import Text
 import JSON
 import iDataHandler
-
+import TaskTreeFilters
 
 :: WorkListItem = { taskid	:: String //Task id of the work item
 				  , for		:: String //Label of the user who issued the work
@@ -14,8 +14,8 @@ import iDataHandler
 
 derive JSONEncode WorkListItem
 
-handleWorkListRequest :: !(Task a) !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleWorkListRequest userpage req world = ({http_emptyResponse & rsp_data = toJSON worklist},world)
+handleWorkListRequest2 :: !(Task a) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleWorkListRequest2 userpage req world = ({http_emptyResponse & rsp_data = toJSON worklist},world)
 where
 	worklist :: [WorkListItem]
 	worklist = [{taskid = toString id, for = "Boss", subject = "Task with id " +++ toString id } \\ id <- [1 .. 5]]
@@ -26,10 +26,15 @@ where
 
 import InternaliTasksThreadHandling, StdStrictLists
 
-handleWorkListRequest2 :: !(Task a) !HTTPRequest *World -> (!HTTPResponse, !*World) | iData a
-handleWorkListRequest2 mainTask request world
-# (toServer,htmlTree,maybeError,world)	= handleTaskCalculationRequest request 0 mainTask world
-= ({http_emptyResponse & rsp_data = (toString ""/*html*/)}, world)
+handleWorkListRequest :: !(Task a) !HTTPRequest *World -> (!HTTPResponse, !*World) | iData a
+handleWorkListRequest mainTask request world
+# thisUser = 0
+# (toServer,htmlTree,maybeError,world)	= handleTaskCalculationRequest request thisUser mainTask world
+# worklist								= [{taskid = toString taskLabel, for = toString fromUser, subject = workflowLabel +++ " " +++ taskLabel}				
+										   \\ (fromUser,tasknr,(toUser,processNr,workflowLabel,taskLabel)) <- collectTaskList thisUser thisUser htmlTree
+										   | toUser == thisUser]
+
+= ({http_emptyResponse & rsp_data = toJSON worklist}, world)
 
 calculateTaskTree :: !UserId !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!*HSt) | iData a
 calculateTaskTree thisUser mainTask hst
@@ -89,25 +94,7 @@ handleTaskCalculationRequest request thisUser mainTask world
 							= storeFormStates "" states world							// Store all state information
 # worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 # worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
-/*# inout						= IF_Ajax
-								(print_to_stdout "" inout <+
-								(pagestate) <+ State_FormList_Separator <+				// state information
-        		 				AjaxCombine bodytags [debugInput,debugOutput]			// page, or part of a page
-								)
-								(print_to_stdout 										// Print out all html code
-									(Html (Head headattr [mkJsTag, mkCssTag : headtags]) 
-									(Body bodyattr [mkInfoDiv pagestate focus : bodytags ++ [debugInput,debugOutput]]))
-									inout
-								)
-*/
 = (toServer,htmlTree,maybeError,worldC)
-where
-	AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
-	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
-	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
-	
-	debugInput				= if TraceInput (traceHtmlInput request.arg_post) EmptyBody
-
 
 // Database OPTION
 

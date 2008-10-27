@@ -10,35 +10,28 @@ import StdEnv
 import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 
-/*
-ncollect :: !UserId !UserId !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
-ncollect thisuser taskuser htmltree = ncollect` thisuser taskuser [] ((taskuser,0,defaultWorkflowName,"main") @@: htmltree)
-where
-	ncollect` thisuser taskuser accu ((nuserid,processnr,workflowLabel,taskname) @@: tree) 	// collect returns the wanted code, and the remaining code
-	# (myhtml,accu)	= ncollect` thisuser nuserid accu tree									// collect all code of this user belonging to this task
-	| thisuser == nuserid && not (isEmpty myhtml)
-							= ([],[(processnr,workflowLabel,taskname,myhtml):accu])
-	| otherwise				= ([],accu)
-	ncollect` thisuser taskuser accu (nuser -@: tree)
-	| thisuser == nuser 	= ([],accu)
-	| otherwise				= ncollect` thisuser taskuser accu tree
-	ncollect` thisuser taskuser accu (tree1 +|+ tree2)
-	# (lhtml,accu)	= ncollect` thisuser taskuser accu tree1
-	# (rhtml,accu)	= ncollect` thisuser taskuser accu tree2
-	= (lhtml <|.|> rhtml,accu)
-	ncollect` thisuser taskuser accu (tree1 +-+ tree2)
-	# (lhtml,accu)	= ncollect` thisuser taskuser accu tree1
-	# (rhtml,accu)	= ncollect` thisuser taskuser accu tree2
-	= ([lhtml <=> rhtml],accu)
-	ncollect` thisuser taskuser accu (BT bdtg)
-	| thisuser == taskuser	= (bdtg,accu)
-	| otherwise				= ([],accu)
-	ncollect` thisuser taskuser accu (DivCode id tree)
-	# (html,accu)			= ncollect` thisuser taskuser accu tree
-	| thisuser == taskuser 	= (mkDiv True id html,accu)
-	= ([],accu)
+collectTaskList :: !UserId !UserId !HtmlTree -> [(UserId,TaskNr,TaskName)] 	// returns who created the task, the tasknr, and taskname
+collectTaskList thisUser taskUser (taskname=:(ntaskUser,_,_,_) @@: tree) 	
+# collected				= collectTaskList thisUser ntaskUser tree									
+= [(taskUser,[],taskname):collected]
+collectTaskList thisuser taskuser (ntaskuser -@: tree)
+= collectTaskList thisuser ntaskuser tree
+collectTaskList thisuser taskuser  (tree1 +|+ tree2)
+# collection1	= collectTaskList thisuser taskuser tree1
+# collection2	= collectTaskList thisuser taskuser tree2
+= collection1 ++ collection2
+collectTaskList thisuser taskuser  (tree1 +-+ tree2)
+# collection1	= collectTaskList thisuser taskuser tree1
+# collection2	= collectTaskList thisuser taskuser tree2
+= collection1 ++ collection2
+collectTaskList thisuser taskuser  (BT bdtg)
+= []
+collectTaskList thisuser taskuser  (DivCode id tree)
+= collectTaskList thisuser taskuser tree
 
-*/
+
+
+
 initialOptions ::  !UserId !Lifespan  -> !Options 
 initialOptions thisUser location 
 				=	{ tasklife 		= if (thisUser >= 0) location Session 

@@ -76,9 +76,9 @@ where
 	# tst							= initTst 0 Session userOptions.threadStorageLoc hst
 	# (toserver_prefix,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
 	= mkHtmlExcep "singleUser" (toserver_prefix) html hst
-
+/*
 multiUserTask :: ![StartUpOptions] !(Task a) !*World -> *World   | iData a 
-multiUserTask startUpOptions maintask world = doHtmlWrapper multiUserTask` world
+multiUserTask startUpOptions maintask world = doTaskWrapper multiUserTask` maintask world
 where
 	multiUserTask` hst 
 	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
@@ -94,8 +94,9 @@ where
 										(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
 	= mkHtmlExcep "multiUser" (toserver_prefix) html hst
 
+
 workFlowTask :: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b)!*World -> *World  | iData b 
-workFlowTask  startUpOptions taska userTask world = doHtmlWrapper workFlowTask` world 
+workFlowTask  startUpOptions taska userTask world = doTaskWrapper workFlowTask` taska world 
 where
 	workFlowTask` hst 
 	# userOptions 					= determineUserOptions startUpOptions 
@@ -114,7 +115,7 @@ where
 
 	newUserTask ((True,i),a) 	= (spawnWorkflow i True (userTask i a)) =>> \_ -> return_V Void
 	newUserTask _ 				= return_V Void
-
+*/
 determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
 determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
 where
