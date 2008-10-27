@@ -1,13 +1,5 @@
-definition module iTasksHandler
+definition module Startup
 
-// *********************************************************************************************************************************
-// The iTasks library enables the specification of interactive multi-user workflow tasks (iTask) for the web.
-// This module contains iTask kernel.
-// This library is still under construction - MJP
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
 import iDataSettings, iDataButtons, StdBimap
 import iTasksBasicCombinators
 
@@ -42,10 +34,9 @@ workFlowTask	:: iTask start function to create a real life workflow
 */
 //workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*World -> *World   | iData b 
 
+//TODO: REMOVE FROM STARTUP module
 
 /*
 getCurrentAppVersionNr delivers current version number of the iTask aplication
 */
 getCurrentAppVersionNr :: !*TSt -> !(!Int,!*TSt)
-
-

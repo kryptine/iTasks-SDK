@@ -38,11 +38,11 @@ derive bimap Form, FormId
 
 //doHtmlWrapper		:: !UserPage !*World -> *World	//Combined wrapper which starts the server or client wrapper
 
-import InternaliTasksCommon
+//import InternaliTasksCommon
 
-:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
+//:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
 
-doTaskWrapper		:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a  	// Combined wrapper which starts the server or client wrapper
+//doTaskWrapper		:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a  	// Combined wrapper which starts the server or client wrapper
 
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.

@@ -10,7 +10,7 @@ import StdList, StdFunc, StdEnv
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
 import InternaliTasksCommon, iTasksSettings, iTasksBasicCombinators, iTasksLiftingCombinators, iTasksProcessHandling
-import iTasksHandler
+import Startup
 
 derive gForm 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []
 derive gUpd 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []

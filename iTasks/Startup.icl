@@ -1,5 +1,4 @@
-implementation module iTasksHandler
-
+implementation module Startup
 // *********************************************************************************************************************************
 // The iTasks library enables the specification of interactive multi-user workflow tasks (iTask) for the web.
 // This module contains iTask kernel.
@@ -13,6 +12,8 @@ import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 import TaskTreeFilters
+import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
+import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler
 
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
@@ -61,6 +62,73 @@ defaultStartUpOptions
 	, headerOff			= Nothing
 	, testModeOn		= True
 	}
+
+
+// ******************************************************************************************************
+// *** Server / Client startup
+// ******************************************************************************************************
+:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
+
+doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
+doTaskWrapper userpageHandler mainTask world = doHtmlServer userpageHandler mainTask world
+
+doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World | iData a
+doHtmlServer userpageHandler mainTask world
+| ServerKind == Internal
+	# world	= instructions world
+	= StartServer  userpageHandler mainTask world					// link in the Clean http 1.0 server	
+//| ServerKind == External											// connect with http 1.1 server
+//| ServerKind == CGI												// build as CGI application
+| otherwise
+	= unimplemented world
+where
+	instructions :: *World -> *World
+	instructions world
+		# (console, world)	= stdio world
+		# console			= fwrites "HTTP server started...\n" console
+		# console			= fwrites ("Please point your browser to http://localhost/" +++ ThisExe +++ "\n") console
+		# (_,world)			= fclose console world
+		= world
+		
+	unimplemented :: *World -> *World
+	unimplemented world
+		# (console, world)	= stdio world
+		# console			= fwrites "The chosen server mode is not supported.\n" console
+		# console			= fwrites "Please select ServerKind Internal in iDataSettings.dcl.\n" console
+		# (_,world)			= fclose console world
+		= world
+
+StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World | iData a
+StartServer userpageHandler mainTask world
+	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
+	= http_startServer options   [((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest mainTask)
+								 ,(\_ -> True, doStaticResource)
+								 ] world
+
+// Request handler which serves static resources from the application directory,
+// or a system wide default directory if it is not found locally.
+// This request handler is used for serving system wide javascript, css, images, etc...
+
+doStaticResource :: !HTTPRequest *World -> (!HTTPResponse, !*World)
+doStaticResource req world
+	# filename				= MyAbsDir +++ req.req_path	
+	# (type, world)			= http_staticFileMimeType filename world
+	# (ok, content, world)	= http_staticFileContent filename world
+	| ok					= ({rsp_headers = [("Status","200 OK"),
+											   ("Content-Type", type),
+											   ("Content-Length", toString (size content))]
+							   ,rsp_data = content}, world)
+	# filename				= ResourceDir +++ (req.req_path % ((size ThisExe) + 1, size req.req_path)) //Remove the /(ThisExe)/ from the filename
+	# (type, world)			= http_staticFileMimeType filename world
+	# (ok, content, world)	= http_staticFileContent filename world
+	|  ok 					= ({rsp_headers = [("Status","200 OK"),
+											   ("Content-Type", type),
+											   ("Content-Length", toString (size content))]
+							   	,rsp_data = content}, world)		 							   
+	= http_notfoundResponse req world
 
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
@@ -293,6 +361,3 @@ getCurrentAppVersionNr :: !*TSt -> !(!Int,!*TSt)
 getCurrentAppVersionNr tst=:{hst}
 # (nr,hst) = setAppversion id hst
 = (nr,{tst & hst = hst})
-
-
-
