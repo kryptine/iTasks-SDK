@@ -111,6 +111,7 @@ StartServer userpageHandler mainTask world
 								 ,(\_ -> True, doStaticResource)
 								 ] world
 
+
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...

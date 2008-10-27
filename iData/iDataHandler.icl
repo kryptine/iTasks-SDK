@@ -52,23 +52,17 @@ closemDataFile datafile world
 //doHtmlServer. It switches between doHtmlServer and doHtmlClient depending on which compile option
 //is selected.
 
-//doHtmlWrapper :: !UserPage !*World -> *World
-//doHtmlWrapper userpage world = IF_Client (doHtmlClient (\_ -> userpage) undef world) (doHtmlServer (\_ -> userpage) undef world)
-/*
-:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
+doHtmlWrapper :: !UserPage !*World -> *World
+doHtmlWrapper userpage world = IF_Client (doHtmlClient userpage world) (doHtmlServer userpage world)
 
-doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
-doTaskWrapper userpageHandler mainTask world = IF_Client (doHtmlClient userpageHandler mainTask world) (doHtmlServer userpageHandler mainTask world)
-*/
 // doHtmlServer: top level function given to end user.
 // It sets up the communication with a (sub)server or client, depending on the option chosen.
-/*
-//doHtmlServer :: !UserPage !*World -> *World
-doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World | iData a
-doHtmlServer userpageHandler mainTask world
+
+doHtmlServer :: !UserPage !*World -> *World
+doHtmlServer userpage world
 | ServerKind == Internal
 	# world	= instructions world
-	= StartServer  userpageHandler mainTask world					// link in the Clean http 1.0 server	
+	= StartServer userpage world									// link in the Clean http 1.0 server	
 //| ServerKind == External											// connect with http 1.1 server
 //| ServerKind == CGI												// build as CGI application
 | otherwise
@@ -90,18 +84,14 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World | iData a
-StartServer userpageHandler mainTask world
+StartServer :: !UserPage !*World -> *World
+StartServer userpage world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
-	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource (userpageHandler mainTask)))
-								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource (userpageHandler mainTask)) http_notfoundResponse)
-								 ,((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest mainTask)
+	= http_startServer options   [((==) ("/" +++ ThisExe), IF_Ajax doAjaxInit (doDynamicResource userpage))
+								 ,((==) ("/" +++ ThisExe +++ "_ajax"), IF_Ajax (doDynamicResource userpage) http_notfoundResponse)
 								 ,(\_ -> True, doStaticResource)
 								 ] world
-*/
+
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...

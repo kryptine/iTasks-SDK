@@ -10,10 +10,10 @@ import StdEnv
 import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 
-collectTaskList :: !UserId !UserId !HtmlTree -> [(UserId,TaskNr,TaskName)] 	// returns who created the task, the tasknr, and taskname
-collectTaskList thisUser taskUser (taskname=:(ntaskUser,_,_,_) @@: tree) 	
+collectTaskList :: !UserId !UserId !HtmlTree -> [(UserId,TaskName)] 	// returns who created the task, the tasknr, and taskname
+collectTaskList thisUser taskUser (taskname=:(ntaskUser,_,_,_,_) @@: tree) 	
 # collected				= collectTaskList thisUser ntaskUser tree									
-= [(taskUser,[],taskname):collected]
+= [(taskUser,taskname):collected]
 collectTaskList thisuser taskuser (ntaskuser -@: tree)
 = collectTaskList thisuser ntaskuser tree
 collectTaskList thisuser taskuser  (tree1 +|+ tree2)
@@ -52,7 +52,7 @@ noFilter (DivCode str html) = noFilter html
 Filter :: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 Filter wholepage thisUser thrOwner tree hst
 # startuser			= if wholepage defaultUser thrOwner
-# (threadcode,accu) = collect thisUser startuser []((startuser,0,defaultWorkflowName,"main") @@: tree)  // KLOPT DIT WEL ??
+# (threadcode,accu) = collect thisUser startuser []((startuser,"0",0,defaultWorkflowName,"main") @@: tree)  // KLOPT DIT WEL ??
 | isEmpty accu		= (threadcode,[],[],[],[],hst)
 # accu				= sortBy (\(i,_,_,_) (j,_,_,_) -> i < j) accu
 # (workflownames,subtasks) 						= unziptasks accu
@@ -78,7 +78,7 @@ where
 	= ([tlabel:labels],[tcode:codes])
 
 collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
-collect thisuser taskuser accu ((nuserid,processnr,workflowLabel,taskname) @@: tree) 	// collect returns the wanted code, and the remaining code
+collect thisuser taskuser accu ((nuserid,_,processnr,workflowLabel,taskname) @@: tree) 	// collect returns the wanted code, and the remaining code
 # (myhtml,accu)	= collect thisuser nuserid accu tree									// collect all code of this user belonging to this task
 | thisuser == nuserid && not (isEmpty myhtml)
 						= ([],[(processnr,workflowLabel,taskname,myhtml):accu])

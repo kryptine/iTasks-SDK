@@ -56,8 +56,9 @@ derive write 	TCl
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 :: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
 :: TraceInfo	:== Maybe !(!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
-:: TaskName		:== !(!UserId,!ProcessNr,!WorkflowLabel,!String)				// id of user, workflow process name, task name
+:: TaskName		:== !(!UserId,!TaskNrId,!ProcessNr,!WorkflowLabel,!String)		// id of user, workflow process name, task name
 :: HtmlCode		:== ![BodyTag]													// for prompting /inting html code
+:: TaskNrId		:== String
 
 instance == GarbageCollect
 

@@ -19,7 +19,7 @@ handleWorkListRequest mainTask hst
 # thisUser = 0
 # (toServer, htmlTree, maybeError, hst)	= calculateTaskTree thisUser mainTask hst // Calculate the TaskTree given the id of the current user
 # worklist									= [{taskid = toString taskLabel, for = toString fromUser, subject = workflowLabel +++ " " +++ taskLabel}				
-										  	  \\ (fromUser,tasknr,(toUser,processNr,workflowLabel,taskLabel)) <- collectTaskList thisUser thisUser htmlTree
+										  	  \\ (fromUser,(toUser,tasknr,processNr,workflowLabel,taskLabel)) <- collectTaskList thisUser thisUser htmlTree
 										   	  | toUser == thisUser]
 
 = ({http_emptyResponse & rsp_data = toJSON worklist}, hst)

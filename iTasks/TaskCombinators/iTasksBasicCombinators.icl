@@ -108,7 +108,7 @@ where
 assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
 assignTaskTo nuserId (taskname,taska) = assignTaskTo`
 where
-	assignTaskTo` tst=:{html=ohtml,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
+	assignTaskTo` tst=:{html=ohtml,tasknr,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
 	| not activated						= (createDefault,tst)
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
 	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
@@ -117,7 +117,7 @@ where
 												  ,	html = ohtml })							// plus new one tagged
 	= (a,{tst & userId = userId																// restore user Id
 			  , html = 	ohtml +|+ 															// show old code
-							((nuserId,processNr,workflowLabel,taskname) @@: nhtml)
+							((nuserId,toString tasknr,processNr,workflowLabel,taskname) @@: nhtml)
 		 })												
 
 // ******************************************************************************************************
