@@ -69,6 +69,9 @@ evalTaskThread 				:: !TaskThread 										-> Task a 								// execute the thr
 insertNewThread 			:: !TaskThread 				!*TSt 					-> *TSt									// insert new thread in table
 deleteSubTasksAndThreads 	:: !TaskNr 					!*TSt 					-> *TSt
 
+// Version number control
+setAppversion 				:: !(Int -> Int) 						!*HSt 		-> (!Int,!*HSt) 						// set new version number
+getCurrentAppVersionNr 		:: 							!*TSt 					-> (!Int,!*TSt)							// get current version number
 
 
 

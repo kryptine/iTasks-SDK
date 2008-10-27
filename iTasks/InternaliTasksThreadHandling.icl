@@ -659,3 +659,30 @@ showThreadNr [-1]		= "Root"
 showThreadNr [-1:is]	= showTaskNr is
 showThreadNr else		= "*" <+++ showTaskNr else
 
+// ******************************************************************************************************
+// Global Effects Storage Management
+// ******************************************************************************************************
+
+// Version number control for multiple user workflows
+// To support Ajax calls, it is remembered which of the threads of a user has been deleted by someone else
+// 		if information from that thread still arives, the input is thrown away since the thread does not exists anymore.
+// 		if information from another thread is received, the task tree is calculated starting from the root
+// To support Ajax calls, it is remembered whether new threads have been created for the user by other users
+//		if so, the task tree is calculated starting from the root 
+
+
+setAppversion :: !(Int -> Int) !*HSt -> (!Int,!*HSt) 
+setAppversion f hst	
+= IF_ClientTasks 
+	(\hst -> (0,hst))						// application version number cannot be set by client
+	(\hst -> myStoreForm f hst)				// else set application version number
+	hst
+where
+	myStoreForm f hst
+	# (form,hst) = mkStoreForm (Init, pFormId applicationVersionNr 0) f hst
+	= (form.value,hst)
+
+getCurrentAppVersionNr :: !*TSt -> (!Int,!*TSt)
+getCurrentAppVersionNr tst=:{hst}
+# (nr,hst) = setAppversion id hst
+= (nr,{tst & hst = hst})

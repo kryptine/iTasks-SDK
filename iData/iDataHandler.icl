@@ -54,14 +54,15 @@ closemDataFile datafile world
 
 //doHtmlWrapper :: !UserPage !*World -> *World
 //doHtmlWrapper userpage world = IF_Client (doHtmlClient (\_ -> userpage) undef world) (doHtmlServer (\_ -> userpage) undef world)
+/*
 :: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
 
 doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
 doTaskWrapper userpageHandler mainTask world = IF_Client (doHtmlClient userpageHandler mainTask world) (doHtmlServer userpageHandler mainTask world)
-
+*/
 // doHtmlServer: top level function given to end user.
 // It sets up the communication with a (sub)server or client, depending on the option chosen.
-
+/*
 //doHtmlServer :: !UserPage !*World -> *World
 doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World | iData a
 doHtmlServer userpageHandler mainTask world
@@ -100,7 +101,7 @@ StartServer userpageHandler mainTask world
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest mainTask)
 								 ,(\_ -> True, doStaticResource)
 								 ] world
-
+*/
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...

@@ -14,6 +14,8 @@ import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 import TaskTreeFilters
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler
+import TaskTree, StdStrictLists
+
 
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
@@ -101,10 +103,11 @@ where
 StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World | iData a
 StartServer userpageHandler mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
+
 	= http_startServer options   [((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleWorkListRequest mainTask)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleTaskRequest (handleWorkListRequest mainTask))
 								 ,(\_ -> True, doStaticResource)
 								 ] world
 
@@ -130,11 +133,57 @@ doStaticResource req world
 							   	,rsp_data = content}, world)		 							   
 	= http_notfoundResponse req world
 
+handleTaskRequest :: (*HSt -> (HTTPResponse, *HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleTaskRequest handler request world
+	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
+	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
+	# nworld 					= {worldC = world, inout = [|], gerda = gerda, datafile = datafile}	
+	# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
+	# hst						= {(mkHSt initforms nworld) & request = request}			// Create the HSt
+	# (response,hst =:{states,world})	= handler hst										// Apply handler
+
+	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
+	# (pagestate, focus, world =: {worldC,gerda,inout,datafile})	
+		= storeFormStates "" states world													// Store all state information
+	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
+	# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
+	= (response,worldC)
+
+// Database OPTION
+
+openDatabase database world
+:== IF_Database (openGerda database world) (abort "Trying to open a relational database while this option is switched off",world)
+closeDatabase database world
+:== IF_Database (closeGerda database world) world
+
+// DataFile OPTION
+
+openmDataFile datafile world
+:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
+closemDataFile datafile world
+:== IF_DataFile (closeDataFile datafile world) world
+
+mkHSt :: *FormStates *NWorld -> *HSt
+mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False, issub = False }
+
+mkCssTag :: HeadTag
+mkCssTag = Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]
+
+mkJsTag :: HeadTag
+mkJsTag = Hd_Script [Scr_Src (ThisExe +++ "/js/clean.js"), Scr_Type TypeJavascript ] (SScript "")
+
+mkInfoDiv :: String String -> BodyTag
+mkInfoDiv state focus =
+	Div [`Div_Std [Std_Style "display:none"]] [
+	Div [`Div_Std [Std_Id "GS"]] [Txt state],
+	Div [`Div_Std [Std_Id "FS"]] [Txt focus],
+	Div [`Div_Std [Std_Id "AN"]] [Txt ThisExe],
+	Div [`Div_Std [Std_Id "OPT-ajax"]] [Txt (IF_Ajax "true" "false")]
+	]
+
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...
 // ******************************************************************************************************
-
-
 
 singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
 singleUserTask startUpOptions maintask world = doTaskWrapper singleUserTask` maintask world
@@ -144,11 +193,11 @@ where
 	# tst							= initTst 0 Session userOptions.threadStorageLoc hst
 	# (toserver_prefix,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
 	= mkHtmlExcep "singleUser" (toserver_prefix) html hst
-/*
+
 multiUserTask :: ![StartUpOptions] !(Task a) !*World -> *World   | iData a 
 multiUserTask startUpOptions maintask world = doTaskWrapper multiUserTask` maintask world
 where
-	multiUserTask` hst 
+	multiUserTask` maintask hst 
 	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
 	# nusers						= case userOptions.showUsersOn of
 										Nothing -> 0
@@ -163,27 +212,6 @@ where
 	= mkHtmlExcep "multiUser" (toserver_prefix) html hst
 
 
-workFlowTask :: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b)!*World -> *World  | iData b 
-workFlowTask  startUpOptions taska userTask world = doTaskWrapper workFlowTask` taska world 
-where
-	workFlowTask` hst 
-	# userOptions 					= determineUserOptions startUpOptions 
-	# tst							= initTst -1 Session userOptions.threadStorageLoc hst
-	# (((new,i),a),tst=:{activated,html,hst})	
-									= taska tst									// for doing the login 
-	| not activated
-		# iTaskHeader				= [showHighLight "i-Task", showLabel " - Multi-User Workflow System ",Hr []]
-		# iTaskInfo					= mkDiv True "debug-server" [showText "Login procedure... ", Hr []]
-		= mkHtmlExcep "workFlow" (True,"") [Ajax [ ("thePage",iTaskHeader ++ iTaskInfo ++ noFilter html) // Login ritual cannot be handled by client
-											]] hst
-	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-	# tst							= initTst i Session userOptions.threadStorageLoc hst
-	# (toserver_prefix,body,hst) 	= startTstTask i True (False,[]) userOptions (newUserTask ((new,i),a) <<@ TxtFile) tst
-	= mkHtmlExcep "workFlow" (toserver_prefix) body hst
-
-	newUserTask ((True,i),a) 	= (spawnWorkflow i True (userTask i a)) =>> \_ -> return_V Void
-	newUserTask _ 				= return_V Void
-*/
 determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
 determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
 where
@@ -334,30 +362,3 @@ mkDiv False id bodytag = bodytag
 mkDiv True id bodytag = [Div [`Div_Std [Std_Id id, Std_Class "thread"]] bodytag]
 
 
-// ******************************************************************************************************
-// Global Effects Storage Management
-// ******************************************************************************************************
-
-// Version number control for multiple user workflows
-// To support Ajax calls, it is remembered which of the threads of a user has been deleted by someone else
-// 		if information from that thread still arives, the input is thrown away since the thread does not exists anymore.
-// 		if information from another thread is received, the task tree is calculated starting from the root
-// To support Ajax calls, it is remembered whther new threads have been created for the user by other users
-//		if so, the task tree is calculated starting from the root 
-
-
-setAppversion :: !(Int -> Int) !*HSt -> (!Int,!*HSt) 
-setAppversion f hst	
-= IF_ClientTasks 
-	(\hst -> (0,hst))						// application version number cannot be set by client
-	(\hst -> myStoreForm f hst)				// else set application version number
-	hst
-where
-	myStoreForm f hst
-	# (form,hst) = mkStoreForm (Init, pFormId applicationVersionNr 0) f hst
-	= (form.value,hst)
-
-getCurrentAppVersionNr :: !*TSt -> !(!Int,!*TSt)
-getCurrentAppVersionNr tst=:{hst}
-# (nr,hst) = setAppversion id hst
-= (nr,{tst & hst = hst})

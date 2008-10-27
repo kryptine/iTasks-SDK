@@ -34,9 +34,3 @@ workFlowTask	:: iTask start function to create a real life workflow
 */
 //workFlowTask 	:: ![StartUpOptions] !(Task ((Bool,UserId),a)) !(UserId a -> LabeledTask b) !*World -> *World   | iData b 
 
-//TODO: REMOVE FROM STARTUP module
-
-/*
-getCurrentAppVersionNr delivers current version number of the iTask aplication
-*/
-getCurrentAppVersionNr :: !*TSt -> !(!Int,!*TSt)
