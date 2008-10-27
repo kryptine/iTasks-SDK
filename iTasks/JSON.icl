@@ -41,7 +41,28 @@ JSONEncodeList fx x c = ["[": ( flatten ( intersperse [","] (map (flip fx []) x)
 
 //Escape a string
 escape :: String -> String
-escape s = replaceSubString "\"" "\\\"" (replaceSubString "\\" "\\\\" s)
+escape s = foldl escapeOne s controlChars 
+where
+	escapeOne s (c,r) = replaceSubString (toString c) r s
+	controlChars = [('\\',"\\\\"),('"',"\\\""),('/',"\\/"),('\b',"\\b"),('\f',"\\f"),('\n',"\\n"),('\r',"\\r"),('\t',"\\t")]
+			
+//Unescape a string
+unescape :: String -> String
+unescape s = unescape` s 0
+where
+	unescape` s offset
+		| offset >= size s	= s
+		| s.[offset] == '\\'
+			| offset + 1 >= size s		= s
+			| otherwise = tryReplace s (offset + 1) controlChars
+		| otherwise			= unescape` s (offset + 1)
+	
+	tryReplace s offset []	= unescape` s offset 
+	tryReplace s offset [(c,r):xs]
+		| s.[offset] == c	= s % (0, offset - 2) +++ r +++ unescape (s % (offset + 1, size s))
+		| otherwise			= tryReplace s offset xs
+		
+	controlChars = [('\\',"\\"),('"',"\""),('/',"/"),('b',"\b"),('f',"\f"),('n',"\n"),('t',"\t")]
 
 //Intersperse an element on a list
 intersperse :: a [a] -> [a]
@@ -178,6 +199,7 @@ where
 		findStringEnd input offset
 			| offset >= size input		= offset
 			| input.[offset] == '"'		= offset + 1
+			| input.[offset] == '\\'	= findStringEnd input (offset + 2) //Skip the escaped character
 										= findStringEnd input (offset + 1)
 		
 		//TODO: Deal with escaped characters
@@ -201,7 +223,7 @@ JSONDecode{|Char|} l					= (Nothing, l)
 JSONDecode{|Bool|} [TokenBool b:xs]		= (Just b,xs)
 JSONDecode{|Bool|} l					= (Nothing, l)
 
-JSONDecode{|String|} [TokenString s:xs]	= (Just s, xs)
+JSONDecode{|String|} [TokenString s:xs]	= (Just (unescape s), xs)
 JSONDecode{|String|} l					= (Nothing, l)
 
 JSONDecode{|UNIT|} l					= (Just UNIT, l)
