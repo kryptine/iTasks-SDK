@@ -18,9 +18,9 @@ handleWorkListRequest :: !(Task a) *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkListRequest mainTask hst
 # thisUser = 0
 # (toServer, htmlTree, maybeError, hst)	= calculateTaskTree thisUser mainTask hst // Calculate the TaskTree given the id of the current user
-# worklist									= [{taskid = toString taskLabel, for = toString fromUser, subject = workflowLabel +++ " " +++ taskLabel}				
-										  	  \\ (fromUser,(toUser,tasknr,processNr,workflowLabel,taskLabel)) <- collectTaskList thisUser thisUser htmlTree
-										   	  | toUser == thisUser]
+# worklist									= [{taskid = toString mytaskdescr.taskNrId, for = toString mytaskdescr.delegatorId, subject = mytaskdescr.worflowLabel +++ " " +++ mytaskdescr.taskLabel}				
+										  	  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUser) htmlTree
+										   	]
 
 = ({http_emptyResponse & rsp_data = toJSON worklist}, hst)
 

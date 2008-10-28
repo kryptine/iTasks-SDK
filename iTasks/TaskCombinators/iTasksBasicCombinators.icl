@@ -116,8 +116,13 @@ where
 												  ,	userId = userId							// restore previous user id						
 												  ,	html = ohtml })							// plus new one tagged
 	= (a,{tst & userId = userId																// restore user Id
-			  , html = 	ohtml +|+ 															// show old code
-							((nuserId,toString tasknr,processNr,workflowLabel,taskname) @@: nhtml)
+			  , html = 	ohtml +|+ (	{ delegatorId 	= userId
+									, taskWorkerId	= nuserId
+									, taskNrId		= toString tasknr
+									, processNr		= processNr
+									, worflowLabel	= workflowLabel
+									, taskLabel		= taskname
+							 		} @@: nhtml)
 		 })												
 
 // ******************************************************************************************************

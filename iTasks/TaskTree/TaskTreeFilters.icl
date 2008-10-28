@@ -10,35 +10,33 @@ import StdEnv
 import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 
-collectTaskList :: !UserId !UserId !HtmlTree -> [(UserId,TaskName)] 	// returns who created the task, the tasknr, and taskname
-collectTaskList thisUser taskUser (taskname=:(ntaskUser,_,_,_,_) @@: tree) 	
-# collected				= collectTaskList thisUser ntaskUser tree									
-= [(taskUser,taskname):collected]
-collectTaskList thisuser taskuser (ntaskuser -@: tree)
-= collectTaskList thisuser ntaskuser tree
-collectTaskList thisuser taskuser  (tree1 +|+ tree2)
-# collection1	= collectTaskList thisuser taskuser tree1
-# collection2	= collectTaskList thisuser taskuser tree2
+collectTaskList :: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
+collectTaskList pred (taskdescr @@: tree) 	
+# collected				= collectTaskList pred tree									
+| pred taskdescr		= [taskdescr:collected]
+= collected
+collectTaskList pred (ntaskuser -@: tree)
+= collectTaskList pred tree
+collectTaskList pred (tree1 +|+ tree2)
+# collection1	= collectTaskList pred tree1
+# collection2	= collectTaskList pred tree2
 = collection1 ++ collection2
-collectTaskList thisuser taskuser  (tree1 +-+ tree2)
-# collection1	= collectTaskList thisuser taskuser tree1
-# collection2	= collectTaskList thisuser taskuser tree2
+collectTaskList pred  (tree1 +-+ tree2)
+# collection1	= collectTaskList pred tree1
+# collection2	= collectTaskList pred tree2
 = collection1 ++ collection2
-collectTaskList thisuser taskuser  (BT bdtg)
+collectTaskList pred  (BT bdtg)
 = []
-collectTaskList thisuser taskuser  (DivCode id tree)
-= collectTaskList thisuser taskuser tree
-
-
-
+collectTaskList pred (DivCode id tree)
+= collectTaskList pred tree
 
 initialOptions ::  !UserId !Lifespan  -> !Options 
 initialOptions thisUser location 
-				=	{ tasklife 		= if (thisUser >= 0) location Session 
-					, taskstorage 	= PlainString
-					, taskmode 		= Edit 
-					, gc			= Collect
-					}
+	=	{ tasklife 		= if (thisUser >= 0) location Session 
+		, taskstorage 	= PlainString
+		, taskmode 		= Edit 
+		, gc			= Collect
+		}
 
 noFilter :: !HtmlTree -> HtmlCode
 noFilter (BT body) 			= body
@@ -48,11 +46,19 @@ noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
 noFilter (DivCode str html) = noFilter html
 
+initialTaskDescription
+	=	{ delegatorId	= 0								// id of the work delegator
+		, taskWorkerId	= 0								// id of worker on the task
+		, taskNrId		= "0"							// tasknr as string
+		, processNr		= 0								// entry in process table
+		, worflowLabel	= defaultWorkflowName			// name of the workflow
+		, taskLabel		= "main"						// name of the task
+		}							
 
 Filter :: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 Filter wholepage thisUser thrOwner tree hst
 # startuser			= if wholepage defaultUser thrOwner
-# (threadcode,accu) = collect thisUser startuser []((startuser,"0",0,defaultWorkflowName,"main") @@: tree)  // KLOPT DIT WEL ??
+# (threadcode,accu) = collect thisUser startuser [](initialTaskDescription @@: tree)  // KLOPT DIT WEL ??
 | isEmpty accu		= (threadcode,[],[],[],[],hst)
 # accu				= sortBy (\(i,_,_,_) (j,_,_,_) -> i < j) accu
 # (workflownames,subtasks) 						= unziptasks accu
@@ -78,10 +84,10 @@ where
 	= ([tlabel:labels],[tcode:codes])
 
 collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
-collect thisuser taskuser accu ((nuserid,_,processnr,workflowLabel,taskname) @@: tree) 	// collect returns the wanted code, and the remaining code
-# (myhtml,accu)	= collect thisuser nuserid accu tree									// collect all code of this user belonging to this task
-| thisuser == nuserid && not (isEmpty myhtml)
-						= ([],[(processnr,workflowLabel,taskname,myhtml):accu])
+collect thisuser taskuser accu (description @@: tree) 	// collect returns the wanted code, and the remaining code
+# (myhtml,accu)	= collect thisuser description.taskWorkerId accu tree									// collect all code of this user belonging to this task
+| thisuser == description.taskWorkerId && not (isEmpty myhtml)
+						= ([],[(description.processNr,description.worflowLabel,description.taskLabel,myhtml):accu])
 | otherwise				= ([],accu)
 collect thisuser taskuser accu (nuser -@: tree)
 | thisuser == nuser 	= ([],accu)

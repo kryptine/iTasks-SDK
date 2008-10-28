@@ -49,14 +49,21 @@ derive write 	TCl
 				=	Collect 													// garbage collect iTask administration
 				|	NoCollect													// no garbage collection
 :: HtmlTree		=	BT HtmlCode													// simple code
-				|	(@@:) infix  0 !TaskName !HtmlTree							// code with id of user attached to it
+				|	(@@:) infix  0 !TaskDescription !HtmlTree							// code with id of user attached to it
 				|	(-@:) infix  0 !UserId 	 !HtmlTree							// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 :: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
 :: TraceInfo	:== Maybe !(!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
-:: TaskName		:== !(!UserId,!TaskNrId,!ProcessNr,!WorkflowLabel,!String)		// id of user, workflow process name, task name
+:: TaskDescription
+				=	{ delegatorId	:: !UserId									// id of the work delegator
+					, taskWorkerId	:: !UserId									// id of worker on the task
+					, taskNrId		:: !TaskNrId								// tasknr as string
+					, processNr		:: !ProcessNr								// entry in process table
+					, worflowLabel	:: !WorkflowLabel							// name of the workflow
+					, taskLabel		:: !String									// name of the task
+					}							
 :: HtmlCode		:== ![BodyTag]													// for prompting /inting html code
 :: TaskNrId		:== String
 
