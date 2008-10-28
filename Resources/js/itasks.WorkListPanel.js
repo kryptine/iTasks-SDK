@@ -8,11 +8,11 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	workStore: new Ext.data.JsonStore({
 		url: 'handlers/worklist',
 		fields: [
+			{name: 'taskid'},
 			{name: 'for'},
 			{name: 'subject'}
 		]
-	}),
-	
+	}),	
 	initComponent: function () {
 		Ext.apply(this, {
 			border: false,
@@ -35,8 +35,13 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 		
 		//Load the data in the store
 		this.workStore.load();
+	},
+	/*
+	* Return the taskid of the selected row
+	*/
+	getTaskId: function (index) {
+		return this.workStore.getAt(index).data.taskid;
 	}
-
 });
 
 Ext.reg('itasks.worklist',itasks.WorkListPanel);

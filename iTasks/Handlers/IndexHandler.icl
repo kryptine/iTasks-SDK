@@ -22,6 +22,7 @@ where
 			 ,"js/itasks.DebugPanel.js"
 			 ,"js/itasks.WorkListPanel.js"
 			 ,"js/itasks.HomeTabPanel.js"
+			 ,"js/itasks.WorkTabPanel.js"
 			 ,"js/itasks.WorkTabsPanel.js"
 			 ,"js/itasks.ApplicationPanel.js"
 			 ,"js/itasks.Application.js"
