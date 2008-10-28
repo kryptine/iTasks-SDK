@@ -328,25 +328,34 @@ where
 
 // time and date
 
+import Time
+
+getTimeAndDate :: !*HSt -> *(!(!HtmlTime,!HtmlDate),!*HSt)
+getTimeAndDate hst=:{world = world=:{worldC}}
+# (tm,worldC)				= localTime worldC
+= ((HtmlTime tm.hour tm.min tm.sec,HtmlDate tm.mday tm.mon tm.year),{hst & world = {world & worldC = worldC}})
+
+/*
 import StdTime
 
 getTimeAndDate :: !*HSt -> *(!(!HtmlTime,!HtmlDate),!*HSt)
 getTimeAndDate hst
 # (time,hst)				= accWorldHSt getCurrentTime hst
 # (date,hst)				= accWorldHSt getCurrentDate hst
-= ((Time time.hours time.minutes time.seconds,Date date.day date.month date.year),hst)
+= ((HtmlTime time.hours time.minutes time.seconds,HtmlDate date.day date.month date.year),hst)
+*/
 
 gForm {|HtmlTime|} (init,formid) hst
 	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
 where
 	nPage = if (formid.lifespan == Client) Client Page
-	toPullDown (Time h m s)	= (hv,mv,sv)
+	toPullDown (HtmlTime h m s)	= (hv,mv,sv)
 	where
 		hv					= PullDown (1, defpixel/2) (h,[toString i \\ i <- [0..23]])
 		mv					= PullDown (1, defpixel/2) (m,[toString i \\ i <- [0..59]])
 		sv					= PullDown (1, defpixel/2) (s,[toString i \\ i <- [0..59]])
 
-	fromPullDown (hv,mv,sv)	= Time (convert hv) (convert mv) (convert sv)
+	fromPullDown (hv,mv,sv)	= HtmlTime (convert hv) (convert mv) (convert sv)
 	where
 		convert x			= toInt (toString x)
 
@@ -354,7 +363,7 @@ gForm {|HtmlDate|} (init,formid) hst
 	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
 where
 	nPage = if (formid.lifespan == Client) Client Page
-	toPullDown (Date d m y)	= (dv,mv,yv)
+	toPullDown (HtmlDate d m y)	= (dv,mv,yv)
 	where
 		dv					= PullDown (1,  defpixel/2) (md-1,   [toString i \\ i <- [1..31]])
 		mv					= PullDown (1,  defpixel/2) (mm-1,   [toString i \\ i <- [1..12]])
@@ -364,7 +373,7 @@ where
 		md					= if (d >= 1    && d <= 31)   d 1
 		mm					= if (m >= 1    && m <= 12)   m 1
 
-	fromPullDown (dv,mv,yv)	= Date (convert dv) (convert mv) (convert yv)
+	fromPullDown (dv,mv,yv)	= HtmlDate (convert dv) (convert mv) (convert yv)
 	where
 		convert x			= toInt (toString x)
 		
@@ -456,25 +465,25 @@ where
 	(==) _ _								= False
 
 derive gLexOrd HtmlTime, HtmlDate
-instance + HtmlTime where (+) (Time h1 m1 s1) (Time h2 m2 s2)
-											= Time (h1 + h2) (m1 + m2) (s1 + s2)
-instance - HtmlTime where (-) (Time h1 m1 s1) (Time h2 m2 s2)
-											= Time (h1 - h2) (m1 - m2) (s1 - s2)
+instance + HtmlTime where (+) (HtmlTime h1 m1 s1) (HtmlTime h2 m2 s2)
+											= HtmlTime (h1 + h2) (m1 + m2) (s1 + s2)
+instance - HtmlTime where (-) (HtmlTime h1 m1 s1) (HtmlTime h2 m2 s2)
+											= HtmlTime (h1 - h2) (m1 - m2) (s1 - s2)
 instance < HtmlTime 
 where 
-	(<) (Time h1 m1 s1) (Time h2 m2 s2)
+	(<) (HtmlTime h1 m1 s1) (HtmlTime h2 m2 s2)
 	| h1 <> h2 = h1 < h2
 	| m1 <> m2 = m1 < m2
 	= s1 < s2
 
 instance < HtmlDate 
 where 
-	(<) (Date d1 m1 y1) (Date d2 m2 y2) 
+	(<) (HtmlDate d1 m1 y1) (HtmlDate d2 m2 y2) 
 	| y1 <> y2 = y1 < y2
 	| m1 <> m2 = m1 < m2
 	= d1 < d2
 
 instance toString HtmlTime where
-	toString (Time hrs min sec)				= toString hrs <+++ ":" <+++ min <+++ ":" <+++ sec
+	toString (HtmlTime hrs min sec)				= toString hrs <+++ ":" <+++ min <+++ ":" <+++ sec
 instance toString HtmlDate where
-	toString (Date day month year)			= toString day <+++ "/" <+++ month <+++ "/" <+++ year
+	toString (HtmlDate day month year)			= toString day <+++ "/" <+++ month <+++ "/" <+++ year

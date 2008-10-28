@@ -64,8 +64,8 @@ instance -			HtmlTime
 	
 // special's
 
-:: HtmlDate 	= 	Date Int Int Int				// Day Month Year
-:: HtmlTime 	= 	Time Int Int Int				// Hours Minutes Seconds
+:: HtmlDate 	= 	HtmlDate Int Int Int				// Day Month Year
+:: HtmlTime 	= 	HtmlTime Int Int Int				// Hours Minutes Seconds
 
 
 :: RefreshTimer	=	RefreshTimer Int				// The editor for this type refreshes it's form after n milliseconds

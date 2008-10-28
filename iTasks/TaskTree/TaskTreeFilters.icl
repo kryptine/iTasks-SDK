@@ -112,6 +112,8 @@ where
 			, processNr		= 0								// entry in process table
 			, worflowLabel	= defaultWorkflowName			// name of the workflow
 			, taskLabel		= "main"						// name of the task
+			, taskPriority	= NormalPriority
+			, timeCreated	= Time 0
 			}							
 
 collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])

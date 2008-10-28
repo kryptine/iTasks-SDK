@@ -8,6 +8,7 @@ definition module InternaliTasksCommon
 //
 import iDataFormData
 import iTasksSettings
+import Time
 
 
 derive gForm 	TCl						
@@ -63,9 +64,12 @@ derive write 	TCl
 					, processNr		:: !ProcessNr								// entry in process table
 					, worflowLabel	:: !WorkflowLabel							// name of the workflow
 					, taskLabel		:: !String									// name of the task
+					, timeCreated	:: !Time
+					, taskPriority	:: !TaskPriority
 					}							
 :: HtmlCode		:== ![BodyTag]													// for prompting /inting html code
 :: TaskNrId		:== String
+:: TaskPriority	=	HighPriority | NormalPriority | LowPriority
 
 instance == GarbageCollect
 

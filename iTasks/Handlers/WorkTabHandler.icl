@@ -15,5 +15,5 @@ handleWorkTabRequest mainTask request hst
 	# taskId 								= http_getValue "taskid" request.arg_get "error"		// fetch task id of the tab selecetd
 	# (toServer, htmlTree, maybeError, hst)	= calculateTaskTree thisUserId mainTask hst 			// calculate the TaskTree given the id of the current user
 	# (htmlcode,hst) 						= determineTaskForTab thisUserId taskId htmlTree hst 	// filter out the code to display in this tab
-	# htmlstring							= toString (print_to_stdout htmlcode [#!])
+	# htmlstring							= toString (print_to_stdout htmlcode [#!])				// convert to string
 	= ({http_emptyResponse & rsp_data = htmlstring},hst)

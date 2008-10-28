@@ -14,9 +14,10 @@ import iTasksTypes, iTasksLiftingCombinators
 import InternaliTasksThreadHandling
 import GenBimap
 
-derive gForm 	Maybe, []
-derive gUpd 	Maybe, []
-derive gPrint	Maybe
+derive gForm 	Maybe, [], Time
+derive gUpd 	Maybe, [], Time
+derive gPrint	Maybe, Time
+derive gParse	Time
 
 
 // ******************************************************************************************************
@@ -110,6 +111,7 @@ assignTaskTo nuserId (taskname,taska) = assignTaskTo`
 where
 	assignTaskTo` tst=:{html=ohtml,tasknr,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
 	| not activated						= (createDefault,tst)
+	# (currtime,tst)					= appWorldOnce "time" time tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
 	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
 	| activated 						= (a,{tst & activated = True						// work is done	
@@ -121,7 +123,9 @@ where
 									, taskNrId		= showTaskNr tasknr
 									, processNr		= processNr
 									, worflowLabel	= workflowLabel
+									, taskPriority	= NormalPriority
 									, taskLabel		= taskname
+									, timeCreated	= currtime
 							 		} @@: nhtml)
 		 })												
 
