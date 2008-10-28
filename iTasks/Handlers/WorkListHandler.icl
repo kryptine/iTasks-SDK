@@ -13,10 +13,10 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 						, processname	:: String					// Name given to the work process the task belongs to
 				 		, subject		:: String 					// Name give to the task, which can be a short description of the work to do
 				 		, priority		:: TaskPriority				// Priority of the task
-				 		, timestamp		:: Time						// Time stamp when the task was issued
+				 		, timestamp		:: Int						// Time stamp when the task was issued
 				  		}
 
-derive JSONEncode WorkListItem, Time, TaskPriority
+derive JSONEncode WorkListItem, TaskPriority
 
 handleWorkListRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkListRequest mainTask request hst
@@ -26,8 +26,8 @@ handleWorkListRequest mainTask request hst
 												, for 			= toString mytaskdescr.delegatorId
 												, processname	= mytaskdescr.worflowLabel
 												, subject 		= mytaskdescr.taskLabel
-												, priority		= NormalPriority
-												, timestamp		= Time 0
+												, priority		= mytaskdescr.taskPriority
+												, timestamp		= (\(Time i) -> i) mytaskdescr.timeCreated
 												}				
 											  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUserId) htmlTree
 											  ]
