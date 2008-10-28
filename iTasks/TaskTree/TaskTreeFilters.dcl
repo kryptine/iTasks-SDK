@@ -26,4 +26,5 @@ noFilter 		:: !HtmlTree -> HtmlCode
 Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 
 
-collectTaskList :: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
+collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!HtmlCode,!*HSt)

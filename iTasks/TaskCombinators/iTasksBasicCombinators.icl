@@ -118,7 +118,7 @@ where
 	= (a,{tst & userId = userId																// restore user Id
 			  , html = 	ohtml +|+ (	{ delegatorId 	= userId
 									, taskWorkerId	= nuserId
-									, taskNrId		= toString tasknr
+									, taskNrId		= showTaskNr tasknr
 									, processNr		= processNr
 									, worflowLabel	= workflowLabel
 									, taskLabel		= taskname

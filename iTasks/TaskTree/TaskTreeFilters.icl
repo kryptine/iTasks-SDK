@@ -30,13 +30,35 @@ collectTaskList pred  (BT bdtg)
 collectTaskList pred (DivCode id tree)
 = collectTaskList pred tree
 
-initialOptions ::  !UserId !Lifespan  -> !Options 
-initialOptions thisUser location 
-	=	{ tasklife 		= if (thisUser >= 0) location Session 
-		, taskstorage 	= PlainString
-		, taskmode 		= Edit 
-		, gc			= Collect
-		}
+
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!HtmlCode,!*HSt)
+determineTaskForTab thisuser thistaskid tree hst
+# mytree = determineTaskTree thisuser thistaskid tree
+| isNothing mytree = ([Txt "Html code belonging to indicated task could not be found\n"],hst)
+# (threadcode,taskname,mainbuts,subbuts,seltask,hst)	
+						= Filter True thisuser thisuser (fromJust mytree) hst
+= (	if (isEmpty threadcode) seltask threadcode,hst)
+
+
+determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
+determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
+| taskdescr.taskNrId == thistaskid = Just tree
+= determineTaskTree thisuser thistaskid tree									
+determineTaskTree thisuser thistaskid (ntaskuser -@: tree)
+| thisuser == ntaskuser = Nothing
+= determineTaskTree thisuser thistaskid tree
+determineTaskTree thisuser thistaskid (tree1 +|+ tree2)
+# ntree1		= determineTaskTree thisuser thistaskid tree1
+| isJust ntree1 = ntree1
+= determineTaskTree thisuser thistaskid tree2
+determineTaskTree  thisuser thistaskid  (tree1 +-+ tree2)
+# ntree1		= determineTaskTree thisuser thistaskid tree1
+| isJust ntree1 = ntree1
+= determineTaskTree thisuser thistaskid tree2
+determineTaskTree thisuser thistaskid  (BT bdtg)
+= Nothing
+determineTaskTree thisuser thistaskid (DivCode id tree)
+= determineTaskTree thisuser thistaskid tree
 
 noFilter :: !HtmlTree -> HtmlCode
 noFilter (BT body) 			= body
@@ -46,14 +68,6 @@ noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
 noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
 noFilter (DivCode str html) = noFilter html
 
-initialTaskDescription
-	=	{ delegatorId	= 0								// id of the work delegator
-		, taskWorkerId	= 0								// id of worker on the task
-		, taskNrId		= "0"							// tasknr as string
-		, processNr		= 0								// entry in process table
-		, worflowLabel	= defaultWorkflowName			// name of the workflow
-		, taskLabel		= "main"						// name of the task
-		}							
 
 Filter :: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
 Filter wholepage thisUser thrOwner tree hst
@@ -82,6 +96,23 @@ where
 	unzipsubtasks [(pid,wlabel,tlabel,tcode):subtasks]		
 	# (labels,codes)		= unzipsubtasks subtasks
 	= ([tlabel:labels],[tcode:codes])
+
+	initialOptions ::  !UserId !Lifespan  -> !Options 
+	initialOptions thisUser location 
+		=	{ tasklife 		= if (thisUser >= 0) location Session 
+			, taskstorage 	= PlainString
+			, taskmode 		= Edit 
+			, gc			= Collect
+			}
+
+	initialTaskDescription
+		=	{ delegatorId	= 0								// id of the work delegator
+			, taskWorkerId	= 0								// id of worker on the task
+			, taskNrId		= "0"							// tasknr as string
+			, processNr		= 0								// entry in process table
+			, worflowLabel	= defaultWorkflowName			// name of the workflow
+			, taskLabel		= "main"						// name of the task
+			}							
 
 collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
 collect thisuser taskuser accu (description @@: tree) 	// collect returns the wanted code, and the remaining code
