@@ -13,7 +13,7 @@ import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 import TaskTreeFilters
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
-import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler
+import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler
 import TaskTree, StdStrictLists
 
 
@@ -108,6 +108,7 @@ StartServer userpageHandler mainTask world
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleTaskRequest (handleWorkListRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleTaskRequest (handleWorkTabRequest mainTask))
 								 ,(\_ -> True, doStaticResource)
 								 ] world
 
@@ -134,14 +135,14 @@ doStaticResource req world
 							   	,rsp_data = content}, world)		 							   
 	= http_notfoundResponse req world
 
-handleTaskRequest :: (*HSt -> (HTTPResponse, *HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleTaskRequest :: (!HTTPRequest *HSt -> (!HTTPResponse, *HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 	# nworld 					= {worldC = world, inout = [|], gerda = gerda, datafile = datafile}	
 	# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
 	# hst						= {(mkHSt initforms nworld) & request = request}			// Create the HSt
-	# (response,hst =:{states,world})	= handler hst										// Apply handler
+	# (response,hst =:{states,world})	= handler request hst										// Apply handler
 
 	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
 	# (pagestate, focus, world =: {worldC,gerda,inout,datafile})	
