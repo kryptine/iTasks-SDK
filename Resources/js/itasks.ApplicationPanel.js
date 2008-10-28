@@ -58,7 +58,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		var worktabs = this.getComponent('centerpanel').getComponent('worktabs');
 		
 		//Connect event handlers	
-		worklist.on('celldblclick',function (grid,row,col,event) {
+		worklist.on('cellclick',function (grid,row,col,event) {
 			worktabs.openWorkTab(grid.getTaskId(row));
 		});
 	}
