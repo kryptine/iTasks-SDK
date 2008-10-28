@@ -11,7 +11,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			title: this.id,
 			closable: true,
 			html: this.id,
-			bodyStyle: 'padding: 5px;',
+			baseCls: 'worktab',
 			autoLoad: {
 				url: 'handlers/work',
 				method: 'GET',
