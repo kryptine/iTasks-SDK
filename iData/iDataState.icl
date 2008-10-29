@@ -12,7 +12,7 @@ import EstherBackend
 
 
 // This module controls the handling of state forms and the communication with the browser
-// iData states are maintained in a binairy tree
+// iData states are maintained in a binary tree
 
 // The are currently two storage formats for iData values: 
 // 1. a string format, generically generated; works for any first order type.
@@ -38,8 +38,8 @@ import EstherBackend
 				  }
 :: Format		= PlainStr 	!.String 							// Either a string is used for serialization
 				| StatDyn	!Dynamic 							// Or a dynamic which enables serialization of functions defined in the application (no plug ins yet)
-				| DBStr		.String (*Gerda -> *Gerda)			// In case a new value has to bestored in the relational database 
-				| CLDBStr   .String (*DataFile -> *DataFile)	// In case a new value has to bestored in a Cleans database file
+				| DBStr		.String (*Gerda -> *Gerda)			// In case a new value has to be stored in the relational database 
+				| CLDBStr   .String (*DataFile -> *DataFile)	// In case a new value has to be stored in a Cleans database file
 				
 // Database OPTION
 

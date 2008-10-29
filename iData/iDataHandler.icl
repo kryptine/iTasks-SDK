@@ -7,10 +7,7 @@ import StdGeneric, GenParse, GenPrint
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import Gerda
 import StdBimap
-
-//Handler functions for starting the new GUI 
-import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler
-
+import HSt
 
 derive gPrint (,), (,,), (,,,), UpdValue
 derive gParse (,), (,,), (,,,), UpdValue
@@ -21,13 +18,7 @@ derive bimap Form, FormId
 gParse{|(->)|} gArg gRes _ 		= Nothing 
 gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic storage option!\n" 
 
-:: *HSt 		= { cntr 	:: !Int 			// counts position in expression
-				  , submits	:: !Bool			// True if we are in submit form
-				  , issub	:: !Bool			// True if this form is a subform of another
-				  , states	:: !*FormStates  	// all form states are collected here ... 
-				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
-				  , world	:: *NWorld			// to enable all other kinds of I/O
-				  }	
+
 :: InputId	 	:== Int							// unique id for every constructor and basic value appearing in the state
 :: FormUpdate	:== (InputId,UpdValue)			// info obtained when form is updated
 
@@ -126,12 +117,12 @@ doHtmlPage request userpage inout world
 # (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 # nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
 # (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
-# hst						= {(mkHSt initforms nworld) & request = request}			// Create the HSt
+# hst						= (mkHSt request initforms nworld) 							// Create the HSt
 # ((toServer,prefix),Html (Head headattr headtags) (Body bodyattr bodytags),{states,world}) 
 							= userpage hst												// Call the user application
 # (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
 # (pagestate, focus, world=:{worldC,gerda,inout,datafile})	
-							= storeFormStates prefix states world								// Store all state information
+							= storeFormStates prefix states world						// Store all state information
 # worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 # worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
 # inout						= IF_Ajax
@@ -204,16 +195,12 @@ doHtmlClient userpage world
 # world							= snd (fclose sio world)
 = world
 
-mkHSt :: *FormStates *NWorld -> *HSt
-mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False, issub = False }
-
-
 // The function mkViewForm is *the* magic main function 
 // All idata /itasks end up in this function
 // It does everything, a swiss army knife editor that makes coffee too ...
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{states,world,submits,issub} 
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world,submits,issub} 
 | init == Const	&& formid.lifespan <> Temp
 = mkViewForm (init,{formid & lifespan = Temp}) bm hst					// constant i-data are never stored
 | init == Const															// constant i-data, no look up of previous value
@@ -239,10 +226,10 @@ where
 		   , value			= newval
 		   , form			= []
 		   }
-		  ,mkHSt states world)
+		  ,mkHSt request states world)
 
 	# (viewform,{states,world})											// make a form for it
-							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt states world & submits = submits, issub = issub})
+							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt request states world & submits = submits, issub = issub})
 
 	| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
 							= calcnextView True (Just viewform.value) states world
@@ -253,7 +240,7 @@ where
 		, value				= newval
 		, form				= viewform.form
 		}
-	  ,{mkHSt states world & issub = issub})
+	  ,{mkHSt request states world & issub = issub})
 
 	replaceState` vformid view states world
 	| init <> Const			= replaceState vformid view states world
@@ -325,8 +312,8 @@ changeLifespanIData prefix oldspan newspan hst=:{states,world}
 specialize :: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (!Form a,!*HSt) | gUpd {|*|} a
 specialize editor (init,formid) hst=:{cntr = inidx,states = formStates,submits,world}
 # nextidx					= incrIndex inidx formid.ival		// this value will be repesented differently, so increment counter 
-# (nv,hst) 					= editor (init,nformid) (setCntr 0 hst)
-= (nv,{setCntr nextidx hst & submits = submits})
+# (nv,hst) 					= editor (init,nformid) (setHStCntr 0 hst)
+= (nv,{setHStCntr nextidx hst & submits = submits})
 where
 	nformid					= {formid & id = formid.id <+++ "_specialize_" <+++ inidx <+++ "_"}
 
@@ -394,7 +381,7 @@ gForm{|Bool|} (init,formid) hst=:{cntr,submits} // PK
 = ({ changed				= False
    , value					= formid.ival
    , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid submits]
-   },setCntr (cntr+1) hst)
+   },setHStCntr (cntr+1) hst)
 
 gForm{|String|} (init,formid) hst 	
 # (body,hst)				= mkInput defsize (init,formid) (SV s) (UpdS s) hst
@@ -433,13 +420,13 @@ where
 	(OBJECT o) = formid.ival
 gForm{|CONS of t|} gHc (init,formid) hst=:{cntr,submits}
 | not (isEmpty t.gcd_fields) 		 
-	# (nc,hst)				= gHc (init,reuseFormId formid c) (setCntr (cntr+1) hst) // don't display record constructor
+	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display record constructor
 	= ({nc & value=CONS nc.value},hst)
 | t.gcd_type_def.gtd_num_conses == 1 
-	# (nc,hst)				= gHc (init,reuseFormId formid c) (setCntr (cntr+1) hst) // don't display constructors that have no alternative
+	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display constructors that have no alternative
 	= ({nc & value=CONS nc.value},hst)
 | t.gcd_name.[(size t.gcd_name) - 1] == '_' 										 // don't display constructor names which end with an underscore
-	# (nc,hst)				= gHc (init,reuseFormId formid c) (setCntr (cntr+1) hst) 
+	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) 
 	= ({nc & value=CONS nc.value},hst)
 # (selector,hst)			= mkConsSelector formid t hst
 # (nc,hst)					= gHc (init,reuseFormId formid c) hst
@@ -451,7 +438,7 @@ where
 	(CONS c)				= formid.ival
 
 mkConsSelector formid thiscons hst=:{cntr,submits} // PK: lifted to a global function 
-						= (mkConsSel cntr myname allnames myindex formid submits, setCntr (cntr+1) hst)
+						= (mkConsSel cntr myname allnames myindex formid submits, setHStCntr (cntr+1) hst)
 where
 	myname				= thiscons.gcd_name
 	allnames			= map (\n -> n.gcd_name) thiscons.gcd_type_def.gtd_conses
@@ -628,7 +615,7 @@ mkInput size (init,formid=:{mode}) val updval hst=:{cntr,submits}
 				, `Inp_Std		[EditBoxStyle, Std_Title (showType val), Std_Id (encodeInputId (formid.id,cntr,updval))]
 				, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange formid.mode "" formid.lifespan False) []
 				] ""
-	  , setCntr (cntr+1) hst)
+	  , setHStCntr (cntr+1) hst)
 | mode == Display
 	= ( Input 	[ Inp_Type		Inp_Text
 				, Inp_Value		val
@@ -636,8 +623,8 @@ mkInput size (init,formid=:{mode}) val updval hst=:{cntr,submits}
 				, `Inp_Std		[DisplayBoxStyle]
 				, Inp_Size		size
 				] ""
-		,setCntr (cntr+1) hst)
-= ( EmptyBody,setCntr (cntr+1) hst)
+		,setHStCntr (cntr+1) hst)
+= ( EmptyBody,setHStCntr (cntr+1) hst)
 where
 	showType (SV  str) 	= "::String"
 	showType (NQV str)	= "::String"
@@ -650,7 +637,7 @@ where
 toHtml :: a -> BodyTag | gForm {|*|} a
 toHtml a
 //# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml!\n"))
-# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates dummy)
+# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt http_emptyRequest emptyFormStates dummy)
 = BodyTag na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtml!\n"
@@ -663,7 +650,7 @@ where
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toHtmlForm anyform 
 //# (na,hst)					= anyform (mkHSt emptyFormStates (abort "illegal call to toHtmlForm!\n"))
-# (na,hst)						= anyform (mkHSt emptyFormStates (abort "illegal call to toHtmlForm!\n"))
+# (na,hst)						= anyform (mkHSt http_emptyRequest emptyFormStates (abort "illegal call to toHtmlForm!\n"))
 = na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"
@@ -684,7 +671,7 @@ derive write 	Inline
 
 gForm{|Inline|} (init,formid) hst
 # (Inline string) =  formid.ival 	
-= ({changed=False, value=formid.ival, form=[InlineCode string]},incrHSt 2 hst)
+= ({changed=False, value=formid.ival, form=[InlineCode string]},incrHStCntr 2 hst)
 
 showHtml :: [BodyTag] -> Inline
 showHtml bodytags = Inline (foldl (+++) "" (reverse [x \\ x <|- gHpr {|*|} [|] bodytags]))
@@ -693,53 +680,15 @@ createDefault :: a | gUpd{|*|} a
 createDefault					= fromJust (snd (gUpd {|*|} (UpdSearch (UpdC "Just") 0) Nothing))
 derive gUpd Maybe
 
-setCntr :: InputId *HSt -> *HSt
-setCntr i hst					= {hst & cntr = i}
-
-incrHSt :: Int !*HSt -> *HSt
-incrHSt i hst					= {hst & cntr = hst.cntr + i} // BUG ??????
-
-CntrHSt :: !*HSt -> (Int,*HSt)
-CntrHSt hst=:{cntr}				= (cntr,hst)
-
 getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
 getChangedId hst=:{states}
 # (ids,states)					= getUpdateId states
 = (ids,{hst & states = states })
 
-// Enabling file IO on HSt
-
-instance FileSystem HSt where
-	fopen string int hst=:{world}
-		# (bool,file,world)		= fopen string int world
-		= (bool,file,{hst & world = world})
-
-	fclose file hst=:{world}
-		# (bool,world)			= fclose file world
-		= (bool,{hst & world = world})
-
-	stdio hst=:{world}
-		# (file,world)			= stdio world
-		= (file,{hst & world = world})
-
-	sfopen string int hst=:{world}
-		# (bool,file,world)		= sfopen string int world
-		= (bool,file,{hst & world = world})
-
-// General access to the World environment on HSt:
-
-appWorldHSt :: !.(*World -> *World) !*HSt -> *HSt
-appWorldHSt f hst=:{world}
-	= {hst & world=appWorldNWorld f world}
-
-accWorldHSt :: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)
-accWorldHSt f hst=:{world}
-	# (a,world)	= accWorldNWorld f world
-	= (a,{hst & world=world})
 
 // test interface
 
-runUserApplication :: .(*HSt -> *(.a,*HSt)) *FormStates *NWorld -> *(.a,*FormStates,*NWorld)
-runUserApplication userpage states nworld
-# (html,{states,world})			= userpage (mkHSt states nworld)
+runUserApplication :: .(*HSt -> *(.a,*HSt)) HTTPRequest *FormStates *NWorld -> *(.a,*FormStates,*NWorld)
+runUserApplication userpage request states nworld
+# (html,{states,world})			= userpage (mkHSt request states nworld)
 = (html,states,world)

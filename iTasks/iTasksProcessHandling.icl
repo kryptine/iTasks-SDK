@@ -53,7 +53,7 @@ where
 	parseString :: !Expr -> Maybe String
 	parseString expr = gParse{|*|} expr
 	
-gForm{|Dynamic|} (init, formid) hst = ({changed=False,form=[],value=formid.ival},(incrHSt 1 hst))
+gForm{|Dynamic|} (init, formid) hst = ({changed=False,form=[],value=formid.ival},(incrHStCntr 1 hst))
 gUpd{|Dynamic|} (UpdSearch _ 0) a 	= (UpdDone,a)
 gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)

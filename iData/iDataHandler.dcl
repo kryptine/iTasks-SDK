@@ -5,6 +5,7 @@ definition module iDataHandler
 
 import iDataHtmlDef, iDataFormData, iDataSettings
 import GenPrint, GenParse
+import HSt
 import NWorld
 
 generic gForm a	:: !(InIDataId a) !*HSt -> *(Form a, !*HSt)							// user defined gForms: use "specialize"	
@@ -22,15 +23,6 @@ derive read 	Inline
 derive write 	Inline
 
 derive bimap Form, FormId
-
-:: *HSt 		= { cntr 	:: !Int 			// counts position in expression
-				  , submits	:: !Bool			// True if we are in submitting mode
-				  , issub	:: !Bool			// True if this form is a subform of another
-				  , states	:: !*FormStates  	// all form states are collected here ... 
-				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
-				  , world	:: *NWorld			// to enable all other kinds of I/O
-				  }	
-
 
 :: Inline 		= Inline String
 
@@ -65,27 +57,18 @@ createDefault 		:: a						| gUpd{|*|} a 						// creates a default value of requ
 
 showHtml 			:: [BodyTag] -> Inline											// enabling to show Html code in Clean data
 
-// definitions on HSt
-
-instance FileSystem HSt																// enabling file IO on HSt
-
-appWorldHSt			:: !.(*World -> *World)       !*HSt -> *HSt						// enabling World operations on HSt
-accWorldHSt			:: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)				// enabling World operations on HSt
-
 // Specialists section...
 
 // Added for testing of iData applications with GAST
 
 import iDataState
 
-runUserApplication	:: .(*HSt -> *(.a,*HSt)) *FormStates *NWorld -> *(.a,*FormStates,*NWorld)
+runUserApplication	:: .(*HSt -> *(.a,*HSt)) HTTPRequest *FormStates *NWorld -> *(.a,*FormStates,*NWorld)
 
 // Some low level utility functions handy when specialize cannot be used, only to be used by experts !!
 
-incrHSt				:: Int !*HSt -> *HSt											// Cntr := Cntr + 1
-CntrHSt				:: !*HSt -> (Int,*HSt)											// Hst.Cntr
 mkInput				:: !Int !(InIDataId d) Value UpdValue !*HSt -> (BodyTag,*HSt)	// Html Form Creation utility 
-getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that has been changed by user
+getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
 
 :: UpdMode			= UpdSearch UpdValue Int										// search for indicated postion and update it
 					| UpdCreate [ConsPos]											// create new values if necessary

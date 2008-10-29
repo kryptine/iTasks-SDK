@@ -141,8 +141,8 @@ handleTaskRequest handler request world
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 	# nworld 					= {worldC = world, inout = [|], gerda = gerda, datafile = datafile}	
 	# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
-	# hst						= {(mkHSt initforms nworld) & request = request}			// Create the HSt
-	# (response,hst =:{states,world})	= handler request hst										// Apply handler
+	# hst						= (mkHSt request initforms nworld)							// Create the HSt
+	# (response,hst =:{states,world})	= handler request hst								// Apply handler
 
 	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
 	# (pagestate, focus, world =: {worldC,gerda,inout,datafile})	
@@ -164,9 +164,6 @@ openmDataFile datafile world
 :== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
 closemDataFile datafile world
 :== IF_DataFile (closeDataFile datafile world) world
-
-mkHSt :: *FormStates *NWorld -> *HSt
-mkHSt states nworld = {cntr=0, states=states, request= http_emptyRequest, world=nworld, submits = False, issub = False }
 
 mkCssTag :: HeadTag
 mkCssTag = Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]

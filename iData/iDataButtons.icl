@@ -42,7 +42,7 @@ gerda{|HTML|}  = abort "illegal gerda call for type HTML"
 layoutTableAtts	:== [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)]	// default table attributes for arranging layout
 
 gForm{|(,)|} gHa gHb (init,formid) hst
-# (na,hst)				= gHa (init,reuseFormId formid a) (incrHSt 1 hst)   	// one more for the now invisible (,) constructor 
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,) constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed
 	, value				= (na.value,nb.value)
@@ -52,7 +52,7 @@ where
 	(a,b)				= formid.ival
 
 gForm{|(,,)|} gHa gHb gHc (init,formid) hst
-# (na,hst)				= gHa (init,reuseFormId formid a) (incrHSt 1 hst)   	// one more for the now invisible (,,) constructor 
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,,) constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 # (nc,hst)				= gHc (init,reuseFormId formid c) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed
@@ -63,7 +63,7 @@ where
 	(a,b,c)				= formid.ival
 
 gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
-# (na,hst)				= gHa (init,reuseFormId formid a) (incrHSt 1 hst)   	// one more for the now invisible (,,) constructor 
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,,) constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 # (nc,hst)				= gHc (init,reuseFormId formid c) hst
 # (nd,hst)				= gHd (init,reuseFormId formid d) hst
@@ -77,7 +77,7 @@ where
 // <-> works exactly the same as (,) and places its arguments next to each other, for compatibility with GEC's
 
 gForm{|(<->)|} gHa gHb (init,formid) hst
-# (na,hst)				= gHa (init,reuseFormId formid a) (incrHSt 1 hst)   	// one more for the now invisible <-> constructor 
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible <-> constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed 
 	, value				= na.value <-> nb.value
@@ -89,7 +89,7 @@ where
 // <|> works exactly the same as PAIR and places its arguments below each other, for compatibility with GEC's
 
 gForm{|(<|>)|} gHa gHb (init,formid) hst 
-# (na,hst)				= gHa (init,reuseFormId formid a) (incrHSt 1 hst)		// one more for the now invisible <|> constructor
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)		// one more for the now invisible <|> constructor
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed 
 	, value				= na.value <|> nb.value
@@ -103,19 +103,19 @@ where
 gForm{|DisplayMode|} gHa (init,formid) hst 	
 = case formid.ival of
 	(HideMode a)
-		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHSt 1 hst)
+		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
 		= (	{ changed	= na.changed 
 			, value		= HideMode na.value
 			, form		= [EmptyBody]
 			},hst)
 	(DisplayMode a)
-		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHSt 1 hst)
+		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
 		= (	{ changed	= False
 			, value		= DisplayMode na.value
 			, form		= na.form
 			},hst)
 	(EditMode a) 
-		# (na,hst)		= gHa (init,reuseFormId formid a <@ Edit) (incrHSt 1 hst)
+		# (na,hst)		= gHa (init,reuseFormId formid a <@ Edit) (incrHStCntr 1 hst)
 		= (	{ changed	= na.changed
 			, value		= EditMode na.value
 			, form		= na.form
@@ -124,7 +124,7 @@ gForm{|DisplayMode|} gHa (init,formid) hst
 		= (	{ changed	= False
 			, value		= EmptyMode
 			, form		= [EmptyBody]
-			},incrHSt 1 hst)
+			},incrHStCntr 1 hst)
 
 // Buttons to press
 cleanString :: !String -> String
@@ -135,7 +135,7 @@ where
 
 
 gForm{|Button|} (init,formid) hst 
-# (cntr,hst)			= CntrHSt hst
+# (cntr,hst)			= getHStCntr hst
 = case formid.ival of
 	v=:(LButton size bname)
 	= (	{ changed		= False
@@ -147,7 +147,7 @@ gForm{|Button|} (init,formid) hst
 							, `Inp_Std		[Std_Style ("width:" <+++ size), Std_Id (encodeInputId (formid.id,cntr,UpdS bname))]
 							, `Inp_Events	(callClean OnClick Edit (encodeTriplet (formid.id,cntr,UpdS bname)) formid.lifespan True)
 							]) ""]
-		},(incrHSt 1 hst))
+		},(incrHStCntr 1 hst))
 	v=:(PButton (height,width) ref)
 	= (	{ changed		= False
 		, value			= v
@@ -159,12 +159,12 @@ gForm{|Button|} (init,formid) hst
 							, `Inp_Events	(callClean OnClick Edit (encodeTriplet (formid.id,cntr,UpdS ref)) formid.lifespan True)
 							, Inp_Src ref
 							]) ""]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 	Pressed
 	= gForm {|*|} (init,(setFormId formid (LButton defpixel "??"))) hst // end user should reset button
 
 gForm{|CheckBox|} (init,formid) hst 
-# (cntr,hst)			= CntrHSt hst
+# (cntr,hst)			= getHStCntr hst
 = case formid.ival of
 	v=:(CBChecked name) 
 	= (	{ changed		= False
@@ -177,7 +177,7 @@ gForm{|CheckBox|} (init,formid) hst
 							, `Inp_Std		[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
 							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 	v=:(CBNotChecked name)
 	= (	{ changed		= False
 		, value			= v
@@ -188,10 +188,10 @@ gForm{|CheckBox|} (init,formid) hst
 							, `Inp_Std		[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
 							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 
 gForm{|RadioButton|} (init,formid) hst 
-# (cntr,hst)			= CntrHSt hst
+# (cntr,hst)			= getHStCntr hst
 = case formid.ival of
 	v=:(RBChecked name)
 	= (	{ changed		= False
@@ -204,7 +204,7 @@ gForm{|RadioButton|} (init,formid) hst
 							, `Inp_Std			[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
 							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 	v=:(RBNotChecked name)
 	= (	{ changed		= False
 		, value			= v
@@ -215,10 +215,10 @@ gForm{|RadioButton|} (init,formid) hst
 							, `Inp_Std			[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
 							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan False)
 							]) ""]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 
 gForm{|RadioGroup|} (init, formid) hst
-# (cntr, hst)			= CntrHSt hst
+# (cntr, hst)			= getHStCntr hst
 = case formid.ival of
 	v=:(RadioGroup (sel, itemlist))
 	= ( { changed		= False
@@ -233,11 +233,11 @@ gForm{|RadioGroup|} (init, formid) hst
 							] ++ [Label [Lbl_For ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)] body, Br] )
 							\\ body <- itemlist & i <- [0..]
 						  ]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 
 
 gForm{|PullDownMenu|} (init,formid) hst=:{submits}
-# (cntr,hst)			= CntrHSt hst
+# (cntr,hst)			= getHStCntr hst
 = case formid.ival of
 	v=:(PullDown (size,width) (menuindex,itemlist))
 	= (	{ changed		= False
@@ -256,12 +256,12 @@ gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 								elem
 								\\ elem <- itemlist & j <- [0..]
 							]]
-		},incrHSt 1 hst)
+		},incrHStCntr 1 hst)
 
 gForm{|TextInput|} (init,formid) hst 	
-# (cntr,hst)			= CntrHSt hst
+# (cntr,hst)			= getHStCntr hst
 # (body,hst)			= mkInput size (init,formid) v updv hst
-= ({changed=False, value=formid.ival, form=[body]},incrHSt 2 hst)
+= ({changed=False, value=formid.ival, form=[body]},incrHStCntr 2 hst)
 where
 	(size,v,updv)		= case formid.ival of
 							(TI size i) = (size,IV i,UpdI i)
@@ -269,7 +269,7 @@ where
 							(TS size s) = (size,SV (cleanString s),UpdS s)
 
 gForm{|TextArea|} (init,formid) hst 
-# (cntr,hst)			= CntrHSt hst
+# (cntr,hst)			= getHStCntr hst
 = (	{ changed			= False
 	, value				= formid.ival
 	, form				= [myTable [	[ Textarea 	((onMode formid.mode [] [] [Txa_Disabled Disabled] []) ++
@@ -281,7 +281,7 @@ gForm{|TextArea|} (init,formid) hst
 						  					]) string ]
 						  			]
 						  ]
-	},incrHSt 1 hst)
+	},incrHStCntr 1 hst)
 where
 	(TextArea row col string) = formid.ival
 
@@ -303,7 +303,7 @@ gForm{|PasswordBox|} (init,formid) hst
 	= ({ changed		= False
 	   , value			= PasswordBox password
 	   , form			= [body]
-	   },incrHSt 1 hst)
+	   },incrHStCntr 1 hst)
 where
 	mkPswInput :: !Int !(InIDataId d) String UpdValue !*HSt -> (!BodyTag,!*HSt) 
 	mkPswInput size (init,formid=:{mode}) sval updval hst=:{cntr,submits}
@@ -315,7 +315,7 @@ where
 					, `Inp_Std		[EditBoxStyle, Std_Title "::Password", Std_Id (encodeInputId (formid.id,cntr,updval))]
 					, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange Edit "" formid.lifespan False) []
 					] ""
-			,incrHSt 1 hst)
+			,incrHStCntr 1 hst)
 	| mode == Display
 		= ( Input 	[ Inp_Type		Inp_Password
 					, Inp_Value		(SV (cleanString sval))
@@ -323,8 +323,8 @@ where
 					, `Inp_Std		[DisplayBoxStyle]
 					, Inp_Size		size
 					] ""
-			,incrHSt 1 hst)
-	= ( EmptyBody,incrHSt 1 hst )
+			,incrHStCntr 1 hst)
+	= ( EmptyBody,incrHStCntr 1 hst )
 
 // time and date
 
@@ -380,12 +380,12 @@ where
 		
 gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
 		RefreshTimer timeout
-			# (cntr,hst)			= CntrHSt hst
+			# (cntr,hst)			= getHStCntr hst
 			# triplet = encodeTriplet (formid.id,cntr,UpdS "timer")
 			# inputid = encodeInputId (formid.id,cntr,UpdS "timer")
 			# timedcode = "toClean(document.getElementById('" +++ inputid +++ "'),'" +++ triplet +++ "',true,false," +++ (IF_ClientTasks "true" "false") +++ ");"
 			# script =  [InlineCode ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
-			= ({ changed = False, value = formid.ival, form = script}, incrHSt 1 hst)
+			= ({ changed = False, value = formid.ival, form = script}, incrHStCntr 1 hst)
 
 
 // Updates that have to be treated specially:
