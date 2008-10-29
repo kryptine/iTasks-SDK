@@ -3,7 +3,7 @@ implementation module EncodeDecode
 // encoding and decoding of information
 // (c) 2005 MJP
 
-import StdArray, StdBool, StdInt, StdList, StdOrdList, StdString, StdTuple, ArgEnv, StdMaybe, Directory
+import StdArray, StdBool, StdInt, StdList, StdOrdList, StdString, StdTuple, StdFile, ArgEnv, StdMaybe, Directory
 import iDataTrivial, iDataFormData, StdBimap
 import GenPrint, GenParse
 import dynamic_string

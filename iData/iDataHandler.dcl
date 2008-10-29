@@ -5,6 +5,7 @@ definition module iDataHandler
 
 import iDataHtmlDef, iDataFormData, iDataSettings
 import GenPrint, GenParse
+import NWorld
 
 generic gForm a	:: !(InIDataId a) !*HSt -> *(Form a, !*HSt)							// user defined gForms: use "specialize"	
 generic gUpd  a	:: UpdMode a -> (UpdMode,a)											// gUpd can simply be derived
@@ -30,6 +31,7 @@ derive bimap Form, FormId
 				  , world	:: *NWorld			// to enable all other kinds of I/O
 				  }	
 
+
 :: Inline 		= Inline String
 
 :: UserPage 	:== .(*HSt -> .((!Bool,!String),Html,!*HSt))
@@ -37,8 +39,6 @@ derive bimap Form, FormId
 // doHtmlServer & doHtmlClient main wrappers for generating & handling of Html forms
 
 doHtmlWrapper :: !UserPage !*World -> *World
-
-//import InternaliTasksCommon
 
 // mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 // Make sure that all editors have a unique identifier!

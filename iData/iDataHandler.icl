@@ -1,6 +1,6 @@
 implementation module iDataHandler
 
-import StdArray, StdChar, StdList, StdStrictLists, StdString, StdTuple
+import StdArray, StdChar, StdList, StdStrictLists, StdString, StdTuple, StdFile
 import ArgEnv, StdMaybe
 import iDataHtmlDef, iDataTrivial, iDataSettings, iDataStylelib, iDataState
 import StdGeneric, GenParse, GenPrint

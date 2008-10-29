@@ -4,25 +4,10 @@ definition module PrintUtil
 // (c) MJP 2005
 
 import StdGeneric
-import StdFile
-import Gerda
-import DataFile
 
 :: *HtmlStream	:== [# String !]
 
 :: FoF			:== (*HtmlStream -> *HtmlStream)
-
-:: *NWorld								// io states...
-	= 	{ worldC	:: *World			// world for any io
-		, inout		:: *HtmlStream		// to read from stdin and write to stdout
-		, gerda		:: *Gerda			// to read and write to a relational database
-		, datafile	:: *DataFile		// to read and write to a Clean database in a file
-		}				
-instance FileSystem NWorld
-
-appWorldNWorld	:: !.(*World -> *World)       !*NWorld -> *NWorld
-accWorldNWorld	:: !.(*World -> *(.a,*World)) !*NWorld -> (.a,!*NWorld)
-
 
 // generic function for printing tags
 // Constructors are converted to html tag strings
