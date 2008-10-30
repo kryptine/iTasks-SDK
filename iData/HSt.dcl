@@ -34,3 +34,12 @@ mkHSt :: HTTPRequest *FormStates *NWorld -> *HSt
 getHStCntr				:: !*HSt -> (!Int,!*HSt)										// HSt.cntr
 setHStCntr				:: !Int !*HSt -> *HSt											// HSt.cntr := HSt.cntr
 incrHStCntr				:: !Int !*HSt -> *HSt											// HSt.cntr := HSt.cntr + n
+
+// Explicit removal of all (Persistent) IData for with the same prefix IData form id
+// Change lifespan of all IData with the same prefix IData form id
+
+deleteIData			:: !String !*HSt -> *HSt
+changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
+
+
+getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user

@@ -47,3 +47,22 @@ setHStCntr i hst					= {hst & cntr = i}
 
 incrHStCntr :: !Int !*HSt -> *HSt
 incrHStCntr i hst					= {hst & cntr = hst.cntr + i}
+
+// It can be convenient to explicitly delete IData, in particular for persistent IData object
+// or to optimize iTasks
+// All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
+
+deleteIData :: !String !*HSt -> *HSt
+deleteIData prefix hst=:{states,world}
+# (states,world) = deleteStates prefix states world
+= {hst & states = states, world = world}
+
+changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
+changeLifespanIData prefix oldspan newspan hst=:{states,world}
+# (states,world) = changeLifetimeStates  prefix oldspan newspan states world
+= {hst & states = states, world = world}
+
+getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
+getChangedId hst=:{states}
+# (ids,states)					= getUpdateId states
+= (ids,{hst & states = states })

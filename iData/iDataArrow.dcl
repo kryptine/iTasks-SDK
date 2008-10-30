@@ -3,7 +3,7 @@ definition module iDataArrow
 // arrow implementation for Html GEC's
 // (c) 2005 MJP
 
-import iDataHandler
+import iDataForms
 import StdArrow
 
 // GEC circuit from a to b, for Html

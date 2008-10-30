@@ -3,7 +3,7 @@ definition module iDataButtons
 // Prdefined i-Data making html Buttons, forms, and lay-out 
 // (c) 2005 MJP
 
-import iDataHandler
+import iDataForms
 import GenLexOrd
 
 derive gForm 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, HTML, PasswordBox, RefreshTimer

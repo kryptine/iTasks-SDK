@@ -26,28 +26,14 @@ derive write 	Inline
 
 doHtmlWrapper :: !UserPage !*World -> *World
 
-
-
-// Explicit removal of all (Persistent) IData for with the same prefix IData form id
-// Change lifespan of all IData with the same prefix IData form id
-
-deleteIData			:: !String !*HSt -> *HSt
-changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
-
 // utility functions
 toBody 				:: (Form a) -> HtmlTag											// just (BodyTag form.body)
-
-
 showHtml 			:: [HtmlTag] -> Inline											// enabling to show Html code in Clean data
 
 // Specialists section...
 
 // Added for testing of iData applications with GAST
-
-
 runUserApplication	:: .(*HSt -> *(.a,*HSt)) HTTPRequest *FormStates *NWorld -> *(.a,*FormStates,*NWorld)
 
-// Some low level utility functions handy when specialize cannot be used, only to be used by experts !!
 
-getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
 

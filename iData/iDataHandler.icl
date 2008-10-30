@@ -12,8 +12,8 @@ import StdBimap
 import HSt
 import Html
 
-:: InputId	 	:== Int							// unique id for every constructor and basic value appearing in the state
-:: FormUpdate	:== (InputId,UpdValue)			// info obtained when form is updated
+:: InputId	 	:== Int					// unique id for every constructor and basic value appearing in the state
+:: FormUpdate	:== (InputId,UpdValue)	// info obtained when form is updated
 
 :: Inline 		= Inline String
 
@@ -186,21 +186,6 @@ doHtmlClient userpage world
 # world							= snd (fclose sio world)
 = world
 
-
-// It can be convenient to explicitly delete IData, in particular for persistent IData object
-// or to optimize iTasks
-// All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
-
-deleteIData :: !String !*HSt -> *HSt
-deleteIData prefix hst=:{states,world}
-# (states,world) = deleteStates prefix states world
-= {hst & states = states, world = world}
-
-changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
-changeLifespanIData prefix oldspan newspan hst=:{states,world}
-# (states,world) = changeLifetimeStates  prefix oldspan newspan states world
-= {hst & states = states, world = world}
-
 toBody :: (Form a) -> HtmlTag
 toBody form						= BodyTag [] form.form
 
@@ -217,13 +202,6 @@ gForm{|Inline|} (init,formid) hst
 
 showHtml :: [HtmlTag] -> Inline
 showHtml tags = Inline (foldl (+++) "" (map toString tags))
-
-
-getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
-getChangedId hst=:{states}
-# (ids,states)					= getUpdateId states
-= (ids,{hst & states = states })
-
 
 // test interface
 

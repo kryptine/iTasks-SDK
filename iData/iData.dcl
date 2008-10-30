@@ -1,4 +1,4 @@
-definition module StdiData
+definition module iData
 
 // top level module for generating Clean Web applications using the iData technique
 // any of these modules can directly be used by the application programmer
@@ -9,7 +9,6 @@ import
 			iDataSettings		// some global settings
 		,	iDataFormData		// general iData type definitions
 		,	iDataForms			// calculation of iData forms (*the core module*)
-		,	iDataHandler		// the framework for communication and persistent storage 
 
 		,	iDataButtons		// basic collections of buttons, data types for lay-out	control	
 		,	iDataFormlib		// collection of advanced iData creating functions  

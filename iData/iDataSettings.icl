@@ -1,6 +1,6 @@
 implementation module iDataSettings
 
-import iDataHandler, ArgEnv, StdList, iDataTrivial, StdArray
+import ArgEnv, StdList, iDataCompileOptions, iDataTrivial, StdArray
 
 
 // global names setting depending on kind of server used

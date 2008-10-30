@@ -3,7 +3,7 @@ definition module iDataFormData
 // common data type definition used for forms
 // (c) 2005 - MJP
 
-import iDataHandler
+import iDataForms
 import StdMaybe, StdBool
 import GenEq
 import Html
