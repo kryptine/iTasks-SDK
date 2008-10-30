@@ -1,7 +1,5 @@
-definition module iDataFormData
+definition module FormId
 
-// common data type definition used for forms
-// (c) 2005 - MJP
 
 import iDataForms
 import StdMaybe, StdBool
@@ -15,11 +13,6 @@ import Html
 		, storage	:: !StorageFormat			// serialization method
 		, ival		:: !d						// initial value
 		}
-
-:: Init											// Usage of the value stored in FormId
-	=	Const									//	The value is a constant
-	|	Init 									// 	The value is taken as initial value
-	|	Set  									// 	The value will be used as new iData value
 
 :: Lifespan										// 	defines how long a form will be maintained		
 	=	Database								//	persistent form stored in Database using generic db functions from Gerda
@@ -37,38 +30,44 @@ import Html
 	| 	Display									// 	a non-editable form
 	|	NoForm									//	do not generate a form, only a value
 
-:: HBimap d v 									// swiss army knife allowing to make a distinction between data and view domain
-	=	{ toForm   	:: Init d (Maybe v) -> v	// 	converts data to view domain, given current view
-		, updForm 	:: Changed v -> v			// 	update function, True when the form is edited 
-		, fromForm 	:: Changed v -> d			// 	converts view back to data domain, True when form is edited
-		, resetForm :: Maybe (v -> v)			// 	can be used to reset view (eg for buttons)
-		}
-:: Changed
-	=	{ isChanged	:: Bool						// is this form changed
-		, changedId	:: [String]					// id's of changed forms
-		}
 :: StorageFormat								// Serialization method:
 	=	StaticDynamic							// + higher order types, fast, NO dynamic linker needed; - works only for a specific application !
 	| 	PlainString								// - first order types only, slow (requires generic parser); + can be used by anyone who knows the type
 
-:: Form a 										// result of any form
-	=	{ changed 	:: Bool						// the user has edited the form
-		, value		:: a						// current value in data domain 
-		, form		:: [HtmlTag]				// html code to create the form, representing view domain
-		}
+:: Init											//  Usage of the value stored in FormId
+	=	Const									//	The value is a constant
+	|	Init 									// 	The value is taken as initial value
+	|	Set  									// 	The value will be used as new iData value
 
 :: InIDataId d	:==	(!Init,!FormId d)			// Often used parameter of iData editors
-:: IDataFun a	:== St *HSt (Form a)			// Often used iData HSt State transition functions
 
-// **** easy creation of FormId's ****
 
+/**
+* Create a default FormId
+*/
+mkFormId :: !String !d -> FormId d				// mkFormId str val = {id = str, ival = val} <@ Page <@ Edit <@ PlainString
+
+/**
+* Set the attributes of a FormId
+*/
 class   (<@) infixl 4 att :: !(FormId d) !att -> FormId d
 
 instance <@ String								// formId <@ x = {formId & id       = x}
 instance <@ Lifespan							// formId <@ x = {formId & lifespan = x}
 instance <@ Mode								// formId <@ x = {formId & mode     = x}
 instance <@ StorageFormat						// formId <@ x = {formId & storage  = x}
-mkFormId :: !String !d -> FormId d				// mkFormId str val = {id = str, ival = val} <@ Page <@ Edit <@ PlainString
+
+setFormId 	:: !(FormId d) !d	-> FormId d		// set new initial value in formid
+
+/**
+* Create common InIDataId values
+*/
+initID		:: !(FormId d)				-> InIDataId d	// (Init,FormId a)
+setID		:: !(FormId d) !d			-> InIDataId d	// (Set,FormId a)
+
+/**
+* Alternative functions for creating FormIds
+*/
 
 // editable, string format
 tFormId		:: !String !d -> FormId d			// temp
@@ -109,20 +108,17 @@ rdDFormId	:: !String !d -> FormId d			// persistent read only + static dynamic f
 dbdDFormId	:: !String !d -> FormId d			// database             + static dynamic format + display
 
 // to create new FormId's ou of an existing one, handy for making unique identifiers
-
 extidFormId :: !(FormId d) !String 		-> FormId d		// make new id by adding sufix 
 subFormId 	:: !(FormId a) !String !d 	-> FormId d		// make new id for a new type by adding suffix
 subnFormId 	:: !(FormId a) !String !d 	-> FormId d		// idem with lifespan Page
 subsFormId 	:: !(FormId a) !String !d 	-> FormId d		// idem with lifespan Session
-subpFormId 	:: !(FormId a) !String !d 	-> FormId d		// idem with lifespan Persitent
+subpFormId 	:: !(FormId a) !String !d 	-> FormId d		// idem with lifespan Persistent
 subtFormId 	:: !(FormId a) !String !d 	-> FormId d		// idem with lifespan Temp
-
-setFormId 	:: !(FormId d) !d			-> FormId d		// set new initial value in formid
 reuseFormId :: !(FormId a) !d			-> FormId d		// reuse id for new type (only to be used in gform)
 
-initID		:: !(FormId d)				-> InIDataId d	// (Init,FormId a)
-setID		:: !(FormId d) !d			-> InIDataId d	// (Set,FormId a)
-
+/**
+* Utility functions
+*/
 onMode 		:: !Mode a a a a -> a						// chose arg depending on Edit, Submit, Display, NoForm
 
 // manipulating initial values
@@ -130,6 +126,7 @@ onMode 		:: !Mode a a a a -> a						// chose arg depending on Edit, Submit, Disp
 toViewId	:: !Init !d! (Maybe d) -> d					// copy second on Set or if third is Nothing
 toViewMap	:: !(d -> v) !Init !d !(Maybe v) -> v		// same, but convert to view domain
 
+// neccesary instances of standard classes
 instance toBool Init
 instance <  Lifespan
 instance toString Lifespan 	

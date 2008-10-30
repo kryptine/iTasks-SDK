@@ -5,7 +5,7 @@ definition module EncodeDecode
 
 import StdMaybe
 import GenParse, GenPrint
-import iDataFormData
+import FormId
 
 :: HtmlState  		:== (!Formid,!Lifespan,!StorageFormat,!SerializedState)
 :: Formid			:== String		// uniquely named !

@@ -4,7 +4,7 @@ implementation module iDataFormlib
 // (c) MJP 2005
 
 import StdEnum, StdFunc, StdList, StdString, StdTuple
-import iDataButtons, iDataFormData, iDataTrivial
+import iDataButtons, iDataTrivial
 import StdLib, StdBimap
 
 derive gForm []; derive gUpd []

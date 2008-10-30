@@ -5,7 +5,7 @@ implementation module InternaliTasksCommon
 // *********************************************************************************************************************************
 //
 import StdList, StdArray, StdFunc, StdTuple
-import iDataHandler, iDataFormData, iDataTrivial
+import iDataForms, iDataTrivial
 import iTasksSettings
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string

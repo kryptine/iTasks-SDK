@@ -1,6 +1,6 @@
 module test
 
-import StdEnv, StdiTasks, StdiData
+import StdEnv, StdiTasks, iData
 
 // Test program to experiment with the new ExtJS based Web-GUI
 

@@ -1,15 +1,11 @@
  implementation module iDataState
 
-// encoding and decoding of information
-// (c) 2005 MJP
-
 import StdArray, StdList, StdOrdList, StdString, StdTuple, ArgEnv, StdMaybe, Directory
-import iDataTrivial, iDataFormData, EncodeDecode
+import iDataTrivial, EncodeDecode
 import GenPrint, GenParse
 import dynamic_string
 import EstherBackend
-//import Debug // TEMP
-
+import FormId
 
 // This module controls the handling of state forms and the communication with the browser
 // iData states are maintained in a binary tree
@@ -29,8 +25,8 @@ import EstherBackend
 				, focusid	:: !String							// which input has the focus
 				}		
 
-:: FStates		:== Tree_ !(!String,!FormState)					// each form needs a different string id
-:: Tree_ a 		= Node_ !(Tree_ !a) !a !(Tree_ !a) | Leaf_
+:: FStates		:== Tree_ (!String,!FormState)					// each form needs a different string id
+:: Tree_ a 		= Node_ (Tree_ a) !a !(Tree_ a) | Leaf_
 :: FormState 	= OldState !FState								// Old states are the states from the previous calculation
 				| NewState !FState 								// New states are newly created states or old states that have been inspected and updated
 :: FState		= { format	:: !Format							// Encoding method used for serialization
@@ -336,7 +332,7 @@ storeFormStates prefix {fstates = allFormStates, focusid = focus} world
 where
 	sprefix = size prefix
 
-	FStateToHtmlState :: !(Tree_ !(!String,!.FormState)) !*[HtmlState] -> *[HtmlState]
+	FStateToHtmlState :: !(Tree_ (!String,!.FormState)) !*[HtmlState] -> *[HtmlState]
 	FStateToHtmlState Leaf_ accu	= accu
 	FStateToHtmlState (Node_ left x right) accu
 		= case htmlStateOf x of

@@ -1,10 +1,30 @@
 definition module iDataForms
 
-import iDataFormData, iDataSettings
+import iDataSettings
 import iDataState
 import GenPrint, GenParse
 
 import HSt
+import FormId
+
+:: Form a 										// result of any form
+	=	{ changed 	:: Bool						// the user has edited the form
+		, value		:: a						// current value in data domain 
+		, form		:: [HtmlTag]				// html code to create the form, representing view domain
+		}
+
+:: HBimap d v 									// swiss army knife allowing to make a distinction between data and view domain
+	=	{ toForm   	:: Init d (Maybe v) -> v	// 	converts data to view domain, given current view
+		, updForm 	:: Changed v -> v			// 	update function, True when the form is edited 
+		, fromForm 	:: Changed v -> d			// 	converts view back to data domain, True when form is edited
+		, resetForm :: Maybe (v -> v)			// 	can be used to reset view (eg for buttons)
+		}
+:: Changed
+	=	{ isChanged	:: Bool						// is this form changed
+		, changedId	:: [String]					// id's of changed forms
+		}
+
+:: IDataFun a	:== St *HSt (Form a)			// Often used iData HSt State transition functions
 
 /**
 * mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.

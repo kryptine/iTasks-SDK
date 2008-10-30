@@ -7,7 +7,6 @@ definition module iData
 import
 // iData modules:
 			iDataSettings		// some global settings
-		,	iDataFormData		// general iData type definitions
 		,	iDataForms			// calculation of iData forms (*the core module*)
 
 		,	iDataButtons		// basic collections of buttons, data types for lay-out	control	

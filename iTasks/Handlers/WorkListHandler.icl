@@ -5,7 +5,7 @@ import Http
 import Text
 import JSON
 import Time
-import iDataHandler
+import iDataForms
 import TaskTree, TaskTreeFilters, InternaliTasksCommon
 
 :: WorkListItem 	= 	{ taskid		:: String 					// Task id of the work item

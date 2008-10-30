@@ -1,4 +1,4 @@
-implementation module iDataFormData
+implementation module FormId
 
 import StdBool, StdInt, StdString
 import iDataSettings
@@ -17,6 +17,12 @@ instance <@ StorageFormat where <@ formId a	= {formId & storage  = a}
 
 mkFormId :: !String !d -> FormId d				// Default FormId with given id and ival.
 mkFormId s d = {id = s, lifespan = Page, mode = Edit, storage = PlainString, ival = d}
+
+initID :: !(FormId d) -> InIDataId d	// (Init,FormId a)
+initID formid			= (Init,formid)
+
+setID :: !(FormId d) !d -> InIDataId d	// (Set,FormId a)
+setID formid na			= (Set,setFormId formid na)
 
 // editable, string format
 
@@ -53,14 +59,8 @@ pdDFormId	:: !String !d -> FormId d;			pdDFormId  s d = pDFormId  s d <@ Display
 rdDFormId	:: !String !d -> FormId d;			rdDFormId  s d = rDFormId  s d <@ Display
 dbdDFormId	:: !String !d -> FormId d;			dbdDFormId s d = dbDFormId s d <@ Display
 
-
-// create id's
-
-(++/) infixr 5
-(++/) s1 s2				= s1 +++ iDataIdSeparator +++ s2
-
 extidFormId :: !(FormId d) !String -> FormId d
-extidFormId formid s	= formid <@ formid.id ++/ s
+extidFormId formid s	= formid <@ formid.id +++ iDataIdSeparator +++ s
 
 subFormId :: !(FormId a) !String !d -> FormId d			// make new formid of new type copying other old settinf
 subFormId formid s d	= reuseFormId (extidFormId formid s) d
@@ -82,12 +82,6 @@ setFormId formid d		= reuseFormId formid d
 
 reuseFormId :: !(FormId d) !v -> FormId v
 reuseFormId formid v	= {formid & ival = v}
-
-initID :: !(FormId d) -> InIDataId d	// (Init,FormId a)
-initID formid			= (Init,formid)
-
-setID :: !(FormId d) !d -> InIDataId d	// (Set,FormId a)
-setID formid na			= (Set,setFormId formid na)
 
 onMode :: !Mode a a a a -> a
 onMode Edit    e1 e2 e3 e4 = e1
@@ -112,6 +106,7 @@ instance < Lifespan     where (<) l1 l2 = toInt l1 < toInt l2
 
 instance toBool Init    where toBool Set = True
 							  toBool _   = False
+
 instance toInt Lifespan where toInt Temp			= 0
 							  toInt Client			= 1
 							  toInt Page			= 2
@@ -130,4 +125,3 @@ instance toString Lifespan where
 							  toString TxtFile		= "TxtFile"
 							  toString DataFile		= "DataFile"
 							  toString Database		= "Database"
-

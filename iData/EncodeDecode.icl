@@ -4,11 +4,12 @@ implementation module EncodeDecode
 // (c) 2005 MJP
 
 import StdArray, StdBool, StdInt, StdList, StdOrdList, StdString, StdTuple, StdFile, ArgEnv, StdMaybe, Directory
-import iDataTrivial, iDataFormData, StdBimap
+import iDataTrivial, StdBimap
 import GenPrint, GenParse
 import dynamic_string
 import EstherBackend
-import HttpTextUtil
+import Http, HttpTextUtil
+import FormId
 //import sapldebug
 
 derive gParse UpdValue, (,,), (,)

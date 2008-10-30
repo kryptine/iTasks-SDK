@@ -10,7 +10,7 @@ defpixel :== 100
 
 import StdList, StdTuple, StdFunc
 import iTasksTypes
-import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
+import iDataSettings, iDataForms, iDataTrivial, iDataButtons, iDataFormlib
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
 editTaskLabel tracename prompt task = \tst =:{options} -> mkTask tracename ((editTask` prompt task <<@ (nPage options)) <<@ Edit) tst

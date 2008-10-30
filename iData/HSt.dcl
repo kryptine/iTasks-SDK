@@ -9,7 +9,6 @@ import iDataState
 from Http import :: HTTPRequest
 from StdFile import class FileSystem
 
-
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
 				  , submits	:: !Bool			// True if we are in submitting mode
 				  , issub	:: !Bool			// True if this form is a subform of another
@@ -19,12 +18,10 @@ from StdFile import class FileSystem
 				  }	
 				  
 // Definitions on HSt
-
 instance FileSystem HSt																// enabling file IO on HSt
 
 appWorldHSt			:: !.(*World -> *World)       !*HSt -> *HSt						// enabling World operations on HSt
 accWorldHSt			:: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)				// enabling World operations on HSt
-
 
 // Create a new HSt
 mkHSt :: HTTPRequest *FormStates *NWorld -> *HSt

@@ -8,7 +8,7 @@ implementation module Startup
 // *********************************************************************************************************************************
 //
 import StdEnv
-import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
+import iDataSettings, iDataForms, iDataTrivial, iDataButtons, iDataFormlib
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 import TaskTreeFilters
@@ -20,7 +20,7 @@ import TaskTree, StdStrictLists
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
 					, threadStorageLoc	:: !Lifespan		
-					, showUsersOn		:: !Maybe !Int	
+					, showUsersOn		:: !Maybe Int	
 					, versionCheckOn	:: !Bool
 					, headerOff			:: !Maybe HtmlCode
 					, testModeOn		:: !Bool
@@ -41,7 +41,7 @@ initTst thisUser itaskstorage threadstorage hst
 					, options 		= initialOptions thisUser itaskstorage
 					}
 
-initialOptions ::  !UserId !Lifespan  -> !Options 
+initialOptions ::  !UserId !Lifespan  -> Options 
 initialOptions thisUser location 
 				=	{ tasklife 		= if (thisUser >= 0) location Session 
 					, taskstorage 	= PlainString
@@ -69,7 +69,7 @@ defaultStartUpOptions
 // ******************************************************************************************************
 // *** Server / Client startup
 // ******************************************************************************************************
-:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),HtmlTag,!*HSt)))
+:: UserTaskPage a	:== ((Task a) -> .(*HSt -> .((!Bool,!String),HtmlTag,!*HSt)))
 
 doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
 doTaskWrapper userpageHandler mainTask world = doHtmlServer userpageHandler mainTask world
@@ -135,7 +135,7 @@ doStaticResource req world
 							   	,rsp_data = content}, world)		 							   
 	= http_notfoundResponse req world
 
-handleTaskRequest :: (!HTTPRequest *HSt -> (!HTTPResponse, *HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleTaskRequest :: (HTTPRequest *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen

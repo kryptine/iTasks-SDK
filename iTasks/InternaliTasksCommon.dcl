@@ -6,7 +6,6 @@ definition module InternaliTasksCommon
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iDataFormData
 import iTasksSettings
 import Time
 
