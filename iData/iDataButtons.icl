@@ -13,18 +13,7 @@ derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, Check
 
 EmptyBody :== SpanTag [] []
 defpixel :== 100
-defsize :== 100
-
-/*
-:: TextInput	= TI Int Int						// Input box of size Size for Integers
-				| TR Int Real						// Input box of size Size for Reals
-				| TS Int String						// Input box of size Size for Strings
-
-
-// Types that have an effect on lay-out
-
-:: HTML = HTML [BodyTag]
-*/
+defsize	:== 10
 
 gForm {|HTML|} (init,formid ) hst	= specialize myeditor (Set,formid) hst
 where
@@ -269,13 +258,13 @@ gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 
 gForm{|TextInput|} (init,formid) hst 	
 # (cntr,hst)			= getHStCntr hst
-# (body,hst)			= mkInput size (init,formid) v updv hst
+# (body,hst)			= mkInput(init,formid) v updv hst
 = ({changed=False, value=formid.ival, form=[body]},incrHStCntr 2 hst)
 where
-	(size,v,updv)		= case formid.ival of
-							(TI size i) = (size,toString i,UpdI i)
-							(TR size r) = (size,toString r,UpdR r)
-							(TS size s) = (size,(cleanString s),UpdS s)
+	(v,updv)			= case formid.ival of
+							(TI i) = (toString i,UpdI i)
+							(TR r) = (toString r,UpdR r)
+							(TS s) = (cleanString s,UpdS s)
 
 gForm{|TextArea|} (init,formid) hst 
 # (cntr,hst)			= getHStCntr hst
@@ -301,19 +290,18 @@ gUpd{|TextArea|}       mode                      t					= (mode,                 
 gForm{|PasswordBox|} (init,formid) hst 	
 = case formid.ival of
 	(PasswordBox password) 
-	# (body,hst)		= mkPswInput defsize (init,formid) password (UpdS password) hst
+	# (body,hst)		= mkPswInput (init,formid) password (UpdS password) hst
 	= ({ changed		= False
 	   , value			= PasswordBox password
 	   , form			= [body]
 	   },incrHStCntr 1 hst)
 where
-	mkPswInput :: !Int !(InIDataId d) String UpdValue !*HSt -> (!HtmlTag,!*HSt) 
-	mkPswInput size (init,formid=:{mode}) sval updval hst=:{cntr,submits}
+	mkPswInput :: !(InIDataId d) String UpdValue !*HSt -> (!HtmlTag,!*HSt) 
+	mkPswInput (init,formid=:{mode}) sval updval hst=:{cntr,submits}
 	| mode == Edit || mode == Submit
 		= ( InputTag 	([ TypeAttr		"password"
 						, ValueAttr		(cleanString sval)
 						, NameAttr		(encodeTriplet (formid.id,cntr,updval))
-						, SizeAttr		(toString size)
 						, IdAttr (encodeInputId (formid.id,cntr,updval))
 						] ++ if (mode == Edit && not submits) (callClean "change" Edit "" formid.lifespan False) [] )
 			
@@ -321,7 +309,6 @@ where
 	| mode == Display
 		= ( InputTag 	[ TypeAttr		"password"
 						, ValueAttr		(cleanString sval)
-						, SizeAttr		(toString size)
 						]
 			,incrHStCntr 1 hst)
 	= ( SpanTag [][] ,incrHStCntr 1 hst )
@@ -413,11 +400,11 @@ gUpd{|RadioGroup|} 	(UpdSearch val cnt)       v					= (UpdSearch val (cnt - 1),v
 gUpd{|RadioGroup|} 	(UpdCreate l)             _					= (UpdCreate l,            RadioGroup (0,["error"]))				// create default value
 gUpd{|RadioGroup|}	mode                      v					= (mode,                   v)										// don't change
 
-gUpd{|TextInput|}    (UpdSearch (UpdI ni) 0)   (TI size i)		= (UpdDone,                TI size ni)								// update integer value
-gUpd{|TextInput|}    (UpdSearch (UpdR nr) 0)   (TR size r)		= (UpdDone,                TR size nr)								// update real    value
-gUpd{|TextInput|}    (UpdSearch (UpdS ns) 0)   (TS size s)		= (UpdDone,                TS size ns)								// update string  value
+gUpd{|TextInput|}    (UpdSearch (UpdI ni) 0)   (TI i)			= (UpdDone,                TI ni)									// update integer value
+gUpd{|TextInput|}    (UpdSearch (UpdR nr) 0)   (TR r)			= (UpdDone,                TR nr)									// update real    value
+gUpd{|TextInput|}    (UpdSearch (UpdS ns) 0)   (TS s)			= (UpdDone,                TS ns)									// update string  value
 gUpd{|TextInput|}    (UpdSearch val cnt)       i				= (UpdSearch val (cnt - 3),i)										// continue search, don't change
-gUpd{|TextInput|}    (UpdCreate l)             _				= (UpdCreate l,            TS defsize "")							// create default value
+gUpd{|TextInput|}    (UpdCreate l)             _				= (UpdCreate l,            TS "")									// create default value
 gUpd{|TextInput|}    mode                      i				= (mode,                   i)										// don't change
 
 gUpd{|PasswordBox|}  (UpdSearch (UpdS name) 0) _				= (UpdDone,                PasswordBox name)						// update password value

@@ -55,9 +55,9 @@ instance -			HtmlTime
 :: RadioGroup	= RadioGroup (Int,[String])			// radiobutton group (item chosen, label list)
 
 :: PullDownMenu	= PullDown (Int,Int) (Int,[String]) // pulldownmenu (number visible,width) (item chosen,menulist)		
-:: TextInput	= TI Int Int						// Input box of size Size for Integers
-				| TR Int Real						// Input box of size Size for Reals
-				| TS Int String						// Input box of size Size for Strings
+:: TextInput	= TI Int							// Input box of size Size for Integers
+				| TR Real							// Input box of size Size for Reals
+				| TS String							// Input box of size Size for Strings
 :: TextArea		= TextArea Int Int String			// Input Area Box, row col initial string
 													// Only works in Submit mode due to Html restrictions!
 :: PasswordBox	= PasswordBox String

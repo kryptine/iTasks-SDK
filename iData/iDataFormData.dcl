@@ -53,8 +53,8 @@ import Html
 
 :: Form a 										// result of any form
 	=	{ changed 	:: Bool						// the user has edited the form
-		, value		:: a						// current value in data domain (feel)
-		, form		:: [HtmlTag]				// html code to create the form, representing view domain (look)
+		, value		:: a						// current value in data domain 
+		, form		:: [HtmlTag]				// html code to create the form, representing view domain
 		}
 
 :: InIDataId d	:==	(!Init,!FormId d)			// Often used parameter of iData editors

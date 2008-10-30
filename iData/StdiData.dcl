@@ -5,12 +5,11 @@ definition module StdiData
 // (c) 2005 - 2006 Rinus Plasmeijer
 
 import
-
 // iData modules:
-
 			iDataSettings		// some global settings
 		,	iDataFormData		// general iData type definitions
-		,	iDataHandler		// *the* kernel module for iData creation and handling
+		,	iDataForms			// calculation of iData forms (*the core module*)
+		,	iDataHandler		// the framework for communication and persistent storage 
 
 		,	iDataButtons		// basic collections of buttons, data types for lay-out	control	
 		,	iDataFormlib		// collection of advanced iData creating functions  
@@ -21,7 +20,6 @@ import
 		,	iDataArrow			// arrow instantiations for iData forms
 
 // automatic data base storage and retrieval
-
 
 // of general use:
 
