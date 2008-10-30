@@ -24,7 +24,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 // It does everything, a swiss army knife editor that makes coffee too ...
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world,submits,issub} 
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world,issub} 
 | init == Const	&& formid.lifespan <> Temp
 = mkViewForm (init,{formid & lifespan = Temp}) bm hst					// constant i-data are never stored
 | init == Const															// constant i-data, no look up of previous value
@@ -53,7 +53,7 @@ where
 		  ,mkHSt request states world)
 
 	# (viewform,{states,world})											// make a form for it
-							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt request states world & submits = submits, issub = issub})
+							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt request states world & issub = issub})
 
 	| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
 							= calcnextView True (Just viewform.value) states world
@@ -120,10 +120,10 @@ where
 // The value might have been changed with this editor, so the value returned might differ from the value you started with!
 
 specialize :: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (!Form a,!*HSt) | gUpd {|*|} a
-specialize editor (init,formid) hst=:{cntr = inidx,states = formStates,submits,world}
+specialize editor (init,formid) hst=:{cntr = inidx,states = formStates,world}
 # nextidx					= incrIndex inidx formid.ival		// this value will be repesented differently, so increment counter 
 # (nv,hst) 					= editor (init,nformid) (setHStCntr 0 hst)
-= (nv,{setHStCntr nextidx hst & submits = submits})
+= (nv,setHStCntr nextidx hst)
 where
 	nformid					= {formid & id = formid.id <+++ "_specialize_" <+++ inidx <+++ "_"}
 
@@ -151,10 +151,10 @@ gForm{|Real|} (init,formid) hst
 where
 	r						= formid.ival 
 
-gForm{|Bool|} (init,formid) hst=:{cntr,submits}
+gForm{|Bool|} (init,formid) hst=:{cntr}
 = ({ changed				= False
    , value					= formid.ival
-   , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid submits]
+   , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid]
    },setHStCntr (cntr+1) hst)
 
 gForm{|String|} (init,formid) hst 	
@@ -192,7 +192,7 @@ gForm{|OBJECT|} gHo (init,formid) hst
 = ({no & value=OBJECT no.value},hst)
 where
 	(OBJECT o) = formid.ival
-gForm{|CONS of t|} gHc (init,formid) hst=:{cntr,submits}
+gForm{|CONS of t|} gHc (init,formid) hst=:{cntr}
 | not (isEmpty t.gcd_fields) 		 
 	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display record constructor
 	= ({nc & value=CONS nc.value},hst)
@@ -211,8 +211,8 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr,submits}
 where
 	(CONS c)				= formid.ival
 
-mkConsSelector formid thiscons hst=:{cntr,submits} // PK: lifted to a global function 
-						= (mkConsSel cntr myname allnames myindex formid submits, setHStCntr (cntr+1) hst)
+mkConsSelector formid thiscons hst=:{cntr} // PK: lifted to a global function 
+						= (mkConsSel cntr myname allnames myindex formid, setHStCntr (cntr+1) hst)
 where
 	myname				= thiscons.gcd_name
 	allnames			= map (\n -> n.gcd_name) thiscons.gcd_type_def.gtd_conses
@@ -220,8 +220,8 @@ where
 							-1			-> abort ("cannot find index of " +++ myname )
 							i			-> i
 
-mkConsSel :: Int String [String] Int (FormId x) Bool -> HtmlTag  // PK: lifted to a global function 
-mkConsSel cntr myname list nr formid submits
+mkConsSel :: Int String [String] Int (FormId x) -> HtmlTag  // PK: lifted to a global function 
+mkConsSel cntr myname list nr formid
 	= SelectTag [ NameAttr (selectorInpName +++ encodeString myname): styles ]		// changed to see changes in case of a submit
 			 [ OptionTag
 				[ValueAttr (encodeTriplet (formid.id,cntr,UpdC elem)) : if (j == nr) [SelectedAttr] [] ] [Text elem]
@@ -229,7 +229,7 @@ mkConsSel cntr myname list nr formid submits
 			 ] 
 	where
 		styles			= case formid.mode of
-							Edit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))] ++ (if submits [] (callClean "change" Edit "" formid.lifespan True))
+							Edit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))] ++ (callClean "change" Edit "" formid.lifespan True)
 							Submit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))]
 							_		-> [ DisabledAttr]
 
@@ -355,7 +355,7 @@ gUpd{|(->)|} gUpdArg gUpdRes mode f
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
 mkForm (init,formid) hst =: {issub}
-# (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = (formid.mode == Submit), issub = True}	//Use gForm to create the html form
+# (form,hst) 	= gForm{|*|} (init,formid) {hst & issub = True}										//Use gForm to create the html form
 # buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
 						[ BrTag []
 						, InputTag [TypeAttr "submit", ValueAttr "Submit"]
@@ -378,13 +378,13 @@ mkForm (init,formid) hst =: {issub}
 
 // small utility functions
 mkInput :: !(InIDataId d) String UpdValue !*HSt -> (HtmlTag,*HSt) 
-mkInput (init,formid=:{mode}) val updval hst=:{cntr,submits} 
+mkInput (init,formid=:{mode}) val updval hst=:{cntr} 
 | mode == Edit || mode == Submit
 	= ( InputTag 	[ TypeAttr		"text"
 					, ValueAttr		val
 					, NameAttr		(encodeTriplet (formid.id,cntr,updval))
 					, IdAttr (encodeInputId (formid.id,cntr,updval))
-					: if (mode == Edit && not submits) (callClean "change" formid.mode "" formid.lifespan False) []
+					: if (mode == Edit ) (callClean "change" formid.mode "" formid.lifespan False) []
 					]
 	  , setHStCntr (cntr+1) hst)
 | mode == Display

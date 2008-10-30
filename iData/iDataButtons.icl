@@ -232,7 +232,7 @@ gForm{|RadioGroup|} (init, formid) hst
 		},incrHStCntr 1 hst)
 
 
-gForm{|PullDownMenu|} (init,formid) hst=:{submits}
+gForm{|PullDownMenu|} (init,formid) hst
 # (cntr,hst)			= getHStCntr hst
 = case formid.ival of
 	v=:(PullDown (size,width) (menuindex,itemlist))
@@ -244,7 +244,7 @@ gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 							, SizeAttr			(toString size)
 							, StyleAttr ("width:" <+++ width <+++ "px")
 							, IdAttr (encodeInputId (formid.id,cntr,UpdS ""))
-							] ++ (if submits [] (callClean "change" formid.mode "" formid.lifespan False))
+							] ++ (callClean "change" formid.mode "" formid.lifespan False)
 							)
 							[ OptionTag 
 								[ ValueAttr (encodeTriplet (formid.id,cntr,UpdC (itemlist!!j)))
@@ -297,13 +297,13 @@ gForm{|PasswordBox|} (init,formid) hst
 	   },incrHStCntr 1 hst)
 where
 	mkPswInput :: !(InIDataId d) String UpdValue !*HSt -> (!HtmlTag,!*HSt) 
-	mkPswInput (init,formid=:{mode}) sval updval hst=:{cntr,submits}
+	mkPswInput (init,formid=:{mode}) sval updval hst=:{cntr}
 	| mode == Edit || mode == Submit
 		= ( InputTag 	([ TypeAttr		"password"
 						, ValueAttr		(cleanString sval)
 						, NameAttr		(encodeTriplet (formid.id,cntr,updval))
 						, IdAttr (encodeInputId (formid.id,cntr,updval))
-						] ++ if (mode == Edit && not submits) (callClean "change" Edit "" formid.lifespan False) [] )
+						] ++ if (mode == Edit) (callClean "change" Edit "" formid.lifespan False) [] )
 			
 			,incrHStCntr 1 hst)
 	| mode == Display

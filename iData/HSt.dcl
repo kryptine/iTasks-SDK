@@ -10,7 +10,6 @@ from Http import :: HTTPRequest
 from StdFile import class FileSystem
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
-				  , submits	:: !Bool			// True if we are in submitting mode
 				  , issub	:: !Bool			// True if this form is a subform of another
 				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , states	:: !*FormStates  	// all form states are collected here ... 

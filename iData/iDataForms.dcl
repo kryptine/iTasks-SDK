@@ -14,10 +14,10 @@ import FormId
 		}
 
 :: HBimap d v 									// swiss army knife allowing to make a distinction between data and view domain
-	=	{ toForm   	:: Init d (Maybe v) -> v	// 	converts data to view domain, given current view
-		, updForm 	:: Changed v -> v			// 	update function, True when the form is edited 
-		, fromForm 	:: Changed v -> d			// 	converts view back to data domain, True when form is edited
-		, resetForm :: Maybe (v -> v)			// 	can be used to reset view (eg for buttons)
+	=	{ toForm   	:: Init d (Maybe v) -> v	// converts data to view domain, given current view
+		, updForm 	:: Changed v -> v			// update function, True when the form is edited 
+		, fromForm 	:: Changed v -> d			// converts view back to data domain, True when form is edited
+		, resetForm :: Maybe (v -> v)			// can be used to reset view (eg for buttons)
 		}
 :: Changed
 	=	{ isChanged	:: Bool						// is this form changed
