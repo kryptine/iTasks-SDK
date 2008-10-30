@@ -4,13 +4,13 @@ definition module iDataState
 // (c) 2005 - MJP
 
 import GenParse, GenPrint
-import iDataHtmlDef, EncodeDecode
+import EncodeDecode
 
 // Maintaining the internal state of all forms
 
 :: *FormStates 													// collection of all states of all forms
 
-emptyFormStates		:: !*FormStates								// creates empty states
+emptyFormStates		:: *FormStates								// creates empty states
 
 findState 			:: !(FormId a) !*FormStates !*NWorld			// find the state value given FormId and a correct type
 					-> (!Bool, !Maybe a,!*FormStates,!*NWorld)		// true if form has not yet been previously inspected 	
@@ -35,7 +35,7 @@ getAllTriplets 		:: !*FormStates -> (!Triplets,!*FormStates)	// retrieve all tri
 
 // tracing all states ...
 
-traceStates :: !*FormStates -> (!BodyTag,!*FormStates)
+traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
 
 // fstate handling used for testing only
 

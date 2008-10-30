@@ -4,7 +4,7 @@
 // (c) 2005 MJP
 
 import StdArray, StdList, StdOrdList, StdString, StdTuple, ArgEnv, StdMaybe, Directory
-import iDataHtmlDef, iDataTrivial, iDataFormData, EncodeDecode
+import iDataTrivial, iDataFormData, EncodeDecode
 import GenPrint, GenParse
 import dynamic_string
 import EstherBackend
@@ -392,12 +392,12 @@ where
 
 // trace States
  
-traceStates :: !*FormStates -> (!BodyTag,!*FormStates)
+traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
 traceStates formstates=:{fstates}
 # (bodytags,fstates) = traceStates` fstates
-= (BodyTag [Br, B [] "State values when application ended:",Br,		
-			 STable [] ([[B [] "Id:", B[] "Inspected:", B [] "Lifespan:", B [] "Format:", B [] "Value:"]] ++ 
-						 bodytags)
+= (BodyTag [] [BrTag [] , BTag [] [Text "State values when application ended:"],BrTag [],		
+			 TableTag [] [TrTag [] [TdTag [] [BTag [] [Text "Id:"], BTag [] [Text "Inspected:"], BTag [] [Text "Lifespan:"], BTag [] [Text "Format:"], BTag [] [Text"Value:"]]],
+						 TrTag [] [TdTag [] (flatten bodytags)]]
 			],{formstates & fstates = fstates})
 where
 	traceStates` Leaf_		= ([],Leaf_)
@@ -407,13 +407,13 @@ where
 	# (rightTrace,right)	= traceStates` right
 	= (leftTrace ++ nodeTrace ++ rightTrace,Node_ left a right)
 
-	nodeTrace (id,OldState fstate=:{format,life}) = [[Txt id,Txt "No", Txt (toString life):toStr format]]
-	nodeTrace (id,NewState fstate=:{format,life}) = [[Txt id,Txt "Yes",Txt (toString life):toStr format]]
+	nodeTrace (id,OldState fstate=:{format,life}) = [[Text id,Text "No", Text (toString life):toStr format]]
+	nodeTrace (id,NewState fstate=:{format,life}) = [[Text id,Text "Yes",Text (toString life):toStr format]]
 	
-	toStr (PlainStr str) 	= [Txt "String", Txt str]
-	toStr (StatDyn  dyn) 	= [Txt "S_Dynamic", Txt (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]
-	toStr (DBStr    str _) 	= [Txt "Database", Txt str]
-	toStr (CLDBStr  str _) 	= [Txt "DataFile", Txt str]
+	toStr (PlainStr str) 	= [Text "String", Text str]
+	toStr (StatDyn  dyn) 	= [Text "S_Dynamic", Text (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]
+	toStr (DBStr    str _) 	= [Text "Database", Text str]
+	toStr (CLDBStr  str _) 	= [Text "DataFile", Text str]
 	
 strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
 

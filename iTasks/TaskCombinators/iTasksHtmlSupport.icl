@@ -7,8 +7,10 @@ implementation module iTasksHtmlSupport
 // *********************************************************************************************************************************
 //
 import StdList, StdFunc
-import iDataTrivial, iDataFormlib, iDataStylelib
+import iDataTrivial, iDataFormlib
 import iTasksTypes
+
+defpixel :== 100
 
 /*
 Prompting variants:

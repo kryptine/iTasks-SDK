@@ -7,7 +7,8 @@ definition module iTasksSettings
 // *********************************************************************************************************************************
 //
 import StdOverloaded
-import iDataHtmlDef, iDataStylelib, iDataTrivial
+import iDataTrivial, iDataSettings
+import Html
 
 defaultUser						:== 0												// the system starts with this user id... 
 
@@ -20,13 +21,12 @@ applicationVersionNr			:== ThisExe <+++ "_Version"
 userVersionNr thisUser			:== "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	:== "User" <+++ thisUser <+++ "_VersionSNr" 
 
-showText   		text :== Txt text
-showLabel  		text :== TxtStyle  LabelStyle 		text
-showMainLabel	text :== TxtStyle  MainLabelStyle   text
-showHighLight	text :== TxtStyle  HighLightStyle   text
-showLowLight	text :== TxtStyle  LowLightStyle	text
-showTrace  		text :== TxtStyle  TraceStyle 		text
+showText   		text :== Text text
+showLabel  		text :== Text text
+showMainLabel	text :== Text text
+showHighLight	text :== Text text
+showLowLight	text :== Text text
+showTrace  		text :== Text text
 
-TxtStyle style message :== Font [`Fnt_Std [style]] [Txt (toString message)]
 
 

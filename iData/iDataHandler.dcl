@@ -3,10 +3,12 @@ definition module iDataHandler
 // Converting Clean types to iData for automatic generation and dealing with Html form's ..
 // (c) MJP 2005, 2006, 2007
 
-import iDataHtmlDef, iDataFormData, iDataSettings
+import iDataFormData, iDataSettings
+import iDataState
 import GenPrint, GenParse
 import HSt
 import NWorld
+import Html
 
 generic gForm a	:: !(InIDataId a) !*HSt -> *(Form a, !*HSt)							// user defined gForms: use "specialize"	
 generic gUpd  a	:: UpdMode a -> (UpdMode,a)											// gUpd can simply be derived
@@ -26,7 +28,7 @@ derive bimap Form, FormId
 
 :: Inline 		= Inline String
 
-:: UserPage 	:== .(*HSt -> .((!Bool,!String),Html,!*HSt))
+:: UserPage 	:== .(*HSt -> .((!Bool,!String),HtmlTag,!*HSt))
 
 // doHtmlServer & doHtmlClient main wrappers for generating & handling of Html forms
 
@@ -49,25 +51,24 @@ specialize			:: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (
 		
 // utility functions
 
-toHtml 				:: a -> BodyTag 			| gForm {|*|} a						// toHtml displays any type into a non-editable form
-toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] 						// toHtmlForm displays any form one can make with a form function
+toHtml 				:: a -> HtmlTag 			| gForm {|*|} a						// toHtml displays any type into a non-editable form
+toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 						// toHtmlForm displays any form one can make with a form function
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
-toBody 				:: (Form a) -> BodyTag											// just (BodyTag form.body)
+toBody 				:: (Form a) -> HtmlTag											// just (BodyTag form.body)
 createDefault 		:: a						| gUpd{|*|} a 						// creates a default value of requested type
 
-showHtml 			:: [BodyTag] -> Inline											// enabling to show Html code in Clean data
+showHtml 			:: [HtmlTag] -> Inline											// enabling to show Html code in Clean data
 
 // Specialists section...
 
 // Added for testing of iData applications with GAST
 
-import iDataState
 
 runUserApplication	:: .(*HSt -> *(.a,*HSt)) HTTPRequest *FormStates *NWorld -> *(.a,*FormStates,*NWorld)
 
 // Some low level utility functions handy when specialize cannot be used, only to be used by experts !!
 
-mkInput				:: !Int !(InIDataId d) Value UpdValue !*HSt -> (BodyTag,*HSt)	// Html Form Creation utility 
+mkInput				:: !Int !(InIDataId d) String UpdValue !*HSt -> (HtmlTag,*HSt)	// Html Form Creation utility 
 getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
 
 :: UpdMode			= UpdSearch UpdValue Int										// search for indicated postion and update it

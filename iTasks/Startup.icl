@@ -69,7 +69,7 @@ defaultStartUpOptions
 // ******************************************************************************************************
 // *** Server / Client startup
 // ******************************************************************************************************
-:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),Html,!*HSt)))
+:: UserTaskPage a	:== (!(Task a) -> .(*HSt -> .((!Bool,!String),HtmlTag,!*HSt)))
 
 doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
 doTaskWrapper userpageHandler mainTask world = doHtmlServer userpageHandler mainTask world
@@ -139,13 +139,13 @@ handleTaskRequest :: (!HTTPRequest *HSt -> (!HTTPResponse, *HSt)) !HTTPRequest *
 handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
-	# nworld 					= {worldC = world, inout = [|], gerda = gerda, datafile = datafile}	
+	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state	
 	# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
-	# hst						= (mkHSt request initforms nworld)							// Create the HSt
+	# hst						= mkHSt request initforms nworld							// Create the HSt
 	# (response,hst =:{states,world})	= handler request hst								// Apply handler
 
-	# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-	# (pagestate, focus, world =: {worldC,gerda,inout,datafile})	
+	# (debugOutput,states)		= if TraceOutput (traceStates states) (BodyTag [] [],states)	// Optional show debug information
+	# (pagestate, focus, world =: {worldC,gerda,datafile})	
 		= storeFormStates "" states world													// Store all state information
 	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 	# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
@@ -165,19 +165,22 @@ openmDataFile datafile world
 closemDataFile datafile world
 :== IF_DataFile (closeDataFile datafile world) world
 
-mkCssTag :: HeadTag
-mkCssTag = Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]
+mkPage :: [HtmlAttr] [HtmlTag] [HtmlAttr] [HtmlTag] -> HtmlTag
+mkPage headattr headtags bodyattr bodytags = HtmlTag [] [HeadTag headattr headtags, BodyTag bodyattr bodytags]
 
-mkJsTag :: HeadTag
-mkJsTag = Hd_Script [Scr_Src (ThisExe +++ "/js/clean.js"), Scr_Type TypeJavascript ] (SScript "")
+mkCssTag :: HtmlTag
+mkCssTag = LinkTag [TypeAttr "text/css", RelAttr "stylesheet", HrefAttr "css/clean.css"] []
 
-mkInfoDiv :: String String -> BodyTag
+mkJsTag :: HtmlTag
+mkJsTag = ScriptTag [SrcAttr (ThisExe +++ "/js/clean.js"), TypeAttr "text/javascript"] []
+
+mkInfoDiv :: String String -> HtmlTag
 mkInfoDiv state focus =
-	Div [`Div_Std [Std_Style "display:none"]] [
-	Div [`Div_Std [Std_Id "GS"]] [Txt state],
-	Div [`Div_Std [Std_Id "FS"]] [Txt focus],
-	Div [`Div_Std [Std_Id "AN"]] [Txt ThisExe],
-	Div [`Div_Std [Std_Id "OPT-ajax"]] [Txt (IF_Ajax "true" "false")]
+	DivTag [StyleAttr "display: none"] [
+		DivTag [IdAttr "GS"] [Text state],
+		DivTag [IdAttr "FS"] [Text focus],
+		DivTag [IdAttr "AN"] [Text ThisExe],
+		DivTag [IdAttr "OPT-ajax"] [Text (IF_Ajax "true" "false")]
 	]
 
 // ******************************************************************************************************
@@ -246,16 +249,19 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # (sversion,hst)	 	= setSVersionNr thisUser id hst
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr && not noNewVersion 		// test if there is a version conflict				
 
-# iTaskHeader			=	[Table [Tbl_Width (Percent 100)] [Tr [] 
-							[ Td [] [Img [Img_Src (ThisExe +++ "/img/clean-logo.jpg"),Img_Align Alo_Middle]
+
+/*
+# iTaskHeader			=	[TableTag [WidthAttr "100%"] [TrTag [] 
+							[ TdTag [] [ImgTag [SrcAttr (ThisExe +++ "/img/clean-logo.jpg"),Img_Align Alo_Middle]
 									,showHighLight " i -Task", showLabel " Workflow System "]
 							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
 							[Hr []]
+*/
 | versionconflict	 
 	# iTaskInfo			=
-		(mkDiv True "debug-client" [showLabel "Client: ", Hr []]) ++
-		(mkDiv True "debug-server" [showLabel "Server: Cannot apply request. Version conflict. Please refresh the page!", Hr []])
-	= ((True,""),[Ajax [("thePage",iTaskHeader ++ iTaskInfo)]],hst)
+		(mkDiv True "debug-client" [showLabel "Client: ", HrTag []]) ++
+		(mkDiv True "debug-server" [showLabel "Server: Cannot apply request. Version conflict. Please refresh the page!", HrTag []])
+	= ((True,""),[DivTag [ClassAttr "itasks-ajax",IdAttr "thePage"] [] /* (iTaskHeader ++  iTaskInfo)]*/ ],hst)
 
 // Here the iTasks are evaluated ...
 													    
@@ -289,32 +295,35 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 											( [showText " - Task#: ", showTrace (showTaskNr  event)] ++
 											  if (isEmpty threads || showCompletePage) [] [showText (" - Thread(s)#: "/* +++ prefix*/), showTrace threadsText]
 											 ) [] ++
-										[Br,Hr []]
+										[BrTag,HrTag []]
 									)
 								Just userInfo -> userInfo
 								
 # iTaskInfoDivs			=	IF_Ajax (
-							(IF_ClientServer (mkDiv showCompletePage "debug-client" [showLabel "Client: ",Hr []]) []) ++ 
+							(IF_ClientServer (mkDiv showCompletePage "debug-client" [showLabel "Client: ",HrTag []]) []) ++ 
 							(mkDiv showCompletePage "debug-server" iTaskInfo)
 							) []
 							
 # iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [printTrace2 trace ]
-| showCompletePage		=	((toServer,""),[Ajax [("thePage",iTaskHeader ++
+| showCompletePage		=	((toServer,""),[DivTag [ClassAttr "itasks-ajax",IdAttr "thePage"] [] /* ++
 															iTaskInfoDivs ++
 															if (doTrace && traceOn)
 																	iTaskTraceInfo
 																	[	leftright taskname subbuts
 																		, mainbuts <=>  seltask
 																	]
-											)]
+													*/
 									] 
 							,hst)
 # (newthread,oldthreads)=	(hd threads, tl threads)
-| otherwise				=	((toServer,""),[Ajax ([(IF_Client "debug-client" "debug-server", iTaskInfo)] ++			// header info
+| otherwise				=	((toServer,""),[DivTag [ClassAttr "itasks-ajax", IdAttr (IF_Client "debug-client" "debug-server")] [] ]
+/*
+											[iTaskInfo ++			// header info
 											[(showTaskNr childthreads,[showText " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
 											[(showTaskNr newthread, if (isEmpty threadcode) seltask threadcode)]	// task info
-										   )
-									]
+											]]
+*/
+									
 							,hst)
 where
 	determine_prefix:: !UserId ![TaskNr] -> String
@@ -325,10 +334,11 @@ where
 	= iTaskId user smallest ""
 
 	leftright left right 
-	=	Table [Tbl_Width (Percent 100)] 
-			[Tr []	[ Td [] left
-					, Td [Td_Align Aln_Right] right]
-					]
+	=	TableTag [WidthAttr "100%"] 
+			[TrTag []	[ TdTag [] left
+						, TdTag [AlignAttr "right"] right
+						]
+			]
 
 	nilTable tst = 	([],tst)
 
@@ -349,7 +359,7 @@ where
 	  [showTrace (IF_ClientServer	"" " - Client" )] ++
 	  [showTrace (IF_Database "" " - Database" )] ++
 	  [showTrace (IF_DataFile "" " - DataFile" )] ++
-	  [Br,Hr []]
+	  [BrTag [],HrTag []]
 
 
 // ******************************************************************************************************
@@ -357,7 +367,7 @@ where
 // ******************************************************************************************************
 
 mkDiv :: !Bool !String !HtmlCode -> HtmlCode
-mkDiv False id bodytag = bodytag
-mkDiv True id bodytag = [Div [`Div_Std [Std_Id id, Std_Class "thread"]] bodytag]
+mkDiv False id bodytags = bodytags
+mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "thread"] bodytags]
 
 

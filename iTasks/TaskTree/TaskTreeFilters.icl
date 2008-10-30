@@ -34,7 +34,7 @@ collectTaskList pred (DivCode id tree)
 determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!HtmlCode,!*HSt)
 determineTaskForTab thisuser thistaskid tree hst
 # mytree = determineTaskTree thisuser thistaskid tree
-| isNothing mytree = ([Txt "Html code belonging to indicated task could not be found\n"],hst)
+| isNothing mytree = ([Text "Html code belonging to indicated task could not be found\n"],hst)
 # (threadcode,taskname,mainbuts,subbuts,seltask,hst)	
 						= Filter True thisuser thisuser (fromJust mytree) hst
 = (	if (isEmpty threadcode) seltask threadcode,hst)
@@ -69,7 +69,7 @@ noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
 noFilter (DivCode str html) = noFilter html
 
 
-Filter :: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
+Filter :: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],!*HSt)
 Filter wholepage thisUser thrOwner tree hst
 # startuser			= if wholepage defaultUser thrOwner
 # (threadcode,accu) = collect thisUser startuser [](initialTaskDescription @@: tree)  // KLOPT DIT WEL ??
@@ -84,14 +84,14 @@ Filter wholepage thisUser thrOwner tree hst
 # subButtons		= if (length subtasksnames > 1) subButtons []
 = (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask],mainButtons,subButtons,tcode!!taskSelected,hst)
 where
-	unziptasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] -> (![WorkflowLabel],![[(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])]])
+	unziptasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag])] -> (![WorkflowLabel],![[(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag])]])
 	unziptasks [] 			= ([],[])
 	unziptasks all=:[(pid,wlabel,tlabel,tcode):tasks] 
 	# (wsubtask,other) 		= span (\(mpid,_,_,_) ->  mpid == pid) all 
 	# (wlabels,wsubtasks)	= unziptasks other
 	= ([wlabel:wlabels],[wsubtask:wsubtasks])
 
-	unzipsubtasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] -> (![TaskLabel],![[BodyTag]])
+	unzipsubtasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag])] -> (![TaskLabel],![[HtmlTag]])
 	unzipsubtasks []		= ([],[])
 	unzipsubtasks [(pid,wlabel,tlabel,tcode):subtasks]		
 	# (labels,codes)		= unzipsubtasks subtasks
@@ -116,7 +116,7 @@ where
 			, timeCreated	= Time 0
 			}							
 
-collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])] !HtmlTree -> (![BodyTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![BodyTag])])
+collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag])] !HtmlTree -> (![HtmlTag],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag])])
 collect thisuser taskuser accu (description @@: tree) 	// collect returns the wanted code, and the remaining code
 # (myhtml,accu)	= collect thisuser description.taskWorkerId accu tree									// collect all code of this user belonging to this task
 | thisuser == description.taskWorkerId && not (isEmpty myhtml)
@@ -142,6 +142,6 @@ collect thisuser taskuser accu (DivCode id tree)
 = ([],accu)
 
 mkDiv :: !Bool !String !HtmlCode -> HtmlCode
-mkDiv False id bodytag = bodytag
-mkDiv True id bodytag = [Div [`Div_Std [Std_Id id, Std_Class "thread"]] bodytag]
+mkDiv False id bodytags = bodytags
+mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "thread"] bodytags]
 

@@ -37,7 +37,7 @@ instance -			HtmlTime
 				| HideMode    a						// hiding a
 				| EmptyMode							// nothing to display or hide
 
-:: HTML = HTML [BodyTag]							// to print html: NOT Parsed, CANNOT be stored NOR retrieved
+:: HTML = HTML [HtmlTag]							// to print html: NOT Parsed, CANNOT be stored NOR retrieved
 
 // buttons representing classical html buttons
 

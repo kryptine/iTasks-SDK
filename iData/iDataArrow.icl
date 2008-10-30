@@ -19,7 +19,7 @@ where
 
 :: GecCircuit a b 	
 	= HGC !((GecCircuitState a)  -> GecCircuitState b)
-:: *GecCircuitState a :== *((a, [(String,BodyTag)]), GecCircuitChanged, *HSt )
+:: *GecCircuitState a :== *((a, [(String,HtmlTag)]), GecCircuitChanged, *HSt )
 :: GecCircuitChanged :== Bool
 
 
@@ -41,21 +41,21 @@ edit formid = HGC mkApplyEdit`
 where
 	mkApplyEdit` ((initval,prevbody),ch,hst) 
 	# (na,hst) = mkApplyEditForm (Init,setFormId formid initval) initval hst
-	= ((na.value,[(formid.id,BodyTag na.form):prevbody]),ch||na.changed,hst) // propagate change
+	= ((na.value,[(formid.id, DivTag [] na.form ):prevbody]),ch||na.changed,hst) // propagate change
 
 display :: (FormId a) -> GecCircuit a a |  iData a
 display formid = HGC mkEditForm`
 where
 	mkEditForm` ((val,prevbody),ch,hst) 
 	# (na,hst) = mkEditForm (Set,setFormId {formid & mode = Display} val) hst
-	= ((na.value,[(formid.id,BodyTag na.form):prevbody]),ch||na.changed,hst)
+	= ((na.value,[(formid.id,DivTag [] na.form):prevbody]),ch||na.changed,hst)
 
 store :: (FormId s) -> GecCircuit (s -> s) s |  iData s
 store formid = HGC mkStoreForm`
 where
 	mkStoreForm` ((fun,prevbody),ch,hst) 
 	# (store,hst) = mkStoreForm (Init,formid) fun hst
-	= ((store.value,[(formid.id,BodyTag store.form):prevbody]),ch||store.changed,hst)
+	= ((store.value,[(formid.id,DivTag [] store.form):prevbody]),ch||store.changed,hst)
 
 self :: (a -> a) !(GecCircuit a a) -> GecCircuit a a
 self fun gecaa = feedback gecaa (arr fun)
@@ -94,9 +94,9 @@ lift (Set,formid) fun = HGC fun`
 where
 	fun` ((a,body),ch,hst)
 	# (nb,hst) =  fun (setID formid a) hst
-	= ((nb.value,[(formid.id,BodyTag nb.form):body]),ch||nb.changed,hst) 
+	= ((nb.value,[(formid.id,DivTag [] nb.form):body]),ch||nb.changed,hst) 
 lift (Init,formid) fun = HGC fun`
 where
 	fun` ((a,body),ch,hst)
 	# (nb,hst) =  fun (Init, setFormId formid a) hst
-	= ((nb.value,[(formid.id,BodyTag nb.form):body]),ch||nb.changed,hst) 
+	= ((nb.value,[(formid.id,DivTag [] nb.form):body]),ch||nb.changed,hst) 

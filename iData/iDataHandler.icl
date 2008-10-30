@@ -1,17 +1,19 @@
 implementation module iDataHandler
 
+defsize :== 100
+
 import StdArray, StdChar, StdList, StdStrictLists, StdString, StdTuple, StdFile
 import ArgEnv, StdMaybe
-import iDataHtmlDef, iDataTrivial, iDataSettings, iDataStylelib, iDataState
+import iDataTrivial, iDataSettings, iDataState
 import StdGeneric, GenParse, GenPrint
-import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
+import Http, HttpUtil, HttpServer, HttpTextUtil
 import Gerda
 import StdBimap
 import HSt
+import Html
 
 derive gPrint (,), (,,), (,,,), UpdValue
 derive gParse (,), (,,), (,,,), UpdValue
-derive gHpr   (,), (,,), (,,,)
 derive gUpd		   (,,), (,,,)
 derive bimap Form, FormId
 
@@ -107,67 +109,65 @@ doStaticResource req world
 // Request handler which handles dynamically generated pages.
 doDynamicResource :: !UserPage !HTTPRequest !*World -> (!HTTPResponse, !*World)
 doDynamicResource userpage request world
-	# (toServer,html,world)	= doHtmlPage request userpage [|] world
-	= ({http_emptyResponse & rsp_data = (toString html)}, world)
+	# (toServer,html,world)	= doHtmlPage request userpage world
+	= ({http_emptyResponse & rsp_data = html}, world)
 
 // General entry used by all servers and client to calculate the next page
-doHtmlPage :: !HTTPRequest !.UserPage !*HtmlStream !*World -> (!Bool,!*HtmlStream,!*World)
-doHtmlPage request userpage inout world
+doHtmlPage :: !HTTPRequest !.UserPage !*World -> (!Bool,!String,!*World)
+doHtmlPage request userpage world
 # (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 # (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
-# nworld 					= {worldC = world, inout = inout, gerda = gerda, datafile = datafile}	
+# nworld 					= {worldC = world, gerda = gerda, datafile = datafile}	
 # (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
 # hst						= (mkHSt request initforms nworld) 							// Create the HSt
-# ((toServer,prefix),Html (Head headattr headtags) (Body bodyattr bodytags),{states,world}) 
+# ((toServer,prefix),html /*HtmlTag attr [HeadTag headattr headtags, BodyTag bodyattr bodytags] */,{states,world}) 
 							= userpage hst												// Call the user application
-# (debugOutput,states)		= if TraceOutput (traceStates states) (EmptyBody,states)	// Optional show debug information
-# (pagestate, focus, world=:{worldC,gerda,inout,datafile})	
+# (debugOutput,states)		= if TraceOutput (traceStates states) (SpanTag [] [],states)			// Optional show debug information
+# (pagestate, focus, world=:{worldC,gerda, datafile})	
 							= storeFormStates prefix states world						// Store all state information
 # worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
 # worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
-# inout						= IF_Ajax
-								(print_to_stdout "" inout <+
-								(pagestate) <+ State_FormList_Separator <+				// state information
-        		 				AjaxCombine bodytags [debugInput,debugOutput]			// page, or part of a page
+/*
+# html						= IF_Ajax
+								(pagestate +++ State_FormList_Separator +++				// state information
+        		 					toString (AjaxCombine bodytags debugInput debugOutput )	// page, or part of a page
 								)
-								(print_to_stdout 										// Print out all html code
-									(Html (Head headattr [mkJsTag, mkCssTag : headtags]) 
-									(Body bodyattr [mkInfoDiv pagestate focus : bodytags ++ [debugInput,debugOutput]]))
-									inout
+								(toString 										// Print out all html code
+									(HtmlTag [] [HeadTag headattr [mkJsTag, mkCssTag : headtags],
+												 BodyTag bodyattr [mkInfoDiv pagestate focus : bodytags ++ [debugInput,debugOutput]] ])
 								)
-= (toServer,inout,worldC)
+*/
+# html						= toString html
+= (toServer,html,worldC)
 where
-	AjaxCombine [Ajax bodytags:ys] [EmptyBody,EmptyBody] 	= [Ajax bodytags:ys]
-	AjaxCombine [Ajax bodytags:ys] debug 					= [Ajax [("debug",debug):bodytags]:ys]
-	AjaxCombine [] debug 									= abort "AjaxCombine cannot combine empty result"
-	
-	debugInput				= if TraceInput (traceHtmlInput request.arg_post) EmptyBody
+	AjaxCombine l1 l2 l3 	= DivTag [] (l1 ++ l2 ++ l3)	
+	debugInput				= if TraceInput (traceHtmlInput request.arg_post) []
 
-import iDataStylelib
 
-mkPage :: [HeadAttr] [HeadTag] [BodyAttr] [BodyTag] -> Html
-mkPage headattr headtags bodyattr bodytags = Html (Head headattr headtags) (Body bodyattr bodytags)
+mkPage :: [HtmlAttr] [HtmlTag] [HtmlAttr] [HtmlTag] -> HtmlTag
+mkPage headattr headtags bodyattr bodytags = HtmlTag [] [HeadTag headattr headtags, BodyTag bodyattr bodytags]
 
-mkCssTag :: HeadTag
-mkCssTag = Hd_Link [Lka_Type "text/css", Lka_Rel Docr_Stylesheet, Lka_Href ExternalCleanStyles]
+mkCssTag :: HtmlTag
+mkCssTag = LinkTag [TypeAttr "text/css", RelAttr "stylesheet", HrefAttr "css/clean.css"] []
 
-mkJsTag :: HeadTag
-mkJsTag = Hd_Script [Scr_Src (ThisExe +++ "/js/clean.js"), Scr_Type TypeJavascript ] (SScript "")
+mkJsTag :: HtmlTag
+mkJsTag = ScriptTag [SrcAttr (ThisExe +++ "/js/clean.js"), TypeAttr "text/javascript"] []
 
-mkInfoDiv :: String String -> BodyTag
+mkInfoDiv :: String String -> HtmlTag
 mkInfoDiv state focus =
-	Div [`Div_Std [Std_Style "display:none"]] [
-	Div [`Div_Std [Std_Id "GS"]] [Txt state],
-	Div [`Div_Std [Std_Id "FS"]] [Txt focus],
-	Div [`Div_Std [Std_Id "AN"]] [Txt ThisExe],
-	Div [`Div_Std [Std_Id "OPT-ajax"]] [Txt (IF_Ajax "true" "false")]
+	DivTag [StyleAttr "display: none"] [
+		DivTag [IdAttr "GS"] [Text state],
+		DivTag [IdAttr "FS"] [Text focus],
+		DivTag [IdAttr "AN"] [Text ThisExe],
+		DivTag [IdAttr "OPT-ajax"] [Text (IF_Ajax "true" "false")]
 	]
 
 doAjaxInit :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-doAjaxInit req world = ({http_emptyResponse & rsp_data = toString (print_to_stdout page [|])}, world)
+doAjaxInit req world = ({http_emptyResponse & rsp_data = toString page}, world)
 where
-	page = mkPage [] [mkCssTag, mkJsTag] []	 
-		([ mkInfoDiv "" ""
+	page = mkPage [] [mkCssTag, mkJsTag] [] [ mkInfoDiv "" ""]
+		
+		/*
 		 , Div [`Div_Std [Std_Id "thePage", Std_Class "thread"]] [Txt (ThisExe +++ " loading. Please wait...")]
 		 , Div [`Div_Std [Std_Id "iTaskInfo", Std_Class "thread"]] []
 		 , Div [`Div_Std [Std_Id "debug", Std_Class "thread"]] []
@@ -181,16 +181,16 @@ where
 		 		[]
 		 	   )
 		)
-				  	
+*/				  	
 //This wrapper is used when the program is run on the client in the sapl interpreter
-doHtmlClient :: UserPage !*World -> !*World
+doHtmlClient :: UserPage !*World -> *World
 doHtmlClient userpage world
 # (sio,world) 					= stdio world
 # (data,sio)					= freadline sio															//Fetch all input
 # req							= http_emptyRequest
 # (req,mdone,hdone,ddone,error)	= http_addRequestData req False False False data
 # req							= http_parseArguments req												//Parse the parameters int he request
-# (toServer,html,world)			= doHtmlPage req userpage [|] world										//Run the user page
+# (toServer,html,world)			= doHtmlPage req userpage world											//Run the user page
 # sio							= fwrites (toString toServer +++ "#0#" +++ toString html) sio			//Write the output
 # world							= snd (fclose sio world)
 = world
@@ -329,21 +329,21 @@ mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
 mkForm (init,formid) hst =: {issub}
 # (form,hst) 	= gForm{|*|} (init,formid) {hst & submits = (formid.mode == Submit), issub = True}	//Use gForm to create the html form
 # buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
-						[ Br
-						, Input [ Inp_Type Inp_Submit, Inp_Value (SV "Submit")] ""
-						, Input [ Inp_Type Inp_Reset, Inp_Value (SV "Clear")] ""
-						, Br
+						[ BrTag []
+						, InputTag [TypeAttr "submit", ValueAttr "Submit"]
+						, InputTag [TypeAttr "reset", ValueAttr "Clear"]
+						, BrTag []
 						]
-						[ Input [Inp_Type Inp_Submit, `Inp_Std [Std_Style "display: none"] ] ""]	//Add a hidden submit input to allow updates on press of "enter" button 
+						[ InputTag [TypeAttr "submit", StyleAttr "display: none"]]					//Add a hidden submit input to allow updates on press of "enter" button 
 
 # sform			= if issub
 					form.form
-					[Form [ Frm_Action ("/" +++ ThisExe)												//Wrap the form in html form tags
-						, Frm_Method Post
-						, Frm_Name  (encodeString formid.id)										//Enable the use of any character in a form name
-						, Frm_Enctype "multipart/form-data"
-						, `Frm_Events [OnSubmit (SScript "return catchSubmit(this);")]
-						, `Frm_Std [Std_Id (encodeString formid.id)]
+					[FormTag [ ActionAttr ("/" +++ ThisExe)											//Wrap the form in html form tags
+						, MethodAttr "post"
+						, NameAttr  (encodeString formid.id)										//Enable the use of any character in a form name
+						, EnctypeAttr "multipart/form-data"
+						, OnsubmitAttr "return catchSubmit(this);"
+						, IdAttr (encodeString formid.id)
 						] (form.form ++ buttons)
 				  	] 
 = ({form & form = sform} ,hst)
@@ -351,7 +351,7 @@ mkForm (init,formid) hst =: {issub}
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
 gForm{|Int|} (init,formid) hst 	
-# (body,hst)				= mkInput defsize (init,formid) (IV i) (UpdI i) hst
+# (body,hst)				= mkInput defsize (init,formid) (toString i) (UpdI i) hst
 = ({ changed				= False
    , value					= i
    , form					= [body]
@@ -359,7 +359,7 @@ gForm{|Int|} (init,formid) hst
 where
 	i						= formid.ival 
 gForm{|Real|} (init,formid) hst 	
-# (body,hst)				= mkInput defsize (init,formid) (RV r) (UpdR r) hst
+# (body,hst)				= mkInput defsize (init,formid) (toString r) (UpdR r) hst
 = ({ changed				= False
    , value					= r
    , form					= [body]
@@ -384,7 +384,7 @@ gForm{|Bool|} (init,formid) hst=:{cntr,submits} // PK
    },setHStCntr (cntr+1) hst)
 
 gForm{|String|} (init,formid) hst 	
-# (body,hst)				= mkInput defsize (init,formid) (SV s) (UpdS s) hst
+# (body,hst)				= mkInput defsize (init,formid) s (UpdS s) hst
 = ({ changed				= False
    , value					= s
    , form					= [body]
@@ -394,14 +394,14 @@ where
 gForm{|UNIT|}  _ hst
 = ({ changed				= False
    , value					= UNIT
-   , form					= [EmptyBody]
+   , form					= []
    },hst)
 gForm{|PAIR|} gHa gHb (init,formid) hst 
 # (na,hst)					= gHa (init,reuseFormId formid a) hst
 # (nb,hst)					= gHb (init,reuseFormId formid b) hst
 = ({ changed				= na.changed || nb.changed
    , value					= PAIR na.value nb.value
-   , form					= [STable [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)] [na.form,nb.form]]
+   , form					= [TableTag [StyleAttr "padding: 0px"] [TrTag [] [TdTag [] na.form, TdTag [] nb.form]]]
    },hst)
 where
 	(PAIR a b)				= formid.ival 
@@ -432,7 +432,7 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr,submits}
 # (nc,hst)					= gHc (init,reuseFormId formid c) hst
 = ({ changed				= nc.changed
    , value					= CONS nc.value
-   , form					= [STable [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)] [[selector,BodyTag nc.form]]]
+   , form					= [TableTag [StyleAttr "padding: 0px"] [selector : nc.form]]
    },hst)
 where
 	(CONS c)				= formid.ival
@@ -446,29 +446,19 @@ where
 							-1			-> abort ("cannot find index of " +++ myname )
 							i			-> i
 
-mkConsSel :: Int String [String] Int (FormId x) Bool -> BodyTag  // PK: lifted to a global function 
+mkConsSel :: Int String [String] Int (FormId x) Bool -> HtmlTag  // PK: lifted to a global function 
 mkConsSel cntr myname list nr formid submits
-	= Select [ Sel_Name (selectorInpName +++ encodeString myname) : styles ]		// changed to see changes in case of a submit
-			 [ Option  
-				[Opt_Value (encodeTriplet (formid.id,cntr,UpdC elem)) : if (j == nr) [Opt_Selected Selected:optionstyle] optionstyle] elem
+	= SelectTag [ NameAttr (selectorInpName +++ encodeString myname): styles ]		// changed to see changes in case of a submit
+			 [ OptionTag
+				[ValueAttr (encodeTriplet (formid.id,cntr,UpdC elem)) : if (j == nr) [SelectedAttr] [] ] [Text elem]
 			 \\ elem <- list & j <- [0..]
 			 ] 
 	where
 		styles			= case formid.mode of
-							Edit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
-									   , `Sel_Events (if submits [] (callClean OnChange Edit "" formid.lifespan True))
-									   ]
-							Submit	-> [ `Sel_Std	[Std_Style width, EditBoxStyle, Std_Id (encodeInputId (formid.id,cntr,UpdC myname))]
-									   ]
-							_		-> [ `Sel_Std	[Std_Style width, DisplayBoxStyle]
-									   ,  Sel_Disabled Disabled
-									   ]
-		optionstyle		= case formid.mode of
-							Edit	-> []
-							Submit	-> []
-							_	 	-> [`Opt_Std [DisplayBoxStyle]]
+							Edit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))] ++ (if submits [] (callClean "change" Edit "" formid.lifespan True))
+							Submit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))]
+							_		-> [ DisabledAttr]
 
-		width			= "width:" <+++ defpixel <+++ "px"
 gForm{|FIELD of d |} gHx (init,formid) hst 
 # (nx,hst)					= gHx (init,reuseFormId formid x) hst
 | d.gfd_name.[(size d.gfd_name) - 1] == '_' 										 // don't display field names which end with an underscore
@@ -478,19 +468,15 @@ gForm{|FIELD of d |} gHx (init,formid) hst
 							   },hst)
 = ({ changed				= nx.changed
    , value					= FIELD nx.value
-   , form					= [STable [Tbl_CellPadding (Pixels 1), Tbl_CellSpacing (Pixels 1)] [[fieldname,BodyTag nx.form]]]
+   , form					= [TableTag [StyleAttr "padding: 0px"] [fieldname :  nx.form] ]
    },hst)
 where
 	(FIELD x)				= formid.ival
 	
-	fieldname				= Input [ Inp_Type		Inp_Text
-									, Inp_Value		(SV (prettify d.gfd_name +++ ": "))
-									, Inp_ReadOnly	ReadOnly
-									, Inp_Disabled	Disabled
-									, `Inp_Std		[DisplayBoxStyle]
-									, Inp_Size		maxsize`
-									] ""
-
+	fieldname				= InputTag	[ TypeAttr		"text"
+										, ValueAttr		(prettify d.gfd_name +++ ": ")	
+										, DisabledAttr
+										]
 	prettify name			= mkString [toUpper lname : addspace lnames]
 	where
 		[lname:lnames]		= mkList name
@@ -498,18 +484,7 @@ where
 		addspace [c:cs]
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
-		
-	maxsize`				= ndefsize maxsize defsize
-	maxsize					= takemax defsize [size (prettify gfd_name) * 8 / 10 \\ {gfd_name} <- d.gfd_cons.gcd_fields]
-	
-	takemax i []			= i
-	takemax i [j:js] 
-	| i > j					= takemax i js
-	| otherwise				= takemax j js
 
-	ndefsize max def
-	| max - def <= 0		= def
-	| otherwise				= ndefsize max (def + defsize)
 gForm{|(->)|} garg gres (init,formid) hst 	
 = ({ changed = False, value = formid.ival, form = []},hst)
 
@@ -605,62 +580,51 @@ gUpd{|(->)|} gUpdArg gUpdRes mode f
 
 // small utility functions
 
-mkInput :: !Int !(InIDataId d) Value UpdValue !*HSt -> (BodyTag,*HSt) 
+mkInput :: !Int !(InIDataId d) String UpdValue !*HSt -> (HtmlTag,*HSt) 
 mkInput size (init,formid=:{mode}) val updval hst=:{cntr,submits} 
 | mode == Edit || mode == Submit
-	= ( Input 	[ Inp_Type		Inp_Text
-				, Inp_Value		val
-				, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
-				, Inp_Size		size
-				, `Inp_Std		[EditBoxStyle, Std_Title (showType val), Std_Id (encodeInputId (formid.id,cntr,updval))]
-				, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange formid.mode "" formid.lifespan False) []
-				] ""
+	= ( InputTag 	[ TypeAttr		"text"
+					, ValueAttr		val
+					, NameAttr		(encodeTriplet (formid.id,cntr,updval))
+					, SizeAttr		(toString size)
+					, IdAttr (encodeInputId (formid.id,cntr,updval))
+					: if (mode == Edit && not submits) (callClean "change" formid.mode "" formid.lifespan False) []
+					]
 	  , setHStCntr (cntr+1) hst)
 | mode == Display
-	= ( Input 	[ Inp_Type		Inp_Text
-				, Inp_Value		val
-				, Inp_ReadOnly	ReadOnly
-				, `Inp_Std		[DisplayBoxStyle]
-				, Inp_Size		size
-				] ""
+	= ( InputTag 	[ TypeAttr		"text"
+					, ValueAttr		val
+					, SizeAttr		(toString size)
+					]
 		,setHStCntr (cntr+1) hst)
-= ( EmptyBody,setHStCntr (cntr+1) hst)
-where
-	showType (SV  str) 	= "::String"
-	showType (NQV str)	= "::String"
-	showType (IV i)		= "::Int"
-	showType (RV r) 	= "::Real"
-	showType (BV b) 	= "::Bool"
+= ( SpanTag [] [],setHStCntr (cntr+1) hst)
 		
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 
-toHtml :: a -> BodyTag | gForm {|*|} a
+toHtml :: a -> HtmlTag | gForm {|*|} a
 toHtml a
-//# (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt emptyFormStates (abort "illegal call to toHtml!\n"))
 # (na,_)						= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt http_emptyRequest emptyFormStates dummy)
-= BodyTag na.form
+= BodyTag [] na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtml!\n"
-			, inout	 	= [# !]
 			, gerda	 	= abort "dummy gerda for toHtml!\n"
 			, datafile	= abort "dummy datafile for toHtml!\n"
 			}
 
 
-toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [BodyTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
+toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toHtmlForm anyform 
 //# (na,hst)					= anyform (mkHSt emptyFormStates (abort "illegal call to toHtmlForm!\n"))
 # (na,hst)						= anyform (mkHSt http_emptyRequest emptyFormStates (abort "illegal call to toHtmlForm!\n"))
 = na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"
-			, inout	 	= [# !]
 			, gerda	 	= abort "dummy gerda for toHtmlForm!\n"
 			, datafile	= abort "dummy datafile for toHtmlForm!\n"
 			}
 
-toBody :: (Form a) -> BodyTag
-toBody form						= BodyTag form.form
+toBody :: (Form a) -> HtmlTag
+toBody form						= BodyTag [] form.form
 
 derive gUpd 	Inline
 derive gParse 	Inline
@@ -671,10 +635,10 @@ derive write 	Inline
 
 gForm{|Inline|} (init,formid) hst
 # (Inline string) =  formid.ival 	
-= ({changed=False, value=formid.ival, form=[InlineCode string]},incrHStCntr 2 hst)
+= ({changed=False, value=formid.ival, form=[RawText string]},incrHStCntr 2 hst)
 
-showHtml :: [BodyTag] -> Inline
-showHtml bodytags = Inline (foldl (+++) "" (reverse [x \\ x <|- gHpr {|*|} [|] bodytags]))
+showHtml :: [HtmlTag] -> Inline
+showHtml tags = Inline (foldl (+++) "" (map toString tags))
 
 createDefault :: a | gUpd{|*|} a 
 createDefault					= fromJust (snd (gUpd {|*|} (UpdSearch (UpdC "Just") 0) Nothing))

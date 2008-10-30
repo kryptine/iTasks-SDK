@@ -6,9 +6,11 @@ implementation module iTasksEditors
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
+defpixel :== 100
+
 import StdList, StdTuple, StdFunc
 import iTasksTypes
-import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib, iDataStylelib
+import iDataSettings, iDataHandler, iDataTrivial, iDataButtons, iDataFormlib
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
 editTaskLabel tracename prompt task = \tst =:{options} -> mkTask tracename ((editTask` prompt task <<@ (nPage options)) <<@ Edit) tst

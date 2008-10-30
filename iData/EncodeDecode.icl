@@ -19,9 +19,9 @@ derive gPrint UpdValue, (,,), (,)
 
 // script for transmitting name and value of changed input 
 
-callClean :: !(Script -> ElementEvents) !Mode !String !Lifespan !Bool -> [ElementEvents]
+callClean :: !String !Mode !String !Lifespan !Bool -> [HtmlAttr]
 callClean event	mode	elemid	lsp	action
-| isMember mode [Edit, Submit]	= [event (SScript ("toClean(this,'" +++ elemid +++ "'," +++ isAction action +++ "," +++ isSubmit mode +++ "," +++ isOnClient lsp +++ ")"))]
+| isMember mode [Edit, Submit]	= makeattr event
 | otherwise						= []
 where
 	isAction True 		= "true"
@@ -32,7 +32,10 @@ where
 
 	isOnClient Client 	= "true"
 	isOnClient _ 		= "false"
-
+	
+	makeattr "click"	= [OnclickAttr ("toClean(this,'" +++ elemid +++ "'," +++ isAction action +++ "," +++ isSubmit mode +++ "," +++ isOnClient lsp +++ ")")]
+	makeattr _			= []
+	
 isSelector name 	= name%(0,size selectorInpName - 1) == selectorInpName
 getSelector name 	= decodeString (name%(size selectorInpName,size name - 1))
 
@@ -152,9 +155,9 @@ decodeNameValue (name,value)
 	| otherwise			= (name, value)
 
 // traceHtmlInput utility used to see what kind of rubbish is received from client 
-traceHtmlInput ::  [(String, String)] -> BodyTag
+traceHtmlInput ::  [(String, String)] -> HtmlTag
 traceHtmlInput args
-=	BodyTag	[ Br, B [] "State values received from client when application started:", Br,
+=	DivTag	[] [] /*[ BrTag [], BTag [] [Text "State values received from client when application started:"], BrTag [],
 				STable [] [ [B [] "Triplets:",Br]
 							, showTriplet triplets
 						  ,[B [] "Id:", B [] "Lifespan:", B [] "Format:", B [] "Value:"]
@@ -162,15 +165,16 @@ traceHtmlInput args
 						  \\ (id,life,storage,state) <- htmlState
 						  ]
 						]
-			, Br
+			, BrTag []
 			, B [] "Undecoded information from client received:", Br, Br
 			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (fst (decodeNameValue (name,value))),Br,B [] "value = ", Txt (snd (decodeNameValue (name,value))),Br] \\ (name,value) <- args])
 			]
+*/
 where
 
 	(htmlState,triplets,focus)	= DecodeHtmlStatesAndUpdate args
 
-	showTriplet triplets	= [STable [] [[Txt (printToString triplet)] \\ triplet <- triplets]]
+	showTriplet triplets	= [] //[STable [] [[Text (printToString triplet)] \\ triplet <- triplets]]
 	showl life				= toString life
 	showf storage			= case storage of PlainString -> "String";  _ -> "S_Dynamic"
 	shows PlainString s		= s

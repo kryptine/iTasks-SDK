@@ -7,25 +7,25 @@ import iDataButtons
 
 // **** easy creation of a simple html page ****
 
-mkHtml				:: !String ![BodyTag] 					*HSt 	-> (!(!Bool,!String),Html,*HSt)	// string is used for the title of the page
-mkHtmlExcep			:: !String !(!Bool,!String) ![BodyTag] 	*HSt 	-> (!(!Bool,!String),Html,*HSt)	// same, passes on possible exception for client
-mkHtmlB				:: !String ![BodyAttr] ![BodyTag] 		*HSt 	-> (!(!Bool,!String),Html,*HSt)	// same, with bodytags options
-simpleHtml			:: !String ![BodyAttr] ![BodyTag]      			-> Html							// as above, without HSt
+mkHtml				:: !String ![HtmlTag] 					*HSt 	-> (!(!Bool,!String),HtmlTag,*HSt)	// string is used for the title of the page
+mkHtmlExcep			:: !String !(!Bool,!String) ![HtmlTag] 	*HSt 	-> (!(!Bool,!String),HtmlTag,*HSt)	// same, passes on possible exception for client
+mkHtmlB				:: !String ![HtmlAttr] ![HtmlTag] 		*HSt 	-> (!(!Bool,!String),HtmlTag,*HSt)	// same, with bodytags options
+simpleHtml			:: !String ![HtmlAttr] ![HtmlTag]      			-> HtmlTag							// as above, without HSt
 
 // **** LayOut support ****
 
-(<=>)   infixl 5 	:: [BodyTag] [BodyTag] 	-> BodyTag					// place next to each other on a page
-(<.=.>) infixl 5 	::  BodyTag   BodyTag  	-> BodyTag					// place next to each other on a page
-mkRowForm 		 	:: ![BodyTag] 			-> BodyTag					// place every element in a row next to each other on a page
+(<=>)   infixl 5 	:: [HtmlTag] [HtmlTag] 	-> HtmlTag					// place next to each other on a page
+(<.=.>) infixl 5 	::  HtmlTag   HtmlTag  	-> HtmlTag					// place next to each other on a page
+mkRowForm 		 	:: ![HtmlTag] 			-> HtmlTag					// place every element in a row next to each other on a page
 
-(<||>)   infixl 4 	:: [BodyTag] [BodyTag] 	-> BodyTag					// Place second below first
-(<.||.>) infixl 4 	::  BodyTag   BodyTag  	-> BodyTag					// Place second below first
-(<|.|>) infixl 4	:: [BodyTag] [BodyTag]	-> [BodyTag]				// Place second below first
-mkColForm		  	:: ![BodyTag] 			-> BodyTag					// Place every element in a column below first
+(<||>)   infixl 4 	:: [HtmlTag] [HtmlTag] 	-> HtmlTag					// Place second below first
+(<.||.>) infixl 4 	::  HtmlTag   HtmlTag  	-> HtmlTag					// Place second below first
+(<|.|>) infixl 4	:: [HtmlTag] [HtmlTag]	-> [HtmlTag]				// Place second below first
+mkColForm		  	:: ![HtmlTag] 			-> HtmlTag					// Place every element in a column below first
 
-mkSTable 			:: [[BodyTag]] 			-> BodyTag					// Make a table, default with
-mkTable 			:: [[BodyTag]]			-> BodyTag					// Make a table
-(<=|>) infixl 4		:: [BodyTag] [BodyTag] 	-> BodyTag					// Make a table by putting elements pairwise below each other
+mkSTable 			:: [[HtmlTag]] 			-> HtmlTag					// Make a table, default with
+mkTable 			:: [[HtmlTag]]			-> HtmlTag					// Make a table
+(<=|>) infixl 4		:: [HtmlTag] [HtmlTag] 	-> HtmlTag					// Make a table by putting elements pairwise below each other
 
 // **** frquently used "mkViewForm" variants ****
 
@@ -55,7 +55,7 @@ listForm 			:: !(InIDataId [a]) 							!*HSt -> (Form [a],!*HSt) 	| iData a
 horlistForm 		:: !(InIDataId [a]) 							!*HSt -> (Form [a],!*HSt) 	| iData a
 vertlistForm 		:: !(InIDataId [a]) 							!*HSt -> (Form [a],!*HSt) 	| iData a
 table_hv_Form 		:: !(InIDataId [[a]])			 				!*HSt -> (Form [[a]],!*HSt) | iData a
-layoutListForm		:: !([BodyTag] [BodyTag] -> [BodyTag]) 
+layoutListForm		:: !([HtmlTag] [HtmlTag] -> [HtmlTag]) 
                        !((InIDataId a) *HSt  -> (Form a,*HSt))
                         !(InIDataId [a]) !*HSt -> (Form [a],!*HSt)								| iData a
 
@@ -110,23 +110,23 @@ FuncMenu 			:: !(InIDataId (Int,[(String, a -> a)]))		!*HSt -> (Form (a -> a,Int
 
 // **** special objects ****
 
-mediaPlayer			:: !(Int,Int) Bool String	-> BodyTag			// plays movies, music etc; parameters (height,width) autostart filename
-MailForm 			:: String Int Int			-> BodyTag 			// mailadddres, row size, col size
-MailApplicationLink :: String String String		-> BodyTag 			// Link will start mail application: mailadddres, subject, contensbody
+mediaPlayer			:: !(Int,Int) Bool String	-> HtmlTag			// plays movies, music etc; parameters (height,width) autostart filename
+MailForm 			:: String Int Int			-> HtmlTag 			// mailadddres, row size, col size
+MailApplicationLink :: String String String		-> HtmlTag 			// Link will start mail application: mailadddres, subject, contensbody
 
 // **** scripts ****
 
 // openWindowScript will open a new browser window displaying the html code
 // parameters resp: scriptname() height width toolbar menubar scrollbars resizable location status html
-openWindowScript 	:: !String !Int !Int !Bool !Bool !Bool !Bool !Bool !Bool !Html -> Script
+openWindowScript 	:: !String !Int !Int !Bool !Bool !Bool !Bool !Bool !Bool !HtmlTag -> HtmlTag
 
 // openNoticeScript simplified version of openWindowScript
 // parameters are resp: scriptname() height width html
-openNoticeScript 	:: !String !Int !Int !Html -> Script
+openNoticeScript 	:: !String !Int !Int !HtmlTag -> HtmlTag
 
-OnLoadException		:: !(!Bool,String) -> [BodyAttr]				// to produce message on opening page
+OnLoadException		:: !(!Bool,String) -> [HtmlAttr]				// to produce message on opening page
 
-autoRefresh 		:: !Int !Int -> Script							// autorefresh page after n minutes and m seconds have been passed
+autoRefresh 		:: !Int !Int -> HtmlTag							// autorefresh page after n minutes and m seconds have been passed
 
 
 

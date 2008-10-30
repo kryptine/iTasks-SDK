@@ -10,7 +10,6 @@ import iDataFormData
 import iTasksSettings
 import Time
 
-
 derive gForm 	TCl						
 derive gUpd 	TCl
 derive gPrint 	TCl
@@ -50,7 +49,7 @@ derive write 	TCl
 				=	Collect 													// garbage collect iTask administration
 				|	NoCollect													// no garbage collection
 :: HtmlTree		=	BT HtmlCode													// simple code
-				|	(@@:) infix  0 !TaskDescription !HtmlTree							// code with id of user attached to it
+				|	(@@:) infix  0 !TaskDescription !HtmlTree					// code with id of user attached to it
 				|	(-@:) infix  0 !UserId 	 !HtmlTree							// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
@@ -67,7 +66,7 @@ derive write 	TCl
 					, timeCreated	:: !Time
 					, taskPriority	:: !TaskPriority
 					}							
-:: HtmlCode		:== ![BodyTag]													// for prompting /inting html code
+:: HtmlCode		:== ![HtmlTag]													// for prompting /printing html code
 :: TaskNrId		:== String
 :: TaskPriority	=	HighPriority | NormalPriority | LowPriority
 
@@ -95,7 +94,7 @@ iTaskId 			:: !Int !TaskNr !String 	-> String
 showTaskNr 			:: !TaskNr 					-> String
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
-printTrace2 		:: !(Maybe ![Trace]) 		-> BodyTag
+printTrace2 		:: !(Maybe ![Trace]) 		-> HtmlTag
 
 // general iTask store, session store, page store, store but no form generation
 

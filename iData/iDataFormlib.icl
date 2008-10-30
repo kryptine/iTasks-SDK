@@ -4,81 +4,79 @@ implementation module iDataFormlib
 // (c) MJP 2005
 
 import StdEnum, StdFunc, StdList, StdString, StdTuple
-import iDataButtons, iDataFormData, iDataTrivial, iDataStylelib
+import iDataButtons, iDataFormData, iDataTrivial
 import StdLib, StdBimap
 
 derive gForm []; derive gUpd []
 
+EmptyBody :== SpanTag [] []
+defpixel :== 100
 
 // easy creation of an html page
 
-mkHtml		:: !String ![BodyTag] *HSt -> (!(!Bool,!String),Html,*HSt)
+mkHtml		:: !String ![HtmlTag] *HSt -> (!(!Bool,!String),HtmlTag,*HSt)
 mkHtml s tags hst 			= ((False,""),simpleHtml s [] tags,hst)
 
-mkHtmlExcep	:: !String !(!Bool,!String) ![BodyTag] *HSt -> (!(!Bool,!String),Html,*HSt)
+mkHtmlExcep	:: !String !(!Bool,!String) ![HtmlTag] *HSt -> (!(!Bool,!String),HtmlTag,*HSt)
 mkHtmlExcep s (exception,prefix) tags hst = ((exception,prefix),simpleHtml s [] tags,hst)
 
-simpleHtml	:: !String ![BodyAttr] ![BodyTag] -> Html
-simpleHtml s ba tags	 	= Html (header s) (body tags)
+simpleHtml	:: !String ![HtmlAttr] ![HtmlTag] -> HtmlTag
+simpleHtml s ba tags	 	= HtmlTag [] [header s, body tags]
 where
-	header s				= Head [`Hd_Std [Std_Title s]] [] 
-	body tags				= Body ba tags
+	header s				= HeadTag [] [TitleTag [] [Text s]] 
+	body tags				= BodyTag ba tags
 
-mkHtmlB		:: !String ![BodyAttr] ![BodyTag] *HSt -> (!(!Bool,!String),Html,*HSt)
+mkHtmlB		:: !String ![HtmlAttr] ![HtmlTag] *HSt -> (!(!Bool,!String),HtmlTag,*HSt)
 mkHtmlB s attr tags hst		= ((False,""), simpleHtml s attr tags,hst)
 
 // operators for lay-out of html bodys ...
 
 // Place two bodies next to each other
 
-(<=>) infixl 5   :: [BodyTag] [BodyTag] -> BodyTag
+(<=>) infixl 5   :: [HtmlTag] [HtmlTag] -> HtmlTag
 (<=>) [] []				= EmptyBody
-(<=>) [] b2				= BodyTag b2
-(<=>) b1 []				= BodyTag b1
-(<=>) b1 b2				= (BodyTag b1) <.=.> (BodyTag b2)
+(<=>) [] b2				= DivTag [] b2
+(<=>) b1 []				= DivTag [] b1
+(<=>) b1 b2				= (DivTag [] b1) <.=.> (DivTag [] b2)
 
-(<.=.>) infixl 5 :: BodyTag BodyTag -> BodyTag
-(<.=.>) b1 b2				=  STable [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)] [[b1,b2]]
+(<.=.>) infixl 5 :: HtmlTag HtmlTag -> HtmlTag
+(<.=.>) b1 b2				=  DivTag [] [SpanTag [] [b1],SpanTag [] [b2]]
 
 // Place second body below first
 
-(<||>) infixl 4	 :: [BodyTag] [BodyTag] -> BodyTag		// Place a above b
-(<||>) b1 b2				= (BodyTag b1) <.||.> (BodyTag b2)
+(<||>) infixl 4	 :: [HtmlTag] [HtmlTag] -> HtmlTag		// Place a above b
+(<||>) b1 b2				= (DivTag [] b1) <.||.> (DivTag [] b2)
 
-(<|.|>) infixl 4 :: [BodyTag] [BodyTag] -> [BodyTag]	// Place a above b
+(<|.|>) infixl 4 :: [HtmlTag] [HtmlTag] -> [HtmlTag]	// Place a above b
 (<|.|>) [] []				= []
 (<|.|>) [] b2				= b2
 (<|.|>) b1 []				= b1
-(<|.|>) b1 b2				= [(BodyTag b1) <.||.> (BodyTag b2)]
+(<|.|>) b1 b2				= [(DivTag [] b1) <.||.> (DivTag [] b2)]
 
 
-(<.||.>) infixl 4:: BodyTag BodyTag -> BodyTag			// Place a above b
-(<.||.>) b1 b2				= STable [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)] [[b1],[b2]]
+(<.||.>) infixl 4:: HtmlTag HtmlTag -> HtmlTag			// Place a above b
+(<.||.>) b1 b2				= DivTag [] [DivTag [] [b1], DivTag [] [b2]]
 
-(<=|>) infixl 4	 :: [BodyTag] [BodyTag] -> BodyTag		// Place a above b
-(<=|>) b1 b2				= STable [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)] [[be1,be2] \\ be1 <- b1 & be2 <- b2]
+(<=|>) infixl 4	 :: [HtmlTag] [HtmlTag] -> HtmlTag		// Place a above b
+(<=|>) b1 b2				= DivTag [] [DivTag [] b1, DivTag [] b2]
 
 // row and column making
 
-mkColForm :: ![BodyTag] -> BodyTag
+mkColForm :: ![HtmlTag] -> HtmlTag
 mkColForm xs 				= foldr (<.||.>) EmptyBody xs
 
-mkRowForm :: ![BodyTag] -> BodyTag
+mkRowForm :: ![HtmlTag] -> HtmlTag
 mkRowForm xs	 			= foldr (<.=.>) EmptyBody xs
 
 
-mkSTable :: [[BodyTag]] -> BodyTag
-mkSTable table				= Table [] (mktable table)
-where
-	mktable table			= [Tr [] (mkrow rows) \\ rows <- table]	
-	mkrow   rows 			= [Td [Td_VAlign Alo_Top, Td_Width (Pixels defpixel)] [row] \\ row <- rows] 
+mkSTable :: [[HtmlTag]] -> HtmlTag
+mkSTable table				= mkTable table
 
-mkTable :: [[BodyTag]] -> BodyTag
-mkTable table				= Table []	(mktable table)
+mkTable :: [[HtmlTag]] -> HtmlTag
+mkTable table				= TableTag []	(mktable table)
 where
-	mktable table			= [Tr [] (mkrow rows) \\ rows <- table]	
-	mkrow   rows	 		= [Td [Td_VAlign Alo_Top] [row] \\ row <- rows] 
-
+	mktable table			= [TrTag [] (mkrow rows) \\ rows <- table]	
+	mkrow   rows	 		= [TdTag [StyleAttr "vertical-align: top"] [row] \\ row <- rows]
 
 
 // frequently used variants of mkViewForm
@@ -127,11 +125,11 @@ mkSubStateForm (init,formid) state upd hst
 = ( commitBut.changed
   ,	{ changed				= nsubState.changed || commitBut.changed || cancelBut.changed
 	, value					= if commitBut.changed (upd nsubState.value state) state
-	, form					= [ BodyTag nsubState.form
-							  , Br
-							  , if commitBut.changed (BodyTag [Txt "Thanks for (re-)committing",Br,Br]) EmptyBody
-							  , BodyTag commitBut.form
-							  , BodyTag cancelBut.form
+	, form					= [ DivTag [] nsubState.form
+							  , BrTag []
+							  , if commitBut.changed (DivTag [] [Text "Thanks for (re-)committing",BrTag [] ,BrTag []]) EmptyBody
+							  , SpanTag [] commitBut.form
+							  , SpanTag [] cancelBut.form
 							  ]
 	}
   , hst )
@@ -297,9 +295,9 @@ where
 	(up,down)				= (LButton (defpixel / 6) "+",LButton (defpixel / 6) "-")
 
 listForm :: !(InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
-listForm inIDataId hSt		= layoutListForm (\f1 f2 -> [BodyTag f1:f2]) mkEditForm inIDataId hSt
+listForm inIDataId hSt		= layoutListForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) mkEditForm inIDataId hSt
 
-layoutListForm :: !([BodyTag] [BodyTag] -> [BodyTag]) 
+layoutListForm :: !([HtmlTag] [HtmlTag] -> [HtmlTag]) 
                   !((InIDataId  a)   *HSt -> (Form  a,  *HSt))
                   ! (InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
 layoutListForm layoutF formF (init,formid=:{mode}) hst 
@@ -344,7 +342,7 @@ FuncButNr i (init,formid) hst
 TableFuncBut :: !(InIDataId [[(Button, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
 TableFuncBut inIDataId hSt
 	= layoutIndexForm (\f1 f2 -> [f1 <||> f2]) 
-		(layoutIndexForm (\f1 f2 -> [BodyTag f1:f2]) FuncButNr id (o)) 
+		(layoutIndexForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) FuncButNr id (o)) 
 			id (o) 0 inIDataId hSt
 
 ListFuncBut2 :: !(InIDataId [(Mode,Button, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
@@ -361,7 +359,7 @@ where
 	# (fun   ,hst)			= FuncButNr n (init,{formid & ival = (but,func)} <@ bmode) hst
 	= ({ changed			= rowfun.changed || fun.changed
 	   , value				= fun.value o rowfun.value
-	   , form				= [BodyTag fun.form:rowfun.form]
+	   , form				= [DivTag [] (fun.form ++ rowfun.form) ]
 	   },hst)
 
 TableFuncBut2 :: !(InIDataId [[(Mode,Button, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
@@ -383,7 +381,7 @@ where
 
 
 //	Generalized form of ListFuncBut:
-layoutIndexForm :: !([BodyTag] [BodyTag] -> [BodyTag]) 
+layoutIndexForm :: !([HtmlTag] [HtmlTag] -> [HtmlTag]) 
                    	!(Int (InIDataId x) *HSt -> (Form y,*HSt))
                    	 y (y y -> y) !Int !(InIDataId [x]) !*HSt -> (Form y,!*HSt)
 layoutIndexForm layoutF formF r combineF n (init,formid) hSt
@@ -399,7 +397,7 @@ layoutIndexForm layoutF formF r combineF n (init,formid) hSt
 
 ListFuncBut :: !(InIDataId [(Button, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
 ListFuncBut (init,formid) hSt
-	= layoutIndexForm (\f1 f2 -> [BodyTag f1:f2]) FuncButNr id (o) 0 (init,formid) hSt
+	= layoutIndexForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) FuncButNr id (o) 0 (init,formid) hSt
 
 ListFuncCheckBox :: !(InIDataId [(CheckBox, Bool [Bool] a -> a)]) !*HSt -> (Form (a -> a,[Bool]),!*HSt)
 ListFuncCheckBox (init,formid) hst 
@@ -423,7 +421,7 @@ where
 	# (funv,nboolv)			= fun.value
 	= ({ changed			= rowfun.changed || fun.changed
 	   , value				= (funcomp funv rowfunv,[nboolv:boolsv])
-	   , form				= [BodyTag fun.form:rowfun.form]
+	   , form				= [DivTag [] (fun.form ++ rowfun.form)]
 	   },hst)
 	where
 		funcomp f g			= \bools a = f bools (g bools a)
@@ -489,7 +487,7 @@ where
 	# (fun,ri) 				= funcradio.value
 	= ({ changed			= listradio.changed || funcradio.changed
 	   , value				= (funcomp fun rowfun,max ri rri)
-	   , form				= [BodyTag funcradio.form:listradio.form]
+	   , form				= [DivTag [] (funcradio.form ++ listradio.form)]
 	   },hst)
 	where
 		funcomp f g			= \i a = f i (g i a)
@@ -569,134 +567,90 @@ where
 
 // scripts
 
-openWindowScript ::  !String !Int !Int !Bool !Bool !Bool !Bool !Bool !Bool !Html -> Script
+openWindowScript ::  !String !Int !Int !Bool !Bool !Bool !Bool !Bool !Bool !HtmlTag -> HtmlTag
 openWindowScript scriptname height width toolbar menubar scrollbars resizable location status html
-= FScript( \file -> file <+
-			"function " <+ scriptname <+ 
-			"{var OpenWindow = window.open(\"\", \"newwin\", \"" <+
-					"height="      <+ height        <+
-					",width="      <+ width         <+
-					",toolbar="    <+ yn toolbar    <+
-					",menubar="    <+ yn menubar    <+
-					",scrollbars=" <+ yn scrollbars <+
-					",resizable="  <+ yn resizable  <+
-					",location="   <+ yn location   <+
-					",status="     <+ yn status     <+ "\"); " <+
-				"OpenWindow.document.write('" <+ html <+ "'); " <+
-				"OpenWindow.document.close(); " <+
-			"}")
+= ScriptTag [TypeAttr "text/javascript"] [RawText ( 
+			"function " +++ scriptname +++ 
+			"{var OpenWindow = window.open(\"\", \"newwin\", \"" +++
+					"height="      +++ toString height	+++
+					",width="      +++ toString width 	+++
+					",toolbar="    +++ yn toolbar		+++
+					",menubar="    +++ yn menubar		+++
+					",scrollbars=" +++ yn scrollbars	+++
+					",resizable="  +++ yn resizable		+++
+					",location="   +++ yn location		+++
+					",status="     +++ yn status		+++ "\"); " +++
+				"OpenWindow.document.write('" +++ (toString html) +++ "'); " +++
+				"OpenWindow.document.close(); " +++
+			"}" )]
 where
 	yn bool					= if bool "yes" "no" 
 
-openNoticeScript ::  !String !Int !Int !Html -> Script
+openNoticeScript ::  !String !Int !Int !HtmlTag -> HtmlTag
 openNoticeScript scriptname height width html 
 	= openWindowScript scriptname height width False False False False False False html
 
-OnLoadException :: !(!Bool,String) -> [BodyAttr]
-OnLoadException (True,message) 	= [`Batt_Events [OnLoad (SScript ("\"alert('" +++ message +++ "')\""))]]
+OnLoadException :: !(!Bool,String) -> [HtmlAttr]
+OnLoadException (True,message) 	= [OnloadAttr ("alert('" +++ message +++ "')")]
 OnLoadException _				= []
 
 // refresh time in "minutes:seconds" Minutes should range from 0 to inifinity. Seconds should range from 0 to 59
 
-autoRefresh :: !Int !Int -> Script
-autoRefresh minutes seconds 
-= FScript( \file -> file <+
-				"\rvar limit=\"" <+ minutes <+ ":" <+ seconds <+ "\"" <+ ";\r" <+
+autoRefresh :: !Int !Int -> HtmlTag
+autoRefresh minutes seconds = ScriptTag [TypeAttr "text/javascript"] [ RawText (
+				"\rvar limit=\"" +++ toString minutes +++ ":" +++ toString seconds +++ "\"" +++ ";\r" +++
 
-				"if (document.images)" <+
-				"{ var parselimit=limit.split(\":\");\r" <+
-				"  parselimit=parselimit[0]*60+parselimit[1]*1" <+
-				"};\r" <+
-				"function beginrefresh()\r" <+
-				"{ if (!document.images)\r" <+
-				"  return;\r" <+
-				"  if (parselimit==1)\r" <+
-				"  window.location.reload();\r" <+
-				"  else\r" <+
-				"  { parselimit-=1\r" <+
-				"    curmin=Math.floor(parselimit/60)\r" <+
-				"    cursec=parselimit%60\r" <+
-				"    if (curmin!=0)\r" <+
-				"      curtime=curmin+\" minutes and \"+cursec+\" seconds left until page refresh!\"\r" <+
-				"    else\r" <+
-				"    curtime=cursec+\" seconds left until page refresh!\"\r" <+
-				"    window.status=curtime\r" <+
-				"    setTimeout(\"beginrefresh()\",1000)\r" <+
-				"  }\r" <+
-				"}\r" //<+
-				
-//				"window.onload=beginrefresh"
-		)
-/*
-<script>
-<!--
-
-/*
-Auto Refresh Page with Time script
-By JavaScript Kit (javascriptkit.com)
-Over 200+ free scripts here!
-*/
-
-//enter refresh time in "minutes:seconds" Minutes should range from 0 to inifinity. Seconds should range from 0 to 59
-var limit="0:30"
-
-if (document.images){
-var parselimit=limit.split(":")
-parselimit=parselimit[0]*60+parselimit[1]*1
-}
-function beginrefresh(){
-if (!document.images)
-return
-if (parselimit==1)
-window.location.reload()
-else{ 
-parselimit-=1
-curmin=Math.floor(parselimit/60)
-cursec=parselimit%60
-if (curmin!=0)
-curtime=curmin+" minutes and "+cursec+" seconds left until page refresh!"
-else
-curtime=cursec+" seconds left until page refresh!"
-window.status=curtime
-setTimeout("beginrefresh()",1000)
-}
-}
-
-window.onload=beginrefresh
-//-->
-</script>
-*/
+				"if (document.images)" +++
+				"{ var parselimit=limit.split(\":\");\r" +++
+				"  parselimit=parselimit[0]*60+parselimit[1]*1" +++
+				"};\r" +++
+				"function beginrefresh()\r" +++
+				"{ if (!document.images)\r" +++
+				"  return;\r" +++
+				"  if (parselimit==1)\r" +++
+				"  window.location.reload();\r" +++
+				"  else\r" +++
+				"  { parselimit-=1\r" +++
+				"    curmin=Math.floor(parselimit/60)\r" +++
+				"    cursec=parselimit%60\r" +++
+				"    if (curmin!=0)\r" +++
+				"      curtime=curmin+\" minutes and \"+cursec+\" seconds left until page refresh!\"\r" +++
+				"    else\r" +++
+				"    curtime=cursec+\" seconds left until page refresh!\"\r" +++
+				"    window.status=curtime\r" +++
+				"    setTimeout(\"beginrefresh()\",1000)\r" +++
+				"  }\r" +++
+				"}\r" )]
 
 // special objects ...
 
-mediaPlayer :: !(Int,Int) Bool String -> BodyTag
+mediaPlayer :: !(Int,Int) Bool String -> HtmlTag
 mediaPlayer (height,width) autostart filename
-	= Body_Object 
-		[ Oba_ClassId "CLSID:05589FA1-C356-11CE-BF01-00AA0055595A"
-		, Oba_Height height
-		, Oba_Width width
+	= ObjectTag 
+		[ ClassidAttr "CLSID:05589FA1-C356-11CE-BF01-00AA0055595A"
+		, HeightAttr (toString height)
+		, WidthAttr (toString width)
 		] 
-		[ Param [ Pam_Name "FileName",  Pam_Value (SV filename) ]
-		, Param [ Pam_Name "autostart", Pam_Value (SV (toString autostart)) ]
+		[ ParamTag [ NameAttr "FileName",  ValueAttr filename ] []
+		, ParamTag [ NameAttr "autostart", ValueAttr (toString autostart)] []
 		]
 
 // special forms
 
-MailForm :: String Int Int -> BodyTag
+MailForm :: String Int Int -> HtmlTag
 MailForm  mailaddress row col
-	= Form	[Frm_Action ("mailto:" +++ mailaddress), Frm_Method Post, Frm_Enctype "text/plain"] 
-			[mkSTable 	[ [B [] "Name:", 	Input [Inp_Type Inp_Text, Inp_Name "uname", Inp_Size 20] ""]
-						, [B [] "Email:", 	Input [Inp_Type Inp_Text, Inp_Name "email", Inp_Size 20] "" ]
-						, [B [] "Message:", Textarea [Txa_Name "message", Txa_Rows row, Txa_Cols col ] "" ]
-						, [Input [Inp_Type Inp_Submit, Inp_Name "submit", Inp_Value (SV "Submit")] ""
-						  ,Input [Inp_Type Inp_Reset,  Inp_Name "reset",  Inp_Value (SV "Reset")] ""
-						  ]
+	= FormTag
+			[ActionAttr ("mailto:" +++ mailaddress), MethodAttr "post", EnctypeAttr "text/plain"] 
+			[mkSTable 	[ [BTag [] [Text "Name:"], InputTag [TypeAttr "text", NameAttr "uname", SizeAttr "20"] ]
+						, [BTag [] [Text "Email:"], InputTag [TypeAttr "text", NameAttr "email", SizeAttr "20"] ]
+						, [BTag [] [Text "Message:"], TextareaTag [NameAttr "message", RowsAttr (toString row), ColsAttr (toString col)] [] ]
+						, [InputTag [TypeAttr "submit", NameAttr "submit", ValueAttr "Submit"],InputTag [TypeAttr "reset",  NameAttr "reset",  ValueAttr "Reset"]]
 						]
 			] 
 	
-MailApplicationLink :: String String String -> BodyTag
+MailApplicationLink :: String String String -> HtmlTag
 MailApplicationLink mailaddress subject txtbody
-	= A [Lnk_Href ("mailto:" <+++ mailaddress <+++ "?subject=" <+++ subject <+++ "&body=" <+++ txtbody)] [Txt mailaddress]
+	= ATag [HrefAttr ("mailto:" <+++ mailaddress <+++ "?subject=" <+++ subject <+++ "&body=" <+++ txtbody)] [Text mailaddress]
 	
 	
 	

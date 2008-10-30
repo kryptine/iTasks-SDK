@@ -20,15 +20,6 @@ import
 
 		,	iDataArrow			// arrow instantiations for iData forms
 
-// html code generation:
-
-	 	,	iDataHtmlDef		// Clean's ADT representation of Html
-		,	iDataStyleDef		// Clean's ADT representation of Style sheets
-
-// free to change when the default style of the generated web pages is not appealing:
-
-		,	iDataStylelib		// style definitions used by iData  
-
 // automatic data base storage and retrieval
 
 

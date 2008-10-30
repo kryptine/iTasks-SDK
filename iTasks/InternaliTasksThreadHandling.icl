@@ -620,6 +620,9 @@ showThreadTable tst=:{staticInfo}
 					(\tst -> ([],tst)) tst
 
 # tableC		= sortBy (\e1=:{thrTaskNr = t1} e2=:{thrTaskNr =t2} = t1 < t2) tableC
+# bodyS			= []
+# bodyC			= []
+/*
 # bodyS			= 	if (isEmpty tableS)
 					[]
 					[showLabel "Server Thread Table: ",
@@ -652,6 +655,7 @@ showThreadTable tst=:{staticInfo}
 								),
 					Hr []
 					]
+*/
 = (bodyS ++ bodyC,tst)
 
 showThreadNr :: !TaskNr -> String

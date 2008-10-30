@@ -144,7 +144,7 @@ where
 	doseqTasks [(taskname,task):ts] accu tst=:{html,options} 
 	# (a,tst=:{activated=adone,html=ahtml}) 
 									= task {tst & activated = True, html = BT []}
-	| not adone						= (reverse accu,{tst & html = html +|+ BT [showLabel taskname,Br,Br] +|+ ahtml})
+	| not adone						= (reverse accu,{tst & html = html +|+ BT [showLabel taskname,BrTag [] ,BrTag []] +|+ ahtml})
 	= doseqTasks ts [a:accu] {tst & html = html +|+ ahtml, options = options}
 
 // ******************************************************************************************************

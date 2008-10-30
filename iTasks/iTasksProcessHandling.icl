@@ -357,8 +357,9 @@ where
 							(DeletedWorkflow _) 				-> WflDeleted		
 	= (status,tst)																// if everything is fine it should always succeed
 
-showWorkflows :: !Bool !*TSt -> ([BodyTag],*TSt)
-showWorkflows alldone tst
+showWorkflows :: !Bool !*TSt -> ([HtmlTag],*TSt)
+showWorkflows alldone tst = ([],tst)
+/*
 = 	IF_ClientTasks												
 		(\tst -> ([],tst))														// workflow table not available on clients
 		(showWorkflows` alldone) tst											// show tables
@@ -380,3 +381,4 @@ where
 	showStatus (SuspendedWorkflow 	(userid,processid,label) dyntask)		= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Suspended"]
 	showStatus (FinishedWorkflow 	(userid,processid,label) dyn dyntask)	= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Finished"]
 	showStatus (DeletedWorkflow  	(userid,processid,label))				= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Deleted"]
+*/

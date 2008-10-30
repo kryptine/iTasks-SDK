@@ -1,10 +1,10 @@
 implementation module iDataFormData
 
 import StdBool, StdInt, StdString
-import iDataHtmlDef, iDataSettings
+import iDataSettings
 import StdMaybe
 import GenEq
-
+import Html
 
 // utility for creating FormId's
 

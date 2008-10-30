@@ -6,6 +6,7 @@ definition module iDataFormData
 import iDataHandler
 import StdMaybe, StdBool
 import GenEq
+import Html
 
 :: FormId d										// properties one has to assign to any form 
 	=	{ id 		:: !String					// id *uniquely* identifying the form
@@ -53,7 +54,7 @@ import GenEq
 :: Form a 										// result of any form
 	=	{ changed 	:: Bool						// the user has edited the form
 		, value		:: a						// current value in data domain (feel)
-		, form		:: [BodyTag]				// html code to create the form, representing view domain (look)
+		, form		:: [HtmlTag]				// html code to create the form, representing view domain (look)
 		}
 
 :: InIDataId d	:==	(!Init,!FormId d)			// Often used parameter of iData editors

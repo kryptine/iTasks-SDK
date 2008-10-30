@@ -32,7 +32,7 @@ urlEncode 			:: !String ->  String
 urlDecode 			:: !String -> *String
 
 // Form submission handling
-callClean 					:: !(Script -> ElementEvents) !Mode !String !Lifespan !Bool -> [ElementEvents]
+callClean 					:: !String !Mode !String !Lifespan !Bool -> [HtmlAttr]
 
 
 // serializing, de-serializing of iData states to strings stored in the html page
@@ -48,7 +48,7 @@ deleteStateFile 			:: !String !*NWorld -> *NWorld
 
 // constants that maybe useful
 
-traceHtmlInput				:: [(String, String)] -> BodyTag					// for debugging showing the information received from browser
+traceHtmlInput				:: [(String, String)] -> HtmlTag					// for debugging showing the information received from browser
 trace_to_file 				:: !String !*World -> *World						// for storing debug information to file
 
 

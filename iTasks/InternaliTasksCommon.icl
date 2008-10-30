@@ -112,9 +112,11 @@ where
 		updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
-printTrace2 		:: !(Maybe ![Trace]) -> BodyTag
-printTrace2 Nothing 	= EmptyBody
-printTrace2 (Just a)  	= BodyTag [showLabel "Task Tree Forest:", Br, STable emptyBackground (print False a),Hr []]
+printTrace2 		:: !(Maybe ![Trace]) -> HtmlTag
+printTrace2 _	= SpanTag [] [Text "TRACE INFO, OBSOLETE"]
+/*
+printTrace2 Nothing 	= SpanTag [] []
+printTrace2 (Just a)  	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , mkSTable emptyBackground (print False a),HrTag []]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
@@ -144,14 +146,14 @@ where
 	isDone Nothing = False
 	isDone (Just (b,(w,i,op,tn,s))) = b
 
-	showStorage Temp		= font Silver "Tmp"
-	showStorage Client		= font Aqua "Cli"
-	showStorage Page		= font Navy "Pag"
-	showStorage Session		= font Navy "Ssn"
-	showStorage TxtFileRO	= font Red   "TxF0"
-	showStorage TxtFile		= font Red   "TxF"
-	showStorage DataFile	= font Red   "DaF"
-	showStorage Database	= font Red   "DaB"
+	showStorage Temp		= font "silver" "Tmp"
+	showStorage Client		= font "aqua" "Cli"
+	showStorage Page		= font "navy" "Pag"
+	showStorage Session		= font "navy" "Ssn"
+	showStorage TxtFileRO	= font "red"   "TxF0"
+	showStorage TxtFile		= font "red"   "TxF"
+	showStorage DataFile	= font "red"   "DaF"
+	showStorage Database	= font "red"   "DaB"
 
 	doneBackground = 	[ Tbl_CellPadding (Pixels 1), Tbl_CellSpacing (Pixels 0), cellwidth
 						, Tbl_Rules Rul_None, Tbl_Frame Frm_Border 
@@ -162,11 +164,11 @@ where
 	cellattr1a		=	[Td_Bgcolor (`Colorname Green),  Td_Width (Pixels 10), Td_VAlign Alo_Absmiddle]
 	cellattr1b		=	[Td_Bgcolor (`Colorname Silver), Td_Width (Pixels 10), Td_VAlign Alo_Absmiddle]
 	cellattr2		=	[Td_VAlign Alo_Top]
-	cellwidth		= 	Tbl_Width (Pixels 130)
+	cellwidth		= 	WidthAttr "130"
 
 	font color message
-	= Font [Fnt_Color (`Colorname color), Fnt_Size -1] [B [] message]
-
+	= SpanTag [StyleAttr "font-size: smaller; font-weight: bold; color: " +++ color] [Text message]
+*/
 // ******************************************************************************************************
 // iTask Storage Utilities
 // ******************************************************************************************************

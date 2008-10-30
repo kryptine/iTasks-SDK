@@ -23,7 +23,7 @@ Filter 			:: Filters out the html code for a specific user
 
 
 noFilter 		:: !HtmlTree -> HtmlCode
-Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![BodyTag],![BodyTag],![BodyTag],![BodyTag],![BodyTag],!*HSt)
+Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],!*HSt)
 
 
 collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname

@@ -1,7 +1,7 @@
 implementation module iDataButtons
 
 import StdFunc, StdList, StdString, StdArray
-import iDataFormlib, iDataHandler, iDataStylelib, iDataTrivial, StdBimap
+import iDataFormlib, iDataHandler, iDataTrivial, StdBimap
 
 
 derive gUpd  	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode/*, Button, CheckBox*/, RadioButton /*, PullDownMenu, TextInput , TextArea, PasswordBox*/
@@ -10,6 +10,10 @@ derive gParse 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Bu
 derive gerda 	(,), (,,), (,,,), (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 derive read 					  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, CheckBox, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
+
+EmptyBody :== SpanTag [] []
+defpixel :== 100
+defsize :== 100
 
 /*
 :: TextInput	= TI Int Int						// Input box of size Size for Integers
@@ -39,14 +43,14 @@ gParse{|HTML|} st					= case gParse {|*|} st of
 gerda{|HTML|}  = abort "illegal gerda call for type HTML"
 
 // Tuples are placed next to each other, pairs below each other ...
-layoutTableAtts	:== [Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)]	// default table attributes for arranging layout
+layoutTableAtts	:== []	// default table attributes for arranging layout
 
 gForm{|(,)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,) constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed
 	, value				= (na.value,nb.value)
-	, form				= [STable layoutTableAtts [[BodyTag na.form, BodyTag nb.form]]]
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
 	},hst)
 where
 	(a,b)				= formid.ival
@@ -57,7 +61,7 @@ gForm{|(,,)|} gHa gHb gHc (init,formid) hst
 # (nc,hst)				= gHc (init,reuseFormId formid c) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed
 	, value				= (na.value,nb.value,nc.value)
-	, form				= [STable layoutTableAtts [[BodyTag na.form,BodyTag nb.form,BodyTag nc.form]]]
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form]
 	},hst)
 where
 	(a,b,c)				= formid.ival
@@ -69,7 +73,7 @@ gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
 # (nd,hst)				= gHd (init,reuseFormId formid d) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed || nd.changed
 	, value				= (na.value,nb.value,nc.value,nd.value)
-	, form				= [STable layoutTableAtts [[BodyTag na.form,BodyTag nb.form,BodyTag nc.form, BodyTag nd.form]]]
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form, SpanTag [] nd.form]
 	},hst)
 where
 	(a,b,c,d)			= formid.ival
@@ -81,7 +85,7 @@ gForm{|(<->)|} gHa gHb (init,formid) hst
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed 
 	, value				= na.value <-> nb.value
-	, form				= [STable layoutTableAtts [[BodyTag na.form, BodyTag nb.form]]]
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
 	},hst)
 where
 	(a <-> b)			= formid.ival
@@ -93,7 +97,7 @@ gForm{|(<|>)|} gHa gHb (init,formid) hst
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed 
 	, value				= na.value <|> nb.value
-	, form				= [STable layoutTableAtts [na.form, nb.form]]
+	, form				= [DivTag [] na.form, DivTag [] nb.form]
 	},hst)
 where
 	(a <|> b)			= formid.ival
@@ -106,7 +110,7 @@ gForm{|DisplayMode|} gHa (init,formid) hst
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
 		= (	{ changed	= na.changed 
 			, value		= HideMode na.value
-			, form		= [EmptyBody]
+			, form		= []
 			},hst)
 	(DisplayMode a)
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
@@ -140,25 +144,27 @@ gForm{|Button|} (init,formid) hst
 	v=:(LButton size bname)
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
-							[ Inp_Type		Inp_Button
-							, Inp_Value		(SV (cleanString bname))
-							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS bname))
-							, `Inp_Std		[Std_Style ("width:" <+++ size), Std_Id (encodeInputId (formid.id,cntr,UpdS bname))]
-							, `Inp_Events	(callClean OnClick Edit (encodeTriplet (formid.id,cntr,UpdS bname)) formid.lifespan True)
-							]) ""]
+		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ TypeAttr		"button"
+							, ValueAttr		(cleanString bname)
+							, NameAttr		(encodeTriplet (formid.id,cntr,UpdS bname))
+							, StyleAttr 	("width:" <+++ size)
+							, IdAttr 		(encodeInputId (formid.id,cntr,UpdS bname))
+							] ++ (callClean "click" Edit (encodeTriplet (formid.id,cntr,UpdS bname)) formid.lifespan True) )
+							]
 		},(incrHStCntr 1 hst))
 	v=:(PButton (height,width) ref)
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
-							[ Inp_Type		Inp_Image
-							, Inp_Value		(SV (cleanString ref))
-							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS ref))
-							, `Inp_Std		[Std_Style ("width: " <+++ width <+++ "px; height: " <+++ height <+++ "px"), Std_Id (encodeInputId (formid.id,cntr,UpdS ref))]
-							, `Inp_Events	(callClean OnClick Edit (encodeTriplet (formid.id,cntr,UpdS ref)) formid.lifespan True)
-							, Inp_Src ref
-							]) ""]
+		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ TypeAttr		"image"
+							, ValueAttr		(cleanString ref)
+							, NameAttr		(encodeTriplet (formid.id,cntr,UpdS ref))
+							, StyleAttr 	("width: " <+++ width <+++ "px; height: " <+++ height <+++ "px")
+							, IdAttr		(encodeInputId (formid.id,cntr,UpdS ref))
+							, SrcAttr		ref
+							] ++ (callClean "click" Edit (encodeTriplet (formid.id,cntr,UpdS ref)) formid.lifespan True)
+							)]
 		},incrHStCntr 1 hst)
 	Pressed
 	= gForm {|*|} (init,(setFormId formid (LButton defpixel "??"))) hst // end user should reset button
@@ -169,25 +175,26 @@ gForm{|CheckBox|} (init,formid) hst
 	v=:(CBChecked name) 
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
-							[ Inp_Type		Inp_Checkbox
-							, Inp_Value		(SV (cleanString name))
-							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS name))
-							, Inp_Checked	Checked
-							, `Inp_Std		[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
-							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan False)
-							]) ""]
+		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ TypeAttr		"checkbox"
+							, ValueAttr		(cleanString name)
+							, NameAttr		(encodeTriplet (formid.id,cntr,UpdS name))
+							, CheckedAttr
+							, IdAttr		(encodeInputId (formid.id,cntr,UpdS name))
+						
+							] ++ (callClean "click" formid.mode "" formid.lifespan False))
+						]
 		},incrHStCntr 1 hst)
 	v=:(CBNotChecked name)
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
-							[ Inp_Type		Inp_Checkbox
-							, Inp_Value		(SV (cleanString name))
-							, Inp_Name		(encodeTriplet (formid.id,cntr,UpdS ""))
-							, `Inp_Std		[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
-							, `Inp_Events	(callClean OnClick formid.mode "" formid.lifespan False)
-							]) ""]
+		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ TypeAttr		"checkbox"
+							, ValueAttr		(cleanString name)
+							, NameAttr		(encodeTriplet (formid.id,cntr,UpdS ""))
+							, IdAttr		(encodeInputId (formid.id,cntr,UpdS name))
+							] ++ (callClean "click" formid.mode "" formid.lifespan False))
+						]
 		},incrHStCntr 1 hst)
 
 gForm{|RadioButton|} (init,formid) hst 
@@ -196,25 +203,25 @@ gForm{|RadioButton|} (init,formid) hst
 	v=:(RBChecked name)
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
-							[ Inp_Type			Inp_Radio
-							, Inp_Value			(SV (cleanString name))
-							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS name))
-							, Inp_Checked		Checked
-							, `Inp_Std			[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
-							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan False)
-							]) ""]
+		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ TypeAttr			"radio"
+							, ValueAttr			(cleanString name)
+							, NameAttr			(encodeTriplet (formid.id,cntr,UpdS name))
+							, CheckedAttr
+							, IdAttr			(encodeInputId (formid.id,cntr,UpdS name))
+							] ++ (callClean "click" formid.mode "" formid.lifespan False) )
+						]
 		},incrHStCntr 1 hst)
 	v=:(RBNotChecked name)
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Input (onMode formid.mode [] [] [Inp_Disabled Disabled] [] ++
-							[ Inp_Type			Inp_Radio
-							, Inp_Value			(SV (cleanString name))
-							, Inp_Name			(encodeTriplet (formid.id,cntr,UpdS ""))
-							, `Inp_Std			[Std_Id (encodeInputId (formid.id,cntr,UpdS name))]
-							, `Inp_Events		(callClean OnClick formid.mode "" formid.lifespan False)
-							]) ""]
+		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ TypeAttr			"radio"
+							, ValueAttr			(cleanString name)
+							, NameAttr			(encodeTriplet (formid.id,cntr,UpdS ""))
+							, IdAttr			(encodeInputId (formid.id,cntr,UpdS name))
+							] ++ (callClean "click" formid.mode "" formid.lifespan False) )
+						]
 		},incrHStCntr 1 hst)
 
 gForm{|RadioGroup|} (init, formid) hst
@@ -223,14 +230,14 @@ gForm{|RadioGroup|} (init, formid) hst
 	v=:(RadioGroup (sel, itemlist))
 	= ( { changed		= False
 		, value			= v
-		, form			= flatten [([Input (
-							[ Inp_Type			Inp_Radio
-							, Inp_Value			(SV (toString i))
-							, Inp_Name			(encodeTriplet (formid.id, cntr, UpdI sel))
-							, `Inp_Std			[Std_Id ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)]
-							, `Inp_Events		(callClean OnChange formid.mode "" formid.lifespan False)
-							] ++ (if (i == sel) [Inp_Checked Checked] []) ++ (onMode formid.mode [] [] [Inp_Disabled Disabled] [])) ""
-							] ++ [Label [Lbl_For ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)] body, Br] )
+		, form			= flatten [([InputTag (
+							[ TypeAttr			"radio"
+							, ValueAttr			(toString i)
+							, NameAttr			(encodeTriplet (formid.id, cntr, UpdI sel))
+							, IdAttr			((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)
+							] ++ (callClean "change" formid.mode "" formid.lifespan False)
+							  ++ (if (i == sel) [CheckedAttr] []) ++ (onMode formid.mode [] [] [DisabledAttr] []))
+							, LabelTag [ForAttr ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)] [Text body], BrTag [] ] )
 							\\ body <- itemlist & i <- [0..]
 						  ]
 		},incrHStCntr 1 hst)
@@ -242,20 +249,22 @@ gForm{|PullDownMenu|} (init,formid) hst=:{submits}
 	v=:(PullDown (size,width) (menuindex,itemlist))
 	= (	{ changed		= False
 		, value			= v
-		, form			= [Select (onMode formid.mode [] [] [Sel_Disabled Disabled] [] ++
-							[ Sel_Name			(selectorInpName +++ encodeString 
+		, form			= [SelectTag (onMode formid.mode [] [] [DisabledAttr] [] ++
+							[ NameAttr			(selectorInpName +++ encodeString 
 													(if (menuindex >= 0 && menuindex < length itemlist) (itemlist!!menuindex) ""))
-							, Sel_Size			size
-							, `Sel_Std			[Std_Style ("width:" <+++ width <+++ "px"), Std_Id (encodeInputId (formid.id,cntr,UpdS "") )]
-							, `Sel_Events		(if submits [] (callClean OnChange formid.mode "" formid.lifespan False))
-							])
-							[ Option 
-								[ Opt_Value (encodeTriplet (formid.id,cntr,UpdC (itemlist!!j)))
-								: if (j == menuindex) [Opt_Selected Selected] [] 
+							, SizeAttr			(toString size)
+							, StyleAttr ("width:" <+++ width <+++ "px")
+							, IdAttr (encodeInputId (formid.id,cntr,UpdS ""))
+							] ++ (if submits [] (callClean "change" formid.mode "" formid.lifespan False))
+							)
+							[ OptionTag 
+								[ ValueAttr (encodeTriplet (formid.id,cntr,UpdC (itemlist!!j)))
+								: if (j == menuindex) [SelectedAttr] [] 
 								]
-								elem
+								[Text elem]
 								\\ elem <- itemlist & j <- [0..]
-							]]
+							]
+						]
 		},incrHStCntr 1 hst)
 
 gForm{|TextInput|} (init,formid) hst 	
@@ -264,32 +273,25 @@ gForm{|TextInput|} (init,formid) hst
 = ({changed=False, value=formid.ival, form=[body]},incrHStCntr 2 hst)
 where
 	(size,v,updv)		= case formid.ival of
-							(TI size i) = (size,IV i,UpdI i)
-							(TR size r) = (size,RV r,UpdR r)
-							(TS size s) = (size,SV (cleanString s),UpdS s)
+							(TI size i) = (size,toString i,UpdI i)
+							(TR size r) = (size,toString r,UpdR r)
+							(TS size s) = (size,(cleanString s),UpdS s)
 
 gForm{|TextArea|} (init,formid) hst 
 # (cntr,hst)			= getHStCntr hst
 = (	{ changed			= False
 	, value				= formid.ival
-	, form				= [myTable [	[ Textarea 	((onMode formid.mode [] [] [Txa_Disabled Disabled] []) ++
-											[ Txa_Name (encodeTriplet (formid.id,cntr,UpdS string))
-						  					, Txa_Rows (if (row == 0) 10 row)
-						  					, Txa_Cols (if (col == 0) 50 col)
-						  					, `Txa_Std	[Std_Id (encodeTriplet (formid.id,cntr,UpdS string))]
-						  					, `Txa_Events (callClean OnChange formid.mode formid.id formid.lifespan False)
-						  					]) string ]
-						  			]
+	, form				= [TextareaTag 	((onMode formid.mode [] [] [DisabledAttr] []) ++
+											[ NameAttr 		(encodeTriplet (formid.id,cntr,UpdS string))
+						  					, RowsAttr 		(toString (if (row == 0) 10 row))
+						  					, ColsAttr 		(toString (if (col == 0) 50 col))
+						  					, IdAttr		(encodeTriplet (formid.id,cntr,UpdS string))
+						  					] ++ (callClean "change" formid.mode formid.id formid.lifespan False))
+						  		[Text string]
 						  ]
 	},incrHStCntr 1 hst)
 where
 	(TextArea row col string) = formid.ival
-
-	myTable table
-	= Table []	(mktable table)
-	where
-		mktable table 	= [Tr [] (mkrow rows) \\ rows <- table]	
-		mkrow rows 		= [Td [Td_VAlign Alo_Top, Td_Width (Pixels defpixel)] [row] \\ row <- rows] 
 
 gUpd{|TextArea|}       (UpdSearch (UpdS name) 0) (TextArea r c s) 	= (UpdDone,                TextArea r c (urlDecode name))			// update button value
 gUpd{|TextArea|}       (UpdSearch val cnt)       t					= (UpdSearch val (cnt - 1),t)										// continue search, don't change
@@ -305,26 +307,24 @@ gForm{|PasswordBox|} (init,formid) hst
 	   , form			= [body]
 	   },incrHStCntr 1 hst)
 where
-	mkPswInput :: !Int !(InIDataId d) String UpdValue !*HSt -> (!BodyTag,!*HSt) 
+	mkPswInput :: !Int !(InIDataId d) String UpdValue !*HSt -> (!HtmlTag,!*HSt) 
 	mkPswInput size (init,formid=:{mode}) sval updval hst=:{cntr,submits}
 	| mode == Edit || mode == Submit
-		= ( Input 	[ Inp_Type		Inp_Password
-					, Inp_Value		(SV (cleanString sval))
-					, Inp_Name		(encodeTriplet (formid.id,cntr,updval))
-					, Inp_Size		size
-					, `Inp_Std		[EditBoxStyle, Std_Title "::Password", Std_Id (encodeInputId (formid.id,cntr,updval))]
-					, `Inp_Events	if (mode == Edit && not submits) (callClean OnChange Edit "" formid.lifespan False) []
-					] ""
+		= ( InputTag 	([ TypeAttr		"password"
+						, ValueAttr		(cleanString sval)
+						, NameAttr		(encodeTriplet (formid.id,cntr,updval))
+						, SizeAttr		(toString size)
+						, IdAttr (encodeInputId (formid.id,cntr,updval))
+						] ++ if (mode == Edit && not submits) (callClean "change" Edit "" formid.lifespan False) [] )
+			
 			,incrHStCntr 1 hst)
 	| mode == Display
-		= ( Input 	[ Inp_Type		Inp_Password
-					, Inp_Value		(SV (cleanString sval))
-					, Inp_ReadOnly	ReadOnly
-					, `Inp_Std		[DisplayBoxStyle]
-					, Inp_Size		size
-					] ""
+		= ( InputTag 	[ TypeAttr		"password"
+						, ValueAttr		(cleanString sval)
+						, SizeAttr		(toString size)
+						]
 			,incrHStCntr 1 hst)
-	= ( EmptyBody,incrHStCntr 1 hst )
+	= ( SpanTag [][] ,incrHStCntr 1 hst )
 
 // time and date
 
@@ -384,7 +384,7 @@ gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
 			# triplet = encodeTriplet (formid.id,cntr,UpdS "timer")
 			# inputid = encodeInputId (formid.id,cntr,UpdS "timer")
 			# timedcode = "toClean(document.getElementById('" +++ inputid +++ "'),'" +++ triplet +++ "',true,false," +++ (IF_ClientTasks "true" "false") +++ ");"
-			# script =  [InlineCode ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
+			# script =  [RawText ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
 			= ({ changed = False, value = formid.ival, form = script}, incrHStCntr 1 hst)
 
 

@@ -71,8 +71,8 @@ where
 (@:) nuserId ltask=:(taskname,task) = assigntask
 where
 	assigntask tst=:{userId} 
-	= 				([showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,Br]
-					?>> assignTaskTo nuserId (taskname,[showText "Requested by ", showUser userId,Br,Br] ?>> task)) tst
+	= 				([showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,BrTag []]
+					?>> assignTaskTo nuserId (taskname,[showText "Requested by ", showUser userId,BrTag [] ,BrTag []] ?>> task)) tst
 
 	showUser nr = showLabel ("User " <+++ nr)
 
