@@ -8,4 +8,4 @@ Start :: *World -> *World
 Start world = singleUserTask [] myTask world
 
 myTask :: Task String
-myTask = editTask "Done" "Enter your name..."
+myTask = editTask "Done" "Enter your name..." 

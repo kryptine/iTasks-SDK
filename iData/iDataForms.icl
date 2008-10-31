@@ -24,7 +24,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 // It does everything, a swiss army knife editor that makes coffee too ...
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world,issub} 
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world} 
 | init == Const	&& formid.lifespan <> Temp
 = mkViewForm (init,{formid & lifespan = Temp}) bm hst					// constant i-data are never stored
 | init == Const															// constant i-data, no look up of previous value
@@ -50,10 +50,10 @@ where
 		   , value			= newval
 		   , form			= []
 		   }
-		  ,mkHSt request states world)
+		  , mkHSt request states world)
 
 	# (viewform,{states,world})											// make a form for it
-							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) ({mkHSt request states world & issub = issub})
+							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) (mkHSt request states world)
 
 	| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
 							= calcnextView True (Just viewform.value) states world
@@ -64,7 +64,7 @@ where
 		, value				= newval
 		, form				= viewform.form
 		}
-	  ,{mkHSt request states world & issub = issub})
+	  ,mkHSt request states world)
 
 	replaceState` vformid view states world
 	| init <> Const			= replaceState vformid view states world
@@ -354,8 +354,9 @@ gUpd{|(->)|} gUpdArg gUpdRes mode f
 
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init,formid) hst =: {issub}
-# (form,hst) 	= gForm{|*|} (init,formid) {hst & issub = True}										//Use gForm to create the html form
+mkForm (init,formid) hst
+# (form, hst) 	= gForm{|*|} (init, formid) hst														//Use gForm to create the html form
+/* //NOT Needed in the new pure-ajax communication framework
 # buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
 						[ BrTag []
 						, InputTag [TypeAttr "submit", ValueAttr "Submit"]
@@ -370,12 +371,13 @@ mkForm (init,formid) hst =: {issub}
 						, MethodAttr "post"
 						, NameAttr  (encodeString formid.id)										//Enable the use of any character in a form name
 						, EnctypeAttr "multipart/form-data"
-						, OnsubmitAttr "return catchSubmit(this);"
 						, IdAttr (encodeString formid.id)
 						] (form.form ++ buttons)
 				  	] 
 = ({form & form = sform} ,hst)
-
+*/
+= (form, hst)
+ 
 // small utility functions
 mkInput :: !(InIDataId d) String UpdValue !*HSt -> (HtmlTag,*HSt) 
 mkInput (init,formid=:{mode}) val updval hst=:{cntr} 

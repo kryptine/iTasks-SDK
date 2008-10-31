@@ -36,7 +36,7 @@ accWorldHSt f hst=:{world}
 
 // Create a new HSt
 mkHSt :: HTTPRequest *FormStates *NWorld -> *HSt
-mkHSt request states nworld = {cntr=0, states=states, request= request, world=nworld, issub = False }
+mkHSt request states nworld = {cntr=0, states=states, request= request, world=nworld }
 
 // Access on the HSt structure
 getHStCntr :: !*HSt -> (!Int,!*HSt)

@@ -10,10 +10,9 @@ from Http import :: HTTPRequest
 from StdFile import class FileSystem
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
-				  , issub	:: !Bool			// True if this form is a subform of another
 				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , states	:: !*FormStates  	// all form states are collected here ... 
-				  , world	:: *NWorld			// to enable all other kinds of I/O
+				  , world	:: *NWorld			// to enable all kinds of I/O
 				  }	
 				  
 // Definitions on HSt
@@ -36,6 +35,5 @@ incrHStCntr				:: !Int !*HSt -> *HSt											// HSt.cntr := HSt.cntr + n
 
 deleteIData			:: !String !*HSt -> *HSt
 changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
-
 
 getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
