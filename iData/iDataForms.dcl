@@ -11,7 +11,19 @@ import FormId
 	=	{ changed 	:: Bool						// the user has edited the form
 		, value		:: a						// current value in data domain 
 		, form		:: [HtmlTag]				// html code to create the form, representing view domain
+		, inputs	:: [InputId]				// list of inputs in the form with information about how their events should be handled
 		}
+		
+:: InputId
+	=	{ inputid	:: !String					// the html DOM identifier of the input
+		, formid	:: !String					// the html DOM identifier of the parent form
+		, updateon	:: !UpdateEvent				// the event on which a change in the input needs to be handled
+		}
+
+:: UpdateEvent
+	=	OnChange
+	|	OnClick
+	|	OnSubmit
 
 :: HBimap d v 									// swiss army knife allowing to make a distinction between data and view domain
 	=	{ toForm   	:: Init d (Maybe v) -> v	// converts data to view domain, given current view

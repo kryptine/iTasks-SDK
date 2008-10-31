@@ -225,6 +225,6 @@ gUpd{|TCl|} gc (UpdCreate l)        _
 gUpd{|TCl|} gc mode                 b		= (mode, b)										
 
 gForm{|TCl|} gfa (init,formid) hst
-= ({value=formid.ival,changed=False,form=[]},hst)
+= ({value=formid.ival,changed=False,form=[], inputs = []},hst)
 
 

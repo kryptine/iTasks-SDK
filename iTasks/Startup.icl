@@ -142,14 +142,14 @@ handleTaskRequest handler request world
 	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state	
 	# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
 	# hst						= mkHSt request initforms nworld							// Create the HSt
-	# (response,hst =:{states,world})	= handler request hst								// Apply handler
+	# (response,hst =:{states,world = nworld})	= handler request hst								// Apply handler
 
-	# (debugOutput,states)		= if TraceOutput (traceStates states) (BodyTag [] [],states)	// Optional show debug information
-	# (pagestate, focus, world =: {worldC,gerda,datafile})	
-		= storeFormStates "" states world													// Store all state information
-	# worldC					= closeDatabase gerda worldC								// close the relational database if option chosen
-	# worldC					= closemDataFile datafile worldC							// close the datafile if option chosen
-	= (response,worldC)
+	# (debugOutput,states)		= if TraceOutput (traceStates states) (BodyTag [] [],states)// Optional show debug information
+	# (pagestate, focus, nworld =: {worldC = world,gerda,datafile})	
+		= storeFormStates "" states nworld													// Store all state information
+	# world						= closeDatabase gerda world									// close the relational database if option chosen
+	# world						= closemDataFile datafile world								// close the datafile if option chosen
+	= (response,world)
 
 // Database OPTION
 

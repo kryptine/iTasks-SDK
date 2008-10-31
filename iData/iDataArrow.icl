@@ -10,6 +10,7 @@ startCircuit (HGC circuit) initval hst
 = (	{changed= ch
 	,value	= val
 	,form	= reverse (removedup body [])
+	,inputs	= []
 	},hst)
 where
 	removedup [] _ = []
@@ -86,7 +87,7 @@ where
 where
 	binds ((a,abody),ach,hst)
 	# ((b,bbody),bch,hst)	= gecab ((a,abody),ach,hst)
-	# (HGC gecbc) 			= bgecbc {changed = bch, value = b, form = map snd bbody}
+	# (HGC gecbc) 			= bgecbc {changed = bch, value = b, form = map snd bbody, inputs = []}
 	= gecbc ((b,bbody ++ abody),ach||bch,hst) 
 
 lift :: !(InIDataId a) ((InIDataId a) *HSt -> (Form b,*HSt)) -> GecCircuit a b

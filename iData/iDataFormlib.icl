@@ -131,6 +131,7 @@ mkSubStateForm (init,formid) state upd hst
 							  , SpanTag [] commitBut.form
 							  , SpanTag [] cancelBut.form
 							  ]
+	, inputs				= nsubState.inputs
 	}
   , hst )
 where
@@ -175,7 +176,7 @@ vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
 # pdmenuId					= subFormId formid "pdm" pdmenu <@ Edit
 # (pdbuts,hst)				= mkEditForm (Init, pdmenuId) hst
 # step						= toInt pdbuts.value
-| step == 0					= ({form=pdbuts.form,value=olist.value,changed=olist.changed || pdbuts.changed},hst)		
+| step == 0					= ({form=pdbuts.form,inputs=pdbuts.inputs, value=olist.value,changed=olist.changed || pdbuts.changed},hst)		
 
 # bbutsId					= subFormId formid "bb" index.value <@ Edit
 # (obbuts,hst)				= browseButtons (Init,bbutsId) step lengthlist nbuts hst
@@ -229,6 +230,7 @@ vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
 	, value 				= list.value
 	, changed 				= olist.changed || list.changed || obbuts.changed || del.changed  || pdbuts.changed || ins.changed ||
 							  add.changed   || copy.changed || paste.changed  || list.changed || index.changed  || app.changed
+	, inputs				= [] //TODO: FIX
 	}
   ,	hst )
 where
@@ -310,6 +312,7 @@ where
 		= ({ changed		= False
 		   , value			= []
 		   , form			= []
+		   , inputs			= []
 		   },hst)
 	layoutListForm` n [x:xs] hst
 		# (nxs,hst)			= layoutListForm` (n+1) xs hst
@@ -317,6 +320,7 @@ where
 		= ({ changed		= nx.changed || nxs.changed
 		   , value			= [nx.value:nxs.value]
 		   , form			= layoutF nx.form nxs.form
+		   , inputs			= nx.inputs ++ nxs.inputs
 		   },hst)
 
 FuncBut :: !(InIDataId (Button, a -> a)) !*HSt -> (Form (a -> a),!*HSt)
@@ -353,6 +357,7 @@ where
 	= ({ changed			= False
 	   , value				= id
 	   , form				= []
+	   , inputs				= []
 	   },hst)
 	ListFuncBut` n [(bmode,but,func):xs] hst 
 	# (rowfun,hst)			= ListFuncBut` (n+1) xs hst
@@ -360,6 +365,7 @@ where
 	= ({ changed			= rowfun.changed || fun.changed
 	   , value				= fun.value o rowfun.value
 	   , form				= [DivTag [] (fun.form ++ rowfun.form) ]
+	   , inputs				= fun.inputs ++ rowfun.inputs
 	   },hst)
 
 TableFuncBut2 :: !(InIDataId [[(Mode,Button, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
@@ -370,6 +376,7 @@ where
 		= ({ changed		= False
 		   , value			= id
 		   , form			= []
+		   , inputs			= []
 		   },hSt)
 	TableFuncBut2` n [x:xs] hSt 
 	# (nx, hSt)				= ListFuncBut2 (init,subFormId formid (toString n) x) hSt
@@ -377,6 +384,7 @@ where
 	= ({ changed			= nx.changed || nxs.changed
 	   , value				= nx.value o nxs.value
 	   , form				= [ nx.form <||> nxs.form ]
+	   , inputs				= nx.inputs ++ nxs.inputs
 	   },hSt)
 
 
@@ -386,13 +394,14 @@ layoutIndexForm :: !([HtmlTag] [HtmlTag] -> [HtmlTag])
                    	 y (y y -> y) !Int !(InIDataId [x]) !*HSt -> (Form y,!*HSt)
 layoutIndexForm layoutF formF r combineF n (init,formid) hSt
 = case formid.ival of
-	[]						= ({changed=False, value=r, form=[]},hSt)
+	[]						= ({changed=False, value=r, form=[], inputs = []},hSt)
 	[x:xs]
 	# (xsF,hSt)				= layoutIndexForm layoutF formF r combineF (n+1) (init,setFormId formid xs) hSt
 	# (xF, hSt)				= formF n (init,reuseFormId formid x) hSt
 	= ({ changed			= xsF.changed || xF.changed
 	   , value				= combineF xsF.value xF.value
 	   , form				= layoutF xF.form xsF.form
+	   , inputs				= xF.inputs ++ xsF.inputs
 	   },hSt)
 
 ListFuncBut :: !(InIDataId [(Button, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
@@ -406,6 +415,7 @@ ListFuncCheckBox (init,formid) hst
 = ({ changed				= False
    , value					= (f bools,bools)
    , form					= check.form
+   , inputs					= check.inputs
    },hst)
 where
 	ListFuncCheckBox` :: ![(CheckBox, Bool [Bool] a -> a)] !*HSt -> (Form ([Bool] a -> a,[Bool]),!*HSt)
@@ -413,6 +423,7 @@ where
 	= ({ changed			= False
 	   , value				= (const2,[])
 	   , form				= []
+	   , inputs				= []
 	   },hst)
 	ListFuncCheckBox` [x:xs] hst 
 	# (rowfun,hst)			= ListFuncCheckBox`   xs hst
@@ -422,6 +433,7 @@ where
 	= ({ changed			= rowfun.changed || fun.changed
 	   , value				= (funcomp funv rowfunv,[nboolv:boolsv])
 	   , form				= [DivTag [] (fun.form ++ rowfun.form)]
+	   , inputs				= fun.inputs ++ rowfun.inputs
 	   },hst)
 	where
 		funcomp f g			= \bools a = f bools (g bools a)
@@ -459,6 +471,7 @@ ListFuncRadio (init,formid) hst
 = ({ changed				= ni.changed || radio.changed
    , value					= (f,i.value)
    , form					= radio.form
+   , inputs					= radio.inputs
    },hst)
 where
 	(i,defs)				= formid.ival
@@ -479,6 +492,7 @@ where
 	= ({ changed			= False
 	   , value				= (const2,-1)
 	   , form				= []
+	   , inputs				= []
 	   },hst)
 	ListFuncRadio` i j [f:fs] hst 
 	# (listradio,hst) 		= ListFuncRadio` i (j+1) fs hst
@@ -488,6 +502,7 @@ where
 	= ({ changed			= listradio.changed || funcradio.changed
 	   , value				= (funcomp fun rowfun,max ri rri)
 	   , form				= [DivTag [] (funcradio.form ++ listradio.form)]
+	   , inputs				= funcradio.inputs ++ listradio.inputs
 	   },hst)
 	where
 		funcomp f g			= \i a = f i (g i a)
@@ -540,6 +555,7 @@ browseButtons (init,formid) step length nbuttuns hst
 = ({ changed				= calcnext.changed
    , value					= nindex.value
    , form					= shownext.form
+   , inputs					= shownext.inputs
    },hst)
 where
 	curindex				= formid.ival

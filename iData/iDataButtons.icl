@@ -19,7 +19,7 @@ gForm {|HTML|} (init,formid ) hst	= specialize myeditor (Set,formid) hst
 where
 	myeditor (init,formid ) hst
 	# (HTML bodytag)				= formid.ival
-	= ({changed = False, form = bodytag, value = formid.ival},hst)
+	= ({changed = False, form = bodytag, inputs = [], value = formid.ival},hst)
 
 gUpd  {|HTML|} mode v				= (mode,v)
 
@@ -40,6 +40,7 @@ gForm{|(,)|} gHa gHb (init,formid) hst
 = (	{ changed			= na.changed || nb.changed
 	, value				= (na.value,nb.value)
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
+	, inputs			= na.inputs ++ nb.inputs
 	},hst)
 where
 	(a,b)				= formid.ival
@@ -51,6 +52,7 @@ gForm{|(,,)|} gHa gHb gHc (init,formid) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed
 	, value				= (na.value,nb.value,nc.value)
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form]
+	, inputs			= na.inputs ++ nb.inputs ++ nc.inputs
 	},hst)
 where
 	(a,b,c)				= formid.ival
@@ -63,6 +65,7 @@ gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed || nd.changed
 	, value				= (na.value,nb.value,nc.value,nd.value)
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form, SpanTag [] nd.form]
+	, inputs			= na.inputs ++ nb.inputs ++ nc.inputs ++ nd.inputs
 	},hst)
 where
 	(a,b,c,d)			= formid.ival
@@ -75,6 +78,7 @@ gForm{|(<->)|} gHa gHb (init,formid) hst
 = (	{ changed			= na.changed || nb.changed 
 	, value				= na.value <-> nb.value
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
+	, inputs			= na.inputs ++ nb.inputs
 	},hst)
 where
 	(a <-> b)			= formid.ival
@@ -87,6 +91,7 @@ gForm{|(<|>)|} gHa gHb (init,formid) hst
 = (	{ changed			= na.changed || nb.changed 
 	, value				= na.value <|> nb.value
 	, form				= [DivTag [] na.form, DivTag [] nb.form]
+	, inputs			= na.inputs ++ nb.inputs
 	},hst)
 where
 	(a <|> b)			= formid.ival
@@ -100,23 +105,27 @@ gForm{|DisplayMode|} gHa (init,formid) hst
 		= (	{ changed	= na.changed 
 			, value		= HideMode na.value
 			, form		= []
+			, inputs	= []
 			},hst)
 	(DisplayMode a)
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
 		= (	{ changed	= False
 			, value		= DisplayMode na.value
 			, form		= na.form
+			, inputs	= []
 			},hst)
 	(EditMode a) 
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Edit) (incrHStCntr 1 hst)
 		= (	{ changed	= na.changed
 			, value		= EditMode na.value
 			, form		= na.form
+			, inputs	= na.inputs
 			},hst)
 	EmptyMode
 		= (	{ changed	= False
 			, value		= EmptyMode
-			, form		= [EmptyBody]
+			, form		= []
+			, inputs	= []
 			},incrHStCntr 1 hst)
 
 // Buttons to press
@@ -141,6 +150,7 @@ gForm{|Button|} (init,formid) hst
 							, IdAttr 		(encodeInputId (formid.id,cntr,UpdS bname))
 							] ++ (callClean "click" Edit (encodeTriplet (formid.id,cntr,UpdS bname)) formid.lifespan True) )
 							]
+		, inputs		= []
 		},(incrHStCntr 1 hst))
 	v=:(PButton (height,width) ref)
 	= (	{ changed		= False
@@ -154,6 +164,7 @@ gForm{|Button|} (init,formid) hst
 							, SrcAttr		ref
 							] ++ (callClean "click" Edit (encodeTriplet (formid.id,cntr,UpdS ref)) formid.lifespan True)
 							)]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 	Pressed
 	= gForm {|*|} (init,(setFormId formid (LButton defpixel "??"))) hst // end user should reset button
@@ -173,6 +184,7 @@ gForm{|CheckBox|} (init,formid) hst
 						
 							] ++ (callClean "click" formid.mode "" formid.lifespan False))
 						]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 	v=:(CBNotChecked name)
 	= (	{ changed		= False
@@ -184,6 +196,7 @@ gForm{|CheckBox|} (init,formid) hst
 							, IdAttr		(encodeInputId (formid.id,cntr,UpdS name))
 							] ++ (callClean "click" formid.mode "" formid.lifespan False))
 						]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 
 gForm{|RadioButton|} (init,formid) hst 
@@ -200,6 +213,7 @@ gForm{|RadioButton|} (init,formid) hst
 							, IdAttr			(encodeInputId (formid.id,cntr,UpdS name))
 							] ++ (callClean "click" formid.mode "" formid.lifespan False) )
 						]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 	v=:(RBNotChecked name)
 	= (	{ changed		= False
@@ -211,6 +225,7 @@ gForm{|RadioButton|} (init,formid) hst
 							, IdAttr			(encodeInputId (formid.id,cntr,UpdS name))
 							] ++ (callClean "click" formid.mode "" formid.lifespan False) )
 						]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 
 gForm{|RadioGroup|} (init, formid) hst
@@ -229,6 +244,7 @@ gForm{|RadioGroup|} (init, formid) hst
 							, LabelTag [ForAttr ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)] [Text body], BrTag [] ] )
 							\\ body <- itemlist & i <- [0..]
 						  ]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 
 
@@ -254,12 +270,13 @@ gForm{|PullDownMenu|} (init,formid) hst
 								\\ elem <- itemlist & j <- [0..]
 							]
 						]
+		, inputs		= []
 		},incrHStCntr 1 hst)
 
 gForm{|TextInput|} (init,formid) hst 	
 # (cntr,hst)			= getHStCntr hst
 # (body,hst)			= mkInput(init,formid) v updv hst
-= ({changed=False, value=formid.ival, form=[body]},incrHStCntr 2 hst)
+= ({changed=False, value=formid.ival, form=[body], inputs = [] },incrHStCntr 2 hst)
 where
 	(v,updv)			= case formid.ival of
 							(TI i) = (toString i,UpdI i)
@@ -278,6 +295,7 @@ gForm{|TextArea|} (init,formid) hst
 						  					] ++ (callClean "change" formid.mode formid.id formid.lifespan False))
 						  		[Text string]
 						  ]
+	, inputs			= []
 	},incrHStCntr 1 hst)
 where
 	(TextArea row col string) = formid.ival
@@ -294,6 +312,7 @@ gForm{|PasswordBox|} (init,formid) hst
 	= ({ changed		= False
 	   , value			= PasswordBox password
 	   , form			= [body]
+	   , inputs			= []
 	   },incrHStCntr 1 hst)
 where
 	mkPswInput :: !(InIDataId d) String UpdValue !*HSt -> (!HtmlTag,!*HSt) 
@@ -372,7 +391,7 @@ gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
 			# inputid = encodeInputId (formid.id,cntr,UpdS "timer")
 			# timedcode = "toClean(document.getElementById('" +++ inputid +++ "'),'" +++ triplet +++ "',true,false," +++ (IF_ClientTasks "true" "false") +++ ");"
 			# script =  [RawText ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
-			= ({ changed = False, value = formid.ival, form = script}, incrHStCntr 1 hst)
+			= ({ changed = False, value = formid.ival, form = script, inputs = [] }, incrHStCntr 1 hst)
 
 
 // Updates that have to be treated specially:

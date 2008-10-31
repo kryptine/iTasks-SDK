@@ -49,6 +49,7 @@ where
 		= ({ changed		= False
 		   , value			= newval
 		   , form			= []
+		   , inputs			= []
 		   }
 		  , mkHSt request states world)
 
@@ -63,6 +64,7 @@ where
 	= (	{ changed			= isupdated
 		, value				= newval
 		, form				= viewform.form
+		, inputs			= viewform.inputs
 		}
 	  ,mkHSt request states world)
 
@@ -139,6 +141,7 @@ gForm{|Int|} (init,formid) hst
 = ({ changed				= False
    , value					= i
    , form					= [body]
+   , inputs					= []
    },hst)
 where
 	i						= formid.ival 
@@ -147,6 +150,7 @@ gForm{|Real|} (init,formid) hst
 = ({ changed				= False
    , value					= r
    , form					= [body]
+   , inputs					= []
    },hst)
 where
 	r						= formid.ival 
@@ -155,6 +159,7 @@ gForm{|Bool|} (init,formid) hst=:{cntr}
 = ({ changed				= False
    , value					= formid.ival
    , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid]
+   , inputs					= []
    },setHStCntr (cntr+1) hst)
 
 gForm{|String|} (init,formid) hst 	
@@ -162,6 +167,7 @@ gForm{|String|} (init,formid) hst
 = ({ changed				= False
    , value					= s
    , form					= [body]
+   , inputs					= []
    },hst)
 where
 	s						= formid.ival 
@@ -169,6 +175,7 @@ gForm{|UNIT|}  _ hst
 = ({ changed				= False
    , value					= UNIT
    , form					= []
+   , inputs					= []
    },hst)
 gForm{|PAIR|} gHa gHb (init,formid) hst 
 # (na,hst)					= gHa (init,reuseFormId formid a) hst
@@ -176,6 +183,7 @@ gForm{|PAIR|} gHa gHb (init,formid) hst
 = ({ changed				= na.changed || nb.changed
    , value					= PAIR na.value nb.value
    , form					= [TableTag [] [TrTag [] [TdTag [] na.form, TdTag [] nb.form]]]
+   , inputs					= na.inputs ++ nb.inputs
    },hst)
 where
 	(PAIR a b)				= formid.ival 
@@ -207,6 +215,7 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr}
 = ({ changed				= nc.changed
    , value					= CONS nc.value
    , form					= [TableTag [StyleAttr "padding: 0px"] [selector : nc.form]]
+   , inputs					= nc.inputs
    },hst)
 where
 	(CONS c)				= formid.ival
@@ -239,10 +248,12 @@ gForm{|FIELD of d |} gHx (init,formid) hst
 							= ({ changed	= False
 							   , value		= formid.ival
 							   , form		= []
+							   , inputs		= []
 							   },hst)
 = ({ changed				= nx.changed
    , value					= FIELD nx.value
    , form					= [TableTag [StyleAttr "padding: 0px"] [fieldname :  nx.form] ]
+   , inputs					= nx.inputs
    },hst)
 where
 	(FIELD x)				= formid.ival
@@ -260,7 +271,7 @@ where
 		| otherwise			= [c:addspace cs]
 
 gForm{|(->)|} garg gres (init,formid) hst 	
-= ({ changed = False, value = formid.ival, form = []},hst)
+= ({ changed = False, value = formid.ival, form = [], inputs = []},hst)
 
 // gUpd calculates a new value given the current value and a change in the value.
 // If necessary it invents new default values (e.g. when switching from Nil to Cons)
