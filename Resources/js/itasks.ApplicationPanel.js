@@ -46,7 +46,18 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 						xtype: 'itasks.worktabs',
 						border: false,
 						region: 'center'
-					}]
+					}],
+					tbar: [
+						{ id: 'refreshbutton'
+						, text: 'Refresh worklist'
+						, iconCls: 'icon-refresh'
+						, listeners: {
+								click : { scope: this, fn: function (btn) {
+									this.getComponent('centerpanel').getComponent('worklist').refresh();
+								}}
+							}
+						}
+					]
 				}]
 		});
 	

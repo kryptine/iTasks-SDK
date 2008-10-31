@@ -48,6 +48,12 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	*/
 	getTaskId: function (index) {
 		return this.workStore.getAt(index).data.taskid;
+	},
+	/*
+	* Refresh the list
+	*/
+	refresh: function () {
+		this.store.load();
 	}
 });
 
