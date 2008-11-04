@@ -38,6 +38,12 @@ import FormId
 
 :: IDataFun a	:== St *HSt (Form a)			// Often used iData HSt State transition functions
 
+:: UpdMode
+	= UpdSearch UpdValue Int					// search for indicated postion and update it
+	| UpdCreate [ConsPos]						// create new values if necessary
+	| UpdDone									// and just copy the remaining stuff
+
+
 /**
 * mkViewForm is the *swiss army knife* function creating stateful interactive forms with a view v of data d.
 * Make sure that all editors have a unique identifier!
@@ -55,9 +61,6 @@ specialize			:: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (
 generic gForm a	:: !(InIDataId a) !*HSt -> *(Form a, !*HSt)							// user defined gForms: use "specialize"	
 generic gUpd  a	:: UpdMode a -> (UpdMode,a)											// gUpd can simply be derived
 
-:: UpdMode			= UpdSearch UpdValue Int										// search for indicated postion and update it
-					| UpdCreate [ConsPos]											// create new values if necessary
-					| UpdDone														// and just copy the remaining stuff
 
 derive gForm Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 derive gUpd  Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
@@ -73,4 +76,8 @@ createDefault 		:: a						| gUpd{|*|} a
 toHtml 				:: a -> HtmlTag 			| gForm {|*|} a								// toHtml displays any type into a non-editable form
 toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 								// toHtmlForm displays any form one can make with a form function
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
-mkInput				:: !(InIDataId d) String UpdValue !*HSt -> ([HtmlTag],[InputId],*HSt)	// Html Form Creation utility 
+												
+
+mkInput				:: !(InIDataId d) String 					!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkButton			:: !(InIDataId d) String 					!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkSelect 			:: !(InIDataId d) String [(String,String)]	!*HSt -> ([HtmlTag],[InputId],*HSt)

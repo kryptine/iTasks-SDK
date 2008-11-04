@@ -14,7 +14,10 @@ derive write 	  				  (<->), <|>, HtmlDate, HtmlTime, DisplayMode, Button, Check
 EmptyBody :== SpanTag [] []
 defpixel :== 100
 defsize	:== 10
+// Tuples are placed next to each other, pairs below each other ...
+layoutTableAtts	:== []	// default table attributes for arranging layout
 
+//TODO: is the HTML type still needed?
 gForm {|HTML|} (init,formid ) hst	= specialize myeditor (Set,formid) hst
 where
 	myeditor (init,formid ) hst
@@ -31,8 +34,8 @@ gParse{|HTML|} st					= case gParse {|*|} st of
 
 gerda{|HTML|}  = abort "illegal gerda call for type HTML"
 
-// Tuples are placed next to each other, pairs below each other ...
-layoutTableAtts	:== []	// default table attributes for arranging layout
+
+
 
 gForm{|(,)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,) constructor 
@@ -275,7 +278,7 @@ gForm{|PullDownMenu|} (init,formid) hst
 
 gForm{|TextInput|} (init,formid) hst 	
 # (cntr,hst)			= getHStCntr hst
-# (body,inputs,hst)		= mkInput(init,formid) v updv hst
+# (body,inputs,hst)		= mkInput(init,formid) v hst
 = ({changed=False, value=formid.ival, form=body, inputs=inputs },incrHStCntr 2 hst)
 where
 	(v,updv)			= case formid.ival of

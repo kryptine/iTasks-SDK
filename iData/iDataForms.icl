@@ -13,14 +13,22 @@ import Html
 derive gPrint (,), (,,), (,,,), UpdValue
 derive gParse (,), (,,), (,,,), UpdValue
 derive gUpd		   (,,), (,,,)
+derive gUpd Maybe
+
 derive bimap Form, FormId
 
 gParse{|(->)|} gArg gRes _ 		= Nothing 
 gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic storage option!\n"
 
+:: UpdMode	= UpdSearch UpdValue Int		// search for indicated postion and update it
+			| UpdCreate [ConsPos]			// create new values if necessary
+			| UpdDone						// and just copy the remaining stuff
+
+
 // The function mkViewForm is *the* magic main function 
-// All idata /itasks end up in this function
+// All idata end up in this function
 // It does everything, a swiss army knife editor that makes coffee too ...
+// TODO: Try to make it do just a little less :)
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
 mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world} 
@@ -122,7 +130,7 @@ where
 
 specialize :: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (!Form a,!*HSt) | gUpd {|*|} a
 specialize editor (init,formid) hst=:{cntr = inidx,states = formStates,world}
-# nextidx					= incrIndex inidx formid.ival		// this value will be repesented differently, so increment counter 
+# nextidx					= incrIndex inidx formid.ival					// this value will be repesented differently, so increment counter 
 # (nv,hst) 					= editor (init,nformid) (setHStCntr 0 hst)
 = (nv,setHStCntr nextidx hst)
 where
@@ -133,152 +141,138 @@ where
 	# (UpdSearch _ cnt,v)	= gUpd {|*|} (UpdSearch (UpdI 0) -1) v
 	= i + (-1 - cnt)
 
+
+
+/**
+* gForm generats the html forms.
+*/
+
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
 gForm{|Int|} (init,formid) hst 	
-# (body,inputs,hst)			= mkInput (init,formid) (toString i) (UpdI i) hst
-= ({ changed				= False
-   , value					= i
-   , form					= body
-   , inputs					= inputs
-   },hst)
-where
-	i						= formid.ival 
+	# (html,inputs,hst)			= mkInput (init,formid) (toString formid.ival) hst
+	= ({ changed				= False
+	   , value					= formid.ival
+	   , form					= html
+	   , inputs					= inputs
+	   },hst)
+	
 gForm{|Real|} (init,formid) hst 	
-# (body,inputs,hst)			= mkInput (init,formid) (toString r) (UpdR r) hst
-= ({ changed				= False
-   , value					= r
-   , form					= body
-   , inputs					= inputs
-   },hst)
-where
-	r						= formid.ival 
+	# (html,inputs,hst)			= mkInput (init,formid) (toString formid.ival) hst
+	= ({ changed				= False
+	   , value					= formid.ival
+	   , form					= html
+	   , inputs					= inputs
+	   },hst)
 
-gForm{|Bool|} (init,formid) hst=:{cntr}
-= ({ changed				= False
-   , value					= formid.ival
-   , form					= [mkConsSel cntr (toString formid.ival) ["False","True"] (if formid.ival 1 0) formid]
-   , inputs					= []
-   },setHStCntr (cntr+1) hst)
+gForm{|Bool|} (init,formid) hst
+	# (html,inputs,hst)			= mkSelect (init,formid) (toString formid.ival) [("False","False"),("True","True")] hst
+	= ({ changed				= False
+	   , value					= formid.ival
+	   , form					= html
+	   , inputs					= inputs
+	   },hst)
 
 gForm{|String|} (init,formid) hst 	
-# (body,inputs,hst)			= mkInput (init,formid) s (UpdS s) hst
-= ({ changed				= False
-   , value					= s
-   , form					= body
-   , inputs					= inputs
-   },hst)
-where
-	s						= formid.ival 
-gForm{|UNIT|}  _ hst
-= ({ changed				= False
-   , value					= UNIT
-   , form					= []
-   , inputs					= []
-   },hst)
+	# (html,inputs,hst)			= mkInput (init,formid) formid.ival hst
+	= ({ changed				= False
+	   , value					= formid.ival
+	   , form					= html
+	   , inputs					= inputs
+	   },hst)
+
+gForm{|UNIT|} _ hst
+	= ({ changed				= False
+	   , value					= UNIT
+	   , form					= []
+	   , inputs					= []
+	   },hst)
+   
 gForm{|PAIR|} gHa gHb (init,formid) hst 
-# (na,hst)					= gHa (init,reuseFormId formid a) hst
-# (nb,hst)					= gHb (init,reuseFormId formid b) hst
-= ({ changed				= na.changed || nb.changed
-   , value					= PAIR na.value nb.value
-   , form					= [TableTag [] [TrTag [] [TdTag [] na.form, TdTag [] nb.form]]]
-   , inputs					= na.inputs ++ nb.inputs
-   },hst)
+	# (na,hst)					= gHa (init, reuseFormId formid a) hst
+	# (nb,hst)					= gHb (init, reuseFormId formid b) hst
+	= ({ changed				= na.changed || nb.changed
+	   , value					= PAIR na.value nb.value
+	   , form					= na.form ++ nb.form
+	   , inputs					= na.inputs ++ nb.inputs
+	   },hst)
 where
-	(PAIR a b)				= formid.ival 
+	(PAIR a b)					= formid.ival 
+
 gForm{|EITHER|} gHa gHb (init,formid)  hst 
-= case formid.ival of
-	(LEFT a)
-		# (na,hst)			= gHa (init,reuseFormId formid a) hst
-		= ({na & value=LEFT na.value},hst)
-	(RIGHT b)
-		# (nb,hst)			= gHb (init,reuseFormId formid b) hst
-		= ({nb & value=RIGHT nb.value},hst)
+	= case formid.ival of
+		(LEFT a)
+			# (na,hst)			= gHa (init, reuseFormId formid a) hst
+			= ({na & value = LEFT na.value},hst)
+		(RIGHT b)
+			# (nb,hst)			= gHb (init, reuseFormId formid b) hst
+			= ({nb & value = RIGHT nb.value},hst)
+
 gForm{|OBJECT|} gHo (init,formid) hst
-# (no,hst)					= gHo (init,reuseFormId formid o) hst
-= ({no & value=OBJECT no.value},hst)
+	# (no,hst)					= gHo (init, reuseFormId formid o) hst
+	= ({no & value = OBJECT no.value},hst)
 where
 	(OBJECT o) = formid.ival
+	
 gForm{|CONS of t|} gHc (init,formid) hst=:{cntr}
-| not (isEmpty t.gcd_fields) 		 
-	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display record constructor
-	= ({nc & value=CONS nc.value},hst)
-| t.gcd_type_def.gtd_num_conses == 1 
-	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display constructors that have no alternative
-	= ({nc & value=CONS nc.value},hst)
-| t.gcd_name.[(size t.gcd_name) - 1] == '_' 										 // don't display constructor names which end with an underscore
-	# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) 
-	= ({nc & value=CONS nc.value},hst)
-# (selector,hst)			= mkConsSelector formid t hst
-# (nc,hst)					= gHc (init,reuseFormId formid c) hst
-= ({ changed				= nc.changed
-   , value					= CONS nc.value
-   , form					= [TableTag [StyleAttr "padding: 0px"] [selector : nc.form]]
-   , inputs					= nc.inputs
-   },hst)
+	| not (isEmpty t.gcd_fields) 		 
+		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display record constructor, but wrap the content in a table tag
+		= ({ changed			= nc.changed
+		   , value				= CONS nc.value
+		   , form				= [TableTag [] nc.form]
+		   , inputs				= nc.inputs
+		   },hst)
+	| t.gcd_type_def.gtd_num_conses == 1 
+		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display constructors that have no alternative
+		= ({nc & value = CONS nc.value},hst)
+	| t.gcd_name.[(size t.gcd_name) - 1] == '_' 										 	// don't display constructor names which end with an underscore
+		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) 
+		= ({nc & value = CONS nc.value},hst)
+				
+	# (selHtml,selInputs,hst)	= mkSelect (init, formid) myname options hst
+	# (nc,hst)					= gHc (init,reuseFormId formid c) hst
+	= ({ changed				= nc.changed
+	   , value					= CONS nc.value
+	   , form					= selHtml ++ nc.form
+	   , inputs					= selInputs ++ nc.inputs
+	   },hst)
 where
-	(CONS c)				= formid.ival
-
-mkConsSelector formid thiscons hst=:{cntr} // PK: lifted to a global function 
-						= (mkConsSel cntr myname allnames myindex formid, setHStCntr (cntr+1) hst)
-where
-	myname				= thiscons.gcd_name
-	allnames			= map (\n -> n.gcd_name) thiscons.gcd_type_def.gtd_conses
-	myindex				= case allnames ?? myname of
-							-1			-> abort ("cannot find index of " +++ myname )
-							i			-> i
-
-mkConsSel :: Int String [String] Int (FormId x) -> HtmlTag  // PK: lifted to a global function 
-mkConsSel cntr myname list nr formid
-	= SelectTag [ NameAttr (selectorInpName +++ encodeString myname): styles ]		// changed to see changes in case of a submit
-			 [ OptionTag
-				[ValueAttr (encodeTriplet (formid.id,cntr,UpdC elem)) : if (j == nr) [SelectedAttr] [] ] [Text elem]
-			 \\ elem <- list & j <- [0..]
-			 ] 
-	where
-		styles			= case formid.mode of
-							Edit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))] ++ (callClean "change" Edit "" formid.lifespan True)
-							Submit	-> [ IdAttr (encodeInputId (formid.id,cntr,UpdC myname))]
-							_		-> [ DisabledAttr]
+	(CONS c)					= formid.ival
+	myname						= t.gcd_name
+	options						= map (\n -> (n.gcd_name,n.gcd_name)) t.gcd_type_def.gtd_conses
 
 gForm{|FIELD of d |} gHx (init,formid) hst 
-# (nx,hst)					= gHx (init,reuseFormId formid x) hst
-| d.gfd_name.[(size d.gfd_name) - 1] == '_' 										 // don't display field names which end with an underscore
-							= ({ changed	= False
-							   , value		= formid.ival
-							   , form		= []
-							   , inputs		= []
-							   },hst)
-= ({ changed				= nx.changed
-   , value					= FIELD nx.value
-   , form					= [TableTag [StyleAttr "padding: 0px"] [fieldname :  nx.form] ]
-   , inputs					= nx.inputs
-   },hst)
+	# (nx,hst)					= gHx (init,reuseFormId formid x) hst
+	| d.gfd_name.[(size d.gfd_name) - 1] == '_' 										 // don't display field names which end with an underscore
+		= ({ changed	= False
+		   , value		= formid.ival
+		   , form		= []
+		   , inputs		= []
+		   },hst)
+	| otherwise
+		= ({ changed				= nx.changed
+		   , value					= FIELD nx.value
+		   , form					= [TrTag [] [ThTag [] [Text fieldname],TdTag [] nx.form]]
+		   , inputs					= nx.inputs
+		   },hst)
 where
 	(FIELD x)				= formid.ival
-	
-	fieldname				= InputTag	[ TypeAttr		"text"
-										, ValueAttr		(prettify d.gfd_name +++ ": ")	
-										, DisabledAttr
-										]
-	prettify name			= mkString [toUpper lname : addspace lnames]
+	fieldname				= prettify d.gfd_name +++ ": "
+	prettify name			= {c \\ c <- [toUpper lname : addspace lnames]}
 	where
-		[lname:lnames]		= mkList name
+		[lname:lnames]		= [c \\ c <-: name]
 		addspace []			= []
 		addspace [c:cs]
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
-gForm{|(->)|} garg gres (init,formid) hst 	
-= ({ changed = False, value = formid.ival, form = [], inputs = []},hst)
+
+gForm{|(->)|} gHarg gHres (init,formid) hst 	
+	= ({ changed = False, value = formid.ival, form = [], inputs = []},hst)
 
 // gUpd calculates a new value given the current value and a change in the value.
 // If necessary it invents new default values (e.g. when switching from Nil to Cons)
 // and leaves the rest untouched.
-
-:: UpdMode	= UpdSearch UpdValue Int		// search for indicated postion and update it
-			| UpdCreate [ConsPos]			// create new values if necessary
-			| UpdDone						// and just copy the remaining stuff
 
 generic gUpd t :: UpdMode t -> (UpdMode,t)
 
@@ -363,33 +357,11 @@ gUpd{|(->)|} gUpdArg gUpdRes mode f
 
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init,formid) hst
-# (form, hst) 	= gForm{|*|} (init, formid) hst														//Use gForm to create the html form
-/* //NOT Needed in the new pure-ajax communication framework
-# buttons		= if (formid.mode == Submit) 										 				//Add submit and clear buttons to a form in submit mode.
-						[ BrTag []
-						, InputTag [TypeAttr "submit", ValueAttr "Submit"]
-						, InputTag [TypeAttr "reset", ValueAttr "Clear"]
-						, BrTag []
-						]
-						[ InputTag [TypeAttr "submit", StyleAttr "display: none"]]					//Add a hidden submit input to allow updates on press of "enter" button 
+mkForm (init,formid) hst = gForm{|*|} (init, formid) hst
 
-# sform			= if issub
-					form.form
-					[FormTag [ ActionAttr ("/" +++ ThisExe)											//Wrap the form in html form tags
-						, MethodAttr "post"
-						, NameAttr  (encodeString formid.id)										//Enable the use of any character in a form name
-						, EnctypeAttr "multipart/form-data"
-						, IdAttr (encodeString formid.id)
-						] (form.form ++ buttons)
-				  	] 
-= ({form & form = sform} ,hst)
-*/
-= (form, hst)
- 
-// small utility functions
-mkInput :: !(InIDataId d) String UpdValue !*HSt -> ([HtmlTag], [InputId],*HSt) 
-mkInput (init,formid=:{mode}) val updval hst=:{cntr} 
+//The basic building blocks for creating inputs
+mkInput :: !(InIDataId d) String !*HSt -> ([HtmlTag], [InputId],*HSt) 
+mkInput (init,formid=:{mode}) val hst=:{cntr} 
 	| mode == Edit || mode == Submit
 		# inputid	= (formid.id +++ "-" +++ toString cntr)
 		= ( [InputTag 	[ TypeAttr		"text"
@@ -397,16 +369,31 @@ mkInput (init,formid=:{mode}) val updval hst=:{cntr}
 						, NameAttr		inputid
 						, IdAttr 		inputid
 						]]
-		  , if (mode == Edit ) [{inputid = inputid, formid = formid.id, updateon = OnChange}] []
+		  , [{inputid = inputid, formid = formid.id, updateon = if (mode == Edit ) OnChange OnSubmit}]
 		  , setHStCntr (cntr+1) hst)
 	| mode == Display
 		= ( [InputTag 	[ TypeAttr		"text"
 						, ValueAttr		val
+						, DisabledAttr
 						]]
 		  , []
 		  , setHStCntr (cntr+1) hst)
 	= ([], [], setHStCntr (cntr+1) hst)
-		
+	
+	
+mkButton :: !(InIDataId d) String !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkButton (init, formid) val hst = ([],[],hst)
+
+mkSelect :: !(InIDataId d) String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkSelect (init, formid=:{mode}) val options hst =:{cntr}
+	# inputid = (formid.id +++ "-" +++ toString cntr)
+	= ( [SelectTag	[ NameAttr	inputid
+					, IdAttr	inputid
+					: if (mode == Display) [DisabledAttr] []
+					] [OptionTag [ValueAttr value:if (value == val) [SelectedAttr] [] ] [Text label] \\ (label,value) <- options]]
+	  , [{inputid = inputid, formid = formid.id, updateon = (if (mode == Edit) OnChange OnSubmit)}]
+	  , setHStCntr (cntr + 1) hst)
+
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 toHtml :: a -> HtmlTag | gForm {|*|} a
 toHtml a
@@ -428,7 +415,6 @@ where
 			, datafile	= abort "dummy datafile for toHtmlForm!\n"
 			}
 
-
 createDefault :: a | gUpd{|*|} a 
 createDefault					= fromJust (snd (gUpd {|*|} (UpdSearch (UpdC "Just") 0) Nothing))
-derive gUpd Maybe
+
