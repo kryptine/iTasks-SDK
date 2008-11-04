@@ -16,7 +16,7 @@ calculateTaskTree thisUser mainTask hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst												// fetch global settings of this user
 # (sversion,hst)	 	= setSVersionNr thisUser id hst												// fetch version number of session (not needed in new set up?)
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr //&& not noNewVersion 		// test if there is a version conflict				
-| versionconflict		= (True,BT [],Just "Version conflict detected!",hst)						// Yes, return error message
+| versionconflict		= (True,BT [] [],Just "Version conflict detected!",hst)						// Yes, return error message
 
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
 						=  calculateTasks thisUser pversion False mainTask (initTst thisUser TxtFile TxtFile hst)
@@ -35,7 +35,7 @@ where
 		, staticInfo	= initStaticInfo thisUser threadstorage
 		, userId		= if (thisUser >= 0) defaultUser thisUser
 		, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
-		, html 			= BT []
+		, html 			= BT [] []
 		, trace			= Nothing
 		, hst 			= hst
 		, options 		= initialOptions thisUser itaskstorage

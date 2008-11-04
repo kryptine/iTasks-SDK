@@ -113,7 +113,7 @@ calculateTasks thisUser pversion doTrace maintask tst=:{hst}
 =  ((IF_Ajax 
 		(startAjaxApplication thisUser pversion) 
 		startMainTask
-	) maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+	) maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT [] []}
 where
 	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
@@ -161,22 +161,22 @@ startAjaxApplication thisUser versioninfo maintask tst=:{tasknr,options,html,tra
 
 // ok, we have found a matching thread
 
-# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT []}			// evaluate the thread
+# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT [] []}			// evaluate the thread
 | not activated																	// thread / task not yet finished
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
 	= ((False,thisUser,event,"",[thread.thrTaskNr]),tst)						// no further evaluation, aks user for more input
 
 # (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst			// look for thread to evaluate
-= doParent mbthread maintask event [thread.thrTaskNr] {tst & html = BT [], options = options}				// more to evaluate, call thread one level higher
+= doParent mbthread maintask event [thread.thrTaskNr] {tst & html = BT [] [], options = options}				// more to evaluate, call thread one level higher
 where
 	doParent [] maintask event accu tst											// no more parents of current event, do main task
-						= startFromRoot versioninfo event [tasknr:accu] "No more threads, page refreshed" maintask {tst & html = BT []}			
+						= startFromRoot versioninfo event [tasknr:accu] "No more threads, page refreshed" maintask {tst & html = BT [] []}			
 
 	doParent [parent:next] maintask event accu tst								// do parent of current thread
 	| parent.thrUserId <> thisUser												// updating becomes too complicated
-						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask {tst & html = BT []}			
+						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask {tst & html = BT [] []}			
 
-	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT []}		// start parent
+	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT [] []}		// start parent
 	| not activated																// parent thread not yet finished
 		# tst				= copyThreadTableToClient tst						// copy thread table to client
 		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
@@ -333,7 +333,7 @@ where
 				 ServerThread 		= deserializeThread thrCallback
 				 else 				= abort "Thread administration error in evalTaskThread"
 			)
-			{tst & tasknr = thrTaskNr, options = newThrOptions, userId = thrUserId,html = BT []} 
+			{tst & tasknr = thrTaskNr, options = newThrOptions, userId = thrUserId,html = BT [] []} 
 	| activated																	// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}			// remove thread from administration
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})		// remove entry from table

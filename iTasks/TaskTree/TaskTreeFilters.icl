@@ -25,7 +25,7 @@ collectTaskList pred  (tree1 +-+ tree2)
 # collection1	= collectTaskList pred tree1
 # collection2	= collectTaskList pred tree2
 = collection1 ++ collection2
-collectTaskList pred  (BT bdtg)
+collectTaskList pred  (BT bdtg [])
 = []
 collectTaskList pred (DivCode id tree)
 = collectTaskList pred tree
@@ -55,13 +55,13 @@ determineTaskTree  thisuser thistaskid  (tree1 +-+ tree2)
 # ntree1		= determineTaskTree thisuser thistaskid tree1
 | isJust ntree1 = ntree1
 = determineTaskTree thisuser thistaskid tree2
-determineTaskTree thisuser thistaskid  (BT bdtg)
+determineTaskTree thisuser thistaskid  (BT bdtg [])
 = Nothing
 determineTaskTree thisuser thistaskid (DivCode id tree)
 = determineTaskTree thisuser thistaskid tree
 
 noFilter :: !HtmlTree -> [HtmlTag]
-noFilter (BT body) 			= body
+noFilter (BT body inputs) 	= body
 noFilter (_ @@: html) 		= noFilter html
 noFilter (_ -@: html) 		= noFilter html
 noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
@@ -133,7 +133,7 @@ collect thisuser taskuser accu (tree1 +-+ tree2)
 # (lhtml,accu)	= collect thisuser taskuser accu tree1
 # (rhtml,accu)	= collect thisuser taskuser accu tree2
 = ([lhtml <=> rhtml],accu)
-collect thisuser taskuser accu (BT bdtg)
+collect thisuser taskuser accu (BT bdtg [])
 | thisuser == taskuser	= (bdtg,accu)
 | otherwise				= ([],accu)
 collect thisuser taskuser accu (DivCode id tree)

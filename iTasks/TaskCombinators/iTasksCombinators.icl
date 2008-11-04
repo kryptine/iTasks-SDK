@@ -105,7 +105,7 @@ where
 											[[(iTaskButton txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
 		# (choice,tst)				= liftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst
-		| chosen.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form})
+		| chosen.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form choice.inputs})
 		= ([chosen.value],{tst & activated = True})
 	= ([chosen.value],{tst & activated = True})
 
@@ -125,8 +125,8 @@ where
 		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ numberOfItems)
 		# (choice,tst)					= liftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (defaultOn,[(txt,id) \\ txt <- map fst taskOptions]))) tst
 		# (_,tst=:{activated=adone,html=ahtml})	
-										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
-		| not adone						= ([],{tst & activated = False, html = html +|+ BT prompt +|+ BT choice.form +|+ ahtml, tasknr = tasknr})
+										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 	
+		| not adone						= ([],{tst & activated = False, html = html +|+ BT prompt [] +|+ BT choice.form choice.inputs +|+ ahtml, tasknr = tasknr})
 		# chosenIdx						= snd choice.value
 		# chosenTask					= snd (taskOptions!!chosenIdx)
 		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> chosenIdx)) tst
@@ -151,11 +151,11 @@ where
 		# choice						= if nradio.changed (snd nradio.value) chosen.value
 		# (nradio,tst)					= liftHst (ListFuncRadio (Set, sessionFormId options taskRadioMenuId (choice,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
 		# (_,tst=:{activated=adone,html=ahtml})	
-										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 	
+										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 	
 		| not adone
-			# (chosen,tst)					= liftHst (mkStoreForm  (Set,storageFormId options taskId choice) id) {tst & activated = adone, html = BT []}
+			# (chosen,tst)					= liftHst (mkStoreForm  (Set,storageFormId options taskId choice) id) {tst & activated = adone, html = BT [] []}
 			# radioform						= nradio.form <=|>  [[showLabel label] <||> htmlcode \\ htmlcode <- htmlcodes & (label,_) <- taskOptions]
-			= (createDefault,{tst & activated = False, html = html +|+ BT [radioform] +|+ ahtml, tasknr = tasknr})
+			= (createDefault,{tst & activated = False, html = html +|+ BT [radioform] nradio.inputs +|+ ahtml, tasknr = tasknr})
 		= ([choice],{tst & activated = True, html = html, tasknr = tasknr})
 
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
@@ -177,10 +177,10 @@ where
 		# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
 	
 		# (_,tst=:{html=ahtml,activated = adone})
-								= (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [], tasknr = [-1:tasknr]} 
+								= (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 
 		| not adone	
 			# optionsform		= cboxes.form <=|> [[showLabel label] <||> htmlcode \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
-			= ([],{tst & html = html +|+  BT [optionsform] +|+ ahtml})
+			= ([],{tst & html = html +|+  BT [optionsform] cboxes.inputs +|+ ahtml})
 		# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
 		= ([i \\ True <- snd cboxes.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
 	

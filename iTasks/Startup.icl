@@ -35,7 +35,7 @@ initTst thisUser itaskstorage threadstorage hst
 					, staticInfo	= initStaticInfo thisUser threadstorage
 					, userId		= if (thisUser >= 0) defaultUser thisUser
 					, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
-					, html 			= BT []
+					, html 			= BT [] []
 					, trace			= Nothing
 					, hst 			= hst
 					, options 		= initialOptions thisUser itaskstorage
@@ -266,7 +266,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 // Here the iTasks are evaluated ...
 													    
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						=  calculateTasks thisUser pversion doTrace maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT []}
+						=  calculateTasks thisUser pversion doTrace maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT [] []}
 
 // epilogue
 

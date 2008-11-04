@@ -113,7 +113,7 @@ where
 	| not activated						= (createDefault,tst)
 	# (currtime,tst)					= appWorldOnce "time" time tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [],userId = nuserId}		// activate task of indicated user
+	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [] [],userId = nuserId}		// activate task of indicated user
 	| activated 						= (a,{tst & activated = True						// work is done	
 												  ,	userId = userId							// restore previous user id						
 												  ,	html = ohtml })							// plus new one tagged
@@ -143,8 +143,8 @@ where
 	doseqTasks [] accu tst 		= (reverse accu,{tst & activated = True})
 	doseqTasks [(taskname,task):ts] accu tst=:{html,options} 
 	# (a,tst=:{activated=adone,html=ahtml}) 
-									= task {tst & activated = True, html = BT []}
-	| not adone						= (reverse accu,{tst & html = html +|+ BT [showLabel taskname,BrTag [] ,BrTag []] +|+ ahtml})
+									= task {tst & activated = True, html = BT [] []}
+	| not adone						= (reverse accu,{tst & html = html +|+ BT [showLabel taskname,BrTag [] ,BrTag []] [] +|+ ahtml})
 	= doseqTasks ts [a:accu] {tst & html = html +|+ ahtml, options = options}
 
 // ******************************************************************************************************
@@ -170,23 +170,23 @@ where
 	doandTasks chooser [] tst	= return [] tst
 	doandTasks chooser taskCollection tst=:{tasknr,html,options,userId}
 	# ((alist,acode),tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [],activated = True} 
+						= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [] [],activated = True} 
 	| finished			= (alist,{tst & html = html}) 						// stop, all andTasks are finished
 	| pred alist		= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	# selectId			= iTaskId userId tasknr "anTaskSelect"
-	# ((selected,shtml),tst)	= chooser selectId taskCollection {tst & html = BT []}
-	# (_,tst=:{html=ashtml})	= showtasks label [(i,taskCollection!!i) \\ i <- selected | i >= 0 && i < lengthltask] {tst & html = BT [], activated = True}		
+	# ((selected,shtml),tst)	= chooser selectId taskCollection {tst & html = BT [] []}
+	# (_,tst=:{html=ashtml})	= showtasks label [(i,taskCollection!!i) \\ i <- selected | i >= 0 && i < lengthltask] {tst & html = BT [] [], activated = True}		
 	= (alist,{tst 	& activated = finished
 					, html = 	html +|+ 									// show previous code
-								((BT shtml) +-+ ashtml) +|+ 				// show selection button + selected itasks
-								(userId -@: foldl (+|+) (BT []) [htmlcode \\ htmlcode <- acode & i <- [0..] | not (isMember i selected)]) // dont show non selected itasks, but scan them for task tree info								
+								((BT shtml []) +-+ ashtml) +|+ 				// show selection button + selected itasks
+								(userId -@: foldl (+|+) (BT [] []) [htmlcode \\ htmlcode <- acode & i <- [0..] | not (isMember i selected)]) // dont show non selected itasks, but scan them for task tree info								
 			})
 	where
 		showtasks :: !String ![(!Int,!LabeledTask a)] !*TSt -> *(![a],!*TSt) | iCreateAndPrint a
 		showtasks _ [] tst			= ([],tst)
 		showtasks label [(chosen,(name,chosenTask)):tasks] tst=:{html=html}
-		# (a,tst=:{html=ahtml}) 	= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT []}
-		# (as,tst=:{html=ashtml})	= showtasks label tasks {tst & html = BT []}
+		# (a,tst=:{html=ahtml}) 	= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT [] []}
+		# (as,tst=:{html=ashtml})	= showtasks label tasks {tst & html = BT [] []}
 		= ([a:as],{tst & html = html +|+ ahtml +|+ ashtml})			
 
 
@@ -195,7 +195,7 @@ where
 		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),{tst & activated = bool})			// all tasks tested
 		# (taskname,task)		= taskCollection!!ctasknr
 		# (a,tst=:{activated = adone,html=html})	
-								= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True, html = BT []} // check tasks
+								= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
 		| adone					= checkAllTasks traceid taskCollection (inc ctasknr) bool ([a:alist],[html:acode]) {tst & tasknr = tasknr, activated = True}
 		= checkAllTasks traceid taskCollection (inc ctasknr) False (alist,[html:acode]) {tst & tasknr = tasknr, activated = True}
 
@@ -221,8 +221,8 @@ closureLZTask	:: Same, but now the original task will not be done unless someone
 (-!>)  stoptask task =  mkTask "-!>" stop`
 where
 	stop` tst=:{tasknr,html,options,userId}
-	# (val,tst=:{activated = taskdone,html = taskhtml}) = task     {tst & activated = True, html = BT [], tasknr = normalTaskId,options = options}
-	# (s,  tst=:{activated = stopped, html = stophtml})	= stoptask {tst & activated = True, html = BT [], tasknr = stopTaskId,  options = options}
+	# (val,tst=:{activated = taskdone,html = taskhtml}) = task     {tst & activated = True, html = BT [] [], tasknr = normalTaskId,options = options}
+	# (s,  tst=:{activated = stopped, html = stophtml})	= stoptask {tst & activated = True, html = BT [] [], tasknr = stopTaskId,  options = options}
 	| stopped	= return_V (Just s, TCl (close task))   {tst & html = html, activated = True}
 	| taskdone	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml, activated = True}
 	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}

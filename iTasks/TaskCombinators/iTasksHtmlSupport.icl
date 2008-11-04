@@ -27,40 +27,40 @@ addHtml			:: add html code
 where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
+	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT [] []}
 	| activated 						= (a,{tst & html = ohtml})
-	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
+	= (a,{tst & html = ohtml +|+ BT prompt [] +|+ nhtml})
 
 (<<?) infixl 5 	:: !(Task a) ![HtmlTag] 					-> Task a		| iCreate a
 (<<?) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT []}
+	# (a,tst=:{activated,html=nhtml}) 	= task {tst & html = BT [] []}
 	| activated 						= (a,{tst & html = ohtml})
-	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
+	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt []})
 
 (!>>) infixr 5 :: ![HtmlTag] !(Task a) -> (Task a) | iCreate a
 (!>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
 	| not myturn			= (createDefault,tst)
-	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
-	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
+	# (a,tst=:{html=nhtml}) = task {tst & html = BT [] []}
+	= (a,{tst & html = ohtml +|+ BT prompt [] +|+ nhtml})
 
 (<<!) infixl 5 :: !(Task a) ![HtmlTag] -> (Task a) | iCreate a
 (<<!) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
 	| not myturn			= (createDefault,tst)
-	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
-	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
+	# (a,tst=:{html=nhtml}) = task {tst & html = BT [] []}
+	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt []})
 
 
 addHtml :: ![HtmlTag] !*TSt -> *TSt
 addHtml bodytag  tst=:{activated, html}  
 | not activated = tst						// not active, return default value
-= {tst & html = html +|+ BT bodytag}		// active, so perform task or get its result
+= {tst & html = html +|+ BT bodytag []}		// active, so perform task or get its result
 
 iTaskButton :: !String -> Button
 iTaskButton label = LButton defpixel label

@@ -48,7 +48,7 @@ derive write 	TCl
 :: GarbageCollect 	
 				=	Collect 													// garbage collect iTask administration
 				|	NoCollect													// no garbage collection
-:: HtmlTree		=	BT [HtmlTag]													// simple code
+:: HtmlTree		=	BT [HtmlTag] [InputId]										// simple code with possible event handler definitions
 				|	(@@:) infix  0 !TaskDescription !HtmlTree					// code with id of user attached to it
 				|	(-@:) infix  0 !UserId 	 !HtmlTree							// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
