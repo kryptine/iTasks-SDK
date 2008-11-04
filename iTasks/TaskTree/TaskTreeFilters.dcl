@@ -23,8 +23,10 @@ Filter 			:: Filters out the html code for a specific user
 
 
 noFilter 		:: !HtmlTree -> [HtmlTag]
-Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],!*HSt)
+Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![InputId],!*HSt)
+//TODO: Refactor filter function. Does way to much at the same time
+
 
 
 collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (![HtmlTag],!*HSt)
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (![HtmlTag],![InputId],!*HSt)

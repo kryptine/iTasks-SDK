@@ -18,7 +18,6 @@ derive bimap Form, FormId
 gParse{|(->)|} gArg gRes _ 		= Nothing 
 gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic storage option!\n"
 
-
 // The function mkViewForm is *the* magic main function 
 // All idata /itasks end up in this function
 // It does everything, a swiss army knife editor that makes coffee too ...
@@ -137,20 +136,20 @@ where
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
 gForm{|Int|} (init,formid) hst 	
-# (body,hst)				= mkInput (init,formid) (toString i) (UpdI i) hst
+# (body,inputs,hst)			= mkInput (init,formid) (toString i) (UpdI i) hst
 = ({ changed				= False
    , value					= i
-   , form					= [body]
-   , inputs					= []
+   , form					= body
+   , inputs					= inputs
    },hst)
 where
 	i						= formid.ival 
 gForm{|Real|} (init,formid) hst 	
-# (body,hst)				= mkInput (init,formid) (toString r) (UpdR r) hst
+# (body,inputs,hst)			= mkInput (init,formid) (toString r) (UpdR r) hst
 = ({ changed				= False
    , value					= r
-   , form					= [body]
-   , inputs					= []
+   , form					= body
+   , inputs					= inputs
    },hst)
 where
 	r						= formid.ival 
@@ -163,11 +162,11 @@ gForm{|Bool|} (init,formid) hst=:{cntr}
    },setHStCntr (cntr+1) hst)
 
 gForm{|String|} (init,formid) hst 	
-# (body,hst)				= mkInput (init,formid) s (UpdS s) hst
+# (body,inputs,hst)			= mkInput (init,formid) s (UpdS s) hst
 = ({ changed				= False
    , value					= s
-   , form					= [body]
-   , inputs					= []
+   , form					= body
+   , inputs					= inputs
    },hst)
 where
 	s						= formid.ival 
@@ -293,8 +292,7 @@ gUpd{|Real|} (UpdSearch val cnt)     	r = (UpdSearch val (dec cnt),r)		// contin
 gUpd{|Real|} (UpdCreate l)			 	_ = (UpdCreate l,0.0)				// create default value
 gUpd{|Real|} mode 			  	     	r = (mode,r)						// don't change
 
-//gUpd{|Bool|} (UpdSearch (UpdB nb) 0) 	_ = (UpdDone,nb)					// update boolean value
-gUpd{|Bool|} (UpdSearch (UpdC nb) 0) 	_ = (UpdDone,nb=="True")					// update boolean value
+gUpd{|Bool|} (UpdSearch (UpdC nb) 0) 	_ = (UpdDone,nb=="True")			// update boolean value
 gUpd{|Bool|} (UpdSearch val cnt)     	b = (UpdSearch val (dec cnt),b)		// continue search, don't change
 gUpd{|Bool|} (UpdCreate l)			 	_ = (UpdCreate l,False)				// create default value
 gUpd{|Bool|} mode 			  	     	b = (mode,b)						// don't change
@@ -390,22 +388,24 @@ mkForm (init,formid) hst
 = (form, hst)
  
 // small utility functions
-mkInput :: !(InIDataId d) String UpdValue !*HSt -> (HtmlTag,*HSt) 
+mkInput :: !(InIDataId d) String UpdValue !*HSt -> ([HtmlTag], [InputId],*HSt) 
 mkInput (init,formid=:{mode}) val updval hst=:{cntr} 
-| mode == Edit || mode == Submit
-	= ( InputTag 	[ TypeAttr		"text"
-					, ValueAttr		val
-					, NameAttr		(encodeTriplet (formid.id,cntr,updval))
-					, IdAttr (encodeInputId (formid.id,cntr,updval))
-					: if (mode == Edit ) (callClean "change" formid.mode "" formid.lifespan False) []
-					]
-	  , setHStCntr (cntr+1) hst)
-| mode == Display
-	= ( InputTag 	[ TypeAttr		"text"
-					, ValueAttr		val
-					]
-		,setHStCntr (cntr+1) hst)
-= ( SpanTag [] [],setHStCntr (cntr+1) hst)
+	| mode == Edit || mode == Submit
+		# inputid	= (formid.id +++ "-" +++ toString cntr)
+		= ( [InputTag 	[ TypeAttr		"text"
+						, ValueAttr		val
+						, NameAttr		inputid
+						, IdAttr 		inputid
+						]]
+		  , if (mode == Edit ) [{inputid = inputid, formid = formid.id, updateon = OnChange}] []
+		  , setHStCntr (cntr+1) hst)
+	| mode == Display
+		= ( [InputTag 	[ TypeAttr		"text"
+						, ValueAttr		val
+						]]
+		  , []
+		  , setHStCntr (cntr+1) hst)
+	= ([], [], setHStCntr (cntr+1) hst)
 		
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 toHtml :: a -> HtmlTag | gForm {|*|} a

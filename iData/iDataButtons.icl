@@ -275,8 +275,8 @@ gForm{|PullDownMenu|} (init,formid) hst
 
 gForm{|TextInput|} (init,formid) hst 	
 # (cntr,hst)			= getHStCntr hst
-# (body,hst)			= mkInput(init,formid) v updv hst
-= ({changed=False, value=formid.ival, form=[body], inputs = [] },incrHStCntr 2 hst)
+# (body,inputs,hst)		= mkInput(init,formid) v updv hst
+= ({changed=False, value=formid.ival, form=body, inputs=inputs },incrHStCntr 2 hst)
 where
 	(v,updv)			= case formid.ival of
 							(TI i) = (toString i,UpdI i)

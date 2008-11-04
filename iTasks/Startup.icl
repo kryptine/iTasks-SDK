@@ -280,7 +280,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 						= if TraceThreads showThreadTable nilTable {tst & hst = hst} 
 # threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
 # (processadmin,tst=:{hst})	= showWorkflows activated tst
-# (threadcode,taskname,mainbuts,subbuts,seltask,hst)	
+# (threadcode,threadinputs,taskname,mainbuts,subbuts,seltask,hst)	
 						= Filter showCompletePage thisUser thrOwner html hst
 	 	
 # iTaskInfo				=	case headerOff of

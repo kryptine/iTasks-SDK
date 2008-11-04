@@ -70,7 +70,7 @@ derive bimap Form, FormId
 createDefault 		:: a						| gUpd{|*|} a
 
 //Utility
-toHtml 				:: a -> HtmlTag 			| gForm {|*|} a						// toHtml displays any type into a non-editable form
-toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 						// toHtmlForm displays any form one can make with a form function
+toHtml 				:: a -> HtmlTag 			| gForm {|*|} a								// toHtml displays any type into a non-editable form
+toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 								// toHtmlForm displays any form one can make with a form function
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
-mkInput				:: !(InIDataId d) String UpdValue !*HSt -> (HtmlTag,*HSt)	// Html Form Creation utility 
+mkInput				:: !(InIDataId d) String UpdValue !*HSt -> ([HtmlTag],[InputId],*HSt)	// Html Form Creation utility 
