@@ -47,7 +47,7 @@ where
 		, threadTableLoc= location
 		}
 
-	initialOptions ::  !UserId !Lifespan  -> !Options 
+	initialOptions ::  !UserId !Lifespan  -> Options 
 	initialOptions thisUser location 
 	=	{ tasklife 		= if (thisUser >= 0) location Session 
 		, taskstorage 	= PlainString

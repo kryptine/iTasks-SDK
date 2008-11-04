@@ -31,7 +31,7 @@ where
 	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
 															(if activated (BT idata.form) (BT idata.form +|+ ahtml)), hst = hst})
 
-appIData2 :: !(!String !*HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
+appIData2 :: !(String *HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
 appIData2 idatafun = \tst -> mkTask "appIData" (appIData` idatafun) tst
 where
 	appIData` idata tst=:{tasknr,html,hst,userId}
@@ -44,7 +44,7 @@ where
 appHStOnce :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
 appHStOnce label fun = Once label (liftHst fun)
 
-appHSt :: !String !(!HSt -> (!a,!HSt)) -> (Task a) | iData a
+appHSt :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
 appHSt label fun = mkTask label (liftHst fun)
 
 liftHst :: !(*HSt -> *(.a,*HSt)) !*TSt -> *(.a,*TSt)
@@ -52,13 +52,13 @@ liftHst fun tst=:{hst}
 # (form,hst) = fun hst
 = (form,{tst & hst = hst})
 
-appWorldOnce :: !String !(!*World -> *(!a,!*World)) -> (Task a) | iData a
+appWorldOnce :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
 appWorldOnce label fun = Once label (liftWorld fun)
 
 appWorld :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
 appWorld label fun = mkTask label (liftWorld fun)
 
-liftWorld :: !(*World -> !*(!a,!*World)) !*TSt -> !*(!a,!*TSt)
+liftWorld :: !(*World -> *(!a,!*World)) !*TSt -> *(!a,!*TSt)
 liftWorld fun tst=: {hst = hst=:{world = world=:{worldC}}}
 # (fvalue,theWorld)	= fun worldC
 = (fvalue,{tst & hst = {hst & world = {world & worldC = theWorld}}})	

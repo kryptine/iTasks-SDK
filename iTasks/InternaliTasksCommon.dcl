@@ -8,6 +8,7 @@ definition module InternaliTasksCommon
 //
 import iTasksSettings
 import Time
+import Html
 
 derive gForm 	TCl						
 derive gUpd 	TCl
@@ -16,7 +17,7 @@ derive gParse 	TCl
 derive read 	TCl
 derive write 	TCl
 
-:: Task a		:== !*TSt -> *(!a,!*TSt)										// an iTask is state transition function
+:: Task a		:== *TSt -> *(!a,!*TSt)										// an iTask is state transition function
 :: TCl a 		= 	TCl !.(Task a)												// task closure, container for a task used for higher order tasks (task which deliver a task)			
 
 :: *TSt 		=	{ tasknr 		:: !TaskNr									// for generating unique form-id's
@@ -30,12 +31,12 @@ derive write 	TCl
 					, hst			:: !HSt										// iData state
 					}
 :: TaskNr			:== [Int]													// task nr i.j is adminstrated as [j,i]
-:: WorkflowLink		:== !(Entry,ProcessIds)										// entry in table together with unique id which is used for checking whether the reference is still valid
-:: Entry			:== !Int
-:: ProcessIds		:== !(!UserId,!ProcessNr,!WorkflowLabel)					// user id, process id and name given to a workflow process; is used as unique identifier in process table
-:: UserId			:== !Int													// a user id of an iTask user must be a unique integer value
-:: ProcessNr		:== !Int
-:: WorkflowLabel	:== !String
+:: WorkflowLink		:== (Entry,ProcessIds)										// entry in table together with unique id which is used for checking whether the reference is still valid
+:: Entry			:== Int
+:: ProcessIds		:== (!UserId,!ProcessNr,!WorkflowLabel)						// user id, process id and name given to a workflow process; is used as unique identifier in process table
+:: UserId			:== Int														// a user id of an iTask user must be a unique integer value
+:: ProcessNr		:== Int
+:: WorkflowLabel	:== String
 :: StaticInfo	=	{ currentUserId	:: UserId									// id of application user 
 					, threadTableLoc:: !Lifespan								// where to store the server thread table, default is Session
 					}
@@ -47,14 +48,14 @@ derive write 	TCl
 :: GarbageCollect 	
 				=	Collect 													// garbage collect iTask administration
 				|	NoCollect													// no garbage collection
-:: HtmlTree		=	BT HtmlCode													// simple code
+:: HtmlTree		=	BT [HtmlTag]													// simple code
 				|	(@@:) infix  0 !TaskDescription !HtmlTree					// code with id of user attached to it
 				|	(-@:) infix  0 !UserId 	 !HtmlTree							// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 :: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
-:: TraceInfo	:== Maybe !(!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+:: TraceInfo	:== Maybe (!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
 :: TaskDescription
 				=	{ delegatorId	:: !UserId									// id of the work delegator
 					, taskWorkerId	:: !UserId									// id of worker on the task
@@ -64,8 +65,8 @@ derive write 	TCl
 					, taskLabel		:: !String									// name of the task
 					, timeCreated	:: !Time
 					, taskPriority	:: !TaskPriority
-					}							
-:: HtmlCode		:== ![HtmlTag]													// for prompting /printing html code
+					}
+					
 :: TaskNrId		:== String
 :: TaskPriority	=	HighPriority | NormalPriority | LowPriority
 
@@ -93,7 +94,7 @@ iTaskId 			:: !Int !TaskNr !String 	-> String
 showTaskNr 			:: !TaskNr 					-> String
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
-printTrace2 		:: !(Maybe ![Trace]) 		-> HtmlTag
+printTrace2 		:: !(Maybe [Trace]) 		-> HtmlTag
 
 // general iTask store, session store, page store, store but no form generation
 

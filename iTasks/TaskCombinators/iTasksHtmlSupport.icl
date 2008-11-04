@@ -22,7 +22,7 @@ Prompting variants:
 addHtml			:: add html code
 */
 
-(?>>) infixr 5 	:: !HtmlCode !(Task a) 					-> Task a		| iCreate a
+(?>>) infixr 5 	:: ![HtmlTag] !(Task a) 					-> Task a		| iCreate a
 (?>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -31,7 +31,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(<<?) infixl 5 	:: !(Task a) !HtmlCode 					-> Task a		| iCreate a
+(<<?) infixl 5 	:: !(Task a) ![HtmlTag] 					-> Task a		| iCreate a
 (<<?) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated}
@@ -40,7 +40,7 @@ where
 	| activated 						= (a,{tst & html = ohtml})
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
-(!>>) infixr 5 :: !HtmlCode !(Task a) -> (Task a) | iCreate a
+(!>>) infixr 5 :: ![HtmlTag] !(Task a) -> (Task a) | iCreate a
 (!>>) prompt task = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -48,7 +48,7 @@ where
 	# (a,tst=:{html=nhtml}) = task {tst & html = BT []}
 	= (a,{tst & html = ohtml +|+ BT prompt +|+ nhtml})
 
-(<<!) infixl 5 :: !(Task a) !HtmlCode -> (Task a) | iCreate a
+(<<!) infixl 5 :: !(Task a) ![HtmlTag] -> (Task a) | iCreate a
 (<<!) task prompt = doTask
 where
 	doTask tst=:{html=ohtml,activated=myturn}
@@ -57,7 +57,7 @@ where
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt})
 
 
-addHtml :: !HtmlCode !*TSt -> *TSt
+addHtml :: ![HtmlTag] !*TSt -> *TSt
 addHtml bodytag  tst=:{activated, html}  
 | not activated = tst						// not active, return default value
 = {tst & html = html +|+ BT bodytag}		// active, so perform task or get its result
@@ -65,7 +65,7 @@ addHtml bodytag  tst=:{activated, html}
 iTaskButton :: !String -> Button
 iTaskButton label = LButton defpixel label
 
-mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,!HtmlCode,!String),!*HSt)
+mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,![HtmlTag],!String),!*HSt)
 mkTaskButtons vertical myid userId tasknr info btnnames hst
 # btnsId			= iTaskId userId tasknr (myid <+++ "genBtns")
 # myidx				= length btnnames

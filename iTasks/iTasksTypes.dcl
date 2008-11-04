@@ -22,8 +22,8 @@ derive write 	Void
 
 //:: Task a											// for the end user a Task can be regarded as an abstract data type
 
-:: LabeledTask a	:== !(!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
-:: TaskLabel		:== !String						// a string is used to label tasks
+:: LabeledTask a	:== (!TaskLabel,!Task a)		// a Task with a label used for labeling buttons, pull down menu, and the like
+:: TaskLabel		:== String						// a string is used to label tasks
 
 :: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
 

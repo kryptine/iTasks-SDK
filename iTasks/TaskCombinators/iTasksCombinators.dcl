@@ -9,7 +9,7 @@ definition module iTasksCombinators
 //
 import iTasksBasicCombinators, iDataButtons				 
 
-:: ChoiceUpdate		:== !Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
+:: ChoiceUpdate		:== Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
 
 /* standard monadic combinators on iTasks:
 (#>>)			:: for sequencing: bind, but no argument passed
@@ -18,7 +18,7 @@ return_VF		:: return the value and show the Html code specified
 */
 (#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b		| iCreateAndPrint b
 return_D		:: !a 										-> Task a		| gForm {|*|}, iCreateAndPrint a
-return_VF 		:: !HtmlCode !a 		  					-> Task a		| iCreateAndPrint a
+return_VF 		:: ![HtmlTag] !a 		  					-> Task a		| iCreateAndPrint a
 
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
@@ -36,7 +36,7 @@ repeatTask		:: repeat Task until predicate is valid
 (<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
 */
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
-(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, HtmlCode)) 		-> Task a 		| iData a
+(<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 		| iData a
 
 /*
 Choose the tasks you want to do one forehand:
@@ -48,13 +48,13 @@ chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on firs
 				   (initial setting, effect for all when set, explanation) for each option
 */
 
-chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] 			-> Task a	 	| iData a
-chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] 			-> Task a	 	| iData a
-chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)]
+chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] 			-> Task a	 	| iData a
+chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] 			-> Task a	 	| iData a
+chooseTask_radio:: ![HtmlTag] !Int ![([HtmlTag],LabeledTask a)]
 
 															-> Task a		| iData a
-chooseTask_cbox	:: 	!(![LabeledTask a] -> Task [a]) 
-					!HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)]
+chooseTask_cbox	:: 	!([LabeledTask a] -> Task [a]) 
+					![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)]
 															-> Task [a]		| iData a
 
 /* Choose out the tasks you want to do one forehand, labels are used to make the choice:
@@ -74,17 +74,17 @@ mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 */
 button 			:: !String 	!a 								-> Task a 		| iData a
 buttonTask		:: !String   !(Task a)						-> Task a 		| iData a
-chooseTask		:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iData a
-chooseTaskV 	:: !HtmlCode ![LabeledTask a] 				-> Task a 		| iData a
+chooseTask		:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iData a
+chooseTaskV 	:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iData a
 
-mchoiceTasks 	:: !HtmlCode ![LabeledTask a] 				-> Task [a] 	| iData a
-mchoiceTasks2 	:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
-mchoiceTasks3 	:: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
+mchoiceTasks 	:: ![HtmlTag] ![LabeledTask a] 				-> Task [a] 	| iData a
+mchoiceTasks2 	:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
+mchoiceTasks3 	:: ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] 
 															-> Task [a] 	| iData a
 
-mchoiceAndTasks :: !HtmlCode ![LabeledTask a] 				-> Task [a]		| iData a
-mchoiceAndTasks2:: !HtmlCode ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
-mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] 
+mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] 				-> Task [a]		| iData a
+mchoiceAndTasks2:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
+mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] 
 															-> Task [a] 	| iData a
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 (-||-)			:: do both iTasks in any order, combined task completed as soon as any subtask is done

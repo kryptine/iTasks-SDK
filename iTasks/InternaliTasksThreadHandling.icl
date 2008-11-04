@@ -399,19 +399,19 @@ where
 						, gc			= Collect} tableid []) fun) tst
 	= (table.value,tst)
 
-copyThreadTableToClient ::  !*TSt -> !*TSt										// copies all threads for this user from server to client thread table
+copyThreadTableToClient ::  !*TSt -> *TSt										// copies all threads for this user from server to client thread table
 copyThreadTableToClient tst
 =	IF_ClientServer										
 		(IF_ClientTasks id copyThreadTableToClient` tst)						// only if we are on the server the copied can be made
 		tst
 
-copyThreadTableToClient` :: !*TSt -> !*TSt										// copies all threads for this user from server to client thread table
+copyThreadTableToClient` :: !*TSt -> *TSt										// copies all threads for this user from server to client thread table
 copyThreadTableToClient` tst
 # ((mythreads,_),tst)	= splitServerThreadsByUser tst							// get thread table on server
 # (clientThreads,tst)	= ClientThreadTableStorage (\_ -> mythreads) tst		// and store in client
 = tst
 
-splitServerThreadsByUser :: !*TSt -> !(!(!ThreadTable,!ThreadTable),!*TSt)		// get all threads from a given user from the server thread table
+splitServerThreadsByUser :: !*TSt -> (!(!ThreadTable,!ThreadTable),!*TSt)		// get all threads from a given user from the server thread table
 splitServerThreadsByUser tst=:{staticInfo}
 # userid 				= staticInfo.currentUserId
 # (serverThreads,tst)	= ServerThreadTableStorage id tst						// get thread table on server
@@ -424,13 +424,13 @@ where
 	| pred x = filterZip pred xs ([x:yes],no)
 	| otherwise = filterZip pred xs (yes,[x:no])
 
-copyThreadTableFromClient :: !GlobalInfo !*TSt -> !*TSt							// copies all threads for this user from client to server thread table
+copyThreadTableFromClient :: !GlobalInfo !*TSt -> *TSt							// copies all threads for this user from client to server thread table
 copyThreadTableFromClient versioninfo tst
 =	IF_ClientServer										
 		(IF_ClientTasks id (copyThreadTableFromClient` versioninfo) tst)		// only iff we are on the server the copied can be made
 		tst
 
-copyThreadTableFromClient` :: !GlobalInfo !*TSt -> !*TSt						// copies all threads for this user from client to server thread table
+copyThreadTableFromClient` :: !GlobalInfo !*TSt -> *TSt						// copies all threads for this user from client to server thread table
 copyThreadTableFromClient` {newThread,deletedThreads} tst
 # ((clienttableOnServer,otherClientsTable),tst)
 						= splitServerThreadsByUser tst							// get latest thread table stored on server
@@ -450,7 +450,7 @@ copyThreadTableFromClient` {newThread,deletedThreads} tst
 # (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst			// store table on server
 = tst
 
-findThreadInTable :: !ThreadKind !TaskNr !*TSt -> *(Maybe !(!Int,!TaskThread),!*TSt)// find thread that belongs to given tasknr
+findThreadInTable :: !ThreadKind !TaskNr !*TSt -> *(Maybe (!Int,!TaskThread),!*TSt)// find thread that belongs to given tasknr
 findThreadInTable threadkind tasknr tst
 # (table,tst)	= ThreadTableStorage id tst										// read thread table
 # pos			= lookupThread tasknr 0 table									// look if there is an entry for this task
@@ -610,7 +610,7 @@ deleteAllSubTasksAndThreads [tx:txs] tst
 # tst = deleteSubTasksAndThreads tx tst
 = deleteAllSubTasksAndThreads txs tst
 
-showThreadTable :: !*TSt -> (!HtmlCode,!*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
+showThreadTable :: !*TSt -> (![HtmlTag],!*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 showThreadTable tst=:{staticInfo}
 # thisUser		= staticInfo.currentUserId
 # (tableS,tst)	= ThreadTableStorage id tst													// read thread table from server

@@ -11,7 +11,7 @@ import iTasksBasicCombinators
 					| ShowUsers Int					// for multiUserTask, toggle between given maximum number of users, default: ShowUser 5 
 					| VersionCheck | NoVersionCheck	// for single & multiUser: default = VersionNoCheck 
 					| TestModeOn | TestModeOff		// emties storages when starting from scratch: On for single and multi-user tasks
-					| MyHeader HtmlCode				// wil replace standard iTask information line
+					| MyHeader [HtmlTag]			// wil replace standard iTask information line
 
 /*
 singleUserTask 	:: iTask start function for defining tasks for one, single user; intended for developing and testing

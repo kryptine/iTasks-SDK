@@ -112,7 +112,7 @@ where
 		updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
-printTrace2 		:: !(Maybe ![Trace]) -> HtmlTag
+printTrace2 		:: !(Maybe [Trace]) -> HtmlTag
 printTrace2 _	= SpanTag [] [Text "TRACE INFO, OBSOLETE"]
 /*
 printTrace2 Nothing 	= SpanTag [] []

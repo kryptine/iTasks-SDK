@@ -31,7 +31,7 @@ collectTaskList pred (DivCode id tree)
 = collectTaskList pred tree
 
 
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!HtmlCode,!*HSt)
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (![HtmlTag],!*HSt)
 determineTaskForTab thisuser thistaskid tree hst
 # mytree = determineTaskTree thisuser thistaskid tree
 | isNothing mytree = ([Text "Html code belonging to indicated task could not be found\n"],hst)
@@ -60,7 +60,7 @@ determineTaskTree thisuser thistaskid  (BT bdtg)
 determineTaskTree thisuser thistaskid (DivCode id tree)
 = determineTaskTree thisuser thistaskid tree
 
-noFilter :: !HtmlTree -> HtmlCode
+noFilter :: !HtmlTree -> [HtmlTag]
 noFilter (BT body) 			= body
 noFilter (_ @@: html) 		= noFilter html
 noFilter (_ -@: html) 		= noFilter html
@@ -97,7 +97,7 @@ where
 	# (labels,codes)		= unzipsubtasks subtasks
 	= ([tlabel:labels],[tcode:codes])
 
-	initialOptions ::  !UserId !Lifespan  -> !Options 
+	initialOptions ::  !UserId !Lifespan  -> Options 
 	initialOptions thisUser location 
 		=	{ tasklife 		= if (thisUser >= 0) location Session 
 			, taskstorage 	= PlainString
@@ -141,7 +141,7 @@ collect thisuser taskuser accu (DivCode id tree)
 | thisuser == taskuser 	= (mkDiv True id html,accu)
 = ([],accu)
 
-mkDiv :: !Bool !String !HtmlCode -> HtmlCode
+mkDiv :: !Bool !String ![HtmlTag] -> [HtmlTag]
 mkDiv False id bodytags = bodytags
-mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "thread"] bodytags]
+mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "itasks-thread"] bodytags]
 

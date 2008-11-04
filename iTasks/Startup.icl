@@ -22,7 +22,7 @@ import TaskTree, StdStrictLists
 					, threadStorageLoc	:: !Lifespan		
 					, showUsersOn		:: !Maybe Int	
 					, versionCheckOn	:: !Bool
-					, headerOff			:: !Maybe HtmlCode
+					, headerOff			:: !Maybe [HtmlTag]
 					, testModeOn		:: !Bool
 					}
 
@@ -232,7 +232,7 @@ where
 // *THE* main routine for the determination of the current state and the creation of a new workflow page
 // ******************************************************************************************************
 
-startTstTask :: !Int !Bool  !(!Bool,!HtmlCode) UserStartUpOptions !(Task a) !*TSt -> (!(!Bool,!String),!HtmlCode,!*HSt) | iData a 
+startTstTask :: !Int !Bool  !(!Bool,![HtmlTag]) UserStartUpOptions !(Task a) !*TSt -> (!(!Bool,!String),![HtmlTag],!*HSt) | iData a 
 startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
 
 // prologue
@@ -366,8 +366,8 @@ where
 // Html Printing Utilities...
 // ******************************************************************************************************
 
-mkDiv :: !Bool !String !HtmlCode -> HtmlCode
+mkDiv :: !Bool !String ![HtmlTag] -> [HtmlTag]
 mkDiv False id bodytags = bodytags
-mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "thread"] bodytags]
+mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "itasks-thread"] bodytags]
 
 

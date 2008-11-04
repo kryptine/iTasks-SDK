@@ -33,7 +33,7 @@ derive write	Maybe
 	=>> \r1 -> 	case r1 of 
 					Nothing 	-> return_V Nothing
 					Just r`1 	-> t2 r`1
-return_VF :: !HtmlCode !a -> (Task a) | iCreateAndPrint a
+return_VF :: ![HtmlTag] !a -> (Task a) | iCreateAndPrint a
 return_VF bodytag a = return_V a <<! bodytag
 
 return_D :: !a -> (Task a) | gForm {|*|}, iCreateAndPrint a
@@ -53,7 +53,7 @@ where
 		# (na,tst)	= task a tst	
 		= dorepeatTask na tst
 
-(<|) infixl 6 :: !(Task a) !(a -> (Bool, HtmlCode)) -> Task a | iData a
+(<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iData a
 (<|) taska pred = newTask "repeatTest" doTask
 where
 	doTask
@@ -88,7 +88,7 @@ where
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
 
-chooseTask_btn 	:: !HtmlCode !Bool![LabeledTask a] -> Task a | iData a
+chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks =>> \la -> return_V (hd la)		
 where
@@ -109,7 +109,7 @@ where
 		= ([chosen.value],{tst & activated = True})
 	= ([chosen.value],{tst & activated = True})
 
-chooseTask_pdm 	:: !HtmlCode !Int ![LabeledTask a] -> Task a | iData a
+chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la)		
 where
@@ -133,11 +133,11 @@ where
 		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
 	= ([chosen.value],{tst & activated = True, html = html, tasknr = tasknr})
 
-chooseTask_radio:: !HtmlCode !Int ![(HtmlCode,LabeledTask a)] -> Task a | iData a
+chooseTask_radio:: ![HtmlTag] !Int ![([HtmlTag],LabeledTask a)] -> Task a | iData a
 chooseTask_radio prompt initial code_ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_radio initial (map fst code_ltasks) lt) seqTasks (map snd code_ltasks) =>> \la -> return_V (hd la)		
 where
-	selectTask_radio :: !Int ![HtmlCode] ![LabeledTask a] -> Task [Int]
+	selectTask_radio :: !Int ![[HtmlTag]] ![LabeledTask a] -> Task [Int]
 	selectTask_radio defaultOn htmlcodes taskOptions = newTask "selectTask_radio" (selectTask_radio` taskOptions)
 	where
 		selectTask_radio` [] tst			= return createDefault tst	
@@ -158,12 +158,12 @@ where
 			= (createDefault,{tst & activated = False, html = html +|+ BT [radioform] +|+ ahtml, tasknr = tasknr})
 		= ([choice],{tst & activated = True, html = html, tasknr = tasknr})
 
-chooseTask_cbox	:: !(![LabeledTask a] -> Task [a]) !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 
 chooseTask_cbox order prompt code_ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks)		
 where
-	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,!HtmlCode)] ![LabeledTask a] -> Task [Int]
+	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,![HtmlTag])] ![LabeledTask a] -> Task [Int]
 	selectTask_cbox htmlcodes taskOptions = newTask "selectTask_cbox" (selectTask_cbox` taskOptions)
 	where
 		selectTask_cbox` [] tst	= ([],{tst& activated = True})
@@ -200,33 +200,33 @@ button s a = newTask "button" (chooseTask_btn [] True [(s,return_V a)])
 buttonTask :: !String !(Task a) -> (Task a) | iData a
 buttonTask s task = newTask "buttonTask" (chooseTask_btn [] True [(s,task)])
 
-chooseTask :: !HtmlCode ![LabeledTask a] -> (Task a) | iData a
+chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
 chooseTask prompt options = newTask "chooseTask" (chooseTask_btn prompt True options)
 
-chooseTaskV :: !HtmlCode ![LabeledTask a] -> (Task a) | iData a
+chooseTaskV :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
 chooseTaskV prompt options = newTask "chooseTaskV" (chooseTask_btn prompt False options)
 
-mchoiceTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
+mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
 = chooseTask_cbox seqTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
 
-mchoiceTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
+mchoiceTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks2 prompt taskOptions 
 = chooseTask_cbox seqTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
-mchoiceTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+mchoiceTasks3 :: ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks3 prompt taskOptions 
 = chooseTask_cbox seqTasks prompt taskOptions
 
-mchoiceAndTasks :: !HtmlCode ![LabeledTask a] -> (Task [a]) | iData a
+mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceAndTasks prompt taskOptions 
 = chooseTask_cbox andTasks prompt [((False,\b bs -> bs,[]),labeltask) \\ labeltask <- taskOptions]
 
-mchoiceAndTasks2 :: !HtmlCode ![(!Bool,LabeledTask a)] -> Task [a] | iData a
+mchoiceAndTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks2 prompt taskOptions 
 = chooseTask_cbox andTasks prompt [((set,\b bs -> bs,[]),labeltask) \\ (set,labeltask) <- taskOptions]
 
-mchoiceAndTasks3 :: !HtmlCode ![((!Bool,!ChoiceUpdate,!HtmlCode),LabeledTask a)] -> Task [a] | iData a
+mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks3 prompt taskOptions 
 = chooseTask_cbox andTasks prompt taskOptions
 

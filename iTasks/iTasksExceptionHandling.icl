@@ -10,12 +10,12 @@ import StdList, StdArray, StdTuple, StdFunc
 import dynamic_string
 import InternaliTasksThreadHandling, iTasksBasicCombinators, Startup
 
-serializeExceptionHandler :: !.(!Dynamic -> Task .a) -> .String 
+serializeExceptionHandler :: !.(Dynamic -> Task .a) -> .String 
 serializeExceptionHandler task = IF_ClientServer
 									(IF_ClientTasks (abort "Cannot serialize exception handler on Client\n") (copy_to_string task))
 									(copy_to_string task)				
 
-deserializeExceptionHandler :: .String -> .(!Dynamic -> Task a.)
+deserializeExceptionHandler :: .String -> .(Dynamic -> Task a.)
 deserializeExceptionHandler thread = IF_ClientServer
 										(IF_ClientTasks (abort "Cannot de-serialize exception handler thread on Client\n") (fetchException thread))	
 										(fetchException thread)

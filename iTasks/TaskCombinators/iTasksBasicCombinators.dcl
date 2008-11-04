@@ -52,8 +52,8 @@ allTasksCond	:: 	- string is used to give a useful name to the trace;
 					- TaskToShow is some iData based form such that dynamically can be chosen which tasks to show;  
 					- the predicate is applied on the set of tasks which are finished
 */
-:: TasksToShow a	:== !String ![LabeledTask a] !*TSt  *-> *(([Int],HtmlCode),!*TSt) 	// some iData determining which tasks to show
-:: FinishPred a		:== ![a] -> Bool
+:: TasksToShow a	:== String [LabeledTask a] *TSt  *-> *(([Int],[HtmlTag]),!*TSt) 	// some iData determining which tasks to show
+:: FinishPred a		:== [a] -> Bool
 
 allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 

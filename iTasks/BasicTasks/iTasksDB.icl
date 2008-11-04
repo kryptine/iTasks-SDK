@@ -10,7 +10,7 @@ import StdFunc, StdList
 import iDataTrivial, iDataFormlib
 import iTasksLiftingCombinators
 
-::DBid a :== !(!String,!Lifespan)
+::DBid a :== (!String,!Lifespan)
 
 // Common db access
 

@@ -22,9 +22,9 @@ derive read 	Wid, WorkflowStatus, Maybe
 derive write 	Wid, WorkflowStatus, Maybe
 
 :: Wid a			= Wid WorkflowLink											// id of workflow process
-:: WorkflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl !Dynamic)
-					| SuspendedWorkflow ProcessIds !(TCl !Dynamic)
-					| FinishedWorkflow 	ProcessIds !Dynamic !(TCl !Dynamic)
+:: WorkflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl Dynamic)
+					| SuspendedWorkflow ProcessIds !(TCl Dynamic)
+					| FinishedWorkflow 	ProcessIds !Dynamic !(TCl Dynamic)
 					| DeletedWorkflow	ProcessIds
 
 instance == WorkflowStatus

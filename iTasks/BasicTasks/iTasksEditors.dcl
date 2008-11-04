@@ -13,7 +13,7 @@ editTask		:: create a task editor to edit a value of given type, and add a butto
 editTaskPred	:: create a task editor (with submit button) to edit a value of given type, finish only if predicate holds 
 */
 editTask 		:: !String 	!a 								-> Task a		| iData a 
-editTaskPred 	:: 			!a !(a -> (Bool, HtmlCode))		-> Task a		| iData a 
+editTaskPred 	:: 			!a !(a -> (Bool, [HtmlTag]))	-> Task a		| iData a 
 
 /*
 editTaskLabel	:: same as editTask, first label used for tracing...

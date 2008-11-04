@@ -52,7 +52,7 @@ setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt)
 // Displaying thread information
 
 showThreadNr 				:: !TaskNr 											-> String
-showThreadTable 			:: !*TSt 											-> (!HtmlCode,!*TSt)					// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
+showThreadTable 			:: !*TSt 											-> (![HtmlTag],!*TSt)					// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 
 // Thread creation
 administrateNewThread 		:: !UserId 					!*TSt 					-> *TSt
@@ -60,7 +60,7 @@ mkTaskThread 				:: !EvaluationOption !(Task a) 						-> Task a 	| iData a
 
 // Finding threads and evaluation of a thread
 
-findThreadInTable 			:: !ThreadKind !TaskNr 		!*TSt 					-> *(Maybe !(!Int,!TaskThread),!*TSt)	// find thread that belongs to given tasknr
+findThreadInTable 			:: !ThreadKind !TaskNr 		!*TSt 					-> *(Maybe (!Int,!TaskThread),!*TSt)	// find thread that belongs to given tasknr
 findParentThread 			:: !TaskNr 					!*TSt 					-> *([TaskThread],*TSt)					// finds parent thread closest to given set of task numbers
 evalTaskThread 				:: !TaskThread 										-> Task a 								// execute the thread !!!!
 

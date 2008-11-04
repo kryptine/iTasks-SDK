@@ -34,7 +34,7 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 | taskdone.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
 = (editor.value,{tst & activated = taskdone.value, html = html +|+ BT (editor.form ++ finbut.form), hst = hst})
 
-editTaskPred :: !a !(a -> (Bool, HtmlCode))-> (Task a) | iData a 
+editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
 editTaskPred  a pred = mkTask "editTask" (editTaskPred` a)
 where
 	editTaskPred` a tst=:{tasknr,html,hst,userId}
