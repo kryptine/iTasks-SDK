@@ -50,9 +50,6 @@ chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on firs
 
 chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] 			-> Task a	 	| iData a
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] 			-> Task a	 	| iData a
-chooseTask_radio:: ![HtmlTag] !Int ![([HtmlTag],LabeledTask a)]
-
-															-> Task a		| iData a
 chooseTask_cbox	:: 	!([LabeledTask a] -> Task [a]) 
 					![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)]
 															-> Task [a]		| iData a

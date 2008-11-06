@@ -1,6 +1,13 @@
 implementation module iDataTrivial
 
 import StdMaybe, StdGeneric, StdArray, StdClass, StdInt, StdList, StdString
+import Time
+import iDataWidgets
+
+getTimeAndDate :: !*HSt -> *(!(!HtmlTime,!HtmlDate),!*HSt)
+getTimeAndDate hst=:{world = world=:{worldC}}
+# (tm,worldC)				= localTime worldC
+= ((HtmlTime tm.hour tm.min tm.sec,HtmlDate tm.mday tm.mon tm.year),{hst & world = {world & worldC = worldC}})
 
 // converting strings to lists and backwards
 

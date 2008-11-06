@@ -98,11 +98,6 @@ TableFuncBut2 		:: !(InIDataId [[(Mode,HtmlButton, a -> a)]])	!*HSt -> (Form (a 
 
 ListFuncCheckBox	:: !(InIDataId [(HtmlCheckbox, Bool [Bool] a -> a)])	!*HSt -> (Form (a -> a,[Bool]),!*HSt)
 
-// assign function to each radio button which gets an integer of the selected radio
-// in addition to the chosen function an integer indicating the selected radio button is returned
-
-ListFuncRadio 		:: !(InIDataId (Int,[Int a -> a]))				!*HSt -> (Form (a -> a,Int),!*HSt)
-
 // assign function to each pull down menu which gets an integer of the selected menu element
 // in addition to the chosen function an integer indicating the selected menu item is returned
 

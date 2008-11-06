@@ -130,33 +130,8 @@ where
 		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
 	= ([chosen.value],{tst & activated = True, html = html, tasknr = tasknr})
 
-chooseTask_radio:: ![HtmlTag] !Int ![([HtmlTag],LabeledTask a)] -> Task a | iData a
-chooseTask_radio prompt initial code_ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_radio initial (map fst code_ltasks) lt) seqTasks (map snd code_ltasks) =>> \la -> return_V (hd la)		
-where
-	selectTask_radio :: !Int ![[HtmlTag]] ![LabeledTask a] -> Task [Int]
-	selectTask_radio defaultOn htmlcodes taskOptions = newTask "selectTask_radio" (selectTask_radio` taskOptions)
-	where
-		selectTask_radio` [] tst			= return createDefault tst	
-		selectTask_radio` taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
-		# numberOfButtons				= length taskOptions
-		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfButtons - 1) defaultOn 0 		
-		# taskId						= iTaskId userId tasknr ("ChoStRadio" <+++ numberOfButtons)
-		# taskRadioMenuId				= iTaskId userId tasknr ("ChoRadio" <+++ numberOfButtons)
-		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId defaultOn) id) tst
-		# (nradio,tst)					= liftHst (ListFuncRadio (Init,sessionFormId options taskRadioMenuId (defaultOn,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
-		# choice						= if nradio.changed (snd nradio.value) chosen.value
-		# (nradio,tst)					= liftHst (ListFuncRadio (Set, sessionFormId options taskRadioMenuId (choice,[\i a -> i \\ j <- [0 .. numberOfButtons - 1]]))) tst
-		# (_,tst=:{activated=adone,html=ahtml})	
-										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 	
-		| not adone
-			# (chosen,tst)					= liftHst (mkStoreForm  (Set,storageFormId options taskId choice) id) {tst & activated = adone, html = BT [] []}
-			# radioform						= nradio.form <=|>  [[showLabel label] <||> htmlcode \\ htmlcode <- htmlcodes & (label,_) <- taskOptions]
-			= (createDefault,{tst & activated = False, html = html +|+ BT [radioform] nradio.inputs +|+ ahtml, tasknr = tasknr})
-		= ([choice],{tst & activated = True, html = html, tasknr = tasknr})
 
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
-
 chooseTask_cbox order prompt code_ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks)		
 where

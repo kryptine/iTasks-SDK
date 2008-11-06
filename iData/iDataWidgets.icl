@@ -5,11 +5,11 @@ import iDataForms, iDataFormlib, iDataTrivial, StdBimap
 
 
 derive gForm	[], HtmlTag, HtmlAttr
-derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlDate, HtmlTime, RadioButton
+derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlDate, HtmlTime
 
-derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlDate, HtmlTime, RadioButton, RadioGroup/*, PullDownMenu*/, TextInput, TextArea, PasswordBox, RefreshTimer
-derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlDate, HtmlTime, RadioButton, RadioGroup/*, PullDownMenu*/, TextInput, TextArea, PasswordBox, RefreshTimer
-derive gerda 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlDate, HtmlTime, RadioButton, RadioGroup/*, PullDownMenu*/, TextInput, TextArea, PasswordBox, RefreshTimer
+derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
+derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
+derive gerda 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
 //derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 //derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 
@@ -126,127 +126,20 @@ gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr}
 where
 	(HtmlTextarea rows val) = formid.ival
 
-cleanString :: !String -> String
-cleanString name = {clean_char c \\ c<-: name}
-where
-	clean_char '"' = ' '
-	clean_char c   = c
+gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr} 	
+	#inputid = formid.id +++ "-" +++ toString cntr
 
-gForm{|RadioButton|} (init,formid) hst =:{cntr} 
-= case formid.ival of
-	v=:(RBChecked name)
-	= (	{ changed		= False
-		, value			= v
-		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
-							[ TypeAttr			"radio"
-							, ValueAttr			(cleanString name)
-							, NameAttr			(encodeTriplet (formid.id,cntr,UpdS name))
-							, CheckedAttr
-							, IdAttr			(encodeInputId (formid.id,cntr,UpdS name))
-							] ++ (callClean "click" formid.mode "" formid.lifespan False) )
-						]
-		, inputs		= []
-		},incrHStCntr 1 hst)
-	v=:(RBNotChecked name)
-	= (	{ changed		= False
-		, value			= v
-		, form			= [InputTag (onMode formid.mode [] [] [DisabledAttr] [] ++
-							[ TypeAttr			"radio"
-							, ValueAttr			(cleanString name)
-							, NameAttr			(encodeTriplet (formid.id,cntr,UpdS ""))
-							, IdAttr			(encodeInputId (formid.id,cntr,UpdS name))
-							] ++ (callClean "click" formid.mode "" formid.lifespan False) )
-						]
-		, inputs		= []
-		},incrHStCntr 1 hst)
-
-gForm{|RadioGroup|} (init, formid) hst
-# (cntr, hst)			= getHStCntr hst
-= case formid.ival of
-	v=:(RadioGroup (sel, itemlist))
-	= ( { changed		= False
-		, value			= v
-		, form			= flatten [([InputTag (
-							[ TypeAttr			"radio"
-							, ValueAttr			(toString i)
-							, NameAttr			(encodeTriplet (formid.id, cntr, UpdI sel))
-							, IdAttr			((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)
-							] ++ (callClean "change" formid.mode "" formid.lifespan False)
-							  ++ (if (i == sel) [CheckedAttr] []) ++ (onMode formid.mode [] [] [DisabledAttr] []))
-							, LabelTag [ForAttr ((encodeInputId (formid.id,cntr,UpdI sel)) <+++ "_" <+++ i)] [Text body], BrTag [] ] )
-							\\ body <- itemlist & i <- [0..]
-						  ]
-		, inputs		= []
-		},incrHStCntr 1 hst)
-
-
-gForm{|TextInput|} (init,formid) hst 	
-# (cntr,hst)			= getHStCntr hst
-# (body,inputs,hst)		= mkInput(init,formid) v hst
-= ({changed=False, value=formid.ival, form=body, inputs=inputs },incrHStCntr 2 hst)
-where
-	(v,updv)			= case formid.ival of
-							(TI i) = (toString i,UpdI i)
-							(TR r) = (toString r,UpdR r)
-							(TS s) = (cleanString s,UpdS s)
-
-gForm{|TextArea|} (init,formid) hst 
-# (cntr,hst)			= getHStCntr hst
-= (	{ changed			= False
-	, value				= formid.ival
-	, form				= [TextareaTag 	((onMode formid.mode [] [] [DisabledAttr] []) ++
-											[ NameAttr 		(encodeTriplet (formid.id,cntr,UpdS string))
-						  					, RowsAttr 		(toString (if (row == 0) 10 row))
-						  					, ColsAttr 		(toString (if (col == 0) 50 col))
-						  					, IdAttr		(encodeTriplet (formid.id,cntr,UpdS string))
-						  					] ++ (callClean "change" formid.mode formid.id formid.lifespan False))
-						  		[Text string]
-						  ]
-	, inputs			= []
-	},incrHStCntr 1 hst)
-where
-	(TextArea row col string) = formid.ival
-
-gUpd{|TextArea|}       (UpdSearch (UpdS name) 0) (TextArea r c s) 	= (UpdDone,                TextArea r c (urlDecode name))			// update button value
-gUpd{|TextArea|}       (UpdSearch val cnt)       t					= (UpdSearch val (cnt - 1),t)										// continue search, don't change
-gUpd{|TextArea|}       (UpdCreate l)             _					= (UpdCreate l,            TextArea defsize defsize "")				// create default value
-gUpd{|TextArea|}       mode                      t					= (mode,                   t)										// don't change
-
-gForm{|PasswordBox|} (init,formid) hst 	
-= case formid.ival of
-	(PasswordBox password) 
-	# (body,hst)		= mkPswInput (init,formid) password (UpdS password) hst
 	= ({ changed		= False
-	   , value			= PasswordBox password
-	   , form			= [body]
-	   , inputs			= []
-	   },incrHStCntr 1 hst)
+	   , value			= formid.ival
+	   , form			= [InputTag	[ NameAttr inputid
+	   								, IdAttr inputid
+	   								, ValueAttr v
+	   								]
+	   					  ]
+	   , inputs			= [{formid = formid.id, inputid = cntr, updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	   },setHStCntr (cntr + 1) hst)
 where
-	mkPswInput :: !(InIDataId d) String UpdValue !*HSt -> (!HtmlTag,!*HSt) 
-	mkPswInput (init,formid=:{mode}) sval updval hst=:{cntr}
-	| mode == Edit || mode == Submit
-		= ( InputTag 	([ TypeAttr		"password"
-						, ValueAttr		(cleanString sval)
-						, NameAttr		(encodeTriplet (formid.id,cntr,updval))
-						, IdAttr (encodeInputId (formid.id,cntr,updval))
-						] ++ if (mode == Edit) (callClean "change" Edit "" formid.lifespan False) [] )
-			
-			,incrHStCntr 1 hst)
-	| mode == Display
-		= ( InputTag 	[ TypeAttr		"password"
-						, ValueAttr		(cleanString sval)
-						]
-			,incrHStCntr 1 hst)
-	= ( SpanTag [][] ,incrHStCntr 1 hst )
-
-// time and date
-
-import Time
-
-getTimeAndDate :: !*HSt -> *(!(!HtmlTime,!HtmlDate),!*HSt)
-getTimeAndDate hst=:{world = world=:{worldC}}
-# (tm,worldC)				= localTime worldC
-= ((HtmlTime tm.hour tm.min tm.sec,HtmlDate tm.mday tm.mon tm.year),{hst & world = {world & worldC = worldC}})
+	(HtmlPassword v)	= formid.ival
 
 gForm {|HtmlTime|} (init,formid) hst
 	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
@@ -313,23 +206,10 @@ gUpd{|HtmlTextarea|}	(UpdSearch val cntr)      v					= (UpdSearch val (cntr - 1)
 gUpd{|HtmlTextarea|}	(UpdCreate l)             _					= (UpdCreate l, HtmlTextarea 5 "")								// create default value
 gUpd{|HtmlTextarea|}	mode                      v					= (mode, v)														// don't change
 
-gUpd{|RadioGroup|} 	(UpdSearch (UpdI sel) 0) (RadioGroup (index,itemlist)) 
-																= (UpdDone,                RadioGroup (sel,itemlist))				// update integer value
-gUpd{|RadioGroup|} 	(UpdSearch val cnt)       v					= (UpdSearch val (cnt - 1),v)										// continue search, don't change
-gUpd{|RadioGroup|} 	(UpdCreate l)             _					= (UpdCreate l,            RadioGroup (0,["error"]))				// create default value
-gUpd{|RadioGroup|}	mode                      v					= (mode,                   v)										// don't change
-
-gUpd{|TextInput|}    (UpdSearch (UpdI ni) 0)   (TI i)			= (UpdDone,                TI ni)									// update integer value
-gUpd{|TextInput|}    (UpdSearch (UpdR nr) 0)   (TR r)			= (UpdDone,                TR nr)									// update real    value
-gUpd{|TextInput|}    (UpdSearch (UpdS ns) 0)   (TS s)			= (UpdDone,                TS ns)									// update string  value
-gUpd{|TextInput|}    (UpdSearch val cnt)       i				= (UpdSearch val (cnt - 3),i)										// continue search, don't change
-gUpd{|TextInput|}    (UpdCreate l)             _				= (UpdCreate l,            TS "")									// create default value
-gUpd{|TextInput|}    mode                      i				= (mode,                   i)										// don't change
-
-gUpd{|PasswordBox|}  (UpdSearch (UpdS name) 0) _				= (UpdDone,                PasswordBox name)						// update password value
-gUpd{|PasswordBox|}  (UpdSearch val cnt)       b				= (UpdSearch val (cnt - 2),b)										// continue search, don't change
-gUpd{|PasswordBox|}  (UpdCreate l)             _				= (UpdCreate l,            PasswordBox "")							// create default value
-gUpd{|PasswordBox|}  mode                      b				= (mode,                   b)										// don't change
+gUpd{|HtmlPassword|}  (UpdSearch (UpdS val) 0) _				= (UpdDone,                HtmlPassword val)						// update password value
+gUpd{|HtmlPassword|}  (UpdSearch upd cntr)       v				= (UpdSearch upd (cntr - 1),v)										// continue search, don't change
+gUpd{|HtmlPassword|}  (UpdCreate l)             _				= (UpdCreate l,            HtmlPassword "")							// create default value
+gUpd{|HtmlPassword|}  mode                      v				= (mode,                   v)										// don't change
 
 gUpd{|RefreshTimer|} (UpdSearch (UpdS name) 0) v				= (UpdDone,                v)										// We don't update
 gUpd{|RefreshTimer|} (UpdSearch val cnt)       v				= (UpdSearch val (cnt - 1),v)										// continue search, don't change
@@ -339,13 +219,8 @@ gUpd{|RefreshTimer|} mode                      v				= (mode,                   v
 
 // small utility stuf
 
-instance toBool RadioButton where
-	toBool (RBChecked _)					= True
-	toBool _								= False
+derive gEq HtmlTime, HtmlDate
 
-
-derive gEq PasswordBox, HtmlTime, HtmlDate
-instance == PasswordBox where (==) pb1 pb2	= pb1 === pb2
 instance == HtmlTime    where (==) ht1 ht2	= ht1 === ht2
 instance == HtmlDate    where (==) hd1 hd2	= hd1 === hd2
 
@@ -389,19 +264,3 @@ instance toInt HtmlSelect where
 			| val == v	= 0
 			| otherwise	= index val lvs
 
-//TODO: is the HTML type still needed?
-gForm {|HTML|} (init,formid ) hst	= specialize myeditor (Set,formid) hst
-where
-	myeditor (init,formid ) hst
-	# (HTML bodytag)				= formid.ival
-	= ({changed = False, form = bodytag, inputs = [], value = formid.ival},hst)
-
-gUpd  {|HTML|} mode v				= (mode,v)
-
-gPrint{|HTML|} (HTML x) st			= st <<- "XYX" 
-
-gParse{|HTML|} st					= case gParse {|*|} st of
-										Just "XYX" -> Just (HTML [EmptyBody])
-										_          -> Just (HTML [EmptyBody])
-
-gerda{|HTML|}  = abort "illegal gerda call for type HTML"
