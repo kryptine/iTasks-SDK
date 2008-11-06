@@ -96,7 +96,7 @@ gForm{|HtmlCheckbox|} (init,formid =: {mode}) hst =:{cntr}
 	   								: if t [CheckedAttr] []
 	   								]]
 	   					   ++ if (isEmpty l) [] [LabelTag [ForAttr inputid] l]
-	   , inputs			= [{inputid = inputid, formid = formid.id, updateon = if (mode == Edit ) OnChange OnSubmit}]
+	   , inputs			= [{formid = formid.id, inputid = cntr, updateon = if (mode == Edit ) OnChange OnSubmit}]
 	   },setHStCntr (cntr + 1) hst)
 where
 	(HtmlCheckbox l t) = formid.ival
@@ -121,7 +121,7 @@ gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr}
 										]
 										[RawText val]
 						  ]
-	, inputs			= [{inputid = inputid, formid = formid.id, updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	, inputs			= [{formid = formid.id, inputid = cntr, updateon = (if (mode == Submit) OnSubmit OnChange)}]
 	},setHStCntr (cntr + 1) hst)
 where
 	(HtmlTextarea rows val) = formid.ival

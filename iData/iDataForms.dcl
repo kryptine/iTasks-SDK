@@ -15,8 +15,8 @@ import FormId
 		}
 		
 :: InputId
-	=	{ inputid	:: !String					// the html DOM identifier of the input
-		, formid	:: !String					// the html DOM identifier of the parent form
+	=	{ formid	:: !String					// the unique form identifier
+		, inputid	:: !Int						// the identifier within the form
 		, updateon	:: !UpdateEvent				// the event on which a change in the input needs to be handled
 		}
 

@@ -413,7 +413,7 @@ mkInput (init,formid=:{mode}) val hst=:{cntr}
 						, NameAttr		inputid
 						, IdAttr 		inputid
 						]]
-		  , [{inputid = inputid, formid = formid.id, updateon = if (mode == Edit ) OnChange OnSubmit}]
+		  , [{formid = formid.id, inputid = cntr, updateon = if (mode == Edit ) OnChange OnSubmit}]
 		  , setHStCntr (cntr+1) hst)
 	| mode == Display
 		= ( [InputTag 	[ TypeAttr		"text"
@@ -432,7 +432,7 @@ mkButton (init, formid =: {mode}) label hst =: {cntr}
 					, IdAttr	inputid
 					: if (mode == Display) [DisabledAttr] []
 					] [Text label]]
-	  , [{inputid = inputid, formid = formid.id, updateon = OnClick}]
+	  , [{formid = formid.id, inputid = cntr, updateon = OnClick}]
 	  , setHStCntr (cntr + 1) hst)
 
 mkSelect :: !(InIDataId d) String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
@@ -442,7 +442,7 @@ mkSelect (init, formid=:{mode}) val options hst =:{cntr}
 					, IdAttr	inputid
 					: if (mode == Display) [DisabledAttr] []
 					] [OptionTag [ValueAttr value:if (value == val) [SelectedAttr] [] ] [Text label] \\ (label,value) <- options]]
-	  , [{inputid = inputid, formid = formid.id, updateon = (if (mode == Edit) OnChange OnSubmit)}]
+	  , [{formid = formid.id, inputid = cntr, updateon = (if (mode == Edit) OnChange OnSubmit)}]
 	  , setHStCntr (cntr + 1) hst)
 
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
