@@ -8,8 +8,8 @@ import
 // iData modules:
 			iDataSettings		// some global settings
 		,	iDataForms			// calculation of iData forms (*the core module*)
-
-		,	iDataButtons		// basic collections of buttons, data types for lay-out	control	
+		,	iDataWidgets		// types and their form definitions for building views
+		
 		,	iDataFormlib		// collection of advanced iData creating functions  
 		,	iDataDatabase		// collection for storing data, while guarding consistency and versions
 		,	iDataExceptions		// collection of global exception handling and storage

@@ -1,10 +1,18 @@
 definition module iDataState
-
-// maintains the state of the iDate
-// (c) 2005 - MJP
-
-import GenParse, GenPrint
+/**
+* This module defines the data structure for storing the states of iData editors.
+*
+*/
+import GenParse, GenPrint, Gerda
 import EncodeDecode
+import StdMaybe
+
+
+//Always derive storage generic functions for common types
+derive gPrint 	(,), (,,), (,,,), Maybe
+derive gParse	(,), (,,), (,,,), Maybe
+derive gerda 	(,), (,,), (,,,)
+
 
 // Maintaining the internal state of all forms
 

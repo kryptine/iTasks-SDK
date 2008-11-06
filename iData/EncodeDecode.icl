@@ -12,8 +12,8 @@ import Http, HttpTextUtil
 import FormId
 //import sapldebug
 
-derive gParse UpdValue, (,,), (,)
-derive gPrint UpdValue, (,,), (,)
+derive gParse UpdValue
+derive gPrint UpdValue
 
 
 // form submission department....

@@ -61,9 +61,16 @@ specialize			:: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (
 generic gForm a	:: !(InIDataId a) !*HSt -> *(Form a, !*HSt)							// user defined gForms: use "specialize"	
 generic gUpd  a	:: UpdMode a -> (UpdMode,a)											// gUpd can simply be derived
 
-
+/**
+* Instances of the generics for the basic types
+*/
 derive gForm Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 derive gUpd  Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
+/**
+* Instances of the generics for very common types
+*/
+derive gForm 	(,), (,,), (,,,), Maybe
+derive gUpd  	(,), (,,), (,,,), Maybe
 
 derive bimap Form, FormId
 

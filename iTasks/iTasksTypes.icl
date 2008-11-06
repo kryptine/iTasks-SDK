@@ -1,9 +1,9 @@
 implementation module iTasksTypes
 
-derive gForm 	Void, Maybe, []
-derive gUpd 	Void, Maybe, []
+derive gForm 	Void, []
+derive gUpd 	Void, []
 derive gParse 	Void
-derive gPrint	Void, Maybe
+derive gPrint	Void
 derive gerda 	Void
 derive read 	Void
 derive write 	Void

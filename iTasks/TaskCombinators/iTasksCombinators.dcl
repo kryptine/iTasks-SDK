@@ -7,7 +7,7 @@ definition module iTasksCombinators
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksBasicCombinators, iDataButtons				 
+import iTasksBasicCombinators, iDataWidgets		 
 
 :: ChoiceUpdate		:== Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
 

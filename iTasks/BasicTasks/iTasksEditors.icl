@@ -10,7 +10,7 @@ defpixel :== 100
 
 import StdList, StdTuple, StdFunc
 import iTasksTypes
-import iDataSettings, iDataForms, iDataTrivial, iDataButtons, iDataFormlib
+import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
 editTaskLabel tracename prompt task = \tst =:{options} -> mkTask tracename ((editTask` prompt task <<@ (nPage options)) <<@ Edit) tst
@@ -56,6 +56,6 @@ mySimpleButton :: !Options !String !String     !(a -> a) 				!*HSt -> (Form (a -
 mySimpleButton options id label fun hst	
 							= FuncBut (Init, (nFormId id (iTaskButton label,fun)) <@ if (options.tasklife == Client) Client Page) hst
 
-iTaskButton :: String -> Button
-iTaskButton label = LButton defpixel label
+iTaskButton :: String -> HtmlButton
+iTaskButton label = HtmlButton label False
 

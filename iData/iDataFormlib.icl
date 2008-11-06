@@ -4,7 +4,7 @@ implementation module iDataFormlib
 // (c) MJP 2005
 
 import StdEnum, StdFunc, StdList, StdString, StdTuple
-import iDataButtons, iDataTrivial
+import iDataWidgets, iDataTrivial
 import StdLib, StdBimap
 
 derive gForm []; derive gUpd []
@@ -117,8 +117,8 @@ mkBimapEditor inIDataId {map_to,map_from} hst
 mkSubStateForm :: !(InIDataId subState) !state !(subState state -> state) !*HSt -> (Bool,Form state,!*HSt) | iData subState
 mkSubStateForm (init,formid) state upd hst
 # (nsubState,hst)			= mkEditForm (init,subFormId formid "subst" subState) hst
-# (commitBut,hst)			= FuncBut (Init,subnFormId formid "CommitBut" (LButton defpixel "commit",id)) hst
-# (cancelBut,hst)			= FuncBut (Init,subnFormId formid "CancelBut" (LButton defpixel "cancel",id)) hst
+# (commitBut,hst)			= FuncBut (Init,subnFormId formid "CommitBut" (HtmlButton "commit" False,id)) hst
+# (cancelBut,hst)			= FuncBut (Init,subnFormId formid "CancelBut" (HtmlButton "cancel" False,id)) hst
 # (nsubState,hst)			= if cancelBut.changed 
 							     (mkEditForm (Set,setFormId formid subState) hst)
 							     (nsubState,                                 hst)
@@ -153,7 +153,7 @@ mkShowHideForm (init,formid) hst
 	# (info,hst)			= mkEditForm (init,formid) hst
 	= ({info & form			= switch.form ++ info.form},hst)
 where
-	mybut     hide			= LButton defpixel (if hide "Show" "Hide") 	
+	mybut     hide			= HtmlButton (if hide "Show" "Hide") False	
 	myfuncbut hide			= FuncBut (Init,subFormId formid "ShowHideBut" (mybut hide,not) <@ Edit)
 
 // Form collection:
@@ -172,7 +172,7 @@ vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
 # (olist,hst)				= listForm   (init,formid)  hst
 # lengthlist				= length olist.value
 
-# pdmenu					= PullDown (1,defpixel) (0, [toString lengthlist <+++ " More... " : ["Show " <+++ i \\ i <- [1 .. max 1 lengthlist]]]) 
+# pdmenu					= HtmlSelect [(toString lengthlist <+++ " More... ","0") : [("Show " <+++ i,toString i) \\ i <- [1 .. max 1 lengthlist]]] "0" 
 # pdmenuId					= subFormId formid "pdm" pdmenu <@ Edit
 # (pdbuts,hst)				= mkEditForm (Init, pdmenuId) hst
 # step						= toInt pdbuts.value
@@ -213,7 +213,7 @@ vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
 
 # betweenindex				= (bbuts.value,bbuts.value + step - 1)
 
-# pdmenu					= PullDown (1,defpixel) (step, [toString lengthlist <+++ " More... " : ["Show " <+++ i \\ i <- [1 .. max 1 lengthlist]]]) 
+# pdmenu					= HtmlSelect [(toString lengthlist <+++ " More... ", toString step): [("Show " <+++ i,toString i) \\ i <- [1 .. max 1 lengthlist]]] (toString step)
 # (pdbuts,hst)				= mkEditForm (setID pdmenuId pdmenu) hst
  
 = (	{ form 					= pdbuts.form ++ bbuts.form ++ 
@@ -234,7 +234,7 @@ vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
 	}
   ,	hst )
 where
-	but i s					= LButton (defpixel/i) s
+	but i s					= HtmlButton s False
 	addbutton				= [ (but 1 "Append", const [createDefault]) ]
 	delbutton   index step	= [ (but 5 "D", removeAt i)       \\ i <- [index .. index + step]]
 	insertBtn e index step	= [ (but 5 "I", insertAt i e)     \\ i <- [index .. index + step]]
@@ -276,7 +276,7 @@ where
 simpleButton :: !String !String !(a -> a) !*HSt -> (Form (a -> a),!*HSt)
 simpleButton id label fun hst
 //	= FuncBut (Init, nFormId (id +++ label) (LButton defpixel label,fun)) hst
-	= FuncBut (Init, nFormId id (LButton defpixel label,fun)) hst
+	= FuncBut (Init, nFormId id (HtmlButton label False,fun)) hst
 
 counterForm :: !(InIDataId a) !*HSt -> (Form a,!*HSt) | +, -, one, iData a
 counterForm inIDataId hst	= mkViewForm inIDataId bimap hst
@@ -290,11 +290,11 @@ where
 	| b.isChanged 			= updCounter val
 	| otherwise 			= val
 
-	updCounter (n,Pressed,_)= (n - one,down,up)
-	updCounter (n,_,Pressed)= (n + one,down,up)
+	updCounter (n,HtmlButton _ True,_)= (n - one,down,up)
+	updCounter (n,_,HtmlButton _ True)= (n + one,down,up)
 	updCounter else 		= else
 
-	(up,down)				= (LButton (defpixel / 6) "+",LButton (defpixel / 6) "-")
+	(up,down)				= (HtmlButton "+" False,HtmlButton "-" False)
 
 listForm :: !(InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
 listForm inIDataId hSt		= layoutListForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) mkEditForm inIDataId hSt
@@ -323,33 +323,33 @@ where
 		   , inputs			= nx.inputs ++ nxs.inputs
 		   },hst)
 
-FuncBut :: !(InIDataId (Button, a -> a)) !*HSt -> (Form (a -> a),!*HSt)
+FuncBut :: !(InIDataId (HtmlButton, a -> a)) !*HSt -> (Form (a -> a),!*HSt)
 FuncBut (init,formid) hst	= FuncButNr 0 (init,formid) hst 
 
-FuncButNr :: !Int !(InIDataId (Button, a -> a)) !*HSt -> (Form (a -> a),!*HSt)
+FuncButNr :: !Int !(InIDataId (HtmlButton, a -> a)) !*HSt -> (Form (a -> a),!*HSt)
 FuncButNr i (init,formid) hst
 = case formid.ival of
-	(Pressed,cbf)			= FuncButNr i (init,setFormId formid (LButton 10 "??",cbf)) hst
+	(HtmlButton s True,cbf)	= FuncButNr i (init,setFormId formid (HtmlButton s True,cbf)) hst
 	(button, cbf)			= mkViewForm (init,reuseFormId nformid id) hbimap hst
 	where
 		hbimap				= { toForm		= \init _ v -> toViewId init button v
 							  , updForm		= const2
 							  , fromForm	= \_ but -> case but of 
-															Pressed  -> cbf
+															HtmlButton _ True  -> cbf
 															_		 -> id
 							  , resetForm	= Just (const button)
 							  }
 		nformid				= case button of
-								LButton _ name -> formid <@ formid.id <+++ iDataIdSeparator <+++ name <+++ iDataIdSeparator <+++ i
-								PButton _ ref  -> formid <@ formid.id <+++ iDataIdSeparator <+++ i <+++ iDataIdSeparator <+++ ref
+								HtmlButton name _ -> formid <@ formid.id <+++ iDataIdSeparator <+++ name <+++ iDataIdSeparator <+++ i
+								HtmlButton ref _ -> formid <@ formid.id <+++ iDataIdSeparator <+++ i <+++ iDataIdSeparator <+++ ref
 
-TableFuncBut :: !(InIDataId [[(Button, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
+TableFuncBut :: !(InIDataId [[(HtmlButton, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
 TableFuncBut inIDataId hSt
 	= layoutIndexForm (\f1 f2 -> [f1 <||> f2]) 
 		(layoutIndexForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) FuncButNr id (o)) 
 			id (o) 0 inIDataId hSt
 
-ListFuncBut2 :: !(InIDataId [(Mode,Button, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
+ListFuncBut2 :: !(InIDataId [(Mode,HtmlButton, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
 ListFuncBut2 (init,formid) hst
 	= ListFuncBut` 0 formid.ival hst 
 where
@@ -368,7 +368,7 @@ where
 	   , inputs				= fun.inputs ++ rowfun.inputs
 	   },hst)
 
-TableFuncBut2 :: !(InIDataId [[(Mode,Button, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
+TableFuncBut2 :: !(InIDataId [[(Mode,HtmlButton, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
 TableFuncBut2 (init,formid) hSt
 	= TableFuncBut2` 0 formid.ival hSt
 where
@@ -404,11 +404,11 @@ layoutIndexForm layoutF formF r combineF n (init,formid) hSt
 	   , inputs				= xF.inputs ++ xsF.inputs
 	   },hSt)
 
-ListFuncBut :: !(InIDataId [(Button, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
+ListFuncBut :: !(InIDataId [(HtmlButton, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
 ListFuncBut (init,formid) hSt
 	= layoutIndexForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) FuncButNr id (o) 0 (init,formid) hSt
 
-ListFuncCheckBox :: !(InIDataId [(CheckBox, Bool [Bool] a -> a)]) !*HSt -> (Form (a -> a,[Bool]),!*HSt)
+ListFuncCheckBox :: !(InIDataId [(HtmlCheckbox, Bool [Bool] a -> a)]) !*HSt -> (Form (a -> a,[Bool]),!*HSt)
 ListFuncCheckBox (init,formid) hst 
 # (check,hst)				= ListFuncCheckBox` formid.ival hst
 # (f,bools)					= check.value
@@ -418,7 +418,7 @@ ListFuncCheckBox (init,formid) hst
    , inputs					= check.inputs
    },hst)
 where
-	ListFuncCheckBox` :: ![(CheckBox, Bool [Bool] a -> a)] !*HSt -> (Form ([Bool] a -> a,[Bool]),!*HSt)
+	ListFuncCheckBox` :: ![(HtmlCheckbox, Bool [Bool] a -> a)] !*HSt -> (Form ([Bool] a -> a,[Bool]),!*HSt)
 	ListFuncCheckBox` [] hst
 	= ({ changed			= False
 	   , value				= (const2,[])
@@ -432,27 +432,21 @@ where
 	# (funv,nboolv)			= fun.value
 	= ({ changed			= rowfun.changed || fun.changed
 	   , value				= (funcomp funv rowfunv,[nboolv:boolsv])
-	   , form				= [DivTag [] (fun.form ++ rowfun.form)]
+	   , form				= fun.form ++ rowfun.form
 	   , inputs				= fun.inputs ++ rowfun.inputs
 	   },hst)
 	where
 		funcomp f g			= \bools a = f bools (g bools a)
 	
 		FuncCheckBox formid (checkbox,cbf) hst
-							= mkViewForm (init,nformid) bimap hst
+							= mkViewForm (init, nformid) bimap hst
 		where
 			bimap =	{ toForm 	= \init _ v -> toViewId init checkbox v
 					, updForm	= \b v -> v
-					, fromForm	= \b v -> if b.isChanged (cbf (toBool v),toBool v) (const2,toBool v)
+					, fromForm	= \b (HtmlCheckbox label val) -> if b.isChanged (cbf val,val) (const2,val)
 					, resetForm	= Nothing
 					}
-		
-			toggle (CBChecked    name) 	= CBNotChecked name
-			toggle (CBNotChecked name) 	= CBChecked    name
-		
-			nformid = {formid & ival = (const2,False)} <@ formid.id +++ case checkbox of 
-																			(CBChecked    name) = name
-																			(CBNotChecked name) = name
+			nformid = {formid & ival = (const2,False)} <@ formid.id 
 
 
 // the radio buttons implementation is currently more complicated than strictly necessary
@@ -533,11 +527,11 @@ FuncMenu (init,formid) hst	= mkViewForm (init,nformid) bimap hst
 where
 	nformid					= reuseFormId formid (id,calc index)
 	(index,defs)			= formid.ival
-	menulist				= PullDown (1,defpixel) (calc index,map fst defs) 
+	menulist				= HtmlSelect (map (\(x,y) -> (x,x)) defs) (fst (defs !! index))
 
 	bimap =	{ toForm	 	= toViewMap (const menulist)
 			, updForm		= const2
-			, fromForm		= \b v -> if b.isChanged (snd (defs!!(toInt v)),toInt v) (id,toInt v)
+			, fromForm		= \b (HtmlSelect _ v) -> if b.isChanged (snd (defs!!(find v defs)),find v defs) (id,find v defs)
 			, resetForm		= Nothing
 			}
 
@@ -545,6 +539,11 @@ where
 	| abs index >= 0 && abs index < length defs
 							= abs index
 	| otherwise				= 0
+	
+	find val [(label,f):defs]
+	| val == label 	= 0
+	| otherwise		= find val defs
+
 
 browseButtons :: !(InIDataId Int) !Int !Int !Int !*HSt -> (Form Int,!*HSt)
 browseButtons (init,formid) step length nbuttuns hst
@@ -564,7 +563,7 @@ where
 	browserForm index hst
 		= ListFuncBut2 (init,reuseFormId formid (browserButtons index step length)) hst
 	where
-		browserButtons :: !Int !Int !Int -> [(Mode,Button,Int -> Int)]
+		browserButtons :: !Int !Int !Int -> [(Mode,HtmlButton,Int -> Int)]
 		browserButtons init step length
 		=	if (init - range >= 0) [(formid.mode,sbut "--", const (init - range))] [] 
 							++
@@ -575,7 +574,7 @@ where
 			range 			= nbuttuns * step
 			start i j		= if (i < range) j (start (i-range) (j+range))
 			startval 		= start init 0
-			sbut s			= LButton (defpixel/3) s
+			sbut s			= HtmlButton s False
 			setmode i index
 			| index <= i && i < index + step
 							= Display

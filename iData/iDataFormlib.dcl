@@ -3,7 +3,7 @@ definition module iDataFormlib
 // Handy collection of Form creating functions and layout functions
 // (c) MJP 2005
 
-import iDataButtons
+import iDataWidgets
 
 // **** easy creation of a simple html page ****
 
@@ -84,19 +84,19 @@ browseButtons		:: !(InIDataId Int) !Int !Int !Int				!*HSt -> (Form Int,!*HSt)
 // **** an identity function is returned when none of the set of buttons pressed 
 
 simpleButton 		:: !String !String     !(a -> a) 				!*HSt -> (Form (a -> a),!*HSt)
-FuncBut 			:: !(InIDataId (Button,  a -> a))				!*HSt -> (Form (a -> a),!*HSt)
-ListFuncBut 		:: !(InIDataId [(Button, a -> a)])				!*HSt -> (Form (a -> a),!*HSt)
-TableFuncBut 		:: !(InIDataId [[(Button,a -> a)]])				!*HSt -> (Form (a -> a),!*HSt)
+FuncBut 			:: !(InIDataId (HtmlButton,  a -> a))			!*HSt -> (Form (a -> a),!*HSt)
+ListFuncBut 		:: !(InIDataId [(HtmlButton, a -> a)])			!*HSt -> (Form (a -> a),!*HSt)
+TableFuncBut 		:: !(InIDataId [[(HtmlButton,a -> a)]])			!*HSt -> (Form (a -> a),!*HSt)
 
 //fine grain variant, mode of each button in list or table can be set
 
-ListFuncBut2 		:: !(InIDataId [(Mode,Button, a -> a)])			!*HSt -> (Form (a -> a),!*HSt)
-TableFuncBut2 		:: !(InIDataId [[(Mode,Button, a -> a)]])		!*HSt -> (Form (a -> a),!*HSt)
+ListFuncBut2 		:: !(InIDataId [(Mode,HtmlButton, a -> a)])		!*HSt -> (Form (a -> a),!*HSt)
+TableFuncBut2 		:: !(InIDataId [[(Mode,HtmlButton, a -> a)]])	!*HSt -> (Form (a -> a),!*HSt)
 
 // assign function to each check box which gets an integer of the selected box and the settings of all other boxes
 // in addition to the chosen function the settings of all check boxes is returned
 
-ListFuncCheckBox	:: !(InIDataId [(CheckBox,Bool [Bool] a -> a)])	!*HSt -> (Form (a -> a,[Bool]),!*HSt)
+ListFuncCheckBox	:: !(InIDataId [(HtmlCheckbox, Bool [Bool] a -> a)])	!*HSt -> (Form (a -> a,[Bool]),!*HSt)
 
 // assign function to each radio button which gets an integer of the selected radio
 // in addition to the chosen function an integer indicating the selected radio button is returned

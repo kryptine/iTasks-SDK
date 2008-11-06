@@ -1,6 +1,6 @@
 definition module Startup
 
-import iDataSettings, iDataButtons, StdBimap
+import iDataSettings, StdBimap
 import iTasksBasicCombinators
 
 

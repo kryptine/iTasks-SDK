@@ -62,8 +62,8 @@ addHtml bodytag  tst=:{activated, html}
 | not activated = tst						// not active, return default value
 = {tst & html = html +|+ BT bodytag []}		// active, so perform task or get its result
 
-iTaskButton :: !String -> Button
-iTaskButton label = LButton defpixel label
+iTaskButton :: !String -> HtmlButton
+iTaskButton label = HtmlButton label False
 
 mkTaskButtons :: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,![HtmlTag],!String),!*HSt)
 mkTaskButtons vertical myid userId tasknr info btnnames hst

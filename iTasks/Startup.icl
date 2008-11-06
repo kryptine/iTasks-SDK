@@ -8,7 +8,7 @@ implementation module Startup
 // *********************************************************************************************************************************
 //
 import StdEnv
-import iDataSettings, iDataForms, iDataTrivial, iDataButtons, iDataFormlib
+import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 import TaskTreeFilters

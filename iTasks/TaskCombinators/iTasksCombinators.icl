@@ -13,10 +13,7 @@ import iTasksBasicCombinators, iTasksHtmlSupport, iTasksTimeAndDateHandling, iTa
 
 derive gForm 	[]
 derive gUpd  	[]
-derive gUpd 	Maybe
-derive gForm 	Maybe
-derive gPrint 	Maybe
-derive gParse 	Maybe
+
 derive read		Maybe
 derive write	Maybe
 // ******************************************************************************************************
@@ -185,10 +182,10 @@ where
 		= ([i \\ True <- snd cboxes.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
 	
 		initCheckboxes  = 
-			[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ (set,setfun,_) <- htmlcodes & (label,_) <- taskOptions & i <- [0..]]
+			[(HtmlCheckbox [Text label] set,  \b bs _ -> setfun b bs) \\ (set,setfun,_) <- htmlcodes & (label,_) <- taskOptions & i <- [0..]]
 	
 		setCheckboxes  boollist = 
-			[(if set CBChecked CBNotChecked  label,  \b bs _ -> setfun b bs) \\ (_,setfun,_) <- htmlcodes & (label,_) <- taskOptions 
+			[(HtmlCheckbox [Text label] set,  \b bs _ -> setfun b bs) \\ (_,setfun,_) <- htmlcodes & (label,_) <- taskOptions 
 																		& i <- [0..] & set <- boollist]
 
 // ******************************************************************************************************

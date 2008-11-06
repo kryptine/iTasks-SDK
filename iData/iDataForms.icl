@@ -10,10 +10,9 @@ import StdBimap
 import HSt
 import Html
 
-derive gPrint (,), (,,), (,,,), UpdValue
-derive gParse (,), (,,), (,,,), UpdValue
-derive gUpd		   (,,), (,,,)
-derive gUpd Maybe
+derive gPrint UpdValue
+derive gParse UpdValue
+
 
 derive bimap Form, FormId
 
@@ -266,9 +265,49 @@ where
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
+//gForms for the commonly used types
 
 gForm{|(->)|} gHarg gHres (init,formid) hst 	
 	= ({ changed = False, value = formid.ival, form = [], inputs = []},hst)
+
+
+gForm{|(,)|} gHa gHb (init,formid) hst
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,) constructor 
+# (nb,hst)				= gHb (init,reuseFormId formid b) hst
+= (	{ changed			= na.changed || nb.changed
+	, value				= (na.value,nb.value)
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
+	, inputs			= na.inputs ++ nb.inputs
+	},hst)
+where
+	(a,b)				= formid.ival
+
+gForm{|(,,)|} gHa gHb gHc (init,formid) hst
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,,) constructor 
+# (nb,hst)				= gHb (init,reuseFormId formid b) hst
+# (nc,hst)				= gHc (init,reuseFormId formid c) hst
+= (	{ changed			= na.changed || nb.changed || nc.changed
+	, value				= (na.value,nb.value,nc.value)
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form]
+	, inputs			= na.inputs ++ nb.inputs ++ nc.inputs
+	},hst)
+where
+	(a,b,c)				= formid.ival
+
+gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
+# (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,,) constructor 
+# (nb,hst)				= gHb (init,reuseFormId formid b) hst
+# (nc,hst)				= gHc (init,reuseFormId formid c) hst
+# (nd,hst)				= gHd (init,reuseFormId formid d) hst
+= (	{ changed			= na.changed || nb.changed || nc.changed || nd.changed
+	, value				= (na.value,nb.value,nc.value,nd.value)
+	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form, SpanTag [] nd.form]
+	, inputs			= na.inputs ++ nb.inputs ++ nc.inputs ++ nd.inputs
+	},hst)
+where
+	(a,b,c,d)			= formid.ival
+
+derive gForm Maybe //TODO: Define the gForm for maybe with a checkbox
 
 // gUpd calculates a new value given the current value and a change in the value.
 // If necessary it invents new default values (e.g. when switching from Nil to Cons)
@@ -355,6 +394,11 @@ gUpd{|FIELD|} gUpdx mode (FIELD x)											// other cases
 gUpd{|(->)|} gUpdArg gUpdRes mode f
 = (mode,f)	
 
+derive gUpd (,)
+derive gUpd (,,)
+derive gUpd (,,,)
+derive gUpd Maybe
+
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
 mkForm (init,formid) hst = gForm{|*|} (init, formid) hst
@@ -382,7 +426,14 @@ mkInput (init,formid=:{mode}) val hst=:{cntr}
 	
 	
 mkButton :: !(InIDataId d) String !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkButton (init, formid) val hst = ([],[],hst)
+mkButton (init, formid =: {mode}) label hst =: {cntr} 
+	# inputid = (formid.id +++ "-" +++ toString cntr)
+	= ( [ButtonTag	[ NameAttr	inputid
+					, IdAttr	inputid
+					: if (mode == Display) [DisabledAttr] []
+					] [Text label]]
+	  , [{inputid = inputid, formid = formid.id, updateon = OnClick}]
+	  , setHStCntr (cntr + 1) hst)
 
 mkSelect :: !(InIDataId d) String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
 mkSelect (init, formid=:{mode}) val options hst =:{cntr}

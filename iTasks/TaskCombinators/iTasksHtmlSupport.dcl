@@ -6,7 +6,7 @@ definition module iTasksHtmlSupport
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksTypes, iDataButtons
+import iTasksTypes, iDataWidgets
 
 /*
 Prompting variants:
@@ -29,4 +29,4 @@ mkTaskButtons	:: vertical anIdentifier userId tasknr options list-of-button-name
 
 addHtml 		:: ![HtmlTag] !*TSt 	-> *TSt
 mkTaskButtons 	:: !Bool !String !Int !TaskNr !Options ![String] !*HSt -> (!(!Int,![HtmlTag],!String),!*HSt)
-iTaskButton 	:: !String -> Button
+iTaskButton 	:: !String -> HtmlButton

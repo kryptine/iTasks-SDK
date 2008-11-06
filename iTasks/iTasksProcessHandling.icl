@@ -13,13 +13,13 @@ import iTasksBasicCombinators, iTasksSettings
 import dynamic_string
 import GenBimap
 
-derive gForm 	Wid, WorkflowStatus, Maybe, []
-derive gUpd 	Wid, WorkflowStatus, Maybe, []
-derive gParse 	Wid, WorkflowStatus, Maybe
-derive gPrint 	Wid, WorkflowStatus, Maybe
+derive gForm 	Wid, WorkflowStatus, []
+derive gUpd 	Wid, WorkflowStatus, []
+derive gParse 	Wid, WorkflowStatus
+derive gPrint 	Wid, WorkflowStatus
 derive gerda 	Wid, WorkflowStatus
-derive read 	Wid, WorkflowStatus, Maybe
-derive write 	Wid, WorkflowStatus, Maybe
+derive read 	Wid, WorkflowStatus
+derive write 	Wid, WorkflowStatus
 
 :: Wid a			= Wid WorkflowLink											// id of workflow process
 :: WorkflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl Dynamic)

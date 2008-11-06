@@ -6,6 +6,12 @@ import GenPrint, GenParse
 import dynamic_string
 import EstherBackend
 import FormId
+import StdMaybe
+
+derive gPrint 	(,), (,,), (,,,), Maybe
+derive gParse	(,), (,,), (,,,), Maybe
+derive gerda 	(,), (,,), (,,,)
+derive bimap	(,), (,,), (,,,), Maybe
 
 // This module controls the handling of state forms and the communication with the browser
 // iData states are maintained in a binary tree

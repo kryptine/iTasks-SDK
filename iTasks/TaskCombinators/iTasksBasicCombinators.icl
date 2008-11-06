@@ -14,9 +14,9 @@ import iTasksTypes, iTasksLiftingCombinators
 import InternaliTasksThreadHandling
 import GenBimap
 
-derive gForm 	Maybe, [], Time
-derive gUpd 	Maybe, [], Time
-derive gPrint	Maybe, Time
+derive gForm 	[], Time
+derive gUpd 	[], Time
+derive gPrint	Time
 derive gParse	Time
 
 

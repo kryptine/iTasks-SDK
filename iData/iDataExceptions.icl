@@ -3,10 +3,7 @@ implementation module iDataExceptions
 import StdMaybe
 import iDataFormlib
 
-derive gForm 	Maybe
-derive gUpd 	Maybe
-derive gPrint 	Maybe
-derive gParse 	Maybe
+
 derive read 	Maybe
 derive write 	Maybe
 

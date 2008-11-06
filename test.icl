@@ -4,11 +4,34 @@ import StdEnv, StdiTasks, iData
 
 // Test program to experiment with the new ExtJS based Web-GUI
 
-Start :: *World -> *World
-Start world = singleUserTask [] ( (0 @:: dateTask) -&&-  (0 @:: myTask) )world
+:: Fruit	= Apples | Oranges | Grapes  
 
-myTask :: Task String
-myTask = editTask "Done" "Enter your name..."
+:: MyRec	= { name			:: Maybe String
+			  , age				:: (Int,Real)
+			  , favoriteFruit	:: Fruit
+			  }
+
+derive gForm  Fruit, MyRec
+derive gUpd   Fruit, MyRec
+derive gPrint Fruit, MyRec
+derive gParse Fruit, MyRec
+
+Start :: *World -> *World
+//Start world = singleUserTask [] ( (0 @:: dateTask) -&&-  (0 @:: myTask) )world
+Start world = singleUserTask [] cbTask world
+
+myTask :: Task MyRec
+myTask = editTask "Done" createDefault
+
+
+cbTask :: Task HtmlCheckbox
+cbTask = editTask "I'm Done" (HtmlCheckbox [Text "Click me!"] False)
+
+boolTask :: Task Bool
+boolTask = editTask "Done with the bool" True
+
+fruitTask :: Task Fruit
+fruitTask = editTask "Done" createDefault
 
 //Editor of a task which uses specialize to create a separate view
 dateTask :: Task HtmlDate
