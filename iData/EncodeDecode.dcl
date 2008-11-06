@@ -31,9 +31,6 @@ decodeString 		:: !String -> *String
 urlEncode 			:: !String ->  String
 urlDecode 			:: !String -> *String
 
-// Form submission handling
-callClean 					:: !String !Mode !String !Lifespan !Bool -> [HtmlAttr]
-
 
 // serializing, de-serializing of iData states to strings stored in the html page
 
@@ -50,7 +47,6 @@ deleteStateFile 			:: !String !*NWorld -> *NWorld
 
 traceHtmlInput				:: [(String, String)] -> HtmlTag					// for debugging showing the information received from browser
 trace_to_file 				:: !String !*World -> *World						// for storing debug information to file
-
 
 globalInpName	:== "GS"			// marks global state information
 selectorInpName	:== "CS_"			// marks constructor update

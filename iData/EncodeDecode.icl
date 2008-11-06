@@ -15,28 +15,6 @@ import FormId
 derive gParse UpdValue
 derive gPrint UpdValue
 
-
-// form submission department....
-
-// script for transmitting name and value of changed input 
-
-callClean :: !String !Mode !String !Lifespan !Bool -> [HtmlAttr]
-callClean event	mode	elemid	lsp	action
-| isMember mode [Edit, Submit]	= makeattr event
-| otherwise						= []
-where
-	isAction True 		= "true"
-	isAction False		= "false"
-
-	isSubmit Submit		= "true"
-	isSubmit _			= "false"
-
-	isOnClient Client 	= "true"
-	isOnClient _ 		= "false"
-	
-	makeattr "click"	= [OnclickAttr ("toClean(this,'" +++ elemid +++ "'," +++ isAction action +++ "," +++ isSubmit mode +++ "," +++ isOnClient lsp +++ ")")]
-	makeattr _			= []
-	
 isSelector name 	= name%(0,size selectorInpName - 1) == selectorInpName
 getSelector name 	= decodeString (name%(size selectorInpName,size name - 1))
 
