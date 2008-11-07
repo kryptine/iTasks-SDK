@@ -401,8 +401,14 @@ derive gUpd Maybe
 
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init,formid) hst = gForm{|*|} (init, formid) hst
-
+mkForm (init, formid =: {issub}) hst
+	# (form, hst)	= gForm{|*|} (init, formid) hst
+	| issub			= (form, hst) //Subforms are contained in the <form> tags of their parent
+	| otherwise		= ({form &
+						form = [FormTag [IdAttr formid.id] form.form]
+					   }, hst)
+	
+	
 //The basic building blocks for creating inputs
 mkInput :: !(InIDataId d) String !*HSt -> ([HtmlTag], [InputId],*HSt) 
 mkInput (init,formid=:{mode}) val hst=:{cntr} 
@@ -430,6 +436,7 @@ mkButton (init, formid =: {mode}) label hst =: {cntr}
 	# inputid = (formid.id +++ "-" +++ toString cntr)
 	= ( [ButtonTag	[ NameAttr	inputid
 					, IdAttr	inputid
+					, TypeAttr	"button"
 					: if (mode == Display) [DisabledAttr] []
 					] [Text label]]
 	  , [{formid = formid.id, inputid = cntr, updateon = OnClick}]

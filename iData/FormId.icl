@@ -16,7 +16,7 @@ instance <@ Mode          where <@ formId a = {formId & mode     = a}
 instance <@ StorageFormat where <@ formId a	= {formId & storage  = a}
 
 mkFormId :: !String !d -> FormId d				// Default FormId with given id and ival.
-mkFormId s d = {id = s, lifespan = Page, mode = Edit, storage = PlainString, ival = d}
+mkFormId s d = {id = s, issub = False, lifespan = Page, mode = Edit, storage = PlainString, ival = d}
 
 initID :: !(FormId d) -> InIDataId d	// (Init,FormId a)
 initID formid			= (Init,formid)
@@ -63,7 +63,7 @@ extidFormId :: !(FormId d) !String -> FormId d
 extidFormId formid s	= formid <@ formid.id +++ iDataIdSeparator +++ s
 
 subFormId :: !(FormId a) !String !d -> FormId d			// make new formid of new type copying other old settinf
-subFormId formid s d	= reuseFormId (extidFormId formid s) d
+subFormId formid s d	= {reuseFormId (extidFormId formid s) d & issub = True}
 
 subnFormId :: !(FormId a) !String !d -> FormId d		// make new formid of new type copying other old settinf
 subnFormId formid s d	= subFormId formid s d <@ Page

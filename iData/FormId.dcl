@@ -8,6 +8,7 @@ import Html
 
 :: FormId d										// properties one has to assign to any form 
 	=	{ id 		:: !String					// id *uniquely* identifying the form
+		, issub		:: !Bool					// subform of another form or not
 		, lifespan	:: !Lifespan				// lifespan of form
 		, mode		:: !Mode					// editable or not
 		, storage	:: !StorageFormat			// serialization method

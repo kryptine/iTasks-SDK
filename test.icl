@@ -7,7 +7,7 @@ import StdEnv, StdiTasks, iData
 :: Fruit	= Apples | Oranges | Grapes  
 
 :: MyRec	= { name			:: Maybe String
-			  , age				:: (Int,Real)
+			  , age				:: Int
 			  , favoriteFruit	:: Fruit
 			  }
 
@@ -18,10 +18,10 @@ derive gParse Fruit, MyRec
 
 Start :: *World -> *World
 //Start world = singleUserTask [] ( (0 @:: dateTask) -&&-  (0 @:: myTask) )world
-Start world = singleUserTask [] cbTask world
+Start world = singleUserTask [] myTask world
 
 myTask :: Task MyRec
-myTask = editTask "Done" createDefault
+myTask = editTask "Done" createDefault <<@ Submit
 
 
 cbTask :: Task HtmlCheckbox
