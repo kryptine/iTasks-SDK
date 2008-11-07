@@ -13,13 +13,8 @@ derive gerda 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox
 //derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 //derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 
-EmptyBody :== SpanTag [] []
-defpixel :== 100
-defsize	:== 10
-layoutTableAtts	:== []	// default table attributes for arranging layout
 
 // <-> works exactly the same as (,) and places its arguments next to each other, for compatibility with GEC's
-
 gForm{|(<->)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible <-> constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
@@ -32,7 +27,6 @@ where
 	(a <-> b)			= formid.ival
 
 // <|> works exactly the same as PAIR and places its arguments below each other, for compatibility with GEC's
-
 gForm{|(<|>)|} gHa gHb (init,formid) hst 
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)		// one more for the now invisible <|> constructor
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
@@ -45,7 +39,6 @@ where
 	(a <|> b)			= formid.ival
 
 // to switch between modes within a type ...
-
 gForm{|DisplayMode|} gHa (init,formid) hst 	
 = case formid.ival of
 	(HideMode a)
