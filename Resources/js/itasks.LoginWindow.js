@@ -120,13 +120,13 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		this.loginPanel.on('actionfailed', failureHandler, this);
 
 		//Add a keymap to connect <enter> in the form to the submit action
-		new Ext.KeyMap(Ext.getBody(), {
-			key: Ext.EventObject.ENTER,
-			fn: submitHandler,
-			scope: this
-		});
-		
-
+		this.loginPanel.on('render', function () {
+			new Ext.KeyMap(this.loginPanel.getEl(), {
+				key: Ext.EventObject.ENTER,
+				fn: submitHandler,
+				scope: this
+			});
+		},this);
 	},
 	showHelp: function () {
 		Ext.Msg.show({
