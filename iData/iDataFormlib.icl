@@ -124,7 +124,7 @@ mkSubStateForm (init,formid) state upd hst
 							     (nsubState,                                 hst)
 = ( commitBut.changed
   ,	{ changed				= nsubState.changed || commitBut.changed || cancelBut.changed
-	, value					= if commitBut.changed (upd nsubState.value state) state
+	, value					= if commitBut.changed (upd nsubState.Form.value state) state
 	, form					= [ DivTag [] nsubState.form
 							  , BrTag []
 							  , if commitBut.changed (DivTag [] [Text "Thanks for (re-)committing",BrTag [] ,BrTag []]) EmptyBody
@@ -142,10 +142,10 @@ mkShowHideForm (init,formid) hst
 | formid.mode == NoForm || formid.FormId.lifespan == Temp
 	= mkEditForm (init,formid) hst
 # (hiding,hst)				= mkStoreForm (Init,subFormId formid "ShowHideSore" True) id hst			// True == Hide
-# (switch,hst)				= myfuncbut hiding.value hst	
-# hide 						= switch.value hiding.value
+# (switch,hst)				= myfuncbut hiding.Form.value hst	
+# hide 						= switch.Form.value hiding.Form.value
 # (hiding,hst)				= mkStoreForm (Set,subFormId formid "ShowHideSore" True) (const hide) hst	// True == Hide
-# (switch,hst)				= myfuncbut hiding.value hst
+# (switch,hst)				= myfuncbut hiding.Form.value hst
 | hide
 	# (info,hst)			= mkEditForm (init,formid <@ NoForm) hst
 	= ({info & form			= switch.form},hst)
@@ -170,64 +170,64 @@ vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
 # indexId					= subFormId formid "idx" 0 <@ Display
 # (index,hst)				= mkEditForm (init,indexId) hst
 # (olist,hst)				= listForm   (init,formid)  hst
-# lengthlist				= length olist.value
+# lengthlist				= length olist.Form.value
 
 # pdmenu					= HtmlSelect [(toString lengthlist <+++ " More... ","0") : [("Show " <+++ i,toString i) \\ i <- [1 .. max 1 lengthlist]]] "0" 
 # pdmenuId					= subFormId formid "pdm" pdmenu <@ Edit
 # (pdbuts,hst)				= mkEditForm (Init, pdmenuId) hst
-# step						= toInt pdbuts.value
-| step == 0					= ({form=pdbuts.form,inputs=pdbuts.inputs, value=olist.value,changed=olist.changed || pdbuts.changed},hst)		
+# step						= toInt pdbuts.Form.value
+| step == 0					= ({form=pdbuts.form,inputs=pdbuts.inputs, value=olist.Form.value,changed=olist.changed || pdbuts.changed},hst)		
 
-# bbutsId					= subFormId formid "bb" index.value <@ Edit
+# bbutsId					= subFormId formid "bb" index.Form.value <@ Edit
 # (obbuts,hst)				= browseButtons (Init,bbutsId) step lengthlist nbuts hst
 
 # addId						= subnFormId formid "add" addbutton
 # (add,   hst) 				= ListFuncBut (Init,addId) hst	
 
-# dellId					= subnFormId formid "dell" (delbutton obbuts.value step)
+# dellId					= subnFormId formid "dell" (delbutton obbuts.Form.value step)
 # (del,   hst) 				= ListFuncBut (Init,dellId) hst	
-# insrtId					= subnFormId formid "ins"  (insertBtn createDefault obbuts.value step)
+# insrtId					= subnFormId formid "ins"  (insertBtn createDefault obbuts.Form.value step)
 # (ins,   hst) 				= ListFuncBut (Init,insrtId) hst	
-# appId						= subnFormId formid "app"  (appendBtn createDefault obbuts.value step)
+# appId						= subnFormId formid "app"  (appendBtn createDefault obbuts.Form.value step)
 # (app,   hst) 				= ListFuncBut (Init,appId) hst	
 
 # elemId					= subFormId formid "copyelem" createDefault
-# copyId					= subnFormId formid "copy"  (copyBtn obbuts.value step)
+# copyId					= subnFormId formid "copy"  (copyBtn obbuts.Form.value step)
 # (copy,  hst) 				= ListFuncBut (Init,copyId) hst	
-# (elemstore,hst)			= mkStoreForm (Init,elemId) (if copy.changed (const (olist.value!!copy.value 0)) id) hst	
+# (elemstore,hst)			= mkStoreForm (Init,elemId) (if copy.changed (const (olist.Form.value!!copy.Form.value 0)) id) hst	
 
-# pasteId					= subnFormId formid "paste" (pasteBtn obbuts.value step)
+# pasteId					= subnFormId formid "paste" (pasteBtn obbuts.Form.value step)
 # (paste,hst) 				= ListFuncBut (Init,pasteId) hst	
 
-# newlist					= olist.value
-# newlist					= if paste.changed (updateAt (paste.value 0) elemstore.value newlist) newlist
-# newlist					= ins.value newlist 
-# newlist					= add.value newlist
-# newlist					= app.value newlist 
-# newlist					= del.value newlist 
+# newlist					= olist.Form.value
+# newlist					= if paste.changed (updateAt (paste.Form.value 0) elemstore.Form.value newlist) newlist
+# newlist					= ins.Form.value newlist 
+# newlist					= add.Form.value newlist
+# newlist					= app.Form.value newlist 
+# newlist					= del.Form.value newlist 
 
 # (list, hst)				= listForm (Set,setFormId formid newlist <@ mode) hst
 # lengthlist				= length newlist
-# (index,hst)				= mkEditForm (setID indexId obbuts.value) hst
+# (index,hst)				= mkEditForm (setID indexId obbuts.Form.value) hst
 # (bbuts,hst)				= browseButtons (Init, bbutsId) step lengthlist nbuts hst
 
-# betweenindex				= (bbuts.value,bbuts.value + step - 1)
+# betweenindex				= (bbuts.Form.value,bbuts.Form.value + step - 1)
 
 # pdmenu					= HtmlSelect [(toString lengthlist <+++ " More... ", toString step): [("Show " <+++ i,toString i) \\ i <- [1 .. max 1 lengthlist]]] (toString step)
 # (pdbuts,hst)				= mkEditForm (setID pdmenuId pdmenu) hst
  
 = (	{ form 					= pdbuts.form ++ bbuts.form ++ 
-								[[ toHtml ("nr " <+++ (i+1) <+++ " / " <+++ length list.value)
+								[[ toHtml ("nr " <+++ (i+1) <+++ " / " <+++ length list.Form.value)
 										<.||.> 
 								   (onMode formid.mode (if showbuts (del <.=.> ins <.=.> app  <.=.> copy  <.=.> paste) EmptyBody) 
 								   	(if showbuts (del <.=.> ins <.=.> app  <.=.> copy  <.=.> paste) EmptyBody)
 								   	EmptyBody 
 								   	EmptyBody)
-								 \\ del <- del.form & ins <- ins.form & app <- app.form & copy <- copy.form & paste <- paste.form & i <- [bbuts.value..]]
+								 \\ del <- del.form & ins <- ins.form & app <- app.form & copy <- copy.form & paste <- paste.form & i <- [bbuts.Form.value..]]
 										<=|> 
 								list.form % betweenindex
 								] ++ (if (lengthlist <= 0) add.form [])
-	, value 				= list.value
+	, value 				= list.Form.value
 	, changed 				= olist.changed || list.changed || obbuts.changed || del.changed  || pdbuts.changed || ins.changed ||
 							  add.changed   || copy.changed || paste.changed  || list.changed || index.changed  || app.changed
 	, inputs				= [] //TODO: FIX
@@ -304,8 +304,8 @@ layoutListForm :: !([HtmlTag] [HtmlTag] -> [HtmlTag])
                   ! (InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
 layoutListForm layoutF formF (init,formid=:{mode}) hst 
 # (store, hst)				= mkStoreForm (init,formid) id  hst			// enables to store list with different # elements
-# (layout,hst)				= layoutListForm` 0 store.value hst
-# (store, hst)				= mkStoreForm (init,formid) (const layout.value) hst
+# (layout,hst)				= layoutListForm` 0 store.Form.value hst
+# (store, hst)				= mkStoreForm (init,formid) (const layout.Form.value) hst
 = (layout,hst)
 where
 	layoutListForm` n [] hst
@@ -318,7 +318,7 @@ where
 		# (nxs,hst)			= layoutListForm` (n+1) xs hst
 		# (nx, hst)			= formF (init,subFormId formid (toString (n+1)) x) hst
 		= ({ changed		= nx.changed || nxs.changed
-		   , value			= [nx.value:nxs.value]
+		   , value			= [nx.Form.value:nxs.Form.value]
 		   , form			= layoutF nx.form nxs.form
 		   , inputs			= nx.inputs ++ nxs.inputs
 		   },hst)
@@ -363,7 +363,7 @@ where
 	# (rowfun,hst)			= ListFuncBut` (n+1) xs hst
 	# (fun   ,hst)			= FuncButNr n (init,{formid & ival = (but,func)} <@ bmode) hst
 	= ({ changed			= rowfun.changed || fun.changed
-	   , value				= fun.value o rowfun.value
+	   , value				= fun.Form.value o rowfun.Form.value
 	   , form				= [DivTag [] (fun.form ++ rowfun.form) ]
 	   , inputs				= fun.inputs ++ rowfun.inputs
 	   },hst)
@@ -382,7 +382,7 @@ where
 	# (nx, hSt)				= ListFuncBut2 (init,subFormId formid (toString n) x) hSt
 	# (nxs,hSt)				= TableFuncBut2` (n+1) xs hSt
 	= ({ changed			= nx.changed || nxs.changed
-	   , value				= nx.value o nxs.value
+	   , value				= nx.Form.value o nxs.Form.value
 	   , form				= [ nx.form <||> nxs.form ]
 	   , inputs				= nx.inputs ++ nxs.inputs
 	   },hSt)
@@ -399,7 +399,7 @@ layoutIndexForm layoutF formF r combineF n (init,formid) hSt
 	# (xsF,hSt)				= layoutIndexForm layoutF formF r combineF (n+1) (init,setFormId formid xs) hSt
 	# (xF, hSt)				= formF n (init,reuseFormId formid x) hSt
 	= ({ changed			= xsF.changed || xF.changed
-	   , value				= combineF xsF.value xF.value
+	   , value				= combineF xsF.Form.value xF.Form.value
 	   , form				= layoutF xF.form xsF.form
 	   , inputs				= xF.inputs ++ xsF.inputs
 	   },hSt)
@@ -411,7 +411,7 @@ ListFuncBut (init,formid) hSt
 ListFuncCheckBox :: !(InIDataId [(HtmlCheckbox, Bool [Bool] a -> a)]) !*HSt -> (Form (a -> a,[Bool]),!*HSt)
 ListFuncCheckBox (init,formid) hst 
 # (check,hst)				= ListFuncCheckBox` formid.ival hst
-# (f,bools)					= check.value
+# (f,bools)					= check.Form.value
 = ({ changed				= False
    , value					= (f bools,bools)
    , form					= check.form
@@ -428,8 +428,8 @@ where
 	ListFuncCheckBox` [x:xs] hst 
 	# (rowfun,hst)			= ListFuncCheckBox`   xs hst
 	# (fun   ,hst)			= FuncCheckBox formid x  hst
-	# (rowfunv,boolsv)		= rowfun.value
-	# (funv,nboolv)			= fun.value
+	# (rowfunv,boolsv)		= rowfun.Form.value
+	# (funv,nboolv)			= fun.Form.value
 	= ({ changed			= rowfun.changed || fun.changed
 	   , value				= (funcomp funv rowfunv,[nboolv:boolsv])
 	   , form				= fun.form ++ rowfun.form
@@ -475,11 +475,11 @@ where
 browseButtons :: !(InIDataId Int) !Int !Int !Int !*HSt -> (Form Int,!*HSt)
 browseButtons (init,formid) step length nbuttuns hst
 # (nindex,  hst)			= mkStoreForm (init,formid) id hst
-# (calcnext,hst)			= browserForm nindex.value hst
-# (nindex,  hst)			= mkStoreForm (init,formid) calcnext.value hst
-# (shownext,hst)			= browserForm nindex.value hst
+# (calcnext,hst)			= browserForm nindex.Form.value hst
+# (nindex,  hst)			= mkStoreForm (init,formid) calcnext.Form.value hst
+# (shownext,hst)			= browserForm nindex.Form.value hst
 = ({ changed				= calcnext.changed
-   , value					= nindex.value
+   , value					= nindex.Form.value
    , form					= shownext.form
    , inputs					= shownext.inputs
    },hst)

@@ -16,7 +16,7 @@ instance					== (Ref2 a) where (==) (Ref2 file1) (Ref2 file2) = file1 == file2
 invokeRefEditor :: !((InIDataId b) *HSt -> (Form d,*HSt)) !(InIDataId b) !*HSt -> (!Form b,!*HSt)
 invokeRefEditor editor (init,formid) hst
 # (idata,hst)				= editor (init,formid) hst
-= ({idata & value = formid.ival},hst)
+= ({Form | idata & value = formid.ival},hst)
 
 //	iData for destructively shared model data:
 
@@ -24,9 +24,9 @@ universalRefEditor :: !Lifespan !(InIDataId (Ref2 a)) !(a -> Judgement) !*HSt ->
 universalRefEditor lifespan (init,formid=:{ival=Ref2 filename}) invariant hst
 | filename == ""			= mkEditForm (Init,xtFormId "ure_TEMP" createDefault) hst
 # (dbf,hst)					= myDatabase Init filename (0,createDefault) hst				// create / read out current value in file file
-# (dbversion,dbvalue)		= dbf.value														// version number and value stored in database
+# (dbversion,dbvalue)		= dbf.Form.value														// version number and value stored in database
 # (versionf,hst)			= myVersion Init filename dbversion hst 						// create / read out version number expected by this application
-# version					= versionf.value												// current version number assumed in this application
+# version					= versionf.Form.value												// current version number assumed in this application
 | init == Init && isMember formid.mode [Display,NoForm]										// we only want to read, no version conflict
 	= myEditor Init filename dbvalue hst													// synchronize with latest value 
 | dbversion > version																		// we have a version conflict and want to write
@@ -35,12 +35,12 @@ universalRefEditor lifespan (init,formid=:{ival=Ref2 filename}) invariant hst
 	# (_,hst)				= myVersion Set filename dbversion hst							// synchronize with new version
 	= myEditor Set filename dbvalue hst														// return current version stored in database 
 # (valuef,hst)				= myEditor Init filename dbvalue hst							// editor is in sync; create / read out current value 
-# exception					= invariant valuef.value										// check invariants															// check invariants
+# exception					= invariant valuef.Form.value										// check invariants															// check invariants
 | isJust exception																			// we want to write, but invariants don't hold
 	# (_,hst)				= ExceptionStore ((+) exception) hst 							// report them 
 	= (valuef,hst)																			// return wrong value such that it can be improved
 # (versionf,hst)			= myVersion  Set filename (dbversion + 1) hst					// increment version number
-# (_,hst)					= myDatabase Set filename (dbversion + 1,valuef.value) hst		// update database file
+# (_,hst)					= myDatabase Set filename (dbversion + 1,valuef.Form.value) hst		// update database file
 = ({valuef & changed = True},hst)
 where
 	myDatabase init filename cntvalue hst													// write the database

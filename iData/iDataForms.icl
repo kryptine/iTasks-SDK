@@ -13,7 +13,6 @@ import Html
 derive gPrint UpdValue
 derive gParse UpdValue
 
-
 derive bimap Form, FormId
 
 gParse{|(->)|} gArg gRes _ 		= Nothing 
@@ -63,9 +62,9 @@ where
 							= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) (mkHSt request states world)
 
 	| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
-							= calcnextView True (Just viewform.value) states world
+							= calcnextView True (Just viewform.Form.value) states world
 
-	# (states,world)		= replaceState` vformid viewform.value states world	// store new value into the store of states
+	# (states,world)		= replaceState` vformid viewform.Form.value states world	// store new value into the store of states
 
 	= (	{ changed			= isupdated
 		, value				= newval
@@ -191,7 +190,7 @@ gForm{|PAIR|} gHa gHb (init,formid) hst
 	# (na,hst)					= gHa (init, reuseFormId formid a) hst
 	# (nb,hst)					= gHb (init, reuseFormId formid b) hst
 	= ({ changed				= na.changed || nb.changed
-	   , value					= PAIR na.value nb.value
+	   , value					= PAIR na.Form.value nb.Form.value
 	   , form					= na.form ++ nb.form
 	   , inputs					= na.inputs ++ nb.inputs
 	   },hst)
@@ -202,14 +201,14 @@ gForm{|EITHER|} gHa gHb (init,formid)  hst
 	= case formid.ival of
 		(LEFT a)
 			# (na,hst)			= gHa (init, reuseFormId formid a) hst
-			= ({na & value = LEFT na.value},hst)
+			= ({Form | na & value = LEFT na.Form.value},hst)
 		(RIGHT b)
 			# (nb,hst)			= gHb (init, reuseFormId formid b) hst
-			= ({nb & value = RIGHT nb.value},hst)
+			= ({Form | nb & value = RIGHT nb.Form.value},hst)
 
 gForm{|OBJECT|} gHo (init,formid) hst
 	# (no,hst)					= gHo (init, reuseFormId formid o) hst
-	= ({no & value = OBJECT no.value},hst)
+	= ({Form | no & value = OBJECT no.Form.value},hst)
 where
 	(OBJECT o) = formid.ival
 	
@@ -217,21 +216,21 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr}
 	| not (isEmpty t.gcd_fields) 		 
 		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display record constructor, but wrap the content in a table tag
 		= ({ changed			= nc.changed
-		   , value				= CONS nc.value
+		   , value				= CONS nc.Form.value
 		   , form				= [TableTag [] nc.form]
 		   , inputs				= nc.inputs
 		   },hst)
 	| t.gcd_type_def.gtd_num_conses == 1 
 		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display constructors that have no alternative
-		= ({nc & value = CONS nc.value},hst)
+		= ({Form | nc & value = CONS nc.Form.value},hst)
 	| t.gcd_name.[(size t.gcd_name) - 1] == '_' 										 	// don't display constructor names which end with an underscore
 		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) 
-		= ({nc & value = CONS nc.value},hst)
+		= ({Form | nc & value = CONS nc.Form.value},hst)
 				
 	# (selHtml,selInputs,hst)	= mkSelect (init, formid) myname options hst
 	# (nc,hst)					= gHc (init,reuseFormId formid c) hst
 	= ({ changed				= nc.changed
-	   , value					= CONS nc.value
+	   , value					= CONS nc.Form.value
 	   , form					= selHtml ++ nc.form
 	   , inputs					= selInputs ++ nc.inputs
 	   },hst)
@@ -250,7 +249,7 @@ gForm{|FIELD of d |} gHx (init,formid) hst
 		   },hst)
 	| otherwise
 		= ({ changed				= nx.changed
-		   , value					= FIELD nx.value
+		   , value					= FIELD nx.Form.value
 		   , form					= [TrTag [] [ThTag [] [Text fieldname],TdTag [] nx.form]]
 		   , inputs					= nx.inputs
 		   },hst)
@@ -275,7 +274,7 @@ gForm{|(,)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible (,) constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed
-	, value				= (na.value,nb.value)
+	, value				= (na.Form.value,nb.Form.value)
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
 	, inputs			= na.inputs ++ nb.inputs
 	},hst)
@@ -287,7 +286,7 @@ gForm{|(,,)|} gHa gHb gHc (init,formid) hst
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 # (nc,hst)				= gHc (init,reuseFormId formid c) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed
-	, value				= (na.value,nb.value,nc.value)
+	, value				= (na.Form.value,nb.Form.value,nc.Form.value)
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form]
 	, inputs			= na.inputs ++ nb.inputs ++ nc.inputs
 	},hst)
@@ -300,7 +299,7 @@ gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
 # (nc,hst)				= gHc (init,reuseFormId formid c) hst
 # (nd,hst)				= gHd (init,reuseFormId formid d) hst
 = (	{ changed			= na.changed || nb.changed || nc.changed || nd.changed
-	, value				= (na.value,nb.value,nc.value,nd.value)
+	, value				= (na.Form.value,nb.Form.value,nc.Form.value,nd.Form.value)
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form, SpanTag [] nc.form, SpanTag [] nd.form]
 	, inputs			= na.inputs ++ nb.inputs ++ nc.inputs ++ nd.inputs
 	},hst)

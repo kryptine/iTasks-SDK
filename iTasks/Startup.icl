@@ -232,7 +232,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 | thisUser < 0 			= abort "Users should have id's >= 0 !\n"
 # (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
 # (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
-# doTrace				= traceAsked.value False
+# doTrace				= traceAsked.Form.value False
 	
 # versionsOn			= IF_ClientTasks False versionCheckOn										// no version control on client
 # noNewVersion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 	// no version control in these cases

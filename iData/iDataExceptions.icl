@@ -29,4 +29,4 @@ instance + Judgement where
 ExceptionStore :: !(Judgement -> Judgement) !*HSt -> (Judgement,!*HSt)
 ExceptionStore judge hst 
 # (judgef,hst)			= mkStoreForm (Init,nFormId "handle_exception" Ok <@ NoForm <@ Temp) judge hst
-= (judgef.value,hst)
+= (judgef.Form.value,hst)

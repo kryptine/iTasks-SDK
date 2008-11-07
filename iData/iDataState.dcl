@@ -31,6 +31,17 @@ derive gerda 	(,), (,,), (,,,)
 				, format	:: !StorageFormat	// Format of the serialized state
 				}
 
+:: FormUpdate =	{ formid	:: !String			// The unique identifier of the form
+				, inputid	:: !Int				// The index of the changed input in the form
+				, value		:: !UpdValue		// The new value of the input (TODO: See if this can be replaced by a String)
+				}
+
+:: UpdValue 									// the updates that can take place	
+	= UpdI Int									// new integer value
+	| UpdR Real									// new real value
+	| UpdB Bool									// new boolean value
+	| UpdC String								// choose indicated constructor 
+	| UpdS String								// new piece of text
 
 /*
 * Create an empty initial FormStates value

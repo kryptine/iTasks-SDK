@@ -19,7 +19,7 @@ gForm{|(<->)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible <-> constructor 
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed 
-	, value				= na.value <-> nb.value
+	, value				= na.Form.value <-> nb.Form.value
 	, form				= [SpanTag [] na.form, SpanTag [] nb.form]
 	, inputs			= na.inputs ++ nb.inputs
 	},hst)
@@ -31,7 +31,7 @@ gForm{|(<|>)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)		// one more for the now invisible <|> constructor
 # (nb,hst)				= gHb (init,reuseFormId formid b) hst
 = (	{ changed			= na.changed || nb.changed 
-	, value				= na.value <|> nb.value
+	, value				= na.Form.value <|> nb.Form.value
 	, form				= [DivTag [] na.form, DivTag [] nb.form]
 	, inputs			= na.inputs ++ nb.inputs
 	},hst)
@@ -44,21 +44,21 @@ gForm{|DisplayMode|} gHa (init,formid) hst
 	(HideMode a)
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
 		= (	{ changed	= na.changed 
-			, value		= HideMode na.value
+			, value		= HideMode na.Form.value
 			, form		= []
 			, inputs	= []
 			},hst)
 	(DisplayMode a)
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Display) (incrHStCntr 1 hst)
 		= (	{ changed	= False
-			, value		= DisplayMode na.value
+			, value		= DisplayMode na.Form.value
 			, form		= na.form
 			, inputs	= []
 			},hst)
 	(EditMode a) 
 		# (na,hst)		= gHa (init,reuseFormId formid a <@ Edit) (incrHStCntr 1 hst)
 		= (	{ changed	= na.changed
-			, value		= EditMode na.value
+			, value		= EditMode na.Form.value
 			, form		= na.form
 			, inputs	= na.inputs
 			},hst)

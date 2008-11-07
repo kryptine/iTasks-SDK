@@ -95,16 +95,16 @@ where
 	selectTask_btn` horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 	# taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
 	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-	| chosen.value == -1			// no choice made yet
+	| chosen.Form.value == -1			// no choice made yet
 		# buttonId					= iTaskId userId tasknr "ChoBut"
 		# allButtons				= if horizontal 
 											[[(iTaskButton txt,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
 											[[(iTaskButton txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
 		# (choice,tst)				= liftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
-		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.value) tst
-		| chosen.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form choice.inputs})
-		= ([chosen.value],{tst & activated = True})
-	= ([chosen.value],{tst & activated = True})
+		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value) tst
+		| chosen.Form.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form choice.inputs})
+		= ([chosen.Form.value],{tst & activated = True})
+	= ([chosen.Form.value],{tst & activated = True})
 
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
@@ -116,7 +116,7 @@ where
 	selectTask_pdm` defaultOn taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
 	# taskId						= iTaskId userId tasknr ("ChoStPdm" <+++ length taskOptions)
 	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-	| chosen.value == -1			// no choice made yet
+	| chosen.Form.value == -1			// no choice made yet
 		# numberOfItems					= length taskOptions
 		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfItems  - 1) defaultOn 0 		
 		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ numberOfItems)
@@ -124,11 +124,11 @@ where
 		# (_,tst=:{activated=adone,html=ahtml})	
 										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 	
 		| not adone						= ([],{tst & activated = False, html = html +|+ BT prompt [] +|+ BT choice.form choice.inputs +|+ ahtml, tasknr = tasknr})
-		# chosenIdx						= snd choice.value
+		# chosenIdx						= snd choice.Form.value
 		# chosenTask					= snd (taskOptions!!chosenIdx)
 		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> chosenIdx)) tst
-		= ([chosen.value],{tst & tasknr = tasknr, activated = True, html = html})
-	= ([chosen.value],{tst & activated = True, html = html, tasknr = tasknr})
+		= ([chosen.Form.value],{tst & tasknr = tasknr, activated = True, html = html})
+	= ([chosen.Form.value],{tst & activated = True, html = html, tasknr = tasknr})
 
 
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
@@ -143,7 +143,7 @@ where
 		# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
 		# donetaskId			= iTaskId userId tasknr "MtpChSt"
 		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
-		# (fun,nblist)			= cboxes.value
+		# (fun,nblist)			= cboxes.Form.value
 		# nsettings				= fun nblist
 		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
 		# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
@@ -154,7 +154,7 @@ where
 			# optionsform		= cboxes.form <=|> [[showLabel label] <||> htmlcode \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
 			= ([],{tst & html = html +|+  BT [optionsform] cboxes.inputs +|+ ahtml})
 		# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
-		= ([i \\ True <- snd cboxes.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
+		= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
 	
 		initCheckboxes  = 
 			[(HtmlCheckbox [Text label] set,  \b bs _ -> setfun b bs) \\ (set,setfun,_) <- htmlcodes & (label,_) <- taskOptions & i <- [0..]]
@@ -230,7 +230,7 @@ orTask2 (taska,taskb)
 
 showBoth id list tst=:{hst}
 # (sel,hst)	= mkEditForm (Init,nFormId id [0,1] <@ NoForm) hst
-= ((sel.value,sel.form),{tst & hst = hst})
+= ((sel.Form.value,sel.form),{tst & hst = hst})
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
 andTasks taskCollection = newTask "andTasks" (andTasksCond "and Tasks" (\_ -> False) taskCollection)
@@ -279,7 +279,7 @@ andTasksCond_pdm label pred taskCollection
 where
 	selectButtons ident list tst=:{hst,options}
 	# (result,hst) = FuncMenu (Init,applyoptions (nFormId (ident +++ "andTaskCond_pdm") (0,[(name,id) \\ (name,_) <- list]))) hst
-	= (([snd result.value],[showLabel label] <|.|> result.form),{tst & hst = hst})	
+	= (([snd result.Form.value],[showLabel label] <|.|> result.form),{tst & hst = hst})	
 	where
 		applyoptions nformid = nformid <@ options.tasklife <@ options.taskstorage <@ options.taskmode
 

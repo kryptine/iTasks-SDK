@@ -19,8 +19,8 @@ where
 	# taskId				= iTaskId userId tasknr "Time_"
 	# (stime,hst) 			= mkStoreForm (Init,storageFormId tst.options taskId time) id hst  			// remember time
 	# ((currtime,_),hst)	= getTimeAndDate hst
-	| currtime < stime.value= (stime.value,{tst & activated = False,hst = hst})
-	= (currtime - stime.value,{tst & hst = hst})
+	| currtime < stime.Form.value= (stime.Form.value,{tst & activated = False,hst = hst})
+	= (currtime - stime.Form.value,{tst & hst = hst})
 
 waitForDateTask:: !HtmlDate	-> (Task HtmlDate)
 waitForDateTask date = mkTask "waitForDateTask" waitForDateTask`

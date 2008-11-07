@@ -8,9 +8,9 @@ import iDataExceptions, iDataFormlib
 universalDB :: !(!Init,!Lifespan,!a,!String) !(String a -> Judgement) !*HSt -> (a,!*HSt) | iData a
 universalDB (init,lifespan,value,filename) invariant hst
 # (dbf,hst)					= myDatabase Init (0,value) hst									// create / read out database file
-# (dbversion,dbvalue)		= dbf.value														// version number and value stored in database
+# (dbversion,dbvalue)		= dbf.Form.value														// version number and value stored in database
 # (versionf,hst)			= myVersion Init dbversion hst 									// create / read out version number expected by this application
-# version					= versionf.value												// current version number assumed in this application
+# version					= versionf.Form.value												// current version number assumed in this application
 | init == Init																				// we only want to read, no version conflict
 	# (_,hst)				= myVersion Set dbversion hst 									// synchronize version number and
 	= (dbvalue,hst)																			// return current value stored in database
@@ -24,7 +24,7 @@ universalDB (init,lifespan,value,filename) invariant hst
 	# (_,hst)				= ExceptionStore ((+) exception) hst 							// report them 
 	= (value,hst)																			// return disapproved value such that it can be improved
 # (versionf,hst)			= myVersion  Set (dbversion + 1) hst 							// increment version number
-# (_,hst)					= myDatabase Set (versionf.value,value) hst						// update database file
+# (_,hst)					= myDatabase Set (versionf.Form.value,value) hst						// update database file
 = (value,hst)
 where
 	myDatabase init cntvalue hst 															// read the database

@@ -117,7 +117,7 @@ workflowProcessStore wfs tst
 where
 	workflowProcessStore` wfs tst=:{hst}	
 	# (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName (0,[]) <@ NoForm) wfs hst
-	= (form.value,{tst & hst = hst})
+	= (form.Form.value,{tst & hst = hst})
 
 scheduleWorkflows :: !(Task a) -> (Task a) | iData a
 scheduleWorkflows maintask 

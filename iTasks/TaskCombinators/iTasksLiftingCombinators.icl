@@ -28,7 +28,7 @@ where
 	appIData` idata tst=:{tasknr,html,hst}
 	# (idata,hst) 										= idatafun hst
 	# (_,{tasknr,activated,html=ahtml,hst}) 			= editTaskLabel "appIDataDone" "Done" Void {tst & activated = True, html = BT [] [],hst = hst}	
-	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
+	= (idata.Form.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
 															(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst})
 
 appIData2 :: !(String *HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
@@ -38,7 +38,7 @@ where
 	# taskId											= iTaskId userId tasknr "iData"
 	# (idata,hst) 										= idatafun taskId hst
 	# (_,{tasknr,activated,html=ahtml,hst}) 			= editTaskLabel "appIDataDone" "Done" Void {tst & activated = True, html = BT [] [],hst = hst}	
-	= (idata.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
+	= (idata.Form.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
 															(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst})
 
 appHStOnce :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a

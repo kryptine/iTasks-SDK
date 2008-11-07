@@ -26,7 +26,7 @@ readDB2 name=:(idn,_) = appHSt ("readDB2 " +++ idn) (DB name id)
 DB :: !(DBid a) !(a -> a) !*HSt -> (!a,!*HSt) | iData a
 DB (name,storageKind) fun hst 
 # (form,hst)	= mkStoreForm (Init,nFormId (db_prefix +++ name) createDefault <@ storageKind <@ NoForm) fun hst
-= (form.value,hst)
+= (form.Form.value,hst)
 
 mkDBid :: !String !Lifespan -> (DBid a)
 mkDBid s Database 	

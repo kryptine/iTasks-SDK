@@ -46,7 +46,7 @@ where
 	newTask` tst=:{tasknr,userId,options}		
 	# taskId					= iTaskId userId tasknr taskname
 	# (taskval,tst) 			= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
-	# (taskdone,taskvalue)		= taskval.value										// select values
+	# (taskdone,taskvalue)		= taskval.Form.value										// select values
 	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
 	# (val,tst=:{activated})	= mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
 	| not activated				= (createDefault,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
@@ -61,11 +61,11 @@ where
 	doit tst=:{activated,html,tasknr,hst,userId,options}
 	# taskId			= iTaskId userId tasknr (label +++ "_")
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
-	# (done,value)		= store.value
+	# (done,value)		= store.Form.value
 	| done 				= (value,{tst & hst = hst})													// if task has completed, don't do it again
 	# (value,tst=:{hst})= task {tst & hst = hst}
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
-	# (done,value)		= store.value
+	# (done,value)		= store.Form.value
 	= (value,{tst & activated = done, hst = hst})													// task is now completed, handle as previously
 
 // ******************************************************************************************************
@@ -84,9 +84,9 @@ where
 		= (val,tst)					
 	# taskId					= iTaskId userId tasknr "ForSt"											// create store id
 	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst		// fetch actual tasknr
-	# (val,tst=:{activated})	= task {tst & tasknr = [-1:currtasknr.value]}
+	# (val,tst=:{activated})	= task {tst & tasknr = [-1:currtasknr.Form.value]}
 	| activated 																						// task is completed	
-		# ntasknr				= incNr currtasknr.value												// incr tasknr
+		# ntasknr				= incNr currtasknr.Form.value												// incr tasknr
 		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
 		= foreverTask` {tst & tasknr = tasknr, options = options, html = html}										// initialize new task
 	= (val,tst)					
@@ -275,7 +275,7 @@ where
 		sender task tst=:{activated,tasknr}
 		| not activated				= (createDefault,tst)
 		# (requested,tst)			= (sharedMem id) tst  // is this task demanded ?
-		| not requested.value		= (createDefault,tst)
+		| not requested.Form.value	= (createDefault,tst)
 		# (val,tst) 				= task tst
 		= (val,{tst & tasknr = tasknr})
 	

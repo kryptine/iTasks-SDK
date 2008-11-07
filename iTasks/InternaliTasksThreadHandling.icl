@@ -87,7 +87,7 @@ setPUser user f hst
 where
 	myStoreForm user f hst 
 	# (form,hst) = mkStoreForm (Init, pFormId (userVersionNr user) defaultGlobalInfo <@ NoForm) f hst
-	= (form.value,hst)
+	= (form.Form.value,hst)
 
 	defaultGlobalInfo = { versionNr = 0, newThread = False, deletedThreads = []}
 
@@ -99,7 +99,7 @@ where
 setSVersionNr :: !Int !(Int -> Int) !*HSt -> (!Int,!*HSt) 
 setSVersionNr user f hst	
 # (form,hst) = mkStoreForm (Init, nFormId (usersessionVersionNr user) 0 <@ NoForm) f hst
-= (form.value,hst)
+= (form.Form.value,hst)
 
 
 // ******************************************************************************************************
@@ -345,7 +345,7 @@ administrateNewThread ouserId tst =: {tasknr,userId,options}
 | ouserId == userId		= tst
 # newTaskId				= iTaskId userId tasknr "_newthread"
 # (chosen,tst=:{hst})	= liftHst (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
-| not chosen.value
+| not chosen.Form.value
 	# (_,hst) 			= setPUserNewThread userId hst													// yes, new thread created
 	# (_,tst)			= liftHst (mkStoreForm  (Init,storageFormId options newTaskId False) (\_ -> True)) {tst & hst = hst}
 	= tst
@@ -397,7 +397,7 @@ where
 						, taskstorage 	= PlainString 
 						, taskmode		= NoForm
 						, gc			= Collect} tableid []) fun) tst
-	= (table.value,tst)
+	= (table.Form.value,tst)
 
 copyThreadTableToClient ::  !*TSt -> *TSt										// copies all threads for this user from server to client thread table
 copyThreadTableToClient tst
@@ -684,7 +684,7 @@ setAppversion f hst
 where
 	myStoreForm f hst
 	# (form,hst) = mkStoreForm (Init, pFormId applicationVersionNr 0) f hst
-	= (form.value,hst)
+	= (form.Form.value,hst)
 
 getCurrentAppVersionNr :: !*TSt -> (!Int,!*TSt)
 getCurrentAppVersionNr tst=:{hst}

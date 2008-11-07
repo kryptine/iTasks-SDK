@@ -72,7 +72,7 @@ mkTaskButtons vertical myid userId tasknr info btnnames hst
 //| myidx == 1		= ((0,[],""),hst)													// no task button if there is only one task to choose from
 # (chosen,hst)		= SelectStore (myid,myidx) tasknr info id hst						// which choice was made in the past
 # (buttons,hst)		= SelectButtons Init btnsId info (chosen,btnnames) hst				// create buttons
-# (chosen,hst)		= SelectStore (myid,myidx) tasknr info  buttons.value hst			// maybe a new button was pressed
+# (chosen,hst)		= SelectStore (myid,myidx) tasknr info  buttons.Form.value hst			// maybe a new button was pressed
 # (buttons,hst)		= SelectButtons Set btnsId info (chosen,btnnames) hst				// adjust look of that button
 = ((chosen,buttons.form,btnnames!!chosen),hst)
 where
@@ -90,4 +90,4 @@ where
 	SelectStore (myid,idx) tasknr info fun hst 
 	# storeId 			= iTaskId userId tasknr (myid <+++ "BtnsS" <+++ idx)
 	# (storeform,hst)	= mkStoreForm (Init,storageFormId info storeId 0) fun hst
-	= (storeform.value,hst)
+	= (storeform.Form.value,hst)

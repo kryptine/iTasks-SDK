@@ -42,21 +42,21 @@ edit formid = HGC mkApplyEdit`
 where
 	mkApplyEdit` ((initval,prevbody),ch,hst) 
 	# (na,hst) = mkApplyEditForm (Init,setFormId formid initval) initval hst
-	= ((na.value,[(formid.id, DivTag [] na.form ):prevbody]),ch||na.changed,hst) // propagate change
+	= ((na.Form.value,[(formid.id, DivTag [] na.form ):prevbody]),ch||na.changed,hst) // propagate change
 
 display :: (FormId a) -> GecCircuit a a |  iData a
 display formid = HGC mkEditForm`
 where
 	mkEditForm` ((val,prevbody),ch,hst) 
 	# (na,hst) = mkEditForm (Set,setFormId {formid & mode = Display} val) hst
-	= ((na.value,[(formid.id,DivTag [] na.form):prevbody]),ch||na.changed,hst)
+	= ((na.Form.value,[(formid.id,DivTag [] na.form):prevbody]),ch||na.changed,hst)
 
 store :: (FormId s) -> GecCircuit (s -> s) s |  iData s
 store formid = HGC mkStoreForm`
 where
 	mkStoreForm` ((fun,prevbody),ch,hst) 
 	# (store,hst) = mkStoreForm (Init,formid) fun hst
-	= ((store.value,[(formid.id,DivTag [] store.form):prevbody]),ch||store.changed,hst)
+	= ((store.Form.value,[(formid.id,DivTag [] store.form):prevbody]),ch||store.changed,hst)
 
 self :: (a -> a) !(GecCircuit a a) -> GecCircuit a a
 self fun gecaa = feedback gecaa (arr fun)
@@ -69,7 +69,7 @@ loops (HGC gec_abcb) = HGC loopForm
 where
 	loopForm ((aval,prevbody),ch,hst) 
 	# (bstore,hst) = mkStoreForm (Init,xsFormId "??" createDefault) id hst
-	# (((cval,bval),bodyac),ch,hst) = gec_abcb (((aval,bstore.value),prevbody),ch,hst)
+	# (((cval,bval),bodyac),ch,hst) = gec_abcb (((aval,bstore.Form.value),prevbody),ch,hst)
 	# (bstore,hst) = mkStoreForm (Set,xsFormId "??" createDefault) (\_ -> bval) hst
 	= ((cval,bodyac),ch,hst)	
 
@@ -95,9 +95,9 @@ lift (Set,formid) fun = HGC fun`
 where
 	fun` ((a,body),ch,hst)
 	# (nb,hst) =  fun (setID formid a) hst
-	= ((nb.value,[(formid.id,DivTag [] nb.form):body]),ch||nb.changed,hst) 
+	= ((nb.Form.value,[(formid.id,DivTag [] nb.form):body]),ch||nb.changed,hst) 
 lift (Init,formid) fun = HGC fun`
 where
 	fun` ((a,body),ch,hst)
 	# (nb,hst) =  fun (Init, setFormId formid a) hst
-	= ((nb.value,[(formid.id,DivTag [] nb.form):body]),ch||nb.changed,hst) 
+	= ((nb.Form.value,[(formid.id,DivTag [] nb.form):body]),ch||nb.changed,hst) 
