@@ -28,11 +28,12 @@ derive bimap	(,), (,,), (,,,), Maybe
 				{ fstates 	:: !*FStates						// internal tree of states
 				, triplets	:: ![(!Triplet,!String)]			// indicates what has changed: which form, which postion, which value
 				, updateid	:: !String							// which form has changed
-				, focusid	:: !String							// which input has the focus
 				}		
 
 :: FStates		:== Tree_ (!String,!FormState)					// each form needs a different string id
+
 :: Tree_ a 		= Node_ (Tree_ a) !a !(Tree_ a) | Leaf_
+
 :: FormState 	= OldState !FState								// Old states are the states from the previous calculation
 				| NewState !FState 								// New states are newly created states or old states that have been inspected and updated
 :: FState		= { format	:: !Format							// Encoding method used for serialization
@@ -82,7 +83,39 @@ where
 	(<) _ _ = True
 
 emptyFormStates :: *FormStates
-emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = "", focusid = ""}
+emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = ""}
+
+// Serialization and De-Serialization of states
+//
+// De-serialize information from server to the internally used form states
+
+retrieveFormStates :: ![(!String, !String)] ->  *FormStates  // retrieves all form states hidden in the html page
+retrieveFormStates args
+	= { fstates		= retrieveFStates
+	  , triplets	= triplets
+	  , updateid	= calc_updateid triplets
+	  }
+where
+	retrieveFStates 
+		= Balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
+						\\ (sid,lifespan,storageformat,state) <- htmlStates
+						|  sid <> ""
+						])
+	where
+		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
+		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
+
+	(htmlStates,triplets,focus)	= DecodeHtmlStatesAndUpdate args
+	
+	calc_updateid [] 	= ""		
+	calc_updateid [(triplet,upd):_]	= case triplet of
+							("",0,UpdI 0)	= ""
+							(id,_,_)		= id 
+							else			= ""
+
+
+
+
 
 getTriplets :: !String !*FormStates -> (!Triplets,!*FormStates)
 getTriplets id formstates=:{triplets} = ([mytrips \\ mytrips=:((tripid,_,_),_) <- triplets | id == tripid] ,formstates)
@@ -301,39 +334,16 @@ where
 	| life == oldlifespan	= (Node_ left (fid,NewState {fstate & life = newlifespan}) right,world)	
 	= (Node_ left a right,world)
 
-// Serialization and De-Serialization of states
-//
-// De-serialize information from server to the internally used form states
 
-retrieveFormStates :: ![(!String, !String)] !*NWorld -> (!*FormStates,!*NWorld) 	// retrieves all form states hidden in the html page
-retrieveFormStates args world 
-	= ({ fstates = retrieveFStates, triplets = triplets, updateid = calc_updateid triplets, focusid = focus},world)
-where
-	retrieveFStates 
-		= Balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
-						\\ (sid,lifespan,storageformat,state) <- htmlStates
-						|  sid <> ""
-						])
-	where
-		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
-		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
-
-	(htmlStates,triplets,focus)	= DecodeHtmlStatesAndUpdate args
-	
-	calc_updateid [] 	= ""		
-	calc_updateid [(triplet,upd):_]	= case triplet of
-							("",0,UpdI 0)	= ""
-							(id,_,_)		= id 
-							else			= ""
 
 // Serialize all states in FormStates that have to be remembered to either hidden encoded Html Code
 // or store them in a persistent file, all depending on the kind of states
 
-storeFormStates :: !String !FormStates !*NWorld -> (!String, !String, !*NWorld)
-storeFormStates prefix {fstates = allFormStates, focusid = focus} world
+storeFormStates :: !String !FormStates !*NWorld -> (!String, !*NWorld)
+storeFormStates prefix {fstates = allFormStates} world
 # world						= writeAllTxtFileStates allFormStates world				// first write all persistens states
 # encodedpagestate			= EncodeHtmlStates (FStateToHtmlState allFormStates []) // encode states in the page
-= (encodedpagestate, focus, world)
+= (encodedpagestate, world)
 
 where
 	sprefix = size prefix
@@ -424,6 +434,7 @@ ShowValueDynamic d = strip (foldr (+++) "" (fst (toStringDynamic d)) +++ " ")
 
 ShowTypeDynamic :: !Dynamic -> String
 ShowTypeDynamic d = strip (snd (toStringDynamic d) +++ " ")
+
 // debugging code 
 
 print_graph :: !a -> Bool;
@@ -473,11 +484,11 @@ derive gMap Tree_
 
 initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
-	= ({ fstates = Leaf_, triplets = [], updateid = "", focusid = ""},world)
+	= ({ fstates = Leaf_, triplets = [], updateid = ""},world)
 
 setTestFormStates :: ![(!Triplet,!String)] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
 setTestFormStates triplets updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid, focusid = ""},world)
+	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid},world)
 where
 	toOldState (s,NewState fstate)	= (s,OldState fstate)
 	toOldState else					= else

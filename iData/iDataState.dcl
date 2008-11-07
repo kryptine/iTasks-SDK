@@ -7,18 +7,31 @@ import GenParse, GenPrint, Gerda
 import EncodeDecode
 import StdMaybe
 
-
 //Always derive storage generic functions for common types
 derive gPrint 	(,), (,,), (,,,), Maybe
 derive gParse	(,), (,,), (,,,), Maybe
 derive gerda 	(,), (,,), (,,,)
 
 
-// Maintaining the internal state of all forms
+/*
+* The FormStates structure contains the state of all forms
+* It should only be used as a substructure of the HSt structure
+*/
+:: *FormStates
 
-:: *FormStates 													// collection of all states of all forms
+/*
+* Create an empty initial FormStates value
+*/
+emptyFormStates		:: *FormStates
 
-emptyFormStates		:: *FormStates								// creates empty states
+/*
+* Create a FormStates value based from a http update request.
+* It only contains states stored in the page. States stored on
+* the server are retrieved when they are needed.
+*/
+retrieveFormStates 	:: ![(!String, !String)] -> *FormStates 	// retrieves all form states hidden in the html page
+
+
 
 findState 			:: !(FormId a) !*FormStates !*NWorld			// find the state value given FormId and a correct type
 					-> (!Bool, !Maybe a,!*FormStates,!*NWorld)		// true if form has not yet been previously inspected 	
@@ -34,8 +47,8 @@ changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*
 
 // storage and retrieval of FormStates
 
-retrieveFormStates 	:: ![(!String, !String)] !*NWorld -> (!*FormStates,!*NWorld) 	// retrieves all form states hidden in the html page
-storeFormStates 	:: !String !FormStates !*NWorld -> (!String, !String, !*NWorld)
+
+storeFormStates 	:: !String !FormStates !*NWorld -> (!String, !*NWorld)
 
 
 getTriplets 		:: !String !*FormStates -> (!Triplets,!*FormStates)	// retrieve triplets matching given id
@@ -44,6 +57,8 @@ getAllTriplets 		:: !*FormStates -> (!Triplets,!*FormStates)	// retrieve all tri
 // tracing all states ...
 
 traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
+
+
 
 // fstate handling used for testing only
 

@@ -11,11 +11,10 @@ import StdEnv
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
-import TaskTreeFilters
+
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler
-import TaskTree, StdStrictLists
-
+import TaskTree, TaskTreeFilters
 
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
@@ -27,7 +26,6 @@ import TaskTree, StdStrictLists
 					}
 
 // Initial values
-
 initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 initTst thisUser itaskstorage threadstorage hst
 				=	{ tasknr		= [-1]
@@ -65,22 +63,20 @@ defaultStartUpOptions
 	, testModeOn		= True
 	}
 
-
 // ******************************************************************************************************
 // *** Server / Client startup
 // ******************************************************************************************************
 :: UserTaskPage a	:== ((Task a) -> .(*HSt -> .((!Bool,!String),HtmlTag,!*HSt)))
 
-doTaskWrapper	:: !(UserTaskPage a) !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
-doTaskWrapper userpageHandler mainTask world = doHtmlServer userpageHandler mainTask world
+doTaskWrapper :: !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
+doTaskWrapper mainTask world = doHtmlServer mainTask world
 
-doHtmlServer :: !(UserTaskPage a) (Task a) !*World -> *World | iData a
-doHtmlServer userpageHandler mainTask world
+doHtmlServer :: (Task a) !*World -> *World | iData a
+doHtmlServer mainTask world
 | ServerKind == Internal
 	# world	= instructions world
-	= StartServer  userpageHandler mainTask world					// link in the Clean http 1.0 server	
-//| ServerKind == External											// connect with http 1.1 server
-//| ServerKind == CGI												// build as CGI application
+	= startServer mainTask world		// link in the Clean http 1.0 server	
+//| ServerKind == CGI					// build as CGI application
 | otherwise
 	= unimplemented world
 where
@@ -100,10 +96,9 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-StartServer :: !(UserTaskPage a) (Task a)  !*World -> *World | iData a
-StartServer userpageHandler mainTask world
+startServer :: (Task a) !*World -> *World | iData a
+startServer mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
-
 	= http_startServer options   [((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
@@ -111,7 +106,6 @@ StartServer userpageHandler mainTask world
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleTaskRequest (handleWorkTabRequest mainTask))
 								 ,(\_ -> True, doStaticResource)
 								 ] world
-
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
@@ -140,13 +134,10 @@ handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state	
-	# (initforms,nworld)	 	= retrieveFormStates request.arg_post nworld				// Retrieve the state information stored in an html page, other state information is collected lazily
+	# initforms	 				= retrieveFormStates request.arg_post						// Retrieve the state information stored in an html page, other state information is collected lazily
 	# hst						= mkHSt request initforms nworld							// Create the HSt
-	# (response,hst =:{states,world = nworld})	= handler request hst								// Apply handler
-
-	# (debugOutput,states)		= if TraceOutput (traceStates states) (BodyTag [] [],states)// Optional show debug information
-	# (pagestate, focus, nworld =: {worldC = world,gerda,datafile})	
-		= storeFormStates "" states nworld													// Store all state information
+	# (response,hst =:{world = nworld =: {worldC = world, gerda, datafile}})
+		= handler request hst																// Apply handler
 	# world						= closeDatabase gerda world									// close the relational database if option chosen
 	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= (response,world)
@@ -188,16 +179,18 @@ mkInfoDiv state focus =
 // ******************************************************************************************************
 
 singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
-singleUserTask startUpOptions maintask world = doTaskWrapper singleUserTask` maintask world
+singleUserTask startUpOptions maintask world = doTaskWrapper maintask world
+/*
 where
 	singleUserTask` maintask hst 
 	# userOptions					= determineUserOptions [ThreadStorage TxtFile:startUpOptions]
 	# tst							= initTst 0 Session userOptions.threadStorageLoc hst
 	# (toserver_prefix,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
 	= mkHtmlExcep "singleUser" (toserver_prefix) html hst
-
+*/
 multiUserTask :: ![StartUpOptions] !(Task a) !*World -> *World   | iData a 
-multiUserTask startUpOptions maintask world = doTaskWrapper multiUserTask` maintask world
+multiUserTask startUpOptions maintask world = doTaskWrapper maintask world
+/*
 where
 	multiUserTask` maintask hst 
 	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
@@ -213,7 +206,6 @@ where
 										(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
 	= mkHtmlExcep "multiUser" (toserver_prefix) html hst
 
-
 determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
 determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
 where
@@ -227,7 +219,7 @@ where
 	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
 	determineUserOptions` [TestModeOn:xs] 			options = determineUserOptions` xs {options & testModeOn = True}
 	determineUserOptions` [TestModeOff:xs] 			options = determineUserOptions` xs {options & testModeOn = False}
-
+*/
 // ******************************************************************************************************
 // *THE* main routine for the determination of the current state and the creation of a new workflow page
 // ******************************************************************************************************
@@ -249,14 +241,6 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 # (sversion,hst)	 	= setSVersionNr thisUser id hst
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr && not noNewVersion 		// test if there is a version conflict				
 
-
-/*
-# iTaskHeader			=	[TableTag [WidthAttr "100%"] [TrTag [] 
-							[ TdTag [] [ImgTag [SrcAttr (ThisExe +++ "/img/clean-logo.jpg"),Img_Align Alo_Middle]
-									,showHighLight " i -Task", showLabel " Workflow System "]
-							, Td [Td_Align Aln_Right] (multiuserform ++ refresh.form ++ ifTraceOn traceAsked.form)] ]]++
-							[Hr []]
-*/
 | versionconflict	 
 	# iTaskInfo			=
 		(mkDiv True "debug-client" [showLabel "Client: ", HrTag []]) ++
