@@ -137,7 +137,7 @@ where
 gForm {|HtmlTime|} (init,formid) hst
 	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
 where
-	nPage = if (formid.lifespan == Client) Client Page
+	nPage = if (formid.FormId.lifespan == Client) Client Page
 	toPullDown (HtmlTime h m s)	= (hv,mv,sv)
 	where
 		hv					= HtmlSelect [(toString i,toString i) \\ i <- [0..23]] (toString h)
@@ -151,7 +151,7 @@ where
 gForm {|HtmlDate|} (init,formid) hst 
 	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
 where
-	nPage = if (formid.lifespan == Client) Client Page
+	nPage = if (formid.FormId.lifespan == Client) Client Page
 	toPullDown (HtmlDate d m y)	= (dv,mv,yv)
 	where
 		dv					= HtmlSelect [(toString i, toString i) \\ i <- [1..31]] (toString md)

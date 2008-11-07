@@ -97,7 +97,7 @@ retrieveFormStates args
 	  }
 where
 	retrieveFStates 
-		= Balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
+		= balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
 						\\ (sid,lifespan,storageformat,state) <- htmlStates
 						|  sid <> ""
 						])
@@ -140,10 +140,10 @@ where
 							(NewState state)	= (False,fetchFState state,formstate,world)
 	with
 		fetchFState :: FState -> Maybe a | TC a & gParse{|*|} a
-		fetchFState {format = PlainStr string}	= parseString string
-		fetchFState {format = DBStr string _}	= parseString string
-		fetchFState {format = CLDBStr string _}	= parseString string
-		fetchFState {format = StatDyn (v::a^)}	= Just v    
+		fetchFState {FState | format = PlainStr string}	= parseString string
+		fetchFState {FState | format = DBStr string _}	= parseString string
+		fetchFState {FState | format = CLDBStr string _}	= parseString string
+		fetchFState {FState | format = StatDyn (v::a^)}	= Just v    
 		fetchFState _							= Nothing
 	| formid.id  < fid 	= (bool,parsed, Node_ leftformstates (fid,info) right,nworld)
 						with
@@ -241,9 +241,9 @@ replaceState formid val formstates=:{fstates} world
 where
 	replaceState` ::  !(FormId a) a *FStates *NWorld -> (*FStates,*NWorld)	| iPrint, iSpecialStore a	
 	replaceState` formid val Leaf_ world 									// id not part of tree yet
-						= (Node_ Leaf_ (formid.id,NewState (initNewState formid.id (adjustlife formid.lifespan) Temp formid.storage val)) Leaf_,world)
+						= (Node_ Leaf_ (formid.id,NewState (initNewState formid.id (adjustlife formid.FormId.lifespan) Temp formid.storage val)) Leaf_,world)
 	replaceState` formid val (Node_ left a=:(fid,fstate) right) world
-	| formid.id == fid	= (Node_ left (fid,NewState (initNewState formid.id formid.lifespan (detlifespan fstate) formid.storage val)) right,world)
+	| formid.id == fid	= (Node_ left (fid,NewState (initNewState formid.id formid.FormId.lifespan (detlifespan fstate) formid.storage val)) right,world)
 	| formid.id <  fid	= (Node_ nleft a right,nworld)
 							with
 								(nleft, nworld) = replaceState` formid val left  world
@@ -348,14 +348,14 @@ storeFormStates prefix {fstates = allFormStates} world
 where
 	sprefix = size prefix
 
-	FStateToHtmlState :: !(Tree_ (!String,!.FormState)) !*[HtmlState] -> *[HtmlState]
+	FStateToHtmlState :: !(Tree_ (!String,!.FormState)) !*[HtmlState2] -> *[HtmlState2]
 	FStateToHtmlState Leaf_ accu	= accu
 	FStateToHtmlState (Node_ left x right) accu
 		= case htmlStateOf x of
 			Just state				= FStateToHtmlState left [state : FStateToHtmlState right accu]
 			nothing					= FStateToHtmlState left         (FStateToHtmlState right accu)
 	where
-		htmlStateOf :: !(!String,!.FormState) -> Maybe HtmlState
+		htmlStateOf :: !(!String,!.FormState) -> Maybe HtmlState2
 		// old states which have not been used this time, but with lifespan session, are stored again in the page
 		// other old states will have lifespan page or are persistent; they need not to be stored
 		htmlStateOf (fid,OldState {life=Session,format=PlainStr stringval})	= Just  (fid,Session,PlainString,stringval)
@@ -467,20 +467,19 @@ tohexchar s i
 = toChar (48+c);
 = toChar (55+c);
 
-//	create balanced storage tree:
-
-Balance :: ![a] -> .(Tree_ a)
-Balance []					= Leaf_
-Balance [x]					= Node_ Leaf_ x Leaf_
-Balance xs
+//Create a balanced storage tree:
+balance :: ![a] -> .(Tree_ a)
+balance []					= Leaf_
+balance [x]					= Node_ Leaf_ x Leaf_
+balance xs
 	= case splitAt (length xs/2) xs of
-		(a,[b:bs])			= Node_ (Balance a) b (Balance bs)
-		(as,[])				= Node_ (Balance (init as)) (last as) Leaf_
+		(a,[b:bs])			= Node_ (balance a) b (balance bs)
+		(as,[])				= Node_ (balance (init as)) (last as) Leaf_
 
-import GenMap
-derive gMap Tree_
 
 // interfaces added for testing:
+import GenMap
+derive gMap Tree_
 
 initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 

@@ -139,7 +139,7 @@ where
 
 mkShowHideForm :: !(InIDataId a) !*HSt -> (Form a,!*HSt) | iData a
 mkShowHideForm (init,formid) hst 
-| formid.mode == NoForm || formid.lifespan == Temp
+| formid.mode == NoForm || formid.FormId.lifespan == Temp
 	= mkEditForm (init,formid) hst
 # (hiding,hst)				= mkStoreForm (Init,subFormId formid "ShowHideSore" True) id hst			// True == Hide
 # (switch,hst)				= myfuncbut hiding.value hst	

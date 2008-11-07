@@ -10,10 +10,10 @@ import Html
 
 class   (<@) infixl 4 att :: !(FormId d) !att -> FormId d
 
-instance <@ String        where <@ formId a = {formId & id       = a}
-instance <@ Lifespan      where <@ formId a = {formId & lifespan = a}
-instance <@ Mode          where <@ formId a = {formId & mode     = a}
-instance <@ StorageFormat where <@ formId a	= {formId & storage  = a}
+instance <@ String        where <@ formId a = {FormId | formId & id       = a}
+instance <@ Lifespan      where <@ formId a = {FormId | formId & lifespan = a}
+instance <@ Mode          where <@ formId a = {FormId | formId & mode     = a}
+instance <@ StorageFormat where <@ formId a	= {FormId | formId & storage  = a}
 
 mkFormId :: !String !d -> FormId d				// Default FormId with given id and ival.
 mkFormId s d = {id = s, issub = False, lifespan = Page, mode = Edit, storage = PlainString, ival = d}

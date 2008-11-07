@@ -20,7 +20,7 @@ getSelector name 	= decodeString (name%(size selectorInpName,size name - 1))
 
 // Serializing Html states...
 
-EncodeHtmlStates :: ![HtmlState] -> String
+EncodeHtmlStates :: ![HtmlState2] -> String
 EncodeHtmlStates [] = "$"
 EncodeHtmlStates [(id,lifespan,storageformat,state):xsys] 
 	= encodeString
@@ -51,16 +51,16 @@ where
 
 // de-serialize Html State
 
-DecodeHtmlStates :: !String -> [HtmlState]
+DecodeHtmlStates :: !String -> [HtmlState2]
 DecodeHtmlStates state					= toHtmlState` (mkList state)
 where
-	toHtmlState` :: ![Char] -> [HtmlState]
+	toHtmlState` :: ![Char] -> [HtmlState2]
 	toHtmlState` [] 					= []
 	toHtmlState` listofchar				= [mkHtmlState (mkList (decodeChars first)) : toHtmlState` second]
 	where
 		(first,second)					= mscan '$' listofchar									// search for end mark
 
-		mkHtmlState :: ![Char] -> HtmlState
+		mkHtmlState :: ![Char] -> HtmlState2
 		mkHtmlState	elem				= ( mkString (stl fid)									// decode unique identification
 										  , lifespan											// decode livetime from character
 										  , format												// decode storage format from character
@@ -87,7 +87,7 @@ where
 
 // reconstruct HtmlState out of the information obtained from browser
 
-DecodeHtmlStatesAndUpdate ::  [(String, String)] -> (![HtmlState],!Triplets,!String)
+DecodeHtmlStatesAndUpdate ::  [(String, String)] -> (![HtmlState2],!Triplets,!String)
 DecodeHtmlStatesAndUpdate args
 # (_,triplets,state,focus)			= DecodeArguments args
 = ([states \\states=:(id,_,_,nstate) <- DecodeHtmlStates state | id <> "" || nstate <> ""],triplets, focus) // to be sure that no rubbish is passed on

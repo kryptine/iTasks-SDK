@@ -20,6 +20,19 @@ derive gerda 	(,), (,,), (,,,)
 :: *FormStates
 
 /*
+* An HtmlState is a structure for temporary storage of an iData form
+* inside a web page (as serialized data) or javascript. State that
+* is not kept on the server is encoded to this type and sent piggybacked with
+* an Html form to the browser and must be sent back along with the updated form.
+*/
+:: HtmlState =	{ formid	:: !String			// The unique identifier of the form
+				, lifespan	:: !Lifespan		// Lifespan of the state (Page or Client)
+				, state		:: !String			// Serialized state, which can only be parsed when the context is known
+				, format	:: !StorageFormat	// Format of the serialized state
+				}
+
+
+/*
 * Create an empty initial FormStates value
 */
 emptyFormStates		:: *FormStates
@@ -28,6 +41,7 @@ emptyFormStates		:: *FormStates
 * Create a FormStates value based from a http update request.
 * It only contains states stored in the page. States stored on
 * the server are retrieved when they are needed.
+*
 */
 retrieveFormStates 	:: ![(!String, !String)] -> *FormStates 	// retrieves all form states hidden in the html page
 

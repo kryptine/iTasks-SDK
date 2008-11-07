@@ -7,7 +7,7 @@ import StdMaybe
 import GenParse, GenPrint
 import FormId
 
-:: HtmlState  		:== (!Formid,!Lifespan,!StorageFormat,!SerializedState)
+:: HtmlState2  		:== (!Formid,!Lifespan,!StorageFormat,!SerializedState)
 :: Formid			:== String		// uniquely named !
 :: SerializedState 	:== String 		// not encoded !
 
@@ -34,8 +34,8 @@ urlDecode 			:: !String -> *String
 
 // serializing, de-serializing of iData states to strings stored in the html page
 
-EncodeHtmlStates 			:: ![HtmlState] -> String
-DecodeHtmlStatesAndUpdate 	:: [(String, String)] -> (![HtmlState],!Triplets,!String) // hidden state stored in Client + triplets
+EncodeHtmlStates 			:: ![HtmlState2] -> String
+DecodeHtmlStatesAndUpdate 	:: [(String, String)] -> (![HtmlState2],!Triplets,!String) // hidden state stored in Client + triplets
 
 // serializing, de-serializing of iData state stored in files
 
