@@ -7,6 +7,7 @@ implementation module InternaliTasksCommon
 import StdList, StdArray, StdFunc, StdTuple
 import iDataForms, iDataTrivial
 import iTasksSettings
+import Time
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
@@ -76,7 +77,7 @@ where
 		mysubtask tst=:{tasknr} = task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
 
 // ******************************************************************************************************
-// Trace Printing...
+// Trace Insertion ...
 // ******************************************************************************************************
 
 InsertTrace :: !Bool !TaskNr !Int !Options String !String ![Trace] -> [Trace]
@@ -112,63 +113,9 @@ where
 		updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
 		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
 
-printTrace2 		:: !(Maybe [Trace]) -> HtmlTag
-printTrace2 _	= SpanTag [] [Text "TRACE INFO, OBSOLETE"]
-/*
-printTrace2 Nothing 	= SpanTag [] []
-printTrace2 (Just a)  	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , mkSTable emptyBackground (print False a),HrTag []]
-where
-	print _ []		= []
-	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
 
-	pr _ Nothing 			= []
-	pr dprev (Just (dtask,(w,i,op,tn,s)))	
-	| dprev && (not dtask)					= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
-	| not dtask	&& tn%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
-	| not dtask	&& tn%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
-	| not dtask	&& tn%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
-	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,op,tn,s)
-	= showTask cellattr1a White Yellow Red White (w,i,op,tn,s)
-	
-	showTask2 attr1 c1 c2 c3 c4 (w,i,op,tn,s)
-	= [Table doneBackground 	[ Tr [] [Td attr1 [font c1 (toString (last (reverse i)))],	Td cellattr2 [font c2 tn]]
-								, Tr [] [Td attr1 [font c3 (toString w)], 					Td cellattr2 [font c4 s]]
-								]
-	  ,Br]
 
-	showTask att c1 c2 c3 c4 (w,i,op,tn,s)
-	= [STable doneBackground 	
-		[ [font c1 (toString w),font c2 ("T" <+++ showTaskNr i)]
-		, [showStorage op.tasklife, font c3 tn]
-		, [EmptyBody, font c4 s]
-		]
-		]
-	isDone Nothing = False
-	isDone (Just (b,(w,i,op,tn,s))) = b
 
-	showStorage Temp		= font "silver" "Tmp"
-	showStorage Client		= font "aqua" "Cli"
-	showStorage Page		= font "navy" "Pag"
-	showStorage Session		= font "navy" "Ssn"
-	showStorage TxtFileRO	= font "red"   "TxF0"
-	showStorage TxtFile		= font "red"   "TxF"
-	showStorage DataFile	= font "red"   "DaF"
-	showStorage Database	= font "red"   "DaB"
-
-	doneBackground = 	[ Tbl_CellPadding (Pixels 1), Tbl_CellSpacing (Pixels 0), cellwidth
-						, Tbl_Rules Rul_None, Tbl_Frame Frm_Border 
-						]
-	doneBackground2 = 	[ Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0), cellwidth
-						]
-	emptyBackground = 	[Tbl_CellPadding (Pixels 0), Tbl_CellSpacing (Pixels 0)]
-	cellattr1a		=	[Td_Bgcolor (`Colorname Green),  Td_Width (Pixels 10), Td_VAlign Alo_Absmiddle]
-	cellattr1b		=	[Td_Bgcolor (`Colorname Silver), Td_Width (Pixels 10), Td_VAlign Alo_Absmiddle]
-	cellattr2		=	[Td_VAlign Alo_Top]
-	cellwidth		= 	WidthAttr "130"
-
-	font color message
-	= SpanTag [StyleAttr "font-size: smaller; font-weight: bold; color: " +++ color] [Text message]
-*/
 // ******************************************************************************************************
 // iTask Storage Utilities
 // ******************************************************************************************************

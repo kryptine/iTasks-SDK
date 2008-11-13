@@ -8,4 +8,4 @@ definition module TaskTree
 
 import iTasksTypes
 
-calculateTaskTree :: !UserId !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!*HSt) | iData a
+calculateTaskTree :: !UserId !Bool !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!Maybe [Trace],!*HSt) | iData a

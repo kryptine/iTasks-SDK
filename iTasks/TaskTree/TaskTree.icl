@@ -11,22 +11,21 @@ import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 import InternaliTasksThreadHandling
 
-calculateTaskTree :: !UserId !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!*HSt) | iData a
-calculateTaskTree thisUser mainTask hst
+calculateTaskTree :: !UserId !Bool !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!Maybe [Trace],!*HSt) | iData a
+calculateTaskTree thisUser traceOn mainTask hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst												// fetch global settings of this user
 # (sversion,hst)	 	= setSVersionNr thisUser id hst												// fetch version number of session (not needed in new set up?)
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr //&& not noNewVersion 		// test if there is a version conflict				
-| versionconflict		= (True,BT [] [],Just "Version conflict detected!",hst)						// Yes, return error message
+| versionconflict		= (True,BT [] [],Just "Version conflict detected!",Nothing,hst)				// Yes, return error message
 
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						=  calculateTasks thisUser pversion False mainTask (initTst thisUser TxtFile TxtFile hst)
+						=  calculateTasks thisUser pversion mainTask (initTst thisUser TxtFile TxtFile hst)
 
 # newUserVersionNr		= 1 + if (pversion.versionNr > sversion) pversion.versionNr sversion		// increment user querie version number
 # (_,hst)				= clearIncPUser thisUser (\_ -> newUserVersionNr) hst						// store in session
 # (sversion,hst)	 	= setSVersionNr thisUser (\_ -> newUserVersionNr) hst						// store in persistent memory
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
-
-= (toServer,html,Nothing,hst)
+= (toServer,html,Nothing,trace,hst)
 where
 	initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 	initTst thisUser itaskstorage threadstorage hst
@@ -36,7 +35,7 @@ where
 		, userId		= if (thisUser >= 0) defaultUser thisUser
 		, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
 		, html 			= BT [] []
-		, trace			= Nothing
+		, trace			= if traceOn (Just []) Nothing
 		, hst 			= hst
 		, options 		= initialOptions thisUser itaskstorage
 		}

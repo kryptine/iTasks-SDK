@@ -250,7 +250,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 // Here the iTasks are evaluated ...
 													    
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						=  calculateTasks thisUser pversion doTrace maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT [] []}
+						=  calculateTasks thisUser pversion maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT [] []}
 
 // epilogue
 

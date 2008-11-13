@@ -141,3 +141,85 @@ collect thisuser taskuser accu (DivCode id tree)
 	| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs,accu)
 	= ([],[],accu)
 
+// ******************************************************************************************************
+// Trace Printing ...
+// ******************************************************************************************************
+
+printTrace2 		:: !(Maybe [Trace]) -> HtmlTag
+printTrace2 Nothing 	= Text "No task tree trace " // SpanTag [] []
+printTrace2 (Just a)  	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , STable emptyBackground (print False a),HrTag []]
+where
+	print _ []		= []
+	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
+
+	pr _ Nothing 			= []
+	pr dprev (Just (dtask,(w,i,op,tn,s)))	
+	| dprev && (not dtask)					= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
+	| not dtask	&& tn%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
+	| not dtask	&& tn%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
+	| not dtask	&& tn%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
+	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,op,tn,s)
+	= showTask cellattr1a White Yellow Red White (w,i,op,tn,s)
+	
+	showTask2 attr1 c1 c2 c3 c4 (w,i,op,tn,s)
+	= [TableTag doneBackground 	[ TrTag [] [TdTag attr1 [font c1 (toString (last (reverse i)))],	TdTag cellattr2 [font c2 tn]]
+								, TrTag [] [TdTag attr1 [font c3 (toString w)], 					TdTag cellattr2 [font c4 s]]
+								]
+	  ,BrTag []]
+
+	showTask att c1 c2 c3 c4 (w,i,op,tn,s)
+	= [STable doneBackground 	
+		[ [font c1 (toString w),font c2 ("T" <+++ showTaskNr i)]
+		, [showStorage op.tasklife, font c3 tn]
+		, [EmptyBody, font c4 s]
+		]
+		]
+	isDone Nothing = False
+	isDone (Just (b,(w,i,op,tn,s))) = b
+
+	showStorage Temp		= font "silver" "Tmp"
+	showStorage Client		= font "aqua" "Cli"
+	showStorage Page		= font "navy" "Pag"
+	showStorage Session		= font "navy" "Ssn"
+	showStorage TxtFileRO	= font "red"   "TxF0"
+	showStorage TxtFile		= font "red"   "TxF"
+	showStorage DataFile	= font "red"   "DaF"
+	showStorage Database	= font "red"   "DaB"
+
+	doneBackground = 	[ CellpaddingAttr "pixels 1", CellspacingAttr "pixels 0", cellwidth
+						, RulesAttr "none", FrameAttr "border" 
+						]
+	doneBackground2 = 	[ CellspacingAttr "pixels 0", CellspacingAttr "pixels 0", cellwidth
+						]
+	emptyBackground = 	[ CellpaddingAttr "pixels 0", CellspacingAttr "pixels 0"]
+	cellattr1a		=	[ BgcolorAttr Green, WidthAttr "pixels 10", ValignAttr "absmiddle"]
+	cellattr1b		=	[ BgcolorAttr Silver, WidthAttr "pixels 10", ValignAttr "absmiddle"]
+	cellattr2		=	[ ValignAttr "top"]
+	cellwidth		= 	WidthAttr "130"
+
+	font color message
+	= SpanTag [StyleAttr ("font-size: smaller; font-weight: bold; color: " +++ color)] [Text message]
+
+	STable atts table		= TableTag atts (mktable table)
+	where
+		mktable table 	= [TrTag [] (mkrow rows)           \\ rows <- table]
+		mkrow   rows 	= [TdTag [ValignAttr "top"]  [row] \\ row  <- rows ]
+
+	EmptyBody = Text ""
+
+	Black	= "#000000"
+	Silver	= "#C0C0C0"
+	Gray 	= "#808080"
+	White	= "#FFFFFF"
+	Maroon	= "#800000"
+	Red		= "#FF0000"
+	Purple	= "#800080"
+	Fuchsia	= "#FF00FF"
+	Green	= "#008000" 
+	Lime	= "#00FF00"
+	Olive	= "#808000" 
+	Yellow	= "#FFFF00"
+	Navy 	= "#000080" 
+	Blue	= "#0000FF"
+	Teal	= "#008080" 
+	Aqua	= "#00FFFF"

@@ -30,3 +30,6 @@ Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![
 
 collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
 determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (![HtmlTag],![InputId],!*HSt)
+
+//TODO: merge trace information into the task tree 
+printTrace2 		:: !(Maybe [Trace]) -> HtmlTag

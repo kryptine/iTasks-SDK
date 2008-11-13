@@ -94,8 +94,6 @@ iTaskId 			:: !Int !TaskNr !String 	-> String
 showTaskNr 			:: !TaskNr 					-> String
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
-printTrace2 		:: !(Maybe [Trace]) 		-> HtmlTag
-
 // general iTask store, session store, page store, store but no form generation
 
 cFormId 			:: !Options !String !a -> FormId a

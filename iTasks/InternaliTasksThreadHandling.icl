@@ -107,13 +107,13 @@ setSVersionNr user f hst
 // or by evaluating the corresponding task sub tree using the stored threads
 // ******************************************************************************************************
 
-calculateTasks :: !Int !GlobalInfo !Bool !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
-calculateTasks thisUser pversion doTrace maintask tst=:{hst}
+calculateTasks :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
+calculateTasks thisUser pversion maintask tst
 # maintask				= scheduleWorkflows maintask												
 =  ((IF_Ajax 
 		(startAjaxApplication thisUser pversion) 
 		startMainTask
-	) maintask) {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT [] []}
+	) maintask) tst
 where
 	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst

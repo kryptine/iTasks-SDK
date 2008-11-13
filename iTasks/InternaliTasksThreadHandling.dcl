@@ -38,7 +38,7 @@ instance == ThreadKind
 // *********************************************************************************************************************************
 
 // calculateTasks ::  currentUsserId pversion traceOn maintask -> 
-calculateTasks :: !Int !GlobalInfo !Bool !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
+calculateTasks :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
 
 // Setting of global information for a particular user
 
