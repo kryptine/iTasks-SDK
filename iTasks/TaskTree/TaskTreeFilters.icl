@@ -146,8 +146,8 @@ collect thisuser taskuser accu (DivCode id tree)
 // ******************************************************************************************************
 
 printTrace2 		:: !(Maybe [Trace]) -> HtmlTag
-printTrace2 Nothing 	= Text "No task tree trace " // SpanTag [] []
-printTrace2 (Just a)  	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , STable emptyBackground (print False a),HrTag []]
+printTrace2 Nothing 	= DivTag [IdAttr "itask-trace-tasktree", ClassAttr "trace"] [H2Tag [] [Text "Task Tree:"],Text "No task tree trace "]
+printTrace2 (Just a)  	= DivTag [IdAttr "itask-trace-tasktree", ClassAttr "trace"] [H2Tag [] [Text "Task Tree Forest:"],STable emptyBackground (print False a)]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 

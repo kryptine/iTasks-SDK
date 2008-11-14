@@ -7,6 +7,12 @@ import StdMaybe
 import GenParse, GenPrint
 import FormId
 
+encodeHtmlStates	:: ![HtmlState] -> String
+
+decodeHtmlStates	:: ![(!String, !String)] -> [HtmlState]
+decodeFormUpdates	:: ![(!String, !String)] -> [FormUpdate]
+
+
 :: HtmlState2  		:== (!Formid,!Lifespan,!StorageFormat,!SerializedState)
 :: Formid			:== String		// uniquely named !
 :: SerializedState 	:== String 		// not encoded !
@@ -39,7 +45,6 @@ deleteStateFile 			:: !String !*NWorld -> *NWorld
 
 // constants that maybe useful
 
-traceHtmlInput				:: [(String, String)] -> HtmlTag					// for debugging showing the information received from browser
 trace_to_file 				:: !String !*World -> *World						// for storing debug information to file
 
 globalInpName	:== "GS"			// marks global state information

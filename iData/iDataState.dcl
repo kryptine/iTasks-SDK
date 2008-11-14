@@ -33,9 +33,10 @@ derive gerda 	(,), (,,), (,,,)
 
 :: FormUpdate =	{ formid	:: !String			// The unique identifier of the form
 				, inputid	:: !Int				// The index of the changed input in the form
-				, value		:: !UpdValue		// The new value of the input (TODO: See if this can be replaced by a String)
+				, value		:: !String			// The new raw value of the input
 				}
 
+//TODO: Remove
 :: UpdValue 									// the updates that can take place	
 	= UpdI Int									// new integer value
 	| UpdR Real									// new real value
@@ -49,15 +50,12 @@ derive gerda 	(,), (,,), (,,,)
 emptyFormStates		:: *FormStates
 
 /*
-* Create a FormStates value based from a http update request.
-* It only contains states stored in the page. States stored on
-* the server are retrieved when they are needed.
-*
+* Create a FormStates value from a list of HtmlStates and a list of FormUpdates
 */
-retrieveFormStates 	:: ![(!String, !String)] -> *FormStates 	// retrieves all form states hidden in the html page
+mkFormStates 		:: ![HtmlState] ![FormUpdate] -> *FormStates
 
 
-
+// Manipulation of the FormStates value
 findState 			:: !(FormId a) !*FormStates !*NWorld			// find the state value given FormId and a correct type
 					-> (!Bool, !Maybe a,!*FormStates,!*NWorld)		// true if form has not yet been previously inspected 	
 												| iPrint, iParse, iSpecialStore a		
@@ -70,22 +68,24 @@ deleteStates 		:: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld) // de
 
 changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld) // change lifespan of all iData with is prefix and given old lifespan	
 
-// storage and retrieval of FormStates
+// TODO: Rename from triplets to updates
+getTriplets 		:: !String !*FormStates -> (!Triplets,!*FormStates)	// retrieve triplets matching given id
 
+getAllTriplets 		:: !*FormStates -> (!Triplets,!*FormStates)	// retrieve all triplets
+
+
+// storage and retrieval of FormStates
 
 storeFormStates 	:: !String !FormStates !*NWorld -> (!String, !*NWorld)
 
-
-getTriplets 		:: !String !*FormStates -> (!Triplets,!*FormStates)	// retrieve triplets matching given id
-getAllTriplets 		:: !*FormStates -> (!Triplets,!*FormStates)	// retrieve all triplets
-
 // tracing all states ...
 
-traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
+traceStates			:: !*FormStates -> (!HtmlTag,!*FormStates)
+traceUpdates		:: !*FormStates -> (!HtmlTag,!*FormStates)
 
 
 
 // fstate handling used for testing only
 
 initTestFormStates 	::  !*NWorld -> (!*FormStates,!*NWorld) 		// creates initial empty form states
-setTestFormStates 	:: ![(!Triplet,!String)] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
+setTestFormStates 	:: ![FormUpdate] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page

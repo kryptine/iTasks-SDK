@@ -133,9 +133,10 @@ handleTaskRequest :: (HTTPRequest *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *
 handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
-	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state	
-	# initforms	 				= retrieveFormStates request.arg_post						// Retrieve the state information stored in an html page, other state information is collected lazily
-	# hst						= mkHSt request initforms nworld							// Create the HSt
+	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state
+	# updates					= decodeFormUpdates request.arg_post	
+	# fstates	 				= mkFormStates [] updates 										// TODO
+	# hst						= mkHSt request fstates nworld								// Create the HSt
 	# (response,hst =:{world = nworld =: {worldC = world, gerda, datafile}})
 		= handler request hst																// Apply handler
 	# world						= closeDatabase gerda world									// close the relational database if option chosen

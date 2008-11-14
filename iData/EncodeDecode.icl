@@ -15,8 +15,29 @@ import FormId
 derive gParse UpdValue
 derive gPrint UpdValue
 
+
+encodeHtmlStates :: ![HtmlState] -> String
+encodeHtmlStates l = ""
+
+decodeHtmlStates :: ![(!String, !String)] -> [HtmlState]
+decodeHtmlStates l = []
+
+decodeFormUpdates :: ![(!String, !String)] -> [FormUpdate]
+decodeFormUpdates args = [update \\ (Just update) <- map mbUpdate args]
+where
+	mbUpdate (name, value)	= case mbInputId name ((size name) - 1) of
+		Nothing			= Nothing
+		Just inputid	= Just {FormUpdate | formid = name % (0, (size name) - (size inputid) - 2), inputid = toInt inputid, value = value}
+
+	mbInputId "" _		= Nothing
+	mbInputId name i
+		| name.[i] == '-' && i < ((size name) - 1)	= Just (name % (i + 1, size name))	//Found the marker
+		| isDigit name.[i]							= mbInputId name (i - 1)			//Move cursor one position to the left
+													= Nothing							//We've hit an unexpected character
+
 isSelector name 	= name%(0,size selectorInpName - 1) == selectorInpName
 getSelector name 	= decodeString (name%(size selectorInpName,size name - 1))
+
 
 // Serializing Html states...
 
@@ -133,45 +154,6 @@ decodeNameValue (name,value)
 	| isSelector name	= (value, getSelector name)
 	| otherwise			= (name, value)
 
-// traceHtmlInput utility used to see what kind of rubbish is received from client 
-traceHtmlInput ::  [(String, String)] -> HtmlTag
-traceHtmlInput args
-=	DivTag	[] [] /*[ BrTag [], BTag [] [Text "State values received from client when application started:"], BrTag [],
-				STable [] [ [B [] "Triplets:",Br]
-							, showTriplet triplets
-						  ,[B [] "Id:", B [] "Lifespan:", B [] "Format:", B [] "Value:"]
-						: [  [Txt id, Txt (showl life), Txt ( showf storage), Txt (shows storage state)] 
-						  \\ (id,life,storage,state) <- htmlState
-						  ]
-						]
-			, BrTag []
-			, B [] "Undecoded information from client received:", Br, Br
-			, BodyTag (foldl (++) [] [[B [] "name = ", Txt (fst (decodeNameValue (name,value))),Br,B [] "value = ", Txt (snd (decodeNameValue (name,value))),Br] \\ (name,value) <- args])
-			]
-*/
-where
-
-	(htmlState,triplets,focus)	= DecodeHtmlStatesAndUpdate args
-
-	showTriplet triplets	= [] //[STable [] [[Text (printToString triplet)] \\ triplet <- triplets]]
-	showl life				= toString life
-	showf storage			= case storage of PlainString -> "String";  _ -> "S_Dynamic"
-	shows PlainString s		= s
-	shows StaticDynamic d	= toStr (string_to_dynamic` d)											// "cannot show dynamic value" 
-
-
-	toStr dyn = ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn
-
-	string_to_dynamic` :: {#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
-	string_to_dynamic` s	= string_to_dynamic {s` \\ s` <-: s}
-	
-	strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
-	
-	ShowValueDynamic :: Dynamic -> String
-	ShowValueDynamic d = strip (foldr (+++) "" (fst (toStringDynamic d)) +++ " ")
-	
-	ShowTypeDynamic :: Dynamic -> String
-	ShowTypeDynamic d = strip (snd (toStringDynamic d) +++ " ")
 
 // writing and reading of persistent states to a file
 

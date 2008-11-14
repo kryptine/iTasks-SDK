@@ -21,7 +21,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				scripts: false,
 				callback: this.processTabData,
 				scope: this
-			}
+			},
+			autoScroll: true
 		});
 		
 		itasks.WorkTabPanel.superclass.initComponent.apply(this, arguments);

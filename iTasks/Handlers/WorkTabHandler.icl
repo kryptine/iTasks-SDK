@@ -21,12 +21,10 @@ handleWorkTabRequest mainTask request hst
 	# taskId 								= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
 	# (toServer, htmlTree, maybeError, maybeTrace, hst)	
 											= calculateTaskTree thisUserId True mainTask hst 				// calculate the TaskTree given the id of the current user
-	# (html,inputs, hst) 					= determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
-
-	# taskTreeTrace							= printTrace2  maybeTrace										// TEMP fix to show taskTree
-
-
-	# content								= {TabContent|html = toString (DivTag [] (html ++ [taskTreeTrace])), inputs = inputs}// create tab data record
-
-
-	= ({http_emptyResponse & rsp_data = toJSON content},hst)												// create the http response
+	# (html,inputs,hst =:{states}) 			= determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
+	# (stateTrace,states)					= traceStates states											// TEMP: Always trace states
+	# (updateTrace,states)					= traceUpdates states											// TEMP: Always trace updates
+	# taskTreeTrace							= printTrace2 maybeTrace										// TEMP fix to show taskTree
+	# content								= {TabContent|
+		html = toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] [updateTrace,stateTrace,taskTreeTrace:html]), inputs = inputs} // create tab data record
+	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})							// create the http response

@@ -31,7 +31,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
 mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world} 
 | init == Const	&& formid.FormId.lifespan <> Temp
-= mkViewForm (init,{FormId| formid & lifespan = Temp}) bm hst					// constant i-data are never stored
+= mkViewForm (init,{FormId| formid & lifespan = Temp}) bm hst			// constant i-data are never stored
 | init == Const															// constant i-data, no look up of previous value
 = calcnextView False Nothing states world				
 # (isupdated,view,states,world) = findFormInfo vformid states world 	// determine current view value in the state store

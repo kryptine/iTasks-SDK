@@ -7,6 +7,7 @@ import dynamic_string
 import EstherBackend
 import FormId
 import StdMaybe
+import StdDebug
 
 derive gPrint 	(,), (,,), (,,,), Maybe
 derive gParse	(,), (,,), (,,,), Maybe
@@ -26,7 +27,7 @@ derive bimap	(,), (,,), (,,,), Maybe
 
 :: *FormStates 	=												// collection of states of all forms
 				{ fstates 	:: !*FStates						// internal tree of states
-				, triplets	:: ![(!Triplet,!String)]			// indicates what has changed: which form, which postion, which value
+				, updates	:: ![FormUpdate]					// indicates what has changed: which form, which postion, which value
 				, updateid	:: !String							// which form has changed
 				}		
 
@@ -83,51 +84,40 @@ where
 	(<) _ _ = True
 
 emptyFormStates :: *FormStates
-emptyFormStates = { fstates = Leaf_ , triplets = [], updateid = ""}
+emptyFormStates = { fstates = Leaf_ , updates = [], updateid = ""}
 
 // Serialization and De-Serialization of states
 //
 // De-serialize information from server to the internally used form states
 
-retrieveFormStates :: ![(!String, !String)] ->  *FormStates  // retrieves all form states hidden in the html page
-retrieveFormStates args
-	= { fstates		= retrieveFStates
-	  , triplets	= triplets
-	  , updateid	= calc_updateid triplets
+mkFormStates :: ![HtmlState] ![FormUpdate] ->  *FormStates  // retrieves all form states hidden in the html page
+mkFormStates states updates
+	= { fstates		= fstates	
+	  , updates		= updates
+	  , updateid	= ""				//TODO calculate when needed
 	  }
 where
-	retrieveFStates 
-		= balance (sort [(sid,OldState {format = toExistval storageformat state, life = lifespan}) 
-						\\ (sid,lifespan,storageformat,state) <- htmlStates
-						|  sid <> ""
+	fstates 
+		= balance (sort [(formid, OldState {format = toExistval format state, life = lifespan}) 
+						\\ {formid,lifespan, state, format} <- states
+						|  formid <> ""
 						])
 	where
 		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
 		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
 
-	(htmlStates,triplets,focus)	= DecodeHtmlStatesAndUpdate args
-	
-	calc_updateid [] 	= ""		
-	calc_updateid [(triplet,upd):_]	= case triplet of
-							("",0,UpdI 0)	= ""
-							(id,_,_)		= id 
-							else			= ""
-
-
-
-
 
 getTriplets :: !String !*FormStates -> (!Triplets,!*FormStates)
-getTriplets id formstates=:{triplets} = ([mytrips \\ mytrips=:((tripid,_,_),_) <- triplets | id == tripid] ,formstates)
+getTriplets id formstates=:{updates} = ([((formid,inputid,UpdS value),value) \\ {FormUpdate|formid,inputid,value} <- updates | id == formid], formstates)
 
 getAllTriplets :: !*FormStates -> (!Triplets,!*FormStates)
-getAllTriplets formstates=:{triplets} = (triplets,formstates)
+getAllTriplets formstates=:{updates} = ([((formid,inputid,UpdS value),value) \\ {FormUpdate|formid,inputid,value} <- updates], formstates)
 
 getUpdateId :: !*FormStates -> (![String],!*FormStates)
-getUpdateId formStates=:{triplets} = (removeDup [tripid \\ ((tripid,_,_),_) <- triplets] ,formStates)
+getUpdateId formstates=:{updates} = (removeDup [formid \\ {FormUpdate|formid} <- updates] ,formstates)
 
 getUpdate :: !*FormStates -> (String,!*FormStates)
-getUpdate formStates = ("",formStates)
+getUpdate formstates = ("",formstates)
 
 findState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a	
 findState formid formstates=:{fstates} world
@@ -406,34 +396,44 @@ where
  
 traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
 traceStates formstates=:{fstates}
-# (bodytags,fstates) = traceStates` fstates
-= (BodyTag [] [BrTag [] , BTag [] [Text "State values when application ended:"],BrTag [],		
-			 TableTag [] [TrTag [] [TdTag [] [BTag [] [Text "Id:"], BTag [] [Text "Inspected:"], BTag [] [Text "Lifespan:"], BTag [] [Text "Format:"], BTag [] [Text"Value:"]]],
-						 TrTag [] [TdTag [] (flatten bodytags)]]
-			],{formstates & fstates = fstates})
+# (rows, fstates) = traceStates` fstates
+= (DivTag [IdAttr "itasks-trace-states",ClassAttr "trace"] [H2Tag [] [Text "States:"], TableTag [] [header : rows]], {formstates & fstates = fstates})
 where
+	header = TrTag [] [ThTag [] [Text "Form ID"],ThTag [] [Text "Inspected"],ThTag [] [Text "Lifespan"],ThTag [] [Text "Format"], ThTag [] [Text "Value"]]
+
 	traceStates` Leaf_		= ([],Leaf_)
 	traceStates` (Node_ left a right)
 	# (leftTrace,left)		= traceStates` left
 	# nodeTrace				= nodeTrace a
 	# (rightTrace,right)	= traceStates` right
-	= (leftTrace ++ nodeTrace ++ rightTrace,Node_ left a right)
+	= (leftTrace ++ nodeTrace ++ rightTrace, Node_ left a right)
 
-	nodeTrace (id,OldState fstate=:{format,life}) = [[Text id,Text "No", Text (toString life):toStr format]]
-	nodeTrace (id,NewState fstate=:{format,life}) = [[Text id,Text "Yes",Text (toString life):toStr format]]
+	nodeTrace (id,OldState fstate=:{format,life}) = [TrTag [] [TdTag [] [Text id], TdTag [] [Text "No"], TdTag [] [Text (toString life)]: toCells format] ]
+	nodeTrace (id,NewState fstate=:{format,life}) = [TrTag [] [TdTag [] [Text id], TdTag [] [Text "Yes"], TdTag [] [Text (toString life)]: toCells format] ]
 	
-	toStr (PlainStr str) 	= [Text "String", Text str]
-	toStr (StatDyn  dyn) 	= [Text "S_Dynamic", Text (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]
-	toStr (DBStr    str _) 	= [Text "Database", Text str]
-	toStr (CLDBStr  str _) 	= [Text "DataFile", Text str]
+	toCells (PlainStr str) 		= [TdTag [] [Text "String"],TdTag [] [Text str]]
+	toCells (StatDyn  dyn) 		= [TdTag [] [Text "S_Dynamic"],TdTag [] [Text (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]]
+	toCells (DBStr    str _) 	= [TdTag [] [Text "Database"],TdTag [] [Text str]]
+	toCells (CLDBStr  str _) 	= [TdTag [] [Text "DataFile"],TdTag [] [Text str]]
 	
-strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
+
 
 ShowValueDynamic :: !Dynamic -> String
 ShowValueDynamic d = strip (foldr (+++) "" (fst (toStringDynamic d)) +++ " ")
 
 ShowTypeDynamic :: !Dynamic -> String
 ShowTypeDynamic d = strip (snd (toStringDynamic d) +++ " ")
+
+strip :: !String -> String
+strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
+
+
+traceUpdates :: !*FormStates -> (!HtmlTag,!*FormStates)
+traceUpdates formstates =:{updates}
+= (DivTag [IdAttr "itasks-trace-updates",ClassAttr "trace"] [H2Tag [] [Text "Updates:"], TableTag [] [header : rows]], formstates)
+where
+	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Input ID"], ThTag [] [Text "Value"]]
+	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString inputid)], TdTag [] [Text value]] \\ {FormUpdate|formid,inputid,value} <- updates ]
 
 // debugging code 
 
@@ -483,11 +483,11 @@ derive gMap Tree_
 
 initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
-	= ({ fstates = Leaf_, triplets = [], updateid = ""},world)
+	= ({ fstates = Leaf_, updates = [], updateid = ""},world)
 
-setTestFormStates :: ![(!Triplet,!String)] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
-setTestFormStates triplets updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, triplets = triplets, updateid = updateid},world)
+setTestFormStates :: ![FormUpdate] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
+setTestFormStates updates updateid update states world 
+	= ({ fstates = gMap{|*->*|} toOldState states.fstates, updates = updates, updateid = updateid},world)
 where
 	toOldState (s,NewState fstate)	= (s,OldState fstate)
 	toOldState else					= else

@@ -6,8 +6,7 @@ div.worktab {
 	font-family: Arial, Helvetica, sans-serif;
 	font-style: normal;
 
-	color: white;
-	background: #3a81ad url('../img/body.png') top repeat-x;
+	color: black;
 	padding: 10px;
 }
 div.worktab form {
@@ -41,4 +40,23 @@ div.worktab .LowLight {
 div.worktab .Trace {
 	color: silver;
 	font-weight: bold;
+}
+
+div.trace {
+	border: #ccc 2px solid;
+	padding: 5px;
+	margin-bottom: 5px;
+}
+div.trace h2 {
+	font-size: 16px;
+	margin: 0px 0px 10px 0px;
+}
+div.trace table {
+	width: 100%;
+}
+div.trace th {
+	background-color: #ccc;
+	font-weight: bold;
+	text-align: left;
+	padding: 2px;
 }
