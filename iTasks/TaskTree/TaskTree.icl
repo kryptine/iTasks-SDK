@@ -10,22 +10,24 @@ import StdEnv
 import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 import InternaliTasksThreadHandling
+import iTasksProcessHandling
 
-calculateTaskTree :: !UserId !Bool !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!Maybe [Trace],!*HSt) | iData a
-calculateTaskTree thisUser traceOn mainTask hst
+calculateTaskTree :: !UserId !Bool !Bool !(Task a) !*HSt  -> (!Bool,!HtmlTree,!Maybe String,!Maybe [Trace],!Maybe [HtmlTag],!*HSt) | iData a
+calculateTaskTree thisUser traceOn showProcessTable mainTask hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst												// fetch global settings of this user
 # (sversion,hst)	 	= setSVersionNr thisUser id hst												// fetch version number of session (not needed in new set up?)
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr //&& not noNewVersion 		// test if there is a version conflict				
-| versionconflict		= (True,BT [] [],Just "Version conflict detected!",Nothing,hst)				// Yes, return error message
+| versionconflict		= (True,BT [] [],Just "Version conflict detected!",Nothing,Nothing,hst)				// Yes, return error message
 
-# ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
+# ((toServer,thrOwner,event,thrinfo,threads),tst=:{activated})	
 						=  calculateTasks thisUser pversion mainTask (initTst thisUser TxtFile TxtFile hst)
-
+# (threadTable,tst=:{html,hst,trace,activated})		
+						= if  showProcessTable (showWorkflows activated {tst & activated = activated}) ([],{tst & activated = activated})
 # newUserVersionNr		= 1 + if (pversion.versionNr > sversion) pversion.versionNr sversion		// increment user querie version number
 # (_,hst)				= clearIncPUser thisUser (\_ -> newUserVersionNr) hst						// store in session
 # (sversion,hst)	 	= setSVersionNr thisUser (\_ -> newUserVersionNr) hst						// store in persistent memory
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
-= (toServer,html,Nothing,trace,hst)
+= (toServer,html,Nothing,trace,if showProcessTable (Just threadTable) Nothing,hst)
 where
 	initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 	initTst thisUser itaskstorage threadstorage hst

@@ -65,7 +65,7 @@ where
 	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
-	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val%(0,30)) (fromJust trace))}) // adjust trace, don't print to long values
+	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val%(0,60)) (fromJust trace))}) // adjust trace, don't print to long values
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
 mkParSubTask name i task = mkParSubTask`

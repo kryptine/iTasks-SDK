@@ -111,7 +111,7 @@ assignTaskTo nuserId (taskname,taska) = assignTaskTo`
 where
 	assignTaskTo` tst=:{html=ohtml,tasknr,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
 	| not activated						= (createDefault,tst)
-	# (currtime,tst)					= appWorldOnce "time" time tst
+	# (currtime,tst)					= appWorldOnce ("New task for " +++ toString nuserId) time tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
 	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [] [],userId = nuserId}		// activate task of indicated user
 	| activated 						= (a,{tst & activated = True						// work is done	

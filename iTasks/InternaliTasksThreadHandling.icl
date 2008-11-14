@@ -620,9 +620,6 @@ showThreadTable tst=:{staticInfo}
 					(\tst -> ([],tst)) tst
 
 # tableC		= sortBy (\e1=:{thrTaskNr = t1} e2=:{thrTaskNr =t2} = t1 < t2) tableC
-# bodyS			= []
-# bodyC			= []
-/*
 # bodyS			= 	if (isEmpty tableS)
 					[]
 					[showLabel "Server Thread Table: ",
@@ -637,7 +634,7 @@ showThreadTable tst=:{staticInfo}
 										\\ entry <- tableS
 									]
 								),
-					Hr []
+					HrTag []
 					]
 # bodyC			= if (isEmpty tableC)
 					[]
@@ -653,10 +650,15 @@ showThreadTable tst=:{staticInfo}
 										\\ entry <- tableC
 									]
 								),
-					Hr []
+					HrTag []
 					]
-*/
+
 = (bodyS ++ bodyC,tst)
+where
+	STable atts table		= TableTag atts (mktable table)
+	where
+		mktable table 	= [TrTag [] (mkrow rows)           \\ rows <- table]
+		mkrow   rows 	= [TdTag [ValignAttr "top"]  [row] \\ row  <- rows ]
 
 showThreadNr :: !TaskNr -> String
 showThreadNr [-1]		= "Root"

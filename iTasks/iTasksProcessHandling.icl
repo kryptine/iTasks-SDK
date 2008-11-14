@@ -358,8 +358,7 @@ where
 	= (status,tst)																// if everything is fine it should always succeed
 
 showWorkflows :: !Bool !*TSt -> ([HtmlTag],*TSt)
-showWorkflows alldone tst = ([],tst)
-/*
+showWorkflows alldone tst 
 = 	IF_ClientTasks												
 		(\tst -> ([],tst))														// workflow table not available on clients
 		(showWorkflows` alldone) tst											// show tables
@@ -371,14 +370,18 @@ where
 	mkTable []		= []
 	mkTable wfls	=	[showLabel ("Workflow Process Table:"),
 						STable []	(   [ [showTrace "Entry:", showTrace "User Id:", showTrace "Process Id:", showTrace "Task Name:", showTrace "Status:"]
-										, [Txt "0" , Txt "0", Txt "0", Txt defaultWorkflowName, if alldone (Txt "Finished") (Txt "Active")] 
-										: [[Txt (toString i)] ++ showStatus wfl \\ wfl <- wfls & i <- [1..]]
+										, [Text "0" , Text "0", Text "0", Text defaultWorkflowName, if alldone (Text "Finished") (Text "Active")] 
+										: [[Text (toString i)] ++ showStatus wfl \\ wfl <- wfls & i <- [1..]]
 										]
 									),
-						Hr []
+						HrTag []
 						]
-	showStatus (ActiveWorkflow 	 	(userid,processid,label) dyntask)		= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Active"]
-	showStatus (SuspendedWorkflow 	(userid,processid,label) dyntask)		= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Suspended"]
-	showStatus (FinishedWorkflow 	(userid,processid,label) dyn dyntask)	= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Finished"]
-	showStatus (DeletedWorkflow  	(userid,processid,label))				= [Txt (toString userid), Txt (toString processid), Txt label, Txt "Deleted"]
-*/
+	showStatus (ActiveWorkflow 	 	(userid,processid,label) dyntask)		= [Text (toString userid), Text (toString processid), Text label, Text "Active"]
+	showStatus (SuspendedWorkflow 	(userid,processid,label) dyntask)		= [Text (toString userid), Text (toString processid), Text label, Text "Suspended"]
+	showStatus (FinishedWorkflow 	(userid,processid,label) dyn dyntask)	= [Text (toString userid), Text (toString processid), Text label, Text "Finished"]
+	showStatus (DeletedWorkflow  	(userid,processid,label))				= [Text (toString userid), Text (toString processid), Text label, Text "Deleted"]
+
+	STable atts table		= TableTag atts (mktable table)
+	where
+		mktable table 	= [TrTag [] (mkrow rows)           \\ rows <- table]
+		mkrow   rows 	= [TdTag [ValignAttr "top"]  [row] \\ row  <- rows ]

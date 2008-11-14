@@ -289,7 +289,7 @@ startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceO
 							(mkDiv showCompletePage "debug-server" iTaskInfo)
 							) []
 							
-# iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [printTrace2 trace ]
+# iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [showTaskTree trace ]
 | showCompletePage		=	((toServer,""),[DivTag [ClassAttr "itasks-ajax",IdAttr "thePage"] [] /* ++
 															iTaskInfoDivs ++
 															if (doTrace && traceOn)

@@ -32,4 +32,5 @@ collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	/
 determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (![HtmlTag],![InputId],!*HSt)
 
 //TODO: merge trace information into the task tree 
-printTrace2 		:: !(Maybe [Trace]) -> HtmlTag
+showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag
+showTaskTree 		:: !(Maybe [Trace]) -> HtmlTag
