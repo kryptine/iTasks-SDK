@@ -145,9 +145,29 @@ collect thisuser taskuser accu (DivCode id tree)
 // Trace Printing ...
 // ******************************************************************************************************
 
-printTrace2 		:: !(Maybe [Trace]) -> HtmlTag
-printTrace2 Nothing 	= DivTag [IdAttr "itask-trace-tasktree", ClassAttr "trace"] [H2Tag [] [Text "Task Tree:"],Text "No task tree trace "]
-printTrace2 (Just a)  	= DivTag [IdAttr "itask-trace-tasktree", ClassAttr "trace"] [H2Tag [] [Text "Task Tree Forest:"],STable emptyBackground (print False a)]
+showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag					// This can be done much more efficiently, taken the ordening of tasknrs into account
+showTaskTreeOfTask tasknr Nothing 		= Text ("Tracing enabled, cannot determine task tree of task " +++ tasknr)
+showTaskTreeOfTask tasknr (Just []) 	= Text ("Cannot find task tree of task " +++ tasknr)
+showTaskTreeOfTask tasknr (Just trace) 	= snd (findTaskInTaskTree tasknr trace)
+where
+	findTaskInTaskTree tasknr []
+	= (False,  Text ("Could not find task tree of task " +++ tasknr))
+	findTaskInTaskTree tasknr mytrace=:[Trace Nothing traces:mtraces]
+	# (found,tags) = findTaskInTaskTree tasknr traces
+	| found = (found,tags)
+	= findTaskInTaskTree tasknr mtraces
+	findTaskInTaskTree tasknr mytrace=:[Trace (Just (dtask,(w,i,op,tn,s))) traces:mtraces]
+	| showTaskNr (repair i) == tasknr = (True, showTaskTree (Just mytrace))
+	# (found,tags) = findTaskInTaskTree tasknr traces
+	| found = (found,tags)
+	= findTaskInTaskTree tasknr mtraces
+	
+	repair [0:tnrs] = [-1:tnrs]		// The taks numbers obtained from client are one to low: this has to be made global consistent, very ughly
+	repair other = other
+
+showTaskTree :: !(Maybe [Trace]) -> HtmlTag
+showTaskTree Nothing	= Text "No task tree trace " // SpanTag [] []
+showTaskTree (Just a)	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , STable emptyBackground (print False a),HrTag []]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
