@@ -148,20 +148,21 @@ collect thisuser taskuser accu (DivCode id tree)
 showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag					// This can be done much more efficiently, taken the ordening of tasknrs into account
 showTaskTreeOfTask tasknr Nothing 		= Text ("Tracing enabled, cannot determine task tree of task " +++ tasknr)
 showTaskTreeOfTask tasknr (Just []) 	= Text ("Cannot find task tree of task " +++ tasknr)
-showTaskTreeOfTask tasknr (Just trace) 	= snd (findTaskInTaskTree tasknr trace)
+showTaskTreeOfTask tasknr (Just trace) 	= showTaskTree (snd (findTaskInTrace tasknr trace))
+
+findTaskInTrace :: !TaskNrId ![Trace] -> (!Bool,!Maybe [Trace]) 
+findTaskInTrace tasknr []
+= (False, Just [])
+findTaskInTrace tasknr mytrace=:[Trace Nothing traces:mtraces]
+# (found,tags) = findTaskInTrace tasknr traces
+| found = (found,tags)
+= findTaskInTrace tasknr mtraces
+findTaskInTrace tasknr mytrace=:[Trace (Just (dtask,(w,i,op,tn,s))) traces:mtraces]
+| showTaskNr (repair i) == tasknr = (True,  Just mytrace)
+# (found,tags) = findTaskInTrace tasknr traces
+| found = (found,tags)
+= findTaskInTrace tasknr mtraces
 where
-	findTaskInTaskTree tasknr []
-	= (False,  Text ("Could not find task tree of task " +++ tasknr))
-	findTaskInTaskTree tasknr mytrace=:[Trace Nothing traces:mtraces]
-	# (found,tags) = findTaskInTaskTree tasknr traces
-	| found = (found,tags)
-	= findTaskInTaskTree tasknr mtraces
-	findTaskInTaskTree tasknr mytrace=:[Trace (Just (dtask,(w,i,op,tn,s))) traces:mtraces]
-	| showTaskNr (repair i) == tasknr = (True, showTaskTree (Just mytrace))
-	# (found,tags) = findTaskInTaskTree tasknr traces
-	| found = (found,tags)
-	= findTaskInTaskTree tasknr mtraces
-	
 	repair [0:tnrs] = [-1:tnrs]		// The taks numbers obtained from client are one to low: this has to be made global consistent, very ughly
 	repair other = other
 
