@@ -1,6 +1,32 @@
 button.icon-refresh {
 	background-image: url('../img/icons/refresh.png');
 }
+button.icon-thread-table {
+	background-image: url('../img/icons/table_lightning.png');
+}
+button.icon-process-table {
+	background-image: url('../img/icons/table_gear.png');
+}
+button.icon-task-tree {
+	background-image: url('../img/icons/chart_organisation.png');
+}
+.icon-debug {
+	background-image: url('../img/icons/bug.png');
+}
+.icon-currentwork {
+	background-image: url('../img/icons/report_edit.png');
+}
+.icon-newwork {
+	background-image: url('../img/icons/report_add.png');
+}
+
+.debug-button td.x-btn-center {
+	text-align: left;
+}
+
+div.leftpanel {
+	background-color: #ccc;
+}
 
 div.worktab {
 	font-family: Arial, Helvetica, sans-serif;

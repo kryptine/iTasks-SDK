@@ -9,6 +9,7 @@ itasks.CurrentWorkPanel = Ext.extend(Ext.tree.TreePanel, {
 	initComponent: function () {
 		Ext.apply(this,{
 			title: 'Current work',
+			iconCls: 'icon-currentwork',
 			dataUrl: 'handlers/filters',
 			useArrows: true,
 			root: {text: 'All work', nodeType: 'async', id: 'source'}

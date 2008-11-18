@@ -22,8 +22,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					split: true,
 					border: false,
 					width: 200,
-					minWidth: 100,
+					minWidth: 200,
 					maxWidth: 400,
+					baseCls: 'leftpanel',
 					items: [
 						{xtype: 'itasks.cwpanel' },
 						{xtype: 'itasks.nwpanel' },

@@ -8,6 +8,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			title: 'Start new work',
+			iconCls: 'icon-newwork',
 			html: 'This panel will be used to start new work',
 			bodyStyle: 'padding: 5px'
 		});
