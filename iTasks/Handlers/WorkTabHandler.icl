@@ -25,7 +25,7 @@ handleWorkTabRequest mainTask request hst
 	# taskId 								= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeTable, hst)	
 											= calculateTaskTree thisUserId True True mainTask hst 			// calculate the TaskTree given the id of the current user
-	# (html,inputs,hst =:{states}) 			= determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
+	# (taskDone,html,inputs,hst =:{states}) = determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
 	# (htmlstates,states)					= getHtmlStates states											// Collect states that must be temporarily stored in the browser
 	# (instateTrace,states)					= traceInStates states											// TEMP: Always trace initial html states
 	# (stateTrace,states)					= traceStates states											// TEMP: Always trace states
@@ -33,10 +33,14 @@ handleWorkTabRequest mainTask request hst
 	# taskTreeTrace							= showTaskTree  maybeTrace										// TEMP fix to show taskTree
 	# taskTreeTraceOfTask					= showTaskTreeOfTask  taskId maybeTrace							// TEMP fix to show taskTree
 
-
+	# activeTasks							= if taskDone
+												(Just [	mytaskdescr.taskNrId													
+													  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUserId) htmlTree
+													  ])
+											    Nothing
 	# content								=
 		{TabContent
-		|	done		= False
+		|	done		= taskDone
 		,	html 		= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] 
 							[updateTrace,instateTrace,stateTrace,taskTreeTrace:fromJust maybeTable ++ html])
 		,	inputs		= inputs
@@ -44,3 +48,5 @@ handleWorkTabRequest mainTask request hst
 		,	activeTasks	= Nothing
 		} 																									// create tab data record
 	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})							// create the http response
+	
+	
