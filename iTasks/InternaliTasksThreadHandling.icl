@@ -185,8 +185,8 @@ where
 
 	getTripletTaskNrs :: !*TSt -> *(Maybe TaskNr,*TSt)								// get list of tasknr belonging to events received
 	getTripletTaskNrs tst=:{hst = hst=:{states}}
-	# (triplets,states) = getAllTriplets states
-	= (lowestTaskNr [mkTasknr (getDigits s) \\ ((s,_,_),_) <- triplets | s%(0,5) == "iTask_"],{tst & hst = {hst & states = states}})
+	# (updates,states) = getAllUpdates states
+	= (lowestTaskNr [mkTasknr (getDigits s) \\ {FormUpdate|formid = s} <- updates | s%(0,5) == "iTask_"],{tst & hst = {hst & states = states}})
 	where
 		getDigits s = takeWhile ((<>) '-') (stl (dropWhile ((<>) '_') (mkList s)))
 	

@@ -7,11 +7,6 @@ import StdMaybe
 import GenParse, GenPrint
 import FormId
 
-encodeHtmlStates	:: ![HtmlState] -> String
-
-decodeHtmlStates	:: ![(!String, !String)] -> [HtmlState]
-decodeFormUpdates	:: ![(!String, !String)] -> [FormUpdate]
-
 
 :: HtmlState2  		:== (!Formid,!Lifespan,!StorageFormat,!SerializedState)
 :: Formid			:== String		// uniquely named !

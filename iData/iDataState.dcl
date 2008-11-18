@@ -48,11 +48,19 @@ derive gerda 	(,), (,,), (,,,)
 * Create an empty initial FormStates value
 */
 emptyFormStates		:: *FormStates
-
 /*
 * Create a FormStates value from a list of HtmlStates and a list of FormUpdates
 */
 mkFormStates 		:: ![HtmlState] ![FormUpdate] -> *FormStates
+
+/*
+* Get all updates for a given form ID.
+*/
+getFormUpdates		:: !String !*FormStates -> (![FormUpdate], !*FormStates)
+/*
+* Get all updates
+*/
+getAllUpdates		::         !*FormStates -> (![FormUpdate], !*FormStates)
 
 
 // Manipulation of the FormStates value
@@ -68,21 +76,24 @@ deleteStates 		:: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld) // de
 
 changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld) // change lifespan of all iData with is prefix and given old lifespan	
 
-// TODO: Rename from triplets to updates
-getTriplets 		:: !String !*FormStates -> (!Triplets,!*FormStates)	// retrieve triplets matching given id
-
-getAllTriplets 		:: !*FormStates -> (!Triplets,!*FormStates)	// retrieve all triplets
-
-
 // storage and retrieval of FormStates
+
+/**
+* Collect all form states that can be serialized and stored
+* temporarily in the browser, but have to be sent back with the next
+* request.
+*/
+getHtmlStates		:: !*FormStates -> (![HtmlState], !*FormStates)
 
 storeFormStates 	:: !String !FormStates !*NWorld -> (!String, !*NWorld)
 
+
+
 // tracing all states ...
 
-traceStates			:: !*FormStates -> (!HtmlTag,!*FormStates)
-traceUpdates		:: !*FormStates -> (!HtmlTag,!*FormStates)
-
+traceStates			:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the complete state tree
+traceUpdates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the list of updates 
+traceInStates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace a list of initial html states
 
 
 // fstate handling used for testing only

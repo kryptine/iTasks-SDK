@@ -6,8 +6,8 @@ Ext.ns('itasks');
 
 itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 
-	updates: {}, 	//Dictionary with form updates
-	state: "",		//The encoded state that is temporarily stored in the tab
+	updates: {}, 		//Dictionary with form updates
+	state: undefined,	//The encoded state that is temporarily stored in the tab
 	
 	initComponent: function () {
 		Ext.apply(this, {
@@ -37,6 +37,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	
 			//Clear the updates list
 			this.updates = {};
+			//Save the state
+			this.state	= data.state;
 
 			//Update the tab content
 			el.dom.innerHTML = data.html;
@@ -93,6 +95,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	sendData: function () {
 		//Disable the "Loading..." indicator
 		this.getUpdater().showLoadIndicator = false;
+		
+		//Add the state to the updates
+		this.updates['state'] = Ext.encode(this.state);
 		
 		//Send the data to the server
 		this.load({

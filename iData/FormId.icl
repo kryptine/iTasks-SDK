@@ -125,3 +125,6 @@ instance toString Lifespan where
 							  toString TxtFile		= "TxtFile"
 							  toString DataFile		= "DataFile"
 							  toString Database		= "Database"
+instance toString StorageFormat where
+							  toString PlainString	= "PlainString"
+							  toString StaticDynamic = "StaticDynamic"

@@ -130,6 +130,7 @@ toViewMap	:: !(d -> v) !Init !d !(Maybe v) -> v		// same, but convert to view do
 // neccesary instances of standard classes
 instance toBool Init
 instance <  Lifespan
-instance toString Lifespan 	
+instance toString Lifespan
+instance toString StorageFormat
 instance == Init, Mode, Lifespan
 derive  gEq Init, Mode, Lifespan

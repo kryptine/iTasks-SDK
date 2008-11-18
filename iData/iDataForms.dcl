@@ -39,7 +39,7 @@ import FormId
 :: IDataFun a	:== St *HSt (Form a)			// Often used iData HSt State transition functions
 
 :: UpdMode
-	= UpdSearch UpdValue Int					// search for indicated postion and update it
+	= UpdSearch Int String						// search for indicated postion and update it
 	| UpdCreate [ConsPos]						// create new values if necessary
 	| UpdDone									// and just copy the remaining stuff
 

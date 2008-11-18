@@ -21,7 +21,7 @@ Start :: *World -> *World
 Start world = singleUserTask [] myTask world
 
 myTask :: Task MyRec
-myTask = editTask "Done" createDefault <<@ Submit
+myTask = editTask "Done" createDefault <<@ Page
 
 
 cbTask :: Task HtmlCheckbox

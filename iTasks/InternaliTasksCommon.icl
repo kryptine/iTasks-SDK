@@ -164,8 +164,8 @@ where
 	parseString :: Expr -> Maybe String
 	parseString expr = gParse{|*|} expr
 
-gUpd{|TCl|} gc (UpdSearch _ 0)	  	 c		= (UpdDone, c)								
-gUpd{|TCl|} gc (UpdSearch val cnt)  c		= (UpdSearch val (cnt - 2),c)						
+gUpd{|TCl|} gc (UpdSearch 0 _)	  	 c		= (UpdDone, c)								
+gUpd{|TCl|} gc (UpdSearch cntr val)  c		= (UpdSearch (cntr - 2) val,c)						
 gUpd{|TCl|} gc (UpdCreate l)        _		
 # (mode,default)	= gc (UpdCreate l) undef
 = (UpdCreate l, TCl (\tst -> (default,tst)))			

@@ -179,35 +179,35 @@ gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
 
 // Updates that have to be treated specially:
 
-gUpd{|HtmlButton|}	(UpdSearch (UpdB b) 0) 	(HtmlButton s _)		= (UpdDone, HtmlButton s b)										// update value
-gUpd{|HtmlButton|}	(UpdSearch val cntr)      v						= (UpdSearch val (cntr - 1),v)									// continue search, don't change
-gUpd{|HtmlButton|}	(UpdCreate l)             _						= (UpdCreate l, HtmlButton "Press" False)						// create default value
-gUpd{|HtmlButton|}	mode                      v						= (mode, v)														// don't change
+gUpd{|HtmlButton|}		(UpdSearch 0 upd) 		(HtmlButton s _)		= (UpdDone, HtmlButton s (upd == "click"))						// update value
+gUpd{|HtmlButton|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd,cur)								// continue search, don't change
+gUpd{|HtmlButton|}		(UpdCreate l)			_						= (UpdCreate l, HtmlButton "Press" False)						// create default value
+gUpd{|HtmlButton|}		mode					cur						= (mode, cur)													// don't change
 
-gUpd{|HtmlCheckbox|}	(UpdSearch (UpdB b) 0) (HtmlCheckbox s _)	= (UpdDone, HtmlCheckbox s b)									// update value
-gUpd{|HtmlCheckbox|}	(UpdSearch upd cntr)	v					= (UpdSearch upd (cntr - 1), v)									// continue search, don't change
-gUpd{|HtmlCheckbox|}	(UpdCreate l)			_					= (UpdCreate l, HtmlCheckbox [] False)							// create default value
-gUpd{|HtmlCheckbox|}	 mode					v					= (mode, v)														// don't change
+gUpd{|HtmlCheckbox|}	(UpdSearch 0 upd)		(HtmlCheckbox s _)		= (UpdDone, HtmlCheckbox s (upd == "checked"))					// update value
+gUpd{|HtmlCheckbox|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlCheckbox|}	(UpdCreate l)			_						= (UpdCreate l, HtmlCheckbox [] False)							// create default value
+gUpd{|HtmlCheckbox|}	 mode					cur						= (mode, cur)													// don't change
 
-gUpd{|HtmlSelect|} (UpdSearch (UpdS val) 0) (HtmlSelect options _)	= (UpdDone, HtmlSelect options val)
-gUpd{|HtmlSelect|} (UpdSearch upd cntr)		 v						= (UpdSearch upd (cntr - 1), v)									// continue search, don't change
-gUpd{|HtmlSelect|} (UpdCreate l)             _						= (UpdCreate l, HtmlSelect [] "error")							// create default value
-gUpd{|HtmlSelect|} mode                      v						= (mode, v)														// don't change
+gUpd{|HtmlSelect|}		(UpdSearch 0 upd)		(HtmlSelect options _)	= (UpdDone, HtmlSelect options upd)								// TODO: Check if upd is in options
+gUpd{|HtmlSelect|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlSelect|}		(UpdCreate l)			_						= (UpdCreate l, HtmlSelect [] "error")							// create default value
+gUpd{|HtmlSelect|}		mode					cur						= (mode, cur)													// don't change
 
-gUpd{|HtmlTextarea|}	(UpdSearch (UpdS val) 0) (HtmlTextarea r _)	= (UpdDone, HtmlTextarea r val)									// update value
-gUpd{|HtmlTextarea|}	(UpdSearch val cntr)      v					= (UpdSearch val (cntr - 1),v)									// continue search, don't change
-gUpd{|HtmlTextarea|}	(UpdCreate l)             _					= (UpdCreate l, HtmlTextarea 5 "")								// create default value
-gUpd{|HtmlTextarea|}	mode                      v					= (mode, v)														// don't change
+gUpd{|HtmlTextarea|}	(UpdSearch 0 upd) 		(HtmlTextarea r _)		= (UpdDone, HtmlTextarea r upd)									// update value
+gUpd{|HtmlTextarea|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlTextarea|}	(UpdCreate l)			_						= (UpdCreate l, HtmlTextarea 5 "")								// create default value
+gUpd{|HtmlTextarea|}	mode					cur						= (mode, cur)													// don't change
 
-gUpd{|HtmlPassword|}  (UpdSearch (UpdS val) 0) _				= (UpdDone,                HtmlPassword val)						// update password value
-gUpd{|HtmlPassword|}  (UpdSearch upd cntr)       v				= (UpdSearch upd (cntr - 1),v)										// continue search, don't change
-gUpd{|HtmlPassword|}  (UpdCreate l)             _				= (UpdCreate l,            HtmlPassword "")							// create default value
-gUpd{|HtmlPassword|}  mode                      v				= (mode,                   v)										// don't change
+gUpd{|HtmlPassword|}	(UpdSearch 0 upd)		_						= (UpdDone, HtmlPassword upd)									// update password value
+gUpd{|HtmlPassword|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlPassword|}	(UpdCreate l)			_						= (UpdCreate l, HtmlPassword "")								// create default value
+gUpd{|HtmlPassword|}	mode					cur						= (mode, cur)													// don't change
 
-gUpd{|RefreshTimer|} (UpdSearch (UpdS name) 0) v				= (UpdDone,                v)										// We don't update
-gUpd{|RefreshTimer|} (UpdSearch val cnt)       v				= (UpdSearch val (cnt - 1),v)										// continue search, don't change
-gUpd{|RefreshTimer|} (UpdCreate l)             _				= (UpdCreate l,            RefreshTimer 0)							// create default value
-gUpd{|RefreshTimer|} mode                      v				= (mode,                   v)										// don't change
+gUpd{|RefreshTimer|}	(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
+gUpd{|RefreshTimer|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|RefreshTimer|}	(UpdCreate l)			_						= (UpdCreate l, RefreshTimer 0)									// create default value
+gUpd{|RefreshTimer|}	mode					cur						= (mode, cur)													// don't change
 
 
 // small utility stuf

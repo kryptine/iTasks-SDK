@@ -16,6 +16,10 @@ import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler
 import TaskTree, TaskTreeFilters
 
+import JSON
+import StdDebug
+derive JSONDecode HtmlState, StorageFormat, Lifespan
+
 :: UserStartUpOptions
 				= 	{ traceOn			:: !Bool			
 					, threadStorageLoc	:: !Lifespan		
@@ -84,7 +88,7 @@ where
 	instructions world
 		# (console, world)	= stdio world
 		# console			= fwrites "HTTP server started...\n" console
-		# console			= fwrites ("Please point your browser to http://localhost/" +++ ThisExe +++ "\n") console
+		# console			= fwrites ("Please point your browser to http://localhost/" +++ ThisExe +++ "/\n") console
 		# (_,world)			= fclose console world
 		= world
 		
@@ -99,20 +103,27 @@ where
 startServer :: (Task a) !*World -> *World | iData a
 startServer mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
-	= http_startServer options   [((==) ("/" +++ ThisExe +++ "/new"), handleIndexRequest)
+	= http_startServer options   [((==) "/", handleRedirectRequest)
+								 ,((==) ("/" +++ ThisExe), handleRedirectRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/new"), handleRedirectRequest) //TEMP: Remove when everyone knows about the new url
+								 ,((==) ("/" +++ ThisExe +++ "/"), handleIndexRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleTaskRequest (handleWorkListRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleTaskRequest (handleWorkTabRequest mainTask))
-								 ,(\_ -> True, doStaticResource)
+								 ,(\_ -> True, handleStaticResourceRequest)
 								 ] world
+
+// Request handler which points the browser to the index page
+handleRedirectRequest	:: !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleRedirectRequest req world = ({http_emptyResponse & rsp_headers = [("Status", "301 Moved Permanently"),("Location","/" +++ ThisExe +++ "/")]},world)
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
 
-doStaticResource :: !HTTPRequest *World -> (!HTTPResponse, !*World)
-doStaticResource req world
+handleStaticResourceRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleStaticResourceRequest req world
 	# filename				= MyAbsDir +++ req.req_path	
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
@@ -134,46 +145,46 @@ handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state
-	# updates					= decodeFormUpdates request.arg_post	
-	# fstates	 				= mkFormStates [] updates 										// TODO
+	# updates					= decodeFormUpdates request.arg_post						// Get the form updates from the post
+	# states					= decodeHtmlStates request.arg_post							// Fetch stored states from the post
+	# fstates	 				= mkFormStates states updates 								
 	# hst						= mkHSt request fstates nworld								// Create the HSt
 	# (response,hst =:{world = nworld =: {worldC = world, gerda, datafile}})
 		= handler request hst																// Apply handler
 	# world						= closeDatabase gerda world									// close the relational database if option chosen
 	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= (response,world)
-
+where
+	decodeFormUpdates :: ![(!String, !String)] -> [FormUpdate]
+	decodeFormUpdates args = [update \\ (Just update) <- map mbUpdate args]
+	where
+		mbUpdate (name, value)	= case mbInputId name ((size name) - 1) of
+			Nothing			= Nothing
+			Just inputid	= Just {FormUpdate | formid = name % (0, (size name) - (size inputid) - 2), inputid = toInt inputid, value = value}
+	
+		mbInputId "" _		= Nothing
+		mbInputId name i
+			| name.[i] == '-' && i < ((size name) - 1)	= Just (name % (i + 1, size name))	//Found the marker
+			| isDigit name.[i]							= mbInputId name (i - 1)			//Move cursor one position to the left
+														= Nothing							//We've hit an unexpected character
+	
+	decodeHtmlStates :: ![(!String, !String)] -> [HtmlState]
+	decodeHtmlStates args = case fromJSON (http_getValue "state" args "") of
+		Nothing	= []			//Parsing failed
+		Just states = states 
+														
 // Database OPTION
-
 openDatabase database world
-:== IF_Database (openGerda database world) (abort "Trying to open a relational database while this option is switched off",world)
+	:== IF_Database (openGerda database world) (abort "Trying to open a relational database while this option is switched off",world)
 closeDatabase database world
-:== IF_Database (closeGerda database world) world
+	:== IF_Database (closeGerda database world) world
 
 // DataFile OPTION
-
 openmDataFile datafile world
-:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
+	:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
 closemDataFile datafile world
-:== IF_DataFile (closeDataFile datafile world) world
+	:== IF_DataFile (closeDataFile datafile world) world
 
-mkPage :: [HtmlAttr] [HtmlTag] [HtmlAttr] [HtmlTag] -> HtmlTag
-mkPage headattr headtags bodyattr bodytags = HtmlTag [] [HeadTag headattr headtags, BodyTag bodyattr bodytags]
-
-mkCssTag :: HtmlTag
-mkCssTag = LinkTag [TypeAttr "text/css", RelAttr "stylesheet", HrefAttr "css/clean.css"] []
-
-mkJsTag :: HtmlTag
-mkJsTag = ScriptTag [SrcAttr (ThisExe +++ "/js/clean.js"), TypeAttr "text/javascript"] []
-
-mkInfoDiv :: String String -> HtmlTag
-mkInfoDiv state focus =
-	DivTag [StyleAttr "display: none"] [
-		DivTag [IdAttr "GS"] [Text state],
-		DivTag [IdAttr "FS"] [Text focus],
-		DivTag [IdAttr "AN"] [Text ThisExe],
-		DivTag [IdAttr "OPT-ajax"] [Text (IF_Ajax "true" "false")]
-	]
 
 // ******************************************************************************************************
 // *** wrappers for the end user, to be used in combination with an iData wrapper...

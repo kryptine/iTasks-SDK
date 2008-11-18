@@ -28,12 +28,13 @@ derive bimap	(,), (,,), (,,,), Maybe
 :: *FormStates 	=												// collection of states of all forms
 				{ fstates 	:: !*FStates						// internal tree of states
 				, updates	:: ![FormUpdate]					// indicates what has changed: which form, which postion, which value
+				, instates	:: ![HtmlState]						// states received from the browser (only stored for tracing)
 				, updateid	:: !String							// which form has changed
 				}		
 
 :: FStates		:== Tree_ (!String,!FormState)					// each form needs a different string id
 
-:: Tree_ a 		= Node_ (Tree_ a) !a !(Tree_ a) | Leaf_
+:: Tree_ a 		= Node_ !(Tree_ a) !a !(Tree_ a) | Leaf_
 
 :: FormState 	= OldState !FState								// Old states are the states from the previous calculation
 				| NewState !FState 								// New states are newly created states or old states that have been inspected and updated
@@ -84,17 +85,14 @@ where
 	(<) _ _ = True
 
 emptyFormStates :: *FormStates
-emptyFormStates = { fstates = Leaf_ , updates = [], updateid = ""}
+emptyFormStates = { fstates = Leaf_ , updates = [], instates = [], updateid = ""}
 
-// Serialization and De-Serialization of states
-//
-// De-serialize information from server to the internally used form states
-
-mkFormStates :: ![HtmlState] ![FormUpdate] ->  *FormStates  // retrieves all form states hidden in the html page
+mkFormStates :: ![HtmlState] ![FormUpdate] ->  *FormStates
 mkFormStates states updates
 	= { fstates		= fstates	
 	  , updates		= updates
-	  , updateid	= ""				//TODO calculate when needed
+	  , instates	= states					//Only stored for tracing
+	  , updateid	= ""						//TODO calculate when needed
 	  }
 where
 	fstates 
@@ -105,19 +103,17 @@ where
 	where
 		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
 		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
+	
 
 
-getTriplets :: !String !*FormStates -> (!Triplets,!*FormStates)
-getTriplets id formstates=:{updates} = ([((formid,inputid,UpdS value),value) \\ {FormUpdate|formid,inputid,value} <- updates | id == formid], formstates)
+getFormUpdates :: !String !*FormStates -> (![FormUpdate], !*FormStates)
+getFormUpdates id formstates =: {updates} = ([update \\ update =:{FormUpdate|formid} <- updates | id == formid],formstates)
 
-getAllTriplets :: !*FormStates -> (!Triplets,!*FormStates)
-getAllTriplets formstates=:{updates} = ([((formid,inputid,UpdS value),value) \\ {FormUpdate|formid,inputid,value} <- updates], formstates)
+getAllUpdates :: !*FormStates -> (![FormUpdate], !*FormStates)
+getAllUpdates formstates =: {updates} = (updates, formstates)
 
 getUpdateId :: !*FormStates -> (![String],!*FormStates)
 getUpdateId formstates=:{updates} = (removeDup [formid \\ {FormUpdate|formid} <- updates] ,formstates)
-
-getUpdate :: !*FormStates -> (String,!*FormStates)
-getUpdate formstates = ("",formstates)
 
 findState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a	
 findState formid formstates=:{fstates} world
@@ -324,6 +320,42 @@ where
 	| life == oldlifespan	= (Node_ left (fid,NewState {fstate & life = newlifespan}) right,world)	
 	= (Node_ left a right,world)
 
+getHtmlStates :: !*FormStates -> (![HtmlState], !*FormStates)
+getHtmlStates formstates =: {fstates}
+	# (fstates, htmlstates) = filterHtmlStates fstates [] 
+	= (htmlstates, {formstates & fstates = fstates})
+where
+	filterHtmlStates Leaf_ accu	= (Leaf_, accu)
+	filterHtmlStates (Node_ left x right) accu
+		# (left,accu)	= filterHtmlStates left accu
+		= case htmlStateOf x of
+			Nothing
+				# (right,accu)	= filterHtmlStates right accu
+				= (Node_ left x right, accu)	
+			Just state
+				# (right,accu)	= filterHtmlStates right [state:accu]
+				= (Node_ left x right, accu)		
+	where
+		// old states which have not been used this time, but with lifespan session, are stored again in the page
+		// other old states will have lifespan page or are persistent; they need not to be stored
+		htmlStateOf (fid,OldState {life=Session,format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=Session, state=stringval, format=PlainString}
+		htmlStateOf (fid,OldState {life=Session,format=StatDyn  dynval})	= Just  {HtmlState|formid=fid, lifespan=Session, state=dynamic_to_string dynval, format=StaticDynamic}
+
+		htmlStateOf (fid,OldState {life=Client, format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=Client, state=stringval, format=PlainString}
+		htmlStateOf (fid,OldState {life=Client, format=StatDyn  dynval})	= Just  {HtmlState|formid=fid, lifespan=Client, state=dynamic_to_string dynval, format=StaticDynamic}		
+
+		htmlStateOf (fid,OldState s)										= Nothing
+
+		// persistent stores (either old or new) have already been stored in files and can be skipped here
+		// temperal form don't need to be stored and can be skipped as well
+		// the state of all other new forms created are stored in the page 
+		htmlStateOf (fid,NewState {life})
+			| isMember life [Database,TxtFile,TxtFileRO,Temp,DataFile]		= Nothing
+
+		htmlStateOf (fid,NewState {format = PlainStr string,life})			= Just {HtmlState|formid=fid, lifespan=life, state=string, format=PlainString}
+		htmlStateOf (fid,NewState {format = StatDyn dynval, life})			= Just {HtmlState|formid=fid, lifespan=life, state=dynamic_to_string dynval, format=StaticDynamic}
+
+		htmlStateOf _														= Nothing
 
 
 // Serialize all states in FormStates that have to be remembered to either hidden encoded Html Code
@@ -427,13 +459,20 @@ ShowTypeDynamic d = strip (snd (toStringDynamic d) +++ " ")
 strip :: !String -> String
 strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
 
-
 traceUpdates :: !*FormStates -> (!HtmlTag,!*FormStates)
 traceUpdates formstates =:{updates}
 = (DivTag [IdAttr "itasks-trace-updates",ClassAttr "trace"] [H2Tag [] [Text "Updates:"], TableTag [] [header : rows]], formstates)
 where
 	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Input ID"], ThTag [] [Text "Value"]]
 	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString inputid)], TdTag [] [Text value]] \\ {FormUpdate|formid,inputid,value} <- updates ]
+
+traceInStates	:: !*FormStates -> (!HtmlTag,!*FormStates)
+traceInStates formstates =:{instates}
+= (DivTag [IdAttr "itasks-trace-instates",ClassAttr "trace"] [H2Tag [] [Text "Initial Html States:"], TableTag [] [header : rows]],formstates)
+where
+	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Lifespan"], ThTag [] [Text "Format"], ThTag [] [Text "Value"]]
+	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString lifespan)], TdTag [] [Text (toString format)],TdTag [] [Text state]] \\ {HtmlState|formid,lifespan,state,format} <- instates]
+
 
 // debugging code 
 
@@ -476,6 +515,11 @@ balance xs
 		(a,[b:bs])			= Node_ (balance a) b (balance bs)
 		(as,[])				= Node_ (balance (init as)) (last as) Leaf_
 
+:: FormUpdate =	{ formid	:: !String			// The unique identifier of the form
+				, inputid	:: !Int				// The index of the changed input in the form
+				, value		:: !String			// The new raw value of the input
+				}
+
 
 // interfaces added for testing:
 import GenMap
@@ -483,11 +527,13 @@ derive gMap Tree_
 
 initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
-	= ({ fstates = Leaf_, updates = [], updateid = ""},world)
+	= ({ fstates = Leaf_, updates = [], instates = [], updateid = ""},world)
 
 setTestFormStates :: ![FormUpdate] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
 setTestFormStates updates updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, updates = updates, updateid = updateid},world)
+	= ({ fstates = gMap{|*->*|} toOldState states.fstates, updates = updates, instates = [], updateid = updateid},world)
 where
 	toOldState (s,NewState fstate)	= (s,OldState fstate)
 	toOldState else					= else
+	
+

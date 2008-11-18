@@ -15,26 +15,6 @@ import FormId
 derive gParse UpdValue
 derive gPrint UpdValue
 
-
-encodeHtmlStates :: ![HtmlState] -> String
-encodeHtmlStates l = ""
-
-decodeHtmlStates :: ![(!String, !String)] -> [HtmlState]
-decodeHtmlStates l = []
-
-decodeFormUpdates :: ![(!String, !String)] -> [FormUpdate]
-decodeFormUpdates args = [update \\ (Just update) <- map mbUpdate args]
-where
-	mbUpdate (name, value)	= case mbInputId name ((size name) - 1) of
-		Nothing			= Nothing
-		Just inputid	= Just {FormUpdate | formid = name % (0, (size name) - (size inputid) - 2), inputid = toInt inputid, value = value}
-
-	mbInputId "" _		= Nothing
-	mbInputId name i
-		| name.[i] == '-' && i < ((size name) - 1)	= Just (name % (i + 1, size name))	//Found the marker
-		| isDigit name.[i]							= mbInputId name (i - 1)			//Move cursor one position to the left
-													= Nothing							//We've hit an unexpected character
-
 isSelector name 	= name%(0,size selectorInpName - 1) == selectorInpName
 getSelector name 	= decodeString (name%(size selectorInpName,size name - 1))
 

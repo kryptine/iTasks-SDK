@@ -54,8 +54,8 @@ where
 	parseString expr = gParse{|*|} expr
 	
 gForm{|Dynamic|} (init, formid) hst = ({changed=False,form=[], inputs = [],value=formid.ival},(incrHStCntr 1 hst))
-gUpd{|Dynamic|} (UpdSearch _ 0) a 	= (UpdDone,a)
-gUpd{|Dynamic|} (UpdSearch v i) a 	= (UpdSearch v (i-1),a)
+gUpd{|Dynamic|} (UpdSearch 0 _) a 	= (UpdDone,a)
+gUpd{|Dynamic|} (UpdSearch i v) a 	= (UpdSearch (i-1) v,a)
 gUpd{|Dynamic|} (UpdCreate c) a 	= (UpdCreate c,dynamic 0)
 gUpd{|Dynamic|} UpdDone a 			= (UpdDone,a)
 write{|Dynamic|} dyn pst 	= write{|*|} (dynamic_to_string dyn) pst
