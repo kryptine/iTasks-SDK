@@ -31,13 +31,13 @@ collectTaskList pred (DivCode id tree)
 = collectTaskList pred tree
 
 
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (![HtmlTag],![InputId],!*HSt)
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!Bool,![HtmlTag],![InputId],!*HSt)
 determineTaskForTab thisuser thistaskid tree hst
 	# mytree = determineTaskTree thisuser thistaskid tree
-	| isNothing mytree = ([Text "Html code belonging to indicated task could not be found\n"],[],hst)
+	| isNothing mytree = (True,[],[],hst)
 	# (threadcode,taskname,mainbuts,subbuts,seltask,inputs,hst)	= Filter True thisuser thisuser (fromJust mytree) hst
-	| isEmpty threadcode	= (seltask, inputs, hst)
-							= (threadcode, inputs, hst)
+	| isEmpty threadcode	= (False,seltask, inputs, hst)
+							= (False,threadcode, inputs, hst)
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
