@@ -9,9 +9,11 @@ import iDataForms, iDataState
 
 derive JSONEncode TabContent, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
-:: TabContent 	= { html	:: String
-				  , inputs	:: [InputId]
-				  , state	:: [HtmlState]					
+:: TabContent 	= { done		:: Bool				//Is the requested work finished
+				  , html		:: String			//The HTML content of the tab
+				  , inputs		:: [InputId]		//The interactive inputs in the tab
+				  , state		:: [HtmlState]		//The task state that must be stored in the tab
+				  , activeTasks	:: Maybe [String]	//Optional list of task id's to sync the open tabs with the known states on the server
 				  }
 
 /**
@@ -32,9 +34,13 @@ handleWorkTabRequest mainTask request hst
 	# taskTreeTraceOfTask					= showTaskTreeOfTask  taskId maybeTrace							// TEMP fix to show taskTree
 
 
-	# content								= {TabContent|
-		html = toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] 
-					[updateTrace,instateTrace,stateTrace,taskTreeTrace:fromJust maybeTable ++ html]),
-		inputs = inputs,
-		state = htmlstates} 																						// create tab data record
+	# content								=
+		{TabContent
+		|	done		= False
+		,	html 		= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] 
+							[updateTrace,instateTrace,stateTrace,taskTreeTrace:fromJust maybeTable ++ html])
+		,	inputs		= inputs
+		,	state		= htmlstates
+		,	activeTasks	= Nothing
+		} 																									// create tab data record
 	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})							// create the http response
