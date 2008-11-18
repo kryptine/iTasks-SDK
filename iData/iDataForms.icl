@@ -10,9 +10,6 @@ import StdBimap
 import HSt
 import Html
 
-derive gPrint UpdValue
-derive gParse UpdValue
-
 derive bimap Form, FormId
 
 gParse{|(->)|} gArg gRes _ 		= Nothing 
@@ -431,7 +428,7 @@ mkSelect (init, formid=:{mode}) val options hst =:{cntr}
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 toHtml :: a -> HtmlTag | gForm {|*|} a
 toHtml a
-	# (na,_)	= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt http_emptyRequest emptyFormStates dummy)
+	# (na,_)	= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt http_emptyRequest (mkFormStates [] []) dummy)
 	= BodyTag [] na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtml!\n"
@@ -441,7 +438,7 @@ where
 
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toHtmlForm anyform 
-	# (na,hst)	= anyform (mkHSt http_emptyRequest emptyFormStates (abort "illegal call to toHtmlForm!\n"))
+	# (na,hst)	= anyform (mkHSt http_emptyRequest (mkFormStates [] []) (abort "illegal call to toHtmlForm!\n"))
 	= na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"

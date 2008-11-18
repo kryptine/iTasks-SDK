@@ -166,12 +166,13 @@ where
 	where
 		convert (HtmlSelect _ x)= toInt x
 		
-		
+
+//TODO: FIX. toClean no longer exists
 gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
 		RefreshTimer timeout
 			# (cntr,hst)			= getHStCntr hst
-			# triplet = encodeTriplet (formid.id,cntr,UpdS "timer")
-			# inputid = encodeInputId (formid.id,cntr,UpdS "timer")
+			# triplet = ""
+			# inputid = ""
 			# timedcode = "toClean(document.getElementById('" +++ inputid +++ "'),'" +++ triplet +++ "',true,false," +++ (IF_ClientTasks "true" "false") +++ ");"
 			# script =  [RawText ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
 			= ({ changed = False, value = formid.ival, form = script, inputs = [] }, incrHStCntr 1 hst)

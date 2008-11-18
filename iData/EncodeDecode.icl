@@ -10,129 +10,6 @@ import dynamic_string
 import EstherBackend
 import Http, HttpTextUtil
 import FormId
-//import sapldebug
-
-derive gParse UpdValue
-derive gPrint UpdValue
-
-isSelector name 	= name%(0,size selectorInpName - 1) == selectorInpName
-getSelector name 	= decodeString (name%(size selectorInpName,size name - 1))
-
-
-// Serializing Html states...
-
-EncodeHtmlStates :: ![HtmlState2] -> String
-EncodeHtmlStates [] = "$"
-EncodeHtmlStates [(id,lifespan,storageformat,state):xsys] 
-	= encodeString
-	  (	"(\"" +++ 										// begin mark
-		fromLivetime lifespan storageformat +++ 		// character encodes lifetime and kind of encoding
-		id +++ 											// id of state 
-	  	"\"," +++ 										// delimiter
-	  	 state +++ 										// encoded state 
-	  	")" 
-	  )	+++
-	  "$" +++ 											// end mark
-	  EncodeHtmlStates xsys
-where
-	fromLivetime Client			PlainString		= "C"	// encode Lifespan & StorageFormat in first character
-	fromLivetime Page 			PlainString		= "N"	// encode Lifespan & StorageFormat in first character
-	fromLivetime Session 		PlainString		= "S"
-	fromLivetime TxtFile 		PlainString		= "P"
-	fromLivetime TxtFileRO 		PlainString		= "R"
-	fromLivetime DataFile 		PlainString		= "F"
-	fromLivetime Database	 	PlainString		= "D"
-	fromLivetime Client			StaticDynamic	= "c"
-	fromLivetime Page 			StaticDynamic	= "n"
-	fromLivetime Session 		StaticDynamic	= "s"
-	fromLivetime TxtFile 		StaticDynamic	= "p"
-	fromLivetime TxtFileRO 		StaticDynamic	= "r"
-	fromLivetime DataFile 		StaticDynamic	= "f"
-	fromLivetime Database	 	StaticDynamic	= "d"
-
-// de-serialize Html State
-
-DecodeHtmlStates :: !String -> [HtmlState2]
-DecodeHtmlStates state					= toHtmlState` (mkList state)
-where
-	toHtmlState` :: ![Char] -> [HtmlState2]
-	toHtmlState` [] 					= []
-	toHtmlState` listofchar				= [mkHtmlState (mkList (decodeChars first)) : toHtmlState` second]
-	where
-		(first,second)					= mscan '$' listofchar									// search for end mark
-
-		mkHtmlState :: ![Char] -> HtmlState2
-		mkHtmlState	elem				= ( mkString (stl fid)									// decode unique identification
-										  , lifespan											// decode livetime from character
-										  , format												// decode storage format from character
-										  , mkString (stl (reverse (stl (reverse formvalue)))) 	// decode state
-										  )
-		where
-			(fid,formvalue)				= mscan '"' (stl (stl elem)) 							// skip '("'
-			(lifespan,format)			= case fid of
-											['C':_]		= (Client,      PlainString  )
-											['c':_]		= (Client,      StaticDynamic)
-											['N':_]		= (Page,        PlainString  )
-											['n':_]		= (Page,        StaticDynamic)
-											['S':_]		= (Session,     PlainString  )
-											['s':_] 	= (Session,     StaticDynamic)
-											['P':_] 	= (TxtFile,  	PlainString  )
-											['p':_]		= (TxtFile,  	StaticDynamic)
-											['R':_]		= (TxtFileRO,	PlainString  )
-											['r':_] 	= (TxtFileRO,	StaticDynamic)
-											['D':_] 	= (Database,    PlainString  )
-											['d':_] 	= (Database,    StaticDynamic)
-											['F':_] 	= (DataFile,    PlainString  )
-											['f':_] 	= (DataFile,    StaticDynamic)
-											_			= (Page,        PlainString  )
-
-// reconstruct HtmlState out of the information obtained from browser
-
-DecodeHtmlStatesAndUpdate ::  [(String, String)] -> (![HtmlState2],!Triplets,!String)
-DecodeHtmlStatesAndUpdate args
-# (_,triplets,state,focus)			= DecodeArguments args
-= ([states \\states=:(id,_,_,nstate) <- DecodeHtmlStates state | id <> "" || nstate <> ""],triplets, focus) // to be sure that no rubbish is passed on
-
-// Decode posted form information obtained from http layer 
-DecodeArguments ::  [(String, String)] -> (!String,!Triplets,!String,!String)
-DecodeArguments args
-	# state				= http_getValue "GS" args ""
-	# focus				= http_getValue "FS" args ""
-	# tripargs			= [decodeNameValue (n,v) \\ (n,v) <- args | not (isMember n ["GS","FS"])]
-	# triplets			= ordertriplets [(triplet,value) \\ (mbtriplet,value) <- tripargs, Just triplet <- [decodeTriplet mbtriplet]] [] // order is important, first the structure than the values ...
-	# triplets			= determineChanged triplets
-	= ("clean", triplets, state, focus)
-where
-						
-	fromJustTriplet :: (Maybe Triplet) -> Triplet
-	fromJustTriplet Nothing 		= ("",0,UpdI 0)
-	fromJustTriplet (Just triplet)	= triplet
-						
-	ordertriplets [] accu = accu
-	ordertriplets [x=:((id,_,_),_):xs] accu
-	# (thisgroup,other) = ([x:filter (\((tid,_,_),_) -> tid == id) xs],filter (\((tid,_,_),_) -> tid <> id) xs)
-	= ordertriplets other (qsort thisgroup ++ accu)
-
-	qsort [] = []
-	qsort [x=:((_,posx,_),_):xs ] = qsort [y \\ y=:((_,posy,_),_) <- xs | posy > posx] 
-									++ [x] ++ 
-									qsort [y \\ y=:((_,posy,_),_) <- xs | posy < posx]
-
-	determineChanged :: [TripletUpdate] -> [TripletUpdate]
-	determineChanged triplets = filter updated triplets
-	where
-		updated ((_,_,UpdC c1),c2) 			= c1 <> c2
-		updated ((_,_,UpdI i),s)  			= i <> toInt s
-		updated ((_,_,UpdR r),s)  			= r <> toReal s
-		updated ((_,_,UpdB True),"False")  	= True
-		updated ((_,_,UpdB False),"True")  	= True
-		updated ((_,_,UpdB b1),b2)  		= False
-		updated ((_,_,UpdS s1),s2) 			= s1 <> s2
-
-decodeNameValue :: !(!String,!String) -> (!String,!String)
-decodeNameValue (name,value)
-	| isSelector name	= (value, getSelector name)
-	| otherwise			= (name, value)
 
 
 // writing and reading of persistent states to a file
@@ -179,8 +56,6 @@ deleteStateFile  filename env
 # (_,env)								= fremove path env
 = env
 
-// serializing and de-serializing of html states
-
 
 // low level url encoding decoding of Strings
 
@@ -190,18 +65,6 @@ encodeString s							= string_to_string52 s
 decodeString :: !String -> *String
 decodeString s							= string52_to_string s
 
-
-// to encode triplets in htmlpages
-
-encodeTriplet	:: !Triplet -> String				// encoding of triplets
-encodeTriplet triplet = encodeInfo triplet
-
-decodeTriplet	:: !String -> Maybe Triplet			// decoding of triplets
-decodeTriplet triplet = decodeInfo triplet
-
-// encodes only the formid and counter to use as identifier in html pages
-encodeInputId	:: !Triplet -> String
-encodeInputId (formid, cntr, updval) = encodeInfo (formid, cntr)
 
 // utility functions based on low level encoding - decoding
 
@@ -322,19 +185,4 @@ where
 		                | otherwise		= i - toInt 'A' - 10
 	urlDecode` ['+':xs]				 	= [' ':urlDecode` xs]
 	urlDecode` [x:xs]				 	= [x:urlDecode` xs]
-
-
-// trace to file ...
-
-trace_to_file :: !String !*World -> *World
-trace_to_file s world
-	# (ok,file,world) = fopen TraceFile FAppendText world
-	| not ok
-		= abort ("Could not open "+++ TraceFile)
-	# file = fwrites s file
-	# file = fwritec '\n' file
-	# (ok,world) = fclose file world
-	| not ok
-		= abort ("Could not close "+++ TraceFile)
-	= world
 

@@ -29,7 +29,6 @@ derive bimap	(,), (,,), (,,,), Maybe
 				{ fstates 	:: !*FStates						// internal tree of states
 				, updates	:: ![FormUpdate]					// indicates what has changed: which form, which postion, which value
 				, instates	:: ![HtmlState]						// states received from the browser (only stored for tracing)
-				, updateid	:: !String							// which form has changed
 				}		
 
 :: FStates		:== Tree_ (!String,!FormState)					// each form needs a different string id
@@ -78,21 +77,13 @@ deleteDataFile id datafile
 					(abort "Deleting data from DataFile, yet option is swiched off\n")
 
 
-// functions defined on the FormStates abstract data type
 
-instance < FormState
-where
-	(<) _ _ = True
-
-emptyFormStates :: *FormStates
-emptyFormStates = { fstates = Leaf_ , updates = [], instates = [], updateid = ""}
 
 mkFormStates :: ![HtmlState] ![FormUpdate] ->  *FormStates
 mkFormStates states updates
 	= { fstates		= fstates	
 	  , updates		= updates
-	  , instates	= states					//Only stored for tracing
-	  , updateid	= ""						//TODO calculate when needed
+	  , instates	= states
 	  }
 where
 	fstates 
@@ -363,43 +354,11 @@ where
 
 storeFormStates :: !String !FormStates !*NWorld -> (!String, !*NWorld)
 storeFormStates prefix {fstates = allFormStates} world
-# world						= writeAllTxtFileStates allFormStates world				// first write all persistens states
-# encodedpagestate			= EncodeHtmlStates (FStateToHtmlState allFormStates []) // encode states in the page
-= (encodedpagestate, world)
-
+	# world = writeAllTxtFileStates allFormStates world				// first write all persistens states
+	= ("",world)
 where
 	sprefix = size prefix
-
-	FStateToHtmlState :: !(Tree_ (!String,!.FormState)) !*[HtmlState2] -> *[HtmlState2]
-	FStateToHtmlState Leaf_ accu	= accu
-	FStateToHtmlState (Node_ left x right) accu
-		= case htmlStateOf x of
-			Just state				= FStateToHtmlState left [state : FStateToHtmlState right accu]
-			nothing					= FStateToHtmlState left         (FStateToHtmlState right accu)
-	where
-		htmlStateOf :: !(!String,!.FormState) -> Maybe HtmlState2
-		// old states which have not been used this time, but with lifespan session, are stored again in the page
-		// other old states will have lifespan page or are persistent; they need not to be stored
-		htmlStateOf (fid,OldState {life=Session,format=PlainStr stringval})	= Just  (fid,Session,PlainString,stringval)
-		htmlStateOf (fid,OldState {life=Session,format=StatDyn  dynval})	= Just  (fid,Session,StaticDynamic,dynamic_to_string dynval)
-
-		htmlStateOf (fid,OldState {life=Client, format=PlainStr stringval})	= Just  (fid,Client, PlainString,stringval)
-		htmlStateOf (fid,OldState {life=Client, format=StatDyn  dynval})	= Just  (fid,Client, StaticDynamic,dynamic_to_string dynval)
-
-		htmlStateOf (fid,OldState {life=Page, format=PlainStr stringval})	
-		| prefix <> fid%(0,sprefix)											= Just  (fid,Client, PlainString,stringval) // for Ajax calls, remember states not belonging to this thread
-		htmlStateOf (fid,OldState {life=Page, format=StatDyn  dynval})	    
-		| prefix <> fid%(0,sprefix)											= Just  (fid,Client, StaticDynamic,dynamic_to_string dynval)
-		htmlStateOf (fid,OldState s)										= Nothing
-
-		// persistent stores (either old or new) have already been stored in files and can be skipped here
-		// temperal form don't need to be stored and can be skipped as well
-		// the state of all other new forms created are stored in the page 
-		htmlStateOf (fid,NewState {life})
-			| isMember life [Database,TxtFile,TxtFileRO,Temp,DataFile]	= Nothing
-		htmlStateOf (fid,NewState {format = PlainStr string,life})		= Just (fid,life,PlainString,string)
-		htmlStateOf (fid,NewState {format = StatDyn dynval, life})		= Just (fid,life,StaticDynamic,dynamic_to_string dynval)
-
+	
 	writeAllTxtFileStates :: !FStates !*NWorld -> *NWorld				// store states in persistent stores
 	writeAllTxtFileStates Leaf_ nworld = nworld
 	writeAllTxtFileStates (Node_ left st right) nworld
@@ -515,11 +474,12 @@ balance xs
 		(a,[b:bs])			= Node_ (balance a) b (balance bs)
 		(as,[])				= Node_ (balance (init as)) (last as) Leaf_
 
-:: FormUpdate =	{ formid	:: !String			// The unique identifier of the form
-				, inputid	:: !Int				// The index of the changed input in the form
-				, value		:: !String			// The new raw value of the input
-				}
 
+// functions defined on the FormStates abstract data type
+
+instance < FormState
+where
+	(<) _ _ = True
 
 // interfaces added for testing:
 import GenMap
@@ -527,11 +487,11 @@ derive gMap Tree_
 
 initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
 initTestFormStates world 
-	= ({ fstates = Leaf_, updates = [], instates = [], updateid = ""},world)
+	= ({ fstates = Leaf_, updates = [], instates = []},world)
 
 setTestFormStates :: ![FormUpdate] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
 setTestFormStates updates updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, updates = updates, instates = [], updateid = updateid},world)
+	= ({ fstates = gMap{|*->*|} toOldState states.fstates, updates = updates, instates = []},world)
 where
 	toOldState (s,NewState fstate)	= (s,OldState fstate)
 	toOldState else					= else

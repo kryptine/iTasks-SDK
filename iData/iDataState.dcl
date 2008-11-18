@@ -4,8 +4,8 @@ definition module iDataState
 *
 */
 import GenParse, GenPrint, Gerda
-import EncodeDecode
 import StdMaybe
+import iDataForms
 
 //Always derive storage generic functions for common types
 derive gPrint 	(,), (,,), (,,,), Maybe
@@ -36,18 +36,6 @@ derive gerda 	(,), (,,), (,,,)
 				, value		:: !String			// The new raw value of the input
 				}
 
-//TODO: Remove
-:: UpdValue 									// the updates that can take place	
-	= UpdI Int									// new integer value
-	| UpdR Real									// new real value
-	| UpdB Bool									// new boolean value
-	| UpdC String								// choose indicated constructor 
-	| UpdS String								// new piece of text
-
-/*
-* Create an empty initial FormStates value
-*/
-emptyFormStates		:: *FormStates
 /*
 * Create a FormStates value from a list of HtmlStates and a list of FormUpdates
 */
@@ -89,7 +77,7 @@ storeFormStates 	:: !String !FormStates !*NWorld -> (!String, !*NWorld)
 
 
 
-// tracing all states ...
+// Trace functions
 
 traceStates			:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the complete state tree
 traceUpdates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the list of updates 
