@@ -23,8 +23,8 @@ handleWorkTabRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | 
 handleWorkTabRequest mainTask request hst
 	# thisUserId							= 0																// TODO: has to be fetched from the session in the future
 	# taskId 								= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	# (toServer, htmlTree, maybeError, maybeTrace, maybeTable, hst)	
-											= calculateTaskTree thisUserId True True mainTask hst 			// calculate the TaskTree given the id of the current user
+	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
+											= calculateTaskTree thisUserId True True True mainTask hst 			// calculate the TaskTree given the id of the current user
 	# (taskDone,html,inputs,hst =:{states}) = determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
 	# (htmlstates,states)					= getHtmlStates states											// Collect states that must be temporarily stored in the browser
 	# (instateTrace,states)					= traceInStates states											// TEMP: Always trace initial html states
@@ -42,7 +42,7 @@ handleWorkTabRequest mainTask request hst
 		{TabContent
 		|	done		= taskDone
 		,	html 		= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] 
-							[updateTrace,instateTrace,stateTrace,taskTreeTrace:fromJust maybeTable ++ html])
+							[updateTrace,instateTrace,stateTrace,taskTreeTrace:fromJust maybeProcessTable ++ html])
 		,	inputs		= inputs
 		,	state		= htmlstates
 		,	activeTasks	= Nothing

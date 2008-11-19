@@ -21,8 +21,8 @@ derive JSONEncode WorkListItem, TaskPriority
 handleWorkListRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkListRequest mainTask request hst
 	# thisUserId							= 0												// has to be fetched from the request in the future
-	# (toServer, htmlTree, maybeError, maybeTrace, maybeTable, hst)	
-											= calculateTaskTree thisUserId False False mainTask hst 	// Calculate the TaskTree given the id of the current user
+	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable,hst)	
+											= calculateTaskTree thisUserId False False False mainTask hst 	// Calculate the TaskTree given the id of the current user
 	# worklist								= [	{ taskid 		= mytaskdescr.taskNrId
 												, for 			= toString mytaskdescr.delegatorId
 												, processname	= mytaskdescr.worflowLabel

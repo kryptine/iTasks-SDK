@@ -14,6 +14,7 @@ import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler
+import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
 import TaskTree, TaskTreeFilters
 
 import JSON
@@ -111,6 +112,9 @@ startServer mainTask world
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleTaskRequest (handleWorkListRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleTaskRequest (handleWorkTabRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/tasktreeforest"), handleTaskRequest (handleTaskTreeForestRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/processtable"), handleTaskRequest (handleProcessTableRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/threadtable"), handleTaskRequest (handleThreadTableRequest mainTask))
 								 ,(\_ -> True, handleStaticResourceRequest)
 								 ] world
 
