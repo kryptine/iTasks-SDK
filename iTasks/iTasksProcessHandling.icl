@@ -368,18 +368,19 @@ where
 	= (mkTable wfls,tst)
 
 	mkTable []		= []
-	mkTable wfls	=	[showLabel ("Workflow Process Table:"),
-						STable []	(   [ [showTrace "Entry:", showTrace "User Id:", showTrace "Process Id:", showTrace "Task Name:", showTrace "Status:"]
-										, [Text "0" , Text "0", Text "0", Text defaultWorkflowName, if alldone (Text "Finished") (Text "Active")] 
-										: [[Text (toString i)] ++ showStatus wfl \\ wfl <- wfls & i <- [1..]]
-										]
-									),
-						HrTag []
-						]
-	showStatus (ActiveWorkflow 	 	(userid,processid,label) dyntask)		= [Text (toString userid), Text (toString processid), Text label, Text "Active"]
-	showStatus (SuspendedWorkflow 	(userid,processid,label) dyntask)		= [Text (toString userid), Text (toString processid), Text label, Text "Suspended"]
-	showStatus (FinishedWorkflow 	(userid,processid,label) dyn dyntask)	= [Text (toString userid), Text (toString processid), Text label, Text "Finished"]
-	showStatus (DeletedWorkflow  	(userid,processid,label))				= [Text (toString userid), Text (toString processid), Text label, Text "Deleted"]
+
+	mkTable wfls	= [DivTag [IdAttr "itasks-workflow-process-table",ClassAttr "trace"] [H2Tag [] [Text "Workflow Process Table:"], TableTag [] [header : rows]]]
+	where
+		header	= TrTag [] 
+					[   ThTag [] [Text "Entry"], 		ThTag [] [Text "User Id"],  ThTag [] [Text "Process Id"],  ThTag [] [Text "Task Name"], 		 ThTag [] [Text "Status"]]
+		rows	= 	[	TrTag [] [TdTag [] [Text "0"],  TdTag [] [Text "0"], 		TdTag [] [Text "0"], 		   TdTag [] [Text defaultWorkflowName], TdTag [] [if alldone (Text "Finished") (Text "Active")]]
+					: [ TrTag [] [TdTag [] [Text (toString i)]: showStatus wfl] \\ wfl <- wfls & i <- [1..]]
+					]
+
+	showStatus (ActiveWorkflow 	 	(userid,processid,label) dyntask)		= [TdTag [] [Text (toString userid)], TdTag [] [Text (toString processid)], TdTag [] [Text label], TdTag [] [Text "Active"]]
+	showStatus (SuspendedWorkflow 	(userid,processid,label) dyntask)		= [TdTag [] [Text (toString userid)], TdTag [] [Text (toString processid)], TdTag [] [Text label], TdTag [] [Text "Suspended"]]
+	showStatus (FinishedWorkflow 	(userid,processid,label) dyn dyntask)	= [TdTag [] [Text (toString userid)], TdTag [] [Text (toString processid)], TdTag [] [Text label], TdTag [] [Text "Finished"]]
+	showStatus (DeletedWorkflow  	(userid,processid,label))				= [TdTag [] [Text (toString userid)], TdTag [] [Text (toString processid)], TdTag [] [Text label], TdTag [] [Text "Deleted"]]
 
 	STable atts table		= TableTag atts (mktable table)
 	where

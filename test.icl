@@ -17,12 +17,17 @@ derive gPrint Fruit, MyRec
 derive gParse Fruit, MyRec
 
 Start :: *World -> *World
-//Start world = singleUserTask [] ( (0 @:: dateTask) -&&-  (0 @:: myTask) )world
-Start world = singleUserTask [] myTask world
+Start world = singleUserTask [] ( (0 @:: dateTask) -&&-  (0 @:: prTask) )world
+//Start world = singleUserTask [] myTask world
 
 myTask :: Task MyRec
 myTask = editTask "Done" createDefault <<@ Page
 
+
+prTask :: Task Bool
+prTask 
+=				spawnWorkflow 0 True ("nieuwe taak",myTask)
+	=>> \_ -> 	return_V True
 
 cbTask :: Task HtmlCheckbox
 cbTask = editTask "I'm Done" (HtmlCheckbox [Text "Click me!"] False)
