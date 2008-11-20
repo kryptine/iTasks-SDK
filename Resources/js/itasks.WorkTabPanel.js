@@ -92,16 +92,18 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			this.state = data.state;
 
 			var contentPanel = this.getComponent(1);
+			var tracePanel = contentPanel.getComponent(1);
 			var taskPanel;
-			var tracePanel;
+			
 
 			//Check if trace information is available
 	
 			if(data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined) {
 				
 				contentPanel.layout.setActiveItem(1);
-				tracePanel = contentPanel.getComponent(1);
-				taskPanel = tracePanel.getComponent(0);
+
+				taskPanel	= tracePanel.getComponent(0);
+				emptyPanel	= contentPanel.getComponent(0);
 				
 				var statePanel = tracePanel.getComponent(1);
 				if(data.stateTrace != undefined) {
@@ -132,11 +134,15 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				
 			} else {
 				contentPanel.layout.setActiveItem(0);
+				
 				taskPanel = contentPanel.getComponent(0);
+				emptyPanel = tracePanel.getComponent(0);
 			}
 		
 			//Update the tab content
+			emptyPanel.getEl().dom.innerHTML = "";
 			taskPanel.getEl().dom.innerHTML = data.html;
+			
 			
 			//Attach the input event handlers
 			var num = data.inputs.length;

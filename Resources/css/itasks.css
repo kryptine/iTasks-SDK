@@ -24,6 +24,18 @@ button.icon-task-tree {
 	text-align: left;
 }
 
+div.header {
+	background: #3a81ad url('../img/body.png') top repeat-x;
+}
+div.header #logo {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 300px;
+	height: 75px;
+	background: url('../img/itasks.png');
+}
+
 div.leftpanel {
 	background-color: #ccc;
 	background-image: url('../img/tab.png');

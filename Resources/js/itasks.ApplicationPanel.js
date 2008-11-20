@@ -12,8 +12,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			items: [{
 					xtype: 'panel',
 					region: 'north',
-					baseCls: 'bg',
-					height: 75
+					baseCls: 'header',
+					height: 75,
+					html: '<div id="logo" ></div>'
 				},{
 					id: 'leftpanel',
 					xtype: 'panel',
