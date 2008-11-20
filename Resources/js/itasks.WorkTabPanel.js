@@ -31,6 +31,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				activeItem: 0,
 				items: [{
 					xtype: 'panel',
+					border: false,
 					cls: 'worktab-content',
 					autoWidth: true,
 					autoScroll: true
@@ -75,11 +76,12 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			+ "<tr><th>For:</th><td>" + this.taskinfo.delegator + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(this.taskinfo.priority) + "</td></tr>"
 			+ "</table>";
 	},
-
+	makeFinishedMessage: function() {
+		return "This task has finished. You can close this tab now.";
+	},
 	setDebugPanel: function (panel) {
 		this.debugPanel = panel;
 	},
-
 	processTabData: function (el,success,response,options) {
 
 		if(success) {
@@ -95,7 +97,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			var tracePanel = contentPanel.getComponent(1);
 			var taskPanel;
 			
-
 			//Check if trace information is available
 	
 			if(data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined) {
@@ -139,56 +140,64 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				emptyPanel = tracePanel.getComponent(0);
 			}
 		
-			//Update the tab content
+			//Clear the panel which may contain content
+			//of the previous request
 			emptyPanel.getEl().dom.innerHTML = "";
-			taskPanel.getEl().dom.innerHTML = data.html;
-			
-			
-			//Attach the input event handlers
-			var num = data.inputs.length;
-			var forms = {};
-			
-			for(var i = 0; i < num; i++) {
-				var inputid = data.inputs[i].formid + '-' + data.inputs[i].inputid;
-
-				//Record the formid
-				forms[data.inputs[i].formid] = true;
+		
+			//Check if the task is done
+			if(data.done) {
+				taskPanel.getEl().dom.innerHTML = this.makeFinishedMessage();
+			} else {
+				//Update the tab content
+				taskPanel.getEl().dom.innerHTML = data.html;
 				
-				//Attach the event
-				switch(data.inputs[i].updateon) {
-					case "OnChange":
-						Ext.get(inputid).on("change", function (e) {
-							this.addUpdate(e.target.id,e.target.value);
-							this.refresh();
-						},this);
-						break;
-					case "OnClick":
-						Ext.get(inputid).on("click", function (e) {
-							this.addUpdate(e.target.id,"click");
-							this.refresh();
-						},this);
-						break;
-					case "OnSubmit":
-						Ext.get(inputid).on("change", function (e) {
-							//Track changes, but don't send any data
-							this.addUpdate(e.target.id,e.target.value);
-						},this);
-						break;
-				}
-			}
-
-			//Attach the submit handlers of the forms
-			for(var formid in forms) {
-				var form = Ext.get(formid);
 				
-				if(form != undefined) {
-					//Cancel the form submit;
-					form.dom.onsubmit = function() {return false;}
+				//Attach the input event handlers
+				var num = data.inputs.length;
+				var forms = {};
+				
+				for(var i = 0; i < num; i++) {
+					var inputid = data.inputs[i].formid + '-' + data.inputs[i].inputid;
+	
+					//Record the formid
+					forms[data.inputs[i].formid] = true;
 					
-					//Attach our replacement event handler
-					form.on("submit", function (e) {
-						this.refresh();
-					},this);
+					//Attach the event
+					switch(data.inputs[i].updateon) {
+						case "OnChange":
+							Ext.get(inputid).on("change", function (e) {
+								this.addUpdate(e.target.id,e.target.value);
+								this.refresh();
+							},this);
+							break;
+						case "OnClick":
+							Ext.get(inputid).on("click", function (e) {
+								this.addUpdate(e.target.id,"click");
+								this.refresh();
+							},this);
+							break;
+						case "OnSubmit":
+							Ext.get(inputid).on("change", function (e) {
+								//Track changes, but don't send any data
+								this.addUpdate(e.target.id,e.target.value);
+							},this);
+							break;
+					}
+				}
+	
+				//Attach the submit handlers of the forms
+				for(var formid in forms) {
+					var form = Ext.get(formid);
+					
+					if(form != undefined) {
+						//Cancel the form submit;
+						form.dom.onsubmit = function() {return false;}
+						
+						//Attach our replacement event handler
+						form.on("submit", function (e) {
+							this.refresh();
+						},this);
+					}
 				}
 			}
 		}

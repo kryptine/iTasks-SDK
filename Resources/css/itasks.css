@@ -55,18 +55,14 @@ div.worktab-header table {
 	width: 100%;
 }
 div.worktab-header th {
-	width: 15%;
+	width: 10%;
 	font-weight: bold;
 }
 div.worktab-header td {
-	width: 35%;
+	width: 40%;
 }
-
-div.worktab-content div.x-panel {
-	background-color: #ccc;
-	background-image: url('../img/tab.png');
-	background-position: top;
-	background-repeat: repeat-x;
+div.worktab-content {
+	/* background: #ccc url('../img/tab.png') top repeat-x; */
 	padding: 10px;
 }
 div.worktab form {
