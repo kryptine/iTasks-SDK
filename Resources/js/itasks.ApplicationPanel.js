@@ -73,6 +73,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		
 		//Connect event handlers	
 		worklist.on('cellclick',function (grid,row,col,event) {
+		
 			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
 			newtab.setDebugPanel(debugpanel);
 			newtab.refresh();

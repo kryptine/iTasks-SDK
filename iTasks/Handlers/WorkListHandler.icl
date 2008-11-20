@@ -9,7 +9,7 @@ import iDataForms
 import TaskTree, TaskTreeFilters, InternaliTasksCommon
 
 :: WorkListItem 	= 	{ taskid		:: String 					// Task id of the work item
-			/* from */	, for			:: String 					// Id of the user who issued the work
+						, delegator		:: String 					// Id of the user who issued the work
 						, processname	:: String					// Name given to the work process the task belongs to
 				 		, subject		:: String 					// Name give to the task, which can be a short description of the work to do
 				 		, priority		:: TaskPriority				// Priority of the task
@@ -24,7 +24,7 @@ handleWorkListRequest mainTask request hst
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable,hst)	
 											= calculateTaskTree thisUserId False False False mainTask hst 	// Calculate the TaskTree given the id of the current user
 	# worklist								= [	{ taskid 		= mytaskdescr.taskNrId
-												, for 			= toString mytaskdescr.delegatorId
+												, delegator		= toString mytaskdescr.delegatorId
 												, processname	= mytaskdescr.worflowLabel
 												, subject 		= mytaskdescr.taskLabel
 												, priority		= mytaskdescr.taskPriority

@@ -16,17 +16,13 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 	},
 	
 	openWorkTab: function (taskid, taskinfo) {
-	
+
 		//Try to find an existing tab with the same id
 		var tab = this.getComponent(taskid);
-		
+
 		if(tab == undefined) {
 			//Create new tab
-			tab = new itasks.WorkTabPanel({
-				id: taskid,
-				taskinfo: taskinfo
-			});
-			
+			tab = new itasks.WorkTabPanel({id: taskid,	taskinfo: taskinfo});
 			//Add new tab
 			this.add(tab);
 		}

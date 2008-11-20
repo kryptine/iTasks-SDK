@@ -12,7 +12,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 			{name: 'priority'},
 			{name: 'processname'},
 			{name: 'subject'},
-			{name: 'for'},
+			{name: 'delegator'},
 			{name: 'timestamp'}
 		]
 	}),	
@@ -25,7 +25,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 10 },
 				{id: 'processname', header: 'Process', dataindex: 'processname', width: 25},
 				{id: 'subject', header: 'Subject', dataIndex: 'subject', width: 35},
-				{id: 'for', header: 'For', dataIndex: 'for', width: 10 },
+				{id: 'delegator', header: 'From', dataIndex: 'delegator', width: 10 },
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 10}
 			],
 			viewConfig: {

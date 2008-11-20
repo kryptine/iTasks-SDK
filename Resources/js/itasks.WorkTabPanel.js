@@ -10,92 +10,78 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	state: undefined,		//The encoded state that is temporarily stored in the tab
 
 	debugPanel: undefined,	//An optional reference to a debug panel to find trace options
-	
+
 	initComponent: function () {
+	
 		Ext.apply(this, {
 			title: this.makeTitle(),
 			closable: true,
 			layout: 'anchor',
 			items: [{
 				xtype: 'panel',
-				id: 'worktab-header',
 				anchor: '100%',
 				height: 75,
 				baseCls: 'worktab-header',
 				html: this.makeHeader()
 			},{
 				xtype: 'panel',
-				id: 'worktab-content',
 				anchor: '100% -75',
 				layout: 'card',
 				autoScroll: true,
 				activeItem: 0,
 				items: [{
 					xtype: 'panel',
-					id: 'task-panel',
-					ctCls: 'worktab-single',
+					cls: 'worktab-content',
 					autoWidth: true,
 					autoScroll: true
 				},{
 					xtype: 'tabpanel',
-					id: 'trace-tabs',
+					ctCls: 'worktab-content',
 					border: false,
 					tabPosition: 'bottom',
 					autoScroll: true,
 					activeTab: 0,
 					items: [{
 						xtype: 'panel',
-						id: 'trace-tab-task',
-						ctCls: 'worktab-content',
 						autoWidth: true,
 						title: 'Task'
 					},{
 						xtype: 'panel',
-						id: 'trace-tab-states',
-						ctCls: 'worktab-content',
 						autoWidth: true,
 						title: 'States'
 					},{
 						xtype: 'panel',
-						id: 'trace-tab-updates',
-						ctCls: 'worktab-content',
 						autoWidth: true,
 						title: 'Updates'
 					},{
 						xtype: 'panel',
-						id: 'trace-tab-subtree',
-						ctCls: 'worktab-content',
 						autoWidth: true,
 						title: 'Sub task tree'
 					}]
-				},{	//This panel remains hidden but is used to load data into.
-					xtype: 'panel',
-					id: 'tab-buffer'
 				}]
 			}]
 		});
-		
+
 		itasks.WorkTabPanel.superclass.initComponent.apply(this, arguments);
 	},
+
 	makeTitle: function() {
 		return Ext.util.Format.ellipsis(this.taskinfo.subject,10);
 	},
 	makeHeader: function () {
-		var html = '<table>';
-		html += '<tr><th>Subject:</th><td>'+this.taskinfo.subject+'</td><th>Date:</th><td>'+itasks.util.formatDate(this.taskinfo.timestamp)+'</td></tr>';
-		html += '<tr><th>TaskID:</th><td>'+this.taskinfo.taskid+'</td><th>Process:</th><td>'+this.taskinfo.processname+'</td></tr>';
-		html += '<tr><th>For:</th><td>'+this.taskinfo.for+'</td><th>Priority:</th><td>'+itasks.util.formatPriority(this.taskinfo.priority)+'</td></tr>';
-		html += '</table>';
-		
-		return html;
+		return "<table>"
+			+ "<tr><th>Subject:</th><td>" + this.taskinfo.subject + "</td><th>Date:</th><td>" + itasks.util.formatDate(this.taskinfo.timestamp) + "</td></tr>"
+			+ "<tr><th>TaskID:</th><td>" + this.taskinfo.taskid + "</td><th>Process:</th><td>" + this.taskinfo.processname + "</td></tr>"
+			+ "<tr><th>For:</th><td>" + this.taskinfo.delegator + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(this.taskinfo.priority) + "</td></tr>"
+			+ "</table>";
 	},
-	
+
 	setDebugPanel: function (panel) {
 		this.debugPanel = panel;
 	},
-	
+
 	processTabData: function (el,success,response,options) {
-			
+
 		if(success) {
 			var data = Ext.decode(response.responseText);
 	
@@ -103,17 +89,21 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			this.updates = {};
 			
 			//Save the state
-			this.state	= data.state;
+			this.state = data.state;
 
-			var contentPanel = this.getComponent('worktab-content');
+			var contentPanel = this.getComponent(1);
 			var taskPanel;
-			
+			var tracePanel;
+
 			//Check if trace information is available
 	
-			if(data.stateTrace || data.updateTrace || data.subtreeTrace) {
-				var tracePanel = contentPanel.getComponent('trace-tabs');
-
-				var statePanel = tracePanel.getComponent('trace-tab-states');
+			if(data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined) {
+				
+				contentPanel.layout.setActiveItem(1);
+				tracePanel = contentPanel.getComponent(1);
+				taskPanel = tracePanel.getComponent(0);
+				
+				var statePanel = tracePanel.getComponent(1);
 				if(data.stateTrace != undefined) {
 					statePanel.show();
 					statePanel.getEl().dom.innerHTML = data.stateTrace;
@@ -121,7 +111,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				} else {
 					statePanel.disable();
 				}
-				var updatePanel = tracePanel.getComponent('trace-tab-updates');
+				var updatePanel = tracePanel.getComponent(2);
 				if(data.updateTrace != undefined) {
 					updatePanel.show();
 					updatePanel.getEl().dom.innerHTML = data.updateTrace;
@@ -129,29 +119,25 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				} else {
 					updatePanel.disable();
 				}
-				var subtreePanel = tracePanel.getComponent('trace-tab-subtree');
+				var subtreePanel = tracePanel.getComponent(3);
 				if(data.subtreeTrace != undefined) {
 					subtreePanel.show();
 					subtreePanel.getEl().dom.innerHTML = data.subtreeTrace;
-			
 					subtreePanel.enable();
 				} else {
 					subtreePanel.disable();
 				}
-				
+
 				tracePanel.setActiveTab(0);
-				contentPanel.layout.setActiveItem(1);
-				taskPanel = tracePanel.getComponent('trace-tab-task');
 				
 			} else {
 				contentPanel.layout.setActiveItem(0);
-				taskPanel = contentPanel.getComponent('task-panel');
+				taskPanel = contentPanel.getComponent(0);
 			}
-			
+		
 			//Update the tab content
 			taskPanel.getEl().dom.innerHTML = data.html;
 			
-		
 			//Attach the input event handlers
 			var num = data.inputs.length;
 			var forms = {};
@@ -162,7 +148,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				//Record the formid
 				forms[data.inputs[i].formid] = true;
 				
-				//Attach the event 	
+				//Attach the event
 				switch(data.inputs[i].updateon) {
 					case "OnChange":
 						Ext.get(inputid).on("change", function (e) {
@@ -184,28 +170,29 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						break;
 				}
 			}
+
 			//Attach the submit handlers of the forms
 			for(var formid in forms) {
 				var form = Ext.get(formid);
 				
-				//Cancel the form submit;
-				form.dom.onsubmit = function() {return false;}
-				
-				//Attach our replacement event handler
-				form.on("submit", function (e) {
-					this.refresh();
-				},this);
+				if(form != undefined) {
+					//Cancel the form submit;
+					form.dom.onsubmit = function() {return false;}
+					
+					//Attach our replacement event handler
+					form.on("submit", function (e) {
+						this.refresh();
+					},this);
+				}
 			}
 		}
 	},
+	
 	addUpdate: function (inputid, value) {
 		this.updates[inputid] = value;
 	},
-	refresh: function () {
 
-		//Disable the "Loading..." indicator
-		this.getUpdater().showLoadIndicator = false;
-		
+	refresh: function () {	
 		//Add the state to the updates
 		this.updates['state'] = Ext.encode(this.state);
 		
@@ -222,15 +209,14 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				traceArgs += "&traceSubTrees=1";
 			}
 		}
-		
 		//Send the data to the server
-		this.getComponent('worktab-content').getComponent('tab-buffer').load({
+		Ext.Ajax.request({
 			url: 'handlers/work?taskid=' + this.id + traceArgs,
 			method: "POST",
 			params: this.updates,
 			scripts: false,
 			callback: this.processTabData,
-			scope: this,
+			scope: this
 		});
 	}
 });

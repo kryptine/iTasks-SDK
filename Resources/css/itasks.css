@@ -50,10 +50,7 @@ div.worktab-header td {
 	width: 35%;
 }
 
-div.worktab-single {
-	padding: 10px;
-}
-div.worktab-content {
+div.worktab-content div.x-panel {
 	background-color: #ccc;
 	background-image: url('../img/tab.png');
 	background-position: top;
