@@ -15,6 +15,7 @@ mkJsLibs = [ScriptTag [TypeAttr "text/javascript", SrcAttr src] [] \\ src <- jsl
 where
 	jslibs = ["ext/adapter/ext/ext-base.js"
 			 ,"ext/ext-all-debug.js"
+			 ,"js/itasks.util.js"
 			 ,"js/itasks.LoginWindow.js"
 			 ,"js/itasks.LoaderWindow.js"
 			 ,"js/itasks.CurrentWorkPanel.js"

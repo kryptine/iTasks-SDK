@@ -15,6 +15,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					baseCls: 'bg',
 					height: 75
 				},{
+					id: 'leftpanel',
 					xtype: 'panel',
 					region: 'west',
 					layout: 'accordion',
@@ -28,7 +29,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					items: [
 						{xtype: 'itasks.cwpanel' },
 						{xtype: 'itasks.nwpanel' },
-						{xtype: 'itasks.debug' }
+						{xtype: 'itasks.debug', id: 'debugpanel' }
 					]
 				},{
 					id: 'centerpanel',
@@ -66,12 +67,15 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 	},
 	init: function () {
 		//Initializing the gui...
-		var worklist = this.getComponent('centerpanel').getComponent('worklist');
-		var worktabs = this.getComponent('centerpanel').getComponent('worktabs');
+		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
+		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
+		var debugpanel	= this.getComponent('leftpanel').getComponent('debugpanel');
 		
 		//Connect event handlers	
 		worklist.on('cellclick',function (grid,row,col,event) {
-			worktabs.openWorkTab(grid.getTaskId(row));
+			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
+			newtab.setDebugPanel(debugpanel);
+			newtab.refresh();
 		});
 	}
 });

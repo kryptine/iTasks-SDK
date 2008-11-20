@@ -26,13 +26,38 @@ button.icon-task-tree {
 
 div.leftpanel {
 	background-color: #ccc;
+	background-image: url('../img/tab.png');
+	background-position: top;
+	background-repeat: repeat-x;
 }
 
-div.worktab {
-	font-family: Arial, Helvetica, sans-serif;
-	font-style: normal;
+div.worktab-header {
+	border: 1px solid #ccc;
+	padding: 10px;
+	background-color: #ffd;
+	background-image: url('../img/worktab-header.png');
+	background-position: top right;
+	background-repeat: no-repeat;
+}
+div.worktab-header table {
+	width: 100%;
+}
+div.worktab-header th {
+	width: 15%;
+	font-weight: bold;
+}
+div.worktab-header td {
+	width: 35%;
+}
 
-	color: black;
+div.worktab-single {
+	padding: 10px;
+}
+div.worktab-content {
+	background-color: #ccc;
+	background-image: url('../img/tab.png');
+	background-position: top;
+	background-repeat: repeat-x;
 	padding: 10px;
 }
 div.worktab form {

@@ -38,6 +38,7 @@ itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
 					iconCls: 'icon-process-table'
 				}]
 			},{
+				id: 'tracing',
 				xtype: 'fieldset',
 				title: 'Tracing',
 				defaultType: 'checkbox',
@@ -45,19 +46,28 @@ itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
 				autoHeight: true,
 				layout: 'form',
 				items: [{
-					name: 'traceStates',
+					id: 'traceStates',
 					boxLabel: 'State information'
 					},{
-					name: 'traceUpdates',
+					id: 'traceUpdates',
 					boxLabel: 'Form updates'
 					},{
-					name: 'traceSubTrees',
+					id: 'traceSubTrees',
 					boxLabel: 'Task sub-trees'
 					}]
 			}]
 		});
 		
 		itasks.DebugPanel.superclass.initComponent.apply(this,arguments);
+	},
+	traceStates: function () {
+		return this.getComponent('tracing').getComponent('traceStates').getValue();
+	},
+	traceUpdates: function () {
+		return this.getComponent('tracing').getComponent('traceUpdates').getValue();
+	},
+	traceSubTrees: function () {
+		return this.getComponent('tracing').getComponent('traceSubTrees').getValue();
 	}
 });
 

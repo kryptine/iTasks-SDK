@@ -15,7 +15,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		itasks.WorkTabsPanel.superclass.initComponent.apply(this, arguments);
 	},
 	
-	openWorkTab: function (taskid) {
+	openWorkTab: function (taskid, taskinfo) {
 	
 		//Try to find an existing tab with the same id
 		var tab = this.getComponent(taskid);
@@ -23,7 +23,8 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		if(tab == undefined) {
 			//Create new tab
 			tab = new itasks.WorkTabPanel({
-				id: taskid
+				id: taskid,
+				taskinfo: taskinfo
 			});
 			
 			//Add new tab
@@ -31,6 +32,9 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		}
 		//Activate tab
 		this.activate(tab);
+		
+		//Return a reference to the new tab
+		return tab;
 	}
 });
 
