@@ -11,52 +11,6 @@ import EstherBackend
 import Http, HttpTextUtil
 import FormId
 
-
-// writing and reading of persistent states to a file
-
-writeStateFile :: !String !String !*NWorld -> *NWorld 
-writeStateFile filename serializedstate env
-# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
-| not ok = abort ("writeState: cannot create path to " +++ iDataStorageDir)
-#(_,env)		= case getFileInfo mydir env of
-						((DoesntExist,fileinfo),env)	= createDirectory mydir env
-						(_,env)							= (NoDirError,env)
-# (ok,file,env)	= fopen (iDataStorageDir +++ "/" +++ filename +++ ".txt") FWriteData env
-| not ok	 	= env
-# file			= fwrites serializedstate file  // DEBUG
-# (ok,env)		= fclose file env
-= env
-
-readStateFile :: !String !*NWorld -> (!String,!*NWorld) 
-readStateFile  filename env
-# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
-| not ok = abort ("readState: cannot create path to " +++ iDataStorageDir)
-#(_,env)		= case getFileInfo mydir env of
-						((DoesntExist,fileinfo),env)	= createDirectory mydir env
-						(_,env)							= (NoDirError,env)
-# (ok,file,env)	= fopen (iDataStorageDir +++ "/" +++ filename +++ ".txt") FReadData env
-| not ok 		= ("",env)
-# (string,file)	= freadfile file
-| not ok 		= ("",env)
-# (ok,env)		= fclose file env
-= (string,env)
-where
-	freadfile :: *File -> (String, *File)
-	freadfile file = rec file ""
-	  where rec :: *File String -> (String, *File)
-	        rec file acc # (string, file) = freads file 100
-	                     | string == "" = (acc, file)
-	                     | otherwise    = rec file (acc +++ string)
-
-deleteStateFile :: !String !*NWorld -> *NWorld
-deleteStateFile  filename env
-# directory								= iDataStorageDir
-# ((ok,path),env) 						= pd_StringToPath (directory +++ "\\" +++ filename +++ ".txt") env
-| not ok								= abort "Cannot delete indicated iData"
-# (_,env)								= fremove path env
-= env
-
-
 // low level url encoding decoding of Strings
 
 encodeString :: !String -> String

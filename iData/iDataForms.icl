@@ -36,7 +36,7 @@ mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{reques
 where
 	vformid					= reuseFormId formid (toForm init formid.ival Nothing)
 	calcnextView isupdated view states world
-		# (changedids,states)	= getUpdateId states
+		# (changedids,states)	= getUpdatedIds states
 		# changed				= {isChanged = isupdated, changedId = changedids}
 		# view					= toForm init formid.ival view				// map value to view domain, given previous view value
 		# view					= updForm  changed view						// apply update function telling user if an update has taken place
@@ -70,16 +70,16 @@ where
 		  ,mkHSt request states world)
 
 	replaceState` vformid view states world
-		| init <> Const			= replaceState vformid view states world
+		| init <> Const			= setState vformid view states world
 		| otherwise				= (states,world)
 
 	findFormInfo formid formStates world
-		# (updateids,formStates) 					= getUpdateId formStates											// get list of updated id's
+		# (updateids,formStates) 					= getUpdatedIds formStates											// get list of updated id's
 		| not (isMember formid.id updateids)		
-			# (bool,justcurstate,formStates,world)	= findState formid formStates world									// the current form is not updated
+			# (bool,justcurstate,formStates,world)	= getState formid formStates world									// the current form is not updated
 			= (False,justcurstate,formStates,world)
 		# (updates,formStates)	= getFormUpdates formid.id formStates													// get my updates
-		= case (findState formid formStates world) of
+		= case (getState formid formStates world) of
 				(False,Just currentState,formStates,world) -> (False, Just currentState,formStates,world) 				// yes, but update already handled
 				(True, Just currentState,formStates,world) -> updateState updates currentState formStates world			// yes, handle update
 				(_,    Nothing,formStates,world) 		   -> (False, Nothing,formStates,world) 		  				// cannot find previously stored state

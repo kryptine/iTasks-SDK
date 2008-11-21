@@ -24,25 +24,25 @@ derive JSONEncode TabContent, InputId, UpdateEvent, HtmlState, StorageFormat, Li
 */
 handleWorkTabRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkTabRequest mainTask request hst
-	# thisUserId							= 0																// TODO: has to be fetched from the session in the future
-	# taskId 								= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
+	# thisUserId									= 0																// TODO: has to be fetched from the session in the future
+	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
-											= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
-	# (taskDone,html,inputs,hst =:{states}) = determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
-	# (htmlstates,states)					= getHtmlStates states											// Collect states that must be temporarily stored in the browser
+													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
+	# (taskDone,html,inputs,hst =:{states,world})	= determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
+	# (htmlstates,states)							= getHtmlStates states											// Collect states that must be temporarily stored in the browser
+	# (states,world)								= storeServerStates states world								// Write states that are stored on the server
+
 	//Tracing
-	# (stateTrace,states)					= mbStateTrace request states
-	# (updateTrace,states)					= mbUpdateTrace request states
-	# subTreeTrace							= mbSubTreeTrace request taskId maybeTrace
+	# (stateTrace,states)							= mbStateTrace request states
+	# (updateTrace,states)							= mbUpdateTrace request states
+	# subTreeTrace									= mbSubTreeTrace request taskId maybeTrace
 
-
-
-	# activeTasks							= if taskDone
-												(Just [	mytaskdescr.taskNrId													
-													  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUserId) htmlTree
-													  ])
-											    Nothing
-	# content								=
+	# activeTasks									= if taskDone
+														(Just [	mytaskdescr.taskNrId													
+														  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUserId) htmlTree
+													 	 ])
+											    		Nothing
+	# content										=
 		{TabContent
 		|	done			= taskDone
 		,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
@@ -53,7 +53,7 @@ handleWorkTabRequest mainTask request hst
 		,	updateTrace		= updateTrace
 		,	subtreeTrace	= subTreeTrace
 		} 																									// create tab data record
-	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})							// create the http response
+	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states, world = world})			// create the http response
 	
 where
 	mbStateTrace req states

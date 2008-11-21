@@ -64,5 +64,5 @@ changeLifespanIData prefix oldspan newspan hst=:{states,world}
 
 getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
 getChangedId hst=:{states}
-# (ids,states)					= getUpdateId states
+# (ids,states)					= getUpdatedIds states
 = (ids,{hst & states = states })

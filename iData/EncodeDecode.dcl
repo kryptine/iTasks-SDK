@@ -10,7 +10,3 @@ decodeString 				:: !String -> *String
 
 urlEncode 					:: !String ->  String
 urlDecode 					:: !String -> *String
-
-writeStateFile		 		:: !String !String !*NWorld -> *NWorld 
-readStateFile				:: !String !*NWorld -> (!String,!*NWorld) 
-deleteStateFile 			:: !String !*NWorld -> *NWorld

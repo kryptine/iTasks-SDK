@@ -12,6 +12,7 @@ itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
 			title: 'Debug',
 			iconCls: 'icon-debug',
 			bodyStyle: 'padding: 5px',
+			deferredRender: false,
 			items: [{
 				xtype: 'fieldset',
 				title: 'Overviews',

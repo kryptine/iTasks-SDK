@@ -12,7 +12,6 @@ derive gPrint 	(,), (,,), (,,,), Maybe
 derive gParse	(,), (,,), (,,,), Maybe
 derive gerda 	(,), (,,), (,,,)
 
-
 /*
 * The FormStates structure contains the state of all forms
 * It should only be used as a substructure of the HSt structure
@@ -36,35 +35,61 @@ derive gerda 	(,), (,,), (,,,)
 				, value		:: !String			// The new raw value of the input
 				}
 
-/*
+/**
 * Create a FormStates value from a list of HtmlStates and a list of FormUpdates
+* Server side states are retrieved when needed.
 */
 mkFormStates 		:: ![HtmlState] ![FormUpdate] -> *FormStates
 
-/*
-* Get all updates for a given form ID.
+// Manipulation of form updates
+
+/**
+* Get all updates for a given form identifier.
 */
 getFormUpdates		:: !String !*FormStates -> (![FormUpdate], !*FormStates)
-/*
+/**
 * Get all updates
 */
 getAllUpdates		::         !*FormStates -> (![FormUpdate], !*FormStates)
+/**
+* Get a list of identifiers of updated forms
+*/
+getUpdatedIds		::		   !*FormStates -> (![String],!*FormStates)
 
+// Manipulation of the form states
 
-// Manipulation of the FormStates value
-findState 			:: !(FormId a) !*FormStates !*NWorld			// find the state value given FormId and a correct type
-					-> (!Bool, !Maybe a,!*FormStates,!*NWorld)		// true if form has not yet been previously inspected 	
-												| iPrint, iParse, iSpecialStore a		
-replaceState 		:: !(FormId a) a !*FormStates !*NWorld 		// replace state given FormId
-					-> (!*FormStates,!*NWorld)	| iPrint, iSpecialStore a
+/**
+* Retrieve the state of a given FormId
+*
+* @return True if form is inspected for the first time
+* @return the form states 
+*/
+getState 			:: !(FormId a) !*FormStates !*NWorld			
+					-> (!Bool, !Maybe a,!*FormStates,!*NWorld) 	
+					| iPrint, iParse, iSpecialStore a		
 
-getUpdateId 		:: !*FormStates -> (![String],!*FormStates)	// id of previously changed form
+/**
+* Set the state of a given FormId
+* it will not be stored until "storeServerStates" or "getHtmlStates"
+* is used to store the states.
+*/
+setState 			:: !(FormId a) a !*FormStates !*NWorld 
+					-> (!*FormStates,!*NWorld)
+					| iPrint, iSpecialStore a
 
-deleteStates 		:: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld) // delete iData administration of all iData with this prefix	
+/**
+* Delete the states of all forms with an identifier starting with the
+* given string.
+*/
+deleteStates 		:: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	
 
-changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld) // change lifespan of all iData with is prefix and given old lifespan	
+/**
+* Update the lifespan of all forms whose identifier starts with the given
+* string and currently have the given lifespan.
+*/
+changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld) 
 
-// storage and retrieval of FormStates
+// storage of form states
 
 /**
 * Collect all form states that can be serialized and stored
@@ -73,16 +98,16 @@ changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*
 */
 getHtmlStates		:: !*FormStates -> (![HtmlState], !*FormStates)
 
-storeFormStates 	:: !String !FormStates !*NWorld -> (!String, !*NWorld)
-
-
+/**
+* Save all changed form states that are stored in one of the server
+* side stores (TextFile, Database, DataFile)
+*/
+storeServerStates	:: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
 
 // Trace functions
-
 traceStates			:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the complete state tree
 traceUpdates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the list of updates 
 traceInStates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace a list of initial html states
-
 
 // fstate handling used for testing only
 

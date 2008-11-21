@@ -1,6 +1,6 @@
  implementation module iDataState
 
-import StdArray, StdList, StdOrdList, StdString, StdTuple, ArgEnv, StdMaybe, Directory
+import StdArray, StdList, StdOrdList, StdString, StdTuple, StdFile, ArgEnv, StdMaybe, Directory
 import iDataTrivial, EncodeDecode
 import GenPrint, GenParse
 import dynamic_string
@@ -94,7 +94,10 @@ where
 	where
 		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
 		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
-	
+
+
+string_to_dynamic` :: !{#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
+string_to_dynamic` s	= string_to_dynamic {s` \\ s` <-: s}
 
 
 getFormUpdates :: !String !*FormStates -> (![FormUpdate], !*FormStates)
@@ -103,15 +106,16 @@ getFormUpdates id formstates =: {updates} = ([update \\ update =:{FormUpdate|for
 getAllUpdates :: !*FormStates -> (![FormUpdate], !*FormStates)
 getAllUpdates formstates =: {updates} = (updates, formstates)
 
-getUpdateId :: !*FormStates -> (![String],!*FormStates)
-getUpdateId formstates=:{updates} = (removeDup [formid \\ {FormUpdate|formid} <- updates] ,formstates)
+getUpdatedIds :: !*FormStates -> (![String],!*FormStates)
+getUpdatedIds formstates=:{updates} = (removeDup [formid \\ {FormUpdate|formid} <- updates] ,formstates)
 
-findState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a	
-findState formid formstates=:{fstates} world
-# (bool,ma,fstates,world) = findState` formid fstates world
+
+getState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a	
+getState formid formstates=:{fstates} world
+# (bool,ma,fstates,world) = findState formid fstates world
 = (bool,ma,{formstates & fstates = fstates},world)
 where
-	findState` formid formstate=:(Node_ left (fid,info) right) world
+	findState formid formstate=:(Node_ left (fid,info) right) world
 	| formid.id == fid	= case info of
 							(OldState state)	= (True, fetchFState state,formstate,world)
 							(NewState state)	= (False,fetchFState state,formstate,world)
@@ -124,17 +128,17 @@ where
 		fetchFState _							= Nothing
 	| formid.id  < fid 	= (bool,parsed, Node_ leftformstates (fid,info) right,nworld)
 						with
-							(bool,parsed,leftformstates,nworld)  = findState` formid left world
+							(bool,parsed,leftformstates,nworld)  = findState formid left world
 	| otherwise			= (bool,parsed, Node_  left (fid,info) rightformstates,nworld)
 						with
-							(bool,parsed,rightformstates,nworld) = findState` formid right world
+							(bool,parsed,rightformstates,nworld) = findState formid right world
 
 	// value is not yet available in the tree storage...
 	// all stuff read out from persistent store is now marked as OldState (was NewState)	
 
 	// read out relational Database and store as string 
 
-	findState` {id,lifespan = Database,storage = PlainString} Leaf_ world=:{gerda} 
+	findState {id,lifespan = Database,storage = PlainString} Leaf_ world=:{gerda} 
 	# (value,gerda)		= readGerda` id	gerda
 	# world				= {world & gerda = gerda}
 	= case value of
@@ -143,7 +147,7 @@ where
 
 	// read out relational Database and store as dynamic
 
-	findState` {id,lifespan = Database,storage = StaticDynamic} Leaf_ world=:{gerda} 
+	findState {id,lifespan = Database,storage = StaticDynamic} Leaf_ world=:{gerda} 
 	# (value,gerda)		= readGerda` id	gerda
 	# world				= {world & gerda = gerda}
 	= case value of 
@@ -154,7 +158,7 @@ where
 
 	// read out DataFile and store as string 
 
-	findState` {id,lifespan = DataFile,storage = PlainString} Leaf_ world=:{datafile} 
+	findState {id,lifespan = DataFile,storage = PlainString} Leaf_ world=:{datafile} 
 	# (value,datafile)	= readDataFile id datafile
 	# world				= {world & datafile = datafile}
 	= case value of
@@ -163,7 +167,7 @@ where
 
 	// read out DataFile and store as dynamic
 
-	findState` {id,lifespan = DataFile,storage = StaticDynamic} Leaf_ world=:{datafile} 
+	findState {id,lifespan = DataFile,storage = StaticDynamic} Leaf_ world=:{datafile} 
 	# (value,datafile)	= readDataFile id datafile
 	# world				= {world & datafile = datafile}
 	= case value of 
@@ -173,13 +177,13 @@ where
 							else				-> (False,Nothing,    Leaf_,world)
 	// read out file and store as string
 
-	findState` {id,lifespan = TxtFile,storage = PlainString} Leaf_ world 
+	findState {id,lifespan = TxtFile,storage = PlainString} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case parseString string of
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFile}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
-	findState` {id,lifespan = TxtFileRO,storage = PlainString} Leaf_ world 
+	findState {id,lifespan = TxtFileRO,storage = PlainString} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case parseString string of
 		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFileRO}) Leaf_,world)
@@ -187,7 +191,7 @@ where
 
 	// read out file and store as dynamic
 
-	findState` {id,lifespan = TxtFile,storage = StaticDynamic} Leaf_ world 
+	findState {id,lifespan = TxtFile,storage = StaticDynamic} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
@@ -195,7 +199,7 @@ where
 							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = TxtFile}) Leaf_,world)
 							else				= (False,Nothing,    Leaf_,world)
 
-	findState` {id,lifespan = TxtFileRO,storage = StaticDynamic} Leaf_ world 
+	findState {id,lifespan = TxtFileRO,storage = StaticDynamic} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
@@ -204,29 +208,25 @@ where
 							else				= (False,Nothing,    Leaf_,world)
 
 	// cannot find the value at all
+	findState _ Leaf_ world	= (False,Nothing,Leaf_,world)
+	findState _ _ world		= (False,Nothing,Leaf_,world)
 
-	findState` _ Leaf_ world	= (False,Nothing,Leaf_,world)
-	findState` _ _ world		= (False,Nothing,Leaf_,world)
-
-string_to_dynamic` :: !{#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
-string_to_dynamic` s	= string_to_dynamic {s` \\ s` <-: s}
-
-replaceState ::  !(FormId a) a !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	| iPrint,iSpecialStore a	
-replaceState formid val formstates=:{fstates} world
-# (fstates,world)		= replaceState` formid val fstates world
+setState ::  !(FormId a) a !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	| iPrint,iSpecialStore a	
+setState formid val formstates=:{fstates} world
+# (fstates,world)		= replaceState formid val fstates world
 = ({formstates & fstates = fstates},world)
 where
-	replaceState` ::  !(FormId a) a *FStates *NWorld -> (*FStates,*NWorld)	| iPrint, iSpecialStore a	
-	replaceState` formid val Leaf_ world 									// id not part of tree yet
+	replaceState ::  !(FormId a) a *FStates *NWorld -> (*FStates,*NWorld)	| iPrint, iSpecialStore a	
+	replaceState formid val Leaf_ world 									// id not part of tree yet
 						= (Node_ Leaf_ (formid.id,NewState (initNewState formid.id (adjustlife formid.FormId.lifespan) Temp formid.storage val)) Leaf_,world)
-	replaceState` formid val (Node_ left a=:(fid,fstate) right) world
+	replaceState formid val (Node_ left a=:(fid,fstate) right) world
 	| formid.id == fid	= (Node_ left (fid,NewState (initNewState formid.id formid.FormId.lifespan (detlifespan fstate) formid.storage val)) right,world)
 	| formid.id <  fid	= (Node_ nleft a right,nworld)
 							with
-								(nleft, nworld) = replaceState` formid val left  world
+								(nleft, nworld) = replaceState formid val left  world
 	| otherwise			= (Node_ left a nright,nworld)
 							with
-								(nright,nworld) = replaceState` formid val right world
+								(nright,nworld) = replaceState formid val right world
 
 	// NewState Handling routines 
 
@@ -348,42 +348,79 @@ where
 
 		htmlStateOf _														= Nothing
 
-
-// Serialize all states in FormStates that have to be remembered to either hidden encoded Html Code
-// or store them in a persistent file, all depending on the kind of states
-
-storeFormStates :: !String !FormStates !*NWorld -> (!String, !*NWorld)
-storeFormStates prefix {fstates = allFormStates} world
-	# world = writeAllTxtFileStates allFormStates world				// first write all persistens states
-	= ("",world)
+storeServerStates :: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
+storeServerStates formstates =:{fstates} nworld
+	# (fstates, nworld) = writeStates fstates nworld
+	= ({formstates & fstates = fstates},nworld)
 where
-	sprefix = size prefix
+	writeStates Leaf_ nworld
+		= (Leaf_, nworld)
+	writeStates (Node_ left st right) nworld
+		# (left, nworld)	= writeStates left nworld
+		# nworld			= writeState st nworld
+		# (right, nworld)	= writeStates right nworld
+		= (Node_ left st right, nworld)
 	
-	writeAllTxtFileStates :: !FStates !*NWorld -> *NWorld				// store states in persistent stores
-	writeAllTxtFileStates Leaf_ nworld = nworld
-	writeAllTxtFileStates (Node_ left st right) nworld
-		= writeAllTxtFileStates right (writeAllTxtFileStates left (writeTxtFileState st nworld))
-	where
 	// only new states need to be stored, since old states have not been changed (assertion)
-		writeTxtFileState (sid,NewState {format,life = Database}) nworld=:{gerda}
+	writeState (sid,NewState {format,life = Database}) nworld=:{gerda}
 		= case format of
 			DBStr   string gerdafun		= {nworld & gerda = gerdafun gerda}										// last value is stored in curried write function
 			StatDyn dynval				= {nworld & gerda = writeGerda` sid (dynamic_to_string dynval) gerda}	// write the dynamic as a string to the relational database
-
-		writeTxtFileState (sid,NewState {format,life = DataFile}) nworld=:{datafile}
+	writeState (sid,NewState {format,life = DataFile}) nworld=:{datafile}
 		= case format of
 			CLDBStr   string dfilefun	= {nworld & datafile = dfilefun datafile}										// last value is stored in curried write function
 			StatDyn dynval				= {nworld & datafile = writeDataFile sid (dynamic_to_string dynval) datafile}	// write the dynamic as a string to the datafile
-
-		writeTxtFileState (sid,NewState {format,life  = TxtFile}) nworld
+	writeState (sid,NewState {format,life  = TxtFile}) nworld
 		= IF_Client nworld 
 		 ( case format of
 				PlainStr string			= writeStateFile sid string nworld
 				StatDyn  dynval			= writeStateFile sid (dynamic_to_string dynval) nworld)
 
-		writeTxtFileState _ nworld		= nworld
+	writeState _ nworld					= nworld
+	
+ 
+// writing and reading of persistent states to a file
+writeStateFile :: !String !String !*NWorld -> *NWorld 
+writeStateFile filename serializedstate env
+	# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
+	| not ok = abort ("writeState: cannot create path to " +++ iDataStorageDir)
+	#(_,env)		= case getFileInfo mydir env of
+							((DoesntExist,fileinfo),env)	= createDirectory mydir env
+							(_,env)							= (NoDirError,env)
+	# (ok,file,env)	= fopen (iDataStorageDir +++ "/" +++ filename +++ ".txt") FWriteData env
+	| not ok	 	= env
+	# file			= fwrites serializedstate file  // DEBUG
+	# (ok,env)		= fclose file env
+	= env
 
-// trace States
+readStateFile :: !String !*NWorld -> (!String,!*NWorld) 
+readStateFile  filename env
+	# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
+	| not ok = abort ("readState: cannot create path to " +++ iDataStorageDir)
+	#(_,env)		= case getFileInfo mydir env of
+							((DoesntExist,fileinfo),env)	= createDirectory mydir env
+							(_,env)							= (NoDirError,env)
+	# (ok,file,env)	= fopen (iDataStorageDir +++ "/" +++ filename +++ ".txt") FReadData env
+	| not ok 		= ("",env)
+	# (string,file)	= freadfile file
+	| not ok 		= ("",env)
+	# (ok,env)		= fclose file env
+	= (string,env)
+	where
+		freadfile :: *File -> (String, *File)
+		freadfile file = rec file ""
+		  where rec :: *File String -> (String, *File)
+		        rec file acc # (string, file) = freads file 100
+		                     | string == "" = (acc, file)
+		                     | otherwise    = rec file (acc +++ string)
+
+deleteStateFile :: !String !*NWorld -> *NWorld
+deleteStateFile  filename env
+	# directory								= iDataStorageDir
+	# ((ok,path),env) 						= pd_StringToPath (directory +++ "\\" +++ filename +++ ".txt") env
+	| not ok								= abort "Cannot delete indicated iData"
+	# (_,env)								= fremove path env
+	= env 
  
 traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
 traceStates formstates=:{fstates}
@@ -406,8 +443,6 @@ where
 	toCells (StatDyn  dyn) 		= [TdTag [] [Text "S_Dynamic"],TdTag [] [Text (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]]
 	toCells (DBStr    str _) 	= [TdTag [] [Text "Database"],TdTag [] [Text str]]
 	toCells (CLDBStr  str _) 	= [TdTag [] [Text "DataFile"],TdTag [] [Text str]]
-	
-
 
 ShowValueDynamic :: !Dynamic -> String
 ShowValueDynamic d = strip (foldr (+++) "" (fst (toStringDynamic d)) +++ " ")
