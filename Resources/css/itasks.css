@@ -43,6 +43,9 @@ div.leftpanel {
 	background-repeat: repeat-x;
 }
 
+div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
+	background: #ccc url('../img/tab.png') top repeat-x;
+}
 div.worktab-header {
 	border: 1px solid #ccc;
 	padding: 10px;
@@ -61,8 +64,7 @@ div.worktab-header th {
 div.worktab-header td {
 	width: 40%;
 }
-div.worktab-content {
-	/* background: #ccc url('../img/tab.png') top repeat-x; */
+div.worktab-content {	
 	padding: 10px;
 }
 div.worktab form {

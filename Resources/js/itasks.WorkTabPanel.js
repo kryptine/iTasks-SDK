@@ -17,6 +17,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			title: this.makeTitle(),
 			closable: true,
 			layout: 'anchor',
+			deferredRender: false,
 			items: [{
 				xtype: 'panel',
 				anchor: '100%',
@@ -27,7 +28,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				xtype: 'panel',
 				anchor: '100% -75',
 				layout: 'card',
-				autoScroll: true,
+				cls: 'worktab-container',
+				deferredRender: false,
 				activeItem: 0,
 				items: [{
 					xtype: 'panel',
@@ -37,27 +39,32 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					autoScroll: true
 				},{
 					xtype: 'tabpanel',
-					ctCls: 'worktab-content',
 					border: false,
 					tabPosition: 'bottom',
 					autoScroll: true,
+					deferredRender: false,
+					layoutOnTabChange: true,
 					activeTab: 0,
 					items: [{
 						xtype: 'panel',
 						autoWidth: true,
-						title: 'Task'
+						title: 'Task',
+						cls: 'worktab-content'
 					},{
 						xtype: 'panel',
 						autoWidth: true,
-						title: 'States'
+						title: 'States',
+						cls: 'worktab-content'
 					},{
 						xtype: 'panel',
 						autoWidth: true,
-						title: 'Updates'
+						title: 'Updates',
+						cls: 'worktab-content'
 					},{
 						xtype: 'panel',
 						autoWidth: true,
-						title: 'Sub task tree'
+						title: 'Sub task tree',
+						cls: 'worktab-content'
 					}]
 				}]
 			}]
@@ -108,7 +115,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				
 				var statePanel = tracePanel.getComponent(1);
 				if(data.stateTrace != undefined) {
-					statePanel.show();
 					statePanel.getEl().dom.innerHTML = data.stateTrace;
 					statePanel.enable();
 				} else {
@@ -116,7 +122,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				}
 				var updatePanel = tracePanel.getComponent(2);
 				if(data.updateTrace != undefined) {
-					updatePanel.show();
 					updatePanel.getEl().dom.innerHTML = data.updateTrace;
 					updatePanel.enable();
 				} else {
@@ -124,7 +129,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				}
 				var subtreePanel = tracePanel.getComponent(3);
 				if(data.subtreeTrace != undefined) {
-					subtreePanel.show();
 					subtreePanel.getEl().dom.innerHTML = data.subtreeTrace;
 					subtreePanel.enable();
 				} else {
