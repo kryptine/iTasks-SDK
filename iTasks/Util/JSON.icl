@@ -41,11 +41,37 @@ JSONEncodeList fx x c = ["[": ( flatten ( intersperse [","] (map (flip fx []) x)
 
 //Escape a string
 escape :: String -> String
-escape s = foldl escapeOne s controlChars 
+escape src = copyChars 0 0 reps src (createArray (size src + 2 * (length reps)) '\0')
 where
-	escapeOne s (c,r) = replaceSubString (toString c) r s
-	controlChars = [('\\',"\\\\"),('"',"\\\""),('/',"\\/"),('\b',"\\b"),('\f',"\\f"),('\n',"\\n"),('\r',"\\r"),('\t',"\\t")]
+	reps	= findChars 0 src	
+	//Find the special characters
+	findChars :: Int String -> [(!Int,!Char)]
+	findChars i s
+		| i >= size s 	= []
+		| c == '\\' || c == '"' || c == '/' || c == '\b' || c == '\f' || c == '\n' || c == '\r' || c == '\t'
+			= [(i,c): findChars (i + 1) s] 
+			= findChars (i + 1) s
+		where 
+			c = s.[i]
+	//Build the escaped string from the original and the replacements		
+	copyChars :: Int Int [(!Int, !Char)] String *String -> *String
+	copyChars is id [] src dest
+		| is < size src		=	copyChars (is + 1) (id + 1) [] src {dest & [id] = src.[is]}
+							=	dest
+	copyChars is id reps=:[(ir,c):rs] src dest
+		| is == ir			=	copyChars (is + 1) (id + 2) rs src {dest & [id] = '\\', [id + 1] = rep c}
+							=	copyChars (is + 1) (id + 1) reps src {dest & [id] = src.[is]}
+		where
+			rep '\\'	= '\\'
+			rep '"'		= '"'
+			rep '/'		= '/'
+			rep '\b'	= 'b'
+			rep '\f'	= 'f'
+			rep '\n'	= 'n'
+			rep '\r'	= 'r'
+			rep '\t'	= 't'
 			
+
 //Unescape a string
 unescape :: String -> String
 unescape s = unescape` s 0

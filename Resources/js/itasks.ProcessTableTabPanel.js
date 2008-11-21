@@ -10,6 +10,8 @@ itasks.ProcessTableTabPanel = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			title: 'Process table',
 			closable: true,
+			autoScroll: true,
+			cls: 'worktab-container',
 			autoLoad: {
 				url: 'handlers/processtable',
 				method: 'GET'

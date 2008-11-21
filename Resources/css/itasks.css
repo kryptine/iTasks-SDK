@@ -49,8 +49,8 @@ div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
 div.worktab-header {
 	border: 1px solid #ccc;
 	padding: 10px;
-	background: #999;
-	/* background: #000 url('../img/worktab-header.png') top repeat-x; */
+
+	background: #999 url('../img/worktab-header.png') top repeat-x;
 }
 div.worktab-header table {
 	width: 100%;
@@ -65,7 +65,7 @@ div.worktab-header td {
 	color: #fff;
 }
 div.worktab-content {	
-	padding: 10px;
+	padding: 10px;	
 }
 div.worktab form {
 	display: inline;

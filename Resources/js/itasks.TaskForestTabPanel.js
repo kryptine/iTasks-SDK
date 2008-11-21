@@ -10,6 +10,8 @@ itasks.TaskForestTabPanel = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			title: 'Task forest',
 			closable: true,
+			autoScroll: true,
+			cls: 'worktab-container',
 			autoLoad: {
 				url: 'handlers/tasktreeforest',
 				method: 'GET'

@@ -10,6 +10,8 @@ itasks.ThreadTableTabPanel = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			title: 'Thread table',
 			closable: true,
+			autoScroll: true,
+			cls: 'worktab-container',
 			autoLoad: {
 				url: 'handlers/threadtable',
 				method: 'GET'
