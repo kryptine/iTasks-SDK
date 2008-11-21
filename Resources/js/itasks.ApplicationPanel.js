@@ -74,10 +74,18 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		
 		//Connect event handlers	
 		worklist.on('cellclick',function (grid,row,col,event) {
-		
 			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
 			newtab.setDebugPanel(debugpanel);
 			newtab.refresh();
+		});
+		debugpanel.getTaskForestButton().on('click',function() {
+			worktabs.openTaskForestTab();
+		});
+		debugpanel.getThreadTableButton().on('click',function() {
+			worktabs.openThreadTableTab();
+		});
+		debugpanel.getProcessTableButton().on('click',function() {
+			worktabs.openProcessTableTab();
 		});
 	}
 });

@@ -68,7 +68,16 @@ itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 	traceSubTrees: function () {
 		return this.getComponent('tracing').getComponent('traceSubTrees').getValue();
-	}
+	},
+	getTaskForestButton: function() {
+		return this.getComponent(0).getComponent(0);
+	},
+	getThreadTableButton: function() {
+		return this.getComponent(0).getComponent(1);
+	},
+	getProcessTableButton: function() {
+		return this.getComponent(0).getComponent(2);
+	}	
 });
 
 Ext.reg('itasks.debug',itasks.DebugPanel);
