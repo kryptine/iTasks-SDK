@@ -5,6 +5,9 @@ Ext.ns('itasks');
 
 itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 
+	sessionId: undefined,
+	displayName: undefined,
+
 	initComponent: function() {
 		Ext.apply(this, {
 			layout: 'border',
@@ -14,7 +17,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					region: 'north',
 					baseCls: 'header',
 					height: 75,
-					html: '<div id="logo" ></div>'
+					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + '</div>'
 				},{
 					id: 'leftpanel',
 					xtype: 'panel',
@@ -87,5 +90,8 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		debugpanel.getProcessTableButton().on('click',function() {
 			worktabs.openProcessTableTab();
 		});
+	},
+	getSessionId: function() {
+		return this.sessionId;
 	}
 });

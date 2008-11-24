@@ -62,7 +62,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			//Fade out the window
 			this.getEl().fadeOut({
 				callback: function() {
-					this.continuation(action.result.uid, action.result.sessionKey);
+					this.continuation(action.result.displayName, action.result.sessionId);
 				},
 				scope: this
 			});
@@ -141,7 +141,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 	focus: function() {
 		this.loginPanel.getForm().findField('username').focus();
 	},
-	continuation: function(uid, sessionKey) {
+	continuation: function(displayName, sessionId) {
 	}
 	
 });

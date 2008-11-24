@@ -64,7 +64,7 @@ startServer mainTask world
 								 ,((==) ("/" +++ ThisExe), handleRedirectRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/new"), handleRedirectRequest) //TEMP: Remove when everyone knows about the new url
 								 ,((==) ("/" +++ ThisExe +++ "/"), handleIndexRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAuthenticationRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleTaskRequest (handleAuthenticationRequest))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleTaskRequest (handleWorkListRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleTaskRequest (handleWorkTabRequest mainTask))

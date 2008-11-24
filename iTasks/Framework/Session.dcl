@@ -23,3 +23,10 @@ createSession	:: !Int ![String] !*HSt	-> (!Session,!*HSt)
 * @param session id
 */
 restoreSession	:: !String !*HSt -> (!Maybe Session, !*HSt)
+
+/**
+* Explicitly destroy an existing session.
+*
+* @param session id
+*/
+destroySession	:: !String !*HSt -> *HSt

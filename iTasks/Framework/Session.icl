@@ -9,3 +9,6 @@ createSession uid roles hst
 	
 restoreSession	:: !String !*HSt -> (!Maybe Session, !*HSt)
 restoreSession sid hst = (Nothing, hst)
+
+destroySession	:: !String !*HSt -> *HSt
+destroySession sid hst = hst

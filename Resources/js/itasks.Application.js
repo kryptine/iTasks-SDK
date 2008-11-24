@@ -26,7 +26,7 @@ itasks.Application = function () {
 			loginWindow.continuation = this.loadUserInterface.createDelegate(this);
 			loginWindow.show();
 		},		
-		loadUserInterface: function(uid, sessionKey) {
+		loadUserInterface: function(displayName, sessionId) {
 			
 			//Remove the login window
 			var startPanel = this.viewport.getComponent(0);
@@ -47,7 +47,7 @@ itasks.Application = function () {
 			//Start building the GUI
 			loaderWindow.updateProgress(0.2,'Building User Interface...');
 	
-			this.gui = new itasks.ApplicationPanel();
+			this.gui = new itasks.ApplicationPanel({displayName: displayName, sessionId: sessionId});
 			
 			loaderWindow.updateProgress(0.6,'Initializing User Interface...');
 			this.gui.init();

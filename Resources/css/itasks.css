@@ -35,6 +35,15 @@ div.header #logo {
 	height: 75px;
 	background: url('../img/itasks.png');
 }
+div.header #user {
+	position: absolute;
+	top: 50px;
+	left: 100%;
+	margin-left: -410px;
+	width: 400px;
+	color: #fff;
+	text-align: right;
+}
 
 div.leftpanel {
 	background-color: #ccc;
