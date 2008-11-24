@@ -1,6 +1,6 @@
 implementation module Startup
 // *********************************************************************************************************************************
-// The iTasks library enables the specification of interactive multi-user workflow tasks (iTask) for the web.
+// The iTasks library enables the specification of interactive multi-user workflow tasks (iTasks) for the web.
 // This module contains iTask kernel.
 // This library is still under construction - MJP
 // *********************************************************************************************************************************
@@ -13,65 +13,21 @@ import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
-import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler
+import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Handlers.*
 import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
 import TaskTree, TaskTreeFilters
+
+import Session //iTasks.Framework.Session
 
 import JSON
 import StdDebug
 derive JSONDecode HtmlState, StorageFormat, Lifespan
 
-:: UserStartUpOptions
-				= 	{ traceOn			:: !Bool			
-					, threadStorageLoc	:: !Lifespan		
-					, showUsersOn		:: !Maybe Int	
-					, versionCheckOn	:: !Bool
-					, headerOff			:: !Maybe [HtmlTag]
-					, testModeOn		:: !Bool
-					}
-
-// Initial values
-initTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
-initTst thisUser itaskstorage threadstorage hst
-				=	{ tasknr		= [-1]
-					, activated 	= True
-					, staticInfo	= initStaticInfo thisUser threadstorage
-					, userId		= if (thisUser >= 0) defaultUser thisUser
-					, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
-					, html 			= BT [] []
-					, trace			= Nothing
-					, hst 			= hst
-					, options 		= initialOptions thisUser itaskstorage
-					}
-
-initialOptions ::  !UserId !Lifespan  -> Options 
-initialOptions thisUser location 
-				=	{ tasklife 		= if (thisUser >= 0) location Session 
-					, taskstorage 	= PlainString
-					, taskmode 		= Edit 
-					, gc			= Collect
-					}
-
-initStaticInfo :: UserId !Lifespan -> StaticInfo
-initStaticInfo thisUser location
-=					{ currentUserId	= thisUser 
-					, threadTableLoc= location
-					}
-
-defaultStartUpOptions :: UserStartUpOptions
-defaultStartUpOptions
-= 	{ traceOn			= True		
-	, threadStorageLoc	= TxtFile				// KLOPT DIT WEL ????		
-	, showUsersOn		= Just 5	
-	, versionCheckOn	= False
-	, headerOff			= Nothing
-	, testModeOn		= True
-	}
-
 // ******************************************************************************************************
 // *** Server / Client startup
 // ******************************************************************************************************
-:: UserTaskPage a	:== ((Task a) -> .(*HSt -> .((!Bool,!String),HtmlTag,!*HSt)))
+startTaskEngine :: !(Task a) !*World -> *World  	| iData a
+startTaskEngine maintask world = doTaskWrapper maintask world
 
 doTaskWrapper :: !(Task a) !*World -> *World | iData a	// Combined wrapper which starts the server or client wrapper
 doTaskWrapper mainTask world = doHtmlServer mainTask world
@@ -188,186 +144,3 @@ openmDataFile datafile world
 	:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
 closemDataFile datafile world
 	:== IF_DataFile (closeDataFile datafile world) world
-
-
-// ******************************************************************************************************
-// *** wrappers for the end user, to be used in combination with an iData wrapper...
-// ******************************************************************************************************
-
-singleUserTask 	:: ![StartUpOptions] !(Task a) !*World -> *World  	| iData a
-singleUserTask startUpOptions maintask world = doTaskWrapper maintask world
-/*
-where
-	singleUserTask` maintask hst 
-	# userOptions					= determineUserOptions [ThreadStorage TxtFile:startUpOptions]
-	# tst							= initTst 0 Session userOptions.threadStorageLoc hst
-	# (toserver_prefix,html,hst)	= startTstTask 0 False (False,[]) userOptions maintask tst
-	= mkHtmlExcep "singleUser" (toserver_prefix) html hst
-*/
-multiUserTask :: ![StartUpOptions] !(Task a) !*World -> *World   | iData a 
-multiUserTask startUpOptions maintask world = doTaskWrapper maintask world
-/*
-where
-	multiUserTask` maintask hst 
-	# userOptions 					= determineUserOptions [TestModeOff, VersionCheck, ThreadStorage TxtFile:startUpOptions] 
-	# nusers						= case userOptions.showUsersOn of
-										Nothing -> 0
-										Just n	-> n
-//	| nusers == 0			= singleUserTask startUpOptions maintask  hst 
-	# (idform,hst) 					= FuncMenu (Init,nFormId "User_Selected" 
-										(0,[("User " +++ toString i,\_ -> i) \\ i<-[0..nusers - 1] ])) hst
-	# currentWorker					= snd idform.value
-	# tst							= initTst currentWorker TxtFile userOptions.threadStorageLoc hst
-	# (toserver_prefix,html,hst) 	= startTstTask currentWorker True 
-										(if userOptions.traceOn (idform.changed,idform.form) (False,[])) userOptions maintask tst
-	= mkHtmlExcep "multiUser" (toserver_prefix) html hst
-
-determineUserOptions :: ![StartUpOptions] -> UserStartUpOptions		
-determineUserOptions startUpOptions = determineUserOptions` startUpOptions defaultStartUpOptions
-where
-	determineUserOptions` [] 						options = options
-	determineUserOptions` [TraceOn:xs] 				options	= determineUserOptions` xs {options & traceOn = True}
-	determineUserOptions` [TraceOff:xs] 			options	= determineUserOptions` xs {options & traceOn = False}
-	determineUserOptions` [ThreadStorage nloc:xs] 	options = determineUserOptions` xs {options & threadStorageLoc = nloc}
-	determineUserOptions` [ShowUsers max:xs] 		options = determineUserOptions` xs {options & showUsersOn = if (max <= 0) Nothing (Just max)}
-	determineUserOptions` [VersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = True}
-	determineUserOptions` [NoVersionCheck:xs] 		options = determineUserOptions` xs {options & versionCheckOn = False}
-	determineUserOptions` [MyHeader bodytag:xs] 	options = determineUserOptions` xs {options & headerOff = Just bodytag}
-	determineUserOptions` [TestModeOn:xs] 			options = determineUserOptions` xs {options & testModeOn = True}
-	determineUserOptions` [TestModeOff:xs] 			options = determineUserOptions` xs {options & testModeOn = False}
-*/
-// ******************************************************************************************************
-// *THE* main routine for the determination of the current state and the creation of a new workflow page
-// ******************************************************************************************************
-
-startTstTask :: !Int !Bool  !(!Bool,![HtmlTag]) UserStartUpOptions !(Task a) !*TSt -> (!(!Bool,!String),![HtmlTag],!*HSt) | iData a 
-startTstTask thisUser multiuser (userchanged,multiuserform) useroptions=:{traceOn, threadStorageLoc, showUsersOn, versionCheckOn, headerOff, testModeOn} maintask tst=:{hst,tasknr,staticInfo}
-
-// prologue
-
-| thisUser < 0 			= abort "Users should have id's >= 0 !\n"
-# (refresh,hst) 		= simpleButton refreshId "Refresh" id hst
-# (traceAsked,hst) 		= simpleButton traceId "ShowTrace" (\_ -> True) hst
-# doTrace				= traceAsked.Form.value False
-	
-# versionsOn			= IF_ClientTasks False versionCheckOn										// no version control on client
-# noNewVersion			= not versionsOn || refresh.changed || traceAsked.changed || userchanged 	// no version control in these cases
-# (appversion,hst)	 	= setAppversion inc hst
-# (pversion,hst)	 	= setPUserNr thisUser id hst
-# (sversion,hst)	 	= setSVersionNr thisUser id hst
-# versionconflict		= sversion > 0 && sversion < pversion.versionNr && not noNewVersion 		// test if there is a version conflict				
-
-| versionconflict	 
-	# iTaskInfo			=
-		(mkDiv True "debug-client" [showLabel "Client: ", HrTag []]) ++
-		(mkDiv True "debug-server" [showLabel "Server: Cannot apply request. Version conflict. Please refresh the page!", HrTag []])
-	= ((True,""),[DivTag [ClassAttr "itasks-ajax",IdAttr "thePage"] [] /* (iTaskHeader ++  iTaskInfo)]*/ ],hst)
-
-// Here the iTasks are evaluated ...
-													    
-# ((toServer,thrOwner,event,thrinfo,threads),tst=:{html,hst,trace,activated})	
-						=  calculateTasks thisUser pversion maintask {tst & hst = hst, trace = if doTrace (Just []) Nothing, activated = True, html = BT [] []}
-
-// epilogue
-
-# newUserVersionNr		= 1 + if (pversion.versionNr > sversion) pversion.versionNr sversion					// increment user querie version number
-# (_,hst)				= clearIncPUser thisUser (\_ -> newUserVersionNr) hst									// store in session
-# (sversion,hst)	 	= setSVersionNr thisUser (\_ -> newUserVersionNr) hst									// store in persistent memory
-
-# showCompletePage		= IF_Ajax (hd threads == [-1]) True
-# prefix				= if showCompletePage "" (determine_prefix thisUser threads)
-# (threadtrace,tst)	
-						= if TraceThreads showThreadTable nilTable {tst & hst = hst} 
-# threadsText			= if showCompletePage "" (foldl (+++) "" [showThreadNr tasknrs +++ " + " \\ tasknrs <- reverse threads])
-# (processadmin,tst=:{hst})	= showWorkflows activated tst
-# (threadcode,threadinputs,taskname,mainbuts,subbuts,seltask,hst)	
-						= Filter showCompletePage thisUser thrOwner html hst
-	 	
-# iTaskInfo				=	case headerOff of
-								Nothing ->
-									(	IF_Ajax (IF_ClientTasks [showLabel "Client: "] [showLabel "Server: "]) [] ++
-										if multiuser 
-											[showText "User: " , showLabel thisUser, showText " - "] [] ++
-										if (thrinfo == "" ) [] [showLowLight thrinfo, showText " - "] ++
-										if (multiuser && versionsOn)
-											 [showText "Query " , showTrace ((sversion +++> " / " )<+++ appversion)] [] ++
-										IF_Ajax
-											( [showText " - Task#: ", showTrace (showTaskNr  event)] ++
-											  if (isEmpty threads || showCompletePage) [] [showText (" - Thread(s)#: "/* +++ prefix*/), showTrace threadsText]
-											 ) [] ++
-										[BrTag,HrTag []]
-									)
-								Just userInfo -> userInfo
-								
-# iTaskInfoDivs			=	IF_Ajax (
-							(IF_ClientServer (mkDiv showCompletePage "debug-client" [showLabel "Client: ",HrTag []]) []) ++ 
-							(mkDiv showCompletePage "debug-server" iTaskInfo)
-							) []
-							
-# iTaskTraceInfo		=	showOptions staticInfo.threadTableLoc ++ processadmin ++ threadtrace ++ [showTaskTree trace ]
-| showCompletePage		=	((toServer,""),[DivTag [ClassAttr "itasks-ajax",IdAttr "thePage"] [] /* ++
-															iTaskInfoDivs ++
-															if (doTrace && traceOn)
-																	iTaskTraceInfo
-																	[	leftright taskname subbuts
-																		, mainbuts <=>  seltask
-																	]
-													*/
-									] 
-							,hst)
-# (newthread,oldthreads)=	(hd threads, tl threads)
-| otherwise				=	((toServer,""),[DivTag [ClassAttr "itasks-ajax", IdAttr (IF_Client "debug-client" "debug-server")] [] ]
-/*
-											[iTaskInfo ++			// header info
-											[(showTaskNr childthreads,[showText " "]) \\ childthreads <- oldthreads] ++ //clear childthreads, since parent thread don't need to be on this page
-											[(showTaskNr newthread, if (isEmpty threadcode) seltask threadcode)]	// task info
-											]]
-*/
-									
-							,hst)
-where
-	determine_prefix:: !UserId ![TaskNr] -> String
-	determine_prefix user [] 		= ""
-	determine_prefix user [[-1]] 	= ""
-	determine_prefix user threads
-	# smallest	= hd (sortBy (\l1 l2 ->  length l1 <  length l2) (map tl threads))
-	= iTaskId user smallest ""
-
-	leftright left right 
-	=	TableTag [WidthAttr "100%"] 
-			[TrTag []	[ TdTag [] left
-						, TdTag [AlignAttr "right"] right
-						]
-			]
-
-	nilTable tst = 	([],tst)
-
-	mbUpdate True _ = id
-	mbUpdate _ f = f
-
-	ifTraceOn form = if traceOn form []
-
-	showOptions location
-	= [showText "Version nr: ", showTrace iTaskVersion] ++
-	  [showText " - Enabled: "] ++
-	  [showTrace (IF_Ajax 	(" + Ajax (" <+++ location <+++ ") ") "")] ++
-	  [showTrace (IF_ClientServer	(IF_Ajax " + Client" "") "")] ++
-	  [showTrace (IF_Database " + Database" "")] ++
-	  [showTrace (IF_DataFile " + DataFile" "")] ++
-	  [showText " - Disabled: "] ++
-	  [showTrace (IF_Ajax 	"" " - Ajax " )] ++
-	  [showTrace (IF_ClientServer	"" " - Client" )] ++
-	  [showTrace (IF_Database "" " - Database" )] ++
-	  [showTrace (IF_DataFile "" " - DataFile" )] ++
-	  [BrTag [],HrTag []]
-
-
-// ******************************************************************************************************
-// Html Printing Utilities...
-// ******************************************************************************************************
-
-mkDiv :: !Bool !String ![HtmlTag] -> [HtmlTag]
-mkDiv False id bodytags = bodytags
-mkDiv True id bodytags = [DivTag [IdAttr id, ClassAttr "itasks-thread"] bodytags]
-
-

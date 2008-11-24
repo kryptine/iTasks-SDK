@@ -17,8 +17,7 @@ derive gPrint Fruit, MyRec
 derive gParse Fruit, MyRec
 
 Start :: *World -> *World
-Start world = singleUserTask [] ( (0 @:: dateTask) -&&-  (0 @:: prTask) )world
-//Start world = singleUserTask [] dateTask world
+Start world = startTaskEngine ( (0 @:: dateTask) -&&-  (0 @:: prTask) )world
 
 myTask :: Task MyRec
 myTask = editTask "Done" createDefault
