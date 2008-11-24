@@ -41,7 +41,7 @@ JSONEncodeList fx x c = ["[": ( flatten ( intersperse [","] (map (flip fx []) x)
 
 //Escape a string
 escape :: String -> String
-escape src = copyChars 0 0 reps src (createArray (size src + 2 * (length reps)) '\0')
+escape src = copyChars 0 0 reps src (createArray (size src + length reps) '\0')
 where
 	reps	= findChars 0 src	
 	//Find the special characters
