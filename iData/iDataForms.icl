@@ -26,7 +26,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 // TODO: Try to make it do just a little less :)
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world} 
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world}
 	| init == Const	&& formid.FormId.lifespan <> Temp
 	= mkViewForm (init,{FormId| formid & lifespan = Temp}) bm hst			// constant i-data are never stored
 	| init == Const															// constant i-data, no look up of previous value
@@ -75,13 +75,13 @@ where
 
 	findFormInfo formid formStates world
 		# (updateids,formStates) 					= getUpdatedIds formStates											// get list of updated id's
-		| not (isMember formid.id updateids)		
+		| not (isMember formid.id updateids)	
 			# (bool,justcurstate,formStates,world)	= getState formid formStates world									// the current form is not updated
 			= (False,justcurstate,formStates,world)
 		# (updates,formStates)	= getFormUpdates formid.id formStates													// get my updates
 		= case (getState formid formStates world) of
 				(False,Just currentState,formStates,world) -> (False, Just currentState,formStates,world) 				// yes, but update already handled
-				(True, Just currentState,formStates,world) -> updateState updates currentState formStates world			// yes, handle update
+				(True, Just currentState,formStates,world) -> (updateState updates currentState formStates world)		// yes, handle update
 				(_,    Nothing,formStates,world) 		   -> (False, Nothing,formStates,world) 		  				// cannot find previously stored state
 
 	updateState updates currentState formStates world
@@ -93,6 +93,7 @@ where
 																														// of input id's
 	applyUpdates [] currentState 					= currentState
 	applyUpdates [(pos,upd):updates] currentState	= applyUpdates updates (snd (gUpd{|*|} (UpdSearch pos upd) currentState))
+
 
 // specialize has to be used if a programmer wants to specialize gForm.
 // It remembers the current value of the index in the expression and creates an editor to show this value.

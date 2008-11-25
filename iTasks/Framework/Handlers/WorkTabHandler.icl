@@ -10,6 +10,7 @@ import iDataForms, iDataState
 derive JSONEncode TabContent, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
 :: TabContent 	= { done			:: Bool				//Is the requested work finished
+				  , error			:: Maybe String		//Optional error if something went wrong on the server
 				  , html			:: String			//The HTML content of the tab
 				  , inputs			:: [InputId]		//The interactive inputs in the tab
 				  , state			:: [HtmlState]		//The task state that must be stored in the tab
@@ -45,6 +46,7 @@ handleWorkTabRequest mainTask request hst
 	# content										=
 		{TabContent
 		|	done			= taskDone
+		,	error			= maybeError
 		,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
 		,	inputs			= inputs
 		,	state			= htmlstates
@@ -58,8 +60,9 @@ handleWorkTabRequest mainTask request hst
 where
 	mbStateTrace req states
 		| http_getValue "traceStates" req.arg_get "" == "1"
-			# (trace,states)	= traceStates states
-			= (Just (toString trace), states)
+			# (trace1,states)	= traceInStates states
+			# (trace2,states)	= traceStates states
+			= (Just (toString (DivTag [] [trace1,trace2])), states)
 		| otherwise
 			= (Nothing, states)
 	mbUpdateTrace req states

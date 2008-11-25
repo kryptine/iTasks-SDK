@@ -95,7 +95,7 @@ where
 	selectTask_btn` horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
 	# taskId						= iTaskId userId tasknr ("ChoSt" <+++ length taskOptions)
 	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-	| chosen.Form.value == -1			// no choice made yet
+	| chosen.Form.value == -1		// no choice made yet
 		# buttonId					= iTaskId userId tasknr "ChoBut"
 		# allButtons				= if horizontal 
 											[[(iTaskButton txt,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]

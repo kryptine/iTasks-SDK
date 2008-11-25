@@ -19,7 +19,7 @@ calculateTaskTree thisUser traceOn showProcessTable showCurrThreadTable mainTask
 # (pversion,hst)	 	= setPUserNr thisUser id hst												// fetch global settings of this user
 # (sversion,hst)	 	= setSVersionNr thisUser id hst												// fetch version number of session (not needed in new set up?)
 # versionconflict		= sversion > 0 && sversion < pversion.versionNr //&& not noNewVersion 		// test if there is a version conflict				
-| versionconflict		= (True,BT [] [],Just "Version conflict detected!",Nothing,Nothing,Nothing,hst)				// Yes, return error message
+| versionconflict		= (True,BT [] [],Just "Version conflict detected!",Nothing,Nothing,Nothing,hst)	// Yes, return error message
 
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{activated})	
 						=  calculateTasks thisUser pversion mainTask (mkTst thisUser TxtFile TxtFile hst)

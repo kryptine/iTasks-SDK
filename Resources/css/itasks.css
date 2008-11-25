@@ -1,3 +1,7 @@
+.error {
+	font-weight: bold;
+	color: red;
+}
 button.icon-refresh {
 	background-image: url('../img/icons/refresh.png');
 }
@@ -61,9 +65,21 @@ div.worktab-header {
 
 	background: #999 url('../img/worktab-header.png') top repeat-x;
 }
+div.worktab-header-indicator {
+	position: absolute;
+	top: 20px;
+	left: 100%;
+	margin-left: -42px;
+	width: 32px;
+	height: 32px;
+	
+	background: url('../img/loading.gif') no-repeat;
+	display: none;
+}
 div.worktab-header table {
 	width: 100%;
 }
+
 div.worktab-header th {
 	width: 10%;
 	color: #fff;

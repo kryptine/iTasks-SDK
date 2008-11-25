@@ -8,7 +8,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 
 	updates: {}, 			//Dictionary with form updates
 	state: undefined,		//The encoded state that is temporarily stored in the tab
-
+	busy: false,			//Lock to prevent multiple requests at once
 	debugPanel: undefined,	//An optional reference to a debug panel to find trace options
 
 	initComponent: function () {
@@ -77,23 +77,30 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		return Ext.util.Format.ellipsis(this.taskinfo.subject,10);
 	},
 	makeHeader: function () {
-		return "<table>"
+		return "<div class=\"worktab-header-table\"><table>"
 			+ "<tr><th>Subject:</th><td>" + this.taskinfo.subject + "</td><th>Date:</th><td>" + itasks.util.formatDate(this.taskinfo.timestamp) + "</td></tr>"
 			+ "<tr><th>TaskID:</th><td>" + this.taskinfo.taskid + "</td><th>Process:</th><td>" + this.taskinfo.processname + "</td></tr>"
 			+ "<tr><th>For:</th><td>" + this.taskinfo.delegator + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(this.taskinfo.priority) + "</td></tr>"
-			+ "</table>";
+			+ "</table></div><div class=\"worktab-header-indicator\"></div>";
 	},
 	makeFinishedMessage: function() {
 		return "This task has finished. You can close this tab now.";
 	},
+	makeErrorMessage: function(msg) {
+		return "<span class=\"error\">" + msg + "</span>";
+	},
 	setDebugPanel: function (panel) {
 		this.debugPanel = panel;
+	},
+	setBusy: function(busy) {
+		this.busy = busy;
+		this.getComponent(0).getEl().child(".worktab-header-indicator").setVisible(busy);
 	},
 	processTabData: function (el,success,response,options) {
 
 		if(success) {
 			var data = Ext.decode(response.responseText);
-	
+			
 			//Clear the updates list
 			this.updates = {};
 			
@@ -148,13 +155,13 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			//of the previous request
 			emptyPanel.getEl().dom.innerHTML = "";
 		
-			//Check if the task is done
-			if(data.done) {
+			if (data.error != null) {
+				taskPanel.getEl().dom.innerHTML = this.makeErrorMessage(data.error);
+			} else if(data.done) { //Check if the task is done
 				taskPanel.getEl().dom.innerHTML = this.makeFinishedMessage();
 			} else {
 				//Update the tab content
 				taskPanel.getEl().dom.innerHTML = data.html;
-				
 				
 				//Attach the input event handlers
 				var num = data.inputs.length;
@@ -171,7 +178,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						case "OnChange":
 							Ext.get(inputid).on("change", function (e) {
 								this.addUpdate(e.target.id,e.target.value);
-								this.refresh();
+								
+								//Slightly delayed refresh. There could be click event right after this event.
+								new Ext.util.DelayedTask().delay(150,this.refresh,this);
 							},this);
 							break;
 						case "OnClick":
@@ -205,13 +214,22 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				}
 			}
 		}
+		//Release the busy lock
+		this.setBusy(false);
 	},
 	
 	addUpdate: function (inputid, value) {
 		this.updates[inputid] = value;
 	},
 
-	refresh: function () {	
+	refresh: function () {
+		
+		//If we are busy, return immediately
+		if(this.busy) {
+			return;
+		} else {
+			this.setBusy(true);
+		}
 		//Add the state to the updates
 		this.updates['state'] = Ext.encode(this.state);
 		

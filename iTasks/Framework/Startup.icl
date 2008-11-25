@@ -100,6 +100,7 @@ handleStaticResourceRequest req world
 							   	,rsp_data = content}, world)		 							   
 	= http_notfoundResponse req world
 
+
 handleTaskRequest :: (HTTPRequest *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleTaskRequest handler request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen

@@ -329,7 +329,7 @@ FuncBut (init,formid) hst	= FuncButNr 0 (init,formid) hst
 FuncButNr :: !Int !(InIDataId (HtmlButton, a -> a)) !*HSt -> (Form (a -> a),!*HSt)
 FuncButNr i (init,formid) hst
 = case formid.ival of
-	(HtmlButton s True,cbf)	= FuncButNr i (init,setFormId formid (HtmlButton s True,cbf)) hst
+	(HtmlButton s True,cbf)	= FuncButNr i (init,setFormId formid (HtmlButton s False,cbf)) hst
 	(button, cbf)			= mkViewForm (init,reuseFormId nformid id) hbimap hst
 	where
 		hbimap				= { toForm		= \init _ v -> toViewId init button v
@@ -340,8 +340,7 @@ FuncButNr i (init,formid) hst
 							  , resetForm	= Just (const button)
 							  }
 		nformid				= case button of
-								HtmlButton name _ -> formid <@ formid.id <+++ iDataIdSeparator <+++ name <+++ iDataIdSeparator <+++ i
-								HtmlButton ref _ -> formid <@ formid.id <+++ iDataIdSeparator <+++ i <+++ iDataIdSeparator <+++ ref
+								HtmlButton name _ -> formid <@ formid.id <+++ iDataIdSeparator <+++ i
 
 TableFuncBut :: !(InIDataId [[(HtmlButton, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
 TableFuncBut inIDataId hSt
