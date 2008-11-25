@@ -23,13 +23,25 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				anchor: '100%',
 				height: 75,
 				baseCls: 'worktab-header',
-				html: this.makeHeader()
+				html: this.makeHeader()				
 			},{
 				xtype: 'panel',
 				anchor: '100% -75',
 				layout: 'card',
 				cls: 'worktab-container',
 				deferredRender: false,
+				tbar: [{
+					text: 'Refresh task',
+					iconCls: 'icon-refresh',
+					listeners: {
+						click: {
+							scope: this,
+							fn: function (btn) {
+								this.refresh();
+							}
+						}
+					}
+				}],
 				activeItem: 0,
 				items: [{
 					xtype: 'panel',
