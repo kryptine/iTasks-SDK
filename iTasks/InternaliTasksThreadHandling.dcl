@@ -37,7 +37,7 @@ instance == ThreadKind
 // returns: 	toServer,thrOwner,event,thrinfo,threads
 // *********************************************************************************************************************************
 
-// calculateTasks ::  currentUsserId pversion traceOn maintask -> 
+// calculateTasks ::  currentUserId pversion traceOn maintask -> 
 calculateTasks :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
 
 // Setting of global information for a particular user

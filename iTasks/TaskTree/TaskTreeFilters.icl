@@ -75,14 +75,9 @@ Filter wholepage thisUser thrOwner tree hst
 | isEmpty accu		= (threadcode,[],[],[],[],threadinputs,hst)
 # accu				= sortBy (\(i,_,_,_,_) (j,_,_,_,_) -> i < j) accu
 # (workflownames,subtasks) 						= unziptasks accu
-# ((mainSelected,mainButtons,chosenMain),hst) 	= mkTaskButtons True ("User " <+++ thisUser) thisUser [] 
-														(initialOptions thisUser Session) workflownames hst 
-# (subtasksnames,tcode)							= unzipsubtasks (subtasks !! mainSelected)
-# ((taskSelected,subButtons,chosenTask),hst) 	= mkTaskButtons False ("User " <+++ thisUser <+++ "subtask" <+++ mainSelected) thisUser [] 
-														(initialOptions thisUser Session) subtasksnames hst 
-# subButtons		= if (length subtasksnames > 1) subButtons []
-# (selcode, selinputs)							= tcode!!taskSelected
-= (threadcode,[showMainLabel chosenMain, showTrace " / ", showLabel chosenTask], mainButtons, subButtons, selcode, selinputs, hst)
+# (subtasksnames,tcode)							= unzipsubtasks (hd subtasks)
+# (selcode, selinputs)							= hd tcode
+= (threadcode,[],[],[], selcode, selinputs, hst)	//TODO: Ditch the three empty lists
 where
 	unziptasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])] -> (![WorkflowLabel],![[(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])]])
 	unziptasks [] 			= ([],[])

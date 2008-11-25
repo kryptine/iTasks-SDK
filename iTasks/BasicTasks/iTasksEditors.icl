@@ -44,7 +44,7 @@ where
 	| taskdone.Form.value																			// test if task has completed
 		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)		// yes, read out current value, make editor passive
 		= (editor.Form.value,{tst & activated = True, html = html +|+ BT editor.form editor.inputs, hst = hst})	// return result task
-	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a <@ Submit) hst			// no, read out current value from active editor
+	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a ) hst					// no, read out current value from active editor
 	| editor.changed
 		| fst (pred editor.Form.value)
 			# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) (\_ -> True) hst 	// remember task status for next time
