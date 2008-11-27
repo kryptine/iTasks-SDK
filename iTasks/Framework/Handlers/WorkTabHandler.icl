@@ -27,9 +27,9 @@ handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, 
 handleWorkTabRequest mainTask request session hst
 	# thisUserId									= session.Session.userId										// fetch user id from the session
 	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
+	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst =:{states,world})	
 													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
-	# (taskDone,html,inputs,hst =:{states,world})	= determineTaskForTab thisUserId taskId htmlTree hst 			// filter out the code and inputs to display in this tab
+	# (taskDone,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,states)							= getHtmlStates states											// Collect states that must be temporarily stored in the browser
 	# (states,world)								= storeServerStates states world								// Write states that are stored on the server
 

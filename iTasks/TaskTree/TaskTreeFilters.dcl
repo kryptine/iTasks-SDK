@@ -9,12 +9,13 @@ definition module TaskTreeFilters
 import iTasksTypes
 
 /*
+TODO: Update
 noFilter 		:: Without applying any filter it fetches all html code out of the HtmlTree
 Filter 			:: Filters out the html code for a specific user
 					Arguments:	Bool True if a whole new page has to be generated,
 								First UserId is id of user logged in,
 								Second UserId is id of user that owns the thread (if it is a thread),
-								The HtmlTree to inspects,
+								The HtmlTree to inspect,
 								The HSt for generating navigation buttons.
 				   Returns: 	Whole new page html code for the task (if a whole page is demanded), 
 				   				header indicating chosen task, buttons to choose a main task, buttons to choose a subtask)
@@ -22,14 +23,13 @@ Filter 			:: Filters out the html code for a specific user
 */
 
 
-noFilter 		:: !HtmlTree -> [HtmlTag]
-Filter 			:: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![InputId],!*HSt)
-//TODO: Refactor filter function. Does way to much at the same time
 
+mkFilteredTaskTree 		:: !Bool !UserId !UserId !HtmlTree  -> (![HtmlTag],![HtmlTag],![InputId])
+mkUnfilteredTaskTree 	:: !HtmlTree -> ([HtmlTag],[InputId])
 
 
 collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!Bool,![HtmlTag],![InputId],!*HSt)
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree  -> (!Bool,![HtmlTag],![InputId])
 
 //TODO: merge trace information into the task tree 
 showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag

@@ -30,13 +30,13 @@ collectTaskList pred  (BT bdtg inputs)
 collectTaskList pred (DivCode id tree)
 	= collectTaskList pred tree
 
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!Bool,![HtmlTag],![InputId],!*HSt)
-determineTaskForTab thisuser thistaskid tree hst
+determineTaskForTab :: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputId])
+determineTaskForTab thisuser thistaskid tree
 	# mytree = determineTaskTree thisuser thistaskid tree
-	| isNothing mytree = (True,[],[],hst)
-	# (threadcode,taskname,mainbuts,subbuts,seltask,inputs,hst)	= Filter True thisuser thisuser (fromJust mytree) hst
-	| isEmpty threadcode	= (False, seltask, inputs, hst)
-							= (False, threadcode, inputs, hst)
+	| isNothing mytree = (True,[],[])
+	# (threadcode,seltask,inputs)	= mkFilteredTaskTree True thisuser thisuser (fromJust mytree)
+	| isEmpty threadcode	= (False, seltask, inputs)
+							= (False, threadcode, inputs)
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
@@ -58,25 +58,17 @@ determineTaskTree thisuser thistaskid  (BT bdtg inputs)
 determineTaskTree thisuser thistaskid (DivCode id tree)
 	= determineTaskTree thisuser thistaskid tree
 
-noFilter :: !HtmlTree -> [HtmlTag]
-noFilter (BT body inputs) 	= body
-noFilter (_ @@: html) 		= noFilter html
-noFilter (_ -@: html) 		= noFilter html
-noFilter (htmlL +-+ htmlR) 	= [noFilter htmlL  <=>  noFilter htmlR]
-noFilter (htmlL +|+ htmlR) 	= noFilter htmlL <|.|> noFilter htmlR
-noFilter (DivCode str html) = noFilter html
 
-
-Filter :: !Bool !UserId !UserId !HtmlTree !*HSt -> *(![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![HtmlTag],![InputId],!*HSt)
-Filter wholepage thisUser thrOwner tree hst
+mkFilteredTaskTree :: !Bool !UserId !UserId !HtmlTree -> (![HtmlTag],![HtmlTag],![InputId])
+mkFilteredTaskTree wholepage thisUser thrOwner tree
 # startuser			= if wholepage defaultUser thrOwner
-# (threadcode,threadinputs,accu) = collect thisUser startuser [](initialTaskDescription @@: tree)  // KLOPT DIT WEL ??
-| isEmpty accu		= (threadcode,[],[],[],[],threadinputs,hst)
+# (threadcode,threadinputs,accu) = collect thisUser startuser [] (initialTaskDescription @@: tree)  // KLOPT DIT WEL ??
+| isEmpty accu		= (threadcode,[],threadinputs)
 # accu				= sortBy (\(i,_,_,_,_) (j,_,_,_,_) -> i < j) accu
 # (workflownames,subtasks) 						= unziptasks accu
 # (subtasksnames,tcode)							= unzipsubtasks (hd subtasks)
 # (selcode, selinputs)							= hd tcode
-= (threadcode,[],[],[], selcode, selinputs, hst)	//TODO: Ditch the three empty lists
+= (threadcode, selcode, selinputs)
 where
 	unziptasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])] -> (![WorkflowLabel],![[(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])]])
 	unziptasks [] 			= ([],[])
@@ -133,6 +125,21 @@ collect thisuser taskuser accu (DivCode id tree)
 	# (html,inputs,accu)	= collect thisuser taskuser accu tree
 	| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs,accu)
 	= ([],[],accu)
+
+mkUnfilteredTaskTree :: !HtmlTree -> ([HtmlTag],[InputId])
+mkUnfilteredTaskTree (BT body inputs) 	= (body, inputs)
+mkUnfilteredTaskTree (_ @@: html) 		= mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (_ -@: html) 		= mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (DivCode str html) = mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (nodeL +-+ nodeR) 	= ([htmlL <=> htmlR],inpL ++ inpR)
+where
+	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
+	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
+mkUnfilteredTaskTree (nodeL +|+ nodeR) 	= (htmlL <|.|> htmlR, inpL ++ inpR)
+where
+	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
+	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
+
 
 // ******************************************************************************************************
 // Trace Printing ...
