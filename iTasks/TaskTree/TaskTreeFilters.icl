@@ -34,13 +34,13 @@ determineTaskForTab :: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputI
 determineTaskForTab thisuser thistaskid tree
 	# mytree = determineTaskTree thisuser thistaskid tree
 	| isNothing mytree = (True,[],[])
-	# (threadcode,seltask,inputs)	= mkFilteredTaskTree True thisuser thisuser (fromJust mytree)
+	# (threadcode,seltask,inputs)	= mkFilteredTaskTree True thisuser thisuser (fromJust mytree) //TODO: just return code + inputs
 	| isEmpty threadcode	= (False, seltask, inputs)
 							= (False, threadcode, inputs)
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
-	| taskdescr.taskNrId == thistaskid	= Just tree
+	| taskdescr.taskNrId == thistaskid	= Just (taskdescr @@: tree)
 										= determineTaskTree thisuser thistaskid tree									
 determineTaskTree thisuser thistaskid (ntaskuser -@: tree)
 	| thisuser == ntaskuser				= Nothing
@@ -62,7 +62,7 @@ determineTaskTree thisuser thistaskid (DivCode id tree)
 mkFilteredTaskTree :: !Bool !UserId !UserId !HtmlTree -> (![HtmlTag],![HtmlTag],![InputId])
 mkFilteredTaskTree wholepage thisUser thrOwner tree
 # startuser			= if wholepage defaultUser thrOwner
-# (threadcode,threadinputs,accu) = collect thisUser startuser [] (initialTaskDescription @@: tree)  // KLOPT DIT WEL ??
+# (threadcode,threadinputs,accu) = collect thisUser startuser [] tree
 | isEmpty accu		= (threadcode,[],threadinputs)
 # accu				= sortBy (\(i,_,_,_,_) (j,_,_,_,_) -> i < j) accu
 # (workflownames,subtasks) 						= unziptasks accu
@@ -82,24 +82,6 @@ where
 	unzipsubtasks [(pid,wlabel,tlabel,tcode,tinputs):subtasks]		
 	# (labels,codes)		= unzipsubtasks subtasks
 	= ([tlabel:labels],[(tcode,tinputs):codes])
-
-	initialOptions ::  !UserId !Lifespan  -> Options 
-	initialOptions thisUser location 
-		=	{ tasklife 		= if (thisUser >= 0) location LSSession 
-			, taskstorage 	= PlainString
-			, taskmode 		= Edit 
-			, gc			= Collect
-			}
-	initialTaskDescription
-		=	{ delegatorId	= 0								// id of the work delegator
-			, taskWorkerId	= 0								// id of worker on the task
-			, taskNrId		= "0"							// tasknr as string
-			, processNr		= 0								// entry in process table
-			, worflowLabel	= defaultWorkflowName			// name of the workflow
-			, taskLabel		= "main"						// name of the task
-			, taskPriority	= NormalPriority
-			, timeCreated	= Time 0
-			}							
 
 collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])] !HtmlTree -> (![HtmlTag],![InputId],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])])
 collect thisuser taskuser accu (description @@: tree) 								// collect returns the wanted code, and the remaining code
