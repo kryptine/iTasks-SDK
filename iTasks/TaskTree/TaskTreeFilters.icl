@@ -12,52 +12,51 @@ import InternaliTasksCommon, iTasksHtmlSupport
 
 collectTaskList :: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
 collectTaskList pred (taskdescr @@: tree) 	
-# collected				= collectTaskList pred tree									
-| pred taskdescr		= [taskdescr:collected]
-= collected
+	# collected				= collectTaskList pred tree									
+	| pred taskdescr		= [taskdescr:collected]
+							= collected
 collectTaskList pred (ntaskuser -@: tree)
-= collectTaskList pred tree
+	= collectTaskList pred tree
 collectTaskList pred (tree1 +|+ tree2)
-# collection1	= collectTaskList pred tree1
-# collection2	= collectTaskList pred tree2
-= collection1 ++ collection2
+	# collection1	= collectTaskList pred tree1
+	# collection2	= collectTaskList pred tree2
+	= collection1 ++ collection2
 collectTaskList pred  (tree1 +-+ tree2)
-# collection1	= collectTaskList pred tree1
-# collection2	= collectTaskList pred tree2
-= collection1 ++ collection2
+	# collection1	= collectTaskList pred tree1
+	# collection2	= collectTaskList pred tree2
+	= collection1 ++ collection2
 collectTaskList pred  (BT bdtg inputs)
-= []
+	= []
 collectTaskList pred (DivCode id tree)
-= collectTaskList pred tree
-
+	= collectTaskList pred tree
 
 determineTaskForTab :: !UserId !TaskNrId !HtmlTree !*HSt -> (!Bool,![HtmlTag],![InputId],!*HSt)
 determineTaskForTab thisuser thistaskid tree hst
 	# mytree = determineTaskTree thisuser thistaskid tree
 	| isNothing mytree = (True,[],[],hst)
 	# (threadcode,taskname,mainbuts,subbuts,seltask,inputs,hst)	= Filter True thisuser thisuser (fromJust mytree) hst
-	| isEmpty threadcode	= (False,seltask, inputs, hst)
-							= (False,threadcode, inputs, hst)
+	| isEmpty threadcode	= (False, seltask, inputs, hst)
+							= (False, threadcode, inputs, hst)
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
-| taskdescr.taskNrId == thistaskid = Just tree
-= determineTaskTree thisuser thistaskid tree									
+	| taskdescr.taskNrId == thistaskid	= Just tree
+										= determineTaskTree thisuser thistaskid tree									
 determineTaskTree thisuser thistaskid (ntaskuser -@: tree)
-| thisuser == ntaskuser = Nothing
-= determineTaskTree thisuser thistaskid tree
+	| thisuser == ntaskuser				= Nothing
+										= determineTaskTree thisuser thistaskid tree
 determineTaskTree thisuser thistaskid (tree1 +|+ tree2)
-# ntree1		= determineTaskTree thisuser thistaskid tree1
-| isJust ntree1 = ntree1
-= determineTaskTree thisuser thistaskid tree2
+	# ntree1		= determineTaskTree thisuser thistaskid tree1
+	| isJust ntree1						= ntree1
+										= determineTaskTree thisuser thistaskid tree2
 determineTaskTree  thisuser thistaskid  (tree1 +-+ tree2)
-# ntree1		= determineTaskTree thisuser thistaskid tree1
-| isJust ntree1 = ntree1
-= determineTaskTree thisuser thistaskid tree2
+	# ntree1		= determineTaskTree thisuser thistaskid tree1
+	| isJust ntree1						= ntree1
+										= determineTaskTree thisuser thistaskid tree2
 determineTaskTree thisuser thistaskid  (BT bdtg inputs)
-= Nothing
+	= Nothing
 determineTaskTree thisuser thistaskid (DivCode id tree)
-= determineTaskTree thisuser thistaskid tree
+	= determineTaskTree thisuser thistaskid tree
 
 noFilter :: !HtmlTree -> [HtmlTag]
 noFilter (BT body inputs) 	= body
@@ -99,7 +98,6 @@ where
 			, taskmode 		= Edit 
 			, gc			= Collect
 			}
-
 	initialTaskDescription
 		=	{ delegatorId	= 0								// id of the work delegator
 			, taskWorkerId	= 0								// id of worker on the task

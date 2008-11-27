@@ -88,13 +88,13 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			newtab.refresh();
 		});
 		debugpanel.getTaskForestButton().on('click',function() {
-			worktabs.openTaskForestTab();
+			worktabs.openTaskForestTab(apppanel);
 		});
 		debugpanel.getThreadTableButton().on('click',function() {
-			worktabs.openThreadTableTab();
+			worktabs.openThreadTableTab(apppanel);
 		});
 		debugpanel.getProcessTableButton().on('click',function() {
-			worktabs.openProcessTableTab();
+			worktabs.openProcessTableTab(apppanel);
 		});
 	},
 	getSessionId: function() {

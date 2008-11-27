@@ -54,8 +54,8 @@ handleWorkTabRequest mainTask request session hst
 		,	stateTrace		= stateTrace
 		,	updateTrace		= updateTrace
 		,	subtreeTrace	= subTreeTrace
-		} 																									// create tab data record
-	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states, world = world})			// create the http response
+		}																										// create tab data record
+	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states, world = world})				// create the http response
 	
 where
 	mbStateTrace req states

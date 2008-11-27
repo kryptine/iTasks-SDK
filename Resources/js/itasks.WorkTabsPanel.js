@@ -37,37 +37,44 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 	/**
 	*	Opens the TaskForestTabPanel 
 	*/
-	openTaskForestTab: function () {
+	openTaskForestTab: function (appPanel) {
 		var tab = this.getComponent("taskforesttab");
 		if(tab == undefined) {
 			tab = new itasks.TaskForestTabPanel({id: "taskforesttab"});
+			tab.setApplicationPanel(appPanel);
 			this.add(tab);
+			
 		}
 		this.activate(tab);
+		tab.refresh();
 		return tab;
 	},
 	/**
 	* Opens the ThreadTableTabPanel
 	*/
-	openThreadTableTab: function () {
+	openThreadTableTab: function (appPanel) {
 		var tab = this.getComponent("threadtabletab");
 		if(tab == undefined) {
 			tab = new itasks.ThreadTableTabPanel({id: "threadtabletab"});
+			tab.setApplicationPanel(appPanel);
 			this.add(tab);
 		}
 		this.activate(tab);
+		tab.refresh();
 		return tab;
 	},
 	/**
 	* Opens the ProcessTableTabPanel
 	*/
-	openProcessTableTab: function () {
+	openProcessTableTab: function (appPanel) {
 		var tab = this.getComponent("processtabletab");
 		if(tab == undefined) {
 			tab = new itasks.ProcessTableTabPanel({id: "processtabletab"});
+			tab.setApplicationPanel(appPanel);
 			this.add(tab);
 		}
 		this.activate(tab);
+		tab.refresh();
 		return tab;
 	}
 });

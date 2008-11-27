@@ -7,12 +7,12 @@ derive gForm []
 derive gUpd []
 
 Start :: *World -> *World
-Start world = startTaskEngine (foreverTask myTask) world
+Start world = startTaskEngine  myTask world
 
 myTask :: Task Void
 myTask =
 	2 @:: editTask "Get Started" Void												#>>
-	3 @:: ([Text "What do you want to tell your boss?"] ?>> editTask "Shout" "")	=>> \msg ->
+	2 @:: ([Text "What do you want to tell your boss?"] ?>> editTask "Shout" "")	=>> \msg ->
 	2 @:: ([Text "Worker says: ",Text msg] ?>> editTask "Ok" Void)
 	
 /*
