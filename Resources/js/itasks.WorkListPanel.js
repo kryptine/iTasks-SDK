@@ -5,6 +5,8 @@ Ext.ns('itasks');
 
 itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 
+	applicationPanel: undefined,
+	
 	workStore: new Ext.data.JsonStore({
 		url: 'handlers/worklist',
 		fields: [
@@ -39,10 +41,10 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 		});
 		
 		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
-		
-		//Load the data in the store
-		this.workStore.load();
 	},
+	setApplicationPanel: function(panel) {
+		this.applicationPanel = panel;
+	}, 
 	/*
 	* Return the taskid of the selected row
 	*/
@@ -59,7 +61,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	* Refresh the list
 	*/
 	refresh: function () {
-		this.store.load();
+		this.store.load({params: {session: this.applicationPanel.getSessionId()}});
 	}
 });
 

@@ -1,7 +1,7 @@
 implementation module ThreadTableHandler //iTasks.Handlers.ThreadTableHandler
 
 import StdEnv
-import Http
+import Http, Session
 import InternaliTasksCommon
 import TaskTree, TaskTreeFilters
 import iDataForms, iDataState
@@ -9,9 +9,9 @@ import iDataForms, iDataState
 /**
 * Handles the ajax requests for a ThreadTable tab panel.
 */
-handleThreadTableRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleThreadTableRequest mainTask request hst
-	# thisUserId							= 0																// TODO: has to be fetched from the session in the future
+handleThreadTableRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleThreadTableRequest mainTask request session hst
+	# thisUserId							= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
 											= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
 	# threadTable							= if (isNothing maybeThreadTable) [] (fromJust maybeThreadTable) 

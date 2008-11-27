@@ -62,15 +62,14 @@ startServer mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
 	= http_startServer options   [((==) "/", handleRedirectRequest)
 								 ,((==) ("/" +++ ThisExe), handleRedirectRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/new"), handleRedirectRequest) //TEMP: Remove when everyone knows about the new url
 								 ,((==) ("/" +++ ThisExe +++ "/"), handleIndexRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleTaskRequest (handleAuthenticationRequest))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAnonRequest (handleAuthenticationRequest))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleTaskRequest (handleWorkListRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleTaskRequest (handleWorkTabRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/tasktreeforest"), handleTaskRequest (handleTaskTreeForestRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/processtable"), handleTaskRequest (handleProcessTableRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/threadtable"), handleTaskRequest (handleThreadTableRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleSessionRequest (handleWorkListRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleSessionRequest (handleWorkTabRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/tasktreeforest"), handleSessionRequest (handleTaskTreeForestRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/processtable"), handleSessionRequest (handleProcessTableRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/threadtable"), handleSessionRequest (handleThreadTableRequest mainTask))
 								 ,(\_ -> True, handleStaticResourceRequest)
 								 ] world
 
@@ -101,20 +100,36 @@ handleStaticResourceRequest req world
 	= http_notfoundResponse req world
 
 
-handleTaskRequest :: (HTTPRequest *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleTaskRequest handler request world
+handleAnonRequest :: (HTTPRequest *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleAnonRequest handler request world
+	# hst						= initHSt request world
+	# (response, hst)			= handler request hst
+	# world						= finalizeHSt hst
+	= (response, world)
+
+handleSessionRequest :: (HTTPRequest Session *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleSessionRequest handler request world
+	# hst						= initHSt request world
+	# sessionId					= http_getValue "session" (request.arg_get ++ request.arg_post) ""
+	# (mbSession,hst)			= restoreSession sessionId hst
+	= case mbSession of
+		Nothing	
+			# world				= finalizeHSt hst
+			= (http_emptyResponse, world)
+		(Just session)
+			# (response, hst)	= handler request session hst 
+			# world				= finalizeHSt hst
+			= (response, world)
+
+initHSt :: !HTTPRequest !*World -> *HSt
+initHSt request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state
 	# updates					= decodeFormUpdates request.arg_post						// Get the form updates from the post
 	# states					= decodeHtmlStates request.arg_post							// Fetch stored states from the post
 	# fstates	 				= mkFormStates states updates 								
-	# hst						= mkHSt request fstates nworld								// Create the HSt
-	# (response,hst =:{world = nworld =: {worldC = world, gerda, datafile}})
-		= handler request hst																// Apply handler
-	# world						= closeDatabase gerda world									// close the relational database if option chosen
-	# world						= closemDataFile datafile world								// close the datafile if option chosen
-	= (response,world)
+	= mkHSt request fstates nworld
 where
 	decodeFormUpdates :: ![(!String, !String)] -> [FormUpdate]
 	decodeFormUpdates args = [update \\ (Just update) <- map mbUpdate args]
@@ -133,7 +148,15 @@ where
 	decodeHtmlStates args = case fromJSON (http_getValue "state" args "") of
 		Nothing	= []			//Parsing failed
 		Just states = states 
-														
+
+
+finalizeHSt :: !*HSt -> *World
+finalizeHSt hst =:{world = nworld =: {worldC = world, gerda, datafile}}
+	# world						= closeDatabase gerda world									// close the relational database if option chosen
+	# world						= closemDataFile datafile world								// close the datafile if option chosen
+	= world
+	
+	
 // Database OPTION
 openDatabase database world
 	:== IF_Database (openGerda database world) (abort "Trying to open a relational database while this option is switched off",world)

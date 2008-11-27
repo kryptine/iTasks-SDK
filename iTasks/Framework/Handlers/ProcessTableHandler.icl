@@ -1,7 +1,7 @@
 implementation module ProcessTableHandler //iTasks.Handlers.ProcessTableHandler
 
 import StdEnv
-import Http
+import Http, Session
 import InternaliTasksCommon
 import TaskTree, TaskTreeFilters
 import iDataForms, iDataState
@@ -9,9 +9,9 @@ import iDataForms, iDataState
 /**
 * Handles the ajax requests for a ProcessTable tab panel.
 */
-handleProcessTableRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleProcessTableRequest mainTask request hst
-	# thisUserId							= 0																// TODO: has to be fetched from the session in the future
+handleProcessTableRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleProcessTableRequest mainTask request session hst
+	# thisUserId							= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
 											= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
 	# processTable							= if (isNothing maybeProcessTable) [] (fromJust maybeProcessTable) 

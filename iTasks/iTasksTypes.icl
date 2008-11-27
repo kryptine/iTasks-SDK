@@ -27,7 +27,7 @@ where   (<<@) task lifespan			= setTaskLifespan
 			= IF_Ajax 
 				(IF_ClientServer															// we running both client and server
 					(IF_ClientTasks												
-						(if (options.tasklife == Client && (lifespan == TxtFile || lifespan == DataFile || lifespan == Database))
+						(if (options.tasklife == LSClient && (lifespan == LSTxtFile || lifespan == LSDataFile || lifespan == LSDatabase))
 							(abort "Cannot make persistent storage on Client\n")
 							(\tst -> task {tst & options.tasklife = lifespan}))						// assign option on client
 						(\tst -> task {tst & options.tasklife = lifespan})tst							// assign option on server

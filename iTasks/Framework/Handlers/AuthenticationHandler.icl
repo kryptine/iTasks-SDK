@@ -10,8 +10,9 @@ handleAuthenticationRequest :: !HTTPRequest *HSt -> (!HTTPResponse, !*HSt)
 handleAuthenticationRequest req hst
 	= case getUserInfo (get "username" req.arg_post) (get "password" req.arg_post) of
 		Just (uid, roles, displayName)
-			# (session, hst)	= createSession uid roles hst
-			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId displayName},hst)
+			# (session, hst =:{states, world})	= createSession uid roles hst
+			# (states, world) = storeServerStates states world
+			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId displayName},{hst & states = states, world = world})
 		Nothing
 			= ({http_emptyResponse & rsp_data = encodeFailure},hst)
 where

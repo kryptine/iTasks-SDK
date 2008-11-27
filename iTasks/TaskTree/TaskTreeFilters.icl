@@ -94,7 +94,7 @@ where
 
 	initialOptions ::  !UserId !Lifespan  -> Options 
 	initialOptions thisUser location 
-		=	{ tasklife 		= if (thisUser >= 0) location Session 
+		=	{ tasklife 		= if (thisUser >= 0) location LSSession 
 			, taskstorage 	= PlainString
 			, taskmode 		= Edit 
 			, gc			= Collect
@@ -193,14 +193,14 @@ where
 	isDone Nothing = False
 	isDone (Just (b,(w,i,op,tn,s))) = b
 
-	showStorage Temp		= font "silver" "Tmp"
-	showStorage Client		= font "aqua" "Cli"
-	showStorage Page		= font "navy" "Pag"
-	showStorage Session		= font "navy" "Ssn"
-	showStorage TxtFileRO	= font "red"   "TxF0"
-	showStorage TxtFile		= font "red"   "TxF"
-	showStorage DataFile	= font "red"   "DaF"
-	showStorage Database	= font "red"   "DaB"
+	showStorage LSTemp		= font "silver" "Tmp"
+	showStorage LSClient	= font "aqua" "Cli"
+	showStorage LSPage		= font "navy" "Pag"
+	showStorage LSSession	= font "navy" "Ssn"
+	showStorage LSTxtFileRO	= font "red"   "TxF0"
+	showStorage LSTxtFile	= font "red"   "TxF"
+	showStorage LSDataFile	= font "red"   "DaF"
+	showStorage LSDatabase	= font "red"   "DaB"
 
 	doneBackground = 	[ CellpaddingAttr "pixels 1", CellspacingAttr "pixels 0", cellwidth
 						, RulesAttr "none", FrameAttr "border" 

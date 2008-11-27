@@ -125,10 +125,10 @@ cFormId :: !Options !String !a -> FormId a
 cFormId  {tasklife,taskstorage,taskmode} s d = {sFormId  s d & lifespan = tasklife, storage = taskstorage, mode = taskmode} 
 
 sessionFormId :: !Options !String !a -> FormId a
-sessionFormId options s d = cFormId options s d <@ if (options.tasklife == Client) Client Session
+sessionFormId options s d = cFormId options s d <@ if (options.tasklife == LSClient) LSClient LSSession
 
 pageFormId :: !Options !String !a -> FormId a
-pageFormId options s d = cFormId options s d <@ if (options.tasklife == Client) Client Page
+pageFormId options s d = cFormId options s d <@ if (options.tasklife == LSClient) LSClient LSPage
 
 storageFormId :: !Options !String !a -> FormId a
 storageFormId  options s d = cFormId options s d <@ NoForm

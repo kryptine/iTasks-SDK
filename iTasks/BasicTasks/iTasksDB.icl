@@ -29,7 +29,7 @@ DB (name,storageKind) fun hst
 = (form.Form.value,hst)
 
 mkDBid :: !String !Lifespan -> (DBid a)
-mkDBid s Database 	
+mkDBid s LSDatabase 	
 | and (map isControl (mkList s)) 	= abort (s <+++ " contains control characters which is illegal!...\n\n")
 mkDBid s attr						= (s,attr) 
 

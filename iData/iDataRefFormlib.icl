@@ -44,7 +44,7 @@ universalRefEditor lifespan (init,formid=:{ival=Ref2 filename}) invariant hst
 = ({valuef & changed = True},hst)
 where
 	myDatabase init filename cntvalue hst													// write the database
-							= mkEditForm (init, if (lifespan == TxtFile) xpFormId xdbFormId filename cntvalue) hst
+							= mkEditForm (init, if (lifespan == LSTxtFile) xpFormId xdbFormId filename cntvalue) hst
 	myVersion  init filename cnt hst														// track version number
 							= mkEditForm (init,reuseFormId formid cnt <@ ("vrs_r_" +++ filename) <@ NoForm) hst
 	myEditor   init filename value hst														// copy of database information

@@ -16,7 +16,7 @@ instance <@ Mode          where <@ formId a = {FormId | formId & mode     = a}
 instance <@ StorageFormat where <@ formId a	= {FormId | formId & storage  = a}
 
 mkFormId :: !String !d -> FormId d				// Default FormId with given id and ival.
-mkFormId s d = {id = s, issub = False, lifespan = Page, mode = Edit, storage = PlainString, ival = d}
+mkFormId s d = {id = s, issub = False, lifespan = LSPage, mode = Edit, storage = PlainString, ival = d}
 
 initID :: !(FormId d) -> InIDataId d	// (Init,FormId a)
 initID formid			= (Init,formid)
@@ -26,12 +26,12 @@ setID formid na			= (Set,setFormId formid na)
 
 // editable, string format
 
-tFormId		:: !String !d -> FormId d;			tFormId    s d = mkFormId  s d <@ Temp
-nFormId		:: !String !d -> FormId d;			nFormId    s d = mkFormId  s d <@ Page
-sFormId		:: !String !d -> FormId d;			sFormId    s d = mkFormId  s d <@ Session
-pFormId		:: !String !d -> FormId d;			pFormId    s d = mkFormId  s d <@ TxtFile
-rFormId		:: !String !d -> FormId d;			rFormId    s d = mkFormId  s d <@ TxtFileRO
-dbFormId	:: !String !d -> FormId d;			dbFormId   s d = mkFormId  s d <@ Database
+tFormId		:: !String !d -> FormId d;			tFormId    s d = mkFormId  s d <@ LSTemp
+nFormId		:: !String !d -> FormId d;			nFormId    s d = mkFormId  s d <@ LSPage
+sFormId		:: !String !d -> FormId d;			sFormId    s d = mkFormId  s d <@ LSSession
+pFormId		:: !String !d -> FormId d;			pFormId    s d = mkFormId  s d <@ LSTxtFile
+rFormId		:: !String !d -> FormId d;			rFormId    s d = mkFormId  s d <@ LSTxtFileRO
+dbFormId	:: !String !d -> FormId d;			dbFormId   s d = mkFormId  s d <@ LSDatabase
 
 tdFormId	:: !String !d -> FormId d;			tdFormId   s d = tFormId   s d <@ Display
 ndFormId	:: !String !d -> FormId d;			ndFormId   s d = nFormId   s d <@ Display
@@ -66,16 +66,16 @@ subFormId :: !(FormId a) !String !d -> FormId d			// make new formid of new type
 subFormId formid s d	= {reuseFormId (extidFormId formid s) d & issub = True}
 
 subnFormId :: !(FormId a) !String !d -> FormId d		// make new formid of new type copying other old settinf
-subnFormId formid s d	= subFormId formid s d <@ Page
+subnFormId formid s d	= subFormId formid s d <@ LSPage
 
 subsFormId :: !(FormId a) !String !d -> FormId d		// make new formid of new type copying other old settinf
-subsFormId formid s d	= subFormId formid s d <@ Session
+subsFormId formid s d	= subFormId formid s d <@ LSSession
 
 subpFormId :: !(FormId a) !String !d -> FormId d		// make new formid of new type copying other old settinf
-subpFormId formid s d	= subFormId formid s d <@ TxtFile
+subpFormId formid s d	= subFormId formid s d <@ LSTxtFile
 
 subtFormId :: !(FormId a) !String !d -> FormId d		// make new formid of new type copying other old settinf
-subtFormId formid s d	= subFormId formid s d <@ Temp
+subtFormId formid s d	= subFormId formid s d <@ LSTemp
 
 setFormId :: !(FormId d) !d -> FormId d					// set new initial value in formid
 setFormId formid d		= reuseFormId formid d
@@ -107,24 +107,24 @@ instance < Lifespan     where (<) l1 l2 = toInt l1 < toInt l2
 instance toBool Init    where toBool Set = True
 							  toBool _   = False
 
-instance toInt Lifespan where toInt Temp			= 0
-							  toInt Client			= 1
-							  toInt Page			= 2
-							  toInt Session			= 3
-							  toInt TxtFileRO		= 4
-							  toInt TxtFile			= 5
-							  toInt DataFile		= 6
-							  toInt Database		= 7
+instance toInt Lifespan where toInt LSTemp			= 0
+							  toInt LSClient		= 1
+							  toInt LSPage			= 2
+							  toInt LSSession		= 3
+							  toInt LSTxtFileRO		= 4
+							  toInt LSTxtFile		= 5
+							  toInt LSDataFile		= 6
+							  toInt LSDatabase		= 7
 
 instance toString Lifespan where 	
-							  toString Temp			= "Temp"
-							  toString Client		= "Client"
-							  toString Page			= "Page"
-							  toString Session		= "Session"
-							  toString TxtFileRO	= "TxtFileRO"
-							  toString TxtFile		= "TxtFile"
-							  toString DataFile		= "DataFile"
-							  toString Database		= "Database"
+							  toString LSTemp		= "Temp"
+							  toString LSClient		= "Client"
+							  toString LSPage		= "Page"
+							  toString LSSession	= "Session"
+							  toString LSTxtFileRO	= "TxtFileRO"
+							  toString LSTxtFile	= "TxtFile"
+							  toString LSDataFile	= "DataFile"
+							  toString LSDatabase	= "Database"
 instance toString StorageFormat where
 							  toString PlainString	= "PlainString"
 							  toString StaticDynamic = "StaticDynamic"

@@ -1,7 +1,7 @@
 implementation module TaskTreeForestHandler //iTasks.Handlers.TaskTreeForestHandler
 
 import StdEnv
-import Http
+import Http, Session
 import InternaliTasksCommon
 import TaskTree, TaskTreeFilters
 import JSON
@@ -10,9 +10,9 @@ import iDataForms, iDataState
 /**
 * Handles the ajax requests for a TaskTreeForest tab panel.
 */
-handleTaskTreeForestRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleTaskTreeForestRequest mainTask request hst
-	# thisUserId							= 0																// TODO: has to be fetched from the session in the future
+handleTaskTreeForestRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleTaskTreeForestRequest mainTask request session hst
+	# thisUserId							= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
 											= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
 	# taskTreeTrace							= showTaskTree  maybeTrace										// TEMP fix to show taskTree

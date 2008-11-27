@@ -71,14 +71,20 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 	},
 	init: function () {
 		//Initializing the gui...
+		var apppanel	= this;
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
 		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
 		var debugpanel	= this.getComponent('leftpanel').getComponent('debugpanel');
+		
+		//Set worklist applicationPanel reference and refresh
+		worklist.setApplicationPanel(apppanel);
+		worklist.refresh();
 		
 		//Connect event handlers	
 		worklist.on('cellclick',function (grid,row,col,event) {
 			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
 			newtab.setDebugPanel(debugpanel);
+			newtab.setApplicationPanel(apppanel);
 			newtab.refresh();
 		});
 		debugpanel.getTaskForestButton().on('click',function() {

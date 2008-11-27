@@ -6,10 +6,11 @@ Ext.ns('itasks');
 
 itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 
-	updates: {}, 			//Dictionary with form updates
-	state: undefined,		//The encoded state that is temporarily stored in the tab
-	busy: false,			//Lock to prevent multiple requests at once
-	debugPanel: undefined,	//An optional reference to a debug panel to find trace options
+	updates: {}, 					//Dictionary with form updates
+	state: undefined,				//The encoded state that is temporarily stored in the tab
+	busy: false,					//Lock to prevent multiple requests at once
+	debugPanel: undefined,			//An optional reference to a debug panel to find trace options
+	applicationPanel: undefined,	//A reference to the application panel to find the session id
 
 	initComponent: function () {
 	
@@ -103,6 +104,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	},
 	setDebugPanel: function (panel) {
 		this.debugPanel = panel;
+	},
+	setApplicationPanel: function (panel) {
+		this.applicationPanel = panel;
 	},
 	setBusy: function(busy) {
 		this.busy = busy;
@@ -258,9 +262,12 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				traceArgs += "&traceSubTrees=1";
 			}
 		}
+		//get the session id
+		var sessionArg = "&session=" + this.applicationPanel.getSessionId();
+		
 		//Send the data to the server
 		Ext.Ajax.request({
-			url: 'handlers/work?taskid=' + this.id + traceArgs,
+			url: 'handlers/work?taskid=' + this.id + traceArgs + sessionArg,
 			method: "POST",
 			params: this.updates,
 			scripts: false,

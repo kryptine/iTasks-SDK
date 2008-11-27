@@ -1,7 +1,7 @@
 implementation module WorkTabHandler //iTasks.Handlers.WorkTabHandler
 
 import StdEnv
-import Http
+import Http, Session
 import InternaliTasksCommon
 import TaskTree, TaskTreeFilters
 import JSON
@@ -23,9 +23,9 @@ derive JSONEncode TabContent, InputId, UpdateEvent, HtmlState, StorageFormat, Li
 /**
 * Handles the ajax requests for a work tab panel.
 */
-handleWorkTabRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleWorkTabRequest mainTask request hst
-	# thisUserId									= 0																// TODO: has to be fetched from the session in the future
+handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleWorkTabRequest mainTask request session hst
+	# thisUserId									= session.Session.userId										// fetch user id from the session
 	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst)	
 													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user

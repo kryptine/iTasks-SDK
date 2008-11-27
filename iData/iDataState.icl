@@ -138,73 +138,73 @@ where
 
 	// read out relational Database and store as string 
 
-	findState {id,lifespan = Database,storage = PlainString} Leaf_ world=:{gerda} 
+	findState {id,lifespan = LSDatabase,storage = PlainString} Leaf_ world=:{gerda} 
 	# (value,gerda)		= readGerda` id	gerda
 	# world				= {world & gerda = gerda}
 	= case value of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = Database}) Leaf_,world)
+		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = LSDatabase}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
 	// read out relational Database and store as dynamic
 
-	findState {id,lifespan = Database,storage = StaticDynamic} Leaf_ world=:{gerda} 
+	findState {id,lifespan = LSDatabase,storage = StaticDynamic} Leaf_ world=:{gerda} 
 	# (value,gerda)		= readGerda` id	gerda
 	# world				= {world & gerda = gerda}
 	= case value of 
 		Nothing 		= (False,Nothing,Leaf_,world)
 		Just string		= case string_to_dynamic` string of
-							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = Database}) Leaf_,world)
+							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSDatabase}) Leaf_,world)
 							else				-> (False,Nothing,    Leaf_,world)
 
 	// read out DataFile and store as string 
 
-	findState {id,lifespan = DataFile,storage = PlainString} Leaf_ world=:{datafile} 
+	findState {id,lifespan = LSDataFile,storage = PlainString} Leaf_ world=:{datafile} 
 	# (value,datafile)	= readDataFile id datafile
 	# world				= {world & datafile = datafile}
 	= case value of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = DataFile}) Leaf_,world)
+		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = LSDataFile}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
 	// read out DataFile and store as dynamic
 
-	findState {id,lifespan = DataFile,storage = StaticDynamic} Leaf_ world=:{datafile} 
+	findState {id,lifespan = LSDataFile,storage = StaticDynamic} Leaf_ world=:{datafile} 
 	# (value,datafile)	= readDataFile id datafile
 	# world				= {world & datafile = datafile}
 	= case value of 
 		Nothing 		= (False,Nothing,Leaf_,world)
 		Just string		= case string_to_dynamic` string of
-							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = DataFile}) Leaf_,world)
+							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSDataFile}) Leaf_,world)
 							else				-> (False,Nothing,    Leaf_,world)
 	// read out file and store as string
 
-	findState {id,lifespan = TxtFile,storage = PlainString} Leaf_ world 
+	findState {id,lifespan = LSTxtFile,storage = PlainString} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case parseString string of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFile}) Leaf_,world)
+		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = LSTxtFile}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
-	findState {id,lifespan = TxtFileRO,storage = PlainString} Leaf_ world 
+	findState {id,lifespan = LSTxtFileRO,storage = PlainString} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case parseString string of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = TxtFileRO}) Leaf_,world)
+		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = LSTxtFileRO}) Leaf_,world)
 		Nothing			= (False,Nothing,Leaf_,world)
 
 	// read out file and store as dynamic
 
-	findState {id,lifespan = TxtFile,storage = StaticDynamic} Leaf_ world 
+	findState {id,lifespan = LSTxtFile,storage = StaticDynamic} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
 		_				= case string_to_dynamic` string of
-							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = TxtFile}) Leaf_,world)
+							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSTxtFile}) Leaf_,world)
 							else				= (False,Nothing,    Leaf_,world)
 
-	findState {id,lifespan = TxtFileRO,storage = StaticDynamic} Leaf_ world 
+	findState {id,lifespan = LSTxtFileRO,storage = StaticDynamic} Leaf_ world 
 	# (string,world)	= IF_Client ("",world) (readStateFile id world)
 	= case string of 
 		""				= (False,Nothing,Leaf_,world)
 		_				= case string_to_dynamic` string of
-							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = TxtFileRO}) Leaf_,world)
+							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSTxtFileRO}) Leaf_,world)
 							else				= (False,Nothing,    Leaf_,world)
 
 	// cannot find the value at all
@@ -218,7 +218,7 @@ setState formid val formstates=:{fstates} world
 where
 	replaceState ::  !(FormId a) a *FStates *NWorld -> (*FStates,*NWorld)	| iPrint, iSpecialStore a	
 	replaceState formid val Leaf_ world 									// id not part of tree yet
-						= (Node_ Leaf_ (formid.id,NewState (initNewState formid.id (adjustlife formid.FormId.lifespan) Temp formid.storage val)) Leaf_,world)
+						= (Node_ Leaf_ (formid.id,NewState (initNewState formid.id (adjustlife formid.FormId.lifespan) LSTemp formid.storage val)) Leaf_,world)
 	replaceState formid val (Node_ left a=:(fid,fstate) right) world
 	| formid.id == fid	= (Node_ left (fid,NewState (initNewState formid.id formid.FormId.lifespan (detlifespan fstate) formid.storage val)) right,world)
 	| formid.id <  fid	= (Node_ nleft a right,nworld)
@@ -231,12 +231,12 @@ where
 	// NewState Handling routines 
 
 	initNewState :: !String !Lifespan !Lifespan !StorageFormat !a  -> FState | iPrint,  iSpecialStore a	
-	initNewState id Database olifespan PlainString   nv = {format = DBStr    (printToString nv) (writeGerda`   id nv), 	life = order Database olifespan}
-	initNewState id DataFile olifespan PlainString   nv = {format = CLDBStr  (printToString nv) (writeDataFile id nv), 	life = order DataFile olifespan}
-	initNewState id lifespan olifespan PlainString   nv = {format = PlainStr (printToString nv),                     	life = order lifespan olifespan}
-	initNewState id lifespan olifespan StaticDynamic nv = {format = StatDyn  (dynamic nv),                           	life = order lifespan olifespan}// convert the hidden state information stored in the html page
+	initNewState id LSDatabase olifespan PlainString   nv = {format = DBStr    (printToString nv) (writeGerda`   id nv), 	life = order LSDatabase olifespan}
+	initNewState id LSDataFile olifespan PlainString   nv = {format = CLDBStr  (printToString nv) (writeDataFile id nv), 	life = order LSDataFile olifespan}
+	initNewState id lifespan olifespan PlainString   nv = {format = PlainStr (printToString nv),                     		life = order lifespan olifespan}
+	initNewState id lifespan olifespan StaticDynamic nv = {format = StatDyn  (dynamic nv),                           		life = order lifespan olifespan}// convert the hidden state information stored in the html page
 
-	adjustlife TxtFileRO 	= TxtFile		// to enforce that a read only persistent file is written once
+	adjustlife LSTxtFileRO 	= LSTxtFile		// to enforce that a read only persistent file is written once
 	adjustlife life			= life
 
 	detlifespan (OldState formstate) = formstate.life
@@ -279,10 +279,10 @@ where
 		deletePersistentStorageIData (fid,OldState {life}) world 	= deleteStorage fid life world
 		deletePersistentStorageIData (fid,NewState {life}) world 	= deleteStorage fid life world
 
-		deleteStorage fid Database 		world=:{gerda}		= {world & gerda  	 = deleteGerda`    fid gerda}
-		deleteStorage fid DataFile 		world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
-		deleteStorage fid TxtFile 		world 				= deleteStateFile fid world
-		deleteStorage fid TxtFileRO 	world				= deleteStateFile fid world
+		deleteStorage fid LSDatabase 	world=:{gerda}		= {world & gerda  	 = deleteGerda`    fid gerda}
+		deleteStorage fid LSDataFile 	world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
+		deleteStorage fid LSTxtFile 	world 				= deleteStateFile fid world
+		deleteStorage fid LSTxtFileRO 	world				= deleteStateFile fid world
 		deleteStorage fid _ 			world 				= world
 
 // change storage option
@@ -329,11 +329,11 @@ where
 	where
 		// old states which have not been used this time, but with lifespan session, are stored again in the page
 		// other old states will have lifespan page or are persistent; they need not to be stored
-		htmlStateOf (fid,OldState {life=Session,format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=Session, state=stringval, format=PlainString}
-		htmlStateOf (fid,OldState {life=Session,format=StatDyn  dynval})	= Just  {HtmlState|formid=fid, lifespan=Session, state=dynamic_to_string dynval, format=StaticDynamic}
+		htmlStateOf (fid,OldState {life=LSSession,format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSSession, state=stringval, format=PlainString}
+		htmlStateOf (fid,OldState {life=LSSession,format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSSession, state=dynamic_to_string dynval, format=StaticDynamic}
 
-		htmlStateOf (fid,OldState {life=Client, format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=Client, state=stringval, format=PlainString}
-		htmlStateOf (fid,OldState {life=Client, format=StatDyn  dynval})	= Just  {HtmlState|formid=fid, lifespan=Client, state=dynamic_to_string dynval, format=StaticDynamic}		
+		htmlStateOf (fid,OldState {life=LSClient, format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSClient, state=stringval, format=PlainString}
+		htmlStateOf (fid,OldState {life=LSClient, format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSClient, state=dynamic_to_string dynval, format=StaticDynamic}		
 
 		htmlStateOf (fid,OldState s)										= Nothing
 
@@ -341,7 +341,7 @@ where
 		// temperal form don't need to be stored and can be skipped as well
 		// the state of all other new forms created are stored in the page 
 		htmlStateOf (fid,NewState {life})
-			| isMember life [Database,TxtFile,TxtFileRO,Temp,DataFile]		= Nothing
+			| isMember life [LSDatabase,LSTxtFile,LSTxtFileRO,LSDataFile,LSTemp]	= Nothing
 
 		htmlStateOf (fid,NewState {format = PlainStr string,life})			= Just {HtmlState|formid=fid, lifespan=life, state=string, format=PlainString}
 		htmlStateOf (fid,NewState {format = StatDyn dynval, life})			= Just {HtmlState|formid=fid, lifespan=life, state=dynamic_to_string dynval, format=StaticDynamic}
@@ -362,15 +362,15 @@ where
 		= (Node_ left st right, nworld)
 	
 	// only new states need to be stored, since old states have not been changed (assertion)
-	writeState (sid,NewState {format,life = Database}) nworld=:{gerda}
+	writeState (sid,NewState {format,life = LSDatabase}) nworld=:{gerda}
 		= case format of
 			DBStr   string gerdafun		= {nworld & gerda = gerdafun gerda}										// last value is stored in curried write function
 			StatDyn dynval				= {nworld & gerda = writeGerda` sid (dynamic_to_string dynval) gerda}	// write the dynamic as a string to the relational database
-	writeState (sid,NewState {format,life = DataFile}) nworld=:{datafile}
+	writeState (sid,NewState {format,life = LSDataFile}) nworld=:{datafile}
 		= case format of
 			CLDBStr   string dfilefun	= {nworld & datafile = dfilefun datafile}										// last value is stored in curried write function
 			StatDyn dynval				= {nworld & datafile = writeDataFile sid (dynamic_to_string dynval) datafile}	// write the dynamic as a string to the datafile
-	writeState (sid,NewState {format,life  = TxtFile}) nworld
+	writeState (sid,NewState {format,life  = LSTxtFile}) nworld
 		= IF_Client nworld 
 		 ( case format of
 				PlainStr string			= writeStateFile sid string nworld

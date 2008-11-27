@@ -1,7 +1,7 @@
 implementation module WorkListHandler
 
 import StdEnv
-import Http
+import Http, Session
 import Text
 import JSON
 import Time
@@ -18,9 +18,9 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 
 derive JSONEncode WorkListItem, TaskPriority
 
-handleWorkListRequest :: !(Task a) !HTTPRequest *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleWorkListRequest mainTask request hst
-	# thisUserId							= 0												// has to be fetched from the request in the future
+handleWorkListRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleWorkListRequest mainTask request session hst
+	# thisUserId							= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable,hst)	
 											= calculateTaskTree thisUserId False False False mainTask hst 	// Calculate the TaskTree given the id of the current user
 	# worklist								= [	{ taskid 		= mytaskdescr.taskNrId

@@ -257,8 +257,8 @@ where
 	| isNothing mbthread														// not yet, insert new entry		
 		# options 			= {options & tasklife = case threadkind of
 													ServerThread 		= options.tasklife // staticInfo.threadTableLoc
-													ClientServerThread 	= Client
-													ClientThread 		= Client
+													ClientServerThread 	= LSClient
+													ClientThread 		= LSClient
 													ExceptionHandler 	= options.tasklife  // staticInfo.threadTableLoc
 													else 				= abort "Storing unexpected thread kind"}
 		# (versionNr,tst)	= getCurrentAppVersionNr tst						// get current version number of the application
@@ -273,8 +273,8 @@ where
 									} tst 
 		= evalTask tst															// try it again, entry point should now be there
 	# (_,thread)		= fromJust mbthread										// entry point found
-	# tst				= if (options.tasklife == Client && 					// if iTasks for this thread are stored on client
-								(thread.thrOptions.tasklife <> Client ||		// but new thread is not to be stored on client 
+	# tst				= if (options.tasklife == LSClient && 					// if iTasks for this thread are stored on client
+								(thread.thrOptions.tasklife <> LSClient ||		// but new thread is not to be stored on client 
 								 staticInfo.currentUserId <> userId))			// or new thread is for someone else
 							forceEvalutionOnServer id tst						// storing on client is no longer possible
 	= evalTaskThread thread tst													// and evaluate it
@@ -292,7 +292,7 @@ where
 	# (mbparent,tst=:{hst})	= findNoClientParentThread tasknr tst
 	| isNothing mbparent = {tst & hst = hst}									// cannot find parent, we should abort ????
 	# parent 	= fromJust mbparent												// parent thread found which lifespan should be modified 
-	# hst		= changeLifespanIData (iTaskId userId (tl parent.thrTaskNr) "") Client parent.thrOptions.tasklife hst
+	# hst		= changeLifespanIData (iTaskId userId (tl parent.thrTaskNr) "") LSClient parent.thrOptions.tasklife hst
 	# tst 		= changeLifespanThreadTable parent.thrTaskNr parent.thrOptions.tasklife {tst & hst = hst}
 	= tst
 
@@ -300,7 +300,7 @@ where
 	# (mbparent,tst) 	= findParentThread tasknr tst
 	| isEmpty mbparent 	= (Nothing,tst)
 	# parent 			= hd mbparent										// thread found
-	| parent.thrOptions.tasklife == Client = findNoClientParentThread (tl parent.thrTaskNr) tst
+	| parent.thrOptions.tasklife == LSClient = findNoClientParentThread (tl parent.thrTaskNr) tst
 	= (Just parent,tst)
 
 	changeLifespanThreadTable :: !TaskNr !Lifespan *TSt -> *TSt						// change lifespan of of indicated thread in threadtable
@@ -315,8 +315,8 @@ evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
 evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = evalTaskThread` 
 where
 	evalTaskThread` tst=:{tasknr,options,userId,staticInfo,html}									
-	# newThrOptions					= if (thrOptions.tasklife == Client && thrUserId <> staticInfo.currentUserId) 
-											{thrOptions & tasklife = Temp}		// the information is not intended for this client, so dot store
+	# newThrOptions					= if (thrOptions.tasklife == LSClient && thrUserId <> staticInfo.currentUserId) 
+											{thrOptions & tasklife = LSTemp}		// the information is not intended for this client, so dot store
 											thrOptions
 			
 	# (a,tst=:{activated,html=nhtml}) 	
@@ -384,7 +384,7 @@ where
 ClientThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
 ClientThreadTableStorage fun = handleTable
 where
-	handleTable tst=:{staticInfo} = ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) Client fun tst 
+	handleTable tst=:{staticInfo} = ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) LSClient fun tst 
 
 	clientThreadTableId userid	= "User" <+++ userid  <+++ "-ThreadTable"
 

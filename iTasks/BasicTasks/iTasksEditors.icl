@@ -15,7 +15,7 @@ import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
 editTaskLabel tracename prompt task = \tst =:{options} -> mkTask tracename ((editTask` prompt task <<@ (nPage options)) <<@ Edit) tst
 where
-	nPage options = if (options.tasklife == Client) Client Page 
+	nPage options = if (options.tasklife == LSClient) LSClient LSPage 
 
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkTask "editTask" (editTask` prompt a)
@@ -54,7 +54,7 @@ where
 
 mySimpleButton :: !Options !String !String     !(a -> a) 				!*HSt -> (Form (a -> a),!*HSt)
 mySimpleButton options id label fun hst	
-							= FuncBut (Init, (nFormId id (iTaskButton label,fun)) <@ if (options.tasklife == Client) Client Page) hst
+							= FuncBut (Init, (nFormId id (iTaskButton label,fun)) <@ if (options.tasklife == LSClient) LSClient LSPage) hst
 
 iTaskButton :: String -> HtmlButton
 iTaskButton label = HtmlButton label False

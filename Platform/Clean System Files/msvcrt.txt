@@ -1,7 +1,7 @@
 msvcrt.dll
 asctime@4
 ctime@4
-clock@4
+clock@0
 time@4
 gmtime@4
 localtime@4

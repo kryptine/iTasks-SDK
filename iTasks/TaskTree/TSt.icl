@@ -25,7 +25,7 @@ initStaticInfo thisUser location
 
 initialOptions ::  !UserId !Lifespan  -> Options 
 initialOptions thisUser location 
-	=	{ tasklife 		= if (thisUser >= 0) location Session 
+	=	{ tasklife 		= if (thisUser >= 0) location LSSession 
 		, taskstorage 	= PlainString
 		, taskmode 		= Edit 
 		, gc			= Collect
