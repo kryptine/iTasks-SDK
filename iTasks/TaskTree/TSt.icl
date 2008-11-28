@@ -30,3 +30,7 @@ initialOptions thisUser location
 		, taskmode 		= Edit 
 		, gc			= Collect
 		}
+	
+
+appTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
+appTaskTSt (Task fn) tst = fn tst

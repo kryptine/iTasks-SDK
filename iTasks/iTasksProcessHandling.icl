@@ -126,44 +126,44 @@ scheduleWorkflows maintask
 	(IF_ClientServer															// we running both client and server
 		(IF_ClientTasks												
 			nmaintask															// workflow table only on server site, do only maintask
-			(scheduleWorkflows` nmaintask)										// access workflow store
+			(Task (scheduleWorkflows` nmaintask))								// access workflow store
 		)
-		(scheduleWorkflows` nmaintask)
+		(Task (scheduleWorkflows` nmaintask))
 	)
-	(scheduleWorkflows` nmaintask)
+	(Task (scheduleWorkflows` nmaintask))
 where
 	scheduleWorkflows` nmaintask tst 
-	# (a,tst=:{activated}) 	= nmaintask tst	// start maintask
+	# (a,tst=:{activated}) 	= appTaskTSt nmaintask tst	// start maintask
 	# ((_,wfls),tst) 		= workflowProcessStore id tst												// read workflow process administration
 	# (done,tst)			= scheduleWorkflowTable True wfls 0 {tst & activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})															// whole application ends when all processes have ended
 
 scheduleWorkflowTable done [] _ tst = (done,tst)
 scheduleWorkflowTable done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
-# (_,tst=:{activated}) = dyntask {tst & activated = True}
+# (_,tst=:{activated}) = appTaskTSt dyntask {tst & activated = True}
 = scheduleWorkflowTable (done && activated) wfls (inc procid) {tst & activated = activated}
 scheduleWorkflowTable done [SuspendedWorkflow _ _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
-# (_,tst) = dyntask tst
+# (_,tst) = appTaskTSt dyntask tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
-spawnWorkflow userid active (label,task) = \tst=:{options,staticInfo} -> (newTask ("spawn " +++ label) (spawnWorkflow` options)<<@ staticInfo.threadTableLoc) tst
+spawnWorkflow userid active (label,task) = Task (\tst=:{options,staticInfo} -> appTaskTSt ((newTask ("spawn " +++ label) (Task (spawnWorkflow` options))<<@ staticInfo.threadTableLoc)) tst)
 where
 	spawnWorkflow` options tst
 	# ((processid,wfls),tst) 		
 						= workflowProcessStore id tst							// read workflow process administration
 	# (found,entry)		= findFreeEntry wfls 1									// found entry in table
 	# processid			= processid + 1											// process id currently given by length list, used as offset in list
-	# wfl				= mkdyntask options entry processid task 				// convert user task in a dynamic task
+	# wfl				= mkdyntask options entry processid task				// convert user task in a dynamic task
 	# nwfls				= if found 
 							(updateAt (entry - 1) (if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) (TCl wfl)) wfls)
 							(wfls ++ [if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) (TCl wfl)])				// turn task into a dynamic task
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (processid,nwfls)) tst	// write workflow process administration
-	# (_,tst)			= if active wfl (\tst -> (undef,tst)) tst				// if new workflow is active, schedule it in
+	# (_,tst)			= appTaskTSt (if active wfl (Task (\tst -> (undef,tst)))) tst	// if new workflow is active, schedule it in
 	= (Wid (entry,(userid,processid,label)),{tst & activated = True})
 
 	findFreeEntry :: [WorkflowProcess] Int -> (Bool,Int)
@@ -172,7 +172,7 @@ where
 	findFreeEntry [_:wfls] n = findFreeEntry wfls (n + 1)
 
 	mkdyntask options entry processid task 
-	=  (\tst -> convertTask entry processid label task 
+	=  Task (\tst -> convertTask entry processid label task 
 				{tst & tasknr = [entry - 1],activated = True,userId = userid, options = options,workflowLink = (entry,(userid,processid,label))})
 	
 	convertTask entry processid label task tst
@@ -180,7 +180,7 @@ where
 	# ((processid,wfls),tst) 	= workflowProcessStore id tst					// read workflow process administration
 	# wfl						= wfls!!(entry - 1)								// fetch entry
 	# currentWorker				= getWorkflowUser wfl							// such that worker can be changed dynamically !
-	# (a,tst=:{activated})		= newTask label (assignTaskTo currentWorker ("main",task)) tst			
+	# (a,tst=:{activated})		= appTaskTSt (newTask label (assignTaskTo currentWorker ("main",task))) tst			
 
 	# dyn						= dynamic a
 	| not activated				= (dyn,tst)										// not finished, return
@@ -192,7 +192,7 @@ where
 	= (dyn,tst)												
 
 changeWorkflowUser :: !UserId !(Wid a) -> Task Bool 
-changeWorkflowUser nuser (Wid (entry,ids=:(_,_,label))) = newTask ("changeUser " +++ label) deleteWorkflow`
+changeWorkflowUser nuser (Wid (entry,ids=:(_,_,label))) = newTask ("changeUser " +++ label) (Task deleteWorkflow`)
 where
 	deleteWorkflow` tst
 	| entry == 0		= (False,tst)											// main task cannot be handled
@@ -206,7 +206,7 @@ where
 	= (True,tst)																// if everything is fine it should always succeed
 
 waitForWorkflow :: !(Wid a) -> Task (Maybe a) | iData a
-waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) waitForResult`
+waitForWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("waiting for " +++ label) (Task waitForResult`)
 where
 	waitForResult` tst
 	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
@@ -234,7 +234,7 @@ where
 */
 
 waitForWorkflowWid :: !String -> Task (Maybe (Wid a)) | iData a
-waitForWorkflowWid labelSearched = newTask ("waiting for " +++ labelSearched) waitForResult`
+waitForWorkflowWid labelSearched = newTask ("waiting for " +++ labelSearched) (Task waitForResult`)
 where
 	waitForResult` tst
 	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration
@@ -248,14 +248,14 @@ where
 	= (Just (Wid (entry,getWorkflowWid (wfls!!(entry - 1)))),{tst & activated = True})						// entry found
 
 deleteMe :: (Task Void)
-deleteMe = deleteMe`
+deleteMe = Task deleteMe`
 where
 	deleteMe` tst=:{workflowLink} 
-	=	(				deleteWorkflow (Wid workflowLink)
+	=	appTaskTSt (				deleteWorkflow (Wid workflowLink)
 			=>> \_ ->	return_V Void ) tst
 
 deleteWorkflow :: !(Wid a) -> Task Bool 
-deleteWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("delete " +++ label) deleteWorkflow`
+deleteWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("delete " +++ label) (Task deleteWorkflow`)
 where
 	deleteWorkflow` tst
 	| entry == 0		= (False,tst)											// main task cannot be handled
@@ -266,20 +266,20 @@ where
 	| isDeletedWorkflow wfl = (True,tst)										// already deleted
 	# nwfls				= updateAt (entry - 1) (DeletedWorkflow ids) wfls		// delete entry in table
 	# (wfls,tst=:{html}) = workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	# (_,tst)			= (getTask wfl) {tst & html = BT [] []}					// calculate workflow to delete for the last time to obtain all its itasks in the task tree
+	# (_,tst)			= appTaskTSt (getTask wfl) {tst & html = BT [] []}					// calculate workflow to delete for the last time to obtain all its itasks in the task tree
 	# tst				= deleteSubTasksAndThreads [entry] tst					// delete all iTask storage of this process ...
 	= (True,{tst & html = html, activated = True})												// if everything is fine it should always succeed
 
 suspendMe :: (Task Void)
-suspendMe = suspendMe`
+suspendMe = Task suspendMe`
 where
 	suspendMe` tst=:{workflowLink = workflowLink=:(entry,ids)} 
 	| entry == 0		= (Void,tst)											// main task cannot be handled
-	=	(				suspendWorkflow (Wid workflowLink)
+	= appTaskTSt (	suspendWorkflow (Wid workflowLink)
 			=>> \_ ->	return_V Void ) tst
 
 suspendWorkflow :: !(Wid a) -> Task Bool
-suspendWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("suspend " +++ label) deleteWorkflow`
+suspendWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("suspend " +++ label) (Task deleteWorkflow`)
 where
 	deleteWorkflow` tst
 	| entry == 0		= (False,tst)											// main task cannot be handled
@@ -297,7 +297,7 @@ where
 	= (ok,tst)																	// if everything is fine it should always succeed
 
 activateWorkflow :: !(Wid a) -> Task Bool
-activateWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("activate " +++ label) activateWorkflow`
+activateWorkflow (Wid (entry,ids=:(_,_,label))) = newTask ("activate " +++ label) (Task activateWorkflow`)
 where
 	activateWorkflow` tst
 	| entry == 0		= (False,tst)											// main task cannot be handled
@@ -313,7 +313,7 @@ where
 	scheduleWorkflow label maxid (TCl wfl) wfls tst										
 	# nwfls				= updateAt (entry - 1) (ActiveWorkflow label (TCl wfl)) wfls // mark workflow as activated
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	# (_,tst)			= wfl {tst & activated = True}							// schedule workflow
+	# (_,tst)			= appTaskTSt wfl {tst & activated = True}				// schedule workflow
 	= (True,tst)																// done
 
 
@@ -343,7 +343,7 @@ where
 
 */
 getWorkflowStatus :: !(Wid a) -> Task WorkflowStatus
-getWorkflowStatus (Wid (entry,ids=:(_,_,label))) = newTask ("get status " +++ label) getWorkflowStatus`
+getWorkflowStatus (Wid (entry,ids=:(_,_,label))) = newTask ("get status " +++ label) (Task getWorkflowStatus`)
 where
 	getWorkflowStatus` tst
 	# ((_,wfls),tst) 	= workflowProcessStore id tst							// read workflow process administration

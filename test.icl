@@ -6,15 +6,20 @@ import StdEnv, StdiTasks, iData
 derive gForm []
 derive gUpd []
 
+
+
 Start :: *World -> *World
-Start world = startTaskEngine  myTask world
+Start world = startTaskEngine myTask world
+/*
+myTask :: Task Int
+myTask = editTask "Done" createDefault
+*/
 
 myTask :: Task Void
 myTask =
 	2 @:: editTask "Get Started" Void												#>>
 	3 @:: ([Text "What do you want to tell your boss?"] ?>> editTask "Shout" "")	=>> \msg ->
 	2 @:: ([Text "Worker says: ",Text msg] ?>> editTask "Ok" Void)
-	
 /*
 Start :: *World -> *World
 Start world = startTaskEngine (( (0 @:: processTask) -&&-  (0 @:: myTask))  )world

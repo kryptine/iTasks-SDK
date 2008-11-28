@@ -56,26 +56,26 @@ incNr [i:is] = [i+1:is]
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 
 mkTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
-mkTask taskname mytask = mkTaskNoInc taskname mytask o incTaskNr
+mkTask taskname mytask = Task (appTaskTSt (mkTaskNoInc taskname mytask) o incTaskNr)
 
 mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
-mkTaskNoInc taskname mytask = mkTaskNoInc`
+mkTaskNoInc taskname mytask = Task mkTaskNoInc`
 where
 	mkTaskNoInc` tst=:{activated,tasknr,userId,options}		
-	| not activated							= (createDefault,tst)	// not active, don't call task, return default value
-	# (val,tst=:{activated,trace})			= mytask tst			// active, so perform task and get its result
+	| not activated							= (createDefault,tst)			// not active, don't call task, return default value
+	# (val,tst=:{activated,trace})			= appTaskTSt mytask tst			// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
 	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val%(0,60)) (fromJust trace))}) // adjust trace, don't print to long values
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
-mkParSubTask name i task = mkParSubTask`
+mkParSubTask name i task = Task mkParSubTask`
 where
 	mkParSubTask` tst=:{tasknr, options}
-	# (v,tst) = mkTaskNoInc (name <+++ "." <+++ i) mysubtask {tst & tasknr = [i:tasknr],activated = True} // shift task
+	# (v,tst) = appTaskTSt (mkTaskNoInc (name <+++ "." <+++ i) (Task mysubtask)) {tst & tasknr = [i:tasknr],activated = True} // shift task
 	= (v,{tst & tasknr = tasknr, options = options})
 	where
-		mysubtask tst=:{tasknr} = task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
+		mysubtask tst=:{tasknr} = appTaskTSt task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
 
 // ******************************************************************************************************
 // Trace Insertion ...
@@ -169,7 +169,7 @@ gUpd{|TCl|} gc (UpdSearch 0 _)	  	 c		= (UpdDone, c)
 gUpd{|TCl|} gc (UpdSearch cntr val)  c		= (UpdSearch (cntr - 2) val,c)						
 gUpd{|TCl|} gc (UpdCreate l)        _		
 # (mode,default)	= gc (UpdCreate l) undef
-= (UpdCreate l, TCl (\tst -> (default,tst)))			
+= (UpdCreate l, TCl (Task (\tst -> (default,tst))))			
 gUpd{|TCl|} gc mode                 b		= (mode, b)										
 
 gForm{|TCl|} gfa (init,formid) hst

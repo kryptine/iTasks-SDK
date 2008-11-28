@@ -24,15 +24,15 @@ derive gParse	Time
 // monads for combining iTasks
 
 (=>>) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
-(=>>) taska taskb = mybind
+(=>>) taska taskb = Task mybind
 where
 	mybind tst=:{options}
-	# (a,tst=:{activated}) = taska tst
-	| activated	= taskb a {tst & options = options}
-	= (createDefault,tst)
+	# (a,tst=:{activated}) = appTaskTSt taska tst
+	| activated	= appTaskTSt (taskb a) {tst & options = options}
+				= (createDefault,tst)
 
 return_V :: !a -> (Task a) | iCreateAndPrint a
-return_V a  = mkTask "return_V" dotask
+return_V a  = mkTask "return_V" (Task dotask)
 where
 	dotask tst = (a,tst) 
 
@@ -41,14 +41,14 @@ where
 // newTask needed for recursive task creation
 
 newTask :: !String !(Task a) -> (Task a) 	| iData a 
-newTask taskname mytask = mkTask taskname newTask`
+newTask taskname mytask = mkTask taskname (Task newTask`)
 where
 	newTask` tst=:{tasknr,userId,options}		
 	# taskId					= iTaskId userId tasknr taskname
 	# (taskval,tst) 			= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
 	# (taskdone,taskvalue)		= taskval.Form.value										// select values
 	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
-	# (val,tst=:{activated})	= mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
+	# (val,tst=:{activated})	= appTaskTSt mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
 	| not activated				= (createDefault,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
 	# tst						= deleteSubTasksAndThreads tasknr tst				// task ready, garbage collect it
 	# (_,tst) 					= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
@@ -56,14 +56,14 @@ where
 
 
 Once :: !String !(Task a) -> (Task a) | iData a
-Once label task = mkTask label doit
+Once label task = mkTask label (Task doit)
 where
 	doit tst=:{activated,html,tasknr,hst,userId,options}
 	# taskId			= iTaskId userId tasknr (label +++ "_")
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
 	# (done,value)		= store.Form.value
 	| done 				= (value,{tst & hst = hst})													// if task has completed, don't do it again
-	# (value,tst=:{hst})= task {tst & hst = hst}
+	# (value,tst=:{hst})= appTaskTSt task {tst & hst = hst}
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
 	# (done,value)		= store.Form.value
 	= (value,{tst & activated = done, hst = hst})													// task is now completed, handle as previously
@@ -75,16 +75,16 @@ where
 // otherwise, when task finshed it will remember the new tasknr to prevent checking of previously finished tasks
 
 foreverTask :: !(Task a) -> Task a | iData a
-foreverTask task = mkTask "foreverTask" foreverTask`
+foreverTask task = mkTask "foreverTask" (Task foreverTask`)
 where
 	foreverTask` tst=:{tasknr,activated,userId,options,html} 
 	| options.gc == Collect																				// garbace collect everything when task finsihed
-		# (val,tst=:{activated})= task {tst & tasknr = [-1:tasknr]}										// shift tasknr
+		# (val,tst=:{activated})= appTaskTSt task {tst & tasknr = [-1:tasknr]}							// shift tasknr
 		| activated 			= foreverTask` (deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr, options = options, html = html}) 			// loop
 		= (val,tst)					
 	# taskId					= iTaskId userId tasknr "ForSt"											// create store id
 	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst		// fetch actual tasknr
-	# (val,tst=:{activated})	= task {tst & tasknr = [-1:currtasknr.Form.value]}
+	# (val,tst=:{activated})	= appTaskTSt task {tst & tasknr = [-1:currtasknr.Form.value]}
 	| activated 																						// task is completed	
 		# ntasknr				= incNr currtasknr.Form.value												// incr tasknr
 		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
@@ -92,10 +92,10 @@ where
 	= (val,tst)					
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
-(<!) taska pred = mkTask "less!" doTask
+(<!) taska pred = mkTask "less!" (Task doTask)
 where
 	doTask tst=:{activated, tasknr}
-	# (a,tst=:{activated}) 	= taska {tst & tasknr = [-1:tasknr]}
+	# (a,tst=:{activated}) 	= appTaskTSt taska {tst & tasknr = [-1:tasknr]}
 	| not activated 		= (a,tst)
 	| not (pred a)			
 		# tst = deleteSubTasksAndThreads [0:tasknr] tst
@@ -107,13 +107,13 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
-assignTaskTo nuserId (taskname,taska) = assignTaskTo`
+assignTaskTo nuserId (taskname,taska) = Task assignTaskTo`
 where
 	assignTaskTo` tst=:{html=ohtml,tasknr,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
 	| not activated						= (createDefault,tst)
-	# (currtime,tst)					= appWorldOnce ("Task: " +++ taskname +++ " For: " +++ toString nuserId) time tst
+	# (currtime,tst)					= appTaskTSt (appWorldOnce ("Task: " +++ taskname +++ " For: " +++ toString nuserId) time) tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= IF_Ajax (UseAjax @>> taska) taska {tst & html = BT [] [],userId = nuserId}		// activate task of indicated user
+	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user
 	| activated 						= (a,{tst & activated = True						// work is done	
 												  ,	userId = userId							// restore previous user id						
 												  ,	html = ohtml })							// plus new one tagged
@@ -134,7 +134,7 @@ where
 
 seqTasks :: ![LabeledTask a] -> (Task [a])| iCreateAndPrint a
 seqTasks [(label,task)] = task =>> \na -> return_V [na]
-seqTasks options = mkTask "seqTasks" seqTasks`
+seqTasks options = mkTask "seqTasks" (Task seqTasks`)
 where
 	seqTasks` tst=:{tasknr}
 	# (val,tst)	 = doseqTasks options [] {tst & tasknr = [-1:tasknr]}
@@ -143,7 +143,7 @@ where
 	doseqTasks [] accu tst 		= (reverse accu,{tst & activated = True})
 	doseqTasks [(taskname,task):ts] accu tst=:{html,options} 
 	# (a,tst=:{activated=adone,html=ahtml}) 
-									= task {tst & activated = True, html = BT [] []}
+									= appTaskTSt task {tst & activated = True, html = BT [] []}
 	| not adone						= (reverse accu,{tst & html = html +|+ BT [showLabel taskname,BrTag [] ,BrTag []] [] +|+ ahtml})
 	= doseqTasks ts [a:accu] {tst & html = html +|+ ahtml, options = options}
 
@@ -163,7 +163,7 @@ where
 
 allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label chooser pred taskCollection 
-= 					mkTask "andTasksCond" (doandTasks chooser taskCollection)
+= 					mkTask "andTasksCond" (Task (doandTasks chooser taskCollection))
 where
 	lengthltask = length taskCollection 
 
@@ -185,7 +185,7 @@ where
 		showtasks :: !String ![(!Int,!LabeledTask a)] !*TSt -> *(![a],!*TSt) | iCreateAndPrint a
 		showtasks _ [] tst			= ([],tst)
 		showtasks label [(chosen,(name,chosenTask)):tasks] tst=:{html=html}
-		# (a,tst=:{html=ahtml}) 	= mkParSubTask label chosen chosenTask {tst & tasknr = tasknr, activated = True, html = BT [] []}
+		# (a,tst=:{html=ahtml}) 	= appTaskTSt (mkParSubTask label chosen chosenTask) {tst & tasknr = tasknr, activated = True, html = BT [] []}
 		# (as,tst=:{html=ashtml})	= showtasks label tasks {tst & html = BT [] []}
 		= ([a:as],{tst & html = html +|+ ahtml +|+ ashtml})			
 
@@ -195,7 +195,7 @@ where
 		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),{tst & activated = bool})			// all tasks tested
 		# (taskname,task)		= taskCollection!!ctasknr
 		# (a,tst=:{activated = adone,html=html})	
-								= mkParSubTask traceid ctasknr task {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
+								= appTaskTSt (mkParSubTask traceid ctasknr task) {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
 		| adone					= checkAllTasks traceid taskCollection (inc ctasknr) bool ([a:alist],[html:acode]) {tst & tasknr = tasknr, activated = True}
 		= checkAllTasks traceid taskCollection (inc ctasknr) False (alist,[html:acode]) {tst & tasknr = tasknr, activated = True}
 
@@ -218,71 +218,71 @@ closureLZTask	:: Same, but now the original task will not be done unless someone
 */
 
 (-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,TCl a)) | iCreateAndPrint s & iCreateAndPrint a
-(-!>)  stoptask task =  mkTask "-!>" stop`
+(-!>)  stoptask task =  mkTask "-!>" (Task stop`)
 where
 	stop` tst=:{tasknr,html,options,userId}
-	# (val,tst=:{activated = taskdone,html = taskhtml}) = task     {tst & activated = True, html = BT [] [], tasknr = normalTaskId,options = options}
-	# (s,  tst=:{activated = stopped, html = stophtml})	= stoptask {tst & activated = True, html = BT [] [], tasknr = stopTaskId,  options = options}
-	| stopped	= return_V (Just s, TCl (close task))   {tst & html = html, activated = True}
-	| taskdone	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml, activated = True}
-	= return_V (Nothing,TCl (return_V val)) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}
+	# (val,tst=:{activated = taskdone,html = taskhtml}) = appTaskTSt task     {tst & activated = True, html = BT [] [], tasknr = normalTaskId,options = options}
+	# (s,  tst=:{activated = stopped, html = stophtml})	= appTaskTSt stoptask {tst & activated = True, html = BT [] [], tasknr = stopTaskId,  options = options}
+	| stopped	= appTaskTSt (return_V (Just s, TCl (Task (close task))))   {tst & html = html, activated = True}
+	| taskdone	= appTaskTSt (return_V (Nothing,TCl (return_V val))) {tst & html = html +|+ taskhtml, activated = True}
+	= appTaskTSt (return_V (Nothing,TCl (return_V val))) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}
 	where
-		close t = \tst -> t {tst & tasknr = normalTaskId, options = options, userId = userId} // reset userId because it influences the task id
+		close t = \tst -> appTaskTSt t {tst & tasknr = normalTaskId, options = options, userId = userId} // reset userId because it influences the task id
 
 		stopTaskId 		= [-1,0:tasknr]
 		normalTaskId  	= [-1,1:tasknr]
 
 channel  :: String (Task a) -> (Task (TCl a,TCl a)) | iCreateAndPrint a
-channel name task =  mkTask "channel" (doSplit name task)
+channel name task =  mkTask "channel" (Task (doSplit name task))
 
 doSplit name task tst=:{tasknr,options,userId}
-= return_V (TCl (sender myTask),TCl (receiver myTask)) tst
+= appTaskTSt (return_V (TCl (Task (sender (Task myTask))),TCl (Task (receiver (Task myTask))))) tst
 where
-	myTask tst = task {tst & tasknr = [-1:tasknr], options = options, userId = userId}
+	myTask tst = appTaskTSt task {tst & tasknr = [-1:tasknr], options = options, userId = userId}
 
 	sender task tst=:{activated,tasknr}
 	| not activated				= (createDefault,tst)
-	# (val,tst) 				= task tst
+	# (val,tst) 				= appTaskTSt task tst
 	= (val,{tst & tasknr = tasknr})
 
 	receiver task  tst=:{activated,tasknr,html}
 	| not activated			 	= (createDefault,tst)
-	# (val,tst=:{activated}) 	= task tst
+	# (val,tst=:{activated}) 	= appTaskTSt task tst
 	| activated	= (val,{tst & html = html, activated = True , tasknr = tasknr})
 	= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
 
 closureTask  ::  (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
-closureTask (name, task) = mkTask ("closure " +++ name) mkClosure
+closureTask (name, task) = mkTask ("closure " +++ name) (Task mkClosure)
 where
 	mkClosure tst=:{tasknr,options,userId}
 	# ((TCl sa,ra),tst) 	= doSplit name task tst
-	# (_,tst)     			= sa {tst & activated = True}
+	# (_,tst)     			= appTaskTSt sa {tst & activated = True}
 	= (ra, {tst & activated = True})
 
 closureLzTask  :: (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
-closureLzTask (name, task) = mkTask ("lazy closure " +++ name) mkClosure
+closureLzTask (name, task) = mkTask ("lazy closure " +++ name) (Task mkClosure)
 where
 	mkClosure tst=:{tasknr,options,userId}
 	# ((TCl sa,ra),tst) 	= doSplit name task tst
-	# (_,tst)     			= sa tst
+	# (_,tst)     			= appTaskTSt sa tst
 	= (ra, {tst & activated = True})
 
 	doSplit name task tst=:{tasknr,options,userId}
-	= return_V (TCl (sender myTask),TCl (receiver myTask)) tst
+		= appTaskTSt (return_V (TCl (Task (sender (Task myTask))),TCl (Task (receiver (Task myTask))))) tst
 	where
-		myTask tst = task {tst & tasknr = [-1:tasknr], options = options, userId = userId}
+		myTask tst = appTaskTSt task {tst & tasknr = [-1:tasknr], options = options, userId = userId}
 	
 		sender task tst=:{activated,tasknr}
 		| not activated				= (createDefault,tst)
 		# (requested,tst)			= (sharedMem id) tst  // is this task demanded ?
 		| not requested.Form.value	= (createDefault,tst)
-		# (val,tst) 				= task tst
+		# (val,tst) 				= appTaskTSt task tst
 		= (val,{tst & tasknr = tasknr})
 	
-		receiver task  tst=:{activated,tasknr,html}
+		receiver task tst=:{activated,tasknr,html}
 		| not activated			 	= (createDefault,tst)
 		# (requested,tst)			= (sharedMem (\_ -> True)) tst  // this task is now demanded !
-		# (val,tst=:{activated}) 	= task tst
+		# (val,tst=:{activated}) 	= appTaskTSt task tst
 		| activated	= (val,{tst & html = html, activated = True , tasknr = tasknr})
 		= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
 

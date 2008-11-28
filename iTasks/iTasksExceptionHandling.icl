@@ -27,7 +27,7 @@ Raise :: e -> Task a | iCreate a & TC e
 Raise e = RaiseDyn (dynamic e)
 
 (<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e			// create an exception Handler
-(<^>) exceptionfun task = newTask "exceptionHandler" evalTask			
+(<^>) exceptionfun task = newTask "exceptionHandler" (Task evalTask)		
 where
 	evalTask tst=:{tasknr=mytasknr,options=myoptions,userId=myuserId,workflowLink}	// thread - task is not yet finished
 	# (mbthread,tst)		= findThreadInTable ExceptionHandler mytasknr tst	// look if there is an exceptionhandler for this task
@@ -42,23 +42,23 @@ where
 									, thrKind			= ExceptionHandler
 									, thrVersionNr		= versionNr
 									} tst 
-		= task tst																// do the regular task
-	= task tst																	// do the regular task
+		= appTaskTSt task tst																// do the regular task
+	= appTaskTSt task tst																	// do the regular task
 	where
 		Try :: !(e -> a) !Dynamic  -> Task a |  iCreateAndPrint a & TC e
-		Try exceptionfun (exception :: e^) = catch1 							// handler for this type found
+		Try exceptionfun (exception :: e^) = Task catch1 						// handler for this type found
 		with 
 			catch1 tst=:{tasknr,userId,options}
 			# tst 		= deleteSubTasksAndThreads mytasknr tst					// remove all work administrated below handler
-			= return_V (exceptionfun exception) tst								// return exceptional result
-		Try _ dynamicValue = catch2												// wrong handler
+			= appTaskTSt (return_V (exceptionfun exception)) tst				// return exceptional result
+		Try _ dynamicValue = Task catch2										// wrong handler
 		with
 			catch2 tst=:{tasknr} 
 			# tst = deleteSubTasksAndThreads (tl tasknr) tst					// delete handler + task
-			= RaiseDyn dynamicValue tst											// look for another handler
+			= appTaskTSt (RaiseDyn dynamicValue) tst											// look for another handler
 
 RaiseDyn :: !Dynamic -> Task a | iCreate a
-RaiseDyn dynamicValue = raise
+RaiseDyn dynamicValue = Task raise
 where
 	raise tst=:{tasknr,staticInfo,activated}
 	| not activated = (createDefault,tst)	
@@ -69,14 +69,14 @@ where
 									&& not (isMember thread.thrTaskNr version.deletedThreads) // and not deleted by some global actions	
 							  ] 
 	| isEmpty mbthread		= abort	("\nException raised, but no handler installed or activa anymore\n")	// no handler installed
-	= evalException (hd mbthread) dynamicValue {tst & html = BT [] [], hst = hst}	// yes, *finally*, we heave found an handler
+	= appTaskTSt (evalException (hd mbthread) dynamicValue) {tst & html = BT [] [], hst = hst}	// yes, *finally*, we heave found an handler
 
 evalException :: !TaskThread !Dynamic -> Task a 								// execute the thread !!!!
-evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = evalException` 
+evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = Task evalException` 
 where
 	evalException` tst=:{tasknr,options,userId,html}									
 	# (doClient,noThread)  				= IF_ClientTasks (True,thrCallbackClient == "") (False,False)  
 	| doClient && noThread				= abort "Cannot execute thread on Client\n" 
 	= IF_ClientTasks
 		(abort "exception handling not implemeneted") 							//(deserializeThreadClient thrCallbackClient)
-		(deserializeExceptionHandler thrCallback dynval	{tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT [] []})
+		(appTaskTSt (deserializeExceptionHandler thrCallback dynval) {tst & tasknr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT [] []})

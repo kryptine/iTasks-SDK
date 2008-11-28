@@ -13,12 +13,12 @@ import iTasksTypes
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
-editTaskLabel tracename prompt task = \tst =:{options} -> mkTask tracename ((editTask` prompt task <<@ (nPage options)) <<@ Edit) tst
+editTaskLabel tracename prompt task = Task (\tst =:{options} -> appTaskTSt (mkTask tracename ((Task (editTask` prompt task) <<@ (nPage options)) <<@ Edit)) tst)
 where
 	nPage options = if (options.tasklife == LSClient) LSClient LSPage 
 
 editTask :: !String !a -> (Task a) | iData a 
-editTask prompt a = mkTask "editTask" (editTask` prompt a)
+editTask prompt a = mkTask "editTask" (Task (editTask` prompt a))
 
 editTask` prompt a tst=:{tasknr,html,hst,userId}
 # taskId			= iTaskId userId tasknr "EdFin"
@@ -35,7 +35,7 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 = (editor.Form.value,{tst & activated = taskdone.Form.value, html = html +|+ BT (editor.form ++ finbut.form) (editor.inputs ++ finbut.inputs), hst = hst})
 
 editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
-editTaskPred  a pred = mkTask "editTask" (editTaskPred` a)
+editTaskPred  a pred = mkTask "editTask" (Task (editTaskPred` a))
 where
 	editTaskPred` a tst=:{tasknr,html,hst,userId}
 	# taskId			= iTaskId userId tasknr "EdFin"

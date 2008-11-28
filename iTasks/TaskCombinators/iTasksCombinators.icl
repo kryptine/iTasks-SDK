@@ -43,12 +43,12 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
 repeatTask task pred a = dorepeatTask a
 where
 	dorepeatTask a 
-	= newTask "repeatTask" dorepeatTask`
+	= newTask "repeatTask" (Task dorepeatTask`)
 	where
 		dorepeatTask` tst
 		| pred a	= (a,tst) 
-		# (na,tst)	= task a tst	
-		= dorepeatTask na tst
+		# (na,tst)	= appTaskTSt (task a) tst	
+		= appTaskTSt (dorepeatTask na) tst
 
 (<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iData a
 (<|) taska pred = newTask "repeatTest" doTask
@@ -65,10 +65,10 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:) nuserId ltask=:(taskname,task) = assigntask
+(@:) nuserId ltask=:(taskname,task) = Task assigntask
 where
 	assigntask tst=:{userId} 
-	= 				([showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,BrTag []]
+	= 				appTaskTSt ([showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,BrTag []]
 					?>> assignTaskTo nuserId (taskname,[showText "Requested by ", showUser userId,BrTag [] ,BrTag []] ?>> task)) tst
 
 	showUser nr = showLabel ("User " <+++ nr)
@@ -89,7 +89,7 @@ chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks =>> \la -> return_V (hd la)		
 where
-	selectTask_btn direction ltasks = newTask "selectTask_btn" (selectTask_btn` direction ltasks)		
+	selectTask_btn direction ltasks = newTask "selectTask_btn" (Task (selectTask_btn` direction ltasks))	
 
 	selectTask_btn` _ [] tst		= return [] tst				
 	selectTask_btn` horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
@@ -110,7 +110,7 @@ chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la)		
 where
-	selectTask_pdm initial ltasks = newTask "selectTask_pdm" (selectTask_pdm` initial ltasks)		
+	selectTask_pdm initial ltasks = newTask "selectTask_pdm" (Task (selectTask_pdm` initial ltasks))
 
 	selectTask_pdm` _ [] tst			= return createDefault tst	
 	selectTask_pdm` defaultOn taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
@@ -122,7 +122,7 @@ where
 		# taskPdMenuId					= iTaskId userId tasknr ("ChoPdm" <+++ numberOfItems)
 		# (choice,tst)					= liftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (defaultOn,[(txt,id) \\ txt <- map fst taskOptions]))) tst
 		# (_,tst=:{activated=adone,html=ahtml})	
-										= editTaskLabel "" "Done" Void {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 	
+										= appTaskTSt (editTaskLabel "" "Done" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 	
 		| not adone						= ([],{tst & activated = False, html = html +|+ BT prompt [] +|+ BT choice.form choice.inputs +|+ ahtml, tasknr = tasknr})
 		# chosenIdx						= snd choice.Form.value
 		# chosenTask					= snd (taskOptions!!chosenIdx)
@@ -136,7 +136,7 @@ chooseTask_cbox order prompt code_ltasks
 = selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks)		
 where
 	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,![HtmlTag])] ![LabeledTask a] -> Task [Int]
-	selectTask_cbox htmlcodes taskOptions = newTask "selectTask_cbox" (selectTask_cbox` taskOptions)
+	selectTask_cbox htmlcodes taskOptions = newTask "selectTask_cbox" (Task (selectTask_cbox` taskOptions))
 	where
 		selectTask_cbox` [] tst	= ([],{tst& activated = True})
 		selectTask_cbox` taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
@@ -149,7 +149,7 @@ where
 		# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
 	
 		# (_,tst=:{html=ahtml,activated = adone})
-								= (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 
+								= appTaskTSt (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 
 		| not adone	
 			# optionsform		= cboxes.form <=|> [[showLabel label] <||> htmlcode \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
 			= ([],{tst & html = html +|+  BT [optionsform] cboxes.inputs +|+ ahtml})
@@ -219,9 +219,9 @@ where
 (-&&-) taska taskb = newTask "-&&-" (andTask2 (taska,taskb))
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
-orTasks []				= return createDefault
+orTasks []				= Task (return createDefault)
 orTasks taskCollection	= newTask "orTasks" (andTasksCond "or Tasks" (\list -> length list >= 1) taskCollection)
-							=>> \list -> return  (hd list)
+							=>> \list -> (Task (return  (hd list)))
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 

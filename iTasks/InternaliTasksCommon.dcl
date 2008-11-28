@@ -18,7 +18,7 @@ derive gParse 	TCl
 derive read 	TCl
 derive write 	TCl
 
-:: Task a		:== *TSt -> *(!a,!*TSt)											// an iTask is state transition function
+
 :: TCl a 		= 	TCl !.(Task a)												// task closure, container for a task used for higher order tasks (task which deliver a task)			
 
 

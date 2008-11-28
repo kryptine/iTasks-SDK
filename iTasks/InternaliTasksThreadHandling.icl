@@ -117,7 +117,7 @@ calculateTasks thisUser pversion maintask tst
 where
 	startMainTask :: !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) 	// No threads, always start from scratch		
 	startMainTask task tst
-	# (_,tst=:{activated}) = task tst
+	# (_,tst=:{activated}) = appTaskTSt task tst
 	= ((True,defaultUser,[0],if activated "iTask application has ended" "",[]),{tst & activated = activated})
 
 // ******************************************************************************************************
@@ -142,7 +142,7 @@ startAjaxApplication thisUser versioninfo maintask tst=:{tasknr,options,html,tra
 | isNothing mbevent																// no events
 						= startFromRoot versioninfo tasknr [tasknr] "No events, page refreshed" maintask tst			
 # event					= fromJust mbevent										// event found
-# (table,tst)			= ThreadTableStorage id tst								// read thread table
+# (table,tst)			= appTaskTSt (ThreadTableStorage id) tst				// read thread table
 | isEmpty table																	// events, but no threads, evaluate main application from scratch
 						= startFromRoot versioninfo event [tasknr] "No threads, page refreshed" maintask tst			
 # (mbthread,tst)		= findParentThread event tst							// look for thread to evaluate
@@ -161,7 +161,7 @@ startAjaxApplication thisUser versioninfo maintask tst=:{tasknr,options,html,tra
 
 // ok, we have found a matching thread
 
-# (_,tst=:{activated}) 	= evalTaskThread thread {tst & html = BT [] []}			// evaluate the thread
+# (_,tst=:{activated}) 	= appTaskTSt (evalTaskThread thread) {tst & html = BT [] []} // evaluate the thread
 | not activated																	// thread / task not yet finished
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
 	= ((False,thisUser,event,"",[thread.thrTaskNr]),tst)						// no further evaluation, aks user for more input
@@ -176,7 +176,7 @@ where
 	| parent.thrUserId <> thisUser												// updating becomes too complicated
 						= startFromRoot versioninfo event [tasknr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask {tst & html = BT [] []}			
 
-	# (_,tst=:{activated}) 	= evalTaskThread parent {tst & html = BT [] []}		// start parent
+	# (_,tst=:{activated}) 	= appTaskTSt (evalTaskThread parent) {tst & html = BT [] []}		// start parent
 	| not activated																// parent thread not yet finished
 		# tst				= copyThreadTableToClient tst						// copy thread table to client
 		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
@@ -217,7 +217,7 @@ where
 	evaluateFromRoot :: !GlobalInfo !TaskNr ![TaskNr] !String !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),*TSt)
 	evaluateFromRoot versioninfo eventnr tasknrs message maintask tst
 	# tst					= deleteAllSubTasks versioninfo.deletedThreads tst	// delete subtasks being obsolute
-	# (_,tst) 				= maintask tst										// evaluate main application from scratch
+	# (_,tst) 				= appTaskTSt maintask tst							// evaluate main application from scratch
 	# tst=:{activated}		= copyThreadTableToClient tst						// copy thread table to client, if applicable
 	# message				= if activated "iTask application finished" message
 	= (((True,defaultUser,eventnr,message,tasknrs), {tst & activated = activated}))
@@ -250,7 +250,7 @@ mkTaskThread OnClient taska
 	taska 																		// no threads made at all
 
 mkTaskThread2 :: !ThreadKind !(Task a) -> Task a 								// execute a thread
-mkTaskThread2 threadkind task = evalTask																
+mkTaskThread2 threadkind task = Task evalTask																
 where
 	evalTask tst=:{tasknr,activated,options,userId,staticInfo,workflowLink}		// thread - task is not yet finished
 	# (mbthread,tst)	= findThreadInTable threadkind tasknr tst				// look if there is an entry for this task
@@ -277,7 +277,7 @@ where
 								(thread.thrOptions.tasklife <> LSClient ||		// but new thread is not to be stored on client 
 								 staticInfo.currentUserId <> userId))			// or new thread is for someone else
 							forceEvalutionOnServer id tst						// storing on client is no longer possible
-	= evalTaskThread thread tst													// and evaluate it
+	= appTaskTSt (evalTaskThread thread) tst									// and evaluate it
 
 forceEvalutionOnServer tst
 =	IF_ClientServer																// we running both client and server
@@ -305,14 +305,14 @@ where
 
 	changeLifespanThreadTable :: !TaskNr !Lifespan *TSt -> *TSt						// change lifespan of of indicated thread in threadtable
 	changeLifespanThreadTable tasknr lifespan tst
-	# (table,tst)	= ThreadTableStorage id tst										// read thread table on server
+	# (table,tst)	= appTaskTSt (ThreadTableStorage id) tst						// read thread table on server
 	# revtasknr		= reverse (tl tasknr)									
 	# ntable 		= [{thread & thrOptions.tasklife = if (isChild revtasknr thread.thrTaskNr) lifespan thread.thrOptions.tasklife} \\ thread <- table]
-	# (_,tst)		= ThreadTableStorage (\_ -> ntable) tst							// store thread table
+	# (_,tst)		= appTaskTSt (ThreadTableStorage (\_ -> ntable)) tst			// store thread table
 	= tst
 
 evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
-evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = evalTaskThread` 
+evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = Task evalTaskThread` 
 where
 	evalTaskThread` tst=:{tasknr,options,userId,staticInfo,html}									
 	# newThrOptions					= if (thrOptions.tasklife == LSClient && thrUserId <> staticInfo.currentUserId) 
@@ -320,7 +320,7 @@ where
 											thrOptions
 			
 	# (a,tst=:{activated,html=nhtml}) 	
-		= IF_ClientTasks	
+		= appTaskTSt (IF_ClientTasks	
 			(case thrKind of		// we are running on Client, assume that IF_ClientServer and IF_Ajax is set
 				 ClientThread 		= deserializeThreadClient thrCallbackClient
 				 ClientServerThread	= deserializeThreadClient thrCallbackClient
@@ -332,7 +332,7 @@ where
 				 ClientServerThread	= deserializeThread thrCallback
 				 ServerThread 		= deserializeThread thrCallback
 				 else 				= abort "Thread administration error in evalTaskThread"
-			)
+			))
 			{tst & tasknr = thrTaskNr, options = newThrOptions, userId = thrUserId,html = BT [] []} 
 	| activated																	// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}			// remove thread from administration
@@ -359,37 +359,37 @@ administrateNewThread ouserId tst =: {tasknr,userId,options}
 // TO DO: Put this stuf in another module
 
 ThreadTableStorage :: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
-ThreadTableStorage fun = handleTable
+ThreadTableStorage fun = Task handleTable
 where
 	handleTable tst 
 	= IF_Ajax 																	// threads only used when Ajax is enabled
 		(IF_ClientServer														// we running both client and server
-			(IF_ClientTasks												
+			(appTaskTSt (IF_ClientTasks												
 				ClientThreadTableStorage										// thread table on client
 				ServerThreadTableStorage										// threadtable on server
-				fun tst
+				fun) tst
 			)
-			(ServerThreadTableStorage fun tst)									// thread table on server when ajax used
+			(appTaskTSt (ServerThreadTableStorage fun) tst)						// thread table on server when ajax used
 		)
-		(ServerThreadTableStorage fun tst)										// thread table used for exception handling only ???
+		(appTaskTSt (ServerThreadTableStorage fun) tst)							// thread table used for exception handling only ???
 //		(abort "Thread table storage only used when Ajax enabled")				// no threads made at all
 
 ServerThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
-ServerThreadTableStorage fun = handleTable
+ServerThreadTableStorage fun = Task handleTable
 where
-	handleTable tst=:{staticInfo} = ThreadTableStorageGen serverThreadTableId staticInfo.threadTableLoc fun tst 
+	handleTable tst=:{staticInfo} = appTaskTSt (ThreadTableStorageGen serverThreadTableId staticInfo.threadTableLoc fun) tst 
 
 	serverThreadTableId 		= "Application" +++  "-ThreadTable"
 
 ClientThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
-ClientThreadTableStorage fun = handleTable
+ClientThreadTableStorage fun = Task handleTable
 where
-	handleTable tst=:{staticInfo} = ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) LSClient fun tst 
+	handleTable tst=:{staticInfo} = appTaskTSt (ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) LSClient fun) tst 
 
 	clientThreadTableId userid	= "User" <+++ userid  <+++ "-ThreadTable"
 
 ThreadTableStorageGen :: !String !Lifespan !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
-ThreadTableStorageGen tableid lifespan fun = handleTable						// to handle the table on server as well as on client
+ThreadTableStorageGen tableid lifespan fun = Task handleTable						// to handle the table on server as well as on client
 where
 	handleTable tst
 	# (table,tst) = liftHst (mkStoreForm (Init,storageFormId 
@@ -408,13 +408,13 @@ copyThreadTableToClient tst
 copyThreadTableToClient` :: !*TSt -> *TSt										// copies all threads for this user from server to client thread table
 copyThreadTableToClient` tst
 # ((mythreads,_),tst)	= splitServerThreadsByUser tst							// get thread table on server
-# (clientThreads,tst)	= ClientThreadTableStorage (\_ -> mythreads) tst		// and store in client
+# (clientThreads,tst)	= appTaskTSt (ClientThreadTableStorage (\_ -> mythreads)) tst	// and store in client
 = tst
 
 splitServerThreadsByUser :: !*TSt -> (!(!ThreadTable,!ThreadTable),!*TSt)		// get all threads from a given user from the server thread table
 splitServerThreadsByUser tst=:{staticInfo}
 # userid 				= staticInfo.currentUserId
-# (serverThreads,tst)	= ServerThreadTableStorage id tst						// get thread table on server
+# (serverThreads,tst)	= appTaskTSt (ServerThreadTableStorage id) tst			// get thread table on server
 # splitedthreads		= filterZip (\thr -> thr.thrUserId == userid &&			// only copy relevant part of thread table to client
 							      (thr.thrKind == ClientServerThread || thr.thrKind == ClientThread)) serverThreads ([],[])
 = (splitedthreads,tst)
@@ -435,24 +435,24 @@ copyThreadTableFromClient` {newThread,deletedThreads} tst
 # ((clienttableOnServer,otherClientsTable),tst)
 						= splitServerThreadsByUser tst							// get latest thread table stored on server
 # (clienttableOnClient,tst)		
-						= ClientThreadTableStorage id tst						// get latest thread table stored on client
+						= appTaskTSt (ClientThreadTableStorage id) tst			// get latest thread table stored on client
 # clienttableOnClient	= case deletedThreads of
 								[] -> 	clienttableOnClient						// remove threads in client table which have been deleted by global effects											
 								_  -> 	[client 
 										\\ client <- clienttableOnClient | not (isChildOf client.thrTaskNr deletedThreads) 
 										]
 # (clienttableOnClient,tst)		
-						= ClientThreadTableStorage (\_ -> []) tst				// clear thread table stored on client
+						= appTaskTSt (ClientThreadTableStorage (\_ -> [])) tst	// clear thread table stored on client
 # tst					= deleteAllSubTasks deletedThreads tst					// remove corresponding tasks
 # thrNrsActiveOnClient	= [thread.thrTaskNr \\ thread <- clienttableOnClient]	// all active thread numbers on client
 # newClientsOnServer	= [thread \\ thread <- clienttableOnServer | not (isMember (thread.thrTaskNr) thrNrsActiveOnClient)]
 # newtable				= newClientsOnServer ++ clienttableOnClient ++ otherClientsTable			// determine new thread situation
-# (serverThreads,tst)	= ServerThreadTableStorage (\_ -> newtable) tst			// store table on server
+# (serverThreads,tst)	= appTaskTSt (ServerThreadTableStorage (\_ -> newtable)) tst	// store table on server
 = tst
 
 findThreadInTable :: !ThreadKind !TaskNr !*TSt -> *(Maybe (!Int,!TaskThread),!*TSt)// find thread that belongs to given tasknr
 findThreadInTable threadkind tasknr tst
-# (table,tst)	= ThreadTableStorage id tst										// read thread table
+# (table,tst)	= appTaskTSt (ThreadTableStorage id) tst						// read thread table
 # pos			= lookupThread tasknr 0 table									// look if there is an entry for this task
 | pos < 0		= (Nothing, tst)
 = (Just (pos,table!!pos),tst) 
@@ -477,12 +477,12 @@ where
 	foundThread ClientServerThread    	ClientThread 	   		= True
 	foundThread ExceptionHandler 		ExceptionHandler		= True
 	foundThread AnyThread    			_				 	   	= True
-	foundThread _ 						_ 						= abort "ZOU NIET MOGEN\n" //False
+	foundThread _ 						_ 						= abort "NOT POSSIBLE\n" //False
 
 insertNewThread :: !TaskThread !*TSt -> *TSt										// insert new thread in table
 insertNewThread thread tst		
-# (table,tst)	= ThreadTableStorage id tst										// read thread table
-# (_,tst) 		= ThreadTableStorage (\_ -> [thread:table]) tst 				// insert the new thread
+# (table,tst)	= appTaskTSt (ThreadTableStorage id) tst						// read thread table
+# (_,tst) 		= appTaskTSt (ThreadTableStorage (\_ -> [thread:table])) tst 	// insert the new thread
 = tst
 
 deleteThreads :: !TaskNr !*TSt -> *TSt
@@ -491,17 +491,17 @@ deleteThreads tasknr tst														// delete a thread and all its children
 # mytasknr				= reverse tasknr
 | isNothing mbthread	= deleteChildren mytasknr tst							// no entry, but delete children
 # (pos,_)				= fromJust mbthread
-# (_,tst)				= ThreadTableStorage (\table -> removeAt pos table) tst // remove entry
+# (_,tst)				= appTaskTSt (ThreadTableStorage (\table -> removeAt pos table)) tst // remove entry
 = deleteChildren mytasknr tst													// and all children
 where
 	deleteChildren mytasknr tst=:{staticInfo}
-	# (table,tst)	 		= ThreadTableStorage id tst							// read thread table
+	# (table,tst)	 		= appTaskTSt (ThreadTableStorage id) tst			// read thread table
 	# allChildsPos			= [pos \\ entry <- table & pos <- [0..] | isChild mytasknr entry.thrTaskNr ]
 	| isEmpty allChildsPos	= tst
 	# otherUsersThreads		= [ ((table!!entry).thrUserId,(table!!entry).thrTaskNr) \\ entry <- allChildsPos | (table!!entry).thrUserId <> staticInfo.currentUserId]
 	# tst					= administrateDeletedThreads otherUsersThreads tst 
 	# table					= deleteChilds (reverse (sort allChildsPos)) table	// delete highest entries first !
-	# (table,tst)	 		= ThreadTableStorage (\_ -> table) tst				// read thread table
+	# (table,tst)	 		= appTaskTSt (ThreadTableStorage (\_ -> table)) tst	// read thread table
 	= tst
 
 	deleteChilds [] table 			= table
@@ -520,7 +520,7 @@ administrateDeletedThreads [(user,tasknr):users] tst=:{hst}
 
 findParentThread ::  !TaskNr !*TSt -> *([TaskThread],*TSt)						// finds parent thread closest to given set of task numbers
 findParentThread tasknr tst
-# (table,tst)		= ThreadTableStorage id tst									// read thread table
+# (table,tst)		= appTaskTSt (ThreadTableStorage id) tst					// read thread table
 | isEmpty table		= ([], tst)													// nothing in table, no parents
 | length tasknr <= 1 = ([], tst)												// no tasks left up
 # revtasknr			= reverse (tl tasknr)										// not relevant
@@ -613,10 +613,10 @@ deleteAllSubTasksAndThreads [tx:txs] tst
 showThreadTable :: !*TSt -> (![HtmlTag],!*TSt)	// watch it: the actual threadnumber stored is one level deaper, so [-1:nr] instead of nr !!
 showThreadTable tst=:{staticInfo}
 # thisUser		= staticInfo.currentUserId
-# (tableS,tst)	= ThreadTableStorage id tst													// read thread table from server
+# (tableS,tst)	= appTaskTSt (ThreadTableStorage id) tst									// read thread table from server
 # tableS		= sortBy (\e1=:{thrTaskNr = t1} e2=:{thrTaskNr =t2} = t1 < t2) tableS
 # (tableC,tst)	= IF_ClientServer
-					(\tst -> ClientThreadTableStorage id tst)								// read thread table from client
+					(\tst -> appTaskTSt (ClientThreadTableStorage id) tst)					// read thread table from client
 					(\tst -> ([],tst)) tst
 
 # tableC		= sortBy (\e1=:{thrTaskNr = t1} e2=:{thrTaskNr =t2} = t1 < t2) tableC

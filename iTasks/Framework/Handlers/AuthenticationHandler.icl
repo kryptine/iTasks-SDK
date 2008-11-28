@@ -28,6 +28,7 @@ where
 	getUserInfo (Just username) (Just password) 	= getUserInfo` username password
 	getUserInfo _				_					= Nothing
 	
+	getUserInfo` "root" _							= Just (0, ["president","manager","worker"], "Root")
 	getUserInfo` "president" _						= Just (1, ["president"], "Organization President")
 	getUserInfo` "manager" _						= Just (2, ["manager"], "Middle Manager")
 	getUserInfo` "worker1" _						= Just (3, ["worker"], "Office Worker 1")

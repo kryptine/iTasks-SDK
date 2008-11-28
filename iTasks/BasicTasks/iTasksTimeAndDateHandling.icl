@@ -13,7 +13,7 @@ import iTasksTypes
 // Timer Tasks ending when timed out
 
 waitForTimeTask:: !HtmlTime	-> (Task HtmlTime)
-waitForTimeTask time = mkTask "waitForTimeTask" waitForTimeTask`
+waitForTimeTask time = mkTask "waitForTimeTask" (Task waitForTimeTask`)
 where
 	waitForTimeTask` tst=:{tasknr,userId,hst}
 	# taskId				= iTaskId userId tasknr "Time_"
@@ -23,7 +23,7 @@ where
 	= (currtime - stime.Form.value,{tst & hst = hst})
 
 waitForDateTask:: !HtmlDate	-> (Task HtmlDate)
-waitForDateTask date = mkTask "waitForDateTask" waitForDateTask`
+waitForDateTask date = mkTask "waitForDateTask" (Task waitForDateTask`)
 where
 	waitForDateTask` tst=:{tasknr,userId,hst}
 	# taskId				= iTaskId userId tasknr "Date_"

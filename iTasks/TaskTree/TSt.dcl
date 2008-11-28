@@ -7,6 +7,7 @@ import StdMaybe
 import Time, Html
 import HSt
 
+// The task state
 :: *TSt 		=	{ tasknr 		:: !TaskNr									// for generating unique form-id's
 					, activated		:: !Bool   									// if true activate task, if set as result task completed	
 					, userId		:: !UserId									// id of user to which task is assigned
@@ -44,8 +45,12 @@ import HSt
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 
+// Trace information
 :: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
 :: TraceInfo	:== Maybe (!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
+
+
+// Task meta information
 :: TaskDescription
 				=	{ delegatorId	:: !UserId									// id of the work delegator
 					, taskWorkerId	:: !UserId									// id of worker on the task
@@ -60,5 +65,15 @@ import HSt
 :: TaskNrId		:== String
 :: TaskPriority	=	HighPriority | NormalPriority | LowPriority
 
+
+//Tasks are packed TSt transition functions
+:: Task a = Task !(*TSt -> *(!a,!*TSt))
+
 //Initialization
 mkTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
+
+//Apply a task state transition
+appTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
+
+
+
