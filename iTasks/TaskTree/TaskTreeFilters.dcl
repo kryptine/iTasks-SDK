@@ -1,35 +1,14 @@
 definition module TaskTreeFilters
 
-// *********************************************************************************************************************************
-// This module contains filters for filtering information from a TaskTree
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-
 import iTasksTypes
 
-/*
-TODO: Update
-noFilter 		:: Without applying any filter it fetches all html code out of the HtmlTree
-Filter 			:: Filters out the html code for a specific user
-					Arguments:	Bool True if a whole new page has to be generated,
-								First UserId is id of user logged in,
-								Second UserId is id of user that owns the thread (if it is a thread),
-								The HtmlTree to inspect,
-								The HSt for generating navigation buttons.
-				   Returns: 	Whole new page html code for the task (if a whole page is demanded), 
-				   				header indicating chosen task, buttons to choose a main task, buttons to choose a subtask)
-				   				Html code of a chosen task if not a whole page is demanded
-*/
+determineTaskList 		:: !UserId 			 !HtmlTree -> [TaskDescription] 	
+determineTaskForTab 	:: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputId])
+
+mkFilteredTaskTree 		:: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
+mkUnfilteredTaskTree 	:: 				   !HtmlTree -> (![HtmlTag],![InputId])
 
 
-
-mkFilteredTaskTree 		:: !Bool !UserId !UserId !HtmlTree  -> (![HtmlTag],![HtmlTag],![InputId])
-mkUnfilteredTaskTree 	:: !HtmlTree -> ([HtmlTag],[InputId])
-
-
-collectTaskList 	:: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree  -> (!Bool,![HtmlTag],![InputId])
 
 //TODO: merge trace information into the task tree 
 showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag

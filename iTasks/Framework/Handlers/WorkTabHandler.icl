@@ -40,7 +40,7 @@ handleWorkTabRequest mainTask request session hst
 
 	# activeTasks									= if taskDone
 														(Just [	mytaskdescr.taskNrId													
-														  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUserId) htmlTree
+														  \\ mytaskdescr <- determineTaskList thisUserId htmlTree
 													 	 ])
 											    		Nothing
 	# content										=

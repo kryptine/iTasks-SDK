@@ -1,42 +1,37 @@
 implementation module TaskTreeFilters
 
-// *********************************************************************************************************************************
-// This module contains filters for filtering information from a TaskTree
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-
 import StdEnv
 import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 
-collectTaskList :: !(TaskDescription -> Bool) !HtmlTree -> [TaskDescription] 	// returns who created the task, the tasknr, and taskname
-collectTaskList pred (taskdescr @@: tree) 	
-	# collected				= collectTaskList pred tree									
-	| pred taskdescr		= [taskdescr:collected]
-							= collected
-collectTaskList pred (ntaskuser -@: tree)
-	= collectTaskList pred tree
-collectTaskList pred (tree1 +|+ tree2)
-	# collection1	= collectTaskList pred tree1
-	# collection2	= collectTaskList pred tree2
+determineTaskList :: !UserId !HtmlTree -> [TaskDescription]
+determineTaskList thisuser (taskdescr @@: tree) 	
+	# collected				= determineTaskList thisuser tree									
+	| taskdescr.taskWorkerId == thisuser	= [taskdescr:collected]
+											= collected
+determineTaskList thisuser (ntaskuser -@: tree)
+	= determineTaskList thisuser tree
+determineTaskList thisuser (tree1 +|+ tree2)
+	# collection1	= determineTaskList thisuser tree1
+	# collection2	= determineTaskList thisuser tree2
 	= collection1 ++ collection2
-collectTaskList pred  (tree1 +-+ tree2)
-	# collection1	= collectTaskList pred tree1
-	# collection2	= collectTaskList pred tree2
+determineTaskList thisuser (tree1 +-+ tree2)
+	# collection1	= determineTaskList thisuser tree1
+	# collection2	= determineTaskList thisuser tree2
 	= collection1 ++ collection2
-collectTaskList pred  (BT bdtg inputs)
+determineTaskList thisuser  (BT html inputs)
 	= []
-collectTaskList pred (DivCode id tree)
-	= collectTaskList pred tree
+determineTaskList thisuser (DivCode id tree)
+	= determineTaskList thisuser tree
 
 determineTaskForTab :: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputId])
 determineTaskForTab thisuser thistaskid tree
-	# mytree = determineTaskTree thisuser thistaskid tree
-	| isNothing mytree = (True,[],[])
-	# (threadcode,seltask,inputs)	= mkFilteredTaskTree True thisuser thisuser (fromJust mytree) //TODO: just return code + inputs
-	| isEmpty threadcode	= (False, seltask, inputs)
-							= (False, threadcode, inputs)
+	= case determineTaskTree thisuser thistaskid tree of							//Find the subtree by task id
+		Nothing
+			= (True, [], [])														//Subtask not found, nothing to do anymore
+		Just tree
+			# (html,inputs)	= mkFilteredTaskTree thisuser thisuser tree				//Collect only the parts for the current user
+			= (False, html, inputs)
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
@@ -58,57 +53,32 @@ determineTaskTree thisuser thistaskid  (BT bdtg inputs)
 determineTaskTree thisuser thistaskid (DivCode id tree)
 	= determineTaskTree thisuser thistaskid tree
 
+mkFilteredTaskTree :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
+mkFilteredTaskTree thisuser taskuser (description @@: tree) 						
+	# (html,inputs)		= mkFilteredTaskTree thisuser description.taskWorkerId tree
+	| thisuser == description.taskWorkerId
+							= (html,inputs)
+	| otherwise				= ([],[])
+mkFilteredTaskTree thisuser taskuser (nuser -@: tree)
+	| thisuser == nuser 	= ([],[])
+	| otherwise				= mkFilteredTaskTree thisuser taskuser tree
+mkFilteredTaskTree thisuser taskuser (tree1 +|+ tree2)
+	# (lhtml,linputs)	= mkFilteredTaskTree thisuser taskuser tree1
+	# (rhtml,rinputs)	= mkFilteredTaskTree thisuser taskuser tree2
+	= (lhtml <|.|> rhtml,linputs ++ rinputs)
+mkFilteredTaskTree thisuser taskuser (tree1 +-+ tree2)
+	# (lhtml,linputs)	= mkFilteredTaskTree thisuser taskuser tree1
+	# (rhtml,rinputs)	= mkFilteredTaskTree thisuser taskuser tree2
+	= ([lhtml <=> rhtml],linputs ++ rinputs)
+mkFilteredTaskTree thisuser taskuser (BT bdtg inputs)
+	| thisuser == taskuser	= (bdtg,inputs)
+	| otherwise				= ([],[])
+mkFilteredTaskTree thisuser taskuser (DivCode id tree)
+	# (html,inputs)			= mkFilteredTaskTree thisuser taskuser tree
+	| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs)
+	| otherwise				= ([],[])
 
-mkFilteredTaskTree :: !Bool !UserId !UserId !HtmlTree -> (![HtmlTag],![HtmlTag],![InputId])
-mkFilteredTaskTree wholepage thisUser thrOwner tree
-# startuser			= if wholepage defaultUser thrOwner
-# (threadcode,threadinputs,accu) = collect thisUser startuser [] tree
-| isEmpty accu		= (threadcode,[],threadinputs)
-# accu				= sortBy (\(i,_,_,_,_) (j,_,_,_,_) -> i < j) accu
-# (workflownames,subtasks) 						= unziptasks accu
-# (subtasksnames,tcode)							= unzipsubtasks (hd subtasks)
-# (selcode, selinputs)							= hd tcode
-= (threadcode, selcode, selinputs)
-where
-	unziptasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])] -> (![WorkflowLabel],![[(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])]])
-	unziptasks [] 			= ([],[])
-	unziptasks all=:[(pid,wlabel,tlabel,tcode,tinputs):tasks] 
-	# (wsubtask,other) 		= span (\(mpid,_,_,_,_) ->  mpid == pid) all 
-	# (wlabels,wsubtasks)	= unziptasks other
-	= ([wlabel:wlabels],[wsubtask:wsubtasks])
-
-	unzipsubtasks :: ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])] -> (![TaskLabel],![(![HtmlTag],![InputId])])
-	unzipsubtasks []		= ([],[])
-	unzipsubtasks [(pid,wlabel,tlabel,tcode,tinputs):subtasks]		
-	# (labels,codes)		= unzipsubtasks subtasks
-	= ([tlabel:labels],[(tcode,tinputs):codes])
-
-collect :: !UserId !UserId ![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])] !HtmlTree -> (![HtmlTag],![InputId],![(!ProcessNr,!WorkflowLabel,!TaskLabel,![HtmlTag],![InputId])])
-collect thisuser taskuser accu (description @@: tree) 								// collect returns the wanted code, and the remaining code
-	# (myhtml,myinputs,accu)= collect thisuser description.taskWorkerId accu tree	// collect all code of this user belonging to this task
-	| thisuser == description.taskWorkerId && not (isEmpty myhtml)
-							= ([],[],[(description.processNr,description.worflowLabel,description.taskLabel,myhtml,myinputs):accu]) //TODO: Add inputs to accu
-	| otherwise				= ([],[],accu)
-collect thisuser taskuser accu (nuser -@: tree)
-	| thisuser == nuser 	= ([],[],accu)
-	| otherwise				= collect thisuser taskuser accu tree
-collect thisuser taskuser accu (tree1 +|+ tree2)
-	# (lhtml,linputs,accu)	= collect thisuser taskuser accu tree1
-	# (rhtml,rinputs,accu)	= collect thisuser taskuser accu tree2
-	= (lhtml <|.|> rhtml,linputs ++ rinputs, accu)
-collect thisuser taskuser accu (tree1 +-+ tree2)
-	# (lhtml,linputs,accu)	= collect thisuser taskuser accu tree1
-	# (rhtml,rinputs,accu)	= collect thisuser taskuser accu tree2
-	= ([lhtml <=> rhtml],linputs ++ rinputs, accu)
-collect thisuser taskuser accu (BT bdtg inputs)
-	| thisuser == taskuser	= (bdtg,inputs,accu)
-	| otherwise				= ([],[], accu)
-collect thisuser taskuser accu (DivCode id tree)
-	# (html,inputs,accu)	= collect thisuser taskuser accu tree
-	| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs,accu)
-	= ([],[],accu)
-
-mkUnfilteredTaskTree :: !HtmlTree -> ([HtmlTag],[InputId])
+mkUnfilteredTaskTree :: !HtmlTree -> (![HtmlTag],![InputId])
 mkUnfilteredTaskTree (BT body inputs) 	= (body, inputs)
 mkUnfilteredTaskTree (_ @@: html) 		= mkUnfilteredTaskTree html
 mkUnfilteredTaskTree (_ -@: html) 		= mkUnfilteredTaskTree html
@@ -145,7 +115,7 @@ findTaskInTrace tasknr mytrace=:[Trace (Just (dtask,(w,i,op,tn,s))) traces:mtrac
 | found = (found,tags)
 = findTaskInTrace tasknr mtraces
 where
-	repair [0:tnrs] = [-1:tnrs]		// The taks numbers obtained from client are one to low: this has to be made global consistent, very ughly
+	repair [0:tnrs] = [-1:tnrs]		// The task numbers obtained from client are one to low: this has to be made global consistent, very ughly
 	repair other = other
 
 showTaskTree :: !(Maybe [Trace]) -> HtmlTag

@@ -30,7 +30,7 @@ handleWorkListRequest mainTask request session hst
 												, priority		= mytaskdescr.taskPriority
 												, timestamp		= (\(Time i) -> i) mytaskdescr.timeCreated
 												}				
-											  \\ mytaskdescr <- collectTaskList (\taskdescr -> taskdescr.taskWorkerId == thisUserId) htmlTree
+											  \\ mytaskdescr <- determineTaskList thisUserId htmlTree
 											  ]
 	
 	= ({http_emptyResponse & rsp_data = toJSON worklist}, hst)
