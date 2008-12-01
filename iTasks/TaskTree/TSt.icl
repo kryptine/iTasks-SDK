@@ -12,7 +12,6 @@ mkTst thisUser itaskstorage threadstorage hst
 		, userId		= if (thisUser >= 0) defaultUser thisUser
 		, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
 		, html 			= BT [] []
-		, trace			= Just []
 		, hst 			= hst
 		, options 		= initialOptions thisUser itaskstorage
 		}
@@ -29,6 +28,7 @@ initialOptions thisUser location
 		, taskstorage 	= PlainString
 		, taskmode 		= Edit 
 		, gc			= Collect
+		, trace			= False
 		}
 	
 

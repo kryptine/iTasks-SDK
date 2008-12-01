@@ -27,7 +27,7 @@ handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, 
 handleWorkTabRequest mainTask request session hst
 	# thisUserId									= session.Session.userId										// fetch user id from the session
 	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	# (toServer, htmlTree, maybeError, maybeTrace, maybeProcessTable, maybeThreadTable, hst =:{states,world})	
+	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst =:{states,world})	
 													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
 	# (taskDone,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,states)							= getHtmlStates states											// Collect states that must be temporarily stored in the browser
@@ -36,7 +36,7 @@ handleWorkTabRequest mainTask request session hst
 	//Tracing
 	# (stateTrace,states)							= mbStateTrace request states
 	# (updateTrace,states)							= mbUpdateTrace request states
-	# subTreeTrace									= mbSubTreeTrace request taskId maybeTrace
+	# subTreeTrace									= mbSubTreeTrace request thisUserId taskId htmlTree
 
 	# activeTasks									= if taskDone
 														(Just [	mytaskdescr.taskNrId													
@@ -71,9 +71,9 @@ where
 			= (Just (toString trace), states)
 		| otherwise
 			= (Nothing, states)	
-	mbSubTreeTrace req taskId maybeTrace
+	mbSubTreeTrace req thisUserId taskId htmlTree
 		| http_getValue "traceSubTrees" req.arg_get "" == "1"
-			= Just (toString (showTaskTreeOfTask taskId maybeTrace))
+			= Just (toString (filterTaskTreeOfTask thisUserId taskId htmlTree))
 		| otherwise
 			= Nothing
 	

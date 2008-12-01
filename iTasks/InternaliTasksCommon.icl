@@ -62,11 +62,12 @@ mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a			// common sec
 mkTaskNoInc taskname mytask = Task mkTaskNoInc`
 where
 	mkTaskNoInc` tst=:{activated,tasknr,userId,options}		
-	| not activated							= (createDefault,tst)			// not active, don't call task, return default value
-	# (val,tst=:{activated,trace})			= appTaskTSt mytask tst			// active, so perform task and get its result
+	| not activated						= (createDefault,tst)				// not active, don't call task, return default value
+	# (val,tst=:{activated,html})		= appTaskTSt mytask tst				// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
-	| isNothing trace || taskname == ""		= (val,tst)				// no trace, just return value
-	= (val,{tst & trace = Just (InsertTrace activated tasknr userId options taskname (printToString val%(0,60)) (fromJust trace))}) // adjust trace, don't print to long values
+	| options.trace || taskname == ""	= (val,tst)							// no trace, just return value
+	# tst = {tst & html = TaskTrace {trTaskNr = tasknr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
+	= (val,tst) 
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed
 mkParSubTask name i task = Task mkParSubTask`
@@ -76,46 +77,6 @@ where
 	= (v,{tst & tasknr = tasknr, options = options})
 	where
 		mysubtask tst=:{tasknr} = appTaskTSt task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
-
-// ******************************************************************************************************
-// Trace Insertion ...
-// ******************************************************************************************************
-
-InsertTrace :: !Bool !TaskNr !Int !Options String !String ![Trace] -> [Trace]
-InsertTrace finished idx who options taskname val trace = InsertTrace` ridx who val trace
-where
-	InsertTrace` :: !TaskNr !Int !String ![Trace] -> [Trace]
-	InsertTrace` [i] 	who str traces
-	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr idx <+++ "," <+++ who <+++ "," <+++ taskname)
-	# (Trace _ itraces)		= select i traces
-	= updateAt` i (Trace (Just (finished,(who,show,options,taskname,str))) itraces)  traces
-	InsertTrace` [i:is] who str traces
-	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr idx <+++ "," <+++ who <+++ "," <+++ taskname)
-	# (Trace ni itraces)	= select i traces
-	# nistraces				= InsertTrace` is who str itraces
-	= updateAt` i (Trace ni nistraces) traces
-
-	select :: !Int ![Trace] -> Trace
-	select i list
-	| i < length list = list!!i 
-	=  Trace Nothing []
-
-	show 	= idx //showTaskNr idx
-	ridx	= reverse idx
-
-	updateAt`:: !Int !Trace ![Trace] -> [Trace]
-	updateAt` n x list
-	| n < 0		= abort "negative numbers not allowed"
-	= updateAt` n x list
-	where
-		updateAt`:: !Int !Trace ![Trace] -> [Trace]
-		updateAt` 0 x []		= [x]
-		updateAt` 0 x [y:ys]	= [x:ys]
-		updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
-		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
-
-
-
 
 // ******************************************************************************************************
 // iTask Storage Utilities

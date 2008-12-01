@@ -14,7 +14,7 @@ import iTasksProcessHandling
 import TSt
 
 calculateTaskTree :: !UserId !Bool !Bool !Bool !(Task a) !*HSt  
-						-> (!Bool,!HtmlTree,!Maybe String,!Maybe [Trace],!Maybe [HtmlTag],!Maybe [HtmlTag],!*HSt) | iData a
+						-> (!Bool,!HtmlTree,!Maybe String,!Maybe [HtmlTag],!Maybe [HtmlTag],!*HSt) | iData a
 calculateTaskTree thisUser traceOn showProcessTable showCurrThreadTable mainTask hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst												// fetch global settings of this user
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{activated})	
@@ -22,7 +22,7 @@ calculateTaskTree thisUser traceOn showProcessTable showCurrThreadTable mainTask
 
 # (processTable,tst)		
 						= if  showProcessTable (showWorkflows activated {tst & activated = activated}) ([],{tst & activated = activated})
-# (threadTable,tst=:{html,hst,trace,activated})		
+# (threadTable,tst=:{html,hst,activated})		
 						= if  showCurrThreadTable  (showThreadTable {tst & activated = activated}) ([],{tst & activated = activated})
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True
-= (toServer,html,Nothing,trace,if showProcessTable (Just processTable) Nothing,if showCurrThreadTable (Just threadTable) Nothing,hst)
+= (toServer,html,Nothing,if showProcessTable (Just processTable) Nothing,if showCurrThreadTable (Just threadTable) Nothing,hst)

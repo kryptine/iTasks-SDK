@@ -28,7 +28,7 @@ where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
 	# (a,tst=:{activated,html=nhtml}) 	= appTaskTSt task {tst & html = BT [] []}
-	| activated 						= (a,{tst & html = ohtml})
+	| activated 						= (a,{tst & html = ohtml +|+ nhtml})			// NEWTRACE
 	= (a,{tst & html = ohtml +|+ BT prompt [] +|+ nhtml})
 
 (<<?) infixl 5 	:: !(Task a) ![HtmlTag] 					-> Task a		| iCreate a
@@ -37,7 +37,7 @@ where
 	doTask tst=:{html=ohtml,activated}
 	| not activated						= (createDefault,tst)
 	# (a,tst=:{activated,html=nhtml}) 	= appTaskTSt task {tst & html = BT [] []}
-	| activated 						= (a,{tst & html = ohtml})
+	| activated 						= (a,{tst & html = ohtml +|+ nhtml})					// NEWTRACE
 	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt []})
 
 (!>>) infixr 5 :: ![HtmlTag] !(Task a) -> (Task a) | iCreate a

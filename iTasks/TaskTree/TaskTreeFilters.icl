@@ -23,6 +23,8 @@ determineTaskList thisuser  (BT html inputs)
 	= []
 determineTaskList thisuser (DivCode id tree)
 	= determineTaskList thisuser tree
+determineTaskList thisuser (TaskTrace traceinfo tree)
+	= determineTaskList thisuser tree
 
 determineTaskForTab :: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputId])
 determineTaskForTab thisuser thistaskid tree
@@ -52,6 +54,8 @@ determineTaskTree thisuser thistaskid  (BT bdtg inputs)
 	= Nothing
 determineTaskTree thisuser thistaskid (DivCode id tree)
 	= determineTaskTree thisuser thistaskid tree
+determineTaskTree thisuser thistaskid (TaskTrace traceinfo tree)
+	= determineTaskTree thisuser thistaskid tree
 
 mkFilteredTaskTree :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
 mkFilteredTaskTree thisuser taskuser (description @@: tree) 						
@@ -77,78 +81,119 @@ mkFilteredTaskTree thisuser taskuser (DivCode id tree)
 	# (html,inputs)			= mkFilteredTaskTree thisuser taskuser tree
 	| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs)
 	| otherwise				= ([],[])
+mkFilteredTaskTree thisuser taskuser (TaskTrace traceinfo tree)
+	# (html,inputs)			= mkFilteredTaskTree thisuser taskuser tree
+	| thisuser == taskuser 	= (html,inputs)
+	| otherwise				= ([],[])
 
 mkUnfilteredTaskTree :: !HtmlTree -> (![HtmlTag],![InputId])
-mkUnfilteredTaskTree (BT body inputs) 	= (body, inputs)
-mkUnfilteredTaskTree (_ @@: html) 		= mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (_ -@: html) 		= mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (DivCode str html) = mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (nodeL +-+ nodeR) 	= ([htmlL <=> htmlR],inpL ++ inpR)
+mkUnfilteredTaskTree (BT body inputs) 			= (body, inputs)
+mkUnfilteredTaskTree (_ @@: html) 				= mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (_ -@: html) 				= mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (DivCode str html) 		= mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (TaskTrace traceinfo html) = mkUnfilteredTaskTree html
+mkUnfilteredTaskTree (nodeL +-+ nodeR) 			= ([htmlL <=> htmlR],inpL ++ inpR)
 where
 	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
 	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
-mkUnfilteredTaskTree (nodeL +|+ nodeR) 	= (htmlL <|.|> htmlR, inpL ++ inpR)
+mkUnfilteredTaskTree (nodeL +|+ nodeR) 			= (htmlL <|.|> htmlR, inpL ++ inpR)
 where
 	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
 	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
 
 
 // ******************************************************************************************************
-// Trace Printing ...
+// Trace Calculation
 // ******************************************************************************************************
 
-showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag					// This can be done much more efficiently, taken the ordening of tasknrs into account
-showTaskTreeOfTask tasknr Nothing 		= Text ("Tracing enabled, cannot determine task tree of task " +++ tasknr)
-showTaskTreeOfTask tasknr (Just []) 	= Text ("Cannot find task tree of task " +++ tasknr)
-showTaskTreeOfTask tasknr (Just trace) 	= showTaskTree (snd (findTaskInTrace tasknr trace))
+:: Trace		=	Trace !(Maybe !TraceInfo) ![Trace]							// traceinfo with possibly subprocess
 
-findTaskInTrace :: !TaskNrId ![Trace] -> (!Bool,!Maybe [Trace]) 
-findTaskInTrace tasknr []
-= (False, Just [])
-findTaskInTrace tasknr mytrace=:[Trace Nothing traces:mtraces]
-# (found,tags) = findTaskInTrace tasknr traces
-| found = (found,tags)
-= findTaskInTrace tasknr mtraces
-findTaskInTrace tasknr mytrace=:[Trace (Just (dtask,(w,i,op,tn,s))) traces:mtraces]
-| showTaskNr (repair i) == tasknr = (True,  Just mytrace)
-# (found,tags) = findTaskInTrace tasknr traces
-| found = (found,tags)
-= findTaskInTrace tasknr mtraces
+filterTaskTree :: !HtmlTree -> HtmlTag
+filterTaskTree html
+# traceInfos	= collectTraceInfo html
+# traces		= insertTraces traceInfos [] 
+= showTaskTree (Just traces)
 where
-	repair [0:tnrs] = [-1:tnrs]		// The task numbers obtained from client are one to low: this has to be made global consistent, very ughly
-	repair other = other
+	collectTraceInfo :: !HtmlTree -> [TraceInfo]
+	collectTraceInfo (TaskTrace traceinfo html) = [traceinfo : collectTraceInfo html]
+	collectTraceInfo (BT body inputs) 			= []
+	collectTraceInfo (_ @@: html) 				= collectTraceInfo html
+	collectTraceInfo (_ -@: html) 				= collectTraceInfo html
+	collectTraceInfo (DivCode str html) 		= collectTraceInfo html
+	collectTraceInfo (nodeL +-+ nodeR) 			= traceLeft ++ traceRight
+	where
+		traceLeft 	= collectTraceInfo nodeL
+		traceRight	= collectTraceInfo nodeR
+	collectTraceInfo (nodeL +|+ nodeR) 			= traceLeft ++ traceRight
+	where
+		traceLeft 	= collectTraceInfo nodeL
+		traceRight 	= collectTraceInfo nodeR
 
+	insertTraces [] traces     = traces
+	insertTraces [i:is] traces = insertTraces is (insertTrace i traces)
+
+
+filterTaskTreeOfTask :: !UserId !TaskNrId !HtmlTree -> HtmlTag				
+filterTaskTreeOfTask userId taskNrId tree
+	# mbtree			= determineTaskTree userId taskNrId tree
+	| isNothing mbtree	= Text "Error: Cannot find task tree !"
+	= filterTaskTree (fromJust mbtree)
+
+insertTrace :: !TraceInfo ![Trace] -> [Trace]
+insertTrace info trace = insertTrace` (reverse info.trTaskNr) trace
+where
+	insertTrace` :: !TaskNr ![Trace] -> [Trace]
+	insertTrace` [i] traces
+	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
+	# (Trace _ itraces)		= select i traces
+	= updateAt` i (Trace (Just info) itraces)  traces
+	insertTrace` [i:is] traces
+	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
+	# (Trace ni itraces)	= select i traces
+	# nistraces				= insertTrace` is itraces
+	= updateAt` i (Trace ni nistraces) traces
+
+	select :: !Int ![Trace] -> Trace
+	select i list
+	| i < length list = list!!i 
+	=  Trace Nothing []
+
+	updateAt`:: !Int !Trace ![Trace] -> [Trace]
+	updateAt` n x list
+	| n < 0		= abort "negative numbers not allowed"
+	= updateAt` n x list
+	where
+		updateAt`:: !Int !Trace ![Trace] -> [Trace]
+		updateAt` 0 x []		= [x]
+		updateAt` 0 x [y:ys]	= [x:ys]
+		updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
+		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
+		
 showTaskTree :: !(Maybe [Trace]) -> HtmlTag
-showTaskTree Nothing	= Text "No task tree trace " // SpanTag [] []
+showTaskTree Nothing	= Text "No task tree trace "
 showTaskTree (Just a)	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , STable emptyBackground (print False a),HrTag []]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 
 
 	pr _ Nothing 			= []
-	pr dprev (Just (dtask,(w,i,op,tn,s)))	
-	| dprev && (not dtask)					= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
-	| not dtask	&& tn%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
-	| not dtask	&& tn%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
-	| not dtask	&& tn%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver  (w,i,op,tn,s)
-	| not dtask								= showTask cellattr1b White Navy Maroon Silver (w,i,op,tn,s)
-	= showTask cellattr1a White Yellow Red White (w,i,op,tn,s)
+	pr dprev (Just info=:{trTaskName, trActivated})	
+	| dprev && (not trActivated)							= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
+	| not trActivated	&& trTaskName%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver  info
+	| not trActivated	&& trTaskName%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver  info
+	| not trActivated	&& trTaskName%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver  info
+	| not trActivated										= showTask cellattr1b White Navy Maroon Silver info
+	= showTask cellattr1a White Yellow Red White info
 	
-	showTask2 attr1 c1 c2 c3 c4 (w,i,op,tn,s)
-	= [TableTag doneBackground 	[ TrTag [] [TdTag attr1 [font c1 (toString (last (reverse i)))],	TdTag cellattr2 [font c2 tn]]
-								, TrTag [] [TdTag attr1 [font c3 (toString w)], 					TdTag cellattr2 [font c4 s]]
-								]
-	  ,BrTag []]
-
-	showTask att c1 c2 c3 c4 (w,i,op,tn,s)
+	showTask att c1 c2 c3 c4 info
 	= [STable doneBackground 	
-		[ [font c1 (toString w),font c2 ("T" <+++ showTaskNr i)]
-		, [showStorage op.tasklife, font c3 tn]
-		, [EmptyBody, font c4 s]
+		[ [font c1 (toString info.trUserId),font c2 ("T" <+++ showTaskNr info.trTaskNr)]
+		, [showStorage info.trOptions.tasklife, font c3 info.trTaskName]
+		, [EmptyBody, font c4 info.trValue]
 		]
 		]
 	isDone Nothing = False
-	isDone (Just (b,(w,i,op,tn,s))) = b
+	isDone (Just info) = info.trActivated
 
 	showStorage LSTemp		= font "silver" "Tmp"
 	showStorage LSClient	= font "aqua" "Cli"
@@ -196,3 +241,4 @@ where
 	Blue	= "#0000FF"
 	Teal	= "#008080" 
 	Aqua	= "#00FFFF"
+	

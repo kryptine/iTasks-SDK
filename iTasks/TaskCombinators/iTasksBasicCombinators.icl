@@ -27,9 +27,9 @@ derive gParse	Time
 (=>>) taska taskb = Task mybind
 where
 	mybind tst=:{options}
-	# (a,tst=:{activated}) = appTaskTSt taska tst
-	| activated	= appTaskTSt (taskb a) {tst & options = options}
-				= (createDefault,tst)
+	# (a,tst=:{activated})	= appTaskTSt taska tst
+	| activated				= appTaskTSt (taskb a) {tst & options = options}
+							= (createDefault,tst)
 
 return_V :: !a -> (Task a) | iCreateAndPrint a
 return_V a  = mkTask "return_V" (Task dotask)
@@ -46,11 +46,11 @@ where
 	newTask` tst=:{tasknr,userId,options}		
 	# taskId					= iTaskId userId tasknr taskname
 	# (taskval,tst) 			= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
-	# (taskdone,taskvalue)		= taskval.Form.value										// select values
-	| taskdone					= (taskvalue,tst)									// if rewritten return stored value
+	# (taskdone,taskvalue)		= taskval.Form.value											// select values
+	| taskdone					= (taskvalue,tst)												// if rewritten return stored value
 	# (val,tst=:{activated})	= appTaskTSt mytask {tst & tasknr = [-1:tasknr]} 				// do task, first shift tasknr
 	| not activated				= (createDefault,{tst & tasknr = tasknr, options = options})	// subtask not ready, return value of subtasks
-	# tst						= deleteSubTasksAndThreads tasknr tst				// task ready, garbage collect it
+	# tst						= deleteSubTasksAndThreads tasknr tst							// task ready, garbage collect it
 	# (_,tst) 					= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
 	= (val,{tst & tasknr = tasknr, options = options})
 
@@ -113,7 +113,7 @@ where
 	| not activated						= (createDefault,tst)
 	# (currtime,tst)					= appTaskTSt (appWorldOnce ("Task: " +++ taskname +++ " For: " +++ toString nuserId) time) tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user
+	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & /*html = BT [] [],*/userId = nuserId}	// activate task of indicated user NEWTRACE
 	| activated 						= (a,{tst & activated = True						// work is done	
 												  ,	userId = userId							// restore previous user id						
 												  ,	html = ohtml })							// plus new one tagged

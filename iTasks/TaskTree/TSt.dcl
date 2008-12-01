@@ -15,7 +15,6 @@ import HSt
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					, html			:: !HtmlTree								// accumulator for html code
 					, options		:: !Options									// iData lifespan and storage format
-					, trace			:: !Maybe [Trace]							// for displaying task trace
 					, hst			:: !HSt										// iData state
 					}
 									
@@ -33,6 +32,7 @@ import HSt
 					, taskstorage	:: !StorageFormat							// default: PlainString
 					, taskmode		:: !Mode									// default: Edit
 					, gc			:: !GarbageCollect							// default: Collect
+					, trace			:: !Bool									// default: False
 					}
 :: GarbageCollect 	
 				=	Collect 													// garbage collect iTask administration
@@ -44,11 +44,15 @@ import HSt
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
+				|	TaskTrace TraceInfo !HtmlTree								// trace information used for displaying the task tree
 
-// Trace information
-:: Trace		=	Trace !TraceInfo ![Trace]									// traceinfo with possibly subprocess
-:: TraceInfo	:== Maybe (!Bool,!(!UserId,!TaskNr,!Options,!String,!String))	// Task finished? who did it, task nr, task name (for tracing) value produced
-
+:: TraceInfo 	=	{ trTaskNr		:: !TaskNr									// tasknr 
+					, trTaskName	:: !String									// name of the combinator
+					, trActivated	:: !Bool									// is the task finshed or not
+					, trUserId		:: !UserId									// who is performing the task (can also be determined from the contect)
+					, trValue		:: !String									// what is the current value of task (serialized to string)
+					, trOptions		:: !Options									// options of this task
+					}
 
 // Task meta information
 :: TaskDescription

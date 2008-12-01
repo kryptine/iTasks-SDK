@@ -34,8 +34,6 @@ mkParSubTask 		:: create a subtask with indicated task nr
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
 showTaskNr 			:: for identifier generation
 deleteAllSubTasks 	:: collects all related tasks
-
-printTrace2 		:: show task tree trace
 */
 
 incNr 				:: !TaskNr 					-> TaskNr

@@ -2,14 +2,13 @@ definition module TaskTreeFilters
 
 import iTasksTypes
 
-determineTaskList 		:: !UserId 			 !HtmlTree -> [TaskDescription] 	
-determineTaskForTab 	:: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputId])
+determineTaskList 		:: !UserId 			 	!HtmlTree -> [TaskDescription] 	
+determineTaskForTab 	:: !UserId !TaskNrId 	!HtmlTree -> (!Bool,![HtmlTag],![InputId])
 
-mkFilteredTaskTree 		:: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
-mkUnfilteredTaskTree 	:: 				   !HtmlTree -> (![HtmlTag],![InputId])
+mkFilteredTaskTree 		:: !UserId !UserId 		!HtmlTree -> (![HtmlTag],![InputId])
+mkUnfilteredTaskTree 	:: 				   		!HtmlTree -> (![HtmlTag],![InputId])
+
+filterTaskTree 			:: 						!HtmlTree -> HtmlTag
+filterTaskTreeOfTask 	:: !UserId !TaskNrId 	!HtmlTree -> HtmlTag	
 
 
-
-//TODO: merge trace information into the task tree 
-showTaskTreeOfTask	:: !TaskNrId !(Maybe [Trace]) -> HtmlTag
-showTaskTree 		:: !(Maybe [Trace]) -> HtmlTag
