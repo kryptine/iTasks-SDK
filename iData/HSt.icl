@@ -66,3 +66,13 @@ getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by
 getChangedId hst=:{states}
 # (ids,states)					= getUpdatedIds states
 = (ids,{hst & states = states })
+
+storeStates	:: !*HSt -> *HSt
+storeStates hst =: {states, world}
+	# (states,world)								= storeServerStates states world
+	= {hst & states = states, world = world}
+	
+getPageStates :: !*HSt -> (![HtmlState], !*HSt)
+getPageStates hst =: {states}
+	# (pagestates, states)	= getHtmlStates states
+	= (pagestates, {hst & states = states})

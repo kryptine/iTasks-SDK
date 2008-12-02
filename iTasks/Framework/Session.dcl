@@ -21,8 +21,11 @@ createSession	:: !Int ![String] !*HSt	-> (!Session,!*HSt)
 * Try to restore an existing session
 *
 * @param session id
+*
+* @return session if found
+* @return whether a session timeout occurred
 */
-restoreSession	:: !String !*HSt -> (!Maybe Session, !*HSt)
+restoreSession	:: !String !*HSt -> (!Maybe Session, !Bool, !*HSt)
 
 /**
 * Explicitly destroy an existing session.

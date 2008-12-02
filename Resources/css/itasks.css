@@ -48,6 +48,13 @@ div.header #user {
 	color: #fff;
 	text-align: right;
 }
+div.header #user a {
+	color: #fff;
+	text-decoration: none;s
+}
+div.header #user a:hover {
+	text-decoration: underline;
+}
 
 div.leftpanel {
 	background-color: #ccc;

@@ -13,7 +13,7 @@ import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
-import IndexHandler, AuthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Handlers.*
+import IndexHandler, AuthenticationHandler, DeauthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*
 import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
 import TaskTree, TaskTreeFilters
 
@@ -63,7 +63,8 @@ startServer mainTask world
 	= http_startServer options   [((==) "/", handleRedirectRequest)
 								 ,((==) ("/" +++ ThisExe), handleRedirectRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/"), handleIndexRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAnonRequest (handleAuthenticationRequest))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAnonRequest handleAuthenticationRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/deauthenticate"), handleSessionRequest handleDeauthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleSessionRequest (handleWorkListRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleSessionRequest (handleWorkTabRequest mainTask))
@@ -111,15 +112,19 @@ handleSessionRequest :: (HTTPRequest Session *HSt -> (!HTTPResponse, !*HSt)) !HT
 handleSessionRequest handler request world
 	# hst						= initHSt request world
 	# sessionId					= http_getValue "session" (request.arg_get ++ request.arg_post) ""
-	# (mbSession,hst)			= restoreSession sessionId hst
+	# (mbSession,timeout,hst)	= restoreSession sessionId hst
 	= case mbSession of
-		Nothing	
+		Nothing
+			# hst				= storeStates hst	
 			# world				= finalizeHSt hst
-			= (http_emptyResponse, world)
+			= ({http_emptyResponse & rsp_data = mkSessionFailureResponse timeout}, world)
 		(Just session)
 			# (response, hst)	= handler request session hst 
+			# hst				= storeStates hst
 			# world				= finalizeHSt hst
-			= (response, world)
+			= (response, world)		
+where
+	mkSessionFailureResponse to = "{\"success\" : \"false\", \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
 
 initHSt :: !HTTPRequest !*World -> *HSt
 initHSt request world

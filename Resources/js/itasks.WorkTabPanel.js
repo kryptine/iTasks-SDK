@@ -117,6 +117,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		if(success) {
 			var data = Ext.decode(response.responseText);
 			
+			//Check for session errors.
+			this.applicationPanel.checkSessionResponse(data);
+			
 			//Clear the updates list
 			this.updates = {};
 			
@@ -246,30 +249,33 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		} else {
 			this.setBusy(true);
 		}
-		//Add the state to the updates
-		this.updates['state'] = Ext.encode(this.state);
+		
+		//The updates are the primary parameters
+		var params = this.updates;
+		
+		//Add the state to the params
+		params['state'] = Ext.encode(this.state);
 		
 		//Check if we need to request trace info
-		var traceArgs = "";
 		if (this.debugPanel != undefined) {
 			if(this.debugPanel.traceStates()) {
-				traceArgs += "&traceStates=1";
+				params['traceStates'] = 1;
 			}
 			if(this.debugPanel.traceUpdates()) {
-				traceArgs += "&traceUpdates=1";
+				params['traceUpdates'] = 1;
 			}
 			if(this.debugPanel.traceSubTrees()) {
-				traceArgs += "&traceSubTrees=1";
+				params['traceSubTrees'] = 1;
 			}
 		}
-		//get the session id
-		var sessionArg = "&session=" + this.applicationPanel.getSessionId();
+		//Add the session id
+		params = this.applicationPanel.addSessionParam(params);
 		
 		//Send the data to the server
 		Ext.Ajax.request({
-			url: 'handlers/work?taskid=' + this.id + traceArgs + sessionArg,
+			url: 'handlers/work?taskid=' + this.id,
 			method: "POST",
-			params: this.updates,
+			params: params,
 			scripts: false,
 			callback: this.processTabData,
 			scope: this

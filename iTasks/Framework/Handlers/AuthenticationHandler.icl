@@ -10,9 +10,9 @@ handleAuthenticationRequest :: !HTTPRequest *HSt -> (!HTTPResponse, !*HSt)
 handleAuthenticationRequest req hst
 	= case getUserInfo (get "username" req.arg_post) (get "password" req.arg_post) of
 		Just (uid, roles, displayName)
-			# (session, hst =:{states, world})	= createSession uid roles hst
-			# (states, world) = storeServerStates states world
-			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId displayName},{hst & states = states, world = world})
+			# (session, hst)	= createSession uid roles hst
+			# hst				= storeStates hst
+			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId displayName},hst)
 		Nothing
 			= ({http_emptyResponse & rsp_data = encodeFailure},hst)
 where
@@ -21,7 +21,7 @@ where
 		| key == x1	= Just x2
 					= get key xs
 	
-	encodeFailure	= "{\"success\": false,\" error\": \"Incorrect username or password\"}"
+	encodeFailure	= "{\"success\": false, \"error\": \"Incorrect username or password\"}"
 	encodeSuccess sid displayName	= "{\"success\": true, \"displayName\": \"" +++ displayName +++ "\", sessionId: \"" +++ sid +++ "\"}"
 
 	//Hardcoded users

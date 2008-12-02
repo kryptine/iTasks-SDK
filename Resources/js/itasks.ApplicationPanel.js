@@ -5,6 +5,8 @@ Ext.ns('itasks');
 
 itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 
+	application: undefined,
+	
 	sessionId: undefined,
 	displayName: undefined,
 
@@ -17,7 +19,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					region: 'north',
 					baseCls: 'header',
 					height: 75,
-					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + '</div>'
+					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + ' | <a id="logout" href="#">Log out &raquo;</a></div>'
 				},{
 					id: 'leftpanel',
 					xtype: 'panel',
@@ -70,6 +72,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		itasks.ApplicationPanel.superclass.initComponent.apply(this, arguments);
 	},
 	init: function () {
+
 		//Initializing the gui...
 		var apppanel	= this;
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
@@ -96,8 +99,36 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		debugpanel.getProcessTableButton().on('click',function() {
 			worktabs.openProcessTableTab(apppanel);
 		});
+
+		Ext.get('logout').on('click',function() {
+			apppanel.logout();
+		});
 	},
+	
+	addSessionParam: function (params) {
+		params['session'] = this.sessionId;
+		return params;
+	},
+	checkSessionResponse: function (response) {
+		if(response.error) {
+			this.application.restart(response.error);
+		}
+	},	
 	getSessionId: function() {
 		return this.sessionId;
+	},
+	logout: function() {	
+		//Send logout request to the server
+		Ext.Ajax.request({
+			url: 'handlers/deauthenticate',
+			method: "POST",
+			params: this.addSessionParam({}),
+			scripts: false,
+			callback: function () {
+				//On return, restart the app
+				this.application.restart();
+			},
+			scope: this
+		});
 	}
 });

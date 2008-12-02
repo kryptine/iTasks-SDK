@@ -38,3 +38,7 @@ deleteIData			:: !String !*HSt -> *HSt
 changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
 
 getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
+
+// Storage of the Formstates
+storeStates			:: !*HSt -> *HSt
+getPageStates		:: !*HSt -> (![HtmlState], !*HSt)

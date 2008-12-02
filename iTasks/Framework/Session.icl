@@ -9,6 +9,9 @@ import StdDebug
 import Time
 import MersenneTwister //Pseudo-random generator
 
+SESSION_TIMEOUT :== 1800 // Half-hour sessions
+
+
 //TODOS:
 // = Update timestamp when retrieving a session
 // = Check the validity of the timestamp
@@ -27,22 +30,35 @@ createSession uid roles hst
 	# (sessions, hst)	= sessionStore (\l -> [session:l]) hst
 	= (session,hst)
 	
-restoreSession	:: !String !*HSt -> (!Maybe Session, !*HSt)
+restoreSession	:: !String !*HSt -> (!Maybe Session, !Bool, !*HSt)
 restoreSession sid hst 
-	# (sessions, hst)	= sessionStore id hst
-	# (ts, hst)			= getTimeStamp hst
-	= (findSession sid sessions, hst)
-where
-	findSession sid [] = Nothing
-	findSession sid [s=:{sessionId}:ss]
-		| sid == sessionId	= Just s
-							= findSession sid ss
-	
+	# (sessions, hst)				= sessionStore id hst
+	# (ts, hst)						= getTimeStamp hst
+	# (mbSession, before, after)	= findSession sid [] sessions
+	= case mbSession of
+		Nothing
+			= (Nothing, False, hst)					//Not found and no timeout
+		Just s
+			| (ts - s.timestamp) > SESSION_TIMEOUT	//Session found but timed out
+				# (_, hst)	= sessionStore (\_ -> (before ++ after)) hst
+				= (Nothing, True, hst)
+			| otherwise								//Session found and still valid
+				# (_, hst)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) hst
+			 	= (Just s, False, hst)
 	
 destroySession	:: !String !*HSt -> *HSt
-destroySession sid hst = hst
-
-
+destroySession sid hst
+	# (sessions, hst)		= sessionStore id hst
+	# (_, before, after)	= findSession sid [] sessions
+	# (_, hst)				= sessionStore (\_ -> (before ++ after)) hst
+	= hst
+	
+findSession :: !String ![Session] ![Session] -> (!Maybe Session, ![Session], ![Session]) 
+findSession sid before [] = (Nothing, reverse before, [])
+findSession sid before [s=:{sessionId}:after]
+	| sid == sessionId	= (Just s, reverse before, after)
+						= findSession sid [s:before] after
+						
 genSessionId :: !*HSt -> (!String, !*HSt)
 genSessionId hst
 	# (Clock seed, hst)	= accWorldHSt clock hst

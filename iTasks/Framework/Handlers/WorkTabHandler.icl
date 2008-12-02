@@ -27,11 +27,11 @@ handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, 
 handleWorkTabRequest mainTask request session hst
 	# thisUserId									= session.Session.userId										// fetch user id from the session
 	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst =:{states,world})	
+	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst)	
 													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
 	# (taskDone,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
-	# (htmlstates,states)							= getHtmlStates states											// Collect states that must be temporarily stored in the browser
-	# (states,world)								= storeServerStates states world								// Write states that are stored on the server
+	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
+	# hst =: {states}								= storeStates hst												// Write states that are stored on the server
 
 	//Tracing
 	# (stateTrace,states)							= mbStateTrace request states
@@ -54,25 +54,25 @@ handleWorkTabRequest mainTask request session hst
 		,	stateTrace		= stateTrace
 		,	updateTrace		= updateTrace
 		,	subtreeTrace	= subTreeTrace
-		}																										// create tab data record
-	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states, world = world})				// create the http response
+		}																						// create tab data record
+	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})				// create the http response
 	
 where
 	mbStateTrace req states
-		| http_getValue "traceStates" req.arg_get "" == "1"
+		| http_getValue "traceStates" req.arg_post "" == "1"
 			# (trace1,states)	= traceInStates states
 			# (trace2,states)	= traceStates states
 			= (Just (toString (DivTag [] [trace1,trace2])), states)
 		| otherwise
 			= (Nothing, states)
 	mbUpdateTrace req states
-		| http_getValue "traceUpdates" req.arg_get "" == "1"
+		| http_getValue "traceUpdates" req.arg_post "" == "1"
 			# (trace,states)	= traceUpdates states
 			= (Just (toString trace), states)
 		| otherwise
 			= (Nothing, states)	
 	mbSubTreeTrace req thisUserId taskId htmlTree
-		| http_getValue "traceSubTrees" req.arg_get "" == "1"
+		| http_getValue "traceSubTrees" req.arg_post "" == "1"
 			= Just (toString (filterTaskTreeOfTask thisUserId taskId htmlTree))
 		| otherwise
 			= Nothing

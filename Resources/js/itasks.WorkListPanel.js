@@ -6,17 +6,21 @@ Ext.ns('itasks');
 itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 
 	applicationPanel: undefined,
-	
-	workStore: new Ext.data.JsonStore({
-		url: 'handlers/worklist',
-		fields: [
-			{name: 'taskid'},
-			{name: 'priority'},
-			{name: 'processname'},
-			{name: 'subject'},
-			{name: 'delegator'},
-			{name: 'timestamp'}
-		]
+
+	workStore: new Ext.data.Store({
+		proxy: new Ext.data.HttpProxy({
+			url: 'handlers/worklist'
+		}),
+		reader: new Ext.data.JsonReader({
+				successProperty: 'success'
+			},[
+				{name: 'taskid'},
+				{name: 'priority'},
+				{name: 'processname'},
+				{name: 'subject'},
+				{name: 'delegator'},
+				{name: 'timestamp'}
+			])
 	}),	
 	initComponent: function () {
 		Ext.apply(this, {
@@ -39,29 +43,35 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 			enableHdMenu: false,
 			stripeRows: true
 		});
-		
 		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
+		
+		//Check session error responses
+		this.store.on('load', function() {
+			this.applicationPanel.checkSessionResponse(this.store.reader.jsonData);
+		}, this);
 	},
 	setApplicationPanel: function(panel) {
 		this.applicationPanel = panel;
-	}, 
+	},
 	/*
 	* Return the taskid of the selected row
 	*/
 	getTaskId: function (index) {
-		return this.workStore.getAt(index).data.taskid;
+		return this.store.getAt(index).data.taskid;
 	},
 	/*
 	* Return all task information of the selected row
 	*/
 	getTaskInfo: function (index) {
-		return this.workStore.getAt(index).data;
+		return this.store.getAt(index).data;
 	},
 	/*
 	* Refresh the list
 	*/
 	refresh: function () {
-		this.store.load({params: {session: this.applicationPanel.getSessionId()}});
+		this.store.load({
+			params: this.applicationPanel.addSessionParam({})
+		});
 	}
 });
 

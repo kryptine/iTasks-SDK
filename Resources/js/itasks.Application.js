@@ -4,28 +4,35 @@
 Ext.ns('itasks');
 
 itasks.Application = function () {
-
 	return {
-		//ATTRIBUTES
 		viewport: new Ext.Viewport({
-			layout: 'fit',
+			layout: 'card',
+			activeItem: 0,
+			layoutConfig: {
+				deferredRender: false
+			},
 			items: {
 				baseCls: 'bg',
 				xtype: 'panel'
 			}	
 		}),
 		
-		//METHODS
-		start: function() {
+		/**
+		* Starts the client GUI framework
+		*/
+		start: function(errorMsg) {
 			//Create the login window
-			var loginWindow = new itasks.LoginWindow();
+			var loginWindow = new itasks.LoginWindow({errorMsg: errorMsg});
 			var startPanel = this.viewport.getComponent(0);
 			
 			startPanel.add(loginWindow);
 			
 			loginWindow.continuation = this.loadUserInterface.createDelegate(this);
 			loginWindow.show();
-		},		
+		},	
+		/**
+		* Loads and builds the GUI
+		*/	
 		loadUserInterface: function(displayName, sessionId) {
 			
 			//Remove the login window
@@ -47,8 +54,10 @@ itasks.Application = function () {
 			//Start building the GUI
 			loaderWindow.updateProgress(0.2,'Building User Interface...');
 	
-			this.gui = new itasks.ApplicationPanel({displayName: displayName, sessionId: sessionId});
-			
+			this.gui = new itasks.ApplicationPanel({application: this, displayName: displayName, sessionId: sessionId});
+			this.viewport.add(this.gui);
+			this.viewport.doLayout();
+				
 			loaderWindow.updateProgress(0.6,'Initializing User Interface...');
 			this.gui.init();
 			
@@ -56,6 +65,9 @@ itasks.Application = function () {
 			loaderWindow.updateProgress(1.0,'Done.');
 			loaderWindow.finish();
 		},
+		/**
+		* Starts the main interface
+		*/
 		startUserInterface: function() {
 			var startPanel = this.viewport.getComponent(0);
 			var loaderWindow = startPanel.getComponent(0);
@@ -66,11 +78,22 @@ itasks.Application = function () {
 			
 			startPanel.remove(loaderWindow);
 			
-			this.viewport.remove(startPanel);
-			this.viewport.add(this.gui);
-			
-			this.gui.show();
-			this.viewport.doLayout();
-		}	
+			//Switch to the main interface
+			this.viewport.layout.setActiveItem(1);
+			//Remove start panel
+			this.viewport.remove(0);
+		},
+		/**
+		* Resets the main viewport to show the start screen
+		*/
+		reset: function() {
+			this.viewport.remove(0);
+			this.viewport.add(new Ext.Panel({baseCls: 'bg'}));
+			this.viewport.layout.setActiveItem(0);
+		},
+		restart: function (errorMsg) {
+			this.reset();
+			this.start(errorMsg);
+		}
 	}
 };
