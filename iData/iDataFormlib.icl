@@ -33,47 +33,34 @@ mkHtmlB s attr tags hst		= ((False,""), simpleHtml s attr tags,hst)
 
 // Place two bodies next to each other
 
-(<=>) infixl 5   :: [HtmlTag] [HtmlTag] -> HtmlTag
-(<=>) [] []				= EmptyBody
-(<=>) [] b2				= DivTag [] b2
-(<=>) b1 []				= DivTag [] b1
-(<=>) b1 b2				= (DivTag [] b1) <.=.> (DivTag [] b2)
+(<=>) infixl 5   :: [HtmlTag] [HtmlTag] -> [HtmlTag]
+(<=>) b1 b2				= b1 ++ b2
 
-(<.=.>) infixl 5 :: HtmlTag HtmlTag -> HtmlTag
-(<.=.>) b1 b2				=  DivTag [] [SpanTag [] [b1],SpanTag [] [b2]]
+(<.=.>) infixl 5 :: HtmlTag HtmlTag -> [HtmlTag]
+(<.=.>) b1 b2				=  [b1] <=> [b2]
+
+mkRowForm :: ![HtmlTag] -> [HtmlTag]
+mkRowForm xs	 			= xs	//Just put the tags after each other
 
 // Place second body below first
 
-(<||>) infixl 4	 :: [HtmlTag] [HtmlTag] -> HtmlTag		// Place a above b
-(<||>) b1 b2				= (DivTag [] b1) <.||.> (DivTag [] b2)
+(<||>) infixl 4 :: [HtmlTag] [HtmlTag] -> [HtmlTag]	// Place a above b
+(<||>) [] []				= []
+(<||>) [] b2				= b2
+(<||>) b1 []				= b1
+(<||>) b1 b2				= [DivTag [] b1, DivTag [] b2]
 
-(<|.|>) infixl 4 :: [HtmlTag] [HtmlTag] -> [HtmlTag]	// Place a above b
-(<|.|>) [] []				= []
-(<|.|>) [] b2				= b2
-(<|.|>) b1 []				= b1
-(<|.|>) b1 b2				= [(DivTag [] b1) <.||.> (DivTag [] b2)]
+(<.||.>) infixl 4:: HtmlTag HtmlTag -> [HtmlTag]			// Place a above b
+(<.||.>) b1 b2				= [b1] <||> [b2]
 
+mkColForm :: ![HtmlTag] -> [HtmlTag]
+mkColForm xs 				= [DivTag [] [x] \\ x <- xs]
 
-(<.||.>) infixl 4:: HtmlTag HtmlTag -> HtmlTag			// Place a above b
-(<.||.>) b1 b2				= DivTag [] [DivTag [] [b1], DivTag [] [b2]]
+(<=|>) infixl 4	 :: [HtmlTag] [HtmlTag] -> [HtmlTag]		// Place a above b
+(<=|>) b1 b2				= [DivTag [] [x1,x2] \\ x1 <- b1, x2 <- b1]
 
-(<=|>) infixl 4	 :: [HtmlTag] [HtmlTag] -> HtmlTag		// Place a above b
-(<=|>) b1 b2				= DivTag [] [DivTag [] b1, DivTag [] b2]
-
-// row and column making
-
-mkColForm :: ![HtmlTag] -> HtmlTag
-mkColForm xs 				= foldr (<.||.>) EmptyBody xs
-
-mkRowForm :: ![HtmlTag] -> HtmlTag
-mkRowForm xs	 			= foldr (<.=.>) EmptyBody xs
-
-
-mkSTable :: [[HtmlTag]] -> HtmlTag
-mkSTable table				= mkTable table
-
-mkTable :: [[HtmlTag]] -> HtmlTag
-mkTable table				= TableTag []	(mktable table)
+mkTable :: [[HtmlTag]] -> [HtmlTag]
+mkTable table				= [TableTag []	(mktable table)]
 where
 	mktable table			= [TrTag [] (mkrow rows) \\ rows <- table]	
 	mkrow   rows	 		= [TdTag [StyleAttr "vertical-align: top"] [row] \\ row <- rows]
@@ -159,92 +146,14 @@ where
 // Form collection:
 
 horlistForm :: !(InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
-horlistForm inIDataId hSt	= layoutListForm (\f1 f2 -> [f1 <=> f2]) mkEditForm inIDataId hSt
+horlistForm inIDataId hSt	= layoutListForm (\f1 f2 -> f1 <=> f2) mkEditForm inIDataId hSt
 			
 vertlistForm :: !(InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
-vertlistForm inIDataId hSt	= layoutListForm (\f1 f2 -> [f1 <||> f2]) mkEditForm inIDataId hSt
-
-vertlistFormButs :: !Int !Bool !(InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
-vertlistFormButs nbuts showbuts (init,formid=:{mode}) hst
-# formid					= formid <@ Edit
-# indexId					= subFormId formid "idx" 0 <@ Display
-# (index,hst)				= mkEditForm (init,indexId) hst
-# (olist,hst)				= listForm   (init,formid)  hst
-# lengthlist				= length olist.Form.value
-
-# pdmenu					= HtmlSelect [(toString lengthlist <+++ " More... ","0") : [("Show " <+++ i,toString i) \\ i <- [1 .. max 1 lengthlist]]] "0" 
-# pdmenuId					= subFormId formid "pdm" pdmenu <@ Edit
-# (pdbuts,hst)				= mkEditForm (Init, pdmenuId) hst
-# step						= toInt pdbuts.Form.value
-| step == 0					= ({form=pdbuts.form,inputs=pdbuts.inputs, value=olist.Form.value,changed=olist.changed || pdbuts.changed},hst)		
-
-# bbutsId					= subFormId formid "bb" index.Form.value <@ Edit
-# (obbuts,hst)				= browseButtons (Init,bbutsId) step lengthlist nbuts hst
-
-# addId						= subnFormId formid "add" addbutton
-# (add,   hst) 				= ListFuncBut (Init,addId) hst	
-
-# dellId					= subnFormId formid "dell" (delbutton obbuts.Form.value step)
-# (del,   hst) 				= ListFuncBut (Init,dellId) hst	
-# insrtId					= subnFormId formid "ins"  (insertBtn createDefault obbuts.Form.value step)
-# (ins,   hst) 				= ListFuncBut (Init,insrtId) hst	
-# appId						= subnFormId formid "app"  (appendBtn createDefault obbuts.Form.value step)
-# (app,   hst) 				= ListFuncBut (Init,appId) hst	
-
-# elemId					= subFormId formid "copyelem" createDefault
-# copyId					= subnFormId formid "copy"  (copyBtn obbuts.Form.value step)
-# (copy,  hst) 				= ListFuncBut (Init,copyId) hst	
-# (elemstore,hst)			= mkStoreForm (Init,elemId) (if copy.changed (const (olist.Form.value!!copy.Form.value 0)) id) hst	
-
-# pasteId					= subnFormId formid "paste" (pasteBtn obbuts.Form.value step)
-# (paste,hst) 				= ListFuncBut (Init,pasteId) hst	
-
-# newlist					= olist.Form.value
-# newlist					= if paste.changed (updateAt (paste.Form.value 0) elemstore.Form.value newlist) newlist
-# newlist					= ins.Form.value newlist 
-# newlist					= add.Form.value newlist
-# newlist					= app.Form.value newlist 
-# newlist					= del.Form.value newlist 
-
-# (list, hst)				= listForm (Set,setFormId formid newlist <@ mode) hst
-# lengthlist				= length newlist
-# (index,hst)				= mkEditForm (setID indexId obbuts.Form.value) hst
-# (bbuts,hst)				= browseButtons (Init, bbutsId) step lengthlist nbuts hst
-
-# betweenindex				= (bbuts.Form.value,bbuts.Form.value + step - 1)
-
-# pdmenu					= HtmlSelect [(toString lengthlist <+++ " More... ", toString step): [("Show " <+++ i,toString i) \\ i <- [1 .. max 1 lengthlist]]] (toString step)
-# (pdbuts,hst)				= mkEditForm (setID pdmenuId pdmenu) hst
- 
-= (	{ form 					= pdbuts.form ++ bbuts.form ++ 
-								[[ toHtml ("nr " <+++ (i+1) <+++ " / " <+++ length list.Form.value)
-										<.||.> 
-								   (onMode formid.mode (if showbuts (del <.=.> ins <.=.> app  <.=.> copy  <.=.> paste) EmptyBody) 
-								   	(if showbuts (del <.=.> ins <.=.> app  <.=.> copy  <.=.> paste) EmptyBody)
-								   	EmptyBody 
-								   	EmptyBody)
-								 \\ del <- del.form & ins <- ins.form & app <- app.form & copy <- copy.form & paste <- paste.form & i <- [bbuts.Form.value..]]
-										<=|> 
-								list.form % betweenindex
-								] ++ (if (lengthlist <= 0) add.form [])
-	, value 				= list.Form.value
-	, changed 				= olist.changed || list.changed || obbuts.changed || del.changed  || pdbuts.changed || ins.changed ||
-							  add.changed   || copy.changed || paste.changed  || list.changed || index.changed  || app.changed
-	, inputs				= [] //TODO: FIX
-	}
-  ,	hst )
-where
-	but i s					= HtmlButton s False
-	addbutton				= [ (but 1 "Append", const [createDefault]) ]
-	delbutton   index step	= [ (but 5 "D", removeAt i)       \\ i <- [index .. index + step]]
-	insertBtn e index step	= [ (but 5 "I", insertAt i e)     \\ i <- [index .. index + step]]
-	appendBtn e index step	= [ (but 5 "A", insertAt (i+1) e) \\ i <- [index .. index + step]]
-	copyBtn     index step	= [ (but 5 "C", const i)          \\ i <- [index .. index + step]]
-	pasteBtn    index step	= [ (but 5 "P", const i)          \\ i <- [index .. index + step]]
+vertlistForm inIDataId hSt	= layoutListForm (\f1 f2 -> f1 <||> f2) mkEditForm inIDataId hSt
 
 
 table_hv_Form :: !(InIDataId [[a]]) !*HSt -> (Form [[a]],!*HSt)							| iData a
-table_hv_Form inIDataId hSt = layoutListForm (\f1 f2 -> [f1 <||> f2]) horlistForm inIDataId hSt
+table_hv_Form inIDataId hSt = layoutListForm (\f1 f2 -> f1 <||> f2) horlistForm inIDataId hSt
 
 t2EditForm  :: !(InIDataId (a,b)) !*HSt -> ((Form a,Form b),!*HSt)						| iData a & iData b
 t2EditForm (init,formid) hst
@@ -344,8 +253,8 @@ FuncButNr i (init,formid) hst
 
 TableFuncBut :: !(InIDataId [[(HtmlButton, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
 TableFuncBut inIDataId hSt
-	= layoutIndexForm (\f1 f2 -> [f1 <||> f2]) 
-		(layoutIndexForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) FuncButNr id (o)) 
+	= layoutIndexForm (\f1 f2 -> f1 <||> f2) 
+		(layoutIndexForm (\f1 f2 -> f1 <=> f2) FuncButNr id (o)) 
 			id (o) 0 inIDataId hSt
 
 ListFuncBut2 :: !(InIDataId [(Mode,HtmlButton, a -> a)]) !*HSt -> (Form (a -> a),!*HSt)
@@ -382,7 +291,7 @@ where
 	# (nxs,hSt)				= TableFuncBut2` (n+1) xs hSt
 	= ({ changed			= nx.changed || nxs.changed
 	   , value				= nx.Form.value o nxs.Form.value
-	   , form				= [ nx.form <||> nxs.form ]
+	   , form				= nx.form <||> nxs.form 
 	   , inputs				= nx.inputs ++ nxs.inputs
 	   },hSt)
 
@@ -582,12 +491,11 @@ MailForm :: String Int Int -> HtmlTag
 MailForm  mailaddress row col
 	= FormTag
 			[ActionAttr ("mailto:" +++ mailaddress), MethodAttr "post", EnctypeAttr "text/plain"] 
-			[mkSTable 	[ [BTag [] [Text "Name:"], InputTag [TypeAttr "text", NameAttr "uname", SizeAttr "20"] ]
+			(mkTable 	[ [BTag [] [Text "Name:"], InputTag [TypeAttr "text", NameAttr "uname", SizeAttr "20"] ]
 						, [BTag [] [Text "Email:"], InputTag [TypeAttr "text", NameAttr "email", SizeAttr "20"] ]
 						, [BTag [] [Text "Message:"], TextareaTag [NameAttr "message", RowsAttr (toString row), ColsAttr (toString col)] [] ]
 						, [InputTag [TypeAttr "submit", NameAttr "submit", ValueAttr "Submit"],InputTag [TypeAttr "reset",  NameAttr "reset",  ValueAttr "Reset"]]
-						]
-			] 
+						])
 	
 MailApplicationLink :: String String String -> HtmlTag
 MailApplicationLink mailaddress subject txtbody

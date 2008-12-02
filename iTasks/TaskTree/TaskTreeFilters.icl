@@ -69,11 +69,11 @@ mkFilteredTaskTree thisuser taskuser (nuser -@: tree)
 mkFilteredTaskTree thisuser taskuser (tree1 +|+ tree2)
 	# (lhtml,linputs)	= mkFilteredTaskTree thisuser taskuser tree1
 	# (rhtml,rinputs)	= mkFilteredTaskTree thisuser taskuser tree2
-	= (lhtml <|.|> rhtml,linputs ++ rinputs)
+	= (lhtml <||> rhtml,linputs ++ rinputs)
 mkFilteredTaskTree thisuser taskuser (tree1 +-+ tree2)
 	# (lhtml,linputs)	= mkFilteredTaskTree thisuser taskuser tree1
 	# (rhtml,rinputs)	= mkFilteredTaskTree thisuser taskuser tree2
-	= ([lhtml <=> rhtml],linputs ++ rinputs)
+	= (lhtml <=> rhtml,linputs ++ rinputs)
 mkFilteredTaskTree thisuser taskuser (BT bdtg inputs)
 	| thisuser == taskuser	= (bdtg,inputs)
 	| otherwise				= ([],[])
@@ -92,11 +92,11 @@ mkUnfilteredTaskTree (_ @@: html) 				= mkUnfilteredTaskTree html
 mkUnfilteredTaskTree (_ -@: html) 				= mkUnfilteredTaskTree html
 mkUnfilteredTaskTree (DivCode str html) 		= mkUnfilteredTaskTree html
 mkUnfilteredTaskTree (TaskTrace traceinfo html) = mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (nodeL +-+ nodeR) 			= ([htmlL <=> htmlR],inpL ++ inpR)
+mkUnfilteredTaskTree (nodeL +-+ nodeR) 			= (htmlL <=> htmlR,inpL ++ inpR)
 where
 	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
 	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
-mkUnfilteredTaskTree (nodeL +|+ nodeR) 			= (htmlL <|.|> htmlR, inpL ++ inpR)
+mkUnfilteredTaskTree (nodeL +|+ nodeR) 			= (htmlL <||> htmlR, inpL ++ inpR)
 where
 	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
 	(htmlR,inpR) = mkUnfilteredTaskTree nodeR

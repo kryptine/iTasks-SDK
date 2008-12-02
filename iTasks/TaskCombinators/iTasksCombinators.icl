@@ -151,8 +151,8 @@ where
 		# (_,tst=:{html=ahtml,activated = adone})
 								= appTaskTSt (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 
 		| not adone	
-			# optionsform		= cboxes.form <=|> [[showLabel label] <||> htmlcode \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
-			= ([],{tst & html = html +|+  BT [optionsform] cboxes.inputs +|+ ahtml})
+			# optionsform		= cboxes.form <=|> [DivTag [] ([showLabel label] <||> htmlcode) \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
+			= ([],{tst & html = html +|+  BT optionsform cboxes.inputs +|+ ahtml})
 		# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
 		= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
 	
@@ -279,7 +279,7 @@ andTasksCond_pdm label pred taskCollection
 where
 	selectButtons ident list tst=:{hst,options}
 	# (result,hst) = FuncMenu (Init,applyoptions (nFormId (ident +++ "andTaskCond_pdm") (0,[(name,id) \\ (name,_) <- list]))) hst
-	= (([snd result.Form.value],[showLabel label] <|.|> result.form),{tst & hst = hst})	
+	= (([snd result.Form.value],[showLabel label] <||> result.form),{tst & hst = hst})	
 	where
 		applyoptions nformid = nformid <@ options.tasklife <@ options.taskstorage <@ options.taskmode
 

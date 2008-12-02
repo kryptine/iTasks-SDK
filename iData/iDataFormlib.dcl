@@ -12,20 +12,19 @@ mkHtmlExcep			:: !String !(!Bool,!String) ![HtmlTag] 	*HSt 	-> (!(!Bool,!String)
 mkHtmlB				:: !String ![HtmlAttr] ![HtmlTag] 		*HSt 	-> (!(!Bool,!String),HtmlTag,*HSt)	// same, with bodytags options
 simpleHtml			:: !String ![HtmlAttr] ![HtmlTag]      			-> HtmlTag							// as above, without HSt
 
-// **** LayOut support ****
+// **** Layout support ****
 
-(<=>)   infixl 5 	:: [HtmlTag] [HtmlTag] 	-> HtmlTag					// place next to each other on a page
-(<.=.>) infixl 5 	::  HtmlTag   HtmlTag  	-> HtmlTag					// place next to each other on a page
-mkRowForm 		 	:: ![HtmlTag] 			-> HtmlTag					// place every element in a row next to each other on a page
+(<=>)   infixl 5 	:: [HtmlTag] [HtmlTag] 	-> [HtmlTag]				// place next to each other on a page
+(<.=.>) infixl 5 	::  HtmlTag   HtmlTag  	-> [HtmlTag]				// place next to each other on a page
+mkRowForm 		 	:: ![HtmlTag] 			-> [HtmlTag]				// place every element in a row next to each other on a page
 
-(<||>)   infixl 4 	:: [HtmlTag] [HtmlTag] 	-> HtmlTag					// Place second below first
-(<.||.>) infixl 4 	::  HtmlTag   HtmlTag  	-> HtmlTag					// Place second below first
-(<|.|>) infixl 4	:: [HtmlTag] [HtmlTag]	-> [HtmlTag]				// Place second below first
-mkColForm		  	:: ![HtmlTag] 			-> HtmlTag					// Place every element in a column below first
+(<||>)   infixl 4 	:: [HtmlTag] [HtmlTag] 	-> [HtmlTag]				// Place second below first
+(<.||.>) infixl 4 	::  HtmlTag   HtmlTag  	-> [HtmlTag]				// Place second below first
+mkColForm		  	:: ![HtmlTag] 			-> [HtmlTag]				// Place every element in a column below first
 
-mkSTable 			:: [[HtmlTag]] 			-> HtmlTag					// Make a table, default with
-mkTable 			:: [[HtmlTag]]			-> HtmlTag					// Make a table
-(<=|>) infixl 4		:: [HtmlTag] [HtmlTag] 	-> HtmlTag					// Make a table by putting elements pairwise below each other
+(<=|>) infixl 4		:: [HtmlTag] [HtmlTag] 	-> [HtmlTag]				// Make a table by putting elements pairwise below each other
+mkTable 			:: [[HtmlTag]]			-> [HtmlTag]				// Make a table
+
 
 // **** frquently used "mkViewForm" variants ****
 
@@ -59,9 +58,6 @@ layoutListForm		:: !([HtmlTag] [HtmlTag] -> [HtmlTag])
                        !((InIDataId a) *HSt  -> (Form a,*HSt))
                         !(InIDataId [a]) !*HSt -> (Form [a],!*HSt)								| iData a
 
-// User controlled number of list elements will be shown, including optional delete and append buttons; Int indicates max number of browse buttons
-
-vertlistFormButs	:: !Int !Bool !(InIDataId [a])	 				!*HSt -> (Form [a],!*HSt)	| iData a
 
 
 
