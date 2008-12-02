@@ -46,7 +46,7 @@ import HSt
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 				|	TaskTrace TraceInfo !HtmlTree								// trace information used for displaying the task tree
 
-:: TraceInfo 	=	{ trTaskNr		:: !TaskNr									// tasknr 
+:: TraceInfo 	=	{ trTaskNr		:: !TaskNrId									// tasknr 
 					, trTaskName	:: !String									// name of the combinator
 					, trActivated	:: !Bool									// is the task finshed or not
 					, trUserId		:: !UserId									// who is performing the task (can also be determined from the contect)

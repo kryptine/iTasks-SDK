@@ -15,19 +15,37 @@ import DrupBasic
 
 :: TCl a 			= 	TCl !.(Task a)				// task closure, container for a task used for higher order tasks (task which deliver a task)			
 
-showTaskNr :: !TaskNr -> String
-showTaskNr [] 		= ""
-showTaskNr [i] 		= toString i
-showTaskNr [i:is] 	= showTaskNr is <+++ "." <+++ toString i 
+
+toStringTaskNr :: !TaskNr -> String
+toStringTaskNr [] 		= ""
+toStringTaskNr [i] 		= toString i
+toStringTaskNr [i:is] 	= toStringTaskNr is <+++ "." <+++ toString i 
+
+parseTaskNr :: !String -> TaskNr
+parseTaskNr "" 		= []
+parseTaskNr string	= reverse (parseTaskNr` [char \\ char <-: string])
+where
+	parseTaskNr` :: ![Char] -> TaskNr
+	parseTaskNr` [] = []
+	parseTaskNr` list 
+	# (front,end)	= span (\c -> c <> '.') list
+	=  [toInt (toString  front) : parseTaskNr` (stl end)]
+
+	toString :: [Char] -> String
+	toString list = {c \\ c <- list}
+
+	stl :: [Char] -> [Char]
+	stl [] = []
+	stl xs = tl xs
 
 iTaskId :: !Int !TaskNr !String -> String
 iTaskId userid tasknr postfix 
 # postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }			// throw away characters not allowed in a file name
 | postfix == ""
-	| userid < 0	= "iLog_"  <+++ (showTaskNr tasknr) 
-	| otherwise		= "iTask_" <+++ (showTaskNr tasknr) 
-| userid < 0		= "iLog_"  <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix
-| otherwise			= "iTask_" <+++ (showTaskNr tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
+	| userid < 0	= "iLog_"  <+++ (toStringTaskNr tasknr) 
+	| otherwise		= "iTask_" <+++ (toStringTaskNr tasknr) 
+| userid < 0		= "iLog_"  <+++ (toStringTaskNr tasknr) <+++ "-" <+++ postfix
+| otherwise			= "iTask_" <+++ (toStringTaskNr tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
 
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
@@ -66,7 +84,7 @@ where
 	# (val,tst=:{activated,html})		= appTaskTSt mytask tst				// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| trace || taskname == ""	= (val,tst)									// no trace, just return value
-	# tst = {tst & html = TaskTrace {trTaskNr = tasknr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
+	# tst = {tst & html = TaskTrace {trTaskNr = toStringTaskNr tasknr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
 	= (val,tst) 
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed

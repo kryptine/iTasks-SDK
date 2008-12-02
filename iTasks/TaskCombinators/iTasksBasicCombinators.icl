@@ -120,7 +120,7 @@ where
 	= (a,{tst & userId = userId																// restore user Id
 			  , html = 	ohtml +|+ (	{ delegatorId 	= userId
 									, taskWorkerId	= nuserId
-									, taskNrId		= showTaskNr tasknr
+									, taskNrId		= toStringTaskNr tasknr
 									, processNr		= processNr
 									, worflowLabel	= workflowLabel
 									, taskPriority	= NormalPriority

@@ -140,15 +140,15 @@ filterTaskTreeOfTask userId taskNrId tree
 	= filterTaskTree (fromJust mbtree)
 
 insertTrace :: !TraceInfo ![Trace] -> [Trace]
-insertTrace info trace = insertTrace` (reverse info.trTaskNr) trace
+insertTrace info trace = insertTrace` (reverse (parseTaskNr info.trTaskNr)) trace
 where
 	insertTrace` :: !TaskNr ![Trace] -> [Trace]
 	insertTrace` [i] traces
-	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
+	| i < 0					= abort ("negative task numbers:" <+++ info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
 	# (Trace _ itraces)		= select i traces
 	= updateAt` i (Trace (Just info) itraces)  traces
 	insertTrace` [i:is] traces
-	| i < 0					= abort ("negative task numbers:" <+++ showTaskNr info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
+	| i < 0					= abort ("negative task numbers:" <+++ info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
 	# (Trace ni itraces)	= select i traces
 	# nistraces				= insertTrace` is itraces
 	= updateAt` i (Trace ni nistraces) traces
@@ -187,7 +187,7 @@ where
 	
 	showTask att c1 c2 c3 c4 info
 	= [STable doneBackground 	
-		[ [font c1 (toString info.trUserId),font c2 ("T" <+++ showTaskNr info.trTaskNr)]
+		[ [font c1 (toString info.trUserId),font c2 ("T" <+++ info.trTaskNr)]
 		, [showStorage info.trOptions.tasklife, font c3 info.trTaskName]
 		, [EmptyBody, font c4 info.trValue]
 		]

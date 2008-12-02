@@ -32,7 +32,8 @@ mkTask 				:: to promote a function of proper type to a task
 mkParSubTask 		:: create a subtask with indicated task nr
 
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
-showTaskNr 			:: for identifier generation
+toStringTaskNr		:: convert TaskNr to more compact string representation
+parseTaskNr 		:: convert string representation back to TaskNr
 deleteAllSubTasks 	:: collects all related tasks
 */
 
@@ -41,7 +42,8 @@ mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
 mkParSubTask 		:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a					// two shifts are needed
 
 iTaskId 			:: !Int !TaskNr !String 	-> String
-showTaskNr 			:: !TaskNr 					-> String
+toStringTaskNr		:: !TaskNr 					-> String
+parseTaskNr 		:: !String 					-> TaskNr
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
 // general iTask store, session store, page store, store but no form generation

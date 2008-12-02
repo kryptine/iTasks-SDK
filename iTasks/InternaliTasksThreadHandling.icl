@@ -337,7 +337,7 @@ where
 	| activated																	// thread is finished, delete the entry...
 		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}			// remove thread from administration
 		= (a,{tst & tasknr = tasknr, options = options, userId = userId})		// remove entry from table
-	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (showTaskNr thrTaskNr) nhtml})
+	= (a,{tst & tasknr = tasknr, options = options, userId = userId,html = html +|+ DivCode (toStringTaskNr thrTaskNr) nhtml})
 
 	
 administrateNewThread :: !UserId !*TSt -> *TSt
@@ -461,7 +461,7 @@ where
 	lookupThread tableKey n []			
 		= -1																	// no, cannot find thread
 	lookupThread tasknrToFind n [entry:next]
-		| (showTaskNr tasknrToFind == showTaskNr entry.thrTaskNr &&	foundThread threadkind entry.thrKind) =  n	// yes, thread is administrated
+		| (toStringTaskNr tasknrToFind == toStringTaskNr entry.thrTaskNr &&	foundThread threadkind entry.thrKind) =  n	// yes, thread is administrated
 		= lookupThread tasknrToFind (inc n) next
 
 // TODO foundThread kan niet kloppen !!!
@@ -662,8 +662,8 @@ where
 
 showThreadNr :: !TaskNr -> String
 showThreadNr [-1]		= "Root"
-showThreadNr [-1:is]	= showTaskNr is
-showThreadNr else		= "*" <+++ showTaskNr else
+showThreadNr [-1:is]	= toStringTaskNr is
+showThreadNr else		= "*" <+++ toStringTaskNr else
 
 // ******************************************************************************************************
 // Global Effects Storage Management
