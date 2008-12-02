@@ -36,12 +36,12 @@ div.header #logo {
 	top: 0px;
 	left: 0px;
 	width: 300px;
-	height: 75px;
+	height: 40px;
 	background: url('../img/itasks.png');
 }
 div.header #user {
 	position: absolute;
-	top: 50px;
+	top: 15px;
 	left: 100%;
 	margin-left: -410px;
 	width: 400px;

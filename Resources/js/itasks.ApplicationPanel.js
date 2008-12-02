@@ -18,7 +18,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					xtype: 'panel',
 					region: 'north',
 					baseCls: 'header',
-					height: 75,
+					height: 40,
 					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + ' | <a id="logout" href="#">Log out &raquo;</a></div>'
 				},{
 					id: 'leftpanel',
