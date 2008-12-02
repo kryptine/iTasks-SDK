@@ -15,6 +15,7 @@ import HSt
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					, html			:: !HtmlTree								// accumulator for html code
 					, options		:: !Options									// iData lifespan and storage format
+					, trace			:: !Bool									// default: False
 					, hst			:: !HSt										// iData state
 					}
 									
@@ -32,7 +33,6 @@ import HSt
 					, taskstorage	:: !StorageFormat							// default: PlainString
 					, taskmode		:: !Mode									// default: Edit
 					, gc			:: !GarbageCollect							// default: Collect
-					, trace			:: !Bool									// default: False
 					}
 :: GarbageCollect 	
 				=	Collect 													// garbage collect iTask administration

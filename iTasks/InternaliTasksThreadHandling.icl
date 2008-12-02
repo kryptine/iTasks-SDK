@@ -377,26 +377,25 @@ where
 ServerThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
 ServerThreadTableStorage fun = Task handleTable
 where
-	handleTable tst=:{staticInfo,options} = appTaskTSt (ThreadTableStorageGen serverThreadTableId staticInfo.threadTableLoc options.trace fun) tst 
+	handleTable tst=:{staticInfo,options} = appTaskTSt (ThreadTableStorageGen serverThreadTableId staticInfo.threadTableLoc fun) tst 
 
 	serverThreadTableId 		= "Application" +++  "-ThreadTable"
 
 ClientThreadTableStorage:: !(ThreadTable -> ThreadTable) -> (Task ThreadTable)	// used to store Tasknr of callbackfunctions / threads
 ClientThreadTableStorage fun = Task handleTable
 where
-	handleTable tst=:{staticInfo,options} = appTaskTSt (ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) LSClient options.trace fun) tst 
+	handleTable tst=:{staticInfo,options} = appTaskTSt (ThreadTableStorageGen (clientThreadTableId staticInfo.currentUserId) LSClient fun) tst 
 
 	clientThreadTableId userid	= "User" <+++ userid  <+++ "-ThreadTable"
 
-ThreadTableStorageGen :: !String !Lifespan !Bool !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
-ThreadTableStorageGen tableid lifespan trace fun = Task handleTable				// to handle the table on server as well as on client
+ThreadTableStorageGen :: !String !Lifespan !(ThreadTable -> ThreadTable) -> (Task ThreadTable)		// used to store Tasknr of callbackfunctions / threads
+ThreadTableStorageGen tableid lifespan fun = Task handleTable				// to handle the table on server as well as on client
 where
 	handleTable tst
 	# (table,tst) = liftHst (mkStoreForm (Init,storageFormId 
 						{ tasklife 		= lifespan
 						, taskstorage 	= PlainString 
 						, taskmode		= NoForm
-						, trace			= trace
 						, gc			= Collect} tableid []) fun) tst
 	= (table.Form.value,tst)
 

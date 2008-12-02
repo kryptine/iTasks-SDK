@@ -61,11 +61,11 @@ mkTask taskname mytask = Task (appTaskTSt (mkTaskNoInc taskname mytask) o incTas
 mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
 mkTaskNoInc taskname mytask = Task mkTaskNoInc`
 where
-	mkTaskNoInc` tst=:{activated,tasknr,userId,options}		
+	mkTaskNoInc` tst=:{activated,tasknr,userId,options,trace}		
 	| not activated						= (createDefault,tst)				// not active, don't call task, return default value
 	# (val,tst=:{activated,html})		= appTaskTSt mytask tst				// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
-	| options.trace || taskname == ""	= (val,tst)							// no trace, just return value
+	| trace || taskname == ""	= (val,tst)									// no trace, just return value
 	# tst = {tst & html = TaskTrace {trTaskNr = tasknr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
 	= (val,tst) 
 
