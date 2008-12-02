@@ -4,6 +4,16 @@ import StdEnv
 import iDataFormlib
 import InternaliTasksCommon, iTasksHtmlSupport
 
+:: TaskStatus = TaskFinished | TaskActivated | TaskDeleted
+
+
+instance == TaskStatus
+where
+	(==) TaskFinished 	TaskFinished 	= True
+	(==) TaskActivated 	TaskActivated 	= True
+	(==) TaskDeleted 	TaskDeleted 	= True
+	(==) _ 				_ 				= False
+
 determineTaskList :: !UserId !HtmlTree -> [TaskDescription]
 determineTaskList thisuser (taskdescr @@: tree) 	
 	# collected				= determineTaskList thisuser tree									
@@ -26,14 +36,18 @@ determineTaskList thisuser (DivCode id tree)
 determineTaskList thisuser (TaskTrace traceinfo tree)
 	= determineTaskList thisuser tree
 
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree -> (!Bool,![HtmlTag],![InputId])
+determineTaskForTab 	:: !UserId !TaskNrId 	!HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
 determineTaskForTab thisuser thistaskid tree
 	= case determineTaskTree thisuser thistaskid tree of							//Find the subtree by task id
 		Nothing
-			= (True, [], [])														//Subtask not found, nothing to do anymore
+			= (TaskDeleted, [], [])													//Subtask not found, nothing to do anymore
 		Just tree
 			# (html,inputs)	= mkFilteredTaskTree thisuser thisuser tree				//Collect only the parts for the current user
-			= (False, html, inputs)
+			= (test tree, html, inputs)
+	where
+		test (description @@: html) 
+		| description.taskNrId == thistaskid && description.curStatus = TaskFinished
+		= TaskActivated
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	

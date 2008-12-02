@@ -116,7 +116,16 @@ where
 	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & /*html = BT [] [],*/userId = nuserId}	// activate task of indicated user NEWTRACE
 	| activated 						= (a,{tst & activated = True						// work is done	
 												  ,	userId = userId							// restore previous user id						
-												  ,	html = ohtml })							// plus new one tagged
+												  ,	html = ohtml +|+ (	{ delegatorId 	= userId
+																		, taskWorkerId	= nuserId
+																		, taskNrId		= toStringTaskNr tasknr
+																		, processNr		= processNr
+																		, worflowLabel	= workflowLabel
+																		, taskPriority	= NormalPriority
+																		, taskLabel		= taskname
+																		, timeCreated	= currtime
+																		, curStatus		= activated
+																 		} @@: BT [] [])})							// plus new one tagged
 	= (a,{tst & userId = userId																// restore user Id
 			  , html = 	ohtml +|+ (	{ delegatorId 	= userId
 									, taskWorkerId	= nuserId
@@ -126,6 +135,7 @@ where
 									, taskPriority	= NormalPriority
 									, taskLabel		= taskname
 									, timeCreated	= currtime
+							 		, curStatus		= activated
 							 		} @@: nhtml)
 		 })												
 

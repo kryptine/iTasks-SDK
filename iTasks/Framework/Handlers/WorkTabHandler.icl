@@ -29,7 +29,7 @@ handleWorkTabRequest mainTask request session hst
 	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
 	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst)	
 													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
-	# (taskDone,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
+	# (taskStatus,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
 	# hst =: {states}								= storeStates hst												// Write states that are stored on the server
 
@@ -38,14 +38,19 @@ handleWorkTabRequest mainTask request session hst
 	# (updateTrace,states)							= mbUpdateTrace request states
 	# subTreeTrace									= mbSubTreeTrace request thisUserId taskId htmlTree
 
-	# activeTasks									= if taskDone
+	# activeTasks									= if (taskStatus == TaskFinished || taskStatus == TaskDeleted) 
 														(Just [	mytaskdescr.taskNrId													
 														  \\ mytaskdescr <- determineTaskList thisUserId htmlTree
 													 	 ])
 											    		Nothing
+	# tempMessage									= case taskStatus of
+														TaskFinished -> "TaskFinished"
+														TaskDeleted -> "TaskDeleted"
+														TaskActivated -> "TaskActivated"
+
 	# content										=
 		{TabContent
-		|	done			= taskDone
+		|	done			= taskStatus == TaskFinished || taskStatus == TaskDeleted
 		,	error			= maybeError
 		,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
 		,	inputs			= inputs

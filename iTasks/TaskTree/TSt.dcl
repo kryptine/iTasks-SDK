@@ -64,6 +64,7 @@ import HSt
 					, taskLabel		:: !String									// name of the task
 					, timeCreated	:: !Time
 					, taskPriority	:: !TaskPriority
+					, curStatus		:: !Bool
 					}
 					
 :: TaskNrId		:== String
