@@ -177,6 +177,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			if (data.error != null) {
 				taskPanel.getEl().dom.innerHTML = this.makeErrorMessage(data.error);
 			} else if(data.done) { //Check if the task is done
+				this.fireEvent('taskdone', this.id);
 				taskPanel.getEl().dom.innerHTML = this.makeFinishedMessage();
 			} else {
 				//Update the tab content

@@ -88,6 +88,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
 			newtab.setDebugPanel(debugpanel);
 			newtab.setApplicationPanel(apppanel);
+			newtab.on('taskdone',function(taskid) {
+				worklist.refresh();
+			},this);
 			newtab.refresh();
 		});
 		debugpanel.getTaskForestButton().on('click',function() {
