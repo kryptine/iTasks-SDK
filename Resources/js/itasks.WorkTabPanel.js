@@ -11,6 +11,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	busy: false,					//Lock to prevent multiple requests at once
 	debugPanel: undefined,			//An optional reference to a debug panel to find trace options
 	applicationPanel: undefined,	//A reference to the application panel to find the session id
+	lastFocus: undefined,			//The id of the last focused input
 
 	initComponent: function () {
 	
@@ -169,34 +170,41 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				taskPanel = contentPanel.getComponent(0);
 				emptyPanel = tracePanel.getComponent(0);
 			}
-		
+			
 			//Clear the panel which may contain content
 			//of the previous request
-			emptyPanel.getEl().dom.innerHTML = "";
+			emptyPanel.body.dom.innerHTML = "";
 		
 			if (data.error != null) {
-				taskPanel.getEl().dom.innerHTML = this.makeErrorMessage(data.error);
+				taskPanel.body.dom.innerHTML = this.makeErrorMessage(data.error);
 			} else if(data.done) { //Check if the task is done
 				this.fireEvent('taskdone', this.id);
-				taskPanel.getEl().dom.innerHTML = this.makeFinishedMessage();
+				taskPanel.body.dom.innerHTML = this.makeFinishedMessage();
 			} else {
 				//Update the tab content
-				taskPanel.getEl().dom.innerHTML = data.html;
+				taskPanel.body.dom.innerHTML = data.html;
 				
 				//Attach the input event handlers
 				var num = data.inputs.length;
 				var forms = {};
 				
 				for(var i = 0; i < num; i++) {
+					
 					var inputid = data.inputs[i].formid + '-' + data.inputs[i].inputid;
-	
+					var input = Ext.get(inputid);
+					
 					//Record the formid
 					forms[data.inputs[i].formid] = true;
 					
-					//Attach the event
+					//Refocus
+					if(this.lastFocus == inputid) {
+						input.focus();
+					}
+					
+					//Attach the event handlers
 					switch(data.inputs[i].updateon) {
 						case "OnChange":
-							Ext.get(inputid).on("change", function (e) {
+							input.on("change", function (e) {
 								this.addUpdate(e.target.id,e.target.value);
 								
 								//Slightly delayed refresh. There could be click event right after this event.
@@ -204,18 +212,22 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 							},this);
 							break;
 						case "OnClick":
-							Ext.get(inputid).on("click", function (e) {
+							input.on("click", function (e) {
 								this.addUpdate(e.target.id,"click");
 								this.refresh();
 							},this);
 							break;
 						case "OnSubmit":
-							Ext.get(inputid).on("change", function (e) {
+							input.on("change", function (e) {
 								//Track changes, but don't send any data
 								this.addUpdate(e.target.id,e.target.value);
 							},this);
 							break;
 					}
+					//Attach focus tracking handler
+					input.on("focus", function (e) {
+						this.lastFocus = e.target.id;
+					},this);
 				}
 	
 				//Attach the submit handlers of the forms

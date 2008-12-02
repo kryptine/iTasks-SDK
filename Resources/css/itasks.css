@@ -27,7 +27,10 @@ button.icon-task-tree {
 .debug-button td.x-btn-center {
 	text-align: left;
 }
-
+div.loginWindow {
+	padding: 5px;
+	/* background: url('../img/itasks-login.png') 5px 0 no-repeat; */
+}
 div.header {
 	background: #3a81ad url('../img/body.png') top repeat-x;
 }
