@@ -21,8 +21,21 @@ itasks.ThreadTableTabPanel = Ext.extend(Ext.Panel, {
 	setApplicationPanel: function(panel) {
 		this.applicationPanel = panel;
 	},
+	processResponse: function (el, success, response, options) {
+		if(response.responseText.substr(0,4) == '<div') {
+			this.body.dom.innerHTML = response.responseText;
+		} else {
+			this.applicationPanel.checkSessionResponse(Ext.decode(response.responseText));
+		}
+	},
 	refresh: function() {
-		this.load({method: 'GET', url: 'handlers/threadtable?session=' + this.applicationPanel.getSessionId()});
+		Ext.Ajax.request({
+			method: 'GET',
+			url: 'handlers/threadtable',
+			params: this.applicationPanel.addSessionParam({}),
+			callback: this.processResponse,
+			scope: this
+		});
 	}
 });
 

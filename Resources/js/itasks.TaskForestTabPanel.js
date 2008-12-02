@@ -22,12 +22,14 @@ itasks.TaskForestTabPanel = Ext.extend(Ext.Panel, {
 		this.applicationPanel = panel;
 	},
 	processResponse: function (el, success, response, options) {
-		if(response.responseText.substr(0,4) != '<div') {
+		if(response.responseText.substr(0,4) == '<div') {
+			this.body.dom.innerHTML = response.responseText;
+		} else {
 			this.applicationPanel.checkSessionResponse(Ext.decode(response.responseText));
 		}
 	},
 	refresh: function() {
-		this.load({
+		Ext.Ajax.request({
 			method: 'GET',
 			url: 'handlers/tasktreeforest',
 			params: this.applicationPanel.addSessionParam({}),

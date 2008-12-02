@@ -99,6 +99,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 				}]
 			},
 			tools: [{
+				id: 'help',
 				handler: this.showHelp,
 				scope: this	
 			}]
