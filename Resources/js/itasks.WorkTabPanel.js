@@ -12,6 +12,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	debugPanel: undefined,			//An optional reference to a debug panel to find trace options
 	applicationPanel: undefined,	//A reference to the application panel to find the session id
 	lastFocus: undefined,			//The id of the last focused input
+	contentPanel: undefined,		//A reference to the panel which is currently visible
 
 	initComponent: function () {
 	
@@ -85,6 +86,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		});
 
 		itasks.WorkTabPanel.superclass.initComponent.apply(this, arguments);
+		
+		//Set the initial content panel
+		this.contentPanel = this.getComponent(1).getComponent(0);
 	},
 
 	makeTitle: function() {
@@ -127,18 +131,17 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			//Save the state
 			this.state = data.state;
 
-			var contentPanel = this.getComponent(1);
-			var tracePanel = contentPanel.getComponent(1);
-			var taskPanel;
+			var mainPanel = this.getComponent(1);
+			var tracePanel = mainPanel.getComponent(1);
 			
 			//Check if trace information is available
 	
 			if(data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined) {
 				
-				contentPanel.layout.setActiveItem(1);
+				mainPanel.layout.setActiveItem(1);
 
-				taskPanel	= tracePanel.getComponent(0);
-				emptyPanel	= contentPanel.getComponent(0);
+				this.contentPanel = tracePanel.getComponent(0);
+				emptyPanel = mainPanel.getComponent(0);
 				
 				var statePanel = tracePanel.getComponent(1);
 				if(data.stateTrace != undefined) {
@@ -165,24 +168,25 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				tracePanel.setActiveTab(0);
 				
 			} else {
-				contentPanel.layout.setActiveItem(0);
+				mainPanel.layout.setActiveItem(0);
 				
-				taskPanel = contentPanel.getComponent(0);
+				this.contentPanel = mainPanel.getComponent(0);
 				emptyPanel = tracePanel.getComponent(0);
 			}
 			
 			//Clear the panel which may contain content
 			//of the previous request
 			emptyPanel.body.dom.innerHTML = "";
-		
+			
+			
 			if (data.error != null) {
-				taskPanel.body.dom.innerHTML = this.makeErrorMessage(data.error);
+				this.autoClose(this.makeErrorMessage(data.error), 5);
 			} else if(data.done) { //Check if the task is done
 				this.fireEvent('taskdone', this.id);
-				taskPanel.body.dom.innerHTML = this.makeFinishedMessage();
+				this.autoClose(this.makeFinishedMessage(), 5);				
 			} else {
 				//Update the tab content
-				taskPanel.body.dom.innerHTML = data.html;
+				this.contentPanel.body.dom.innerHTML = data.html;
 				
 				//Attach the input event handlers
 				var num = data.inputs.length;
@@ -293,6 +297,17 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			callback: this.processTabData,
 			scope: this
 		});
+	},
+	
+	autoClose: function (msg, numSeconds) {
+		if(numSeconds == 0) {
+			this.ownerCt.remove(this);
+		} else {
+			if(this.ownerCt != undefined) { //Only continue if we were not already closed manually
+				this.contentPanel.body.dom.innerHTML = msg + '<br /><br />This tab will automatically close in ' + numSeconds + ' seconds...';		
+		 		new Ext.util.DelayedTask().delay(1000,this.autoClose,this,[msg,numSeconds - 1]);
+		 	}
+		}
 	}
 });
 
