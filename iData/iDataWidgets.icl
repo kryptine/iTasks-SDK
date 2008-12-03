@@ -7,9 +7,9 @@ import iDataForms, iDataFormlib, iDataTrivial, StdBimap
 derive gForm	[], HtmlTag, HtmlAttr
 derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlDate, HtmlTime
 
-derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
-derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
-derive gerda 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
+derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
+derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
+derive gerda 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 //derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 //derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 
@@ -166,7 +166,15 @@ where
 	where
 		convert (HtmlSelect _ x)= toInt x
 		
-
+gForm {|HtmlLabel|} (init, formid) hst
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= html
+	   , inputs			= []
+	   },hst)
+where
+	(HtmlLabel html)	= formid.ival
+	
 //TODO: FIX. toClean no longer exists
 gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
 		RefreshTimer timeout
@@ -210,6 +218,10 @@ gUpd{|RefreshTimer|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, 
 gUpd{|RefreshTimer|}	(UpdCreate l)			_						= (UpdCreate l, RefreshTimer 0)									// create default value
 gUpd{|RefreshTimer|}	mode					cur						= (mode, cur)													// don't change
 
+gUpd{|HtmlLabel|}		(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
+gUpd{|HtmlLabel|}		(UpdSearch cntr upd)	cur						= (UpdSearch cntr upd, cur)										// continue search, don't change
+gUpd{|HtmlLabel|}		(UpdCreate l)			_						= (UpdCreate l, HtmlLabel [])									// create default value
+gUpd{|HtmlLabel|}		mode					cur						= (mode, cur)
 
 // small utility stuf
 

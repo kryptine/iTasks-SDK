@@ -43,7 +43,7 @@ where
 									?>>	editTask "Set" input 
 			=>> \(_,date,_,time) -> return_V (date,time)
 		where
-			input = (toString (Text "date: "), date, toString (Text "time: "), time)
+			input = (HtmlLabel [Text "date: "], date, HtmlLabel [Text "time: "], time)
 
 		determineDateTime :: (HtmlDate,HtmlTime) -> Task (Bool,(HtmlDate,HtmlTime))
 		determineDateTime daytime
