@@ -113,7 +113,7 @@ where
 	| not activated						= (createDefault,tst)
 	# (currtime,tst)					= appTaskTSt (appWorldOnce ("Task: " +++ taskname +++ " For: " +++ toString nuserId) time) tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & /*html = BT [] [],*/userId = nuserId}	// activate task of indicated user NEWTRACE
+	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
 	| activated 						= (a,{tst & activated = True						// work is done	
 												  ,	userId = userId							// restore previous user id						
 												  ,	html = ohtml +|+ (	{ delegatorId 	= userId

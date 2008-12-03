@@ -51,7 +51,7 @@ determineTaskForTab thisuser thistaskid tree
 
 determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
 determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
-	| taskdescr.taskNrId == thistaskid	= Just (taskdescr @@: tree)
+	| taskdescr.taskNrId == thistaskid	= Just (taskdescr @@: (pruneTree tree))
 										= determineTaskTree thisuser thistaskid tree									
 determineTaskTree thisuser thistaskid (ntaskuser -@: tree)
 	| thisuser == ntaskuser				= Nothing
@@ -70,6 +70,16 @@ determineTaskTree thisuser thistaskid (DivCode id tree)
 	= determineTaskTree thisuser thistaskid tree
 determineTaskTree thisuser thistaskid (TaskTrace traceinfo tree)
 	= determineTaskTree thisuser thistaskid tree
+
+
+pruneTree :: !HtmlTree -> HtmlTree										// delete all sub trees not belonging to this task
+pruneTree (taskdescr @@: tree)			= BT [] []								
+pruneTree (ntaskuser -@: tree)			= ntaskuser -@: pruneTree tree
+pruneTree (tree1 +|+ tree2)				= pruneTree tree1 +|+ pruneTree tree2
+pruneTree (tree1 +-+ tree2)				= pruneTree tree1 +-+ pruneTree tree2
+pruneTree (BT bdtg inputs)				= (BT bdtg inputs)
+pruneTree (DivCode id tree)				= (DivCode id (pruneTree tree))
+pruneTree (TaskTrace traceinfo tree)	=  (TaskTrace traceinfo (pruneTree tree))
 
 mkFilteredTaskTree :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
 mkFilteredTaskTree thisuser taskuser (description @@: tree) 						
