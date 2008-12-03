@@ -17,7 +17,7 @@ findDate :: Task (HtmlDate,HtmlTime)
 findDate
 =						[Text "Choose person you want to date:",BrTag []] 
 						?>>	editTask "Set" (HtmlSelect [(toString i,toString i) \\ i <- [1..npersons - 1]] (toString 1)) 
-	=>> \(HtmlSelect _ whom) ->		let whom = toInt whom
+	=>> \(HtmlSelect _ sel) ->		let whom = toInt sel
 						in
 						[Text "Determining date:",BrTag [],BrTag []] 
 						?>>	findDate` whom (HtmlDate 1 1 2007,HtmlTime 9 0 0) 
