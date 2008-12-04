@@ -7,9 +7,9 @@ import TaskTree, TaskTreeFilters
 import JSON
 import iDataForms, iDataState
 
-derive JSONEncode TabContent, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
+derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
-:: TabContent 	= { done			:: Bool				//Is the requested work finished
+:: TabContent 	= { status			:: TaskStatus		//Is the requested work active, finished, or deleted 
 				  , error			:: Maybe String		//Optional error if something went wrong on the server
 				  , html			:: String			//The HTML content of the tab
 				  , inputs			:: [InputId]		//The interactive inputs in the tab
@@ -50,7 +50,7 @@ handleWorkTabRequest mainTask request session hst
 
 	# content										=
 		{TabContent
-		|	done			= taskStatus == TaskFinished || taskStatus == TaskDeleted
+		|	status			= taskStatus 
 		,	error			= maybeError
 		,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
 		,	inputs			= inputs

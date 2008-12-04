@@ -102,7 +102,10 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			+ "</table></div><div class=\"worktab-header-indicator\"></div>";
 	},
 	makeFinishedMessage: function() {
-		return "This task has finished. You can close this tab now.";
+		return "This task is completed. Thank you.";
+	},
+	makeDeletedMessage: function() {
+		return "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
 	},
 	makeErrorMessage: function(msg) {
 		return "<span class=\"error\">" + msg + "</span>";
@@ -181,9 +184,12 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			
 			if (data.error != null) {
 				this.autoClose(this.makeErrorMessage(data.error), 5);
-			} else if(data.done) { //Check if the task is done
-				this.fireEvent('taskdone', this.id);
-				this.autoClose(this.makeFinishedMessage(), 5);				
+			} else if(data.status == 'TaskFinished') { //Check if the task is done
+				this.fireEvent('taskfinished', this.id);
+				this.autoClose(this.makeFinishedMessage(), 5);
+			} else if(data.status == 'TaskDeleted') {
+				this.fireEvent('taskdeleted', this.id);
+				this.autoClose(this.makeDeletedMessage(), 5);
 			} else {
 				//Update the tab content
 				this.contentPanel.body.dom.innerHTML = data.html;
@@ -301,7 +307,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	
 	autoClose: function (msg, numSeconds) {
 		if(numSeconds == 0) {
-			this.ownerCt.remove(this);
+			if(this.ownerCt != undefined) {
+				this.ownerCt.remove(this);
+			}
 		} else {
 			if(this.ownerCt != undefined) { //Only continue if we were not already closed manually
 				this.contentPanel.body.dom.innerHTML = msg + '<br /><br />This tab will automatically close in ' + numSeconds + ' seconds...';		

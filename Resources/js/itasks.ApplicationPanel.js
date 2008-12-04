@@ -88,7 +88,10 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
 			newtab.setDebugPanel(debugpanel);
 			newtab.setApplicationPanel(apppanel);
-			newtab.on('taskdone',function(taskid) {
+			newtab.on('taskfinished',function(taskid) {
+				worklist.refresh();
+			},this);
+			newtab.on('taskdeleted',function(taskid) {
 				worklist.refresh();
 			},this);
 			newtab.refresh();
