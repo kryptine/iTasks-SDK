@@ -12,7 +12,9 @@ determineTaskForTab 	:: !UserId !TaskNrId 	!HtmlTree -> (!TaskStatus,![HtmlTag],
 mkFilteredTaskTree 		:: !UserId !UserId 		!HtmlTree -> (![HtmlTag],![InputId])
 mkUnfilteredTaskTree 	:: 				   		!HtmlTree -> (![HtmlTag],![InputId])
 
-filterTaskTree 			:: 						!HtmlTree -> HtmlTag
-filterTaskTreeOfTask 	:: !UserId !TaskNrId 	!HtmlTree -> HtmlTag	
+// Showing Trace from Task Tree 
+
+getFullTraceFromTaskTree:: 						!HtmlTree -> HtmlTag
+getTraceFromTaskTree 	:: !UserId !TaskNrId 	!HtmlTree -> HtmlTag	
 
 

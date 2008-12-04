@@ -15,7 +15,7 @@ handleTaskTreeForestRequest mainTask request session hst
 	# thisUserId				= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst)	
 								= calculateTaskTree thisUserId True True True mainTask hst 					// calculate the TaskTree given the id of the current user
-	# taskTreeTrace				= filterTaskTree  htmlTree													// calculate Task Tree
+	# taskTreeTrace				= getFullTraceFromTaskTree  htmlTree													// calculate Task Tree
 	# content					= toString (DivTag [IdAttr "itasks-tasktreeforest",ClassAttr "trace"] [taskTreeTrace])
 	= ({http_emptyResponse & rsp_data = content}, hst)														// create the http response
 	

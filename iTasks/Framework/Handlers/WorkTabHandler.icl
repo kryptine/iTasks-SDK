@@ -27,8 +27,8 @@ handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, 
 handleWorkTabRequest mainTask request session hst
 	# thisUserId									= session.Session.userId										// fetch user id from the session
 	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst)	
-													= calculateTaskTree thisUserId True True True mainTask hst 		// calculate the TaskTree given the id of the current user
+	# (toServer, htmlTree, maybeError, _, _, hst)	
+													= calculateTaskTree thisUserId traceOn False False mainTask hst 		// calculate the TaskTree given the id of the current user
 	# (taskStatus,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
 	# hst =: {states}								= storeStates hst												// Write states that are stored on the server
@@ -63,22 +63,28 @@ handleWorkTabRequest mainTask request session hst
 	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})				// create the http response
 	
 where
+	traceOn				= http_getValue "traceStates" request.arg_post "" == "1"
+	
+	traceUpdatesOn		= http_getValue "traceUpdates" request.arg_post "" == "1"
+	
+	traceSubTreesOn		= http_getValue "traceSubTrees" request.arg_post "" == "1"
+
 	mbStateTrace req states
-		| http_getValue "traceStates" req.arg_post "" == "1"
+		| traceOn
 			# (trace1,states)	= traceInStates states
 			# (trace2,states)	= traceStates states
 			= (Just (toString (DivTag [] [trace1,trace2])), states)
 		| otherwise
 			= (Nothing, states)
 	mbUpdateTrace req states
-		| http_getValue "traceUpdates" req.arg_post "" == "1"
+		| traceUpdatesOn
 			# (trace,states)	= traceUpdates states
 			= (Just (toString trace), states)
 		| otherwise
 			= (Nothing, states)	
 	mbSubTreeTrace req thisUserId taskId htmlTree
-		| http_getValue "traceSubTrees" req.arg_post "" == "1"
-			= Just (toString (filterTaskTreeOfTask thisUserId taskId htmlTree))
+		| traceSubTreesOn
+			= Just (toString (getTraceFromTaskTree thisUserId taskId htmlTree))
 		| otherwise
 			= Nothing
 	

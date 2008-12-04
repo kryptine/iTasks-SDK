@@ -109,9 +109,9 @@ where
 assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
 assignTaskTo nuserId (taskname,taska) = Task assignTaskTo`
 where
-	assignTaskTo` tst=:{html=ohtml,tasknr,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
+	assignTaskTo` tst=:{tasknr,activated,userId,workflowLink=(_,(_,processNr,workflowLabel))}
 	| not activated						= (createDefault,tst)
-	# (currtime,tst)					= appTaskTSt (appWorldOnce ("Task: " +++ taskname +++ " For: " +++ toString nuserId) time) tst
+	# (currtime,tst=:{html=ohtml})		= appTaskTSt (appWorldOnce ("Task " +++ taskname +++ " for " +++ toString nuserId) time) tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
 	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
 	| activated 						= (a,{tst & activated = True						// work is done	

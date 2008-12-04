@@ -6,7 +6,6 @@ import InternaliTasksCommon, iTasksHtmlSupport
 
 :: TaskStatus = TaskFinished | TaskActivated | TaskDeleted
 
-
 instance == TaskStatus
 where
 	(==) TaskFinished 	TaskFinished 	= True
@@ -38,7 +37,7 @@ determineTaskList thisuser (TaskTrace traceinfo tree)
 
 determineTaskForTab 	:: !UserId !TaskNrId 	!HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
 determineTaskForTab thisuser thistaskid tree
-	= case determineTaskTree thisuser thistaskid tree of							//Find the subtree by task id
+	= case determineMyTaskTree thisuser thistaskid tree of							//Find the subtree by task id
 		Nothing
 			= (TaskDeleted, [], [])													//Subtask not found, nothing to do anymore
 		Just tree
@@ -48,38 +47,6 @@ determineTaskForTab thisuser thistaskid tree
 		test (description @@: html) 
 		| description.taskNrId == thistaskid && description.curStatus = TaskFinished
 		= TaskActivated
-
-determineTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
-determineTaskTree thisuser thistaskid (taskdescr @@: tree) 	
-	| taskdescr.taskNrId == thistaskid	= Just (taskdescr @@: (pruneTree tree))
-										= determineTaskTree thisuser thistaskid tree									
-determineTaskTree thisuser thistaskid (ntaskuser -@: tree)
-	| thisuser == ntaskuser				= Nothing
-										= determineTaskTree thisuser thistaskid tree
-determineTaskTree thisuser thistaskid (tree1 +|+ tree2)
-	# ntree1		= determineTaskTree thisuser thistaskid tree1
-	| isJust ntree1						= ntree1
-										= determineTaskTree thisuser thistaskid tree2
-determineTaskTree  thisuser thistaskid  (tree1 +-+ tree2)
-	# ntree1		= determineTaskTree thisuser thistaskid tree1
-	| isJust ntree1						= ntree1
-										= determineTaskTree thisuser thistaskid tree2
-determineTaskTree thisuser thistaskid  (BT bdtg inputs)
-	= Nothing
-determineTaskTree thisuser thistaskid (DivCode id tree)
-	= determineTaskTree thisuser thistaskid tree
-determineTaskTree thisuser thistaskid (TaskTrace traceinfo tree)
-	= determineTaskTree thisuser thistaskid tree
-
-
-pruneTree :: !HtmlTree -> HtmlTree										// delete all sub trees not belonging to this task
-pruneTree (taskdescr @@: tree)			= BT [] []								
-pruneTree (ntaskuser -@: tree)			= ntaskuser -@: pruneTree tree
-pruneTree (tree1 +|+ tree2)				= pruneTree tree1 +|+ pruneTree tree2
-pruneTree (tree1 +-+ tree2)				= pruneTree tree1 +-+ pruneTree tree2
-pruneTree (BT bdtg inputs)				= (BT bdtg inputs)
-pruneTree (DivCode id tree)				= (DivCode id (pruneTree tree))
-pruneTree (TaskTrace traceinfo tree)	=  (TaskTrace traceinfo (pruneTree tree))
 
 mkFilteredTaskTree :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
 mkFilteredTaskTree thisuser taskuser (description @@: tree) 						
@@ -125,6 +92,41 @@ where
 	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
 	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
 
+// ******************************************************************************************************
+// Search for that part of the task tree which is applicable for a given user and a given task
+// ******************************************************************************************************
+
+determineMyTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
+determineMyTaskTree thisuser thistaskid  (BT bdtg inputs)
+	= Nothing
+determineMyTaskTree thisuser thistaskid (ntaskuser -@: tree)
+										= determineMyTaskTree thisuser thistaskid tree
+determineMyTaskTree thisuser thistaskid  (tree1 +-+ tree2)
+	# ntree1							= determineMyTaskTree thisuser thistaskid tree1
+	| isJust ntree1						= ntree1
+										= determineMyTaskTree thisuser thistaskid tree2
+determineMyTaskTree thisuser thistaskid (tree1 +|+ tree2)
+	# ntree1							= determineMyTaskTree thisuser thistaskid tree1
+	| isJust ntree1						= ntree1
+										= determineMyTaskTree thisuser thistaskid tree2
+determineMyTaskTree thisuser thistaskid (DivCode id tree)
+										= determineMyTaskTree thisuser thistaskid tree
+determineMyTaskTree thisuser thistaskid (TaskTrace traceinfo tree)
+										= determineMyTaskTree thisuser thistaskid tree
+determineMyTaskTree thisuser thistaskid (taskdescr @@: tree) 	
+	| taskdescr.taskNrId 	 == thistaskid	&&
+	  taskdescr.taskWorkerId == thisuser= Just (taskdescr @@: (pruneTree tree))
+										= determineMyTaskTree thisuser thistaskid tree
+where
+	pruneTree :: !HtmlTree -> HtmlTree		// delete all sub trees not belonging to this task
+	pruneTree (taskdescr @@: tree)			= BT [] []							
+	pruneTree (ntaskuser -@: tree)			= ntaskuser -@: pruneTree tree
+	pruneTree (tree1 +|+ tree2)				= pruneTree tree1 +|+ pruneTree tree2
+	pruneTree (tree1 +-+ tree2)				= pruneTree tree1 +-+ pruneTree tree2
+	pruneTree (BT bdtg inputs)				= BT bdtg inputs
+	pruneTree (DivCode id tree)				= DivCode id (pruneTree tree)
+	pruneTree (TaskTrace traceinfo tree)	= TaskTrace traceinfo (pruneTree tree)
+
 
 // ******************************************************************************************************
 // Trace Calculation
@@ -132,11 +134,17 @@ where
 
 :: Trace		=	Trace !(Maybe !TraceInfo) ![Trace]							// traceinfo with possibly subprocess
 
-filterTaskTree :: !HtmlTree -> HtmlTag
-filterTaskTree html
+getTraceFromTaskTree :: !UserId !TaskNrId !HtmlTree -> HtmlTag				
+getTraceFromTaskTree userId taskNrId tree
+	# mbtree			= determineMyTaskTree userId taskNrId tree
+	| isNothing mbtree	= Text "Error: Cannot find task tree !"
+	= getFullTraceFromTaskTree (fromJust mbtree)
+
+getFullTraceFromTaskTree :: !HtmlTree -> HtmlTag
+getFullTraceFromTaskTree html
 # traceInfos	= collectTraceInfo html
 # traces		= insertTraces traceInfos [] 
-= showTaskTree (Just traces)
+= showTaskTreeTrace (Just traces)
 where
 	collectTraceInfo :: !HtmlTree -> [TraceInfo]
 	collectTraceInfo (TaskTrace traceinfo html) = [traceinfo : collectTraceInfo html]
@@ -156,46 +164,43 @@ where
 	insertTraces [] traces     = traces
 	insertTraces [i:is] traces = insertTraces is (insertTrace i traces)
 
-
-filterTaskTreeOfTask :: !UserId !TaskNrId !HtmlTree -> HtmlTag				
-filterTaskTreeOfTask userId taskNrId tree
-	# mbtree			= determineTaskTree userId taskNrId tree
-	| isNothing mbtree	= Text "Error: Cannot find task tree !"
-	= filterTaskTree (fromJust mbtree)
-
-insertTrace :: !TraceInfo ![Trace] -> [Trace]
-insertTrace info trace = insertTrace` (reverse (parseTaskNr info.trTaskNr)) trace
-where
-	insertTrace` :: !TaskNr ![Trace] -> [Trace]
-	insertTrace` [i] traces
-	| i < 0					= abort ("negative task numbers:" <+++ info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
-	# (Trace _ itraces)		= select i traces
-	= updateAt` i (Trace (Just info) itraces)  traces
-	insertTrace` [i:is] traces
-	| i < 0					= abort ("negative task numbers:" <+++ info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
-	# (Trace ni itraces)	= select i traces
-	# nistraces				= insertTrace` is itraces
-	= updateAt` i (Trace ni nistraces) traces
-
-	select :: !Int ![Trace] -> Trace
-	select i list
-	| i < length list = list!!i 
-	=  Trace Nothing []
-
-	updateAt`:: !Int !Trace ![Trace] -> [Trace]
-	updateAt` n x list
-	| n < 0		= abort "negative numbers not allowed"
-	= updateAt` n x list
+	insertTrace :: !TraceInfo ![Trace] -> [Trace]
+	insertTrace info trace = insertTrace` (reverse (parseTaskNr info.trTaskNr)) trace
 	where
+		insertTrace` :: !TaskNr ![Trace] -> [Trace]
+		insertTrace` [i] traces
+		| i < 0					= abort ("negative task numbers:" <+++ info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
+		# (Trace _ itraces)		= select i traces
+		= updateAt` i (Trace (Just info) itraces)  traces
+		insertTrace` [i:is] traces
+		| i < 0					= abort ("negative task numbers:" <+++ info.trTaskNr <+++ "," <+++ info.trUserId <+++ "," <+++ info.trTaskName)
+		# (Trace ni itraces)	= select i traces
+		# nistraces				= insertTrace` is itraces
+		= updateAt` i (Trace ni nistraces) traces
+	
+		select :: !Int ![Trace] -> Trace
+		select i list
+		| i < length list = list!!i 
+		=  Trace Nothing []
+	
 		updateAt`:: !Int !Trace ![Trace] -> [Trace]
-		updateAt` 0 x []		= [x]
-		updateAt` 0 x [y:ys]	= [x:ys]
-		updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
-		updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
+		updateAt` n x list
+		| n < 0		= abort "negative numbers not allowed"
+		= updateAt` n x list
+		where
+			updateAt`:: !Int !Trace ![Trace] -> [Trace]
+			updateAt` 0 x []		= [x]
+			updateAt` 0 x [y:ys]	= [x:ys]
+			updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
+			updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
+
+// ******************************************************************************************************
+// Displaying Task Tree Trace information
+// ******************************************************************************************************
 		
-showTaskTree :: !(Maybe [Trace]) -> HtmlTag
-showTaskTree Nothing	= Text "No task tree trace "
-showTaskTree (Just a)	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , STable emptyBackground (print False a),HrTag []]
+showTaskTreeTrace :: !(Maybe [Trace]) -> HtmlTag
+showTaskTreeTrace Nothing	= Text "No task tree trace "
+showTaskTreeTrace (Just a)	= DivTag [] [showLabel "Task Tree Forest:", BrTag [] , STable emptyBackground (print False a),HrTag []]
 where
 	print _ []		= []
 	print b trace	= [pr b x ++ [STable emptyBackground (print (isDone x||b) xs)]\\ (Trace x xs) <- trace] 

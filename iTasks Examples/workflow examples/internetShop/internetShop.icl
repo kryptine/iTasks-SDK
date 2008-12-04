@@ -18,15 +18,15 @@ Start :: *World -> *World
 Start world = startTaskEngine (orderPlacement user) world
 
 orderPlacement user
-	= 								(user 		@: ("Shopping", selectFromShop)) 
+	= 								(user 		@:> ("Shopping", selectFromShop)) 
 									-&&-
-									(user 		@: ("Credit Card Information", fillInAndCheckCreditCard createDefault)) 
-		=>> \(basket,cardInfo) ->	user 		@: ("Order Confirmation", confirmOrder basket cardInfo)
-		=>> \_ ->					bank 		@: ("Cash Request", cashRequest bank cardInfo (amountFrom basket))
+									(user 		@:> ("Credit Card Information", fillInAndCheckCreditCard createDefault)) 
+		=>> \(basket,cardInfo) ->	user 		@:> ("Order Confirmation", confirmOrder basket cardInfo)
+		=>> \_ ->					bank 		@:> ("Cash Request", cashRequest bank cardInfo (amountFrom basket))
 		=>> \granted ->				if granted
-									 (storage	@: ("Order Delivery Request", deliverOrder user basket (deliveryAddress cardInfo)) #>>
-									  user		@: ("Delivery Notice",  deliverOKNotice 	 user basket (deliveryAddress cardInfo)))
-									 (user		@: ("Delivery Failure", deliverFailureNotice user basket (amountFrom basket))) 
+									 (storage	@:> ("Order Delivery Request", deliverOrder user basket (deliveryAddress cardInfo)) #>>
+									  user		@:> ("Delivery Notice",  deliverOKNotice 	 user basket (deliveryAddress cardInfo)))
+									 (user		@:> ("Delivery Failure", deliverFailureNotice user basket (amountFrom basket))) 
 									  
 fillInAndCheckCreditCard :: CardInfo -> Task CardInfo
 fillInAndCheckCreditCard cardInfo 
@@ -45,20 +45,24 @@ bank 		:== 0
 storage 	:== 0
 webSystem	:== 0
 
-items = [("Appels", 1.0,3.50),("Peren", 1.0,2.50)]
+items = [(DisplayMode "Appels", 1.0,DisplayMode 3.50),(DisplayMode "Peren", 1.0,DisplayMode 2.50)]
+
+instance toString (DisplayMode a) | toString a
+where
+	toString (DisplayMode a) = toString a
 
 instance toString (a,b,c)  | toString a & toString b & toString c
 where
 	toString (a,b,c) = "(" <+++ a <+++ "," <+++ b <+++ "," <+++ c <+++ ")" 
 
-amountFrom (item,amount,price) = amount * price
+amountFrom (item,amount,DisplayMode price) = amount * price
 
 deliveryAddress cardInfo	= "delivery address " +++ cardInfo
 
 
 selectFromShop 
 	=					[Text "Please select an item from our shop"]
-						?>> editTask "OK" ("Appels", 1.0,3.50)
+						?>> editTask "OK" (DisplayMode "Appels", 1.0,DisplayMode 3.50)
 
 fillInCreditCard cardInfo
 	=					[Text "Please fill in your credit card number"]
