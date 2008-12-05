@@ -208,11 +208,11 @@ where
 	pr _ Nothing 			= []
 	pr dprev (Just info=:{trTaskName, trActivated})	
 	| dprev && (not trActivated)							= pr False Nothing	// subtask not important anymore (assume no milestone tasks)
-	| not trActivated	&& trTaskName%(0,4) == "Ajax "		= showTask cellattr1b White Navy Aqua  Silver  info
-	| not trActivated	&& trTaskName%(0,6) == "Server "	= showTask cellattr1b White Navy Aqua  Silver  info
-	| not trActivated	&& trTaskName%(0,6) == "Client "	= showTask cellattr1b White Navy Aqua  Silver  info
-	| not trActivated										= showTask cellattr1b White Navy Maroon Silver info
-	= showTask cellattr1a White Yellow Red White info
+	| not trActivated	&& trTaskName%(0,4) == "Ajax "		= showTask cellattr1b Black Navy Aqua  Silver  info
+	| not trActivated	&& trTaskName%(0,6) == "Server "	= showTask cellattr1b Black Navy Aqua  Silver  info
+	| not trActivated	&& trTaskName%(0,6) == "Client "	= showTask cellattr1b Black Navy Aqua  Silver  info
+	| not trActivated										= showTask cellattr1b Black Navy Maroon Silver info
+	= showTask cellattr1a Black Yellow Red Black info
 	
 	showTask att c1 c2 c3 c4 info
 	= [STable doneBackground 	

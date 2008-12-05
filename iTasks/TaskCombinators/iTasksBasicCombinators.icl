@@ -58,15 +58,15 @@ where
 Once :: !String !(Task a) -> (Task a) | iData a
 Once label task = mkTask label (Task doit)
 where
-	doit tst=:{activated,html,tasknr,hst,userId,options}
+	doit tst=:{activated,tasknr,hst,userId,options}
 	# taskId			= iTaskId userId tasknr (label +++ "_")
 	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
 	# (done,value)		= store.Form.value
-	| done 				= (value,{tst & hst = hst})													// if task has completed, don't do it again
+	| done 				= (value,{tst & hst = hst})																		// if task has completed, don't do it again
 	# (value,tst=:{hst})= appTaskTSt task {tst & hst = hst}
-	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst 	// remember task status for next time
+	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst // remember task status for next time
 	# (done,value)		= store.Form.value
-	= (value,{tst & activated = done, hst = hst})													// task is now completed, handle as previously
+	= (value,{tst & activated = done, hst = hst})																		// task is now completed, handle as previously
 
 // ******************************************************************************************************
 // looping tasks
@@ -78,17 +78,17 @@ foreverTask :: !(Task a) -> Task a | iData a
 foreverTask task = mkTask "foreverTask" (Task foreverTask`)
 where
 	foreverTask` tst=:{tasknr,activated,userId,options,html} 
-	| options.gc == Collect																				// garbace collect everything when task finsihed
-		# (val,tst=:{activated})= appTaskTSt task {tst & tasknr = [-1:tasknr]}							// shift tasknr
-		| activated 			= foreverTask` (deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr, options = options, html = html}) 			// loop
+	| options.gc == Collect																								// garbace collect everything when task finsihed
+		# (val,tst=:{activated})= appTaskTSt task {tst & tasknr = [-1:tasknr]}											// shift tasknr
+		| activated 			= foreverTask` (deleteSubTasksAndThreads tasknr {tst & tasknr = tasknr, options = options/*, html = html*/}) 			// loop
 		= (val,tst)					
-	# taskId					= iTaskId userId tasknr "ForSt"											// create store id
-	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst		// fetch actual tasknr
+	# taskId					= iTaskId userId tasknr "ForSt"															// create store id
+	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst				// fetch actual tasknr
 	# (val,tst=:{activated})	= appTaskTSt task {tst & tasknr = [-1:currtasknr.Form.value]}
-	| activated 																						// task is completed	
-		# ntasknr				= incNr currtasknr.Form.value												// incr tasknr
-		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst // store next task nr
-		= foreverTask` {tst & tasknr = tasknr, options = options, html = html}										// initialize new task
+	| activated 																										// task is completed	
+		# ntasknr				= incNr currtasknr.Form.value															// incr tasknr
+		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst 	// store next task nr
+		= foreverTask` {tst & tasknr = tasknr, options = options/*, html = html*/}											// initialize new task
 	= (val,tst)					
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
@@ -114,8 +114,8 @@ where
 	# (currtime,tst=:{html=ohtml})		= appTaskTSt (appWorldOnce ("Task " +++ taskname +++ " for " +++ toString nuserId) time) tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
 	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
-	| activated 						= (a,{tst & activated = True						// work is done	
-												  ,	userId = userId							// restore previous user id						
+	| activated 						= (a,{tst & activated = True													// work is done	
+												  ,	userId = userId														// restore previous user id						
 												  ,	html = ohtml +|+ (	{ delegatorId 	= userId
 																		, taskWorkerId	= nuserId
 																		, taskNrId		= toStringTaskNr tasknr
@@ -125,8 +125,8 @@ where
 																		, taskLabel		= taskname
 																		, timeCreated	= currtime
 																		, curStatus		= activated
-																 		} @@: BT [] [])})							// plus new one tagged
-	= (a,{tst & userId = userId																// restore user Id
+																 		} @@: nhtml)})									// plus new one tagged
+	= (a,{tst & userId = userId																							// restore user Id
 			  , html = 	ohtml +|+ (	{ delegatorId 	= userId
 									, taskWorkerId	= nuserId
 									, taskNrId		= toStringTaskNr tasknr
