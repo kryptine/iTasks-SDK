@@ -179,22 +179,25 @@ where
 	doandTasks taskCollection tst=:{tasknr,html,options,userId}
 	# ((alist,acode),tst=:{activated=finished,html=allhtml})		
 									= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [] [],activated = True} 
-	| finished || pred alist		= (alist,{tst & html = html, activated = True}) 					// stop, all work done so far satisfies predicate
+	| finished || pred alist		= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	= (alist,{tst 	& activated = False
 					, html 		= html +|+ collectCode label acode						// show previous code
 								
 			})
 	where
-		collectCode :: !String ![HtmlTree] -> HtmlTree
-		collectCode label htmls = CondAnd label [(toStringTaskNr [0,i:tasknr],html) \\ html <- htmls & i <- [0..]]
+		collectCode :: !String ![(Bool,HtmlTree)] -> HtmlTree
+		collectCode label htmls = CondAnd label lengthltask [({ caTaskNrId	= toStringTaskNr [0,i:tasknr]
+															  , caIndex		= lengthltask
+															  , caStatus	= finished	
+															  },html) \\ (finished,html) <- htmls & i <- [0..]]
 
-		checkAllTasks :: !String ![LabeledTask a] !Int !Bool !(![a],![HtmlTree]) !*TSt -> *(!(![a],![HtmlTree]),!*TSt) | iCreateAndPrint a
+		checkAllTasks :: !String ![LabeledTask a] !Int !Bool !(![a],![(Bool,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,HtmlTree)]),!*TSt) | iCreateAndPrint a
 		checkAllTasks traceid taskCollection ctasknr bool (alist,acode) tst=:{tasknr}
 		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),{tst & activated = bool})			// all tasks tested
 		# (taskname,task)		= taskCollection!!ctasknr
 		# (a,tst=:{activated = adone,html=html})	
 								= appTaskTSt (mkParSubTask traceid ctasknr task) {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
-		= checkAllTasks traceid taskCollection (inc ctasknr) False (if adone [a:alist] alist,[html:acode]) {tst & tasknr = tasknr}
+		= checkAllTasks traceid taskCollection (inc ctasknr) False (if adone [a:alist] alist,[(adone,html):acode]) {tst & tasknr = tasknr}
 
 /*
 allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 

@@ -42,7 +42,7 @@ import HSt
 				|	(@@:) infix  0 !TaskDescription !HtmlTree					// code with id of user attached to it
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
-				|	CondAnd !String [(!TaskNrId,!HtmlTree)]						// list of subtasks to display in different tabs by worklist handler 
+				|	CondAnd !String !Int [(!CondAndDescription,!HtmlTree)]		// list of subtasks to display in different tabs by worklist handler 
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 				|	TaskTrace TraceInfo !HtmlTree								// trace information used for displaying the task tree
 
@@ -55,6 +55,12 @@ import HSt
 					}
 
 // Task meta information
+:: CondAndDescription
+				=	{ caTaskNrId	:: !TaskNrId								// tasknr as string
+					, caIndex		:: !Int										// index of and task
+					, caStatus		:: !Bool									// is sub task finished
+					}
+
 :: TaskDescription
 				=	{ delegatorId	:: !UserId									// id of the work delegator
 					, taskWorkerId	:: !UserId									// id of worker on the task
