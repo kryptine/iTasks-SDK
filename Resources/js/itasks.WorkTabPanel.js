@@ -35,7 +35,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				deferredRender: false,
 				tbar: [{
 					text: 'Refresh task',
-					iconCls: 'icon-refresh',
+					iconCls: 'x-tbar-loading',
 					listeners: {
 						click: {
 							scope: this,

@@ -11,6 +11,7 @@ itasks.LoaderWindow = Ext.extend(Ext.Window, {
 
 	updateProgress: function(i, msg) {
 		this.progressBar.updateProgress(i,msg);
+		this.doLayout();
 	},
 	finish: function () {
 		this.getEl().fadeOut({

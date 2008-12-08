@@ -15,6 +15,7 @@ mkJsLibs = [ScriptTag [TypeAttr "text/javascript", SrcAttr src] [] \\ src <- jsl
 where
 	jslibs = ["ext/adapter/ext/ext-base.js"
 			 ,"ext/ext-all-debug.js"
+			 ,"ext-ux-livegrid/build/livegrid-all.js"
 			 ,"js/itasks.util.js"
 			 ,"js/itasks.LoginWindow.js"
 			 ,"js/itasks.LoaderWindow.js"
@@ -37,6 +38,7 @@ mkCssLibs = [LinkTag [RelAttr "stylesheet", TypeAttr "text/css", HrefAttr src] [
 where
 	csslibs =["ext/resources/css/ext-all.css"
 			 ,"ext/resources/css/xtheme-gray.css"
+			 ,"ext-ux-livegrid/build/resources/css/ext-ux-livegrid.css"
 			 ,"css/itasks.css"
 			 ]
 
