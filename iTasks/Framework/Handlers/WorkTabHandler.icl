@@ -25,10 +25,7 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 */
 handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkTabRequest mainTask request session hst
-	# thisUserId									= session.Session.userId										// fetch user id from the session
-	# taskId 										= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	# (toServer, htmlTree, maybeError, _, _, hst)	
-													= calculateTaskTree thisUserId traceOn False False mainTask hst 		// calculate the TaskTree given the id of the current user
+	# (toServer, htmlTree, maybeError, _, _, hst)	= calculateTaskTree thisUserId traceOn False False mainTask hst // calculate the TaskTree given the id of the current user
 	# (taskStatus,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
 	# hst =: {states}								= storeStates hst												// Write states that are stored on the server
@@ -44,10 +41,9 @@ handleWorkTabRequest mainTask request session hst
 													 	 ])
 											    		Nothing
 	# tempMessage									= case taskStatus of
-														TaskFinished -> "TaskFinished"
-														TaskDeleted -> "TaskDeleted"
-														TaskActivated -> "TaskActivated"
-
+														TaskFinished	->	"TaskFinished"
+														TaskDeleted		->	"TaskDeleted"
+														TaskActivated	->	"TaskActivated"
 	# content										=
 		{TabContent
 		|	status			= taskStatus 
@@ -63,11 +59,9 @@ handleWorkTabRequest mainTask request session hst
 	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})				// create the http response
 	
 where
-	traceOn				= http_getValue "traceStates" request.arg_post "" == "1"
-	
-	traceUpdatesOn		= http_getValue "traceUpdates" request.arg_post "" == "1"
-	
-	traceSubTreesOn		= http_getValue "traceSubTrees" request.arg_post "" == "1"
+	thisUserId			= session.Session.userId										// fetch user id from the session
+	taskId 				= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
+	traceOn				= http_getValue "trace" request.arg_post "" == "1"
 
 	mbStateTrace req states
 		| traceOn
@@ -77,13 +71,13 @@ where
 		| otherwise
 			= (Nothing, states)
 	mbUpdateTrace req states
-		| traceUpdatesOn
+		| traceOn
 			# (trace,states)	= traceUpdates states
 			= (Just (toString trace), states)
 		| otherwise
 			= (Nothing, states)	
 	mbSubTreeTrace req thisUserId taskId htmlTree
-		| traceSubTreesOn
+		| traceOn
 			= Just (toString (getTraceFromTaskTree thisUserId taskId htmlTree))
 		| otherwise
 			= Nothing

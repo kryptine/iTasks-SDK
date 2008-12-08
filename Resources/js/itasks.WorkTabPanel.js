@@ -280,16 +280,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		params['state'] = Ext.encode(this.state);
 		
 		//Check if we need to request trace info
-		if (this.debugPanel != undefined) {
-			if(this.debugPanel.traceStates()) {
-				params['traceStates'] = 1;
-			}
-			if(this.debugPanel.traceUpdates()) {
-				params['traceUpdates'] = 1;
-			}
-			if(this.debugPanel.traceSubTrees()) {
-				params['traceSubTrees'] = 1;
-			}
+		if (this.debugPanel != undefined && this.debugPanel.traceEnabled()) {
+				params['trace'] = 1;
 		}
 		//Add the session id
 		params = this.applicationPanel.addSessionParam(params);

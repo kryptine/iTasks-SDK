@@ -39,36 +39,24 @@ itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
 					iconCls: 'icon-process-table'
 				}]
 			},{
-				id: 'tracing',
+				id: 'options',
 				xtype: 'fieldset',
-				title: 'Tracing',
+				title: 'Options',
 				defaultType: 'checkbox',
 				hideLabels: true,
 				autoHeight: true,
 				layout: 'form',
 				items: [{
-					id: 'traceStates',
-					boxLabel: 'State information'
-					},{
-					id: 'traceUpdates',
-					boxLabel: 'Form updates'
-					},{
-					id: 'traceSubTrees',
-					boxLabel: 'Task sub-trees'
+					id: 'trace',
+					boxLabel: 'Enable trace'
 					}]
 			}]
 		});
 		
 		itasks.DebugPanel.superclass.initComponent.apply(this,arguments);
 	},
-	traceStates: function () {
-		return this.getComponent('tracing').getComponent('traceStates').getValue();
-	},
-	traceUpdates: function () {
-		return this.getComponent('tracing').getComponent('traceUpdates').getValue();
-	},
-	traceSubTrees: function () {
-		return this.getComponent('tracing').getComponent('traceSubTrees').getValue();
+	traceEnabled: function() {
+		return this.getComponent('options').getComponent('trace').getValue();
 	},
 	getTaskForestButton: function() {
 		return this.getComponent(0).getComponent(0);
