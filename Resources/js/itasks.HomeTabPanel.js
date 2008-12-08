@@ -8,10 +8,9 @@ itasks.HomeTabPanel = Ext.extend(Ext.Panel, {
 
 	initComponent: function () {
 		Ext.apply(this, {
-			title: 'Home',
-			closable: false,
-			html: 'This panel will show a dashboard style homepage',
-			bodyStyle: 'padding: 5px;'
+			title: 'Welcome',
+			closable: true,
+			autoLoad: 'welcome.html'
 		});
 		
 		itasks.HomeTabPanel.superclass.initComponent.apply(this, arguments);

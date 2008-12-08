@@ -27,9 +27,11 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 			tab = new itasks.WorkTabPanel({id: taskid,	taskinfo: taskinfo});
 			//Add new tab
 			this.add(tab);
+			this.activate(tab);
+			this.doLayout();
 		}
 		this.activate(tab);
-		
+				
 		//Return a reference to the new tab
 		return tab;
 	},
