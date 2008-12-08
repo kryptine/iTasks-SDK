@@ -40,9 +40,9 @@ import HSt
 				
 :: HtmlTree		=	BT [HtmlTag] [InputId]										// simple code with possible event handler definitions
 				|	(@@:) infix  0 !TaskDescription !HtmlTree					// code with id of user attached to it
-				|	(-@:) infix  0 !UserId 	 !HtmlTree							// skip code with this id if it is the id of the user 
 				|	(+-+) infixl 1 !HtmlTree !HtmlTree							// code to be placed next to each other				
 				|	(+|+) infixl 1 !HtmlTree !HtmlTree							// code to be placed below each other				
+				|	CondAnd !String [(!TaskNrId,!HtmlTree)]						// list of subtasks to display in different tabs by worklist handler 
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 				|	TaskTrace TraceInfo !HtmlTree								// trace information used for displaying the task tree
 

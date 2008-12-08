@@ -16,7 +16,7 @@ import DrupBasic
 :: TCl a 			= 	TCl !.(Task a)				// task closure, container for a task used for higher order tasks (task which deliver a task)			
 
 
-toStringTaskNr :: !TaskNr -> String
+toStringTaskNr :: !TaskNr -> TaskNrId
 toStringTaskNr [] 		= ""
 toStringTaskNr [i] 		= toString i
 toStringTaskNr [i:is] 	= toStringTaskNr is <+++ "." <+++ toString i 

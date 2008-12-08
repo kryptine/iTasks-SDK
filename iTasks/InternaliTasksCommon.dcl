@@ -42,7 +42,7 @@ mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
 mkParSubTask 		:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a					// two shifts are needed
 
 iTaskId 			:: !Int !TaskNr !String 	-> String
-toStringTaskNr		:: !TaskNr 					-> String
+toStringTaskNr		:: !TaskNr 					-> TaskNrId
 parseTaskNr 		:: !String 					-> TaskNr
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
