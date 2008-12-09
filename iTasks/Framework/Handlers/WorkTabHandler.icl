@@ -37,7 +37,7 @@ handleWorkTabRequest mainTask request session hst
 
 	# activeTasks									= if (taskStatus == TaskFinished || taskStatus == TaskDeleted) 
 														(Just [	mytaskdescr.taskNrId													
-														  \\ mytaskdescr <- determineTaskList thisUserId htmlTree
+														  \\ (mypath,mylast,mytaskdescr) <- determineTaskList thisUserId htmlTree
 													 	 ])
 											    		Nothing
 	# tempMessage									= case taskStatus of

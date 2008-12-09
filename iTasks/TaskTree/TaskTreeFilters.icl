@@ -13,33 +13,55 @@ where
 	(==) TaskDeleted 	TaskDeleted 	= True
 	(==) _ 				_ 				= False
 
-determineTaskList :: !UserId !HtmlTree -> [TaskDescription]
-determineTaskList thisuser tree = determineTaskList` thisuser tree defaultTaskDescriptor	
+determineTaskList :: !UserId !HtmlTree -> [([Bool],Bool,TaskDescription)]
+determineTaskList thisuser tree = fst (determineTaskList` thisuser [] tree defaultTaskDescriptor)
 where
-	determineTaskList` thisuser (ntaskDescr @@: tree) taskDescr 	
-		# collected								= determineTaskList` thisuser tree	ntaskDescr								
-		| ntaskDescr.taskWorkerId == thisuser	= [ntaskDescr:collected]
-												= collected
-	determineTaskList` thisuser (CondAnd label nr []) taskDescr
-												= []
-	determineTaskList` thisuser (CondAnd label nr [t=:(condAndDescr,htmlTree):ts]) taskDescr
-		# collection							= determineTaskList` thisuser htmlTree taskDescr
-		# collections 							= determineTaskList` thisuser (CondAnd label nr ts) taskDescr
-		= [{taskDescr & taskNrId = condAndDescr.caTaskNrId, taskLabel = label, curStatus = condAndDescr.caStatus}] ++ collection ++ collections
-	determineTaskList` thisuser (tree1 +|+ tree2)taskDescr
-		# collection1							= determineTaskList` thisuser tree1 taskDescr
-		# collection2							= determineTaskList` thisuser tree2 taskDescr
-		= collection1 ++ collection2
-	determineTaskList` thisuser (tree1 +-+ tree2) taskDescr
-		# collection1							= determineTaskList` thisuser tree1 taskDescr
-		# collection2							= determineTaskList` thisuser tree2 taskDescr
-		= collection1 ++ collection2
-	determineTaskList` thisuser  (BT html inputs) taskDescr
+	determineSubTaskList thisuser path [] taskDescr
 		= []
-	determineTaskList` thisuser (DivCode id tree) taskDescr
-		= determineTaskList` thisuser tree taskDescr
-	determineTaskList` thisuser (TaskTrace traceinfo tree) taskDescr
-		= determineTaskList` thisuser tree taskDescr
+	determineSubTaskList thisuser path [(desc,t)] taskDescr
+		# collection = fst (determineTaskList` thisuser (path ++ [False]) t taskDescr)
+		= [(path ++ [False],True,taskDescr):collection]
+	determineSubTaskList thisuser path [(desc,t):ts] taskDescr
+		# collection = fst (determineTaskList` thisuser (path ++ [False]) t taskDescr)
+		# collections = determineSubTaskList thisuser path ts taskDescr
+		= [(path ++ [False],True,taskDescr):collection] ++ collections
+			
+
+	determineTaskList` thisuser path (ntaskDescr @@: tree) taskDescr 	
+		# (collected, more)						= determineTaskList` thisuser path tree ntaskDescr								
+		| ntaskDescr.taskWorkerId == thisuser	= ([(path, not more,ntaskDescr):collected], True)
+												= (collected, more)
+
+	determineTaskList` thisuser path (CondAnd label nr ts) taskDescr
+		# collections = determineSubTaskList thisuser path ts taskDescr
+		= ([(path,True,taskDescr):collections],True)
+
+
+	/*	
+	determineTaskList` thisuser path (CondAnd label nr []) taskDescr
+												= ([], False)
+												
+	determineTaskList` thisuser path (CondAnd label nr [t=:(condAndDescr,htmlTree):ts]) taskDescr
+		# collection							= determineTaskList` thisuser path htmlTree taskDescr
+		# collections 							= determineTaskList` thisuser path (CondAnd label nr ts) taskDescr
+		= [(path,True,{taskDescr & taskNrId = condAndDescr.caTaskNrId, taskLabel = label, curStatus = condAndDescr.caStatus})] ++ collection ++ collections
+	*/
+	determineTaskList` thisuser path (tree1 +|+ tree2) taskDescr
+		# (collection1, more1)					= determineTaskList` thisuser path tree1 taskDescr
+		# (collection2, more2)					= determineTaskList` thisuser path tree2 taskDescr
+		= (collection1 ++ collection2, more1 || more2) 
+	
+	determineTaskList` thisuser path (tree1 +-+ tree2) taskDescr
+		# (collection1, more1)					= determineTaskList` thisuser path tree1 taskDescr
+		# (collection2, more2)					= determineTaskList` thisuser path tree2 taskDescr
+		= (collection1 ++ collection2, more1 || more2)
+	
+	determineTaskList` thisuser path (BT html inputs) taskDescr
+		= ([], False)
+	determineTaskList` thisuser path (DivCode id tree) taskDescr
+		= determineTaskList` thisuser path tree taskDescr
+	determineTaskList` thisuser path (TaskTrace traceinfo tree) taskDescr
+		= determineTaskList` thisuser path tree taskDescr
 
 defaultTaskDescriptor
 	=	{ delegatorId	= 0								

@@ -40,11 +40,11 @@ handleWorkListRequest mainTask request session hst
 												, subject 		= mytaskdescr.taskLabel
 												, priority		= mytaskdescr.taskPriority
 												, timestamp		= (\(Time i) -> i) mytaskdescr.timeCreated
-												, tree_path		= []
-												, tree_last		= True
-												, tree_icon		= "orTask"
+												, tree_path		= mypath
+												, tree_last		= mylast
+												, tree_icon		= "editTask"
 												}				
-											  \\ mytaskdescr <- determineTaskList thisUserId htmlTree | not mytaskdescr.curStatus
+											  \\ (mypath, mylast, mytaskdescr) <- determineTaskList thisUserId htmlTree | not mytaskdescr.curStatus
 											  ]
 	# worklist								= { success		= True
 											  , total		= length workitems

@@ -6,7 +6,7 @@ import iTasksTypes
 
 instance == TaskStatus
 
-determineTaskList 		:: !UserId 			 	!HtmlTree -> [TaskDescription] 	
+determineTaskList 		:: !UserId 			 	!HtmlTree -> [([Bool],Bool,TaskDescription)] 	
 determineTaskForTab 	:: !UserId !TaskNrId 	!HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
 
 // Showing Trace from Task Tree 
