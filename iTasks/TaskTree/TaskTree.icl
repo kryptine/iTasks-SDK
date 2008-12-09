@@ -20,8 +20,7 @@ calculateTaskTree thisUser traceOn showProcessTable showCurrThreadTable mainTask
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{activated})	
 						=  calculateTasks thisUser pversion mainTask (mkTst thisUser LSTxtFile LSTxtFile hst)
 
-# (processTable,tst)		
-						= if  showProcessTable (showWorkflows activated {tst & activated = activated}) ([],{tst & activated = activated})
+# (processTable,tst)	= if  showProcessTable (showWorkflows activated {tst & activated = activated}) ([],{tst & activated = activated})
 # (threadTable,tst=:{html,hst,activated})		
 						= if  showCurrThreadTable  (showThreadTable {tst & activated = activated}) ([],{tst & activated = activated})
 # showCompletePage		= IF_Ajax (hd threads == [-1]) True

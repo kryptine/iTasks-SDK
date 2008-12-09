@@ -27,7 +27,7 @@ derive JSONDecode HtmlState, StorageFormat, Lifespan
 // *** Server / Client startup
 // ******************************************************************************************************
 startTaskEngine :: !(Task a) !*World -> *World  	| iData a
-startTaskEngine maintask world = doHtmlServer maintask world
+startTaskEngine maintask world = doHtmlServer maintask world		
 
 doHtmlServer :: (Task a) !*World -> *World | iData a
 doHtmlServer mainTask world

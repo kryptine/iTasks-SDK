@@ -116,28 +116,23 @@ where
 	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
 	| activated 						= (a,{tst & activated = True													// work is done	
 												  ,	userId = userId														// restore previous user id						
-												  ,	html = ohtml +|+ (	{ delegatorId 	= userId
-																		, taskWorkerId	= nuserId
-																		, taskNrId		= toStringTaskNr tasknr
-																		, processNr		= processNr
-																		, worflowLabel	= workflowLabel
-																		, taskPriority	= NormalPriority
-																		, taskLabel		= taskname
-																		, timeCreated	= currtime
-																		, curStatus		= activated
-																 		} @@: nhtml)})									// plus new one tagged
+												  ,	html = ohtml +|+ (taskDescriptor currtime activated @@: nhtml)})									// plus new one tagged
 	= (a,{tst & userId = userId																							// restore user Id
-			  , html = 	ohtml +|+ (	{ delegatorId 	= userId
-									, taskWorkerId	= nuserId
-									, taskNrId		= toStringTaskNr tasknr
-									, processNr		= processNr
-									, worflowLabel	= workflowLabel
-									, taskPriority	= NormalPriority
-									, taskLabel		= taskname
-									, timeCreated	= currtime
-							 		, curStatus		= activated
-							 		} @@: nhtml)
+			  , html = 	ohtml +|+ (taskDescriptor currtime activated @@: nhtml)
 		 })												
+	where
+		taskDescriptor currtime activated
+		= 	{ delegatorId 	= userId
+			, taskWorkerId	= nuserId
+			, taskNrId		= toStringTaskNr tasknr
+			, processNr		= processNr
+			, worflowLabel	= workflowLabel
+			, taskPriority	= NormalPriority
+			, taskLabel		= taskname
+			, timeCreated	= currtime
+	 		, curStatus		= activated
+	 		} 
+
 
 // ******************************************************************************************************
 // sequencingtasks
@@ -171,7 +166,7 @@ where
 
 allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label displayOption pred taskCollection 
-= 					mkTask "andTasksCond" (Task (doandTasks taskCollection))
+= 					mkTask label (Task (doandTasks taskCollection))
 where
 	doandTasks [] tst	= return [] tst
 	doandTasks taskCollection tst=:{tasknr,html}

@@ -9,12 +9,12 @@ mkTst thisUser itaskstorage threadstorage hst
 	=	{ tasknr		= [-1]
 		, activated 	= True
 		, staticInfo	= initStaticInfo thisUser threadstorage
-		, userId		= if (thisUser >= 0) defaultUser thisUser
+		, userId		= defaultUser
 		, workflowLink	= (0,(defaultUser,0,defaultWorkflowName))
 		, html 			= BT [] []
 		, hst 			= hst
 		, trace			= False
-		, options 		= initialOptions thisUser itaskstorage
+		, options 		= initialOptions itaskstorage
 		}
 
 initStaticInfo :: UserId !Lifespan -> StaticInfo
@@ -23,14 +23,13 @@ initStaticInfo thisUser location
 		, threadTableLoc= location
 		}
 
-initialOptions ::  !UserId !Lifespan  -> Options 
-initialOptions thisUser location 
-	=	{ tasklife 		= if (thisUser >= 0) location LSSession 
+initialOptions :: !Lifespan  -> Options 
+initialOptions location 
+	=	{ tasklife 		= location 
 		, taskstorage 	= PlainString
 		, taskmode 		= Edit 
 		, gc			= Collect
 		}
-	
 
 appTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
 appTaskTSt (Task fn) tst = fn tst
