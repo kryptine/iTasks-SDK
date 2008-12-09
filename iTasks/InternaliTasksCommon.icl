@@ -94,7 +94,7 @@ where
 	# (v,tst) = appTaskTSt (mkTaskNoInc (name <+++ "." <+++ i) (Task mysubtask)) {tst & tasknr = [i:tasknr],activated = True} // shift task
 	= (v,{tst & tasknr = tasknr, options = options})
 	where
-		mysubtask tst=:{tasknr} = appTaskTSt task {tst & tasknr = [0:tasknr], activated = True}	// shift once again!
+		mysubtask tst=:{tasknr} = appTaskTSt task {tst & tasknr = [-1:tasknr], activated = True}	// shift once again!
 
 
 // ******************************************************************************************************

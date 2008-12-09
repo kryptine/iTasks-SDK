@@ -87,9 +87,9 @@ where
 
 chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks =>> \la -> return_V (hd la)		
+= newTask "selectTask_btn" (selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks =>> \la -> return_V (hd la))		
 where
-	selectTask_btn direction ltasks = newTask "selectTask_btn" (Task (selectTask_btn` direction ltasks))	
+	selectTask_btn direction ltasks = Task (selectTask_btn` direction ltasks)	
 
 	selectTask_btn` _ [] tst		= return [] tst				
 	selectTask_btn` horizontal taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
@@ -108,9 +108,9 @@ where
 
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la)		
+= newTask "selectTask_pdm" (selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la))		
 where
-	selectTask_pdm initial ltasks = newTask "selectTask_pdm" (Task (selectTask_pdm` initial ltasks))
+	selectTask_pdm initial ltasks =  Task (selectTask_pdm` initial ltasks)
 
 	selectTask_pdm` _ [] tst			= return createDefault tst	
 	selectTask_pdm` defaultOn taskOptions tst=:{tasknr,html,userId,options}													// choose one subtask out of  a pulldown menu
@@ -133,10 +133,10 @@ where
 
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 chooseTask_cbox order prompt code_ltasks
-= selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks)		
+= newTask "selectTask_cbox" (selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks))		
 where
 	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,![HtmlTag])] ![LabeledTask a] -> Task [Int]
-	selectTask_cbox htmlcodes taskOptions = newTask "selectTask_cbox" (Task (selectTask_cbox` taskOptions))
+	selectTask_cbox htmlcodes taskOptions = Task (selectTask_cbox` taskOptions)
 	where
 		selectTask_cbox` [] tst	= ([],{tst& activated = True})
 		selectTask_cbox` taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
@@ -206,7 +206,7 @@ mchoiceAndTasks3 prompt taskOptions
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
-(-||-) taska taskb =  newTaskTrace "-||-" (doOrTask (taska,taskb))
+(-||-) taska taskb =  newTask "-||-" (doOrTask (taska,taskb))
 where
 	doOrTask :: !(Task a,Task a) -> (Task a) | iData a
 	doOrTask (taska,taskb)
@@ -220,13 +220,17 @@ where
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (return createDefault)
-orTasks taskCollection	= newTaskTrace "orTasks" (andTasksCond "orTask" (\list -> length list >= 1) taskCollection)
+orTasks taskCollection	= newTask "orTasks" (andTasksCond "orTask" (\list -> length list >= 1) taskCollection)
 							=>> \list -> (Task (return  (hd list)))
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
-=					allTasksCond "orTask" displayAll (\list -> length list > 0) [("orTask.0",taska =>> \a -> return_V (LEFT a)),("orTask.0",taskb =>> \b -> return_V (RIGHT b))]
-	=>> \res -> 	return_V (hd res) 
+=	newTask "orTask2" 	( allTasksCond "orTask" displayAll (\list -> length list > 0) 
+								[ ("orTask.0",taska =>> \a -> return_V (LEFT a))
+								, ("orTask.0",taskb =>> \b -> return_V (RIGHT b))
+								]
+						 =>> \res -> 	return_V (hd res)
+						) 
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
@@ -234,8 +238,8 @@ andTasks taskCollection = newTaskTrace "andTasks" (andTasksCond "andTask" (\_ ->
 
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 
-= 		andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
-  =>>	combineResult
+= 		newTask "maybeTask" (andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
+  							=>>	combineResult)
 where
 	left 	= t1 =>> \tres -> return_V (LEFT tres) 
 	right	= t2 =>> \tres -> return_V (RIGHT tres) 
@@ -250,8 +254,12 @@ where
 
 andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
-=								allTasksCond "andTask" displayAll (\l -> False) [("andTask.0",taska =>> \a -> return_V (LEFT a)),("andTask.0",taskb =>> \b -> return_V (RIGHT b))]
-	=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
+=	newTask "andTask2"	(allTasksCond "andTask" displayAll (\l -> False) 
+							[ ("andTask.0",taska =>> \a -> return_V (LEFT a))
+							, ("andTask.0",taskb =>> \b -> return_V (RIGHT b))
+							]
+						=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
+						)
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = newTaskTrace "andTaskMU" (domu_andTasks tasks)
