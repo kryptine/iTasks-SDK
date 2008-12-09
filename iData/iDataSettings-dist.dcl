@@ -3,7 +3,7 @@ definition module iDataSettings
 // iData & iTask Library
 // Concept & Programming (c) 2005 - 2007 Rinus Plasmeijer
 
-import iDataHandler
+import iDataForms
 import iDataCompileOptions
 import Gerda							// OPTION: GEneRic Database Access to a standard relational database, made by Arjen van Weelden
 import DataFile							// OPTION: A fast generic database stored in a file, made by Arjen van Weelden
@@ -12,7 +12,7 @@ import HttpServer
 // Installation options
 
 // Absolute path to the directory where static resources (css,js,img etc.) are stored 
-ResourceDir				:== "C:\\PATH\\TO\\MY CLEAN IDE\\Libraries\\iData\\Resources"
+ResourceDir				:== "C:\\PATH\\TO\\MY CLEAN IDE\\fancyTasks\\Resources"
 
 
 // Debug switches								
