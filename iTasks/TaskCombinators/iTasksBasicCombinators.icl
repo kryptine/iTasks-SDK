@@ -68,6 +68,9 @@ where
 	# (done,value)		= store.Form.value
 	= (value,{tst & activated = done, hst = hst})																		// task is now completed, handle as previously
 
+newTaskTrace :: !String !(Task a) -> (Task a) | iData a 			// used to insert a task trace later MJP BUG	 
+newTaskTrace taskname mytask = newTask taskname mytask
+
 // ******************************************************************************************************
 // looping tasks
 
@@ -113,7 +116,7 @@ where
 	| not activated						= (createDefault,tst)
 	# (currtime,tst=:{html=ohtml})		= appTaskTSt (appWorldOnce ("Task " +++ taskname +++ " for " +++ toString nuserId) time) tst
 	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
+	# (a,tst=:{html=nhtml,activated})	= appTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId, tasknr = tasknr}	// activate task of indicated user NEWTRACE
 	| activated 						= (a,{tst & activated = True													// work is done	
 												  ,	userId = userId														// restore previous user id						
 												  ,	html = ohtml +|+ (taskDescriptor currtime activated @@: nhtml)})									// plus new one tagged

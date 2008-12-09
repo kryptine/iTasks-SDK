@@ -66,6 +66,7 @@ Once			:: task will be done only once, the value of the task will be remembered,
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 
 Once 			:: !String !(Task a) 						-> Task a 		| iData a
 
+newTaskTrace 	:: !String !(Task a) 						-> (Task a) 	| iData a
 /* Operations on Task state
 taskId			:: give id of user assigned to task
 userId			:: give id of application user
