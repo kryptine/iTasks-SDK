@@ -25,7 +25,7 @@ where
 	determineTaskList` thisuser (CondAnd label nr [t=:(condAndDescr,htmlTree):ts]) taskDescr
 		# collection							= determineTaskList` thisuser htmlTree taskDescr
 		# collections 							= determineTaskList` thisuser (CondAnd label nr ts) taskDescr
-		= [{taskDescr & taskNrId = condAndDescr.caTaskNrId, taskLabel = label <+++ condAndDescr.caIndex, curStatus = condAndDescr.caStatus}] ++ collection ++ collections
+		= [{taskDescr & taskNrId = condAndDescr.caTaskNrId, taskLabel = label, curStatus = condAndDescr.caStatus}] ++ collection ++ collections
 	determineTaskList` thisuser (tree1 +|+ tree2)taskDescr
 		# collection1							= determineTaskList` thisuser tree1 taskDescr
 		# collection2							= determineTaskList` thisuser tree2 taskDescr

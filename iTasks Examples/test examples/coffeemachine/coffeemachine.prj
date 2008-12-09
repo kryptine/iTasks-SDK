@@ -3544,8 +3544,8 @@ OtherModules
 		DclOpen:	False
 		Icl
 			WindowPosition
-				X:	43
-				Y:	129
+				X:	41
+				Y:	-3
 				SizeX:	1485
 				SizeY:	768
 		IclOpen:	True

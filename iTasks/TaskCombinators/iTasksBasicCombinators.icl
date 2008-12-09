@@ -173,26 +173,22 @@ allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Ta
 allTasksCond label displayOption pred taskCollection 
 = 					mkTask "andTasksCond" (Task (doandTasks taskCollection))
 where
-	lengthltask = length taskCollection 
-
 	doandTasks [] tst	= return [] tst
-	doandTasks taskCollection tst=:{tasknr,html,options,userId}
-	# ((alist,acode),tst=:{activated=finished,html=allhtml})		
-									= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [] [],activated = True} 
-	| finished || pred alist		= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
+	doandTasks taskCollection tst=:{tasknr,html}
+	# ((alist,acode),tst)		= checkAllTasks label taskCollection 0 ([],[]) {tst & html = BT [] [],activated = True} 
+	| and (map fst acode) || pred alist	= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	= (alist,{tst 	& activated = False
-					, html 		= html +|+ displayOption label tasknr acode						// show previous code
+					, html 		= html +|+ displayOption label tasknr acode				// show all subtasks using the displayOption function
 								
 			})
 	where
-
-		checkAllTasks :: !String ![LabeledTask a] !Int !Bool !(![a],![(Bool,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,HtmlTree)]),!*TSt) | iCreateAndPrint a
-		checkAllTasks traceid taskCollection ctasknr bool (alist,acode) tst=:{tasknr}
-		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),{tst & activated = bool})			// all tasks tested
+		checkAllTasks :: !String ![LabeledTask a] !Int !(![a],![(Bool,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,HtmlTree)]),!*TSt) | iCreateAndPrint a
+		checkAllTasks traceid taskCollection ctasknr (alist,acode) tst=:{tasknr}
+		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),tst)			// all tasks tested
 		# (taskname,task)		= taskCollection!!ctasknr
 		# (a,tst=:{activated = adone,html=html})	
 								= appTaskTSt (mkParSubTask traceid ctasknr task) {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
-		= checkAllTasks traceid taskCollection (inc ctasknr) False (if adone [a:alist] alist,[(adone,html):acode]) {tst & tasknr = tasknr}
+		= checkAllTasks traceid taskCollection (inc ctasknr) (if adone [a:alist] alist,[(adone,html):acode]) {tst & tasknr = tasknr}
 
 displayAsTab :: DisplaySubTasks
 displayAsTab = displayAsTab`

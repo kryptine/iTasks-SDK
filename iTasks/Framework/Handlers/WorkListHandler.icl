@@ -23,7 +23,9 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 				 		, tree_last		:: Bool						// Is this item the last of a set of siblings
 				 		, tree_icon		:: String					// An icon name. The actual icon image is defined in the css.
 				 													// Current possible values: editTask, orTask, andTask, conditionTask, timeTask, systemTask, finishedTask 
-				  		}
+				  		}											// And also: andTaskMU, maybeTask
+																	
+
 
 derive JSONEncode WorkList, WorkListItem, TaskPriority
 

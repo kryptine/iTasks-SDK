@@ -220,21 +220,21 @@ where
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (return createDefault)
-orTasks taskCollection	= newTask "orTasks" (andTasksCond "or Tasks" (\list -> length list >= 1) taskCollection)
+orTasks taskCollection	= newTask "orTasks" (andTasksCond "orTask" (\list -> length list >= 1) taskCollection)
 							=>> \list -> (Task (return  (hd list)))
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
-=					allTasksCond "orTask2" displayAll (\list -> length list > 0) [("orTask.0",taska =>> \a -> return_V (LEFT a)),("orTask.0",taskb =>> \b -> return_V (RIGHT b))]
+=					allTasksCond "orTask" displayAll (\list -> length list > 0) [("orTask.0",taska =>> \a -> return_V (LEFT a)),("orTask.0",taskb =>> \b -> return_V (RIGHT b))]
 	=>> \res -> 	return_V (hd res) 
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = newTask "andTasks" (andTasksCond "and Tasks" (\_ -> False) taskCollection)
+andTasks taskCollection = newTask "andTasks" (andTasksCond "andTask" (\_ -> False) taskCollection)
 
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 
-= 		andTasksCond "Maybe Task" noNothing [("Maybe 1",left),("Maybe 2",right)]
+= 		andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
   =>>	combineResult
 where
 	left 	= t1 =>> \tres -> return_V (LEFT tres) 
@@ -250,11 +250,11 @@ where
 
 andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
-=								allTasksCond "andTask2" displayAll (\l -> False) [("andTask.0",taska =>> \a -> return_V (LEFT a)),("andTask.0",taskb =>> \b -> return_V (RIGHT b))]
+=								allTasksCond "andTask" displayAll (\l -> False) [("andTask.0",taska =>> \a -> return_V (LEFT a)),("andTask.0",taskb =>> \b -> return_V (RIGHT b))]
 	=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
-andTasks_mu label tasks = newTask "andTasks_mu" (domu_andTasks tasks)
+andTasks_mu label tasks = newTask "andTaskMU" (domu_andTasks tasks)
 where
 	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
 
