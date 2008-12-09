@@ -133,13 +133,13 @@ where
 // reading and writing of storages
 
 newsGroupsId ::  (DBid NewsGroups)
-newsGroupsId		=	mkDBid "newsGroups" TxtFile
+newsGroupsId		=	mkDBid "newsGroups" LSTxtFile
 
 readerId :: Int -> (DBid Subscriptions)
-readerId i			= 	mkDBid ("reader" <+++ i) TxtFile
+readerId i			= 	mkDBid ("reader" <+++ i) LSTxtFile
 
 groupNameId :: String -> (DBid NewsGroup)
-groupNameId name	=	mkDBid ("NewsGroup-" +++ name) TxtFile
+groupNameId name	=	mkDBid ("NewsGroup-" +++ name) LSTxtFile
 
 readNewsGroups :: Task NewsGroups
 readNewsGroups = readDB newsGroupsId

@@ -86,7 +86,7 @@ where
 // database specialized
 
 marksId :: DBid [Mark]
-marksId	= mkDBid "marks" TxtFile
+marksId	= mkDBid "marks" LSTxtFile
 
 readMarksDB :: Task [Mark]
 readMarksDB = readDB marksId
