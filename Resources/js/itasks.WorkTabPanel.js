@@ -98,7 +98,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		return "<div class=\"worktab-header-table\"><table>"
 			+ "<tr><th>Subject:</th><td>" + this.taskinfo.subject + "</td><th>Date:</th><td>" + itasks.util.formatDate(this.taskinfo.timestamp) + "</td></tr>"
 			+ "<tr><th>TaskID:</th><td>" + this.taskinfo.taskid + "</td><th>Process:</th><td>" + this.taskinfo.processname + "</td></tr>"
-			+ "<tr><th>For:</th><td>" + this.taskinfo.delegator + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(this.taskinfo.priority) + "</td></tr>"
+			+ "<tr><th>From:</th><td>" + this.taskinfo.delegator + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(this.taskinfo.priority) + "</td></tr>"
 			+ "</table></div><div class=\"worktab-header-indicator\"></div>";
 	},
 	makeFinishedMessage: function() {

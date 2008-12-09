@@ -5,7 +5,7 @@
 
 Ext.namespace('itasks');
 
-itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
+itasks.DebugPanel = Ext.extend(Ext.Panel, {
 
 	initComponent: function () {
 		Ext.apply(this, {	
@@ -20,22 +20,17 @@ itasks.DebugPanel = Ext.extend(Ext.form.FormPanel, {
 				items: [{
 					xtype: 'button',
 					text: 'Show task forest...',
-					minWidth: '160',
-					ctCls: 'debug-button',
-					iconCls: 'icon-task-tree',
-					style: 'margin-bottom: 2px'
+					cls: 'debug-button',
+					iconCls: 'icon-task-tree'
 				},{
 					xtype: 'button',
 					text: 'Show thread table...',
-					minWidth: '160',
-					ctCls: 'debug-button',
-					iconCls: 'icon-thread-table',
-					style: 'margin-bottom: 2px'
+					cls: 'debug-button',
+					iconCls: 'icon-thread-table'
 				},{
 					xtype: 'button',
 					text: 'Show process table...',
-					minWidth: '160',
-					ctCls: 'debug-button',
+					cls: 'debug-button',
 					iconCls: 'icon-process-table'
 				}]
 			},{

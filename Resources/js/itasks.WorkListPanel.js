@@ -44,7 +44,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			var level = record.data.tree_path.length;
 			
 			//Disable margins
-			meta['attr'] = 'style="margin: 0px;"';
+			meta['attr'] = 'style="margin: 0px; padding: 0px"';
 			
 			//Create path
 			for(var i = 0; i < level; i++) {

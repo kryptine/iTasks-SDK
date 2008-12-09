@@ -15,9 +15,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			layout: 'border',
 			hidden: true,
 			items: [{
+					id: 'northpanel',
 					xtype: 'panel',
 					region: 'north',
-					baseCls: 'header',
 					height: 40,
 					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + ' | <a id="logout" href="#">Log out &raquo;</a></div>'
 				},{
@@ -31,7 +31,6 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					width: 200,
 					minWidth: 200,
 					maxWidth: 400,
-					baseCls: 'leftpanel',
 					items: [
 						{xtype: 'itasks.cwpanel' },
 						{xtype: 'itasks.nwpanel' },
@@ -58,7 +57,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					tbar: [
 						{ id: 'refreshbutton'
 						, text: 'Refresh worklist'
-						, iconCls: 'x-tbar-loading'
+						, iconCls: 'icon-refresh'//'x-tbar-loading'
 						, listeners: {
 								click : { scope: this, fn: function (btn) {
 									this.getComponent('centerpanel').getComponent('worklist').refresh();
@@ -72,12 +71,13 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		itasks.ApplicationPanel.superclass.initComponent.apply(this, arguments);
 	},
 	init: function () {
-
+		
 		//Initializing the gui...
 		var apppanel	= this;
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
 		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
 		var debugpanel	= this.getComponent('leftpanel').getComponent('debugpanel');
+		
 		
 		//Set worklist applicationPanel reference and refresh
 		worklist.setApplicationPanel(apppanel);
