@@ -21,12 +21,14 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 					xtype: 'button',
 					text: 'Show task forest...',
 					cls: 'debug-button',
-					iconCls: 'icon-task-tree'
+					iconCls: 'icon-task-tree',
+					style: 'margin-bottom: 2px;'
 				},{
 					xtype: 'button',
 					text: 'Show thread table...',
 					cls: 'debug-button',
-					iconCls: 'icon-thread-table'
+					iconCls: 'icon-thread-table',
+					style: 'margin-bottom: 2px;'
 				},{
 					xtype: 'button',
 					text: 'Show process table...',

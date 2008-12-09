@@ -90,7 +90,22 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			autoExpandColumn: 'subject',
 			enableColumnMove: false,
 			enableHdMenu: false,
-			stripeRows: true/*,
+			stripeRows: true,
+			tbar: [{
+				id: 'refreshbutton',
+				xtype: 'tbbutton',
+				text: 'Refresh worklist',
+				iconCls: 'x-tbar-loading',
+				listeners: {
+					click : { 
+						scope: this,
+						fn: function (btn) {
+							this.refresh();
+						}
+					}
+				}
+			}]
+			/*,
 			bbar: new Ext.ux.grid.livegrid.Toolbar({
 				view: this.workView,
 				displayInfo: true
