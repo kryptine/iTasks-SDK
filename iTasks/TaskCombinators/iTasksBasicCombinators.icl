@@ -169,8 +169,8 @@ where
 			
 	lengthltask = length ltasks
 
-allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
-allTasksCond label _ pred taskCollection 
+allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
+allTasksCond label displayOption pred taskCollection 
 = 					mkTask "andTasksCond" (Task (doandTasks taskCollection))
 where
 	lengthltask = length taskCollection 
@@ -181,15 +181,10 @@ where
 									= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [] [],activated = True} 
 	| finished || pred alist		= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	= (alist,{tst 	& activated = False
-					, html 		= html +|+ collectCode label acode						// show previous code
+					, html 		= html +|+ displayOption label tasknr acode						// show previous code
 								
 			})
 	where
-		collectCode :: !String ![(Bool,HtmlTree)] -> HtmlTree
-		collectCode label htmls = CondAnd label lengthltask [({ caTaskNrId	= toStringTaskNr [0,i:tasknr]
-															  , caIndex		= lengthltask
-															  , caStatus	= finished	
-															  },html) \\ (finished,html) <- htmls & i <- [0..]]
 
 		checkAllTasks :: !String ![LabeledTask a] !Int !Bool !(![a],![(Bool,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,HtmlTree)]),!*TSt) | iCreateAndPrint a
 		checkAllTasks traceid taskCollection ctasknr bool (alist,acode) tst=:{tasknr}
@@ -199,6 +194,28 @@ where
 								= appTaskTSt (mkParSubTask traceid ctasknr task) {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
 		= checkAllTasks traceid taskCollection (inc ctasknr) False (if adone [a:alist] alist,[(adone,html):acode]) {tst & tasknr = tasknr}
 
+displayAsTab :: DisplaySubTasks
+displayAsTab = displayAsTab`
+where
+	displayAsTab` label tasknr htmls 
+		= CondAnd label nrSubTasks [({ caTaskNrId	= toStringTaskNr [0,i:tasknr]
+									  , caIndex		= nrSubTasks
+									  , caStatus	= finished	
+									  },html) \\ (finished,html) <- htmls & i <- [0..]
+									]
+	where
+		nrSubTasks = length htmls
+	
+
+displayAll :: DisplaySubTasks
+displayAll = displayAll`
+where
+	displayAll` label tasknr htmls 
+		= foldl (+|+) (BT [] []) (map snd htmls) 
+
+
+	
+	
 /*
 allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label chooser pred taskCollection 

@@ -3893,6 +3893,22 @@ OtherModules
 			Fusion:	False
 		DclOpen:	False
 		IclOpen:	False
+	Module
+		Name:	DeauthenticationHandler
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
 Static
 	Mods
 		Path:	{Project}\coffeemachine.icl
@@ -4102,43 +4118,13 @@ Static
 		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\TSt.icl
 		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Session.icl
 		Path:	{Application}\Libraries\MersenneTwister\MersenneTwister.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\DeauthenticationHandler.icl
 	Objs
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup0.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup1Trace.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup2.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_system.o
 		Path:	{Project}\Clean System Files\coffeemachine.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksDB.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksExceptionHandling.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksTimeAndDateHandling.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksCombinators.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\ThreadTableHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Text.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Util\Clean System Files\JSON.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\Clean System Files\TaskTreeFilters.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\Clean System Files\TaskTree.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\FilterListHandler.o
-		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\Session.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\IndexHandler.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\sapldebug.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksHtmlSupport.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenBimap.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksProcessHandling.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksEditors.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksLiftingCombinators.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\InternaliTasksThreadHandling.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\graph_to_sapl_string.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\Clean System Files\TSt.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksSettings.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\InternaliTasksCommon.o
-		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksTypes.o
 		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
@@ -4314,6 +4300,38 @@ Static
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemStrictLists.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnumStrict.o
 		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksBasicCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksTypes.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\InternaliTasksCommon.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksSettings.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\Clean System Files\TSt.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\graph_to_sapl_string.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\InternaliTasksThreadHandling.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksProcessHandling.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenBimap.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksLiftingCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksEditors.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksHtmlSupport.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\sapldebug.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\IndexHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\Session.o
+		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\DeauthenticationHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\FilterListHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Text.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Util\Clean System Files\JSON.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\Clean System Files\TaskTree.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree\Clean System Files\TaskTreeFilters.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\ThreadTableHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\iTasksCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksTimeAndDateHandling.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasksExceptionHandling.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksDB.o
 		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnvC.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFileSelectors_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFont_121.o

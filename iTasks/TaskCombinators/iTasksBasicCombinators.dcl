@@ -49,13 +49,15 @@ selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a
 /*
 Execute all Tasks in parallel / interleaved and FINISH as soon as the predicate holds for the tasks which are finished:
 allTasksCond	:: 	- string is used to give a useful name to the trace;
-					- TaskToShow is some iData based form such that dynamically can be chosen which tasks to show;  
 					- the predicate is applied on the set of tasks which are finished
 */
-:: TasksToShow a	:== String [LabeledTask a] *TSt  *-> *(([Int],[HtmlTag]),!*TSt) 	// some iData determining which tasks to show
-:: FinishPred a		:== [a] -> Bool
+:: DisplaySubTasks	:== !String !TaskNr ![(Bool,HtmlTree)] -> HtmlTree 				// function determining how to display the subtasks
+:: FinishPred a		:== [a] -> Bool													// predicate determining when the task is finished, depending on the results returned by finished subtasks
 
-allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
+allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
+
+displayAsTab 	:: DisplaySubTasks													// show each sub tasks in a tab
+displayAll 		:: DisplaySubTasks
 
 /* Support for user defined combinators
 newTask			:: lifts a (user defined) task to an abstract unit: after completion of a (complicated task) only i's final result will be remembered

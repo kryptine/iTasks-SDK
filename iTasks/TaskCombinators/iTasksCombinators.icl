@@ -225,12 +225,9 @@ orTasks taskCollection	= newTask "orTasks" (andTasksCond "or Tasks" (\list -> le
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
-=					allTasksCond "orTask2" showBoth (\list -> length list > 0) [("orTask.0",taska =>> \a -> return_V (LEFT a)),("orTask.0",taskb =>> \b -> return_V (RIGHT b))]
+=					allTasksCond "orTask2" displayAll (\list -> length list > 0) [("orTask.0",taska =>> \a -> return_V (LEFT a)),("orTask.0",taskb =>> \b -> return_V (RIGHT b))]
 	=>> \res -> 	return_V (hd res) 
 
-showBoth id list tst=:{hst}
-# (sel,hst)	= mkEditForm (Init,nFormId id [0,1] <@ NoForm) hst
-= ((sel.Form.value,sel.form),{tst & hst = hst})
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
 andTasks taskCollection = newTask "andTasks" (andTasksCond "and Tasks" (\_ -> False) taskCollection)
@@ -253,7 +250,7 @@ where
 
 andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
-=								allTasksCond "andTask2" showBoth (\l -> False) [("andTask.0",taska =>> \a -> return_V (LEFT a)),("andTask.0",taskb =>> \b -> return_V (RIGHT b))]
+=								allTasksCond "andTask2" displayAll (\l -> False) [("andTask.0",taska =>> \a -> return_V (LEFT a)),("andTask.0",taskb =>> \b -> return_V (RIGHT b))]
 	=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
@@ -263,25 +260,8 @@ where
 
 andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 andTasksCond label pred taskCollection 
-= allTasksCond label selectButtons pred taskCollection 
-where
-	selectButtons id list tst=:{hst,userId,tasknr,options}
-	# ((i,buttons,chosenname),hst) = mkTaskButtons True "mybut" userId tasknr options (map fst list) hst
-	= (([i],mkbuttons buttons chosenname),{tst & hst = hst})	
-	where
-		mkbuttons buttons chosenname = if (length list > 1) 
-											[showMainLabel label,showTrace " / ",showLabel chosenname: buttons] // PK "and"->label
-											[]
+= allTasksCond label displayAsTab pred taskCollection 
 
-andTasksCond_pdm 	:: !String !([a] -> Bool) ![LabeledTask a] -> Task [a]	| iData a 
-andTasksCond_pdm label pred taskCollection 
-= allTasksCond label selectButtons pred taskCollection 
-where
-	selectButtons ident list tst=:{hst,options}
-	# (result,hst) = FuncMenu (Init,applyoptions (nFormId (ident +++ "andTaskCond_pdm") (0,[(name,id) \\ (name,_) <- list]))) hst
-	= (([snd result.Form.value],[showLabel label] <||> result.form),{tst & hst = hst})	
-	where
-		applyoptions nformid = nformid <@ options.tasklife <@ options.taskstorage <@ options.taskmode
 
 
 
