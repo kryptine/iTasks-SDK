@@ -114,9 +114,9 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
 		
 		//Check session error responses
-		this.store.on('load', function() {
+		this.store.on('loadexception',function() {
 			this.applicationPanel.checkSessionResponse(this.store.reader.jsonData);
-		}, this);
+		},this);
 	},
 	setApplicationPanel: function(panel) {
 		this.applicationPanel = panel;
