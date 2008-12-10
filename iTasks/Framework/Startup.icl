@@ -121,7 +121,7 @@ handleSessionRequest handler request world
 			# world				= finalizeHSt hst
 			= (response, world)		
 where
-	mkSessionFailureResponse to = "{\"success\" : \"false\", \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
+	mkSessionFailureResponse to = "{\"success\" : false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
 
 initHSt :: !HTTPRequest !*World -> *HSt
 initHSt request world
