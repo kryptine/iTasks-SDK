@@ -75,7 +75,7 @@ defaultTaskDescriptor
 		, curStatus		= True
 		}
 
-determineTaskForTab :: !UserId !TaskNrId !HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
+determineTaskForTab :: !UserId !String !HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
 determineTaskForTab thisuser thistaskid tree
 	= case determineMyTaskTree thisuser thistaskid tree of							//Find the subtree by task id
 		Nothing
@@ -144,7 +144,7 @@ where
 // Search for that part of the task tree which is applicable for a given user and a given task
 // ******************************************************************************************************
 
-determineMyTaskTree :: !UserId !TaskNrId !HtmlTree -> Maybe HtmlTree
+determineMyTaskTree :: !UserId !String !HtmlTree -> Maybe HtmlTree
 determineMyTaskTree thisuser thistaskid tree = determineMyTaskTree` thisuser thistaskid tree defaultTaskDescriptor
 where
 	determineMyTaskTree` thisuser thistaskid  (BT bdtg inputs) taskDescr
@@ -192,7 +192,7 @@ where
 
 :: Trace		=	Trace !(Maybe !TraceInfo) ![Trace]							// traceinfo with possibly subprocess
 
-getTraceFromTaskTree :: !UserId !TaskNrId !HtmlTree -> HtmlTag				
+getTraceFromTaskTree :: !UserId !String !HtmlTree -> HtmlTag				
 getTraceFromTaskTree userId taskNrId tree
 	# mbtree			= determineMyTaskTree userId taskNrId tree
 	| isNothing mbtree	= Text "Error: Cannot find task tree !"
@@ -223,7 +223,7 @@ where
 	insertTraces [i:is] traces = insertTraces is (insertTrace i traces)
 
 	insertTrace :: !TraceInfo ![Trace] -> [Trace]
-	insertTrace info trace = insertTrace` (reverse (parseTaskNr info.trTaskNr)) trace
+	insertTrace info trace = insertTrace` (reverse (taskNrFromString info.trTaskNr)) trace
 	where
 		insertTrace` :: !TaskNr ![Trace] -> [Trace]
 		insertTrace` [i] traces

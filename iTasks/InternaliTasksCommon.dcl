@@ -27,23 +27,19 @@ instance == GarbageCollect
 // Here follow some commonly used internal functions
 
 /* Support for user defined combinators
-incNr 				:: increment task number
 mkTask 				:: to promote a function of proper type to a task
 mkParSubTask 		:: create a subtask with indicated task nr
 
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
-toStringTaskNr		:: convert TaskNr to more compact string representation
-parseTaskNr 		:: convert string representation back to TaskNr
+
 deleteAllSubTasks 	:: collects all related tasks
 */
 
-incNr 				:: !TaskNr 					-> TaskNr
+
 mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
 mkParSubTask 		:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a					// two shifts are needed
 
 iTaskId 			:: !Int !TaskNr !String 	-> String
-toStringTaskNr		:: !TaskNr 					-> TaskNrId
-parseTaskNr 		:: !String 					-> TaskNr
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
 // general iTask store, session store, page store, store but no form generation

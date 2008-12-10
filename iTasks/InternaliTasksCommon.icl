@@ -16,36 +16,14 @@ import DrupBasic
 :: TCl a 			= 	TCl !.(Task a)				// task closure, container for a task used for higher order tasks (task which deliver a task)			
 
 
-toStringTaskNr :: !TaskNr -> TaskNrId
-toStringTaskNr [] 		= ""
-toStringTaskNr [i] 		= toString i
-toStringTaskNr [i:is] 	= toStringTaskNr is <+++ "." <+++ toString i 
-
-parseTaskNr :: !String -> TaskNr
-parseTaskNr "" 		= []
-parseTaskNr string	= reverse (parseTaskNr` [char \\ char <-: string])
-where
-	parseTaskNr` :: ![Char] -> TaskNr
-	parseTaskNr` [] = []
-	parseTaskNr` list 
-	# (front,end)	= span (\c -> c <> '.') list
-	=  [toInt (toString  front) : parseTaskNr` (stl end)]
-
-	toString :: [Char] -> String
-	toString list = {c \\ c <- list}
-
-	stl :: [Char] -> [Char]
-	stl [] = []
-	stl xs = tl xs
-
 iTaskId :: !Int !TaskNr !String -> String
 iTaskId userid tasknr postfix 
 # postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }			// throw away characters not allowed in a file name
 | postfix == ""
-	| userid < 0	= "iLog_"  <+++ (toStringTaskNr tasknr) 
-	| otherwise		= "iTask_" <+++ (toStringTaskNr tasknr) 
-| userid < 0		= "iLog_"  <+++ (toStringTaskNr tasknr) <+++ "-" <+++ postfix
-| otherwise			= "iTask_" <+++ (toStringTaskNr tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
+	| userid < 0	= "iLog_"  <+++ (taskNrToString tasknr) 
+	| otherwise		= "iTask_" <+++ (taskNrToString tasknr) 
+| userid < 0		= "iLog_"  <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix
+| otherwise			= "iTask_" <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
 
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
@@ -57,11 +35,7 @@ deleteAllSubTasks [tx:txs] tst=:{hst,userId}
 // Task creation and printing
 // ******************************************************************************************************
 
-incTaskNr tst 		= {tst & tasknr = incNr tst.tasknr}
 
-incNr :: !TaskNr -> TaskNr
-incNr [] = [0]
-incNr [i:is] = [i+1:is]
 
 // mkTask is an important wrapper function which should be wrapped around any task
 // It takes care of
@@ -74,7 +48,9 @@ incNr [i:is] = [i+1:is]
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 
 mkTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
-mkTask taskname mytask = Task (appTaskTSt (mkTaskNoInc taskname mytask) o incTaskNr)
+mkTask taskname mytask = Task (appTaskTSt (mkTaskNoInc taskname mytask) o incTStTaskNr)
+where
+	incTStTaskNr tst 		= {tst & tasknr = incTaskNr tst.tasknr}
 
 mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a			// common second part of task wrappers
 mkTaskNoInc taskname mytask = Task mkTaskNoInc`
@@ -84,7 +60,7 @@ where
 	# (val,tst=:{activated,html})		= appTaskTSt mytask tst				// active, so perform task and get its result
 	# tst	= {tst & tasknr = tasknr, options = options, userId = userId}
 	| trace || taskname == ""	= (val,tst)									// no trace, just return value
-	# tst = {tst & html = TaskTrace {trTaskNr = toStringTaskNr tasknr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
+	# tst = {tst & html = TaskTrace {trTaskNr = taskNrToString tasknr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
 	= (val,tst) 
 
 mkParSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a					// two shifts are needed

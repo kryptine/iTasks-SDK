@@ -1,7 +1,8 @@
 definition module TSt
 /**
-* This module defines the core task state data structure
-* which is transformed by tasks
+* This module defines the core task state data structure which is transformed by tasks.
+* 
+* Additionally it provides utility functions to manipulate the state.
 */
 import StdMaybe
 import Time, Html
@@ -46,7 +47,7 @@ import HSt
 				|	DivCode !String !HtmlTree									// code that should be labeled with a div, used for Ajax and Client technology
 				|	TaskTrace TraceInfo !HtmlTree								// trace information used for displaying the task tree
 
-:: TraceInfo 	=	{ trTaskNr		:: !TaskNrId									// tasknr 
+:: TraceInfo 	=	{ trTaskNr		:: !String									// tasknr 
 					, trTaskName	:: !String									// name of the combinator
 					, trActivated	:: !Bool									// is the task finshed or not
 					, trUserId		:: !UserId									// who is performing the task (can also be determined from the contect)
@@ -56,7 +57,7 @@ import HSt
 
 // Task meta information
 :: CondAndDescription
-				=	{ caTaskNrId	:: !TaskNrId								// tasknr as string
+				=	{ caTaskNrId	:: !String									// tasknr as string
 					, caIndex		:: !Int										// index of and task
 					, caStatus		:: !Bool									// is sub task finished
 					}
@@ -64,7 +65,7 @@ import HSt
 :: TaskDescription
 				=	{ delegatorId	:: !UserId									// id of the work delegator
 					, taskWorkerId	:: !UserId									// id of worker on the task
-					, taskNrId		:: !TaskNrId								// tasknr as string
+					, taskNrId		:: !String									// tasknr as string
 					, processNr		:: !ProcessNr								// entry in process table
 					, workflowLabel	:: !WorkflowLabel							// name of the workflow
 					, taskLabel		:: !String									// name of the task
@@ -73,18 +74,57 @@ import HSt
 					, curStatus		:: !Bool
 					}
 					
-:: TaskNrId		:== String
 :: TaskPriority	=	HighPriority | NormalPriority | LowPriority
 
-
-//Tasks are packed TSt transition functions
+// The task monad
 :: Task a = Task !(*TSt -> *(!a,!*TSt))
 
-//Initialization
+/**
+* Creates an initial task state.
+*
+* @param The user id of the current user
+* @param The default storage location of task states
+* @param The default storage location of threads
+* @param The iData HSt state for creating editors and doing IO
+*
+* @return a TSt iTask state
+*/
 mkTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 
-//Apply a task state transition
+/**
+* Applies a task to the task state.
+*
+* @param The task that is applied
+* @param The task state
+*
+* @return The value produced by the task
+* @return The modified task state
+*/
 appTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
 
+/**
+* Utility function to increment the last segment a task number
+*
+* @param The original task number
+*
+* @return The incremented task number
+*/ 
+incTaskNr 			:: !TaskNr 					-> TaskNr
 
+/**
+* Converts a task number to its dotted string representation
+*
+* @param The task number as integer list
+*
+* @return The formatted task number
+*/
+taskNrToString		:: !TaskNr 					-> String
 
+/**
+* Parses a formatted task number to its integer list representation
+*
+* @param The task nr as formatted string
+*
+* @return The task nr as integer list
+*/
+taskNrFromString 	:: !String 					-> TaskNr

@@ -89,7 +89,7 @@ where
 	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) id) tst				// fetch actual tasknr
 	# (val,tst=:{activated})	= appTaskTSt task {tst & tasknr = [-1:currtasknr.Form.value]}
 	| activated 																										// task is completed	
-		# ntasknr				= incNr currtasknr.Form.value															// incr tasknr
+		# ntasknr				= incTaskNr currtasknr.Form.value															// incr tasknr
 		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId tasknr) (\_ -> ntasknr)) tst 	// store next task nr
 		= foreverTask` {tst & tasknr = tasknr, options = options/*, html = html*/}											// initialize new task
 	= (val,tst)					
@@ -127,7 +127,7 @@ where
 		taskDescriptor currtime activated
 		= 	{ delegatorId 	= userId
 			, taskWorkerId	= nuserId
-			, taskNrId		= toStringTaskNr tasknr
+			, taskNrId		= taskNrToString tasknr
 			, processNr		= processNr
 			, workflowLabel	= workflowLabel
 			, taskPriority	= NormalPriority
@@ -192,7 +192,7 @@ displayAsTab :: DisplaySubTasks
 displayAsTab = displayAsTab`
 where
 	displayAsTab` label tasknr htmls 
-		= CondAnd label nrSubTasks [({ caTaskNrId	= toStringTaskNr [0,i:tasknr]
+		= CondAnd label nrSubTasks [({ caTaskNrId	= taskNrToString [0,i:tasknr]
 									  , caIndex		= nrSubTasks
 									  , caStatus	= finished	
 									  },html) \\ (finished,html) <- htmls & i <- [0..]
