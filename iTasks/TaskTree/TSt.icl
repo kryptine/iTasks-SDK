@@ -34,6 +34,14 @@ initialOptions location
 appTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
 appTaskTSt (Task fn) tst = fn tst
 
+deleteAllSubTasks :: ![TaskNr] TSt -> TSt
+deleteAllSubTasks [] tst = tst
+deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
+	# hst	= deleteIData  (iTaskId userId (tl tx) "") hst
+	= deleteAllSubTasks txs {tst & hst = hst}
+
+
+
 incTaskNr :: !TaskNr -> TaskNr
 incTaskNr [] = [0]
 incTaskNr [i:is] = [i+1:is]

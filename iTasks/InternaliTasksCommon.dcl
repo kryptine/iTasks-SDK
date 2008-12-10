@@ -32,7 +32,6 @@ mkParSubTask 		:: create a subtask with indicated task nr
 
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
 
-deleteAllSubTasks 	:: collects all related tasks
 */
 
 
@@ -40,7 +39,6 @@ mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
 mkParSubTask 		:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a					// two shifts are needed
 
 iTaskId 			:: !Int !TaskNr !String 	-> String
-deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 
 // general iTask store, session store, page store, store but no form generation
 

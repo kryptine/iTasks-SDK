@@ -25,11 +25,7 @@ iTaskId userid tasknr postfix
 | userid < 0		= "iLog_"  <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix
 | otherwise			= "iTask_" <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
 
-deleteAllSubTasks :: ![TaskNr] TSt -> TSt
-deleteAllSubTasks [] tst = tst
-deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
-# hst	= deleteIData  (iTaskId userId (tl tx) "") hst
-= deleteAllSubTasks txs {tst & hst = hst}
+
 
 // ******************************************************************************************************
 // Task creation and printing

@@ -79,6 +79,10 @@ import HSt
 // The task monad
 :: Task a = Task !(*TSt -> *(!a,!*TSt))
 
+// a task with a label used for labeling buttons, pull down menu, and the like
+:: LabeledTask a	:== (!String,!Task a)		
+
+
 /**
 * Creates an initial task state.
 *
@@ -100,7 +104,19 @@ mkTst :: !UserId !Lifespan !Lifespan !*HSt -> *TSt
 * @return The value produced by the task
 * @return The modified task state
 */
-appTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
+appTaskTSt 			:: !(Task a) !*TSt			-> (!a,!*TSt)
+
+/**
+* Deletes iData states for all subtasks of the given task number.
+* This function can be used for ad-hoc garbage collection.
+* 
+* @param The task number of the task which subtasks must be deleted
+* @param The task state
+*
+* @return The task state
+*/
+deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
+
 
 /**
 * Utility function to increment the last segment a task number
