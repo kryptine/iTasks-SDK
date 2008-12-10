@@ -129,7 +129,7 @@ where
 			, taskWorkerId	= nuserId
 			, taskNrId		= toStringTaskNr tasknr
 			, processNr		= processNr
-			, worflowLabel	= workflowLabel
+			, workflowLabel	= workflowLabel
 			, taskPriority	= NormalPriority
 			, taskLabel		= taskname
 			, timeCreated	= currtime

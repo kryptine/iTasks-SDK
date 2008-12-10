@@ -66,7 +66,7 @@ import HSt
 					, taskWorkerId	:: !UserId									// id of worker on the task
 					, taskNrId		:: !TaskNrId								// tasknr as string
 					, processNr		:: !ProcessNr								// entry in process table
-					, worflowLabel	:: !WorkflowLabel							// name of the workflow
+					, workflowLabel	:: !WorkflowLabel							// name of the workflow
 					, taskLabel		:: !String									// name of the task
 					, timeCreated	:: !Time
 					, taskPriority	:: !TaskPriority

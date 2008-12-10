@@ -25,27 +25,14 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 				 													// Current possible values: editTask, orTask, andTask, conditionTask, timeTask, systemTask, finishedTask 
 				  		}											// And also: andTaskMU, maybeTask
 																	
-
-
 derive JSONEncode WorkList, WorkListItem, TaskPriority
 
 handleWorkListRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkListRequest mainTask request session hst
-	# thisUserId							= session.Session.userId
+	# uid							= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable,hst)	
-											= calculateTaskTree thisUserId False False False mainTask hst 	// Calculate the TaskTree given the id of the current user
-	# workitems								= [	{ taskid 		= mytaskdescr.taskNrId
-												, delegator		= toString mytaskdescr.delegatorId
-												, processname	= mytaskdescr.worflowLabel
-												, subject 		= mytaskdescr.taskLabel
-												, priority		= mytaskdescr.taskPriority
-												, timestamp		= (\(Time i) -> i) mytaskdescr.timeCreated
-												, tree_path		= mypath
-												, tree_last		= mylast
-												, tree_icon		= "editTask"
-												}				
-											  \\ (mypath, mylast, mytaskdescr) <- determineTaskList thisUserId htmlTree | not mytaskdescr.curStatus
-											  ]
+									= calculateTaskTree uid False False False mainTask hst 	// Calculate the TaskTree given the id of the current user
+	# workitems						= determineWorkItems uid htmlTree
 	# worklist								= { success		= True
 											  , total		= length workitems
 											  , worklist	= workitems
@@ -54,5 +41,82 @@ handleWorkListRequest mainTask request session hst
 	= ({http_emptyResponse & rsp_data = toJSON worklist}, hst)
 
 
+determineWorkItems :: !UserId !HtmlTree -> [WorkListItem]
+determineWorkItems uid tree = markLast (determineWorkItems` uid [] defaultDesc tree)
+where
+	determineWorkItems` uid path pdesc (desc @@: tree)
+		# rest	= determineWorkItems` uid path desc tree
+		| desc.taskWorkerId == uid	= [	{ taskid 		= desc.taskNrId
+										, delegator		= toString desc.delegatorId
+										, processname	= desc.workflowLabel
+										, subject		= desc.taskLabel
+										, priority		= desc.taskPriority
+										, timestamp		= (\(Time i) -> i) desc.timeCreated
+										, tree_path		= path
+										, tree_last		= False
+										, tree_icon		= "editTask"
+										} : rest] 
+		| otherwise					= rest
 
+	determineWorkItems` uid path pdesc (CondAnd label nr trees)
+		# subpath = path ++ [False]
+		# rest = markLast (flatten [[mkCondItem pdesc desc subpath: determineWorkItems` uid subpath pdesc tree] \\ (desc,tree) <- trees])
+		= [	{ taskid 		= pdesc.taskNrId
+			, delegator		= toString pdesc.delegatorId
+			, processname	= pdesc.workflowLabel
+			, subject		= pdesc.workflowLabel
+			, priority		= pdesc.taskPriority
+			, timestamp		= (\(Time i) -> i) pdesc.timeCreated
+			, tree_path		= path
+			, tree_last		= True
+			, tree_icon		= label
+			} : rest] 
 
+	determineWorkItems` uid path pdesc (tree1 +|+ tree2)
+		# list1	= determineWorkItems` uid path pdesc tree1
+		# list2 = determineWorkItems` uid path pdesc tree2
+		= list1 ++ list2
+		
+	determineWorkItems` uid path pdesc (tree1 +-+ tree2)
+		# list1	= determineWorkItems` uid path pdesc tree1
+		# list2 = determineWorkItems` uid path pdesc tree2
+		= list1 ++ list2	
+
+	determineWorkItems` uid path pdesc (DivCode id tree) 
+		= determineWorkItems` uid path pdesc tree
+	
+	determineWorkItems` uid path pdesc (TaskTrace traceinfo tree)
+		= determineWorkItems` uid path pdesc tree
+		
+	determineWorkItems` uid path pdesc (BT html inputs)
+		= []
+		
+	markLast :: [WorkListItem] -> [WorkListItem]
+	markLast [] = []
+	markLast items = reverse ((\[x:xs] -> [{x & tree_last = True}:xs]) (reverse items))
+	
+	mkCondItem :: TaskDescription CondAndDescription [Bool] -> WorkListItem
+	mkCondItem pdesc cdesc path
+		= 	{ taskid 		= cdesc.caTaskNrId
+			, delegator		= toString pdesc.delegatorId
+			, processname	= pdesc.workflowLabel
+			, subject		= pdesc.taskLabel +++ " - Part " +++ (toString cdesc.caIndex)
+			, priority		= pdesc.taskPriority
+			, timestamp		= (\(Time i) -> i) pdesc.timeCreated
+			, tree_path		= path
+			, tree_last		= False
+			, tree_icon		= if cdesc.caStatus "finishedTask" "editTask"
+			}
+	
+	defaultDesc :: TaskDescription
+	defaultDesc
+		=	{ delegatorId	= 0								
+			, taskWorkerId	= 0								
+			, taskNrId		= ""								
+			, processNr		= 0								
+			, workflowLabel	= "Non-existing"							
+			, taskLabel		= "Non-existing"								
+			, timeCreated	= Time 0
+			, taskPriority	= LowPriority
+			, curStatus		= True
+			}

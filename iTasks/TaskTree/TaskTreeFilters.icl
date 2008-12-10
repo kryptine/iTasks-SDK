@@ -68,7 +68,7 @@ defaultTaskDescriptor
 		, taskWorkerId	= 0								
 		, taskNrId		= ""								
 		, processNr		= 0								
-		, worflowLabel	= "Non-existing"							
+		, workflowLabel	= "Non-existing"							
 		, taskLabel		= "Non-existing"								
 		, timeCreated	= Time 0
 		, taskPriority	= LowPriority
