@@ -1,4 +1,4 @@
-implementation module iTasksBasicCombinators
+implementation module BasicCombinators
 
 // *********************************************************************************************************************************
 // This module contains the basic iTasks combinators
@@ -10,7 +10,7 @@ import StdList, StdArray, StdTuple, StdFunc
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 import iDataTrivial, iDataFormlib
-import iTasksTypes, iTasksLiftingCombinators
+import iTasksTypes, LiftingCombinators
 import InternaliTasksThreadHandling
 import GenBimap
 

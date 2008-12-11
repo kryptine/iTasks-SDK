@@ -10,7 +10,7 @@ derive write 	Void
 
 
 import StdEnv
-import InternaliTasksCommon, InternaliTasksThreadHandling, iTasksBasicCombinators
+import InternaliTasksCommon, InternaliTasksThreadHandling, BasicCombinators
 import GenBimap
 
 

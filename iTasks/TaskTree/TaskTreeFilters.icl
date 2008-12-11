@@ -2,7 +2,7 @@ implementation module TaskTreeFilters
 
 import StdEnv
 import iDataFormlib
-import InternaliTasksCommon, iTasksHtmlSupport
+import InternaliTasksCommon
 
 :: TaskStatus = TaskFinished | TaskActivated | TaskDeleted
 

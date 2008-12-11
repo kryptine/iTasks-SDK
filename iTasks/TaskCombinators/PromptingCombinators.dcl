@@ -1,4 +1,4 @@
-definition module iTasksHtmlSupport
+definition module PromptingCombinators
 
 // *********************************************************************************************************************************
 // This module contains some iTask combinators for html prompting

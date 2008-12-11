@@ -1,4 +1,4 @@
-definition module iTasksBasicCombinators
+definition module BasicCombinators
 
 // *********************************************************************************************************************************
 // The iTasks library enables the specification of interactive multi-user workflow tasks (iTask) for the web.

@@ -14,13 +14,15 @@ import
 		,	iTasksProcessHandling		// creation of iTask Workflow Processes
 
 		,	iTasksEditors				// basic html editors for any type
-		,	iTasksHtmlSupport			// html prompting
 		
-		,	iTasksBasicCombinators		// basic iTask combinators
-		,	iTasksCombinators			// handy set of additional iTask combinators
+		
+		,	BasicCombinators			// basic iTask combinators
+		,	Combinators					// handy set of additional iTask combinators
+		,	PromptingCombinators		// html prompting
+		,	LiftingCombinators			// lifting other domains (e.g. iData) to the iTask domain
+
 		,	iTasksTimeAndDateHandling	// iTasks triggered by time and date 
 		,	iTasksExceptionHandling		// for handling exceptional situations
-		,	iTasksLiftingCombinators	// lifting other domains (e.g. iData) to the iTask domain
 
 		,	iTasksDB					// iTask simple DB access
 		,	iTasksSettings				// font settings

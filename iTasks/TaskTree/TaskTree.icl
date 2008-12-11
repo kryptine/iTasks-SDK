@@ -8,7 +8,7 @@ implementation module TaskTree
 
 import StdEnv
 import iDataFormlib
-import InternaliTasksCommon, iTasksHtmlSupport
+import InternaliTasksCommon
 import InternaliTasksThreadHandling
 import iTasksProcessHandling
 import TSt

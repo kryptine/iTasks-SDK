@@ -1,4 +1,4 @@
-implementation module iTasksCombinators
+implementation module Combinators
 
 // *********************************************************************************************************************************
 // This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
@@ -9,7 +9,7 @@ implementation module iTasksCombinators
 //
 import StdList, StdFunc, StdTuple
 import iDataTrivial, iDataFormlib, StdBimap
-import iTasksBasicCombinators, iTasksHtmlSupport, iTasksTimeAndDateHandling, iTasksLiftingCombinators, iTasksSettings, iTasksEditors
+import BasicCombinators, PromptingCombinators, LiftingCombinators, iTasksTimeAndDateHandling, iTasksSettings, iTasksEditors
 
 derive gForm 	[]
 derive gUpd  	[]

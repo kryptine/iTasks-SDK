@@ -1,4 +1,4 @@
-implementation module iTasksLiftingCombinators
+implementation module LiftingCombinators
 
 // *********************************************************************************************************************************
 // Some iTasks combinators for lifting other domains to the iTask domain:
@@ -6,7 +6,7 @@ implementation module iTasksLiftingCombinators
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksEditors, iTasksBasicCombinators
+import iTasksEditors, BasicCombinators
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
 (*=>) ftst b = Task doit

@@ -1,4 +1,4 @@
-definition module iTasksLiftingCombinators
+definition module LiftingCombinators
 
 // *********************************************************************************************************************************
 // Some iTasks combinators for lifting other domains to the iTask domain:

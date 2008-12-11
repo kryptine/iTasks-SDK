@@ -8,7 +8,7 @@ implementation module iTasksExceptionHandling
 //
 import StdList, StdArray, StdTuple, StdFunc
 import dynamic_string
-import InternaliTasksThreadHandling, iTasksBasicCombinators, Startup
+import InternaliTasksThreadHandling, BasicCombinators, Startup
 
 serializeExceptionHandler :: !.(Dynamic -> Task .a) -> .String 
 serializeExceptionHandler task = IF_ClientServer

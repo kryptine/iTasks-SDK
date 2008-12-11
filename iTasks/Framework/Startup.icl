@@ -10,7 +10,7 @@ implementation module Startup
 import StdEnv
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
-import iTasksBasicCombinators, iTasksProcessHandling, iTasksHtmlSupport
+import BasicCombinators, iTasksProcessHandling
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
 import IndexHandler, AuthenticationHandler, DeauthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*

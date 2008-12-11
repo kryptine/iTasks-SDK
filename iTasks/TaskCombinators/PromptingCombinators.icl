@@ -1,4 +1,4 @@
-implementation module iTasksHtmlSupport
+implementation module PromptingCombinators
 
 // *********************************************************************************************************************************
 // This module contains some iTask combinators for html prompting

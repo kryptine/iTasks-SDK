@@ -9,7 +9,7 @@ implementation module iTasksProcessHandling
 import StdEnv 
 import iDataFormlib
 import InternaliTasksCommon, InternaliTasksThreadHandling
-import iTasksBasicCombinators, iTasksSettings
+import BasicCombinators, iTasksSettings
 import dynamic_string
 import GenBimap
 
