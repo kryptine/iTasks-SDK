@@ -35,9 +35,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					minWidth: 200,
 					maxWidth: 400,
 					items: [
+						{xtype: 'itasks.debug', id: 'debugpanel' },
 						{xtype: 'itasks.cwpanel' },
-						{xtype: 'itasks.nwpanel' },
-						{xtype: 'itasks.debug', id: 'debugpanel' }
+						{xtype: 'itasks.nwpanel' }	
 					]
 				},{
 					id: 'centerpanel',
