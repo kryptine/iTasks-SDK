@@ -18,9 +18,7 @@ Start :: *World -> *World
 Start world = startTaskEngine (orderPlacement user) world
 
 orderPlacement user
-	= 								(user 		@:> ("Shopping", selectFromShop)) 
-									-&&-
-									(user 		@:> ("Credit Card Information", fillInAndCheckCreditCard createDefault)) 
+	= 								(user 		@:> ("Place order",(selectFromShop -&&- fillInAndCheckCreditCard createDefault)))
 		=>> \(basket,cardInfo) ->	user 		@:> ("Order Confirmation", confirmOrder basket cardInfo)
 		=>> \_ ->					bank 		@:> ("Cash Request", cashRequest bank cardInfo (amountFrom basket))
 		=>> \granted ->				if granted
@@ -40,12 +38,12 @@ fillInAndCheckCreditCard cardInfo
 
 :: CardInfo :== String
 
-user 		:== 0
-bank 		:== 0
-storage 	:== 0
-webSystem	:== 0
+user 		:== 10
+bank 		:== 11
+storage 	:== 12
+webSystem	:== 13
 
-items = [(DisplayMode "Appels", 1.0,DisplayMode 3.50),(DisplayMode "Peren", 1.0,DisplayMode 2.50)]
+items = [(DisplayMode "Apples", 1.0,DisplayMode 3.50),(DisplayMode "Pears", 1.0,DisplayMode 2.50)]
 
 instance toString (DisplayMode a) | toString a
 where
@@ -62,38 +60,41 @@ deliveryAddress cardInfo	= "delivery address " +++ cardInfo
 
 selectFromShop 
 	=					[Text "Please select an item from our shop"]
-						?>> editTask "OK" (DisplayMode "Appels", 1.0,DisplayMode 3.50)
+						?>> editTask "Ok" (DisplayMode "Appels", 1.0,DisplayMode 3.50)
 
 fillInCreditCard cardInfo
 	=					[Text "Please fill in your credit card number"]
-						?>> editTask "OK" cardInfo
+						?>> editTask "Ok" cardInfo
 
 validateCreditCard cardInfo
-	=					[Text "Please validate credit card"]
-						?>> editTask "OK" True
-
+	=					return_V (size cardInfo == 5)	//Arbitrary condition to decide if a card is valid
+	
 invalidCreditcard cardInfo 
 	=					[Text "Your credit card was invalid!"]
-						?>> editTask "OK" Void
+						?>> ok
 
 confirmOrder basket cardInfo
 	=					[Text "Your order will be processed!"]
-						?>> editTask "OK" Void
+						?>> ok
 
 cashRequest bank cardInfo amount
 	=					[Text ("Can we get " <+++ amount <+++ " from " <+++ cardInfo)]
-						?>> editTask "OK" True
+						?>> yesOrNo
 
 deliverOrder user basket address
 	=					[Text ("Please deliver " <+++ basket <+++ " to " <+++ address)]
-						?>> editTask "OK" Void
+						?>> ok
 
 deliverOKNotice user basket address
 	=					[Text ("Your order " <+++ basket <+++ " will be delivered to " <+++ address)]
-						?>> editTask "OK" Void
+						?>> ok
 
 deliverFailureNotice  user basket address
 	=					[Text ("Your order " <+++ basket <+++ " cannot be delivered to " <+++ address)]
-						?>> editTask "OK" Void
+						?>> ok
 
+ok
+	= editTask "Ok" Void
+yesOrNo
+	= (editTask "Yes" Void #>> return_V True) -||- (editTask "No" Void #>> return_V False)
 

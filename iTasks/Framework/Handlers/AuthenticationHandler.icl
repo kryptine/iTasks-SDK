@@ -33,6 +33,13 @@ where
 	getUserInfo` "manager" _						= Just (2, ["manager"], "Middle Manager")
 	getUserInfo` "worker1" _						= Just (3, ["worker"], "Office Worker 1")
 	getUserInfo` "worker2" _						= Just (4, ["worker"], "Office Worker 2")
+	
+	//Additional hardcoded users for the webshop example
+	getUserInfo` "customer" _						= Just (10, [], "Web shop customer")
+	getUserInfo` "gerrit" _							= Just (11, [], "Gerrit (Bank)")
+	getUserInfo` "joe" _							= Just (12, [], "Joe (Web shop warehouse)")
+	getUserInfo` "cccheck" _						= Just (13, [], "Credit card mechanical turk")
+	
 	getUserInfo` _ _								= Nothing
 	
 	
