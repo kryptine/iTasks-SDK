@@ -279,7 +279,7 @@ gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
 where
 	(a,b,c,d)			= formid.ival
 
-derive gForm Maybe //TODO: Define the gForm for maybe with a checkbox
+derive gForm Maybe, Void //TODO: Define the gForm for maybe with a checkbox
 
 // gUpd calculates a new value given the current value and a change in the value.
 // If necessary it invents new default values (e.g. when switching from Nil to Cons)
@@ -368,10 +368,8 @@ gUpd{|FIELD|} gUpdx mode (FIELD x)											// other cases
 gUpd{|(->)|} gUpdArg gUpdRes mode f
 = (mode,f)	
 
-derive gUpd (,)
-derive gUpd (,,)
-derive gUpd (,,,)
-derive gUpd Maybe
+derive gUpd (,), (,,), (,,,), Maybe, Void
+
 
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a

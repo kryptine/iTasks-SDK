@@ -2,6 +2,7 @@ definition module iDataForms
 
 import iDataSettings
 import iDataState
+import StdMaybe, Void
 import GenPrint, GenParse
 
 import HSt
@@ -69,8 +70,8 @@ derive gUpd  Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 /**
 * Instances of the generics for very common types
 */
-derive gForm 	(,), (,,), (,,,), Maybe
-derive gUpd  	(,), (,,), (,,,), Maybe
+derive gForm 	(,), (,,), (,,,), Maybe, Void
+derive gUpd  	(,), (,,), (,,,), Maybe, Void
 
 derive bimap Form, FormId
 

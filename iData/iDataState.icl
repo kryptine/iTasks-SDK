@@ -9,10 +9,10 @@ import FormId
 import StdMaybe
 import StdDebug
 
-derive gPrint 	(,), (,,), (,,,), Maybe
-derive gParse	(,), (,,), (,,,), Maybe
-derive gerda 	(,), (,,), (,,,)
-derive bimap	(,), (,,), (,,,), Maybe
+derive gPrint 	(,), (,,), (,,,), Maybe, Void
+derive gParse	(,), (,,), (,,,), Maybe, Void
+derive gerda 	(,), (,,), (,,,), Void
+derive bimap	(,), (,,), (,,,), Maybe, Void
 
 // This module controls the handling of state forms and the communication with the browser
 // iData states are maintained in a binary tree

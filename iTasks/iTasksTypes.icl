@@ -1,14 +1,5 @@
 implementation module iTasksTypes
 
-derive gForm 	Void, []
-derive gUpd 	Void, []
-derive gParse 	Void
-derive gPrint	Void
-derive gerda 	Void
-derive read 	Void
-derive write 	Void
-
-
 import StdEnv
 import InternaliTasksCommon, InternaliTasksThreadHandling, BasicCombinators
 import GenBimap

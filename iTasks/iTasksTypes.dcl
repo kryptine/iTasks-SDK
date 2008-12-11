@@ -9,21 +9,6 @@ definition module iTasksTypes
 
 import InternaliTasksCommon
 
-derive gForm 	Void						
-derive gUpd 	Void
-derive gPrint 	Void
-derive gParse 	Void
-derive read 	Void
-derive write 	Void
-
-// ******************************************************************************************************
-// iTask end user types.
-// ******************************************************************************************************
-
-//:: Task a											// for the end user a Task can be regarded as an abstract data type
-
-:: Void 			= Void							// for tasks returning non interesting results, won't show up in editors either
-
 // ******************************************************************************************************
 // iTask options + overloaded operators to set the options
 // iTasks inherits the following options from the iData library: Lifespan, SorageFormat, Mode
