@@ -18,6 +18,7 @@ import FormId
 :: InputId
 	=	{ formid	:: !String					// the unique form identifier
 		, inputid	:: !Int						// the identifier within the form
+		, type		:: !String					// the type of the input
 		, updateon	:: !UpdateEvent				// the event on which a change in the input needs to be handled
 		}
 
@@ -86,6 +87,7 @@ toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 								// toHtmlForm di
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 												
 
-mkInput				:: !(InIDataId d) String 					!*HSt -> ([HtmlTag],[InputId],*HSt)
-mkButton			:: !(InIDataId d) String 					!*HSt -> ([HtmlTag],[InputId],*HSt)
-mkSelect 			:: !(InIDataId d) String [(String,String)]	!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkInput				:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkButton			:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkSelect 			:: !(InIDataId d) String String [(String,String)]	!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkCheckBox			:: !(InIDataId d) String Bool						!*HSt -> ([HtmlTag],[InputId],*HSt)

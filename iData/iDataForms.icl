@@ -121,7 +121,7 @@ where
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
 gForm{|Int|} (init,formid) hst 	
-	# (html,inputs,hst)			= mkInput (init,formid) (toString formid.ival) hst
+	# (html,inputs,hst)			= mkInput (init,formid) "Int" (toString formid.ival) hst
 	= ({ changed				= False
 	   , value					= formid.ival
 	   , form					= html
@@ -129,7 +129,7 @@ gForm{|Int|} (init,formid) hst
 	   },hst)
 	
 gForm{|Real|} (init,formid) hst 	
-	# (html,inputs,hst)			= mkInput (init,formid) (toString formid.ival) hst
+	# (html,inputs,hst)			= mkInput (init,formid) "Real" (toString formid.ival) hst
 	= ({ changed				= False
 	   , value					= formid.ival
 	   , form					= html
@@ -137,7 +137,7 @@ gForm{|Real|} (init,formid) hst
 	   },hst)
 
 gForm{|Bool|} (init,formid) hst
-	# (html,inputs,hst)			= mkSelect (init,formid) (toString formid.ival) [("False","False"),("True","True")] hst
+	# (html,inputs,hst)			= mkCheckBox (init,formid) "Bool" formid.ival hst
 	= ({ changed				= False
 	   , value					= formid.ival
 	   , form					= html
@@ -145,7 +145,7 @@ gForm{|Bool|} (init,formid) hst
 	   },hst)
 
 gForm{|String|} (init,formid) hst 	
-	# (html,inputs,hst)			= mkInput (init,formid) formid.ival hst
+	# (html,inputs,hst)			= mkInput (init,formid) "String" formid.ival hst
 	= ({ changed				= False
 	   , value					= formid.ival
 	   , form					= html
@@ -200,7 +200,7 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr}
 		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) 
 		= ({Form | nc & value = CONS nc.Form.value},hst)
 				
-	# (selHtml,selInputs,hst)	= mkSelect (init, formid) myname options hst
+	# (selHtml,selInputs,hst)	= mkSelect (init, formid) ("CONS:" +++ t.gcd_name) myname options hst
 	# (nc,hst)					= gHc (init,reuseFormId formid c) hst
 	= ({ changed				= nc.changed
 	   , value					= CONS nc.Form.value
@@ -279,7 +279,32 @@ gForm{|(,,,)|} gHa gHb gHc gHd (init,formid) hst
 where
 	(a,b,c,d)			= formid.ival
 
-derive gForm Maybe, Void //TODO: Define the gForm for maybe with a checkbox
+gForm{|Maybe|} gHa (init,formid) hst
+= case formid.ival of
+	Just a
+		# (html,inputs,hst)		= mkCheckBox (init,formid) "Maybe" True hst
+		# (na,hst)				= gHa (init,reuseFormId formid a) hst
+		= ( { changed	= na.changed
+			, value		= Just na.Form.value
+			, form		= [TableTag [ ClassAttr "Maybe"]
+								[TrTag [] [
+									TdTag [] html,
+									TdTag [] na.form
+									]
+								]
+						  ]
+			, inputs	= inputs ++ na.inputs
+			},hst)
+	Nothing
+		# (html,inputs,hst)		= mkCheckBox (init,formid) "Maybe" False hst
+		= ( { changed	= False
+			, value		= Nothing
+			, form		= html
+			, inputs	= inputs
+			}, hst)
+
+
+derive gForm Void
 
 // gUpd calculates a new value given the current value and a change in the value.
 // If necessary it invents new default values (e.g. when switching from Nil to Cons)
@@ -297,7 +322,7 @@ gUpd{|Real|} 	(UpdSearch cntr upd)    cur = (UpdSearch (dec cntr) upd, cur)	// c
 gUpd{|Real|} 	(UpdCreate l)			_	= (UpdCreate l, 0.0)				// create default value
 gUpd{|Real|} 	mode 			  	    cur	= (mode,cur)						// don't change
 
-gUpd{|Bool|}	(UpdSearch 0 upd) 		_	= (UpdDone, upd == "True")			// update boolean value
+gUpd{|Bool|}	(UpdSearch 0 upd) 		_	= (UpdDone, upd == "checked")		// update boolean value
 gUpd{|Bool|}	(UpdSearch cntr upd)    cur = (UpdSearch (dec cntr) upd, cur)	// continue search, don't change
 gUpd{|Bool|}	(UpdCreate l)			_	= (UpdCreate l, False)				// create default value
 gUpd{|Bool|}	mode 			  	    cur	= (mode,cur)						// don't change
@@ -368,7 +393,27 @@ gUpd{|FIELD|} gUpdx mode (FIELD x)											// other cases
 gUpd{|(->)|} gUpdArg gUpdRes mode f
 = (mode,f)	
 
-derive gUpd (,), (,,), (,,,), Maybe, Void
+
+gUpd{|Maybe|} gUpdx	(UpdSearch 0 upd) _											// if the checkbox is toggled
+	| upd == "checked"
+		# (_,x)	= gUpdx (UpdCreate []) (abort "Value of Maybe evaluated")
+		= (UpdDone, Just x)		
+	| otherwise
+		= (UpdDone, Nothing)
+		
+gUpd{|Maybe|} gUpdx	(UpdSearch cntr upd)    Nothing		= (UpdSearch (dec cntr) upd, Nothing)	// continue search, don't change
+gUpd{|Maybe|} gUpdx	(UpdSearch cntr upd)    (Just x)	
+	# (mode, x)	= gUpdx (UpdSearch (dec cntr) upd) x											// continue search, don't change
+	= (mode, Just x)
+	
+gUpd{|Maybe|} gUpdx	(UpdCreate l)			_			= (UpdCreate l, Nothing)				// create default value
+
+gUpd{|Maybe|} gUpdx	mode 			  	    Nothing		= (mode, Nothing)						// don't change
+gUpd{|Maybe|} gUpdx mode					(Just x)
+	# (mode, x)	= gUpdx mode x							// don't change
+	= (mode, Just x)
+	
+derive gUpd (,), (,,), (,,,), Void
 
 
 // gForm: automatically derives a Html form for any Clean type
@@ -382,8 +427,8 @@ mkForm (init, formid =: {issub}) hst
 	
 	
 //The basic building blocks for creating inputs
-mkInput :: !(InIDataId d) String !*HSt -> ([HtmlTag], [InputId],*HSt) 
-mkInput (init,formid=:{mode}) val hst=:{cntr} 
+mkInput :: !(InIDataId d) String String !*HSt -> ([HtmlTag], [InputId],*HSt) 
+mkInput (init,formid=:{mode}) type val hst=:{cntr} 
 	| mode == Edit || mode == Submit
 		# inputid	= (formid.id +++ "-" +++ toString cntr)
 		= ( [InputTag 	[ TypeAttr		"text"
@@ -391,7 +436,7 @@ mkInput (init,formid=:{mode}) val hst=:{cntr}
 						, NameAttr		inputid
 						, IdAttr 		inputid
 						]]
-		  , [{formid = formid.id, inputid = cntr, updateon = if (mode == Edit ) OnChange OnSubmit}]
+		  , [{formid = formid.id, inputid = cntr, type = type, updateon = if (mode == Edit ) OnChange OnSubmit}]
 		  , setHStCntr (cntr+1) hst)
 	| mode == Display
 		= ( [InputTag 	[ TypeAttr		"text"
@@ -403,25 +448,36 @@ mkInput (init,formid=:{mode}) val hst=:{cntr}
 	= ([], [], setHStCntr (cntr+1) hst)
 	
 	
-mkButton :: !(InIDataId d) String !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkButton (init, formid =: {mode}) label hst =: {cntr} 
+mkButton :: !(InIDataId d) String String !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkButton (init, formid =: {mode}) type label hst =: {cntr} 
 	# inputid = (formid.id +++ "-" +++ toString cntr)
 	= ( [ButtonTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					, TypeAttr	"button"
 					: if (mode == Display) [DisabledAttr] []
 					] [Text label]]
-	  , [{formid = formid.id, inputid = cntr, updateon = OnClick}]
+	  , [{formid = formid.id, inputid = cntr, type = type, updateon = OnClick}]
 	  , setHStCntr (cntr + 1) hst)
 
-mkSelect :: !(InIDataId d) String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkSelect (init, formid=:{mode}) val options hst =:{cntr}
+mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkSelect (init, formid=:{mode}) type val options hst =:{cntr}
 	# inputid = (formid.id +++ "-" +++ toString cntr)
 	= ( [SelectTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					: if (mode == Display) [DisabledAttr] []
 					] [OptionTag [ValueAttr value:if (value == val) [SelectedAttr] [] ] [Text label] \\ (label,value) <- options]]
-	  , [{formid = formid.id, inputid = cntr, updateon = (if (mode == Edit) OnChange OnSubmit)}]
+	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
+	  , setHStCntr (cntr + 1) hst)
+
+mkCheckBox :: !(InIDataId d) String Bool !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkCheckBox (init, formid=:{mode}) type val hst =:{cntr}
+	# inputid = (formid.id +++ "-" +++ toString cntr)
+	= ( [InputTag	[ NameAttr	inputid
+					, IdAttr	inputid
+					, TypeAttr	"checkbox"
+					: (if (mode == Display) [DisabledAttr] []) ++ (if val [CheckedAttr] [])
+					]]
+	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
 	  , setHStCntr (cntr + 1) hst)
 
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
@@ -446,5 +502,5 @@ where
 			}
 
 createDefault :: a | gUpd{|*|} a 
-createDefault = fromJust (snd (gUpd {|*|} (UpdSearch 0 "Just") Nothing))
+createDefault = fromJust (snd (gUpd {|*|} (UpdSearch 0 "checked") Nothing))
 

@@ -70,7 +70,7 @@ gForm{|DisplayMode|} gHa (init,formid) hst
 			},incrHStCntr 1 hst)
 
 gForm{|HtmlButton|} (init,formid) hst
-	# (html,inputs,hst)	= mkButton (init,formid) l hst
+	# (html,inputs,hst)	= mkButton (init,formid) "HtmlButton" l hst
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= html
@@ -89,13 +89,13 @@ gForm{|HtmlCheckbox|} (init,formid =: {mode}) hst =:{cntr}
 	   								: if t [CheckedAttr] []
 	   								]]
 	   					   ++ if (isEmpty l) [] [LabelTag [ForAttr inputid] l]
-	   , inputs			= [{formid = formid.id, inputid = cntr, updateon = if (mode == Edit ) OnChange OnSubmit}]
+	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlCheckBox", updateon = if (mode == Edit ) OnChange OnSubmit}]
 	   },setHStCntr (cntr + 1) hst)
 where
 	(HtmlCheckbox l t) = formid.ival
 
 gForm{|HtmlSelect|} (init,formid) hst
-	# (html,inputs,hst)	= mkSelect (init,formid) v o hst
+	# (html,inputs,hst)	= mkSelect (init,formid) "HtmlSelect" v o hst
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= html
@@ -114,7 +114,7 @@ gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr}
 										]
 										[RawText val]
 						  ]
-	, inputs			= [{formid = formid.id, inputid = cntr, updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	, inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlTextArea", updateon = (if (mode == Submit) OnSubmit OnChange)}]
 	},setHStCntr (cntr + 1) hst)
 where
 	(HtmlTextarea rows val) = formid.ival
@@ -129,7 +129,7 @@ gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr}
 	   								, ValueAttr v
 	   								]
 	   					  ]
-	   , inputs			= [{formid = formid.id, inputid = cntr, updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlPassword", updateon = (if (mode == Submit) OnSubmit OnChange)}]
 	   },setHStCntr (cntr + 1) hst)
 where
 	(HtmlPassword v)	= formid.ival

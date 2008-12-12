@@ -180,8 +180,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			//Clear the panel which may contain content
 			//of the previous request
 			emptyPanel.body.dom.innerHTML = "";
-			
-			
+					
 			if (data.error != null) {
 				this.autoClose(this.makeErrorMessage(data.error), 5);
 			} else if(data.status == 'TaskFinished') { //Check if the task is done
@@ -194,7 +193,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				//Update the tab content
 				this.contentPanel.body.dom.innerHTML = data.html;
 				
-				//Attach the input event handlers
+				//"ExtJS-ify" the inputs and attach event handlers
 				var num = data.inputs.length;
 				var forms = {};
 				
@@ -205,39 +204,141 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					
 					//Record the formid
 					forms[data.inputs[i].formid] = true;
-					
+				
+					//ExtJS-ify
+					switch(data.inputs[i].type) {
+						
+						case "Int":
+						case "Real":
+						case "String":
+							var value = input.getValue();
+							var parent = input.parent();
+							var next = input.next();
+							
+							//Replace
+							input.remove();
+							if(data.inputs[i].type == "String") {
+								input = new Ext.form.TextField({
+									id: inputid,
+									value: value
+								});
+							} else {
+								input = new Ext.form.NumberField({
+									id: inputid,
+									value: value,
+									allowDecimals: (data.inputs[i].type == "Real"),
+									decimalPrecision: Number.MAX_VALUE,
+									style: "width: 5em"
+								});
+							}
+							input.render(parent, next);
+							
+							//Event handlers
+							if(data.inputs[i].updateon == "OnChange") {
+								input.on("change", function (inp, newVal, oldVal) {
+									this.addUpdate(inp.id, newVal);
+									new Ext.util.DelayedTask().delay(150,this.refresh,this);
+								},this);
+							}
+							if(data.inputs[i].updateon == "OnSubmit") {
+								input.on("change", function (inp, newVal, oldVal) {
+									this.addUpdate(inp.id, newVal);
+								},this);
+							}
+							input.on("focus", function (inp) {
+								this.lastFocus = inp.id;
+							},this);
+							
+							break;
+						case "Bool":
+						case "Maybe":
+							var checked = input.dom.checked;
+							var parent = input.parent();
+							var next = input.next();
+							
+							//Replace
+							input.remove();
+							input = new Ext.form.Checkbox({
+								id: inputid,
+								checked: checked
+							});
+							
+							input.render(parent,next);
+							
+							//Attach event handlers
+							if(data.inputs[i].updateon == "OnChange") {
+								input.on("check", function (inp, checked) {
+									this.addUpdate(inp.id, checked ? "checked" : "unchecked");
+									new Ext.util.DelayedTask().delay(150,this.refresh,this);
+								},this);
+							}
+							if(data.inputs[i].updateon == "OnSubmit") {
+								input.on("check", function (inp, checked) {
+									this.addUpdate(inp.id, checked ? "checked" : "unchecked");
+								},this);
+							}
+							input.on("focus", function (inp) {
+								this.lastFocus = inp.id;
+							},this);
+							
+							break;
+						case "HtmlButton":
+							var label = input.dom.innerHTML;
+							var parent = input.parent();
+							var next = input.next();
+							
+							//Replace
+							input.remove();
+							input = new Ext.Button({
+								id: inputid,
+								text: label,
+								style: "display: inline;"
+							});
+							
+							input.render(parent,next);
+							
+							//Attach event handler
+							input.on("click", function(but, e) {
+								this.addUpdate(but.id, "click");
+								this.refresh();
+							},this);
+							break;
+								
+						//Default: Attach event handlers
+						default:
+							switch(data.inputs[i].updateon) {
+								case "OnChange":
+									input.on("change", function (e) {
+										this.addUpdate(e.target.id,e.target.value);
+										
+										//Slightly delayed refresh. There could be click event right after this event.
+										new Ext.util.DelayedTask().delay(150,this.refresh,this);
+									},this);
+									break;
+								case "OnClick":
+									input.on("click", function (e) {
+										this.addUpdate(e.target.id,"click");
+										this.refresh();
+									},this);
+									break;
+								case "OnSubmit":
+									input.on("change", function (e) {
+										//Track changes, but don't send any data
+										this.addUpdate(e.target.id,e.target.value);
+									},this);
+									break;
+									
+							}
+							//Attach focus tracking handler
+							input.on("focus", function (e) {
+								this.lastFocus = e.target.id;
+							},this);
+					}
+						
 					//Refocus
 					if(this.lastFocus == inputid) {
 						input.focus();
 					}
-					
-					//Attach the event handlers
-					switch(data.inputs[i].updateon) {
-						case "OnChange":
-							input.on("change", function (e) {
-								this.addUpdate(e.target.id,e.target.value);
-								
-								//Slightly delayed refresh. There could be click event right after this event.
-								new Ext.util.DelayedTask().delay(150,this.refresh,this);
-							},this);
-							break;
-						case "OnClick":
-							input.on("click", function (e) {
-								this.addUpdate(e.target.id,"click");
-								this.refresh();
-							},this);
-							break;
-						case "OnSubmit":
-							input.on("change", function (e) {
-								//Track changes, but don't send any data
-								this.addUpdate(e.target.id,e.target.value);
-							},this);
-							break;
-					}
-					//Attach focus tracking handler
-					input.on("focus", function (e) {
-						this.lastFocus = e.target.id;
-					},this);
 				}
 	
 				//Attach the submit handlers of the forms
