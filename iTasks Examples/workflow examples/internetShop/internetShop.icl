@@ -25,7 +25,7 @@ orderPlacement user =
   user @:> ( "Order items from shop"
            , orderItemsFromShop -&&- fillInAndCheckCreditCard createDefault
            ) =>> \(basket, cardInfo) ->
-  user @:> ( "Confirm order"
+  user @:> ( "Order confirmation"
            , confirmOrder
            ) #>> 
   bank @:> ("Cash request"
@@ -35,7 +35,7 @@ orderPlacement user =
     (storage @:> ( "Deliver order"
                  , deliverOrder basket (deliveryAddress cardInfo)
                  ) #>>
-     user    @:> ( "Delivery confirmed"
+     user    @:> ( "Delivery confirmation"
                  , confirmDelivery basket (deliveryAddress cardInfo)
                  )
     )
