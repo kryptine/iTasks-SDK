@@ -37,8 +37,8 @@ where
 	//Additional hardcoded users for the webshop example
 	getUserInfo` "customer" _						= Just (10, [], "Webshop customer")
 	getUserInfo` "bank" _							= Just (11, [], "Bank authorization")
-	getUserInfo` "webshop" _						= Just (12, [], "Webshop stock manager")
-	getUserInfo` "mastercard" _						= Just (13, [], "Master Card authorization")
+	getUserInfo` "storage" _						= Just (12, [], "Webshop storage")
+	getUserInfo` "creditcard" _						= Just (13, [], "Credit Card authorization")
 	
 	getUserInfo` _ _								= Nothing
 	
