@@ -18,38 +18,38 @@ import iDataTrivial, StdEnv, StdiTasks
 
 // High level definitions
 Start :: *World -> *World
-Start world = startTaskEngine (orderPlacement user) world
+Start world = startTaskEngine (orderPlacement customer) world
 
 orderPlacement :: UserId -> Task Void
 orderPlacement user =
-  user @:> ( "Order items from shop"
-           , orderItemsFromShop -&&- fillInAndCheckCreditCard createDefault
-           ) =>> \(basket, cardInfo) ->
-  user @:> ( "Order confirmation"
-           , confirmOrder
-           ) #>> 
-  bank @:> ("Cash request"
-           , cashRequest (amountFrom basket) cardInfo
-           ) =>> \granted ->
+  customer @:> ( "Order items from shop"
+               , orderItemsFromShop -&&- fillInAndCheckCreditCard createDefault
+               ) =>> \(basket, cardInfo) ->
+  customer @:> ( "Order confirmation"
+               , confirmOrder
+               ) #>> 
+  bank     @:> ("Cash request"
+               , cashRequest (amountFrom basket) cardInfo
+               ) =>> \granted ->
   if granted
-    (storage @:> ( "Deliver order"
-                 , deliverOrder basket (deliveryAddress cardInfo)
-                 ) #>>
-     user    @:> ( "Delivery confirmation"
-                 , confirmDelivery basket (deliveryAddress cardInfo)
-                 )
+    (storage  @:> ( "Deliver order"
+                  , deliverOrder basket (deliveryAddress cardInfo)
+                  ) #>>
+     customer @:> ( "Delivery confirmation"
+                  , confirmDelivery basket (deliveryAddress cardInfo)
+                  )
     )
-    (user @:> ( "Delivery failure"
-              , failedDelivery basket (deliveryAddress cardInfo)
-              )
+    (customer @:> ( "Delivery failure"
+                  , failedDelivery basket (deliveryAddress cardInfo)
+                  )
     ) 
 									  
 fillInAndCheckCreditCard :: CardInfo -> Task CardInfo
 fillInAndCheckCreditCard cardInfo =
   fillInCreditCard cardInfo =>> \cardInfo ->
-  webSystem @: ( "Validate credit card"
-               , validateCreditCard cardInfo
-               ) =>> \valid ->
+  creditcard @: ( "Validate credit card"
+                , validateCreditCard cardInfo
+                ) =>> \valid ->
   if valid
     (return_V cardInfo)
     (invalidCreditCard cardInfo #>> 
@@ -58,10 +58,10 @@ fillInAndCheckCreditCard cardInfo =
 			
 									
 // Low level definitions
-user 		:== 10 // customer
-bank 		:== 11 // bank
-storage 	:== 12 // webshop
-webSystem	:== 13 // mastercard
+customer   :== 10
+bank       :== 11
+storage    :== 12
+creditcard :== 13 // not used at the moment (see validateCreditCard)
 
 :: CardInfo :== String
 :: Address  :== CardInfo
