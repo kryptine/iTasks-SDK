@@ -220,7 +220,7 @@ where
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (return createDefault)
-orTasks taskCollection	= newTask "orTasks" (andTasksCond "orTask" (\list -> length list >= 1) taskCollection)
+orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" displayAll (\list -> length list >= 1) taskCollection)
 							=>> \list -> (Task (return  (hd list)))
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
@@ -234,7 +234,7 @@ orTask2 (taska,taskb)
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = newTaskTrace "andTasks" (andTasksCond "andTask" (\_ -> False) taskCollection)
+andTasks taskCollection = newTaskTrace "andTasks" (allTasksCond "andTask" displayAsTab (\_ -> False) taskCollection)
 
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 

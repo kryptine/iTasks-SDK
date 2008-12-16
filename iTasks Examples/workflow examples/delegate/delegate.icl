@@ -42,7 +42,7 @@ where
 		doDelegate						
 		 =								orTasks [("Waiting for " <+++ who, who @:: buttonTask "I Will Do It" (return_V who)) \\ who <- people]	
 		 	=>> \who ->					who @:: stopTask2 who -!> task 
-		 	=>> \(stopped,TCl task) -> 	if (isJust stopped) (delegateToSomeone task people) task   
+		 	=>> \(stopped,task) -> 	if (isJust stopped) (delegateToSomeone task people) task   
 	
 		stopTask 		= buttonTask "Stop" (return_V True)					  			
 

@@ -11,15 +11,12 @@ import Time
 import Html
 import TSt
 
-derive gForm 	TCl						
-derive gUpd 	TCl
-derive gPrint 	TCl
-derive gParse 	TCl
-derive read 	TCl
-derive write 	TCl
-
-
-:: TCl a 		= 	TCl !.(Task a)												// task closure, container for a task used for higher order tasks (task which deliver a task)			
+derive gForm 	Task						
+derive gUpd 	Task
+derive gPrint 	Task
+derive gParse 	Task
+derive read 	Task
+derive write 	Task
 
 
 instance == GarbageCollect

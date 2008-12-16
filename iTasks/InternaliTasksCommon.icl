@@ -13,9 +13,6 @@ import TSt
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 
-:: TCl a 			= 	TCl !.(Task a)				// task closure, container for a task used for higher order tasks (task which deliver a task)			
-
-
 iTaskId :: !Int !TaskNr !String -> String
 iTaskId userid tasknr postfix 
 # postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }			// throw away characters not allowed in a file name
@@ -25,13 +22,9 @@ iTaskId userid tasknr postfix
 | userid < 0		= "iLog_"  <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix
 | otherwise			= "iTask_" <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
 
-
-
 // ******************************************************************************************************
 // Task creation and printing
 // ******************************************************************************************************
-
-
 
 // mkTask is an important wrapper function which should be wrapped around any task
 // It takes care of
@@ -94,37 +87,37 @@ where
 	(==) _ _ 					= False
 
 // ******************************************************************************************************
-// TCl specialization
+// Task specialization
 // ******************************************************************************************************
 
-write{|TCl|} write_a (TCl task) wst
+write{|Task|} write_a task wst
 	= write{|*|} (copy_to_string task) wst
 
-read {|TCl|} read_a  wst 
+read {|Task|} read_a  wst 
 	# (Read str i file) = read{|*|} wst
-	= Read (TCl  (deserialize str)) i file
+	= Read (deserialize str) i file
 where
 	deserialize :: .String -> .(Task .a)
 	deserialize str = fst (copy_from_string {c \\ c <-: str })
 
-gPrint{|TCl|} ga (TCl task) ps = ps <<- copy_to_string task
+gPrint{|Task|} ga task ps = ps <<- copy_to_string task
 
-gParse{|TCl|} ga expr
+gParse{|Task|} ga expr
 # mbstring = parseString expr
 | isNothing mbstring = Nothing
-= Just (TCl (fst(copy_from_string {s` \\ s` <-: fromJust mbstring})))
+= Just (fst(copy_from_string {s` \\ s` <-: fromJust mbstring}))
 where
 	parseString :: Expr -> Maybe String
 	parseString expr = gParse{|*|} expr
 
-gUpd{|TCl|} gc (UpdSearch 0 _)	  	 c		= (UpdDone, c)								
-gUpd{|TCl|} gc (UpdSearch cntr val)  c		= (UpdSearch (cntr - 2) val,c)						
-gUpd{|TCl|} gc (UpdCreate l)        _		
+gUpd{|Task|} gc (UpdSearch 0 _)	  	 c		= (UpdDone, c)								
+gUpd{|Task|} gc (UpdSearch cntr val)  c		= (UpdSearch (cntr - 1) val,c)						
+gUpd{|Task|} gc (UpdCreate l)        _		
 # (mode,default)	= gc (UpdCreate l) undef
-= (UpdCreate l, TCl (Task (\tst -> (default,tst))))			
-gUpd{|TCl|} gc mode                 b		= (mode, b)										
+= (UpdCreate l, Task (\tst -> (default,tst)))			
+gUpd{|Task|} gc mode                 b		= (mode, b)										
 
-gForm{|TCl|} gfa (init,formid) hst
+gForm{|Task|} gfa (init,formid) hst
 = ({value=formid.ival,changed=False,form=[], inputs = []},hst)
 
 

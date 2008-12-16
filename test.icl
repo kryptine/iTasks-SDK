@@ -12,11 +12,11 @@ Start :: *World -> *World
 Start world = startTaskEngine myTask5 world
 
 myTask5
-= chooseTask [Text "Choose product:",BrTag [],BrTag []] 
-	[("Coffee: 100",    return_V (100,"Coffee"))
-	,("Cappucino: 150", return_V (150,"Cappucino"))
-	,("Tea: 50",        return_V (50, "Tea"))
-	,("Chocolate: 100", return_V (100,"Chocolate"))
+= seqTasks  
+	[("Coffee: 100",    editTask "OK" (100,"Coffee"))
+	,("Cappucino: 150", editTask "OK" (150,"Cappucino"))
+	,("Tea: 50",        editTask "OK" (50, "Tea"))
+	,("Chocolate: 100", editTask "OK" (100,"Chocolate"))
 	] 
 	=>> \v -> editTask "OK" v
 	

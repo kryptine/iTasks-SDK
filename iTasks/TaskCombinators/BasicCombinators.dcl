@@ -86,8 +86,8 @@ channel			:: splits a task in respectively a sender task closure and receiver ta
 				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
 */
 
-(-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,TCl a) 	| iCreateAndPrint stop & iCreateAndPrint a
-channel  		:: String (Task a) 							-> Task (TCl a,TCl a) 		| iCreateAndPrint a
+(-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,Task a) 	| iCreateAndPrint stop & iCreateAndPrint a
+channel  		:: String (Task a) 							-> Task (Task a,Task a) 		| iCreateAndPrint a
 
-closureTask  	:: (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
-closureLzTask  	:: (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
+closureTask  	:: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
+closureLzTask  	:: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a

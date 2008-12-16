@@ -207,53 +207,6 @@ where
 	displayAll` label tasknr htmls 
 		= foldl (+|+) (BT [] []) (map snd htmls) 
 
-
-	
-	
-/*
-allTasksCond 	:: !String !(TasksToShow a) !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
-allTasksCond label chooser pred taskCollection 
-= 					mkTask "andTasksCond" (Task (doandTasks chooser taskCollection))
-where
-	lengthltask = length taskCollection 
-
-	doandTasks chooser [] tst	= return [] tst
-	doandTasks chooser taskCollection tst=:{tasknr,html,options,userId}
-	# ((alist,acode),tst=:{activated=finished,html=allhtml})		
-						= checkAllTasks label taskCollection 0 True ([],[]) {tst & html = BT [] [],activated = True} 
-	| finished			= (alist,{tst & html = html}) 						// stop, all andTasks are finished
-	| pred alist		= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
-	# selectId			= iTaskId userId tasknr "anTaskSelect"
-	# ((selected,shtml),tst)	= chooser selectId taskCollection {tst & html = BT [] []}
-	# (_,tst=:{html=ashtml})	= showtasks label [(i,taskCollection!!i) \\ i <- selected | i >= 0 && i < lengthltask] {tst & html = BT [] [], activated = True}		
-	= (alist,{tst 	& activated = finished
-					, html = 	html +|+ 									// show previous code
-								((BT shtml []) +-+ ashtml) +|+ 				// show selection button + selected itasks
-								(userId -@: foldl (+|+) (BT [] []) [htmlcode \\ htmlcode <- acode & i <- [0..] | not (isMember i selected)]) // dont show non selected itasks, but scan them for task tree info								
-			})
-	where
-		showtasks :: !String ![(!Int,!LabeledTask a)] !*TSt -> *(![a],!*TSt) | iCreateAndPrint a
-		showtasks _ [] tst			= ([],tst)
-		showtasks label [(chosen,(name,chosenTask)):tasks] tst=:{html=html}
-		# (a,tst=:{html=ahtml}) 	= appTaskTSt (mkParSubTask label chosen chosenTask) {tst & tasknr = tasknr, activated = True, html = BT [] []}
-		# (as,tst=:{html=ashtml})	= showtasks label tasks {tst & html = BT [] []}
-		= ([a:as],{tst & html = html +|+ ahtml +|+ ashtml})			
-
-
-		checkAllTasks :: !String ![LabeledTask a] !Int !Bool !(![a],![HtmlTree]) !*TSt -> *(!(![a],![HtmlTree]),!*TSt) | iCreateAndPrint a
-		checkAllTasks traceid taskCollection ctasknr bool (alist,acode) tst=:{tasknr}
-		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),{tst & activated = bool})			// all tasks tested
-		# (taskname,task)		= taskCollection!!ctasknr
-		# (a,tst=:{activated = adone,html=html})	
-								= appTaskTSt (mkParSubTask traceid ctasknr task) {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
-		| adone					= checkAllTasks traceid taskCollection (inc ctasknr) bool ([a:alist],[html:acode]) {tst & tasknr = tasknr, activated = True}
-		= checkAllTasks traceid taskCollection (inc ctasknr) False (alist,[html:acode]) {tst & tasknr = tasknr, activated = True}
-
-
-*/
-
-
-
 // ******************************************************************************************************
 // Higher order tasks ! Experimental
 /* Experimental department:
@@ -265,33 +218,33 @@ where
 channel			:: splits a task in respectively a sender task closure and receiver taskclosure; 
 				   when the sender is evaluated, the original task is evaluated as usual;
 				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
-				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
+				   Important: Notice that a receiver will never finish if you don't activate the corresponding sender somewhere.
 closureTask		:: The task is executed as usual, but a receiver closure is returned immediately.
 				   When the closure is evaluated somewhere, one has to wait until the task is finished.
 				   Handy for passing a result to several interested parties.
 closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
 */
 
-(-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,TCl a)) | iCreateAndPrint s & iCreateAndPrint a
+(-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,Task a)) | iCreateAndPrint s & iCreateAndPrint a
 (-!>)  stoptask task =  mkTask "-!>" (Task stop`)
 where
 	stop` tst=:{tasknr,html,options,userId}
 	# (val,tst=:{activated = taskdone,html = taskhtml}) = appTaskTSt task     {tst & activated = True, html = BT [] [], tasknr = normalTaskId,options = options}
 	# (s,  tst=:{activated = stopped, html = stophtml})	= appTaskTSt stoptask {tst & activated = True, html = BT [] [], tasknr = stopTaskId,  options = options}
-	| stopped	= appTaskTSt (return_V (Just s, TCl (Task (close task))))   {tst & html = html, activated = True}
-	| taskdone	= appTaskTSt (return_V (Nothing,TCl (return_V val))) {tst & html = html +|+ taskhtml, activated = True}
-	= appTaskTSt (return_V (Nothing,TCl (return_V val))) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}
+	| stopped	= appTaskTSt (return_V (Just s, Task (close task)))   {tst & html = html, activated = True}
+	| taskdone	= appTaskTSt (return_V (Nothing,return_V val)) {tst & html = html +|+ taskhtml, activated = True}
+	= appTaskTSt (return_V (Nothing,return_V val)) {tst & html = html +|+ taskhtml +|+ stophtml, activated = False}
 	where
 		close t = \tst -> appTaskTSt t {tst & tasknr = normalTaskId, options = options, userId = userId} // reset userId because it influences the task id
 
 		stopTaskId 		= [-1,0:tasknr]
 		normalTaskId  	= [-1,1:tasknr]
 
-channel  :: String (Task a) -> (Task (TCl a,TCl a)) | iCreateAndPrint a
+channel  :: String (Task a) -> (Task (Task a,Task a)) | iCreateAndPrint a
 channel name task =  mkTask "channel" (Task (doSplit name task))
 
 doSplit name task tst=:{tasknr,options,userId}
-= appTaskTSt (return_V (TCl (Task (sender (Task myTask))),TCl (Task (receiver (Task myTask))))) tst
+= appTaskTSt (return_V (Task (sender (Task myTask)),Task (receiver (Task myTask)))) tst
 where
 	myTask tst = appTaskTSt task {tst & tasknr = [-1:tasknr], options = options, userId = userId}
 
@@ -306,24 +259,24 @@ where
 	| activated	= (val,{tst & html = html, activated = True , tasknr = tasknr})
 	= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, tasknr = tasknr})
 
-closureTask  ::  (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
+closureTask  ::  (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
 closureTask (name, task) = mkTask ("closure " +++ name) (Task mkClosure)
 where
 	mkClosure tst=:{tasknr,options,userId}
-	# ((TCl sa,ra),tst) 	= doSplit name task tst
+	# ((sa,ra),tst) 		= doSplit name task tst
 	# (_,tst)     			= appTaskTSt sa {tst & activated = True}
 	= (ra, {tst & activated = True})
 
-closureLzTask  :: (LabeledTask a) -> (Task (TCl a)) | iCreateAndPrint a
+closureLzTask  :: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
 closureLzTask (name, task) = mkTask ("lazy closure " +++ name) (Task mkClosure)
 where
 	mkClosure tst=:{tasknr,options,userId}
-	# ((TCl sa,ra),tst) 	= doSplit name task tst
+	# ((sa,ra),tst) 		= doSplit name task tst
 	# (_,tst)     			= appTaskTSt sa tst
 	= (ra, {tst & activated = True})
 
 	doSplit name task tst=:{tasknr,options,userId}
-		= appTaskTSt (return_V (TCl (Task (sender (Task myTask))),TCl (Task (receiver (Task myTask))))) tst
+		= appTaskTSt (return_V (Task (sender (Task myTask)), Task (receiver (Task myTask)))) tst
 	where
 		myTask tst = appTaskTSt task {tst & tasknr = [-1:tasknr], options = options, userId = userId}
 	

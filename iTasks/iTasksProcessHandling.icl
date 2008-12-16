@@ -22,9 +22,9 @@ derive read 	Wid, WorkflowStatus
 derive write 	Wid, WorkflowStatus
 
 :: Wid a			= Wid WorkflowLink											// id of workflow process
-:: WorkflowProcess 	= ActiveWorkflow 	ProcessIds !(TCl Dynamic)
-					| SuspendedWorkflow ProcessIds !(TCl Dynamic)
-					| FinishedWorkflow 	ProcessIds !Dynamic !(TCl Dynamic)
+:: WorkflowProcess 	= ActiveWorkflow 	ProcessIds !(Task Dynamic)
+					| SuspendedWorkflow ProcessIds !(Task Dynamic)
+					| FinishedWorkflow 	ProcessIds !Dynamic !(Task Dynamic)
 					| DeletedWorkflow	ProcessIds
 
 instance == WorkflowStatus
@@ -67,7 +67,7 @@ where
 	myread pst = read{|*|} pst
 
 gerda{|Dynamic|} 	= abort "Cannot yet store a Dynamic in a Database\n" 
-gerda{|TCl|} ga		= abort "Cannot yet store an iTask of type TCL in a Database\n" 
+gerda{|Task|} ga		= abort "Cannot yet store an iTask of type TCL in a Database\n" 
 
 import DrupBasic
 
@@ -95,9 +95,9 @@ setWorkflowUser nuserid (FinishedWorkflow 		(userid,procnr,wflab) dyn task)	= (F
 setWorkflowUser nuserid (DeletedWorkflow		(userid,procnr,wflab))			= (DeletedWorkflow		(nuserid,procnr,wflab))
 
 getTask :: !WorkflowProcess -> Task Dynamic
-getTask (ActiveWorkflow 	(_,_,_) (TCl task))		= task 
-getTask (SuspendedWorkflow  (_,_,_) (TCl task))		= task
-getTask (FinishedWorkflow 	(_,_,_) _ (TCl task))	= task
+getTask (ActiveWorkflow 	(_,_,_) task)		= task 
+getTask (SuspendedWorkflow  (_,_,_) task)		= task
+getTask (FinishedWorkflow 	(_,_,_) _ task)		= task
 
 isDeletedWorkflow :: !WorkflowProcess -> Bool
 isDeletedWorkflow (DeletedWorkflow _) = True
@@ -140,12 +140,12 @@ where
 	= (a,{tst & activated = activated && done})															// whole application ends when all processes have ended
 
 scheduleWorkflowTable done [] _ tst = (done,tst)
-scheduleWorkflowTable done [ActiveWorkflow _ (TCl dyntask):wfls] procid tst
+scheduleWorkflowTable done [ActiveWorkflow _  dyntask:wfls] procid tst
 # (_,tst=:{activated}) = appTaskTSt dyntask {tst & activated = True}
 = scheduleWorkflowTable (done && activated) wfls (inc procid) {tst & activated = activated}
 scheduleWorkflowTable done [SuspendedWorkflow _ _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
-scheduleWorkflowTable done [FinishedWorkflow _ _ (TCl dyntask):wfls] procid tst	// just to show result in trace..
+scheduleWorkflowTable done [FinishedWorkflow _ _ dyntask:wfls] procid tst	// just to show result in trace..
 # (_,tst) = appTaskTSt dyntask tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
@@ -161,8 +161,8 @@ where
 	# processid			= processid + 1											// process id currently given by length list, used as offset in list
 	# wfl				= mkdyntask options entry processid task				// convert user task in a dynamic task
 	# nwfls				= if found 
-							(updateAt (entry - 1) (if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) (TCl wfl)) wfls)
-							(wfls ++ [if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) (TCl wfl)])				// turn task into a dynamic task
+							(updateAt (entry - 1) (if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) wfl) wfls)
+							(wfls ++ [if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) wfl])				// turn task into a dynamic task
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (processid,nwfls)) tst	// write workflow process administration
 	# (_,tst)			= appTaskTSt (if active wfl (Task (\tst -> (undef,tst)))) tst	// if new workflow is active, schedule it in
 	= (Wid (entry,(userid,processid,label)),{tst & activated = True})
@@ -312,8 +312,8 @@ where
 		(ActiveWorkflow    label acttask)  -> (True,{tst & activated = True})
 		wfl -> (False,{tst & activated = True})									// in case of finished or deleted task
 
-	scheduleWorkflow label maxid (TCl wfl) wfls tst										
-	# nwfls				= updateAt (entry - 1) (ActiveWorkflow label (TCl wfl)) wfls // mark workflow as activated
+	scheduleWorkflow label maxid wfl wfls tst										
+	# nwfls				= updateAt (entry - 1) (ActiveWorkflow label wfl) wfls // mark workflow as activated
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	# (_,tst)			= appTaskTSt wfl {tst & activated = True}				// schedule workflow
 	= (True,tst)																// done
@@ -339,9 +339,9 @@ where
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
 	= (ok,tst)																	// if everything is fine it should always succeed
 
-	scheduleWorkflow label (TCl wfl) tst										// schedule workflow
+	scheduleWorkflow label (Task wfl) tst										// schedule workflow
 	# (_,tst)	= wfl {tst & activated = True}
-	= (True,False,ActiveWorkflow label (TCl wfl),{tst & activated = True})
+	= (True,False,ActiveWorkflow label (Task wfl),{tst & activated = True})
 
 */
 getWorkflowStatus :: !(Wid a) -> Task WorkflowStatus
