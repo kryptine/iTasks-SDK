@@ -13,6 +13,7 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 				  , error			:: Maybe String		//Optional error if something went wrong on the server
 				  , html			:: String			//The HTML content of the tab
 				  , inputs			:: [InputId]		//The interactive inputs in the tab
+				  , prefix			:: String			//The prefix string which is prepended to all html id's of the inputs in the tab
 				  , state			:: [HtmlState]		//The task state that must be stored in the tab
 				  , activeTasks		:: Maybe [String]	//Optional list of task id's to sync the open tabs with the known states on the server
 				  , stateTrace		:: Maybe String		//Optional state trace info
@@ -25,6 +26,7 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 */
 handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
 handleWorkTabRequest mainTask request session hst
+	# hst											= setHStPrefix prefix hst
 	# (toServer, htmlTree, maybeError, _, _, hst)	= calculateTaskTree thisUserId traceOn False False mainTask hst // calculate the TaskTree given the id of the current user
 	# (taskStatus,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
@@ -50,6 +52,7 @@ handleWorkTabRequest mainTask request session hst
 		,	error			= maybeError
 		,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
 		,	inputs			= inputs
+		,	prefix			= prefix
 		,	state			= htmlstates
 		,	activeTasks		= activeTasks
 		,	stateTrace		= stateTrace
@@ -62,6 +65,7 @@ where
 	thisUserId			= session.Session.userId										// fetch user id from the session
 	taskId 				= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
 	traceOn				= http_getValue "trace" request.arg_post "" == "1"
+	prefix				= http_getValue "prefix" request.arg_post ""					// prepend a prefix to inputs when asked
 
 	mbStateTrace req states
 		| traceOn

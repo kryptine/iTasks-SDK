@@ -79,8 +79,8 @@ gForm{|HtmlButton|} (init,formid) hst
 where
 	(HtmlButton l t)	= formid.ival
 
-gForm{|HtmlCheckbox|} (init,formid =: {mode}) hst =:{cntr}
-	# inputid			= formid.id +++ "-" +++ toString cntr
+gForm{|HtmlCheckbox|} (init,formid =: {mode}) hst =:{cntr,prefix}
+	# inputid			= prefix +++ formid.id +++ "-" +++ toString cntr
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= [InputTag [ TypeAttr "checkbox"
@@ -104,8 +104,8 @@ gForm{|HtmlSelect|} (init,formid) hst
 where
 	(HtmlSelect o v)	= formid.ival
 
-gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr}
-# inputid = formid.id +++ "-" +++ toString cntr
+gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr,prefix}
+# inputid = prefix +++ formid.id +++ "-" +++ toString cntr
 = (	{ changed			= False
 	, value				= formid.ival
 	, form				= [TextareaTag	[ NameAttr inputid
@@ -119,8 +119,8 @@ gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr}
 where
 	(HtmlTextarea rows val) = formid.ival
 
-gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr} 	
-	#inputid = formid.id +++ "-" +++ toString cntr
+gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr,prefix} 	
+	#inputid = prefix +++ formid.id +++ "-" +++ toString cntr
 
 	= ({ changed		= False
 	   , value			= formid.ival

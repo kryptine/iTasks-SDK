@@ -26,7 +26,7 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 // TODO: Try to make it do just a little less :)
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{request,states,world}
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{prefix, request,states,world}
 	| init == Const	&& formid.FormId.lifespan <> LSTemp
 	= mkViewForm (init,{FormId| formid & lifespan = LSTemp}) bm hst			// constant i-data are never stored
 	| init == Const															// constant i-data, no look up of previous value
@@ -52,10 +52,10 @@ where
 			   , form			= []
 			   , inputs			= []
 			   }
-			  , mkHSt request states world)
+			  , mkHSt prefix request states world)
 	
 		# (viewform,{states,world})											// make a form for it
-								= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) (mkHSt request states world)
+								= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) (mkHSt prefix request states world)
 	
 		| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
 								= calcnextView True (Just viewform.Form.value) states world
@@ -67,7 +67,7 @@ where
 			, form				= viewform.form
 			, inputs			= viewform.inputs
 			}
-		  ,mkHSt request states world)
+		  ,mkHSt prefix request states world)
 
 	replaceState` vformid view states world
 		| init <> Const			= setState vformid view states world
@@ -418,19 +418,19 @@ derive gUpd (,), (,,), (,,,), Void
 
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init, formid =: {issub}) hst
+mkForm (init, formid =: {issub}) hst =:{prefix}
 	# (form, hst)	= gForm{|*|} (init, formid) hst
 	| issub			= (form, hst) //Subforms are contained in the <form> tags of their parent
 	| otherwise		= ({form &
-						form = [FormTag [IdAttr formid.id] form.form]
+						form = [FormTag [IdAttr (prefix +++ formid.id)] form.form]
 					   }, hst)
 	
 	
 //The basic building blocks for creating inputs
 mkInput :: !(InIDataId d) String String !*HSt -> ([HtmlTag], [InputId],*HSt) 
-mkInput (init,formid=:{mode}) type val hst=:{cntr} 
+mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix} 
 	| mode == Edit || mode == Submit
-		# inputid	= (formid.id +++ "-" +++ toString cntr)
+		# inputid	= (prefix +++ formid.id +++ "-" +++ toString cntr)
 		= ( [InputTag 	[ TypeAttr		"text"
 						, ValueAttr		val
 						, NameAttr		inputid
@@ -449,8 +449,8 @@ mkInput (init,formid=:{mode}) type val hst=:{cntr}
 	
 	
 mkButton :: !(InIDataId d) String String !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkButton (init, formid =: {mode}) type label hst =: {cntr} 
-	# inputid = (formid.id +++ "-" +++ toString cntr)
+mkButton (init, formid =: {mode}) type label hst =: {cntr,prefix} 
+	# inputid = (prefix +++ formid.id +++ "-" +++ toString cntr)
 	= ( [ButtonTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					, TypeAttr	"button"
@@ -460,8 +460,8 @@ mkButton (init, formid =: {mode}) type label hst =: {cntr}
 	  , setHStCntr (cntr + 1) hst)
 
 mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkSelect (init, formid=:{mode}) type val options hst =:{cntr}
-	# inputid = (formid.id +++ "-" +++ toString cntr)
+mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
+	# inputid = (prefix +++ formid.id +++ "-" +++ toString cntr)
 	= ( [SelectTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					: if (mode == Display) [DisabledAttr] []
@@ -470,8 +470,8 @@ mkSelect (init, formid=:{mode}) type val options hst =:{cntr}
 	  , setHStCntr (cntr + 1) hst)
 
 mkCheckBox :: !(InIDataId d) String Bool !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkCheckBox (init, formid=:{mode}) type val hst =:{cntr}
-	# inputid = (formid.id +++ "-" +++ toString cntr)
+mkCheckBox (init, formid=:{mode}) type val hst =:{cntr,prefix}
+	# inputid = (prefix +++ formid.id +++ "-" +++ toString cntr)
 	= ( [InputTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					, TypeAttr	"checkbox"
@@ -483,7 +483,7 @@ mkCheckBox (init, formid=:{mode}) type val hst =:{cntr}
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 toHtml :: a -> HtmlTag | gForm {|*|} a
 toHtml a
-	# (na,_)	= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt http_emptyRequest (mkFormStates [] []) dummy)
+	# (na,_)	= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt "" http_emptyRequest (mkFormStates [] []) dummy)
 	= BodyTag [] na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtml!\n"
@@ -493,7 +493,7 @@ where
 
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 toHtmlForm anyform 
-	# (na,hst)	= anyform (mkHSt http_emptyRequest (mkFormStates [] []) (abort "illegal call to toHtmlForm!\n"))
+	# (na,hst)	= anyform (mkHSt "" http_emptyRequest (mkFormStates [] []) (abort "illegal call to toHtmlForm!\n"))
 	= na.form
 where
 	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"

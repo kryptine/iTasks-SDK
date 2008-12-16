@@ -35,8 +35,8 @@ accWorldHSt f hst=:{world}
 	= (a,{hst & world=world})
 
 // Create a new HSt
-mkHSt :: HTTPRequest *FormStates *NWorld -> *HSt
-mkHSt request states nworld = {cntr=0, states=states, request= request, world=nworld }
+mkHSt :: String HTTPRequest *FormStates *NWorld -> *HSt
+mkHSt prefix request states nworld = {cntr=0, prefix = prefix, states=states, request= request, world=nworld }
 
 // Access on the HSt structure
 getHStCntr :: !*HSt -> (!Int,!*HSt)
@@ -47,6 +47,10 @@ setHStCntr i hst					= {hst & cntr = i}
 
 incrHStCntr :: !Int !*HSt -> *HSt
 incrHStCntr i hst					= {hst & cntr = hst.cntr + i}
+
+setHStPrefix :: !String !*HSt -> *HSt
+setHStPrefix s hst = {hst & prefix = s}
+
 
 // It can be convenient to explicitly delete IData, in particular for persistent IData object
 // or to optimize iTasks

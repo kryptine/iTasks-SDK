@@ -11,6 +11,7 @@ from Http import :: HTTPRequest
 from StdFile import class FileSystem
 
 :: *HSt 		= { cntr 	:: !Int 			// counts position in expression
+				  , prefix	:: !String			// global prefix used in all generated html id's
 				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , states	:: !*FormStates  	// all form states are collected here ... 
 				  , world	:: *NWorld			// to enable all kinds of I/O
@@ -23,13 +24,14 @@ appWorldHSt			:: !.(*World -> *World)       !*HSt -> *HSt						// enabling World
 accWorldHSt			:: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)				// enabling World operations on HSt
 
 // Create a new HSt
-mkHSt :: HTTPRequest *FormStates *NWorld -> *HSt
+mkHSt :: String HTTPRequest *FormStates *NWorld -> *HSt
 
 // Access on the HSt structure
 
 getHStCntr				:: !*HSt -> (!Int,!*HSt)										// HSt.cntr
 setHStCntr				:: !Int !*HSt -> *HSt											// HSt.cntr := HSt.cntr
 incrHStCntr				:: !Int !*HSt -> *HSt											// HSt.cntr := HSt.cntr + n
+setHStPrefix			:: !String !*HSt -> *HSt
 
 // Explicit removal of all (Persistent) IData for with the same prefix IData form id
 // Change lifespan of all IData with the same prefix IData form id

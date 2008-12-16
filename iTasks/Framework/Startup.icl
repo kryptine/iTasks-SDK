@@ -131,7 +131,7 @@ initHSt request world
 	# updates					= decodeFormUpdates request.arg_post						// Get the form updates from the post
 	# states					= decodeHtmlStates request.arg_post							// Fetch stored states from the post
 	# fstates	 				= mkFormStates states updates 								
-	= mkHSt request fstates nworld
+	= mkHSt "" request fstates nworld
 where
 	decodeFormUpdates :: ![(!String, !String)] -> [FormUpdate]
 	decodeFormUpdates args = [update \\ (Just update) <- map mbUpdate args]
