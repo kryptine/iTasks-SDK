@@ -15,7 +15,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			direction: 'ASC'
 		},
 		proxy: new Ext.data.HttpProxy({
-			url: 'handlers/worklist'
+			url: 'handlers/work/list'
 		}),
 		reader: new Ext.ux.grid.livegrid.JsonReader({
 				root: 'worklist',

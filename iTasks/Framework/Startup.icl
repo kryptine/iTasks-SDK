@@ -13,7 +13,7 @@ import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import BasicCombinators, iTasksProcessHandling
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
-import IndexHandler, AuthenticationHandler, DeauthenticationHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*
+import IndexHandler, AuthenticationHandler, DeauthenticationHandler, NewListHandler, NewStartHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*
 import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
 import TaskTree, TaskTreeFilters
 
@@ -63,8 +63,10 @@ startServer mainTask world
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAnonRequest handleAuthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/deauthenticate"), handleSessionRequest handleDeauthenticationRequest)
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/worklist"), handleSessionRequest (handleWorkListRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/work"), handleSessionRequest (handleWorkTabRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/new/list"), handleSessionRequest handleNewListRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/new/start"), handleSessionRequest handleNewStartRequest)
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/work/list"), handleSessionRequest (handleWorkListRequest mainTask))
+								 ,((==) ("/" +++ ThisExe +++ "/handlers/work/tab"), handleSessionRequest (handleWorkTabRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/tasktreeforest"), handleSessionRequest (handleTaskTreeForestRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/processtable"), handleSessionRequest (handleProcessTableRequest mainTask))
 								 ,((==) ("/" +++ ThisExe +++ "/handlers/threadtable"), handleSessionRequest (handleThreadTableRequest mainTask))

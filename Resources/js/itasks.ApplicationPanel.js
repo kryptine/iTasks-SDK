@@ -35,9 +35,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					minWidth: 200,
 					maxWidth: 400,
 					items: [
-						{xtype: 'itasks.debug', id: 'debugpanel' },
-						{xtype: 'itasks.cwpanel' },
-						{xtype: 'itasks.nwpanel' }	
+						{xtype: 'itasks.nwpanel', id: 'newpanel' },
+						//{xtype: 'itasks.cwpanel' },
+						{xtype: 'itasks.debug', id: 'debugpanel' }
 					]
 				},{
 					id: 'centerpanel',
@@ -67,13 +67,18 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		
 		//Initializing the gui...
 		var apppanel	= this;
+		
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
 		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
 		var debugpanel	= this.getComponent('leftpanel').getComponent('debugpanel');
-		
+		var newpanel 	= this.getComponent('leftpanel').getComponent('newpanel');
+	
 		//Set worklist applicationPanel reference and refresh
 		worklist.setApplicationPanel(apppanel);
 		worklist.refresh();
+			
+		newpanel.setApplicationPanel(apppanel);
+		newpanel.refresh();
 		
 		//Connect event handlers	
 		worklist.on('cellclick',function (grid,row,col,event) {
@@ -88,6 +93,12 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			},this);
 			newtab.refresh();
 		});
+		
+		newpanel.on('processStarted',function(startTask) {
+			worklist.refresh();
+			//TODO: Automatically open a tab
+		},this);
+		
 		debugpanel.getTaskForestButton().on('click',function() {
 			worktabs.openTaskForestTab(apppanel);
 		});

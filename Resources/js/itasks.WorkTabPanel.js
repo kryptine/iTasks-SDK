@@ -148,10 +148,21 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			//Determine in which panel the new content must be put
 			this.setNextContentPanel(trace);
 			
-			//Fill the content and trace panels
-			this.setupContentPanel(trace, data);
-			this.setupTracePanels(trace, data);
-
+			//Create content
+			if (data.error != null) {
+                this.autoClose(this.makeErrorMessage(data.error), 5);
+            } else if(data.status == 'TaskFinished') { //Check if the task is done
+				this.fireEvent('taskfinished', this.id);
+				this.autoClose(this.makeFinishedMessage(), 5);
+            } else if(data.status == 'TaskDeleted') {
+                this.fireEvent('taskdeleted', this.id);
+                this.autoClose(this.makeDeletedMessage(), 5);
+            } else {	
+				//Fill the content and trace panels
+				this.setupContentPanel(trace, data);
+				this.setupTracePanels(trace, data);
+			}
+			
 			//Hide the current content panel and switch to new content
 			this.switchContentPanels(trace);
 				
@@ -423,7 +434,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		
 		//Send the data to the server
 		Ext.Ajax.request({
-			url: 'handlers/work?taskid=' + this.id,
+			url: 'handlers/work/tab?taskid=' + this.id,
 			method: "POST",
 			params: params,
 			scripts: false,

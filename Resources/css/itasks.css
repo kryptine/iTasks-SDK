@@ -82,7 +82,25 @@ div.loginWindow {
 	background-position: top;
 	background-repeat: repeat-x;
 }
-
+/* NEW WORK LIST STYLES */
+ul.newwork {
+	font-size: 11px;
+	list-style: none;
+	padding: 0px;
+}
+ul.newwork li {
+	padding: 0px 0px 0px 18px;
+	background-repeat: no-repeat;
+	height: 16px;
+	margin: 0px 0px 2px 0px;
+}
+ul.newwork a {
+	color: #000;
+	text-decoration: underline;
+}
+ul.newwork a:hover {
+	color: #f90;
+}
 /* WORK LIST PANEL STYLES */
 div.treegrid {
 	position: absolute;
@@ -216,6 +234,7 @@ div.trace th {
 	text-align: left;
 	padding: 2px;
 }
+
 /* WELCOME SCREEN STYLES */
 #welcome {
 	background: url('../img/welcome/bg.png') top repeat-x;
