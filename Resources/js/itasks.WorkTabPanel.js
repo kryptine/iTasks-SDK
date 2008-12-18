@@ -191,8 +191,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		
 		for(var i = 0; i < num; i++) {
 			
-			var inputid = data.prefix + data.inputs[i].formid + '-' + data.inputs[i].inputid;
 			var inputname = data.inputs[i].formid + '-' + data.inputs[i].inputid;
+			var inputid = data.prefix + inputname;
 			var input = Ext.get(inputid);
 			
 			//Record the formid
@@ -241,7 +241,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						},this);
 					}
 					input.on("focus", function (inp) {
-						this.lastFocus = inp.id;
+						this.lastFocus = inp.name;
 					},this);
 					
 					break;
@@ -274,7 +274,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						},this);
 					}
 					input.on("focus", function (inp) {
-						this.lastFocus = inp.id;
+						alert("FOOCUSUUIS");
+						this.lastFocus = inp.name;
 					},this);
 					
 					break;
@@ -298,6 +299,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					input.on("click", function(but, e) {
 						this.addUpdate(but.name, "click");
 						this.refresh();
+					},this);
+					input.on("focus", function(inp) {
+						this.lastFocus = inp.name;
 					},this);
 					break;
 						
@@ -328,13 +332,13 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					}
 					//Attach focus tracking handler
 					input.on("focus", function (e) {
-						this.lastFocus = e.target.id;
+						this.lastFocus = e.target.name;
 					},this);
 			}
 				
 			//Refocus
-			if(this.lastFocus == inputid) {
-				input.focus();
+			if(this.lastFocus == inputname) {
+				input.focus(true,100);
 			}
 		}
 
