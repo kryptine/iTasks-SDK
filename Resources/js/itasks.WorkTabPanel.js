@@ -222,7 +222,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 							name: inputname,
 							value: value,
 							allowDecimals: (data.inputs[i].type == "Real"),
-							decimalPrecision: Number.MAX_VALUE,
+							decimalPrecision: 100, //Arbitrary limit
 							style: "width: 5em"
 						});
 					}
