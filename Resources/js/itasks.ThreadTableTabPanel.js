@@ -13,7 +13,19 @@ itasks.ThreadTableTabPanel = Ext.extend(Ext.Panel, {
 			title: 'Thread table',
 			closable: true,
 			autoScroll: true,
-			cls: 'worktab-container'
+			cls: 'worktab-container',
+			tbar: [{
+					text: 'Refresh',
+					iconCls: 'x-tbar-loading',
+					listeners: {
+						click: {
+							scope: this,
+							fn: function (btn) {
+								this.refresh();
+							}
+						}
+					}
+				}]
 		});
 		
 		itasks.ThreadTableTabPanel.superclass.initComponent.apply(this, arguments);

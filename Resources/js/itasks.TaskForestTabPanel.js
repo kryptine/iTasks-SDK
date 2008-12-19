@@ -13,7 +13,19 @@ itasks.TaskForestTabPanel = Ext.extend(Ext.Panel, {
 			title: 'Task forest',
 			closable: true,
 			autoScroll: true,
-			cls: 'worktab-container'
+			cls: 'worktab-container',
+			tbar: [{
+					text: 'Refresh',
+					iconCls: 'x-tbar-loading',
+					listeners: {
+						click: {
+							scope: this,
+							fn: function (btn) {
+								this.refresh();
+							}
+						}
+					}
+				}]
 		});
 		
 		itasks.TaskForestTabPanel.superclass.initComponent.apply(this, arguments);

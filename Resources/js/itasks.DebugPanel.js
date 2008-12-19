@@ -25,15 +25,15 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 					style: 'margin-bottom: 2px;'
 				},{
 					xtype: 'button',
-					text: 'Show thread table...',
+					text: 'Show process table...',
 					cls: 'debug-button',
-					iconCls: 'icon-thread-table',
+					iconCls: 'icon-process-table',
 					style: 'margin-bottom: 2px;'
 				},{
 					xtype: 'button',
-					text: 'Show process table...',
+					text: 'Show thread table...',
 					cls: 'debug-button',
-					iconCls: 'icon-process-table'
+					iconCls: 'icon-thread-table'
 				}]
 			},{
 				id: 'options',
@@ -58,12 +58,12 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 	getTaskForestButton: function() {
 		return this.getComponent(0).getComponent(0);
 	},
-	getThreadTableButton: function() {
+	getProcessTableButton: function() {
 		return this.getComponent(0).getComponent(1);
 	},
-	getProcessTableButton: function() {
+	getThreadTableButton: function() {
 		return this.getComponent(0).getComponent(2);
-	}	
+	}
 });
 
 Ext.reg('itasks.debug',itasks.DebugPanel);

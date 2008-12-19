@@ -13,7 +13,19 @@ itasks.ProcessTableTabPanel = Ext.extend(Ext.Panel, {
 			title: 'Process table',
 			closable: true,
 			autoScroll: true,
-			cls: 'worktab-container'
+			cls: 'worktab-container',
+			tbar: [{
+					text: 'Refresh',
+					iconCls: 'x-tbar-loading',
+					listeners: {
+						click: {
+							scope: this,
+							fn: function (btn) {
+								this.refresh();
+							}
+						}
+					}
+				}]
 		});
 		
 		itasks.ProcessTableTabPanel.superclass.initComponent.apply(this, arguments);

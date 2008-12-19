@@ -247,6 +247,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					break;
 				case "Bool":
 				case "Maybe":
+				case "HtmlCheckbox":
 					var checked = input.dom.checked;
 					var parent = input.parent();
 					var next = input.next();
