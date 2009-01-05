@@ -90,4 +90,4 @@ toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 								// toHtmlForm di
 mkInput				:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputId],*HSt)
 mkButton			:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputId],*HSt)
 mkSelect 			:: !(InIDataId d) String String [(String,String)]	!*HSt -> ([HtmlTag],[InputId],*HSt)
-mkCheckBox			:: !(InIDataId d) String Bool						!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkCheckBox			:: !(InIDataId d) String [HtmlTag] Bool				!*HSt -> ([HtmlTag],[InputId],*HSt)

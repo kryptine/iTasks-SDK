@@ -184,7 +184,6 @@ where
 
 simpleButton :: !String !String !(a -> a) !*HSt -> (Form (a -> a),!*HSt)
 simpleButton id label fun hst
-//	= FuncBut (Init, nFormId (id +++ label) (LButton defpixel label,fun)) hst
 	= FuncBut (Init, nFormId id (HtmlButton label False,fun)) hst
 
 counterForm :: !(InIDataId a) !*HSt -> (Form a,!*HSt) | +, -, one, iData a
@@ -316,9 +315,10 @@ ListFuncBut :: !(InIDataId [(HtmlButton, a -> a)]) !*HSt -> (Form (a -> a),!*HSt
 ListFuncBut (init,formid) hSt
 	= layoutIndexForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) FuncButNr id (o) 0 (init,formid) hSt
 
+
 ListFuncCheckBox :: !(InIDataId [(HtmlCheckbox, Bool [Bool] a -> a)]) !*HSt -> (Form (a -> a,[Bool]),!*HSt)
 ListFuncCheckBox (init,formid) hst 
-# (check,hst)				= ListFuncCheckBox` formid.ival hst
+# (check,hst)				= ListFuncCheckBox` formid.ival 0 hst
 # (f,bools)					= check.Form.value
 = ({ changed				= False
    , value					= (f bools,bools)
@@ -326,35 +326,35 @@ ListFuncCheckBox (init,formid) hst
    , inputs					= check.inputs
    },hst)
 where
-	ListFuncCheckBox` :: ![(HtmlCheckbox, Bool [Bool] a -> a)] !*HSt -> (Form ([Bool] a -> a,[Bool]),!*HSt)
-	ListFuncCheckBox` [] hst
-	= ({ changed			= False
-	   , value				= (const2,[])
-	   , form				= []
-	   , inputs				= []
-	   },hst)
-	ListFuncCheckBox` [x:xs] hst 
-	# (rowfun,hst)			= ListFuncCheckBox`   xs hst
-	# (fun   ,hst)			= FuncCheckBox formid x  hst
-	# (rowfunv,boolsv)		= rowfun.Form.value
-	# (funv,nboolv)			= fun.Form.value
-	= ({ changed			= rowfun.changed || fun.changed
-	   , value				= (funcomp funv rowfunv,[nboolv:boolsv])
-	   , form				= fun.form ++ rowfun.form
-	   , inputs				= fun.inputs ++ rowfun.inputs
-	   },hst)
+	ListFuncCheckBox` :: ![(HtmlCheckbox, Bool [Bool] a -> a)] !Int !*HSt -> (Form ([Bool] a -> a,[Bool]),!*HSt)
+	ListFuncCheckBox` [] i hst
+		= ({ changed			= False
+		   , value				= (const2,[])
+		   , form				= []
+		   , inputs				= []
+		   },hst)
+	ListFuncCheckBox` [x:xs] i hst
+		# (xform ,hst)			= FuncCheckBox (init, formid) x i hst
+		# (xsform ,hst)			= ListFuncCheckBox` xs (inc i) hst
+		# (xfun,xbool)			= xform.Form.value
+		# (xsfun,xsbools)		= xsform.Form.value
+		= ({ changed			= xform.changed || xsform.changed
+		   , value				= (funcomp xfun xsfun, [xbool:xsbools])
+		   , form				= xform.Form.form ++ xsform.Form.form
+		   , inputs				= xform.inputs ++ xsform.inputs 
+		   },hst)
 	where
-		funcomp f g			= \bools a = f bools (g bools a)
-	
-		FuncCheckBox formid (checkbox,cbf) hst
-							= mkViewForm (init, nformid) bimap hst
+		funcomp f g			= \bools a -> g bools (f bools a)
+		
+		FuncCheckBox (init, formid) (checkbox, cbf) i hst
+			= mkViewForm (init, nformid) bimap hst
 		where
 			bimap =	{ toForm 	= \init _ v -> toViewId init checkbox v
 					, updForm	= \b v -> v
 					, fromForm	= \b (HtmlCheckbox label val) -> if b.isChanged (cbf val,val) (const2,val)
 					, resetForm	= Nothing
 					}
-			nformid = {formid & ival = (const2,False)} <@ formid.id 
+			nformid = subFormId formid ("cb" +++ toString i) (const2,False)
 
 
 FuncMenu :: !(InIDataId (Int,[(String, a -> a)])) !*HSt -> (Form (a -> a,Int),!*HSt)

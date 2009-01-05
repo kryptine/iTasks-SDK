@@ -137,7 +137,7 @@ gForm{|Real|} (init,formid) hst
 	   },hst)
 
 gForm{|Bool|} (init,formid) hst
-	# (html,inputs,hst)			= mkCheckBox (init,formid) "Bool" formid.ival hst
+	# (html,inputs,hst)			= mkCheckBox (init,formid) "Bool" [] formid.ival hst
 	= ({ changed				= False
 	   , value					= formid.ival
 	   , form					= html
@@ -282,7 +282,7 @@ where
 gForm{|Maybe|} gHa (init,formid) hst
 = case formid.ival of
 	Just a
-		# (html,inputs,hst)		= mkCheckBox (init,formid) "Maybe" True hst
+		# (html,inputs,hst)		= mkCheckBox (init,formid) "Maybe" [] True hst
 		# (na,hst)				= gHa (init,reuseFormId formid a) hst
 		= ( { changed	= na.changed
 			, value		= Just na.Form.value
@@ -296,7 +296,7 @@ gForm{|Maybe|} gHa (init,formid) hst
 			, inputs	= inputs ++ na.inputs
 			},hst)
 	Nothing
-		# (html,inputs,hst)		= mkCheckBox (init,formid) "Maybe" False hst
+		# (html,inputs,hst)		= mkCheckBox (init,formid) "Maybe" [] False hst
 		= ( { changed	= False
 			, value		= Nothing
 			, form		= html
@@ -469,14 +469,15 @@ mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
 	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
 	  , setHStCntr (cntr + 1) hst)
 
-mkCheckBox :: !(InIDataId d) String Bool !*HSt -> ([HtmlTag],[InputId],*HSt)
-mkCheckBox (init, formid=:{mode}) type val hst =:{cntr,prefix}
-	# inputid = (prefix +++ formid.id +++ "-" +++ toString cntr)
-	= ( [InputTag	[ NameAttr	inputid
+mkCheckBox :: !(InIDataId d) String [HtmlTag] Bool !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkCheckBox (init, formid=:{mode}) type label val hst =:{cntr,prefix}
+	# inputname = formid.id +++ "-" +++ toString cntr
+	# inputid = prefix +++ inputname
+	= ( [InputTag	[ NameAttr	inputname
 					, IdAttr	inputid
 					, TypeAttr	"checkbox"
 					: (if (mode == Display) [DisabledAttr] []) ++ (if val [CheckedAttr] [])
-					]]
+					]: if (isEmpty label) [] [LabelTag [ForAttr inputid] label] ]
 	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
 	  , setHStCntr (cntr + 1) hst)
 

@@ -80,17 +80,12 @@ where
 	(HtmlButton l t)	= formid.ival
 
 gForm{|HtmlCheckbox|} (init,formid =: {mode}) hst =:{cntr,prefix}
-	# inputid			= prefix +++ formid.id +++ "-" +++ toString cntr
+	# (html, inputs, hst) = mkCheckBox (init,formid) "HtmlCheckbox" l t hst
 	= ({ changed		= False
 	   , value			= formid.ival
-	   , form			= [InputTag [ TypeAttr "checkbox"
-	   								, NameAttr inputid
-	   								, IdAttr inputid
-	   								: if t [CheckedAttr] []
-	   								]]
-	   					   ++ if (isEmpty l) [] [LabelTag [ForAttr inputid] l]
-	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlCheckBox", updateon = if (mode == Edit ) OnChange OnSubmit}]
-	   },setHStCntr (cntr + 1) hst)
+	   , form			= html
+	   , inputs			= inputs
+	   },hst)
 where
 	(HtmlCheckbox l t) = formid.ival
 

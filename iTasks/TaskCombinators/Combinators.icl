@@ -138,29 +138,29 @@ where
 	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,![HtmlTag])] ![LabeledTask a] -> Task [Int]
 	selectTask_cbox htmlcodes taskOptions = Task (selectTask_cbox` taskOptions)
 	where
-		selectTask_cbox` [] tst	= ([],{tst& activated = True})
+		selectTask_cbox` [] tst		= ([],{tst& activated = True})
 		selectTask_cbox` taskOptions tst=:{tasknr,html,options,userId}									// choose one subtask out of the list
-		# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
-		# donetaskId			= iTaskId userId tasknr "MtpChSt"
-		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
-		# (fun,nblist)			= cboxes.Form.value
-		# nsettings				= fun nblist
-		# (cboxes,tst)			= liftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
-		# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
-	
-		# (_,tst=:{html=ahtml,activated = adone})
-								= appTaskTSt (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 
-		| not adone	
-			# optionsform		= cboxes.form <=|> [DivTag [] ([showLabel label] <||> htmlcode) \\ (_,_,htmlcode) <- htmlcodes & (label,_) <- taskOptions]
-			= ([],{tst & html = html +|+  BT optionsform cboxes.inputs +|+ ahtml})
-		# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
-		= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})									// choose one subtask out of the list
-	
+			# seltaskId				= iTaskId userId tasknr ("MtpChSel" <+++ length taskOptions)
+			# donetaskId			= iTaskId userId tasknr "MtpChSt"
+			# (cboxes,tst)			= liftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
+			# (fun,nblist)			= cboxes.Form.value
+			# nsettings				= fun nblist
+			# (cboxes,tst)			= liftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
+			# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
+		
+			# (_,tst=:{html=ahtml,activated = adone})
+									= appTaskTSt (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], tasknr = [-1:tasknr]} 
+			| not adone	
+				= ([],{tst & html = html +|+  BT cboxes.form cboxes.inputs +|+ ahtml})
+			| otherwise
+				# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
+				= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & tasknr = tasknr, html = html, options = options, userId =userId, activated = True})
+		
 		initCheckboxes  = 
-			[(HtmlCheckbox [Text label] set,  \b bs _ -> setfun b bs) \\ (set,setfun,_) <- htmlcodes & (label,_) <- taskOptions & i <- [0..]]
+			[(HtmlCheckbox [Text label : htmlcode] set,  \b bs _ -> setfun b bs) \\ (set,setfun,htmlcode) <- htmlcodes & (label,_) <- taskOptions ] 
 	
 		setCheckboxes  boollist = 
-			[(HtmlCheckbox [Text label] set,  \b bs _ -> setfun b bs) \\ (_,setfun,_) <- htmlcodes & (label,_) <- taskOptions 
+			[(HtmlCheckbox [Text label: htmlcode] set,  \b bs _ -> setfun b bs) \\ (_,setfun, htmlcode) <- htmlcodes & (label,_) <- taskOptions 
 																		& i <- [0..] & set <- boollist]
 
 // ******************************************************************************************************
