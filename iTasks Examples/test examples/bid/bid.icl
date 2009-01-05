@@ -42,7 +42,7 @@ selectSuppliers :: Task [(Int,String)]
 selectSuppliers
 	= getUsersWithRole "supplier" =>> \suppliers ->
 	  ( mchoiceAndTasks
-	  		[Text "Select the suppliers from which you want to receive a bid"]
+	  		[Text "Select the suppliers from which you want to receive a bid", HrTag []]
 	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	
@@ -53,7 +53,7 @@ collectBids purchase suppliers
 where
 	collectBid :: String (Int,String) -> Task ((Int,String),Real)
 	collectBid purchase bid
-		= [Text "Please make a bid to supply",ITag [] [Text purchase]]
+		= [Text "Please make a bid to supply ",ITag [] [Text purchase], HrTag []]
 		  ?>>
 		  editTask "Ok" createDefault =>> \price ->
 		  return_V (bid, price)
@@ -73,7 +73,7 @@ selectBid bids
 		)
 where
 	determineCheapest bids = return_V (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
-	yesOrNo = (editTask "Yes" True) -||- (editTask "No" False)
+	yesOrNo = (editTask "Yes" Void #>> return_V True) -||- (editTask "No" Void #>> return_V False)
 	
 confirmBid :: String ((Int,String),Real) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
