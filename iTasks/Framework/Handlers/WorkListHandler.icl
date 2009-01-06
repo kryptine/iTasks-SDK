@@ -46,31 +46,50 @@ determineWorkItems uid tree = markLast (determineWorkItems` uid [] defaultDesc t
 where
 	determineWorkItems` uid path pdesc (desc @@: tree)
 		# rest	= determineWorkItems` uid path desc tree
-		| desc.taskWorkerId == uid	= [	{ taskid 		= desc.taskNrId
-										, delegator		= toString desc.delegatorId
-										, processname	= desc.workflowLabel
-										, subject		= desc.taskLabel
-										, priority		= desc.taskPriority
-										, timestamp		= (\(Time i) -> i) desc.timeCreated
-										, tree_path		= path
-										, tree_last		= False
-										, tree_icon		= "editTask"
-										} : rest] 
-		| otherwise					= rest
+		| desc.taskWorkerId == uid
+			# newitem =	{ taskid 		= desc.taskNrId
+						, delegator		= toString desc.delegatorId
+						, processname	= desc.workflowLabel
+						, subject		= desc.taskLabel
+						, priority		= desc.taskPriority
+						, timestamp		= (\(Time i) -> i) desc.timeCreated
+						, tree_path		= path
+						, tree_last		= False
+						, tree_icon		= "editTask"
+						}
+			= case rest of
+				[]
+					= [newitem]
+				[x:xs]
+					| x.taskid == desc.taskNrId	//'Merge' direct subnode when taskid is the same (e.g. a directly nested CondAnd node)
+						= [ { x
+							& delegator		= toString desc.delegatorId
+							, processname	= desc.workflowLabel
+							, subject		= desc.taskLabel
+							, priority		= desc.taskPriority
+							, timestamp		= (\(Time i) -> i) desc.timeCreated
+							} :xs]
+					| otherwise
+						= [newitem,x:xs]
+		| otherwise
+			= rest
 
-	determineWorkItems` uid path pdesc (CondAnd label nr trees)
-		# subpath = path ++ [False]
-		# rest = markLast (flatten [[mkCondItem pdesc desc subpath: determineWorkItems` uid subpath pdesc tree] \\ (desc,tree) <- trees])
-		= [	{ taskid 		= pdesc.taskNrId
-			, delegator		= toString pdesc.delegatorId
-			, processname	= pdesc.workflowLabel
-			, subject		= pdesc.workflowLabel
-			, priority		= pdesc.taskPriority
-			, timestamp		= (\(Time i) -> i) pdesc.timeCreated
-			, tree_path		= path
-			, tree_last		= True
-			, tree_icon		= label
-			} : rest] 
+	determineWorkItems` uid path pdesc (CondAnd label nr trees) 
+		| pdesc.taskWorkerId == uid
+			# subpath = path ++ [False]
+			# rest = markLast (flatten [[mkCondItem pdesc desc subpath: determineWorkItems` uid subpath pdesc tree] \\ (desc,tree) <- trees])
+			= [	{ taskid 		= pdesc.taskNrId
+				, delegator		= toString pdesc.delegatorId
+				, processname	= pdesc.workflowLabel
+				, subject		= pdesc.workflowLabel
+				, priority		= pdesc.taskPriority
+				, timestamp		= (\(Time i) -> i) pdesc.timeCreated
+				, tree_path		= path
+				, tree_last		= True
+				, tree_icon		= label
+				} : rest]
+		| otherwise
+			= flatten (map ((determineWorkItems` uid path pdesc) o snd) trees)
 
 	determineWorkItems` uid path pdesc (tree1 +|+ tree2)
 		# list1	= determineWorkItems` uid path pdesc tree1
