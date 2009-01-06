@@ -23,7 +23,7 @@ UID_SUPPLIER2 = 2
 UID_SUPPLIER3 = 3
 
 Start :: *World -> *World
-Start world = startTaskEngine (UID_CUSTOMER @:> ("Purchase product", purchaseTask)) world
+Start world = startTaskEngine ("Purchase product", purchaseTask) UID_CUSTOMER world
 
 purchaseTask :: Task Void
 purchaseTask =
@@ -49,7 +49,7 @@ selectSuppliers
 collectBids :: String [(Int,String)] -> Task [((Int,String),Real)]
 collectBids purchase suppliers
 	= andTasks
-		[("Collecting bid from " +++ name, uid @:: collectBid purchase supplier) \\ supplier =: (uid,name) <- suppliers]
+		[("Bid from " +++ name, uid @:: collectBid purchase supplier) \\ supplier =: (uid,name) <- suppliers]
 where
 	collectBid :: String (Int,String) -> Task ((Int,String),Real)
 	collectBid purchase bid

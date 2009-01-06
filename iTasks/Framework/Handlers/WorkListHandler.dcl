@@ -7,4 +7,4 @@ import InternaliTasksCommon
 /**
 * Handles the ajax requests from the current work filter panel.
 */
-handleWorkListRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleWorkListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a

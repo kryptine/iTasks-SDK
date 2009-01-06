@@ -58,4 +58,4 @@ deleteMe 			:: (Task Void)
 // internally used...
 
 showWorkflows 		:: !Bool !*TSt -> ([HtmlTag],*TSt)
-scheduleWorkflows 	:: !(Task a) -> (Task a) | iData a
+scheduleWorkflows 	:: !(LabeledTask a) !Int -> (Task a) | iData a

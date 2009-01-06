@@ -24,10 +24,10 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 /**
 * Handles the ajax requests for a work tab panel.
 */
-handleWorkTabRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleWorkTabRequest mainTask request session hst
+handleWorkTabRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleWorkTabRequest mainTask mainUser request session hst
 	# hst											= setHStPrefix prefix hst
-	# (toServer, htmlTree, maybeError, _, _, hst)	= calculateTaskTree thisUserId traceOn False False mainTask hst // calculate the TaskTree given the id of the current user
+	# (toServer, htmlTree, maybeError, _, _, hst)	= calculateTaskTree thisUserId traceOn False False mainTask mainUser hst // calculate the TaskTree given the id of the current user
 	# (taskStatus,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
 	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
 	# hst =: {states}								= storeStates hst												// Write states that are stored on the server

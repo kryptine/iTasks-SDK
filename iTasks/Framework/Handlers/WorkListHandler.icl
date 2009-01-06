@@ -27,11 +27,11 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 																	
 derive JSONEncode WorkList, WorkListItem, TaskPriority
 
-handleWorkListRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleWorkListRequest mainTask request session hst
+handleWorkListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleWorkListRequest mainTask mainUser request session hst
 	# uid							= session.Session.userId
 	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable,hst)	
-									= calculateTaskTree uid False False False mainTask hst 	// Calculate the TaskTree given the id of the current user
+									= calculateTaskTree uid False False False mainTask mainUser hst 	// Calculate the TaskTree given the id of the current user
 	# workitems						= determineWorkItems uid htmlTree
 	# worklist								= { success		= True
 											  , total		= length workitems

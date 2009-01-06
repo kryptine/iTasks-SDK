@@ -6,4 +6,4 @@ import InternaliTasksCommon
 /**
 * Handles the ajax requests for a TaskTreeForest tab panel.
 */
-handleTaskTreeForestRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleTaskTreeForestRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a

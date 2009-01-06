@@ -13,12 +13,12 @@ import InternaliTasksThreadHandling
 import iTasksProcessHandling
 import TSt
 
-calculateTaskTree :: !UserId !Bool !Bool !Bool !(Task a) !*HSt  
+calculateTaskTree :: !Int !Bool !Bool !Bool !(LabeledTask a) !Int !*HSt  
 						-> (!Bool,!HtmlTree,!Maybe String,!Maybe [HtmlTag],!Maybe [HtmlTag],!*HSt) | iData a
-calculateTaskTree thisUser traceOn showProcessTable showCurrThreadTable mainTask hst
+calculateTaskTree thisUser traceOn showProcessTable showCurrThreadTable mainTask mainUser hst
 # (pversion,hst)	 	= setPUserNr thisUser id hst												// fetch global settings of this user
 # ((toServer,thrOwner,event,thrinfo,threads),tst=:{activated})	
-						=  calculateTasks thisUser pversion mainTask (mkTst thisUser LSTxtFile LSTxtFile hst)
+						=  calculateTasks thisUser pversion mainTask mainUser (mkTst thisUser LSTxtFile LSTxtFile hst)
 
 # (processTable,tst)	= if  showProcessTable (showWorkflows activated {tst & activated = activated}) ([],{tst & activated = activated})
 # (threadTable,tst=:{html,hst,activated})		

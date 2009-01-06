@@ -119,10 +119,10 @@ where
 	# (form,hst) = mkStoreForm (Init, pFormId workflowProcessStoreName (0,[]) <@ NoForm) wfs hst
 	= (form.Form.value,{tst & hst = hst})
 
-scheduleWorkflows :: !(Task a) -> (Task a) | iData a
-scheduleWorkflows maintask 
+scheduleWorkflows :: !(LabeledTask a) !Int -> (Task a) | iData a
+scheduleWorkflows mainTask mainUser 
 //# nmaintask	= newTask defaultWorkflowName (mkTask "StartMain" (assignTaskTo 0 ("main",maintask)))
-# nmaintask	= assignTaskTo 0 ("main",maintask)
+# nmaintask	= assignTaskTo mainUser mainTask
 = IF_Ajax 																		
 	(IF_ClientServer															// we running both client and server
 		(IF_ClientTasks												

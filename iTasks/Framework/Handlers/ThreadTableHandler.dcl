@@ -6,4 +6,4 @@ import InternaliTasksCommon
 /**
 * Handles the ajax requests for a ThreadTable tab panel.
 */
-handleThreadTableRequest :: !(Task a) !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleThreadTableRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a

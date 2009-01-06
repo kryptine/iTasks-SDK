@@ -107,9 +107,9 @@ setSVersionNr user f hst
 // or by evaluating the corresponding task sub tree using the stored threads
 // ******************************************************************************************************
 
-calculateTasks :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
-calculateTasks thisUser pversion maintask tst
-# maintask				= scheduleWorkflows maintask												
+calculateTasks :: !Int !GlobalInfo !(LabeledTask a) !Int !*TSt -> ((!Bool,!Int,!TaskNr,!String,![TaskNr]),*TSt) | iData a		
+calculateTasks thisUser pversion mainTask mainUser tst
+# maintask				= scheduleWorkflows mainTask mainUser											
 =  ((IF_Ajax 
 		(startAjaxApplication thisUser pversion) 
 		startMainTask
@@ -124,7 +124,7 @@ where
 // Event handling for Ajax calls and Sapl handling on the client
 // ******************************************************************************************************
 
-// The following functions are defined to support "Ajax technologie" and Client site evaluation of i-Tasks.
+// The following functions are defined to support Client site evaluation of i-Tasks.
 // To make this possible, a part of the iTask task tree must be assigened to be a thread such that it can be evaluated as a stand-alone i-Task.
 // The programmer has to decide which iTask should become a thread.
 // For each event (iData triplet), the system will search for the thread to handle it.

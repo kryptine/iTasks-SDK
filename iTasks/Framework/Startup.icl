@@ -25,14 +25,14 @@ derive JSONDecode HtmlState, StorageFormat, Lifespan
 // ******************************************************************************************************
 // *** Server / Client startup
 // ******************************************************************************************************
-startTaskEngine :: !(Task a) !*World -> *World  	| iData a
-startTaskEngine maintask world = doHtmlServer maintask world		
+startTaskEngine :: !(LabeledTask a) !Int !*World -> *World  	| iData a
+startTaskEngine mainTask mainUser world = doHtmlServer mainTask mainUser world		
 
-doHtmlServer :: (Task a) !*World -> *World | iData a
-doHtmlServer mainTask world
+doHtmlServer :: (LabeledTask a) !Int !*World -> *World | iData a
+doHtmlServer mainTask uid world
 | ServerKind == Internal
 	# world	= instructions world
-	= startServer mainTask world		// link in the Clean http 1.0 server	
+	= startServer mainTask uid world	// link in the Clean http 1.0 server	
 //| ServerKind == CGI					// build as CGI application
 | otherwise
 	= unimplemented world
@@ -53,18 +53,18 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-startServer :: (Task a) !*World -> *World | iData a
-startServer mainTask world
+startServer :: (LabeledTask a) !Int !*World -> *World | iData a
+startServer mainTask mainUser world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
 	= http_startServer options   [((==) "/handlers/authenticate", handleAnonRequest handleAuthenticationRequest)
 								 ,((==) "/handlers/deauthenticate", handleSessionRequest handleDeauthenticationRequest)							
 								 ,((==) "/handlers/new/list", handleSessionRequest handleNewListRequest)
 								 ,((==) "/handlers/new/start", handleSessionRequest handleNewStartRequest)
-								 ,((==) "/handlers/work/list", handleSessionRequest (handleWorkListRequest mainTask))
-								 ,((==) "/handlers/work/tab", handleSessionRequest (handleWorkTabRequest mainTask))
-								 ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest (handleTaskTreeForestRequest mainTask))
-								 ,((==) "/handlers/debug/processtable", handleSessionRequest (handleProcessTableRequest mainTask))
-								 ,((==) "/handlers/debug/threadtable", handleSessionRequest (handleThreadTableRequest mainTask))
+								 ,((==) "/handlers/work/list", handleSessionRequest (handleWorkListRequest mainTask mainUser))
+								 ,((==) "/handlers/work/tab", handleSessionRequest (handleWorkTabRequest mainTask mainUser))
+								 ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest (handleTaskTreeForestRequest mainTask mainUser))
+								 ,((==) "/handlers/debug/processtable", handleSessionRequest (handleProcessTableRequest mainTask mainUser))
+								 ,((==) "/handlers/debug/threadtable", handleSessionRequest (handleThreadTableRequest mainTask mainUser))
 								 ,(\_ -> True, handleStaticResourceRequest)
 								 ] world
 
