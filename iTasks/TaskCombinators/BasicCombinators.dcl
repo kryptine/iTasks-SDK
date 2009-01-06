@@ -51,7 +51,7 @@ Execute all Tasks in parallel / interleaved and FINISH as soon as the predicate 
 allTasksCond	:: 	- string is used to give a useful name to the trace;
 					- the predicate is applied on the set of tasks which are finished
 */
-:: DisplaySubTasks	:== String TaskNr [(Bool,HtmlTree)] -> HtmlTree 				// function determining how to display the subtasks
+:: DisplaySubTasks	:== String TaskNr [(Bool,String,HtmlTree)] -> HtmlTree 			// function determining how to display the subtasks
 :: FinishPred a		:== [a] -> Bool													// predicate determining when the task is finished, depending on the results returned by finished subtasks
 
 allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 

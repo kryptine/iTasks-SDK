@@ -119,7 +119,7 @@ where
 		= 	{ taskid 		= cdesc.caTaskNrId
 			, delegator		= toString pdesc.delegatorId
 			, processname	= pdesc.workflowLabel
-			, subject		= pdesc.taskLabel +++ " - Part " +++ (toString cdesc.caIndex)
+			, subject		= cdesc.caTaskLabel
 			, priority		= pdesc.taskPriority
 			, timestamp		= (\(Time i) -> i) pdesc.timeCreated
 			, tree_path		= path

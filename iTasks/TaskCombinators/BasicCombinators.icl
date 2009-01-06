@@ -174,28 +174,30 @@ where
 	doandTasks [] tst	= return [] tst
 	doandTasks taskCollection tst=:{tasknr,html}
 	# ((alist,acode),tst)		= checkAllTasks label taskCollection 0 ([],[]) {tst & html = BT [] [],activated = True} 
-	| and (map fst acode) || pred alist	= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
+	| and (map (\(x,_,_) -> x) acode) || pred alist	= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 	= (alist,{tst 	& activated = False
 					, html 		= html +|+ displayOption label tasknr acode				// show all subtasks using the displayOption function
 								
 			})
 	where
-		checkAllTasks :: !String ![LabeledTask a] !Int !(![a],![(Bool,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,HtmlTree)]),!*TSt) | iCreateAndPrint a
+		checkAllTasks :: !String ![LabeledTask a] !Int !(![a],![(Bool,String,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,String,HtmlTree)]),!*TSt) | iCreateAndPrint a
 		checkAllTasks traceid taskCollection ctasknr (alist,acode) tst=:{tasknr}
 		| ctasknr == length taskCollection 	= ((reverse alist,reverse acode),tst)			// all tasks tested
 		# (taskname,task)		= taskCollection!!ctasknr
 		# (a,tst=:{activated = adone,html=html})	
 								= appTaskTSt (mkParSubTask traceid ctasknr task) {tst & tasknr = tasknr, activated = True, html = BT [] []} // check tasks
-		= checkAllTasks traceid taskCollection (inc ctasknr) (if adone [a:alist] alist,[(adone,html):acode]) {tst & tasknr = tasknr}
+		= checkAllTasks traceid taskCollection (inc ctasknr) (if adone [a:alist] alist,[(adone,taskname,html):acode]) {tst & tasknr = tasknr}
 
 displayAsTab :: DisplaySubTasks
 displayAsTab = displayAsTab`
 where
 	displayAsTab` label tasknr htmls 
-		= CondAnd label nrSubTasks [({ caTaskNrId	= taskNrToString [0,i:tasknr]
-									  , caIndex		= nrSubTasks
-									  , caStatus	= finished	
-									  },html) \\ (finished,html) <- htmls & i <- [0..]
+		= CondAnd label nrSubTasks [( { caTaskNrId		= taskNrToString [0,i:tasknr]
+									  , caTaskLabel		= tlabel
+									  , caIndex			= i
+									  , caNumSiblings	= nrSubTasks
+									  , caStatus		= finished	
+									  },html) \\ (finished,tlabel,html) <- htmls & i <- [0..]
 									]
 	where
 		nrSubTasks = length htmls
@@ -205,7 +207,7 @@ displayAll :: DisplaySubTasks
 displayAll = displayAll`
 where
 	displayAll` label tasknr htmls 
-		= foldl (+|+) (BT [] []) (map snd htmls) 
+		= foldl (+|+) (BT [] []) (map (\(_,_,x) -> x) htmls) 
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental

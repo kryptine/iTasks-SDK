@@ -58,8 +58,10 @@ import HSt
 // Task meta information
 :: CondAndDescription
 				=	{ caTaskNrId	:: !String									// tasknr as string
-					, caIndex		:: !Int										// index of and task
-					, caStatus		:: !Bool									// is sub task finished
+					, caTaskLabel	:: !String									// label of subtask
+					, caIndex		:: !Int										// index of current task in the set
+					, caNumSiblings	:: !Int										// number of siblings in the set
+					, caStatus		:: !Bool									// is subtask finished
 					}
 
 :: TaskDescription
