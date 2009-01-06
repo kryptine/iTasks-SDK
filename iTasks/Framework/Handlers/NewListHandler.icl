@@ -12,11 +12,10 @@ import InternaliTasksCommon
 
 derive JSONEncode NewWorkItem
 
-handleNewListRequest :: !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt)
-handleNewListRequest request session hst	
+handleNewListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt)
+handleNewListRequest (label,task) mainuser request session hst	
 	= ({http_emptyResponse & rsp_data = toJSON itemlist}, hst)
 where
-	itemlist =	[ {icon = "editTask", label = "Workflow 1"}
-				, {icon = "editTask", label = "Workflow 2"}
+	itemlist =	[ {icon = "editTask", label = label}
 				]
 

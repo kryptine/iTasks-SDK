@@ -6,4 +6,4 @@ import InternaliTasksCommon
 /**
 * Handles the ajax requests from the 'start new work' panel.
 */
-handleNewListRequest :: !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt)
+handleNewListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt)

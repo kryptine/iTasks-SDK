@@ -53,6 +53,9 @@ waitForWorkflowWid 	:: !String 											-> Task (Maybe (Wid a)) | iData a
 suspendMe 			:: (Task Void)
 deleteMe 			:: (Task Void)
 
+getProcessId 		:: (Wid a) 	-> ProcessNr
+latestProcessId 	:: *TSt 	-> (ProcessNr,*TSt)
+
 
 
 // internally used...

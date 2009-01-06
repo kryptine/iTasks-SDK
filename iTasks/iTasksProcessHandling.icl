@@ -71,6 +71,15 @@ gerda{|Task|} ga		= abort "Cannot yet store an iTask of type TCL in a Database\n
 
 import DrupBasic
 
+getProcessId :: (Wid a) -> ProcessNr
+getProcessId (Wid (entry,processIds)) = entry
+
+latestProcessId :: *TSt -> (ProcessNr,*TSt)
+latestProcessId tst
+# ((processid,wfls),tst) = workflowProcessStore id tst							// read workflow process administration
+= (processid,tst)
+
+
 isValidWorkflowReference :: !WorkflowProcess !ProcessIds -> Bool								// checks whether pointer to workflow is still refering to to right entry in the table
 isValidWorkflowReference workflowprocess idsref = drop1tuple3 (getWorkflowWid workflowprocess) == drop1tuple3 idsref
 where

@@ -9,10 +9,33 @@ derive gUpd []
 
 
 Start :: *World -> *World
-Start world = startTaskEngine myTask5 world
+Start world = startTaskEngine ("My mian example", StartUp simples) 0 world
+
+StartUp :: [Task a] -> Task Void | iData a
+StartUp tasks = foreverTask selectOne
+where
+	selectOne
+	=			chooseTask [Text "Startup a new task"] 
+					[ ("Start Task " <+++ i, startProcess ("Start Task " <+++ i, task)) \\ task <- tasks & i <- [0..]]
+		#>>		return_V Void
+
+
+
+startProcess (label, task)
+	=			spawnWorkflow 0 True (label, mytask)
+		#>>		return_V Void
+where
+	mytask 
+	=			task
+//		#>>		deleteMe
+//		#>> 	return_V Void
+
+
+simples = [editTask "OK 0" 0, editTask "OK 1" 1, editTask "OK 2" 2]
+
 
 myTask5
-= seqTasks  
+= andTasks  
 	[("Coffee: 100",    editTask "OK" (100,"Coffee"))
 	,("Cappucino: 150", editTask "OK" (150,"Cappucino"))
 	,("Tea: 50",        editTask "OK" (50, "Tea"))

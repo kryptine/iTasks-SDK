@@ -12,12 +12,21 @@ import InternaliTasksCommon
 
 derive JSONEncode NewWorkItem
 
-handleNewStartRequest :: !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt)
-handleNewStartRequest request session hst	
-	= ({http_emptyResponse & rsp_data = response}, hst)
+handleNewStartRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleNewStartRequest labeledTask mainuser request session hst	
+	# (taskid,hst) = startNewProcess labeledTask hst
+	= ({http_emptyResponse & rsp_data = response taskid}, hst)
 where
 	workflow = http_getValue "workflow" request.arg_get ""
-	response = "{\"success\" : true, \"taskid\": \""  +++ taskid workflow +++ "\"}"
+	response taskid = "{\"success\" : true, \"taskid\": \""  +++ (toString taskid) /* workflow */ +++ "\"}"
 	
-	taskid "Workflow 1" = "123.0"
-	taskid "Workflow 2" = "32.0"
+	thisUser		= session.Session.userId							// fetch user id from the session
+	
+	startNewProcess labeledTask hst 
+	# tst 				= mkTst mainuser LSTxtFile LSTxtFile hst			// create initial tst	
+	# (processId, tst) 	= latestProcessId tst
+	# (wid,tst=:{hst}) 	= appTaskTSt (spawnWorkflow thisUser True labeledTask) {tst & tasknr = [processId]}
+	= (getProcessId wid, hst)
+	
+	
+import iTasksProcessHandling, Combinators, iTasksEditors
