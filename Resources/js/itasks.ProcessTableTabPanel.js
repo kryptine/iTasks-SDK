@@ -43,7 +43,7 @@ itasks.ProcessTableTabPanel = Ext.extend(Ext.Panel, {
 	refresh: function() {
 		Ext.Ajax.request({
 			method: 'GET',
-			url: 'handlers/processtable',
+			url: 'handlers/debug/processtable',
 			params: this.applicationPanel.addSessionParam({}),
 			callback: this.processResponse,
 			scope: this

@@ -13,14 +13,13 @@ import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import BasicCombinators, iTasksProcessHandling
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
-import IndexHandler, AuthenticationHandler, DeauthenticationHandler, NewListHandler, NewStartHandler, FilterListHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*
+import AuthenticationHandler, DeauthenticationHandler, NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*
 import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
 import TaskTree, TaskTreeFilters
 
 import Session //iTasks.Framework.Session
 
 import JSON
-import StdDebug
 derive JSONDecode HtmlState, StorageFormat, Lifespan
 
 // ******************************************************************************************************
@@ -42,7 +41,7 @@ where
 	instructions world
 		# (console, world)	= stdio world
 		# console			= fwrites "HTTP server started...\n" console
-		# console			= fwrites ("Please point your browser to http://localhost/" +++ ThisExe +++ "/\n") console
+		# console			= fwrites ("Please point your browser to http://localhost/\n") console
 		# (_,world)			= fclose console world
 		= world
 		
@@ -57,25 +56,17 @@ where
 startServer :: (Task a) !*World -> *World | iData a
 startServer mainTask world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
-	= http_startServer options   [((==) "/", handleRedirectRequest)
-								 ,((==) ("/" +++ ThisExe), handleRedirectRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/"), handleIndexRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/authenticate"), handleAnonRequest handleAuthenticationRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/deauthenticate"), handleSessionRequest handleDeauthenticationRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/filters"), handleFilterListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/new/list"), handleSessionRequest handleNewListRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/new/start"), handleSessionRequest handleNewStartRequest)
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/work/list"), handleSessionRequest (handleWorkListRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/work/tab"), handleSessionRequest (handleWorkTabRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/tasktreeforest"), handleSessionRequest (handleTaskTreeForestRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/processtable"), handleSessionRequest (handleProcessTableRequest mainTask))
-								 ,((==) ("/" +++ ThisExe +++ "/handlers/threadtable"), handleSessionRequest (handleThreadTableRequest mainTask))
+	= http_startServer options   [((==) "/handlers/authenticate", handleAnonRequest handleAuthenticationRequest)
+								 ,((==) "/handlers/deauthenticate", handleSessionRequest handleDeauthenticationRequest)							
+								 ,((==) "/handlers/new/list", handleSessionRequest handleNewListRequest)
+								 ,((==) "/handlers/new/start", handleSessionRequest handleNewStartRequest)
+								 ,((==) "/handlers/work/list", handleSessionRequest (handleWorkListRequest mainTask))
+								 ,((==) "/handlers/work/tab", handleSessionRequest (handleWorkTabRequest mainTask))
+								 ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest (handleTaskTreeForestRequest mainTask))
+								 ,((==) "/handlers/debug/processtable", handleSessionRequest (handleProcessTableRequest mainTask))
+								 ,((==) "/handlers/debug/threadtable", handleSessionRequest (handleThreadTableRequest mainTask))
 								 ,(\_ -> True, handleStaticResourceRequest)
 								 ] world
-
-// Request handler which points the browser to the index page
-handleRedirectRequest	:: !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleRedirectRequest req world = ({http_emptyResponse & rsp_headers = [("Status", "301 Moved Permanently"),("Location","/" +++ ThisExe +++ "/")]},world)
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
@@ -83,14 +74,15 @@ handleRedirectRequest req world = ({http_emptyResponse & rsp_headers = [("Status
 
 handleStaticResourceRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleStaticResourceRequest req world
-	# filename				= MyAbsDir +++ req.req_path	
+	# path					= if (req.req_path == "/") "/index.html" req.req_path
+	# filename				= MyAbsDir +++ path	
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
 	| ok					= ({rsp_headers = [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))]
 							   ,rsp_data = content}, world)
-	# filename				= ResourceDir +++ (req.req_path % ((size ThisExe) + 1, size req.req_path)) //Remove the /(ThisExe)/ from the filename
+	# filename				= ResourceDir +++ path
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
 	|  ok 					= ({rsp_headers = [("Status","200 OK"),

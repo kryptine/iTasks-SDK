@@ -43,7 +43,7 @@ itasks.TaskForestTabPanel = Ext.extend(Ext.Panel, {
 	refresh: function() {
 		Ext.Ajax.request({
 			method: 'GET',
-			url: 'handlers/tasktreeforest',
+			url: 'handlers/debug/tasktreeforest',
 			params: this.applicationPanel.addSessionParam({}),
 			callback: this.processResponse,
 			scope: this
