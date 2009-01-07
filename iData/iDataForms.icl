@@ -490,6 +490,7 @@ where
 	dummy = { worldC 	= abort "dummy world for toHtml!\n"
 			, gerda	 	= abort "dummy gerda for toHtml!\n"
 			, datafile	= abort "dummy datafile for toHtml!\n"
+			, userdb	= abort "dummy userdb for toHtml!\n"
 			}
 
 toHtmlForm :: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] | gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
@@ -500,6 +501,7 @@ where
 	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"
 			, gerda	 	= abort "dummy gerda for toHtmlForm!\n"
 			, datafile	= abort "dummy datafile for toHtmlForm!\n"
+			, userdb	= abort "dummy userdb for toHtmlForm!\n"
 			}
 
 createDefault :: a | gUpd{|*|} a 

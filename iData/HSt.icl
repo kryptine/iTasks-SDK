@@ -1,6 +1,6 @@
 implementation module HSt
 
-import StdInt, StdFile
+import StdInt, StdFile, StdFunc
 import Http
 import NWorld
 import iDataState
@@ -24,15 +24,23 @@ instance FileSystem HSt where
 		# (bool,file,world)		= sfopen string int world
 		= (bool,file,{hst & world = world})
 
+
+//Access to the NWorld state embedded in the HSt
+appNWorldHSt :: !.(*NWorld -> *NWorld) !*HSt -> *HSt
+appNWorldHSt f hst=:{world}
+	= {hst & world = f world}
+	
+accNWorldHSt :: !.(*NWorld -> *(.a,*NWorld)) !*HSt -> (.a,!*HSt)
+accNWorldHSt f hst=:{world}
+	# (a, world) = f world
+	= (a, {hst & world = world})
+
 // General access to the World environment on HSt:
 appWorldHSt :: !.(*World -> *World) !*HSt -> *HSt
-appWorldHSt f hst=:{world}
-	= {hst & world=appWorldNWorld f world}
+appWorldHSt f hst = (appNWorldHSt o appWorldNWorld) f hst
 
 accWorldHSt :: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)
-accWorldHSt f hst=:{world}
-	# (a,world)	= accWorldNWorld f world
-	= (a,{hst & world=world})
+accWorldHSt f hst = (accNWorldHSt o accWorldNWorld) f hst
 
 // Create a new HSt
 mkHSt :: String HTTPRequest *FormStates *NWorld -> *HSt

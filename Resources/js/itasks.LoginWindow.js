@@ -47,7 +47,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		
 		//Construct the login window
 		Ext.apply(this, {
-			title: 'Login to iTasks',
+			title: 'iTasks',
 			y: 150,
 			width: 350,
 			height: 165,

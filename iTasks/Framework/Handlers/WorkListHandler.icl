@@ -1,7 +1,7 @@
 implementation module WorkListHandler
 
 import StdEnv
-import Http, Session
+import Http, Session, UserDB
 import Text
 import JSON
 import Time
@@ -14,7 +14,8 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 						}
 						
 :: WorkListItem 	= 	{ taskid		:: String 					// Task id of the work item
-						, delegator		:: String 					// Id of the user who issued the work
+						, delegatorId	:: Int 						// Id of the user who issued the work
+						, delegatorName	:: String					// Display name of the user who issued the work 
 						, processname	:: String					// Name given to the work process the task belongs to
 				 		, subject		:: String 					// Name give to the task, which can be a short description of the work to do
 				 		, priority		:: TaskPriority				// Priority of the task
@@ -23,8 +24,9 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 				 		, tree_last		:: Bool						// Is this item the last of a set of siblings
 				 		, tree_icon		:: String					// An icon name. The actual icon image is defined in the css.
 				 													// Current possible values: editTask, orTask, andTask, conditionTask, timeTask, systemTask, finishedTask 
-				  		}											// And also: andTaskMU, maybeTask
-																	
+				  		}
+				  													// And also: andTaskMU, maybeTask
+					
 derive JSONEncode WorkList, WorkListItem, TaskPriority
 
 handleWorkListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
@@ -33,10 +35,11 @@ handleWorkListRequest mainTask mainUser request session hst
 	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable,hst)	
 									= calculateTaskTree uid False False False mainTask mainUser hst 	// Calculate the TaskTree given the id of the current user
 	# workitems						= determineWorkItems uid htmlTree
-	# worklist								= { success		= True
-											  , total		= length workitems
-											  , worklist	= workitems
-											  }
+	# (workitems,hst)				= addDelegatorNames workitems hst
+	# worklist						= { success		= True
+										, total		= length workitems
+										, worklist	= workitems
+									  }
 	
 	= ({http_emptyResponse & rsp_data = toJSON worklist}, hst)
 
@@ -47,8 +50,10 @@ where
 	determineWorkItems` uid path pdesc (desc @@: tree)
 		# rest	= determineWorkItems` uid path desc tree
 		| desc.taskWorkerId == uid
-			# newitem =	{ taskid 		= desc.taskNrId
-						, delegator		= toString desc.delegatorId
+			# newitem =	{ WorkListItem
+						| taskid 		= desc.taskNrId
+						, delegatorId	= desc.TaskDescription.delegatorId
+						, delegatorName = ""
 						, processname	= desc.workflowLabel
 						, subject		= desc.taskLabel
 						, priority		= desc.taskPriority
@@ -63,7 +68,7 @@ where
 				[x:xs]
 					| x.taskid == desc.taskNrId	//'Merge' direct subnode when taskid is the same (e.g. a directly nested CondAnd node)
 						= [ { x
-							& delegator		= toString desc.delegatorId
+							& delegatorId	= desc.TaskDescription.delegatorId
 							, processname	= desc.workflowLabel
 							, subject		= desc.taskLabel
 							, priority		= desc.taskPriority
@@ -79,7 +84,8 @@ where
 			# subpath = path ++ [False]
 			# rest = markLast (flatten [[mkCondItem pdesc desc subpath: determineWorkItems` uid subpath pdesc tree] \\ (desc,tree) <- trees])
 			= [	{ taskid 		= pdesc.taskNrId
-				, delegator		= toString pdesc.delegatorId
+				, delegatorId	= pdesc.TaskDescription.delegatorId
+				, delegatorName = ""
 				, processname	= pdesc.workflowLabel
 				, subject		= pdesc.workflowLabel
 				, priority		= pdesc.taskPriority
@@ -117,7 +123,8 @@ where
 	mkCondItem :: TaskDescription CondAndDescription [Bool] -> WorkListItem
 	mkCondItem pdesc cdesc path
 		= 	{ taskid 		= cdesc.caTaskNrId
-			, delegator		= toString pdesc.delegatorId
+			, delegatorId	= pdesc.TaskDescription.delegatorId
+			, delegatorName = ""
 			, processname	= pdesc.workflowLabel
 			, subject		= cdesc.caTaskLabel
 			, priority		= pdesc.taskPriority
@@ -139,3 +146,8 @@ where
 			, taskPriority	= LowPriority
 			, curStatus		= True
 			}
+			
+addDelegatorNames :: [WorkListItem] *HSt -> ([WorkListItem], *HSt)
+addDelegatorNames items hst
+	# (names, hst)		= accNWorldHSt (accUserDBNWorld (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items])) hst
+	= ([{i & delegatorName = name} \\ i <- items & name <- names], hst)

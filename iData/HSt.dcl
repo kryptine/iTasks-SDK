@@ -18,10 +18,13 @@ from StdFile import class FileSystem
 				  }	
 				  
 // Definitions on HSt
-instance FileSystem HSt																// enabling file IO on HSt
+instance FileSystem HSt																	// enabling file IO on HSt
 
-appWorldHSt			:: !.(*World -> *World)       !*HSt -> *HSt						// enabling World operations on HSt
-accWorldHSt			:: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)				// enabling World operations on HSt
+appNWorldHSt			:: !.(*NWorld -> *NWorld)       !*HSt -> *HSt					// enabling NWorld operations on HSt
+accNWorldHSt			:: !.(*NWorld -> *(.a,*NWorld)) !*HSt -> (.a,!*HSt)				// enabling NWorld operations on HSt
+
+appWorldHSt				:: !.(*World -> *World)       !*HSt -> *HSt						// enabling World operations on HSt
+accWorldHSt				:: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)				// enabling World operations on HSt
 
 // Create a new HSt
 mkHSt :: String HTTPRequest *FormStates *NWorld -> *HSt

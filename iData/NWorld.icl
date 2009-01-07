@@ -3,6 +3,7 @@ implementation module NWorld
 import StdFile
 from Gerda 		import :: Gerda
 from DataFile	import :: DataFile
+from UserDB		import :: UserDB
 
 instance FileSystem NWorld where
 	fopen string int nworld=:{worldC}
@@ -21,8 +22,8 @@ instance FileSystem NWorld where
 		# (bool,file,worldC) = sfopen string int worldC
 		= (bool,file,{nworld & worldC = worldC})
 
-mkNWorld		:: *World *DataFile *Gerda -> *NWorld
-mkNWorld world datafile gerda = {worldC = world, gerda = gerda, datafile = datafile}
+mkNWorld		:: *World *DataFile *Gerda *UserDB -> *NWorld
+mkNWorld world datafile gerda userdb = {worldC = world, gerda = gerda, datafile = datafile, userdb = userdb}
 
 
 appWorldNWorld :: !.(*World -> *World) !*NWorld -> *NWorld
@@ -33,3 +34,13 @@ accWorldNWorld :: !.(*World -> *(.a,*World)) !*NWorld -> (.a,!*NWorld)
 accWorldNWorld f nw=:{worldC}
 	# (a,worldC)	= f worldC
 	= (a,{nw & worldC=worldC})
+
+appUserDBNWorld	:: !.(*UserDB -> *UserDB)     	!*NWorld -> *NWorld
+appUserDBNWorld f nw=:{userdb}
+	= {nw & userdb = f userdb}
+	
+accUserDBNWorld	:: !.(*UserDB -> *(.a,*UserDB))	!*NWorld -> (.a,!*NWorld)
+accUserDBNWorld f nw=:{userdb}
+	# (a,userdb) = f userdb
+	= (a,{nw & userdb = userdb})
+	 

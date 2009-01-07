@@ -40,7 +40,7 @@ definePurchase =
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
-	= getUsersWithRole "supplier" =>> \suppliers ->
+	= getUsersWithRoleTask "supplier" =>> \suppliers ->
 	  ( mchoiceAndTasks
 	  		[Text "Select the suppliers from which you want to receive a bid", HrTag []]
 	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]
@@ -82,7 +82,3 @@ confirmBid purchase bid =: ((uid,label),price)
 		?>> editTask "Ok" Void
 	) 
 	
-//Hardcoded users	
-getUsersWithRole :: String -> Task [(Int,String)]
-getUsersWithRole role =
-	return_V [(UID_SUPPLIER1,"Mega Store"),(UID_SUPPLIER2,"Local shop"),(UID_SUPPLIER3,"Webshop.com")]

@@ -23,10 +23,10 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 				successProperty: 'success'
 			},[
 				{name: 'taskid'},
-				{name: 'priority'},
-				{name: 'processname'},
 				{name: 'subject'},
-				{name: 'delegator'},
+				{name: 'processname'},
+				{name: 'delegatorName'},
+				{name: 'priority'},
 				{name: 'timestamp'},
 				{name: 'tree_path'},
 				{name: 'tree_last'},
@@ -76,10 +76,10 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			selModel: new Ext.ux.grid.livegrid.RowSelectionModel(),
 			columns: [
 				{id: 'taskid', header: 'Task', dataindex: 'taskid', renderer: treeRenderer, width: 200 },
-				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100 },
-				{id: 'processname', header: 'Process', dataindex: 'processname', width: 100},
 				{id: 'subject', header: 'Subject', dataIndex: 'subject', width: 100},
-				{id: 'delegator', header: 'From', dataIndex: 'delegator', width: 100 },
+				{id: 'processname', header: 'Process', dataindex: 'processname', width: 100},
+				{id: 'delegatorName', header: 'From', dataIndex: 'delegatorName', width: 100 },
+				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100 },
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100}
 			],
 			viewConfig: {

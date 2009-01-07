@@ -9,6 +9,7 @@ implementation module Startup
 //
 import StdEnv
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
+import UserDB
 import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
 import BasicCombinators, iTasksProcessHandling
 
@@ -121,7 +122,8 @@ initHSt :: !HTTPRequest !*World -> *HSt
 initHSt request world
 	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
-	# nworld 					= mkNWorld world datafile gerda								// Wrap all io states in an NWorld state
+	# (userdb,world)			= openUserDB world											// open the user database
+	# nworld 					= mkNWorld world datafile gerda	userdb						// Wrap all io states in an NWorld state
 	# updates					= decodeFormUpdates request.arg_post						// Get the form updates from the post
 	# states					= decodeHtmlStates request.arg_post							// Fetch stored states from the post
 	# fstates	 				= mkFormStates states updates 								
