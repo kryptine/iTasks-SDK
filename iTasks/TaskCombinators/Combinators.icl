@@ -9,7 +9,8 @@ implementation module Combinators
 //
 import StdList, StdFunc, StdTuple
 import iDataTrivial, iDataFormlib, StdBimap
-import BasicCombinators, PromptingCombinators, LiftingCombinators, iTasksTimeAndDateHandling, iTasksSettings, iTasksEditors
+import BasicCombinators, PromptingCombinators, LiftingCombinators, iTasksTimeAndDateHandling, iTasksSettings, iTasksEditors, UserTasks
+
 
 derive gForm 	[]
 derive gUpd  	[]
@@ -67,8 +68,10 @@ where
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
 (@:) nuserId ltask=:(taskname,task) = Task assigntask
 where
-	assigntask tst=:{userId} 
-	= 				appTaskTSt ([showText ("Waiting for Task "), showLabel taskname, showText " from ", showUser nuserId,BrTag []]
+	assigntask tst=:{userId}
+	= 				appTaskTSt (
+					getDisplayNamesTask [nuserId] =>> \displayNames ->
+					[showText ("Waiting for Task "), showLabel taskname, showText " from ", showLabel (hd displayNames),BrTag []]
 					?>> assignTaskTo nuserId (taskname,[showText "Requested by ", showUser userId,BrTag [] ,BrTag []] ?>> task)) tst
 
 	showUser nr = showLabel ("User " <+++ nr)

@@ -77,8 +77,8 @@ where
 	
 confirmBid :: String ((Int,String),Real) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
-	= uid @:: (
+	= uid @: ("Bid confirmation",(
 		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase], Text " has been accepted."]
 		?>> editTask "Ok" Void
-	) 
+	))
 	

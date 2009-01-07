@@ -22,7 +22,7 @@ userVersionNr thisUser			:== "User" <+++ thisUser <+++ "_VersionPNr"
 usersessionVersionNr thisUser	:== "User" <+++ thisUser <+++ "_VersionSNr" 
 
 showText   		text :== Text text
-showLabel  		text :== Text text
+showLabel  		text :== ITag [] [Text text]
 showMainLabel	text :== Text text
 showHighLight	text :== Text text
 showLowLight	text :== Text text
