@@ -11,7 +11,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 		autoLoad: true,
 		bufferSize: 300,
 		sortInfo: {
-			field: 'taskid',
+			field: 'subject',
 			direction: 'ASC'
 		},
 		proxy: new Ext.data.HttpProxy({
@@ -22,12 +22,12 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 				totalProperty: 'total',
 				successProperty: 'success'
 			},[
-				{name: 'taskid'},
 				{name: 'subject'},
 				{name: 'processname'},
 				{name: 'delegatorName'},
 				{name: 'priority'},
 				{name: 'timestamp'},
+				{name: 'taskid'},
 				{name: 'tree_path'},
 				{name: 'tree_last'},
 				{name: 'tree_icon'}
@@ -75,12 +75,12 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			view: this.workView,
 			selModel: new Ext.ux.grid.livegrid.RowSelectionModel(),
 			columns: [
-				{id: 'taskid', header: 'Task', dataindex: 'taskid', renderer: treeRenderer, width: 200 },
-				{id: 'subject', header: 'Subject', dataIndex: 'subject', width: 100},
-				{id: 'processname', header: 'Process', dataindex: 'processname', width: 100},
-				{id: 'delegatorName', header: 'From', dataIndex: 'delegatorName', width: 100 },
+				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200 },
+				{id: 'processname', header: 'Workflow', dataindex: 'processname', width: 100},
+				{id: 'delegatorName', header: 'Delegated by', dataIndex: 'delegatorName', width: 100 },
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100 },
-				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100}
+				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100},
+				{id: 'taskid', header: 'Task nr', dataIndex: 'taskid', width: 100}
 			],
 			viewConfig: {
 				forceFit: true,

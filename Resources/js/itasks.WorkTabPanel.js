@@ -152,7 +152,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			if (data.error != null) {
                 this.autoClose(this.makeErrorMessage(data.error), 5);
             } else if(data.status == 'TaskFinished') { //Check if the task is done
-				this.fireEvent('taskfinished', this.id);
+				//this.fireEvent('taskfinished', this.id); //TEMPORARY
 				this.autoClose(this.makeFinishedMessage(), 5);
             } else if(data.status == 'TaskDeleted') {
                 this.fireEvent('taskdeleted', this.id);
@@ -162,6 +162,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				this.setupContentPanel(trace, data);
 				this.setupTracePanels(trace, data);
 			}
+			
+			//TEMPORARY
+			this.fireEvent('taskfinished', this.id);
 			
 			//Hide the current content panel and switch to new content
 			this.switchContentPanels(trace);
@@ -275,7 +278,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						},this);
 					}
 					input.on("focus", function (inp) {
-						alert("FOOCUSUUIS");
 						this.lastFocus = inp.name;
 					},this);
 					

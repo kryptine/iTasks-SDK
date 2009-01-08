@@ -49,7 +49,7 @@ selectSuppliers
 collectBids :: String [(Int,String)] -> Task [((Int,String),Real)]
 collectBids purchase suppliers
 	= andTasks
-		[("Bid from " +++ name, uid @: ("Bid request", collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
+		[("Bid for " +++ purchase +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
 where
 	collectBid :: String (Int,String) -> Task ((Int,String),Real)
 	collectBid purchase bid
