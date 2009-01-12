@@ -1,12 +1,9 @@
 definition module Combinators
+/**
+* This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
+* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
+*/
 
-// *********************************************************************************************************************************
-// This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
-// with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
 import BasicCombinators, iDataWidgets		 
 
 :: ChoiceUpdate		:== Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings

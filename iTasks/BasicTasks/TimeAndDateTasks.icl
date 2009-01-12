@@ -1,11 +1,5 @@
-implementation module iTasksTimeAndDateHandling
+implementation module TimeAndDateTasks
 
-// *********************************************************************************************************************************
-// iTasks for Time and Date Handling
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
 import StdFunc
 import iDataFormlib
 import iTasksTypes

@@ -1,12 +1,5 @@
-implementation module Startup
-// *********************************************************************************************************************************
-// The iTasks library enables the specification of interactive multi-user workflow tasks (iTasks) for the web.
-// This module contains iTask kernel.
-// This library is still under construction - MJP
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+implementation module Engine
+
 import StdEnv
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import UserDB

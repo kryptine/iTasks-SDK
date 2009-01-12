@@ -1,22 +1,18 @@
 implementation module Combinators
-
-// *********************************************************************************************************************************
-// This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
-// with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+/**
+* This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
+* with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
+*/
 import StdList, StdFunc, StdTuple
 import iDataTrivial, iDataFormlib, StdBimap
-import BasicCombinators, PromptingCombinators, LiftingCombinators, iTasksTimeAndDateHandling, iTasksSettings, iTasksEditors, UserTasks
-
+import EditTasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators, iTasksSettings
 
 derive gForm 	[]
 derive gUpd  	[]
 
 derive read		Maybe
 derive write	Maybe
+
 // ******************************************************************************************************
 // monads for combining iTasks
 

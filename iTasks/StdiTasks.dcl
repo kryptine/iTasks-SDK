@@ -1,31 +1,22 @@
 definition module StdiTasks
-
-// *********************************************************************************************************************************
-// Main iTask pass thru module exporting all End User iTask modules 
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+/**
+* Main iTask module exporting all end user iTask modules 
+*/
 import
+		Engine						// basic iTask system creator
+	,	iTasksProcessHandling		// creation of iTask Workflow Processes
 
-// iTask End User modules:
+	,	EditTasks					// basic html editors for any type
+	,	UserTasks					// tasks for accessing the user database		
+	,	TimeAndDateTasks			// iTasks triggered by time and date 
+	,	iTasksDB					// iTask simple DB access
+			
+	,	BasicCombinators			// basic iTask combinators
 
-			Startup						// basic iTask system creator
-		,	iTasksProcessHandling		// creation of iTask Workflow Processes
+	,	Combinators					// handy set of additional iTask combinators
+	,	PromptingCombinators		// html prompting
+	,	LiftingCombinators			// lifting other domains (e.g. iData) to the iTask domain
 
-		,	iTasksEditors				// basic html editors for any type
-		,	UserTasks					// tasks for accessing the user database		
-		
-		,	BasicCombinators			// basic iTask combinators
+	,	ExceptionCombinators		// for handling exceptional situations
 
-		,	Combinators					// handy set of additional iTask combinators
-		,	PromptingCombinators		// html prompting
-		,	LiftingCombinators			// lifting other domains (e.g. iData) to the iTask domain
-
-		
-		,	iTasksTimeAndDateHandling	// iTasks triggered by time and date 
-		,	iTasksExceptionHandling		// for handling exceptional situations
-
-		,	iTasksDB					// iTask simple DB access
-		,	iTasksSettings				// font settings
-
+	,	iTasksSettings				// font settings

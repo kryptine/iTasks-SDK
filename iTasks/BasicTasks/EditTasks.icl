@@ -1,12 +1,4 @@
-implementation module iTasksEditors
-
-// *********************************************************************************************************************************
-// Basic iTasks Editors
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
-defpixel :== 100
+implementation module EditTasks
 
 import StdList, StdTuple, StdFunc
 import iTasksTypes
@@ -27,7 +19,7 @@ editTask` prompt a tst=:{tasknr,html,hst,userId}
 # (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  		// determine if the task has been done previously
 | taskdone.Form.value																			// test if task has completed
 	# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)			// yes, read out current value, make editor passive
-	= (editor.Form.value,{tst & activated = True,/* html = html +|+ BT editor.Form.form [],*/ hst = hst})		// return result task
+	= (editor.Form.value,{tst & activated = True, hst = hst})									// return result task
 # (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a) hst						// no, read out current value from active editor
 # (finbut,hst)  	= mySimpleButton tst.options buttonId prompt (\_ -> True) hst				// add button for marking task as done
 # (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time

@@ -1,14 +1,10 @@
-implementation module iTasksExceptionHandling
-
-// *********************************************************************************************************************************
-// This module contains iTask combinators for Exception Handling
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+implementation module ExceptionCombinators
+/**
+* This module contains iTask combinators for Exception Handling
+*/
 import StdList, StdArray, StdTuple, StdFunc
 import dynamic_string
-import InternaliTasksThreadHandling, BasicCombinators, Startup
+import InternaliTasksThreadHandling, BasicCombinators, Engine
 
 serializeExceptionHandler :: !.(Dynamic -> Task .a) -> .String 
 serializeExceptionHandler task = IF_ClientServer
@@ -23,8 +19,8 @@ deserializeExceptionHandler thread = IF_ClientServer
 fetchException thread = fst (copy_from_string {c \\ c <-: thread})
 
 
-Raise :: e -> Task a | iCreate a & TC e	
-Raise e = RaiseDyn (dynamic e)
+raise :: e -> Task a | iCreate a & TC e	
+raise e = raiseDyn (dynamic e)
 
 (<^>) infix  1  :: !(e -> a) !(Task a) -> Task a | iData a & TC e			// create an exception Handler
 (<^>) exceptionfun task = newTask "exceptionHandler" (Task evalTask)		
@@ -55,10 +51,10 @@ where
 		with
 			catch2 tst=:{tasknr} 
 			# tst = deleteSubTasksAndThreads (tl tasknr) tst					// delete handler + task
-			= appTaskTSt (RaiseDyn dynamicValue) tst											// look for another handler
+			= appTaskTSt (raiseDyn dynamicValue) tst											// look for another handler
 
-RaiseDyn :: !Dynamic -> Task a | iCreate a
-RaiseDyn dynamicValue = Task raise
+raiseDyn :: !Dynamic -> Task a | iCreate a
+raiseDyn dynamicValue = Task raise
 where
 	raise tst=:{tasknr,staticInfo,activated}
 	| not activated = (createDefault,tst)	

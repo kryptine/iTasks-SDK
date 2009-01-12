@@ -1,12 +1,6 @@
 implementation module LiftingCombinators
 
-// *********************************************************************************************************************************
-// Some iTasks combinators for lifting other domains to the iTask domain:
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
-import iTasksEditors, BasicCombinators
+import EditTasks, BasicCombinators
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
 (*=>) ftst b = Task doit
@@ -62,10 +56,3 @@ liftWorld :: !(*World -> *(!a,!*World)) !*TSt -> *(!a,!*TSt)
 liftWorld fun tst=: {hst = hst=:{world = world=:{worldC}}}
 # (fvalue,theWorld)	= fun worldC
 = (fvalue,{tst & hst = {hst & world = {world & worldC = theWorld}}})	
-
-
-
-
-
-
-

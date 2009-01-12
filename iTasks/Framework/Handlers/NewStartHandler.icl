@@ -4,6 +4,7 @@ import StdEnv
 import Http, Session
 import JSON
 import InternaliTasksCommon
+import iTasksProcessHandling
 
 
 :: NewWorkItem	= 	{ icon		:: String 	// An icon name. The actual icon image is defined in the css. 
@@ -20,13 +21,10 @@ where
 	workflow = http_getValue "workflow" request.arg_get ""
 	response taskid = "{\"success\" : true, \"taskid\": \""  +++ (toString taskid) /* workflow */ +++ "\"}"
 	
-	thisUser		= session.Session.userId							// fetch user id from the session
+	thisUser		= session.Session.userId						// fetch user id from the session
 	
 	startNewProcess labeledTask hst 
-	# tst 				= mkTst mainuser LSTxtFile LSTxtFile hst			// create initial tst	
+	# tst 				= mkTst mainuser LSTxtFile LSTxtFile hst	// create initial tst	
 	# (processId, tst) 	= latestProcessId tst
 	# (wid,tst=:{hst}) 	= appTaskTSt (spawnWorkflow thisUser True labeledTask) {tst & tasknr = [processId]}
 	= (getProcessId wid, hst)
-	
-	
-import iTasksProcessHandling, Combinators, iTasksEditors
