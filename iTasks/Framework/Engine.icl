@@ -142,7 +142,7 @@ where
 
 
 finalizeHSt :: !*HSt -> *World
-finalizeHSt hst =:{world = nworld =: {worldC = world, gerda, datafile}}
+finalizeHSt hst =:{HSt | nworld = nworld =: {NWorld | world = world, gerda, datafile}}
 	# world						= closeDatabase gerda world									// close the relational database if option chosen
 	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= world

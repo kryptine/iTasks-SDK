@@ -53,6 +53,6 @@ appWorld :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
 appWorld label fun = mkTask label (Task (liftWorld fun))
 
 liftWorld :: !(*World -> *(!a,!*World)) !*TSt -> *(!a,!*TSt)
-liftWorld fun tst=: {hst = hst=:{world = world=:{worldC}}}
-# (fvalue,theWorld)	= fun worldC
-= (fvalue,{tst & hst = {hst & world = {world & worldC = theWorld}}})	
+liftWorld f tst=: {hst = hst=:{nworld = nworld=:{world}}}
+# (a,world)	= f world
+= (a,{tst & hst = {hst & nworld = {nworld & world = world}}})	

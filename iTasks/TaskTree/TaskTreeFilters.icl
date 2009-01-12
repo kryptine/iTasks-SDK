@@ -190,7 +190,7 @@ where
 // Trace Calculation
 // ******************************************************************************************************
 
-:: Trace		=	Trace !(Maybe !TraceInfo) ![Trace]							// traceinfo with possibly subprocess
+:: Trace		=	Trace !(Maybe TraceInfo) ![Trace]							// traceinfo with possibly subprocess
 
 getTraceFromTaskTree :: !UserId !String !HtmlTree -> HtmlTag				
 getTraceFromTaskTree userId taskNrId tree

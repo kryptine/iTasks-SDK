@@ -26,16 +26,16 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 // TODO: Try to make it do just a little less :)
 
 mkViewForm :: !(InIDataId d) !(HBimap d v) !*HSt -> (Form d,!*HSt) | iData v
-mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{prefix, request,states,world}
+mkViewForm (init,formid) bm=:{toForm, updForm, fromForm, resetForm} hst=:{HSt | prefix, request,states, nworld}
 	| init == Const	&& formid.FormId.lifespan <> LSTemp
 	= mkViewForm (init,{FormId| formid & lifespan = LSTemp}) bm hst			// constant i-data are never stored
 	| init == Const															// constant i-data, no look up of previous value
-	= calcnextView False Nothing states world				
-	# (isupdated,view,states,world) = findFormInfo vformid states world 	// determine current view value in the state store
-	= calcnextView isupdated view states world								// and calculate new i-data
+	= calcnextView False Nothing states nworld				
+	# (isupdated,view,states,nworld) = findFormInfo vformid states nworld 	// determine current view value in the state store
+	= calcnextView isupdated view states nworld								// and calculate new i-data
 where
 	vformid					= reuseFormId formid (toForm init formid.ival Nothing)
-	calcnextView isupdated view states world
+	calcnextView isupdated view states nworld
 		# (changedids,states)	= getUpdatedIds states
 		# changed				= {isChanged = isupdated, changedId = changedids}
 		# view					= toForm init formid.ival view				// map value to view domain, given previous view value
@@ -46,48 +46,48 @@ where
 									Just reset 	-> reset view
 	
 		| formid.mode == NoForm												// don't make a form at all
-			# (states,world)	= replaceState` vformid view states world	// store new value into the store of states
+			# (states,nworld)	= replaceState` vformid view states nworld	// store new value into the store of states
 			= ({ changed		= False
 			   , value			= newval
 			   , form			= []
 			   , inputs			= []
 			   }
-			  , mkHSt prefix request states world)
+			  , mkHSt prefix request states nworld)
 	
-		# (viewform,{states,world})											// make a form for it
-								= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) (mkHSt prefix request states world)
+		# (viewform,{states,nworld})										// make a form for it
+								= mkForm (init,if (init == Const) vformid (reuseFormId formid view)) (mkHSt prefix request states nworld)
 	
 		| viewform.changed && not isupdated						 			// important: redo it all to handle the case that a user defined specialisation is updated !!
-								= calcnextView True (Just viewform.Form.value) states world
+								= calcnextView True (Just viewform.Form.value) states nworld
 	
-		# (states,world)		= replaceState` vformid viewform.Form.value states world	// store new value into the store of states
+		# (states,nworld)		= replaceState` vformid viewform.Form.value states nworld	// store new value into the store of states
 	
 		= (	{ changed			= isupdated
 			, value				= newval
 			, form				= viewform.form
 			, inputs			= viewform.inputs
 			}
-		  ,mkHSt prefix request states world)
+		  ,mkHSt prefix request states nworld)
 
-	replaceState` vformid view states world
-		| init <> Const			= setState vformid view states world
-		| otherwise				= (states,world)
+	replaceState` vformid view states nworld
+		| init <> Const			= setState vformid view states nworld
+		| otherwise				= (states,nworld)
 
-	findFormInfo formid formStates world
+	findFormInfo formid formStates nworld
 		# (updateids,formStates) 					= getUpdatedIds formStates											// get list of updated id's
 		| not (isMember formid.id updateids)	
-			# (bool,justcurstate,formStates,world)	= getState formid formStates world									// the current form is not updated
-			= (False,justcurstate,formStates,world)
+			# (bool,justcurstate,formStates,nworld)	= getState formid formStates nworld									// the current form is not updated
+			= (False,justcurstate,formStates,nworld)
 		# (updates,formStates)	= getFormUpdates formid.id formStates													// get my updates
-		= case (getState formid formStates world) of
-				(False,Just currentState,formStates,world) -> (False, Just currentState,formStates,world) 				// yes, but update already handled
-				(True, Just currentState,formStates,world) -> (updateState updates currentState formStates world)		// yes, handle update
-				(_,    Nothing,formStates,world) 		   -> (False, Nothing,formStates,world) 		  				// cannot find previously stored state
+		= case (getState formid formStates nworld) of
+				(False,Just currentState,formStates,nworld) -> (False, Just currentState,formStates,nworld) 			// yes, but update already handled
+				(True, Just currentState,formStates,nworld) -> (updateState updates currentState formStates nworld)		// yes, handle update
+				(_,    Nothing,formStates,nworld) 		   -> (False, Nothing,formStates,nworld) 		  				// cannot find previously stored state
 
-	updateState updates currentState formStates world
+	updateState updates currentState formStates nworld
 		# allUpdates = [(inputid, value) \\ {FormUpdate | inputid,value} <- updates]
 		# newState = applyUpdates (sortUpdates allUpdates) currentState
-		= (True, Just newState, formStates,world)
+		= (True, Just newState, formStates,nworld)
 
 	sortUpdates updates								= sortBy (\(i1,v1) (i2,v2) -> i2 < i1) updates						// updates need to be applied in descending order
 																														// of input id's
@@ -100,7 +100,7 @@ where
 // The value might have been changed with this editor, so the value returned might differ from the value you started with!
 
 specialize :: !((InIDataId a) *HSt -> (Form a,*HSt)) !(InIDataId a) !*HSt -> (!Form a,!*HSt) | gUpd {|*|} a
-specialize editor (init,formid) hst=:{cntr = inidx,states = formStates,world}
+specialize editor (init,formid) hst=:{cntr = inidx,states = formStates, nworld}
 	# nextidx					= incrIndex inidx formid.ival					// this value will be repesented differently, so increment counter 
 	# (nv,hst) 					= editor (init,nformid) (setHStCntr 0 hst)
 	= (nv,setHStCntr nextidx hst)
@@ -487,7 +487,7 @@ toHtml a
 	# (na,_)	= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt "" http_emptyRequest (mkFormStates [] []) dummy)
 	= BodyTag [] na.form
 where
-	dummy = { worldC 	= abort "dummy world for toHtml!\n"
+	dummy = { world 	= abort "dummy world for toHtml!\n"
 			, gerda	 	= abort "dummy gerda for toHtml!\n"
 			, datafile	= abort "dummy datafile for toHtml!\n"
 			, userdb	= abort "dummy userdb for toHtml!\n"
@@ -498,7 +498,7 @@ toHtmlForm anyform
 	# (na,hst)	= anyform (mkHSt "" http_emptyRequest (mkFormStates [] []) (abort "illegal call to toHtmlForm!\n"))
 	= na.form
 where
-	dummy = { worldC 	= abort "dummy world for toHtmlForm!\n"
+	dummy = { world 	= abort "dummy world for toHtmlForm!\n"
 			, gerda	 	= abort "dummy gerda for toHtmlForm!\n"
 			, datafile	= abort "dummy datafile for toHtmlForm!\n"
 			, userdb	= abort "dummy userdb for toHtmlForm!\n"

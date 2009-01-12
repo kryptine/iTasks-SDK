@@ -14,7 +14,7 @@ from StdFile import class FileSystem
 				  , prefix	:: !String			// global prefix used in all generated html id's
 				  , request :: !HTTPRequest		// to enable access to the current HTTP request	
 				  , states	:: !*FormStates  	// all form states are collected here ... 
-				  , world	:: *NWorld			// to enable all kinds of I/O
+				  , nworld	:: *NWorld			// to enable all kinds of I/O
 				  }	
 				  
 // Definitions on HSt

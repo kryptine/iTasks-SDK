@@ -9,7 +9,7 @@ from Gerda		import :: Gerda
 from DataFile	import :: DataFile
 from UserDB		import :: UserDB
 
-:: *NWorld		= { worldC		:: *World			// world for any io
+:: *NWorld		= { world		:: *World			// world for any io
 				  , gerda		:: *Gerda			// to read and write to a relational database
 				  , datafile	:: *DataFile		// to read and write to a Clean database in a file
 				  , userdb		:: *UserDB			// to retrieve identity information

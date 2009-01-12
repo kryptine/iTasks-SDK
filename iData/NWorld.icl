@@ -6,34 +6,34 @@ from DataFile	import :: DataFile
 from UserDB		import :: UserDB
 
 instance FileSystem NWorld where
-	fopen string int nworld=:{worldC}
-		# (bool,file,worldC) = fopen string int worldC
-		= (bool,file,{nworld & worldC = worldC})
+	fopen string int nworld=:{world}
+		# (bool,file,world) = fopen string int world
+		= (bool,file,{nworld & world = world})
 
-	fclose file nworld=:{worldC}
-		# (bool,worldC) = fclose file worldC
-		= (bool,{nworld & worldC = worldC})
+	fclose file nworld=:{world}
+		# (bool,world) = fclose file world
+		= (bool,{nworld & world = world})
 
-	stdio nworld=:{worldC}
-		# (file,worldC) = stdio worldC
-		= (file,{nworld & worldC = worldC})
+	stdio nworld=:{world}
+		# (file,world) = stdio world
+		= (file,{nworld & world = world})
 
-	sfopen string int nworld=:{worldC}
-		# (bool,file,worldC) = sfopen string int worldC
-		= (bool,file,{nworld & worldC = worldC})
+	sfopen string int nworld=:{world}
+		# (bool,file,world) = sfopen string int world
+		= (bool,file,{nworld & world = world})
 
 mkNWorld		:: *World *DataFile *Gerda *UserDB -> *NWorld
-mkNWorld world datafile gerda userdb = {worldC = world, gerda = gerda, datafile = datafile, userdb = userdb}
+mkNWorld world datafile gerda userdb = {world = world, gerda = gerda, datafile = datafile, userdb = userdb}
 
 
 appWorldNWorld :: !.(*World -> *World) !*NWorld -> *NWorld
-appWorldNWorld f nw=:{worldC}
-	= {nw & worldC=f worldC}
+appWorldNWorld f nw=:{world}
+	= {nw & world=f world}
 
 accWorldNWorld :: !.(*World -> *(.a,*World)) !*NWorld -> (.a,!*NWorld)
-accWorldNWorld f nw=:{worldC}
-	# (a,worldC)	= f worldC
-	= (a,{nw & worldC=worldC})
+accWorldNWorld f nw=:{world}
+	# (a,world)	= f world
+	= (a,{nw & world=world})
 
 appUserDBNWorld	:: !.(*UserDB -> *UserDB)     	!*NWorld -> *NWorld
 appUserDBNWorld f nw=:{userdb}

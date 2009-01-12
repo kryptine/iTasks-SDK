@@ -8,32 +8,32 @@ import iDataState
 // Enabling file IO on HSt
 
 instance FileSystem HSt where
-	fopen string int hst=:{world}
-		# (bool,file,world)		= fopen string int world
-		= (bool,file,{hst & world = world})
+	fopen string int hst=:{nworld}
+		# (bool,file,nworld)	= fopen string int nworld
+		= (bool,file,{hst & nworld = nworld})
 
-	fclose file hst=:{world}
-		# (bool,world)			= fclose file world
-		= (bool,{hst & world = world})
+	fclose file hst=:{nworld}
+		# (bool,nworld)			= fclose file nworld
+		= (bool,{hst & nworld = nworld})
 
-	stdio hst=:{world}
-		# (file,world)			= stdio world
-		= (file,{hst & world = world})
+	stdio hst=:{nworld}
+		# (file,nworld)			= stdio nworld
+		= (file,{hst & nworld = nworld})
 
-	sfopen string int hst=:{world}
-		# (bool,file,world)		= sfopen string int world
-		= (bool,file,{hst & world = world})
+	sfopen string int hst=:{nworld}
+		# (bool,file,nworld)	= sfopen string int nworld
+		= (bool,file,{hst & nworld = nworld})
 
 
 //Access to the NWorld state embedded in the HSt
 appNWorldHSt :: !.(*NWorld -> *NWorld) !*HSt -> *HSt
-appNWorldHSt f hst=:{world}
-	= {hst & world = f world}
+appNWorldHSt f hst=:{nworld}
+	= {hst & nworld = f nworld}
 	
 accNWorldHSt :: !.(*NWorld -> *(.a,*NWorld)) !*HSt -> (.a,!*HSt)
-accNWorldHSt f hst=:{world}
-	# (a, world) = f world
-	= (a, {hst & world = world})
+accNWorldHSt f hst=:{nworld}
+	# (a, nworld) = f nworld
+	= (a, {hst & nworld = nworld})
 
 // General access to the World environment on HSt:
 appWorldHSt :: !.(*World -> *World) !*HSt -> *HSt
@@ -44,7 +44,7 @@ accWorldHSt f hst = (accNWorldHSt o accWorldNWorld) f hst
 
 // Create a new HSt
 mkHSt :: String HTTPRequest *FormStates *NWorld -> *HSt
-mkHSt prefix request states nworld = {cntr=0, prefix = prefix, states=states, request= request, world=nworld }
+mkHSt prefix request states nworld = {cntr = 0, prefix = prefix, states = states, request = request, nworld = nworld }
 
 // Access on the HSt structure
 getHStCntr :: !*HSt -> (!Int,!*HSt)
@@ -65,14 +65,14 @@ setHStPrefix s hst = {hst & prefix = s}
 // All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
 
 deleteIData :: !String !*HSt -> *HSt
-deleteIData prefix hst=:{states,world}
-# (states,world) = deleteStates prefix states world
-= {hst & states = states, world = world}
+deleteIData prefix hst=:{states,nworld}
+# (states,nworld) = deleteStates prefix states nworld
+= {hst & states = states, nworld = nworld}
 
 changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
-changeLifespanIData prefix oldspan newspan hst=:{states,world}
-# (states,world) = changeLifetimeStates  prefix oldspan newspan states world
-= {hst & states = states, world = world}
+changeLifespanIData prefix oldspan newspan hst=:{states,nworld}
+# (states,nworld) = changeLifetimeStates  prefix oldspan newspan states nworld
+= {hst & states = states, nworld = nworld}
 
 getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
 getChangedId hst=:{states}
@@ -80,9 +80,9 @@ getChangedId hst=:{states}
 = (ids,{hst & states = states })
 
 storeStates	:: !*HSt -> *HSt
-storeStates hst =: {states, world}
-	# (states,world)								= storeServerStates states world
-	= {hst & states = states, world = world}
+storeStates hst =: {states, nworld}
+	# (states,nworld)								= storeServerStates states nworld
+	= {hst & states = states, nworld = nworld}
 	
 getPageStates :: !*HSt -> (![HtmlState], !*HSt)
 getPageStates hst =: {states}
