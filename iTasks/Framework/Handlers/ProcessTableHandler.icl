@@ -1,21 +1,13 @@
-implementation module ProcessTableHandler //iTasks.Handlers.ProcessTableHandler
+implementation module ProcessTableHandler
 
 import StdEnv
-import Http, Session
-import InternaliTasksCommon
-import TaskTree, TaskTreeFilters
-import iDataForms, iDataState
+import Http, TSt, ProcessDB, FIXMEDebug
 
 /**
 * Handles the ajax requests for a ProcessTable tab panel.
 */
-handleProcessTableRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleProcessTableRequest mainTask mainUser request session hst
-	# thisUserId			= session.Session.userId
-	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable, hst)	
-							= calculateTaskTree thisUserId True True True mainTask mainUser hst 				// calculate the TaskTree given the id of the current user
-	# processTable			= if (isNothing maybeProcessTable) [] (fromJust maybeProcessTable) 
-	# content				= toString (DivTag [IdAttr "itasks-processtable", ClassAttr "trace"] processTable)
-	= ({http_emptyResponse & rsp_data = content}, hst)												// create the http response
-	
-	
+handleProcessTableRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleProcessTableRequest request tst
+	# (processes,tst)		= accProcessDBTSt (getProcesses [Active,Suspended,Finished,Deleted]) tst 
+	# content				= toString (traceProcesses processes)
+	= ({http_emptyResponse & rsp_data = content}, tst)

@@ -1,4 +1,4 @@
-definition module NewStartHandler //iTasks.Handlers.NewListHandler
+definition module NewStartHandler
 
 import Http, Session
 import InternaliTasksCommon
@@ -6,4 +6,4 @@ import InternaliTasksCommon
 /**
 * Handles the ajax requests from the 'start new work' panel.
 */
-handleNewStartRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleNewStartRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

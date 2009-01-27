@@ -1,9 +1,8 @@
-definition module ThreadTableHandler //iTasks.Handlers.ThreadTableHandler
+definition module ThreadTableHandler
 
-import Http, Session
-import InternaliTasksCommon
+import Http, TSt
 
 /**
 * Handles the ajax requests for a ThreadTable tab panel.
 */
-handleThreadTableRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleThreadTableRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

@@ -12,7 +12,7 @@ module bid
 * - A confirmation is sent to the selected supplier
 */
 
-import StdEnv, StdiTasks
+import StdEnv, StdiTasks, iData
 
 derive gForm []
 derive gUpd []
@@ -23,7 +23,14 @@ UID_SUPPLIER2 = 2
 UID_SUPPLIER3 = 3
 
 Start :: *World -> *World
-Start world = startTaskEngine ("Purchase product", purchaseTask) UID_CUSTOMER world
+Start world = startEngine [bidFlow] world
+
+bidFlow :: Workflow
+bidFlow = { name		= "bid"
+		  , label		= "Purchase product"
+		  , roles		= []
+		  , mainTask	= purchaseTask
+		  }
 
 purchaseTask :: Task Void
 purchaseTask =
@@ -69,7 +76,7 @@ selectBid bids
 		( return_V cheapestBid)
 		( chooseTask
 			[Text "Please select a bid"]
-			[(name <+++ " " <+++ price, return_V bid) \\ bid =: ((uid,name),price) <- bids] 
+			[(name +++ " " +++ toString price, return_V bid) \\ bid =: ((uid,name),price) <- bids] 
 		)
 where
 	determineCheapest bids = return_V (hd (sortBy (\(_,x) (_,y) -> x < y) bids))

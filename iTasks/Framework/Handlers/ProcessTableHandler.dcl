@@ -1,9 +1,11 @@
-definition module ProcessTableHandler //iTasks.Handlers.ProcessTableHandler
-
-import Http, Session
-import InternaliTasksCommon
+definition module ProcessTableHandler
+/**
+* This provides a handler which visualizes all processes in the
+* the iTasks process database.
+*/
+import Http, TSt
 
 /**
 * Handles the ajax requests for a ProcessTable tab panel.
 */
-handleProcessTableRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleProcessTableRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

@@ -6,12 +6,11 @@ definition module InternaliTasksThreadHandling
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksTypes
+import TSt
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options
 :: TaskThread	=	{ thrTaskNr			:: !TaskNr		// task number to recover
 					, thrUserId			:: !UserId		// which user has to perform the task
-					, thrWorkflowLink	:: !WorkflowLink// what was the name of workflow process it was part off
 					, thrOptions		:: !Options		// options of the task
 					, thrCallback		:: !String		// serialized callback function for the server
 					, thrCallbackClient	:: !String		// serialized callback function for the client (optional, empty if not applicable)

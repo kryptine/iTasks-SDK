@@ -1,11 +1,11 @@
-implementation module WorkTabHandler //iTasks.Handlers.WorkTabHandler
+implementation module WorkTabHandler
 
 import StdEnv
-import Http, Session
+import Http, TSt
 import InternaliTasksCommon
-import TaskTree, TaskTreeFilters
+import TaskTree
+import iDataForms, iDataState, iDataFormlib
 import JSON
-import iDataForms, iDataState
 
 derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
@@ -21,52 +21,102 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 				  , subtreeTrace	:: Maybe String		//Optional trace of the sub tasktree of this task
 				  }
 
+:: TaskStatus	= TaskFinished
+				| TaskActivated
+				| TaskDeleted
+
 /**
 * Handles the ajax requests for a work tab panel.
 */
-handleWorkTabRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleWorkTabRequest mainTask mainUser request session hst
-	# hst											= setHStPrefix prefix hst
-	# (toServer, htmlTree, maybeError, _, _, hst)	= calculateTaskTree thisUserId traceOn False False mainTask mainUser hst // calculate the TaskTree given the id of the current user
-	# (taskStatus,html,inputs)						= determineTaskForTab thisUserId taskId htmlTree				// filter out the code and inputs to display in this tab
-	# (htmlstates,hst)								= getPageStates hst												// Collect states that must be temporarily stored in the browser
-	# hst =: {states}								= storeStates hst												// Write states that are stored on the server
+handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleWorkTabRequest request tst
+	# tst											= appHStTSt (setHStPrefix prefix) tst 	//Set editor prefix
+	# (mbError, mbTree, tst)						= calculateTaskTree processNr trace tst	//Calculate the task tree
+	= case mbTree of
+		Just taskTree
+			# (currentUser, tst)						= getCurrentUser tst
+			# (editorStates, tst)						= getEditorStates tst
+		
+			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (fst taskTree)	// filter out the code and inputs to display in this tab
 
-	//Tracing
-	# (stateTrace,states)							= mbStateTrace request states
-	# (updateTrace,states)							= mbUpdateTrace request states
-	# subTreeTrace									= mbSubTreeTrace request thisUserId taskId htmlTree
+			//Tracing
+			# stateTrace								= Nothing
+			# updateTrace								= Nothing
+			# subTreeTrace								= Nothing
+			
+			# activeTasks								= Nothing
+			# content									=
+				{TabContent
+				|	status			= taskStatus 
+				,	error			= mbError
+				,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
+				,	inputs			= inputs
+				,	prefix			= prefix
+				,	state			= editorStates
+				,	activeTasks		= activeTasks
+				,	stateTrace		= stateTrace
+				,	updateTrace		= updateTrace
+				,	subtreeTrace	= subTreeTrace
+				}																						// create tab data record
+			= ({http_emptyResponse & rsp_data = toJSON content}, tst)									// create the http response
 
-	# activeTasks									= if (taskStatus == TaskFinished || taskStatus == TaskDeleted) 
-														(Just [	mytaskdescr.taskNrId													
-														  \\ (mypath,mylast,mytaskdescr) <- determineTaskList thisUserId htmlTree
-													 	 ])
-											    		Nothing
-	# tempMessage									= case taskStatus of
-														TaskFinished	->	"TaskFinished"
-														TaskDeleted		->	"TaskDeleted"
-														TaskActivated	->	"TaskActivated"
-	# content										=
-		{TabContent
-		|	status			= taskStatus 
-		,	error			= maybeError
-		,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
-		,	inputs			= inputs
-		,	prefix			= prefix
-		,	state			= htmlstates
-		,	activeTasks		= activeTasks
-		,	stateTrace		= stateTrace
-		,	updateTrace		= updateTrace
-		,	subtreeTrace	= subTreeTrace
-		}																						// create tab data record
-	= ({http_emptyResponse & rsp_data = toJSON content}, {hst & states = states})				// create the http response
-	
+		Nothing	//Error case
+			= (treeErrorResponse,tst)
 where
-	thisUserId			= session.Session.userId										// fetch user id from the session
-	taskId 				= http_getValue "taskid" request.arg_get "error"				// fetch task id of the tab selecetd
-	traceOn				= http_getValue "trace" request.arg_post "" == "1"
-	prefix				= http_getValue "prefix" request.arg_post ""					// prepend a prefix to inputs when asked
+	taskId 				= http_getValue "taskid" request.arg_get "error"
+	processNr			= taskNrToProcessNr (taskNrFromString taskId)
+	trace				= http_getValue "trace" request.arg_post "" == "1"
+	prefix				= http_getValue "prefix" request.arg_post ""
 
+	treeErrorResponse	= {http_emptyResponse & rsp_data = "{\"success\" : false, \"error\" : \"Could not locate task tree\"}"}
+	
+	determineTaskForTab :: !UserId !TaskId !HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
+	determineTaskForTab userid taskid tree
+		= case locateSubTaskTree taskid tree of								//Find the subtree by task id
+			Nothing
+				= (TaskDeleted, [], [])										//Subtask not found, nothing to do anymore
+			Just subtree
+				# (html,inputs)	= collectTaskContent userid userid subtree	//Collect only the parts for the current user
+				= (test tree, html, inputs)
+		where																//Check the top node whether it is finished
+			test (description @@: html) 
+				| description.taskNrId == taskid && description.curStatus	= TaskFinished
+				| otherwise													= TaskActivated
+	
+	collectTaskContent :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
+	collectTaskContent thisuser taskuser (description @@: tree) 						
+		# (html,inputs)		= collectTaskContent thisuser description.taskWorkerId tree
+		| thisuser == description.taskWorkerId
+								= (html,inputs)
+		| otherwise				= ([],[])
+	collectTaskContent thisuser taskuser (CondAnd label nr [])
+		= ([],[])
+	collectTaskContent thisuser taskuser (CondAnd label nr [(index,tree):trees])
+		# (tag,input)			= collectTaskContent thisuser taskuser tree
+		# (tags,inputs)			= collectTaskContent thisuser taskuser (CondAnd label nr trees)
+		= (tag ++ tags,input ++ inputs)
+	collectTaskContent thisuser taskuser (tree1 +|+ tree2)
+		# (lhtml,linputs)	= collectTaskContent thisuser taskuser tree1
+		# (rhtml,rinputs)	= collectTaskContent thisuser taskuser tree2
+		= (lhtml <||> rhtml,linputs ++ rinputs)
+	collectTaskContent thisuser taskuser (tree1 +-+ tree2)
+		# (lhtml,linputs)	= collectTaskContent thisuser taskuser tree1
+		# (rhtml,rinputs)	= collectTaskContent thisuser taskuser tree2
+		= (lhtml <=> rhtml,linputs ++ rinputs)
+	collectTaskContent thisuser taskuser (BT bdtg inputs)
+		| thisuser == taskuser	= (bdtg,inputs)
+		| otherwise				= ([],[])
+	collectTaskContent thisuser taskuser (DivCode id tree)
+		# (html,inputs)			= collectTaskContent thisuser taskuser tree
+		| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs)
+		| otherwise				= ([],[])
+	collectTaskContent thisuser taskuser (TaskTrace traceinfo tree)
+		# (html,inputs)			= collectTaskContent thisuser taskuser tree
+		| thisuser == taskuser 	= (html,inputs)
+		| otherwise				= ([],[])
+
+
+/*
 	mbStateTrace req states
 		| traceOn
 			# (trace1,states)	= traceInStates states
@@ -85,4 +135,15 @@ where
 			= Just (toString (getTraceFromTaskTree thisUserId taskId htmlTree))
 		| otherwise
 			= Nothing
-	
+*/	
+/*
+	# (stateTrace,states)							= mbStateTrace request states
+	# (updateTrace,states)							= mbUpdateTrace request states
+	#  subTreeTrace									= mbSubTreeTrace request thisUserId taskId htmlTree
+
+	# activeTasks									= if (taskStatus == TaskFinished || taskStatus == TaskDeleted) 
+														(Just [	mytaskdescr.taskNrId													
+														  \\ (mypath,mylast,mytaskdescr) <- determineTaskList thisUserId htmlTree
+													 	 ])
+											    		Nothing
+*/

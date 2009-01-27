@@ -6,7 +6,7 @@ import Text
 import JSON
 import Time
 import iDataForms
-import TaskTree, TaskTreeFilters, InternaliTasksCommon
+import InternaliTasksCommon
 
 :: WorkList			= 	{ success		:: Bool
 						, total			:: Int
@@ -29,20 +29,17 @@ import TaskTree, TaskTreeFilters, InternaliTasksCommon
 					
 derive JSONEncode WorkList, WorkListItem, TaskPriority
 
-handleWorkListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleWorkListRequest mainTask mainUser request session hst
-	# uid							= session.Session.userId
-	# (toServer, htmlTree, maybeError, maybeProcessTable, maybeThreadTable,hst)	
-									= calculateTaskTree uid False False False mainTask mainUser hst 	// Calculate the TaskTree given the id of the current user
-	# workitems						= determineWorkItems uid htmlTree
-	# (workitems,hst)				= addDelegatorNames workitems hst
+handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleWorkListRequest request tst
+	# (mbError,forest,tst)			= calculateTaskForest False tst
+	# (uid, tst)					= getCurrentUser tst
+	# (workitems,tst)				= addDelegatorNames (flatten (map (determineWorkItems uid) (map fst forest))) tst
 	# worklist						= { success		= True
 										, total		= length workitems
 										, worklist	= workitems
 									  }
 	
-	= ({http_emptyResponse & rsp_data = toJSON worklist}, hst)
-
+	= ({http_emptyResponse & rsp_data = toJSON worklist}, tst)
 
 determineWorkItems :: !UserId !HtmlTree -> [WorkListItem]
 determineWorkItems uid tree = markLast (determineWorkItems` uid [] defaultDesc tree)
@@ -55,7 +52,7 @@ where
 						, delegatorId	= desc.TaskDescription.delegatorId
 						, delegatorName = ""
 						, processname	= desc.workflowLabel
-						, subject		= desc.taskLabel
+						, subject		= desc.TaskDescription.taskLabel
 						, priority		= desc.taskPriority
 						, timestamp		= (\(Time i) -> i) desc.timeCreated
 						, tree_path		= path
@@ -70,7 +67,7 @@ where
 						= [ { x
 							& delegatorId	= desc.TaskDescription.delegatorId
 							, processname	= desc.workflowLabel
-							, subject		= desc.taskLabel
+							, subject		= desc.TaskDescription.taskLabel
 							, priority		= desc.taskPriority
 							, timestamp		= (\(Time i) -> i) desc.timeCreated
 							} :xs]
@@ -147,7 +144,7 @@ where
 			, curStatus		= True
 			}
 			
-addDelegatorNames :: [WorkListItem] *HSt -> ([WorkListItem], *HSt)
+addDelegatorNames :: [WorkListItem] *TSt -> ([WorkListItem], *TSt)
 addDelegatorNames items hst
-	# (names, hst)		= accNWorldHSt (accUserDBNWorld (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items])) hst
+	# (names, hst)		= accHStTSt (accNWorldHSt (accUserDBNWorld (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items]))) hst
 	= ([{i & delegatorName = name} \\ i <- items & name <- names], hst)

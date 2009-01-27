@@ -42,7 +42,7 @@ itasks.ThreadTableTabPanel = Ext.extend(Ext.Panel, {
 	},
 	refresh: function() {
 		Ext.Ajax.request({
-			method: 'GET',
+			method: 'POST',
 			url: 'handlers/debug/threadtable',
 			params: this.applicationPanel.addSessionParam({}),
 			callback: this.processResponse,

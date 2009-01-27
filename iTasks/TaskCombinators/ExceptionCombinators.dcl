@@ -3,7 +3,7 @@ definition module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 
-import iTasksTypes
+import TSt
 
 /* 
 <^>				:: Evaluate the task; An exception of type e raised by this task, will be catched by the closest handler.

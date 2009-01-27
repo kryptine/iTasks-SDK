@@ -8,7 +8,7 @@ definition module BasicCombinators
 // *********************************************************************************************************************************
 //
 
-import iTasksTypes
+import TSt
 
 /*
 Standard monadic combinators on iTasks:

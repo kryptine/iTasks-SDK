@@ -1,16 +1,12 @@
 implementation module PromptingCombinators
+/**
+* This module contains some iTask combinators for html prompting
+*/
 
-// *********************************************************************************************************************************
-// This module contains some iTask combinators for html prompting
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
 import StdList, StdFunc
 import iDataTrivial, iDataFormlib
-import iTasksTypes
-
-defpixel :== 100
+import TSt
+import InternaliTasksCommon
 
 /*
 Prompting variants:
@@ -25,42 +21,42 @@ addHtml			:: add html code
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) 					-> Task a		| iCreate a
 (?>>) prompt task = Task doTask
 where
-	doTask tst=:{html=ohtml,activated}
+	doTask tst=:{html,activated}
 	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= appTaskTSt task {tst & html = BT [] []}
-	| activated 						= (a,{tst & html = ohtml +|+ nhtml})			// NEWTRACE
-	= (a,{tst & html = ohtml +|+ BT prompt [] +|+ nhtml})
+	# (a,tst=:{activated,html=nhtml}) 	= accTaskTSt task {tst & html = BT [] []}
+	| activated 						= (a,{tst & html = html +|+ nhtml})	// NEWTRACE
+	= (a,{tst & html = html +|+ BT prompt [] +|+ nhtml})
 
 (<<?) infixl 5 	:: !(Task a) ![HtmlTag] 					-> Task a		| iCreate a
 (<<?) task prompt = Task doTask
 where
-	doTask tst=:{html=ohtml,activated}
-	| not activated						= (createDefault,tst)
-	# (a,tst=:{activated,html=nhtml}) 	= appTaskTSt task {tst & html = BT [] []}
-	| activated 						= (a,{tst & html = ohtml +|+ nhtml})					// NEWTRACE
-	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt []})
+	doTask tst=:{html,activated}
+	| not activated							= (createDefault,tst)
+	# (a,tst=:{activated,html=nhtml}) 		= accTaskTSt task {tst & html = BT [] []}
+	| activated 							= (a,{tst & html = html +|+ nhtml})	// NEWTRACE
+	= (a,{tst & html = html +|+ nhtml +|+ BT prompt [] })
 
 (!>>) infixr 5 :: ![HtmlTag] !(Task a) -> (Task a) | iCreate a
 (!>>) prompt task = Task doTask
 where
-	doTask tst=:{html=ohtml,activated=myturn}
+	doTask tst=:{html,activated=myturn}
 	| not myturn			= (createDefault,tst)
-	# (a,tst=:{html=nhtml}) = appTaskTSt task {tst & html = BT [] []}
-	= (a,{tst & html = ohtml +|+ BT prompt [] +|+ nhtml})
+	# (a,tst=:{html=nhtml}) = accTaskTSt task {tst & html = BT [] []}
+	= (a,{tst & html = html +|+ BT prompt [] +|+ nhtml})
 
 (<<!) infixl 5 :: !(Task a) ![HtmlTag] -> (Task a) | iCreate a
 (<<!) task prompt = Task doTask
 where
-	doTask tst=:{html=ohtml,activated=myturn}
+	doTask tst=:{html,activated=myturn}
 	| not myturn			= (createDefault,tst)
-	# (a,tst=:{html=nhtml}) = appTaskTSt task {tst & html = BT [] []}
-	= (a,{tst & html = ohtml +|+ nhtml +|+ BT prompt []})
+	# (a,tst=:{html=nhtml}) = accTaskTSt task {tst & html = BT [] []}
+	= (a,{tst & html = html +|+ nhtml +|+ BT prompt []})
 
 
 addHtml :: ![HtmlTag] !*TSt -> *TSt
-addHtml bodytag  tst=:{activated, html}  
-| not activated = tst						// not active, return default value
-= {tst & html = html +|+ BT bodytag []}		// active, so perform task or get its result
+addHtml bodytag  tst=:{activated,html}  
+| not activated = tst							// not active, return default value
+= {tst & html = html +|+ BT bodytag []}	// active, so perform task or get its result
 
 iTaskButton :: !String -> HtmlButton
 iTaskButton label = HtmlButton label False

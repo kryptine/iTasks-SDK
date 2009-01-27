@@ -6,7 +6,7 @@ definition module PromptingCombinators
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksTypes, iDataWidgets
+import TSt, iDataWidgets
 
 /*
 Prompting variants:

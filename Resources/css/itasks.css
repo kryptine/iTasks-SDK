@@ -216,6 +216,7 @@ div.worktab .Trace {
     padding-right:0;
 }
 
+/* TRACE STYLES */
 div.trace {
 	border: #ccc 2px solid;
 	padding: 5px;
@@ -233,6 +234,39 @@ div.trace th {
 	font-weight: bold;
 	text-align: left;
 	padding: 2px;
+}
+
+div.trace-node {
+	width: 150px;
+	border: solid 1px #666;
+	color: #666;
+	font-size: smaller;
+	margin-bottom: 5px;
+}
+div.trace-sequence {
+	border: 1px dotted #000;
+	padding: 5px;
+}
+div.trace-parallel {
+	text-align: center;
+}
+div.trace-node-title {
+	background-color: #666;
+	color: #fff;
+	padding: 2px;
+	text-align: center;
+}
+
+div.trace-node-active {
+	border-color: #000;
+	color: #000;
+}
+div.trace-node-active div.trace-node-title {
+	background-color: #000;
+}
+
+div.trace-node th {
+	width: 75px;
 }
 
 /* WELCOME SCREEN STYLES */

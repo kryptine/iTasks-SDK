@@ -1,7 +1,7 @@
 definition module EditTasks
 
 
-import iTasksTypes
+import TSt
 
 /* 
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task

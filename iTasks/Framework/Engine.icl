@@ -1,33 +1,34 @@
 implementation module Engine
 
-import StdEnv
+import StdEnv, StdBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
-import UserDB
-import iTasksSettings, InternaliTasksCommon, InternaliTasksThreadHandling
-import BasicCombinators, iTasksProcessHandling
+import UserDB, ProcessDB
+import InternaliTasksCommon, InternaliTasksThreadHandling
+import BasicCombinators
 
 import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
-import AuthenticationHandler, DeauthenticationHandler, NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler //iTasks.Framework.Handlers.*
-import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
-import TaskTree, TaskTreeFilters
 
-import Session //iTasks.Framework.Session
+import AuthenticationHandler, DeauthenticationHandler, NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler
+import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
+
+
+import TSt, Session
 
 import JSON
 derive JSONDecode HtmlState, StorageFormat, Lifespan
 
 // ******************************************************************************************************
-// *** Server / Client startup
+// * Server / Client startup
 // ******************************************************************************************************
-startTaskEngine :: !(LabeledTask a) !Int !*World -> *World  	| iData a
-startTaskEngine mainTask mainUser world = doHtmlServer mainTask mainUser world		
+startEngine :: ![Workflow] !*World -> *World 
+startEngine flows world = doHtmlServer flows world		
 
-doHtmlServer :: (LabeledTask a) !Int !*World -> *World | iData a
-doHtmlServer mainTask uid world
+doHtmlServer :: [Workflow] !*World -> *World
+doHtmlServer flows world
 | ServerKind == Internal
 	# world	= instructions world
-	= startServer mainTask uid world	// link in the Clean http 1.0 server	
-//| ServerKind == CGI					// build as CGI application
+	= startServer flows world		// build as Clean http 1.0 server	
+//| ServerKind == CGI				// build as CGI application
 | otherwise
 	= unimplemented world
 where
@@ -47,18 +48,18 @@ where
 		# (_,world)			= fclose console world
 		= world
 
-startServer :: (LabeledTask a) !Int !*World -> *World | iData a
-startServer mainTask mainUser world
+startServer :: [Workflow] !*World -> *World
+startServer flows world
 	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
 	= http_startServer options   [((==) "/handlers/authenticate", handleAnonRequest handleAuthenticationRequest)
-								 ,((==) "/handlers/deauthenticate", handleSessionRequest handleDeauthenticationRequest)							
-								 ,((==) "/handlers/new/list", handleSessionRequest (handleNewListRequest mainTask mainUser))
-								 ,((==) "/handlers/new/start", handleSessionRequest (handleNewStartRequest mainTask mainUser))
-								 ,((==) "/handlers/work/list", handleSessionRequest (handleWorkListRequest mainTask mainUser))
-								 ,((==) "/handlers/work/tab", handleSessionRequest (handleWorkTabRequest mainTask mainUser))
-								 ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest (handleTaskTreeForestRequest mainTask mainUser))
-								 ,((==) "/handlers/debug/processtable", handleSessionRequest (handleProcessTableRequest mainTask mainUser))
-								 ,((==) "/handlers/debug/threadtable", handleSessionRequest (handleThreadTableRequest mainTask mainUser))
+								 ,((==) "/handlers/deauthenticate", handleSessionRequest flows handleDeauthenticationRequest)							
+								 ,((==) "/handlers/new/list", handleSessionRequest flows handleNewListRequest)
+								 ,((==) "/handlers/new/start", handleSessionRequest flows handleNewStartRequest)
+								 ,((==) "/handlers/work/list", handleSessionRequest flows handleWorkListRequest)
+								 ,((==) "/handlers/work/tab", handleSessionRequest flows handleWorkTabRequest)
+								 ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest flows handleTaskTreeForestRequest)
+								 ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
+								 ,((==) "/handlers/debug/threadtable", handleSessionRequest flows handleThreadTableRequest)
 								 ,(\_ -> True, handleStaticResourceRequest)
 								 ] world
 
@@ -85,7 +86,6 @@ handleStaticResourceRequest req world
 							   	,rsp_data = content}, world)		 							   
 	= http_notfoundResponse req world
 
-
 handleAnonRequest :: (HTTPRequest *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleAnonRequest handler request world
 	# hst						= initHSt request world
@@ -93,8 +93,8 @@ handleAnonRequest handler request world
 	# world						= finalizeHSt hst
 	= (response, world)
 
-handleSessionRequest :: (HTTPRequest Session *HSt -> (!HTTPResponse, !*HSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleSessionRequest handler request world
+handleSessionRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleSessionRequest flows handler request world
 	# hst						= initHSt request world
 	# sessionId					= http_getValue "session" (request.arg_get ++ request.arg_post) ""
 	# (mbSession,timeout,hst)	= restoreSession sessionId hst
@@ -104,9 +104,13 @@ handleSessionRequest handler request world
 			# world				= finalizeHSt hst
 			= ({http_emptyResponse & rsp_data = mkSessionFailureResponse timeout}, world)
 		(Just session)
-			# (response, hst)	= handler request session hst 
-			# hst				= storeStates hst
-			# world				= finalizeHSt hst
+			# (processdb, hst)		= openProcessDB hst
+			# tst					= mkTSt LSTxtFile LSTxtFile session flows hst processdb
+			# (response,tst =:{hst,processdb})
+									= handler request tst
+			# hst					= closeProcessDB processdb hst
+			# hst					= storeStates hst
+			# world					= finalizeHSt hst
 			= (response, world)		
 where
 	mkSessionFailureResponse to = "{\"success\" : false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
@@ -146,7 +150,6 @@ finalizeHSt hst =:{HSt | nworld = nworld =: {NWorld | world = world, gerda, data
 	# world						= closeDatabase gerda world									// close the relational database if option chosen
 	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= world
-	
 	
 // Database OPTION
 openDatabase database world

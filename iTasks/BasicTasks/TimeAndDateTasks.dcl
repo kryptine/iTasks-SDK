@@ -2,7 +2,7 @@ definition module TimeAndDateTasks
 /**
 * iTasks for Time and Date Handling
 */
-import iDataWidgets, iTasksTypes
+import TSt, iDataWidgets
 
 /*
 waitForTimeTask	:: Task is done when time has come

@@ -152,19 +152,16 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			if (data.error != null) {
                 this.autoClose(this.makeErrorMessage(data.error), 5);
             } else if(data.status == 'TaskFinished') { //Check if the task is done
-				//this.fireEvent('taskfinished', this.id); //TEMPORARY
+				this.fireEvent('taskfinished', this.taskinfo.taskid);
 				this.autoClose(this.makeFinishedMessage(), 5);
             } else if(data.status == 'TaskDeleted') {
-                this.fireEvent('taskdeleted', this.id);
+                this.fireEvent('taskdeleted', this.taskinfo.taskid);
                 this.autoClose(this.makeDeletedMessage(), 5);
             } else {	
 				//Fill the content and trace panels
 				this.setupContentPanel(trace, data);
 				this.setupTracePanels(trace, data);
 			}
-			
-			//TEMPORARY
-			this.fireEvent('taskfinished', this.id);
 			
 			//Hide the current content panel and switch to new content
 			this.switchContentPanels(trace);
@@ -441,7 +438,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		
 		//Send the data to the server
 		Ext.Ajax.request({
-			url: 'handlers/work/tab?taskid=' + this.id,
+			url: 'handlers/work/tab?taskid=' + this.taskinfo.taskid,
 			method: "POST",
 			params: params,
 			scripts: false,

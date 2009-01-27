@@ -1,30 +1,26 @@
 implementation module NewStartHandler
 
 import StdEnv
-import Http, Session
-import JSON
-import InternaliTasksCommon
-import iTasksProcessHandling
+import Http, Session, TSt, ProcessDB
 
+handleNewStartRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleNewStartRequest request tst	
+	# (mbWorkflow, tst)		= getWorkflowByName workflowId tst
+	= case mbWorkflow of
+		Nothing
+			= ({http_emptyResponse & rsp_data = "{\"success\" : false }" }, tst)
+		Just workflow
+			# (taskid, tst)	= startNewWorkflow workflow tst
+			= ({http_emptyResponse & rsp_data = response taskid}, tst)			
 
-:: NewWorkItem	= 	{ icon		:: String 	// An icon name. The actual icon image is defined in the css. 
-					, label		:: String 	// A label of the workflow that is started
-					}
-
-derive JSONEncode NewWorkItem
-
-handleNewStartRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
-handleNewStartRequest labeledTask mainuser request session hst	
-	# (taskid,hst) = startNewProcess labeledTask hst
-	= ({http_emptyResponse & rsp_data = response taskid}, hst)
 where
-	workflow = http_getValue "workflow" request.arg_get ""
-	response taskid = "{\"success\" : true, \"taskid\": \""  +++ (toString taskid) /* workflow */ +++ "\"}"
+	workflowId :: String
+	workflowId = http_getValue "workflow" request.arg_get ""
 	
-	thisUser		= session.Session.userId						// fetch user id from the session
-	
-	startNewProcess labeledTask hst 
-	# tst 				= mkTst mainuser LSTxtFile LSTxtFile hst	// create initial tst	
-	# (processId, tst) 	= latestProcessId tst
-	# (wid,tst=:{hst}) 	= appTaskTSt (spawnWorkflow thisUser True labeledTask) {tst & tasknr = [processId]}
-	= (getProcessId wid, hst)
+	response :: Int -> String
+	response taskid	= "{\"success\" : true, \"taskid\": \""  +++ (toString taskid) +++ "\"}"
+
+	startNewWorkflow :: Workflow *TSt -> (Int, *TSt)
+	startNewWorkflow workflow tst
+		# (currentUser, tst) = getCurrentUser tst
+		= accProcessDBTSt (createProcess (createStaticProcessEntry workflow currentUser Active)) tst

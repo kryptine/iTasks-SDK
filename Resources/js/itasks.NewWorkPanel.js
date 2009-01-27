@@ -49,6 +49,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.Panel, {
 			var num = data.length;
 			for(var i = 0; i < num; i++) {
 			
+				var name = data[i].name;
 				var label = data[i].label;
 				var icon = data[i].icon;
 				
@@ -58,9 +59,9 @@ itasks.NewWorkPanel = Ext.extend(Ext.Panel, {
 				
 				//Attach click handler
 				li.on('click', function(el,evt,options) {
-					this.startWork(options.flowLabel);
+					this.startWork(options.flowName);
 					
-				},this,{flowLabel : label});
+				},this,{flowName : name});
 			}
 		}
 	},

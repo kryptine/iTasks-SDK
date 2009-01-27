@@ -1,9 +1,9 @@
-definition module WorkTabHandler //iTasks.Handlers.WorkTabHandler
-
-import Http, Session
-import InternaliTasksCommon
-
+definition module WorkTabHandler
 /**
-* Handles the ajax requests for a work tab panel.
+* This module provides a handler function that generates the
+* content of the "work tabs". These are the collections of tasks
+* that are combined as a single unit of work in the user interface.
 */
-handleWorkTabRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+import Http, TSt
+
+handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

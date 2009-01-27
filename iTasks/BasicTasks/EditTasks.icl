@@ -1,37 +1,38 @@
 implementation module EditTasks
 
 import StdList, StdTuple, StdFunc
-import iTasksTypes
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
+import TuningCombinators
+import InternaliTasksCommon
 
 editTaskLabel :: !String !String !a -> (Task a) | iData a 
-editTaskLabel tracename prompt task = Task (\tst =:{options} -> appTaskTSt (mkTask tracename ((Task (editTask` prompt task) <<@ (nPage options)) <<@ Edit)) tst)
+editTaskLabel tracename prompt task = Task (\tst =:{options} -> accTaskTSt (mkTask tracename ((Task (editTask` prompt task) <<@ (nPage options)) <<@ Edit)) tst)
 where
 	nPage options = if (options.tasklife == LSClient) LSClient LSPage 
 
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkTask "editTask" (Task (editTask` prompt a))
 
-editTask` prompt a tst=:{tasknr,html,hst,userId}
-# taskId			= iTaskId userId tasknr "EdFin"
-# editId			= iTaskId userId tasknr "EdVal"
-# buttonId			= iTaskId userId tasknr "EdBut"
-# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  		// determine if the task has been done previously
-| taskdone.Form.value																			// test if task has completed
-	# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)			// yes, read out current value, make editor passive
-	= (editor.Form.value,{tst & activated = True, hst = hst})									// return result task
-# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a) hst						// no, read out current value from active editor
-# (finbut,hst)  	= mySimpleButton tst.options buttonId prompt (\_ -> True) hst				// add button for marking task as done
-# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time
-| taskdone.Form.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
-= (editor.Form.value,{tst & activated = taskdone.Form.value, html = html +|+ BT (editor.form ++ finbut.form) (editor.inputs ++ finbut.inputs), hst = hst})
+editTask` prompt a tst=:{taskNr,html,hst,userId}
+	# taskId			= iTaskId userId taskNr "EdFin"
+	# editId			= iTaskId userId taskNr "EdVal"
+	# buttonId			= iTaskId userId taskNr "EdBut"
+	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  		// determine if the task has been done previously
+	| taskdone.Form.value																			// test if task has completed
+		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)			// yes, read out current value, make editor passive
+		= (editor.Form.value,{tst & activated = True, hst = hst})									// return result task
+	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a) hst						// no, read out current value from active editor
+	# (finbut,hst)  	= mySimpleButton tst.options buttonId prompt (\_ -> True) hst				// add button for marking task as done
+	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time
+	| taskdone.Form.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
+	= (editor.Form.value,{tst & activated = taskdone.Form.value, html = html +|+ BT (editor.form ++ finbut.form) (editor.inputs ++ finbut.inputs), hst = hst})
 
 editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
 editTaskPred  a pred = mkTask "editTask" (Task (editTaskPred` a))
 where
-	editTaskPred` a tst=:{tasknr,html,hst,userId}
-	# taskId			= iTaskId userId tasknr "EdFin"
-	# editId			= iTaskId userId tasknr "EdVal"
+	editTaskPred` a tst=:{taskNr,html,hst,userId}
+	# taskId			= iTaskId userId taskNr "EdFin"
+	# editId			= iTaskId userId taskNr "EdVal"
 	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  	// remember if the task has been done
 	| taskdone.Form.value																			// test if task has completed
 		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)		// yes, read out current value, make editor passive

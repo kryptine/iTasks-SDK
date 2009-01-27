@@ -1,4 +1,4 @@
-definition module AuthenticationHandler //iTasks.Handlers.AuthenticationHandler
+definition module AuthenticationHandler
 
 import Http
 import HSt

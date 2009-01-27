@@ -23,13 +23,13 @@ derive gUpd 	[]
 
 nmessage = 5
 
-Start world = startTaskEngine (doWork 0 "Rinus") world
+Start world = startEngine [{ name = "newsGroups", label = "Newsgroups example", roles = [], mainTask = (doWork 0 "Rinus") }] world
 
-doWork 0 acc =  newsManager 0 acc					// for the root
+doWork 0 acc =  newsManager 0 acc		// for the root
 doWork i acc =  newsReader  i acc		// all others
 
 newsManager i name
-=							spawnWorkflow i True ("subscribe",newsReader i name)
+=							spawnProcess i True ("subscribe",newsReader i name)
 	#>>						manageGroups
 where
 	manageGroups
@@ -68,7 +68,7 @@ where
 		subscribe groups
 		=						[Text "Choose a group:", BrTag [],BrTag []] ?>> PDMenu groups  
 			=>> \(_,group)	->	addSubscription me (group,0)
-			#>>					spawnWorkflow me True (group,readNews me group)
+			#>>					spawnProcess me True (group,readNews me group)
 			#>> 				[Text "You have subscribed to news group ", BTag [] [Text group],BrTag [],BrTag []] 
 								?>> OK
 
@@ -82,7 +82,7 @@ where
 														,("update",		return_V Void)
 														,(">>",			readNextNewsItems me (group,index) nmessage (length news))
 														,("commitNews",	commitItem group me)
-														,("unsubscribe",deleteMe)
+														,("unsubscribe",deleteCurrentProcess #>> return_V Void)
 														]
 							)
 

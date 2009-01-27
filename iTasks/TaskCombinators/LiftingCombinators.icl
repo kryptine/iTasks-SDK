@@ -1,39 +1,40 @@
 implementation module LiftingCombinators
 
 import EditTasks, BasicCombinators
+import InternaliTasksCommon
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
 (*=>) ftst b = Task doit
 where
 	doit tst
 	# (a,tst) = ftst tst
-	= appTaskTSt (b a) tst
+	= accTaskTSt (b a) tst
 
 (*#>) infix 4 :: !(TSt -> TSt) !(Task a) -> Task a
 (*#>) ftst b = Task doit
 where
 	doit tst
 	# tst = ftst tst
-	= appTaskTSt b tst
+	= accTaskTSt b tst
 
 appIData :: !(IDataFun a) -> (Task a) | iData a 
-appIData idatafun = Task ( \tst -> appTaskTSt (mkTask "appIData" (Task (appIData` idatafun))) tst)
+appIData idatafun = Task ( \tst -> accTaskTSt (mkTask "appIData" (Task (appIData` idatafun))) tst)
 where
-	appIData` idata tst=:{tasknr,html,hst}
-	# (idata,hst) 										= idatafun hst
-	# (_,{tasknr,activated,html=ahtml,hst}) 			= appTaskTSt (editTaskLabel "appIDataDone" "Done" Void) {tst & activated = True, html = BT [] [],hst = hst}	
-	= (idata.Form.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
-															(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst})
+	appIData` idata tst =:{taskNr,html,hst}
+		# (idata,hst) 											= idatafun hst
+		# (_, {taskNr,activated,html=ahtml,hst,processdb}) 	= accTaskTSt (editTaskLabel "appIDataDone" "Done" Void) {tst & activated = True, html = BT [] [],hst = hst}	
+		= (idata.Form.value, {tst & taskNr = taskNr,activated	= activated, html = html +|+ 
+																	(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst, processdb = processdb})
 
 appIData2 :: !(String *HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
-appIData2 idatafun = Task (\tst -> appTaskTSt (mkTask "appIData" (Task (appIData` idatafun))) tst)
+appIData2 idatafun = Task (\tst -> accTaskTSt (mkTask "appIData" (Task (appIData` idatafun))) tst)
 where
-	appIData` idata tst=:{tasknr,html,hst,userId}
-	# taskId											= iTaskId userId tasknr "iData"
-	# (idata,hst) 										= idatafun taskId hst
-	# (_,{tasknr,activated,html=ahtml,hst}) 			= appTaskTSt (editTaskLabel "appIDataDone" "Done" Void) {tst & activated = True, html = BT [] [],hst = hst}	
-	= (idata.Form.value,{tst & tasknr = tasknr,activated = activated, html = html +|+ 
-															(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst})
+	appIData` idata tst =:{taskNr,html,hst,userId}
+	# taskId												= iTaskId userId taskNr "iData"
+	# (idata,hst) 											= idatafun taskId hst
+	# (_,{taskNr,activated,html=ahtml,hst,processdb}) 		= accTaskTSt (editTaskLabel "appIDataDone" "Done" Void) {tst & activated = True, html = BT [] [],hst = hst}	
+	= (idata.Form.value,{tst & taskNr = taskNr,activated	= activated, html = html +|+ 
+																(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst, processdb = processdb})
 
 appHStOnce :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
 appHStOnce label fun = Once label (Task (liftHst fun))

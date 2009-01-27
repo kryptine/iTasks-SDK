@@ -13,56 +13,6 @@ where
 	(==) TaskDeleted 	TaskDeleted 	= True
 	(==) _ 				_ 				= False
 
-determineTaskList :: !UserId !HtmlTree -> [([Bool],Bool,TaskDescription)]
-determineTaskList thisuser tree = fst (determineTaskList` thisuser [] tree defaultTaskDescriptor)
-where
-	determineSubTaskList thisuser path [] taskDescr
-		= []
-	determineSubTaskList thisuser path [(desc,t)] taskDescr
-		# collection = fst (determineTaskList` thisuser (path ++ [False]) t taskDescr)
-		= [(path ++ [False],True,taskDescr):collection]
-	determineSubTaskList thisuser path [(desc,t):ts] taskDescr
-		# collection = fst (determineTaskList` thisuser (path ++ [False]) t taskDescr)
-		# collections = determineSubTaskList thisuser path ts taskDescr
-		= [(path ++ [False],True,taskDescr):collection] ++ collections
-			
-
-	determineTaskList` thisuser path (ntaskDescr @@: tree) taskDescr 	
-		# (collected, more)						= determineTaskList` thisuser path tree ntaskDescr								
-		| ntaskDescr.taskWorkerId == thisuser	= ([(path, not more,ntaskDescr):collected], True)
-												= (collected, more)
-
-	determineTaskList` thisuser path (CondAnd label nr ts) taskDescr
-		# collections = determineSubTaskList thisuser path ts taskDescr
-		= ([(path,True,taskDescr):collections],True)
-
-
-	/*	
-	determineTaskList` thisuser path (CondAnd label nr []) taskDescr
-												= ([], False)
-												
-	determineTaskList` thisuser path (CondAnd label nr [t=:(condAndDescr,htmlTree):ts]) taskDescr
-		# collection							= determineTaskList` thisuser path htmlTree taskDescr
-		# collections 							= determineTaskList` thisuser path (CondAnd label nr ts) taskDescr
-		= [(path,True,{taskDescr & taskNrId = condAndDescr.caTaskNrId, taskLabel = label, curStatus = condAndDescr.caStatus})] ++ collection ++ collections
-	*/
-	determineTaskList` thisuser path (tree1 +|+ tree2) taskDescr
-		# (collection1, more1)					= determineTaskList` thisuser path tree1 taskDescr
-		# (collection2, more2)					= determineTaskList` thisuser path tree2 taskDescr
-		= (collection1 ++ collection2, more1 || more2) 
-	
-	determineTaskList` thisuser path (tree1 +-+ tree2) taskDescr
-		# (collection1, more1)					= determineTaskList` thisuser path tree1 taskDescr
-		# (collection2, more2)					= determineTaskList` thisuser path tree2 taskDescr
-		= (collection1 ++ collection2, more1 || more2)
-	
-	determineTaskList` thisuser path (BT html inputs) taskDescr
-		= ([], False)
-	determineTaskList` thisuser path (DivCode id tree) taskDescr
-		= determineTaskList` thisuser path tree taskDescr
-	determineTaskList` thisuser path (TaskTrace traceinfo tree) taskDescr
-		= determineTaskList` thisuser path tree taskDescr
-
 defaultTaskDescriptor
 	=	{ delegatorId	= 0								
 		, taskWorkerId	= 0								
@@ -74,117 +24,6 @@ defaultTaskDescriptor
 		, taskPriority	= LowPriority
 		, curStatus		= True
 		}
-
-determineTaskForTab :: !UserId !String !HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
-determineTaskForTab thisuser thistaskid tree
-	= case determineMyTaskTree thisuser thistaskid tree of							//Find the subtree by task id
-		Nothing
-			= (TaskDeleted, [], [])													//Subtask not found, nothing to do anymore
-		Just tree
-			# (html,inputs)	= mkFilteredTaskTree thisuser thisuser tree				//Collect only the parts for the current user
-			= (test tree, html, inputs)
-	where
-		test (description @@: html) 
-		| description.taskNrId == thistaskid && description.curStatus = TaskFinished
-		= TaskActivated
-
-mkFilteredTaskTree :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
-mkFilteredTaskTree thisuser taskuser (description @@: tree) 						
-	# (html,inputs)		= mkFilteredTaskTree thisuser description.taskWorkerId tree
-	| thisuser == description.taskWorkerId
-							= (html,inputs)
-	| otherwise				= ([],[])
-mkFilteredTaskTree thisuser taskuser (CondAnd label nr [])
-	= ([],[])
-mkFilteredTaskTree thisuser taskuser (CondAnd label nr [(index,tree):trees])
-	# (tag,input)			= mkFilteredTaskTree thisuser taskuser tree
-	# (tags,inputs)			= mkFilteredTaskTree thisuser taskuser (CondAnd label nr trees)
-	= (tag ++ tags,input ++ inputs)
-mkFilteredTaskTree thisuser taskuser (tree1 +|+ tree2)
-	# (lhtml,linputs)	= mkFilteredTaskTree thisuser taskuser tree1
-	# (rhtml,rinputs)	= mkFilteredTaskTree thisuser taskuser tree2
-	= (lhtml <||> rhtml,linputs ++ rinputs)
-mkFilteredTaskTree thisuser taskuser (tree1 +-+ tree2)
-	# (lhtml,linputs)	= mkFilteredTaskTree thisuser taskuser tree1
-	# (rhtml,rinputs)	= mkFilteredTaskTree thisuser taskuser tree2
-	= (lhtml <=> rhtml,linputs ++ rinputs)
-mkFilteredTaskTree thisuser taskuser (BT bdtg inputs)
-	| thisuser == taskuser	= (bdtg,inputs)
-	| otherwise				= ([],[])
-mkFilteredTaskTree thisuser taskuser (DivCode id tree)
-	# (html,inputs)			= mkFilteredTaskTree thisuser taskuser tree
-	| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs)
-	| otherwise				= ([],[])
-mkFilteredTaskTree thisuser taskuser (TaskTrace traceinfo tree)
-	# (html,inputs)			= mkFilteredTaskTree thisuser taskuser tree
-	| thisuser == taskuser 	= (html,inputs)
-	| otherwise				= ([],[])
-
-mkUnfilteredTaskTree :: !HtmlTree -> (![HtmlTag],![InputId])
-mkUnfilteredTaskTree (BT body inputs) 			= (body, inputs)
-mkUnfilteredTaskTree (_ @@: html) 				= mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (CondAnd label nr []) 		= ([],[])
-mkUnfilteredTaskTree (CondAnd label nr [(tn,tree):trees]) 		
-												= (htmlL ++ htmlR,inpL ++ inpR)
-where
-	(htmlL,inpL) = mkUnfilteredTaskTree tree
-	(htmlR,inpR) = mkUnfilteredTaskTree (CondAnd label nr trees)
-mkUnfilteredTaskTree (DivCode str html) 		= mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (TaskTrace traceinfo html) = mkUnfilteredTaskTree html
-mkUnfilteredTaskTree (nodeL +-+ nodeR) 			= (htmlL <=> htmlR,inpL ++ inpR)
-where
-	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
-	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
-mkUnfilteredTaskTree (nodeL +|+ nodeR) 			= (htmlL <||> htmlR, inpL ++ inpR)
-where
-	(htmlL,inpL) = mkUnfilteredTaskTree nodeL
-	(htmlR,inpR) = mkUnfilteredTaskTree nodeR
-
-// ******************************************************************************************************
-// Search for that part of the task tree which is applicable for a given user and a given task
-// ******************************************************************************************************
-
-determineMyTaskTree :: !UserId !String !HtmlTree -> Maybe HtmlTree
-determineMyTaskTree thisuser thistaskid tree = determineMyTaskTree` thisuser thistaskid tree defaultTaskDescriptor
-where
-	determineMyTaskTree` thisuser thistaskid  (BT bdtg inputs) taskDescr
-		= Nothing
-	determineMyTaskTree` thisuser thistaskid (CondAnd label nr []) taskDescr
-		= Nothing
-	determineMyTaskTree` thisuser thistaskid (CondAnd label nr [(condAndDescr,tree):trees]) taskDescr
-		| thistaskid == condAndDescr.caTaskNrId				
-											= Just ({taskDescr 	& taskNrId 	= thistaskid
-																, taskLabel = label <+++ condAndDescr.caIndex
-																, curStatus = condAndDescr.caStatus} @@: (pruneTree tree))
-		# mbTree							= determineMyTaskTree` thisuser thistaskid tree taskDescr
-		| isNothing mbTree					= determineMyTaskTree` thisuser thistaskid (CondAnd label nr trees) taskDescr
-		= mbTree
-	determineMyTaskTree` thisuser thistaskid  (tree1 +-+ tree2) taskDescr
-		# ntree1							= determineMyTaskTree` thisuser thistaskid tree1 taskDescr
-		| isJust ntree1						= ntree1
-											= determineMyTaskTree` thisuser thistaskid tree2 taskDescr
-	determineMyTaskTree` thisuser thistaskid (tree1 +|+ tree2) taskDescr
-		# ntree1							= determineMyTaskTree` thisuser thistaskid tree1 taskDescr
-		| isJust ntree1						= ntree1
-											= determineMyTaskTree` thisuser thistaskid tree2 taskDescr
-	determineMyTaskTree` thisuser thistaskid (DivCode id tree) taskDescr
-											= determineMyTaskTree` thisuser thistaskid tree taskDescr
-	determineMyTaskTree` thisuser thistaskid (TaskTrace traceinfo tree) taskDescr
-											= determineMyTaskTree` thisuser thistaskid tree taskDescr
-	determineMyTaskTree` thisuser thistaskid (taskdescr @@: tree) taskDescr	
-		| taskdescr.taskNrId 	 == thistaskid	&&
-		  taskdescr.taskWorkerId == thisuser= Just (taskdescr @@: (pruneTree tree))
-											= determineMyTaskTree` thisuser thistaskid tree taskdescr
-
-	pruneTree :: !HtmlTree -> HtmlTree		// delete all sub trees not belonging to this task
-	pruneTree (taskdescr @@: tree)			= BT [] []								// this task will appear in another tab						
-	pruneTree (CondAnd label nr trees)		= BT [] [] 								// this task will appear in another tab as well
-	pruneTree (tree1 +|+ tree2)				= pruneTree tree1 +|+ pruneTree tree2
-	pruneTree (tree1 +-+ tree2)				= pruneTree tree1 +-+ pruneTree tree2
-	pruneTree (BT bdtg inputs)				= BT bdtg inputs
-	pruneTree (DivCode id tree)				= DivCode id (pruneTree tree)
-	pruneTree (TaskTrace traceinfo tree)	= TaskTrace traceinfo (pruneTree tree)
-
 
 // ******************************************************************************************************
 // Trace Calculation
@@ -251,6 +90,7 @@ where
 			updateAt` 0 x [y:ys]	= [x:ys]
 			updateAt` n x []		= [Trace Nothing []	: updateAt` (n-1) x []]
 			updateAt` n x [y:ys]	= [y      			: updateAt` (n-1) x ys]
+
 
 // ******************************************************************************************************
 // Displaying Task Tree Trace information

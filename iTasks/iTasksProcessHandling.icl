@@ -143,25 +143,25 @@ scheduleWorkflows mainTask mainUser
 	(Task (scheduleWorkflows` nmaintask))
 where
 	scheduleWorkflows` nmaintask tst 
-	# (a,tst=:{activated}) 	= appTaskTSt nmaintask tst	// start maintask
+	# (a,tst=:{activated}) 	= accTaskTSt nmaintask tst	// start maintask
 	# ((_,wfls),tst) 		= workflowProcessStore id tst												// read workflow process administration
 	# (done,tst)			= scheduleWorkflowTable True wfls 0 {tst & activated = True}				// all added workflows processes are inspected (THIS NEEDS TO BE OPTIMIZED AT SOME STAGE)
 	= (a,{tst & activated = activated && done})															// whole application ends when all processes have ended
 
 scheduleWorkflowTable done [] _ tst = (done,tst)
 scheduleWorkflowTable done [ActiveWorkflow _  dyntask:wfls] procid tst
-# (_,tst=:{activated}) = appTaskTSt dyntask {tst & activated = True}
+# (_,tst=:{activated}) = accTaskTSt dyntask {tst & activated = True}
 = scheduleWorkflowTable (done && activated) wfls (inc procid) {tst & activated = activated}
 scheduleWorkflowTable done [SuspendedWorkflow _ _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [FinishedWorkflow _ _ dyntask:wfls] procid tst	// just to show result in trace..
-# (_,tst) = appTaskTSt dyntask tst
+# (_,tst) = accTaskTSt dyntask tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 scheduleWorkflowTable done [DeletedWorkflow _:wfls] procid tst
 = scheduleWorkflowTable done wfls (inc procid) tst
 
 spawnWorkflow :: !UserId !Bool !(LabeledTask a) -> Task (Wid a) | iData a
-spawnWorkflow userid active (label,task) = Task (\tst=:{options,staticInfo} -> appTaskTSt ((newTask ("spawn " +++ label) (Task (spawnWorkflow` options))<<@ staticInfo.threadTableLoc)) tst)
+spawnWorkflow userid active (label,task) = Task (\tst=:{options,staticInfo} -> accTaskTSt ((newTask ("spawn " +++ label) (Task (spawnWorkflow` options))<<@ staticInfo.threadTableLoc)) tst)
 where
 	spawnWorkflow` options tst
 	# ((processid,wfls),tst) 		
@@ -173,7 +173,7 @@ where
 							(updateAt (entry - 1) (if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) wfl) wfls)
 							(wfls ++ [if active ActiveWorkflow SuspendedWorkflow (userid,processid,label) wfl])				// turn task into a dynamic task
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (processid,nwfls)) tst	// write workflow process administration
-	# (_,tst)			= appTaskTSt (if active wfl (Task (\tst -> (undef,tst)))) tst	// if new workflow is active, schedule it in
+	# (_,tst)			= accTaskTSt (if active wfl (Task (\tst -> (undef,tst)))) tst	// if new workflow is active, schedule it in
 	= (Wid (entry,(userid,processid,label)),{tst & activated = True})
 
 	findFreeEntry :: [WorkflowProcess] Int -> (Bool,Int)
@@ -190,8 +190,8 @@ where
 	# ((processid,wfls),tst) 	= workflowProcessStore id tst					// read workflow process administration
 	# wfl						= wfls!!(entry - 1)								// fetch entry
 	# currentWorker				= getWorkflowUser wfl							// such that worker can be changed dynamically !
-//	# (a,tst=:{activated})		= appTaskTSt (newTask label (mkTask "StartMain" (assignTaskTo currentWorker ("main",task)))) tst			
-	# (a,tst=:{activated})		= appTaskTSt (assignTaskTo currentWorker ("main",task)) tst			
+//	# (a,tst=:{activated})		= accTaskTSt (newTask label (mkTask "StartMain" (assignTaskTo currentWorker ("main",task)))) tst			
+	# (a,tst=:{activated})		= accTaskTSt (assignTaskTo currentWorker ("main",task)) tst			
 
 	# dyn						= dynamic a
 	| not activated				= (dyn,tst)										// not finished, return
@@ -262,7 +262,7 @@ deleteMe :: (Task Void)
 deleteMe = Task deleteMe`
 where
 	deleteMe` tst=:{workflowLink} 
-	=	appTaskTSt (				deleteWorkflow (Wid workflowLink)
+	=	accTaskTSt (				deleteWorkflow (Wid workflowLink)
 			=>> \_ ->	return_V Void ) tst
 
 deleteWorkflow :: !(Wid a) -> Task Bool 
@@ -277,7 +277,7 @@ where
 	| isDeletedWorkflow wfl = (True,tst)										// already deleted
 	# nwfls				= updateAt (entry - 1) (DeletedWorkflow ids) wfls		// delete entry in table
 	# (wfls,tst=:{html}) = workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	# (_,tst)			= appTaskTSt (getTask wfl) {tst & html = BT [] []}					// calculate workflow to delete for the last time to obtain all its itasks in the task tree
+	# (_,tst)			= accTaskTSt (getTask wfl) {tst & html = BT [] []}		// calculate workflow to delete for the last time to obtain all its itasks in the task tree
 	# tst				= deleteSubTasksAndThreads [entry] tst					// delete all iTask storage of this process ...
 	= (True,{tst & html = html, activated = True})												// if everything is fine it should always succeed
 
@@ -286,7 +286,7 @@ suspendMe = Task suspendMe`
 where
 	suspendMe` tst=:{workflowLink = workflowLink=:(entry,ids)} 
 	| entry == 0		= (Void,tst)											// main task cannot be handled
-	= appTaskTSt (	suspendWorkflow (Wid workflowLink)
+	= accTaskTSt (	suspendWorkflow (Wid workflowLink)
 			=>> \_ ->	return_V Void ) tst
 
 suspendWorkflow :: !(Wid a) -> Task Bool
@@ -324,7 +324,7 @@ where
 	scheduleWorkflow label maxid wfl wfls tst										
 	# nwfls				= updateAt (entry - 1) (ActiveWorkflow label wfl) wfls // mark workflow as activated
 	# (wfls,tst) 		= workflowProcessStore (\_ -> (maxid,nwfls)) tst		// update workflow process administration
-	# (_,tst)			= appTaskTSt wfl {tst & activated = True}				// schedule workflow
+	# (_,tst)			= accTaskTSt wfl {tst & activated = True}				// schedule workflow
 	= (True,tst)																// done
 
 
@@ -384,7 +384,7 @@ where
 	where
 		header	= TrTag [] 
 					[   ThTag [] [Text "Entry"], 		ThTag [] [Text "User Id"],  ThTag [] [Text "Process Id"],  ThTag [] [Text "Task Name"], 		 ThTag [] [Text "Status"]]
-		rows	= 	[	TrTag [] [TdTag [] [Text "0"],  TdTag [] [Text "0"], 		TdTag [] [Text "0"], 		   TdTag [] [Text defaultWorkflowName], TdTag [] [if alldone (Text "Finished") (Text "Active")]]
+		rows	= 	[	TrTag [] [TdTag [] [Text "0"],  TdTag [] [Text "0"], 		TdTag [] [Text "0"], 		   TdTag [] [Text "start"], TdTag [] [if alldone (Text "Finished") (Text "Active")]]
 					: [ TrTag [] [TdTag [] [Text (toString i)]: showStatus wfl] \\ wfl <- wfls & i <- [1..]]
 					]
 

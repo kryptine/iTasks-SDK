@@ -6,7 +6,6 @@ definition module InternaliTasksCommon
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import iTasksSettings
 import Time
 import Html
 import TSt
@@ -24,16 +23,8 @@ instance == GarbageCollect
 // Here follow some commonly used internal functions
 
 /* Support for user defined combinators
-mkTask 				:: to promote a function of proper type to a task
-mkParSubTask 		:: create a subtask with indicated task nr
-
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
-
 */
-
-
-mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
-mkParSubTask 		:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a					// two shifts are needed
 
 iTaskId 			:: !Int !TaskNr !String 	-> String
 

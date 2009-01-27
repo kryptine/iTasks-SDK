@@ -1,4 +1,4 @@
-definition module Combinators
+definition module CommonCombinators
 /**
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators

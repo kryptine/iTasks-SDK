@@ -1,10 +1,8 @@
 definition module WorkListHandler //iTasks.Handlers.WorkListHandler
 
-import Http, Session
-//import TaskTree
-import InternaliTasksCommon
+import Http, TSt
 
 /**
 * Handles the ajax requests from the current work filter panel.
 */
-handleWorkListRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

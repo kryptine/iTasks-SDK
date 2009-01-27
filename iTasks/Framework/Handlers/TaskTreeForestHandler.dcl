@@ -1,9 +1,8 @@
-definition module TaskTreeForestHandler //iTasks.Handlers.TaskTreeForestHandler
-
-import Http, Session
-import InternaliTasksCommon
-
+definition module TaskTreeForestHandler
 /**
-* Handles the ajax requests for a TaskTreeForest tab panel.
+* This module provides a handler that computes and visualizes the complete! task forest
+* of all relevant processes for the current user.
 */
-handleTaskTreeForestRequest :: !(LabeledTask a) !Int !HTTPRequest !Session *HSt -> (!HTTPResponse, !*HSt) | iData a
+import Http, TSt
+
+handleTaskTreeForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
