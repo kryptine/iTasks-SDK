@@ -3,10 +3,9 @@ implementation module iDataForms
 import StdArray, StdChar, StdList, StdStrictLists, StdString, StdTuple, StdFile, StdOrdList
 import ArgEnv, StdMaybe
 import iDataTrivial, iDataSettings, iDataState
-import StdGeneric, GenParse, GenPrint
+import StdGeneric, GenParse, GenPrint, GenBimap
 import Http, HttpUtil, HttpServer, HttpTextUtil
 import Gerda
-import StdBimap
 import HSt
 import Html
 

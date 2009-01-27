@@ -6,7 +6,7 @@ implementation module InternaliTasksThreadHandling
 // iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
 // *********************************************************************************************************************************
 //
-import StdEnv, StdBimap
+import StdEnv, GenBimap
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
 import InternaliTasksCommon, BasicCombinators, LiftingCombinators

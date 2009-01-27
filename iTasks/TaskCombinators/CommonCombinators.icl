@@ -3,8 +3,8 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdList, StdFunc, StdTuple
-import iDataTrivial, iDataFormlib, StdBimap
+import StdList, StdFunc, StdTuple, GenBimap
+import iDataTrivial, iDataFormlib
 import EditTasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
 import InternaliTasksCommon
 

@@ -4,8 +4,8 @@ implementation module EncodeDecode
 // (c) 2005 MJP
 
 import StdArray, StdBool, StdInt, StdList, StdOrdList, StdString, StdTuple, StdFile, ArgEnv, StdMaybe, Directory
-import iDataTrivial, StdBimap
-import GenPrint, GenParse
+import iDataTrivial
+import GenPrint, GenParse, GenBimap
 import dynamic_string
 import EstherBackend
 import Http, HttpTextUtil

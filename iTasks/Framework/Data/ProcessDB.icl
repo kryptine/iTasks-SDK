@@ -1,6 +1,6 @@
 implementation module ProcessDB
 
-import StdEnv, StdGeneric, StdMaybe, StdBimap
+import StdEnv, StdGeneric, StdMaybe, GenBimap
 import HSt, TSt, iDataForms, iDataFormlib
 
 //We now use a fixed ProcessDB type which stores

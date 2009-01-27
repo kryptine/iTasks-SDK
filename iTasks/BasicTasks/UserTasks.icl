@@ -5,8 +5,8 @@ implementation module UserTasks
 import TSt
 import UserDB
 import LiftingCombinators
-import StdEnv
-import StdBimap
+import StdEnv, GenBimap
+
 
 derive gForm []
 derive gUpd []

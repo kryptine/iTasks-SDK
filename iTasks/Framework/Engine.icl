@@ -1,6 +1,6 @@
 implementation module Engine
 
-import StdEnv, StdBimap
+import StdEnv, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import UserDB, ProcessDB
 import InternaliTasksCommon, InternaliTasksThreadHandling

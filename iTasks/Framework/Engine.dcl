@@ -5,13 +5,12 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 
-import StdEnv, StdGeneric, StdBimap
+import StdEnv, StdGeneric, GenBimap
 
 from TSt			import :: Workflow
 from iDataSettings	import ThisExe
 
 //Global settings
-iTaskVersion 					:== "2.0 - Januari 2009 - "
 
 traceId							:== "User_Trace" 
 refreshId						:== "User_refresh"
