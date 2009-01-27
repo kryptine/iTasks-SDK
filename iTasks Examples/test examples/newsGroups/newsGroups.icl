@@ -5,7 +5,7 @@ module newsGroups
 //	All other users can subscribe to such a newsgroup, commit a message or read news
 // (c) mjp 2007 
 
-import StdEnv, StdiTasks, iDataTrivial, iDataFormlib, iDataWidgets
+import StdEnv, iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 
 derive gForm 	[]
 derive gUpd 	[]
