@@ -21,6 +21,12 @@ Prompting variants:
 (<<?) infixl 5 	:: !(Task a) ![HtmlTag] 						-> Task a		| iCreate a
 (<<!) infixl 5 	:: !(Task a) ![HtmlTag] 						-> Task a		| iCreate a
 
+
+/**
+* Creates a basic task that displays the given html and never finishes.
+*/
+displayTask		:: ![HtmlTag] -> Task a											| iCreateAndPrint a
+
 /*
 addHtml			:: to insert html code 
 iTaskButton		:: a standard button as internally used

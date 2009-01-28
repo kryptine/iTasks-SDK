@@ -8,7 +8,7 @@ import InternaliTasksCommon
 // Timer Tasks ending when timed out
 
 waitForTimeTask:: !HtmlTime	-> (Task HtmlTime)
-waitForTimeTask time = mkTask "waitForTimeTask" (Task waitForTimeTask`)
+waitForTimeTask time = mkBasicTask "waitForTimeTask" (Task waitForTimeTask`)
 where
 	waitForTimeTask` tst=:{taskNr,userId,hst}
 	# taskId				= iTaskId userId taskNr "Time_"
@@ -18,7 +18,7 @@ where
 	= (currtime - stime.Form.value,{tst & hst = hst})
 
 waitForDateTask:: !HtmlDate	-> (Task HtmlDate)
-waitForDateTask date = mkTask "waitForDateTask" (Task waitForDateTask`)
+waitForDateTask date = mkBasicTask "waitForDateTask" (Task waitForDateTask`)
 where
 	waitForDateTask` tst=:{taskNr,userId,hst}
 	# taskId				= iTaskId userId taskNr "Date_"

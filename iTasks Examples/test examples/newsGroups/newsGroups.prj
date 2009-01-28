@@ -917,6 +917,12 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1296
+				SizeY:	640
 		DclOpen:	False
 		IclOpen:	False
 	Module
@@ -2837,6 +2843,12 @@ OtherModules
 				SizeX:	800
 				SizeY:	640
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
 		IclOpen:	False
 	Module
 		Name:	graph_to_string_with_descriptors
@@ -2932,6 +2944,12 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
 		IclOpen:	False
 	Module
 		Name:	HSt
@@ -3262,6 +3280,12 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1208
+				SizeY:	640
 		DclOpen:	False
 		Icl
 			WindowPosition
@@ -3559,6 +3583,12 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
 		IclOpen:	False
 	Module
 		Name:	ExceptionCombinators

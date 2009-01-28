@@ -18,7 +18,7 @@ where
 	= accTaskTSt b tst
 
 appIData :: !(IDataFun a) -> (Task a) | iData a 
-appIData idatafun = Task ( \tst -> accTaskTSt (mkTask "appIData" (Task (appIData` idatafun))) tst)
+appIData idatafun = Task ( \tst -> accTaskTSt (mkBasicTask "appIData" (Task (appIData` idatafun))) tst)
 where
 	appIData` idata tst =:{taskNr,html,hst}
 		# (idata,hst) 											= idatafun hst
@@ -27,7 +27,7 @@ where
 																	(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst, processdb = processdb})
 
 appIData2 :: !(String *HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
-appIData2 idatafun = Task (\tst -> accTaskTSt (mkTask "appIData" (Task (appIData` idatafun))) tst)
+appIData2 idatafun = Task (\tst -> accTaskTSt (mkBasicTask "appIData" (Task (appIData` idatafun))) tst)
 where
 	appIData` idata tst =:{taskNr,html,hst,userId}
 	# taskId												= iTaskId userId taskNr "iData"
@@ -37,10 +37,10 @@ where
 																(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst, processdb = processdb})
 
 appHStOnce :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
-appHStOnce label fun = Once label (Task (liftHst fun))
+appHStOnce label fun = once label (Task (liftHst fun))
 
 appHSt :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
-appHSt label fun = mkTask label (Task (liftHst fun))
+appHSt label fun = mkBasicTask label (Task (liftHst fun))
 
 liftHst :: !(*HSt -> *(.a,*HSt)) !*TSt -> *(.a,*TSt)
 liftHst fun tst=:{hst}
@@ -48,10 +48,10 @@ liftHst fun tst=:{hst}
 = (form,{tst & hst = hst})
 
 appWorldOnce :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
-appWorldOnce label fun = Once label (Task (liftWorld fun))
+appWorldOnce label fun = once label (Task (liftWorld fun))
 
 appWorld :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
-appWorld label fun = mkTask label (Task (liftWorld fun))
+appWorld label fun = mkBasicTask label (Task (liftWorld fun))
 
 liftWorld :: !(*World -> *(!a,!*World)) !*TSt -> *(!a,!*TSt)
 liftWorld f tst=: {hst = hst=:{nworld = nworld=:{world}}}

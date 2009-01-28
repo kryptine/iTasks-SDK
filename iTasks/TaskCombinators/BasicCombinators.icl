@@ -13,7 +13,6 @@ derive gUpd 	[], Time
 derive gPrint	Time
 derive gParse	Time
 
-showLabel  		text :== ITag [] [Text text]
 
 // ******************************************************************************************************
 // monads for combining iTasks
@@ -27,7 +26,7 @@ where
 							= (createDefault,tst)
 
 return_V :: !a -> (Task a) | iCreateAndPrint a
-return_V a  = mkTask "return_V" (Task return_V`)
+return_V a  = mkBasicTask "return_V" (Task return_V`)
 where
 	return_V` tst = (a,tst) 
 
@@ -36,34 +35,36 @@ where
 // newTask needed for recursive task creation
 
 newTask :: !String !(Task a) -> (Task a) 	| iData a 
-newTask taskname mytask = mkTask taskname (Task newTask`)
+newTask taskname mytask = Task newTask`
 where
 	newTask` tst=:{taskNr,userId,options}		
-	# taskId					= iTaskId userId taskNr taskname
-	# (taskval,tst) 			= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id) tst  // remember if the task has been done
-	# (taskdone,taskvalue)		= taskval.Form.value											// select values
-	| taskdone					= (taskvalue,tst)												// if rewritten return stored value
-	# (val,tst=:{activated})	= accTaskTSt mytask {tst & taskNr = [-1:taskNr]} 				// do task, first shift tasknr
-	| not activated				= (createDefault,{tst & taskNr = taskNr, options = options})	// subtask not ready, return value of subtasks
-	# tst						= deleteSubTasksAndThreads taskNr tst							// task ready, garbage collect it
-	# (_,tst) 					= liftHst (mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,val))) tst  // remember if the task has been done
-	= (val,{tst & taskNr = taskNr, options = options})
+		# storeName					= iTaskId userId (incTaskNr taskNr) taskname					
+		# (taskval,tst) 			= accHStTSt (mkStoreForm (Init,storageFormId options storeName (False,createDefault)) id) tst	// remember if the task has been done
+		# (taskdone,taskvalue)		= taskval.Form.value																			// select values
+		| taskdone					= accTaskTSt (mkBasicTask taskname (Task (\tst -> (taskvalue,tst)))) tst						// if rewritten, we are a basic task returning a value
+		# (a, tst=:{activated})		= accTaskTSt (mkSequenceTask taskname mytask) tst 												// execute task in an isolated sequence
+		| activated
+			# tst					= deleteSubTasksAndThreads (incTaskNr taskNr) tst																//garbage collect it
+			# (_,tst) 				= accHStTSt (mkStoreForm (Init, storageFormId options storeName (False,createDefault)) (\_ -> (True,a))) tst	//remember that the task was done
+			= (a, tst)
+		| otherwise
+			= (a, tst)
 
 
-Once :: !String !(Task a) -> (Task a) | iData a
-Once label task = mkTask label (Task doit)
+once :: !String !(Task a) -> (Task a) | iData a
+once label task = mkBasicTask label (Task once`)
 where
-	doit tst=:{activated,taskNr,hst,userId,options}
-	# taskId			= iTaskId userId taskNr (label +++ "_")
-	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
-	# (done,value)		= store.Form.value
-	| done 				= (value,{tst & hst = hst})																		// if task has completed, don't do it again
-	# (value,tst=:{hst})= accTaskTSt task {tst & hst = hst}
-	# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst // remember task status for next time
-	# (done,value)		= store.Form.value
-	= (value,{tst & activated = done, hst = hst})																		// task is now completed, handle as previously
+	once` tst=:{activated,taskNr,hst,userId,options}
+		# taskId			= iTaskId userId taskNr (label +++ "_")
+		# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
+		# (done,value)		= store.Form.value
+		| done 				= (value,{tst & hst = hst})																		// if task has completed, don't do it again
+		# (value,tst=:{hst})= accTaskTSt task {tst & hst = hst}
+		# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst // remember task status for next time
+		# (done,value)		= store.Form.value
+		= (value,{tst & activated = done, hst = hst})																		// task is now completed, handle as previously
 
-newTaskTrace :: !String !(Task a) -> (Task a) | iData a 			// used to insert a task trace later MJP BUG	 
+newTaskTrace :: !String !(Task a) -> Task a | iData a 			// used to insert a task trace later MJP BUG	 
 newTaskTrace taskname mytask = /* newTask taskname */ mytask
 
 // ******************************************************************************************************
@@ -73,7 +74,7 @@ newTaskTrace taskname mytask = /* newTask taskname */ mytask
 // otherwise, when task finshed it will remember the new tasknr to prevent checking of previously finished tasks
 
 foreverTask :: !(Task a) -> Task a | iData a
-foreverTask task = mkTask "foreverTask" (Task foreverTask`)
+foreverTask task = mkBasicTask "foreverTask" (Task foreverTask`)
 where
 	foreverTask` tst=:{taskNr,activated,userId,options,html} 
 	| options.gc == Collect																								// garbace collect everything when task finsihed
@@ -90,7 +91,7 @@ where
 	= (val,tst)					
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
-(<!) taska pred = mkTask "less!" (Task doTask)
+(<!) taska pred = mkBasicTask "untilTask" (Task doTask)
 where
 	doTask tst=:{activated, taskNr}
 	# (a,tst=:{activated}) 	= accTaskTSt taska {tst & taskNr = [-1:taskNr]}
@@ -105,7 +106,7 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
-assignTaskTo nuserId (taskname,taska) = newTask "assignTaskTo" (mkTask taskname (Task assignTaskTo`))
+assignTaskTo nuserId (taskname,taska) = newTask "assignTaskTo" (mkBasicTask taskname (Task assignTaskTo`))
 where
 	assignTaskTo` tst=:{taskNr,activated,userId,staticInfo}
 	| not activated						= (createDefault,tst)
@@ -138,7 +139,7 @@ where
 
 seqTasks :: ![LabeledTask a] -> (Task [a])| iCreateAndPrint a
 seqTasks [(label,task)] = task =>> \na -> return_V [na]
-seqTasks options = mkTask "seqTasks" (Task seqTasks`)
+seqTasks options = mkBasicTask "seqTasks" (Task seqTasks`)
 where
 	seqTasks` tst=:{taskNr}
 		# (val,tst)	 = doseqTasks options [] {tst & taskNr = [-1:taskNr]}
@@ -148,7 +149,7 @@ where
 	doseqTasks [(taskname,task):ts] accu tst=:{html,options} 
 		# (a,tst=:{activated=adone,html=ahtml}) 
 										= accTaskTSt task {tst & activated = True, html = BT [] []}
-		| not adone						= (reverse accu,{tst & html = html +|+ BT [showLabel taskname,BrTag [] ,BrTag []] [] +|+ ahtml})
+		| not adone						= (reverse accu,{tst & html = html +|+ BT [ITag [] [Text taskname],BrTag [] ,BrTag []] [] +|+ ahtml})
 		| otherwise						= doseqTasks ts [a:accu] {tst & html = html +|+ ahtml, options = options}
 
 // ******************************************************************************************************
@@ -225,7 +226,7 @@ closureLZTask	:: Same, but now the original task will not be done unless someone
 */
 
 (-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,Task a)) | iCreateAndPrint s & iCreateAndPrint a
-(-!>)  stoptask task =  mkTask "-!>" (Task stop`)
+(-!>)  stoptask task =  mkBasicTask "-!>" (Task stop`)
 where
 	stop` tst=:{taskNr,html=html,options,userId}
 		# (val,tst=:{activated = taskdone,html = taskhtml}) = accTaskTSt task     {tst & activated = True, html = BT [] [], taskNr = normalTaskId,options = options}
@@ -240,7 +241,7 @@ where
 		normalTaskId  	= [-1,1:taskNr]
 
 channel  :: String (Task a) -> (Task (Task a,Task a)) | iCreateAndPrint a
-channel name task =  mkTask "channel" (Task (doSplit name task))
+channel name task =  mkBasicTask "channel" (Task (doSplit name task))
 
 doSplit name task tst=:{taskNr,options,userId}
 = accTaskTSt (return_V (Task (sender (Task myTask)),Task (receiver (Task myTask)))) tst
@@ -259,7 +260,7 @@ where
 	= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, taskNr = taskNr})
 
 closureTask  ::  (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
-closureTask (name, task) = mkTask ("closure " +++ name) (Task mkClosure)
+closureTask (name, task) = mkBasicTask ("closure " +++ name) (Task mkClosure)
 where
 	mkClosure tst=:{taskNr,options,userId}
 	# ((sa,ra),tst) 		= doSplit name task tst
@@ -267,7 +268,7 @@ where
 	= (ra, {tst & activated = True})
 
 closureLzTask  :: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
-closureLzTask (name, task) = mkTask ("lazy closure " +++ name) (Task mkClosure)
+closureLzTask (name, task) = mkBasicTask ("lazy closure " +++ name) (Task mkClosure)
 where
 	mkClosure tst=:{taskNr,options,userId}
 	# ((sa,ra),tst) 		= doSplit name task tst

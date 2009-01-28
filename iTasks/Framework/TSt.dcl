@@ -237,11 +237,22 @@ getEditorStates :: !*TSt	-> (![HtmlState], !*TSt)
 */
 taskFinished :: !*TSt -> (!Bool, !*TSt)
 
+//// TASK CREATION
+
 /**
 * Wrap a function of proper type to create a function that also
-* keeps track of the the internal numbering and administration
+* keeps track of the the internal numbering and administration.
+* The given task function will add a single basic step to the current
+* sequence.
 */
-mkTask 				:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
+mkBasicTask 		:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
+
+/**
+* Wraps a function of proper type to create a task that will consist
+* of a sequence of subtasks. The given task function will execute in a blank sequence
+* and the resulting sequence will be combined in a single sequence node.
+*/
+mkSequenceTask		:: !String !(Task a)		-> Task a		| iCreateAndPrint a
 
 /**
 * Wrap a function of proper type to create a function that also
@@ -255,7 +266,19 @@ mkParallelTask 		:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
 * part of a parallel set of subtasks. This function should only be used
 * by tasks that are wrapped with mkParallelTask
 */
-mkParallelSubTask 	:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a
+mkParallelSubTask 	:: !String !Int (Task a) 	-> Task a  		| iCreateAndPrint a
+
+/**
+* Sets Html output of the current task
+*/
+setOutput			:: ![HtmlTag] !*TSt			-> *TSt
+
+/**
+* Sets the inputs of the current task (only for BasicTasks)
+*/
+setInputs			:: ![InputId] !*TSt			-> *TSt
+
+//// UTILITY
 
 /**
 * Deletes iData states for all subtasks of the given task number.
@@ -267,7 +290,6 @@ mkParallelSubTask 	:: !String !Int (Task a) 	-> (Task a)  	| iCreateAndPrint a
 * @return The task state
 */
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
-
 /**
 * Utility function to increment the last segment a task number
 *
@@ -276,7 +298,6 @@ deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
 * @return The incremented task number
 */ 
 incTaskNr 			:: !TaskNr 					-> TaskNr
-
 /**
 * Converts a task number to its dotted string representation
 *
@@ -294,7 +315,6 @@ taskNrToString		:: !TaskNr 					-> String
 * @return The task nr as integer list
 */
 taskNrFromString 	:: !String 					-> TaskNr
-
 /**
 * Determines the process number part of a task number
 *

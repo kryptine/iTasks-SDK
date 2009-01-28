@@ -1,11 +1,7 @@
 implementation module TaskTreeForestHandler
 
 import StdEnv
-import Http, TSt, FIXMEDebug, iDataTrivial
-
-import JSON
-
-showLabel  		text :== ITag [] [Text text]
+import Http, TSt, FIXMEDebug
 
 /**
 * Handles the ajax requests for a TaskTreeForest tab panel.
@@ -13,9 +9,8 @@ showLabel  		text :== ITag [] [Text text]
 handleTaskTreeForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 handleTaskTreeForestRequest request tst
 	# (mbError, forest, tst)	= calculateTaskForest True tst
-	# content1					= toString (traceTaskForest (map fst forest))
-	# content2					= toString (traceTaskForest2 (map snd forest))
-	= ({http_emptyResponse & rsp_data = content1 +++ content2}, tst)							// create the http response
+	# content					= toString (traceTaskForest2 (map snd forest))
+	= ({http_emptyResponse & rsp_data = content}, tst)
 
 
 

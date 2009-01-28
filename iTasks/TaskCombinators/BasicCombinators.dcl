@@ -27,7 +27,7 @@ assignTaskTo 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
 /*
 Repetition and loops:
 foreverTask		:: infinitely repeating Task
-(<!)			:: repeat task (as a loop)   as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
+(<!)			:: repeat task (as a loop) as long as predicate does not hold; also works for tasks that don't require any user interactions (e.g. database access)
 */
 foreverTask		:: !(Task a) 								-> Task a 		| iData a
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
@@ -61,18 +61,13 @@ displayAll 		:: DisplaySubTasks
 
 /* Support for user defined combinators
 newTask			:: lifts a (user defined) task to an abstract unit: after completion of a (complicated task) only i's final result will be remembered
-Once			:: task will be done only once, the value of the task will be remembered, important for side effecting functions lifted to iData domain
+once			:: task will be done only once, the value of the task will be remembered, important for side effecting functions lifted to iData domain
 */
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 
-Once 			:: !String !(Task a) 						-> Task a 		| iData a
+once 			:: !String !(Task a) 						-> Task a 		| iData a
 
-newTaskTrace 	:: !String !(Task a) 						-> (Task a) 	| iData a
-/* Operations on Task state
-taskId			:: give id of user assigned to task
-userId			:: give id of application user
-*/
-//taskId			:: TSt 				-> (Int,TSt)
-//userId 			:: TSt 				-> (Int,TSt)
+newTaskTrace 	:: !String !(Task a) 						-> Task a 		| iData a
+
 
 /* Experimental department:
 
@@ -85,7 +80,6 @@ channel			:: splits a task in respectively a sender task closure and receiver ta
 				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
 				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
 */
-
 (-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,Task a) 	| iCreateAndPrint stop & iCreateAndPrint a
 channel  		:: String (Task a) 							-> Task (Task a,Task a) 		| iCreateAndPrint a
 

@@ -65,31 +65,41 @@ where
 	showStorage LSDatabase	= "DaB"
 
 traceTaskTree2 :: TaskTree -> HtmlTag
-traceTaskTree2 tree = DivTag [ClassAttr "trace"] (mkTree tree)
+traceTaskTree2 tree = DivTag [] (mkTree tree)
 where
 	mkTree (TTBasicTask info _ _)
-		= mkNode "Basic" info
+		= [DivTag [ClassAttr "trace-node"] [
+			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
+			DivTag [ClassAttr "trace-node-content " ] [
+					TableTag [] [
+						TrTag [] [ThTag [] [Text "User id:"] , TdTag [] [Text (toString info.TaskInfo.userId)] ]//,
+						//TrTag [] [ThTag [] [Text "Value:"] , TdTag [] [Text info.trValue] ],
+						//TrTag [] [ThTag [] [Text "Storage:"], TdTag [] [Text (showStorage info.trOptions.tasklife)] ]
+					] 		
+				]
+		    ]
+		  ]
 	mkTree (TTSequenceTask info trees)
-		= [DivTag [ClassAttr "trace-sequence"] [
-			DivTag [ClassAttr "trace-node-title"] [Text "Sequence: ", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel]
-			: flatten (map mkTree (reverse trees))
+		= [TableTag [ClassAttr "trace-sequence"] [
+			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
+			:
+			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- (reverse trees)]
 		  ]]
 	mkTree (TTParallelTask info _ _ trees)
 		= [TableTag [ClassAttr "trace-parallel"] [
-			TrTag [] [TdTag [ColspanAttr (toString (length trees))] [DivTag [ClassAttr "trace-node-title"] [Text "Parallel: ", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]],
+			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ],
 			TrTag [] [TdTag [] (mkTree tree) \\ tree <- (reverse trees)]
 		  ]]
 	mkTree (TTProcess info trees)		
-		= [H2Tag [] [Text "Process ",Text (toString info.ProcessInfo.processId)] : flatten (map mkTree (reverse trees))]
+		= [DivTag [ClassAttr "trace-process"] [H2Tag [] [Text "Process ",Text (toString info.ProcessInfo.processId)]: flatten (map mkTree (reverse trees))]]
 
-	mkNode nodetype {taskId,userId,taskLabel,active,priority}
-		= [DivTag [ClassAttr ("trace-node " +++ (if active "trace-node-active" "trace-node-inactive"))] [
-			DivTag [ClassAttr "trace-node-title"] [Text nodetype, Text ": ",Text taskId, Text ": ", Text taskLabel]
-		    ]
-		  ]
+	activeClass info
+		| info.TaskInfo.finished	= "trace-finished"
+		| info.TaskInfo.active		= "trace-active"
+									= "trace-inactive"
 
 traceTaskForest :: [HtmlTree] -> HtmlTag
 traceTaskForest trees = DivTag [] [traceTaskTree tree \\ tree <- trees]
 
 traceTaskForest2 :: [TaskTree] -> HtmlTag
-traceTaskForest2 trees = DivTag [] [HrTag [] : [traceTaskTree2 tree \\ tree <- trees]]
+traceTaskForest2 trees = DivTag [] [traceTaskTree2 tree \\ tree <- trees]

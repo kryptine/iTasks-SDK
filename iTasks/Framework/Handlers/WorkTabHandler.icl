@@ -37,7 +37,8 @@ handleWorkTabRequest request tst
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
-			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (fst taskTree)	// filter out the code and inputs to display in this tab
+			//# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (fst taskTree)	// filter out the code and inputs to display in this tab
+			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (snd taskTree)	// filter out the code and inputs to display in this tab
 
 			//Tracing
 			# stateTrace								= Nothing
@@ -69,7 +70,46 @@ where
 	prefix				= http_getValue "prefix" request.arg_post ""
 
 	treeErrorResponse	= {http_emptyResponse & rsp_data = "{\"success\" : false, \"error\" : \"Could not locate task tree\"}"}
+
+	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus,![HtmlTag],![InputId])
+	determineTaskForTab userid taskid tree
+		= case locateSubTaskTree taskid tree of							//Find the subtree by task id
+			Nothing
+				= (TaskDeleted, [], [])										//Subtask not found, nothing to do anymore
+			Just subtree
+				# (html,inputs)	= collectTaskContent userid subtree			//Collect only the parts for the current user
+				= (if (taskFinished tree) TaskFinished TaskActivated, html, inputs)
 	
+	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId])
+	collectTaskContent currentUser (TTBasicTask info output inputs)
+		| info.TaskInfo.userId == currentUser	= (output,inputs)
+		| otherwise								= ([],[])
+	collectTaskContent currentUser (TTSequenceTask info sequence)
+		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
+		= (flatten outputs, flatten inputs)	
+	collectTaskContent currentUser (TTParallelTask info combination output branches)
+		= case combination of
+			TTSplit		
+				| info.TaskInfo.userId == currentUser	= (output, [])
+				| otherwise								= ([],[])
+			mergedCombination
+				# (outputs,inputs) = unzip (map (collectTaskContent currentUser) branches)
+				| isEmpty outputs	= ([],[])
+				| otherwise			= case mergedCombination of
+					TTVertical		= ([DivTag [] html \\ html <- outputs], flatten inputs)
+					TTHorizontal	= ([TableTag [] [TrTag [] [TdTag [] html \\ html <- outputs]]], flatten inputs)
+					(TTCustom f)	= (f outputs, flatten inputs)
+	collectTaskContent currentUser (TTProcess info sequence)		
+		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
+		= (flatten outputs, flatten inputs)	
+			
+	taskFinished :: TaskTree -> Bool
+	taskFinished (TTBasicTask {TaskInfo|finished} _ _)		= finished
+	taskFinished (TTSequenceTask {TaskInfo|finished} _)		= finished
+	taskFinished (TTParallelTask {TaskInfo|finished} _ _ _)	= finished
+	taskFinished (TTProcess _ _)							= False		//FIXME!
+
+/*	
 	determineTaskForTab :: !UserId !TaskId !HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
 	determineTaskForTab userid taskid tree
 		= case locateSubTaskTree taskid tree of								//Find the subtree by task id
@@ -114,7 +154,7 @@ where
 		# (html,inputs)			= collectTaskContent thisuser taskuser tree
 		| thisuser == taskuser 	= (html,inputs)
 		| otherwise				= ([],[])
-
+*/
 
 /*
 	mbStateTrace req states

@@ -11,7 +11,7 @@ from ProcessDB	import :: Process
 from TaskTree	import :: HtmlTree, :: TaskTree
 
 
-traceProcesses 		:: [Process]	-> HtmlTag
+traceProcesses 		:: [Process]		-> HtmlTag
 
 traceTaskTree		:: HtmlTree			-> HtmlTag
 traceTaskTree2		:: TaskTree			-> HtmlTag

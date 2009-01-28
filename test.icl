@@ -1,6 +1,6 @@
 module test
 
-import StdEnv, StdiTasks, iData
+import StdEnv, iTasks, iData
 
 // Test program to experiment with the new ExtJS based Web-GUI
 derive gForm TestRec, []
@@ -73,6 +73,12 @@ initialWorkflows = [
 	, label = "Test with infinite list"
 	, roles = []
 	, mainTask = infiniteListTask
+	},
+	{ Workflow
+	| name	= "newtask"
+	, label	= "Test for newTask"
+	, roles = []
+	, mainTask = newTaskTest
 	}
 	]
 
@@ -108,10 +114,13 @@ infiniteListTask =
 	intTask		=>> \val3 ->
 	[Text ("Sum = " +++ (toString (val2 + val3)))] ?>> editTask "Ok" Void
 
+newTaskTest :: Task Void
+newTaskTest =
+	(newTask "TEST" intTask) #>> return_V Void 
+
 
 myBoxTask :: Task TestBox
 myBoxTask = editTask "Done" (TestBox True False True)
-
 
 myTask6 :: Task TestRec
 myTask6 = editTask "Ok" createDefault

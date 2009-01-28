@@ -254,8 +254,7 @@ appTaskTSt (Task fn) tst = snd (fn tst)
 accTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
 accTaskTSt (Task fn) tst = fn tst
 
-
-// mkTask is an important wrapper function which should be wrapped around any task
+// mkBasicTask is an important wrapper function which should be wrapped around any task
 // It takes care of
 //		- deciding whether the task should be called (activated) or not
 //		- adding of trace information
@@ -265,83 +264,110 @@ accTaskTSt (Task fn) tst = fn tst
 // Every sequential task should increase the task number
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 
-mkTaskNoInc :: !String !(Task a) -> (Task a) | iCreateAndPrint a
-mkTaskNoInc taskname mytask = Task mkTaskNoInc`
+mkBasicTask :: !String !(Task a) -> Task a | iCreateAndPrint a
+mkBasicTask taskname task = Task mkBasicTask`
 where
-	mkTaskNoInc` tst=:{activated,taskNr,userId,options}		
-		| not activated								= (createDefault,tst)		// When a task is not active, don't execute it, return default value
-		# (val,tst=:{activated,html})				= accTaskTSt mytask tst		// active, so perform task and get its result
-		# tst	= {tst & taskNr = taskNr, options = options, userId = userId}
-		| options.trace || taskname == ""	= (val,tst)							// no trace, just return value
-		# tst = {tst & html = TaskTrace {trTaskNr = taskNrToString taskNr, trTaskName = taskname, trActivated = activated, trUserId = userId, trValue = printToString val, trOptions = options} html}
-		= (val,tst) 
+	mkBasicTask` tst		
+		# tst =:{taskNr,userId,activated,tree}
+				= incTStTaskNr tst																			//Increase the task number
+		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId activated) [] []							//Create the task node
+		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
+				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
+		# tst	= addTaskNode (TTBasicTask {info & finished = finished} output inputs) {tst & tree = tree}	//Add the node to current context
+		= (a, tst)
 
-mkTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
-mkTask taskname task = Task mkTask`
+mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
+mkSequenceTask taskname task = Task mkSequenceTask`
 where
-	mkTask` tst =:{activated,taskNr,userId,options}		
-		# tst = incTStTaskNr tst																	//Increase the task number
-		# tst = addTaskNode (TTBasicTask (mkTaskInfo (incTaskNr taskNr) taskname userId activated) [] []) tst	//Add a node to the task tree
-		# tst = accTaskTSt (mkTaskNoInc taskname task) tst											//Execute the task (if active)
-		= tst
-			
-	//Add a new node to the current sequence
-	addTaskNode node tst=:{tree}
-		= case tree of
-			(TTProcess info tasks)		= {tst & tree = TTProcess info [node:tasks]}
-			(TTSequenceTask info tasks)	= {tst & tree = TTSequenceTask info [node:tasks]}
-			_							= {tst & tree = tree}
-
-mkParallelTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
+	mkSequenceTask` tst
+		# tst =:{taskNr,userId,activated,tree}
+				= incTStTaskNr tst																			//Increase the task number
+		# node	= TTSequenceTask (mkTaskInfo taskNr taskname userId activated) []							//Create the task node
+		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})							//Execute the with the new node as context
+				= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1:taskNr], tree = node}			//and a shifted task number
+		# tst	= addTaskNode (TTSequenceTask {info & finished = finished} sequence) {tst & tree = tree} 	//Add the node to current context
+		= (a, tst)
+		
+mkParallelTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkParallelTask taskname task = Task mkParallelTask`
 where
-	mkParallelTask` tst =:{activated,taskNr,userId,options}		
-		# tst = incTStTaskNr tst																			//Increase the task number
-		# tst = addTaskNode (TTParallelTask (mkTaskInfo (incTaskNr taskNr) taskname userId activated) TTVertical [] []) tst	//Add a node to the task tree
-		# tst = accTaskTSt (mkTaskNoInc taskname task) tst													//Execute the task (if active)
-		= tst
+	mkParallelTask` tst	
+		# tst =:{taskNr,userId,activated,tree}
+				= incTStTaskNr tst																			//Increase the task number
+		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical [] []				//Create the task node
+		# (a, tst =:{activated = finished, tree = TTParallelTask info combination output branches})			//Execute the with the new node as context
+				= accTaskTSt (executeTask taskname task) {tst & tree = node}
+		# tst 	= addTaskNode (TTParallelTask {info & finished = finished} combination output branches) {tst & tree = tree} 
+		= (a, tst)
 		
-	//Add a new node to the current sequence
-	addTaskNode node tst=:{tree}
-		= case tree of
-			(TTProcess info tasks)		= {tst & tree = TTProcess info [node:tasks]}
-			(TTSequenceTask info tasks)	= {tst & tree = TTSequenceTask info [node:tasks]}
-			_							= {tst & tree = tree}
-
-mkParallelSubTask :: !String !Int (Task a) -> (Task a)  | iCreateAndPrint a	 // two shifts are needed
-mkParallelSubTask name i task = Task mkParallelSubTask`
+mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a	 								
+mkParallelSubTask taskname i task = Task mkParallelSubTask`
 where
-	mkParallelSubTask` tst=:{activated,taskNr,userId,options,tree}
-		//Create a sub task name
-		# taskname	= name +++ "." +++ toString i
-		//Shift task number by two positions and start with a blank sequence node
-		# tst		= {tst & taskNr = [-1,i:taskNr], tree = TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId activated) [], activated = True}
-		//Execute the parallel task
-		# (a,tst=:{tree = sequence})
-			= accTaskTSt (mkTaskNoInc taskname task) tst
-		//Continue with the original tasknr, options and tasktree, but with the new sequence as subtree 
-		= (a, {tst & taskNr = taskNr, options = options, tree = addSubTaskNode sequence tree})
-
-	//Add the parallel executed sequence to the TTParallelTask node at the head of the
-	//the tasks of the current process or sequence
-	addSubTaskNode node (TTProcess info1 [TTParallelTask info2 combination output tasks2 :tasks1])
-		= TTProcess info1 [TTParallelTask info2 combination output [node:tasks2] : tasks1]
-	addSubTaskNode node (TTSequenceTask info1 [TTParallelTask info2 combination output tasks2 :tasks1])
-		= TTSequenceTask info1 [TTParallelTask info2 combination output [node:tasks2] : tasks1]
-	addSubTaskNode node tree = tree
+	mkParallelSubTask` tst=:{activated,taskNr,userId,tree}
+		# taskname	= taskname +++ "." +++ toString i														//Create a sub task name
+		# node		= TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId activated) []					//Create the task node
+		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})
+					= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1,i:taskNr], tree = node}	// two shifts are needed
+		# tst		= addTaskNode (TTSequenceTask {info & finished = finished} sequence) {tst & tree = tree, taskNr = taskNr}
+		= (a, tst)
 
 mkTaskInfo :: TaskNr String UserId Bool -> TaskInfo
 mkTaskInfo tasknr label userid active
-	= {taskId = (taskNrToString tasknr), taskLabel = label, userId = userid, active = active, priority = NormalPriority} 
+	= {taskId = (taskNrToString tasknr), taskLabel = label, userId = userid, active = active, finished = False, priority = NormalPriority} 
 
+//Execute the task when active, else return a default value
+executeTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
+executeTask taskname task = Task executeTask`
+where
+	executeTask` tst=:{activated,taskNr,userId,options}
+		| activated
+			# (val,tst=:{activated,html})		= accTaskTSt task tst				// Perform task and get its result
+			# tst	= {tst & taskNr = taskNr, options = options, userId = userId}	// Restore taskNr, userId and and options
+			| options.trace
+				# tst = {tst & html = TaskTrace { trTaskNr = taskNrToString taskNr	// Add a trace node
+												, trTaskName = taskname
+												, trActivated = activated
+												, trUserId = userId
+												, trValue = printToString val
+												, trOptions = options } html}							
+				= (val,tst)
+			| otherwise
+				= (val,tst)
+		| otherwise								
+			= (createDefault,tst)													// When a task is not active, don't execute it, return default value
+
+//Add a new node to the current sequence or process
+addTaskNode :: !TaskTree !*TSt -> *TSt
+addTaskNode node tst=:{tree}
+	= case tree of
+		(TTProcess info tasks)							= {tst & tree = TTProcess info [node:tasks]}
+		(TTSequenceTask info tasks)						= {tst & tree = TTSequenceTask info [node:tasks]}
+		(TTParallelTask info combination output tasks)	= {tst & tree = TTParallelTask info combination output [node:tasks]}
+		_												= {tst & tree = tree}
+
+//Increate the tasknr of the task state
 incTStTaskNr :: *TSt -> *TSt
 incTStTaskNr tst = {tst & taskNr = incTaskNr tst.taskNr}
+
+setOutput :: ![HtmlTag] !*TSt -> *TSt
+setOutput output tst=:{tree}
+	= case tree of
+		(TTBasicTask info _ inputs)						= {tst & tree = TTBasicTask info output inputs}
+		(TTParallelTask info combination _ branches)	= {tst & tree = TTParallelTask info combination output branches}
+		_												= {tst & tree = tree}
+		
+setInputs :: ![InputId] !*TSt -> *TSt
+setInputs inputs tst=:{tree}
+	= case tree of
+		(TTBasicTask info output _)	= {tst & tree = TTBasicTask info output inputs}
+		_							= {tst & tree = tree}
 
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
 deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
 	# hst	= deleteIData  (iTaskId userId (tl tx) "") hst
 	= deleteAllSubTasks txs {tst & hst = hst}
+
 
 incTaskNr :: !TaskNr -> TaskNr
 incTaskNr [] = [0]

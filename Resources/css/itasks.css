@@ -226,47 +226,68 @@ div.trace h2 {
 	font-size: 16px;
 	margin: 0px 0px 10px 0px;
 }
-div.trace table {
-	width: 100%;
+
+div.trace-process {
+	padding: 10px;
 }
-div.trace th {
+div.trace-process h2 {
+	font-size: 14px;
+	border-bottom: 1px solid #ccc;
+}
+div.trace-process th {
 	background-color: #ccc;
-	font-weight: bold;
-	text-align: left;
-	padding: 2px;
+}
+
+table.trace-sequence {
+	border: 1px solid #ccc;
+	margin: 5px;
+	background-color: #fff;
+}
+table.trace-sequence th {
+	color: #fff;
+	font-size: smaller;
+	text-align: center;
+}
+table.trace-sequence td {
+	vertical-align: top;
+}
+table.trace-parallel {
+	border: 1px solid #ccc;
+	margin: 5px;
+	background-color: #fff;
+}
+table.trace-parallel th {
+	color: #fff;
+	font-size: smaller;
+	text-align: center;
 }
 
 div.trace-node {
 	width: 150px;
-	border: solid 1px #666;
-	color: #666;
+	border: solid 1px #ccc;
+	color: #000;
 	font-size: smaller;
-	margin-bottom: 5px;
-}
-div.trace-sequence {
-	border: 1px dotted #000;
-	padding: 5px;
-}
-div.trace-parallel {
-	text-align: center;
+	margin: 5px;
+	background-color: #fff;
 }
 div.trace-node-title {
-	background-color: #666;
 	color: #fff;
 	padding: 2px;
 	text-align: center;
 }
-
-div.trace-node-active {
-	border-color: #000;
-	color: #000;
-}
-div.trace-node-active div.trace-node-title {
-	background-color: #000;
-}
-
 div.trace-node th {
 	width: 75px;
+	color: #000;
+}
+
+.trace-active {
+	background-color: #3a81ad;
+}
+.trace-finished {
+	background-color: #93b8d0;
+}
+.trace-inactive {
+	background-color: #ccc;
 }
 
 /* WELCOME SCREEN STYLES */

@@ -52,6 +52,14 @@ where
 	# (a,tst=:{html=nhtml}) = accTaskTSt task {tst & html = BT [] []}
 	= (a,{tst & html = html +|+ nhtml +|+ BT prompt []})
 
+displayTask	:: ![HtmlTag] -> Task a	| iCreateAndPrint a
+displayTask html = mkBasicTask "displayTask" (Task displayTask`)
+where
+	displayTask` tst
+		# tst = setOutput html tst
+		= (createDefault, {tst & activated = False})
+		
+
 
 addHtml :: ![HtmlTag] !*TSt -> *TSt
 addHtml bodytag  tst=:{activated,html}  
