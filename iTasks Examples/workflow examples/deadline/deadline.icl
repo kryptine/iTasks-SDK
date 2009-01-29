@@ -1,6 +1,6 @@
 module deadline
 
-import StdEnv, StdiTasks, iDataTrivial
+import StdEnv, iTasks, iDataTrivial
 
 derive gForm []
 derive gUpd  []
@@ -15,7 +15,13 @@ derive gUpd  []
 
 npersons = 6
 
-Start world = startTaskEngine (foreverTask (deadline mytask)) world
+Start world = startEngine [delegateWorkflow] world
+
+delegateWorkflow =	{ name	= "deadline"
+					, label	= "deadline work"
+					, roles	= []
+					, mainTask	= deadline mytask #>> return_V Void
+					} 
 
 mytask = editTask "OK" 0 <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
 
