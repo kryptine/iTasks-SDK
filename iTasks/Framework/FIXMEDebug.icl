@@ -83,15 +83,15 @@ where
 		= [TableTag [ClassAttr "trace-sequence"] [
 			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
 			:
-			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- (reverse trees)]
+			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
 		  ]]
 	mkTree (TTParallelTask info _ _ trees)
 		= [TableTag [ClassAttr "trace-parallel"] [
 			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ],
-			TrTag [] [TdTag [] (mkTree tree) \\ tree <- (reverse trees)]
+			TrTag [] [TdTag [] (mkTree tree) \\ tree <- trees]
 		  ]]
 	mkTree (TTProcess info trees)		
-		= [DivTag [ClassAttr "trace-process"] [H2Tag [] [Text "Process ",Text (toString info.ProcessInfo.processId)]: flatten (map mkTree (reverse trees))]]
+		= [DivTag [ClassAttr "trace-process"] [H2Tag [] [Text "Process ",Text (toString info.ProcessInfo.processId)]: flatten (map mkTree trees)]]
 
 	activeClass info
 		| info.TaskInfo.finished	= "trace-finished"

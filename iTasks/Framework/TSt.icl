@@ -18,7 +18,7 @@ mkTSt itaskstorage threadstorage session workflows hst processdb
 	=	{ taskNr		= [-1]
 		, userId		= -1
 		, html 			= BT [] []
-		, tree			= TTProcess {processId = 0, userId = 0} []
+		, tree			= TTProcess {processId = -1, userId = -1, finished = False} []
 		, activated 	= True
 		, users			= []
 		, newProcesses	= []
@@ -124,14 +124,15 @@ buildProcessTree {Process | id, owner, status, process} tst
 	# tst				= setTaskNr [-1,id] tst
 	# tst				= setUserId owner tst
 	# tst				= setProcessId id tst
-	# tst				= setTaskTree (TTProcess {processId = id, userId = owner} []) tst	
+	# tst				= setTaskTree (TTProcess {processId = id, userId = owner, finished = False} []) tst	
 	# (label,mbRes,tst)	= applyMainTask process tst
 	# (htree, tst)		= getHtmlTree tst
-	# (ttree, tst)		= getTaskTree tst
+	# (TTProcess info sequence, tst)
+						= getTaskTree tst
 	# (users, tst)		= getUsers tst
 	# (finished, tst)	= taskFinished tst
 	# (_,tst)			= accProcessDBTSt (updateProcess (if finished Finished Active) mbRes (removeDup users) id) tst 
-	= ((description id owner label @@: htree, ttree ), tst)
+	= ((description id owner label @@: htree, TTProcess {ProcessInfo|info & finished = finished} (reverse sequence) ), tst)
 where
 	applyMainTask (LEFT {workflow}) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
@@ -273,7 +274,7 @@ where
 		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId activated) [] []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
-		# tst	= addTaskNode (TTBasicTask {info & finished = finished} output inputs) {tst & tree = tree}	//Add the node to current context
+		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished} output inputs) {tst & tree = tree}	//Add the node to current context
 		= (a, tst)
 
 mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
@@ -285,7 +286,7 @@ where
 		# node	= TTSequenceTask (mkTaskInfo taskNr taskname userId activated) []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1:taskNr], tree = node}			//and a shifted task number
-		# tst	= addTaskNode (TTSequenceTask {info & finished = finished} sequence) {tst & tree = tree} 	//Add the node to current context
+		# tst	= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree} 	//Add the node to current context
 		= (a, tst)
 		
 mkParallelTask :: !String !(Task a) -> Task a | iCreateAndPrint a
@@ -297,7 +298,7 @@ where
 		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical [] []				//Create the task node
 		# (a, tst =:{activated = finished, tree = TTParallelTask info combination output branches})			//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}
-		# tst 	= addTaskNode (TTParallelTask {info & finished = finished} combination output branches) {tst & tree = tree} 
+		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination output (reverse branches)) {tst & tree = tree} 
 		= (a, tst)
 		
 mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a	 								
@@ -308,7 +309,7 @@ where
 		# node		= TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId activated) []					//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})
 					= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1,i:taskNr], tree = node}	// two shifts are needed
-		# tst		= addTaskNode (TTSequenceTask {info & finished = finished} sequence) {tst & tree = tree, taskNr = taskNr}
+		# tst		= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr}
 		= (a, tst)
 
 mkTaskInfo :: TaskNr String UserId Bool -> TaskInfo
@@ -362,6 +363,12 @@ setInputs inputs tst=:{tree}
 		(TTBasicTask info output _)	= {tst & tree = TTBasicTask info output inputs}
 		_							= {tst & tree = tree}
 
+setCombination :: !TaskCombination !*TSt	-> *TSt
+setCombination combination tst=:{tree}
+	= case tree of 
+		(TTParallelTask info _ output branches)	= {tst & tree = TTParallelTask info combination output branches}
+		_										= {tst & tree = tree}
+		
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
 deleteAllSubTasks [tx:txs] tst=:{hst,userId} 

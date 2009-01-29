@@ -278,6 +278,11 @@ setOutput			:: ![HtmlTag] !*TSt			-> *TSt
 */
 setInputs			:: ![InputId] !*TSt			-> *TSt
 
+/**
+* Sets the combination type of the current task (only for ParallelTasks)
+*/
+setCombination		:: !TaskCombination !*TSt	-> *TSt
+
 //// UTILITY
 
 /**
@@ -306,7 +311,6 @@ incTaskNr 			:: !TaskNr 					-> TaskNr
 * @return The formatted task number
 */
 taskNrToString		:: !TaskNr 					-> String
-
 /**
 * Parses a formatted task number to its integer list representation
 *

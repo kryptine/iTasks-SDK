@@ -31,11 +31,6 @@ showLabel  		text :== ITag [] [Text text]
 	=>> \r1 -> 	case r1 of 
 					Nothing 	-> return_V Nothing
 					Just r`1 	-> t2 r`1
-return_VF :: ![HtmlTag] !a -> (Task a) | iCreateAndPrint a
-return_VF bodytag a = return_V a <<! bodytag
-
-return_D :: !a -> (Task a) | gForm {|*|}, iCreateAndPrint a
-return_D a = return_V a <<! [toHtml a ]
 
 // ******************************************************************************************************
 // repetition
@@ -101,8 +96,8 @@ where
 	| chosen.Form.value == -1		// no choice made yet
 		# buttonId					= iTaskId userId taskNr "ChoBut"
 		# allButtons				= if horizontal 
-											[[(iTaskButton txt,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
-											[[(iTaskButton txt,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
+											[[(HtmlButton txt False,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
+											[[(HtmlButton txt False,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
 		# (choice,tst)				= liftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value) tst
 		| chosen.Form.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form choice.inputs})

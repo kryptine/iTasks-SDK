@@ -6,6 +6,7 @@ import InternaliTasksCommon
 import TaskTree
 import iDataForms, iDataState, iDataFormlib
 import JSON
+import FIXMEDebug
 
 derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
@@ -37,13 +38,12 @@ handleWorkTabRequest request tst
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
-			//# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (fst taskTree)	// filter out the code and inputs to display in this tab
 			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (snd taskTree)	// filter out the code and inputs to display in this tab
 
 			//Tracing
 			# stateTrace								= Nothing
 			# updateTrace								= Nothing
-			# subTreeTrace								= Nothing
+			# taskTreeTrace								= mbTaskTreeTrace (snd taskTree)
 			
 			# activeTasks								= Nothing
 			# content									=
@@ -57,7 +57,7 @@ handleWorkTabRequest request tst
 				,	activeTasks		= activeTasks
 				,	stateTrace		= stateTrace
 				,	updateTrace		= updateTrace
-				,	subtreeTrace	= subTreeTrace
+				,	subtreeTrace	= taskTreeTrace
 				}																						// create tab data record
 			= ({http_emptyResponse & rsp_data = toJSON content}, tst)									// create the http response
 
@@ -73,7 +73,7 @@ where
 
 	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus,![HtmlTag],![InputId])
 	determineTaskForTab userid taskid tree
-		= case locateSubTaskTree taskid tree of							//Find the subtree by task id
+		= case locateSubTaskTree taskid tree of								//Find the subtree by task id
 			Nothing
 				= (TaskDeleted, [], [])										//Subtask not found, nothing to do anymore
 			Just subtree
@@ -93,6 +93,7 @@ where
 				| info.TaskInfo.userId == currentUser	= (output, [])
 				| otherwise								= ([],[])
 			mergedCombination
+				| info.TaskInfo.finished = ([],[])
 				# (outputs,inputs) = unzip (map (collectTaskContent currentUser) branches)
 				| isEmpty outputs	= ([],[])
 				| otherwise			= case mergedCombination of
@@ -107,55 +108,13 @@ where
 	taskFinished (TTBasicTask {TaskInfo|finished} _ _)		= finished
 	taskFinished (TTSequenceTask {TaskInfo|finished} _)		= finished
 	taskFinished (TTParallelTask {TaskInfo|finished} _ _ _)	= finished
-	taskFinished (TTProcess _ _)							= False		//FIXME!
+	taskFinished (TTProcess {ProcessInfo|finished} _)		= finished
 
-/*	
-	determineTaskForTab :: !UserId !TaskId !HtmlTree -> (!TaskStatus,![HtmlTag],![InputId])
-	determineTaskForTab userid taskid tree
-		= case locateSubTaskTree taskid tree of								//Find the subtree by task id
-			Nothing
-				= (TaskDeleted, [], [])										//Subtask not found, nothing to do anymore
-			Just subtree
-				# (html,inputs)	= collectTaskContent userid userid subtree	//Collect only the parts for the current user
-				= (test tree, html, inputs)
-		where																//Check the top node whether it is finished
-			test (description @@: html) 
-				| description.taskNrId == taskid && description.curStatus	= TaskFinished
-				| otherwise													= TaskActivated
-	
-	collectTaskContent :: !UserId !UserId !HtmlTree -> (![HtmlTag],![InputId])
-	collectTaskContent thisuser taskuser (description @@: tree) 						
-		# (html,inputs)		= collectTaskContent thisuser description.taskWorkerId tree
-		| thisuser == description.taskWorkerId
-								= (html,inputs)
-		| otherwise				= ([],[])
-	collectTaskContent thisuser taskuser (CondAnd label nr [])
-		= ([],[])
-	collectTaskContent thisuser taskuser (CondAnd label nr [(index,tree):trees])
-		# (tag,input)			= collectTaskContent thisuser taskuser tree
-		# (tags,inputs)			= collectTaskContent thisuser taskuser (CondAnd label nr trees)
-		= (tag ++ tags,input ++ inputs)
-	collectTaskContent thisuser taskuser (tree1 +|+ tree2)
-		# (lhtml,linputs)	= collectTaskContent thisuser taskuser tree1
-		# (rhtml,rinputs)	= collectTaskContent thisuser taskuser tree2
-		= (lhtml <||> rhtml,linputs ++ rinputs)
-	collectTaskContent thisuser taskuser (tree1 +-+ tree2)
-		# (lhtml,linputs)	= collectTaskContent thisuser taskuser tree1
-		# (rhtml,rinputs)	= collectTaskContent thisuser taskuser tree2
-		= (lhtml <=> rhtml,linputs ++ rinputs)
-	collectTaskContent thisuser taskuser (BT bdtg inputs)
-		| thisuser == taskuser	= (bdtg,inputs)
-		| otherwise				= ([],[])
-	collectTaskContent thisuser taskuser (DivCode id tree)
-		# (html,inputs)			= collectTaskContent thisuser taskuser tree
-		| thisuser == taskuser 	= ([DivTag [IdAttr id, ClassAttr "itasks-thread"] html],inputs)
-		| otherwise				= ([],[])
-	collectTaskContent thisuser taskuser (TaskTrace traceinfo tree)
-		# (html,inputs)			= collectTaskContent thisuser taskuser tree
-		| thisuser == taskuser 	= (html,inputs)
-		| otherwise				= ([],[])
-*/
-
+	mbTaskTreeTrace taskTree
+		| trace
+			= Just (toString (traceTaskTree2 taskTree))
+		| otherwise
+			= Nothing
 /*
 	mbStateTrace req states
 		| traceOn

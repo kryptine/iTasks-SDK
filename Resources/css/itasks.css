@@ -248,6 +248,12 @@ table.trace-sequence th {
 	font-size: smaller;
 	text-align: center;
 }
+table.trace-sequence th.trace-active {
+	background-color: #3a81ad;
+}
+table.trace-sequence th.trace-finished {
+	background-color: #93b8d0;
+}
 table.trace-sequence td {
 	vertical-align: top;
 }
@@ -261,7 +267,12 @@ table.trace-parallel th {
 	font-size: smaller;
 	text-align: center;
 }
-
+table.trace-parallel th.trace-active {
+	background-color: #3a81ad;
+}
+table.trace-parallel th.trace-finished {
+	background-color: #93b8d0;
+}
 div.trace-node {
 	width: 150px;
 	border: solid 1px #ccc;

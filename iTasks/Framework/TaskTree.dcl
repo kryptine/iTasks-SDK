@@ -32,6 +32,7 @@ from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageForm
 
 :: ProcessInfo =	{ processId	:: ProcessId
 					, userId	:: UserId
+					, finished	:: Bool
 					}
 
 /**
@@ -70,8 +71,6 @@ locateSubTaskTree	:: !TaskId !TaskTree -> Maybe TaskTree
 					, curStatus		:: !Bool
 					}
 
-:: TaskPriority	=	HighPriority | NormalPriority | LowPriority
-
 :: TraceInfo 	=	{ trTaskNr		:: !String									// tasknr 
 					, trTaskName	:: !String									// name of the combinator
 					, trActivated	:: !Bool									// is the task finshed or not
@@ -85,7 +84,5 @@ locateSubTaskTree	:: !TaskId !TaskTree -> Maybe TaskTree
 					, gc			:: !GarbageCollect							// default: Collect
 					, trace			:: !Bool									// default: False
 					}
-					
-:: GarbageCollect 	= Collect | NoCollect
 					
 :: WorkflowLabel	:== String

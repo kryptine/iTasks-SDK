@@ -63,10 +63,10 @@ initialWorkflows = [
 	, mainTask = simpleSum
 	},
 	{ Workflow
-	| name = "paralelSums"
-	, label = "Paralel addition"
+	| name = "parallelSums"
+	, label = "Parallel addition"
 	, roles = []
-	, mainTask = (simpleSum -||- simpleSum)
+	, mainTask = (simpleSum -&&- simpleSum) #>> return_V Void
 	},
 	{ Workflow
 	| name	= "infinite"

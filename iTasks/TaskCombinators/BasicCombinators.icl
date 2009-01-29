@@ -30,6 +30,44 @@ return_V a  = mkBasicTask "return_V" (Task return_V`)
 where
 	return_V` tst = (a,tst) 
 
+// ******************************************************************************************************
+// Assigning tasks to users, each user has to be identified by an unique number >= 0
+
+assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
+assignTaskTo newUserId (label,task) = Task assignTaskTo` 
+where
+	assignTaskTo` tst =:{TSt | userId = currentUserId}
+		# (a, tst) = accTaskTSt (newTask label task) {TSt | tst & userId = newUserId}
+		= (a, {TSt | tst & userId = currentUserId})
+
+/*
+assignTaskTo nuserId (taskname,taska) = newTask "assignTaskTo" (mkBasicTask taskname (Task assignTaskTo`))
+where
+	assignTaskTo` tst=:{taskNr,activated,userId,staticInfo}
+	| not activated						= (createDefault,tst)
+	# (currtime,tst=:{html=ohtml})		= accTaskTSt (appWorldOnce ("Task " +++ taskname +++ " for " +++ toString nuserId) time) tst
+	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
+	# (a,tst=:{html=nhtml,activated})	= accTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
+	| activated 						= (a,{tst & activated = True													// work is done	
+												  ,	userId = userId														// restore previous user id						
+												  ,	html = ohtml +|+ (taskDescriptor currtime activated @@: nhtml)})									// plus new one tagged
+	# tst = addUser nuserId {tst & userId = userId																		// register the assigned user	
+								, html = 	ohtml +|+ (taskDescriptor currtime activated @@: nhtml)
+							}																			
+	= (a,tst)							
+	where
+		taskDescriptor currtime activated
+		= 	{ delegatorId 	= userId
+			, taskWorkerId	= nuserId
+			, taskNrId		= taskNrToString taskNr
+			, processNr		= staticInfo.currentProcessId
+			, workflowLabel	= "---"
+			, taskPriority	= NormalPriority
+			, taskLabel		= taskname
+			, timeCreated	= currtime
+	 		, curStatus		= activated
+	 		} 
+*/
 	
 // ******************************************************************************************************
 // newTask needed for recursive task creation
@@ -49,7 +87,6 @@ where
 			= (a, tst)
 		| otherwise
 			= (a, tst)
-
 
 once :: !String !(Task a) -> (Task a) | iData a
 once label task = mkBasicTask label (Task once`)
@@ -102,37 +139,6 @@ where
 //		= (a,{tst & activated = False})
 	= (a,tst)
 
-// ******************************************************************************************************
-// Assigning tasks to users, each user has to be identified by an unique number >= 0
-
-assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
-assignTaskTo nuserId (taskname,taska) = newTask "assignTaskTo" (mkBasicTask taskname (Task assignTaskTo`))
-where
-	assignTaskTo` tst=:{taskNr,activated,userId,staticInfo}
-	| not activated						= (createDefault,tst)
-	# (currtime,tst=:{html=ohtml})		= accTaskTSt (appWorldOnce ("Task " +++ taskname +++ " for " +++ toString nuserId) time) tst
-	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= accTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
-	| activated 						= (a,{tst & activated = True													// work is done	
-												  ,	userId = userId														// restore previous user id						
-												  ,	html = ohtml +|+ (taskDescriptor currtime activated @@: nhtml)})									// plus new one tagged
-	# tst = addUser nuserId {tst & userId = userId																		// register the assigned user	
-								, html = 	ohtml +|+ (taskDescriptor currtime activated @@: nhtml)
-							}																			
-	= (a,tst)							
-	where
-		taskDescriptor currtime activated
-		= 	{ delegatorId 	= userId
-			, taskWorkerId	= nuserId
-			, taskNrId		= taskNrToString taskNr
-			, processNr		= staticInfo.currentProcessId
-			, workflowLabel	= "---"
-			, taskPriority	= NormalPriority
-			, taskLabel		= taskname
-			, timeCreated	= currtime
-	 		, curStatus		= activated
-	 		} 
-
 
 // ******************************************************************************************************
 // sequencingtasks
@@ -166,7 +172,7 @@ where
 
 allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label displayOption pred taskCollection 
-= 					mkParallelTask label (Task (doandTasks taskCollection))
+	= mkParallelTask label (Task (doandTasks taskCollection))
 where
 	doandTasks [] tst	= return [] tst
 	doandTasks taskCollection tst=:{taskNr,html}
@@ -174,8 +180,10 @@ where
 		| and (map (\(x,_,_) -> x) acode) || pred alist
 			= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
 		| otherwise
+			# (output,combination)	= displayOption label taskNr acode
+			# tst					= setCombination combination tst
 			= (alist, {tst & activated	= False
-						   , html 		= html +|+ displayOption label taskNr acode })	// show all subtasks using the displayOption function
+						   , html 		= html +|+ output })	// show all subtasks using the displayOption function
 	where
 		checkAllTasks :: !String ![LabeledTask a] !Int !(![a],![(Bool,String,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,String,HtmlTree)]),!*TSt) | iCreateAndPrint a
 		checkAllTasks traceid taskCollection ctasknr (alist,acode) tst=:{taskNr}
@@ -190,13 +198,13 @@ displayAsTab :: DisplaySubTasks
 displayAsTab = displayAsTab`
 where
 	displayAsTab` label tasknr htmls 
-		= CondAnd label nrSubTasks [( { caTaskNrId		= taskNrToString [0,i:tasknr]
+		= (CondAnd label nrSubTasks [( { caTaskNrId		= taskNrToString [0,i:tasknr]
 									  , caTaskLabel		= tlabel
 									  , caIndex			= i
 									  , caNumSiblings	= nrSubTasks
 									  , caStatus		= finished	
 									  },html) \\ (finished,tlabel,html) <- htmls & i <- [0..]
-									]
+									],TTSplit)
 	where
 		nrSubTasks = length htmls
 	
@@ -205,7 +213,7 @@ displayAll :: DisplaySubTasks
 displayAll = displayAll`
 where
 	displayAll` label tasknr htmls 
-		= foldl (+|+) (BT [] []) (map (\(_,_,x) -> x) htmls) 
+		= (foldl (+|+) (BT [] []) (map (\(_,_,x) -> x) htmls), TTVertical) 
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental
