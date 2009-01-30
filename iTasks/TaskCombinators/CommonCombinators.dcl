@@ -6,8 +6,6 @@ definition module CommonCombinators
 
 import BasicCombinators, iDataWidgets		 
 
-:: ChoiceUpdate		:== Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
-
 /* standard monadic combinators on iTasks:
 (#>>)			:: for sequencing: bind, but no argument passed
 */
@@ -41,6 +39,7 @@ chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for 
 chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on first arg
 				   (initial setting, effect for all when set, explanation) for each option
 */
+:: ChoiceUpdate		:== Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
 
 chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] 			-> Task a	 	| iData a
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] 			-> Task a	 	| iData a

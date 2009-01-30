@@ -134,7 +134,7 @@ where
 				= ([],{tst & activated = False})
 		= ([chosen.Form.value],{tst & activated = True})
 
-	mkButton				= HtmlButton "Done" False
+	mkButton				= HtmlButton "Ok" False
 	mkSelect tasks cur 		= HtmlSelect [(label,toString i) \\ (label,_) <- tasks & i <- [0..] ] (toString cur)
 	
 	fromButton (HtmlButton _ val) = val
@@ -145,25 +145,26 @@ chooseTask_cbox order prompt code_ltasks
 = newTask "chooseTask_cbox" (selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks))		
 where
 	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,![HtmlTag])] ![LabeledTask a] -> Task [Int]
-	selectTask_cbox htmlcodes taskOptions = Task (selectTask_cbox` taskOptions)
+	selectTask_cbox htmlcodes taskOptions = mkBasicTask "selectTask_cbox" (Task (selectTask_cbox` taskOptions))
 	where
 		selectTask_cbox` [] tst		= ([],{tst& activated = True})
 		selectTask_cbox` taskOptions tst=:{taskNr,html,options,userId}									// choose one subtask out of the list
 			# seltaskId				= iTaskId userId taskNr ("MtpChSel" <+++ length taskOptions)
 			# donetaskId			= iTaskId userId taskNr "MtpChSt"
-			# (cboxes,tst)			= liftHst (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
+			# buttonId				= iTaskId userId taskNr "MtpChBut"
+			# (cboxes,tst)			= accHStTSt (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
 			# (fun,nblist)			= cboxes.Form.value
 			# nsettings				= fun nblist
-			# (cboxes,tst)			= liftHst (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
-			# (done,tst)			= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
-		
-			# (_,tst=:{html=ahtml,activated = adone})
-									= accTaskTSt (editTaskLabel "" "OK" Void) {tst & activated = True, html = BT [] [], taskNr = [-1:taskNr]} 
-			| not adone	
-				= ([],{tst & html = html +|+  BT cboxes.form cboxes.inputs +|+ ahtml})
+			# (cboxes,tst)			= accHStTSt (ListFuncCheckBox (Set ,cFormId options seltaskId (setCheckboxes nsettings))) tst
+			# (done,tst)			= accHStTSt (mkStoreForm      (Init,storageFormId options donetaskId False) id) tst
+			# (button,tst)			= accHStTSt (mkEditForm 	  (Init, pageFormId options buttonId mkButton )) tst
+			| fromButton button.Form.value
+				# (_,tst)			= accHStTSt (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
+				= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & activated = True})
 			| otherwise
-				# (_,tst)				= liftHst (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
-				= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & taskNr = taskNr, html = html, options = options, userId =userId, activated = True})
+				# tst = setOutput (cboxes.form ++ button.form) tst
+				# tst = setInputs (cboxes.inputs ++ button.inputs) tst
+				= ([],{tst & activated = False})
 		
 		initCheckboxes  = 
 			[(HtmlCheckbox [Text label : htmlcode] set,  \b bs _ -> setfun b bs) \\ (set,setfun,htmlcode) <- htmlcodes & (label,_) <- taskOptions ] 
@@ -171,6 +172,8 @@ where
 		setCheckboxes  boollist = 
 			[(HtmlCheckbox [Text label: htmlcode] set,  \b bs _ -> setfun b bs) \\ (_,setfun, htmlcode) <- htmlcodes & (label,_) <- taskOptions 
 																		& i <- [0..] & set <- boollist]
+		mkButton						= HtmlButton "Ok" False
+		fromButton (HtmlButton _ val) 	= val
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set

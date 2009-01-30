@@ -113,21 +113,18 @@ where
 
 // ******************************************************************************************************
 // sequencingtasks
-
-seqTasks :: ![LabeledTask a] -> (Task [a])| iCreateAndPrint a
-seqTasks [(label,task)] = task =>> \na -> return_V [na]
-seqTasks options = mkBasicTask "seqTasks" (Task seqTasks`)
+seqTasks :: ![LabeledTask a] -> (Task [a])	| iCreateAndPrint a
+seqTasks options = mkSequenceTask "seqTasks" (Task seqTasks`)
 where
-	seqTasks` tst=:{taskNr}
-		# (val,tst)	 = doseqTasks options [] {tst & taskNr = [-1:taskNr]}
-		= (val,{tst & taskNr = taskNr})
+	seqTasks` tst
+		= doseqTasks options [] tst
 
-	doseqTasks [] accu tst 		= (reverse accu,{tst & activated = True})
-	doseqTasks [(taskname,task):ts] accu tst=:{html,options} 
-		# (a,tst=:{activated=adone,html=ahtml}) 
-										= accTaskTSt task {tst & activated = True, html = BT [] []}
-		| not adone						= (reverse accu,{tst & html = html +|+ BT [ITag [] [Text taskname],BrTag [] ,BrTag []] [] +|+ ahtml})
-		| otherwise						= doseqTasks ts [a:accu] {tst & html = html +|+ ahtml, options = options}
+	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
+	doseqTasks [(taskname,task):ts] accu tst=:{options} 
+		# (a,tst=:{activated=adone}) 
+										= accTaskTSt task {tst & activated = True}
+		| not adone						= (reverse accu, tst)
+		| otherwise						= doseqTasks ts [a:accu] tst
 
 // ******************************************************************************************************
 // Select the tasks to do from a list with help of another task for selecting them:
@@ -136,7 +133,7 @@ selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a
 selectTasks chooser executer ltasks = newTask "selectTasks" selectTasks`
 where
 	selectTasks`
-	=						chooser ltasks
+		=					chooser ltasks
 			=>> \chosen -> 	executer [ltasks!!i \\ i <- chosen | i >=0 && i < lengthltask]
 			
 	lengthltask = length ltasks
