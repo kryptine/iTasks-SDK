@@ -83,55 +83,66 @@ where
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
 
-chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] -> Task a | iData a
+chooseTask_btn 	:: ![HtmlTag] !Bool ![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
-= newTask "selectTask_btn" (selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks =>> \la -> return_V (hd la))		
+	= newTask "chooseTask_btn" (selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks 
+		=>> \la -> return_V (hd la))		
 where
-	selectTask_btn direction ltasks = Task (selectTask_btn` direction ltasks)	
+	selectTask_btn direction ltasks = mkBasicTask "selectTask_btn" (Task (selectTask_btn` direction ltasks))	
 
 	selectTask_btn` _ [] tst		= return [] tst				
 	selectTask_btn` horizontal taskOptions tst=:{taskNr,html,options,userId}									// choose one subtask out of the list
 	# taskId						= iTaskId userId taskNr ("ChoSt" <+++ length taskOptions)
-	# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+	# (chosen,tst)					= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 	| chosen.Form.value == -1		// no choice made yet
 		# buttonId					= iTaskId userId taskNr "ChoBut"
 		# allButtons				= if horizontal 
 											[[(HtmlButton txt False,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
 											[[(HtmlButton txt False,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
-		# (choice,tst)				= liftHst (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
-		# (chosen,tst)				= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value) tst
-		| chosen.Form.value == -1		= ([],{tst & activated = False,html = html +|+ BT choice.form choice.inputs})
-		= ([chosen.Form.value],{tst & activated = True})
+		# (choice,tst)				= accHStTSt (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
+		# (chosen,tst)				= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value) tst
+		| chosen.Form.value == -1
+			# tst = setOutput choice.form tst
+			# tst = setInputs choice.inputs tst
+			= ([],{tst & activated = False})
+		| otherwise
+			= ([chosen.Form.value],{tst & activated = True})
 	= ([chosen.Form.value],{tst & activated = True})
 
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
-= newTask "selectTask_pdm" (selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la))		
+	= newTask "chooseTask_pdm" (selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la))		
 where
-	selectTask_pdm initial ltasks =  Task (selectTask_pdm` initial ltasks)
-
-	selectTask_pdm` _ [] tst			= return createDefault tst	
+	selectTask_pdm initial ltasks		=  mkBasicTask "selectTask_pdm" (Task (selectTask_pdm` initial ltasks))
+	
+	selectTask_pdm` _ [] tst			= return createDefault tst
 	selectTask_pdm` defaultOn taskOptions tst=:{taskNr,html,userId,options}									// choose one subtask out of  a pulldown menu
-	# taskId							= iTaskId userId taskNr ("ChoStPdm" <+++ length taskOptions)
-	# (chosen,tst)						= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-	| chosen.Form.value == -1			// no choice made yet
-		# numberOfItems					= length taskOptions
-		# defaultOn						= if (defaultOn >= 0 && defaultOn <= numberOfItems  - 1) defaultOn 0 		
-		# taskPdMenuId					= iTaskId userId taskNr ("ChoPdm" <+++ numberOfItems)
-		# (choice,tst)					= liftHst (FuncMenu  (Init,sessionFormId options taskPdMenuId (defaultOn,[(txt,id) \\ txt <- map fst taskOptions]))) tst
-		# (_,tst=:{activated=adone,html=ahtml})	
-										= accTaskTSt (editTaskLabel "" "Done" Void) {tst & activated = True, html = BT [] [], taskNr = [-1:taskNr]} 	
-		| not adone						= ([],{tst & activated = False, html = html +|+ BT prompt [] +|+ BT choice.form choice.inputs +|+ ahtml, taskNr = taskNr})
-		# chosenIdx						= snd choice.Form.value
-		# chosenTask					= snd (taskOptions!!chosenIdx)
-		# (chosen,tst)					= liftHst (mkStoreForm  (Init,storageFormId options taskId -1) (\_ -> chosenIdx)) tst
-		= ([chosen.Form.value],{tst & taskNr = taskNr, activated = True, html = html})
-	= ([chosen.Form.value],{tst & activated = True, html = html, taskNr = taskNr})
+		# taskId							= iTaskId userId taskNr ("ChoStPdm")
+		# (chosen,tst)						= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
+		| chosen.Form.value == -1			// no choice made yet	
+			# pulldownId					= iTaskId userId taskNr "ChoPdm"
+			# buttonId						= iTaskId userId taskNr "ChoBut"
+			# (choice,tst)					= accHStTSt (mkEditForm (Init, pageFormId options pulldownId (mkSelect taskOptions defaultOn))) tst
+			# (done,tst)					= accHStTSt (mkEditForm (Init, pageFormId options buttonId mkButton )) tst
+			| fromButton done.Form.value
+				# chosenId						= fromSelect choice.Form.value
+				# (chosen,tst)					= liftHst (mkStoreForm (Init,storageFormId options taskId -1) (\_ -> chosenId)) tst
+				= ([chosen.Form.value],{tst & activated = True})
+			| otherwise
+				# tst = setOutput (choice.form ++ done.form) tst
+				# tst = setInputs (choice.inputs ++ done.inputs) tst
+				= ([],{tst & activated = False})
+		= ([chosen.Form.value],{tst & activated = True})
 
-
+	mkButton				= HtmlButton "Done" False
+	mkSelect tasks cur 		= HtmlSelect [(label,toString i) \\ (label,_) <- tasks & i <- [0..] ] (toString cur)
+	
+	fromButton (HtmlButton _ val) = val
+	fromSelect (HtmlSelect _ val) = toInt val
+	
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 chooseTask_cbox order prompt code_ltasks
-= newTask "selectTask_cbox" (selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks))		
+= newTask "chooseTask_cbox" (selectTasks (\lt -> prompt ?>> selectTask_cbox (map fst code_ltasks) lt) order (map snd code_ltasks))		
 where
 	selectTask_cbox :: ![(!Bool,!ChoiceUpdate,![HtmlTag])] ![LabeledTask a] -> Task [Int]
 	selectTask_cbox htmlcodes taskOptions = Task (selectTask_cbox` taskOptions)

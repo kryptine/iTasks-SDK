@@ -429,7 +429,8 @@ mkForm (init, formid =: {issub}) hst =:{prefix}
 mkInput :: !(InIDataId d) String String !*HSt -> ([HtmlTag], [InputId],*HSt) 
 mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix} 
 	| mode == Edit || mode == Submit
-		# inputid	= (prefix +++ formid.id +++ "-" +++ toString cntr)
+		# inputname = formid.id +++ "-" +++ toString cntr
+		# inputid = prefix +++ inputname
 		= ( [InputTag 	[ TypeAttr		"text"
 						, ValueAttr		val
 						, NameAttr		inputid
@@ -449,7 +450,8 @@ mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix}
 	
 mkButton :: !(InIDataId d) String String !*HSt -> ([HtmlTag],[InputId],*HSt)
 mkButton (init, formid =: {mode}) type label hst =: {cntr,prefix} 
-	# inputid = (prefix +++ formid.id +++ "-" +++ toString cntr)
+	# inputname = formid.id +++ "-" +++ toString cntr
+	# inputid = prefix +++ inputname
 	= ( [ButtonTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					, TypeAttr	"button"
@@ -460,8 +462,9 @@ mkButton (init, formid =: {mode}) type label hst =: {cntr,prefix}
 
 mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
 mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
-	# inputid = (prefix +++ formid.id +++ "-" +++ toString cntr)
-	= ( [SelectTag	[ NameAttr	inputid
+	# inputname = formid.id +++ "-" +++ toString cntr
+	# inputid = prefix +++ inputname
+	= ( [SelectTag	[ NameAttr	inputname
 					, IdAttr	inputid
 					: if (mode == Display) [DisabledAttr] []
 					] [OptionTag [ValueAttr value:if (value == val) [SelectedAttr] [] ] [Text label] \\ (label,value) <- options]]

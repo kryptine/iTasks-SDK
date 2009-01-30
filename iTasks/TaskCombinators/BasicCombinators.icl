@@ -40,35 +40,6 @@ where
 		# (a, tst) = accTaskTSt (newTask label task) {TSt | tst & userId = newUserId}
 		= (a, {TSt | tst & userId = currentUserId})
 
-/*
-assignTaskTo nuserId (taskname,taska) = newTask "assignTaskTo" (mkBasicTask taskname (Task assignTaskTo`))
-where
-	assignTaskTo` tst=:{taskNr,activated,userId,staticInfo}
-	| not activated						= (createDefault,tst)
-	# (currtime,tst=:{html=ohtml})		= accTaskTSt (appWorldOnce ("Task " +++ taskname +++ " for " +++ toString nuserId) time) tst
-	# tst								= IF_Ajax (administrateNewThread userId tst) tst 
-	# (a,tst=:{html=nhtml,activated})	= accTaskTSt (IF_Ajax (UseAjax @>> taska) taska) {tst & html = BT [] [],userId = nuserId}	// activate task of indicated user NEWTRACE
-	| activated 						= (a,{tst & activated = True													// work is done	
-												  ,	userId = userId														// restore previous user id						
-												  ,	html = ohtml +|+ (taskDescriptor currtime activated @@: nhtml)})									// plus new one tagged
-	# tst = addUser nuserId {tst & userId = userId																		// register the assigned user	
-								, html = 	ohtml +|+ (taskDescriptor currtime activated @@: nhtml)
-							}																			
-	= (a,tst)							
-	where
-		taskDescriptor currtime activated
-		= 	{ delegatorId 	= userId
-			, taskWorkerId	= nuserId
-			, taskNrId		= taskNrToString taskNr
-			, processNr		= staticInfo.currentProcessId
-			, workflowLabel	= "---"
-			, taskPriority	= NormalPriority
-			, taskLabel		= taskname
-			, timeCreated	= currtime
-	 		, curStatus		= activated
-	 		} 
-*/
-	
 // ******************************************************************************************************
 // newTask needed for recursive task creation
 
@@ -162,13 +133,14 @@ where
 // Select the tasks to do from a list with help of another task for selecting them:
 
 selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a] | iData a
-selectTasks chooser executer ltasks = newTask "selectTask" selectTasks`
+selectTasks chooser executer ltasks = newTask "selectTasks" selectTasks`
 where
 	selectTasks`
 	=						chooser ltasks
 			=>> \chosen -> 	executer [ltasks!!i \\ i <- chosen | i >=0 && i < lengthltask]
 			
 	lengthltask = length ltasks
+
 
 allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label displayOption pred taskCollection 

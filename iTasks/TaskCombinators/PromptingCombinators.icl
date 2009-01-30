@@ -8,7 +8,7 @@ import iDataTrivial, iDataFormlib
 import TSt, BasicCombinators
 
 displayHtml	:: ![HtmlTag] -> Task a	| iCreateAndPrint a
-displayHtml html = mkBasicTask "displayTask" (Task displayTask`)
+displayHtml html = mkBasicTask "displayHtml" (Task displayTask`)
 where
 	displayTask` tst
 		# tst = setOutput html tst

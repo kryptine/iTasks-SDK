@@ -249,10 +249,10 @@ table.trace-sequence th {
 	text-align: center;
 }
 table.trace-sequence th.trace-active {
-	background-color: #3a81ad;
+	background-color: #93b8d0;
 }
 table.trace-sequence th.trace-finished {
-	background-color: #93b8d0;
+	background-color: #3a81ad;
 }
 table.trace-sequence td {
 	vertical-align: top;
@@ -268,10 +268,10 @@ table.trace-parallel th {
 	text-align: center;
 }
 table.trace-parallel th.trace-active {
-	background-color: #3a81ad;
+	background-color: #93b8d0;
 }
 table.trace-parallel th.trace-finished {
-	background-color: #93b8d0;
+	background-color: #3a81ad;
 }
 div.trace-node {
 	width: 150px;
@@ -292,10 +292,10 @@ div.trace-node th {
 }
 
 .trace-active {
-	background-color: #3a81ad;
+	background-color: #93b8d0;
 }
 .trace-finished {
-	background-color: #93b8d0;
+	background-color: #3a81ad;
 }
 .trace-inactive {
 	background-color: #ccc;
