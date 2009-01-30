@@ -12,7 +12,7 @@ module bid
 * - A confirmation is sent to the selected supplier
 */
 
-import StdEnv, StdiTasks, iData
+import StdEnv, iTasks, iData
 
 derive gForm []
 derive gUpd []

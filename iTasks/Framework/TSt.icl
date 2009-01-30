@@ -80,7 +80,7 @@ setTaskTree tree tst = {tst & tree = tree}
 * - Check if the new processes have spawned new processes themselves
 * - repeat...
 */
-calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![(HtmlTree,TaskTree)], !*TSt)
+calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
 	# (processes,tst)		= accProcessDBTSt (getProcessesForUser currentUser [Active]) tst	//Lookup all active processes for this user
@@ -91,7 +91,7 @@ where
 	sortProcesses :: ![Process] -> [Process]
 	sortProcesses ps = sortBy (\p1 p2 -> p1.Process.id > p2.Process.id) ps 
 
-	addNewProcesses :: ![(HtmlTree,TaskTree)] *TSt -> (![(HtmlTree,TaskTree)],!*TSt)
+	addNewProcesses :: ![TaskTree] *TSt -> (![TaskTree],!*TSt)
 	addNewProcesses trees tst
 		# (pids,tst)		= getNewProcesses tst
 		| isEmpty pids		= (trees,tst)									//Nothing to do...
@@ -100,14 +100,14 @@ where
 		# (ntrees,tst)		= calculateTrees (sortProcesses processes) tst	//Calculate the additional task trees
 		= addNewProcesses (trees ++ reverse ntrees) tst						//Recursively check for more new processes	
 
-	calculateTrees :: ![Process] !*TSt -> (![(HtmlTree,TaskTree)], !*TSt)
+	calculateTrees :: ![Process] !*TSt -> (![TaskTree], !*TSt)
 	calculateTrees [] tst = ([],tst)
 	calculateTrees [p:ps] tst
 		# (tree,tst)	= buildProcessTree p tst
 		# (trees,tst)	= calculateTrees ps tst
 		= ([tree:trees],tst)
 
-calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe (HtmlTree,TaskTree), !*TSt)
+calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 calculateTaskTree pid enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
 	# (mbProcess,tst)		= accProcessDBTSt (getProcessForUser currentUser pid) tst
@@ -118,21 +118,19 @@ calculateTaskTree pid enableDebug tst
 		Nothing
 			= (Just "Process not found", Nothing, tst)
 
-buildProcessTree :: Process !*TSt -> (!(HtmlTree,TaskTree), !*TSt)
+buildProcessTree :: Process !*TSt -> (!TaskTree, !*TSt)
 buildProcessTree {Process | id, owner, status, process} tst
-	# tst				= resetTSt tst
-	# tst				= setTaskNr [-1,id] tst
-	# tst				= setUserId owner tst
-	# tst				= setProcessId id tst
-	# tst				= setTaskTree (TTProcess {processId = id, userId = owner, finished = False} []) tst	
-	# (label,mbRes,tst)	= applyMainTask process tst
-	# (htree, tst)		= getHtmlTree tst
-	# (TTProcess info sequence, tst)
-						= getTaskTree tst
-	# (users, tst)		= getUsers tst
-	# (finished, tst)	= taskFinished tst
-	# (_,tst)			= accProcessDBTSt (updateProcess (if finished Finished Active) mbRes (removeDup users) id) tst 
-	= ((description id owner label @@: htree, TTProcess {ProcessInfo|info & finished = finished} (reverse sequence) ), tst)
+	# tst								= resetTSt tst
+	# tst								= setTaskNr [-1,id] tst
+	# tst								= setUserId owner tst
+	# tst								= setProcessId id tst
+	# tst								= setTaskTree (TTProcess {processId = id, userId = owner, finished = False} []) tst	
+	# (label,result,tst)				= applyMainTask process tst
+	# (TTProcess info sequence, tst)	= getTaskTree tst
+	# (users, tst)						= getUsers tst
+	# (finished, tst)					= taskFinished tst
+	# (_,tst)							= accProcessDBTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst 
+	= (TTProcess {ProcessInfo|info & finished = finished} (reverse sequence), tst)
 where
 	applyMainTask (LEFT {workflow}) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
@@ -166,18 +164,6 @@ where
 	applyDynamicTask :: !Dynamic !*TSt -> (!Dynamic, !*TSt)
 	applyDynamicTask (dyntask :: (Task Dynamic)) tst = accTaskTSt dyntask tst 
 	
-	description :: Int Int String -> TaskDescription
-	description pid owner label =	{ delegatorId	= owner
-									, taskWorkerId	= owner
-									, taskNrId		= toString pid
-									, processNr		= pid
-			
-									, workflowLabel	= label
-									, taskLabel		= "Main task"
-									, timeCreated	= Time 0			//Store in process table!
-									, taskPriority	= NormalPriority	//Store in process table!
-									, curStatus		= False				//Not finished yet
-									}
 
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)

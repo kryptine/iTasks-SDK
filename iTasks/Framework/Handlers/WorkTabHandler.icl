@@ -38,12 +38,12 @@ handleWorkTabRequest request tst
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
-			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId (snd taskTree)	// filter out the code and inputs to display in this tab
+			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
 
 			//Tracing
 			# stateTrace								= Nothing
 			# updateTrace								= Nothing
-			# taskTreeTrace								= mbTaskTreeTrace (snd taskTree)
+			# taskTreeTrace								= mbTaskTreeTrace taskTree
 			
 			# activeTasks								= Nothing
 			# content									=
@@ -112,7 +112,7 @@ where
 
 	mbTaskTreeTrace taskTree
 		| trace
-			= Just (toString (traceTaskTree2 taskTree))
+			= Just (toString (traceTaskTree taskTree))
 		| otherwise
 			= Nothing
 /*
@@ -129,16 +129,11 @@ where
 			= (Just (toString trace), states)
 		| otherwise
 			= (Nothing, states)	
-	mbSubTreeTrace req thisUserId taskId htmlTree
-		| traceOn
-			= Just (toString (getTraceFromTaskTree thisUserId taskId htmlTree))
-		| otherwise
-			= Nothing
+
 */	
 /*
 	# (stateTrace,states)							= mbStateTrace request states
 	# (updateTrace,states)							= mbUpdateTrace request states
-	#  subTreeTrace									= mbSubTreeTrace request thisUserId taskId htmlTree
 
 	# activeTasks									= if (taskStatus == TaskFinished || taskStatus == TaskDeleted) 
 														(Just [	mytaskdescr.taskNrId													

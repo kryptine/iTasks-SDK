@@ -13,8 +13,6 @@ from TaskTree	import :: HtmlTree, :: TaskTree
 
 traceProcesses 		:: [Process]		-> HtmlTag
 
-traceTaskTree		:: HtmlTree			-> HtmlTag
-traceTaskTree2		:: TaskTree			-> HtmlTag
 
-traceTaskForest		:: [HtmlTree]		-> HtmlTag
-traceTaskForest2	:: [TaskTree]		-> HtmlTag
+traceTaskTree		:: TaskTree			-> HtmlTag
+traceTaskForest		:: [TaskTree]		-> HtmlTag

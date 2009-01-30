@@ -80,7 +80,7 @@ resetTSt :: *TSt -> *TSt
 * @return The list of task trees (task forest)
 * @return The modified task state
 */
-calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![(HtmlTree,TaskTree)], !*TSt)
+calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 
 /**
 * Calculates a single task tree for a given process id
@@ -93,7 +93,7 @@ calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![(HtmlTree,TaskTree)], !*
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe (HtmlTree,TaskTree), !*TSt)
+calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 
 /**
 * Lists which workflows are available
