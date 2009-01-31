@@ -10,14 +10,46 @@ from ProcessDB import :: ProcessStatus, Suspended, Active, Deleted, Finished
 derive gUpd []
 derive gForm []
 
+derive gForm 	QForm, Person, Gender
+derive gUpd 	QForm, Person, Gender
+derive gParse 	QForm, Person, Gender
+derive gPrint 	QForm, Person, Gender
+derive gerda 	QForm, Person, Gender
+
+:: QForm = 	{ forCompany 		:: String
+			, startDate 		:: HtmlDate
+			, endDate 			:: HtmlDate
+			, estimatedHours 	:: Int
+			, description		:: HtmlTextarea
+			, price				:: Real 	
+			}
+:: Person = { firstName			:: String
+			, surname			:: String
+			, dateOfBirth		:: HtmlDate
+			, gender			:: Gender
+			}
+:: Gender = Male | Female
+
 Start world = startEngine [myWorkflow] world
 
 myWorkflow
 =	{	name		= "movingTask"
 	,	label		= "movingTask"
 	,	roles		= []
-	,	mainTask	= movingTask myTask
+	,	mainTask	= movingTask ("Task which can be moved", [Text "Please fill in quotation:"] ?>> fillInForm createDefault)
 	}
+
+fillInForm :: QForm -> (Task QForm)
+fillInForm form	
+= 					editTask "commit" form 
+	=>> \form ->	chooseTask [Text "Is everything filled in correctly?", toHtml form] 
+						 [("Yes, commit", return_V form) 
+						 ,("No", fillInForm form)
+						 ] 
+
+OK 	= button "OK" True
+NOK = button "OK" False
+
 
 movingTask labeltask
 =					newmove
@@ -73,31 +105,6 @@ where
 		#>> 				[Text "Finished, the result = ", toHtml res]?>> OK
 
 	
-:: QForm = 	{ toComp 			:: String
-			, startDate 		:: HtmlDate
-			, endDate 			:: HtmlDate
-			, estimatedHours 	:: Int
-			, description		:: HtmlTextarea
-			, price				:: Real 	
-			}
-:: Person = { firstName			:: String
-			 , surname			:: String
-			 , dateOfBirth		:: HtmlDate
-			 , gender			:: Gender
-			 }
-:: Gender = Male | Female
-
-derive gForm 	QForm, Person, Gender
-derive gUpd 	QForm, Person, Gender
-derive gParse 	QForm, Person, Gender
-derive gPrint 	QForm, Person, Gender
-derive gerda 	QForm, Person, Gender
-
-myTask :: (LabeledTask QForm)
-myTask			= ("moving task",editTask "ok1" createDefault)
-
-OK 	= button "OK" True
-NOK = button "OK" False
 
 
 
