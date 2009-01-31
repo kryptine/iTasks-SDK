@@ -13,7 +13,7 @@ from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageForm
 // New experimental task tree data strucure
 :: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputId]					//Smallest unit of work that has to be performed by a user
 					| TTSequenceTask	TaskInfo [TaskTree]								//A task that is composed of a number of sequentially executed subtasks
-					| TTParallelTask	TaskInfo TaskCombination [HtmlTag] [TaskTree]	//A task that is composed of a number of parallel executed subtasks
+					| TTParallelTask	TaskInfo TaskCombination [TaskTree]				//A task that is composed of a number of parallel executed subtasks
 					| TTProcess			ProcessInfo [TaskTree]							//The top node of a task tree is a process 
 
 				
@@ -25,7 +25,7 @@ from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageForm
 					, priority		:: TaskPriority										//How important is the task
 					}
 
-:: TaskCombination	= TTSplit															//Treat the tasks as separate units of work
+:: TaskCombination	= TTSplit [HtmlTag]													//Treat the tasks as separate units of work
 					| TTVertical														//Group the tasks and display them below each other
 					| TTHorizontal 														//Group the tasks and display them next to each other
 					| TTCustom	([[HtmlTag]] -> [HtmlTag])								//Group the tasks and display them with a custom function

@@ -215,8 +215,10 @@ orTask2 (taska,taskb)
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = newTaskTrace "andTasks" (allTasksCond "andTask" TTSplit (\_ -> False) taskCollection)
-
+andTasks taskCollection = newTaskTrace "andTasks" (allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection)
+where
+	msg = [Text "All of the following tasks need to be completed before this task can continue."]
+	
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 
 = 		newTask "maybeTask" (andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
@@ -249,7 +251,7 @@ where
 
 andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 andTasksCond label pred taskCollection 
-= allTasksCond label TTSplit pred taskCollection 
+= allTasksCond label (TTSplit []) pred taskCollection 
 
 
 

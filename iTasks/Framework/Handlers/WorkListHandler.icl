@@ -89,14 +89,14 @@ where
 	sequenceItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel False isLast "editTask"
 
 //Parallel nodes
-determineTreeWorkItems userId addSequences parentLast isLast (TTParallelTask info combination output branches)	
+determineTreeWorkItems userId addSequences parentLast isLast (TTParallelTask info combination branches)	
 	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
 		= []
 	| info.TaskInfo.userId <> userId								//Not our work, no new item
 		= determineForestWorkItems userId True parentLast branches
 	| otherwise
 		= case combination of
-			TTSplit		= [parallelItem : map (shiftWorkItem (not parentLast)) (determineForestWorkItems userId True parentLast branches) ]	
+			(TTSplit _)	= [parallelItem : map (shiftWorkItem (not parentLast)) (determineForestWorkItems userId True parentLast branches) ]	
 			_			= determineForestWorkItems userId False parentLast branches
 where
 	parallelItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel True parentLast "andTask"

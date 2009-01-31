@@ -41,7 +41,7 @@ where
 			:
 			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
 		  ]]
-	mkTree (TTParallelTask info _ _ trees)
+	mkTree (TTParallelTask info _ trees)
 		= [TableTag [ClassAttr "trace-parallel"] [
 			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ],
 			TrTag [] [TdTag [] (mkTree tree) \\ tree <- trees]

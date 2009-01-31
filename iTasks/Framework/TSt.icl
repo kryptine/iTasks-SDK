@@ -281,10 +281,10 @@ where
 	mkParallelTask` tst	
 		# tst =:{taskNr,userId,activated,tree}
 				= incTStTaskNr tst																			//Increase the task number
-		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical [] []				//Create the task node
-		# (a, tst =:{activated = finished, tree = TTParallelTask info combination output branches})			//Execute the with the new node as context
+		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical []				//Create the task node
+		# (a, tst =:{activated = finished, tree = TTParallelTask info combination branches})			//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}
-		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination output (reverse branches)) {tst & tree = tree} 
+		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination (reverse branches)) {tst & tree = tree} 
 		= (a, tst)
 		
 mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a	 								
@@ -326,10 +326,10 @@ where
 addTaskNode :: !TaskTree !*TSt -> *TSt
 addTaskNode node tst=:{tree}
 	= case tree of
-		(TTProcess info tasks)							= {tst & tree = TTProcess info [node:tasks]}
-		(TTSequenceTask info tasks)						= {tst & tree = TTSequenceTask info [node:tasks]}
-		(TTParallelTask info combination output tasks)	= {tst & tree = TTParallelTask info combination output [node:tasks]}
-		_												= {tst & tree = tree}
+		(TTProcess info tasks)					= {tst & tree = TTProcess info [node:tasks]}
+		(TTSequenceTask info tasks)				= {tst & tree = TTSequenceTask info [node:tasks]}
+		(TTParallelTask info combination tasks)	= {tst & tree = TTParallelTask info combination [node:tasks]}
+		_										= {tst & tree = tree}
 
 //Increate the tasknr of the task state
 incTStTaskNr :: *TSt -> *TSt
@@ -338,9 +338,9 @@ incTStTaskNr tst = {tst & taskNr = incTaskNr tst.taskNr}
 setOutput :: ![HtmlTag] !*TSt -> *TSt
 setOutput output tst=:{tree}
 	= case tree of
-		(TTBasicTask info _ inputs)						= {tst & tree = TTBasicTask info output inputs}
-		(TTParallelTask info combination _ branches)	= {tst & tree = TTParallelTask info combination output branches}
-		_												= {tst & tree = tree}
+		(TTBasicTask info _ inputs)					= {tst & tree = TTBasicTask info output inputs}
+		(TTParallelTask info combination branches)	= {tst & tree = TTParallelTask info combination branches}
+		_											= {tst & tree = tree}
 		
 setInputs :: ![InputId] !*TSt -> *TSt
 setInputs inputs tst=:{tree}
@@ -351,8 +351,8 @@ setInputs inputs tst=:{tree}
 setCombination :: !TaskCombination !*TSt	-> *TSt
 setCombination combination tst=:{tree}
 	= case tree of 
-		(TTParallelTask info _ output branches)	= {tst & tree = TTParallelTask info combination output branches}
-		_										= {tst & tree = tree}
+		(TTParallelTask info _ branches)	= {tst & tree = TTParallelTask info combination branches}
+		_									= {tst & tree = tree}
 
 resetSequence :: !*TSt -> *TSt
 resetSequence tst=:{taskNr,tree}

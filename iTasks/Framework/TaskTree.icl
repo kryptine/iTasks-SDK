@@ -14,8 +14,8 @@ where
 	locateSubTaskTree` taskid [(TTSequenceTask info sequence):xs]
 		| taskid == info.TaskInfo.taskId		= Just (TTSequenceTask info sequence)
 		| otherwise								= locateSubTaskTree` taskid (xs ++ sequence)
-	locateSubTaskTree` taskid [(TTParallelTask info combination output branches):xs]
-		| taskid == info.TaskInfo.taskId		= Just (TTParallelTask info combination output branches)
+	locateSubTaskTree` taskid [(TTParallelTask info combination branches):xs]
+		| taskid == info.TaskInfo.taskId		= Just (TTParallelTask info combination branches)
 		| otherwise								= locateSubTaskTree` taskid (xs ++ branches)
 	locateSubTaskTree` taskid [(TTProcess info sequence):xs]
 		| taskid == (toString info.ProcessInfo.processId)	= Just (TTProcess info sequence)

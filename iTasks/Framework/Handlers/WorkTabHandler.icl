@@ -87,10 +87,10 @@ where
 	collectTaskContent currentUser (TTSequenceTask info sequence)
 		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
 		= (flatten outputs, flatten inputs)	
-	collectTaskContent currentUser (TTParallelTask info combination output branches)
+	collectTaskContent currentUser (TTParallelTask info combination branches)
 		= case combination of
-			TTSplit		
-				| info.TaskInfo.userId == currentUser	= (output, [])
+			(TTSplit output)		
+				| info.TaskInfo.userId == currentUser	= (taskOverview output branches, [])
 				| otherwise								= ([],[])
 			mergedCombination
 				| info.TaskInfo.finished = ([],[])
@@ -103,11 +103,21 @@ where
 	collectTaskContent currentUser (TTProcess info sequence)		
 		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
 		= (flatten outputs, flatten inputs)	
-			
+	
+	taskOverview :: [HtmlTag] [TaskTree] -> [HtmlTag]
+	taskOverview prompt branches =
+		[ DivTag [ClassAttr "it-display"] prompt
+		, DivTag [ClassAttr "it-task-overview"] 
+			[TableTag [] [TrTag [] [TdTag [] [icon info.TaskInfo.finished],TdTag [] [Text info.TaskInfo.taskLabel]] \\ (TTSequenceTask info _) <- branches]]
+		]
+	where
+		icon True	= DivTag [ClassAttr "it-task-overview-icon icon-finishedTask"] []
+		icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
+				
 	taskFinished :: TaskTree -> Bool
 	taskFinished (TTBasicTask {TaskInfo|finished} _ _)		= finished
 	taskFinished (TTSequenceTask {TaskInfo|finished} _)		= finished
-	taskFinished (TTParallelTask {TaskInfo|finished} _ _ _)	= finished
+	taskFinished (TTParallelTask {TaskInfo|finished} _ _)	= finished
 	taskFinished (TTProcess {ProcessInfo|finished} _)		= finished
 
 	mbTaskTreeTrace taskTree
