@@ -282,6 +282,11 @@ setInputs			:: ![InputId] !*TSt			-> *TSt
 * Sets the combination type of the current task (only for ParallelTasks)
 */
 setCombination		:: !TaskCombination !*TSt	-> *TSt
+/**
+* Resets a sequence
+*/
+resetSequence		::	!*TSt					-> *TSt
+
 
 //// UTILITY
 

@@ -354,7 +354,13 @@ setCombination combination tst=:{tree}
 	= case tree of 
 		(TTParallelTask info _ output branches)	= {tst & tree = TTParallelTask info combination output branches}
 		_										= {tst & tree = tree}
-		
+
+resetSequence :: !*TSt -> *TSt
+resetSequence tst=:{taskNr,tree}
+	= case tree of
+		(TTSequenceTask info sequence)	= {tst & taskNr = [-1:tl taskNr], tree = TTSequenceTask info []}
+		_								= {tst & tree = tree}
+				
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
 deleteAllSubTasks [tx:txs] tst=:{hst,userId} 

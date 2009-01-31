@@ -83,21 +83,25 @@ newTaskTrace taskname mytask = /* newTask taskname */ mytask
 // otherwise, when task finshed it will remember the new tasknr to prevent checking of previously finished tasks
 
 foreverTask :: !(Task a) -> Task a | iData a
-foreverTask task = mkBasicTask "foreverTask" (Task foreverTask`)
+foreverTask task = mkSequenceTask "foreverTask" (Task foreverTask`)
 where
-	foreverTask` tst=:{taskNr,activated,userId,options,html} 
-	| options.gc == Collect																								// garbace collect everything when task finsihed
-		# (val,tst=:{activated})= accTaskTSt task {tst & taskNr = [-1:taskNr]}											// shift tasknr
-		| activated 			= foreverTask` (deleteSubTasksAndThreads taskNr {tst & taskNr = taskNr, options = options/*, html = html*/}) 			// loop
+	foreverTask` tst=:{taskNr} 
+		# (val,tst=:{activated})= accTaskTSt task tst																	// execute task
+		| activated		
+			# tst = deleteSubTasksAndThreads (tl taskNr) tst
+			# tst = resetSequence tst
+			= foreverTask` tst				
 		= (val,tst)					
+/*
 	# taskId					= iTaskId userId taskNr "ForSt"															// create store id
 	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId taskNr) id) tst				// fetch actual tasknr
 	# (val,tst=:{activated})	= accTaskTSt task {tst & taskNr = [-1:currtasknr.Form.value]}
 	| activated 																										// task is completed	
-		# ntasknr				= incTaskNr currtasknr.Form.value															// incr tasknr
+		# ntasknr				= incTaskNr currtasknr.Form.value														// incr tasknr
 		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId taskNr) (\_ -> ntasknr)) tst 	// store next task nr
-		= foreverTask` {tst & taskNr = taskNr, options = options/*, html = html*/}											// initialize new task
+		= foreverTask` {tst & taskNr = taskNr, options = options/*, html = html*/}										// initialize new task
 	= (val,tst)					
+*/
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
 (<!) taska pred = mkBasicTask "untilTask" (Task doTask)
