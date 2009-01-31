@@ -173,6 +173,25 @@ div.worktab-content {
 div.worktab form {
 	display: inline;
 }
+div.it-display {
+	margin-bottom: 10px;
+	padding: 5px;
+}
+div.it-editor {
+	margin-bottom: 10px;
+	border: solid 1px #93b8d0;
+	background-color: #fff;
+}
+div.it-editor-content {
+	padding: 5px;
+}
+div.it-editor-buttons {
+	background: #93b8d0 url('../img/body.png') top repeat-x;
+	padding: 2px 5px 2px 5px;
+}
+
+
+/*
 div.worktab .EditBox {
 		font-family: Arial, Helvetica, sans-serif;
 }
@@ -202,7 +221,7 @@ div.worktab .Trace {
 	color: silver;
 	font-weight: bold;
 }
-
+*/
 /* DEBUG STYLES */
 .debug-button button.x-btn-text {
 	width: 150px;

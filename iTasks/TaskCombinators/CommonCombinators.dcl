@@ -39,13 +39,11 @@ chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for 
 chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on first arg
 				   (initial setting, effect for all when set, explanation) for each option
 */
-:: ChoiceUpdate		:== Bool [Bool] -> [Bool]							// changed checkbox + current settings -> new settings
-
 chooseTask_btn 	:: ![HtmlTag] !Bool![LabeledTask a] 			-> Task a	 	| iData a
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] 			-> Task a	 	| iData a
-chooseTask_cbox	:: 	!([LabeledTask a] -> Task [a]) 
-					![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)]
-															-> Task [a]		| iData a
+chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) 
+				   ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)]
+																-> Task [a]		| iData a
 
 /* Choose out the tasks you want to do one forehand, labels are used to make the choice:
 button 			:: return value when button pressed
@@ -69,12 +67,12 @@ chooseTaskV 	:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iData a
 
 mchoiceTasks 	:: ![HtmlTag] ![LabeledTask a] 				-> Task [a] 	| iData a
 mchoiceTasks2 	:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
-mchoiceTasks3 	:: ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] 
+mchoiceTasks3 	:: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] 
 															-> Task [a] 	| iData a
 
 mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] 				-> Task [a]		| iData a
 mchoiceAndTasks2:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
-mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!ChoiceUpdate,![HtmlTag]),LabeledTask a)] 
+mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] 
 															-> Task [a] 	| iData a
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 (-||-)			:: do both iTasks in any order, combined task completed as soon as any subtask is done

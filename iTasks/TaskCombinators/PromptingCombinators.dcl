@@ -4,12 +4,6 @@ definition module PromptingCombinators
 */
 import TSt, iDataWidgets
 
-/**
-* Creates a basic task that displays the given html and never finishes.
-*/
-displayHtml		:: ![HtmlTag] -> Task a											| iCreateAndPrint a
-displayValue	:: !a -> Task a													| iData a
-
 /*
 Prompting variants:
 (?>>)			:: prompt as long as task is active but not finished

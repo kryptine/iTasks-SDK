@@ -17,11 +17,6 @@ import StdEnv, iTasks, iData
 derive gForm []
 derive gUpd []
 
-UID_CUSTOMER = 0
-UID_SUPPLIER1 = 1
-UID_SUPPLIER2 = 2
-UID_SUPPLIER3 = 3
-
 Start :: *World -> *World
 Start world = startEngine [bidFlow] world
 
@@ -42,14 +37,14 @@ purchaseTask =
 	
 definePurchase :: Task String
 definePurchase = 
-	[Text "Describe the product you want to purchase"]
-	?>> editTask "Ok" "" 
+	[Text "Please describe the product you would like to purchase"]
+	?>> editTask "Done" "" 
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
 	= getUsersWithRoleTask "supplier" =>> \suppliers ->
 	  ( mchoiceAndTasks
-	  		[Text "Select the suppliers from which you want to receive a bid", HrTag []]
+	  		[Text "Select the suppliers from which you want to receive a bid"]
 	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	

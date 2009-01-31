@@ -475,13 +475,16 @@ mkCheckBox :: !(InIDataId d) String [HtmlTag] Bool !*HSt -> ([HtmlTag],[InputId]
 mkCheckBox (init, formid=:{mode}) type label val hst =:{cntr,prefix}
 	# inputname = formid.id +++ "-" +++ toString cntr
 	# inputid = prefix +++ inputname
-	= ( [InputTag	[ NameAttr	inputname
-					, IdAttr	inputid
-					, TypeAttr	"checkbox"
-					: (if (mode == Display) [DisabledAttr] []) ++ (if val [CheckedAttr] [])
-					]: if (isEmpty label) [] [LabelTag [ForAttr inputid] label] ]
+	= ( checkBoxForm inputid (InputTag	[ NameAttr	inputname
+								, IdAttr	inputid
+								, TypeAttr	"checkbox"
+								: (if (mode == Display) [DisabledAttr] []) ++ (if val [CheckedAttr] [])
+								]) label
 	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
 	  , setHStCntr (cntr + 1) hst)
+where
+	checkBoxForm inputid cb	[] = [cb]
+	checkBoxForm inputid cb label = [TableTag [ClassAttr "id-checkbox"] [TrTag [] [TdTag [] [cb],TdTag [] [LabelTag [ForAttr inputid] label]]]]
 
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 toHtml :: a -> HtmlTag | gForm {|*|} a

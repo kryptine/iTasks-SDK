@@ -14,3 +14,14 @@ editTaskPred 	:: 			!a !(a -> (Bool, [HtmlTag]))	-> Task a		| iData a
 editTaskLabel	:: same as editTask, first label used for tracing...
 */
 editTaskLabel 	:: !String !String !a 						-> Task a		| iData a 
+
+/**
+* Creates a basic task that displays the given html and never finishes.
+*/
+displayHtml		:: ![HtmlTag] -> Task a											| iCreateAndPrint a
+displayValue	:: !a -> Task a													| iData a
+
+/**
+* Tasks for offering choices to users
+*/
+selectTask_cbox :: ![(!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag])] -> Task [Int]	

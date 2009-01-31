@@ -4,18 +4,7 @@ implementation module PromptingCombinators
 */
 
 import StdList, StdFunc
-import iDataTrivial, iDataFormlib
-import TSt, BasicCombinators
-
-displayHtml	:: ![HtmlTag] -> Task a	| iCreateAndPrint a
-displayHtml html = mkBasicTask "displayHtml" (Task displayTask`)
-where
-	displayTask` tst
-		# tst = setOutput html tst
-		= (createDefault, {tst & activated = False})
-
-displayValue :: !a -> Task a | iData a
-displayValue a = displayHtml [toHtml a ]
+import TSt, EditTasks, BasicCombinators
 
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iData a
 (?>>) prompt task		

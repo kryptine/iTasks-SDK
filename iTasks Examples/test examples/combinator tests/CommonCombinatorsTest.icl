@@ -44,4 +44,4 @@ taskChoices = [ ("A", [Text "you chose A"] ?>> editTask "Ok" Void)
 			  , ("C", [Text "you chose C"] ?>> editTask "Ok" Void)
 			  ]
 
-richTaskChoices = [((False,(\_ cur -> cur),[]),(label,task)) \\ (label,task) <- taskChoices]
+richTaskChoices = [((False,(\_ cur -> cur),[Text label]),(label,task)) \\ (label,task) <- taskChoices]
