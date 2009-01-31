@@ -78,7 +78,7 @@ where
 				= (TaskDeleted, [], [])										//Subtask not found, nothing to do anymore
 			Just subtree
 				# (html,inputs)	= collectTaskContent userid subtree			//Collect only the parts for the current user
-				= (if (taskFinished tree) TaskFinished TaskActivated, html, inputs)
+				= (if (taskFinished subtree) TaskFinished TaskActivated, html, inputs)
 	
 	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId])
 	collectTaskContent currentUser (TTBasicTask info output inputs)
