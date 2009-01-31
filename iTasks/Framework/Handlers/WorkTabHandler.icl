@@ -16,7 +16,7 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 				  , inputs			:: [InputId]		//The interactive inputs in the tab
 				  , prefix			:: String			//The prefix string which is prepended to all html id's of the inputs in the tab
 				  , state			:: [HtmlState]		//The task state that must be stored in the tab
-				  , activeTasks		:: Maybe [String]	//Optional list of task id's to sync the open tabs with the known states on the server
+				  , refresh			:: Bool				//Is a refresh of the worklist required
 				  , stateTrace		:: Maybe String		//Optional state trace info
 				  , updateTrace		:: Maybe String		//Optional update trace info
 				  , subtreeTrace	:: Maybe String		//Optional trace of the sub tasktree of this task
@@ -38,7 +38,7 @@ handleWorkTabRequest request tst
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
-			# (taskStatus, html, inputs)				= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
+			# (taskStatus, html, inputs, refresh)		= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
 
 			//Tracing
 			# stateTrace								= Nothing
@@ -54,7 +54,7 @@ handleWorkTabRequest request tst
 				,	inputs			= inputs
 				,	prefix			= prefix
 				,	state			= editorStates
-				,	activeTasks		= activeTasks
+				,	refresh			= refresh
 				,	stateTrace		= stateTrace
 				,	updateTrace		= updateTrace
 				,	subtreeTrace	= taskTreeTrace
@@ -71,38 +71,42 @@ where
 
 	treeErrorResponse	= {http_emptyResponse & rsp_data = "{\"success\" : false, \"error\" : \"Could not locate task tree\"}"}
 
-	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus,![HtmlTag],![InputId])
+	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus,![HtmlTag],![InputId], !Bool)
 	determineTaskForTab userid taskid tree
-		= case locateSubTaskTree taskid tree of								//Find the subtree by task id
+		= case locateSubTaskTree taskid tree of										//Find the subtree by task id
 			Nothing
-				= (TaskDeleted, [], [])										//Subtask not found, nothing to do anymore
+				= (TaskDeleted, [], [], True)										//Subtask not found, nothing to do anymore
 			Just subtree
-				# (html,inputs)	= collectTaskContent userid subtree			//Collect only the parts for the current user
-				= (if (taskFinished subtree) TaskFinished TaskActivated, html, inputs)
+				# (html,inputs,refresh)	= collectTaskContent userid subtree			//Collect only the parts for the current user
+				= (if (taskFinished subtree) TaskFinished TaskActivated, html, inputs, refresh)
 	
-	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId])
+	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId], !Bool)
 	collectTaskContent currentUser (TTBasicTask info output inputs)
-		| info.TaskInfo.userId == currentUser	= (output,inputs)
-		| otherwise								= ([],[])
+		| info.TaskInfo.userId == currentUser	= (output,inputs,False)
+		| otherwise								= ([],[],False)
 	collectTaskContent currentUser (TTSequenceTask info sequence)
-		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
-		= (flatten outputs, flatten inputs)	
+		# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser) sequence) 
+		= (flatten outputs, flatten inputs, or refresh)	
 	collectTaskContent currentUser (TTParallelTask info combination branches)
 		= case combination of
 			(TTSplit output)		
-				| info.TaskInfo.userId == currentUser	= (taskOverview output branches, [])
-				| otherwise								= ([],[])
+				| info.TaskInfo.userId == currentUser	= (taskOverview output branches, [],True)
+				| otherwise								= ([],[],False)
 			mergedCombination
-				| info.TaskInfo.finished = ([],[])
-				# (outputs,inputs) = unzip (map (collectTaskContent currentUser) branches)
-				| isEmpty outputs	= ([],[])
+				| info.TaskInfo.finished = ([],[],False)
+				# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser) branches)
+				| isEmpty outputs	= ([],[],False)
 				| otherwise			= case mergedCombination of
-					TTVertical		= ([DivTag [ClassAttr "it-vertical"] html \\ html <- outputs], flatten inputs)
-					TTHorizontal	= ([TableTag [ClassAttr "it-horizontal"] [TrTag [] [TdTag [] html \\ html <- outputs]]], flatten inputs)
-					(TTCustom f)	= (f outputs, flatten inputs)
+					TTVertical		= ([DivTag [ClassAttr "it-vertical"] html \\ html <- outputs], flatten inputs, or refresh)
+					TTHorizontal	= ([TableTag [ClassAttr "it-horizontal"] [TrTag [] [TdTag [] html \\ html <- outputs]]], flatten inputs, or refresh)
+					(TTCustom f)	= (f outputs, flatten inputs, or refresh)
 	collectTaskContent currentUser (TTProcess info sequence)		
-		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
-		= (flatten outputs, flatten inputs)	
+		# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser) sequence) 
+		= (flatten outputs, flatten inputs, or refresh)	
+	
+	unzip3 :: [(a,b,c)] -> ([a],[b],[c])
+	unzip3 [] = ([],[],[])
+	unzip3 [(a,b,c):xs] = ([a:as],[b:bs],[c:cs]) where (as,bs,cs) = unzip3 xs
 	
 	taskOverview :: [HtmlTag] [TaskTree] -> [HtmlTag]
 	taskOverview prompt branches =

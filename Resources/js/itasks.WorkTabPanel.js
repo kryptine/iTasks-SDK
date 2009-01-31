@@ -157,7 +157,10 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
             } else if(data.status == 'TaskDeleted') {
                 this.fireEvent('taskdeleted', this.taskinfo.taskid);
                 this.autoClose(this.makeDeletedMessage(), 5);
-            } else {	
+            } else {
+            	if(data.refresh) {
+            		this.fireEvent('tasksuggestsrefresh',this.taskinfo.taskid);
+            	}	
 				//Fill the content and trace panels
 				this.setupContentPanel(trace, data);
 				this.setupTracePanels(trace, data);

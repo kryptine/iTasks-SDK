@@ -83,15 +83,21 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		//Connect event handlers	
 		worklist.on('cellclick',function (grid,row,col,event) {
 			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
-			newtab.setDebugPanel(debugpanel);
-			newtab.setApplicationPanel(apppanel);
-			newtab.on('taskfinished',function(taskid) {
-				worklist.refresh();
-			},this);
-			newtab.on('taskdeleted',function(taskid) {
-				worklist.refresh();
-			},this);
-			newtab.refresh();
+
+			if(newtab[1]) {
+				newtab[0].setDebugPanel(debugpanel);
+				newtab[0].setApplicationPanel(apppanel);
+				newtab[0].on('taskfinished',function(taskid) {
+					worklist.refresh();
+				},this);
+				newtab[0].on('taskdeleted',function(taskid) {
+					worklist.refresh();
+				},this);
+				newtab[0].on('tasksuggestsrefresh',function(taskid) {
+					worklist.refresh();
+				},this);
+			}
+			newtab[0].refresh();
 		});
 		
 		newpanel.on('processStarted',function(startTask) {
