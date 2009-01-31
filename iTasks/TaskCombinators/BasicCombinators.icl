@@ -131,50 +131,26 @@ where
 	selectTasks`	= chooser tasks =>> \chosen -> 	executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
 	numTasks 		= length tasks
 
-allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
-allTasksCond label displayOption pred taskCollection 
+allTasksCond 	:: !String !TaskCombination !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
+allTasksCond label combination pred taskCollection 
 	= mkParallelTask label (Task (doandTasks taskCollection))
 where
 	doandTasks [] tst	= return [] tst
 	doandTasks taskCollection tst=:{taskNr,html}
-		# ((alist,acode),tst)		= checkAllTasks label taskCollection 0 ([],[]) {tst & html = BT [] [],activated = True} 
-		| and (map (\(x,_,_) -> x) acode) || pred alist
-			= (alist,{tst & html = html, activated = True}) 	// stop, all work done so far satisfies predicate
-		| otherwise
-			# (output,combination)	= displayOption label taskNr acode
-			# tst					= setCombination combination tst
-			= (alist, {tst & activated	= False
-						   , html 		= html +|+ output })	// show all subtasks using the displayOption function
+		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
+		| pred alist
+			= (alist,{tst & activated = True}) 					// stop, all work done so far satisfies predicate
+		| otherwise	
+			# tst		= setCombination combination tst
+			= (alist, {tst & activated	= False})				// show all subtasks using the displayOption function
 	where
-		checkAllTasks :: !String ![LabeledTask a] !Int !(![a],![(Bool,String,HtmlTree)]) !*TSt -> *(!(![a],![(Bool,String,HtmlTree)]),!*TSt) | iCreateAndPrint a
-		checkAllTasks traceid taskCollection ctasknr (alist,acode) tst=:{taskNr}
-			| ctasknr == length taskCollection
-				= ((reverse alist,reverse acode),tst)			// all tasks tested
-			# (taskname,task)		= taskCollection!!ctasknr
-			# (a,tst=:{activated = adone, html})	
-									= accTaskTSt (mkParallelSubTask traceid ctasknr task) {tst & taskNr = taskNr, activated = True, html = BT [] []} // check tasks
-			= checkAllTasks traceid taskCollection (inc ctasknr) (if adone [a:alist] alist,[(adone,taskname,html):acode]) {tst & taskNr = taskNr}
-
-displayAsTab :: DisplaySubTasks
-displayAsTab = displayAsTab`
-where
-	displayAsTab` label tasknr htmls 
-		= (CondAnd label nrSubTasks [( { caTaskNrId		= taskNrToString [0,i:tasknr]
-									  , caTaskLabel		= tlabel
-									  , caIndex			= i
-									  , caNumSiblings	= nrSubTasks
-									  , caStatus		= finished	
-									  },html) \\ (finished,tlabel,html) <- htmls & i <- [0..]
-									],TTSplit)
-	where
-		nrSubTasks = length htmls
-	
-
-displayAll :: DisplaySubTasks
-displayAll = displayAll`
-where
-	displayAll` label tasknr htmls 
-		= (foldl (+|+) (BT [] []) (map (\(_,_,x) -> x) htmls), TTVertical) 
+		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iCreateAndPrint a
+		checkAllTasks taskCollection index accu tst
+			| index == length taskCollection
+				= (reverse accu,tst)															// all tasks tested
+			# (taskname,task)			= taskCollection!!index
+			# (a,tst=:{activated})	= accTaskTSt (mkParallelSubTask taskname index task) tst	// check tasks
+			= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental

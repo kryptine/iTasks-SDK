@@ -19,8 +19,8 @@ displayValue a = displayHtml [toHtml a ]
 
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iData a
 (?>>) prompt task		
-	= allTasksCond "?>>" displayAll (\list -> length list > 0) [("prompt",displayHtml prompt),("task",task)] =>> \list -> return_V (hd list)
+	= allTasksCond "?>>" TTVertical (\list -> length list > 0) [("prompt",displayHtml prompt),("task",task)] =>> \list -> return_V (hd list)
 
 (<<?) infixl 5 	:: !(Task a) ![HtmlTag] -> Task a | iData a
 (<<?) task prompt
-	= allTasksCond "<<?" displayAll (\list -> length list > 0) [("task",task),("prompt",displayHtml prompt)] =>> \list -> return_V (hd list)
+	= allTasksCond "<<?" TTVertical (\list -> length list > 0) [("task",task),("prompt",displayHtml prompt)] =>> \list -> return_V (hd list)

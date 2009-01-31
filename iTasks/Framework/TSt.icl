@@ -291,7 +291,6 @@ mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a
 mkParallelSubTask taskname i task = Task mkParallelSubTask`
 where
 	mkParallelSubTask` tst=:{activated,taskNr,userId,tree}
-		# taskname	= taskname +++ "." +++ toString i														//Create a sub task name
 		# node		= TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId activated) []					//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})
 					= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1,i:taskNr], tree = node}	// two shifts are needed

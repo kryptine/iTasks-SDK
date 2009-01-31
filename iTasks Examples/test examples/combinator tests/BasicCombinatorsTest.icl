@@ -41,6 +41,11 @@ where
 		  		, roles		= []
 		  		, mainTask	= selectTasks_test
 		  		}
+		  	,	{ name		= "allTasksCond_test"
+		  		, label		= "allTasksCond"
+		  		, roles		= []
+		  		, mainTask	= allTasksCond_test
+		  		}
 		  	]
 
 returnbind_test :: Task Void
@@ -73,3 +78,9 @@ selectTasks_test
 	= selectTasks doEvenTasks seqTasks [(toString i, editTask "Ok" i) \\ i <- [0..2]] #>> return_V Void  
 where
 	doEvenTasks tasks = return_V [i \\ task <- tasks & i <- [0..] | isEven i]
+	
+allTasksCond_test :: Task Void
+allTasksCond_test
+	= allTasksCond "Do all of these:" TTSplit pred [("Subtask " +++ (toString i), editTask "Ok" i) \\ i <- [1..4]] #>> return_V Void
+where
+	pred list = length list > 0

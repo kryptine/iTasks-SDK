@@ -232,12 +232,12 @@ where
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (return createDefault)
-orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" displayAll (\list -> length list >= 1) taskCollection)
+orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTHorizontal (\list -> length list >= 1) taskCollection)
 							=>> \list -> (Task (return  (hd list)))
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
-=	newTask "orTask2" 	( allTasksCond "orTask" displayAll (\list -> length list > 0) 
+=	newTask "orTask2" 	( allTasksCond "orTask" TTHorizontal (\list -> length list > 0) 
 								[ ("orTask.0",taska =>> \a -> return_V (LEFT a))
 								, ("orTask.0",taskb =>> \b -> return_V (RIGHT b))
 								]
@@ -246,7 +246,7 @@ orTask2 (taska,taskb)
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = newTaskTrace "andTasks" (allTasksCond "andTask" displayAsTab (\_ -> False) taskCollection)
+andTasks taskCollection = newTaskTrace "andTasks" (allTasksCond "andTask" TTSplit (\_ -> False) taskCollection)
 
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 
@@ -266,7 +266,7 @@ where
 
 andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
-=	newTask "andTask2"	(allTasksCond "andTask" displayAll (\l -> False) 
+=	newTask "andTask2"	(allTasksCond "andTask" TTHorizontal (\l -> False) 
 							[ ("andTask.0",taska =>> \a -> return_V (LEFT a))
 							, ("andTask.0",taskb =>> \b -> return_V (RIGHT b))
 							]
@@ -280,7 +280,7 @@ where
 
 andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 andTasksCond label pred taskCollection 
-= allTasksCond label displayAsTab pred taskCollection 
+= allTasksCond label TTSplit pred taskCollection 
 
 
 
