@@ -34,7 +34,7 @@ handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst
 	# (mbError,forest,tst)			= calculateTaskForest False tst
 	# (uid, tst)					= getCurrentUser tst
-	# (workitems,tst)				= addDelegatorNames (determineForestWorkItems uid False forest) tst
+	# (workitems,tst)				= addDelegatorNames (determineForestWorkItems uid False False forest) tst
 	# worklist						= { success		= True
 										, total		= length workitems
 										, worklist	= workitems
@@ -45,64 +45,64 @@ handleWorkListRequest request tst
 //when a single tree has no output the second last must be treated
 //as last in the forest. This is needed to get the tree lines displayed
 //correct.
-determineForestWorkItems :: !UserId !Bool ![TaskTree] -> [WorkListItem]
-determineForestWorkItems userId addSequences forest = flatten (reverse (determineForestWorkItems` userId addSequences (reverse forest)))
+determineForestWorkItems :: !UserId !Bool !Bool ![TaskTree] -> [WorkListItem]
+determineForestWorkItems userId addSequences parentLast forest = flatten (reverse (determineForestWorkItems` userId addSequences parentLast (reverse forest)))
 where
-	determineForestWorkItems` userId addSequences [] 	= []
-	determineForestWorkItems` userId addSequences [x:xs]
-		# tree = determineTreeWorkItems userId addSequences True x
+	determineForestWorkItems` userId addSequences parentLast [] 	= []
+	determineForestWorkItems` userId addSequences parentLast [x:xs]
+		# tree = determineTreeWorkItems userId addSequences parentLast True x
 		= case tree of
-			[]	= determineForestWorkItems` userId addSequences xs
-			_	= [tree : map (determineTreeWorkItems userId addSequences False) xs]	
+			[]	= determineForestWorkItems` userId addSequences parentLast xs
+			_	= [tree : map (determineTreeWorkItems userId addSequences parentLast False) xs]	
 
-determineTreeWorkItems :: !UserId !Bool !Bool !TaskTree -> [WorkListItem] //Work item, along with the amount of children it has
+determineTreeWorkItems :: !UserId !Bool !Bool !Bool !TaskTree -> [WorkListItem] //Work item, along with the amount of children it has
 //Process nodes
-determineTreeWorkItems userId addSequences isLast (TTProcess info sequence)
+determineTreeWorkItems userId addSequences parentLast isLast (TTProcess info sequence)
 	| info.ProcessInfo.userId <> userId
-		= determineForestWorkItems userId True sequence									//Not our work, no new item
+		= determineForestWorkItems userId True isLast sequence							//Not our work, no new item
 	| otherwise
-		# subitems	= determineForestWorkItems userId False sequence 
+		# subitems	= determineForestWorkItems userId False isLast sequence 
 		= case subitems of
 			[]					= [processItem]											//Add a new item
 			[item:items]
-				| item.split	= [{item & taskid = (toString info.processId)}:items]	//'Merge' with subitem
+				| item.split	= [{item & taskid = (toString info.processId), subject = "Process " +++ toString info.ProcessInfo.processId}:items]	//'Merge' with subitem
 								= [processItem,item:items]
 where
 	processItem = mkWorkItem (toString info.processId) ("Process " +++ toString info.processId ) False isLast "editTask"						
 
 //Sequence nodes
-determineTreeWorkItems userId addSequences isLast (TTSequenceTask info sequence)
+determineTreeWorkItems userId addSequences parentLast isLast (TTSequenceTask info sequence)
 	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
 		= []
 	| info.TaskInfo.userId <> userId								//Not our work, no new item
-		= determineForestWorkItems userId True sequence	
+		= determineForestWorkItems userId True isLast sequence	
 	| not addSequences												//We don't need to add the sequence
-		= determineForestWorkItems userId False sequence
+		= determineForestWorkItems userId False isLast sequence
 	| otherwise
-		# subitems	= determineForestWorkItems userId addSequences sequence
+		# subitems	= determineForestWorkItems userId addSequences isLast sequence
 		= case subitems of
 			[]					= [sequenceItem]										//Add item
 			[item:items]
-				| item.split	= [{item & taskid = info.TaskInfo.taskId}:items]		//'Merge' with subitem
+				| item.split	= [{item & taskid = info.TaskInfo.taskId, subject = info.TaskInfo.taskLabel}:items]		//'Merge' with subitem
 								= [sequenceItem,item:items]								//Add item
 where
 	sequenceItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel False isLast "editTask"
 
 //Parallel nodes
-determineTreeWorkItems userId addSequences isLast (TTParallelTask info combination output branches)	
+determineTreeWorkItems userId addSequences parentLast isLast (TTParallelTask info combination output branches)	
 	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
 		= []
 	| info.TaskInfo.userId <> userId								//Not our work, no new item
-		= determineForestWorkItems userId True branches
+		= determineForestWorkItems userId True parentLast branches
 	| otherwise
 		= case combination of
-			TTSplit		= [parallelItem : map (shiftWorkItem (not isLast)) (determineForestWorkItems userId True branches) ]	
-			_			= determineForestWorkItems userId False branches
+			TTSplit		= [parallelItem : map (shiftWorkItem (not parentLast)) (determineForestWorkItems userId True parentLast branches) ]	
+			_			= determineForestWorkItems userId False parentLast branches
 where
-	parallelItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel True isLast "andTask"
+	parallelItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel True parentLast "andTask"
 
 //Basic nodes			
-determineTreeWorkItems _ _ _ _ = []
+determineTreeWorkItems _ _ _ _ _ = []
 
 mkWorkItem :: !TaskId !String !Bool !Bool !String -> WorkListItem
 mkWorkItem taskId label split last icon

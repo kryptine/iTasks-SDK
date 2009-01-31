@@ -37,7 +37,8 @@ assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a
 assignTaskTo newUserId (label,task) = Task assignTaskTo` 
 where
 	assignTaskTo` tst =:{TSt | userId = currentUserId}
-		# (a, tst) = accTaskTSt (newTask label task) {TSt | tst & userId = newUserId}
+		# tst		= addUser newUserId tst 
+		# (a, tst)	= accTaskTSt (newTask label task) {TSt | tst & userId = newUserId}
 		= (a, {TSt | tst & userId = currentUserId})
 
 // ******************************************************************************************************
