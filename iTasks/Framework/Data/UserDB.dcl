@@ -20,6 +20,14 @@ import StdMaybe
 */
 openUserDB			:: 					!*World	->	(!*UserDB						, !*World)
 /**
+* getUserIds fetches all user ids from the user database
+*
+* @param A unique user database handle
+* @return The list of all user ids
+* @return The database handle
+*/
+getUserIds 			:: 					!*UserDB -> (![Int]							, !*UserDB)
+/**
 * Maps a list of user ids to a list of display names. Display names are strings which
 * are suited for displaying directly in a user interface. For example "John Doe".
 *

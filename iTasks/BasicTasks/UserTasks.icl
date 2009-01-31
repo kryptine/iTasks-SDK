@@ -26,3 +26,7 @@ getRolesTask uids
 getUsersWithRoleTask :: !String	-> Task [(Int,String)]
 getUsersWithRoleTask role
 	= appHStOnce "getUsersWithRoleTask" (accNWorldHSt (accUserDBNWorld (getUsersWithRole role)))
+
+getUsersIds	::  (Task [Int])
+getUsersIds
+	= appHStOnce "getUsersIds" (accNWorldHSt (accUserDBNWorld getUserIds))

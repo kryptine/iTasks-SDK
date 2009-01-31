@@ -22,3 +22,7 @@ getRolesTask			:: ![Int]	-> Task [[String]]
 * Finds all users (user id + display name) who have the given role
 */
 getUsersWithRoleTask	:: !String	-> Task [(Int,String)]
+/**
+* Finds all users ids
+*/
+getUsersIds	::  (Task [Int])

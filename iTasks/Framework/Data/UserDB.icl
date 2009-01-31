@@ -44,6 +44,10 @@ getRoles :: ![Int] !*UserDB -> (![[String]], !*UserDB)
 getRoles uids db=:{cache}
 	= (map (lookupUserProperty cache (\u -> u.roles) []) uids, {db & cache = cache})
 	
+getUserIds :: !*UserDB -> (![Int], !*UserDB)
+getUserIds db=:{cache}
+	= ([user.uid \\ user <- cache], {db & cache = cache})
+
 //Helper function which finds a property of a certain user
 lookupUserProperty :: ![User] !(User -> a) !a !Int -> a
 lookupUserProperty users selectFunction defaultValue userId
