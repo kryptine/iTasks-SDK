@@ -86,34 +86,25 @@ foreverTask :: !(Task a) -> Task a | iData a
 foreverTask task = mkSequenceTask "foreverTask" (Task foreverTask`)
 where
 	foreverTask` tst=:{taskNr} 
-		# (val,tst=:{activated})= accTaskTSt task tst																	// execute task
+		# (val,tst=:{activated})= accTaskTSt task tst					
 		| activated		
 			# tst = deleteSubTasksAndThreads (tl taskNr) tst
 			# tst = resetSequence tst
 			= foreverTask` tst				
 		= (val,tst)					
-/*
-	# taskId					= iTaskId userId taskNr "ForSt"															// create store id
-	# (currtasknr,tst)			= liftHst (mkStoreForm (Init,storageFormId options taskId taskNr) id) tst				// fetch actual tasknr
-	# (val,tst=:{activated})	= accTaskTSt task {tst & taskNr = [-1:currtasknr.Form.value]}
-	| activated 																										// task is completed	
-		# ntasknr				= incTaskNr currtasknr.Form.value														// incr tasknr
-		# (currtasknr,tst)		= liftHst (mkStoreForm (Init,storageFormId options taskId taskNr) (\_ -> ntasknr)) tst 	// store next task nr
-		= foreverTask` {tst & taskNr = taskNr, options = options/*, html = html*/}										// initialize new task
-	= (val,tst)					
-*/
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
-(<!) taska pred = mkBasicTask "untilTask" (Task doTask)
+(<!) task pred = mkSequenceTask "<!" (Task doTask)
 where
 	doTask tst=:{activated, taskNr}
-	# (a,tst=:{activated}) 	= accTaskTSt taska {tst & taskNr = [-1:taskNr]}
-	| not activated 		= (a,tst)
-	| not (pred a)			
-		# tst = deleteSubTasksAndThreads [0:taskNr] tst
-		= doTask {tst & taskNr = taskNr}
-//		= (a,{tst & activated = False})
-	= (a,tst)
+		# (a,tst=:{activated}) 	= accTaskTSt task tst
+		| not activated
+			= (a,tst)
+		| not (pred a)			
+			# tst = deleteSubTasksAndThreads (tl taskNr) tst
+			# tst = resetSequence tst
+			= doTask tst
+		= (a,tst)
 
 
 // ******************************************************************************************************
@@ -135,14 +126,10 @@ where
 // Select the tasks to do from a list with help of another task for selecting them:
 
 selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a] | iData a
-selectTasks chooser executer ltasks = newTask "selectTasks" selectTasks`
+selectTasks chooser executer tasks = mkSequenceTask "selectTasks" selectTasks`
 where
-	selectTasks`
-		=					chooser ltasks
-			=>> \chosen -> 	executer [ltasks!!i \\ i <- chosen | i >=0 && i < lengthltask]
-			
-	lengthltask = length ltasks
-
+	selectTasks`	= chooser tasks =>> \chosen -> 	executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
+	numTasks 		= length tasks
 
 allTasksCond 	:: !String !DisplaySubTasks !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label displayOption pred taskCollection 

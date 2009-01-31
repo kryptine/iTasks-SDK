@@ -5,11 +5,14 @@ module BasicCombinatorsTest
 import StdEnv, iTasks, iData
 import BasicCombinators, CommonCombinators, PromptingCombinators
 
+derive gForm []
+derive gUpd []
+
 Start :: *World -> *World
 Start world = startEngine tests world
 where
 	tests = [ 	{ name		= "returnbind_test"
-		  		, label		= "Return and bind"
+		  		, label		= "return_V and =>>"
 		  		, roles		= []
 		  		, mainTask	= returnbind_test
 		  		}
@@ -22,6 +25,21 @@ where
 		  		, label		= "foreverTask"
 		  		, roles		= []
 		  		, mainTask	= foreverTask_test
+		  		}
+		  	,	{ name		= "loop_tst"
+		  		, label		= "loop (&lt;!)"
+		  		, roles		= []
+		  		, mainTask	= loop_test
+		  		}
+		  	,	{ name		= "seqTasks_test"
+		  		, label		= "seqTasks"
+		  		, roles		= []
+		  		, mainTask	= seqTasks_test
+		  		}
+		  	,	{ name		= "selectTasks_test"
+		  		, label		= "selectTasks"
+		  		, roles		= []
+		  		, mainTask	= selectTasks_test
 		  		}
 		  	]
 
@@ -41,3 +59,17 @@ foreverTask_test
 		  editTask "Sum" (a + b)
 		 )
 	  ) #>> return_V Void
+
+loop_test :: Task Void
+loop_test
+	= ( (editTask "Ok" 0) <! (\x -> x > 10) ) #>> return_V Void
+	
+seqTasks_test :: Task Void
+seqTasks_test
+	= seqTasks [(toString i, editTask "Ok" i) \\ i <- [1..3]] =>> \list -> displayValue list #>> return_V Void
+	
+selectTasks_test :: Task Void
+selectTasks_test
+	= selectTasks doEvenTasks seqTasks [(toString i, editTask "Ok" i) \\ i <- [0..2]] #>> return_V Void  
+where
+	doEvenTasks tasks = return_V [i \\ task <- tasks & i <- [0..] | isEven i]
