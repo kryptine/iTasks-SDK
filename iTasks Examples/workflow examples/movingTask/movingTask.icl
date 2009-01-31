@@ -1,6 +1,7 @@
 module movingTask
 
-import StdEnv, StdiTasks, iDataTrivial
+import StdEnv, iTasks, iDataTrivial
+from ProcessDB import :: ProcessStatus, Suspended, Active, Deleted, Finished
 
 // (c) MJP 2007
 
@@ -9,15 +10,22 @@ import StdEnv, StdiTasks, iDataTrivial
 derive gUpd []
 derive gForm []
 
-Start world = startTaskEngine (movingTask go <<@ LSTxtFile) world
+Start world = startEngine [myWorkflow] world
+
+myWorkflow
+=	{	name		= "movingTask"
+	,	label		= "movingTask"
+	,	roles		= []
+	,	mainTask	= movingTask myTask
+	}
 
 movingTask labeltask
-=					foreverTask newmove
+=					newmove
 where
 	newmove 
 	=				[Text "Assign a user to perform the task"] 
-					?>> editTaskPred  0 (\v -> (v >= 0 && v < 5, [Text "illegal user id!"]))
-		=>> \who ->	spawnWorkflow who True labeltask
+					?>> editTask "set" 0 //  0 (\v -> (v >= 0 && v < 5, [Text "illegal user id!"]))
+		=>> \who ->	spawnProcess who True labeltask
 		=>> 		inspect
 
 	inspect wid
@@ -32,40 +40,61 @@ where
 					=>> \finished -> if finished (return_V Void) (inspect wid)
 
 	getStatus wid
-	=						getWorkflowStatus wid
+	=						getProcessStatus wid
 		=>> \st	->			case st of
-								WflFinished			-> [Text "It is finished"] ?>> OK
-								WflDeleted			-> [Text "It is deleted"]  ?>> OK		
-								(WflActive	user)	-> [Text ("User " <+++ user <+++ " is working on it")]  ?>> NOK		
-								(WflSuspended user)	-> [Text ("It is suspended, user " <+++ user <+++ " was working on it")]  ?>> NOK		
+								Finished	-> [Text "It is finished"] ?>> OK
+								Deleted		-> [Text "It is deleted"]  ?>> OK		
+								Active		-> [Text ("User " <+++ /*user <+++ " */"is working on it")]  ?>> NOK		
+								Suspended	-> [Text ("It is suspended, user " <+++ /*user <+++ */" was working on it")]  ?>> NOK		
 	suspend wid
-	=						suspendWorkflow wid
+	=						suspendProcess wid
 		=>> \ok ->			if ok
 								([Text "workflow is suspended"] ?>> NOK)
 								([Text "workflow could not be suspended"] ?>> NOK)
 	activate wid
-	=						activateWorkflow wid
+	=						activateProcess wid
 		=>> \ok ->			if ok
 								([Text "workflow is activated"] ?>> NOK)
 								([Text "workflow could not be activated"] ?>> NOK)
 
 	delete wid
-	=						deleteWorkflow wid 
+	=						deleteProcess wid 
 		#>> 				return_V True				
 
 	reassign wid
 	=						editTask "who's next ?" 0
-		=>> \who ->			changeWorkflowUser who wid 
+		=>> \who ->			setProcessOwner who wid 
 		#>> 				return_V False
 
 	waitForIt wid
 	=						[Text "Waiting for the result..."]
-							?>> waitForWorkflow wid 
-		=>> \(Just res) -> 	deleteWorkflow wid 
+							?>> waitForProcess wid 
+		=>> \(Just res) -> 	deleteProcess wid 
 		#>> 				[Text "Finished, the result = ", toHtml res]?>> OK
 
 	
-go			= ("moving task",editTask "ok1" 0 =>> \v1 -> editTask "ok2" v1)
+:: QForm = 	{ toComp 			:: String
+			, startDate 		:: HtmlDate
+			, endDate 			:: HtmlDate
+			, estimatedHours 	:: Int
+			, description		:: HtmlTextarea
+			, price				:: Real 	
+			}
+:: Person = { firstName			:: String
+			 , surname			:: String
+			 , dateOfBirth		:: HtmlDate
+			 , gender			:: Gender
+			 }
+:: Gender = Male | Female
+
+derive gForm 	QForm, Person, Gender
+derive gUpd 	QForm, Person, Gender
+derive gParse 	QForm, Person, Gender
+derive gPrint 	QForm, Person, Gender
+derive gerda 	QForm, Person, Gender
+
+myTask :: (LabeledTask QForm)
+myTask			= ("moving task",editTask "ok1" createDefault)
 
 OK 	= button "OK" True
 NOK = button "OK" False
