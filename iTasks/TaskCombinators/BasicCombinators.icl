@@ -138,6 +138,8 @@ where
 	doandTasks [] tst	= return [] tst
 	doandTasks taskCollection tst=:{taskNr,html}
 		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
+		| length alist == length taskCollection					// all tasks are done
+			= (alist,{tst & activated = True})
 		| pred alist
 			= (alist,{tst & activated = True}) 					// stop, all work done so far satisfies predicate
 		| otherwise	

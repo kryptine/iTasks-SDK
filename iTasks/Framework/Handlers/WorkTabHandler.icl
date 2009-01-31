@@ -97,8 +97,8 @@ where
 				# (outputs,inputs) = unzip (map (collectTaskContent currentUser) branches)
 				| isEmpty outputs	= ([],[])
 				| otherwise			= case mergedCombination of
-					TTVertical		= ([DivTag [] html \\ html <- outputs], flatten inputs)
-					TTHorizontal	= ([TableTag [] [TrTag [] [TdTag [] html \\ html <- outputs]]], flatten inputs)
+					TTVertical		= ([DivTag [ClassAttr "it-vertical"] html \\ html <- outputs], flatten inputs)
+					TTHorizontal	= ([TableTag [ClassAttr "it-horizontal"] [TrTag [] [TdTag [] html \\ html <- outputs]]], flatten inputs)
 					(TTCustom f)	= (f outputs, flatten inputs)
 	collectTaskContent currentUser (TTProcess info sequence)		
 		# (outputs,inputs) = unzip (map (collectTaskContent currentUser) sequence) 
