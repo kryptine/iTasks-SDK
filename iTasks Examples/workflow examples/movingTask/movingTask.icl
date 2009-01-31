@@ -55,8 +55,7 @@ movingTask labeltask
 =					newmove
 where
 	newmove 
-	=				[Text "Assign a user to perform the task"] 
-					?>> editTask "set" 0 //  0 (\v -> (v >= 0 && v < 5, [Text "illegal user id!"]))
+	=				selectUser "Assign a user to perform the task"
 		=>> \who ->	spawnProcess who True labeltask
 		=>> 		inspect
 
@@ -94,7 +93,7 @@ where
 		#>> 				return_V True				
 
 	reassign wid
-	=						editTask "who's next ?" 0
+	=						selectUser "Who is next?"
 		=>> \who ->			setProcessOwner who wid 
 		#>> 				return_V False
 
@@ -105,6 +104,11 @@ where
 		#>> 				[Text "Finished, the result = ", toHtml res]?>> OK
 
 	
-
+selectUser :: !String -> Task Int
+selectUser prompt
+	= 						getUsersIds
+		=>> \userIds ->		getUserNamesTask userIds
+		=>> \names ->		chooseTask_pdm [Text prompt] 0
+								[(name, return_V userId) \\ userId <- userIds & name <- names]
 
 
