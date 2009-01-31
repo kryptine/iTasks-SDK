@@ -65,10 +65,10 @@ determineTreeWorkItems userId addSequences parentLast isLast (TTProcess info seq
 		= case subitems of
 			[]					= [processItem]											//Add a new item
 			[item:items]
-				| item.split	= [{item & taskid = (toString info.processId), subject = "Process " +++ toString info.ProcessInfo.processId}:items]	//'Merge' with subitem
+				| item.split	= [{item & taskid = (toString info.processId), subject = info.processLabel}:items]	//'Merge' with subitem
 								= [processItem,item:items]
 where
-	processItem = mkWorkItem (toString info.processId) ("Process " +++ toString info.processId ) False isLast "editTask"						
+	processItem = mkWorkItem (toString info.processId) info.processLabel False isLast "editTask"						
 
 //Sequence nodes
 determineTreeWorkItems userId addSequences parentLast isLast (TTSequenceTask info sequence)

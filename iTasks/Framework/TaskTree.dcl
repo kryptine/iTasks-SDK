@@ -30,9 +30,10 @@ from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageForm
 					| TTHorizontal 														//Group the tasks and display them next to each other
 					| TTCustom	([[HtmlTag]] -> [HtmlTag])								//Group the tasks and display them with a custom function
 
-:: ProcessInfo =	{ processId	:: ProcessId
-					, userId	:: UserId
-					, finished	:: Bool
+:: ProcessInfo =	{ processId		:: ProcessId
+					, processLabel	:: String
+					, userId		:: UserId
+					, finished		:: Bool
 					}
 
 /**
