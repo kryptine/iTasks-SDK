@@ -72,11 +72,13 @@ where
 
 	getStatus wid
 	=						getProcessStatus wid
-		=>> \st	->			case st of
+		=>> \st	->			getProcessOwner wid
+		=>> \mbOwner ->		if (isNothing mbOwner) (return_V ["???"]) (getUserNamesTask [(fromJust mbOwner)])
+		=>> \names ->		case st of
 								Finished	-> [Text "It is finished"] ?>> OK
 								Deleted		-> [Text "It is deleted"]  ?>> OK		
-								Active		-> [Text ("User " <+++ /*user <+++ " */"is working on it")]  ?>> NOK		
-								Suspended	-> [Text ("It is suspended, user " <+++ /*user <+++ */" was working on it")]  ?>> NOK		
+								Active		-> [Text ("User " <+++ hd names <+++ " is working on it")]  ?>> NOK		
+								Suspended	-> [Text ("It is suspended, user " <+++ hd names <+++ " was working on it")]  ?>> NOK		
 	suspend wid
 	=						suspendProcess wid
 		=>> \ok ->			if ok
@@ -110,5 +112,4 @@ selectUser prompt
 		=>> \userIds ->		getUserNamesTask userIds
 		=>> \names ->		chooseTask_pdm [Text prompt] 0
 								[(name, return_V userId) \\ userId <- userIds & name <- names]
-
 
