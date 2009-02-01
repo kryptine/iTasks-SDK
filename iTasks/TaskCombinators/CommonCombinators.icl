@@ -67,7 +67,7 @@ where
 	= 				accTaskTSt (
 					getDisplayNamesTask [nuserId] =>> \displayNames ->
 					[showText ("Waiting for Task "), showLabel taskname, showText " from ", showLabel (hd displayNames),BrTag []]
-					?>> assignTaskTo nuserId (taskname,[showText "Requested by ", showUser userId,BrTag [] ,BrTag []] ?>> task)) tst
+					?>> assignTaskTo nuserId (taskname,task)) tst
 
 	showUser nr = showLabel ("User " <+++ nr)
 

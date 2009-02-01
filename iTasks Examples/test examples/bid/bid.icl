@@ -55,7 +55,7 @@ collectBids purchase suppliers
 where
 	collectBid :: String (Int,String) -> Task ((Int,String),Real)
 	collectBid purchase bid
-		= [Text "Please make a bid to supply ",ITag [] [Text purchase], HrTag []]
+		= [Text "Please make a bid to supply ",ITag [] [Text purchase]]
 		  ?>>
 		  editTask "Ok" createDefault =>> \price ->
 		  return_V (bid, price)
