@@ -19,7 +19,7 @@ editTaskLabel 	:: !String !String !a 						-> Task a		| iData a
 * Creates a basic task that displays the given html and never finishes.
 */
 displayHtml		:: ![HtmlTag] -> Task a											| iCreateAndPrint a
-displayValue	:: !a -> Task a													| iData a
+displayValue	:: !a -> Task b													| iData a & iCreateAndPrint b
 
 /**
 * Tasks for offering choices to users

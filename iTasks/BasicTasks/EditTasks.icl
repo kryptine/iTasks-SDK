@@ -29,7 +29,7 @@ editTask` prompt a tst=:{taskNr,html,hst,userId}
 	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time
 	| taskdone.Form.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
 	# tst				= {tst & hst = hst}
-	# tst				= setOutput [DivTag [ClassAttr "it-editor"] [DivTag [ClassAttr "it-editor-content"] editor.form, DivTag [ClassAttr "it-editor-buttons"] finbut.form]] tst
+	# tst				= setOutput [DivTag [ClassAttr "it-editor"] ((if (isEmpty editor.form) [] [DivTag [ClassAttr "it-editor-content"] editor.form]) ++ [DivTag [ClassAttr "it-editor-buttons"] finbut.form])] tst
 	# tst				= setInputs (editor.inputs ++ finbut.inputs) tst
 	= (editor.Form.value,{tst & activated = taskdone.Form.value})
 
@@ -71,8 +71,28 @@ where
 		# tst = setOutput [DivTag [ClassAttr "it-display"] html] tst
 		= (createDefault, {tst & activated = False})
 
-displayValue :: !a -> Task a | iData a
+displayValue :: !a -> Task b | iData a & iCreateAndPrint b 
 displayValue a = displayHtml [toHtml a ]
+
+viewTask :: !String !a  -> Task a	| iData a
+viewTask prompt a = mkBasicTask "viewTask" (Task (viewTask` prompt a))
+where
+	viewTask` prompt a tst=:{taskNr,userId,hst}
+		# taskId			= iTaskId userId taskNr "ViewFin"
+		# editId			= iTaskId userId taskNr "ViewVal"
+		# buttonId			= iTaskId userId taskNr "ViewBut"
+		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  				// determine if the task has been done previously
+		| taskdone.Form.value
+			= (a,{tst & hst = hst, activated = True})															// test if task has completed
+		# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst					// no, read out current value from active editor
+		# (finbut,hst)  	= mySimpleButton tst.options buttonId prompt (\_ -> True) hst						// add button for marking task as done
+		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time
+		| taskdone.Form.value
+			= (a,{tst & hst = hst, activated = True})															// task is now completed, handle as previously
+		# tst				= {tst & hst = hst}
+		# tst				= setOutput [DivTag [ClassAttr "it-editor"] [DivTag [ClassAttr "it-editor-content"] editor.form, DivTag [ClassAttr "it-editor-buttons"] finbut.form]] tst
+		# tst				= setInputs (editor.inputs ++ finbut.inputs) tst
+		= (editor.Form.value,{tst & activated = taskdone.Form.value})
 
 selectTask_cbox :: ![(!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag])] -> Task [Int]
 selectTask_cbox choices = mkBasicTask "selectTask_cbox" (Task (selectTask_cbox` choices))

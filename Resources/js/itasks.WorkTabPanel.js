@@ -312,7 +312,38 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						this.lastFocus = but.inputName;
 					},this);
 					break;
-						
+				case "HtmlTextarea":
+					var value = input.dom.innerHTML;
+					var parent = input.parent();
+					var next = input.next();
+					
+					//Replace
+					input.remove();
+					input = new Ext.form.TextArea({
+						id: inputid,
+						name: inputid,
+						inputName: inputname,
+						value: value
+					});
+					input.render(parent,next);
+					
+					//Event handlers
+					if(data.inputs[i].updateon == "OnChange") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, newVal);
+							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+						},this);
+					}
+					if(data.inputs[i].updateon == "OnSubmit") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, newVal);
+						},this);
+					}
+					input.on("focus", function (inp) {
+						this.lastFocus = inp.inputName;
+					},this);
+					
+					break;	
 				default:
 					//Constructors
 					if(data.inputs[i].type.substr(0,5) == "CONS:") {

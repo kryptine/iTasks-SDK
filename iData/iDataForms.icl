@@ -421,7 +421,7 @@ mkForm (init, formid =: {issub}) hst =:{prefix}
 	# (form, hst)	= gForm{|*|} (init, formid) hst
 	| issub			= (form, hst) //Subforms are contained in the <form> tags of their parent
 	| otherwise		= ({form &
-						form = [FormTag [IdAttr (prefix +++ formid.id)] form.form]
+						form = if (isEmpty form.form) [] [FormTag [IdAttr (prefix +++ formid.id)] form.form]
 					   }, hst)
 	
 	

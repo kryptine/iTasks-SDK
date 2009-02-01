@@ -14,8 +14,20 @@ module bid
 
 import StdEnv, iTasks, iData
 
-derive gForm []
-derive gUpd []
+
+
+//Main types
+:: Purchase	=	{	name	:: !String
+				,	amount	:: !Int
+				,	express	:: !Bool
+				,	note	:: !HtmlTextarea
+				}
+				
+//Generic derives
+derive gForm	Purchase, []
+derive gUpd		Purchase, []
+derive gPrint	Purchase
+derive gParse	Purchase
 
 Start :: *World -> *World
 Start world = startEngine [bidFlow] world
@@ -35,10 +47,10 @@ purchaseTask =
 	selectBid bids	 				=>> \bid		->
 	confirmBid purchase bid
 	
-definePurchase :: Task String
+definePurchase :: Task Purchase
 definePurchase = 
 	[Text "Please describe the product you would like to purchase"]
-	?>> editTask "Done" "" 
+	?>> editTask "Done" createDefault
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
@@ -48,17 +60,19 @@ selectSuppliers
 	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	
-collectBids :: String [(Int,String)] -> Task [((Int,String),Real)]
+collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Real)]
 collectBids purchase suppliers
-	= andTasks
-		[("Bid for " +++ purchase +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
+	= andTasksEnough
+		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
 where
-	collectBid :: String (Int,String) -> Task ((Int,String),Real)
+	collectBid :: Purchase (Int,String) -> Task ((Int,String),Real)
 	collectBid purchase bid
-		= [Text "Please make a bid to supply ",ITag [] [Text purchase]]
-		  ?>>
-		  editTask "Ok" createDefault =>> \price ->
-		  return_V (bid, price)
+		= [Text "Please make a bid to supply the following product"]
+		  ?>> (
+		  	displayValue purchase
+		  	-|||-
+		  	(editTask "Ok" createDefault =>> \price -> return_V (bid, price))
+		  )
 	
 selectBid :: [((Int,String),Real)] -> Task ((Int,String),Real)
 selectBid bids
@@ -70,17 +84,33 @@ selectBid bids
 	if acceptCheapest
 		( return_V cheapestBid)
 		( chooseTask
-			[Text "Please select a bid"]
+			[Text "Please select one of the following bids"]
 			[(name +++ " " +++ toString price, return_V bid) \\ bid =: ((uid,name),price) <- bids] 
 		)
 where
 	determineCheapest bids = return_V (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
 	yesOrNo = (editTask "Yes" Void #>> return_V True) -||- (editTask "No" Void #>> return_V False)
 	
-confirmBid :: String ((Int,String),Real) -> Task Void
+confirmBid :: Purchase ((Int,String),Real) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
 	= uid @: ("Bid confirmation",(
-		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase], Text " has been accepted."]
+		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
 		?>> editTask "Ok" Void
 	))
+	
+//Custom utility combinators 
+andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iData a
+andTasksEnough taskCollection = mkParallelTask "andTasksEnough" (Task andTasksEnough`)
+where
+	andTasksEnough` tst
+		# tst					= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order
+		# (_,tst=:{activated})	= accTaskTSt (mkParallelSubTask "enough" 0 ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void )) tst
+		= accTaskTSt (mkParallelSubTask "tasks" 1 (allTasksCond "andTask" (TTSplit msg) (\list -> length list >= 1 && activated) taskCollection)) {tst & activated = True}
+
+	msg = [Text "This task is waiting for the completion of the following tasks:"]
+
+
+(-|||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
+(-|||-) top bottom
+	= allTasksCond "-|||-" TTVertical (\l -> length l == 1) [("top",top),("bottom",bottom)] =>> \firstDone -> return_V (hd firstDone)
 	

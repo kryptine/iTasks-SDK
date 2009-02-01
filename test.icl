@@ -85,7 +85,14 @@ initialWorkflows = [
 	, label	= "Test with lists"
 	, roles = []
 	, mainTask = listTask
-	}
+	}/*,
+	
+	{ Workflow
+	| name	= "andTasksCancel"
+	, label	= "All tasks or cancel"
+	, roles	= []
+	, mainTask = andTasksCancel_test
+	}*/
 	]
 
 spawnTask :: Task Void

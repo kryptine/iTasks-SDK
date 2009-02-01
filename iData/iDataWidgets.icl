@@ -99,17 +99,18 @@ gForm{|HtmlSelect|} (init,formid) hst
 where
 	(HtmlSelect o v)	= formid.ival
 
-gForm{|HtmlTextarea|} (init,formid =: {mode}) hst =:{cntr,prefix}
+gForm{|HtmlTextarea|} (init,formid =:{mode}) hst =:{cntr,prefix}
 # inputid = prefix +++ formid.id +++ "-" +++ toString cntr
 = (	{ changed			= False
 	, value				= formid.ival
 	, form				= [TextareaTag	[ NameAttr inputid
 										, IdAttr inputid
 										, RowsAttr (toString rows)
+										: (if (mode == Display) [DisabledAttr] [])
 										]
 										[RawText val]
 						  ]
-	, inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlTextArea", updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	, inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlTextarea", updateon = (if (mode == Submit) OnSubmit OnChange)}]
 	},setHStCntr (cntr + 1) hst)
 where
 	(HtmlTextarea rows val) = formid.ival
