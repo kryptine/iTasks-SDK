@@ -75,6 +75,14 @@ where
 			Just {Process | status}	= (status, tst)
 			Nothing							= (Deleted, tst)
 			
+getProcessOwner :: (ProcessReference a) -> Task (Maybe Int)
+getProcessOwner (ProcessReference pid) = newTask "getProcess" (Task getProcessStatus`)
+where
+	getProcessStatus` tst 
+	# (process,tst)	=	accProcessDBTSt (getProcess pid) tst
+	# owner = if (isNothing process) Nothing (Just (fromJust process).owner)
+	= (owner,tst)
+
 activateProcess	:: (ProcessReference a)	-> Task Bool | iData a
 activateProcess (ProcessReference pid) = newTask "activateProcess" (Task activateProcess`)
 where

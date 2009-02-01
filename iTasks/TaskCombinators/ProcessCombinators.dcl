@@ -50,6 +50,14 @@ waitForProcess			:: (ProcessReference a)				-> Task (Maybe a)				| iData a
 getProcessStatus		:: (ProcessReference a)				-> Task ProcessStatus			| iData a
 
 /**
+* Poll who is the owner of a process.
+*
+* @param The process reference
+*
+* @return A task that yields the owner if the referenced process is not deleted
+*/
+getProcessOwner 		:: (ProcessReference a) 			-> Task (Maybe Int)
+/**
 * Change the process status to Active
 *
 * @param The process reference

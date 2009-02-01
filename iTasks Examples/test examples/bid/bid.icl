@@ -103,8 +103,8 @@ andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iData a
 andTasksEnough taskCollection = mkParallelTask "andTasksEnough" (Task andTasksEnough`)
 where
 	andTasksEnough` tst
-		# tst					= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order
-		# (_,tst=:{activated})	= accTaskTSt (mkParallelSubTask "enough" 0 ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void )) tst
+		# tst						= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order
+		# (_,tst=:{activated})		= accTaskTSt (mkParallelSubTask "enough" 0 ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void)) tst
 		= accTaskTSt (mkParallelSubTask "tasks" 1 (allTasksCond "andTask" (TTSplit msg) (\list -> length list >= 1 && activated) taskCollection)) {tst & activated = True}
 
 	msg = [Text "This task is waiting for the completion of the following tasks:"]
