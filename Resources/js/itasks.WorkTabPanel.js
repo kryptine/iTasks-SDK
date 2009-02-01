@@ -345,8 +345,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					
 					break;	
 				default:
-					//Constructors
-					if(data.inputs[i].type.substr(0,5) == "CONS:") {
+					//Constructors and selects
+					if(data.inputs[i].type.substr(0,5) == "CONS:" ||
+					   data.inputs[i].type == "HtmlSelect") {
 						
 						var parent = input.parent();
 						var next = input.next();
