@@ -77,7 +77,7 @@ where
 selectBid :: [((Int,String),Real)] -> Task ((Int,String),Real)
 selectBid bids
 	= determineCheapest bids	=>> \cheapestBid =: ((uid,name),price) ->	
-	[ Text "The cheapest bid is ",Text (toString price), Text " by ", Text name, BrTag [],
+	[ Text "The cheapest bid is ", RawText "&euro; ",Text (toString price), Text " by ", Text name, BrTag [],
 	  Text "Do you want to accept this bid?", BrTag []]
 	?>>
 	yesOrNo =>> \acceptCheapest ->
@@ -94,7 +94,7 @@ where
 confirmBid :: Purchase ((Int,String),Real) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
 	= uid @: ("Bid confirmation",(
-		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
+		[Text "Your bid of ",RawText "&euro; ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
 		?>> editTask "Ok" Void
 	))
 	

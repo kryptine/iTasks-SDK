@@ -85,30 +85,11 @@ where
 
 chooseTask_btn 	:: ![HtmlTag] !Bool ![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
+	= (prompt ?>> selectTask_btn horizontal ltasks) =>> \chosen -> (snd (ltasks!!chosen))
+/*
 	= newTask "chooseTask_btn" (selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks 
 		=>> \la -> return_V (hd la))		
-where
-	selectTask_btn direction ltasks = mkBasicTask "selectTask_btn" (Task (selectTask_btn` direction ltasks))	
-
-	selectTask_btn` _ [] tst		= return [] tst				
-	selectTask_btn` horizontal taskOptions tst=:{taskNr,html,options,userId}									// choose one subtask out of the list
-	# taskId						= iTaskId userId taskNr ("ChoSt" <+++ length taskOptions)
-	# (chosen,tst)					= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-	| chosen.Form.value == -1		// no choice made yet
-		# buttonId					= iTaskId userId taskNr "ChoBut"
-		# allButtons				= if horizontal 
-											[[(HtmlButton txt False,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
-											[[(HtmlButton txt False,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
-		# (choice,tst)				= accHStTSt (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
-		# (chosen,tst)				= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value) tst
-		| chosen.Form.value == -1
-			# tst = setOutput choice.form tst
-			# tst = setInputs choice.inputs tst
-			= ([],{tst & activated = False})
-		| otherwise
-			= ([chosen.Form.value],{tst & activated = True})
-	= ([chosen.Form.value],{tst & activated = True})
-
+*/
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
 	= newTask "chooseTask_pdm" (selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la))		
@@ -148,16 +129,16 @@ chooseTask_cbox order prompt code_ltasks
 // choose one or more tasks on forehand out of a set
 
 button :: !String !a -> (Task a) | iData a
-button s a = newTaskTrace "button" (chooseTask_btn [] True [(s,return_V a)])
+button s a = chooseTask_btn [] True [(s,return_V a)]
 
 buttonTask :: !String !(Task a) -> (Task a) | iData a
-buttonTask s task = newTaskTrace "buttonTask" (chooseTask_btn [] True [(s,task)])
+buttonTask s task = chooseTask_btn [] True [(s,task)]
 
 chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
-chooseTask prompt options = newTaskTrace "chooseTask" (chooseTask_btn prompt True options)
+chooseTask prompt options = chooseTask_btn prompt True options
 
 chooseTaskV :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
-chooseTaskV prompt options = newTaskTrace "chooseTaskV" (chooseTask_btn prompt False options)
+chooseTaskV prompt options = chooseTask_btn prompt False options
 
 mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
@@ -202,13 +183,13 @@ where
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (return createDefault)
 orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTHorizontal (\list -> length list >= 1) taskCollection)
-							=>> \list -> (Task (return  (hd list)))
+							=>> \list -> return_V (hd list)
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
 =	newTask "orTask2" 	( allTasksCond "orTask" TTHorizontal (\list -> length list > 0) 
 								[ ("orTask.0",taska =>> \a -> return_V (LEFT a))
-								, ("orTask.0",taskb =>> \b -> return_V (RIGHT b))
+								, ("orTask.1",taskb =>> \b -> return_V (RIGHT b))
 								]
 						 =>> \res -> 	return_V (hd res)
 						) 

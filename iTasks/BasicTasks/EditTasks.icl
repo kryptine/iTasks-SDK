@@ -94,6 +94,30 @@ where
 		# tst				= setInputs (editor.inputs ++ finbut.inputs) tst
 		= (editor.Form.value,{tst & activated = taskdone.Form.value})
 
+
+selectTask_btn :: !Bool ![LabeledTask a] -> Task Int
+selectTask_btn direction ltasks = mkBasicTask "selectTask_btn" (Task (selectTask_btn` direction ltasks))	
+where
+	selectTask_btn` _ [] tst		= (-1,tst)				
+	selectTask_btn` horizontal taskOptions tst=:{taskNr,userId,options}									// choose one subtask out of the list
+	# taskId						= iTaskId userId taskNr "ChoSt"
+	# (chosen,tst)					= accHStTSt (mkStoreForm  (Init, storageFormId options taskId -1) id) tst
+	| chosen.Form.value == -1		// no choice made yet
+		# buttonId					= iTaskId userId taskNr "ChoBut"
+		# allButtons				= if horizontal 
+											[[(HtmlButton txt False,\_ -> n)  \\ txt <- map fst taskOptions & n <- [0..]]]
+											[[(HtmlButton txt False,\_ -> n)] \\ txt <- map fst taskOptions & n <- [0..]]
+		# (choice,tst)				= accHStTSt (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
+		# (chosen,tst)				= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value ) tst
+		| chosen.Form.value == -1
+			# tst = setOutput choice.form tst
+			# tst = setInputs choice.inputs tst
+			= (-1,{tst & activated = False})
+		| otherwise
+			= (chosen.Form.value,{tst & activated = True})
+	= (chosen.Form.value,{tst & activated = True})
+
+
 selectTask_cbox :: ![(!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag])] -> Task [Int]
 selectTask_cbox choices = mkBasicTask "selectTask_cbox" (Task (selectTask_cbox` choices))
 where

@@ -30,10 +30,10 @@ getCoins :: (Int,Int) -> Task (Bool,Int)
 getCoins (cost,paid) = getCoins`
 where
 	getCoins`		
-	= 						chooseTask [Text ("To pay: " <+++ cost),Br,Br] 
+	= 						(chooseTask [Text ("To pay: " <+++ cost),Br,Br] 
 					  		[(c +++> " cents", return_V (False,c)) \\ c <- coins]
 						  	-||-
-						  	buttonTask "Cancel" (return_V (True,0))
+						  	buttonTask "Cancel" (return_V (True,0)))
 		=>> handleMoney
 
 	handleMoney (cancel,coin)

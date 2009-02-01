@@ -24,4 +24,5 @@ displayValue	:: !a -> Task b													| iData a & iCreateAndPrint b
 /**
 * Tasks for offering choices to users
 */
+selectTask_btn 	:: !Bool ![LabeledTask a] -> Task Int 				
 selectTask_cbox :: ![(!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag])] -> Task [Int]	

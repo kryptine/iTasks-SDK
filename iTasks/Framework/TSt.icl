@@ -260,7 +260,7 @@ where
 		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId activated) [] []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
-		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree}	//Add the node to current context
+		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree, taskNr = taskNr}	//Add the node to current context
 		= (a, tst)
 
 mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
@@ -272,7 +272,7 @@ where
 		# node	= TTSequenceTask (mkTaskInfo taskNr taskname userId activated) []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1:taskNr], tree = node}			//and a shifted task number
-		# tst	= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree} 	//Add the node to current context
+		# tst	= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr} 	//Add the node to current context
 		= (a, tst)
 		
 mkParallelTask :: !String !(Task a) -> Task a | iCreateAndPrint a
@@ -284,7 +284,7 @@ where
 		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical []				//Create the task node
 		# (a, tst =:{activated = finished, tree = TTParallelTask info combination branches})			//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}
-		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination (reverse branches)) {tst & tree = tree} 
+		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination (reverse branches)) {tst & tree = tree, taskNr = taskNr} 
 		= (a, tst)
 		
 mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a	 								
