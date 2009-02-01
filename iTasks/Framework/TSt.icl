@@ -260,7 +260,7 @@ where
 		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId activated) [] []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
-		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished} output inputs) {tst & tree = tree}	//Add the node to current context
+		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree}	//Add the node to current context
 		= (a, tst)
 
 mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
@@ -299,7 +299,7 @@ where
 
 mkTaskInfo :: TaskNr String UserId Bool -> TaskInfo
 mkTaskInfo tasknr label userid active
-	= {taskId = (taskNrToString tasknr), taskLabel = label, userId = userid, active = active, finished = False, priority = NormalPriority} 
+	= {taskId = (taskNrToString tasknr), taskLabel = label, userId = userid, active = active, finished = False, priority = NormalPriority, traceValue = ""} 
 
 //Execute the task when active, else return a default value
 executeTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a

@@ -23,6 +23,7 @@ from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageForm
 					, active		:: Bool												//Is the task active?
 					, finished		:: Bool												//Is the task finished?
 					, priority		:: TaskPriority										//How important is the task
+					, traceValue	:: String											//String representation of value for tracing
 					}
 
 :: TaskCombination	= TTSplit [HtmlTag]													//Treat the tasks as separate units of work

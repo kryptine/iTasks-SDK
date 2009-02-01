@@ -8,9 +8,9 @@ module coffeemachine
 
 // Some alternative coffee machine definitions have been added as example for the ICFP07 paper.
 
-import StdEnv, StdiTasks, iDataTrivial
+import StdEnv, iTasks, iDataTrivial
 
-Start world =  startTaskEngine (foreverTask CoffeeMachine) world
+Start world =  startEngine [{name = "coffeemachine",label="Coffeemachine",roles=[],mainTask=(foreverTask CoffeeMachine) #>> return_V Void}] world
 
 CoffeeMachine :: Task (String,Int)
 CoffeeMachine  

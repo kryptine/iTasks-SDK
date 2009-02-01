@@ -464,7 +464,7 @@ mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[
 mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
 	# inputname = formid.id +++ "-" +++ toString cntr
 	# inputid = prefix +++ inputname
-	= ( [SelectTag	[ NameAttr	inputname
+	= ( [SelectTag	[ NameAttr	inputid
 					, IdAttr	inputid
 					: if (mode == Display) [DisabledAttr] []
 					] [OptionTag [ValueAttr value:if (value == val) [SelectedAttr] [] ] [Text label] \\ (label,value) <- options]]
@@ -475,7 +475,7 @@ mkCheckBox :: !(InIDataId d) String [HtmlTag] Bool !*HSt -> ([HtmlTag],[InputId]
 mkCheckBox (init, formid=:{mode}) type label val hst =:{cntr,prefix}
 	# inputname = formid.id +++ "-" +++ toString cntr
 	# inputid = prefix +++ inputname
-	= ( checkBoxForm inputid (InputTag	[ NameAttr	inputname
+	= ( checkBoxForm inputid (InputTag	[ NameAttr	inputid
 								, IdAttr	inputid
 								, TypeAttr	"checkbox"
 								: (if (mode == Display) [DisabledAttr] []) ++ (if val [CheckedAttr] [])

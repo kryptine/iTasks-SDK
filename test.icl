@@ -79,6 +79,12 @@ initialWorkflows = [
 	, label	= "Test for newTask"
 	, roles = []
 	, mainTask = newTaskTest
+	},
+	{ Workflow
+	| name	= "listtest"
+	, label	= "Test with lists"
+	, roles = []
+	, mainTask = listTask
 	}
 	]
 
@@ -118,7 +124,10 @@ newTaskTest :: Task Void
 newTaskTest =
 	(newTask "TEST" intTask) #>> return_V Void 
 
-
+listTask :: Task Void
+listTask =
+	(editTask "Done" [1,2]) #>> return_V Void
+	
 myBoxTask :: Task TestBox
 myBoxTask = editTask "Done" (TestBox True False True)
 

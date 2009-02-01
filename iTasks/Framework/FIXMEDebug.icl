@@ -30,7 +30,8 @@ where
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
 			DivTag [ClassAttr "trace-node-content " ] [
 					TableTag [] [
-						TrTag [] [ThTag [] [Text "User id:"] , TdTag [] [Text (toString info.TaskInfo.userId)] ]
+						TrTag [] [ThTag [] [Text "User:"] , TdTag [] [Text (toString info.TaskInfo.userId)] ],
+						TrTag [] [ThTag [] [Text "Value:"], TdTag [] [Text info.TaskInfo.traceValue] ]
 					] 		
 				]
 		    ]
