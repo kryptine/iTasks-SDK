@@ -343,7 +343,36 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						this.lastFocus = inp.inputName;
 					},this);
 					
-					break;	
+					break;
+				case "HtmlDate":
+					var value = input.getValue();
+					var parent = input.parent();
+					var next = input.next();
+					
+					//Replace
+					input.remove();
+					input = new Ext.form.DateField({
+						id: inputid,
+						name: inputid,
+						inputName: inputname,
+						value: value
+					});
+					input.render(parent,next);
+					if(data.inputs[i].updateon == "OnChange") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, newVal.format("m/d/Y"));
+							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+						},this);
+					}
+					if(data.inputs[i].updateon == "OnSubmit") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, newVal.format("m/d/Y"));
+						},this);
+					}
+					input.on("focus", function (inp) {
+						this.lastFocus = inp.inputName;
+					},this);
+					break;
 				default:
 					//Constructors and selects
 					if(data.inputs[i].type.substr(0,5) == "CONS:" ||

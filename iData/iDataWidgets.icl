@@ -5,7 +5,7 @@ import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
 
 derive gForm	[], HtmlTag, HtmlAttr
-derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlDate, HtmlTime
+derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlTime
 
 derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
@@ -144,24 +144,20 @@ where
 	where
 		convert (HtmlSelect _ x) = toInt x
 
-gForm {|HtmlDate|} (init,formid) hst 
-	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
+
+gForm {|HtmlDate|} (init,formid =:{mode}) hst =:{cntr,prefix}
+	# (html,inputs,hst)	= mkInput (init,formid) "HtmlDate" (pad 2 m +++ "/" +++ pad 2 d +++ "/" +++ pad 4 y) hst
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= html
+	   , inputs			= inputs
+	   },hst)
 where
-	nPage = if (formid.FormId.lifespan == LSClient) LSClient LSPage
-	toPullDown (HtmlDate d m y)	= (dv,mv,yv)
-	where
-		dv					= HtmlSelect [(toString i, toString i) \\ i <- [1..31]] (toString md)
-		mv					= HtmlSelect [(toString i, toString i) \\ i <- [1..12]] (toString mm)
-		yv					= HtmlSelect [(toString i, toString i) \\ i <- [1950..2015]] (toString my)
+	(HtmlDate  d m y)	= formid.ival
+	pad len num = (createArray (len - size nums) '0' ) +++ nums
+	where 
+		nums = toString num
 
-		my					= if (y >= 1950 && y <= 2015) y 2007
-		md					= if (d >= 1    && d <= 31)   d 1
-		mm					= if (m >= 1    && m <= 12)   m 1
-
-	fromPullDown (dv,mv,yv)	= HtmlDate (convert dv) (convert mv) (convert yv)
-	where
-		convert (HtmlSelect _ x)= toInt x
-		
 gForm {|HtmlLabel|} (init, formid) hst
 	= ({ changed		= False
 	   , value			= formid.ival
@@ -208,6 +204,13 @@ gUpd{|HtmlPassword|}	(UpdSearch 0 upd)		_						= (UpdDone, HtmlPassword upd)				
 gUpd{|HtmlPassword|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
 gUpd{|HtmlPassword|}	(UpdCreate l)			_						= (UpdCreate l, HtmlPassword "")								// create default value
 gUpd{|HtmlPassword|}	mode					cur						= (mode, cur)													// don't change
+
+gUpd{|HtmlDate|}		(UpdSearch 0 upd) 		_						= (UpdDone, HtmlDate d m y)									// update value
+where
+	(m,d,y)	=  (toInt (upd %(0,1)),toInt (upd %(3,4)),toInt (upd %(6,9)))
+gUpd{|HtmlDate|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlDate|}		(UpdCreate l)			_						= (UpdCreate l, HtmlDate 1 1 1970)								// create default value
+gUpd{|HtmlDate|}		mode					cur						= (mode, cur)
 
 gUpd{|RefreshTimer|}	(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
 gUpd{|RefreshTimer|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
