@@ -379,6 +379,36 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						this.lastFocus = inp.inputName;
 					},this);
 					break;
+				case "HtmlTime":
+					var value = input.getValue();
+					var parent = input.parent();
+					var next = input.next();
+					
+					//Replace
+					input.remove();
+					input = new Ext.form.TimeField({
+						id: inputid,
+						name: inputid,
+						inputName: inputname,
+						format: "H:i:s",
+						value: value
+					});
+					input.render(parent,next);
+					if(data.inputs[i].updateon == "OnChange") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, newVal.format("H:i:s"));
+							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+						},this);
+					}
+					if(data.inputs[i].updateon == "OnSubmit") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, newVal.format("H:i:s"));
+						},this);
+					}
+					input.on("focus", function (inp) {
+						this.lastFocus = inp.inputName;
+					},this);
+					break;
 				default:
 					//Constructors and selects
 					if(data.inputs[i].type.substr(0,5) == "CONS:" ||

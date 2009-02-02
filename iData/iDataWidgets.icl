@@ -5,7 +5,7 @@ import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
 
 derive gForm	[], HtmlTag, HtmlAttr
-derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlTime
+derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode
 
 derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
@@ -130,33 +130,21 @@ gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr,prefix}
 where
 	(HtmlPassword v)	= formid.ival
 
-gForm {|HtmlTime|} (init,formid) hst
-	= specialize (flip mkBimapEditor {map_to = toPullDown, map_from = fromPullDown}) (init,formid <@ nPage) hst
-where
-	nPage = if (formid.FormId.lifespan == LSClient) LSClient LSPage
-	toPullDown (HtmlTime h m s)	= (hv,mv,sv)
-	where
-		hv					= HtmlSelect [(toString i,toString i) \\ i <- [0..23]] (toString h)
-		mv					= HtmlSelect [(toString i,toString i) \\ i <- [0..59]] (toString m)
-		sv					= HtmlSelect [(toString i,toString i) \\ i <- [0..59]] (toString s)
-
-	fromPullDown (hv,mv,sv)	= HtmlTime (convert hv) (convert mv) (convert sv)
-	where
-		convert (HtmlSelect _ x) = toInt x
-
-
-gForm {|HtmlDate|} (init,formid =:{mode}) hst =:{cntr,prefix}
-	# (html,inputs,hst)	= mkInput (init,formid) "HtmlDate" (pad 2 m +++ "/" +++ pad 2 d +++ "/" +++ pad 4 y) hst
+gForm {|HtmlTime|} (init,formid =:{mode}) hst =:{cntr,prefix}
+	# (html,inputs,hst)	= mkInput (init,formid) "HtmlTime" (toString formid.ival) hst
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= html
 	   , inputs			= inputs
 	   },hst)
-where
-	(HtmlDate  d m y)	= formid.ival
-	pad len num = (createArray (len - size nums) '0' ) +++ nums
-	where 
-		nums = toString num
+
+gForm {|HtmlDate|} (init,formid =:{mode}) hst =:{cntr,prefix}
+	# (html,inputs,hst)	= mkInput (init,formid) "HtmlDate" (toString formid.ival) hst
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= html
+	   , inputs			= inputs
+	   },hst)
 
 gForm {|HtmlLabel|} (init, formid) hst
 	= ({ changed		= False
@@ -209,8 +197,15 @@ gUpd{|HtmlDate|}		(UpdSearch 0 upd) 		_						= (UpdDone, HtmlDate d m y)								
 where
 	(m,d,y)	=  (toInt (upd %(0,1)),toInt (upd %(3,4)),toInt (upd %(6,9)))
 gUpd{|HtmlDate|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
-gUpd{|HtmlDate|}		(UpdCreate l)			_						= (UpdCreate l, HtmlDate 1 1 1970)								// create default value
+gUpd{|HtmlDate|}		(UpdCreate l)			_						= (UpdCreate l, HtmlDate 1 1 2000)								// create default value
 gUpd{|HtmlDate|}		mode					cur						= (mode, cur)
+
+gUpd{|HtmlTime|}		(UpdSearch 0 upd) 		_						= (UpdDone, HtmlTime h m s)									// update value
+where
+	(h,m,s)	=  (toInt (upd %(0,1)),toInt (upd %(3,4)),toInt (upd %(6,7)))
+gUpd{|HtmlTime|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlTime|}		(UpdCreate l)			_						= (UpdCreate l, HtmlTime 12 0 0)								// create default value
+gUpd{|HtmlTime|}		mode					cur						= (mode, cur)
 
 gUpd{|RefreshTimer|}	(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
 gUpd{|RefreshTimer|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
@@ -257,9 +252,14 @@ where
 	= d1 < d2
 
 instance toString HtmlTime where
-	toString (HtmlTime hrs min sec)				= toString hrs <+++ ":" <+++ min <+++ ":" <+++ sec
+	toString (HtmlTime hrs min sec)				= (pad 2 hrs) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
 instance toString HtmlDate where
-	toString (HtmlDate day month year)			= toString day <+++ "/" <+++ month <+++ "/" <+++ year
+	toString (HtmlDate day month year)			= (pad 2 month) +++ "/" +++ (pad 2 day) +++ "/" +++ (pad 4 year)
+
+pad :: Int Int -> String
+pad len num = (createArray (len - size nums) '0' ) +++ nums
+where 
+	nums = toString num
 
 instance toInt HtmlSelect where
 	toInt (HtmlSelect options val) = index val options

@@ -2967,7 +2967,19 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	544
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1068
+				SizeY:	544
 		IclOpen:	False
 	Module
 		Name:	DynamicGraphConversion
