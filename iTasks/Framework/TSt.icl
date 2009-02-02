@@ -18,7 +18,7 @@ mkTSt itaskstorage threadstorage session workflows hst processdb
 	=	{ taskNr		= [-1]
 		, userId		= -1
 		, html 			= BT [] []
-		, tree			= TTProcess {processId = -1, processLabel = "", userId = -1, finished = False} []
+		, tree			= TTProcess {processId = -1, processLabel = "", userId = -1, status = Active} []
 		, activated 	= True
 		, users			= []
 		, newProcesses	= []
@@ -113,8 +113,12 @@ calculateTaskTree pid enableDebug tst
 	# (mbProcess,tst)		= accProcessDBTSt (getProcessForUser currentUser pid) tst
 	= case mbProcess of
 		Just entry
-			# (tree,tst)	= buildProcessTree entry tst
-			= (Nothing, Just tree, tst)
+			= case entry.Process.status of
+				Active
+					# (tree,tst)	= buildProcessTree entry tst
+					= (Nothing, Just tree, tst)
+				_
+					= (Nothing, Just (TTProcess {processId = entry.Process.id, processLabel = "", userId = entry.owner, status = entry.Process.status} []), tst)
 		Nothing
 			= (Just "Process not found", Nothing, tst)
 
@@ -124,13 +128,13 @@ buildProcessTree {Process | id, owner, status, process} tst
 	# tst								= setTaskNr [-1,id] tst
 	# tst								= setUserId owner tst
 	# tst								= setProcessId id tst
-	# tst								= setTaskTree (TTProcess {processId = id, processLabel = "", userId = owner, finished = False} []) tst	
+	# tst								= setTaskTree (TTProcess {processId = id, processLabel = "", userId = owner, status = status} []) tst	
 	# (label,result,tst)				= applyMainTask process tst
 	# (TTProcess info sequence, tst)	= getTaskTree tst
 	# (users, tst)						= getUsers tst
 	# (finished, tst)					= taskFinished tst
 	# (_,tst)							= accProcessDBTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst 
-	= (TTProcess {ProcessInfo|info & processLabel = label, finished = finished} (reverse sequence), tst)
+	= (TTProcess {ProcessInfo|info & processLabel = label, status = (if finished Finished Active)} (reverse sequence), tst)
 where
 	applyMainTask (LEFT {workflow}) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst

@@ -106,7 +106,7 @@ where
 	updated				= or updates
 	(updates,newlist)	= unzip (map update db)
 	update entry
-		| entry.Process.id == processId	= (True, {entry & status = status})
+		| entry.Process.id == processId	= (True, {Process|entry & status = status})
 												= (False, entry)
 
 setProcessResult	:: !String !Int				!*ProcessDB -> (!Bool,				!*ProcessDB)

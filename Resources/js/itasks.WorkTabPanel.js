@@ -123,6 +123,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	makeDeletedMessage: function() {
 		return "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
 	},
+	makeSuspendedMessage: function() {
+		return "This task is temporarily suspended.<br />No work is needed at this moment.";
+	},
 	makeErrorMessage: function(msg) {
 		return "<span class=\"error\">" + msg + "</span>";
 	},
@@ -157,6 +160,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
             } else if(data.status == 'TaskDeleted') {
                 this.fireEvent('taskdeleted', this.taskinfo.taskid);
                 this.autoClose(this.makeDeletedMessage(), 5);
+           	} else if(data.status == 'TaskSuspended') {
+           		this.fireEvent('tasksuspended', this.taskinfo.taskid);
+           		this.setContent(this.makeSuspendedMessage());
             } else {
             	if(data.refresh) {
             		this.fireEvent('tasksuggestsrefresh',this.taskinfo.taskid);
@@ -466,6 +472,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		} else {
 			subtreePanel.disable();
 		}
+	},
+	setContent: function (msg) {
+		this.contentPanel.body.dom.innerHTML = msg;
 	},
 	switchContentPanels: function (trace) {
 		

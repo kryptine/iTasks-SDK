@@ -7,6 +7,7 @@ import TaskTree
 import iDataForms, iDataState, iDataFormlib
 import JSON
 import FIXMEDebug
+from ProcessDB import :: ProcessStatus(..)
 
 derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
@@ -23,7 +24,8 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 				  }
 
 :: TaskStatus	= TaskFinished
-				| TaskActivated
+				| TaskActive
+				| TaskSuspended
 				| TaskDeleted
 
 /**
@@ -78,7 +80,7 @@ where
 				= (TaskDeleted, [], [], True)										//Subtask not found, nothing to do anymore
 			Just subtree
 				# (html,inputs,refresh)	= collectTaskContent userid subtree			//Collect only the parts for the current user
-				= (if (taskFinished subtree) TaskFinished TaskActivated, html, inputs, refresh)
+				= (taskStatus subtree, html, inputs, refresh)
 	
 	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId], !Bool)
 	collectTaskContent currentUser (TTBasicTask info output inputs)
@@ -118,11 +120,13 @@ where
 		icon True	= DivTag [ClassAttr "it-task-overview-icon icon-finishedTask"] []
 		icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 				
-	taskFinished :: TaskTree -> Bool
-	taskFinished (TTBasicTask {TaskInfo|finished} _ _)		= finished
-	taskFinished (TTSequenceTask {TaskInfo|finished} _)		= finished
-	taskFinished (TTParallelTask {TaskInfo|finished} _ _)	= finished
-	taskFinished (TTProcess {ProcessInfo|finished} _)		= finished
+	taskStatus :: TaskTree -> TaskStatus
+	taskStatus (TTBasicTask {TaskInfo|finished} _ _)			= if finished TaskFinished TaskActive
+	taskStatus (TTSequenceTask {TaskInfo|finished} _)			= if finished TaskFinished TaskActive
+	taskStatus (TTParallelTask {TaskInfo|finished} _ _)			= if finished TaskFinished TaskActive
+	taskStatus (TTProcess {ProcessInfo|status= Finished} _)		= TaskFinished
+	taskStatus (TTProcess {ProcessInfo|status= Suspended} _)	= TaskSuspended
+	taskStatus (TTProcess _ _)									= TaskActive
 
 	mbTaskTreeTrace taskTree
 		| trace

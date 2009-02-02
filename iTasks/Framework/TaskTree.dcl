@@ -8,7 +8,8 @@ definition module TaskTree
 import StdMaybe
 import Types
 import Html, Time
-from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
+from   iDataForms	import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
+from   ProcessDB	import :: ProcessStatus
 
 // New experimental task tree data strucure
 :: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputId]					//Smallest unit of work that has to be performed by a user
@@ -34,7 +35,7 @@ from   iDataForms import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageForm
 :: ProcessInfo =	{ processId		:: ProcessId
 					, processLabel	:: String
 					, userId		:: UserId
-					, finished		:: Bool
+					, status		:: ProcessStatus
 					}
 
 /**
