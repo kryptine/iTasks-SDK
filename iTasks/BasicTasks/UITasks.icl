@@ -1,4 +1,4 @@
-implementation module EditTasks
+implementation module UITasks
 
 import StdList, StdTuple, StdFunc, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial

@@ -5,7 +5,7 @@ definition module iTasks
 import
 		Engine						// basic iTask system creator
 
-	,	EditTasks					// basic html editors for any type
+	,	UITasks						// basic html editors for any type
 	,	UserTasks					// tasks for accessing the user database		
 	,	TimeAndDateTasks			// iTasks triggered by time and date 
 	,	iTasksDB					// iTask simple DB access

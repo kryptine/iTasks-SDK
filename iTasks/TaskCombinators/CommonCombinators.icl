@@ -5,7 +5,7 @@ implementation module CommonCombinators
 */
 import StdList, StdFunc, StdTuple, GenBimap
 import iDataTrivial, iDataFormlib
-import EditTasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
+import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
 import InternaliTasksCommon
 
 derive gForm 	[]

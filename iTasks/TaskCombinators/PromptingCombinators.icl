@@ -4,7 +4,7 @@ implementation module PromptingCombinators
 */
 
 import StdList, StdFunc
-import TSt, EditTasks, BasicCombinators
+import TSt, UITasks, BasicCombinators
 
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iData a
 (?>>) prompt task		

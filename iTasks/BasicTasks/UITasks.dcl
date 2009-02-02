@@ -1,4 +1,4 @@
-definition module EditTasks
+definition module UITasks
 
 
 import TSt
