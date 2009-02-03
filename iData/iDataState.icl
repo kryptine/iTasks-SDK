@@ -1,6 +1,6 @@
  implementation module iDataState
 
-import StdArray, StdList, StdOrdList, StdString, StdTuple, StdFile, ArgEnv, StdMaybe, Directory
+import StdEnv, StdMaybe, ArgEnv, Directory
 import iDataTrivial, EncodeDecode
 import GenPrint, GenParse
 import dynamic_string
@@ -11,7 +11,6 @@ import StdDebug
 
 derive gPrint 	(,), (,,), (,,,), Maybe, Void
 derive gParse	(,), (,,), (,,,), Maybe, Void
-derive gerda 	(,), (,,), (,,,), Void
 derive bimap	(,), (,,), (,,,), Maybe, Void
 
 // This module controls the handling of state forms and the communication with the browser
@@ -42,24 +41,8 @@ derive bimap	(,), (,,), (,,,), Maybe, Void
 				  }
 :: Format		= PlainStr 	!.String 							// Either a string is used for serialization
 				| StatDyn	!Dynamic 							// Or a dynamic which enables serialization of functions defined in the application (no plug ins yet)
-				| DBStr		.String (*Gerda -> *Gerda)			// In case a new value has to be stored in the relational database 
 				| CLDBStr   .String (*DataFile -> *DataFile)	// In case a new value has to be stored in a Cleans database file
 				
-// Database OPTION
-
-readGerda` id gerda 
-:== IF_Database (readGerda id gerda)
-					(abort "Reading from relational Database, yet option is swiched off\n", 
-					 abort "Reading from relational Database, yet option is swiched off\n")
-
-writeGerda` id val 
-:== IF_Database (writeGerda id val)
-					(\_ -> abort "Writing to relational Database, yet option is swiched off\n")
-
-deleteGerda` id gerda
-:== IF_Database (deleteGerda id gerda)
-					(abort "Deleting data from Database, yet option is swiched off\n")
-
 
 // DataFile OPTION
 
@@ -122,7 +105,6 @@ where
 	with
 		fetchFState :: FState -> Maybe a | TC a & gParse{|*|} a
 		fetchFState {FState | format = PlainStr string}	= parseString string
-		fetchFState {FState | format = DBStr string _}	= parseString string
 		fetchFState {FState | format = CLDBStr string _}	= parseString string
 		fetchFState {FState | format = StatDyn (v::a^)}	= Just v    
 		fetchFState _							= Nothing
@@ -135,26 +117,6 @@ where
 
 	// value is not yet available in the tree storage...
 	// all stuff read out from persistent store is now marked as OldState (was NewState)	
-
-	// read out relational Database and store as string 
-
-	findState {id,lifespan = LSDatabase,storage = PlainString} Leaf_ world=:{gerda} 
-	# (value,gerda)		= readGerda` id	gerda
-	# world				= {world & gerda = gerda}
-	= case value of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = LSDatabase}) Leaf_,world)
-		Nothing			= (False,Nothing,Leaf_,world)
-
-	// read out relational Database and store as dynamic
-
-	findState {id,lifespan = LSDatabase,storage = StaticDynamic} Leaf_ world=:{gerda} 
-	# (value,gerda)		= readGerda` id	gerda
-	# world				= {world & gerda = gerda}
-	= case value of 
-		Nothing 		= (False,Nothing,Leaf_,world)
-		Just string		= case string_to_dynamic` string of
-							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSDatabase}) Leaf_,world)
-							else				-> (False,Nothing,    Leaf_,world)
 
 	// read out DataFile and store as string 
 
@@ -231,7 +193,6 @@ where
 	// NewState Handling routines 
 
 	initNewState :: !String !Lifespan !Lifespan !StorageFormat !a  -> FState | iPrint,  iSpecialStore a	
-	initNewState id LSDatabase olifespan PlainString   nv = {format = DBStr    (printToString nv) (writeGerda`   id nv), 	life = order LSDatabase olifespan}
 	initNewState id LSDataFile olifespan PlainString   nv = {format = CLDBStr  (printToString nv) (writeDataFile id nv), 	life = order LSDataFile olifespan}
 	initNewState id lifespan olifespan PlainString   nv = {format = PlainStr (printToString nv),                     		life = order lifespan olifespan}
 	initNewState id lifespan olifespan StaticDynamic nv = {format = StatDyn  (dynamic nv),                           		life = order lifespan olifespan}// convert the hidden state information stored in the html page
@@ -279,7 +240,6 @@ where
 		deletePersistentStorageIData (fid,OldState {life}) world 	= deleteStorage fid life world
 		deletePersistentStorageIData (fid,NewState {life}) world 	= deleteStorage fid life world
 
-		deleteStorage fid LSDatabase 	world=:{gerda}		= {world & gerda  	 = deleteGerda`    fid gerda}
 		deleteStorage fid LSDataFile 	world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
 		deleteStorage fid LSTxtFile 	world 				= deleteStateFile fid world
 		deleteStorage fid LSTxtFileRO 	world				= deleteStateFile fid world
@@ -341,7 +301,7 @@ where
 		// temperal form don't need to be stored and can be skipped as well
 		// the state of all other new forms created are stored in the page 
 		htmlStateOf (fid,NewState {life})
-			| isMember life [LSDatabase,LSTxtFile,LSTxtFileRO,LSDataFile,LSTemp]	= Nothing
+			| isMember life [LSTxtFile,LSTxtFileRO,LSDataFile,LSTemp]		= Nothing
 
 		htmlStateOf (fid,NewState {format = PlainStr string,life})			= Just {HtmlState|formid=fid, lifespan=life, state=string, format=PlainString}
 		htmlStateOf (fid,NewState {format = StatDyn dynval, life})			= Just {HtmlState|formid=fid, lifespan=life, state=dynamic_to_string dynval, format=StaticDynamic}
@@ -362,10 +322,6 @@ where
 		= (Node_ left st right, nworld)
 	
 	// only new states need to be stored, since old states have not been changed (assertion)
-	writeState (sid,NewState {format,life = LSDatabase}) nworld=:{gerda}
-		= case format of
-			DBStr   string gerdafun		= {nworld & gerda = gerdafun gerda}										// last value is stored in curried write function
-			StatDyn dynval				= {nworld & gerda = writeGerda` sid (dynamic_to_string dynval) gerda}	// write the dynamic as a string to the relational database
 	writeState (sid,NewState {format,life = LSDataFile}) nworld=:{datafile}
 		= case format of
 			CLDBStr   string dfilefun	= {nworld & datafile = dfilefun datafile}										// last value is stored in curried write function
@@ -441,7 +397,6 @@ where
 	
 	toCells (PlainStr str) 		= [TdTag [] [Text "String"],TdTag [] [Text str]]
 	toCells (StatDyn  dyn) 		= [TdTag [] [Text "S_Dynamic"],TdTag [] [Text (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]]
-	toCells (DBStr    str _) 	= [TdTag [] [Text "Database"],TdTag [] [Text str]]
 	toCells (CLDBStr  str _) 	= [TdTag [] [Text "DataFile"],TdTag [] [Text str]]
 
 ShowValueDynamic :: !Dynamic -> String

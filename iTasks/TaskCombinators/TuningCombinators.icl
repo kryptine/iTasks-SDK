@@ -1,5 +1,6 @@
 implementation module TuningCombinators
 
+import StdEnv
 import Types, TSt
 
 class 	(<<@) infixl 3 b ::  !(Task a) !b  -> (Task a)
@@ -11,7 +12,7 @@ where   (<<@) task lifespan			= Task setTaskLifespan
 			= IF_Ajax 
 				(IF_ClientServer															// we running both client and server
 					(IF_ClientTasks												
-						(if (options.tasklife == LSClient && (lifespan == LSTxtFile || lifespan == LSDataFile || lifespan == LSDatabase))
+						(if (options.tasklife == LSClient && (lifespan == LSTxtFile || lifespan == LSDataFile))
 							(abort "Cannot make persistent storage on Client\n")
 							(\tst -> accTaskTSt task {tst & options.tasklife = lifespan}))						// assign option on client
 						(\tst -> accTaskTSt task {tst & options.tasklife = lifespan})tst							// assign option on server

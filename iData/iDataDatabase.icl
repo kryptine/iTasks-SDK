@@ -28,5 +28,5 @@ universalDB (init,lifespan,value,filename) invariant hst
 = (value,hst)
 where
 	myDatabase init cntvalue hst 															// read the database
-							= mkEditForm (init,if (lifespan == LSTxtFile) pFormId dbFormId filename cntvalue <@ NoForm) hst
+							= mkEditForm (init,pFormId filename cntvalue <@ NoForm) hst
 	myVersion  init cnt hst	= mkEditForm (init,xtFormId ("vrs_db_" +++ filename) cnt) hst	// to remember version number

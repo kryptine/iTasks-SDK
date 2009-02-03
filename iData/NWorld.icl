@@ -1,7 +1,6 @@
 implementation module NWorld
 
 import StdFile
-from Gerda 		import :: Gerda
 from DataFile	import :: DataFile
 from UserDB		import :: UserDB
 
@@ -22,8 +21,8 @@ instance FileSystem NWorld where
 		# (bool,file,world) = sfopen string int world
 		= (bool,file,{nworld & world = world})
 
-mkNWorld		:: *World *DataFile *Gerda *UserDB -> *NWorld
-mkNWorld world datafile gerda userdb = {world = world, gerda = gerda, datafile = datafile, userdb = userdb}
+mkNWorld		:: *World *DataFile *UserDB -> *NWorld
+mkNWorld world datafile userdb = {world = world, datafile = datafile, userdb = userdb}
 
 
 appWorldNWorld :: !.(*World -> *World) !*NWorld -> *NWorld

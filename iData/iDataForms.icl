@@ -1,11 +1,9 @@
 implementation module iDataForms
 
-import StdArray, StdChar, StdList, StdStrictLists, StdString, StdTuple, StdFile, StdOrdList
-import ArgEnv, StdMaybe
+import StdEnv, StdMaybe, ArgEnv
 import iDataTrivial, iDataSettings, iDataState
 import StdGeneric, GenParse, GenPrint, GenBimap
 import Http, HttpUtil, HttpServer, HttpTextUtil
-import Gerda
 import HSt
 import Html
 
@@ -493,7 +491,6 @@ toHtml a
 	= BodyTag [] na.form
 where
 	dummy = { world 	= abort "dummy world for toHtml!\n"
-			, gerda	 	= abort "dummy gerda for toHtml!\n"
 			, datafile	= abort "dummy datafile for toHtml!\n"
 			, userdb	= abort "dummy userdb for toHtml!\n"
 			}
@@ -504,7 +501,6 @@ toHtmlForm anyform
 	= na.form
 where
 	dummy = { world 	= abort "dummy world for toHtmlForm!\n"
-			, gerda	 	= abort "dummy gerda for toHtmlForm!\n"
 			, datafile	= abort "dummy datafile for toHtmlForm!\n"
 			, userdb	= abort "dummy userdb for toHtmlForm!\n"
 			}

@@ -117,10 +117,9 @@ where
 
 initHSt :: !HTTPRequest !*World -> *HSt
 initHSt request world
-	# (gerda,world)				= openDatabase ODCBDataBaseName world						// open the relational database if option chosen
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
 	# (userdb,world)			= openUserDB world											// open the user database
-	# nworld 					= mkNWorld world datafile gerda	userdb						// Wrap all io states in an NWorld state
+	# nworld 					= mkNWorld world datafile userdb							// Wrap all io states in an NWorld state
 	# updates					= decodeFormUpdates request.arg_post						// Get the form updates from the post
 	# states					= decodeHtmlStates request.arg_post							// Fetch stored states from the post
 	# fstates	 				= mkFormStates states updates 								
@@ -146,17 +145,10 @@ where
 
 
 finalizeHSt :: !*HSt -> *World
-finalizeHSt hst =:{HSt | nworld = nworld =: {NWorld | world = world, gerda, datafile}}
-	# world						= closeDatabase gerda world									// close the relational database if option chosen
+finalizeHSt hst =:{HSt | nworld = nworld =: {NWorld | world, datafile}}
 	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= world
 	
-// Database OPTION
-openDatabase database world
-	:== IF_Database (openGerda database world) (abort "Trying to open a relational database while this option is switched off",world)
-closeDatabase database world
-	:== IF_Database (closeGerda database world) world
-
 // DataFile OPTION
 openmDataFile datafile world
 	:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)

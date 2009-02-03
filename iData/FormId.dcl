@@ -16,8 +16,7 @@ import Html
 		}
 
 :: Lifespan										// 	defines how long a form will be maintained		
-	=	LSDatabase								//	persistent form stored in Database using generic db functions from Gerda
-	|	LSTxtFile								// 	persistent form stored in a file in StorageFormat
+	=	LSTxtFile								// 	persistent form stored in a file in StorageFormat
 	|	LSTxtFileRO								//	persistent form stored in a file in StorageFormat, which is used Read-Only
 	|	LSDataFile								//	persistent form stored in a file using the Poor-Mans-Database-Format
 	| 	LSSession								// 	form in StorageFormat will live as long as one browses between the pages offered by the application
@@ -76,7 +75,6 @@ nFormId		:: !String !d -> FormId d			// page
 sFormId		:: !String !d -> FormId d			// session
 pFormId		:: !String !d -> FormId d			// persistent
 rFormId		:: !String !d -> FormId d			// persistent read only
-dbFormId	:: !String !d -> FormId d			// database
 
 // non-editable, string format
 tdFormId	:: !String !d -> FormId d			// temp                 + display
@@ -84,7 +82,6 @@ ndFormId	:: !String !d -> FormId d			// page                 + display
 sdFormId	:: !String !d -> FormId d			// session              + display
 pdFormId	:: !String !d -> FormId d			// persistent           + display
 rdFormId	:: !String !d -> FormId d			// persistent read only + display
-dbdFormId	:: !String !d -> FormId d			// database             + display
 
 // noform, string format
 xtFormId	:: !String !d -> FormId d			// temp                 + no form
@@ -92,21 +89,18 @@ xnFormId	:: !String !d -> FormId d			// page                 + no form
 xsFormId	:: !String !d -> FormId d			// session              + no form
 xpFormId	:: !String !d -> FormId d			// persistent           + no form
 xrFormId	:: !String !d -> FormId d			// persistent read only + no form
-xdbFormId	:: !String !d -> FormId d			// database             + no form
 
 // editable, dynamic format also allows to store functions
 nDFormId	:: !String !d -> FormId d			// page                 + static dynamic format
 sDFormId	:: !String !d -> FormId d			// session              + static dynamic format
 pDFormId	:: !String !d -> FormId d			// persistent           + static dynamic format
 rDFormId	:: !String !d -> FormId d			// persistent read only + static dynamic format
-dbDFormId	:: !String !d -> FormId d			// database             + static dynamic format
 
 // non-editable, dynamic format also allows to store functions
 ndDFormId	:: !String !d -> FormId d			// page                 + static dynamic format + display
 sdDFormId	:: !String !d -> FormId d			// session              + static dynamic format + display
 pdDFormId	:: !String !d -> FormId d			// persistent           + static dynamic format + display
 rdDFormId	:: !String !d -> FormId d			// persistent read only + static dynamic format + display
-dbdDFormId	:: !String !d -> FormId d			// database             + static dynamic format + display
 
 // to create new FormId's ou of an existing one, handy for making unique identifiers
 extidFormId :: !(FormId d) !String 		-> FormId d		// make new id by adding sufix 

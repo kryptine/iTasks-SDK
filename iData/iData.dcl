@@ -15,7 +15,7 @@ import
 		,	iDataExceptions		// collection of global exception handling and storage
 		,	iDataRefFormlib		// collection of persistent idata maintaining sharing
 
-		,	iDataArrow			// arrow instantiations for iData forms
+		//,	iDataArrow			// arrow instantiations for iData forms
 
 // automatic data base storage and retrieval
 

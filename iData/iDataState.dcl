@@ -3,14 +3,13 @@ definition module iDataState
 * This module defines the data structure for storing the states of iData editors.
 *
 */
-import GenParse, GenPrint, Gerda
+import GenParse, GenPrint
 import StdMaybe
 import iDataForms
 
 //Always derive storage generic functions for common types
 derive gPrint 	(,), (,,), (,,,), Maybe, Void
 derive gParse	(,), (,,), (,,,), Maybe, Void
-derive gerda 	(,), (,,), (,,,), Void
 
 /*
 * The FormStates structure contains the state of all forms

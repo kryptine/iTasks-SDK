@@ -31,33 +31,28 @@ nFormId		:: !String !d -> FormId d;			nFormId    s d = mkFormId  s d <@ LSPage
 sFormId		:: !String !d -> FormId d;			sFormId    s d = mkFormId  s d <@ LSSession
 pFormId		:: !String !d -> FormId d;			pFormId    s d = mkFormId  s d <@ LSTxtFile
 rFormId		:: !String !d -> FormId d;			rFormId    s d = mkFormId  s d <@ LSTxtFileRO
-dbFormId	:: !String !d -> FormId d;			dbFormId   s d = mkFormId  s d <@ LSDatabase
 
 tdFormId	:: !String !d -> FormId d;			tdFormId   s d = tFormId   s d <@ Display
 ndFormId	:: !String !d -> FormId d;			ndFormId   s d = nFormId   s d <@ Display
 sdFormId	:: !String !d -> FormId d;			sdFormId   s d = sFormId   s d <@ Display
 pdFormId	:: !String !d -> FormId d;			pdFormId   s d = pFormId   s d <@ Display
 rdFormId	:: !String !d -> FormId d;			rdFormId   s d = rFormId   s d <@ Display
-dbdFormId	:: !String !d -> FormId d;			dbdFormId  s d = dbFormId  s d <@ Display
 
 xtFormId	:: !String !d -> FormId d;			xtFormId   s d = tFormId   s d <@ NoForm
 xnFormId	:: !String !d -> FormId d;			xnFormId   s d = nFormId   s d <@ NoForm
 xsFormId	:: !String !d -> FormId d;			xsFormId   s d = sFormId   s d <@ NoForm
 xpFormId	:: !String !d -> FormId d;			xpFormId   s d = pFormId   s d <@ NoForm
 xrFormId	:: !String !d -> FormId d;			xrFormId   s d = rFormId   s d <@ NoForm
-xdbFormId	:: !String !d -> FormId d;			xdbFormId  s d = dbFormId  s d <@ NoForm
 
 nDFormId	:: !String !d -> FormId d;			nDFormId   s d = nFormId   s d <@ StaticDynamic
 sDFormId	:: !String !d -> FormId d;			sDFormId   s d = sFormId   s d <@ StaticDynamic
 pDFormId	:: !String !d -> FormId d;			pDFormId   s d = pFormId   s d <@ StaticDynamic
 rDFormId	:: !String !d -> FormId d;			rDFormId   s d = rFormId   s d <@ StaticDynamic
-dbDFormId	:: !String !d -> FormId d;			dbDFormId  s d = dbFormId  s d <@ StaticDynamic
 
 ndDFormId	:: !String !d -> FormId d;			ndDFormId  s d = nDFormId  s d <@ Display
 sdDFormId	:: !String !d -> FormId d;			sdDFormId  s d = sDFormId  s d <@ Display
 pdDFormId	:: !String !d -> FormId d;			pdDFormId  s d = pDFormId  s d <@ Display
 rdDFormId	:: !String !d -> FormId d;			rdDFormId  s d = rDFormId  s d <@ Display
-dbdDFormId	:: !String !d -> FormId d;			dbdDFormId s d = dbDFormId s d <@ Display
 
 extidFormId :: !(FormId d) !String -> FormId d
 extidFormId formid s	= formid <@ formid.id +++ iDataIdSeparator +++ s
@@ -114,7 +109,6 @@ instance toInt Lifespan where toInt LSTemp			= 0
 							  toInt LSTxtFileRO		= 4
 							  toInt LSTxtFile		= 5
 							  toInt LSDataFile		= 6
-							  toInt LSDatabase		= 7
 
 instance toString Lifespan where 	
 							  toString LSTemp		= "Temp"
@@ -124,7 +118,6 @@ instance toString Lifespan where
 							  toString LSTxtFileRO	= "TxtFileRO"
 							  toString LSTxtFile	= "TxtFile"
 							  toString LSDataFile	= "DataFile"
-							  toString LSDatabase	= "Database"
 instance toString StorageFormat where
 							  toString PlainString	= "PlainString"
 							  toString StaticDynamic = "StaticDynamic"
