@@ -53,7 +53,7 @@ setTaskNr :: TaskNr *TSt -> *TSt
 setTaskNr taskNr tst = {TSt | tst & taskNr = taskNr}
 
 setUserId :: UserId *TSt -> *TSt
-setUserId userId tst = {TSt | tst & userId = userId,  users = [userId:tst.TSt.users]}
+setUserId userId tst = {TSt | tst & userId = userId}
 
 setProcessId :: ProcessId *TSt -> *TSt
 setProcessId processId tst=:{staticInfo} = {TSt | tst & staticInfo = {staticInfo & currentProcessId = processId}}

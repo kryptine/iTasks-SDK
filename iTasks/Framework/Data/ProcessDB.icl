@@ -72,7 +72,7 @@ getProcess processId (ProcessDB db)
 
 getProcessForUser	:: !Int !Int !*ProcessDB	-> (!Maybe Process,!*ProcessDB)
 getProcessForUser userId processId (ProcessDB db)
-	= case [process \\ process <- db | process.Process.id == processId && isMember userId process.Process.users] of
+	= case [process \\ process <- db | process.Process.id == processId && (process.Process.owner == userId || isMember userId process.Process.users)] of
 		[entry]	= (Just entry, (ProcessDB db))
 		_		= (Nothing, (ProcessDB db))
 		
@@ -89,7 +89,7 @@ where
 getProcessesForUser	:: !Int ![ProcessStatus] !*ProcessDB -> (![Process],	!*ProcessDB)
 getProcessesForUser userId statusses (ProcessDB db) = (entries,(ProcessDB db))
 where
-	entries = [process \\ process <- db | isMember userId process.Process.users && isMember process.Process.status statusses]
+	entries = [process \\ process <- db | (process.Process.owner == userId || isMember userId process.Process.users) && isMember process.Process.status statusses]
 
 setProcessOwner	:: !Int !Int !*ProcessDB	-> (!Bool,				!*ProcessDB)
 setProcessOwner userId processId (ProcessDB db) = (updated, ProcessDB newlist)

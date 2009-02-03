@@ -37,6 +37,7 @@ handleWorkTabRequest request tst
 	# (mbError, mbTree, tst)						= calculateTaskTree processNr trace tst	//Calculate the task tree
 	= case mbTree of
 		Just taskTree
+			//Filter out content
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
@@ -62,9 +63,21 @@ handleWorkTabRequest request tst
 				,	subtreeTrace	= taskTreeTrace
 				}																						// create tab data record
 			= ({http_emptyResponse & rsp_data = toJSON content}, tst)									// create the http response
-
-		Nothing	//Error case
-			= (treeErrorResponse,tst)
+		Nothing	
+			# content									=
+				{TabContent
+				| 	status			= TaskDeleted
+				,	error			= Nothing
+				,	html			= ""
+				,	inputs			= []
+				,	prefix			= prefix
+				,	state			= []
+				,	refresh			= True
+				,	stateTrace		= Nothing
+				,	updateTrace		= Nothing
+				,	subtreeTrace	= Nothing
+				}
+			= ({http_emptyResponse & rsp_data = toJSON content},tst)
 where
 	taskId 				= http_getValue "taskid" request.arg_get "error"
 	processNr			= taskNrToProcessNr (taskNrFromString taskId)

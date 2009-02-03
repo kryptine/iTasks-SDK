@@ -324,16 +324,16 @@ OtherModules
 			Fusion:	False
 		Dcl
 			WindowPosition
-				X:	10
-				Y:	10
+				X:	62
+				Y:	303
 				SizeX:	800
 				SizeY:	640
 		DclOpen:	False
 		Icl
 			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
+				X:	42
+				Y:	60
+				SizeX:	1555
 				SizeY:	640
 		IclOpen:	False
 	Module
@@ -350,7 +350,13 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
+		Dcl
+			WindowPosition
+				X:	332
+				Y:	35
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	True
 		IclOpen:	False
 	Module
 		Name:	Void
@@ -494,11 +500,17 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
-		Icl
+		Dcl
 			WindowPosition
 				X:	10
 				Y:	10
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	91
+				Y:	14
 				SizeX:	1417
 				SizeY:	640
 		IclOpen:	False
@@ -548,6 +560,12 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1194
+				SizeY:	640
 		DclOpen:	False
 		IclOpen:	False
 	Module
@@ -693,6 +711,12 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	307
+				Y:	74
+				SizeX:	1281
+				SizeY:	640
 		DclOpen:	False
 		IclOpen:	False
 	Module
@@ -2892,6 +2916,12 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
 		DclOpen:	False
 		IclOpen:	False
 	Module
@@ -3788,6 +3818,17 @@ Static
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup2.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_system.o
 		Path:	{Project}\Clean System Files\movingTask.o
+		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
+		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
+		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
+		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
+		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\iTasksDB.o
+		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
+		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\UserTasks.o
+		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ThreadTableHandler.o
+		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
+		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
+		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\FIXMEDebug.o
 		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
 		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
 		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
@@ -3843,10 +3884,10 @@ Static
 		Path:	{Application}\Libraries\StdLib\Clean System Files\StdArrayExtensions.o
 		Path:	{Application}\Libraries\StdLib\Clean System Files\StdListExtensions.o
 		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLib.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataFormlib.o
 		Path:	{Application}\fancyTasks\Platform\Clean System Files\Pointer.o
 		Path:	{Application}\fancyTasks\Platform\Clean System Files\Time.o
 		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataTrivial.o
+		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataFormlib.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenLexOrd.o
 		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataWidgets.o
 		Path:	{Application}\fancyTasks\Platform\Clean System Files\Html.o
@@ -3988,17 +4029,6 @@ Static
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
 		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\FIXMEDebug.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ThreadTableHandler.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\UserTasks.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\iTasksDB.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
 		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnvC.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFileSelectors_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFont_121.o
