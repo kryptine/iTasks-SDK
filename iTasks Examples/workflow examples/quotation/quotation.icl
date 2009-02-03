@@ -1,6 +1,6 @@
 module quotation
 
-import StdEnv, StdiTasks, iDataTrivial
+import StdEnv, iTasks, iDataTrivial
 
 // (c) 2007 MJP
 
@@ -28,7 +28,7 @@ derive gerda 	QForm, Review, Person, Gender
 					, city	 	:: String
 					}
 
-Start world = startTaskEngine (foreverTask reviewtask) world
+Start world = startEngine [myWorkflow] world
 
 :: QForm = 	{ toComp 			:: String
 			, startDate 		:: HtmlDate
@@ -46,6 +46,13 @@ Start world = startTaskEngine (foreverTask reviewtask) world
 :: Review = Approved | Rejected | NeedsRework HtmlTextarea
 :: UserID :== Int
 
+
+myWorkflow
+=	{	name		= "quotation"
+	,	label		= "quotation"
+	,	roles		= []
+	,	mainTask	= reviewtask #>> return_V Void
+	}
 
 editTaskSA :: String a -> Task a | iData a
 editTaskSA s a = UseAjax @>> editTask s a <<@ Submit
