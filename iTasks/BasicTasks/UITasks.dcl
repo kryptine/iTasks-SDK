@@ -1,6 +1,5 @@
 definition module UITasks
 
-
 import TSt
 
 /* 
@@ -10,19 +9,16 @@ editTaskPred	:: create a task editor (with submit button) to edit a value of giv
 editTask 		:: !String 	!a 								-> Task a		| iData a 
 editTaskPred 	:: 			!a !(a -> (Bool, [HtmlTag]))	-> Task a		| iData a 
 
-/*
-editTaskLabel	:: same as editTask, first label used for tracing...
-*/
-editTaskLabel 	:: !String !String !a 						-> Task a		| iData a 
-
 /**
 * Creates a basic task that displays the given html and never finishes.
 */
-displayHtml		:: ![HtmlTag] -> Task a											| iCreateAndPrint a
-displayValue	:: !a -> Task b													| iData a & iCreateAndPrint b
+displayHtml		:: ![HtmlTag] -> Task a										| iCreateAndPrint a
+displayValue	:: !a -> Task b												| iData a & iCreateAndPrint b
 
 /**
 * Tasks for offering choices to users
 */
-selectTask_btn 	:: !Bool ![LabeledTask a] -> Task Int 				
-selectTask_cbox :: ![(!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag])] -> Task [Int]	
+selectWithButtons		:: ![String]	!Bool								-> Task Int			
+selectWithPulldown		:: ![String]	!Int								-> Task Int
+//selectWithRadioGroup	:: ![[HtmlTag]]	!Int								-> Task Int
+selectWithCheckboxes	:: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task [Int]	

@@ -85,45 +85,15 @@ where
 
 chooseTask_btn 	:: ![HtmlTag] !Bool ![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt horizontal ltasks
-	= (prompt ?>> selectTask_btn horizontal ltasks) =>> \chosen -> (snd (ltasks!!chosen))
-/*
-	= newTask "chooseTask_btn" (selectTasks (\lt -> prompt ?>> selectTask_btn horizontal lt) seqTasks ltasks 
-		=>> \la -> return_V (hd la))		
-*/
+	= (prompt ?>> selectWithButtons (map fst ltasks) horizontal) =>> \chosen -> (snd (ltasks!!chosen))
+
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
-	= newTask "chooseTask_pdm" (selectTasks (\lt -> prompt ?>> selectTask_pdm initial lt) seqTasks ltasks =>> \la -> return_V (hd la))		
-where
-	selectTask_pdm initial ltasks		=  mkBasicTask "selectTask_pdm" (Task (selectTask_pdm` initial ltasks))
-	
-	selectTask_pdm` _ [] tst			= return createDefault tst
-	selectTask_pdm` defaultOn taskOptions tst=:{taskNr,userId,options}									// choose one subtask out of  a pulldown menu
-		# taskId							= iTaskId userId taskNr ("ChoStPdm")
-		# (chosen,tst)						= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
-		| chosen.Form.value == -1			// no choice made yet	
-			# pulldownId					= iTaskId userId taskNr "ChoPdm"
-			# buttonId						= iTaskId userId taskNr "ChoBut"
-			# (choice,tst)					= accHStTSt (mkEditForm (Init, pageFormId options pulldownId (mkSelect taskOptions defaultOn))) tst
-			# (done,tst)					= accHStTSt (mkEditForm (Init, pageFormId options buttonId mkButton )) tst
-			| fromButton done.Form.value
-				# chosenId						= fromSelect choice.Form.value
-				# (chosen,tst)					= accHStTSt (mkStoreForm (Init,storageFormId options taskId -1) (\_ -> chosenId)) tst
-				= ([chosen.Form.value],{tst & activated = True})
-			| otherwise
-				# tst = setOutput (choice.form ++ done.form) tst
-				# tst = setInputs (choice.inputs ++ done.inputs) tst
-				= ([],{tst & activated = False})
-		= ([chosen.Form.value],{tst & activated = True})
-
-	mkButton				= HtmlButton "Ok" False
-	mkSelect tasks cur 		= HtmlSelect [(label,toString i) \\ (label,_) <- tasks & i <- [0..] ] (toString cur)
-	
-	fromButton (HtmlButton _ val) = val
-	fromSelect (HtmlSelect _ val) = toInt val
+	= (prompt ?>> selectWithPulldown (map fst ltasks) initial) =>> \chosen -> (snd (ltasks!!chosen))
 	
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 chooseTask_cbox order prompt code_ltasks
-	= newTask "chooseTask_cbox" (selectTasks (\_ -> prompt ?>> selectTask_cbox (map fst code_ltasks) ) order (map snd code_ltasks))		
+	= selectTasks (\_ -> prompt ?>> selectWithCheckboxes [(html,set,setfun) \\ ((set,setfun,html),_) <- code_ltasks] ) order (map snd code_ltasks)		
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
@@ -220,7 +190,7 @@ andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
 =	newTask "andTask2"	(allTasksCond "andTask" TTHorizontal (\l -> False) 
 							[ ("andTask.0",taska =>> \a -> return_V (LEFT a))
-							, ("andTask.0",taskb =>> \b -> return_V (RIGHT b))
+							, ("andTask.1",taskb =>> \b -> return_V (RIGHT b))
 							]
 						=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
 						)
@@ -233,8 +203,6 @@ where
 andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 andTasksCond label pred taskCollection 
 = allTasksCond label (TTSplit []) pred taskCollection 
-
-
 
 
 // ******************************************************************************************************
