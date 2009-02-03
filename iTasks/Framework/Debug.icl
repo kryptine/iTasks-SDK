@@ -1,4 +1,4 @@
-implementation module FIXMEDebug
+implementation module Debug
 
 import Html
 import ProcessDB

@@ -3,11 +3,10 @@ implementation module EncodeDecode
 // encoding and decoding of information
 // (c) 2005 MJP
 
-import StdArray, StdBool, StdInt, StdList, StdOrdList, StdString, StdTuple, StdFile, ArgEnv, StdMaybe, Directory
+import StdEnv, StdMaybe, ArgEnv, Directory
 import iDataTrivial
 import GenPrint, GenParse, GenBimap
 import dynamic_string
-import EstherBackend
 import Http, HttpTextUtil
 import FormId
 
@@ -31,7 +30,7 @@ decodeInfo str							= parseString (decodeString str)
 decodeChars :: ![Char] -> *String
 decodeChars cs							= decodeString (mkString cs)
 
-// compact John van Groningen encoding-decoding to lower and uppercase alpabeth
+// compact John van Groningen encoding-decoding to lower and uppercase alphabet
 
 string_to_string52 :: !String -> *String
 string_to_string52 s

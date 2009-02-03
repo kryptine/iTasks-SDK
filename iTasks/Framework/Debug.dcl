@@ -1,15 +1,11 @@
-definition module FIXMEDebug
+definition module Debug
 /**
-* FIXME: This module's name clashes with a module named Debug in the Esther
-* libraries which we include for some reason
-*
 * This module provides functions for inspecting and visualizing
 * the important datastructures of the iTasks framework
 */
 import Html
 from ProcessDB	import :: Process
 from TaskTree	import :: TaskTree
-
 
 traceProcesses 		:: [Process]		-> HtmlTag
 

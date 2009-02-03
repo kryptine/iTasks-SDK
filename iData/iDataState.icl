@@ -4,7 +4,7 @@ import StdEnv, StdMaybe, ArgEnv, Directory
 import iDataTrivial, EncodeDecode
 import GenPrint, GenParse
 import dynamic_string
-import EstherBackend
+//import EstherBackend
 import FormId
 import StdMaybe
 import StdDebug
@@ -396,14 +396,8 @@ where
 	nodeTrace (id,NewState fstate=:{format,life}) = [TrTag [] [TdTag [] [Text id], TdTag [] [Text "Yes"], TdTag [] [Text (toString life)]: toCells format] ]
 	
 	toCells (PlainStr str) 		= [TdTag [] [Text "String"],TdTag [] [Text str]]
-	toCells (StatDyn  dyn) 		= [TdTag [] [Text "S_Dynamic"],TdTag [] [Text (ShowValueDynamic dyn <+++ " :: " <+++ ShowTypeDynamic dyn )]]
+	toCells (StatDyn  dyn) 		= [TdTag [] [Text "S_Dynamic"],TdTag [] [Text "---"]]
 	toCells (CLDBStr  str _) 	= [TdTag [] [Text "DataFile"],TdTag [] [Text str]]
-
-ShowValueDynamic :: !Dynamic -> String
-ShowValueDynamic d = strip (foldr (+++) "" (fst (toStringDynamic d)) +++ " ")
-
-ShowTypeDynamic :: !Dynamic -> String
-ShowTypeDynamic d = strip (snd (toStringDynamic d) +++ " ")
 
 strip :: !String -> String
 strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
