@@ -173,7 +173,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			}
 			
 			//Hide the current content panel and switch to new content
-			this.switchContentPanels(trace);
+			this.switchContentPanels(trace, data.prefix);
 				
 			//Reset for new updates
 			this.updates = {};
@@ -267,7 +267,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					input.remove();
 					input = new Ext.form.Checkbox({
 						id: inputid,
-						name: inputid,
+						name: inputname,
 						inputName: inputname,
 						checked: checked
 					});
@@ -286,10 +286,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 							this.addUpdate(inp.inputName, checked ? "checked" : "unchecked");
 						},this);
 					}
-					input.on("focus", function (inp) {
-						this.lastFocus = inp.inputName;
-					},this);
-					
 					break;
 				case "HtmlButton":
 					var label = input.dom.innerHTML;
@@ -310,14 +306,15 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					
 					//Attach event handler
 					input.on("click", function(but, e) {
+						this.lastFocus = but.inputName;
 						this.addUpdate(but.inputName, "click");
 						this.refresh();
 					},this);
 					input.on("focus", function(but) {
-						alert(but.inputName);
 						this.lastFocus = but.inputName;
 					},this);
 					break;
+					
 				case "HtmlTextarea":
 					var value = input.dom.innerHTML;
 					var parent = input.parent();
@@ -451,11 +448,6 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						},this);
 					}
 			}
-				
-			//Refocus
-			if(this.lastFocus == inputname) {
-				input.focus();
-			}
 		}
 
 		//Attach the submit handlers of the forms
@@ -506,7 +498,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	setContent: function (msg) {
 		this.contentPanel.body.dom.innerHTML = msg;
 	},
-	switchContentPanels: function (trace) {
+	switchContentPanels: function (trace, prefix) {
 		
 		var mainPanel = this.getComponent(1);
 		
@@ -524,6 +516,12 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		}
 		//Toggle firstbuffer flag
 		this.firstBuffer = !this.firstBuffer;
+		
+		//Refocus
+		var input = Ext.get(prefix + this.lastFocus)
+		if(input != undefined) {
+			input.focus();
+		}
 	},
 
 	addUpdate: function (inputid, value) {
