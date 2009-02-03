@@ -64,14 +64,14 @@ where
 									&& not (isMember thread.thrTaskNr version.deletedThreads) // and not deleted by some global actions	
 							  ] 
 	| isEmpty mbthread		= abort	("\nException raised, but no handler installed or activa anymore\n")	// no handler installed
-	= accTaskTSt (evalException (hd mbthread) dynamicValue) {tst & html = BT [] [], hst = hst}	// yes, *finally*, we heave found an handler
+	= accTaskTSt (evalException (hd mbthread) dynamicValue) {tst & hst = hst}	// yes, *finally*, we heave found an handler
 
 evalException :: !TaskThread !Dynamic -> Task a 								// execute the thread !!!!
 evalException entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient} dynval = Task evalException` 
 where
-	evalException` tst=:{taskNr,options,userId,html}									
+	evalException` tst=:{taskNr,options,userId}									
 	# (doClient,noThread)  				= IF_ClientTasks (True,thrCallbackClient == "") (False,False)  
 	| doClient && noThread				= abort "Cannot execute thread on Client\n" 
 	= IF_ClientTasks
 		(abort "exception handling not implemeneted") 							//(deserializeThreadClient thrCallbackClient)
-		(accTaskTSt (deserializeExceptionHandler thrCallback dynval) {tst & taskNr = thrTaskNr, options = thrOptions, userId = thrUserId,html = BT [] []})
+		(accTaskTSt (deserializeExceptionHandler thrCallback dynval) {tst & taskNr = thrTaskNr, options = thrOptions, userId = thrUserId})

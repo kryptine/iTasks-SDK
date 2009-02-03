@@ -97,7 +97,7 @@ where
 	selectTask_pdm initial ltasks		=  mkBasicTask "selectTask_pdm" (Task (selectTask_pdm` initial ltasks))
 	
 	selectTask_pdm` _ [] tst			= return createDefault tst
-	selectTask_pdm` defaultOn taskOptions tst=:{taskNr,html,userId,options}									// choose one subtask out of  a pulldown menu
+	selectTask_pdm` defaultOn taskOptions tst=:{taskNr,userId,options}									// choose one subtask out of  a pulldown menu
 		# taskId							= iTaskId userId taskNr ("ChoStPdm")
 		# (chosen,tst)						= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 		| chosen.Form.value == -1			// no choice made yet	
@@ -107,7 +107,7 @@ where
 			# (done,tst)					= accHStTSt (mkEditForm (Init, pageFormId options buttonId mkButton )) tst
 			| fromButton done.Form.value
 				# chosenId						= fromSelect choice.Form.value
-				# (chosen,tst)					= liftHst (mkStoreForm (Init,storageFormId options taskId -1) (\_ -> chosenId)) tst
+				# (chosen,tst)					= accHStTSt (mkStoreForm (Init,storageFormId options taskId -1) (\_ -> chosenId)) tst
 				= ([chosen.Form.value],{tst & activated = True})
 			| otherwise
 				# tst = setOutput (choice.form ++ done.form) tst

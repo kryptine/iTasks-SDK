@@ -136,7 +136,7 @@ allTasksCond label combination pred taskCollection
 	= mkParallelTask label (Task (doandTasks taskCollection))
 where
 	doandTasks [] tst	= return [] tst
-	doandTasks taskCollection tst=:{taskNr,html}
+	doandTasks taskCollection tst=:{taskNr}
 		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
 		| length alist == length taskCollection					// all tasks are done
 			= (alist,{tst & activated = True})
@@ -153,6 +153,7 @@ where
 			# (taskname,task)			= taskCollection!!index
 			# (a,tst=:{activated})	= accTaskTSt (mkParallelSubTask taskname index task) tst	// check tasks
 			= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
+
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental
@@ -171,11 +172,11 @@ closureTask		:: The task is executed as usual, but a receiver closure is returne
 				   Handy for passing a result to several interested parties.
 closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
 */
-
+/*
 (-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,Task a)) | iCreateAndPrint s & iCreateAndPrint a
 (-!>)  stoptask task =  mkBasicTask "-!>" (Task stop`)
 where
-	stop` tst=:{taskNr,html=html,options,userId}
+	stop` tst=:{taskNr,userId,options,html}
 		# (val,tst=:{activated = taskdone,html = taskhtml}) = accTaskTSt task     {tst & activated = True, html = BT [] [], taskNr = normalTaskId,options = options}
 		# (s,  tst=:{activated = stopped, html = stophtml})	= accTaskTSt stoptask {tst & activated = True, html = BT [] [], taskNr = stopTaskId,  options = options}
 		| stopped	= accTaskTSt (return_V (Just s, Task (close task)))   {tst & html = html, activated = True}
@@ -243,6 +244,4 @@ where
 
 		sharedStoreId	= iTaskId userId taskNr "Shared_Store"
 		sharedMem fun	= liftHst (mkStoreForm (Init,storageFormId options sharedStoreId False) fun)
-
-
-
+*/

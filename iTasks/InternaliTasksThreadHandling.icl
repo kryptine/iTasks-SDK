@@ -137,7 +137,7 @@ where
 // Watch it: the Client cannot create new Server threads
 
 startAjaxApplication :: !Int !GlobalInfo !(Task a) !*TSt -> ((!Bool,!Int,TaskNr,!String,![TaskNr]),!*TSt) 		// determines which threads to execute and calls them..
-startAjaxApplication thisUser versioninfo maintask tst=:{taskNr,options,html,userId}
+startAjaxApplication thisUser versioninfo maintask tst=:{taskNr,userId,options}
 # tst					= copyThreadTableFromClient	versioninfo tst				// synchronize thread tables of client and server, if applicable
 
 // first determine whether we should start calculating the task tree from scratch starting at the root
@@ -165,22 +165,22 @@ startAjaxApplication thisUser versioninfo maintask tst=:{taskNr,options,html,use
 
 // ok, we have found a matching thread
 
-# (_,tst=:{activated}) 	= accTaskTSt (evalTaskThread thread) {tst & html = BT [] []} // evaluate the thread
+# (_,tst=:{activated}) 	= accTaskTSt (evalTaskThread thread) tst  				// evaluate the thread
 | not activated																	// thread / task not yet finished
 	# tst				= copyThreadTableToClient tst							// copy thread table to client
 	= ((False,thisUser,event,"",[thread.thrTaskNr]),tst)						// no further evaluation, aks user for more input
 
 # (mbthread,tst)		= findParentThread (tl thread.thrTaskNr) tst			// look for thread to evaluate
-= doParent mbthread maintask event [thread.thrTaskNr] {tst & html = BT [] [], options = options}				// more to evaluate, call thread one level higher
+= doParent mbthread maintask event [thread.thrTaskNr] {tst & options = options}				// more to evaluate, call thread one level higher
 where
 	doParent [] maintask event accu tst											// no more parents of current event, do main task
-						= startFromRoot versioninfo event [taskNr:accu] "No more threads, page refreshed" maintask {tst & html = BT [] []}			
+						= startFromRoot versioninfo event [taskNr:accu] "No more threads, page refreshed" maintask tst			
 
 	doParent [parent:next] maintask event accu tst								// do parent of current thread
 	| parent.thrUserId <> thisUser												// updating becomes too complicated
-						= startFromRoot versioninfo event [taskNr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask {tst & html = BT [] []}			
+						= startFromRoot versioninfo event [taskNr:accu] ("Parent thread of user " <+++ parent.thrUserId <+++ ", page refreshed") maintask tst			
 
-	# (_,tst=:{activated}) 	= accTaskTSt (evalTaskThread parent) {tst & html = BT [] []}		// start parent
+	# (_,tst=:{activated}) 	= accTaskTSt (evalTaskThread parent) tst 			// start parent
 	| not activated																// parent thread not yet finished
 		# tst				= copyThreadTableToClient tst						// copy thread table to client
 		= ((False,thisUser,event, "",[parent.thrTaskNr:accu]),tst)				// no further evaluation, aks user for more input
@@ -317,12 +317,12 @@ where
 evalTaskThread :: !TaskThread -> Task a 										// execute the thread !!!!
 evalTaskThread entry=:{thrTaskNr,thrUserId,thrOptions,thrCallback,thrCallbackClient,thrKind} = Task evalTaskThread` 
 where
-	evalTaskThread` tst=:{taskNr,options,userId,staticInfo,html}									
+	evalTaskThread` tst=:{taskNr,options,userId,staticInfo}									
 	# newThrOptions					= if (thrOptions.tasklife == LSClient && thrUserId <> staticInfo.currentUserId) 
 											{thrOptions & tasklife = LSTemp}		// the information is not intended for this client, so dot store
 											thrOptions
 			
-	# (a,tst=:{activated,html=nhtml}) 	
+	# (a,tst=:{activated}) 	
 		= accTaskTSt (IF_ClientTasks	
 			(case thrKind of		// we are running on Client, assume that IF_ClientServer and IF_Ajax is set
 				 ClientThread 		= deserializeThreadClient thrCallbackClient
@@ -336,21 +336,21 @@ where
 				 ServerThread 		= deserializeThread thrCallback
 				 else 				= abort "Thread administration error in evalTaskThread"
 			))
-			{tst & taskNr = thrTaskNr, options = newThrOptions, userId = thrUserId,html = BT [] []} 
+			{tst & taskNr = thrTaskNr, options = newThrOptions, userId = thrUserId} 
 	| activated																	// thread is finished, delete the entry...
-		# tst =  deleteThreads thrTaskNr {tst & html = html +|+ nhtml}	// remove thread from administration
+		# tst =  deleteThreads thrTaskNr tst	// remove thread from administration
 		= (a,{tst & taskNr = taskNr, options = options, userId = userId})		// remove entry from table
-	= (a,{tst & taskNr = taskNr, options = options, userId = userId,html = html +|+ DivCode (taskNrToString thrTaskNr) nhtml})
+	= (a,{tst & taskNr = taskNr, options = options, userId = userId})
 
 	
 administrateNewThread :: !UserId !*TSt -> *TSt
 administrateNewThread ouserId tst =: {taskNr,userId,options}
 | ouserId == userId		= tst
 # newTaskId				= iTaskId userId taskNr "_newthread"
-# (chosen,tst=:{hst})	= liftHst (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
+# (chosen,tst=:{hst})	= accHStTSt (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
 | not chosen.Form.value
 	# (_,hst) 			= setPUserNewThread userId hst													// yes, new thread created
-	# (_,tst)			= liftHst (mkStoreForm  (Init,storageFormId options newTaskId False) (\_ -> True)) {tst & hst = hst}
+	# (_,tst)			= accHStTSt (mkStoreForm  (Init,storageFormId options newTaskId False) (\_ -> True)) {tst & hst = hst}
 	= tst
 = tst	
 
@@ -395,7 +395,7 @@ ThreadTableStorageGen :: !String !Lifespan !(ThreadTable -> ThreadTable) -> (Tas
 ThreadTableStorageGen tableid lifespan fun = Task handleTable				// to handle the table on server as well as on client
 where
 	handleTable tst
-	# (table,tst) = liftHst (mkStoreForm (Init,storageFormId 
+	# (table,tst) = accHStTSt (mkStoreForm (Init,storageFormId 
 						{ tasklife 		= lifespan
 						, taskstorage 	= PlainString 
 						, taskmode		= NoForm

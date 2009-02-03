@@ -8,11 +8,10 @@ definition module FIXMEDebug
 */
 import Html
 from ProcessDB	import :: Process
-from TaskTree	import :: HtmlTree, :: TaskTree
+from TaskTree	import :: TaskTree
 
 
 traceProcesses 		:: [Process]		-> HtmlTag
-
 
 traceTaskTree		:: TaskTree			-> HtmlTag
 traceTaskForest		:: [TaskTree]		-> HtmlTag

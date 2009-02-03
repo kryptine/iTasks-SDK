@@ -16,7 +16,7 @@ where
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkBasicTask "editTask" (Task (editTask` prompt a))
 
-editTask` prompt a tst=:{taskNr,html,hst,userId}
+editTask` prompt a tst=:{taskNr,userId,hst}
 	# taskId			= iTaskId userId taskNr "EdFin"
 	# editId			= iTaskId userId taskNr "EdVal"
 	# buttonId			= iTaskId userId taskNr "EdBut"
@@ -36,7 +36,7 @@ editTask` prompt a tst=:{taskNr,html,hst,userId}
 editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
 editTaskPred  a pred = mkBasicTask "editTask" (Task (editTaskPred` a))
 where
-	editTaskPred` a tst=:{taskNr,html,hst,userId}
+	editTaskPred` a tst=:{taskNr,userId,hst}
 	# taskId			= iTaskId userId taskNr "EdFin"
 	# editId			= iTaskId userId taskNr "EdVal"
 	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  	// remember if the task has been done
@@ -122,7 +122,7 @@ selectTask_cbox :: ![(!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag])] -> Task [Int]
 selectTask_cbox choices = mkBasicTask "selectTask_cbox" (Task (selectTask_cbox` choices))
 where
 	selectTask_cbox` [] tst		= ([],{tst& activated = True})
-	selectTask_cbox` choices tst=:{taskNr,html,options,userId}									// choose one subtask out of the list
+	selectTask_cbox` choices tst=:{taskNr,userId,options}									// choose one subtask out of the list
 		# seltaskId				= iTaskId userId taskNr "MtpChSel"
 		# donetaskId			= iTaskId userId taskNr "MtpChSt"
 		# buttonId				= iTaskId userId taskNr "MtpChBut"

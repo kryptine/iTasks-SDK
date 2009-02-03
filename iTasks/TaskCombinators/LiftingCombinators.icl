@@ -1,6 +1,6 @@
 implementation module LiftingCombinators
 
-import UITasks, BasicCombinators
+import UITasks, BasicCombinators, CommonCombinators
 import InternaliTasksCommon
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
@@ -18,34 +18,41 @@ where
 	= accTaskTSt b tst
 
 appIData :: !(IDataFun a) -> (Task a) | iData a 
-appIData idatafun = Task ( \tst -> accTaskTSt (mkBasicTask "appIData" (Task (appIData` idatafun))) tst)
+appIData idatafun = (mkParallelTask "appIData" (Task appIData`))
 where
-	appIData` idata tst =:{taskNr,html,hst}
-		# (idata,hst) 											= idatafun hst
-		# (_, {taskNr,activated,html=ahtml,hst,processdb}) 	= accTaskTSt (editTaskLabel "appIDataDone" "Done" Void) {tst & activated = True, html = BT [] [],hst = hst}	
-		= (idata.Form.value, {tst & taskNr = taskNr,activated	= activated, html = html +|+ 
-																	(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst, processdb = processdb})
+	appIData` tst
+		# tst					= setCombination TTVertical tst
+		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (Task (doIData idatafun)))) tst
+		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
+		= (a,tst)
+		
+	doIData idata tst =:{taskNr,hst}
+		# (idata, hst)	= idatafun hst
+		# tst			= setOutput idata.form {tst & hst = hst}
+		# tst			= setInputs idata.inputs tst
+		= (idata.Form.value, tst)
 
 appIData2 :: !(String *HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
-appIData2 idatafun = Task (\tst -> accTaskTSt (mkBasicTask "appIData" (Task (appIData` idatafun))) tst)
+appIData2 idatafun = (mkParallelTask "appIData" (Task appIData`))
 where
-	appIData` idata tst =:{taskNr,html,hst,userId}
-	# taskId												= iTaskId userId taskNr "iData"
-	# (idata,hst) 											= idatafun taskId hst
-	# (_,{taskNr,activated,html=ahtml,hst,processdb}) 		= accTaskTSt (editTaskLabel "appIDataDone" "Done" Void) {tst & activated = True, html = BT [] [],hst = hst}	
-	= (idata.Form.value,{tst & taskNr = taskNr,activated	= activated, html = html +|+ 
-																(if activated (BT idata.form idata.inputs) (BT idata.form idata.inputs +|+ ahtml)), hst = hst, processdb = processdb})
+	appIData` tst
+		# tst					= setCombination TTVertical tst
+		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (Task (doIData idatafun)))) tst
+		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
+		= (a,tst)
+
+	doIData idata tst =:{taskNr,userId, hst}
+		# taskId		= iTaskId userId taskNr "iData"
+		# (idata, hst)	= idatafun taskId hst
+		# tst			= setOutput idata.form {tst & hst = hst}
+		# tst			= setInputs idata.inputs tst
+		= (idata.Form.value, tst)
 
 appHStOnce :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
-appHStOnce label fun = once label (Task (liftHst fun))
+appHStOnce label fun = once label (Task (accHStTSt fun))
 
 appHSt :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
-appHSt label fun = mkBasicTask label (Task (liftHst fun))
-
-liftHst :: !(*HSt -> *(.a,*HSt)) !*TSt -> *(.a,*TSt)
-liftHst fun tst=:{hst}
-# (form,hst) = fun hst
-= (form,{tst & hst = hst})
+appHSt label fun = mkBasicTask label (Task (accHStTSt fun))
 
 appWorldOnce :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
 appWorldOnce label fun = once label (Task (liftWorld fun))
@@ -55,5 +62,5 @@ appWorld label fun = mkBasicTask label (Task (liftWorld fun))
 
 liftWorld :: !(*World -> *(!a,!*World)) !*TSt -> *(!a,!*TSt)
 liftWorld f tst=: {hst = hst=:{nworld = nworld=:{world}}}
-# (a,world)	= f world
-= (a,{tst & hst = {hst & nworld = {nworld & world = world}}})	
+	# (a,world)	= f world
+	= (a,{tst & hst = {hst & nworld = {nworld & world = world}}})	

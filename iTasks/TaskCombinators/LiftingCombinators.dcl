@@ -1,11 +1,7 @@
 definition module LiftingCombinators
-
-// *********************************************************************************************************************************
-// Some iTasks combinators for lifting other domains to the iTask domain:
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+/*
+* Some iTasks combinators for lifting other domains to the iTask domain:
+*/
 import TSt
 
 /* 
@@ -29,7 +25,6 @@ liftHst			:: lift iData *HSt domain to the TSt domain
 */
 appHStOnce 		:: !String !(*HSt -> (!a,!*HSt)) 				-> Task a		| iData a
 appHSt			:: !String !(*HSt -> (!a,!*HSt)) 				-> Task a		| iData a
-liftHst 		:: !(*HSt -> *(.a,*HSt)) !*TSt 					-> *(.a,*TSt)
 
 /*
 appWorldOnce	:: lift *World domain to TSt domain, will be executed only once; string used for tracing

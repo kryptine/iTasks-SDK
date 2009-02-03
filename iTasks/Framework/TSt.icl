@@ -17,7 +17,6 @@ mkTSt :: !Lifespan !Lifespan !Session ![Workflow]!*HSt !*ProcessDB -> *TSt
 mkTSt itaskstorage threadstorage session workflows hst processdb
 	=	{ taskNr		= [-1]
 		, userId		= -1
-		, html 			= BT [] []
 		, tree			= TTProcess {processId = -1, processLabel = "", userId = -1, status = Active} []
 		, activated 	= True
 		, users			= []
@@ -47,7 +46,7 @@ initialOptions location
 		}
 
 resetTSt :: *TSt -> *TSt
-resetTSt tst = {tst & taskNr = [-1], activated = True, userId = -1, html = BT [] [], users = []}
+resetTSt tst = {tst & taskNr = [-1], activated = True, userId = -1, users = []}
 
 setTaskNr :: TaskNr *TSt -> *TSt
 setTaskNr taskNr tst = {TSt | tst & taskNr = taskNr}
@@ -180,10 +179,6 @@ getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 getCurrentProcess tst =: {staticInfo}
 	= (staticInfo.currentProcessId, {tst & staticInfo = staticInfo})
 
-getHtmlTree	:: !*TSt 	-> (!HtmlTree, !*TSt)
-getHtmlTree tst =: {html}
-	= (html, {tst & html = html})
-
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
 	= (tree, {tst & tree = tree})
@@ -309,22 +304,11 @@ mkTaskInfo tasknr label userid active
 executeTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a
 executeTask taskname task = Task executeTask`
 where
-	executeTask` tst=:{activated,taskNr,userId,options}
+	executeTask` tst=:{activated}
 		| activated
-			# (val,tst=:{activated,html})		= accTaskTSt task tst				// Perform task and get its result
-			# tst	= {tst & taskNr = taskNr, options = options, userId = userId}	// Restore taskNr, userId and and options
-			| options.trace
-				# tst = {tst & html = TaskTrace { trTaskNr = taskNrToString taskNr	// Add a trace node
-												, trTaskName = taskname
-												, trActivated = activated
-												, trUserId = userId
-												, trValue = printToString val
-												, trOptions = options } html}							
-				= (val,tst)
-			| otherwise
-				= (val,tst)
+			= accTaskTSt task tst				// Perform task and get its result
 		| otherwise								
-			= (createDefault,tst)													// When a task is not active, don't execute it, return default value
+			= (createDefault,tst)				// When a task is not active, don't execute it, return default value
 
 //Add a new node to the current sequence or process
 addTaskNode :: !TaskTree !*TSt -> *TSt

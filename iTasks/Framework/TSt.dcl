@@ -13,8 +13,7 @@ from ProcessDB	import :: ProcessDB
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr									// for generating unique form-id's
 					, userId		:: !UserId									// id of user to which task is assigned
-					, html			:: !HtmlTree								// accumulator for constructing a task tree
-					, tree			:: !TaskTree								// *new* accumulator for constructing a task tree			
+					, tree			:: !TaskTree								// accumulator for constructing a task tree			
 					, activated		:: !Bool   									// if true activate task, if set as result task completed
 					, users			:: ![UserId]								// list of all users working on some task (including subtasks)
 
@@ -25,6 +24,13 @@ from ProcessDB	import :: ProcessDB
 									
 					, hst			:: !*HSt									// iData state
 					, processdb		:: !*ProcessDB								// The process database
+					}
+
+:: Options		=	{ tasklife		:: !Lifespan								// default: Session		
+					, taskstorage	:: !StorageFormat							// default: PlainString
+					, taskmode		:: !Mode									// default: Edit
+					, gc			:: !GarbageCollect							// default: Collect
+					, trace			:: !Bool									// default: False
 					}
 
 :: StaticInfo	=	{ currentUserId		:: !UserId								// id of current user
@@ -222,7 +228,6 @@ getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 /**
 * Extract the calculated task forest data structure from the TSt
 */
-getHtmlTree	:: !*TSt 	-> (!HtmlTree, !*TSt)
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 
 /**

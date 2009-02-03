@@ -76,8 +76,10 @@ channel			:: splits a task in respectively a sender task closure and receiver ta
 				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
 				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
 */
+/*
 (-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,Task a) 	| iCreateAndPrint stop & iCreateAndPrint a
 channel  		:: String (Task a) 							-> Task (Task a,Task a) 		| iCreateAndPrint a
 
 closureTask  	:: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
 closureLzTask  	:: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
+*/
