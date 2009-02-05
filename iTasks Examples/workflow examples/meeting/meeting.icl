@@ -1,6 +1,6 @@
 module meeting
 
-import StdEnv, StdiTasks, iDataTrivial, iDataFormlib
+import StdEnv, iTasks, iDataTrivial, iDataFormlib
 
 // (c) MJP 2007
 
@@ -11,7 +11,14 @@ import StdEnv, StdiTasks, iDataTrivial, iDataFormlib
 
 npersons = 5
 
-Start world = startTaskEngine test world
+Start world = startEngine [myWorkflow] world
+
+myWorkflow
+=	{	name		= "orderPlacement"
+	,	label		= "orderPlacement"
+	,	roles		= []
+	,	mainTask	= findDate #>> return_V Void
+	}
 
 
 //setupDates :: Task (FixedList [Int])
@@ -20,14 +27,9 @@ setupDates
 =						[Text "Initialize dates:",BrTag []] 
 						?>>	editTask "Set" (VerList [(createDefault,createDefault) \\ i <- [1..2]])
 
-taskClosure :: (Task a) -> Task (TCl a) | iData a
+taskClosure :: (Task a) -> Task (Task a) | iData a
 taskClosure task 
-=			return_V (TCl task)
-
-
-test
-=						closureLzTask ("lazy",editTask "OK" 0)
-	=>> \(TCl task) ->	(1 @: ("t1",task)) -&&- (2 @: ("t2",task)) 
+=			return_V (Task task)
 
 
 findDate :: Task (HtmlDate,HtmlTime)

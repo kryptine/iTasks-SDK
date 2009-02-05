@@ -12,6 +12,7 @@ derive gForm 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox
 derive gUpd  	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 derive gPrint 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
+derive gerda	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 //derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
 //derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
 

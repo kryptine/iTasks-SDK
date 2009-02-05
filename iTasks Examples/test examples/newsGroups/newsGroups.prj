@@ -1,7 +1,7 @@
 Version: 1.4
 Global
 	Built:	True
-	Target:	fancyTasks
+	Target:	iTasks 2.0
 	Exec:	{Project}\newsGroups.exe
 	CodeGen
 		CheckStacks:	False
@@ -56,15 +56,15 @@ MainModule
 	DclOpen:	False
 	Icl
 		WindowPosition
-			X:	355
-			Y:	24
-			SizeX:	1227
-			SizeY:	677
-	IclOpen:	False
+			X:	116
+			Y:	19
+			SizeX:	1073
+			SizeY:	570
+	IclOpen:	True
 OtherModules
 	Module
 		Name:	DeauthenticationHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -96,7 +96,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	sapldebug
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -112,7 +112,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HttpTextUtil
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -128,7 +128,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HttpUtil
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -144,7 +144,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Http
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -160,7 +160,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HttpServer
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -176,7 +176,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataCompileOptions
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -192,7 +192,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iTasksDB
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -556,7 +556,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataSettings
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -678,7 +678,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	DataFile
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -694,7 +694,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	DrupGeneric
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -710,7 +710,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	DrupBasic
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -726,7 +726,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	_SystemDrup
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -744,7 +744,7 @@ OtherModules
 			ObjectFile:	fastreopen.o
 	Module
 		Name:	Drup
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -808,7 +808,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataState
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -824,7 +824,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	EncodeDecode
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -846,7 +846,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataTrivial
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -868,7 +868,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	dynamic_string
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1180,104 +1180,8 @@ OtherModules
 		NeededLibraries
 			Library:	directory_library
 	Module
-		Name:	EstherBackend
-		Dir:	{Application}\Libraries\Hilde
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	EstherParser
-		Dir:	{Application}\Libraries\Hilde
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdException
-		Dir:	{Application}\Libraries\ExceptionsWindows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdParsComb
-		Dir:	{Application}\Libraries\Hilde\Parser combinators 2002
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
 		Name:	Debug
-		Dir:	{Application}\Libraries\WrapDebug
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	Wrap
-		Dir:	{Application}\Libraries\WrapDebug
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ShowWrapped
-		Dir:	{Application}\Libraries\WrapDebug
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2824,7 +2728,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataFormlib
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2852,7 +2756,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	graph_to_string_with_descriptors
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2871,7 +2775,7 @@ OtherModules
 			ObjectFile:	copy_graph_to_string_interface.obj
 	Module
 		Name:	graph_to_sapl_string
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2887,7 +2791,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	InternaliTasksCommon
-		Dir:	{Application}\fancyTasks\iTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2909,7 +2813,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	InternaliTasksThreadHandling
-		Dir:	{Application}\fancyTasks\iTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2931,7 +2835,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataForms
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2953,7 +2857,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HSt
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2969,7 +2873,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	NWorld
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -2985,7 +2889,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	FormId
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3001,7 +2905,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Html
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3013,11 +2917,17 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
 		DclOpen:	False
 		IclOpen:	False
 	Module
 		Name:	iDataWidgets
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3029,6 +2939,12 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1127
+				SizeY:	624
 		DclOpen:	False
 		Icl
 			WindowPosition
@@ -3039,7 +2955,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Time
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3057,7 +2973,7 @@ OtherModules
 			Library:	msvcrt.txt
 	Module
 		Name:	Pointer
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3073,7 +2989,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TSt
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3108,7 +3024,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	AuthenticationHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3124,7 +3040,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Session
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Data
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3140,7 +3056,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	WorkListHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3156,7 +3072,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TaskTree
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3172,7 +3088,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	JSON
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3188,7 +3104,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Text
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3204,7 +3120,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	WorkTabHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3220,7 +3136,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TaskTreeForestHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3236,7 +3152,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ProcessTableHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3252,7 +3168,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ThreadTableHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3268,7 +3184,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Engine
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3296,7 +3212,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	UserDB
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Data
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3312,7 +3228,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Void
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3328,7 +3244,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Types
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3344,7 +3260,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ProcessDB
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Data
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3366,7 +3282,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	BasicCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3382,23 +3298,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	LiftingCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	EditTasks
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3414,7 +3314,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TuningCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3430,7 +3330,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ClientCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3446,7 +3346,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	NewListHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3462,23 +3362,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	NewStartHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	FIXMEDebug
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3494,7 +3378,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	UserTasks
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3506,17 +3390,23 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
 		DclOpen:	False
 		Icl
 			WindowPosition
-				X:	182
-				Y:	66
-				SizeX:	800
+				X:	209
+				Y:	-19
+				SizeX:	951
 				SizeY:	640
-		IclOpen:	False
+		IclOpen:	True
 	Module
 		Name:	TimeAndDateTasks
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3532,7 +3422,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	CommonCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3544,17 +3434,23 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
-		Icl
+		Dcl
 			WindowPosition
 				X:	10
 				Y:	10
 				SizeX:	800
+				SizeY:	624
+		DclOpen:	True
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1107
 				SizeY:	640
-		IclOpen:	False
+		IclOpen:	True
 	Module
 		Name:	PromptingCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3566,11 +3462,23 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	True
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1223
+				SizeY:	624
 		IclOpen:	False
 	Module
 		Name:	ProcessCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3582,7 +3490,13 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	True
 		Icl
 			WindowPosition
 				X:	10
@@ -3592,7 +3506,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ExceptionCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3608,7 +3522,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iTasks
-		Dir:	{Application}\fancyTasks\iTasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3622,18 +3536,40 @@ OtherModules
 			Fusion:	False
 		DclOpen:	False
 		IclOpen:	False
+	Module
+		Name:	UITasks
+		Dir:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
 Static
 	Mods
 		Path:	{Project}\newsGroups.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\DeauthenticationHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\DeauthenticationHandler.icl
 		Path:	{Application}\Libraries\MersenneTwister\MersenneTwister.icl
-		Path:	{Application}\fancyTasks\graph_copy\sapldebug.icl
-		Path:	{Application}\fancyTasks\Http\HttpTextUtil.icl
-		Path:	{Application}\fancyTasks\Http\HttpUtil.icl
-		Path:	{Application}\fancyTasks\Http\Http.icl
-		Path:	{Application}\fancyTasks\Http\HttpServer.icl
-		Path:	{Application}\fancyTasks\iData\iDataCompileOptions.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\iTasksDB.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\sapldebug.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\HttpTextUtil.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\HttpUtil.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\Http.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\HttpServer.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataCompileOptions.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\iTasksDB.icl
 		Path:	{Application}\Libraries\Dynamics\extension\StdCleanTypes.icl
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\_SystemDynamic.icl
 		Path:	{Application}\Libraries\StdEnv\StdOverloaded.icl
@@ -3655,25 +3591,25 @@ Static
 		Path:	{Application}\Libraries\StdEnv\StdTuple.icl
 		Path:	{Application}\Libraries\StdEnv\StdCharList.icl
 		Path:	{Application}\Libraries\StdEnv\StdFunc.icl
-		Path:	{Application}\fancyTasks\iData\iDataSettings.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataSettings.icl
 		Path:	{Application}\Libraries\StdEnv\StdGeneric.icl
 		Path:	{Application}\Libraries\Gerda\Gerda.icl
 		Path:	{Application}\Libraries\StdLib\StdMaybe.icl
 		Path:	{Application}\Libraries\Gerda\odbc.icl
 		Path:	{Application}\Libraries\Gerda\odbccp.icl
 		Path:	{Application}\Libraries\StdEnv\StdDebug.icl
-		Path:	{Application}\fancyTasks\Drup\DataFile.icl
-		Path:	{Application}\fancyTasks\Drup\DrupGeneric.icl
-		Path:	{Application}\fancyTasks\Drup\DrupBasic.icl
-		Path:	{Application}\fancyTasks\Drup\_SystemDrup.icl
-		Path:	{Application}\fancyTasks\Drup\Drup.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\DataFile.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\DrupGeneric.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\DrupBasic.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\_SystemDrup.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Drup.icl
 		Path:	{Application}\Libraries\Generics\GenEq.icl
 		Path:	{Application}\Libraries\Generics\GenPrint.icl
 		Path:	{Application}\Libraries\Generics\GenParse.icl
-		Path:	{Application}\fancyTasks\iData\iDataState.icl
-		Path:	{Application}\fancyTasks\iData\EncodeDecode.icl
-		Path:	{Application}\fancyTasks\iData\iDataTrivial.icl
-		Path:	{Application}\fancyTasks\graph_copy\dynamic_string.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataState.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\EncodeDecode.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataTrivial.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\dynamic_string.icl
 		Path:	{Application}\Libraries\Dynamics\extension\StdDynamic.icl
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\DynamicGraphConversion.icl
 		Path:	{Application}\Libraries\Dynamics\implementation\StdDynamicTypes.icl
@@ -3691,13 +3627,7 @@ Static
 		Path:	{Application}\Libraries\ArgEnvWindows\ArgEnv.icl
 		Path:	{Application}\Libraries\StdLib\StdLibMisc.icl
 		Path:	{Application}\Libraries\Directory\Directory.icl
-		Path:	{Application}\Libraries\Hilde\EstherBackend.icl
-		Path:	{Application}\Libraries\Hilde\EstherParser.icl
-		Path:	{Application}\Libraries\ExceptionsWindows\StdException.icl
-		Path:	{Application}\Libraries\Hilde\Parser combinators 2002\StdParsComb.icl
-		Path:	{Application}\Libraries\WrapDebug\Debug.icl
-		Path:	{Application}\Libraries\WrapDebug\Wrap.icl
-		Path:	{Application}\Libraries\WrapDebug\ShowWrapped.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Debug.icl
 		Path:	{Application}\Libraries\Generics\GenMap.icl
 		Path:	{Application}\Libraries\Generics\_Array.icl
 		Path:	{Application}\Libraries\StdEnv\StdStrictLists.icl
@@ -3791,99 +3721,100 @@ Static
 		Path:	{Application}\Libraries\Tcp\StdEventTCP.icl
 		Path:	{Application}\Libraries\Tcp\StdStringChannels.icl
 		Path:	{Application}\Libraries\Generics\GenLexOrd.icl
-		Path:	{Application}\fancyTasks\iData\iDataFormlib.icl
-		Path:	{Application}\fancyTasks\graph_copy\graph_to_string_with_descriptors.icl
-		Path:	{Application}\fancyTasks\graph_copy\graph_to_sapl_string.icl
-		Path:	{Application}\fancyTasks\iTasks\InternaliTasksCommon.icl
-		Path:	{Application}\fancyTasks\iTasks\InternaliTasksThreadHandling.icl
-		Path:	{Application}\fancyTasks\iData\iDataForms.icl
-		Path:	{Application}\fancyTasks\iData\HSt.icl
-		Path:	{Application}\fancyTasks\iData\NWorld.icl
-		Path:	{Application}\fancyTasks\iData\FormId.icl
-		Path:	{Application}\fancyTasks\Platform\Html.icl
-		Path:	{Application}\fancyTasks\iData\iDataWidgets.icl
-		Path:	{Application}\fancyTasks\Platform\Time.icl
-		Path:	{Application}\fancyTasks\Platform\Pointer.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\TSt.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataFormlib.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\graph_to_string_with_descriptors.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\graph_to_sapl_string.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\InternaliTasksCommon.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\InternaliTasksThreadHandling.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataForms.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\HSt.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\NWorld.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\FormId.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Html.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\iDataWidgets.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Time.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Pointer.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\TSt.icl
 		Path:	{Application}\Libraries\Generics\GenBimap.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\AuthenticationHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Session.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\WorkListHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\TaskTree.icl
-		Path:	{Application}\fancyTasks\Platform\JSON.icl
-		Path:	{Application}\fancyTasks\Platform\Text.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\WorkTabHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\TaskTreeForestHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\ProcessTableHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\ThreadTableHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Engine.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\UserDB.icl
-		Path:	{Application}\fancyTasks\Platform\Void.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Types.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\ProcessDB.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\BasicCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\LiftingCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\EditTasks.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\TuningCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\ClientCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\NewListHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\NewStartHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\FIXMEDebug.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\UserTasks.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\TimeAndDateTasks.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\CommonCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\PromptingCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\ProcessCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\ExceptionCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\iTasks.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\AuthenticationHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data\Session.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\WorkListHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\TaskTree.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\JSON.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Text.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\WorkTabHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\TaskTreeForestHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\ProcessTableHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\ThreadTableHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Engine.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data\UserDB.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Void.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Types.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data\ProcessDB.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\BasicCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\LiftingCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\TuningCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\ClientCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\NewListHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\NewStartHandler.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\UserTasks.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\TimeAndDateTasks.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\CommonCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\PromptingCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\ProcessCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\ExceptionCombinators.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\iTasks.icl
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\UITasks.icl
 	Objs
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup0.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup1Trace.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup2.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_system.o
 		Path:	{Project}\Clean System Files\newsGroups.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\iTasksDB.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\UserTasks.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ThreadTableHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\FIXMEDebug.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Text.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\JSON.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\NewListHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\DeauthenticationHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\sapldebug.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ClientCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\TuningCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\EditTasks.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\LiftingCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\BasicCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\Clean System Files\InternaliTasksThreadHandling.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\graph_to_sapl_string.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
-		Path:	{Application}\fancyTasks\iTasks\Clean System Files\InternaliTasksCommon.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\iTasksDB.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\ThreadTableHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\Debug.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Text.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\JSON.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\NewListHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\DeauthenticationHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\sapldebug.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\InternaliTasksThreadHandling.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\ClientCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\UserTasks.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\TuningCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks\Clean System Files\UITasks.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\LiftingCombinators.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators\Clean System Files\BasicCombinators.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnumStrict.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemStrictLists.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdStrictLists.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\graph_to_sapl_string.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\InternaliTasksCommon.o
 		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Clean System Files\ProcessDB.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\Types.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\TaskTree.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data\Clean System Files\ProcessDB.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\Types.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\TaskTree.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Pointer.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Time.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdArrayExtensions.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdListExtensions.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLib.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataFormlib.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\_Array.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenMap.o
-		Path:	{Application}\Libraries\WrapDebug\Clean System Files\ShowWrapped.o
-		Path:	{Application}\Libraries\WrapDebug\Clean System Files\Wrap.o
-		Path:	{Application}\Libraries\WrapDebug\Clean System Files\Debug.o
-		Path:	{Application}\Libraries\Hilde\Parser combinators 2002\Clean System Files\StdParsComb.o
-		Path:	{Application}\Libraries\ExceptionsWindows\Clean System Files\StdException.o
-		Path:	{Application}\Libraries\Hilde\Clean System Files\EstherParser.o
-		Path:	{Application}\Libraries\Hilde\Clean System Files\EstherBackend.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\EncodeDecode.o
-		Path:	{Application}\Libraries\Directory\Clean System Files\Directory.o
 		Path:	{Application}\Libraries\Dynamics\implementation\Clean System Files\DynIDMacros.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\memory.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\memory_mapped_files.o
@@ -3898,24 +3829,20 @@ Static
 		Path:	{Application}\Libraries\Dynamics\implementation\Clean System Files\StdDynamicTypes.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\DynamicGraphConversion.o
 		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdDynamic.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\dynamic_string.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnumStrict.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemStrictLists.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdStrictLists.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\dynamic_string.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\EncodeDecode.o
+		Path:	{Application}\Libraries\Directory\Clean System Files\Directory.o
 		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnv.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdArrayExtensions.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdListExtensions.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLib.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Pointer.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Time.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataTrivial.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataFormlib.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenLexOrd.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataWidgets.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Html.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Html.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenEq.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\FormId.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Void.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\FormId.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data\Clean System Files\UserDB.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\NWorld.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\Void.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenPrint.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenParse.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataState.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\StdStringChannels.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\StdEventTCP.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\ostcp.o
@@ -3996,63 +3923,58 @@ Static
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\systemid.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\device.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\id.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLibMisc.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCrossCall_12.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbox.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostick.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTime.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLibMisc.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\HttpTextUtil.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\HttpUtil.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\Http.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\HttpServer.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataCompileOptions.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataSettings.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataForms.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenPrint.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenParse.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataState.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Clean System Files\UserDB.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\Drup.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\_SystemDrup.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\DrupBasic.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\DrupGeneric.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\DataFile.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\Clean System Files\HttpTextUtil.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\Clean System Files\HttpUtil.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\Clean System Files\Http.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http\Clean System Files\HttpServer.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Clean System Files\Drup.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Clean System Files\_SystemDrup.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Clean System Files\DrupBasic.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Clean System Files\DrupGeneric.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Clean System Files\DataFile.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdDebug.o
 		Path:	{Application}\Libraries\Gerda\Clean System Files\odbccp.o
 		Path:	{Application}\Libraries\Gerda\Clean System Files\odbc.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdDebug.o
 		Path:	{Application}\Libraries\Gerda\Clean System Files\Gerda.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\NWorld.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\HSt.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Clean System Files\Session.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\TSt.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataCompileOptions.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataSettings.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataWidgets.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataTrivial.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\iDataForms.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Clean System Files\HSt.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data\Clean System Files\Session.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\TSt.o
 		Path:	{Application}\Libraries\StdLib\Clean System Files\StdMaybe.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenBimap.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdGeneric.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\Engine.o
-		Path:	{Application}\fancyTasks\iTasks\Clean System Files\iTasks.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFunc.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Clean System Files\Engine.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Clean System Files\iTasks.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdCharList.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdTuple.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOrdList.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnum.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnum.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdReal.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnv.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFile.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdString.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdReal.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemArray.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdArray.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdClass.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdChar.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdMisc.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdInt.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdBool.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnv.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdMisc.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFunc.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
 		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
 		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnvC.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFileSelectors_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFont_121.o
@@ -4068,16 +3990,16 @@ Static
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallxDI_121.o
 		Path:	{Application}\Libraries\Directory\Clean System Files\cDirectory.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cTCP_121.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_string_to_graph.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_string_to_graph_interface.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_graph_to_string.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_graph_to_string.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_string_to_graph.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_string_to_graph_interface.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_graph_to_string.obj
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cpicture_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCCallWindows_121.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\fastreopen.o
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup\Clean System Files\fastreopen.o
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\low.obj
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\mem.obj
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\read_function.obj
@@ -4095,7 +4017,7 @@ Static
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\comdlg_library
 		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\StdDynamic_kernel32_library
 		Path:	{Application}\Libraries\Directory\Clean System Files\directory_library
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\msvcrt.txt
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform\Clean System Files\msvcrt.txt
 		Path:	{Application}\Libraries\Gerda\Clean System Files\odbc_library
 		Path:	{Application}\Libraries\Gerda\Clean System Files\odbccp_library
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\userExt_library
@@ -4111,25 +4033,30 @@ Static
 		Path:	{Application}\Libraries\Tcp\Clean System Files\wsock_library
 	Pths
 		Path:	{Project}
-		Path:	{Application}\fancyTasks\Platform
-		Path:	{Application}\fancyTasks\iTasks
-		Path:	{Application}\fancyTasks\iTasks\Framework
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators
-		Path:	{Application}\fancyTasks\iTasks\Handlers
-		Path:	{Application}\fancyTasks\iData
-		Path:	{Application}\fancyTasks\graph_copy
-		Path:	{Application}\fancyTasks\Drup
-		Path:	{Application}\fancyTasks\Http
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskCombinators
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\BasicTasks
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Handlers
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Framework\Data
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\TaskTree
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks\Util
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iData\Resources
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Drup
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\graph_copy
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Http
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Resources
+		Path:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\Platform
 		Path:	{Application}\Libraries\Gerda
+		Path:	{Application}\Libraries\CleanServer
+		Path:	{Application}\Libraries\StdEnv
 		Path:	{Application}\Libraries\GEC\GEC Implementation
 		Path:	{Application}\Libraries\Generics
 		Path:	{Application}\Libraries\StdLib
 		Path:	{Application}\Libraries\ObjectIO
 		Path:	{Application}\Libraries\ObjectIO\OS Windows
-		Path:	{Application}\Libraries\StdEnv
 		Path:	{Application}\Libraries\Dynamics\extension
 		Path:	{Application}\Libraries\Dynamics\general
 		Path:	{Application}\Libraries\Dynamics\implementation
@@ -4142,6 +4069,5 @@ Static
 		Path:	{Application}\Libraries\Hilde\Parser combinators 2002
 		Path:	{Application}\Libraries\ExceptionsWindows
 		Path:	{Application}\Libraries\WrapDebug
-		Path:	{Application}\Libraries\Email
-	AppP:	C:\Documents and Settings\Bas Lijnse\Desktop\Clean
-	PrjP:	C:\Documents and Settings\Bas Lijnse\Desktop\Clean\fancyTasks\iTasks Examples\test examples\newsGroups
+	AppP:	C:\Documents and Settings\rinus\Desktop\Clean 2.2
+	PrjP:	C:\Documents and Settings\rinus\Desktop\SVN papers + code\iTasks 2.0\iTasks Examples\test examples\newsGroups

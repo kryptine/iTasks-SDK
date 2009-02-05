@@ -56,11 +56,11 @@ MainModule
 	DclOpen:	False
 	Icl
 		WindowPosition
-			X:	387
-			Y:	37
+			X:	125
+			Y:	49
 			SizeX:	1110
-			SizeY:	793
-	IclOpen:	True
+			SizeY:	559
+	IclOpen:	False
 OtherModules
 	Module
 		Name:	StdCleanTypes

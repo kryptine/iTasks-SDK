@@ -23,111 +23,113 @@ derive gUpd 	[]
 
 nmessage = 5
 
-Start world = startEngine [{ name = "newsGroups", label = "Newsgroups example", roles = [], mainTask = (doWork 0 "Rinus") }] world
+Start world = startEngine newsGroups world
 
-doWork 0 acc =  newsManager 0 acc		// for the root
-doWork i acc =  newsReader  i acc		// all others
+newsGroups
+=	[
+	{	name		= "add news group"
+	,	label		= "add news group"
+	,	roles		= []
+	,	mainTask	= addNewsGroup
+	},
+	{	name		= "show news groups"
+	,	label		= "show news groups"
+	,	roles		= []
+	,	mainTask	= showNewsGroups
+	},
+	{	name		= "subscribe to news group"
+	,	label		= "subscribe to news group"
+	,	roles		= []
+	,	mainTask	= subscribeNewsGroup
+	}
+	]
 
-newsManager i name
-=							spawnProcess i True ("subscribe",newsReader i name)
-	#>>						manageGroups
+addNewsGroup
+=						[Text "Define name of new news group:",BrTag [],BrTag []] 
+						?>> editTask "Define" "" 
+	=>> \newName  	->	readNewsGroups       
+	=>> \oldNames 	->	writeNewsGroups (removeDup (sort [newName:oldNames])) 
+	#>>					return_V Void
+
+showNewsGroups
+=						readNewsGroups
+	=>>					showList
 where
-	manageGroups
-	=						foreverTask
-							(	chooseTask [Text "news group management:",BrTag [],BrTag []] 
-									[ ("add new group",  addNewsGroup -||- editTask "Cancel" Void)
-								  	, ("show groups", showGroups)
-								 	]
-							)
-	addNewsGroup
-	=						[Text "Define name of new news group:",BrTag [],BrTag []] 
-							?>> editTask "Define" "" 
-		=>> \newName  	->	readNewsGroups       
-		=>> \oldNames 	->	writeNewsGroups (removeDup (sort [newName:oldNames])) 
+	showList []	 	=	[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> OK 
+	showList list	=   selectWithPulldown list	0 
+						#>> return_V Void
+
+subscribeNewsGroup :: (Task Void)
+subscribeNewsGroup
+=						getCurrentUserId
+	=>> \me ->			getDisplayNamesTask [me]
+	=>> \names ->      	readNewsGroups 
+	=>> 				subscribe me (hd names)
+where
+	subscribe me myname []
+	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> OK 
+	subscribe me myname groups
+	=						[Text "Choose a group:", BrTag [],BrTag []] ?>> selectWithPulldown groups 0  
+		=>> \index	->		return_V (groups!!index)
+		=>> \group ->		addSubscription me (group,0)
+		#>>					spawnProcess me True (group <+++ " news group subscription",readNews me group)
 		#>>					return_V Void
 
-	showGroups
-	=						readNewsGroups
-		=>>					showList
-	where
-		showList []	 	=	[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> OK 
-		showList list	=   PDMenu list	#>> return_V Void
 
-newsReader unid name
-=	foreverTask		( chooseTask [Text "subscribe to a news group from the cataloque:",BrTag [],BrTag []] 
-						[("show groups", subscribeNewsGroup unid name -||- editTask "Cancel" Void)]
-				  	)
+
+readNews :: Int String -> Task Void
+readNews me group	
+=						readIndex me  group 
+		=>> \index ->	readNewsGroup group 
+		=>> \news  ->	orTasks2 group
+							([("Refresh",editTask "Refresh" Void)
+							 ,("Commit new message to newsgroup " <+++ group,commitItem group)] ++
+							  [("Message " <+++ i, show i who name message) \\ (who,name,message) <- news & i <- [index..]]
+							 )
+		#>> spawnProcess me True (group <+++ " news group subscription",readNews me group)
+		#>> return_V Void
 where
-	subscribeNewsGroup :: Subscriber String -> Task Void
-	subscribeNewsGroup me name
-	=						readNewsGroups 
-		=>> 				subscribe
+	show i who name message 
+	= 	displayHtml 
+			[ Text ("Message : " <+++ i), BrTag []
+			, Text ("From    : " <+++ name) , BrTag [], HrTag []
+			, Text message ]
+		
+
+	commitItem :: String ->(Task Void)
+	commitItem  group
+	=								getCurrentUserId
+		=>> \me ->					getDisplayNamesTask [me]
+		=>> \names ->      			commit me (hd names) group
 	where
-		subscribe []
-		=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> OK 
-		subscribe groups
-		=						[Text "Choose a group:", BrTag [],BrTag []] ?>> PDMenu groups  
-			=>> \(_,group)	->	addSubscription me (group,0)
-			#>>					spawnProcess me True (group,readNews me group)
-			#>> 				[Text "You have subscribed to news group ", BTag [] [Text group],BrTag [],BrTag []] 
-								?>> OK
-
-	readNews me group	=	[Text "You are looking at news group ", BTag [] [Text group], BrTag [], BrTag []] 
-							?>>	foreverTask 
-							(					readIndex me  group 
-								=>> \index ->	readNewsGroup group 
-								=>> \news  ->	showNews index (news%(index,index+nmessage-1)) (length news) 
-												?>>	 chooseTask []	
-														[("<<",			readNextNewsItems me (group,index) (~nmessage) (length news))
-														,("update",		return_V Void)
-														,(">>",			readNextNewsItems me (group,index) nmessage (length news))
-														,("commitNews",	commitItem group me)
-														,("unsubscribe",deleteCurrentProcess #>> return_V Void)
-														]
-							)
-
-	readNextNewsItems :: Subscriber Subscription Int Int -> Task Void
-	readNextNewsItems  me (group,index) offset length
-	# nix = index + offset
-	# nix = if (nix < 0) 0 (if (length <= nix) index nix)
-	= addSubscription me (group,nix) #>> return_V Void				 
-
-	commitItem :: GroupName Subscriber -> Task Void
-	commitItem group me 
-	=								[Text "Type your message ..."] 
-									?>>	editTask "Commit" (HtmlTextarea 4  "") <<@ Submit 
-		=>>	\(HtmlTextarea _ val) -> 	readNewsGroup  group 
-		=>> \news ->				writeNewsGroup group (news ++ [(unid,name,val)]) 
-		#>>							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
+		commit me name group
+		=							[Text "Type your message ..."] 
+									?>>	editTask "Commit" (HtmlTextarea 4  "") 
+		 =>> \(HtmlTextarea _ val) -> 	readNewsGroup  group 
+		 =>> \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
+		 #>>							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 									?>> OK
+
+
+
+readNextNewsItems :: Subscriber Subscription Int Int -> Task Void
+readNextNewsItems  me (group,index) offset length
+# nix = index + offset
+# nix = if (nix < 0) 0 (if (length <= nix) index nix)
+= addSubscription me (group,nix) #>> return_V Void				 
+		
+
 
 OK :: Task Void
 OK = editTask "OK" Void
 
-PDMenu list
-=							[] 
-							?>> editTask "OK" (HtmlSelect [(e,e) \\ e <- list] (toString 0))
-	=>> \(HtmlSelect _ value) 
-						->	return_V (toInt value, value)
 
-// displaying news groups
 
-showNews ix news nrItems = [STable [BorderAttr (toString 1), BgcolorAttr "Blue"] 	
-								[	[BTag [] [Text "Message nr:"], BTag [] [Text "By:"], BTag [] [Text "Contents:"]]
-								:	[ 	[Text (showIndex nr),Text name,Text (toString info)] 
-									  	 \\ nr <- [ix..] & (who,name,info) <- news
-										]
-									 ]  
-								]
+orTasks2 group taskCollection	
+	= newTask "orTasks" (allTasksCond "orTask" (TTSplit msg) (\list -> length list >= 1) taskCollection)
+							=>> \list -> return_V (hd list)
 where
-	showIndex i	= ((i+1) +++> " of ") <+++ nrItems
-	
-
-
-STable atts table		= TableTag atts (mktable table)
-where
-	mktable table 	= [TrTag [] (mkrow rows)           \\ rows <- table]
-	mkrow   rows 	= [TdTag [ValignAttr "top"]  [row] \\ row  <- rows ]
+	msg = [Text ("Welcome to newsgroup " +++ group)]
 
 
 // reading and writing of storages

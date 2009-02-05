@@ -1,6 +1,6 @@
 module internetShop
 
-import iDataTrivial, StdEnv, StdiTasks
+import iDataTrivial, StdEnv, iTasks
 
 /*
  * The scenario contains a number of different events and activities:
@@ -18,8 +18,15 @@ import iDataTrivial, StdEnv, StdiTasks
 
 // High level definitions
 Start :: *World -> *World
-Start world = startTaskEngine (orderPlacement customer) world
+Start world = startEngine [myWorkflow] world
 
+myWorkflow
+=	{	name		= "orderPlacement"
+	,	label		= "orderPlacement"
+	,	roles		= []
+	,	mainTask	= orderPlacement customer #>> return_V Void
+	}
+	
 orderPlacement :: UserId -> Task Void
 orderPlacement user =
   customer @:> ( "Order items from shop"

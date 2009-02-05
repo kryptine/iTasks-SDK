@@ -21,7 +21,7 @@ derive gerda 	QForm, Person, Gender
 			, endDate 			:: HtmlDate
 			, estimatedHours 	:: Int
 			, description		:: HtmlTextarea
-			, price				:: Real 	
+			, price				:: Int 	
 			}
 :: Person = { firstName			:: String
 			, surname			:: String

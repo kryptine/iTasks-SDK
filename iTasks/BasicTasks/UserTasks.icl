@@ -30,3 +30,6 @@ getUsersWithRoleTask role
 getUsersIds	::  (Task [Int])
 getUsersIds
 	= appHStOnce "getUsersIds" (accNWorldHSt (accUserDBNWorld getUserIds))
+	
+getCurrentUserId	::  Task Int
+getCurrentUserId = mkBasicTask "getCurrentUserId" (Task getCurrentUser)

@@ -26,3 +26,7 @@ getUsersWithRoleTask	:: !String	-> Task [(Int,String)]
 * Finds all users ids
 */
 getUsersIds	::  (Task [Int])
+/**
+* Returns user id of user logged in the iTask system
+*/
+getCurrentUserId	::  Task Int
