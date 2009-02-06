@@ -254,46 +254,46 @@ mkBasicTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkBasicTask taskname task = Task mkBasicTask`
 where
 	mkBasicTask` tst		
-		# tst =:{taskNr,userId,activated,tree}
+		# tst =:{taskNr,userId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
 		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId activated) [] []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
-		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree, taskNr = taskNr}	//Add the node to current context
+		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options}	//Add the node to current context
 		= (a, tst)
 
 mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkSequenceTask taskname task = Task mkSequenceTask`
 where
 	mkSequenceTask` tst
-		# tst =:{taskNr,userId,activated,tree}
+		# tst =:{taskNr,userId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
 		# node	= TTSequenceTask (mkTaskInfo taskNr taskname userId activated) []							//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1:taskNr], tree = node}			//and a shifted task number
-		# tst	= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr} 	//Add the node to current context
+		# tst	= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options} 	//Add the node to current context
 		= (a, tst)
 		
 mkParallelTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkParallelTask taskname task = Task mkParallelTask`
 where
 	mkParallelTask` tst	
-		# tst =:{taskNr,userId,activated,tree}
+		# tst =:{taskNr,userId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
 		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical []				//Create the task node
 		# (a, tst =:{activated = finished, tree = TTParallelTask info combination branches})			//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}
-		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination (reverse branches)) {tst & tree = tree, taskNr = taskNr} 
+		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination (reverse branches)) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options} 
 		= (a, tst)
 		
 mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a	 								
 mkParallelSubTask taskname i task = Task mkParallelSubTask`
 where
-	mkParallelSubTask` tst=:{activated,taskNr,userId,tree}
+	mkParallelSubTask` tst=:{activated,taskNr,userId,tree,options}
 		# node		= TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId activated) []					//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})
 					= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1,i:taskNr], tree = node}	// two shifts are needed
-		# tst		= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr}
+		# tst		= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr,userId = userId, options = options}
 		= (a, tst)
 
 mkTaskInfo :: TaskNr String UserId Bool -> TaskInfo

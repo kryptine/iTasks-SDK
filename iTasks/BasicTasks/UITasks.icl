@@ -90,18 +90,16 @@ where
 		= (editor.Form.value,{tst & activated = taskdone.Form.value})
 
 
-selectWithButtons :: ![String] !Bool -> Task Int
-selectWithButtons labels horizontal = mkBasicTask "selectWithButtons" (Task (selectWithButtons` labels horizontal))	
+selectWithButtons :: ![String] -> Task Int
+selectWithButtons labels = mkBasicTask "selectWithButtons" (Task (selectWithButtons` labels))	
 where
-	selectWithButtons` [] _ tst		= (0,tst)				
-	selectWithButtons` labels horizontal tst=:{taskNr,userId,options}									// choose one subtask out of the list
+	selectWithButtons` [] tst		= (0,tst)				
+	selectWithButtons` labels tst=:{taskNr,userId,options}									// choose one subtask out of the list
 		# taskId						= iTaskId userId taskNr "ChoSt"
 		# (chosen,tst)					= accHStTSt (mkStoreForm  (Init, storageFormId options taskId -1) id) tst
 		| chosen.Form.value == -1		// no choice made yet
 			# buttonId					= iTaskId userId taskNr "ChoBut"
-			# allButtons				= if horizontal 
-												[[(HtmlButton txt False,\_ -> n)  \\ txt <- labels & n <- [0..]]]
-												[[(HtmlButton txt False,\_ -> n)] \\ txt <- labels & n <- [0..]]
+			# allButtons				= [[(HtmlButton txt False,\_ -> n)  \\ txt <- labels & n <- [0..]]]
 			# (choice,tst)				= accHStTSt (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 			# (chosen,tst)				= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value ) tst
 			| chosen.Form.value == -1
@@ -144,7 +142,7 @@ selectWithCheckboxes :: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task
 selectWithCheckboxes choices = mkBasicTask "selectWithCheckboxes" (Task (selectWithCheckboxes` choices))
 where
 	selectWithCheckboxes` [] tst		= ([],tst)
-	selectWithCheckboxes` choices tst=:{taskNr,userId,options}									// choose one subtask out of the list
+	selectWithCheckboxes` choices tst=:{taskNr,userId,options}				// choose one subtask out of the list
 		# seltaskId				= iTaskId userId taskNr "MtpChSel"
 		# donetaskId			= iTaskId userId taskNr "MtpChSt"
 		# buttonId				= iTaskId userId taskNr "MtpChBut"
@@ -153,12 +151,13 @@ where
 		# nsettings				= fun nblist
 		# (cboxes,tst)			= accHStTSt (ListFuncCheckBox (Set , cFormId options seltaskId (setCheckboxes nsettings))) tst
 		# (done,tst)			= accHStTSt (mkStoreForm      (Init, storageFormId options donetaskId False) id) tst
+		| done.Form.value
+			= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & activated = True})
 		# (button,tst)			= accHStTSt (mkEditForm 	  (Init, pageFormId options buttonId mkButton )) tst
 		| fromButton button.Form.value
 			# (_,tst)			= accHStTSt (mkStoreForm      (Init,storageFormId options donetaskId False) (\_ -> True)) tst
 			= ([i \\ True <- snd cboxes.Form.value & i <- [0..]],{tst & activated = True})
 		| otherwise
-		
 			# tst = setOutput [DivTag [ClassAttr "it-editor"] [DivTag [ClassAttr "it-editor-content"] cboxes.form, DivTag [ClassAttr "it-editor-buttons"] button.form]] tst
 			# tst = setInputs (cboxes.inputs ++ button.inputs) tst
 			= ([],{tst & activated = False})

@@ -27,7 +27,7 @@ where
 
 chooseTask_btn_test :: Task Void
 chooseTask_btn_test
-	= chooseTask_btn [Text "Please choose a task"] True taskChoices
+	= chooseTask_btn [Text "Please choose a task"] taskChoices
 
 chooseTask_pdm_test :: Task Void
 chooseTask_pdm_test

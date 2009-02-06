@@ -5,10 +5,10 @@ import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
 
 derive gForm	[], HtmlTag, HtmlAttr
-derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode
+derive gUpd		[], HtmlTag, HtmlAttr, HtmlRadiogroup, <->, <|>, DisplayMode
 
-derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
-derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
+derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
 derive gerda	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 //derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 //derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
@@ -99,6 +99,28 @@ gForm{|HtmlSelect|} (init,formid) hst
 where
 	(HtmlSelect o v)	= formid.ival
 
+gForm{|HtmlRadiogroup|} (init,formid =: {mode}) hst =: {cntr,prefix} 	
+	#inputid = prefix +++ formid.id +++ "-" +++ toString cntr
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= [TableTag [] 
+	   						[TrTag [] [
+	   								TdTag [] [InputTag [ NameAttr inputid
+	   										 , IdAttr (inputid +++ "-" +++ toString i)
+	   										 , ValueAttr (toString i)
+	   										 , TypeAttr "radio"
+	   										 :if (i == cur) [CheckedAttr] []]],
+	   								TdTag [] [LabelTag [ForAttr (inputid +++ "-" +++ toString i)] label]
+	   								]
+	   						\\ label <- options & i <- [0..]
+	   						]
+	   					  ]
+	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlRadiogroup", updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	   },setHStCntr (cntr + 1) hst)
+where
+	(HtmlRadiogroup options cur)	= formid.ival
+
+
 gForm{|HtmlTextarea|} (init,formid =:{mode}) hst =:{cntr,prefix}
 # inputid = prefix +++ formid.id +++ "-" +++ toString cntr
 = (	{ changed			= False
@@ -154,17 +176,6 @@ gForm {|HtmlLabel|} (init, formid) hst
 	   },hst)
 where
 	(HtmlLabel html)	= formid.ival
-	
-//TODO: FIX. toClean no longer exists
-gForm {|RefreshTimer|} (init,formid) hst = case formid.ival of
-		RefreshTimer timeout
-			# (cntr,hst)			= getHStCntr hst
-			# triplet = ""
-			# inputid = ""
-			# timedcode = "toClean(document.getElementById('" +++ inputid +++ "'),'" +++ triplet +++ "',true,false," +++ (IF_ClientTasks "true" "false") +++ ");"
-			# script =  [RawText ("<input type=\"hidden\" id=\""+++ inputid +++"\" /><script type=\"text/javascript\">setTimeout(\"" +++ timedcode +++ "\"," +++ toString timeout +++ ");</script>")]
-			= ({ changed = False, value = formid.ival, form = script, inputs = [] }, incrHStCntr 1 hst)
-
 
 // Updates that have to be treated specially:
 
@@ -206,11 +217,6 @@ where
 gUpd{|HtmlTime|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
 gUpd{|HtmlTime|}		(UpdCreate l)			_						= (UpdCreate l, HtmlTime 12 0 0)								// create default value
 gUpd{|HtmlTime|}		mode					cur						= (mode, cur)
-
-gUpd{|RefreshTimer|}	(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
-gUpd{|RefreshTimer|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
-gUpd{|RefreshTimer|}	(UpdCreate l)			_						= (UpdCreate l, RefreshTimer 0)									// create default value
-gUpd{|RefreshTimer|}	mode					cur						= (mode, cur)													// don't change
 
 gUpd{|HtmlLabel|}		(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
 gUpd{|HtmlLabel|}		(UpdSearch cntr upd)	cur						= (UpdSearch cntr upd, cur)										// continue search, don't change

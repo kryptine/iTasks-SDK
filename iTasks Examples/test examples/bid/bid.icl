@@ -14,8 +14,6 @@ module bid
 
 import StdEnv, iTasks, iData
 
-
-
 //Main types
 :: Purchase	=	{	name	:: !String
 				,	amount	:: !Int

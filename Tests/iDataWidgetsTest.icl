@@ -19,6 +19,7 @@ where
 :: AllWidgets = 	{ htmlButton	:: HtmlButton
 					, htmlCheckbox	:: HtmlCheckbox
 					, htmlSelect	:: HtmlSelect
+					, htmlRadiogroup:: HtmlRadiogroup
 					, htmlTextarea	:: HtmlTextarea
 					, htmlPassword	:: HtmlPassword
 					, htmlDate		:: HtmlDate

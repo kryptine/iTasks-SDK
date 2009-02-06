@@ -83,9 +83,9 @@ where
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
 
-chooseTask_btn 	:: ![HtmlTag] !Bool ![LabeledTask a] -> Task a | iData a
-chooseTask_btn prompt horizontal ltasks
-	= (prompt ?>> selectWithButtons (map fst ltasks) horizontal) =>> \chosen -> (snd (ltasks!!chosen))
+chooseTask_btn 	:: ![HtmlTag] ![LabeledTask a] -> Task a | iData a
+chooseTask_btn prompt ltasks
+	= (prompt ?>> selectWithButtons (map fst ltasks)) =>> \chosen -> (snd (ltasks!!chosen))
 
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
@@ -99,16 +99,16 @@ chooseTask_cbox order prompt code_ltasks
 // choose one or more tasks on forehand out of a set
 
 button :: !String !a -> (Task a) | iData a
-button s a = chooseTask_btn [] True [(s,return_V a)]
+button s a = chooseTask_btn [] [(s,return_V a)]
 
 buttonTask :: !String !(Task a) -> (Task a) | iData a
-buttonTask s task = chooseTask_btn [] True [(s,task)]
+buttonTask s task = chooseTask_btn [] [(s,task)]
 
 chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
-chooseTask prompt options = chooseTask_btn prompt True options
+chooseTask prompt options = chooseTask_btn prompt options
 
 chooseTaskV :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
-chooseTaskV prompt options = chooseTask_btn prompt False options
+chooseTaskV prompt options = chooseTask_btn prompt options
 
 mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 

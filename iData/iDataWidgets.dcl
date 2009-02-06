@@ -8,13 +8,12 @@ import iDataForms
 import Html
 import GenLexOrd
 
-derive gForm 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
-derive gUpd  	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
-derive gPrint 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
-derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
-derive gerda	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
-//derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
-//derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, RefreshTimer
+derive gForm 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+derive gUpd  	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+derive gPrint 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+//derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+//derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
 
 
 // Layout types
@@ -28,22 +27,21 @@ derive gerda	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox,
 	| EmptyMode											// nothing to display or hide
 
 // Buttons representing basic html buttons
-:: HtmlButton	= HtmlButton String Bool				// basic button. The String is the label of the button, the Bool parameter indicates if it was clicked.
+:: HtmlButton		= HtmlButton String Bool				// basic button. The String is the label of the button, the Bool parameter indicates if it was clicked.
 
 // Other elementary widgets
-:: HtmlCheckbox	= HtmlCheckbox [HtmlTag] Bool			// Checkbox, the html is a label which and the boolean determines if the checkbox is checked or not
-:: HtmlSelect	= HtmlSelect [(String,String)] String	// Selectbox, the list contains label, value tuples, the string is the current value
+:: HtmlCheckbox		= HtmlCheckbox [HtmlTag] Bool			// Checkbox, the html is a label which and the boolean determines if the checkbox is checked or not
+:: HtmlSelect		= HtmlSelect [(String,String)] String	// Selectbox, the list contains label, value tuples, the string is the current value
+:: HtmlRadiogroup	= HtmlRadiogroup [[HtmlTag]] Int		// Radiogroup, the list contains the labels, the int the current value
 
-:: HtmlTextarea	= HtmlTextarea Int String				// Text area
-:: HtmlPassword	= HtmlPassword String					// Password input
+:: HtmlTextarea		= HtmlTextarea Int String				// Text area
+:: HtmlPassword		= HtmlPassword String					// Password input
 
-:: HtmlDate 	= HtmlDate Int Int Int					// Day Month Year
-:: HtmlTime 	= HtmlTime Int Int Int					// Hours Minutes Seconds
+:: HtmlDate 		= HtmlDate Int Int Int					// Day Month Year
+:: HtmlTime 		= HtmlTime Int Int Int					// Hours Minutes Seconds
 
-:: HtmlLabel	= HtmlLabel [HtmlTag]					// Label used for showing html
+:: HtmlLabel		= HtmlLabel [HtmlTag]					// Label used for showing html
 
-//TODO: Change this hacked input, to a nicer way of auto refreshing forms
-:: RefreshTimer	= RefreshTimer Int						// The editor for this type refreshes it's form after n milliseconds
 
 //TODO: See what is still needed of these definitions.
 //      The types in this module are supposed to be just views,

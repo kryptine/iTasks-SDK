@@ -18,7 +18,7 @@ displayValue	:: !a -> Task b												| iData a & iCreateAndPrint b
 /**
 * Tasks for offering choices to users
 */
-selectWithButtons		:: ![String]	!Bool								-> Task Int			
-selectWithPulldown		:: ![String]	!Int								-> Task Int
+selectWithButtons		:: ![String]										-> Task Int			
+selectWithPulldown		:: ![String] !Int									-> Task Int
 //selectWithRadioGroup	:: ![[HtmlTag]]	!Int								-> Task Int
 selectWithCheckboxes	:: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task [Int]	
