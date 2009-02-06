@@ -294,7 +294,7 @@ where
 	# (mbparent,tst=:{hst})	= findNoClientParentThread taskNr tst
 	| isNothing mbparent = {tst & hst = hst}									// cannot find parent, we should abort ????
 	# parent 	= fromJust mbparent												// parent thread found which lifespan should be modified 
-	# hst		= changeLifespanIData (iTaskId userId (tl parent.thrTaskNr) "") LSClient parent.thrOptions.tasklife hst
+	# hst		= changeLifespanIData (iTaskId (tl parent.thrTaskNr) "") LSClient parent.thrOptions.tasklife hst
 	# tst 		= changeLifespanThreadTable parent.thrTaskNr parent.thrOptions.tasklife {tst & hst = hst}
 	= tst
 
@@ -345,7 +345,7 @@ where
 administrateNewThread :: !UserId !*TSt -> *TSt
 administrateNewThread ouserId tst =: {taskNr,userId,options}
 | ouserId == userId		= tst
-# newTaskId				= iTaskId userId taskNr "_newthread"
+# newTaskId				= iTaskId taskNr "_newthread"
 # (chosen,tst=:{hst})	= accHStTSt (mkStoreForm  (Init,storageFormId options newTaskId False) id) tst	// first time here ?
 | not chosen.Form.value
 	# (_,hst) 			= setPUserNewThread userId hst													// yes, new thread created
@@ -605,7 +605,7 @@ deleteSubTasksAndThreads :: !TaskNr !*TSt -> *TSt
 deleteSubTasksAndThreads tasknr tst 
 # tst=:{hst,userId,options}	= deleteThreads tasknr tst
 | options.gc == NoCollect 	= tst
-| otherwise					= {tst & hst = deleteIData (iTaskId userId tasknr "") hst}
+| otherwise					= {tst & hst = deleteIData (iTaskId tasknr "") hst}
 
 deleteAllSubTasksAndThreads :: ![TaskNr] !*TSt -> *TSt
 deleteAllSubTasksAndThreads [] tst = tst

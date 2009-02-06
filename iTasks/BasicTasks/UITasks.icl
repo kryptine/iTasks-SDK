@@ -11,10 +11,10 @@ derive gUpd []
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkBasicTask "editTask" (Task (editTask` prompt a))
 where
-	editTask` prompt a tst=:{taskNr,userId,hst}
-	# taskId			= iTaskId userId taskNr "EdFin"
-	# editId			= iTaskId userId taskNr "EdVal"
-	# buttonId			= iTaskId userId taskNr "EdBut"
+	editTask` prompt a tst=:{taskNr,hst}
+	# taskId			= iTaskId taskNr "EdFin"
+	# editId			= iTaskId taskNr "EdVal"
+	# buttonId			= iTaskId taskNr "EdBut"
 	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  		// determine if the task has been done previously
 	| taskdone.Form.value																			// test if task has completed
 		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)			// yes, read out current value, make editor passive
@@ -31,9 +31,9 @@ where
 editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
 editTaskPred  a pred = mkBasicTask "editTask" (Task (editTaskPred` a))
 where
-	editTaskPred` a tst=:{taskNr,userId,hst}
-	# taskId			= iTaskId userId taskNr "EdFin"
-	# editId			= iTaskId userId taskNr "EdVal"
+	editTaskPred` a tst=:{taskNr,hst}
+	# taskId			= iTaskId taskNr "EdFin"
+	# editId			= iTaskId taskNr "EdVal"
 	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  	// remember if the task has been done
 	| taskdone.Form.value																		// test if task has completed
 		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)		// yes, read out current value, make editor passive
@@ -72,10 +72,10 @@ displayValue a = displayHtml [toHtml a ]
 viewTask :: !String !a  -> Task a	| iData a
 viewTask prompt a = mkBasicTask "viewTask" (Task (viewTask` prompt a))
 where
-	viewTask` prompt a tst=:{taskNr,userId,hst}
-		# taskId			= iTaskId userId taskNr "ViewFin"
-		# editId			= iTaskId userId taskNr "ViewVal"
-		# buttonId			= iTaskId userId taskNr "ViewBut"
+	viewTask` prompt a tst=:{taskNr,hst}
+		# taskId			= iTaskId taskNr "ViewFin"
+		# editId			= iTaskId taskNr "ViewVal"
+		# buttonId			= iTaskId taskNr "ViewBut"
 		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  				// determine if the task has been done previously
 		| taskdone.Form.value
 			= (a,{tst & hst = hst, activated = True})															// test if task has completed
@@ -94,11 +94,11 @@ selectWithButtons :: ![String] -> Task Int
 selectWithButtons labels = mkBasicTask "selectWithButtons" (Task (selectWithButtons` labels))	
 where
 	selectWithButtons` [] tst		= (0,tst)				
-	selectWithButtons` labels tst=:{taskNr,userId,options}									// choose one subtask out of the list
-		# taskId						= iTaskId userId taskNr "ChoSt"
+	selectWithButtons` labels tst=:{taskNr,options}									// choose one subtask out of the list
+		# taskId						= iTaskId taskNr "ChoSt"
 		# (chosen,tst)					= accHStTSt (mkStoreForm  (Init, storageFormId options taskId -1) id) tst
 		| chosen.Form.value == -1		// no choice made yet
-			# buttonId					= iTaskId userId taskNr "ChoBut"
+			# buttonId					= iTaskId taskNr "ChoBut"
 			# allButtons				= [[(HtmlButton txt False,\_ -> n)  \\ txt <- labels & n <- [0..]]]
 			# (choice,tst)				= accHStTSt (TableFuncBut (Init,pageFormId options buttonId allButtons)) tst
 			# (chosen,tst)				= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) choice.Form.value ) tst
@@ -114,12 +114,12 @@ selectWithPulldown :: ![String] !Int -> Task Int
 selectWithPulldown labels initial =  mkBasicTask "selectWithPulldown" (Task (selectWithPulldown` labels initial))
 where	
 	selectWithPulldown` [] _ tst			= (0,tst)
-	selectWithPulldown` labels initial tst=:{taskNr,userId,options}
-		# taskId							= iTaskId userId taskNr "ChoStPdm"
+	selectWithPulldown` labels initial tst=:{taskNr,options}
+		# taskId							= iTaskId taskNr "ChoStPdm"
 		# (chosen,tst)						= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 		| chosen.Form.value == -1			// no choice made yet	
-			# pulldownId					= iTaskId userId taskNr "ChoPdm"
-			# buttonId						= iTaskId userId taskNr "ChoBut"
+			# pulldownId					= iTaskId taskNr "ChoPdm"
+			# buttonId						= iTaskId taskNr "ChoBut"
 			# (choice,tst)					= accHStTSt (mkEditForm (Init, pageFormId options pulldownId (mkSelect labels initial))) tst
 			# (done,tst)					= accHStTSt (mkEditForm (Init, pageFormId options buttonId mkButton )) tst
 			| fromButton done.Form.value
@@ -142,12 +142,12 @@ selectWithRadiogroup :: ![[HtmlTag]] !Int -> Task Int
 selectWithRadiogroup labels initial = mkBasicTask "selectWithRadiogroup" (Task (selectWithRadiogroup` labels initial))
 where
 	selectWithRadiogroup` [] _ tst = (0,tst)
-	selectWithRadiogroup` labels initial tst=:{taskNr,userId,options}
-		# valueId		= iTaskId userId taskNr "val"
+	selectWithRadiogroup` labels initial tst=:{taskNr,options}
+		# valueId		= iTaskId taskNr "val"
 		# (value,tst)	= accHStTSt (mkStoreForm (Init,storageFormId options valueId -1) id) tst
 		| value.Form.value == -1
-			# (radio,tst)	= accHStTSt (mkEditForm (Init,pageFormId options (iTaskId userId taskNr "radiogroup") (initRadio labels initial))) tst
-			# (button,tst)	= accHStTSt (mkEditForm (Init,pageFormId options (iTaskId userId taskNr "button") initButton)) tst
+			# (radio,tst)	= accHStTSt (mkEditForm (Init,pageFormId options (iTaskId taskNr "radiogroup") (initRadio labels initial))) tst
+			# (button,tst)	= accHStTSt (mkEditForm (Init,pageFormId options (iTaskId taskNr "button") initButton)) tst
 			| toBool button.Form.value
 				# (value,tst)	= accHStTSt (mkStoreForm (Init,storageFormId options valueId -1) (\_ -> toInt radio.Form.value)) tst
 				= (value.Form.value, {tst & activated = True})
@@ -164,10 +164,10 @@ selectWithCheckboxes :: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task
 selectWithCheckboxes choices = mkBasicTask "selectWithCheckboxes" (Task (selectWithCheckboxes` choices))
 where
 	selectWithCheckboxes` [] tst		= ([],tst)
-	selectWithCheckboxes` choices tst=:{taskNr,userId,options}				// choose one subtask out of the list
-		# seltaskId				= iTaskId userId taskNr "MtpChSel"
-		# donetaskId			= iTaskId userId taskNr "MtpChSt"
-		# buttonId				= iTaskId userId taskNr "MtpChBut"
+	selectWithCheckboxes` choices tst=:{taskNr,options}				// choose one subtask out of the list
+		# seltaskId				= iTaskId taskNr "MtpChSel"
+		# donetaskId			= iTaskId taskNr "MtpChSt"
+		# buttonId				= iTaskId taskNr "MtpChBut"
 		# (cboxes,tst)			= accHStTSt (ListFuncCheckBox (Init,cFormId options seltaskId initCheckboxes)) tst
 		# (fun,nblist)			= cboxes.Form.value
 		# nsettings				= fun nblist

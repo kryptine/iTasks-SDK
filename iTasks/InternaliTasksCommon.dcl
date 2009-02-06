@@ -26,7 +26,7 @@ instance == GarbageCollect
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
 */
 
-iTaskId 			:: !Int !TaskNr !String 	-> String
+iTaskId 			:: !TaskNr !String 	-> String
 
 // general iTask store, session store, page store, store but no form generation
 

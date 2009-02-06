@@ -12,14 +12,11 @@ import TSt
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 
-iTaskId :: !Int !TaskNr !String -> String
-iTaskId userid tasknr postfix 
-# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }			// throw away characters not allowed in a file name
-| postfix == ""
-	| userid < 0	= "iLog_"  <+++ (taskNrToString tasknr) 
-	| otherwise		= "iTask_" <+++ (taskNrToString tasknr) 
-| userid < 0		= "iLog_"  <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix
-| otherwise			= "iTask_" <+++ (taskNrToString tasknr) <+++ "-" <+++ postfix //  MJP:info removed to allow dynamic realloc of users:    <+++ "+"  <+++ userid
+iTaskId :: !TaskNr !String -> String
+iTaskId tasknr postfix 
+	# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
+	| postfix == ""		= "iTask_" +++ (taskNrToString tasknr) 
+	| otherwise			= "iTask_" +++ (taskNrToString tasknr) +++ "-" +++ postfix
 
 
 // ******************************************************************************************************

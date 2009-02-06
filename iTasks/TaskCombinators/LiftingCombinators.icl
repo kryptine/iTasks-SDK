@@ -41,8 +41,8 @@ where
 		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
 		= (a,tst)
 
-	doIData idata tst =:{taskNr,userId, hst}
-		# taskId		= iTaskId userId taskNr "iData"
+	doIData idata tst =:{taskNr,hst}
+		# taskId		= iTaskId taskNr "iData"
 		# (idata, hst)	= idatafun taskId hst
 		# tst			= setOutput idata.form {tst & hst = hst}
 		# tst			= setInputs idata.inputs tst

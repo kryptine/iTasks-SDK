@@ -350,8 +350,8 @@ resetSequence tst=:{taskNr,tree}
 				
 deleteAllSubTasks :: ![TaskNr] TSt -> TSt
 deleteAllSubTasks [] tst = tst
-deleteAllSubTasks [tx:txs] tst=:{hst,userId} 
-	# hst	= deleteIData  (iTaskId userId (tl tx) "") hst
+deleteAllSubTasks [tx:txs] tst=:{hst} 
+	# hst	= deleteIData  (iTaskId (tl tx) "") hst
 	= deleteAllSubTasks txs {tst & hst = hst}
 
 

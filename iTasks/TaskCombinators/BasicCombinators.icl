@@ -48,7 +48,7 @@ newTask :: !String !(Task a) -> (Task a) 	| iData a
 newTask taskname mytask = Task newTask`
 where
 	newTask` tst=:{taskNr,userId,options}		
-		# storeName					= iTaskId userId (incTaskNr taskNr) taskname					
+		# storeName					= iTaskId (incTaskNr taskNr) taskname					
 		# (taskval,tst) 			= accHStTSt (mkStoreForm (Init,storageFormId options storeName (False,createDefault)) id) tst	// remember if the task has been done
 		# (taskdone,taskvalue)		= taskval.Form.value																			// select values
 		| taskdone					= accTaskTSt (mkBasicTask taskname (Task (\tst -> (taskvalue,tst)))) tst						// if rewritten, we are a basic task returning a value
@@ -64,7 +64,7 @@ once :: !String !(Task a) -> (Task a) | iData a
 once label task = mkBasicTask label (Task once`)
 where
 	once` tst=:{activated,taskNr,hst,userId,options}
-		# taskId			= iTaskId userId taskNr (label +++ "_")
+		# taskId			= iTaskId taskNr (label +++ "_")
 		# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
 		# (done,value)		= store.Form.value
 		| done 				= (value,{tst & hst = hst})																		// if task has completed, don't do it again
