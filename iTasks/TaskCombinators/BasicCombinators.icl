@@ -5,7 +5,7 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 import iDataTrivial, iDataFormlib
 import LiftingCombinators, ClientCombinators
-import InternaliTasksThreadHandling, InternaliTasksCommon
+import Util, InternaliTasksThreadHandling
 import GenBimap
 
 derive gForm 	[], Time

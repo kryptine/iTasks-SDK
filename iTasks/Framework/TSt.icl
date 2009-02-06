@@ -1,8 +1,7 @@
 implementation module TSt
 
-import InternaliTasksCommon
 import StdEnv, StdMaybe
-import HSt
+import HSt, Util
 import ProcessDB, TaskTree
 
 //TODO: Create a better dynamic_string module with option for evaluating

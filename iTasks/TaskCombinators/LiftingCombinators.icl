@@ -1,7 +1,7 @@
 implementation module LiftingCombinators
 
 import UITasks, BasicCombinators, CommonCombinators
-import InternaliTasksCommon
+import Util
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
 (*=>) ftst b = Task doit

@@ -1,8 +1,7 @@
 implementation module ThreadTableHandler
 
 import StdEnv
-import Http, Session
-import InternaliTasksCommon
+import Http, TSt
 
 import iDataForms, iDataState
 

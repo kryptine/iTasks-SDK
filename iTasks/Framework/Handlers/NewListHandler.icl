@@ -2,9 +2,7 @@ implementation module NewListHandler
 
 import StdEnv
 import Http, Session
-import JSON
-import InternaliTasksCommon
-
+import JSON, Util
 
 :: NewWorkItem	= 	{ name		:: String	// The name of the workflow that is started
 					, icon		:: String 	// An icon name. The actual icon image is defined in the css. 

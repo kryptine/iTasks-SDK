@@ -1,9 +1,5 @@
-implementation module InternaliTasksCommon
+implementation module Util
 
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
 import StdEnv
 import iDataForms, iDataTrivial
 import Time

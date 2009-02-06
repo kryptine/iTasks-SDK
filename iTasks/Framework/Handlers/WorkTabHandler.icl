@@ -2,11 +2,10 @@ implementation module WorkTabHandler
 
 import StdEnv
 import Http, TSt
-import InternaliTasksCommon
 import TaskTree
 import iDataForms, iDataState, iDataFormlib
 import JSON
-import Debug
+import Debug, Util
 from ProcessDB import :: ProcessStatus(..)
 
 derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan

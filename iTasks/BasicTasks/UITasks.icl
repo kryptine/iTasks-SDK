@@ -3,7 +3,7 @@ implementation module UITasks
 import StdList, StdTuple, StdFunc, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import TuningCombinators
-import InternaliTasksCommon
+import Util
 
 derive gForm []
 derive gUpd []

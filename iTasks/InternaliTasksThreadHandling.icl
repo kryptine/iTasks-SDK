@@ -9,9 +9,9 @@ implementation module InternaliTasksThreadHandling
 import StdEnv, GenBimap
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
-import InternaliTasksCommon, BasicCombinators, LiftingCombinators
+import BasicCombinators, LiftingCombinators
 
-import Engine
+import Engine, Util
 
 derive gForm 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []
 derive gUpd 	Lifespan, GarbageCollect, StorageFormat, Mode, Options, GlobalInfo, TaskThread, ThreadKind, []

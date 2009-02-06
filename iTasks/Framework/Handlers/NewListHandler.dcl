@@ -1,7 +1,7 @@
 definition module NewListHandler //iTasks.Handlers.NewListHandler
 
 import Http, Session
-import InternaliTasksCommon
+import TSt
 
 /**
 * Handles the ajax requests from the 'start new work' panel.
