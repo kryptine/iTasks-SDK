@@ -115,7 +115,7 @@ selectWithPulldown labels initial =  mkBasicTask "selectWithPulldown" (Task (sel
 where	
 	selectWithPulldown` [] _ tst			= (0,tst)
 	selectWithPulldown` labels initial tst=:{taskNr,userId,options}
-		# taskId							= iTaskId userId taskNr ("ChoStPdm")
+		# taskId							= iTaskId userId taskNr "ChoStPdm"
 		# (chosen,tst)						= accHStTSt (mkStoreForm  (Init,storageFormId options taskId -1) id) tst
 		| chosen.Form.value == -1			// no choice made yet	
 			# pulldownId					= iTaskId userId taskNr "ChoPdm"
@@ -137,6 +137,28 @@ where
 	
 	fromButton (HtmlButton _ val) = val
 	fromSelect (HtmlSelect _ val) = toInt val
+
+selectWithRadiogroup :: ![[HtmlTag]] !Int -> Task Int
+selectWithRadiogroup labels initial = mkBasicTask "selectWithRadiogroup" (Task (selectWithRadiogroup` labels initial))
+where
+	selectWithRadiogroup` [] _ tst = (0,tst)
+	selectWithRadiogroup` labels initial tst=:{taskNr,userId,options}
+		# valueId		= iTaskId userId taskNr "val"
+		# (value,tst)	= accHStTSt (mkStoreForm (Init,storageFormId options valueId -1) id) tst
+		| value.Form.value == -1
+			# (radio,tst)	= accHStTSt (mkEditForm (Init,pageFormId options (iTaskId userId taskNr "radiogroup") (initRadio labels initial))) tst
+			# (button,tst)	= accHStTSt (mkEditForm (Init,pageFormId options (iTaskId userId taskNr "button") initButton)) tst
+			| toBool button.Form.value
+				# (value,tst)	= accHStTSt (mkStoreForm (Init,storageFormId options valueId -1) (\_ -> toInt radio.Form.value)) tst
+				= (value.Form.value, {tst & activated = True})
+			| otherwise
+				# tst = setOutput [DivTag [ClassAttr "it-editor"] [DivTag [ClassAttr "it-editor-content"] radio.form, DivTag [ClassAttr "it-editor-buttons"] button.form]] tst
+				# tst = setInputs (radio.inputs ++ button.inputs) tst
+				= (toInt radio.Form.value, {tst & activated = False})
+		= (value.Form.value,{tst & activated = True})
+
+	initButton				= HtmlButton "Ok" False
+	initRadio labels cur	= HtmlRadiogroup labels cur
 
 selectWithCheckboxes :: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task [Int]
 selectWithCheckboxes choices = mkBasicTask "selectWithCheckboxes" (Task (selectWithCheckboxes` choices))

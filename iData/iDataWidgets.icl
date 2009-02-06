@@ -5,14 +5,13 @@ import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
 
 derive gForm	[], HtmlTag, HtmlAttr
-derive gUpd		[], HtmlTag, HtmlAttr, HtmlRadiogroup, <->, <|>, DisplayMode
+derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode
 
 derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
 derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-derive gerda	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel, RefreshTimer
 //derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
 //derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
-derive gerda (,)
+
 
 // <-> works exactly the same as (,) and places its arguments next to each other, for compatibility with GEC's
 gForm{|(<->)|} gHa gHb (init,formid) hst
@@ -100,12 +99,13 @@ where
 	(HtmlSelect o v)	= formid.ival
 
 gForm{|HtmlRadiogroup|} (init,formid =: {mode}) hst =: {cntr,prefix} 	
-	#inputid = prefix +++ formid.id +++ "-" +++ toString cntr
+	#inputname = formid.id +++ "-" +++ toString cntr
+	#inputid = prefix +++ inputname
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= [TableTag [] 
 	   						[TrTag [] [
-	   								TdTag [] [InputTag [ NameAttr inputid
+	   								TdTag [] [InputTag [ NameAttr inputname
 	   										 , IdAttr (inputid +++ "-" +++ toString i)
 	   										 , ValueAttr (toString i)
 	   										 , TypeAttr "radio"
@@ -194,6 +194,11 @@ gUpd{|HtmlSelect|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, c
 gUpd{|HtmlSelect|}		(UpdCreate l)			_						= (UpdCreate l, HtmlSelect [] "error")							// create default value
 gUpd{|HtmlSelect|}		mode					cur						= (mode, cur)													// don't change
 
+gUpd{|HtmlRadiogroup|}	(UpdSearch 0 upd)		(HtmlRadiogroup options _)= (UpdDone, HtmlRadiogroup options (toInt upd))				// TODO: Check if upd is in options
+gUpd{|HtmlRadiogroup|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
+gUpd{|HtmlRadiogroup|}	(UpdCreate l)			_						= (UpdCreate l, HtmlRadiogroup [] 0)							// create default value
+gUpd{|HtmlRadiogroup|}	mode					cur						= (mode, cur)													// don't change
+
 gUpd{|HtmlTextarea|}	(UpdSearch 0 upd) 		(HtmlTextarea r _)		= (UpdDone, HtmlTextarea r upd)									// update value
 gUpd{|HtmlTextarea|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)								// continue search, don't change
 gUpd{|HtmlTextarea|}	(UpdCreate l)			_						= (UpdCreate l, HtmlTextarea 5 "")								// create default value
@@ -275,3 +280,8 @@ instance toInt HtmlSelect where
 			| val == v	= 0
 			| otherwise	= index val lvs
 
+instance toInt HtmlRadiogroup where
+	toInt (HtmlRadiogroup _ val) = val
+	
+instance toBool HtmlButton where
+	toBool (HtmlButton _ val) = val

@@ -41,10 +41,10 @@ where
 		  		, roles		= []
 		  		, mainTask	= selectWithPulldown_test
 		  		}
-		  	,	{ name		= "selectWithRadioGroup_test"
-		  		, label		= "selectWithRadioGroup"
+		  	,	{ name		= "selectWithRadiogroup_test"
+		  		, label		= "selectWithRadiogroup"
 		  		, roles		= []
-		  		, mainTask	= selectWithRadioGroup_test
+		  		, mainTask	= selectWithRadiogroup_test
 		  		}
 		  	,	{ name		= "selectWithCheckboxes_test"
 		  		, label		= "selectWithCheckboxes"
@@ -82,8 +82,9 @@ selectWithPulldown_test :: Task Void
 selectWithPulldown_test
 	= selectWithPulldown ["A","B","C"] 1 =>> \choice -> displayValue choice
 	
-selectWithRadioGroup_test :: Task Void
-selectWithRadioGroup_test = return_V Void
+selectWithRadiogroup_test :: Task Void
+selectWithRadiogroup_test
+	= selectWithRadiogroup [[Text "A"],[Text "B"],[Text "C"]] 1 =>> \choice -> displayValue choice
 
 selectWithCheckboxes_test :: Task Void
 selectWithCheckboxes_test

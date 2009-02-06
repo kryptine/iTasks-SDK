@@ -55,4 +55,7 @@ instance <			HtmlDate, HtmlTime
 instance toString	HtmlDate, HtmlTime
 instance +			HtmlTime
 instance -			HtmlTime
+
 instance toInt		HtmlSelect
+instance toInt		HtmlRadiogroup
+instance toBool		HtmlButton

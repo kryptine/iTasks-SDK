@@ -213,6 +213,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 				case "Int":
 				case "Real":
 				case "String":
+				case "HtmlPassword":
 					var value = input.getValue();
 					var parent = input.parent();
 					var next = input.next();
@@ -225,6 +226,14 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 							name: inputid,
 							inputName: inputname,
 							value: value
+						});
+					} else if(data.inputs[i].type == "HtmlPassword") {
+						input = new Ext.form.TextField({
+							id: inputid,
+							name: inputid,
+							inputName: inputname,
+							value: value,
+							inputType: "password"
 						});
 					} else {
 						input = new Ext.form.NumberField({
@@ -405,6 +414,33 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					input.on("focus", function (inp) {
 						this.lastFocus = inp.inputName;
 					},this);
+					break;
+				case "HtmlRadiogroup":
+					//Attach event handlers
+					var k = 0;
+					while(true) {
+						var radio = Ext.get(inputid + '-' + k);
+						if(radio == undefined) {
+							break;
+						}
+						
+						if(data.inputs[i].updateon == "OnChange") {
+							radio.on("click",function(e) {
+								this.addUpdate(e.target.name,e.target.value);
+								new Ext.util.DelayedTask().delay(150,this.refresh,this);
+							},this);
+						}
+						if(data.inputs[i].updateon == "OnSubmit") {
+							radio.on("click",function(e) {
+								this.addUpdate(e.target.name,e.target.value);
+							},this);
+						}
+						radio.on("focus", function (e) {
+							this.lastFocus = e.target.name;
+						}
+						
+						k++;
+					}
 					break;
 				default:
 					//Constructors and selects
