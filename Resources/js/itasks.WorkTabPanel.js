@@ -437,7 +437,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						}
 						radio.on("focus", function (e) {
 							this.lastFocus = e.target.name;
-						}
+						},this);
 						
 						k++;
 					}
