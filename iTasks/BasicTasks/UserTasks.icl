@@ -1,15 +1,9 @@
 implementation module UserTasks
 
-//accNWorldHSt (accUserDBNWorld (authenticateUser username password)) hst
-
 import TSt
 import UserDB
 import LiftingCombinators
 import StdEnv, GenBimap
-
-
-derive gForm []
-derive gUpd []
 
 getDisplayNamesTask :: ![Int] -> Task [String]
 getDisplayNamesTask uids

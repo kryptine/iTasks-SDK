@@ -7,7 +7,6 @@ import StdEnum, StdFunc, StdList, StdString, StdTuple
 import iDataWidgets, iDataTrivial
 import StdLib, GenBimap
 
-derive gForm []; derive gUpd []
 
 EmptyBody :== SpanTag [] []
 defpixel :== 100

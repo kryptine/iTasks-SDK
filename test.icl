@@ -3,8 +3,8 @@ module test
 import StdEnv, iTasks, iData
 
 // Test program to experiment with the new ExtJS based Web-GUI
-derive gForm TestRec, []
-derive gUpd TestRec, []
+derive gForm TestRec
+derive gUpd TestRec
 
 derive gPrint TestRec, TestBox
 derive gParse TestRec, TestBox

@@ -17,8 +17,8 @@ SESSION_TIMEOUT :== 1800 // Half-hour sessions
 // = Check the validity of the timestamp
 // = Implement destroy session
 
-derive gForm Session, []
-derive gUpd Session, []
+derive gForm Session
+derive gUpd Session
 derive gPrint Session
 derive gParse Session
 

@@ -5,9 +5,6 @@ import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import TuningCombinators
 import Util
 
-derive gForm []
-derive gUpd []
-
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkBasicTask "editTask" (Task (editTask` prompt a))
 where

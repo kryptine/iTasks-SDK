@@ -71,8 +71,8 @@ derive gUpd  Int, Real, Bool, String, UNIT, PAIR, EITHER, OBJECT, CONS, FIELD
 /**
 * Instances of the generics for very common types
 */
-derive gForm 	(,), (,,), (,,,), Maybe, Void
-derive gUpd  	(,), (,,), (,,,), Maybe, Void
+derive gForm 	(,), (,,), (,,,), Maybe, Void, []
+derive gUpd  	(,), (,,), (,,,), Maybe, Void, []
 
 derive bimap Form, FormId
 

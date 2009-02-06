@@ -8,9 +8,6 @@ import iDataTrivial, iDataFormlib
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
 import Util
 
-derive gForm 	[]
-derive gUpd  	[]
-
 derive read		Maybe
 derive write	Maybe
 

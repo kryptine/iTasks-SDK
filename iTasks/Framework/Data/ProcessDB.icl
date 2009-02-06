@@ -10,8 +10,8 @@ import HSt, TSt, iDataForms, iDataFormlib
 
 :: *ProcessDB = ProcessDB [Process]
 
-derive gForm	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus, []
-derive gUpd		Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus, []
+derive gForm	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
+derive gUpd		Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
 derive gPrint	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
 derive gParse	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
 

@@ -8,8 +8,8 @@ import LiftingCombinators, ClientCombinators
 import Util, InternaliTasksThreadHandling
 import GenBimap
 
-derive gForm 	[], Time
-derive gUpd 	[], Time
+derive gForm 	Time
+derive gUpd 	Time
 derive gPrint	Time
 derive gParse	Time
 

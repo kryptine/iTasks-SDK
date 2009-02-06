@@ -4,8 +4,8 @@ import StdFunc, StdList, StdString, StdArray
 import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
 
-derive gForm	[], HtmlTag, HtmlAttr
-derive gUpd		[], HtmlTag, HtmlAttr, <->, <|>, DisplayMode
+derive gForm	HtmlTag, HtmlAttr
+derive gUpd		HtmlTag, HtmlAttr, <->, <|>, DisplayMode
 
 derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
 derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel

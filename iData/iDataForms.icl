@@ -16,6 +16,9 @@ gPrint{|(->)|} gArg gRes _ _	= abort "functions can only be used with dynamic st
 			| UpdCreate [ConsPos]			// create new values if necessary
 			| UpdDone						// and just copy the remaining stuff
 
+//TODO: make nicely layed out version of list
+derive gForm []
+derive gUpd []
 
 // The function mkViewForm is *the* magic main function 
 // All idata end up in this function
