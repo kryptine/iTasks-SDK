@@ -2,21 +2,23 @@ module shop
 
 import StdEnv, iTasks
 
-:: Product		=	{ id	:: !ProductId
+:: DBRef a		= DBRef Int
+
+:: Product		=	{ id_	:: !ProductId
 					, name	:: !String
 					, price	:: !Int
 					}
-:: ProductId	:== Int
+:: ProductId 	:== DBRef Product
 
 :: Cart			:== [(Product, Int)]
 
-:: Order		=	{ id				:: !OrderId
+:: Order		=	{ id_				:: !OrderId
 					, name				:: !String
 					, products			:: !Cart
 					, billingAddress	:: !Address
 					, shippingAddress	:: !Address
 					}
-:: OrderId		:== Int
+:: OrderId		:== DBRef Order
 
 :: Address		=	{ street		:: !String
 					, number		:: !String
@@ -26,10 +28,10 @@ import StdEnv, iTasks
 
 :: Action		=	AAdd | AEdit | ADelete
 
-derive gForm	Product, Order, Address, Action
-derive gUpd		Product, Order, Address, Action
-derive gPrint	Product, Order, Address, Action
-derive gParse	Product, Order, Address, Action
+derive gForm	DBRef, Product, Order, Address, Action
+derive gUpd		DBRef, Product, Order, Address, Action
+derive gPrint	DBRef, Product, Order, Address, Action
+derive gParse	DBRef, Product, Order, Address, Action
 
 Start :: *World -> *World
 Start world = startEngine flows world
@@ -49,12 +51,12 @@ where
 //Backend
 manageCatalog :: Task Void
 manageCatalog =
-	loadCatalog										=>> \catalog ->	
+	dbReadAll										=>> \catalog ->
+	checkEmpty catalog								=>> \catalog ->
 	( browseCatalog catalog
 	  -||-
-	  buttonTask "Add product" (return_V (AAdd,0))
+	  buttonTask "Add product" (return_V (AAdd,DBRef 0))
 	)												=>> \(action, pid) ->
-	
 	case action of
 		AAdd	= addProduct
 		AEdit	= editProduct pid
@@ -66,12 +68,17 @@ browseCatalog products
 where
 	browseItem :: Product -> Task (Action, ProductId)
 	browseItem product
-		= chooseTask_btn (display product) [("Edit",return_V (AEdit, product.Product.id)),("Delete",return_V (ADelete, product.Product.id))]
+		= chooseTask_btn (display product) [("Edit",return_V (AEdit, product.Product.id_)),("Delete",return_V (ADelete, product.Product.id_))]
 	where
 		display product = [H1Tag [][Text product.Product.name],BrTag [],BTag [] [Text "Price: "],Text (toString product.Product.price)]
 
+idProduct:: Product -> Product
+idProduct x = x
+
 addProduct :: Task Void
-addProduct = return_V Void
+addProduct
+	= editTask "Add" createDefault =>> \product ->
+	  dbCreate (idProduct product)
 
 editProduct :: ProductId -> Task Void
 editProduct pid = return_V Void
@@ -79,19 +86,56 @@ editProduct pid = return_V Void
 deleteProduct :: ProductId -> Task Void
 deleteProduct pid = return_V Void
 
-//Frontend
-		
+//Frontend		
 browseShop :: Task Void
 browseShop = return_V Void
 
-//Product database
-productsDB :: (DBid [Product])
-productsDB = mkDBid "products" LSTxtFile	 
+//Utility function which creates a single default item when a database is empty
+checkEmpty :: [a] -> Task [a] | iData a
+checkEmpty [] = return_V [createDefault]
+checkEmpty l = return_V l
 
-loadCatalog :: Task [Product]
-loadCatalog = return_V [{Product| id = 1, name = "Clean T-Shirt", price = 10},{Product| id = 2, name = "Clean Mug", price = 5}]
-//loadCatalog = readDB productsDB
+//Polymorhpic database operations
+class DB a
+where
+	databaseId		:: (DBid [a])
+	getItemId		:: a -> DBRef a
+	setItemId		:: (DBRef a) a -> a
+	
+//CRUD
+dbCreate :: a -> Task Void | iData a & DB a 
+dbCreate item
+	= readDB databaseId														=>> \items ->
+	  writeDB databaseId (items ++ [setItemId (DBRef (length items)) item])	#>>
+	  return_V Void
+	
+dbRead :: (DBRef a) -> Task a | iData a & DB a
+dbRead ref
+	= readDB databaseId 		=>> \items -> 
+	  return_V (hd [item \\ item <- items | getItemId item == ref])
+	
+dbReadAll :: Task [a] | iData a & DB a
+dbReadAll = readDB databaseId
 
-//Order database
-orderDB :: (DBid [Order])
-orderDB = mkDBid "orders" LSTxtFile
+dbUpdate :: (DBRef a) a -> Task Void | DB a
+dbUpdate id item = return_V Void
+
+dbDelete :: (DBRef a) -> Task Void | iData a & DB a 
+dbDelete ref
+	= readDB databaseId												=>> \items ->
+	  writeDB databaseId [item \\ item <- items | getItemId item <> ref]	#>>
+	  return_V Void
+
+instance == (DBRef a)
+where
+	(==) (DBRef x) (DBRef y) = (x == y)
+
+instance DB Product where
+	databaseId			= mkDBid "products" LSTxtFile
+	getItemId item		= item.Product.id_
+	setItemId id item	= {Product|item & id_ = id}
+
+instance DB Order where
+	databaseId			= mkDBid "orders" LSTxtFile
+	getItemId item		= item.Order.id_
+	setItemId id item	= {Order|item & id_ = id}
