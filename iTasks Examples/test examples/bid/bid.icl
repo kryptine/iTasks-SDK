@@ -22,8 +22,8 @@ import StdEnv, iTasks, iData
 				}
 				
 //Generic derives
-derive gForm	Purchase, []
-derive gUpd		Purchase, []
+derive gForm	Purchase
+derive gUpd		Purchase
 derive gPrint	Purchase
 derive gParse	Purchase
 
