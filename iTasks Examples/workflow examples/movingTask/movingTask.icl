@@ -7,14 +7,10 @@ from ProcessDB import :: ProcessStatus, Suspended, Active, Deleted, Finished
 
 // Just a scratch file to test the different combinators in the iTasks library
 
-derive gUpd []
-derive gForm []
-
 derive gForm 	QForm, Person, Gender
 derive gUpd 	QForm, Person, Gender
 derive gParse 	QForm, Person, Gender
 derive gPrint 	QForm, Person, Gender
-derive gerda 	QForm, Person, Gender
 
 :: QForm = 	{ forCompany 		:: String
 			, startDate 		:: HtmlDate
