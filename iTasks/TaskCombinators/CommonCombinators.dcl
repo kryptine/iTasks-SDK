@@ -78,6 +78,7 @@ mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),La
 (-||-)			:: do both iTasks in any order, combined task completed as soon as any subtask is done
 (-&&-)			:: do both iTasks in any order (interleaved), task completed when both done
 orTasks			:: do all  iTasks in any order (interleaved), task completed as soon as any subtask is done
+orTasksV		:: same as orTask, but display task vertical
 orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
 andTask2		:: do both iTasks in any order (interleaved), task completed when both done
@@ -87,6 +88,7 @@ andTasksCond 	:: do all  iTasks in any order (interleaved), task completed when 
 (-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iData a
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iData a & iData b
 orTasks 		:: ![LabeledTask a] 						-> Task a 		| iData a
+orTasksV		:: ![LabeledTask a] 						-> Task a 		| iData a
 orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 
 																			| iData a & iData b	
 andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a

@@ -47,7 +47,9 @@ where
 newTask :: !String !(Task a) -> (Task a) 	| iData a 
 newTask taskname mytask = Task newTask`
 where
-	newTask` tst=:{taskNr,userId,options}		
+	newTask` tst=:{taskNr,userId,options,activated}		
+		| not activated
+			= (createDefault, tst)
 		# storeName					= iTaskId (incTaskNr taskNr) taskname					
 		# (taskval,tst) 			= accHStTSt (mkStoreForm (Init,storageFormId options storeName (False,createDefault)) id) tst	// remember if the task has been done
 		# (taskdone,taskvalue)		= taskval.Form.value																			// select values

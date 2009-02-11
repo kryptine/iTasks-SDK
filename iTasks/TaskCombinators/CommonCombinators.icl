@@ -152,6 +152,11 @@ orTasks []				= Task (return createDefault)
 orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTHorizontal (\list -> length list >= 1) taskCollection)
 							=>> \list -> return_V (hd list)
 
+orTasksV :: ![LabeledTask a] -> (Task a) | iData a
+orTasksV []				= Task (return createDefault)
+orTasksV taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTVertical (\list -> length list >= 1) taskCollection)
+							=>> \list -> return_V (hd list)
+
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
 =	newTask "orTask2" 	( allTasksCond "orTask" TTHorizontal (\list -> length list > 0) 
