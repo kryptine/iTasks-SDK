@@ -15,7 +15,7 @@ derive gForm 	QForm, Review, Person, Gender
 derive gUpd 	QForm, Review, Person, Gender
 derive gParse 	QForm, Review, Person, Gender
 derive gPrint 	QForm, Review, Person, Gender
-derive gerda 	QForm, Review, Person, Gender
+//derive gerda 	QForm, Review, Person, Gender
 //derive read 	QForm, Review, Person, Gender
 //derive write 	QForm, Review, Person, Gender
 

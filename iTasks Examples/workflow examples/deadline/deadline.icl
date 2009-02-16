@@ -2,8 +2,6 @@ module deadline
 
 import StdEnv, iTasks, iDataTrivial
 
-derive gForm []
-derive gUpd  []
 
 // (c) MJP 2007
 

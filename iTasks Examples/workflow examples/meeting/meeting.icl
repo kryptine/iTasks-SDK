@@ -90,7 +90,7 @@ where
                | VerList [a]
 
 gForm{|FixedList|} gFormA (init, formId) hst # (form, hst) = gFormList xs hst
-                                             = ({form & value = constr form.value}, hst)
+                                             = ({Form | form & value = constr form.Form.value}, hst)
   where (f, constr, xs) = case formId.ival of
                               HorList xs -> ((<=>) , HorList, xs)
                               VerList xs -> ((<||>), VerList, xs)
@@ -103,7 +103,7 @@ gForm{|FixedList|} gFormA (init, formId) hst # (form, hst) = gFormList xs hst
                                , hst)
         gFormList [x]    hst # (formx, hst) = gFormA (init, reuseFormId formId x) hst                 
                              = ( { changed = formx.changed
-                                 , value   = [formx.value]
+                                 , value   = [formx.Form.value]
  								 , inputs  = []                                 
                                  , form    = formx.form							
                                  }
@@ -111,13 +111,12 @@ gForm{|FixedList|} gFormA (init, formId) hst # (form, hst) = gFormList xs hst
         gFormList [x:xs] hst # (formx, hst)  = gFormA (init, reuseFormId formId x) hst
                              # (formxs, hst) = gFormList xs hst  
                              = ( { changed = formx.changed || formxs.changed
-                                 , value   = [formx.value : formxs.value]
+                                 , value   = [formx.Form.value : formxs.Form.value]
                                  , form    = [f [f formx.form [BrTag [], HrTag [], BrTag []]] formxs.form]
  								 , inputs  = []                                 
                                  }
                                , hst)  
 
-derive gUpd []
 gUpd{|FixedList|} gUpdA (UpdCreate x) _   
 # (mode,nlist)	= gUpd{|* -> *|} gUpdA	(UpdCreate x) undef 
 = (mode, VerList nlist)
