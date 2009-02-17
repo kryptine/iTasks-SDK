@@ -8,10 +8,15 @@ import JSON
 import Debug, Util
 from ProcessDB import :: ProcessStatus(..)
 
-derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan
+derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan, TaskPriority
 
 :: TabContent 	= { status			:: TaskStatus		//Is the requested work active, finished, or deleted 
 				  , error			:: Maybe String		//Optional error if something went wrong on the server
+				  , taskid			:: String			//Task id
+				  , subject			:: String			//Task subject
+				  , timestamp		:: Int				//Task timestamp
+				  , priority		:: TaskPriority		//Task priority
+				  , delegatorName	:: String			//Delegator name
 				  , html			:: String			//The HTML content of the tab
 				  , inputs			:: [InputId]		//The interactive inputs in the tab
 				  , prefix			:: String			//The prefix string which is prepended to all html id's of the inputs in the tab
@@ -26,7 +31,6 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 				| TaskActive
 				| TaskSuspended
 				| TaskDeleted
-
 /**
 * Handles the ajax requests for a work tab panel.
 */
@@ -52,6 +56,11 @@ handleWorkTabRequest request tst
 				{TabContent
 				|	status			= taskStatus 
 				,	error			= mbError
+				,	taskid			= ""	//TODO
+				,	subject			= ""	//TODO
+				,	timestamp		= 0		//TODO
+				,	priority		= NormalPriority	//TODO
+				,	delegatorName	= ""	//TODO
 				,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
 				,	inputs			= inputs
 				,	prefix			= prefix
@@ -67,6 +76,11 @@ handleWorkTabRequest request tst
 				{TabContent
 				| 	status			= TaskDeleted
 				,	error			= Nothing
+				,	taskid			= ""
+				,	subject			= ""
+				,	timestamp		= 0
+				,	priority		= NormalPriority
+				,	delegatorName	= ""
 				,	html			= ""
 				,	inputs			= []
 				,	prefix			= prefix
@@ -78,7 +92,7 @@ handleWorkTabRequest request tst
 				}
 			= ({http_emptyResponse & rsp_data = toJSON content},tst)
 where
-	taskId 				= http_getValue "taskid" request.arg_get "error"
+	taskId 				= http_getValue "taskid" request.arg_post "error"
 	processNr			= taskNrToProcessNr (taskNrFromString taskId)
 	trace				= http_getValue "trace" request.arg_post "" == "1"
 	prefix				= http_getValue "prefix" request.arg_post ""

@@ -6,6 +6,9 @@ Ext.ns('itasks');
 
 itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 
+	sessionId: undefined,
+	application: undefined,
+	
 	initComponent: function() {
 		Ext.apply(this,{
 			activeItem: 0,
@@ -14,9 +17,6 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		
 		itasks.WorkTabsPanel.superclass.initComponent.apply(this, arguments);
 	},
-	/**
-	* Opens a new WorkTabPanel to work on a task
-	*/	
 	openWorkTab: function (taskid, taskinfo) {
 
 		//Id is prefixed with the string "worktab-"
@@ -29,7 +29,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		if(tab == undefined) {
 			//Create new tab
 			isnew = true;
-			tab = new itasks.WorkTabPanel({id: id,	taskinfo: taskinfo});
+			tab = new itasks.WorkTabPanel({id: id,	taskinfo: taskinfo, sessionId: this.sessionId, application: this.application});
 			//Add new tab
 			this.add(tab);
 			this.activate(tab);
@@ -40,44 +40,20 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		//Return a reference to the new tab
 		return [tab,isnew];
 	},
-	
-	/**
-	*	Opens the TaskForestTabPanel 
-	*/
-	openTaskForestTab: function (appPanel) {
+	openTaskForestTab: function () {
 		var tab = this.getComponent("taskforesttab");
 		if(tab == undefined) {
-			tab = new itasks.TaskForestTabPanel({id: "taskforesttab"});
-			tab.setApplicationPanel(appPanel);
-			this.add(tab);
-			
-		}
-		this.activate(tab);
-		tab.refresh();
-		return tab;
-	},
-	/**
-	* Opens the ThreadTableTabPanel
-	*/
-	openThreadTableTab: function (appPanel) {
-		var tab = this.getComponent("threadtabletab");
-		if(tab == undefined) {
-			tab = new itasks.ThreadTableTabPanel({id: "threadtabletab"});
-			tab.setApplicationPanel(appPanel);
+			tab = new itasks.TaskForestTabPanel({id: "taskforesttab", sessionId: this.sessionId, application: this.application});
 			this.add(tab);
 		}
 		this.activate(tab);
 		tab.refresh();
 		return tab;
 	},
-	/**
-	* Opens the ProcessTableTabPanel
-	*/
-	openProcessTableTab: function (appPanel) {
+	openProcessTableTab: function () {
 		var tab = this.getComponent("processtabletab");
 		if(tab == undefined) {
-			tab = new itasks.ProcessTableTabPanel({id: "processtabletab"});
-			tab.setApplicationPanel(appPanel);
+			tab = new itasks.ProcessTableTabPanel({id: "processtabletab", sessionId: this.sessionId, application: this.application});
 			this.add(tab);
 		}
 		this.activate(tab);

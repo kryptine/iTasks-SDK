@@ -5,12 +5,13 @@ Ext.ns('itasks');
 
 itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 
+	sessionId: undefined,
 	application: undefined,
 	
-	sessionId: undefined,
 	displayName: undefined,
 
 	initComponent: function() {
+
 		Ext.apply(this, {
 			layout: 'border',
 			hidden: true,
@@ -21,7 +22,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					xtype: 'panel',
 					region: 'north',
 					height: 40,
-					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + ' | <a id="logout" href="#">Log out &raquo;</a></div>'
+					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + ' | <a id="logout" href="javascript:void();">Log out &raquo;</a></div>'
 				},{
 					id: 'leftpanel',
 					xtype: 'panel',
@@ -35,9 +36,8 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					minWidth: 200,
 					maxWidth: 400,
 					items: [
-						{xtype: 'itasks.nwpanel', id: 'newpanel' },
-						//{xtype: 'itasks.cwpanel' },
-						{xtype: 'itasks.debug', id: 'debugpanel' }
+						{id: 'newpanel', xtype: 'itasks.nwpanel', sessionId: this.sessionId, application: this.application },
+						{id: 'debugpanel', xtype: 'itasks.debug', sessionId: this.sessionId, application: this.application }
 					]
 				},{
 					id: 'centerpanel',
@@ -51,12 +51,16 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 						xtype: 'itasks.worklist',
 						region: 'north',
 						split: true,
-						height: 150
+						height: 150,
+						sessionId: this.sessionId,
+						application: this.application
 					},{
 						id: 'worktabs',
 						xtype: 'itasks.worktabs',
 						border: false,
-						region: 'center'
+						region: 'center',
+						sessionId: this.sessionId,
+						application: this.application
 					}]
 				}]
 		});
@@ -73,71 +77,55 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		var debugpanel	= this.getComponent('leftpanel').getComponent('debugpanel');
 		var newpanel 	= this.getComponent('leftpanel').getComponent('newpanel');
 	
-		//Set worklist applicationPanel reference and refresh
-		worklist.setApplicationPanel(apppanel);
-		worklist.refresh();
-			
-		newpanel.setApplicationPanel(apppanel);
+		//Refresh initial overviews
 		newpanel.refresh();
+		worklist.refresh();
 		
 		//Connect event handlers	
-		worklist.on('cellclick',function (grid,row,col,event) {
-			var newtab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
+		worklist.on("cellclick",function (grid,row,col,event) {
+		
+			var tab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
 
-			if(newtab[1]) {
-				newtab[0].setDebugPanel(debugpanel);
-				newtab[0].setApplicationPanel(apppanel);
-				newtab[0].on('taskfinished',function(taskid) {
+			if(tab[1]) { //The tab is new
+				tab[0].on("taskfinished",function(taskid) {
 					worklist.refresh();
 				},this);
-				newtab[0].on('taskdeleted',function(taskid) {
+				tab[0].on("taskdeleted",function(taskid) {
 					worklist.refresh();
 				},this);
-				newtab[0].on('tasksuggestsrefresh',function(taskid) {
+				tab[0].on("tasksuggestsrefresh",function(taskid) {
 					worklist.refresh();
 				},this);
+				
+				debugpanel.getTraceCheckbox().on("check",function(cb,val) {
+					tab[0].setTrace(val);
+				});
 			}
-			newtab[0].refresh();
+			tab[0].updateForm();
 		});
 		
-		newpanel.on('processStarted',function(startTask) {
+		newpanel.on("processStarted",function(startTask) {
 			worklist.refresh();
 			//TODO: Automatically open a tab
 		},this);
 		
-		debugpanel.getTaskForestButton().on('click',function() {
-			worktabs.openTaskForestTab(apppanel);
+		debugpanel.getTaskForestButton().on("click",function() {
+			worktabs.openTaskForestTab();
 		});
-		debugpanel.getThreadTableButton().on('click',function() {
-			worktabs.openThreadTableTab(apppanel);
+		debugpanel.getProcessTableButton().on("click",function() {
+			worktabs.openProcessTableTab();
 		});
-		debugpanel.getProcessTableButton().on('click',function() {
-			worktabs.openProcessTableTab(apppanel);
-		});
-
-		Ext.get('logout').on('click',function() {
+		Ext.get("logout").on("click",function() {
 			apppanel.logout();
 		});
 	},
 	
-	addSessionParam: function (params) {
-		params['session'] = this.sessionId;
-		return params;
-	},
-	checkSessionResponse: function (response) {
-		if(response.error) {
-			this.application.restart(response.error);
-		}
-	},	
-	getSessionId: function() {
-		return this.sessionId;
-	},
 	logout: function() {	
 		//Send logout request to the server
 		Ext.Ajax.request({
 			url: 'handlers/deauthenticate',
 			method: "POST",
-			params: this.addSessionParam({}),
+			params: {session: this.sessionId},
 			scripts: false,
 			callback: function () {
 				//On return, restart the app

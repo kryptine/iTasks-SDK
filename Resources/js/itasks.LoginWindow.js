@@ -12,15 +12,12 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 	//Initializion function
 	initComponent: function() {	
 		
-		//PRIVATE EVENT HANDLERS
 		var submitHandler = function() {
 			this.getComponent(0).getForm().submit({waitMsg: 'Validating username and password...'});
 		};
 		var successHandler = function(form, action) {
 			//Clear the error message
 			this.getComponent(0).getComponent(0).setText('');
-			//this.errorLabel.setText('');
-
 
 			//Fade out the window
 			this.getEl().fadeOut({
@@ -42,10 +39,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			//Focus the username
 			form.findField('username').focus(true,false);
 		};
-
-		//CONSTRUCTION OF THE COMPONENT
 		
-		//Construct the login window
 		Ext.apply(this, {
 			title: 'iTasks',
 			y: 150,

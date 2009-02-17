@@ -2,7 +2,6 @@
 * Panel for debugging iTask workflows. Here we will put stuff such as
 * task tree visualization and communication state inspection.
 */
-
 Ext.namespace('itasks');
 
 itasks.DebugPanel = Ext.extend(Ext.Panel, {
@@ -27,13 +26,7 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 					xtype: 'button',
 					text: 'Show process table...',
 					cls: 'debug-button',
-					iconCls: 'icon-process-table',
-					style: 'margin-bottom: 2px;'
-				},{
-					xtype: 'button',
-					text: 'Show thread table...',
-					cls: 'debug-button',
-					iconCls: 'icon-thread-table'
+					iconCls: 'icon-process-table'
 				}]
 			},{
 				id: 'options',
@@ -52,17 +45,14 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 		
 		itasks.DebugPanel.superclass.initComponent.apply(this,arguments);
 	},
-	traceEnabled: function() {
-		return this.getComponent('options').getComponent('trace').getValue();
-	},
 	getTaskForestButton: function() {
 		return this.getComponent(0).getComponent(0);
 	},
 	getProcessTableButton: function() {
 		return this.getComponent(0).getComponent(1);
 	},
-	getThreadTableButton: function() {
-		return this.getComponent(0).getComponent(2);
+	getTraceCheckbox: function() {
+		return this.getComponent(1).getComponent(0);
 	}
 });
 

@@ -173,6 +173,9 @@ div.worktab-content {
 div.worktab form {
 	display: inline;
 }
+table.form-table th {
+	vertical-align: top;
+}
 div.it-display {
 	margin-bottom: 10px;
 	padding: 5px;
@@ -201,6 +204,7 @@ div.it-task-overview-icon {
 	width: 16px;
 	height: 16px;
 }
+
 
 /* DEBUG STYLES */
 .debug-button button.x-btn-text {

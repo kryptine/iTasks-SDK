@@ -190,7 +190,7 @@ gForm{|CONS of t|} gHc (init,formid) hst=:{cntr}
 		# (nc,hst)				= gHc (init,reuseFormId formid c) (setHStCntr (cntr+1) hst) // don't display record constructor, but wrap the content in a table tag
 		= ({ changed			= nc.changed
 		   , value				= CONS nc.Form.value
-		   , form				= [TableTag [] nc.form]
+		   , form				= [TableTag [ClassAttr "form-table"] nc.form]
 		   , inputs				= nc.inputs
 		   },hst)
 	| t.gcd_type_def.gtd_num_conses == 1 

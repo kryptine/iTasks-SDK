@@ -15,7 +15,7 @@ handleNewStartRequest request tst
 
 where
 	workflowId :: String
-	workflowId = http_getValue "workflow" request.arg_get ""
+	workflowId = http_getValue "workflow" request.arg_post ""
 	
 	response :: Int -> String
 	response taskid	= "{\"success\" : true, \"taskid\": \""  +++ (toString taskid) +++ "\"}"

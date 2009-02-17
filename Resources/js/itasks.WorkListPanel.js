@@ -5,10 +5,11 @@ Ext.ns('itasks');
 
 itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 
-	applicationPanel: undefined,
+	sessionId: undefined,
+	application: undefined,
 
 	workStore: new Ext.ux.grid.livegrid.Store({
-		autoLoad: true,
+		autoLoad: false,
 		bufferSize: 300,
 		sortInfo: {
 			field: 'subject',
@@ -115,11 +116,10 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 		
 		//Check session error responses
 		this.store.on('loadexception',function() {
-			this.applicationPanel.checkSessionResponse(this.store.reader.jsonData);
+			if(this.store.reader.jsonData.error) {
+				this.application.restart(this.store.reader.jsonData.error);
+			}
 		},this);
-	},
-	setApplicationPanel: function(panel) {
-		this.applicationPanel = panel;
 	},
 	/*
 	* Return the taskid of the selected row
@@ -138,7 +138,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 	*/
 	refresh: function () {
 		this.store.load({
-			params: this.applicationPanel.addSessionParam({})
+			params: {session: this.sessionId}
 		});
 	}
 });

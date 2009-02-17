@@ -4,14 +4,12 @@
 
 Ext.ns('itasks');
 
-itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
+itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 
 	updates: {}, 					//Dictionary with form updates
 	inputs: [],
 	state: undefined,				//The encoded state that is temporarily stored in the tab
-	busy: false,					//Lock to prevent multiple requests at once
-	debugPanel: undefined,			//An optional reference to a debug panel to find trace options
-	applicationPanel: undefined,	//A reference to the application panel to find the session id
+	trace: false,					//Request state information
 	
 	lastFocus: undefined,			//The id of the last focused input
 	firstBuffer: false,				//Use the first buffer panel (double buffering is used for rendering)
@@ -24,6 +22,11 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			title: this.makeTitle(),
 			closable: true,
+			url: 'handlers/work/tab',
+			params: {
+				taskid: this.taskinfo.taskid,
+				prefix: ""
+			},
 			layout: 'anchor',
 			deferredRender: false,
 			items: [{
@@ -45,7 +48,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						click: {
 							scope: this,
 							fn: function (btn) {
-								this.refresh();
+								this.updateForm();
 							}
 						}
 					}
@@ -105,8 +108,18 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		
 		//Set the initial content panel
 		this.contentPanel = this.getComponent(1).getComponent(0);
+		
+		//Attach event handlers for the loading indicator
+		this.on("remoteCallStart",function() {
+			this.getComponent(0).getEl().child(".worktab-header-indicator").setVisible(true);
+		},this);
+		this.on("remoteCallEnd",function() {
+			this.getComponent(0).getEl().child(".worktab-header-indicator").setVisible(false);
+		},this);
 	},
-
+	setTrace: function (trace) {
+		this.trace = trace;
+	},
 	makeTitle: function() {
 		return Ext.util.Format.ellipsis(this.taskinfo.subject,10);
 	},
@@ -129,59 +142,40 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 	makeErrorMessage: function(msg) {
 		return "<span class=\"error\">" + msg + "</span>";
 	},
-	setDebugPanel: function (panel) {
-		this.debugPanel = panel;
-	},
-	setApplicationPanel: function (panel) {
-		this.applicationPanel = panel;
-	},
-	setBusy: function(busy) {
-		this.busy = busy;
-		this.getComponent(0).getEl().child(".worktab-header-indicator").setVisible(busy);
-	},
-	processTabData: function (el,success,response,options) {
-
-		if(success) {
-			var data = Ext.decode(response.responseText);
-			var trace = (data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined);
-						
-			//Check for session errors.
-			this.applicationPanel.checkSessionResponse(data);
+	update: function(data) {
+		var trace = (data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined);
+		
+		//Determine in which panel the new content must be put
+		this.setNextContentPanel(trace);
 			
-			//Determine in which panel the new content must be put
-			this.setNextContentPanel(trace);
-			
-			//Create content
-			if (data.error != null) {
-                this.autoClose(this.makeErrorMessage(data.error), 5);
-            } else if(data.status == 'TaskFinished') { //Check if the task is done
-				this.fireEvent('taskfinished', this.taskinfo.taskid);
-				this.autoClose(this.makeFinishedMessage(), 5);
-            } else if(data.status == 'TaskDeleted') {
-                this.fireEvent('taskdeleted', this.taskinfo.taskid);
-                this.autoClose(this.makeDeletedMessage(), 5);
-           	} else if(data.status == 'TaskSuspended') {
-           		this.fireEvent('tasksuspended', this.taskinfo.taskid);
-           		this.setContent(this.makeSuspendedMessage());
-            } else {
-            	if(data.refresh) {
-            		this.fireEvent('tasksuggestsrefresh',this.taskinfo.taskid);
-            	}	
-				//Fill the content and trace panels
-				this.setupContentPanel(trace, data);
-				this.setupTracePanels(trace, data);
-			}
-			
-			//Hide the current content panel and switch to new content
-			this.switchContentPanels(trace, data.prefix);
-				
-			//Reset for new updates
-			this.updates = {};
-			this.inputs = data.inputs;
-			this.state = data.state;
+		//Create content
+		if (data.error != null) {
+            this.autoClose(this.makeErrorMessage(data.error), 5);
+        } else if(data.status == 'TaskFinished') { //Check if the task is done
+			this.fireEvent('taskfinished', this.taskinfo.taskid);
+			this.autoClose(this.makeFinishedMessage(), 5);
+        } else if(data.status == 'TaskDeleted') {
+            this.fireEvent('taskdeleted', this.taskinfo.taskid);
+            this.autoClose(this.makeDeletedMessage(), 5);
+       	} else if(data.status == 'TaskSuspended') {
+       		this.fireEvent('tasksuspended', this.taskinfo.taskid);
+       		this.setContent(this.makeSuspendedMessage());
+        } else {
+        	if(data.refresh) {
+        		this.fireEvent('tasksuggestsrefresh',this.taskinfo.taskid);
+        	}	
+			//Fill the content and trace panels
+			this.setupContentPanel(trace, data);
+			this.setupTracePanels(trace, data);
 		}
-		//Release the busy lock
-		this.setBusy(false);
+		
+		//Hide the current content panel and switch to new content
+		this.switchContentPanels(trace, data.prefix);
+				
+		//Reset for new updates
+		this.updates = {};
+		this.inputs = data.inputs;
+		this.state = data.state;
 	},
 	setNextContentPanel: function (trace) {
 		if(trace) {
@@ -191,6 +185,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 		}	
 	},
 	setupContentPanel: function (trace, data) {
+	
 		//Replace the content
 		this.contentPanel.body.dom.innerHTML = data.html;
 
@@ -252,7 +247,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("change", function (inp, newVal, oldVal) {
 							this.addUpdate(inp.inputName, newVal);
-							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+							this.delayedUpdateForm();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
@@ -287,7 +282,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("check", function (inp, checked) {
 							this.addUpdate(inp.inputName, checked ? "checked" : "unchecked");
-							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+							this.delayedUpdateForm();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
@@ -317,6 +312,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					input.on("click", function(but, e) {
 						this.lastFocus = but.inputName;
 						this.addUpdate(but.inputName, "click");
+						this.prepareParams();
 						this.refresh();
 					},this);
 					input.on("focus", function(but) {
@@ -335,7 +331,8 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						id: inputid,
 						name: inputid,
 						inputName: inputname,
-						value: value
+						value: value,
+						style: "width: 500px;"
 					});
 					input.render(parent,next);
 					
@@ -343,7 +340,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("change", function (inp, newVal, oldVal) {
 							this.addUpdate(inp.inputName, newVal);
-							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+							this.delayedFormUpdate();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
@@ -373,7 +370,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("change", function (inp, newVal, oldVal) {
 							this.addUpdate(inp.inputName, newVal.format("m/d/Y"));
-							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+							this.delayedUpdateForm();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
@@ -403,7 +400,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("change", function (inp, newVal, oldVal) {
 							this.addUpdate(inp.inputName, newVal.format("H:i:s"));
-							new Ext.util.DelayedTask().delay(150,this.refresh,this);
+							this.delayedUpdateForm();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
@@ -427,7 +424,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 						if(data.inputs[i].updateon == "OnChange") {
 							radio.on("click",function(e) {
 								this.addUpdate(e.target.name,e.target.value);
-								new Ext.util.DelayedTask().delay(150,this.refresh,this);
+								this.delayedUpdateForm();
 							},this);
 						}
 						if(data.inputs[i].updateon == "OnSubmit") {
@@ -466,9 +463,7 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 							case "OnChange":
 								input.on("select", function (inp) {
 									this.addUpdate(inp.inputName,inp.value);
-									
-									//Slightly delayed refresh. There could be click event right after this event.
-									new Ext.util.DelayedTask().delay(150,this.refresh,this);
+									this.delayedUpdateForm();
 								},this);
 								break;
 							case "OnSubmit":
@@ -501,12 +496,28 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			}
 		}		
 	},
+	addUpdate: function (inputid, value) {
+		this.updates[inputid] = value;
+	},
+	prepareParams: function () {
+		this.params = this.updates;
+		this.params['taskid'] = this.taskinfo.taskid;
+		this.params['state'] = Ext.encode(this.state);
+		this.params['prefix'] = 'tb' + (this.prefixCounter++) + '_';
+		this.params['trace'] = this.trace ? 1 : 0;
+	},
+	updateForm: function () {
+		this.prepareParams();
+		this.refresh();
+	},
+	delayedUpdateForm: function() {
+		new Ext.util.DelayedTask().delay(150,this.updateForm,this);
+	},
 	setupTracePanels: function (trace, data) {
 
 		if(!trace) {
 			return;
-		}
-		
+		}	
 		var tabPanel = this.getComponent(1).getComponent(2);
 				
 		var statePanel = tabPanel.getComponent(2);
@@ -559,52 +570,9 @@ itasks.WorkTabPanel = Ext.extend(Ext.Panel, {
 			input.focus();
 		}
 	},
-
-	addUpdate: function (inputid, value) {
-		this.updates[inputid] = value;
-	},
-
-	refresh: function () {
-		
-		//If we are busy, return immediately
-		if(this.busy) {
-			return;
-		} else {
-			this.setBusy(true);
-		}
-		
-		//The updates are the primary parameters
-		var params = this.updates;
-		
-		//Add the state to the params
-		params['state'] = Ext.encode(this.state);
-		
-		//Add the prefix to the params
-		params['prefix'] = 'tb' + (this.prefixCounter++) + '_';
-		
-		//Check if we need to request trace info
-		if (this.debugPanel != undefined && this.debugPanel.traceEnabled()) {
-				params['trace'] = 1;
-		}
-		//Add the session id
-		params = this.applicationPanel.addSessionParam(params);
-		
-		//Send the data to the server
-		Ext.Ajax.request({
-			url: 'handlers/work/tab?taskid=' + this.taskinfo.taskid,
-			method: "POST",
-			params: params,
-			scripts: false,
-			callback: this.processTabData,
-			scope: this
-		});
-	},
-	
 	autoClose: function (msg, numSeconds) {
-		if(numSeconds == 0) {
-			if(this.ownerCt != undefined) {
-				this.ownerCt.remove(this);
-			}
+		if(numSeconds == 0 && this.ownerCt != undefined) {
+			this.ownerCt.remove(this);
 		} else {
 			if(this.ownerCt != undefined) { //Only continue if we were not already closed manually
 				this.contentPanel.body.dom.innerHTML = msg + '<br /><br />This tab will automatically close in ' + numSeconds + ' seconds...';		
