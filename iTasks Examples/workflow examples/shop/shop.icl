@@ -6,7 +6,8 @@ import StdEnv, iTasks
 
 :: Product		=	{ id_	:: !ProductId
 					, name	:: !String
-					, price	:: !Int
+					, price	:: !Int // will become currency
+					, amount:: !Int
 					}
 :: ProductId 	:== DBRef Product
 
@@ -50,45 +51,76 @@ where
 
 //Backend
 manageCatalog :: Task Void
-manageCatalog =
-	dbReadAll										=>> \catalog ->
-	checkEmpty catalog								=>> \catalog ->
-	( browseCatalog catalog
-	  -||-
-	  buttonTask "Add product" (return_V (AAdd,DBRef 0))
-	)												=>> \(action, pid) ->
-	case action of
-		AAdd	= addProduct
-		AEdit	= editProduct pid
-		ADelete	= deleteProduct pid
-		
-browseCatalog :: [Product] -> Task (Action, ProductId)
-browseCatalog products
-	= orTasks [(p.Product.name, browseItem p) \\ p <- products]
+manageCatalog = stopTask manageCatalog`
 where
-	browseItem :: Product -> Task (Action, ProductId)
-	browseItem product
-		= chooseTask_btn (display product) [("Edit",return_V (AEdit, product.Product.id_)),("Delete",return_V (ADelete, product.Product.id_))]
-	where
-		display product = [H1Tag [][Text product.Product.name],BrTag [],BTag [] [Text "Price: "],Text (toString product.Product.price)]
+	manageCatalog`
+		=	dbReadAll					=>> \catalog ->
+			browseCatalog catalog		=>> \_ -> 
+			manageCatalog`
 
-idProduct:: Product -> Product
-idProduct x = x
+continue :: String (Task Void) -> (Task Void) 
+continue prompt task
+	=	chooseTask [Text prompt, BrTag []]
+		[ ("Yes", task)
+		, ("No",  return_V Void)
+		]
+
+stopTask :: (Task a) -> (Task a) | iData a 
+stopTask task
+	= 	orTasksV [("task",task),("stop", stopIt)]
+where
+	stopIt = [BrTag []] ?>> editTask "Stop Task" Void  #>> return_V createDefault
+
+
+browseCatalog :: [Product] -> Task Void
+browseCatalog products
+	= orTasksV (showEditProducts products ++ addNewProduct)
+where
+	addNewProduct :: [LabeledTask Void]
+	addNewProduct = [("add",[HrTag []] ?>> buttonTask "Add product" addProduct)]
+
+	browseItem :: Product -> Task Void
+	browseItem product
+		= chooseTask_btn (display product) 
+			[("Edit",editProduct product.Product.id_)
+			,("Delete",deleteProduct product.Product.id_)
+			]
+	where
+		display product = [toHtml product]
+
+	showEditProducts :: [Product] -> [LabeledTask Void]
+	showEditProducts [] = 		[]
+	showEditProducts products = [(p.Product.name, browseItem p) \\ p <- products]
+
 
 addProduct :: Task Void
 addProduct
 	= editTask "Add" createDefault =>> \product ->
 	  dbCreate (idProduct product)
+where
+	idProduct:: Product -> Product
+	idProduct x = x
+
 
 editProduct :: ProductId -> Task Void
-editProduct pid = return_V Void
+editProduct pid 
+	= dbRead pid =>> \product ->
+	  editTask "Store" product =>> \nproduct ->
+	  dbUpdate pid nproduct #>>
+	  return_V Void
 
 deleteProduct :: ProductId -> Task Void
-deleteProduct pid = return_V Void
+deleteProduct pid 
+	= dbDelete pid #>>
+	  return_V Void
 
 //Frontend		
 browseShop :: Task Void
 browseShop = return_V Void
+
+
+
+
 
 //Utility function which creates a single default item when a database is empty
 checkEmpty :: [a] -> Task [a] | iData a
@@ -117,14 +149,24 @@ dbRead ref
 dbReadAll :: Task [a] | iData a & DB a
 dbReadAll = readDB databaseId
 
-dbUpdate :: (DBRef a) a -> Task Void | DB a
-dbUpdate id item = return_V Void
+dbUpdate :: (DBRef a) a -> Task Void |  iData a & DB a
+dbUpdate ref nitem 
+	= readDB databaseId									=>> \items ->
+	  writeDB databaseId (update ref nitem items)		#>>
+	  return_V Void
+where
+	update ref nitem items 
+		= [if (getItemId item == ref) nitem item \\ item <- items]
+
 
 dbDelete :: (DBRef a) -> Task Void | iData a & DB a 
 dbDelete ref
-	= readDB databaseId												=>> \items ->
-	  writeDB databaseId [item \\ item <- items | getItemId item <> ref]	#>>
+	= readDB databaseId							=>> \items ->
+	  writeDB databaseId (delete ref items)		#>>
 	  return_V Void
+where
+	delete ref  items 
+		= [item \\ item <- items | not (ref == getItemId item)]
 
 instance == (DBRef a)
 where
