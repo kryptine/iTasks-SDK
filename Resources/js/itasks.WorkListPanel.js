@@ -128,12 +128,6 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 		return this.store.getAt(index).data.taskid;
 	},
 	/*
-	* Return all task information of the selected row
-	*/
-	getTaskInfo: function (index) {
-		return this.store.getAt(index).data;
-	},
-	/*
 	* Refresh the list
 	*/
 	refresh: function () {

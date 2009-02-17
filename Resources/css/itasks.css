@@ -139,13 +139,13 @@ div.worktab-container form {
 }
 div.worktab-header {
 	border: 1px solid #ccc;
-	padding: 10px;
+	padding: 5px 0px 0px 10px;
 
 	background: #999 url('../img/worktab-header.png') top repeat-x;
 }
 div.worktab-header-indicator {
 	position: absolute;
-	top: 20px;
+	top: 10px;
 	left: 100%;
 	margin-left: -42px;
 	width: 32px;

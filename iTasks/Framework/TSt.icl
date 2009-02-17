@@ -16,7 +16,8 @@ mkTSt :: !Lifespan !Lifespan !Session ![Workflow]!*HSt !*ProcessDB -> *TSt
 mkTSt itaskstorage threadstorage session workflows hst processdb
 	=	{ taskNr		= [-1]
 		, userId		= -1
-		, tree			= TTProcess {processId = -1, processLabel = "", userId = -1, status = Active} []
+		, delegatorId	= -1
+		, tree			= TTProcess {processId = -1, processLabel = "", userId = -1, delegatorId = -1, status = Active} []
 		, activated 	= True
 		, users			= []
 		, newProcesses	= []
@@ -52,6 +53,9 @@ setTaskNr taskNr tst = {TSt | tst & taskNr = taskNr}
 
 setUserId :: UserId *TSt -> *TSt
 setUserId userId tst = {TSt | tst & userId = userId}
+
+setDelegatorId :: UserId *TSt -> *TSt
+setDelegatorId delegatorId tst = {TSt | tst & delegatorId = delegatorId}
 
 setProcessId :: ProcessId *TSt -> *TSt
 setProcessId processId tst=:{staticInfo} = {TSt | tst & staticInfo = {staticInfo & currentProcessId = processId}}
@@ -116,17 +120,18 @@ calculateTaskTree pid enableDebug tst
 					# (tree,tst)	= buildProcessTree entry tst
 					= (Nothing, Just tree, tst)
 				_
-					= (Nothing, Just (TTProcess {processId = entry.Process.id, processLabel = "", userId = entry.owner, status = entry.Process.status} []), tst)
+					= (Nothing, Just (TTProcess {processId = entry.Process.id, processLabel = "", userId = entry.owner, delegatorId = entry.delegator, status = entry.Process.status} []), tst)
 		Nothing
 			= (Just "Process not found", Nothing, tst)
 
 buildProcessTree :: Process !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree {Process | id, owner, status, process} tst
+buildProcessTree {Process | id, owner, delegator, status, process} tst
 	# tst								= resetTSt tst
 	# tst								= setTaskNr [-1,id] tst
 	# tst								= setUserId owner tst
+	# tst								= setDelegatorId delegator tst
 	# tst								= setProcessId id tst
-	# tst								= setTaskTree (TTProcess {processId = id, processLabel = "", userId = owner, status = status} []) tst	
+	# tst								= setTaskTree (TTProcess {processId = id, processLabel = "", userId = owner, delegatorId = delegator, status = status} []) tst	
 	# (label,result,tst)				= applyMainTask process tst
 	# (TTProcess info sequence, tst)	= getTaskTree tst
 	# (users, tst)						= getUsers tst
@@ -253,9 +258,9 @@ mkBasicTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkBasicTask taskname task = Task mkBasicTask`
 where
 	mkBasicTask` tst		
-		# tst =:{taskNr,userId,activated,tree,options}
+		# tst =:{taskNr,userId,delegatorId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
-		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId activated) [] []							//Create the task node
+		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId delegatorId activated) [] []				//Create the task node
 		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
 		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options}	//Add the node to current context
@@ -265,9 +270,9 @@ mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkSequenceTask taskname task = Task mkSequenceTask`
 where
 	mkSequenceTask` tst
-		# tst =:{taskNr,userId,activated,tree,options}
+		# tst =:{taskNr,userId,delegatorId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
-		# node	= TTSequenceTask (mkTaskInfo taskNr taskname userId activated) []							//Create the task node
+		# node	= TTSequenceTask (mkTaskInfo taskNr taskname userId delegatorId activated) []				//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})							//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1:taskNr], tree = node}			//and a shifted task number
 		# tst	= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options} 	//Add the node to current context
@@ -277,10 +282,10 @@ mkParallelTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkParallelTask taskname task = Task mkParallelTask`
 where
 	mkParallelTask` tst	
-		# tst =:{taskNr,userId,activated,tree,options}
+		# tst =:{taskNr,userId,delegatorId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
-		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId activated) TTVertical []				//Create the task node
-		# (a, tst =:{activated = finished, tree = TTParallelTask info combination branches})			//Execute the with the new node as context
+		# node	= TTParallelTask (mkTaskInfo taskNr taskname userId delegatorId activated) TTVertical []	//Create the task node
+		# (a, tst =:{activated = finished, tree = TTParallelTask info combination branches})				//Execute the with the new node as context
 				= accTaskTSt (executeTask taskname task) {tst & tree = node}
 		# tst 	= addTaskNode (TTParallelTask {TaskInfo|info & finished = finished} combination (reverse branches)) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options} 
 		= (a, tst)
@@ -288,16 +293,16 @@ where
 mkParallelSubTask :: !String !Int (Task a) -> Task a  | iCreateAndPrint a	 								
 mkParallelSubTask taskname i task = Task mkParallelSubTask`
 where
-	mkParallelSubTask` tst=:{activated,taskNr,userId,tree,options}
-		# node		= TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId activated) []					//Create the task node
+	mkParallelSubTask` tst=:{activated,taskNr,userId,delegatorId,tree,options}
+		# node		= TTSequenceTask (mkTaskInfo [i:taskNr] taskname userId delegatorId activated) []		//Create the task node
 		# (a, tst =:{activated = finished, tree = TTSequenceTask info sequence})
 					= accTaskTSt (executeTask taskname task) {tst & taskNr = [-1,i:taskNr], tree = node}	// two shifts are needed
 		# tst		= addTaskNode (TTSequenceTask {TaskInfo|info & finished = finished} (reverse sequence)) {tst & tree = tree, taskNr = taskNr,userId = userId, options = options}
 		= (a, tst)
 
-mkTaskInfo :: TaskNr String UserId Bool -> TaskInfo
-mkTaskInfo tasknr label userid active
-	= {taskId = (taskNrToString tasknr), taskLabel = label, userId = userid, active = active, finished = False, priority = NormalPriority, traceValue = ""} 
+mkTaskInfo :: TaskNr String UserId UserId Bool -> TaskInfo
+mkTaskInfo tasknr label userid delegator active
+	= {taskId = (taskNrToString tasknr), taskLabel = label, userId = userid, delegatorId = delegator, active = active, finished = False, priority = NormalPriority, traceValue = ""} 
 
 //Execute the task when active, else return a default value
 executeTask :: !String !(Task a) -> (Task a) | iCreateAndPrint a

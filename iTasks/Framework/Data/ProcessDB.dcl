@@ -10,7 +10,8 @@ import Types, HSt, TSt
 * Our local process type
 */
 :: Process 		= {	id			:: !Int				//The process identification
-				  , owner		:: !Int				//The "main" user of the process
+				  , owner		:: !UserId			//The "main" user of the process
+				  , delegator	:: !UserId			//The user who issued the process
 				  , status		:: !ProcessStatus	//The status of the process (updated after each run)
 				  , users		:: ![UserId]		//A list of users involved in the process (updated after each run)
 				  , process		:: !EITHER StaticProcessEntry DynamicProcessEntry
@@ -57,7 +58,7 @@ getProcessForUser	:: !Int !Int				!*ProcessDB	-> (!Maybe Process,!*ProcessDB)
 getProcesses		:: ![ProcessStatus]			!*ProcessDB -> (![Process],	!*ProcessDB)
 getProcessesById	:: ![Int]					!*ProcessDB -> (![Process],	!*ProcessDB)
 getProcessesForUser	:: !Int ![ProcessStatus]	!*ProcessDB -> (![Process],	!*ProcessDB)
-setProcessOwner		:: !Int !Int				!*ProcessDB	-> (!Bool,				!*ProcessDB)
+setProcessOwner		:: !Int !Int !Int			!*ProcessDB	-> (!Bool,				!*ProcessDB)
 setProcessStatus	:: !ProcessStatus !Int		!*ProcessDB	-> (!Bool,				!*ProcessDB)
 setProcessResult	:: !String !Int				!*ProcessDB -> (!Bool,				!*ProcessDB)
 
@@ -67,7 +68,7 @@ updateProcess		:: !ProcessStatus !(Maybe String) ![UserId] !ProcessId !*ProcessD
 /*
 * Utility functions for creating process database entries.
 */
-createStaticProcessEntry	:: Workflow Int ProcessStatus -> Process
-createDynamicProcessEntry	:: String String Int ProcessStatus Int -> Process
+createStaticProcessEntry	:: Workflow UserId UserId ProcessStatus -> Process
+createDynamicProcessEntry	:: String String UserId UserId ProcessStatus Int -> Process
 
 instance toString ProcessStatus

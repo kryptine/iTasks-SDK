@@ -31,6 +31,7 @@ where
 			DivTag [ClassAttr "trace-node-content " ] [
 					TableTag [] [
 						TrTag [] [ThTag [] [Text "User:"] , TdTag [] [Text (toString info.TaskInfo.userId)] ],
+						TrTag [] [ThTag [] [Text "Delegator"] , TdTag [] [Text (toString info.TaskInfo.delegatorId)] ],
 						TrTag [] [ThTag [] [Text "Value:"], TdTag [] [Text info.TaskInfo.traceValue] ]
 					] 		
 				]

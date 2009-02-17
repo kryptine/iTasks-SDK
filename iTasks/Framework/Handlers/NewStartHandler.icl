@@ -23,4 +23,4 @@ where
 	startNewWorkflow :: Workflow *TSt -> (Int, *TSt)
 	startNewWorkflow workflow tst
 		# (currentUser, tst) = getCurrentUser tst
-		= accProcessDBTSt (createProcess (createStaticProcessEntry workflow currentUser Active)) tst
+		= accProcessDBTSt (createProcess (createStaticProcessEntry workflow currentUser currentUser Active)) tst

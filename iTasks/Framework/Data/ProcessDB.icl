@@ -91,13 +91,13 @@ getProcessesForUser userId statusses (ProcessDB db) = (entries,(ProcessDB db))
 where
 	entries = [process \\ process <- db | (process.Process.owner == userId || isMember userId process.Process.users) && isMember process.Process.status statusses]
 
-setProcessOwner	:: !Int !Int !*ProcessDB	-> (!Bool,				!*ProcessDB)
-setProcessOwner userId processId (ProcessDB db) = (updated, ProcessDB newlist)
+setProcessOwner	:: !Int !Int !Int !*ProcessDB	-> (!Bool,				!*ProcessDB)
+setProcessOwner userId delegatorId processId (ProcessDB db) = (updated, ProcessDB newlist)
 where
 	updated				= or updates
 	(updates,newlist)	= unzip (map update db)
 	update entry		
-		| entry.Process.id == processId	= (True, {entry & owner = userId})
+		| entry.Process.id == processId	= (True, {entry & owner = userId, delegator = delegatorId})
 												= (False, entry)
 
 setProcessStatus :: !ProcessStatus !Int		!*ProcessDB	-> (!Bool,				!*ProcessDB)
@@ -148,21 +148,23 @@ where
 
 
 //Utility functions
-createStaticProcessEntry :: Workflow Int ProcessStatus -> Process
-createStaticProcessEntry workflow owner status
+createStaticProcessEntry :: Workflow UserId UserId ProcessStatus -> Process
+createStaticProcessEntry workflow owner delegator status
 	=	{ Process
 		| id		= 0
 		, owner		= owner
-		, users		= [owner]
+		, delegator	= delegator
+		, users		= []
 		, status	= status
 		, process	= LEFT {workflow = workflow.name}
 		}
-createDynamicProcessEntry :: String String Int ProcessStatus Int-> Process
-createDynamicProcessEntry label task owner status parent
+createDynamicProcessEntry :: String String UserId UserId ProcessStatus Int-> Process
+createDynamicProcessEntry label task owner delegator status parent
 	=	{ Process
 		| id		= 0
 		, owner		= owner
-		, users		= [owner]
+		, delegator	= delegator
+		, users		= []
 		, status	= status
 		, process	= RIGHT {label = label, result = "", task = task, parent = parent}
 		}

@@ -6,6 +6,8 @@ Ext.ns('itasks');
 
 itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 
+	taskId: "",						//The taskid of the task done in this tab
+	
 	updates: {}, 					//Dictionary with form updates
 	inputs: [],
 	state: undefined,				//The encoded state that is temporarily stored in the tab
@@ -20,11 +22,11 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 	initComponent: function () {
 	
 		Ext.apply(this, {
-			title: this.makeTitle(),
+			title: "...",
 			closable: true,
 			url: 'handlers/work/tab',
 			params: {
-				taskid: this.taskinfo.taskid,
+				taskid: this.taskId,
 				prefix: ""
 			},
 			layout: 'anchor',
@@ -32,12 +34,21 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 			items: [{
 				xtype: 'panel',
 				anchor: '100%',
-				height: 75,
-				baseCls: 'worktab-header',
-				html: this.makeHeader()				
+				height: 50,
+				layout: 'anchor',
+				items: [{
+					xtype: 'panel',
+					anchor: '0 0',
+					baseCls: 'worktab-header'
+					},{
+					xtype: 'panel',
+					anchor: '-50 100%',
+					baseCls: 'worktab-header',
+					html: "<div class=\"worktab-header-indicator\"></div>"
+					}]			
 			},{
 				xtype: 'panel',
-				anchor: '100% -75',
+				anchor: '100% -50',
 				layout: 'card',
 				cls: 'worktab-container',
 				deferredRender: false,
@@ -111,24 +122,14 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		//Attach event handlers for the loading indicator
 		this.on("remoteCallStart",function() {
-			this.getComponent(0).getEl().child(".worktab-header-indicator").setVisible(true);
+			this.getComponent(0).getComponent(1).getEl().child(".worktab-header-indicator").setVisible(true);
 		},this);
 		this.on("remoteCallEnd",function() {
-			this.getComponent(0).getEl().child(".worktab-header-indicator").setVisible(false);
+			this.getComponent(0).getComponent(1).getEl().child(".worktab-header-indicator").setVisible(false);
 		},this);
 	},
 	setTrace: function (trace) {
 		this.trace = trace;
-	},
-	makeTitle: function() {
-		return Ext.util.Format.ellipsis(this.taskinfo.subject,10);
-	},
-	makeHeader: function () {
-		return "<div class=\"worktab-header-table\"><table>"
-			+ "<tr><th>Subject:</th><td>" + this.taskinfo.subject + "</td><th>Date:</th><td>" + itasks.util.formatDate(this.taskinfo.timestamp) + "</td></tr>"
-			+ "<tr><th>TaskID:</th><td>" + this.taskinfo.taskid + "</td><th>Process:</th><td>" + this.taskinfo.processname + "</td></tr>"
-			+ "<tr><th>From:</th><td>" + this.taskinfo.delegatorName + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(this.taskinfo.priority) + "</td></tr>"
-			+ "</table></div><div class=\"worktab-header-indicator\"></div>";
 	},
 	makeFinishedMessage: function() {
 		return "This task is completed. Thank you.";
@@ -147,22 +148,24 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		//Determine in which panel the new content must be put
 		this.setNextContentPanel(trace);
-			
+		//Update the header
+		this.setupHeader(data);
+		
 		//Create content
 		if (data.error != null) {
             this.autoClose(this.makeErrorMessage(data.error), 5);
         } else if(data.status == 'TaskFinished') { //Check if the task is done
-			this.fireEvent('taskfinished', this.taskinfo.taskid);
+			this.fireEvent('taskfinished', this.taskId);
 			this.autoClose(this.makeFinishedMessage(), 5);
         } else if(data.status == 'TaskDeleted') {
-            this.fireEvent('taskdeleted', this.taskinfo.taskid);
+            this.fireEvent('taskdeleted', this.taskId);
             this.autoClose(this.makeDeletedMessage(), 5);
        	} else if(data.status == 'TaskSuspended') {
-       		this.fireEvent('tasksuspended', this.taskinfo.taskid);
+       		this.fireEvent('tasksuspended', this.taskId);
        		this.setContent(this.makeSuspendedMessage());
         } else {
         	if(data.refresh) {
-        		this.fireEvent('tasksuggestsrefresh',this.taskinfo.taskid);
+        		this.fireEvent('tasksuggestsrefresh',this.taskId);
         	}	
 			//Fill the content and trace panels
 			this.setupContentPanel(trace, data);
@@ -183,6 +186,15 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 		} else {
 			this.contentPanel = this.getComponent(1).getComponent(this.firstBuffer ? 0 : 1);
 		}	
+	},
+	setupHeader: function (data) {
+		var html = "<div class=\"worktab-header-table\"><table>"
+			+ "<tr><th>Subject:</th><td>" + data.subject + " (" + data.taskid + ")</td><th>Date:</th><td>" + itasks.util.formatDate(data.timestamp) + "</td></tr>"
+			+ "<tr><th>Delegated by:</th><td>" + data.delegatorName + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(data.priority) + "</td></tr>"
+			+ "</table></div>";
+			
+		this.getComponent(0).getComponent(0).body.dom.innerHTML = html;
+		this.setTitle(Ext.util.Format.ellipsis(data.subject,10));
 	},
 	setupContentPanel: function (trace, data) {
 	
@@ -501,7 +513,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 	},
 	prepareParams: function () {
 		this.params = this.updates;
-		this.params['taskid'] = this.taskinfo.taskid;
+		this.params['taskid'] = this.taskId;
 		this.params['state'] = Ext.encode(this.state);
 		this.params['prefix'] = 'tb' + (this.prefixCounter++) + '_';
 		this.params['trace'] = this.trace ? 1 : 0;

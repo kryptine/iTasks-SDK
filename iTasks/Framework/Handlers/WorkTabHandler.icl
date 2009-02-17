@@ -7,6 +7,7 @@ import iDataForms, iDataState, iDataFormlib
 import JSON
 import Debug, Util
 from ProcessDB import :: ProcessStatus(..)
+from UserDB import getDisplayNames
 
 derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan, TaskPriority
 
@@ -44,8 +45,9 @@ handleWorkTabRequest request tst
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
-			# (taskStatus, html, inputs, refresh)		= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
-
+			# (taskStatus, subject, delegator, html, inputs, refresh)
+														= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
+			# (delegatorName, tst)						= getDelegatorName delegator tst
 			//Tracing
 			# stateTrace								= Nothing
 			# updateTrace								= Nothing
@@ -56,11 +58,11 @@ handleWorkTabRequest request tst
 				{TabContent
 				|	status			= taskStatus 
 				,	error			= mbError
-				,	taskid			= ""	//TODO
-				,	subject			= ""	//TODO
-				,	timestamp		= 0		//TODO
-				,	priority		= NormalPriority	//TODO
-				,	delegatorName	= ""	//TODO
+				,	taskid			= taskId
+				,	subject			= subject
+				,	timestamp		= 0
+				,	priority		= NormalPriority
+				,	delegatorName	= delegatorName
 				,	html 			= toString (DivTag [IdAttr ("itasks-tab-" +++ taskId)] html)
 				,	inputs			= inputs
 				,	prefix			= prefix
@@ -99,14 +101,15 @@ where
 
 	treeErrorResponse	= {http_emptyResponse & rsp_data = "{\"success\" : false, \"error\" : \"Could not locate task tree\"}"}
 
-	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus,![HtmlTag],![InputId], !Bool)
+	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus, !String, !Int, ![HtmlTag],![InputId], !Bool)
 	determineTaskForTab userid taskid tree
 		= case locateSubTaskTree taskid tree of										//Find the subtree by task id
 			Nothing
-				= (TaskDeleted, [], [], True)										//Subtask not found, nothing to do anymore
+				= (TaskDeleted,"",-1, [], [], True)									//Subtask not found, nothing to do anymore
 			Just subtree
 				# (html,inputs,refresh)	= collectTaskContent userid subtree			//Collect only the parts for the current user
-				= (taskStatus subtree, html, inputs, refresh)
+				# (status,subject,delegator) = taskInfo subtree
+				= (status, subject, delegator, html, inputs, refresh)
 	
 	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId], !Bool)
 	collectTaskContent currentUser (TTBasicTask info output inputs)
@@ -146,14 +149,18 @@ where
 		icon True	= DivTag [ClassAttr "it-task-overview-icon icon-finishedTask"] []
 		icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 				
-	taskStatus :: TaskTree -> TaskStatus
-	taskStatus (TTBasicTask {TaskInfo|finished} _ _)			= if finished TaskFinished TaskActive
-	taskStatus (TTSequenceTask {TaskInfo|finished} _)			= if finished TaskFinished TaskActive
-	taskStatus (TTParallelTask {TaskInfo|finished} _ _)			= if finished TaskFinished TaskActive
-	taskStatus (TTProcess {ProcessInfo|status= Finished} _)		= TaskFinished
-	taskStatus (TTProcess {ProcessInfo|status= Suspended} _)	= TaskSuspended
-	taskStatus (TTProcess _ _)									= TaskActive
+	taskInfo :: TaskTree -> (TaskStatus,String,Int)
+	taskInfo (TTBasicTask {TaskInfo|finished,taskLabel,delegatorId} _ _)			= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
+	taskInfo (TTSequenceTask {TaskInfo|finished,taskLabel,delegatorId} _)			= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
+	taskInfo (TTParallelTask {TaskInfo|finished,taskLabel,delegatorId} _ _)			= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
+	taskInfo (TTProcess {ProcessInfo|status= Finished,processLabel,delegatorId} _)	= (TaskFinished,processLabel,delegatorId)
+	taskInfo (TTProcess {ProcessInfo|status= Suspended,processLabel,delegatorId} _)	= (TaskSuspended,processLabel,delegatorId)
+	taskInfo (TTProcess {ProcessInfo|processLabel,delegatorId} _)					= (TaskActive,processLabel,delegatorId)
 
+	getDelegatorName userId tst
+		# (names, tst)		= accHStTSt (accNWorldHSt (accUserDBNWorld (getDisplayNames [userId]))) tst
+		= (hd names, tst)
+	
 	mbTaskTreeTrace taskTree
 		| trace
 			= Just (toString (traceTaskTree taskTree))

@@ -28,15 +28,15 @@ where
 	spawnProcess` tst
 		# (curUid,tst)	= getCurrentUser tst
 		# (curPid,tst)	= getCurrentProcess tst
-		# (newPid,tst)	= accProcessDBTSt (createProcess (entry curPid)) tst
+		# (newPid,tst)	= accProcessDBTSt (createProcess (entry curPid curUid)) tst
 		| uid == curUid
 			# tst			= addNewProcess newPid tst
 			= (ProcessReference newPid, {tst & activated = True})
 		| otherwise
 			= (ProcessReference newPid, {tst & activated = True})
 			
-	closure		= dynamic_to_string (dynamic createDynamicTask task)								// Convert the task to a dynamic task and serialize
-	entry pid	= createDynamicProcessEntry label closure uid (if activate Active Suspended) pid	// Create a process database entry
+	closure				= dynamic_to_string (dynamic createDynamicTask task)								// Convert the task to a dynamic task and serialize
+	entry pid curUid	= createDynamicProcessEntry label closure uid curUid (if activate Active Suspended) pid	// Create a process database entry
 	
 	//Turn a task yielding a value of type a into a value of dynamic
 	createDynamicTask :: !(Task a) -> (Task Dynamic) | iData a
@@ -115,5 +115,7 @@ where
 setProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iData a 
 setProcessOwner uid (ProcessReference pid) = newTask "setProcessOwner" (Task setProcessOwner`)
 where
-	setProcessOwner` tst = accProcessDBTSt (ProcessDB@setProcessOwner uid pid) tst
+	setProcessOwner` tst
+		# (curUid,tst)	= getCurrentUser tst
+		= accProcessDBTSt (ProcessDB@setProcessOwner uid curUid pid) tst
 

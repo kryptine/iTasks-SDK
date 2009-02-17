@@ -38,7 +38,7 @@ assignTaskTo newUserId (label,task) = Task assignTaskTo`
 where
 	assignTaskTo` tst =:{TSt | userId = currentUserId}
 		# tst		= addUser newUserId tst 
-		# (a, tst)	= accTaskTSt (newTask label task) {TSt | tst & userId = newUserId}
+		# (a, tst)	= accTaskTSt (newTask label task) {TSt | tst & userId = newUserId, delegatorId = tst.TSt.userId}
 		= (a, {TSt | tst & userId = currentUserId})
 
 // ******************************************************************************************************

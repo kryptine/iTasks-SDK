@@ -84,7 +84,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		//Connect event handlers	
 		worklist.on("cellclick",function (grid,row,col,event) {
 		
-			var tab = worktabs.openWorkTab(grid.getTaskId(row), grid.getTaskInfo(row));
+			var tab = worktabs.openWorkTab(grid.getTaskId(row));
 
 			if(tab[1]) { //The tab is new
 				tab[0].on("taskfinished",function(taskid) {
@@ -104,9 +104,28 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			tab[0].updateForm();
 		});
 		
-		newpanel.on("processStarted",function(startTask) {
+		newpanel.on("processStarted",function(taskid) {
+			//When new work is started, refresh the worklist
+			//and immediately open a tab for the work
 			worklist.refresh();
-			//TODO: Automatically open a tab
+			var tab = worktabs.openWorkTab(taskid);
+			if(tab[1]) { //The tab is new
+				tab[0].on("taskfinished",function(taskid) {
+					worklist.refresh();
+				},this);
+				tab[0].on("taskdeleted",function(taskid) {
+					worklist.refresh();
+				},this);
+				tab[0].on("tasksuggestsrefresh",function(taskid) {
+					worklist.refresh();
+				},this);
+				
+				debugpanel.getTraceCheckbox().on("check",function(cb,val) {
+					tab[0].setTrace(val);
+				});
+			}
+			tab[0].updateForm();
+
 		},this);
 		
 		debugpanel.getTaskForestButton().on("click",function() {

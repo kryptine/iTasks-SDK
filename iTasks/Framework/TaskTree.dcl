@@ -21,6 +21,7 @@ from   ProcessDB	import :: ProcessStatus
 :: TaskInfo	=		{ taskId		:: TaskId											//Task number in string format
 					, taskLabel		:: String											//Descriptive label of the task
 					, userId		:: UserId											//User that has to do this task
+					, delegatorId	:: UserId											//User that issued this task
 					, active		:: Bool												//Is the task active?
 					, finished		:: Bool												//Is the task finished?
 					, priority		:: TaskPriority										//How important is the task
@@ -35,6 +36,7 @@ from   ProcessDB	import :: ProcessStatus
 :: ProcessInfo =	{ processId		:: ProcessId
 					, processLabel	:: String
 					, userId		:: UserId
+					, delegatorId	:: UserId
 					, status		:: ProcessStatus
 					}
 

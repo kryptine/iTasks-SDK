@@ -120,7 +120,7 @@ shiftWorkItem :: !Bool !WorkListItem -> WorkListItem
 shiftWorkItem step item =:{tree_path} = {item & tree_path = [step:tree_path]}				
 
 addDelegatorNames :: [WorkListItem] *TSt -> ([WorkListItem], *TSt)
-addDelegatorNames items hst
-	# (names, hst)		= accHStTSt (accNWorldHSt (accUserDBNWorld (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items]))) hst
-	= ([{i & delegatorName = name} \\ i <- items & name <- names], hst)
+addDelegatorNames items tst
+	# (names, tst)		= accHStTSt (accNWorldHSt (accUserDBNWorld (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items]))) tst
+	= ([{i & delegatorName = name} \\ i <- items & name <- names], tst)
 	
