@@ -8,9 +8,9 @@ module newsGroups
 import StdEnv, iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 
 
-:: NewsGroupNames:== [GroupName]					// list of newsgroup names
+:: NewsGroupNames:== [GroupName]				// list of newsgroup names
 :: GroupName	:== String						// Name of the newsgroup
-:: NewsGroup	:== [NewsItem]						// News stored in a news group
+:: NewsGroup	:== [NewsItem]					// News stored in a news group
 :: NewsItem		:== (Subscriber,Name,Message)	// id, name, and message of the publisher
 :: Subscriber	:== Int							// the id of the publisher
 :: Name			:== String						// the login name of the publisher
@@ -18,6 +18,17 @@ import StdEnv, iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 :: Subscriptions:== [Subscription]				// newsgroup subscriptions of user
 :: Subscription	:== (GroupName,Index)			// last message read in corresponding group
 :: Index		:== Int							// 0 <= index < length newsgroup 
+
+:: EMail	=	{ to 		:: !DisplayMode !String
+				, mailFrom :: !DisplayMode !String
+				, subject 	:: !String
+				, message	:: !HtmlTextarea
+				}
+
+derive gForm	EMail	
+derive gUpd		EMail	
+derive gParse	EMail	
+derive gPrint	EMail	
 
 nmessage = 2
 
@@ -39,19 +50,79 @@ newsGroups
 	,	label		= "subscribe to news group"
 	,	roles		= []
 	,	mainTask	= subscribeNewsGroup
+	},
+	{	name		= "internal email"
+	,	label		= "internal email"
+	,	roles		= []
+	,	mainTask	= internalEmail
+	},
+	{	name		= "internal emails with answers"
+	,	label		= "internal emails with answers"
+	,	roles		= []
+	,	mainTask	= internalEmailResponse
 	}
 	]
+
+// BUGs found: filter for tabs does not seem to work ok
+
+internalEmailResponse :: (Task Void)
+internalEmailResponse = Cancel internalEmailResponse`
+where
+	internalEmailResponse`
+	=							getMyName
+		=>> \(me,myname) ->		getToNames
+		=>> \tos ->				[Text "Type your message ..."] 
+								?>>	editTask "Commit" (initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
+		=>> \msg ->				myAndTasks [Text "Mail send to:"] 
+										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
+										, MailAndReply msg (me,myname) (to,toname))
+										\\ (to,toname) <- tos
+										]  
+	where
+		MailAndReply msg (me,myname) (to,toname)
+		=						to @: 	( msg.subject
+										, (showMSg msg ++ [Text "Reply requested: ", BrTag []])
+										  ?>> editTask "Reply" (HtmlTextarea 4 "")
+										)
+			=>> \(HtmlTextarea _ reply)
+						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
+									  , showMSg (initMsg myname toname ("RE: " <+++ msg.subject) reply) ?>> OK 
+									  )
+
+	
+internalEmail :: (Task Void)
+internalEmail
+=							getMyName
+	=>> \(me,myname) ->		getToName
+	=>> \(to,toname) ->		[Text "Type your message ..."] 
+							?>>	editTask "Commit" (initMsg toname myname "" "")
+	=>> \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> OK))
+
+initMsg to for subject msg 
+= {to = DisplayMode to, mailFrom = DisplayMode for, subject = subject , message = HtmlTextarea 4 msg}
+
+showMSg msg
+# (HtmlTextarea _ text) = msg.message
+# (DisplayMode to)		= msg.to
+# (DisplayMode for)		= msg.mailFrom
+
+=	[ Text ("For : " <+++ to), 			BrTag [] 
+	, Text ("From : " <+++ for), 		BrTag [] 
+	, Text ("Subject : " <+++ msg.subject), BrTag [], HrTag [], BrTag []
+	, Text text
+	, BrTag [], BrTag [], HrTag [] 
+	] 
 
 addNewsGroup :: (Task Void)
 addNewsGroup	= Cancel addNewsGroup` 
 where
 	addNewsGroup`
 	=						readNewsGroups
-		=>> \groups ->		(showCurrentGroups groups ++ [Text "Enter new news group name to add:",BrTag []])
+		=>> \groups ->		(showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
 							?>> editTask "Define" ""
 		=>> \newName ->		readNewsGroups
 		=>> \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
-		=>> \groups ->		chooseTask (showCurrentGroups groups ++ [Text "Do you want to add more ?"])
+		=>> \groups ->		chooseTask (showCurrentNames groups ++ [Text "Do you want to add more ?"])
 								[("Yes", addNewsGroup`)
 								,("No",  return_V Void)
 								]
@@ -59,13 +130,12 @@ where
 showNewsGroups :: (Task Void)
 showNewsGroups
 =						readNewsGroups
-	=>>	\groups	->		showCurrentGroups groups ?>> OK 
+	=>>	\groups	->		showCurrentNames groups ?>> OK 
 
-showCurrentGroups:: NewsGroupNames -> [HtmlTag]
-showCurrentGroups []		= [ Text "No newsgroups in catalogue yet !", BrTag [],BrTag []] 
-showCurrentGroups groups	= [ Text "Current newsgroups in catalogue:", BrTag [],BrTag []
-						  	  , toHtml (HtmlTextarea (min (length groups) 5) (foldl (\s1 s2 -> s1 +++ "\n" +++ s2) "" groups)), BrTag [], BrTag []
-						  	  ]
+showCurrentNames []		= [ Text "No names in catalogue yet !", BrTag [],BrTag []] 
+showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
+						  , toHtml (HtmlTextarea (min (length names) 5) (foldr (\s1 s2 -> s1 +++ "\n" +++ s2) "" names)), BrTag [], BrTag []
+						  ]
 
 subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
@@ -133,9 +203,8 @@ where
 
 	commitItem :: String -> Task Void
 	commitItem  group
-	=								getCurrentUserId
-		=>> \me ->					getDisplayNamesTask [me]
-		=>> \names ->      			commit me (hd names) group
+	=								getMyName
+		=>> \(me,name) ->      		commit me name group
 	where
 		commit me name group
 		=							[Text "Type your message ..."] 
@@ -145,17 +214,37 @@ where
 		 #>>							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 									?>> OK
 
-		
+getMyName
+=					getCurrentUserId
+	=>> \userid ->	getDisplayNamesTask [userid]
+	=>> \names -> 	return_V (userid, hd names)     			
 
+getToNames = getToNames` []
+where
+	getToNames` names 	
+	=						showCurrentNames (map snd names)
+							?>> getToName
+		=>> \(id,name) ->	let newnames = [(id,name):names] in
+							chooseTask (showCurrentNames (map snd newnames) ++ [BrTag [], Text "More names to add? ", BrTag []])
+								[ ("Yes", getToNames` newnames)
+								, ("No",  return_V    newnames)
+								]
+
+getToName ::  (Task (Int,String))
+getToName 
+= 						getUsersIds
+	=>> \userIds ->		getUserNamesTask userIds
+	=>> \names ->		chooseTask_pdm [Text "Select user to mail a message to: "] 0
+							[(name, return_V (userId,name)) \\ userId <- userIds & name <- names]
 
 OK :: Task Void
 OK = editTask "OK" Void
 
 Cancel :: (Task a) -> Task a | iData a
 Cancel task
-= 	orTasksV [("B",cancelTask),("O", task)]
+= 	orTasksV [("B",task),("O", cancelTask)]
 where
-	cancelTask = editTask "Cancel Task" Void <<? [HrTag []] #>> return_V createDefault
+	cancelTask = [HrTag []] ?>> editTask "Cancel Task" Void  #>> return_V createDefault
 
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
@@ -163,6 +252,9 @@ orTasks2 msg taskCollection
 =	newTask "orTasks" (allTasksCond "orTask" (TTSplit msg) (\list -> length list >= 1) taskCollection)
 	=>> \lista -> return_V (hd lista)
 	
+myAndTasks msg taskCollection	
+=	newTask "orTasks" (allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection)
+	=>> \lista -> return_V (hd lista)
 
 // reading and writing of storages
 

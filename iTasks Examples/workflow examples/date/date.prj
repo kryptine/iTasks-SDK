@@ -1,7 +1,7 @@
 Version: 1.4
 Global
 	Built:	True
-	Target:	fancyTasks
+	Target:	StdEnv
 	Exec:	{Project}\date.exe
 	CodeGen
 		CheckStacks:	False
@@ -60,7 +60,7 @@ MainModule
 			Y:	26
 			SizeX:	1123
 			SizeY:	557
-	IclOpen:	False
+	IclOpen:	True
 OtherModules
 	Module
 		Name:	DeauthenticationHandler

@@ -58,8 +58,8 @@ MainModule
 		WindowPosition
 			X:	47
 			Y:	13
-			SizeX:	1272
-			SizeY:	735
+			SizeX:	1270
+			SizeY:	730
 	IclOpen:	True
 OtherModules
 	Module
@@ -146,7 +146,7 @@ OtherModules
 				X:	10
 				Y:	10
 				SizeX:	1068
-				SizeY:	763
+				SizeY:	730
 		IclOpen:	True
 	Module
 		Name:	Void

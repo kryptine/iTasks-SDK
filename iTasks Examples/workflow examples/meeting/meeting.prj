@@ -59,8 +59,8 @@ MainModule
 			X:	125
 			Y:	49
 			SizeX:	1110
-			SizeY:	559
-	IclOpen:	False
+			SizeY:	489
+	IclOpen:	True
 OtherModules
 	Module
 		Name:	StdCleanTypes
@@ -2924,6 +2924,12 @@ OtherModules
 				SizeX:	998
 				SizeY:	720
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
 		IclOpen:	False
 	Module
 		Name:	StdLib
