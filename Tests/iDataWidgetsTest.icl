@@ -16,7 +16,12 @@ where
 		  		}
 		  	]
 
-:: AllWidgets = 	{ htmlButton	:: HtmlButton
+:: AllWidgets = 	{ int			:: Int
+					, real			:: Real
+					, bool			:: Bool
+					, string		:: String
+					, maybe			:: Maybe String
+					, htmlButton	:: HtmlButton
 					, htmlCheckbox	:: HtmlCheckbox
 					, htmlSelect	:: HtmlSelect
 					, htmlRadiogroup:: HtmlRadiogroup
