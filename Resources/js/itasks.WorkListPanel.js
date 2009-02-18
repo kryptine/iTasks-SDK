@@ -24,7 +24,6 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 				successProperty: 'success'
 			},[
 				{name: 'subject'},
-				{name: 'processname'},
 				{name: 'delegatorName'},
 				{name: 'priority'},
 				{name: 'timestamp'},
@@ -35,6 +34,8 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			])
 	}),	
 	workView: new Ext.ux.grid.livegrid.GridView({
+		deferEmptyText: true,
+		emptyText: 'There is no unfinished work.',
 		nearLimit: 100,
 		loadMask: { msg: 'Please wait...'}
 	}),
@@ -66,7 +67,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			
 			//Add label
 			html += '<div class="treegrid-label" style="left: ' + (level + 2) * 16 + 'px">' + label + '</div>';
-			
+
 			return html;
 		};
 	
@@ -76,18 +77,12 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			view: this.workView,
 			selModel: new Ext.ux.grid.livegrid.RowSelectionModel(),
 			columns: [
-				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200 },
-				{id: 'processname', header: 'Workflow', dataindex: 'processname', width: 100},
-				{id: 'delegatorName', header: 'Delegated by', dataIndex: 'delegatorName', width: 100 },
-				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100 },
+				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200},
+				{id: 'delegatorName', header: 'Delegated by', dataIndex: 'delegatorName', width: 100},
+				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100},
 				{id: 'taskid', header: 'Task nr', dataIndex: 'taskid', width: 100}
 			],
-			viewConfig: {
-				forceFit: true,
-				emptyText: 'There is no unfinished work.',
-				deferEmptyText: false
-			},
 			autoExpandColumn: 'subject',
 			enableColumnMove: false,
 			enableHdMenu: false,

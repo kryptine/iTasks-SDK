@@ -11,7 +11,3 @@ itasks.util.formatPriority = function(priority) {
 	}
 	return priority;
 }
-
-function void() {
-
-}
