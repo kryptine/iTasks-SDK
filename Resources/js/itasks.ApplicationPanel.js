@@ -81,11 +81,13 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		newpanel.refresh();
 		worklist.refresh();
 		
+		
 		//Connect event handlers	
 		worklist.on("cellclick",function (grid,row,col,event) {
 		
-			var tab = worktabs.openWorkTab(grid.getTaskId(row));
-
+			var trace = debugpanel.getTraceCheckbox().getValue();
+			var tab = worktabs.openWorkTab(grid.getTaskId(row),trace);
+			
 			if(tab[1]) { //The tab is new
 				tab[0].on("taskfinished",function(taskid) {
 					worklist.refresh();
@@ -108,7 +110,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			//When new work is started, refresh the worklist
 			//and immediately open a tab for the work
 			worklist.refresh();
-			var tab = worktabs.openWorkTab(taskid);
+			
+			var trace = debugpanel.getTraceCheckbox().getValue();
+			var tab = worktabs.openWorkTab(taskid, trace);
 			if(tab[1]) { //The tab is new
 				tab[0].on("taskfinished",function(taskid) {
 					worklist.refresh();

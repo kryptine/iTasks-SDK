@@ -17,7 +17,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		
 		itasks.WorkTabsPanel.superclass.initComponent.apply(this, arguments);
 	},
-	openWorkTab: function (taskid) {
+	openWorkTab: function (taskid, trace) {
 
 		//Id is prefixed with the string "worktab-"
 		var id = "worktab-" + taskid;
@@ -29,7 +29,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		if(tab == undefined) {
 			//Create new tab
 			isnew = true;
-			tab = new itasks.WorkTabPanel({id: id, taskId: taskid, sessionId: this.sessionId, application: this.application});
+			tab = new itasks.WorkTabPanel({id: id, taskId: taskid, sessionId: this.sessionId, application: this.application, trace: trace});
 			//Add new tab
 			this.add(tab);
 			this.activate(tab);
