@@ -1,6 +1,6 @@
 module shop
 
-import StdEnv, iTasks
+import StdEnv, iTasks, iDataTrivial
 
 :: DBRef a		= DBRef Int
 
@@ -11,37 +11,37 @@ import StdEnv, iTasks
 					}
 :: ProductId 	:== DBRef Product
 
-:: Cart			:== [(CartItem, CartAmount)]
-
-:: CartAmount	=	{ orderAmount			:: !Int}
-:: CartItem		=	{ id_				:: !CartId
-					, productNr			:: !ProductId
+:: Cart items		:== [(CartItem items, CartAmount)]
+:: CartItem	items	=	
+					{ id_				:: !CartId items
+					, productNr			:: !DBRef items
 					, description		:: !String
 					, amountInStore		:: !Int
 					, pricePerUnit		:: !Int
 					}
+:: CartAmount	=	{ orderAmount			:: !Int}
+:: CartId items		:== DBRef (Cart items)
 
-:: Order		=	{ id_				:: !OrderId
+:: Order items	=	{ id_				:: !OrderId items
 					, name				:: !String
-					, products			:: !Cart
+					, products			:: !Cart items
 					, billingAddress	:: !Address
 					, shippingAddress	:: !Address
 					}
-:: CartId		:== DBRef Cart
-:: OrderId		:== DBRef Order
+:: OrderId items	:== DBRef (Order items)
 
 :: Address		=	{ street		:: !String
 					, number		:: !String
 					, postalCode	:: !String
 					, city			:: !String
 					}
+:: ShopActions		= LeaveShop | ToCart | ToPay | ToShop
 
-:: Action		=	AAdd | AEdit | ADelete
 
-derive gForm	DBRef, Product, Order, Address, Action, CartItem, CartAmount
-derive gUpd		DBRef, Product, Order, Address, Action, CartItem, CartAmount
-derive gPrint	DBRef, Product, Order, Address, Action, CartItem, CartAmount
-derive gParse	DBRef, Product, Order, Address, Action, CartItem, CartAmount
+derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopActions
+derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopActions
+derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopActions
+derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopActions
 
 Start :: *World -> *World
 Start world = startEngine flows world
@@ -50,65 +50,103 @@ where
 		=	[ { name		= "Manage catalog"
  			  , label		= "Manage catalog"
 			  , roles		= []
-			  , mainTask	= manageCatalog defaultProduct
+			  , mainTask	= manageCatalog catalogPrompt defaultProduct
 			  }
 			, { name		= "browseShop"
 			  , label		= "Browse shop"
 			  , roles		= []
-			  , mainTask	= browseShop
+			  , mainTask	= browseShop shopPrompt cartPrompt defaultCart
 			  }
 			]
 
 defaultProduct :: Product
 defaultProduct = createDefault
 
+defaultCart :: (Cart Product)
+defaultCart = []
+
+shopPrompt 		= [HrTag [], boldText "Welcome to My Shop", HrTag []]
+cartPrompt 		= [HrTag [], boldText "My Shop Shopping Cart", HrTag []]
+catalogPrompt 	= [HrTag [], boldText "My Shop Product Catalogue", HrTag []]
+
 //Frontend		
-browseShop :: Task Void
-browseShop = browseShop` [] 
+
+browseShop :: [HtmlTag] [HtmlTag] (Cart a) -> Task Void | toChart a & iData a & DB a
+browseShop shopPrompt cartPrompt chart = browseShop` chart
 where
-	browseShop` :: Cart -> Task Void
+	browseShop` :: (Cart a) -> Task Void | toChart a & iData a & DB a
 	browseShop` cart
-		=	dbReadAll				=>> \products ->
-			shopCatalog products	=>> \product -> 
-			addToChart product cart	=>> \ncart ->
-			browseShop` ncart
-
-	shopCatalog products
-		= orTasksVert (editItems itemActions products)
+		= 	dbReadAll =>> \items -> 
+			doShopping items cart
 	where
-		itemActions :: Product -> Task Product
-		itemActions product
-			= chooseTask_btn [toHtml product] 
-				[("Add to Cart",return_V product)
-				]
+		doShopping [] cart
+			=	(shopPrompt ++ [normalText "Currently no items in catalogue, sorry"])
+				?>> editTask "OK" Void
+		doShopping items cart
+			= 	orTasksVert
+						[ chooseAction shopPrompt cart
+						, orTasksVert (editItems itemActions items) =>> \item -> addToCart item cart
+						] =>> parseAction items
+		where
+			itemActions :: a -> Task a | iData a
+			itemActions item
+				= chooseTask_btn [toHtml item] 
+					[("Add to Cart", return_V item)
+					]
 
-	addToChart :: Product Cart -> Task Cart
-	addToChart product cart
-		# ncart = cart ++ [(productToChart (length cart) product, {orderAmount = 1})]
-		=  orTasksVert (editItems (itemActions ncart) ncart)
-	where	
-		itemActions :: Cart (CartItem, CartAmount) -> Task Cart
-		itemActions cart (cartItem,amount)
-			= [toHtml cartItem] 
-				?>> editTask "Change" amount =>> \namount ->
-					return_V (adjust (cartItem, namount) cart)
+			addToCart :: a (Cart a) -> Task (ShopActions,Cart a) | toChart a & iData a 
+			addToCart item cart
+				# ncart = cart ++ [(toChart (length cart) item, {orderAmount = 1})]
+				= return_V (ToCart,ncart)
 
-	adjust (cartItem,amount) [] = []
-	adjust (cartItem,amount) [(c,a):carts]
-		| cartItem.CartItem.id_ == c.CartItem.id_ = [(c,amount):carts]		 
-		= [(c,a): adjust (cartItem,amount) carts]
+		parseAction items (LeaveShop,cart) 	= return_V Void
+		parseAction items (ToCart,cart) 	= showCart cart =>> parseAction items 
+		parseAction items (ToShop,cart) 	= doShopping items cart
+		parseAction items (_,cart) 			= doShopping items cart
 
-/*	addToChart product cart
-		=  let ncart = [(addProductToChart product,1):cart] in
-		   ([toHtml item \\ item <- ncart] ?>> editTask "OK" Void) #>> return_V ncart
-*/
+
+	showCart ::(Cart a) -> Task (ShopActions,Cart a) | toChart a & iData a 
+	showCart []
+		=	chooseAction cartPrompt [] <<? [normalText "No items in Cart yet !"]
+	showCart cart
+		= 	orTasksVert [chooseAction cartPrompt cart, editCarts cart]
+	where
+		editCarts ::(Cart a) -> Task (ShopActions,Cart a) | toChart a & iData a 
+		editCarts cart 
+			= 	orTasksVert (editItems (itemActions cart) cart) =>> \ncart ->
+				return_V (ToCart,ncart)
+		where
+			itemActions :: (Cart a) (CartItem a, CartAmount) -> Task (Cart a) | toChart a & iData a 
+			itemActions cart (cartItem,amount)
+				= [toHtml cartItem] 
+					?>> editTask "Change" amount =>> \namount ->
+						return_V (adjustAmount (cartItem, namount) cart)
+			where
+				adjustAmount :: (CartItem a, CartAmount) (Cart a) -> (Cart a)
+				adjustAmount (cartItem,amount) [] = []
+				adjustAmount (cartItem,amount) [(c,a):carts]
+					| cartItem.CartItem.id_ == c.CartItem.id_ = [(c,amount):carts]		 
+					= [(c,a): adjustAmount (cartItem,amount) carts]
+
+	chooseAction :: [HtmlTag] (Cart a) -> Task (ShopActions, Cart a) | toChart a & iData a 
+	chooseAction promptOfShop cart
+		=	chooseTask 	[] 
+				[ ("Do Shopping",   return_V (ToShop,cart))
+				, ("Order and pay", return_V (ToPay,cart))
+				, ("Show Cart",     return_V (ToCart,cart))
+				, ("Leave Shop",    return_V (LeaveShop,cart))
+				] <<? [BrTag [], boldText ("Total cost of ordered items = " <+++ totalCost cart), BodyTag [] promptOfShop]
+	where
+		totalCost cart = sum [item.pricePerUnit * amount.orderAmount \\ (item,amount) <- cart]
+	
+
 //Backend
-manageCatalog :: a -> Task Void | iData a &  DB a
-manageCatalog defaultValue = stopTask manageCatalog`
+manageCatalog :: [HtmlTag] a -> Task Void | iData a & DB a
+manageCatalog catalogPrompt defaultValue = stopTask manageCatalog`
 where
 	manageCatalog`
 		=	dbReadAll							=>> \catalog ->
-			browseCatalog defaultValue catalog	=>> \_ -> 
+			browseCatalog defaultValue catalog	#>> 
 			manageCatalog`
 
 	browseCatalog :: a [a] -> Task Void | iData a &  DB a
@@ -116,14 +154,15 @@ where
 		= addItem defaultValue  =>> \item ->
 		  browseCatalog defaultValue [item]
 	where
-		addItem :: a -> Task a | iData a &  DB a
+		addItem :: a -> Task a | iData a & DB a
 		addItem defaultValue
-			= editTask "Store" defaultValue =>> \item ->
-			  dbCreate item #>>
-			  return_V item
+			=	editTask "Store" defaultValue =>> \item ->
+			  	dbCreate item #>>
+			  	return_V item
 	
 	browseCatalog defaultValue items
-		= orTasksVert (editItems itemActions items)
+		=	catalogPrompt 
+			?>> orTasksVert (editItems itemActions items)
 	where
 		itemActions :: a -> Task Void | iData a & DB a
 		itemActions item
@@ -146,19 +185,16 @@ where
 			=  [toHtml item] ?>> editTask "Store" createDefault =>> \nitem ->
 			   dbReadAll =>> \items -> 
 			   let (before,after) = span (\p -> getItemId p <>  getItemId item) items in
-			  	dbWriteAll (before ++ [item,setItemId (newDBRef items) nitem] ++ (tl after)) #>>
-			  	return_V Void
+			  	dbWriteAll (before ++ [item,setItemId (newDBRef items) nitem] ++ (tl after)) 
 		
 		editItem :: a -> Task Void | iData a & DB a
 		editItem item 
 			= editTask "Store" item =>> \nitem ->
-			  dbUpdate (getItemId item) nitem 
+			  dbUpdate nitem 
 		
 		deleteItem :: a -> Task Void | iData a & DB a
 		deleteItem item 
-			= dbDelete (getItemId item) 
-	
-
+			= dbDelete item 
 
 // general stuf
 
@@ -170,13 +206,25 @@ stopTask :: (Task a) -> (Task a) | iData a
 stopTask task
 	= 	orTasksVert [task,stopIt]
 where
-	stopIt = [BrTag []] ?>> editTask "Stop Task" Void  #>> return_V createDefault
+	stopIt = [BrTag []] ?>> editTask "Finish" Void  #>> return_V createDefault
 
 orTasksVert :: [Task a] -> Task a | iData a
 orTasksVert items = orTasksV [(toString i,item) \\ item <- items & i <- [0..]]
 
+boldText text 	= BTag [] [Text text, BrTag [], BrTag []]
+normalText text = BodyTag [] [Text text, BrTag [], BrTag []]
 
-productToChart itemnr product
+isNil [] = True
+isNil _  = False
+
+class toChart a 
+where
+	toChart :: Int a -> CartItem a
+
+
+instance toChart Product
+where
+	toChart itemnr product
 	= { id_				= DBRef itemnr
 	  , productNr 		= getItemId product
 	  , description		= product.Product.name
@@ -186,7 +234,7 @@ productToChart itemnr product
 
 continue :: String (Task Void) -> (Task Void) 
 continue prompt task
-	=	chooseTask [Text prompt, BrTag []]
+	=	chooseTask [normalText prompt]
 		[ ("Yes", task)
 		, ("No",  return_V Void)
 		]
@@ -215,32 +263,32 @@ where
 	newDBRef` [j:js] i 
 	| j > i = newDBRef` js j
 	= newDBRef` js i
-	
+/*	
 dbRead :: (DBRef a) -> Task a | iData a & DB a
 dbRead ref
 	= readDB databaseId 		=>> \items -> 
 	  return_V (hd [item \\ item <- items | getItemId item == ref])
-	
+*/	
 dbReadAll :: Task [a] | iData a & DB a
 dbReadAll = readDB databaseId
 
 dbWriteAll :: [a] -> Task Void | iData a & DB a
 dbWriteAll all = writeDB databaseId all #>> return_V Void
 
-dbUpdate :: (DBRef a) a -> Task Void |  iData a & DB a
-dbUpdate ref nitem 
+dbUpdate ::  a -> Task Void |  iData a & DB a
+dbUpdate nitem 
 	= readDB databaseId									=>> \items ->
-	  writeDB databaseId (update ref nitem items)		#>>
+	  writeDB databaseId (update (getItemId nitem) nitem items)		#>>
 	  return_V Void
 where
 	update ref nitem items 
 		= [if (getItemId item == ref) nitem item \\ item <- items]
 
 
-dbDelete :: (DBRef a) -> Task Void | iData a & DB a 
-dbDelete ref
+dbDelete :: a -> Task Void | iData a & DB a 
+dbDelete item
 	= readDB databaseId							=>> \items ->
-	  writeDB databaseId (delete ref items)		#>>
+	  writeDB databaseId (delete (getItemId item) items)		#>>
 	  return_V Void
 where
 	delete ref  items 
@@ -257,9 +305,9 @@ where
 instance DB Product where
 	databaseId			= mkDBid "products" LSTxtFile
 	getItemId item		= item.Product.id_
-	setItemId id item	= {Product|item & id_ = id}
+	setItemId id item 	= {Product|item & id_ = id}
 
-instance DB Order where
+instance DB (Order items) where
 	databaseId			= mkDBid "orders" LSTxtFile
 	getItemId item		= item.Order.id_
 	setItemId id item	= {Order|item & id_ = id}
