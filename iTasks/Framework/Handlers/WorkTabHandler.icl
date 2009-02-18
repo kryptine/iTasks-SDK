@@ -6,8 +6,8 @@ import TaskTree
 import iDataForms, iDataState, iDataFormlib
 import JSON
 import Debug, Util
-from ProcessDB import :: ProcessStatus(..)
-from UserDB import getDisplayNames
+from ProcessDB	import :: ProcessStatus(..)
+from UserDB		import getDisplayNames
 
 derive JSONEncode TabContent, TaskStatus, InputDefinition, UpdateEvent, HtmlState, StorageFormat, Lifespan, TaskPriority
 
@@ -32,9 +32,7 @@ derive JSONEncode TabContent, TaskStatus, InputDefinition, UpdateEvent, HtmlStat
 				| TaskActive
 				| TaskSuspended
 				| TaskDeleted
-/**
-* Handles the ajax requests for a work tab panel.
-*/
+
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest request tst
 	# tst											= appHStTSt (setHStPrefix prefix) tst 	//Set editor prefix
@@ -49,8 +47,8 @@ handleWorkTabRequest request tst
 														= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
 			# (delegatorName, tst)						= getDelegatorName delegator tst
 			//Tracing
-			# stateTrace								= Nothing
-			# updateTrace								= Nothing
+			# (stateTrace, tst)							= mbStateTrace tst
+			# (updateTrace, tst)						= mbUpdateTrace tst
 			# taskTreeTrace								= mbTaskTreeTrace taskTree
 			
 			# activeTasks								= Nothing
@@ -166,29 +164,16 @@ where
 			= Just (toString (traceTaskTree taskTree))
 		| otherwise
 			= Nothing
-/*
-	mbStateTrace req states
-		| traceOn
-			# (trace1,states)	= traceInStates states
-			# (trace2,states)	= traceStates states
-			= (Just (toString (DivTag [] [trace1,trace2])), states)
-		| otherwise
-			= (Nothing, states)
-	mbUpdateTrace req states
-		| traceOn
-			# (trace,states)	= traceUpdates states
-			= (Just (toString trace), states)
-		| otherwise
-			= (Nothing, states)	
 
-*/	
-/*
-	# (stateTrace,states)							= mbStateTrace request states
-	# (updateTrace,states)							= mbUpdateTrace request states
-
-	# activeTasks									= if (taskStatus == TaskFinished || taskStatus == TaskDeleted) 
-														(Just [	mytaskdescr.taskNrId													
-														  \\ (mypath,mylast,mytaskdescr) <- determineTaskList thisUserId htmlTree
-													 	 ])
-											    		Nothing
-*/
+	mbStateTrace tst
+		| trace
+			# (states,tst) = accHStTSt (accFormStatesHSt traceStates) tst
+			= (Just (toString states), tst)
+		| otherwise
+			= (Nothing,tst)
+	mbUpdateTrace tst
+		| trace
+			# (updates,tst)	= accHStTSt (accFormStatesHSt traceUpdates) tst
+			= (Just (toString updates), tst)
+		| otherwise
+			= (Nothing, tst)	

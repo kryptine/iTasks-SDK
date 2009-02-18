@@ -35,6 +35,16 @@ accNWorldHSt f hst=:{nworld}
 	# (a, nworld) = f nworld
 	= (a, {hst & nworld = nworld})
 
+//Acces to the FormStates embedded in the HSt
+appFormStatesHSt :: !.(*FormStates -> *FormStates)	!*HSt -> *HSt
+appFormStatesHSt f hst=:{states}
+	= {hst & states = f states}
+	
+accFormStatesHSt :: !.(*FormStates -> *(.a,*FormStates)) !*HSt -> (.a,!*HSt)
+accFormStatesHSt f hst=:{states}
+	# (a, states) = f states
+	= (a, {hst & states = states})
+
 // General access to the World environment on HSt:
 appWorldHSt :: !.(*World -> *World) !*HSt -> *HSt
 appWorldHSt f hst = (appNWorldHSt o appWorldNWorld) f hst

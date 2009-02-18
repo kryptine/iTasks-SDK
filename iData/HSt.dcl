@@ -23,6 +23,9 @@ instance FileSystem HSt																	// enabling file IO on HSt
 appNWorldHSt			:: !.(*NWorld -> *NWorld)       !*HSt -> *HSt					// enabling NWorld operations on HSt
 accNWorldHSt			:: !.(*NWorld -> *(.a,*NWorld)) !*HSt -> (.a,!*HSt)				// enabling NWorld operations on HSt
 
+appFormStatesHSt		:: !.(*FormStates -> *FormStates)	!*HSt -> *HSt				// enabling FormStates operations on HSt
+accFormStatesHSt		:: !.(*FormStates -> *(.a,*FormStates)) !*HSt -> (.a,!*HSt)		// enabling FormStates operations on HSt
+
 appWorldHSt				:: !.(*World -> *World)       !*HSt -> *HSt						// enabling World operations on HSt
 accWorldHSt				:: !.(*World -> *(.a,*World)) !*HSt -> (.a,!*HSt)				// enabling World operations on HSt
 
