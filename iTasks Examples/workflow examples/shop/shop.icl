@@ -25,7 +25,7 @@ import StdEnv, iTasks, iDataTrivial
 
 :: Order items	=	{ id_				:: !OrderId items
 					, name				:: !String
-					, products			:: !Cart items
+					, itemsOrdered		:: !Cart items
 					, billingAddress	:: !Address
 					, shippingAddress	:: !Address
 					}
@@ -36,6 +36,7 @@ import StdEnv, iTasks, iDataTrivial
 					, postalCode	:: !String
 					, city			:: !String
 					}
+
 :: ShopActions		= LeaveShop | ToCart | ToPay | ToShop
 
 
@@ -68,7 +69,7 @@ defaultCart = []
 
 shopPrompt 		= [HrTag [], boldText "Welcome to My Shop", HrTag []]
 cartPrompt 		= [HrTag [], boldText "My Shop Shopping Cart", HrTag []]
-catalogPrompt 	= [HrTag [], boldText "My Shop Product Catalogue", HrTag []]
+catalogPrompt 	= [HrTag [], boldText "My Shop Product Catalogue Browser", HrTag []]
 
 //Frontend		
 
@@ -81,8 +82,8 @@ where
 			doShopping items cart
 	where
 		doShopping [] cart
-			=	(shopPrompt ++ [normalText "Currently no items in catalogue, sorry"])
-				?>> editTask "OK" Void
+			=	(shopPrompt ++ [normalText "Currently no items in catalogue, sorry."])
+				?>> OK
 		doShopping items cart
 			= 	orTasksVert
 						[ chooseAction shopPrompt cart
@@ -103,8 +104,7 @@ where
 		parseAction items (LeaveShop,cart) 	= return_V Void
 		parseAction items (ToCart,cart) 	= showCart cart =>> parseAction items 
 		parseAction items (ToShop,cart) 	= doShopping items cart
-		parseAction items (_,cart) 			= doShopping items cart
-
+		parseAction items (ToPay,cart) 		= checkOutAndPay {createDefault & itemsOrdered = cart}
 
 	showCart ::(Cart a) -> Task (ShopActions,Cart a) | toChart a & iData a 
 	showCart []
@@ -133,14 +133,73 @@ where
 	chooseAction :: [HtmlTag] (Cart a) -> Task (ShopActions, Cart a) | toChart a & iData a 
 	chooseAction promptOfShop cart
 		=	chooseTask 	[] 
-				[ ("Do Shopping",   return_V (ToShop,cart))
-				, ("Order and pay", return_V (ToPay,cart))
-				, ("Show Cart",     return_V (ToCart,cart))
-				, ("Leave Shop",    return_V (LeaveShop,cart))
+				[ ("Do Shopping",   	return_V (ToShop,cart))
+				, ("Check Out and Pay", return_V (ToPay,cart))
+				, ("Show Cart",     	return_V (ToCart,cart))
+				, ("Leave Shop",    	return_V (LeaveShop,cart))
 				] <<? [BrTag [], boldText ("Total cost of ordered items = " <+++ totalCost cart), BodyTag [] promptOfShop]
-	where
-		totalCost cart = sum [item.pricePerUnit * amount.orderAmount \\ (item,amount) <- cart]
+
+
+// finishing ordering process
 	
+checkOutAndPay order 
+	= 	getClientInfo order =>> \order ->
+		confirmOrder order =>> 
+		doOrder order
+where
+	doOrder order False = return_V Void
+	doOrder order True 
+		=	dbReadAll =>> \orders ->
+			dbWriteAll (orders ++ [order]) #>>
+			getMyName =>> \(myid,myname) ->			
+			spawnProcess myid True ("Order Confirmed",[toHtml order, costOrder order] ?>> OK) #>>	
+			spawnProcess shopOwner True ("New Order from " <+++ myname,[toHtml order, costOrder order] ?>> OK) #>>	
+			return_V Void
+
+	costOrder order = boldText ("Amount to pay is: " <+++ totalCost order.itemsOrdered <+++ ".")
+
+	confirmOrder order
+		=	chooseTask 	[ costOrder order
+					 	, normalText "Confirm Order"
+						]
+			[("Yes",return_V True),("No",return_V False)]
+
+	getClientInfo order
+		=	fillInYourName order		=>> \order ->
+			fillInBillingAddress order	=>> \order ->
+			fillInShippingAddress order	=>> \order ->
+			isCorrect order getClientInfo
+	where
+		fillInYourName :: (Order a) -> Task (Order a) | iData a
+		fillInYourName order
+			= 	[normalText "Please filll in your name:"] 
+				?>> editTask "Commit" order.Order.name =>> \name ->
+				return_V {order & Order.name = name}
+	
+		fillInBillingAddress :: (Order a) -> Task (Order a) | iData a
+		fillInBillingAddress order
+			= 	[normalText "Please filll in the billing address:"]
+				?>> editTask "Commit" order.billingAddress =>> \billingAddress ->
+				return_V {order & billingAddress = billingAddress}
+	
+		fillInShippingAddress :: (Order a)  -> Task (Order a) | iData a
+		fillInShippingAddress order
+			= 	chooseTask 	[ normalText "Billing address:"
+							, toHtml order.billingAddress
+							, normalText "Is the shipping addres same as the billing address above?"
+							]
+					[ ("Yes", return_V {order & shippingAddress = order.billingAddress})
+					, ("No", [normalText "Please filll in the shipping address:"]
+							 ?>> editTask "Commit" order.shippingAddress =>> \shippingAddress ->
+							 return_V {order & shippingAddress = shippingAddress})
+					]
+		isCorrect :: (Order a) ((Order a) -> Task (Order a)) -> Task (Order a) | iData a
+		isCorrect data tryagain
+			= 	chooseTask 	[toHtml data, costOrder order, normalText "Is the data above correct ?"]
+					[ ("Yes", return_V data)
+					, ("No", tryagain data)
+					]
+
 
 //Backend
 manageCatalog :: [HtmlTag] a -> Task Void | iData a & DB a
@@ -213,11 +272,22 @@ where
 orTasksVert :: [Task a] -> Task a | iData a
 orTasksVert items = orTasksV [(toString i,item) \\ item <- items & i <- [0..]]
 
+totalCost cart = sum [item.pricePerUnit * amount.orderAmount \\ (item,amount) <- cart]
+
 boldText text 	= BTag [] [Text text, BrTag [], BrTag []]
 normalText text = BodyTag [] [Text text, BrTag [], BrTag []]
 
+shopOwner = 0
+
 isNil [] = True
 isNil _  = False
+
+getMyName
+=					getCurrentUserId
+	=>> \userid ->	getDisplayNamesTask [userid]
+	=>> \names -> 	return_V (userid, hd names)     			
+
+OK = editTask "OK" Void
 
 class toChart a 
 where
