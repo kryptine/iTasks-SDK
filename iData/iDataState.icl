@@ -381,7 +381,7 @@ deleteStateFile  filename env
 traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
 traceStates formstates=:{fstates}
 # (rows, fstates) = traceStates` fstates
-= (DivTag [IdAttr "itasks-trace-states",ClassAttr "trace"] [H2Tag [] [Text "States:"], TableTag [] [header : rows]], {formstates & fstates = fstates})
+= (TableTag [ClassAttr "debug-table"] [header : rows], {formstates & fstates = fstates})
 where
 	header = TrTag [] [ThTag [] [Text "Form ID"],ThTag [] [Text "Inspected"],ThTag [] [Text "Lifespan"],ThTag [] [Text "Format"], ThTag [] [Text "Value"]]
 
@@ -404,21 +404,19 @@ strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
 
 traceUpdates :: !*FormStates -> (!HtmlTag,!*FormStates)
 traceUpdates formstates =:{updates}
-= (DivTag [IdAttr "itasks-trace-updates",ClassAttr "trace"] [H2Tag [] [Text "Updates:"], TableTag [] [header : rows]], formstates)
+= (TableTag [ClassAttr "debug-table"] [header : rows], formstates)
 where
 	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Input ID"], ThTag [] [Text "Value"]]
 	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString inputid)], TdTag [] [Text value]] \\ {FormUpdate|formid,inputid,value} <- updates ]
 
 traceInStates	:: !*FormStates -> (!HtmlTag,!*FormStates)
 traceInStates formstates =:{instates}
-= (DivTag [IdAttr "itasks-trace-instates",ClassAttr "trace"] [H2Tag [] [Text "Initial Html States:"], TableTag [] [header : rows]],formstates)
+= (TableTag [ClassAttr "debug-table"] [header : rows],formstates)
 where
 	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Lifespan"], ThTag [] [Text "Format"], ThTag [] [Text "Value"]]
 	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString lifespan)], TdTag [] [Text (toString format)],TdTag [] [Text state]] \\ {HtmlState|formid,lifespan,state,format} <- instates]
 
-
 // debugging code 
-
 print_graph :: !a -> Bool;
 print_graph a = code {
 .d 1 0

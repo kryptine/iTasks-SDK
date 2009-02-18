@@ -15,6 +15,7 @@ itasks.ProcessTableTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 			autoScroll: true,
 			url: 'handlers/debug/processtable',
 			cls: 'worktab-container',
+			bodyStyle: 'padding: 10px;',
 			tbar: [{
 					text: 'Refresh',
 					iconCls: 'x-tbar-loading',

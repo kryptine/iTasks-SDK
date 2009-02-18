@@ -5,19 +5,20 @@ import ProcessDB
 import TaskTree
 
 traceProcesses :: [Process] -> HtmlTag
-traceProcesses processes = DivTag [ClassAttr "trace"] (mkTable processes)
+traceProcesses processes = mkTable processes
 where
-	mkTable processes	= [TableTag [] [mkHeader: [mkRow process \\ process <- processes]]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Owner"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
+	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text (toString process.Process.id)]
 							, TdTag [] [Text (toString process.Process.owner)]
+							, TdTag [] [Text (toString process.Process.delegator)]
 							, TdTag [] [Text (case process.Process.process of
 												(LEFT _) 	= "Static"
 												(RIGHT _)	= "Dynamic"
 											  )]
 							, TdTag [] [Text (toString process.Process.status)]
 							, TdTag [] (case process.Process.process of
-											(LEFT _)	= []
+											(LEFT _)	= [Text "N/A"]
 											(RIGHT dyn)	= [Text (toString dyn.DynamicProcessEntry.parent)]
 										)
 							]

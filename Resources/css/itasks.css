@@ -215,14 +215,19 @@ div.it-task-overview-icon {
 }
 
 /* TRACE STYLES */
-div.trace {
-	border: #ccc 2px solid;
-	padding: 5px;
-	margin-bottom: 5px;
+table.debug-table {
+	width: 100%;
+	background-color: #fff;
 }
-div.trace h2 {
-	font-size: 16px;
-	margin: 0px 0px 10px 0px;
+table.debug-table th {
+	padding: 2px;
+	color: #fff;
+	background-color: #2e72b6;
+	font-weight: bold;
+}
+table.debug-table td {
+	padding: 2px;
+	vertical-align: top;
 }
 
 div.trace-process {
