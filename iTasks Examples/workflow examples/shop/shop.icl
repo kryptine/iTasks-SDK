@@ -16,7 +16,8 @@ import StdEnv, iTasks, iDataTrivial
 					{ id_				:: !CartId items
 					, productNr			:: !DBRef items
 					, description		:: !String
-					, amountInStore		:: !Int
+					, amountInStock		:: !Int
+					, amountOrdered		:: !Int
 					, pricePerUnit		:: !Int
 					}
 :: CartAmount	=	{ orderAmount			:: !Int}
@@ -119,13 +120,14 @@ where
 			itemActions :: (Cart a) (CartItem a, CartAmount) -> Task (Cart a) | toChart a & iData a 
 			itemActions cart (cartItem,amount)
 				= [toHtml cartItem] 
-					?>> editTask "Change" amount =>> \namount ->
+					?>> editTask "Change" {orderAmount = cartItem.amountOrdered} =>> \namount ->
 						return_V (adjustAmount (cartItem, namount) cart)
 			where
 				adjustAmount :: (CartItem a, CartAmount) (Cart a) -> (Cart a)
 				adjustAmount (cartItem,amount) [] = []
-				adjustAmount (cartItem,amount) [(c,a):carts]
-					| cartItem.CartItem.id_ == c.CartItem.id_ = [(c,amount):carts]		 
+				adjustAmount (cartItem, amount) [(c,a):carts]
+					| cartItem.CartItem.id_ == c.CartItem.id_ 
+						= [({c & amountOrdered = max 0 (min amount.orderAmount c.amountInStock)},amount):carts]		 
 					= [(c,a): adjustAmount (cartItem,amount) carts]
 
 	chooseAction :: [HtmlTag] (Cart a) -> Task (ShopActions, Cart a) | toChart a & iData a 
@@ -228,7 +230,8 @@ where
 	= { id_				= DBRef itemnr
 	  , productNr 		= getItemId product
 	  , description		= product.Product.name
-	  , amountInStore	= product.amount
+	  , amountInStock	= product.amount
+	  , amountOrdered	= if (product.amount >= 0) 1 0
 	  , pricePerUnit	= product.price
 	   }
 
