@@ -65,7 +65,7 @@ determineTreeWorkItems userId addSequences parentLast isLast (TTProcess info seq
 				| item.split	= [{item & taskid = (toString info.processId), subject = info.processLabel}:items]	//'Merge' with subitem
 								= [processItem,item:items]
 where
-	processItem = mkWorkItem (toString info.processId) info.processLabel False isLast "editTask"						
+	processItem = mkWorkItem (toString info.processId) info.processLabel False isLast "editTask" info.ProcessInfo.delegatorId						
 
 //Sequence nodes
 determineTreeWorkItems userId addSequences parentLast isLast (TTSequenceTask info sequence)
@@ -83,7 +83,7 @@ determineTreeWorkItems userId addSequences parentLast isLast (TTSequenceTask inf
 				| item.split	= [{item & taskid = info.TaskInfo.taskId, subject = info.TaskInfo.taskLabel}:items]		//'Merge' with subitem
 								= [sequenceItem,item:items]								//Add item
 where
-	sequenceItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel False isLast "editTask"
+	sequenceItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel False isLast "editTask" info.TaskInfo.delegatorId
 
 //Parallel nodes
 determineTreeWorkItems userId addSequences parentLast isLast (TTParallelTask info combination branches)	
@@ -96,15 +96,15 @@ determineTreeWorkItems userId addSequences parentLast isLast (TTParallelTask inf
 			(TTSplit _)	= [parallelItem : map (shiftWorkItem (not parentLast)) (determineForestWorkItems userId True parentLast branches) ]	
 			_			= determineForestWorkItems userId False parentLast branches
 where
-	parallelItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel True parentLast "andTask"
+	parallelItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel True parentLast "andTask" info.TaskInfo.delegatorId
 
 //Basic nodes			
 determineTreeWorkItems _ _ _ _ _ = []
 
-mkWorkItem :: !TaskId !String !Bool !Bool !String -> WorkListItem
-mkWorkItem taskId label split last icon
+mkWorkItem :: !TaskId !String !Bool !Bool !String !UserId -> WorkListItem
+mkWorkItem taskId label split last icon delegator
 			=	{ taskid		= taskId
-				, delegatorId	= 0
+				, delegatorId	= delegator
 				, delegatorName	= ""
 				, processname	= ""
 				, subject		= label
