@@ -46,10 +46,11 @@ derive gParse	DBRef, Product, Order, Address, Action, CartItem, CartAmount
 Start :: *World -> *World
 Start world = startEngine flows world
 where
-	flows = [ { name		= "manageCatalog"
-			  , label		= "Manage catalog"
+	flows
+		=	[ { name		= "Manage catalog"
+ 			  , label		= "Manage catalog"
 			  , roles		= []
-			  , mainTask	= manageCatalog
+			  , mainTask	= manageCatalog defaultProduct
 			  }
 			, { name		= "browseShop"
 			  , label		= "Browse shop"
@@ -57,6 +58,9 @@ where
 			  , mainTask	= browseShop
 			  }
 			]
+
+defaultProduct :: Product
+defaultProduct = createDefault
 
 //Frontend		
 browseShop :: Task Void
@@ -70,7 +74,7 @@ where
 			browseShop` ncart
 
 	shopCatalog products
-		= orTasksV (editItems itemActions products)
+		= orTasksVert (editItems itemActions products)
 	where
 		itemActions :: Product -> Task Product
 		itemActions product
@@ -81,7 +85,7 @@ where
 	addToChart :: Product Cart -> Task Cart
 	addToChart product cart
 		# ncart = cart ++ [(productToChart (length cart) product, {orderAmount = 1})]
-		=  orTasksV (editItems (itemActions ncart) ncart)
+		=  orTasksVert (editItems (itemActions ncart) ncart)
 	where	
 		itemActions :: Cart (CartItem, CartAmount) -> Task Cart
 		itemActions cart (cartItem,amount)
@@ -99,76 +103,77 @@ where
 		   ([toHtml item \\ item <- ncart] ?>> editTask "OK" Void) #>> return_V ncart
 */
 //Backend
-manageCatalog :: Task Void
-manageCatalog = stopTask manageCatalog`
+manageCatalog :: a -> Task Void | iData a &  DB a
+manageCatalog defaultValue = stopTask manageCatalog`
 where
 	manageCatalog`
-		=	dbReadAll					=>> \catalog ->
-			browseCatalog catalog		=>> \_ -> 
+		=	dbReadAll							=>> \catalog ->
+			browseCatalog defaultValue catalog	=>> \_ -> 
 			manageCatalog`
 
-	browseCatalog :: [Product] -> Task Void
-	browseCatalog []
-		= addProduct   =>> \product ->
-		  browseCatalog [product]
+	browseCatalog :: a [a] -> Task Void | iData a &  DB a
+	browseCatalog defaultValue []
+		= addItem defaultValue  =>> \item ->
+		  browseCatalog defaultValue [item]
 	where
-		addProduct :: Task Product
-		addProduct
-			= editTask "Store" createDefault =>> \product ->
-			  dbCreate product
+		addItem :: a -> Task a | iData a &  DB a
+		addItem defaultValue
+			= editTask "Store" defaultValue =>> \item ->
+			  dbCreate item #>>
+			  return_V item
 	
-	browseCatalog products
-		= orTasksV (editItems itemActions products)
+	browseCatalog defaultValue items
+		= orTasksVert (editItems itemActions items)
 	where
-		itemActions :: Product -> Task Void
-		itemActions product
-			= chooseTask_btn [toHtml product] 
-				[("Edit",	editProduct   product) //product.Product.id
-				,("Insert",	insertProduct product)
-				,("Append",	appendProduct product)
-				,("Delete",	deleteProduct product)
+		itemActions :: a -> Task Void | iData a & DB a
+		itemActions item
+			= chooseTask_btn [toHtml item] 
+				[("Edit",	editItem   item) 
+				,("Insert",	insertItem item)
+				,("Append",	appendItem item)
+				,("Delete",	deleteItem item)
 				]
 		
-		insertProduct :: Product -> Task Void
-		insertProduct product 
-			=	editTask "Store" createDefault <<? [toHtml product] =>> \nproduct ->
-			   	dbReadAll =>> \products -> 
-			   	let (before,after) = span (\p -> getItemId p <>  getItemId product) products in
-			  		dbWriteAll (before ++ [setItemId (newDBRef products) nproduct] ++ after) #>>
-			  		return_V Void
+		insertItem :: a -> Task Void | iData a & DB a
+		insertItem item 
+			=	editTask "Store" createDefault <<? [toHtml item] =>> \nitem ->
+			   	dbReadAll =>> \items -> 
+			   	let (before,after) = span (\p -> getItemId p <>  getItemId item) items in
+			  		dbWriteAll (before ++ [setItemId (newDBRef items) nitem] ++ after) 
 	
-		appendProduct :: Product -> Task Void
-		appendProduct product 
-			=  [toHtml product] ?>> editTask "Store" createDefault =>> \nproduct ->
-			   dbReadAll =>> \products -> 
-			   let (before,after) = span (\p -> getItemId p <>  getItemId product) products in
-			  	dbWriteAll (before ++ [product,setItemId (newDBRef products) nproduct] ++ (tl after)) #>>
+		appendItem :: a -> Task Void | iData a & DB a
+		appendItem item 
+			=  [toHtml item] ?>> editTask "Store" createDefault =>> \nitem ->
+			   dbReadAll =>> \items -> 
+			   let (before,after) = span (\p -> getItemId p <>  getItemId item) items in
+			  	dbWriteAll (before ++ [item,setItemId (newDBRef items) nitem] ++ (tl after)) #>>
 			  	return_V Void
 		
-		editProduct :: Product -> Task Void
-		editProduct product 
-			= editTask "Store" product =>> \nproduct ->
-			  dbUpdate (getItemId product) nproduct #>>
-			  return_V Void
+		editItem :: a -> Task Void | iData a & DB a
+		editItem item 
+			= editTask "Store" item =>> \nitem ->
+			  dbUpdate (getItemId item) nitem 
 		
-		deleteProduct :: Product -> Task Void
-		deleteProduct product 
-			= dbDelete (getItemId product) #>>
-			  return_V Void
+		deleteItem :: a -> Task Void | iData a & DB a
+		deleteItem item 
+			= dbDelete (getItemId item) 
 	
 
 
 // general stuf
 
-editItems :: (b -> Task a) [b] -> [LabeledTask a] | iData a & gUpd {|*|} b
-editItems action [] = 		[] //editItems action [createDefault]
-editItems action products = [(toString i, action p) \\ p <- products & i <- [0..]]
+editItems :: (b -> Task a) [b] -> [Task a] | iData a
+editItems action [] 	= [] 
+editItems action items 	= [action p \\ p <- items]
 
 stopTask :: (Task a) -> (Task a) | iData a 
 stopTask task
-	= 	orTasksV [("task",task),("stop", stopIt)]
+	= 	orTasksVert [task,stopIt]
 where
 	stopIt = [BrTag []] ?>> editTask "Stop Task" Void  #>> return_V createDefault
+
+orTasksVert :: [Task a] -> Task a | iData a
+orTasksVert items = orTasksV [(toString i,item) \\ item <- items & i <- [0..]]
 
 
 productToChart itemnr product
@@ -199,10 +204,10 @@ where
 	setItemId		:: (DBRef a) a -> a
 	
 //CRUD
-dbCreate :: a -> Task a | iData a & DB a 
+dbCreate :: a -> Task Void | iData a & DB a 
 dbCreate item
 	= writeDB databaseId  [setItemId (DBRef 0) item]	#>>
-	  return_V item
+	  return_V Void
 
 newDBRef items =  newDBRef` [getItemId item \\ item <- items] (DBRef 0)
 where
@@ -219,8 +224,8 @@ dbRead ref
 dbReadAll :: Task [a] | iData a & DB a
 dbReadAll = readDB databaseId
 
-dbWriteAll :: [a] -> Task [a] | iData a & DB a
-dbWriteAll all = writeDB databaseId all
+dbWriteAll :: [a] -> Task Void | iData a & DB a
+dbWriteAll all = writeDB databaseId all #>> return_V Void
 
 dbUpdate :: (DBRef a) a -> Task Void |  iData a & DB a
 dbUpdate ref nitem 
