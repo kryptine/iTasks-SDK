@@ -334,7 +334,7 @@ setOutput output tst=:{tree}
 		(TTParallelTask info combination branches)	= {tst & tree = TTParallelTask info combination branches}
 		_											= {tst & tree = tree}
 		
-setInputs :: ![InputId] !*TSt -> *TSt
+setInputs :: ![InputDefinition] !*TSt -> *TSt
 setInputs inputs tst=:{tree}
 	= case tree of
 		(TTBasicTask info output _)	= {tst & tree = TTBasicTask info output inputs}

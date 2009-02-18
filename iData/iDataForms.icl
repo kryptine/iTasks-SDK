@@ -427,7 +427,7 @@ mkForm (init, formid =: {issub}) hst =:{prefix}
 	
 	
 //The basic building blocks for creating inputs
-mkInput :: !(InIDataId d) String String !*HSt -> ([HtmlTag], [InputId],*HSt) 
+mkInput :: !(InIDataId d) String String !*HSt -> ([HtmlTag], [InputDefinition],*HSt) 
 mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix} 
 	| mode == Edit || mode == Submit
 		# inputname = formid.id +++ "-" +++ toString cntr
@@ -449,7 +449,7 @@ mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix}
 	= ([], [], setHStCntr (cntr+1) hst)
 	
 	
-mkButton :: !(InIDataId d) String String !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkButton :: !(InIDataId d) String String !*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkButton (init, formid =: {mode}) type label hst =: {cntr,prefix} 
 	# inputname = formid.id +++ "-" +++ toString cntr
 	# inputid = prefix +++ inputname
@@ -461,7 +461,7 @@ mkButton (init, formid =: {mode}) type label hst =: {cntr,prefix}
 	  , [{formid = formid.id, inputid = cntr, type = type, updateon = OnClick}]
 	  , setHStCntr (cntr + 1) hst)
 
-mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
 	# inputname = formid.id +++ "-" +++ toString cntr
 	# inputid = prefix +++ inputname
@@ -472,7 +472,7 @@ mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
 	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
 	  , setHStCntr (cntr + 1) hst)
 
-mkCheckBox :: !(InIDataId d) String [HtmlTag] Bool !*HSt -> ([HtmlTag],[InputId],*HSt)
+mkCheckBox :: !(InIDataId d) String [HtmlTag] Bool !*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkCheckBox (init, formid=:{mode}) type label val hst =:{cntr,prefix}
 	# inputname = formid.id +++ "-" +++ toString cntr
 	# inputid = prefix +++ inputname

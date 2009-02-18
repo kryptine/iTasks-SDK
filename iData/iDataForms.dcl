@@ -12,10 +12,10 @@ import FormId
 	=	{ changed 	:: Bool						// the user has edited the form
 		, value		:: a						// current value in data domain 
 		, form		:: [HtmlTag]				// html code to create the form, representing view domain
-		, inputs	:: [InputId]				// list of inputs in the form with information about how their events should be handled
+		, inputs	:: [InputDefinition]		// list of inputs in the form with information about how their events should be handled
 		}
 		
-:: InputId
+:: InputDefinition
 	=	{ formid	:: !String					// the unique form identifier
 		, inputid	:: !Int						// the identifier within the form
 		, type		:: !String					// the type of the input
@@ -87,7 +87,7 @@ toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 								// toHtmlForm di
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 												
 
-mkInput				:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputId],*HSt)
-mkButton			:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputId],*HSt)
-mkSelect 			:: !(InIDataId d) String String [(String,String)]	!*HSt -> ([HtmlTag],[InputId],*HSt)
-mkCheckBox			:: !(InIDataId d) String [HtmlTag] Bool				!*HSt -> ([HtmlTag],[InputId],*HSt)
+mkInput				:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputDefinition],*HSt)
+mkButton			:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputDefinition],*HSt)
+mkSelect 			:: !(InIDataId d) String String [(String,String)]	!*HSt -> ([HtmlTag],[InputDefinition],*HSt)
+mkCheckBox			:: !(InIDataId d) String [HtmlTag] Bool				!*HSt -> ([HtmlTag],[InputDefinition],*HSt)

@@ -9,7 +9,7 @@ import Debug, Util
 from ProcessDB import :: ProcessStatus(..)
 from UserDB import getDisplayNames
 
-derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, StorageFormat, Lifespan, TaskPriority
+derive JSONEncode TabContent, TaskStatus, InputDefinition, UpdateEvent, HtmlState, StorageFormat, Lifespan, TaskPriority
 
 :: TabContent 	= { status			:: TaskStatus		//Is the requested work active, finished, or deleted 
 				  , error			:: Maybe String		//Optional error if something went wrong on the server
@@ -19,7 +19,7 @@ derive JSONEncode TabContent, TaskStatus, InputId, UpdateEvent, HtmlState, Stora
 				  , priority		:: TaskPriority		//Task priority
 				  , delegatorName	:: String			//Delegator name
 				  , html			:: String			//The HTML content of the tab
-				  , inputs			:: [InputId]		//The interactive inputs in the tab
+				  , inputs			:: [InputDefinition]//The interactive inputs in the tab
 				  , prefix			:: String			//The prefix string which is prepended to all html id's of the inputs in the tab
 				  , state			:: [HtmlState]		//The task state that must be stored in the tab
 				  , refresh			:: Bool				//Is a refresh of the worklist required
@@ -101,7 +101,7 @@ where
 
 	treeErrorResponse	= {http_emptyResponse & rsp_data = "{\"success\" : false, \"error\" : \"Could not locate task tree\"}"}
 
-	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus, !String, !Int, ![HtmlTag],![InputId], !Bool)
+	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus, !String, !Int, ![HtmlTag],![InputDefinition], !Bool)
 	determineTaskForTab userid taskid tree
 		= case locateSubTaskTree taskid tree of										//Find the subtree by task id
 			Nothing
@@ -111,7 +111,7 @@ where
 				# (status,subject,delegator) = taskInfo subtree
 				= (status, subject, delegator, html, inputs, refresh)
 	
-	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputId], !Bool)
+	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputDefinition], !Bool)
 	collectTaskContent currentUser (TTBasicTask info output inputs)
 		| info.TaskInfo.userId == currentUser	= (output,inputs,False)
 		| otherwise								= ([],[],False)

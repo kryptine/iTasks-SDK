@@ -8,11 +8,11 @@ definition module TaskTree
 import StdMaybe
 import Types
 import Html, Time
-from   iDataForms	import :: InputId {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
+from   iDataForms	import :: InputDefinition {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
 from   ProcessDB	import :: ProcessStatus
 
 // New experimental task tree data strucure
-:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputId]					//Smallest unit of work that has to be performed by a user
+:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputDefinition]			//Smallest unit of work that has to be performed by a user
 					| TTSequenceTask	TaskInfo [TaskTree]								//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskCombination [TaskTree]				//A task that is composed of a number of parallel executed subtasks
 					| TTProcess			ProcessInfo [TaskTree]							//The top node of a task tree is a process 

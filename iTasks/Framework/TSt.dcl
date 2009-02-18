@@ -282,7 +282,7 @@ setOutput			:: ![HtmlTag] !*TSt			-> *TSt
 /**
 * Sets the inputs of the current task (only for BasicTasks)
 */
-setInputs			:: ![InputId] !*TSt			-> *TSt
+setInputs			:: ![InputDefinition] !*TSt			-> *TSt
 
 /**
 * Sets the combination type of the current task (only for ParallelTasks)
