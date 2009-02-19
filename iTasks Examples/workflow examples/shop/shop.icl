@@ -1,47 +1,7 @@
 module shop
 
 import StdEnv, iTasks, iDataTrivial
-import StdListExt, database, iTaskCombinatorsExt
-
-:: Product			=	{ id_				:: !ProductId
-						, name				:: !String
-						, price				:: !HtmlCurrency
-						, amount			:: !Int
-						}
-:: ProductId 		:== DBRef Product
-
-:: Cart items		:== [(CartItem items, CartAmount)]
-
-:: CartItem	items	=	{ id_				:: !CartId items
-						, itemNr			:: !DBRef items
-						, description		:: !String
-						, amountInStock		:: !Int
-						, amountOrdered		:: !Int
-						, pricePerUnit		:: !HtmlCurrency
-						}
-:: CartAmount		=	{ orderAmount		:: !Int }
-:: CartId items		:== DBRef (Cart items)
-
-:: Order items		=	{ id_				:: !OrderId items
-						, name				:: !String
-						, itemsOrdered		:: !Cart items
-						, billingAddress	:: !Address
-						, shippingAddress	:: !Address
-						}
-:: OrderId items	:== DBRef (Order items)
-
-:: Address			=	{ street			:: !String
-						, number			:: !String
-						, postalCode		:: !String
-						, city				:: !String
-						}
-
-:: ShopAction		= LeaveShop | ToCart | ToPay | ToShop
-
-derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
+import StdListExt, database, iTaskCombinatorsExt, ShopDSL
 
 Start :: *World -> *World
 Start world = startEngine flows world
@@ -221,41 +181,7 @@ boldText   text				= BTag    [] [Text text, BrTag [], BrTag []]
 normalText text				= BodyTag [] [Text text, BrTag [], BrTag []]
 
 // little domain specific functions:
-totalCost cart				= HtmlCurrency EUR (sum [(toInt price.pricePerUnit) * amount.orderAmount \\ (price,amount) <- cart])
+totalCost cart				= HtmlCurrency EUR (sum [  (toInt price.pricePerUnit) * amount.orderAmount 
+							                        \\ (price,amount) <- cart
+							                        ])
 shopOwner					= 0
-
-class toCart a where
-	toCart :: Int a -> CartItem a
-
-instance toCart Product where
-	toCart id product		= { id_				= DBRef id
-							  , itemNr 			= getItemId product
-							  , description		= product.Product.name
-							  , amountInStock	= product.amount
-							  , amountOrdered	= if (product.amount >= 0) 1 0
-							  , pricePerUnit	= product.price
-							  }
-
-instance DB Product where
-	databaseId				= mkDBid "products" LSTxtFile
-	getItemId item			= item.Product.id_
-	setItemId id item 		= {Product|item & id_ = id}
-
-instance DB (Order items) where
-	databaseId				= mkDBid "orders" LSTxtFile
-	getItemId item			= item.Order.id_
-	setItemId id item		= {Order|item & id_ = id}
-
-// Automatic derived operations
-billingAddressOf   r		= r.billingAddress
-shippingAddressOf  r		= r.shippingAddress
-billingAddressUpd  r new	= {r & billingAddress  = new}
-shippingAddressUpd r new	= {r & shippingAddress = new}
-
-class nameOf a :: a -> String
-instance nameOf (Order items)  where nameOf r		= r.Order.name
-instance nameOf Product        where nameOf r		= r.Product.name
-
-class nameUpd a :: a String -> a
-instance nameUpd Product       where nameUpd r new	= {r & Product.name = new}
-instance nameUpd (Order items) where nameUpd r new	= {r & Order.name   = new}
