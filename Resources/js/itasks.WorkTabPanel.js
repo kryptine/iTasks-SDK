@@ -232,7 +232,8 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							id: inputid,
 							name: inputid,
 							inputName: inputname,
-							value: value
+							value: value,
+							width: 200
 						});
 					} else if(data.inputs[i].type == "HtmlPassword") {
 						input = new Ext.form.TextField({
@@ -240,7 +241,8 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							name: inputid,
 							inputName: inputname,
 							value: value,
-							inputType: "password"
+							inputType: "password",
+							width: 200
 						});
 					} else {
 						input = new Ext.form.NumberField({
@@ -250,7 +252,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							value: value,
 							allowDecimals: (data.inputs[i].type == "Real"),
 							decimalPrecision: 100, //Arbitrary limit
-							style: "width: 5em"
+							width: 100
 						});
 					}
 					input.render(parent, next);
@@ -330,8 +332,13 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 					input.on("focus", function(but) {
 						this.lastFocus = but.inputName;
 					},this);
-					break;
+				
+					//Attach focus handler
+					input.getEl().child("button").on("focus",function() {
+						this.lastFocus = inputname;
+					},this);
 					
+					break;	
 				case "HtmlTextarea":
 					var value = input.dom.innerHTML;
 					var parent = input.parent();
@@ -344,7 +351,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 						name: inputid,
 						inputName: inputname,
 						value: value,
-						style: "width: 500px;"
+						width: 500
 					});
 					input.render(parent,next);
 					
@@ -352,7 +359,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("change", function (inp, newVal, oldVal) {
 							this.addUpdate(inp.inputName, newVal);
-							this.delayedFormUpdate();
+							this.delayedUpdateForm();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
@@ -376,7 +383,8 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 						id: inputid,
 						name: inputid,
 						inputName: inputname,
-						value: value
+						value: value,
+						width: 183
 					});
 					input.render(parent,next);
 					if(data.inputs[i].updateon == "OnChange") {
@@ -406,18 +414,19 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 						name: inputid,
 						inputName: inputname,
 						format: "H:i:s",
-						value: value
+						value: value,
+						width: 183
 					});
 					input.render(parent,next);
 					if(data.inputs[i].updateon == "OnChange") {
 						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal.format("H:i:s"));
+							this.addUpdate(inp.inputName, newVal);
 							this.delayedUpdateForm();
 						},this);
 					}
 					if(data.inputs[i].updateon == "OnSubmit") {
 						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal.format("H:i:s"));
+							this.addUpdate(inp.inputName, newVal);
 						},this);
 					}
 					input.on("focus", function (inp) {
@@ -466,7 +475,8 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							editable: false,
 							triggerAction: "all",
 							mode: "local",
-							transform: input
+							transform: input,
+							width: 183
 						});
 						
 						input.render(parent,next);
