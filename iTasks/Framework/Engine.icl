@@ -6,67 +6,33 @@ import UserDB, ProcessDB
 import Util, InternaliTasksThreadHandling
 import BasicCombinators
 
-import Http, HttpUtil, HttpServer, HttpTextUtil, sapldebug
+import Http, HttpUtil
 
-import AuthenticationHandler, DeauthenticationHandler, NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler
-import TaskTreeForestHandler, ProcessTableHandler, ThreadTableHandler
-
+import AuthenticationHandler, DeauthenticationHandler
+import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler
+import TaskTreeForestHandler, ProcessTableHandler
 
 import TSt, Session
 
 import JSON
 derive JSONDecode HtmlState, StorageFormat, Lifespan
 
-// ******************************************************************************************************
-// * Server / Client startup
-// ******************************************************************************************************
-startEngine :: ![Workflow] !*World -> *World 
-startEngine flows world = doHtmlServer flows world		
-
-doHtmlServer :: [Workflow] !*World -> *World
-doHtmlServer flows world
-| ServerKind == Internal
-	# world	= instructions world
-	= startServer flows world		// build as Clean http 1.0 server	
-//| ServerKind == CGI				// build as CGI application
-| otherwise
-	= unimplemented world
-where
-	instructions :: *World -> *World
-	instructions world
-		# (console, world)	= stdio world
-		# console			= fwrites "HTTP server started...\n" console
-		# console			= fwrites ("Please point your browser to http://localhost/\n") console
-		# (_,world)			= fclose console world
-		= world
-		
-	unimplemented :: *World -> *World
-	unimplemented world
-		# (console, world)	= stdio world
-		# console			= fwrites "The chosen server mode is not supported.\n" console
-		# console			= fwrites "Please select ServerKind Internal in iDataSettings.dcl.\n" console
-		# (_,world)			= fclose console world
-		= world
-
-startServer :: [Workflow] !*World -> *World
-startServer flows world
-	# options = ServerOptions ++ (if TraceHTTP [HTTPServerOptDebug True] [])
-	= http_startServer options   [((==) "/handlers/authenticate", handleAnonRequest handleAuthenticationRequest)
-								 ,((==) "/handlers/deauthenticate", handleSessionRequest flows handleDeauthenticationRequest)							
-								 ,((==) "/handlers/new/list", handleSessionRequest flows handleNewListRequest)
-								 ,((==) "/handlers/new/start", handleSessionRequest flows handleNewStartRequest)
-								 ,((==) "/handlers/work/list", handleSessionRequest flows handleWorkListRequest)
-								 ,((==) "/handlers/work/tab", handleSessionRequest flows handleWorkTabRequest)
-								 ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest flows handleTaskTreeForestRequest)
-								 ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
-								 ,((==) "/handlers/debug/threadtable", handleSessionRequest flows handleThreadTableRequest)
-								 ,(\_ -> True, handleStaticResourceRequest)
-								 ] world
+// The iTasks engine consist of a set of HTTP request handlers
+engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
+engine flows = [((==) "/handlers/authenticate", handleAnonRequest handleAuthenticationRequest)
+			   ,((==) "/handlers/deauthenticate", handleSessionRequest flows handleDeauthenticationRequest)							
+			   ,((==) "/handlers/new/list", handleSessionRequest flows handleNewListRequest)
+			   ,((==) "/handlers/new/start", handleSessionRequest flows handleNewStartRequest)
+			   ,((==) "/handlers/work/list", handleSessionRequest flows handleWorkListRequest)
+			   ,((==) "/handlers/work/tab", handleSessionRequest flows handleWorkTabRequest)
+			   ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest flows handleTaskTreeForestRequest)
+			   ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
+			   ,(\_ -> True, handleStaticResourceRequest)
+				 ]
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-
 handleStaticResourceRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleStaticResourceRequest req world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path

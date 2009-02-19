@@ -8,22 +8,21 @@ definition module Engine
 import StdEnv, StdGeneric, GenBimap
 
 from TSt			import :: Workflow
+from Http			import :: HTTPRequest, :: HTTPResponse
+
 from iDataSettings	import ThisExe
 
 //Global settings
-
-traceId							:== "User_Trace" 
-refreshId						:== "User_refresh"
 applicationVersionNr			:== ThisExe +++ "_Version" 
 
 userVersionNr thisUser			:== "User" +++ toString thisUser +++ "_VersionPNr"
 usersessionVersionNr thisUser	:== "User" +++ toString thisUser +++ "_VersionSNr"
 
 /**
-* Starts the task engine with a list of workflow definitions.
+* Creates the iTasks system from a set of workflow definitions
 *
-* @param A list of available workflows
-* @param The world
-* @return The world
+* @param  A list of workflow definitions
+* @return A list of predicate/handler pairs that can be plugged into a server
+*         or CGI wrapper
 */
-startEngine :: ![Workflow] !*World -> *World
+engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]

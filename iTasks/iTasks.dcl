@@ -2,8 +2,9 @@ definition module iTasks
 /**
 * Main iTask module exporting all end user iTask modules 
 */
-import
-		Engine						// basic iTask system creator
+import	Engine						// basic iTask system creator
+	,	EngineWrapperStandalone		// standalone wrapper
+	//,	EngineWrapperCGI			// CGI wrapper
 
 	,	UITasks						// basic html editors for any type
 	,	UserTasks					// tasks for accessing the user database		

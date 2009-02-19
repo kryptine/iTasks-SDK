@@ -2,7 +2,7 @@ implementation module HttpUtil
 
 import Http, HttpTextUtil
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList
-import StdTime
+import Time
 
 //General utility functions
 http_urlencode :: !String -> String
@@ -195,16 +195,15 @@ http_makeResponse request [(pred,handler):rest] fallback world
 
 http_encodeResponse :: !HTTPResponse !Bool !*World -> (!String, !*World)
 http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //When used directly the 'Status' header should be converted to 
-	# (date,world)	= getCurrentDate world
-	# (time,world)	= getCurrentTime world
+	# (tm,world) = gmTime world
 	# reply = if withreply
 			("HTTP/1.0 " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
 			("Status: " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
-	# reply = reply +++ ("Date: " +++ (http_getValue "Date" headers (now date time)) +++ "\r\n")								//Date
+	# reply = reply +++ ("Date: " +++ (http_getValue "Date" headers (now tm)) +++ "\r\n")								//Date
 	# reply = reply +++ ("Server: " +++ (http_getValue "Server" headers "Clean HTTP 1.0 Server") +++ "\r\n")					//Server identifier	
 	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
 	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header
-	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now date time)) +++ "\r\n")				//Timestamp for caching
+	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now tm)) +++ "\r\n")				//Timestamp for caching
 	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- headers | not (skipHeader n)])				//Additional headers
 	# reply = reply +++	("\r\n" +++ data)																						//Separator + data
 	= (reply, world)
@@ -213,29 +212,29 @@ where
 	skipHeader s = isMember s ["Status","Date","Server","Content-Type","Content-Lenght","Last-Modified"]
 
 	//Format the current date/time
-	now date time				=	(weekday date.dayNr) +++ ", " +++ (toString date.day) +++ " " +++ (month date.month) +++ " " +++ (toString date.year) +++ " "
-								+++	(toString time.hours) +++ ":" +++ (toString time.minutes) +++ ":" +++ (toString time.seconds) +++ " GMT"
+	now tm				=	(weekday tm.wday) +++ ", " +++ (toString tm.mday) +++ " " +++ (month tm.mon) +++ " " +++ (toString (tm.year + 1900)) +++ " "
+								+++	(toString tm.hour) +++ ":" +++ (toString tm.min) +++ ":" +++ (toString tm.sec) +++ " GMT"
 								
-	weekday 1					= "Sun"
-	weekday 2					= "Mon"
-	weekday 3					= "Tue"
-	weekday 4					= "Wed"
-	weekday 5					= "Thu"
-	weekday 6					= "Fri"
-	weekday 7					= "Sat"
+	weekday 0					= "Sun"
+	weekday 1					= "Mon"
+	weekday 2					= "Tue"
+	weekday 3					= "Wed"
+	weekday 4					= "Thu"
+	weekday 5					= "Fri"
+	weekday 6					= "Sat"
 	
-	month	1					= "Jan"
-	month	2					= "Feb"
-	month	3					= "Mar"
-	month	4					= "Apr"
-	month	5					= "May"
-	month	6					= "Jun"
-	month	7					= "Jul"
-	month	8					= "Aug"
-	month	9					= "Sep"
-	month  10					= "Oct"
-	month  11					= "Nov"
-	month  12					= "Dec"
+	month	0					= "Jan"
+	month	1					= "Feb"
+	month	2					= "Mar"
+	month	3					= "Apr"
+	month	4					= "May"
+	month	5					= "Jun"
+	month	6					= "Jul"
+	month	7					= "Aug"
+	month	8					= "Sep"
+	month   9					= "Oct"
+	month  10					= "Nov"
+	month  11					= "Dec"
 	
 
 //Error responses

@@ -3,7 +3,7 @@ implementation module iDataForms
 import StdEnv, StdMaybe, ArgEnv
 import iDataTrivial, iDataSettings, iDataState
 import StdGeneric, GenParse, GenPrint, GenBimap
-import Http, HttpUtil, HttpServer, HttpTextUtil
+import Http, HttpUtil, HttpTextUtil
 import HSt
 import Html
 
