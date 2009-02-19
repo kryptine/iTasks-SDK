@@ -85,8 +85,7 @@ where
 	doShopping cart items
 		= 	orTasksVert
 				[ chooseAction shopPrompt cart
-				: map (itemActions cart) items					//	BUG in dynamic type unification 
-//				, orTasksVert (map (itemActions cart) items)
+				: map (itemActions cart) items					
 				] 
 	where
 		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | toCart a & iData a
@@ -123,7 +122,6 @@ where
 		= 	orTasksVert 
 				[ chooseAction cartPrompt cart
 				: map (itemActions cart) cart
-//				, orTasksVert (map (itemActions cart) cart)
 				]
 	where
 		itemActions :: (Cart a) (CartItem a, CartAmount) -> Task (ShopAction,Cart a) | toCart a & iData a 
@@ -136,26 +134,19 @@ where
 			adjustAmount (cartItem,amount) [] = []
 			adjustAmount (cartItem, amount) [(c,a):carts]
 				| cartItem.CartItem.id_ == c.CartItem.id_ 
-					= [({c & amountOrdered = max 0 (min amount.orderAmount c.amountInStock)},amount):carts]		 
+					= [({c & amountOrdered = max 0 amount.orderAmount},amount):carts]		 
 				= [(c,a): adjustAmount (cartItem,amount) carts]
-
-	switchAction prompt cart itemActions
-		= 	orTasksVert 
-				[ chooseAction prompt cart
-				, orTasksVert (map (itemActions cart) cart)
-				]
-
 
 
 // finishing ordering process
 	
+checkOutAndPay :: (Order a) -> Task Void | iData a
 checkOutAndPay order 
-	= 	getClientInfo order =>> \order ->
-		confirmOrder order =>> 
-		doOrder order
+	= 	fillInClientInfo order =>> \order ->
+		confirmOrder order =>> \continue ->
+		if continue (doOrder order) (return_V Void)
 where
-	doOrder order False = return_V Void
-	doOrder order True 
+	doOrder order 
 		=	dbReadAll =>> \orders ->
 			dbWriteAll (orders ++ [order]) #>>
 			getMyName =>> \(myid,myname) ->			
@@ -171,21 +162,21 @@ where
 						]
 			[("Yes",return_V True),("No",return_V False)]
 
-	getClientInfo order
+	fillInClientInfo order
 		=	fillInYourName order		=>> \order ->
 			fillInBillingAddress order	=>> \order ->
 			fillInShippingAddress order	=>> \order ->
-			isCorrect order getClientInfo
+			isCorrect order fillInClientInfo
 	where
 		fillInYourName :: (Order a) -> Task (Order a) | iData a
 		fillInYourName order
-			= 	[normalText "Please filll in your name:"] 
+			= 	[normalText "Please fill in your name:"] 
 				?>> editTask "Commit" order.Order.name =>> \name ->
 				return_V {order & Order.name = name}
 	
 		fillInBillingAddress :: (Order a) -> Task (Order a) | iData a
 		fillInBillingAddress order
-			= 	[normalText "Please filll in the billing address:"]
+			= 	[normalText "Please fill in the billing address:"]
 				?>> editTask "Commit" order.billingAddress =>> \billingAddress ->
 				return_V {order & billingAddress = billingAddress}
 	
@@ -196,7 +187,7 @@ where
 							, normalText "Is the shipping addres same as the billing address above?"
 							]
 					[ ("Yes", return_V {order & shippingAddress = order.billingAddress})
-					, ("No", [normalText "Please filll in the shipping address:"]
+					, ("No", [normalText "Please fill in the shipping address:"]
 							 ?>> editTask "Commit" order.shippingAddress =>> \shippingAddress ->
 							 return_V {order & shippingAddress = shippingAddress})
 					]
