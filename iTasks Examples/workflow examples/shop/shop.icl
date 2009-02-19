@@ -6,7 +6,7 @@ import StdEnv, iTasks, iDataTrivial
 
 :: Product		=	{ id_	:: !ProductId
 					, name	:: !String
-					, price	:: !Int 					// will become currency
+					, price	:: !HtmlCurrency
 					, amount:: !Int
 					}
 :: ProductId 	:== DBRef Product
@@ -18,7 +18,7 @@ import StdEnv, iTasks, iDataTrivial
 					, description		:: !String
 					, amountInStock		:: !Int
 					, amountOrdered		:: !Int
-					, pricePerUnit		:: !Int
+					, pricePerUnit		:: !HtmlCurrency
 					}
 :: CartAmount	=	{ orderAmount			:: !Int}
 :: CartId items		:== DBRef (Cart items)
@@ -106,7 +106,7 @@ where
 				, ("Check Out and Pay", return_V (ToPay,cart))
 				, ("Show Cart",     	return_V (ToCart,cart))
 				, ("Leave Shop",    	return_V (LeaveShop,cart))
-				] <<? [BrTag [], boldText ("Total cost of ordered items = " <+++ totalCost cart), BodyTag [] promptOfShop]
+				] <<? [BrTag [], boldText ("Total cost of ordered items = "), toHtml(totalCost cart), DivTag [] promptOfShop]
 
 	doAction :: (Cart a) [a] (ShopAction, Cart a) -> Task Void | toCart a & iData a & DB a
 	doAction initCart items (LeaveShop,cart) = return_V Void
@@ -260,15 +260,12 @@ where
 orTasksVert :: [Task a] -> Task a | iData a
 orTasksVert items = orTasksV [(toString i,item) \\ item <- items & i <- [0..]]
 
-totalCost cart = sum [item.pricePerUnit * amount.orderAmount \\ (item,amount) <- cart]
+totalCost cart = HtmlCurrency EUR (sum [price * amount.orderAmount \\ ({pricePerUnit=HtmlCurrency _ price},amount) <- cart])
 
 boldText text 	= BTag [] [Text text, BrTag [], BrTag []]
 normalText text = BodyTag [] [Text text, BrTag [], BrTag []]
 
 shopOwner = 0
-
-isNil [] = True
-isNil _  = False
 
 getMyName
 =					getCurrentUserId

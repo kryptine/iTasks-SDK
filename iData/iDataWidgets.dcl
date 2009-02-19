@@ -8,12 +8,12 @@ import iDataForms
 import Html
 import GenLexOrd
 
-derive gForm 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-derive gUpd  	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-derive gPrint 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-//derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-//derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
+derive gForm 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlLabel
+derive gUpd  	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlLabel
+derive gPrint 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
+derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
+//derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
+//derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
 
 
 // Layout types
@@ -40,6 +40,12 @@ derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbo
 :: HtmlDate 		= HtmlDate Int Int Int					// Day Month Year
 :: HtmlTime 		= HtmlTime Int Int Int					// Hours Minutes Seconds
 
+:: HtmlCurrency		= HtmlCurrency HtmlCurrencyCode Int		// Currency: Currency code and amount in cents
+:: HtmlCurrencyCode	= EUR									// A selection of ISO4217 currency codes 
+					| GBP
+					| USD
+					| JPY
+
 :: HtmlLabel		= HtmlLabel [HtmlTag]					// Label used for showing html
 
 
@@ -52,10 +58,9 @@ instance ==			HtmlDate, HtmlTime
 instance == 		(DisplayMode a) | == a
 derive   gLexOrd	HtmlDate, HtmlTime
 instance <			HtmlDate, HtmlTime
-instance toString	HtmlDate, HtmlTime
+instance toString	HtmlDate, HtmlTime, HtmlCurrency
 instance +			HtmlTime
 instance -			HtmlTime
 
-instance toInt		HtmlSelect
-instance toInt		HtmlRadiogroup
+instance toInt		HtmlSelect, HtmlRadiogroup, HtmlCurrency
 instance toBool		HtmlButton

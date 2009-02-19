@@ -233,6 +233,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							name: inputid,
 							inputName: inputname,
 							value: value,
+							selectOnFocus: true,
 							width: 200
 						});
 					} else if(data.inputs[i].type == "HtmlPassword") {
@@ -242,6 +243,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							inputName: inputname,
 							value: value,
 							inputType: "password",
+							selectOnFocus: true,
 							width: 200
 						});
 					} else {
@@ -252,6 +254,7 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 							value: value,
 							allowDecimals: (data.inputs[i].type == "Real"),
 							decimalPrecision: 100, //Arbitrary limit
+							selectOnFocus: true,
 							width: 100
 						});
 					}
@@ -427,6 +430,42 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 					if(data.inputs[i].updateon == "OnSubmit") {
 						input.on("change", function (inp, newVal, oldVal) {
 							this.addUpdate(inp.inputName, newVal);
+						},this);
+					}
+					input.on("focus", function (inp) {
+						this.lastFocus = inp.inputName;
+					},this);
+					break;
+				case "HtmlCurrency":
+					var value = input.getValue();
+					var parent = input.parent();
+					var next = input.next();
+					
+					input.remove();
+					input = new Ext.form.NumberField({
+						id: inputid,
+						name: inputid,
+						inputName: inputname,
+						value: (value / 100),
+						allowDecimals: true,
+						decimalPrecision: 2,
+						selectOnFocus: true,
+						width: 100
+					});
+					input.on("valid", function (inp) {
+						inp.setRawValue(inp.getValue().toFixed(inp.decimalPrecision));
+					},input);
+					
+					input.render(parent,next);
+					if(data.inputs[i].updateon == "OnChange") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, Math.floor(newVal * 100));
+							this.delayedUpdateForm();
+						},this);
+					}
+					if(data.inputs[i].updateon == "OnSubmit") {
+						input.on("change", function (inp, newVal, oldVal) {
+							this.addUpdate(inp.inputName, Math.floor(newVal * 100));
 						},this);
 					}
 					input.on("focus", function (inp) {

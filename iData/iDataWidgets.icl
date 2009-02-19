@@ -3,15 +3,11 @@ implementation module iDataWidgets
 import StdFunc, StdList, StdString, StdArray
 import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
-
 derive gForm	HtmlTag, HtmlAttr
 derive gUpd		HtmlTag, HtmlAttr, <->, <|>, DisplayMode
 
-derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlLabel
-//derive read 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
-//derive write 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlDate, HtmlTime, RadioButton, RadioGroup, PullDownMenu, TextInput, TextArea, PasswordBox, RefreshTimer
-
+derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
+derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
 
 // <-> works exactly the same as (,) and places its arguments next to each other, for compatibility with GEC's
 gForm{|(<->)|} gHa gHb (init,formid) hst
@@ -152,7 +148,7 @@ gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr,prefix}
 where
 	(HtmlPassword v)	= formid.ival
 
-gForm {|HtmlTime|} (init,formid =:{mode}) hst =:{cntr,prefix}
+gForm {|HtmlTime|} (init,formid =:{mode}) hst
 	# (html,inputs,hst)	= mkInput (init,formid) "HtmlTime" (toString formid.ival) hst
 	= ({ changed		= False
 	   , value			= formid.ival
@@ -160,7 +156,7 @@ gForm {|HtmlTime|} (init,formid =:{mode}) hst =:{cntr,prefix}
 	   , inputs			= inputs
 	   },hst)
 
-gForm {|HtmlDate|} (init,formid =:{mode}) hst =:{cntr,prefix}
+gForm {|HtmlDate|} (init,formid =:{mode}) hst
 	# (html,inputs,hst)	= mkInput (init,formid) "HtmlDate" (toString formid.ival) hst
 	= ({ changed		= False
 	   , value			= formid.ival
@@ -168,6 +164,30 @@ gForm {|HtmlDate|} (init,formid =:{mode}) hst =:{cntr,prefix}
 	   , inputs			= inputs
 	   },hst)
 
+gForm {|HtmlCurrency|} (init,formid =:{mode}) hst
+	= case mode of
+		Display
+			= ({ changed	= False
+			   , value		= formid.ival
+			   , form		= [chtml,Text " ",Text (decFormat amount)]
+			   , inputs		= []
+			   },hst) 
+		_ 
+			# (html,inputs,hst)	= mkInput (init,formid) "HtmlCurrency" (toString amount) hst
+			= ({ changed		= False
+			   , value			= formid.ival
+			   , form			= [chtml:html]
+			   , inputs			= inputs
+			   },hst)
+where
+	(HtmlCurrency ccode amount) = formid.ival 
+	chtml = case ccode of
+		EUR	= RawText "&euro; "
+		GBP = RawText "&pound; "
+		USD = RawText "$ "
+		JPY = RawText "&yen; "
+		
+			
 gForm {|HtmlLabel|} (init, formid) hst
 	= ({ changed		= False
 	   , value			= formid.ival
@@ -223,6 +243,11 @@ gUpd{|HtmlTime|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur
 gUpd{|HtmlTime|}		(UpdCreate l)			_						= (UpdCreate l, HtmlTime 12 0 0)								// create default value
 gUpd{|HtmlTime|}		mode					cur						= (mode, cur)
 
+gUpd{|HtmlCurrency|}	(UpdSearch 0 upd)		(HtmlCurrency ccode _)	= (UpdDone, HtmlCurrency ccode (toInt upd))
+gUpd{|HtmlCurrency|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)
+gUpd{|HtmlCurrency|}	(UpdCreate l)			_						= (UpdCreate l, HtmlCurrency EUR 0)
+gUpd{|HtmlCurrency|}	mode					cur						= (mode, cur)
+
 gUpd{|HtmlLabel|}		(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
 gUpd{|HtmlLabel|}		(UpdSearch cntr upd)	cur						= (UpdSearch cntr upd, cur)										// continue search, don't change
 gUpd{|HtmlLabel|}		(UpdCreate l)			_						= (UpdCreate l, HtmlLabel [])									// create default value
@@ -268,9 +293,12 @@ instance toString HtmlDate where
 	toString (HtmlDate day month year)			= (pad 2 month) +++ "/" +++ (pad 2 day) +++ "/" +++ (pad 4 year)
 
 pad :: Int Int -> String
-pad len num = (createArray (len - size nums) '0' ) +++ nums
+pad len num = (createArray (max 0 (len - size nums)) '0' ) +++ nums
 where 
 	nums = toString num
+
+decFormat :: Int -> String
+decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
 
 instance toInt HtmlSelect where
 	toInt (HtmlSelect options val) = index val options
@@ -285,3 +313,16 @@ instance toInt HtmlRadiogroup where
 	
 instance toBool HtmlButton where
 	toBool (HtmlButton _ val) = val
+	
+	
+instance toInt HtmlCurrency where
+	toInt (HtmlCurrency _ val) = val
+	
+instance toString HtmlCurrency where
+	toString (HtmlCurrency ccode val) = (toString ccode) +++ " " +++ decFormat val
+	
+instance toString HtmlCurrencyCode where
+	toString EUR = "EUR"
+	toString GBP = "GBP"
+	toString USD = "USD"
+	toString JPY = "JPY"

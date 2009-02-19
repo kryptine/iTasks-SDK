@@ -12,7 +12,7 @@ where
 	tests = [ 	{ name		= "widgets_test"
 		  		, label		= "Test all widgets"
 		  		, roles		= []
-		  		, mainTask	= widgets_test #>> return_V Void
+		  		, mainTask	= widgets_test
 		  		}
 		  	]
 
@@ -29,6 +29,7 @@ where
 					, htmlPassword	:: HtmlPassword
 					, htmlDate		:: HtmlDate
 					, htmlTime		:: HtmlTime
+					, htmlCurrency	:: HtmlCurrency
 					, htmlLabel		:: HtmlLabel
 					}
 
@@ -37,6 +38,9 @@ derive gUpd		AllWidgets
 derive gPrint	AllWidgets
 derive gParse	AllWidgets
 
-widgets_test :: Task AllWidgets
+defaultWidgets :: AllWidgets
+defaultWidgets = createDefault
+
+widgets_test :: Task Void
 widgets_test
-	=	editTask "Show" createDefault =>> \val -> editTask "Done" val
+	=	editTask "Show" defaultWidgets =>> \val -> displayValue val
