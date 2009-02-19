@@ -84,7 +84,7 @@ determineTreeWorkItems userId addSequences isLast (TTSequenceTask info sequence)
 	| not addSequences												//We don't need to add the sequence
 		= determineListWorkItemsFixed userId False isLast sequence
 	| otherwise
-		# subitems	= determineListWorkItemsFixed userId addSequences isLast sequence
+		# subitems	= determineListWorkItemsFixed userId False isLast sequence
 		= case subitems of
 			[]					= [sequenceItem]										//Add item
 			[item:items]
