@@ -1,13 +1,12 @@
 module shop
 
 import StdEnv, iTasks, iDataTrivial
+import StdListExt, database, iTaskCombinatorsExt
 
-:: DBRef a			= DBRef Int
-
-:: Product			=	{ id_	:: !ProductId
-						, name	:: !String
-						, price	:: !HtmlCurrency
-						, amount:: !Int
+:: Product			=	{ id_				:: !ProductId
+						, name				:: !String
+						, price				:: !HtmlCurrency
+						, amount			:: !Int
 						}
 :: ProductId 		:== DBRef Product
 
@@ -20,7 +19,7 @@ import StdEnv, iTasks, iDataTrivial
 						, amountOrdered		:: !Int
 						, pricePerUnit		:: !HtmlCurrency
 						}
-:: CartAmount		=	{ orderAmount		:: !Int}
+:: CartAmount		=	{ orderAmount		:: !Int }
 :: CartId items		:== DBRef (Cart items)
 
 :: Order items		=	{ id_				:: !OrderId items
@@ -31,10 +30,10 @@ import StdEnv, iTasks, iDataTrivial
 						}
 :: OrderId items	:== DBRef (Order items)
 
-:: Address			=	{ street		:: !String
-						, number		:: !String
-						, postalCode	:: !String
-						, city			:: !String
+:: Address			=	{ street			:: !String
+						, number			:: !String
+						, postalCode		:: !String
+						, city				:: !String
 						}
 
 :: ShopAction		= LeaveShop | ToCart | ToPay | ToShop
@@ -216,21 +215,6 @@ where
 				   in before ++ [setItemId (newDBRef items) nitem] ++ after
 
 // general stuff
-// little task functions:
-stopTask :: (Task a) -> Task a | iData a 
-stopTask task				= orTasksVert [task,stopIt]
-where stopIt				= [BrTag []] ?>> editTask "Finish" Void #>> return_V createDefault
-
-yesOrNo question yes no		= chooseTask question [("Yes",yes),("No",no)]
-
-orTasksVert :: [Task a] -> Task a | iData a
-orTasksVert items			= orTasksV [(toString i,item) \\ item <- items & i <- [0..]]
-
-OK							= editTask "OK" Void
-
-getMyName					= getCurrentUserId             =>> \userid ->
-							  getDisplayNamesTask [userid] =>> \names  ->
-							  return_V (userid, hd names)     			
 
 // little markup functions:
 boldText   text				= BTag    [] [Text text, BrTag [], BrTag []]
@@ -252,33 +236,6 @@ instance toCart Product where
 							  , pricePerUnit	= product.price
 							  }
 
-// Polymorhpic database operations
-class DB a where
-	databaseId				:: (DBid [a])
-	getItemId				:: a -> DBRef a
-	setItemId				:: (DBRef a) a -> a
-	
-// CRUD
-dbCreate :: a -> Task Void | iData, DB a
-dbCreate item				= writeDB databaseId [setItemId (DBRef 0) item]	#>> return_V Void
-
-newDBRef items				= let (DBRef i) = maxList (map getItemId items) in DBRef (i+1)
-	
-dbReadAll :: Task [a] | iData, DB a
-dbReadAll					= readDB databaseId
-
-dbWriteAll :: [a] -> Task Void | iData, DB a
-dbWriteAll all				= writeDB databaseId all #>> return_V Void
-
-dbModify :: ([a] -> [a]) -> Task Void | iData, DB a
-dbModify f					= dbReadAll =>> \items -> dbWriteAll (f items)
-
-instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
-instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
-
-eqItemId :: a a -> Bool | DB a
-eqItemId a b				= getItemId a == getItemId b
-
 instance DB Product where
 	databaseId				= mkDBid "products" LSTxtFile
 	getItemId item			= item.Product.id_
@@ -288,15 +245,6 @@ instance DB (Order items) where
 	databaseId				= mkDBid "orders" LSTxtFile
 	getItemId item			= item.Order.id_
 	setItemId id item		= {Order|item & id_ = id}
-
-// Functions that should be in StdList
-span_inc :: (a -> Bool) [a] -> ([a],[a])
-span_inc pred xs
-	= case span pred xs of
-		(bef,[incl:aft])	= (bef ++ [incl],aft)
-		not_incl			= not_incl
-
-append x xs					= xs ++ [x]
 
 // Automatic derived operations
 billingAddressOf   r		= r.billingAddress
