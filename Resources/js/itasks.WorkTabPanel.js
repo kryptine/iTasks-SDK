@@ -499,6 +499,15 @@ itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 						k++;
 					}
 					break;
+				case "HtmlTimer":
+					var update = inputname.substr(0,inputname.length);
+					
+					new Ext.util.DelayedTask().delay(1000 * input.getValue(), function () {
+						this.addUpdate(update,"timeout");
+						this.updateForm();
+					},this);
+					
+					break;
 				default:
 					//Constructors and selects
 					if(data.inputs[i].type.substr(0,5) == "CONS:" ||

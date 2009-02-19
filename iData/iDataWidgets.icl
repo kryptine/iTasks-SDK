@@ -6,8 +6,8 @@ import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 derive gForm	HtmlTag, HtmlAttr
 derive gUpd		HtmlTag, HtmlAttr, <->, <|>, DisplayMode
 
-derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
-derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlLabel
+derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel
+derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel
 
 // <-> works exactly the same as (,) and places its arguments next to each other, for compatibility with GEC's
 gForm{|(<->)|} gHa gHb (init,formid) hst
@@ -187,6 +187,17 @@ where
 		USD = RawText "$ "
 		JPY = RawText "&yen; "
 		
+
+gForm {|HtmlTimer|} (init, formid) hst =: {cntr,prefix}
+	#inputname = formid.id +++ "-" +++ toString cntr
+	#inputid = prefix +++ inputname
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= [InputTag [TypeAttr "hidden", NameAttr inputname, IdAttr inputid, ValueAttr (toString val)]]
+	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlTimer", updateon = OnTimeout}]
+	   }, hst)
+where
+	(HtmlTimer val _)	= formid.ival
 			
 gForm {|HtmlLabel|} (init, formid) hst
 	= ({ changed		= False
@@ -247,6 +258,11 @@ gUpd{|HtmlCurrency|}	(UpdSearch 0 upd)		(HtmlCurrency ccode _)	= (UpdDone, HtmlC
 gUpd{|HtmlCurrency|}	(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)
 gUpd{|HtmlCurrency|}	(UpdCreate l)			_						= (UpdCreate l, HtmlCurrency EUR 0)
 gUpd{|HtmlCurrency|}	mode					cur						= (mode, cur)
+
+gUpd{|HtmlTimer|}		(UpdSearch 0 upd)		(HtmlTimer val _)		= (UpdDone, HtmlTimer val True)
+gUpd{|HtmlTimer|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd, cur)
+gUpd{|HtmlTimer|}		(UpdCreate l)			_						= (UpdCreate l, HtmlTimer 5 False)
+gUpd{|HtmlTimer|}		mode					cur						= (mode, cur)
 
 gUpd{|HtmlLabel|}		(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We don't update
 gUpd{|HtmlLabel|}		(UpdSearch cntr upd)	cur						= (UpdSearch cntr upd, cur)										// continue search, don't change

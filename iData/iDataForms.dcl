@@ -26,6 +26,7 @@ import FormId
 	=	OnChange
 	|	OnClick
 	|	OnSubmit
+	|	OnTimeout
 
 :: HBimap d v 									// swiss army knife allowing to make a distinction between data and view domain
 	=	{ toForm   	:: Init d (Maybe v) -> v	// converts data to view domain, given current view

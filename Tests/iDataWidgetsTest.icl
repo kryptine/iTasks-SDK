@@ -31,6 +31,7 @@ where
 					, htmlTime		:: HtmlTime
 					, htmlCurrency	:: HtmlCurrency
 					, htmlLabel		:: HtmlLabel
+					, htmlTimer		:: HtmlTimer
 					}
 
 derive gForm	AllWidgets
