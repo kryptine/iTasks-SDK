@@ -120,6 +120,13 @@ where
 
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
+gForm{|Int|} (init,formid=:{mode=Display}) hst
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= [Text (toString formid.ival)]
+	   , inputs			= []
+	   },hst)
+	   
 gForm{|Int|} (init,formid) hst 	
 	# (html,inputs,hst)			= mkInput (init,formid) "Int" (toString formid.ival) hst
 	= ({ changed				= False
@@ -127,7 +134,13 @@ gForm{|Int|} (init,formid) hst
 	   , form					= html
 	   , inputs					= inputs
 	   },hst)
-	
+
+gForm{|Real|} (init,formid=:{mode=Display}) hst
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= [Text (toString formid.ival)]
+	   , inputs			= []
+	   },hst)	
 gForm{|Real|} (init,formid) hst 	
 	# (html,inputs,hst)			= mkInput (init,formid) "Real" (toString formid.ival) hst
 	= ({ changed				= False
@@ -142,6 +155,13 @@ gForm{|Bool|} (init,formid) hst
 	   , value					= formid.ival
 	   , form					= html
 	   , inputs					= inputs
+	   },hst)
+
+gForm{|String|} (init,formid=:{mode=Display}) hst
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= [Text formid.ival]
+	   , inputs			= []
 	   },hst)
 
 gForm{|String|} (init,formid) hst 	
