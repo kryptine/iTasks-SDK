@@ -7,7 +7,7 @@ import SessionDB, UserDB
 
 handleAuthenticationRequest :: !HTTPRequest *HSt -> (!HTTPResponse, !*HSt)
 handleAuthenticationRequest req hst
-	# (mbCredentials, hst) = accNWorldHSt (accUserDBNWorld (authenticateUser username password)) hst
+	# (mbCredentials, hst) = authenticateUser username password hst
 	= case mbCredentials of
 		Just (uid,displayName,roles)
 			# (session, hst)	= createSession uid roles hst

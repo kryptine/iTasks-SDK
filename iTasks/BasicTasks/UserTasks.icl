@@ -1,29 +1,30 @@
 implementation module UserTasks
 
+import StdEnv, GenBimap
 import TSt
 import UserDB
-import LiftingCombinators
-import StdEnv, GenBimap
+import BasicCombinators, LiftingCombinators
 
 getDisplayNamesTask :: ![Int] -> Task [String]
 getDisplayNamesTask uids
-	= appHStOnce "getDisplayNamesTask" (accNWorldHSt (accUserDBNWorld (getDisplayNames uids)))
+	= appHStOnce "getDisplayNamesTask" (getDisplayNames uids)
 
 getUserNamesTask :: ![Int] -> Task [String]
 getUserNamesTask uids
-	= appHStOnce "getUserNamesTask" (accNWorldHSt (accUserDBNWorld (getUserNames uids)))
+	= appHStOnce "getUserNamesTask" (getUserNames uids)
 
 getRolesTask :: ![Int]	-> Task [[String]]
 getRolesTask uids
-	= appHStOnce "getRolesTask" (accNWorldHSt (accUserDBNWorld (getRoles uids)))
+	= appHStOnce "getRolesTask" (getRoles uids)
 	
 getUsersWithRoleTask :: !String	-> Task [(Int,String)]
 getUsersWithRoleTask role
-	= appHStOnce "getUsersWithRoleTask" (accNWorldHSt (accUserDBNWorld (getUsersWithRole role)))
+	= appHStOnce "getUsersWithRoleTask" (getUsersWithRole role)
 
-getUsersIds	::  (Task [Int])
+getUsersIds	:: Task [Int]
 getUsersIds
-	= appHStOnce "getUsersIds" (accNWorldHSt (accUserDBNWorld getUserIds))
+	= appHStOnce "getUsersIds" getUserIds
 	
-getCurrentUserId	::  Task Int
-getCurrentUserId = mkBasicTask "getCurrentUserId" (Task getCurrentUser)
+getCurrentUserId :: Task Int
+getCurrentUserId
+	= once "getCurrentUserId" (Task getCurrentUser)

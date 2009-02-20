@@ -6,8 +6,8 @@ import TaskTree
 import iDataForms, iDataState, iDataFormlib
 import JSON
 import Debug, Util
+import UserDB
 from ProcessDB	import :: ProcessStatus(..)
-from UserDB		import getDisplayNames
 
 derive JSONEncode TabContent, TaskStatus, InputDefinition, UpdateEvent, HtmlState, StorageFormat, Lifespan, TaskPriority
 
@@ -156,7 +156,7 @@ where
 	taskInfo (TTProcess {ProcessInfo|processLabel,delegatorId} _)					= (TaskActive,processLabel,delegatorId)
 
 	getDelegatorName userId tst
-		# (names, tst)		= accHStTSt (accNWorldHSt (accUserDBNWorld (getDisplayNames [userId]))) tst
+		# (names, tst)		= accHStTSt (getDisplayNames [userId]) tst
 		= (hd names, tst)
 	
 	mbTaskTreeTrace taskTree

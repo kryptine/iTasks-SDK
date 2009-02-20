@@ -65,5 +65,5 @@ getTimeStamp hst
 
 sessionStore ::  !([Session] -> [Session]) !*HSt -> (![Session],!*HSt) 
 sessionStore fn hst		
-	# (form,hst) = mkStoreForm (Init, pFormId "SessionTable" []) fn hst
+	# (form,hst) = mkStoreForm (Init, pFormId "SessionDB" []) fn hst
 	= (form.Form.value, hst)

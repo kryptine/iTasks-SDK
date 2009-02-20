@@ -84,8 +84,7 @@ where
 initHSt :: !HTTPRequest !*World -> *HSt
 initHSt request world
 	# (datafile,world)			= openmDataFile DataFileName world							// open the datafile if option chosen
-	# (userdb,world)			= openUserDB world											// open the user database
-	# nworld 					= mkNWorld world datafile userdb							// Wrap all io states in an NWorld state
+	# nworld 					= mkNWorld world datafile									// Wrap all io states in an NWorld state
 	# updates					= decodeFormUpdates request.arg_post						// Get the form updates from the post
 	# states					= decodeHtmlStates request.arg_post							// Fetch stored states from the post
 	# fstates	 				= mkFormStates states updates 								
