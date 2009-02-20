@@ -203,13 +203,13 @@ http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //W
 	# reply = reply +++ ("Server: " +++ (http_getValue "Server" headers "Clean HTTP 1.0 Server") +++ "\r\n")					//Server identifier	
 	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
 	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header
-	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now tm)) +++ "\r\n")				//Timestamp for caching
+	# reply = reply +++ ("Last-Modified: " +++ (http_getValue "Last-Modified" headers (now tm)) +++ "\r\n")						//Timestamp for caching
 	# reply = reply +++	(foldr (+++) "" [(n +++ ": " +++ v +++ "\r\n") \\ (n,v) <- headers | not (skipHeader n)])				//Additional headers
 	# reply = reply +++	("\r\n" +++ data)																						//Separator + data
 	= (reply, world)
 where
 	//Do not add these headers two times
-	skipHeader s = isMember s ["Status","Date","Server","Content-Type","Content-Lenght","Last-Modified"]
+	skipHeader s = isMember s ["Status","Date","Server","Content-Type","Content-Length","Last-Modified"]
 
 	//Format the current date/time
 	now tm				=	(weekday tm.wday) +++ ", " +++ (toString tm.mday) +++ " " +++ (month tm.mon) +++ " " +++ (toString (tm.year + 1900)) +++ " "
