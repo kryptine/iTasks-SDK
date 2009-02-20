@@ -1,6 +1,5 @@
 implementation module dynamic_string
 
-import StdDynamic
 import StdEnv
 
 import code from "copy_graph_to_string_interface.obj"

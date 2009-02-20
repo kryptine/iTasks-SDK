@@ -3,9 +3,7 @@ definition module InternaliTasksThreadHandling
 // *********************************************************************************************************************************
 // internally used function for Ajax and Client thread handling
 // *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+
 import TSt
 
 :: ThreadTable	:== [TaskThread]						// thread table is used for Ajax and OnClient options

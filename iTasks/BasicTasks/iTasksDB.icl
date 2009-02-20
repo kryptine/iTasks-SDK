@@ -3,9 +3,7 @@ implementation module iTasksDB
 // *********************************************************************************************************************************
 // iTasks for easy database creation and access - based on iData
 // *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
+
 import StdFunc, StdList
 import iDataTrivial, iDataFormlib
 import LiftingCombinators
