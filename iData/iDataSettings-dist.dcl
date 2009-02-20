@@ -5,14 +5,12 @@ definition module iDataSettings
 
 import iDataForms
 import iDataCompileOptions
-import Gerda							// OPTION: GEneRic Database Access to a standard relational database, made by Arjen van Weelden
 import DataFile							// OPTION: A fast generic database stored in a file, made by Arjen van Weelden
-import HttpServer
 
 // Installation options
 
 // Absolute path to the directory where static resources (css,js,img etc.) are stored 
-ResourceDir				:== "C:\\PATH\\TO\\MY CLEAN IDE\\fancyTasks\\Resources"
+ResourceDir				:== "C:\\PATH\\TO\\MY CLEAN IDE\\iTasks2\\Resources"
 
 
 // Debug switches								
@@ -41,11 +39,9 @@ IF_DataFile df no_df 	:== no_df		// otherwise, BUT also manually flag of ", read
 IF_Ajax aj no_aj		:== no_aj		// Otherwise
 
 //IF_ClientServer cs no_cs	:== cs		// If you want to have a client server architecture (with Sapl running on the client)
-IF_ClientServer cs no_cs	:== no_cs		// Otherwise
-
+IF_ClientServer cs no_cs	:== no_cs	// Otherwise
 
 IF_ClientTasks :: .a .a -> .a			// Follows IF_Client setting
-
 
 class iData a							// The collection of generic functions needed to make iData:	
 		| gForm {|*|}					// Creates an Html Form
@@ -69,33 +65,10 @@ class iParse a
 class iSpecialStore a
 		| TC 							// To be able to store values in a dynamic
 		
-										// OPTION: Comment out the next line if you do not have access to an ODCB database on your machine !!!!
-										// -or- if you do not want to make use of the Database option
-//		,  gerda {|*|} 	 				// To store and retrieve any Clean value in a standard relational database (slow but standard)
-
 										// OPTION: Comment out the next line if you do not want to use the DataFile option
 //		,  read  {|*|}, write {|*|}		// To store and retrieve any Clean value in a special database for which a file is used (fast but non standard)
 
 		a
-
-// There are several kind of server options:
-
-:: ServerType
-	=	Internal						// Default: The application is linked with a Clean http 1.0 server
-	|	CGI								// The application is used through an external server with the Common Gateway Interface
-	|	External						// The application runs as a subserver connected to a http 1.1 server
-	|	TestMode						// The application is tested with Gast (in collaboration with Gast)
-
-instance == ServerType
-
-// Set here the kind of server you want to use and the port number to use for the communication
-
-ServerKind				:==	Internal	// Enable this one for developing an iData or iTask application
-//ServerKind			:== CGI			// or: Enable this one for running the final version through CGI
-//ServerKind			:==	External	// or: Enable this one for the final version using an http 1.1 server
-
-//Options for the internal HTTP server, CGI Wrapper or HTTP subserver.
-ServerOptions			:== []
 			
 // Global Settings determining where files are stored
 
@@ -104,15 +77,12 @@ MyAbsDir				:: String		// absolute path name of directory in which this execuatb
 
 iDataStorageDir 		:== MyAbsDir +++ ThisExe +++ "-iStore"		// directory name where iData and iTask files are stored
 
-ODCBDataBaseName		:== ThisExe +++ "-ODCB"						// name of ODCB Database being used by iData applications
 DataFileName			:== ThisExe +++ "-CLDB"						// name of 		DataFile being used by iData applications
 
 TraceFile		 		:== MyAbsDir +++ ThisExe +++ "-traceSubServer.txt" // name of file in which trace information from subserver is stored
 
 // separators
-
-iDataIdSeparator 		:== "."										// used for combining iData form id's
-radioButtonSeparator 	:== '.'										// used as extension for family of radiobuttons
+iDataIdSeparator 			:== "."									// used for combining iData form id's
 
 // Ajax separators
 
