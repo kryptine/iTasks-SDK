@@ -36,26 +36,26 @@ browseShop shopPrompt cartPrompt initCart
 	  doShopping initCart items =>> 
 	  doAction   initCart items
 where
+	doShopping :: (Cart a) [a] -> Task (ShopAction,Cart a) | toCart, iData a
 	doShopping cart []
 		= (shopPrompt ++ [normalText "Currently no items in catalogue, sorry."])
 		  ?>> OK #>> return_V (LeaveShop,cart)
 	doShopping cart items
 		= orTasksVert
-			[ chooseAction shopPrompt cart
+			[ navigateShop shopPrompt cart
 			: map (itemActions cart) items					
 			] 
 	where
 		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | toCart, iData a
 		itemActions cart item
-			= chooseTask_btn [toHtml item] [("Add to Cart", addToCart cart item)]
+			= chooseTask_btn [toHtml item] 
+			    [("Add to Cart", return_V (ToCart, append (nitem,amount) cart))]
+		where
+			nitem	= toCart (length cart) item
+			amount	= {orderAmount = 1}
 
-		addToCart :: (Cart a) a -> Task (ShopAction,Cart a) | toCart, iData a
-		addToCart cart item 
-			= return_V 
-			    (ToCart,append (toCart (length cart) item, {orderAmount = 1}) cart)
-
-	chooseAction :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | toCart, iData a
-	chooseAction promptOfShop cart
+	navigateShop :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | toCart, iData a
+	navigateShop promptOfShop cart
 		= chooseTask [] 
 			[ ("Do Shopping",   	return_V (ToShop,   cart))
 			, ("Check Out and Pay", return_V (ToPay,    cart))
@@ -71,15 +71,15 @@ where
 	doAction initCart items (LeaveShop,cart)	= return_V Void
 	doAction initCart items (ToCart,   cart) 	= showCart   cart       =>> doAction initCart items 
 	doAction initCart items (ToShop,   cart) 	= doShopping cart items =>> doAction initCart items
-	doAction initCart items (ToPay,    cart) 	= checkOutAndPay {createDefault & itemsOrdered = cart} #>>
+	doAction initCart items (ToPay,    cart) 	= checkOutAndPay cart #>>
 												  browseShop shopPrompt cartPrompt initCart 
 
 	showCart ::(Cart a) -> Task (ShopAction,Cart a) | toCart, iData, DB a
-	showCart []
-		= chooseAction cartPrompt [] <<? [normalText "No items in cart yet!"]
+	showCart cart=:[]
+		= navigateShop cartPrompt cart <<? [normalText "No items in cart yet!"]
 	showCart cart
 		= orTasksVert 
-			[ chooseAction cartPrompt cart
+			[ navigateShop cartPrompt cart
 			: map (itemActions cart) cart
 			]
 	where
@@ -87,7 +87,7 @@ where
 		itemActions cart (cartItem,amount)
 			= [toHtml cartItem] 
 				?>> editTask "Change" {orderAmount = cartItem.amountOrdered} =>> \namount ->
-					return_V (ToCart, adjustAmount (cartItem, namount) cart)
+					return_V (ToCart, filter (\(c,a) -> c.amountOrdered > 0) (adjustAmount (cartItem, namount) cart))
 		where
 			adjustAmount :: (CartItem a, CartAmount) (Cart a) -> Cart a | DB a
 			adjustAmount (cartItem,amount) cart
@@ -98,9 +98,9 @@ where
 
 // finishing ordering process
 	
-checkOutAndPay :: (Order a) -> Task Void | iData a
-checkOutAndPay order 
-	= fillInClientInfo order =>> \order ->
+checkOutAndPay :: (Cart a) -> Task Void | iData a
+checkOutAndPay cart 
+	= fillInClientInfo {createDefault & itemsOrdered = cart} =>> \order ->
 	  yesOrNo [DivTag [] (costOrder order),normalText "Confirm Order"]
 		(dbModify (append order) #>>
 		 getMyName =>> \(myid,me) ->			
@@ -145,7 +145,7 @@ where
 manageCatalog :: [HtmlTag] a -> Task Void | iData, DB a
 manageCatalog catalogPrompt defaultValue 
 	= stopTask 
-		(catalogPrompt ?>>foreverTask
+		(catalogPrompt ?>> foreverTask
 			(	dbReadAll             =>> \catalog ->
 				browseCatalog defaultValue catalog
 			))
@@ -155,20 +155,20 @@ where
 		= editTask "Store" defaultValue =>>
 		  dbCreate 
 	
-	browseCatalog defaultValue items
+	browseCatalog _ items
 		= orTasksVert (map itemActions items)
 	where
 		itemActions :: a -> Task Void | iData, DB a
 		itemActions item
 			= chooseTask_btn [toHtml item] 
 				[("Edit",	editTask "Store" item =>> \nitem -> dbModify (insert eqItemId nitem)) 
-				,("Insert",	addItem (<<?) span item)
-				,("Append",	addItem (flip (?>>)) span_inc item)
+				,("Insert",	addItem  (flip (<<?)) span     item)
+				,("Append",	addItem        (?>>)  span_inc item)
 				,("Delete",	dbModify (filter (not o eqItemId item)))
 				]
 		
 		addItem show spanF item
-			= show (editTask "Store" createDefault) [toHtml item] =>> \nitem -> dbModify (addItem` nitem)
+			= show [toHtml item] (editTask "Store" createDefault) =>> \nitem -> dbModify (addItem` nitem)
 		where
 			addItem` nitem items
 				= let (before,after) = spanF (not o (eqItemId item)) items
