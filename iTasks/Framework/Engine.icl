@@ -70,11 +70,9 @@ handleSessionRequest flows handler request world
 			# world				= finalizeHSt hst
 			= ({http_emptyResponse & rsp_data = mkSessionFailureResponse timeout}, world)
 		(Just session)
-			# (processdb, hst)		= openProcessDB hst
-			# tst					= mkTSt LSTxtFile LSTxtFile session flows hst processdb
-			# (response,tst =:{hst,processdb})
+			# tst					= mkTSt LSTxtFile LSTxtFile session flows hst
+			# (response,tst =:{hst})
 									= handler request tst
-			# hst					= closeProcessDB processdb hst
 			# hst					= storeStates hst
 			# world					= finalizeHSt hst
 			= (response, world)		

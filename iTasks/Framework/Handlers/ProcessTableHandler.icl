@@ -8,6 +8,6 @@ import Http, TSt, ProcessDB, Debug
 */
 handleProcessTableRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleProcessTableRequest request tst
-	# (processes,tst)		= accProcessDBTSt (getProcesses [Active,Suspended,Finished,Deleted]) tst 
+	# (processes,tst)		= accHStTSt (getProcesses [Active,Suspended,Finished,Deleted]) tst 
 	# content				= toString (traceProcesses processes)
 	= ({http_emptyResponse & rsp_data = content}, tst)

@@ -12,8 +12,8 @@ import dynamic_string
 import code from "copy_graph_to_string.obj";
 import code from "copy_graph_to_string_interface.obj";
 
-mkTSt :: !Lifespan !Lifespan !Session ![Workflow]!*HSt !*ProcessDB -> *TSt
-mkTSt itaskstorage threadstorage session workflows hst processdb
+mkTSt :: !Lifespan !Lifespan !Session ![Workflow]!*HSt -> *TSt
+mkTSt itaskstorage threadstorage session workflows hst
 	=	{ taskNr		= [-1]
 		, userId		= -1
 		, delegatorId	= -1
@@ -24,7 +24,6 @@ mkTSt itaskstorage threadstorage session workflows hst processdb
 		, options 		= initialOptions itaskstorage
 		, staticInfo	= initStaticInfo session threadstorage workflows
 		, hst 			= hst
-		, processdb		= processdb
 		}
 
 initStaticInfo :: !Session !Lifespan ![Workflow] -> StaticInfo
@@ -85,7 +84,7 @@ setTaskTree tree tst = {tst & tree = tree}
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
-	# (processes,tst)		= accProcessDBTSt (getProcessesForUser currentUser [Active]) tst	//Lookup all active processes for this user
+	# (processes,tst)		= accHStTSt (getProcessesForUser currentUser [Active]) tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
 	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	
@@ -97,7 +96,7 @@ where
 	addNewProcesses trees tst
 		# (pids,tst)		= getNewProcesses tst
 		| isEmpty pids		= (trees,tst)									//Nothing to do...
-		# (processes,tst)	= accProcessDBTSt (getProcessesById pids) tst	//Lookup the process entries
+		# (processes,tst)	= accHStTSt (getProcessesById pids) tst			//Lookup the process entries
 		# tst				= clearNewProcesses tst							//Reset the list of new processes
 		# (ntrees,tst)		= calculateTrees (sortProcesses processes) tst	//Calculate the additional task trees
 		= addNewProcesses (trees ++ reverse ntrees) tst						//Recursively check for more new processes	
@@ -112,7 +111,7 @@ where
 calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 calculateTaskTree pid enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
-	# (mbProcess,tst)		= accProcessDBTSt (getProcessForUser currentUser pid) tst
+	# (mbProcess,tst)		= accHStTSt (getProcessForUser currentUser pid) tst
 	= case mbProcess of
 		Just entry
 			= case entry.Process.status of
@@ -136,7 +135,7 @@ buildProcessTree {Process | id, owner, delegator, status, process} tst
 	# (TTProcess info sequence, tst)	= getTaskTree tst
 	# (users, tst)						= getUsers tst
 	# (finished, tst)					= taskFinished tst
-	# (_,tst)							= accProcessDBTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst 
+	# (_,tst)							= accHStTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst 
 	= (TTProcess {ProcessInfo|info & processLabel = label, status = (if finished Finished Active)} (reverse sequence), tst)
 where
 	applyMainTask (LEFT {workflow}) tst //Execute a static process
@@ -228,15 +227,6 @@ accHStTSt :: !.(*HSt -> *(.a,*HSt)) !*TSt -> (.a,!*TSt)
 accHStTSt f tst=:{hst}
 	# (a,hst) = f hst
 	= (a,{tst & hst = hst})
-
-appProcessDBTSt	:: !.(*ProcessDB -> *ProcessDB)			!*TSt -> *TSt
-appProcessDBTSt f tst=:{processdb}
-	= {tst & processdb=f processdb}
-	
-accProcessDBTSt	:: !.(*ProcessDB -> *(.a,*ProcessDB))	!*TSt -> (.a,!*TSt)
-accProcessDBTSt f tst=:{processdb}
-	# (a,processdb) = f processdb
-	= (a,{tst & processdb = processdb})
 
 appTaskTSt :: !(Task a) !*TSt -> *TSt
 appTaskTSt (Task fn) tst = snd (fn tst)

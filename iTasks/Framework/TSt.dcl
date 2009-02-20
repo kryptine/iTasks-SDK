@@ -7,7 +7,6 @@ definition module TSt
 import StdMaybe
 import TaskTree, Types, Void, iDataForms
 from HSt		import :: HSt
-from ProcessDB	import :: ProcessDB
 from SessionDB	import :: Session{..}
 
 // The task state
@@ -24,7 +23,6 @@ from SessionDB	import :: Session{..}
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 									
 					, hst			:: !*HSt									// iData state
-					, processdb		:: !*ProcessDB								// The process database
 					}
 
 :: Options		=	{ tasklife		:: !Lifespan								// default: Session		
@@ -66,7 +64,7 @@ from SessionDB	import :: Session{..}
 *
 * @return a TSt iTask state
 */
-mkTSt :: !Lifespan !Lifespan !Session ![Workflow] !*HSt !*ProcessDB -> *TSt
+mkTSt :: !Lifespan !Lifespan !Session ![Workflow] !*HSt -> *TSt
 
 /**
 * Resets the TSt for calculating a new task Tree
@@ -180,16 +178,6 @@ appHStTSt	:: !.(*HSt -> *HSt)			!*TSt -> *TSt
 * Apply a function yielding a result on HSt on a TSt
 */
 accHStTSt	:: !.(*HSt -> *(.a,*HSt))	!*TSt -> (.a,!*TSt)
-
-/**
-* Apply a function on ProcessDB on a TSt
-*/ 
-appProcessDBTSt	:: !.(*ProcessDB -> *ProcessDB)			!*TSt -> *TSt
-
-/**
-* Apply a function yielding a result on ProcessDB on a TSt
-*/
-accProcessDBTSt	:: !.(*ProcessDB -> *(.a,*ProcessDB))	!*TSt -> (.a,!*TSt)
 
 /**
 * Applies a task to the task state without yielding the result of the task.

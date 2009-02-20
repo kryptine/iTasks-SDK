@@ -3,13 +3,6 @@ implementation module ProcessDB
 import StdEnv, StdGeneric, StdMaybe, GenBimap
 import HSt, TSt, iDataForms, iDataFormlib
 
-//We now use a fixed ProcessDB type which stores
-//the complete list of processes in memory
-//The best solution would be to use an overloaded
-//ProcesDB type which can lazily retrieve data
-
-:: *ProcessDB = ProcessDB [Process]
-
 derive gForm	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
 derive gUpd		Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
 derive gPrint	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
@@ -30,126 +23,93 @@ where
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
 
-class ProcessDBEnv env
+instance ProcessDB HSt
 where
-	openProcessDB		:: !*env -> (!*ProcessDB, !*env)
-	closeProcessDB		:: !*ProcessDB !*env -> *env
-
-instance ProcessDBEnv HSt
-where
-	openProcessDB :: !*HSt -> (!*ProcessDB, !*HSt)
-	openProcessDB hst
-		# (db,hst) = processStore id hst
-		= (ProcessDB db, hst)
-
-	closeProcessDB :: !*ProcessDB !*HSt -> *HSt	
-	closeProcessDB (ProcessDB db) hst
-		#(_,hst)	= processStore (\_ -> db) hst
-		= hst
+	createProcess :: !Process !*HSt -> (!Int,!*HSt)
+	createProcess entry hst 
+		# (procs,hst) 	= processStore id hst
+		# newPid		= inc (maxPid procs)
+		# (procs,hst)	= processStore (\_ -> procs ++ [{Process | entry & id = newPid}]) hst
+		= (newPid, hst)
 		
-processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 
-processStore fn hst		
-	# (form,hst) = mkStoreForm (Init, pFormId "ProcessTable" []) fn hst
-	= (form.Form.value, hst)
+	deleteProcess :: !Int !*HSt	-> (!Bool, !*HSt)
+	deleteProcess processId hst 
+		# (procs,hst) 	= processStore id hst
+		# (nprocs,hst)	= processStore (\_ -> [process \\ process <- procs | process.Process.id <> processId]) hst
+		= (length procs <> length nprocs, hst)
+		
+	getProcess :: !Int !*HSt -> (!Maybe Process,!*HSt)
+	getProcess processId hst
+		# (procs,hst) 	= processStore id hst
+		= case [process \\ process <- procs | process.Process.id == processId] of
+			[entry]	= (Just entry, hst)
+			_		= (Nothing, hst)
 
-createProcess :: !Process			!*ProcessDB	-> (!Int, 				!*ProcessDB)
-createProcess entry (ProcessDB db) = (newid, ProcessDB newlist)
-where
-	newid	= (maxPid db) + 1
-	newlist	= db ++ [{Process | entry & id = newid}]
-
-deleteProcess :: !Int						!*ProcessDB	-> (!Bool,				!*ProcessDB)
-deleteProcess processId (ProcessDB db) = (deleted, ProcessDB newlist)
-where
-	deleted	= length db == (length newlist) - 1
-	newlist	= [process \\ process <- db | process.Process.id <> processId]	
+	getProcessForUser :: !Int !Int !*HSt -> (!Maybe Process,!*HSt)
+	getProcessForUser userId processId hst
+		# (procs,hst) 	= processStore id hst
+		= case [process \\ process <- procs | process.Process.id == processId && (process.Process.owner == userId || isMember userId process.Process.users)] of
+			[entry]	= (Just entry, hst)
+			_		= (Nothing, hst)
+			
+	getProcesses :: ![ProcessStatus] !*HSt -> (![Process], !*HSt)
+	getProcesses statusses hst
+		# (procs,hst) 	= processStore id hst
+		= ([process \\ process <- procs | isMember process.Process.status statusses], hst)
 	
-getProcess :: !Int						!*ProcessDB -> (!Maybe Process,!*ProcessDB)
-getProcess processId (ProcessDB db)
-	= case [process \\ process <- db | process.Process.id == processId] of
-		[entry]	= (Just entry, (ProcessDB db))
-		_		= (Nothing, (ProcessDB db))
+	getProcessesById :: ![Int] !*HSt -> (![Process], !*HSt)
+	getProcessesById ids hst
+		# (procs,hst) 	= processStore id hst
+		= ([process \\ process <- procs | isMember process.Process.id ids], hst)
 
-getProcessForUser	:: !Int !Int !*ProcessDB	-> (!Maybe Process,!*ProcessDB)
-getProcessForUser userId processId (ProcessDB db)
-	= case [process \\ process <- db | process.Process.id == processId && (process.Process.owner == userId || isMember userId process.Process.users)] of
-		[entry]	= (Just entry, (ProcessDB db))
-		_		= (Nothing, (ProcessDB db))
-		
-getProcesses :: ![ProcessStatus] !*ProcessDB -> (![Process],	!*ProcessDB)
-getProcesses statusses (ProcessDB db) = (entries,(ProcessDB db))
-where
-	entries = [process \\ process <- db | isMember process.Process.status statusses]		
+	getProcessesForUser	:: !Int ![ProcessStatus] !*HSt -> (![Process], !*HSt)
+	getProcessesForUser userId statusses hst
+		# (procs,hst) 	= processStore id hst
+		= ([process \\ process <- procs | (process.Process.owner == userId || isMember userId process.Process.users) && isMember process.Process.status statusses], hst)
 
-getProcessesById :: ![Int] !*ProcessDB -> (![Process],!*ProcessDB)
-getProcessesById ids (ProcessDB db) = (entries,(ProcessDB db))
-where
-	entries = [process \\ process <- db | isMember process.Process.id ids]
 
-getProcessesForUser	:: !Int ![ProcessStatus] !*ProcessDB -> (![Process],	!*ProcessDB)
-getProcessesForUser userId statusses (ProcessDB db) = (entries,(ProcessDB db))
-where
-	entries = [process \\ process <- db | (process.Process.owner == userId || isMember userId process.Process.users) && isMember process.Process.status statusses]
+	
+	setProcessOwner	:: !Int !Int !Int !*HSt	-> (!Bool, !*HSt)
+	setProcessOwner userId delegatorId processId hst = setProcessProperty (\x -> {Process| x & owner = userId, delegator = delegatorId}) processId hst
+	
+	setProcessStatus :: !ProcessStatus !Int	!*HSt -> (!Bool,!*HSt)
+	setProcessStatus status processId hst = setProcessProperty (\x -> {Process| x & status = status}) processId hst
 
-setProcessOwner	:: !Int !Int !Int !*ProcessDB	-> (!Bool,				!*ProcessDB)
-setProcessOwner userId delegatorId processId (ProcessDB db) = (updated, ProcessDB newlist)
-where
-	updated				= or updates
-	(updates,newlist)	= unzip (map update db)
-	update entry		
-		| entry.Process.id == processId	= (True, {entry & owner = userId, delegator = delegatorId})
-												= (False, entry)
-
-setProcessStatus :: !ProcessStatus !Int		!*ProcessDB	-> (!Bool,				!*ProcessDB)
-setProcessStatus status processId (ProcessDB db) = (updated, ProcessDB newlist)
-where
-	updated				= or updates
-	(updates,newlist)	= unzip (map update db)
-	update entry
-		| entry.Process.id == processId	= (True, {Process|entry & status = status})
-												= (False, entry)
-
-setProcessResult	:: !String !Int				!*ProcessDB -> (!Bool,				!*ProcessDB)
-setProcessResult result processId (ProcessDB db) = (updated, ProcessDB newlist)
-where
-	(updated,newlist) 	= setProcessResult` result processId db
-		
-	setProcessResult` res pid [] = (False, [])
-	setProcessResult` res pid [x:xs]
-		= case x.Process.process of
+	setProcessResult :: !String !Int !*HSt -> (!Bool,!*HSt)
+	setProcessResult result processId hst = setProcessProperty (update result) processId hst 
+	where
+		update result x = case x.Process.process of
 			(LEFT staticProc)
-				# (found, xs)	= setProcessResult` res pid xs
-				= (found, [x:xs])
+				= x 
 			(RIGHT dynamicProc)
-				| x.Process.id == pid
-					= (True, [{x & process = (RIGHT {dynamicProc & result = res})}:xs])
-				| otherwise
-					# (found, xs)	= setProcessResult` res pid xs
-					= (found, [x:xs])
+				= {x & process = (RIGHT {dynamicProc & result = result})}
 
-updateProcess :: !ProcessStatus !(Maybe String) ![UserId] !ProcessId !*ProcessDB -> (!Bool,!*ProcessDB) 
-updateProcess status mbResult users processId (ProcessDB db) = (updated, ProcessDB newlist)
-where
-	(updated, newlist)	= updateProcess` status mbResult users processId db
+	updateProcess :: !ProcessStatus !(Maybe String) ![UserId] !ProcessId !*HSt -> (!Bool,!*HSt) 
+	updateProcess status mbResult users processId hst = setProcessProperty (update status mbResult users) processId hst 
+	where
+		update status mbResult users x = case x.Process.process of
+			(LEFT staticProc)
+				= {Process | x & status = status, users = users, process = LEFT staticProc} 
+			(RIGHT dynamicProc)
+				= case mbResult of
+					Just result	= {Process | x & status = status, users = users, process = RIGHT {dynamicProc & result = result}}
+					Nothing		= {Process | x & status = status, users = users, process = RIGHT dynamicProc}
 	
-	updateProcess` stat mbres usr pid []	= (False, [])
-	updateProcess` stat mbres usr pid [x:xs]
-		| x.Process.id == pid
-			= case x.Process.process of
-				(LEFT staticProc)
-					= (True, [{Process | x & status = stat, users = usr, process = LEFT staticProc}:xs]) 
-				(RIGHT dynamicProc)
-					= case mbres of
-						Just res	= (True, [{Process | x & status = stat, users = usr, process = RIGHT {dynamicProc & result = res}}:xs])
-						Nothing		= (True, [{Process | x & status = stat, users = usr, process = RIGHT dynamicProc}:xs])
-		| otherwise
-			# (found, xs)	= updateProcess` stat mbres usr pid xs
-			= (found, [x:xs])
-
+//Generic process property update function
+setProcessProperty :: (Process -> Process) Int *HSt -> (!Bool, *HSt)
+setProcessProperty f processId hst
+	# (procs,hst) 	= processStore id hst
+	# (nprocs,upd)	= unzip (map (update f) procs)
+	# (nprocs,hst)	= processStore (\_ -> nprocs) hst
+	= (or upd, hst)
+where
+	update f x		
+		| x.Process.id == processId		= (f x, True)
+		| otherwise						= (x, False)
 
 //Utility functions
-createStaticProcessEntry :: Workflow UserId UserId ProcessStatus -> Process
-createStaticProcessEntry workflow owner delegator status
+mkStaticProcessEntry :: Workflow UserId UserId ProcessStatus -> Process
+mkStaticProcessEntry workflow owner delegator status
 	=	{ Process
 		| id		= 0
 		, owner		= owner
@@ -158,8 +118,8 @@ createStaticProcessEntry workflow owner delegator status
 		, status	= status
 		, process	= LEFT {workflow = workflow.name}
 		}
-createDynamicProcessEntry :: String String UserId UserId ProcessStatus Int-> Process
-createDynamicProcessEntry label task owner delegator status parent
+mkDynamicProcessEntry :: String String UserId UserId ProcessStatus Int-> Process
+mkDynamicProcessEntry label task owner delegator status parent
 	=	{ Process
 		| id		= 0
 		, owner		= owner
@@ -168,6 +128,11 @@ createDynamicProcessEntry label task owner delegator status parent
 		, status	= status
 		, process	= RIGHT {label = label, result = "", task = task, parent = parent}
 		}
+		
+processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 
+processStore fn hst		
+	# (form,hst) = mkStoreForm (Init, pFormId "ProcessDB" []) fn hst
+	= (form.Form.value, hst)
 
 maxPid :: [Process] -> Int
 maxPid db = foldr max 0 [id \\ {Process|id} <- db]

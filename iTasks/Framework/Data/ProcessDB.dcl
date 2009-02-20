@@ -31,40 +31,25 @@ import Types, HSt, TSt
 						 , parent	:: !Int			//The process that created the current process
 						 }
 
-/**
-* A process database handle
-*/
-:: *ProcessDB
-
-/**
-* Overloaded functions for opening a process database in different
-* environments
-*/
-class ProcessDBEnv env
+class ProcessDB st
 where
-	openProcessDB		:: !*env -> (!*ProcessDB, !*env)
-	closeProcessDB		:: !*ProcessDB !*env -> *env
+	createProcess		:: !Process												!*st -> (!Int, 			!*st)
+	deleteProcess		:: !Int													!*st -> (!Bool,			!*st)
+	getProcess			:: !Int													!*st -> (!Maybe Process,!*st)
+	getProcessForUser	:: !Int !Int											!*st -> (!Maybe Process,!*st)
+	getProcesses		:: ![ProcessStatus]										!*st -> (![Process],	!*st)
+	getProcessesById	:: ![Int]												!*st -> (![Process],	!*st)
+	getProcessesForUser	:: !Int ![ProcessStatus]								!*st -> (![Process],	!*st)
+	setProcessOwner		:: !Int !Int !Int										!*st -> (!Bool,			!*st)
+	setProcessStatus	:: !ProcessStatus !Int									!*st -> (!Bool,			!*st)
+	setProcessResult	:: !String !Int											!*st -> (!Bool,			!*st)
+	updateProcess		:: !ProcessStatus !(Maybe String) ![UserId] !ProcessId	!*st -> (!Bool,			!*st) 
 
-instance ProcessDBEnv HSt
-
-createProcess		:: !Process					!*ProcessDB	-> (!Int, 			!*ProcessDB)
-deleteProcess		:: !Int						!*ProcessDB	-> (!Bool,			!*ProcessDB)
-getProcess			:: !Int						!*ProcessDB -> (!Maybe Process,	!*ProcessDB)
-getProcessForUser	:: !Int !Int				!*ProcessDB	-> (!Maybe Process,	!*ProcessDB)
-getProcesses		:: ![ProcessStatus]			!*ProcessDB -> (![Process],		!*ProcessDB)
-getProcessesById	:: ![Int]					!*ProcessDB -> (![Process],		!*ProcessDB)
-getProcessesForUser	:: !Int ![ProcessStatus]	!*ProcessDB -> (![Process],		!*ProcessDB)
-setProcessOwner		:: !Int !Int !Int			!*ProcessDB	-> (!Bool,			!*ProcessDB)
-setProcessStatus	:: !ProcessStatus !Int		!*ProcessDB	-> (!Bool,			!*ProcessDB)
-setProcessResult	:: !String !Int				!*ProcessDB -> (!Bool,			!*ProcessDB)
-
-//Combined update of status, result, and users
-updateProcess		:: !ProcessStatus !(Maybe String) ![UserId] !ProcessId !*ProcessDB -> (!Bool,!*ProcessDB) 
-
+instance ProcessDB HSt
 /*
 * Utility functions for creating process database entries.
 */
-createStaticProcessEntry	:: Workflow UserId UserId ProcessStatus -> Process
-createDynamicProcessEntry	:: String String UserId UserId ProcessStatus Int -> Process
+mkStaticProcessEntry	:: Workflow UserId UserId ProcessStatus				-> Process
+mkDynamicProcessEntry	:: String String UserId UserId ProcessStatus Int	-> Process
 
 instance toString ProcessStatus
