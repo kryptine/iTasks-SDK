@@ -1,11 +1,10 @@
 implementation module iDataFormlib
 
 // Handy collection of Form's
-// (c) MJP 2005
 
 import StdEnum, StdFunc, StdList, StdString, StdTuple
 import iDataWidgets, iDataTrivial
-import StdLib, GenBimap
+import StdMaybe, GenBimap
 
 
 EmptyBody :== SpanTag [] []
