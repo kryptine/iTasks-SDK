@@ -1,10 +1,9 @@
 implementation module AuthenticationHandler
 
+import StdEnv, StdMaybe
 import Http
 import HSt
-import Session, UserDB
-import StdEnv
-import StdMaybe
+import SessionDB, UserDB
 
 handleAuthenticationRequest :: !HTTPRequest *HSt -> (!HTTPResponse, !*HSt)
 handleAuthenticationRequest req hst

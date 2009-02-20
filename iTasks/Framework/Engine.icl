@@ -2,7 +2,7 @@ implementation module Engine
 
 import StdEnv, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
-import UserDB, ProcessDB
+import UserDB, ProcessDB, SessionDB
 import Util, InternaliTasksThreadHandling
 import BasicCombinators
 
@@ -12,7 +12,7 @@ import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler
 import TaskTreeForestHandler, ProcessTableHandler
 
-import TSt, Session
+import TSt
 
 import JSON
 derive JSONDecode HtmlState, StorageFormat, Lifespan

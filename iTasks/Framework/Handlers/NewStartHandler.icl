@@ -1,7 +1,7 @@
 implementation module NewStartHandler
 
 import StdEnv
-import Http, Session, TSt, ProcessDB
+import Http, TSt, ProcessDB
 
 handleNewStartRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleNewStartRequest request tst	

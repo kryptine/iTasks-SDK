@@ -1,6 +1,6 @@
 implementation module DeauthenticationHandler
 
-import Http, TSt, Session
+import Http, TSt, SessionDB
 
 handleDeauthenticationRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDeauthenticationRequest request tst=:{staticInfo, hst}

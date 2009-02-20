@@ -1,7 +1,6 @@
 definition module NewStartHandler
 
-import Http, Session
-import TSt
+import Http, TSt
 
 /**
 * Handles the ajax requests from the 'start new work' panel.

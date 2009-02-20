@@ -36,7 +36,6 @@ import Types, HSt, TSt
 */
 :: *ProcessDB
 
-
 /**
 * Overloaded functions for opening a process database in different
 * environments
@@ -46,21 +45,18 @@ where
 	openProcessDB		:: !*env -> (!*ProcessDB, !*env)
 	closeProcessDB		:: !*ProcessDB !*env -> *env
 
-/**
-* We provide a simple process database based on an iData editor
-*/
 instance ProcessDBEnv HSt
 
-createProcess		:: !Process					!*ProcessDB	-> (!Int, 				!*ProcessDB)
-deleteProcess		:: !Int						!*ProcessDB	-> (!Bool,				!*ProcessDB)
-getProcess			:: !Int						!*ProcessDB -> (!Maybe Process,!*ProcessDB)
-getProcessForUser	:: !Int !Int				!*ProcessDB	-> (!Maybe Process,!*ProcessDB)
-getProcesses		:: ![ProcessStatus]			!*ProcessDB -> (![Process],	!*ProcessDB)
-getProcessesById	:: ![Int]					!*ProcessDB -> (![Process],	!*ProcessDB)
-getProcessesForUser	:: !Int ![ProcessStatus]	!*ProcessDB -> (![Process],	!*ProcessDB)
-setProcessOwner		:: !Int !Int !Int			!*ProcessDB	-> (!Bool,				!*ProcessDB)
-setProcessStatus	:: !ProcessStatus !Int		!*ProcessDB	-> (!Bool,				!*ProcessDB)
-setProcessResult	:: !String !Int				!*ProcessDB -> (!Bool,				!*ProcessDB)
+createProcess		:: !Process					!*ProcessDB	-> (!Int, 			!*ProcessDB)
+deleteProcess		:: !Int						!*ProcessDB	-> (!Bool,			!*ProcessDB)
+getProcess			:: !Int						!*ProcessDB -> (!Maybe Process,	!*ProcessDB)
+getProcessForUser	:: !Int !Int				!*ProcessDB	-> (!Maybe Process,	!*ProcessDB)
+getProcesses		:: ![ProcessStatus]			!*ProcessDB -> (![Process],		!*ProcessDB)
+getProcessesById	:: ![Int]					!*ProcessDB -> (![Process],		!*ProcessDB)
+getProcessesForUser	:: !Int ![ProcessStatus]	!*ProcessDB -> (![Process],		!*ProcessDB)
+setProcessOwner		:: !Int !Int !Int			!*ProcessDB	-> (!Bool,			!*ProcessDB)
+setProcessStatus	:: !ProcessStatus !Int		!*ProcessDB	-> (!Bool,			!*ProcessDB)
+setProcessResult	:: !String !Int				!*ProcessDB -> (!Bool,			!*ProcessDB)
 
 //Combined update of status, result, and users
 updateProcess		:: !ProcessStatus !(Maybe String) ![UserId] !ProcessId !*ProcessDB -> (!Bool,!*ProcessDB) 

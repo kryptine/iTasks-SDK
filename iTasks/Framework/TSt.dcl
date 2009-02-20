@@ -5,10 +5,10 @@ definition module TSt
 * Additionally it provides utility functions to manipulate the state.
 */
 import StdMaybe
-import Session
-import TaskTree, Types
+import TaskTree, Types, Void, iDataForms
 from HSt		import :: HSt
 from ProcessDB	import :: ProcessDB
+from SessionDB	import :: Session{..}
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr									// for generating unique form-id's

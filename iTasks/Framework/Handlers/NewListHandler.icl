@@ -1,7 +1,7 @@
 implementation module NewListHandler
 
 import StdEnv
-import Http, Session
+import Http, TSt
 import JSON, Util
 
 :: NewWorkItem	= 	{ name		:: String	// The name of the workflow that is started
