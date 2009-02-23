@@ -120,12 +120,12 @@ where
 
 generic gForm a :: !(InIDataId a) !*HSt -> *(Form a, !*HSt)	
 
-gForm{|Int|} (init,formid=:{mode=Display}) hst
+gForm{|Int|} (init,formid=:{mode=Display}) hst=:{cntr}
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= [Text (toString formid.ival)]
 	   , inputs			= []
-	   },hst)
+	   },setHStCntr (cntr + 1 ) hst)
 	   
 gForm{|Int|} (init,formid) hst 	
 	# (html,inputs,hst)			= mkInput (init,formid) "Int" (toString formid.ival) hst
@@ -135,12 +135,12 @@ gForm{|Int|} (init,formid) hst
 	   , inputs					= inputs
 	   },hst)
 
-gForm{|Real|} (init,formid=:{mode=Display}) hst
+gForm{|Real|} (init,formid=:{mode=Display}) hst=:{cntr}
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= [Text (toString formid.ival)]
 	   , inputs			= []
-	   },hst)	
+	   },setHStCntr (cntr + 1) hst)	
 gForm{|Real|} (init,formid) hst 	
 	# (html,inputs,hst)			= mkInput (init,formid) "Real" (toString formid.ival) hst
 	= ({ changed				= False
@@ -157,12 +157,12 @@ gForm{|Bool|} (init,formid) hst
 	   , inputs					= inputs
 	   },hst)
 
-gForm{|String|} (init,formid=:{mode=Display}) hst
+gForm{|String|} (init,formid=:{mode=Display}) hst=:{cntr}
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= [Text formid.ival]
 	   , inputs			= []
-	   },hst)
+	   },setHStCntr (cntr + 1) hst)
 
 gForm{|String|} (init,formid) hst 	
 	# (html,inputs,hst)			= mkInput (init,formid) "String" formid.ival hst
