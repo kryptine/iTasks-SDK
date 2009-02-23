@@ -127,13 +127,13 @@ where
 // ******************************************************************************************************
 // Select the tasks to do from a list with help of another task for selecting them:
 
-selectTasks 	:: !(SelectingTask a) !(OrderingTask a) ![LabeledTask a] -> Task [a] | iData a
+selectTasks 	:: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
 selectTasks chooser executer tasks = mkSequenceTask "selectTasks" selectTasks`
 where
 	selectTasks`	= chooser tasks =>> \chosen -> 	executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
 	numTasks 		= length tasks
 
-allTasksCond 	:: !String !TaskCombination !(FinishPred a) ![LabeledTask a] -> Task [a] | iData a 
+allTasksCond 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
 allTasksCond label combination pred taskCollection 
 	= mkParallelTask label (Task (doandTasks taskCollection))
 where
