@@ -22,7 +22,7 @@ appIData idatafun = (mkParallelTask "appIData" (Task appIData`))
 where
 	appIData` tst
 		# tst					= setCombination TTVertical tst
-		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (Task (doIData idatafun)))) tst
+		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (doIData idatafun))) tst
 		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
 		= (a,tst)
 		
@@ -37,7 +37,7 @@ appIData2 idatafun = (mkParallelTask "appIData" (Task appIData`))
 where
 	appIData` tst
 		# tst					= setCombination TTVertical tst
-		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (Task (doIData idatafun)))) tst
+		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (doIData idatafun))) tst
 		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
 		= (a,tst)
 
@@ -48,17 +48,12 @@ where
 		# tst			= setInputs idata.inputs tst
 		= (idata.Form.value, tst)
 
-appHStOnce :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
-appHStOnce label fun = once label (Task (accHStTSt fun))
 
 appHSt :: !String !(HSt -> (!a,!HSt)) -> (Task a) | iData a
-appHSt label fun = mkBasicTask label (Task (accHStTSt fun))
-
-appWorldOnce :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
-appWorldOnce label fun = once label (Task (liftWorld fun))
+appHSt label fun = mkBasicTask label (accHStTSt fun)
 
 appWorld :: !String !(*World -> *(!a,!*World)) -> (Task a) | iData a
-appWorld label fun = mkBasicTask label (Task (liftWorld fun))
+appWorld label fun = mkBasicTask label (liftWorld fun)
 
 liftWorld :: !(*World -> *(!a,!*World)) !*TSt -> *(!a,!*TSt)
 liftWorld f tst=: {hst = hst=:{nworld = nworld=:{world}}}

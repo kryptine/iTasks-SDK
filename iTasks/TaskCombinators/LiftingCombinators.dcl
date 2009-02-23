@@ -19,18 +19,13 @@ appIData 		:: !(IDataFun a) 								-> Task a 		| iData a
 appIData2 		:: !(String *HSt -> *(!Form a,!*HSt)) 			-> Task a		| iData a 
 
 /*
-appHStOnce		:: lift iData *HSt domain to TSt domain, will be executed only once; string used for tracing
-appHSt			:: lift iData *HSt domain to TSt domain, will be executed on each invocation; string used for tracing
-liftHst			:: lift iData *HSt domain to the TSt domain
+appHSt			:: lift iData *HSt domain to TSt domain. string used for tracing
 */
-appHStOnce 		:: !String !(*HSt -> (!a,!*HSt)) 				-> Task a		| iData a
 appHSt			:: !String !(*HSt -> (!a,!*HSt)) 				-> Task a		| iData a
 
 /*
-appWorldOnce	:: lift *World domain to TSt domain, will be executed only once; string used for tracing
-appWorld		:: lift *World domain to TSt domain, will be executed on each invocation; string used for tracing
+appWorld		:: lift *World domain to TSt domain. string used for tracing
 */
-appWorldOnce 	:: !String !(*World -> *(!a,!*World)) 			-> Task a		| iData a
 appWorld 		:: !String !(*World -> *(!a,!*World)) 			-> Task a		| iData a
 
 

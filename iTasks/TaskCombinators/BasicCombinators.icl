@@ -25,8 +25,8 @@ where
 	| activated				= accTaskTSt (taskb a) {tst & options = options}
 							= (createDefault,tst)
 
-return_V :: !a -> (Task a) | iCreateAndPrint a
-return_V a  = mkBasicTask "return_V" (Task return_V`)
+return_V :: !a -> (Task a) | iData a
+return_V a  = mkBasicTask "return_V" return_V`
 where
 	return_V` tst = (a,tst) 
 
@@ -53,7 +53,7 @@ where
 		# storeName					= iTaskId (incTaskNr taskNr) taskname					
 		# (taskval,tst) 			= accHStTSt (mkStoreForm (Init,storageFormId options storeName (False,createDefault)) id) tst	// remember if the task has been done
 		# (taskdone,taskvalue)		= taskval.Form.value																			// select values
-		| taskdone					= accTaskTSt (mkBasicTask taskname (Task (\tst -> (taskvalue,tst)))) tst						// if rewritten, we are a basic task returning a value
+		| taskdone					= accTaskTSt (mkBasicTask taskname (\tst -> (taskvalue,tst))) tst							// if rewritten, we are a basic task returning a value
 		# (a, tst=:{activated})		= accTaskTSt (mkSequenceTask taskname mytask) tst 												// execute task in an isolated sequence
 		| activated
 			# tst					= deleteSubTasksAndThreads (incTaskNr taskNr) tst																//garbage collect it
@@ -61,19 +61,6 @@ where
 			= (a, tst)
 		| otherwise
 			= (a, tst)
-
-once :: !String !(Task a) -> (Task a) | iData a
-once label task = mkBasicTask label (Task once`)
-where
-	once` tst=:{activated,taskNr,hst,userId,options}
-		# taskId			= iTaskId taskNr (label +++ "_")
-		# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) id hst  			
-		# (done,value)		= store.Form.value
-		| done 				= (value,{tst & hst = hst})																		// if task has completed, don't do it again
-		# (value,tst=:{hst})= accTaskTSt task {tst & hst = hst}
-		# (store,hst) 		= mkStoreForm (Init,storageFormId options taskId (False,createDefault)) (\_ -> (True,value)) hst // remember task status for next time
-		# (done,value)		= store.Form.value
-		= (value,{tst & activated = done, hst = hst})																		// task is now completed, handle as previously
 
 newTaskTrace :: !String !(Task a) -> Task a | iData a 			// used to insert a task trace later MJP BUG	 
 newTaskTrace taskname mytask = /* newTask taskname */ mytask

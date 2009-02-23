@@ -210,7 +210,7 @@ getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 */
 getCurrentUser	:: !*TSt 	-> (!UserId, !*TSt)
 /**
-* TGet the id of the current process in the TSt
+* Get the id of the current process in the TSt
 */
 
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
@@ -238,8 +238,14 @@ taskFinished :: !*TSt -> (!Bool, !*TSt)
 * keeps track of the the internal numbering and administration.
 * The given task function will add a single basic step to the current
 * sequence.
+*
+* @param A name used as the task label
+* @param Force once: If true, the function will never be recomputed, but the result will be stored
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed basic task
 */
-mkBasicTask 		:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
+mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
 /**
 * Wraps a function of proper type to create a task that will consist

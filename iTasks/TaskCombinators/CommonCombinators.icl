@@ -22,7 +22,7 @@ showLabel  		text :== ITag [] [Text text]
 =				taska
 	=>> \_ ->	taskb 
 
-(=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iCreateAndPrint a & iCreateAndPrint b
+(=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
 (=>>?) t1 t2 
 = 				t1 
 	=>> \r1 -> 	case r1 of 
@@ -214,6 +214,6 @@ waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
 waitForTimerTask time  = waitForTimerTask`
 where
 	waitForTimerTask`
-	=						appHStOnce "getTimeAndDate" getTimeAndDate
+	=						appHSt "getTimeAndDate" getTimeAndDate
 		=>> \(ctime,_) ->  	waitForTimeTask (ctime + time)
 

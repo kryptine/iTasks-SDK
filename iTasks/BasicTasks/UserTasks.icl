@@ -7,24 +7,24 @@ import BasicCombinators, LiftingCombinators
 
 getDisplayNamesTask :: ![Int] -> Task [String]
 getDisplayNamesTask uids
-	= appHStOnce "getDisplayNamesTask" (getDisplayNames uids)
+	= appHSt "getDisplayNamesTask" (getDisplayNames uids)
 
 getUserNamesTask :: ![Int] -> Task [String]
 getUserNamesTask uids
-	= appHStOnce "getUserNamesTask" (getUserNames uids)
+	= appHSt "getUserNamesTask" (getUserNames uids)
 
 getRolesTask :: ![Int]	-> Task [[String]]
 getRolesTask uids
-	= appHStOnce "getRolesTask" (getRoles uids)
+	= appHSt "getRolesTask" (getRoles uids)
 	
 getUsersWithRoleTask :: !String	-> Task [(Int,String)]
 getUsersWithRoleTask role
-	= appHStOnce "getUsersWithRoleTask" (getUsersWithRole role)
+	= appHSt "getUsersWithRoleTask" (getUsersWithRole role)
 
 getUsersIds	:: Task [Int]
 getUsersIds
-	= appHStOnce "getUsersIds" getUserIds
+	= appHSt "getUsersIds" getUserIds
 	
 getCurrentUserId :: Task Int
 getCurrentUserId
-	= once "getCurrentUserId" (Task getCurrentUser)
+	= mkBasicTask "getCurrentUserId" getCurrentUser

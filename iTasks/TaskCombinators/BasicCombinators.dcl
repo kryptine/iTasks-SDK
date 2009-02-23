@@ -23,7 +23,7 @@ import TSt
 * @param The value to be returned
 * @return A task that will return the value defined by the parameter
 */
-return_V 		:: !a 										-> Task a 		| iCreateAndPrint a
+return_V 		:: !a 										-> Task a 		| iData a
 
 //Repetition and loops:
 
@@ -99,11 +99,8 @@ assignTaskTo 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
 
 /* Support for user defined combinators
 newTask			:: lifts a (user defined) task to an abstract unit: after completion of a (complicated task) only i's final result will be remembered
-once			:: task will be done only once, the value of the task will be remembered, important for side effecting functions lifted to iData domain
 */
 newTask 		:: !String !(Task a) 						-> Task a		| iData a 
-once 			:: !String !(Task a) 						-> Task a 		| iData a
-
 newTaskTrace 	:: !String !(Task a) 						-> Task a 		| iData a
 
 

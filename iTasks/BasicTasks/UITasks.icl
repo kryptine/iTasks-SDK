@@ -6,7 +6,7 @@ import TuningCombinators
 import Util
 
 editTask :: !String !a -> (Task a) | iData a 
-editTask prompt a = mkBasicTask "editTask" (Task (editTask` prompt a))
+editTask prompt a = mkBasicTask "editTask" (editTask` prompt a)
 where
 	editTask` prompt a tst=:{taskNr,hst}
 	# taskId			= iTaskId taskNr "EdFin"
@@ -26,7 +26,7 @@ where
 	= (editor.Form.value,{tst & activated = taskdone.Form.value})
 
 editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
-editTaskPred  a pred = mkBasicTask "editTask" (Task (editTaskPred` a))
+editTaskPred  a pred = mkBasicTask "editTask" (editTaskPred` a)
 where
 	editTaskPred` a tst=:{taskNr,hst}
 	# taskId			= iTaskId taskNr "EdFin"
@@ -56,18 +56,18 @@ mySimpleButton :: !Options !String !String !(a -> a) !*HSt -> (Form (a -> a),!*H
 mySimpleButton options id label fun hst	
 	= FuncBut (Init, (nFormId id (HtmlButton label False,fun)) <@ if (options.tasklife == LSClient) LSClient LSPage) hst
 
-displayHtml	:: ![HtmlTag] -> Task a	| iCreateAndPrint a
-displayHtml html = mkBasicTask "displayHtml" (Task displayTask`)
+displayHtml	:: ![HtmlTag] -> Task a	| iData a
+displayHtml html = mkBasicTask "displayHtml" displayTask`
 where
 	displayTask` tst
 		# tst = setOutput [DivTag [ClassAttr "it-display"] html] tst
 		= (createDefault, {tst & activated = False})
 
-displayValue :: !a -> Task b | iData a & iCreateAndPrint b 
+displayValue :: !a -> Task b | iData a & iData b 
 displayValue a = displayHtml [toHtml a ]
 
 viewTask :: !String !a  -> Task a	| iData a
-viewTask prompt a = mkBasicTask "viewTask" (Task (viewTask` prompt a))
+viewTask prompt a = mkBasicTask "viewTask" (viewTask` prompt a)
 where
 	viewTask` prompt a tst=:{taskNr,hst}
 		# taskId			= iTaskId taskNr "ViewFin"
@@ -88,7 +88,7 @@ where
 
 
 selectWithButtons :: ![String] -> Task Int
-selectWithButtons labels = mkBasicTask "selectWithButtons" (Task (selectWithButtons` labels))	
+selectWithButtons labels = mkBasicTask "selectWithButtons" (selectWithButtons` labels)	
 where
 	selectWithButtons` [] tst		= (0,tst)				
 	selectWithButtons` labels tst=:{taskNr,options}									// choose one subtask out of the list
@@ -108,7 +108,7 @@ where
 		= (chosen.Form.value,{tst & activated = True})
 
 selectWithPulldown :: ![String] !Int -> Task Int
-selectWithPulldown labels initial =  mkBasicTask "selectWithPulldown" (Task (selectWithPulldown` labels initial))
+selectWithPulldown labels initial =  mkBasicTask "selectWithPulldown" (selectWithPulldown` labels initial)
 where	
 	selectWithPulldown` [] _ tst			= (0,tst)
 	selectWithPulldown` labels initial tst=:{taskNr,options}
@@ -136,7 +136,7 @@ where
 	fromSelect (HtmlSelect _ val) = toInt val
 
 selectWithRadiogroup :: ![[HtmlTag]] !Int -> Task Int
-selectWithRadiogroup labels initial = mkBasicTask "selectWithRadiogroup" (Task (selectWithRadiogroup` labels initial))
+selectWithRadiogroup labels initial = mkBasicTask "selectWithRadiogroup" (selectWithRadiogroup` labels initial)
 where
 	selectWithRadiogroup` [] _ tst = (0,tst)
 	selectWithRadiogroup` labels initial tst=:{taskNr,options}
@@ -158,7 +158,7 @@ where
 	initRadio labels cur	= HtmlRadiogroup labels cur
 
 selectWithCheckboxes :: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task [Int]
-selectWithCheckboxes choices = mkBasicTask "selectWithCheckboxes" (Task (selectWithCheckboxes` choices))
+selectWithCheckboxes choices = mkBasicTask "selectWithCheckboxes" (selectWithCheckboxes` choices)
 where
 	selectWithCheckboxes` [] tst		= ([],tst)
 	selectWithCheckboxes` choices tst=:{taskNr,options}				// choose one subtask out of the list

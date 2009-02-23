@@ -40,7 +40,7 @@ where
 		= accTaskTSt task tst																// do the regular task
 	= accTaskTSt task tst																	// do the regular task
 	where
-		Try :: !(e -> a) !Dynamic  -> Task a |  iCreateAndPrint a & TC e
+		Try :: !(e -> a) !Dynamic  -> Task a |  iData a & TC e
 		Try exceptionfun (exception :: e^) = Task catch1 						// handler for this type found
 		with 
 			catch1 tst=:{taskNr,userId,options}

@@ -2,6 +2,7 @@ implementation module TSt
 
 import StdEnv, StdMaybe
 import HSt, Util
+import iDataFormlib
 import ProcessDB, TaskTree
 
 //TODO: Create a better dynamic_string module with option for evaluating
@@ -244,17 +245,33 @@ accTaskTSt (Task fn) tst = fn tst
 // Every sequential task should increase the task number
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 
-mkBasicTask :: !String !(Task a) -> Task a | iCreateAndPrint a
-mkBasicTask taskname task = Task mkBasicTask`
+mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkBasicTask taskname taskfun = Task mkBasicTask`
 where
 	mkBasicTask` tst		
 		# tst =:{taskNr,userId,delegatorId,activated,tree,options}
 				= incTStTaskNr tst																			//Increase the task number
 		# node	= TTBasicTask (mkTaskInfo taskNr taskname userId delegatorId activated) [] []				//Create the task node
 		# (a, tst =:{activated = finished, tree = TTBasicTask info output inputs})							//Execute the with the new node as context
-				= accTaskTSt (executeTask taskname task) {tst & tree = node}																										
-		# tst	= addTaskNode (TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs) {tst & tree = tree, taskNr = taskNr, userId = userId, options = options}	//Add the node to current context
+				= doTask {tst & tree = node}																										
+		# tst	= addTaskNode																				//Add the node to current context
+					(TTBasicTask {TaskInfo|info & finished = finished, traceValue = printToString a} output inputs)
+					{tst & tree = tree, taskNr = taskNr, userId = userId, options = options}	
 		= (a, tst)
+	
+	doTask tst =:{taskNr,options,hst}
+		# storeId			= iTaskId taskNr "-once"
+		# (store,hst) 		= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
+		# (done,value)		= store.Form.value
+		| done 
+			= (value,{tst & hst = hst})
+		| otherwise
+			# (a,tst=:{activated,hst})	= accTaskTSt (executeTask taskname (Task taskfun)) {tst & hst = hst}
+			| activated
+				# (store,hst) = mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,a)) hst
+				= (a,{tst & hst = hst})
+			| otherwise
+				= (a,{tst & hst = hst})
 
 mkSequenceTask :: !String !(Task a) -> Task a | iCreateAndPrint a
 mkSequenceTask taskname task = Task mkSequenceTask`
