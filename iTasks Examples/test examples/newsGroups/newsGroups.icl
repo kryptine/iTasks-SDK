@@ -20,15 +20,15 @@ import StdEnv, iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 :: Index		:== Int							// 0 <= index < length newsgroup 
 
 :: EMail	=	{ to 		:: !DisplayMode !String
-				, mailFrom :: !DisplayMode !String
+				, mailFrom 	:: !DisplayMode !String
 				, subject 	:: !String
 				, message	:: !HtmlTextarea
 				}
 
-derive gForm	EMail	
-derive gUpd		EMail	
-derive gParse	EMail	
-derive gPrint	EMail	
+derive gForm	EMail, EMail2	
+derive gUpd		EMail, EMail2	
+derive gParse	EMail, EMail2	
+derive gPrint	EMail, EMail2	
 
 nmessage = 2
 
@@ -54,7 +54,7 @@ newsGroups
 	{	name		= "internal email"
 	,	label		= "internal email"
 	,	roles		= []
-	,	mainTask	= internalEmail
+	,	mainTask	= internalEmail2
 	},
 	{	name		= "internal emails with answers"
 	,	label		= "internal emails with answers"
@@ -62,6 +62,21 @@ newsGroups
 	,	mainTask	= internalEmailResponse
 	}
 	]
+
+
+:: EMail2	=	{ to` 		:: !UserId
+				, subject` 	:: !String
+				, message`	:: !HtmlTextarea
+				}
+
+internalEmail2 :: (Task Void)
+internalEmail2
+=							[Text "Type your email message ..."] 
+							?>>	editTask "Send" createDefault
+	=>> \msg ->				msg.to` @: (msg.EMail2.subject`, [toHtml msg] ?>> OK)
+	#>>						[Text "Mail has been read." ] ?>> OK
+
+
 
 // BUGs found: filter for tabs does not seem to work ok
 
