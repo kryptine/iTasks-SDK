@@ -2,7 +2,8 @@ implementation module ExceptionCombinators
 /**
 * This module contains iTask combinators for Exception Handling
 */
-import StdList, StdArray, StdTuple, StdFunc
+import StdList, StdArray, StdTuple, StdMisc
+from StdFunc import id
 import dynamic_string
 import InternaliTasksThreadHandling, BasicCombinators, Engine
 

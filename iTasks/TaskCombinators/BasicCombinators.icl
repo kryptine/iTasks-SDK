@@ -1,6 +1,7 @@
 implementation module BasicCombinators
 
-import StdList, StdArray, StdTuple, StdFunc
+import StdList, StdArray, StdTuple, StdMisc
+from StdFunc import id, const
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 import iDataTrivial, iDataFormlib
@@ -14,29 +15,106 @@ derive gPrint	Time
 derive gParse	Time
 
 
-// ******************************************************************************************************
-// monads for combining iTasks
+//Standard monadic operations:
 
-(=>>) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
-(=>>) taska taskb = Task mybind
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
+(>>=) taska taskb = Task tbind
 where
-	mybind tst=:{options}
-	# (a,tst=:{activated})	= accTaskTSt taska tst
-	| activated				= accTaskTSt (taskb a) {tst & options = options}
-							= (createDefault,tst)
+	tbind tst=:{options}
+		# (a,tst=:{activated})	= accTaskTSt taska tst
+		| activated				= accTaskTSt (taskb a) {tst & options = options}
+								= (createDefault,tst)
 
-return_V :: !a -> (Task a) | iData a
-return_V a  = mkBasicTask "return_V" return_V`
+(>>|) infixl 1 :: !(Task a) !(Task b) -> Task b | iCreateAndPrint b
+(>>|) taska taskb = taska >>= const taskb
+
+return :: !a -> (Task a) | iData a
+return a  = mkBasicTask "return" (\tst -> (a,tst))
+
+
+//Repetition and loops:
+
+forever :: !(Task a) -> Task a | iData a
+forever task = mkSequenceTask "forever" (Task forever`)
 where
-	return_V` tst = (a,tst) 
+	forever` tst=:{taskNr} 
+		# (val,tst=:{activated})= accTaskTSt task tst					
+		| activated		
+			# tst = deleteSubTasksAndThreads (tl taskNr) tst
+			# tst = resetSequence tst
+			= forever` tst				
+		= (val,tst)
 
-// ******************************************************************************************************
-// Assigning tasks to users, each user has to be identified by an unique number >= 0
-
-assignTaskTo :: !UserId !(LabeledTask a) -> Task a | iData a	
-assignTaskTo newUserId (label,task) = Task assignTaskTo` 
+(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
+(<!) task pred = mkSequenceTask "<!" (Task doTask)
 where
-	assignTaskTo` tst =:{TSt | userId = currentUserId}
+	doTask tst=:{activated, taskNr}
+		# (a,tst=:{activated}) 	= accTaskTSt task tst
+		| not activated
+			= (a,tst)
+		| not (pred a)			
+			# tst = deleteSubTasksAndThreads (tl taskNr) tst
+			# tst = resetSequence tst
+			= doTask tst
+		= (a,tst)
+
+
+// Selection:
+
+selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+selection chooser executer tasks = mkSequenceTask "selection" selection`
+where
+	selection`	= chooser tasks =>> \chosen -> 	executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
+	numTasks 	= length tasks
+
+
+// Sequential composition
+
+sequence :: !String ![LabeledTask a] -> (Task [a])	| iCreateAndPrint a
+sequence label options = mkSequenceTask label (Task sequence`)
+where
+	sequence` tst
+		= doseqTasks options [] tst
+
+	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
+	doseqTasks [(taskname,task):ts] accu tst=:{options} 
+		# (a,tst=:{activated=adone}) 
+										= accTaskTSt task {tst & activated = True}
+		| not adone						= (reverse accu, tst)
+		| otherwise						= doseqTasks ts [a:accu] tst
+
+
+// Parallel composition
+
+parallel :: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
+parallel label combination pred taskCollection 
+	= mkParallelTask label (Task (doandTasks taskCollection))
+where
+	doandTasks [] tst	=  ([],tst)
+	doandTasks taskCollection tst=:{taskNr}
+		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
+		| length alist == length taskCollection					// all tasks are done
+			= (alist,{tst & activated = True})
+		| pred alist
+			= (alist,{tst & activated = True}) 					// stop, all work done so far satisfies predicate
+		| otherwise	
+			# tst		= setCombination combination tst
+			= (alist, {tst & activated	= False})				// show all subtasks using the displayOption function
+	where
+		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iCreateAndPrint a
+		checkAllTasks taskCollection index accu tst
+			| index == length taskCollection
+				= (reverse accu,tst)															// all tasks tested
+			# (taskname,task)			= taskCollection!!index
+			# (a,tst=:{activated})	= accTaskTSt (mkParallelSubTask taskname index task) tst	// check tasks
+			= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
+
+// Multi-user workflows
+
+delegate :: !UserId !(LabeledTask a) -> Task a | iData a	
+delegate newUserId (label,task) = Task delegate` 
+where
+	delegate` tst =:{TSt | userId = currentUserId}
 		# tst		= addUser newUserId tst 
 		# (a, tst)	= accTaskTSt (newTask label task) {TSt | tst & userId = newUserId, delegatorId = tst.TSt.userId}
 		= (a, {TSt | tst & userId = currentUserId})
@@ -61,88 +139,6 @@ where
 			= (a, tst)
 		| otherwise
 			= (a, tst)
-
-newTaskTrace :: !String !(Task a) -> Task a | iData a 			// used to insert a task trace later MJP BUG	 
-newTaskTrace taskname mytask = /* newTask taskname */ mytask
-
-// ******************************************************************************************************
-// looping tasks
-
-// when gc option set and task finished, it will throw away all subtasks and start all over
-// otherwise, when task finshed it will remember the new tasknr to prevent checking of previously finished tasks
-
-foreverTask :: !(Task a) -> Task a | iData a
-foreverTask task = mkSequenceTask "foreverTask" (Task foreverTask`)
-where
-	foreverTask` tst=:{taskNr} 
-		# (val,tst=:{activated})= accTaskTSt task tst					
-		| activated		
-			# tst = deleteSubTasksAndThreads (tl taskNr) tst
-			# tst = resetSequence tst
-			= foreverTask` tst				
-		= (val,tst)					
-
-(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
-(<!) task pred = mkSequenceTask "<!" (Task doTask)
-where
-	doTask tst=:{activated, taskNr}
-		# (a,tst=:{activated}) 	= accTaskTSt task tst
-		| not activated
-			= (a,tst)
-		| not (pred a)			
-			# tst = deleteSubTasksAndThreads (tl taskNr) tst
-			# tst = resetSequence tst
-			= doTask tst
-		= (a,tst)
-
-
-// ******************************************************************************************************
-// sequencingtasks
-seqTasks :: ![LabeledTask a] -> (Task [a])	| iCreateAndPrint a
-seqTasks options = mkSequenceTask "seqTasks" (Task seqTasks`)
-where
-	seqTasks` tst
-		= doseqTasks options [] tst
-
-	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
-	doseqTasks [(taskname,task):ts] accu tst=:{options} 
-		# (a,tst=:{activated=adone}) 
-										= accTaskTSt task {tst & activated = True}
-		| not adone						= (reverse accu, tst)
-		| otherwise						= doseqTasks ts [a:accu] tst
-
-// ******************************************************************************************************
-// Select the tasks to do from a list with help of another task for selecting them:
-
-selectTasks 	:: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-selectTasks chooser executer tasks = mkSequenceTask "selectTasks" selectTasks`
-where
-	selectTasks`	= chooser tasks =>> \chosen -> 	executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
-	numTasks 		= length tasks
-
-allTasksCond 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
-allTasksCond label combination pred taskCollection 
-	= mkParallelTask label (Task (doandTasks taskCollection))
-where
-	doandTasks [] tst	= return [] tst
-	doandTasks taskCollection tst=:{taskNr}
-		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
-		| length alist == length taskCollection					// all tasks are done
-			= (alist,{tst & activated = True})
-		| pred alist
-			= (alist,{tst & activated = True}) 					// stop, all work done so far satisfies predicate
-		| otherwise	
-			# tst		= setCombination combination tst
-			= (alist, {tst & activated	= False})				// show all subtasks using the displayOption function
-	where
-		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iCreateAndPrint a
-		checkAllTasks taskCollection index accu tst
-			| index == length taskCollection
-				= (reverse accu,tst)															// all tasks tested
-			# (taskname,task)			= taskCollection!!index
-			# (a,tst=:{activated})	= accTaskTSt (mkParallelSubTask taskname index task) tst	// check tasks
-			= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
-
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental

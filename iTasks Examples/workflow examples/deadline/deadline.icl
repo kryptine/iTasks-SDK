@@ -1,7 +1,7 @@
 module deadline
 
-import StdEnv, iTasks, iDataTrivial
-
+import iTasks, iDataTrivial
+import StdClass, StdEnum, StdList
 
 // (c) MJP 2007
 

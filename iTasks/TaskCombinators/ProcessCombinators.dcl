@@ -4,7 +4,7 @@ definition module ProcessCombinators
 * subprocesses inside a workflow process.
 */
 
-import StdEnv, StdMaybe
+import StdMaybe
 import TSt
 from ProcessDB import :: ProcessStatus
 

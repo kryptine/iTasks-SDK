@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdList, StdFunc, StdTuple, GenBimap
+import StdList, StdTuple
 import iDataTrivial, iDataFormlib
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
 import Util
@@ -16,12 +16,6 @@ showLabel  		text :== ITag [] [Text text]
 
 // ******************************************************************************************************
 // monads for combining iTasks
-
-(#>>) infixl 1 :: !(Task a) !(Task b) -> Task b | iCreateAndPrint b
-(#>>) taska taskb 
-=				taska
-	=>> \_ ->	taskb 
-
 (=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
 (=>>?) t1 t2 
 = 				t1 
@@ -145,15 +139,15 @@ where
 						(RIGHT b) -> return_V b
 
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
-(-&&-) taska taskb = newTaskTrace "-&&-" (andTask2 (taska,taskb))
+(-&&-) taska taskb = andTask2 (taska,taskb)
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
-orTasks []				= Task (return createDefault)
+orTasks []				= Task (\tst -> (createDefault,tst))
 orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTHorizontal (\list -> length list >= 1) taskCollection)
 							=>> \list -> return_V (hd list)
 
 orTasksV :: ![LabeledTask a] -> (Task a) | iData a
-orTasksV []				= Task (return createDefault)
+orTasksV []				= Task (\tst -> (createDefault,tst))
 orTasksV taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTVertical (\list -> length list >= 1) taskCollection)
 							=>> \list -> return_V (hd list)
 
@@ -168,7 +162,7 @@ orTask2 (taska,taskb)
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = newTaskTrace "andTasks" (allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection)
+andTasks taskCollection = allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]
 	
@@ -198,7 +192,7 @@ andTask2 (taska,taskb)
 						)
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
-andTasks_mu label tasks = newTaskTrace "andTaskMU" (domu_andTasks tasks)
+andTasks_mu label tasks = domu_andTasks tasks
 where
 	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
 

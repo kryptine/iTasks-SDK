@@ -5,7 +5,7 @@ definition module Engine
 * environment in which worfklow specifications can be executed.
 */
 
-import StdEnv, StdGeneric, GenBimap
+import StdOverloaded
 
 from TSt			import :: Workflow
 from Http			import :: HTTPRequest, :: HTTPResponse

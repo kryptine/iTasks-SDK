@@ -3,9 +3,13 @@ definition module BasicCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-import TSt
+from TSt 			import :: Task, :: LabeledTask, :: TaskCombination
+from Types 			import :: UserId 
+from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
 
-//Standard monadic combinators:
+import iDataForms, GenPrint, GenParse
+
+//Standard monadic operations:
 
 /**
 * Combines two tasks sequentially. The first task is executed first. When it is finished
@@ -15,7 +19,15 @@ import TSt
 * @param The second task, which receives the result of the first task
 * @return The combined task
 */
-(=>>) infixl 1 	:: !(Task a) !(a -> Task b) 				-> Task b		| iCreateAndPrint b
+(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iCreateAndPrint b
+/**
+* Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
+*
+* @param The first task to be executed
+* @param The second task to be executed
+* @return The combined task
+*/
+(>>|) infixl 1 :: !(Task a) !(Task b)					-> Task b		| iCreateAndPrint b
 /**
 * Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
 * as result of the task.
@@ -23,7 +35,8 @@ import TSt
 * @param The value to be returned
 * @return A task that will return the value defined by the parameter
 */
-return_V 		:: !a 										-> Task a 		| iData a
+return 		:: !a 										-> Task a 		| iData a
+
 
 //Repetition and loops:
 
@@ -34,7 +47,7 @@ return_V 		:: !a 										-> Task a 		| iData a
 * @param The task that has to be repeated infinitely
 * @return The combined task
 */
-foreverTask		:: !(Task a) 								-> Task a 		| iData a
+forever		:: !(Task a) 								-> Task a 		| iData a
 /**
 * Repeats a task as long as a given predicate holds. The predicate is tested as soon as the
 * given task is finished. When it does not hold, the task is restarted.
@@ -43,7 +56,7 @@ foreverTask		:: !(Task a) 								-> Task a 		| iData a
 * @param The predicate over the result of the task to determine if the combination is finished
 * @return The combined task
 */
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 				-> Task a 		| iCreateAndPrint a
+(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iCreateAndPrint a
 
 
 // Selection:
@@ -58,7 +71,7 @@ foreverTask		:: !(Task a) 								-> Task a 		| iData a
 * @param A task that combines a list of labeled tasks into a single task
 * @return The combined task
 */
-selectTasks 	:: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
 
 
 // Sequential composition
@@ -66,10 +79,11 @@ selectTasks 	:: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) 
 /**
 * Execute the list of tasks one after another.
 *
+* @param A label for tracing
 * @param The list of tasks to be executed sequentially
 * @return The combined task
 */
-seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
+sequence	:: !String ![LabeledTask a] 				-> Task [a]		| iCreateAndPrint a
 
 // Parallel composition
 
@@ -77,14 +91,16 @@ seqTasks		:: ![LabeledTask a] 						-> Task [a]		| iCreateAndPrint a
 * Execute a list of tasks in parallel. The parameters define how the tasks are combined in the
 * user interface and when the combined task is finished.
 *
-* @param A name for tracing
+* @param A label for tracing
 * @param A TaskCombination directive which determines how the tasks will be combined in the user interface
 * @param A predicate on the list of results of the currently finished tasks which determines if the
 *        combination is finished
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-allTasksCond 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
+parallel 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
+
+// Multi-user workflows
 
 /**
 * Delegate a task to a(nother) user.
@@ -93,21 +109,28 @@ allTasksCond 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Tas
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-assignTaskTo 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
+delegate 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
 
 //SOON TO BE OBSOLETE:
 
 /* Support for user defined combinators
 newTask			:: lifts a (user defined) task to an abstract unit: after completion of a (complicated task) only i's final result will be remembered
 */
-newTask 		:: !String !(Task a) 						-> Task a		| iData a 
-newTaskTrace 	:: !String !(Task a) 						-> Task a 		| iData a
+newTask 		:: !String !(Task a) 					-> Task a		| iData a 
 
 
+//Backwards compatibility
+(=>>) infixl 1
+(=>>) :== (>>=)
+(#>>) infixl 1
+(#>>) :== (>>|)
 
-
-
-
+return_V :== return
+foreverTask :== forever
+selectTasks :== selection
+seqTasks :== sequence "seqTasks"
+allTasksCond :== parallel
+assignTaskTo :== delegate
 
 /* Experimental department:
 

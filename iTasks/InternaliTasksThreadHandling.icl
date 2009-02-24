@@ -1,12 +1,7 @@
 implementation module InternaliTasksThreadHandling
 
-// *********************************************************************************************************************************
-// internally used function for Ajax and Client thread handling
-// *********************************************************************************************************************************
-// iTask & iData Concept and Implementation: (c) 2006,2007,2008 - Rinus Plasmeijer
-// *********************************************************************************************************************************
-//
-import StdEnv, GenBimap
+import StdList, StdMisc, StdOrdList, StdArray, StdTuple, GenBimap
+from StdFunc import id
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
 import BasicCombinators, LiftingCombinators

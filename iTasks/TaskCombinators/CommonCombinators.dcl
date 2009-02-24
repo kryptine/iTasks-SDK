@@ -6,12 +6,6 @@ definition module CommonCombinators
 
 import BasicCombinators, iDataWidgets		 
 
-/* standard monadic combinators on iTasks:
-(#>>)			:: for sequencing: bind, but no argument passed
-*/
-(#>>) infixl 1 	:: !(Task a) !(Task b) 						-> Task b		| iCreateAndPrint b
-
-
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
 (@::)			:: as @:, a default task name is chosen as label

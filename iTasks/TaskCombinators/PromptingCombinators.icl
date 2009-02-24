@@ -3,7 +3,7 @@ implementation module PromptingCombinators
 * This module contains some iTask combinators for html prompting
 */
 
-import StdList, StdFunc
+import StdList
 import TSt, UITasks, BasicCombinators
 
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iData a

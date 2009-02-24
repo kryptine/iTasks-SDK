@@ -3,7 +3,7 @@ definition module ProcessDB
 * This module provides an abstract process database
 * 
 */
-import StdEnv, StdGeneric, StdMaybe
+import StdMaybe
 import Types, HSt, TSt
 
 /**

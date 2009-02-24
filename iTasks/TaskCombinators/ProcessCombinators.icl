@@ -1,6 +1,6 @@
 implementation module ProcessCombinators
 
-import StdEnv, GenBimap
+import StdOverloaded, StdClass, StdInt, StdArray, GenBimap
 import TSt
 import dynamic_string
 

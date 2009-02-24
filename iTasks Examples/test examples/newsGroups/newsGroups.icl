@@ -5,7 +5,8 @@ module newsGroups
 //	All other users can subscribe to such a newsgroup, commit a message or read news
 // (c) mjp 2007 
 
-import StdEnv, iTasks, iDataTrivial, iDataFormlib, iDataWidgets
+import StdList, StdOrdList, StdTuple, GenBimap
+import iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 
 
 :: NewsGroupNames:== [GroupName]				// list of newsgroup names
@@ -85,10 +86,10 @@ internalEmailResponse = Cancel internalEmailResponse`
 where
 	internalEmailResponse`
 	=							getMyName
-		=>> \(me,myname) ->		getToNames
-		=>> \tos ->				[Text "Type your message ..."] 
+		>>= \(me,myname) ->		getToNames
+		>>= \tos ->				[Text "Type your message ..."] 
 								?>>	editTask "Commit" (initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
-		=>> \msg ->				myAndTasks [Text "Mail send to:"] 
+		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
 										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
 										, MailAndReply msg (me,myname) (to,toname))
 										\\ (to,toname) <- tos
@@ -99,7 +100,7 @@ where
 										, (showMSg msg ++ [Text "Reply requested: ", BrTag []])
 										  ?>> editTask "Reply" (HtmlTextarea 4 "")
 										)
-			=>> \(HtmlTextarea _ reply)
+			>>= \(HtmlTextarea _ reply)
 						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
 									  , showMSg (initMsg myname toname ("RE: " <+++ msg.subject) reply) ?>> OK 
 									  )
@@ -108,10 +109,10 @@ where
 internalEmail :: (Task Void)
 internalEmail
 =							getMyName
-	=>> \(me,myname) ->		getToName
-	=>> \(to,toname) ->		[Text "Type your message ..."] 
+	>>= \(me,myname) ->		getToName
+	>>= \(to,toname) ->		[Text "Type your message ..."] 
 							?>>	editTask "Commit" (initMsg toname myname "" "")
-	=>> \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> OK))
+	>>= \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> OK))
 
 initMsg to for subject msg 
 = {to = DisplayMode to, mailFrom = DisplayMode for, subject = subject , message = HtmlTextarea 4 msg}
@@ -133,11 +134,11 @@ addNewsGroup	= Cancel addNewsGroup`
 where
 	addNewsGroup`
 	=						readNewsGroups
-		=>> \groups ->		(showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
+		>>= \groups ->		(showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
 							?>> editTask "Define" ""
-		=>> \newName ->		readNewsGroups
-		=>> \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
-		=>> \groups ->		chooseTask (showCurrentNames groups ++ [Text "Do you want to add more ?"])
+		>>= \newName ->		readNewsGroups
+		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
+		>>= \groups ->		chooseTask (showCurrentNames groups ++ [Text "Do you want to add more ?"])
 								[("Yes", addNewsGroup`)
 								,("No",  return_V Void)
 								]
@@ -145,7 +146,7 @@ where
 showNewsGroups :: (Task Void)
 showNewsGroups
 =						readNewsGroups
-	=>>	\groups	->		showCurrentNames groups ?>> OK 
+	>>=	\groups	->		showCurrentNames groups ?>> OK 
 
 showCurrentNames []		= [ Text "No names in catalogue yet !", BrTag [],BrTag []] 
 showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
@@ -155,16 +156,16 @@ showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
 subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
 =						getCurrentUserId
-	=>> \me ->			getDisplayNamesTask [me]
-	=>> \names ->      	readNewsGroups 
-	=>> 				subscribe me (hd names)
+	>>= \me ->			getDisplayNamesTask [me]
+	>>= \names ->      	readNewsGroups 
+	>>= 				subscribe me (hd names)
 where
 	subscribe me myname []
 	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> OK 
 	subscribe me myname groups
 	=						[Text "Choose a group:", BrTag [],BrTag []] ?>> selectWithPulldown groups 0  
-		=>> \index	->		return_V (groups!!index)
-		=>> \group ->		addSubscription me (group,0)
+		>>= \index	->		return_V (groups!!index)
+		>>= \group ->		addSubscription me (group,0)
 		#>>					spawnProcess me True (group <+++ " news group subscription", readNews me group 0)
 		#>>					return_V Void
 
@@ -178,7 +179,7 @@ readNews me group index
 							 ,("Unsubscribe from newsgroup " <+++ group,		  unsubscribe) 
 							 ,("Message list of newsgroup " <+++ group, 		  messageList index #>> return_V index)  
 							 ]
-		=>> \index -> if (index >= 0)
+		>>= \index -> if (index >= 0)
 						(spawnProcess me True (group <+++ " news group subscription", readNews me group index) #>> return_V Void) // CODE GENERATION BUG WHEN REPLACE BY #>> 
 						(return_V Void)
 where
@@ -196,8 +197,8 @@ where
 	where
 		readMoreNews offset
 		=					readIndex me group
-			=>> \index ->	readNewsGroup group
-			=>> \news ->	readNextNewsItems index offset (length news)
+			>>= \index ->	readNewsGroup group
+			>>= \news ->	readNextNewsItems index offset (length news)
 		where
 			readNextNewsItems  index offset length
 			# nix = index + offset
@@ -206,7 +207,7 @@ where
 
 	messageList index
 	= 						readNewsGroup group 
-		=>> \newsItems  ->	andTasks [("Message " <+++ i, show i newsItem) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
+		>>= \newsItems  ->	andTasks [("Message " <+++ i, show i newsItem) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
 		#>>					editTask "Refresh list" Void
 
 	show :: Int NewsItem -> Task Void
@@ -219,27 +220,27 @@ where
 	commitItem :: String -> Task Void
 	commitItem  group
 	=								getMyName
-		=>> \(me,name) ->      		commit me name group
+		>>= \(me,name) ->      		commit me name group
 	where
 		commit me name group
 		=							[Text "Type your message ..."] 
 									?>>	editTask "Commit" (HtmlTextarea 4  "") 
-		 =>> \(HtmlTextarea _ val) -> 	readNewsGroup  group 
-		 =>> \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
+		 >>= \(HtmlTextarea _ val) -> 	readNewsGroup  group 
+		 >>= \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
 		 #>>							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 									?>> OK
 
 getMyName
 =					getCurrentUserId
-	=>> \userid ->	getDisplayNamesTask [userid]
-	=>> \names -> 	return_V (userid, hd names)     			
+	>>= \userid ->	getDisplayNamesTask [userid]
+	>>= \names -> 	return_V (userid, hd names)     			
 
 getToNames = getToNames` []
 where
 	getToNames` names 	
 	=						showCurrentNames (map snd names)
 							?>> getToName
-		=>> \(id,name) ->	let newnames = [(id,name):names] in
+		>>= \(id,name) ->	let newnames = [(id,name):names] in
 							chooseTask (showCurrentNames (map snd newnames) ++ [BrTag [], Text "More names to add? ", BrTag []])
 								[ ("Yes", getToNames` newnames)
 								, ("No",  return_V    newnames)
@@ -248,8 +249,8 @@ where
 getToName ::  (Task (Int,String))
 getToName 
 = 						getUsersIds
-	=>> \userIds ->		getUserNamesTask userIds
-	=>> \names ->		chooseTask_pdm [Text "Select user to mail a message to: "] 0
+	>>= \userIds ->		getUserNamesTask userIds
+	>>= \names ->		chooseTask_pdm [Text "Select user to mail a message to: "] 0
 							[(name, return_V (userId,name)) \\ userId <- userIds & name <- names]
 
 OK :: Task Void
@@ -265,11 +266,11 @@ where
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
 orTasks2 msg taskCollection	
 =	newTask "orTasks" (allTasksCond "orTask" (TTSplit msg) (\list -> length list >= 1) taskCollection)
-	=>> \lista -> return_V (hd lista)
+	>>= \lista -> return_V (hd lista)
 	
 myAndTasks msg taskCollection	
 =	newTask "orTasks" (allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection)
-	=>> \lista -> return_V (hd lista)
+	>>= \lista -> return_V (hd lista)
 
 // reading and writing of storages
 
@@ -298,12 +299,12 @@ addSubscription :: Subscriber Subscription -> Task Subscriptions
 addSubscription me (groupname,index)
 # index	= if (index < 0) 0 index
 = 							readSubscriptions  me 
-	=>> \subscriptions -> 	writeSubscriptions me [(groupname,index):[(group,index) \\ (group,index) <- subscriptions | group <> groupname]]
+	>>= \subscriptions -> 	writeSubscriptions me [(groupname,index):[(group,index) \\ (group,index) <- subscriptions | group <> groupname]]
 
 readIndex :: Subscriber GroupName -> Task Index
 readIndex me groupname
 = 							readSubscriptions me 
-	=>> \subscriptions ->	return_V (hds [index \\ (group,index) <- subscriptions | group == groupname])
+	>>= \subscriptions ->	return_V (hds [index \\ (group,index) <- subscriptions | group == groupname])
 where
 	hds [x:xs] = x
 	hds [] = 0
