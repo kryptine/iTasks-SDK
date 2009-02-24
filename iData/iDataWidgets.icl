@@ -342,3 +342,9 @@ instance toString HtmlCurrencyCode where
 	toString GBP = "GBP"
 	toString USD = "USD"
 	toString JPY = "JPY"
+
+instance < HtmlCurrency 
+where 
+	(<) (HtmlCurrency _ i1) (HtmlCurrency _ i2) 
+	= i1 < i2
+

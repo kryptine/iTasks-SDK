@@ -59,7 +59,7 @@ derive   gEq		HtmlDate, HtmlTime
 instance ==			HtmlDate, HtmlTime
 instance == 		(DisplayMode a) | == a
 derive   gLexOrd	HtmlDate, HtmlTime
-instance <			HtmlDate, HtmlTime
+instance <			HtmlDate, HtmlTime, HtmlCurrency
 instance toString	HtmlDate, HtmlTime, HtmlCurrency
 instance +			HtmlTime
 instance -			HtmlTime
