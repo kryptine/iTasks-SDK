@@ -12,7 +12,7 @@ module bid
 * - A confirmation is sent to the selected supplier
 */
 
-import StdEnv, iTasks, iData
+import StdList, StdOrdList, iTasks, iData
 
 //Main types
 :: Purchase	=	{	name	:: !String
@@ -58,12 +58,12 @@ selectSuppliers
 	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	
-collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Real)]
+collectBids :: Purchase [(Int,String)] -> Task [((Int,String),HtmlCurrency)]
 collectBids purchase suppliers
 	= andTasksEnough
 		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
 where
-	collectBid :: Purchase (Int,String) -> Task ((Int,String),Real)
+	collectBid :: Purchase (Int,String) -> Task ((Int,String),HtmlCurrency)
 	collectBid purchase bid
 		= [Text "Please make a bid to supply the following product"]
 		  ?>> (
@@ -72,10 +72,10 @@ where
 		  	(editTask "Ok" createDefault =>> \price -> return_V (bid, price))
 		  )
 	
-selectBid :: [((Int,String),Real)] -> Task ((Int,String),Real)
+selectBid :: [((Int,String),HtmlCurrency)] -> Task ((Int,String),HtmlCurrency)
 selectBid bids
 	= determineCheapest bids	=>> \cheapestBid =: ((uid,name),price) ->	
-	[ Text "The cheapest bid is ", RawText "&euro; ",Text (toString price), Text " by ", Text name, BrTag [],
+	[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
 	  Text "Do you want to accept this bid?", BrTag []]
 	?>>
 	yesOrNo =>> \acceptCheapest ->
@@ -89,10 +89,10 @@ where
 	determineCheapest bids = return_V (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
 	yesOrNo = (editTask "Yes" Void #>> return_V True) -||- (editTask "No" Void #>> return_V False)
 	
-confirmBid :: Purchase ((Int,String),Real) -> Task Void
+confirmBid :: Purchase ((Int,String),HtmlCurrency) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
 	= uid @: ("Bid confirmation",(
-		[Text "Your bid of ",RawText "&euro; ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
+		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
 		?>> editTask "Ok" Void
 	))
 	
