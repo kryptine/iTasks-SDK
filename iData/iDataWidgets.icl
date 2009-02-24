@@ -343,8 +343,40 @@ instance toString HtmlCurrencyCode where
 	toString USD = "USD"
 	toString JPY = "JPY"
 
+instance == HtmlCurrencyCode where
+	(==) EUR EUR = True
+	(==) GBP GBP = True
+	(==) USD USD = True
+	(==) JPY JPY = True
+	(==) _ _ 	 = False
+
+instance == HtmlCurrency where
+	(==) (HtmlCurrency c1 i1) (HtmlCurrency c2 i2) 
+	| c1 == c2	= i1 == i2
+	= False
+
 instance < HtmlCurrency 
 where 
-	(<) (HtmlCurrency _ i1) (HtmlCurrency _ i2) 
-	= i1 < i2
+	(<) (HtmlCurrency c1 i1) (HtmlCurrency c2 i2) 
+	| c1 == c2	= i1 < i2
+	= abort "in <, Cannot compare different currencies"
+
+instance + HtmlCurrency 
+where 
+	(+) (HtmlCurrency c1 i1) (HtmlCurrency c2 i2) 
+	| c1 == c2 = HtmlCurrency c1 (i1 + i2)
+	= abort "in +, Cannot add different currencies"
+
+instance - HtmlCurrency 
+where 
+	(-) (HtmlCurrency c1 i1) (HtmlCurrency c2 i2) 
+	| c1 == c2 = HtmlCurrency c1 (i1 - i2)
+	= abort "in -, Cannot subtract different currencies"
+
+instance zero HtmlCurrency 
+where 
+	zero = HtmlCurrency EUR 0
+
+
+
 

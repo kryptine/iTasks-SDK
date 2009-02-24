@@ -56,13 +56,14 @@ derive gParse 	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbo
 //      so there should not be a need for those instances
 
 derive   gEq		HtmlDate, HtmlTime
-instance ==			HtmlDate, HtmlTime
+instance ==			HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode 
 instance == 		(DisplayMode a) | == a
 derive   gLexOrd	HtmlDate, HtmlTime
 instance <			HtmlDate, HtmlTime, HtmlCurrency
-instance toString	HtmlDate, HtmlTime, HtmlCurrency
-instance +			HtmlTime
-instance -			HtmlTime
+instance toString	HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode
+instance +			HtmlTime, HtmlCurrency
+instance -			HtmlTime, HtmlCurrency
+instance zero		HtmlCurrency
 
 instance toInt		HtmlSelect, HtmlRadiogroup, HtmlCurrency
 instance toBool		HtmlButton
