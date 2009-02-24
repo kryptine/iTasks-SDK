@@ -1,6 +1,6 @@
 module travel
 
-import StdEnv, StdiTasks, iDataTrivial
+import StdList, iTasks, iDataTrivial
 
 // (c) 2007 MJP
 
@@ -9,10 +9,16 @@ import StdEnv, StdiTasks, iDataTrivial
 // One by one the chosen bookings will be handled
 // The bill is made up in the end
 
-derive gForm []
-derive gUpd  []
 
-Start world = startTaskEngine (foreverTask travel) world
+Start :: *World -> *World
+Start world = startEngine [travelFlow] world
+
+travelFlow :: Workflow
+travelFlow	=	{ name		= "travel"
+		  		, label		= "travel"
+		  		, roles		= []
+		  		, mainTask	= travel
+		  		}
 
 travel :: (Task Void)
 travel 
@@ -43,9 +49,11 @@ where
 		isNil [] = True
 		isNil _ = False
 
-	BookFlight  = editTask "BookFlight" (Dsp "Flight Number","",Dsp "Costs",0) 	<<@ Submit
-	BookHotel  	= editTask "BookHotel" 	(Dsp "Hotel Name","",Dsp "Costs",0)		<<@ Submit
-	BookCar  	= editTask "BookCar" 	(Dsp "Car Brand","",Dsp "Costs",0)		<<@ Submit
+	BookFlight  = editTask "BookFlight" (Dsp "Flight Number "	,"",Dsp "Costs ",DefCosts) 	<<@ Submit
+	BookHotel  	= editTask "BookHotel" 	(Dsp "Hotel Name "		,"",Dsp "Costs ",DefCosts)	<<@ Submit
+	BookCar  	= editTask "BookCar" 	(Dsp "Car Brand "		,"",Dsp "Costs ",DefCosts)	<<@ Submit
 
 
 Dsp = DisplayMode 
+
+DefCosts = HtmlCurrency EUR 0
