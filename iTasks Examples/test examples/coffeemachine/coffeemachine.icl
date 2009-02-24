@@ -8,7 +8,8 @@ module coffeemachine
 
 // Some alternative coffee machine definitions have been added as example for the ICFP07 paper.
 
-import StdEnv, iTasks, iDataTrivial
+import StdList
+import iTasks, iDataTrivial
 
 Start world =  startEngine [{name = "coffeemachine",label="Coffeemachine",roles=[],mainTask=(foreverTask CoffeeMachine) #>> return_V Void}] world
 
