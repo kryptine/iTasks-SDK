@@ -1,6 +1,6 @@
 module quotation
 
-import StdEnv, iTasks, iDataTrivial
+import StdList, iTasks, iDataTrivial, StdBimap
 
 // (c) 2007 MJP
 
@@ -35,7 +35,7 @@ Start world = startEngine [myWorkflow] world
 			, endDate 			:: HtmlDate
 			, estimatedHours 	:: Int
 			, description		:: HtmlTextarea
-			, price				:: Real 	
+			, price				:: HtmlCurrency 	
 			}
 :: Person = { firstName			:: String
 			 , surname			:: String
