@@ -1,6 +1,6 @@
 module date
 
-import StdEnv, StdiTasks, iDataTrivial
+import StdList, iTasks, iDataTrivial
 
 // (c) MJP 2007
 
@@ -11,7 +11,16 @@ import StdEnv, StdiTasks, iDataTrivial
 
 npersons = 5
 
-Start world = startTaskEngine (foreverTask findDate) world
+Start world = startEngine [appointmentFlow] world
+
+appointmentFlow :: Workflow
+appointmentFlow
+	= { name		= "make appointment"
+	  , label		= "make appointment"
+	  , roles		= []
+	  , mainTask	= findDate #>> return_V Void
+	  }
+
 
 findDate :: Task (HtmlDate,HtmlTime)
 findDate
