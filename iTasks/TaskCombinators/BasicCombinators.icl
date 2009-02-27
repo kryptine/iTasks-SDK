@@ -25,7 +25,7 @@ where
 		| activated				= accTaskTSt (taskb a) {tst & options = options}
 								= (createDefault,tst)
 
-(>>|) infixl 1 :: !(Task a) !(Task b) -> Task b | iCreateAndPrint b
+(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iCreateAndPrint b
 (>>|) taska taskb = taska >>= const taskb
 
 return :: !a -> (Task a) | iData a

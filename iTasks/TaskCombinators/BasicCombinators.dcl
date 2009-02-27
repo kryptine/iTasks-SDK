@@ -27,7 +27,7 @@ import iDataForms, GenPrint, GenParse
 * @param The second task to be executed
 * @return The combined task
 */
-(>>|) infixl 1 :: !(Task a) !(Task b)					-> Task b		| iCreateAndPrint b
+(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iCreateAndPrint b
 /**
 * Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
 * as result of the task.
