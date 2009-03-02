@@ -1,5 +1,7 @@
 implementation module ShopDSL
 
+import StdClass, StdInt
+import GenBimap
 import iTasks, database
 
 derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction

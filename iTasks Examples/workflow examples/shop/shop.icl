@@ -1,8 +1,10 @@
 module shop
 
-import StdEnv, iTasks, iDataTrivial
+import StdClass, StdList
+from   StdFunc import o, flip
+import iTasks, iDataTrivial
 import StdListExt, database, iTaskCombinatorsExt, ShopDSL
-
+	
 Start :: *World -> *World
 Start world = startEngine flows world
 where
@@ -97,7 +99,7 @@ where
 				      ) cart
 
 // finishing ordering process
-	
+
 checkOutAndPay :: (Cart a) -> Task Void | iData a
 checkOutAndPay cart 
 	= fillInClientInfo {createDefault & itemsOrdered = cart} =>> \order ->
@@ -112,56 +114,44 @@ where
 	costOrder order	= [boldText "Amount to pay is: ", toHtml (totalCost order.itemsOrdered)]
 
 	fillInClientInfo order
-		=	fillInYourName        order	=>> \order ->
-			fillInBillingAddress  order	=>> \order ->
-			fillInShippingAddress order	=>> \order ->
-			yesOrNo [toHtml order, DivTag [] (costOrder order), normalText "Is the data above correct?"]
-			        (return_V         order) 
-			        (fillInClientInfo order)
+		= fillInData "Please fill in your name:"           nameOf           nameUpd           order	=>> \order ->
+		  fillInData "Please fill in the billing address:" billingAddressOf billingAddressUpd order	=>> \order ->
+		  yesOrNo [ normalText "Billing address:", toHtml order.billingAddress
+		          , normalText "Is the shipping addres same as the billing address above?"
+		          ]
+		          (return_V {order & shippingAddress = order.billingAddress})
+		          (fillInData "Please fill in the shipping address:" 
+					          shippingAddressOf shippingAddressUpd order) =>> \order ->
+		  yesOrNo [toHtml order, DivTag [] (costOrder order), normalText "Is the data above correct?"]
+			      (return_V         order) 
+			      (fillInClientInfo order)
 	where
 		fillInData prompt valueOf updateOf record
 			= [normalText prompt] ?>> editTask "Commit" (valueOf record) =>> \value -> 
 			  return_V (updateOf record value)
-		
-		fillInYourName :: ((Order a) -> Task (Order a)) | iData a
-		fillInYourName 
-			= fillInData "Please fill in your name:" nameOf nameUpd
-	
-		fillInBillingAddress :: ((Order a) -> Task (Order a)) | iData a
-		fillInBillingAddress
-			= fillInData "Please fill in the billing address:" billingAddressOf billingAddressUpd
-	
-		fillInShippingAddress :: (Order a)  -> Task (Order a) | iData a
-		fillInShippingAddress order
-			= yesOrNo [ normalText "Billing address:"
-					  , toHtml order.billingAddress
-					  , normalText "Is the shipping addres same as the billing address above?"
-					  ]
-					  (return_V {order & shippingAddress = order.billingAddress})
-					  (fillInData "Please fill in the shipping address:" 
-					              shippingAddressOf shippingAddressUpd order)
 
 // Backend
 manageCatalog :: [HtmlTag] a -> Task Void | iData, DB a
 manageCatalog catalogPrompt defaultValue 
 	= stopTask 
-		(catalogPrompt ?>> foreverTask
-			(	dbReadAll             =>> \catalog ->
+		(catalogPrompt ?>> manage//foreverTask
+/*			(	dbReadAll             =>> \catalog ->
 				browseCatalog defaultValue catalog
 			))
+*/			)
 where
+	manage = dbReadAll =>> \catalog -> browseCatalog defaultValue catalog #>> manage
+
 	browseCatalog :: a [a] -> Task Void | iData, DB a
 	browseCatalog defaultValue []
-		= editTask "Store" defaultValue =>>
-		  dbCreate 
-	
+		= editTask "Store" defaultValue =>> dbCreate 
 	browseCatalog _ items
 		= orTasksVert (map itemActions items)
 	where
 		itemActions :: a -> Task Void | iData, DB a
 		itemActions item
 			= chooseTask_btn [toHtml item] 
-				[("Edit",	editTask "Store" item =>> \nitem -> dbModify (insert eqItemId nitem)) 
+				[("Edit",	editTask "Store" item =>> \nitem -> dbModify (replace eqItemId nitem)) 
 				,("Insert",	addItem  (flip (<<?)) span     item)
 				,("Append",	addItem        (?>>)  span_inc item)
 				,("Delete",	dbModify (filter (not o eqItemId item)))

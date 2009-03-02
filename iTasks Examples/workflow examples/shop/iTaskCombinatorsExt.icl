@@ -1,5 +1,6 @@
 implementation module iTaskCombinatorsExt
 
+import StdInt, StdList
 import iTasks
 
 //	Useful derived combinators for iTasks:
