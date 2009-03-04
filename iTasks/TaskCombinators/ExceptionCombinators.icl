@@ -5,7 +5,7 @@ implementation module ExceptionCombinators
 import StdList, StdArray, StdTuple, StdMisc
 from StdFunc import id
 import dynamic_string
-import InternaliTasksThreadHandling, BasicCombinators, Engine
+import InternaliTasksThreadHandling, BasicCombinators, CommonCombinators, Engine
 
 serializeExceptionHandler :: !.(Dynamic -> Task .a) -> .String 
 serializeExceptionHandler task = IF_ClientServer

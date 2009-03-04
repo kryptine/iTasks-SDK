@@ -14,6 +14,10 @@ derive write	Maybe
 showText   		text :== Text text
 showLabel  		text :== ITag [] [Text text]
 
+
+newTask :: !String !(Task a) -> (Task a) 	| iData a 
+newTask taskname task = sequence taskname [(taskname,task)] >>= \list -> return (hd list)
+
 // ******************************************************************************************************
 // monads for combining iTasks
 (=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
@@ -73,6 +77,12 @@ where
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
+
+selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+selection chooser executer tasks = newTask "selection" selection`
+where
+	selection`	= chooser tasks =>> \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
+	numTasks 	= length tasks
 
 chooseTask_btn 	:: ![HtmlTag] ![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt ltasks

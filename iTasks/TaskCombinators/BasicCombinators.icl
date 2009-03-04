@@ -58,16 +58,6 @@ where
 			= doTask tst
 		= (a,tst)
 
-
-// Selection:
-
-selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-selection chooser executer tasks = newTask "selection" selection`
-where
-	selection`	= chooser tasks =>> \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
-	numTasks 	= length tasks
-
-
 // Sequential composition
 
 sequence :: !String ![LabeledTask a] -> (Task [a])	| iData a
@@ -116,14 +106,8 @@ delegate newUserId (label,task) = Task delegate`
 where
 	delegate` tst =:{TSt | userId = currentUserId}
 		# tst		= addUser newUserId tst 
-		# (a, tst)	= accTaskTSt (newTask label task) {TSt | tst & userId = newUserId, delegatorId = tst.TSt.userId}
-		= (a, {TSt | tst & userId = currentUserId})
-
-// ******************************************************************************************************
-// newTask needed for recursive task creation
-
-newTask :: !String !(Task a) -> (Task a) 	| iData a 
-newTask taskname task = sequence taskname [(taskname,task)] >>= \list -> return (hd list)
+		# (a, tst)	= accTaskTSt (sequence label [(label,task)]) {TSt | tst & userId = newUserId, delegatorId = tst.TSt.userId}
+		= (hd a, {TSt | tst & userId = currentUserId})
 
 
 // ******************************************************************************************************

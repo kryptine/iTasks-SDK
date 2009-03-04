@@ -58,22 +58,6 @@ forever		:: !(Task a) 								-> Task a 		| iData a
 */
 (<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iData a
 
-
-// Selection:
-
-/**
-* Select n tasks to do out of m (n <= m) and execute them in indicated order. First a
-* selecting task is executed which determines which tasks have to be done. Then these selected
-* tasks are combined by
-*
-* @param A selecting task that given a list of labeled tasks yields a list of indexes in the list
-*        of labeled tasks. The tasks with these indexes will be executed.
-* @param A task that combines a list of labeled tasks into a single task
-* @return The combined task
-*/
-selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-
-
 // Sequential composition
 
 /**
@@ -111,13 +95,6 @@ parallel 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a
 */ 
 delegate 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
 
-//SOON TO BE OBSOLETE:
-
-/* Support for user defined combinators
-newTask			:: lifts a (user defined) task to an abstract unit: after completion of a (complicated task) only i's final result will be remembered
-*/
-newTask 		:: !String !(Task a) 					-> Task a		| iData a 
-
 
 //Backwards compatibility
 (=>>) infixl 1
@@ -127,7 +104,6 @@ newTask 		:: !String !(Task a) 					-> Task a		| iData a
 
 return_V :== return
 foreverTask :== forever
-selectTasks :== selection
 seqTasks :== sequence "seqTasks"
 allTasksCond :== parallel
 assignTaskTo :== delegate

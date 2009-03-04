@@ -4,7 +4,7 @@ import StdList, StdMisc, StdOrdList, StdArray, StdTuple, GenBimap
 from StdFunc import id
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import iDataTrivial, iDataFormlib
-import BasicCombinators, LiftingCombinators
+import BasicCombinators, CommonCombinators, LiftingCombinators
 
 import Engine, Util
 

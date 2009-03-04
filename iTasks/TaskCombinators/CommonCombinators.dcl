@@ -6,6 +6,11 @@ definition module CommonCombinators
 
 import BasicCombinators, iDataWidgets		 
 
+/*
+* Turns a potentially multi-step sequence into a single step sequence 
+*/
+newTask 		:: !String !(Task a) 					-> Task a		| iData a 
+
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
 (@::)			:: as @:, a default task name is chosen as label
@@ -17,12 +22,26 @@ import BasicCombinators, iDataWidgets
 (@:>)  infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a
 (@::>) infix 3 	:: !UserId !(Task a)		    			-> Task a		| iData a
 
+
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid
 (<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise
 */
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 		| iData a
+
+/**
+* Select n tasks to do out of m (n <= m) and execute them in indicated order. First a
+* selecting task is executed which determines which tasks have to be done. Then these selected
+* tasks are combined by
+*
+* @param A selecting task that given a list of labeled tasks yields a list of indexes in the list
+*        of labeled tasks. The tasks with these indexes will be executed.
+* @param A task that combines a list of labeled tasks into a single task
+* @return The combined task
+*/
+selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
+selectTasks :== selection
 
 /*
 Choose the tasks you want to do one forehand:
@@ -33,6 +52,7 @@ chooseTask_radio:: as chooseTask_btn, depending on radio item selected, Int for 
 chooseTask_cb	:: choice N tasks out of N, order of chosen task depending on first arg
 				   (initial setting, effect for all when set, explanation) for each option
 */
+
 chooseTask_btn 	:: ![HtmlTag] ![LabeledTask a] 					-> Task a	 	| iData a
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] 			-> Task a	 	| iData a
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) 
