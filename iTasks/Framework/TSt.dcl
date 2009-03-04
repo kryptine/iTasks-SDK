@@ -252,21 +252,21 @@ mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 * of a sequence of subtasks. The given task function will execute in a blank sequence
 * and the resulting sequence will be combined in a single sequence node.
 */
-mkSequenceTask		:: !String !(Task a)		-> Task a		| iCreateAndPrint a
+mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for
 * combining a set of parallel subtasks
 */
-mkParallelTask 		:: !String !(Task a) 		-> Task a 		| iCreateAndPrint a
+mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
 /**
 * Wraps a function of proper type to create a task that will become
 * part of a parallel set of subtasks. This function should only be used
 * by tasks that are wrapped with mkParallelTask
 */
-mkParallelSubTask 	:: !String !Int (Task a) 	-> Task a  		| iCreateAndPrint a
+//mkParallelSubTask 	:: !String !Int (Task a) 	-> Task a  		| iCreateAndPrint a
 
 /**
 * Sets Html output of the current task

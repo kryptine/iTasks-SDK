@@ -1,6 +1,6 @@
 implementation module iDataWidgets
 
-import StdFunc, StdList, StdString, StdArray
+import StdFunc, StdList, StdString, StdArray, StdMisc
 import iDataForms, iDataFormlib, iDataTrivial, GenBimap
 
 derive gForm	HtmlTag, HtmlAttr

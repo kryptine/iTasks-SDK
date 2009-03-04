@@ -18,12 +18,12 @@ where
 	= accTaskTSt b tst
 
 appIData :: !(IDataFun a) -> (Task a) | iData a 
-appIData idatafun = (mkParallelTask "appIData" (Task appIData`))
+appIData idatafun = (mkParallelTask "appIData" appIData`)
 where
 	appIData` tst
 		# tst					= setCombination TTVertical tst
-		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (doIData idatafun))) tst
-		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
+		# (a,tst)				= accTaskTSt (mkSequenceTask "iData" (accTaskTSt (mkBasicTask "doIData" (doIData idatafun)))) tst
+		# (_,tst)				= accTaskTSt (mkSequenceTask "Done" (accTaskTSt (editTask "Done" Void))) tst
 		= (a,tst)
 		
 	doIData idata tst =:{taskNr,hst}
@@ -33,12 +33,12 @@ where
 		= (idata.Form.value, tst)
 
 appIData2 :: !(String *HSt -> *(!Form a,!*HSt)) -> (Task a) | iData a 
-appIData2 idatafun = (mkParallelTask "appIData" (Task appIData`))
+appIData2 idatafun = (mkParallelTask "appIData" appIData`)
 where
 	appIData` tst
 		# tst					= setCombination TTVertical tst
-		# (a,tst)				= accTaskTSt (mkParallelSubTask "iData" 0 (mkBasicTask "doIData" (doIData idatafun))) tst
-		# (_,tst)				= accTaskTSt (mkParallelSubTask "Done" 1 (editTask "Done" Void)) tst
+		# (a,tst)				= accTaskTSt (mkSequenceTask "iData" (accTaskTSt (mkBasicTask "doIData" (doIData idatafun)))) tst
+		# (_,tst)				= accTaskTSt (mkSequenceTask "Done" (accTaskTSt (editTask "Done" Void))) tst
 		= (a,tst)
 
 	doIData idata tst =:{taskNr,hst}

@@ -98,7 +98,7 @@ confirmBid purchase bid =: ((uid,label),price)
 	
 //Custom utility combinators 
 andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iData a
-andTasksEnough taskCollection = mkParallelTask "andTasksEnough" (Task andTasksEnough`)
+andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
 where
 	andTasksEnough` tst
 		# tst						= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order

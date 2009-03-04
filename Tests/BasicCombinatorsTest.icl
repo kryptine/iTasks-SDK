@@ -2,11 +2,8 @@ module BasicCombinatorsTest
 /**
 * This module tests the combinators in BasicCombinators.dcl
 */
-import StdEnv, iTasks, iData
+import iTasks, iData, StdOverloaded, StdInt, StdClass, StdList
 import BasicCombinators, CommonCombinators, PromptingCombinators
-
-derive gForm []
-derive gUpd []
 
 Start :: *World -> *World
 Start world = startEngine tests world
@@ -71,7 +68,7 @@ loop_test
 	
 seqTasks_test :: Task Void
 seqTasks_test
-	= seqTasks [(toString i, editTask "Ok" i) \\ i <- [1..3]] =>> \list -> displayValue list #>> return_V Void
+	= seqTasks [(toString i, editTask "Ok" i) \\ i <- [1..3]] =>> \list -> displayValue list
 	
 selectTasks_test :: Task Void
 selectTasks_test
@@ -81,6 +78,6 @@ where
 	
 allTasksCond_test :: Task Void
 allTasksCond_test
-	= allTasksCond "Do all of these:" TTSplit pred [("Subtask " +++ (toString i), editTask "Ok" i) \\ i <- [1..4]] #>> return_V Void
+	= allTasksCond "Do all of these:" (TTSplit []) pred [("Subtask " +++ (toString i), editTask "Ok" i) \\ i <- [1..4]] #>> return_V Void
 where
 	pred list = length list > 0

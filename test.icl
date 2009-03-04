@@ -85,6 +85,12 @@ initialWorkflows = [
 	, label	= "Test with lists"
 	, roles = []
 	, mainTask = listTask
+	},
+	{ Workflow
+	| name	= "embeddedsequence"
+	, label = "test with embedded sequence"
+	, roles = []
+	, mainTask = sequenceTask
 	}/*,
 	
 	{ Workflow
@@ -94,6 +100,9 @@ initialWorkflows = [
 	, mainTask = andTasksCancel_test
 	}*/
 	]
+
+sequenceTask :: Task Void
+sequenceTask = newTask "TEST" (newTask "Embedded sequence" (editTask "OK" Void))
 
 spawnTask :: Task Void
 spawnTask = spawnProcess 0 True ("Give me an Int",intTask)	=>> \pid ->

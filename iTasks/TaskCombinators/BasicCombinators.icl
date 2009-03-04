@@ -35,7 +35,7 @@ return a  = mkBasicTask "return" (\tst -> (a,tst))
 //Repetition and loops:
 
 forever :: !(Task a) -> Task a | iData a
-forever task = mkSequenceTask "forever" (Task forever`)
+forever task = mkSequenceTask "forever" forever`
 where
 	forever` tst=:{taskNr} 
 		# (val,tst=:{activated})= accTaskTSt task tst					
@@ -45,8 +45,8 @@ where
 			= forever` tst				
 		= (val,tst)
 
-(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iCreateAndPrint a
-(<!) task pred = mkSequenceTask "<!" (Task doTask)
+(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iData a
+(<!) task pred = mkSequenceTask "<!" doTask
 where
 	doTask tst=:{activated, taskNr}
 		# (a,tst=:{activated}) 	= accTaskTSt task tst
@@ -62,16 +62,16 @@ where
 // Selection:
 
 selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-selection chooser executer tasks = mkSequenceTask "selection" selection`
+selection chooser executer tasks = newTask "selection" selection`
 where
-	selection`	= chooser tasks =>> \chosen -> 	executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
+	selection`	= chooser tasks =>> \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
 	numTasks 	= length tasks
 
 
 // Sequential composition
 
-sequence :: !String ![LabeledTask a] -> (Task [a])	| iCreateAndPrint a
-sequence label options = mkSequenceTask label (Task sequence`)
+sequence :: !String ![LabeledTask a] -> (Task [a])	| iData a
+sequence label options = mkSequenceTask label sequence`
 where
 	sequence` tst
 		= doseqTasks options [] tst
@@ -88,7 +88,7 @@ where
 
 parallel :: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
 parallel label combination pred taskCollection 
-	= mkParallelTask label (Task (doandTasks taskCollection))
+	= mkParallelTask label (doandTasks taskCollection)
 where
 	doandTasks [] tst	=  ([],tst)
 	doandTasks taskCollection tst=:{taskNr}
@@ -101,12 +101,12 @@ where
 			# tst		= setCombination combination tst
 			= (alist, {tst & activated	= False})				// show all subtasks using the displayOption function
 	where
-		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iCreateAndPrint a
+		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iData a
 		checkAllTasks taskCollection index accu tst
 			| index == length taskCollection
-				= (reverse accu,tst)															// all tasks tested
-			# (taskname,task)			= taskCollection!!index
-			# (a,tst=:{activated})	= accTaskTSt (mkParallelSubTask taskname index task) tst	// check tasks
+				= (reverse accu,tst)												// all tasks tested
+			# (taskname,task)		= taskCollection!!index
+			# (a,tst=:{activated})	= accTaskTSt (mkSequenceTask taskname (accTaskTSt task)) tst	// check tasks
 			= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
 // Multi-user workflows
@@ -123,22 +123,8 @@ where
 // newTask needed for recursive task creation
 
 newTask :: !String !(Task a) -> (Task a) 	| iData a 
-newTask taskname mytask = Task newTask`
-where
-	newTask` tst=:{taskNr,userId,options,activated}		
-		| not activated
-			= (createDefault, tst)
-		# storeName					= iTaskId (incTaskNr taskNr) taskname					
-		# (taskval,tst) 			= accHStTSt (mkStoreForm (Init,storageFormId options storeName (False,createDefault)) id) tst	// remember if the task has been done
-		# (taskdone,taskvalue)		= taskval.Form.value																			// select values
-		| taskdone					= accTaskTSt (mkBasicTask taskname (\tst -> (taskvalue,tst))) tst							// if rewritten, we are a basic task returning a value
-		# (a, tst=:{activated})		= accTaskTSt (mkSequenceTask taskname mytask) tst 												// execute task in an isolated sequence
-		| activated
-			# tst					= deleteSubTasksAndThreads (incTaskNr taskNr) tst																//garbage collect it
-			# (_,tst) 				= accHStTSt (mkStoreForm (Init, storageFormId options storeName (False,createDefault)) (\_ -> (True,a))) tst	//remember that the task was done
-			= (a, tst)
-		| otherwise
-			= (a, tst)
+newTask taskname task = sequence taskname [(taskname,task)] >>= \list -> return (hd list)
+
 
 // ******************************************************************************************************
 // Higher order tasks ! Experimental

@@ -56,7 +56,7 @@ forever		:: !(Task a) 								-> Task a 		| iData a
 * @param The predicate over the result of the task to determine if the combination is finished
 * @return The combined task
 */
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iCreateAndPrint a
+(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iData a
 
 
 // Selection:
@@ -83,7 +83,7 @@ selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![L
 * @param The list of tasks to be executed sequentially
 * @return The combined task
 */
-sequence	:: !String ![LabeledTask a] 				-> Task [a]		| iCreateAndPrint a
+sequence	:: !String ![LabeledTask a] 				-> Task [a]		| iData a
 
 // Parallel composition
 
