@@ -163,7 +163,3 @@ boldText   text				= BTag    [] [Text text, BrTag [], BrTag []]
 normalText text				= BodyTag [] [Text text, BrTag [], BrTag []]
 ruleText   text				= section text [HrTag []]
 section    label content	= [HrTag  [], boldText label : content]
-
-// little domain specific functions:
-totalCost cart				= HtmlCurrency EUR (sum [ n * toInt p \\ {pricePerUnit=p,amountOrdered=n} <- cart])
-shopOwner					= 0

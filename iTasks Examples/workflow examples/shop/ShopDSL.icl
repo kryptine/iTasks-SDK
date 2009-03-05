@@ -1,12 +1,9 @@
 implementation module ShopDSL
 
-import StdClass, StdInt
+import StdClass, StdInt, StdList
 import GenBimap
 import iTasks, database
 import ShopDSLboilerplate
-
-eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
-eqItemNr x y											= x.itemNr == y.itemNr
 
 instance toInCart (CartItem a)	where toInCart item		= { item         = item.description
 														  , nrOrdered    = item.amountOrdered
@@ -24,3 +21,12 @@ instance DB Product				where databaseId		= mkDBid "products" LSTxtFile
 instance DB (Order item)		where databaseId		= mkDBid "orders" LSTxtFile
 									  getItemId item	= id_Of  item
 									  setItemId id item	= id_Upd item id
+
+eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
+eqItemNr x y	= x.itemNr == y.itemNr
+
+totalCost :: !(Cart a) -> HtmlCurrency
+totalCost cart	= HtmlCurrency EUR (sum [ n * toInt p \\ {pricePerUnit=p,amountOrdered=n} <- cart])
+
+shopOwner :: UserId
+shopOwner		= 0

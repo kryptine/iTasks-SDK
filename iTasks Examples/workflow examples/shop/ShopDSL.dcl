@@ -46,4 +46,6 @@ instance toCartItem Product
 instance DB Product
 instance DB (Order a)
 
-eqItemNr			:: !(CartItem a) !(CartItem a) -> Bool
+eqItemNr	:: !(CartItem item) !(CartItem item) -> Bool
+totalCost	:: !(Cart item) -> HtmlCurrency
+shopOwner	:: UserId
