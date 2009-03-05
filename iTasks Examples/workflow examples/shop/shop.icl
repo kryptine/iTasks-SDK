@@ -57,7 +57,7 @@ where
 			amount	= {orderAmount = 1}
 
 	navigateShop :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | toCart, iData a
-	navigateShop promptOfShop cart
+	navigateShop prompt cart
 		= chooseTask [] 
 			[ ("Do Shopping",   	return_V (ToShop,   cart))
 			, ("Check Out and Pay", return_V (ToPay,    cart))
@@ -66,16 +66,17 @@ where
 			] <<? [ BrTag []
 			      , boldText "Total cost of ordered items = "
 			      , toHtml  (totalCost cart)
-			      , DivTag [] promptOfShop
+			      , DivTag [] prompt
 			      ]
 
 	doAction :: (Cart a) [a] (ShopAction, Cart a) -> Task Void | toCart, iData, DB a
-	doAction initCart items (LeaveShop,cart)	= return_V Void
-	doAction initCart items (ToCart,   cart) 	= showCart   cart       =>> doAction initCart items 
-	doAction initCart items (ToShop,   cart) 	= doShopping cart items =>> doAction initCart items
-	doAction initCart items (ToPay,    cart) 	= checkOutAndPay cart #>>
-												  browseShop shopPrompt cartPrompt initCart 
-
+	doAction initCart items (action,cart)
+		= case action of
+			LeaveShop	= return_V Void
+			ToCart		= showCart   cart       =>> doAction initCart items
+			ToShop		= doShopping cart items =>> doAction initCart items
+			ToPay		= checkOutAndPay cart   #>> browseShop shopPrompt cartPrompt initCart
+	
 	showCart ::(Cart a) -> Task (ShopAction,Cart a) | toCart, iData, DB a
 	showCart cart=:[]
 		= navigateShop cartPrompt cart <<? [normalText "No items in cart yet!"]
@@ -117,8 +118,8 @@ where
 		= fillInData "Please fill in your name:"           nameOf           nameUpd           order	=>> \order ->
 		  fillInData "Please fill in the billing address:" billingAddressOf billingAddressUpd order	=>> \order ->
 		  yesOrNo [ normalText "Billing address:", toHtml order.billingAddress
-		          , normalText "Is the shipping addres same as the billing address above?"
-		          ]
+		              , normalText "Is the shipping addres same as the billing address above?"
+		              ]
 		          (return_V {order & shippingAddress = order.billingAddress})
 		          (fillInData "Please fill in the shipping address:" 
 					          shippingAddressOf shippingAddressUpd order) =>> \order ->
@@ -132,16 +133,12 @@ where
 
 // Backend
 manageCatalog :: [HtmlTag] a -> Task Void | iData, DB a
-manageCatalog catalogPrompt defaultValue 
+manageCatalog prompt defaultValue 
 	= stopTask 
-		(catalogPrompt ?>> manage//foreverTask
-/*			(	dbReadAll             =>> \catalog ->
-				browseCatalog defaultValue catalog
+		(prompt ?>> foreverTask
+			(	dbReadAll =>> browseCatalog defaultValue
 			))
-*/			)
 where
-	manage = dbReadAll =>> \catalog -> browseCatalog defaultValue catalog #>> manage
-
 	browseCatalog :: a [a] -> Task Void | iData, DB a
 	browseCatalog defaultValue []
 		= editTask "Store" defaultValue =>> dbCreate 

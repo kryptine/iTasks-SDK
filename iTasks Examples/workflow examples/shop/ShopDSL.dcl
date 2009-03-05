@@ -5,6 +5,7 @@ import iTasks, database
 //	The Domain Specific Language for the shop workflow case.
 :: Product			=	{ id_				:: !ProductId
 						, name				:: !String
+						, author            :: !String
 						, price				:: !HtmlCurrency
 						, amount			:: !Int
 						}
