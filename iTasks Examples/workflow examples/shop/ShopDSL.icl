@@ -37,36 +37,38 @@ eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
 eqItemNr x y				= itemNrOf x == itemNrOf y
 
 class nameOf a :: a -> String
-instance nameOf (Order item)  where nameOf r		= r.Order.name
-instance nameOf Product       where nameOf r		= r.Product.name
+instance nameOf (Order item)   where nameOf r			= r.Order.name
+instance nameOf Product        where nameOf r			= r.Product.name
 
-instance id_Of Product        where id_Of r			= r.Product.id_
-instance id_Of (Order item)   where id_Of r			= r.Order.id_
+instance id_Of Product         where id_Of  r			= r.Product.id_
+instance id_Of (Order item)    where id_Of  r			= r.Order.id_
 
 class nameUpd a :: a String -> a
-instance nameUpd Product      where nameUpd r new	= {r & Product.name = new}
-instance nameUpd (Order item) where nameUpd r new	= {r & Order.name   = new}
+instance nameUpd Product       where nameUpd r new		= {r & Product.name = new}
+instance nameUpd (Order item)  where nameUpd r new		= {r & Order.name   = new}
 
-instance id_Upd Product       where id_Upd r new	= {r & Product.id_  = new}
-instance id_Upd (Order item)  where id_Upd r new	= {r & Order.id_    = new}
+instance id_Upd Product        where id_Upd  r new		= {r & Product.id_  = new}
+instance id_Upd (Order item)   where id_Upd  r new		= {r & Order.id_    = new}
 
 class toInCart a	:: a -> InCart
-instance toInCart (CartItem a) where toInCart item = {item=item.description,nrOrdered=item.amountOrdered,pricePerItem=item.pricePerUnit}
+instance toInCart (CartItem a)  where toInCart item		= {item          = item.description
+														  , nrOrdered    = item.amountOrdered
+														  , pricePerItem = item.pricePerUnit
+														  }
 
 class toCartItem a :: a -> CartItem a
-instance toCartItem Product where
-	toCartItem product	= { itemNr 			= id_Of product
-						  , description		= nameOf product
-						  , amountInStock	= product.amount
-						  , amountOrdered	= if (product.amount >= 0) 1 0
-						  , pricePerUnit	= product.price
-						  }
+instance toCartItem Product    where toCartItem product	= { itemNr        = id_Of  product
+														  , description   = nameOf product
+														  , amountInStock = product.amount
+														  , amountOrdered = if (product.amount >= 0) 1 0
+														  , pricePerUnit  = product.price
+														  }
 
 instance DB Product where
 	databaseId				= mkDBid "products" LSTxtFile
 	getItemId item			= id_Of  item
-	setItemId id item 		= id_Upd item id
+	setItemId new item 		= id_Upd item new
 instance DB (Order item) where
 	databaseId				= mkDBid "orders" LSTxtFile
 	getItemId item			= id_Of  item
-	setItemId id item		= id_Upd item id
+	setItemId new item		= id_Upd item new

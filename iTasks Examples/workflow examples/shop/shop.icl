@@ -13,8 +13,8 @@ where
 			    , roles		= []
 			    , mainTask	= manageCatalog catalogPrompt defaultProduct
 			    }
-			  , { name		= "Browse Shop"
-			    , label		= "Browse Shop"
+			  , { name		= "Browse shop"
+			    , label		= "Browse shop"
 			    , roles		= []
 			    , mainTask	= browseShop shopPrompt cartPrompt defaultCart
 			    }
@@ -57,7 +57,7 @@ where
 	navigateShop prompt cart
 		= chooseTask [] 
 			[ ("Do Shopping",   	return_V (ToShop,   cart))
-			, ("Check Out and Pay", return_V (ToPay,    cart))
+			, ("Check Out And Pay", return_V (ToPay,    cart))
 			, ("Show Cart",     	return_V (ToCart,   cart))
 			, ("Leave Shop",    	return_V (LeaveShop,cart))
 			] <<? [ BrTag []
