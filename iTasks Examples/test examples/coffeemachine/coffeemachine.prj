@@ -64,7 +64,7 @@ MainModule
 OtherModules
 	Module
 		Name:	EngineWrapperStandalone
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -80,7 +80,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	SessionDB
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Data
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -96,7 +96,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ExceptionCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -112,7 +112,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ProcessCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -128,7 +128,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	CommonCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -156,7 +156,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TimeAndDateTasks
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -172,7 +172,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	UserTasks
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -188,7 +188,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	NewStartHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -204,7 +204,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	NewListHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -220,7 +220,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ClientCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -236,7 +236,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TuningCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -252,7 +252,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ProcessDB
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Data
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -268,7 +268,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Types
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -284,7 +284,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	UserDB
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Data
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -300,7 +300,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Engine
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -316,7 +316,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iTasks
-		Dir:	{Application}\fancyTasks\iTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -332,7 +332,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	DeauthenticationHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -364,7 +364,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TSt
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -395,7 +395,7 @@ OtherModules
 			ObjectFile:	copy_graph_to_string.obj
 	Module
 		Name:	iDataWidgets
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -417,7 +417,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	WorkTabHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -455,7 +455,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TaskTree
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -483,7 +483,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	JSON
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -499,7 +499,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Text
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -515,7 +515,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	WorkListHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -531,7 +531,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	AuthenticationHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -559,7 +559,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Html
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -581,7 +581,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	InternaliTasksThreadHandling
-		Dir:	{Application}\fancyTasks\iTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -609,7 +609,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HttpTextUtil
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	{Application}\Projects\iTasks2\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -625,7 +625,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HttpUtil
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	{Application}\Projects\iTasks2\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -641,7 +641,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Http
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	{Application}\Projects\iTasks2\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -657,7 +657,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HttpServer
-		Dir:	{Application}\fancyTasks\Http
+		Dir:	{Application}\Projects\iTasks2\Http
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -685,7 +685,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataCompileOptions
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -707,7 +707,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Drup
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -735,7 +735,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	_SystemDrup
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -753,7 +753,7 @@ OtherModules
 			ObjectFile:	fastreopen.o
 	Module
 		Name:	DrupBasic
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -781,7 +781,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	DrupGeneric
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1211,7 +1211,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataSettings
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1407,7 +1407,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataState
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1435,7 +1435,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	EncodeDecode
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1463,7 +1463,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataTrivial
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1533,7 +1533,7 @@ OtherModules
 			Library:	directory_library
 	Module
 		Name:	dynamic_string
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	{Application}\Projects\iTasks2\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1560,7 +1560,7 @@ OtherModules
 			ObjectFile:	copy_graph_to_string_interface.obj
 	Module
 		Name:	Debug
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3011,7 +3011,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataFormlib
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3039,7 +3039,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	DataFile
-		Dir:	{Application}\fancyTasks\Drup
+		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3067,7 +3067,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	graph_to_string_with_descriptors
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	{Application}\Projects\iTasks2\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3086,7 +3086,7 @@ OtherModules
 			ObjectFile:	copy_graph_to_string_interface.obj
 	Module
 		Name:	graph_to_sapl_string
-		Dir:	{Application}\fancyTasks\graph_copy
+		Dir:	{Application}\Projects\iTasks2\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3102,7 +3102,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iTasksDB
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3130,7 +3130,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	FormId
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3146,7 +3146,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	iDataForms
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3174,7 +3174,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	HSt
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3196,7 +3196,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	NWorld
-		Dir:	{Application}\fancyTasks\iData
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3212,7 +3212,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Time
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3230,7 +3230,7 @@ OtherModules
 			Library:	msvcrt.txt
 	Module
 		Name:	Pointer
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3246,7 +3246,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	TaskTreeForestHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3268,7 +3268,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	ProcessTableHandler
-		Dir:	{Application}\fancyTasks\iTasks\Framework\Handlers
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3284,7 +3284,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Void
-		Dir:	{Application}\fancyTasks\Platform
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3300,7 +3300,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	BasicCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3328,7 +3328,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	LiftingCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3350,7 +3350,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	PromptingCombinators
-		Dir:	{Application}\fancyTasks\iTasks\TaskCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3366,7 +3366,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	Util
-		Dir:	{Application}\fancyTasks\iTasks\Framework
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3382,7 +3382,7 @@ OtherModules
 		IclOpen:	False
 	Module
 		Name:	UITasks
-		Dir:	{Application}\fancyTasks\iTasks\BasicTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3399,378 +3399,378 @@ OtherModules
 Static
 	Mods
 		Path:	{Project}\coffeemachine.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\EngineWrapperStandalone.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\SessionDB.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\ExceptionCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\ProcessCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\CommonCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\TimeAndDateTasks.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\UserTasks.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\NewStartHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\NewListHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\ClientCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\TuningCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\ProcessDB.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Types.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\UserDB.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Engine.icl
-		Path:	{Application}\fancyTasks\iTasks\iTasks.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\DeauthenticationHandler.icl
-		Path:	{Application}\Libraries\MersenneTwister\MersenneTwister.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\TSt.icl
-		Path:	{Application}\fancyTasks\iData\iDataWidgets.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\WorkTabHandler.icl
-		Path:	{Application}\Libraries\Generics\GenBimap.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\TaskTree.icl
-		Path:	{Application}\fancyTasks\Platform\JSON.icl
-		Path:	{Application}\fancyTasks\Platform\Text.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\WorkListHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\AuthenticationHandler.icl
-		Path:	{Application}\fancyTasks\Platform\Html.icl
-		Path:	{Application}\fancyTasks\iTasks\InternaliTasksThreadHandling.icl
-		Path:	{Application}\fancyTasks\Http\HttpTextUtil.icl
-		Path:	{Application}\fancyTasks\Http\HttpUtil.icl
-		Path:	{Application}\fancyTasks\Http\Http.icl
-		Path:	{Application}\fancyTasks\Http\HttpServer.icl
-		Path:	{Application}\fancyTasks\iData\iDataCompileOptions.icl
-		Path:	{Application}\fancyTasks\Drup\Drup.icl
-		Path:	{Application}\fancyTasks\Drup\_SystemDrup.icl
-		Path:	{Application}\fancyTasks\Drup\DrupBasic.icl
-		Path:	{Application}\fancyTasks\Drup\DrupGeneric.icl
-		Path:	{Application}\Libraries\Dynamics\extension\StdCleanTypes.icl
-		Path:	{Application}\Libraries\Dynamics\implementation\windows\_SystemDynamic.icl
-		Path:	{Application}\Libraries\StdEnv\StdOverloaded.icl
-		Path:	{Application}\Libraries\StdEnv\StdEnv.icl
-		Path:	{Application}\Libraries\StdEnv\StdBool.icl
-		Path:	{Application}\Libraries\StdEnv\StdInt.icl
-		Path:	{Application}\Libraries\StdEnv\StdMisc.icl
-		Path:	{Application}\Libraries\StdEnv\StdChar.icl
-		Path:	{Application}\Libraries\StdEnv\StdClass.icl
-		Path:	{Application}\Libraries\StdEnv\StdArray.icl
-		Path:	{Application}\Libraries\StdEnv\_SystemArray.icl
-		Path:	{Application}\Libraries\StdEnv\StdReal.icl
-		Path:	{Application}\Libraries\StdEnv\StdString.icl
-		Path:	{Application}\Libraries\StdEnv\StdFile.icl
-		Path:	{Application}\Libraries\StdEnv\StdList.icl
-		Path:	{Application}\Libraries\StdEnv\StdEnum.icl
-		Path:	{Application}\Libraries\StdEnv\_SystemEnum.icl
-		Path:	{Application}\Libraries\StdEnv\StdOrdList.icl
-		Path:	{Application}\Libraries\StdEnv\StdTuple.icl
-		Path:	{Application}\Libraries\StdEnv\StdCharList.icl
-		Path:	{Application}\Libraries\StdEnv\StdFunc.icl
-		Path:	{Application}\fancyTasks\iData\iDataSettings.icl
-		Path:	{Application}\Libraries\StdEnv\StdGeneric.icl
-		Path:	{Application}\Libraries\StdLib\StdMaybe.icl
-		Path:	{Application}\Libraries\StdEnv\StdDebug.icl
-		Path:	{Application}\Libraries\ArgEnvWindows\ArgEnv.icl
-		Path:	{Application}\Libraries\StdEnv\StdStrictLists.icl
-		Path:	{Application}\Libraries\StdEnv\_SystemStrictLists.icl
-		Path:	{Application}\Libraries\StdEnv\_SystemEnumStrict.icl
-		Path:	{Application}\Libraries\Generics\GenEq.icl
-		Path:	{Application}\Libraries\Generics\GenPrint.icl
-		Path:	{Application}\Libraries\Generics\GenParse.icl
-		Path:	{Application}\fancyTasks\iData\iDataState.icl
-		Path:	{Application}\fancyTasks\iData\EncodeDecode.icl
-		Path:	{Application}\fancyTasks\iData\iDataTrivial.icl
-		Path:	{Application}\Libraries\StdLib\StdLibMisc.icl
-		Path:	{Application}\Libraries\Directory\Directory.icl
-		Path:	{Application}\fancyTasks\graph_copy\dynamic_string.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Debug.icl
-		Path:	{Application}\Libraries\Generics\GenMap.icl
-		Path:	{Application}\Libraries\Generics\_Array.icl
-		Path:	{Application}\Libraries\Tcp\StdTCP.icl
-		Path:	{Application}\Libraries\Tcp\StdChannels.icl
-		Path:	{Application}\Libraries\Tcp\tcp.icl
-		Path:	{Application}\Libraries\ObjectIO\StdTime.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostick.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostoolbox.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\clCrossCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostime.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ossystem.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osdocumentinterface.icl
-		Path:	{Application}\Libraries\ObjectIO\StdIOCommon.icl
-		Path:	{Application}\Libraries\ObjectIO\StdBitmap.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osbitmap.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ospicture.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osrgn.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostypes.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\rgnCCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\pictCCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osfont.icl
-		Path:	{Application}\Libraries\ObjectIO\StdPictureDef.icl
-		Path:	{Application}\Libraries\ObjectIO\StdIOBasic.icl
-		Path:	{Application}\Libraries\ObjectIO\StdPicture.icl
-		Path:	{Application}\Libraries\ObjectIO\StdKey.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\oskey.icl
-		Path:	{Application}\Libraries\ObjectIO\id.icl
-		Path:	{Application}\Libraries\ObjectIO\device.icl
-		Path:	{Application}\Libraries\ObjectIO\systemid.icl
-		Path:	{Application}\Libraries\ObjectIO\commondef.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\clCCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\menuCrossCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostoolbar.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\windowCCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\windowCrossCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\StdId.icl
-		Path:	{Application}\Libraries\ObjectIO\iostate.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osactivaterequests.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osevent.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osguishare.icl
-		Path:	{Application}\Libraries\ObjectIO\devicefunctions.icl
-		Path:	{Application}\Libraries\ObjectIO\deviceevents.icl
-		Path:	{Application}\Libraries\ObjectIO\receivermessage.icl
-		Path:	{Application}\Libraries\ObjectIO\receivertable.icl
-		Path:	{Application}\Libraries\ObjectIO\semidynamic.icl
-		Path:	{Application}\Libraries\ObjectIO\cast.icl
-		Path:	{Application}\Libraries\ObjectIO\timertable.icl
-		Path:	{Application}\Libraries\ObjectIO\StdTimerDef.icl
-		Path:	{Application}\Libraries\ObjectIO\windowhandle.icl
-		Path:	{Application}\Libraries\ObjectIO\StdControlDef.icl
-		Path:	{Application}\Libraries\ObjectIO\StdWindowDef.icl
-		Path:	{Application}\Libraries\ObjectIO\receiverhandle.icl
-		Path:	{Application}\Libraries\ObjectIO\keyfocus.icl
-		Path:	{Application}\Libraries\ObjectIO\devicesystemstate.icl
-		Path:	{Application}\Libraries\ObjectIO\menuhandle.icl
-		Path:	{Application}\Libraries\ObjectIO\StdMenuDef.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osmenu.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\menuCCall_12.icl
-		Path:	{Application}\Libraries\ObjectIO\processhandle.icl
-		Path:	{Application}\Libraries\ObjectIO\timerhandle.icl
-		Path:	{Application}\Libraries\ObjectIO\processstack.icl
-		Path:	{Application}\Libraries\ObjectIO\roundrobin.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osmouse.icl
-		Path:	{Application}\Libraries\ObjectIO\StdPSt.icl
-		Path:	{Application}\Libraries\ObjectIO\StdProcessAttribute.icl
-		Path:	{Application}\Libraries\ObjectIO\StdProcessDef.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osbeep.icl
-		Path:	{Application}\Libraries\ObjectIO\world.icl
-		Path:	{Application}\Libraries\ObjectIO\StdReceiverDef.icl
-		Path:	{Application}\Libraries\ObjectIO\StdReceiver.icl
-		Path:	{Application}\Libraries\ObjectIO\receiveraccess.icl
-		Path:	{Application}\Libraries\ObjectIO\receiverdefaccess.icl
-		Path:	{Application}\Libraries\ObjectIO\StdReceiverAttribute.icl
-		Path:	{Application}\Libraries\ObjectIO\receiverdevice.icl
-		Path:	{Application}\Libraries\ObjectIO\receiverid.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\receiverevent.icl
-		Path:	{Application}\Libraries\ObjectIO\scheduler.icl
-		Path:	{Application}\Libraries\ObjectIO\StdPStClass.icl
-		Path:	{Application}\Libraries\ObjectIO\StdFileSelect.icl
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\osfileselect.icl
-		Path:	{Application}\Libraries\Tcp\StdTCPChannels.icl
-		Path:	{Application}\Libraries\Tcp\StdTCPDef.icl
-		Path:	{Application}\Libraries\Tcp\tcp_bytestreams.icl
-		Path:	{Application}\Libraries\Tcp\ostcp.icl
-		Path:	{Application}\Libraries\Tcp\StdEventTCP.icl
-		Path:	{Application}\Libraries\Tcp\StdStringChannels.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\UITasks.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Util.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\PromptingCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\LiftingCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\BasicCombinators.icl
+		Path:	{Application}\Projects\iTasks2\Platform\Void.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\ProcessTableHandler.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\TaskTreeForestHandler.icl
+		Path:	{Application}\Projects\iTasks2\Platform\Pointer.icl
+		Path:	{Application}\Projects\iTasks2\Platform\Time.icl
+		Path:	{Application}\Projects\iTasks2\iData\NWorld.icl
+		Path:	{Application}\Projects\iTasks2\iData\HSt.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataForms.icl
+		Path:	{Application}\Projects\iTasks2\iData\FormId.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\iTasksDB.icl
+		Path:	{Application}\Projects\iTasks2\graph_copy\graph_to_sapl_string.icl
+		Path:	{Application}\Projects\iTasks2\graph_copy\graph_to_string_with_descriptors.icl
+		Path:	{Application}\Projects\iTasks2\Drup\DataFile.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataFormlib.icl
 		Path:	{Application}\Libraries\Generics\GenLexOrd.icl
-		Path:	{Application}\fancyTasks\iData\iDataFormlib.icl
-		Path:	{Application}\fancyTasks\Drup\DataFile.icl
-		Path:	{Application}\fancyTasks\graph_copy\graph_to_string_with_descriptors.icl
-		Path:	{Application}\fancyTasks\graph_copy\graph_to_sapl_string.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\iTasksDB.icl
-		Path:	{Application}\fancyTasks\iData\FormId.icl
-		Path:	{Application}\fancyTasks\iData\iDataForms.icl
-		Path:	{Application}\fancyTasks\iData\HSt.icl
-		Path:	{Application}\fancyTasks\iData\NWorld.icl
-		Path:	{Application}\fancyTasks\Platform\Time.icl
-		Path:	{Application}\fancyTasks\Platform\Pointer.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\TaskTreeForestHandler.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\ProcessTableHandler.icl
-		Path:	{Application}\fancyTasks\Platform\Void.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\BasicCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\LiftingCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\PromptingCombinators.icl
-		Path:	{Application}\fancyTasks\iTasks\Framework\Util.icl
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\UITasks.icl
+		Path:	{Application}\Libraries\Tcp\StdStringChannels.icl
+		Path:	{Application}\Libraries\Tcp\StdEventTCP.icl
+		Path:	{Application}\Libraries\Tcp\ostcp.icl
+		Path:	{Application}\Libraries\Tcp\tcp_bytestreams.icl
+		Path:	{Application}\Libraries\Tcp\StdTCPDef.icl
+		Path:	{Application}\Libraries\Tcp\StdTCPChannels.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osfileselect.icl
+		Path:	{Application}\Libraries\ObjectIO\StdFileSelect.icl
+		Path:	{Application}\Libraries\ObjectIO\StdPStClass.icl
+		Path:	{Application}\Libraries\ObjectIO\scheduler.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\receiverevent.icl
+		Path:	{Application}\Libraries\ObjectIO\receiverid.icl
+		Path:	{Application}\Libraries\ObjectIO\receiverdevice.icl
+		Path:	{Application}\Libraries\ObjectIO\StdReceiverAttribute.icl
+		Path:	{Application}\Libraries\ObjectIO\receiverdefaccess.icl
+		Path:	{Application}\Libraries\ObjectIO\receiveraccess.icl
+		Path:	{Application}\Libraries\ObjectIO\StdReceiver.icl
+		Path:	{Application}\Libraries\ObjectIO\StdReceiverDef.icl
+		Path:	{Application}\Libraries\ObjectIO\world.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osbeep.icl
+		Path:	{Application}\Libraries\ObjectIO\StdProcessDef.icl
+		Path:	{Application}\Libraries\ObjectIO\StdProcessAttribute.icl
+		Path:	{Application}\Libraries\ObjectIO\StdPSt.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osmouse.icl
+		Path:	{Application}\Libraries\ObjectIO\roundrobin.icl
+		Path:	{Application}\Libraries\ObjectIO\processstack.icl
+		Path:	{Application}\Libraries\ObjectIO\timerhandle.icl
+		Path:	{Application}\Libraries\ObjectIO\processhandle.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\menuCCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osmenu.icl
+		Path:	{Application}\Libraries\ObjectIO\StdMenuDef.icl
+		Path:	{Application}\Libraries\ObjectIO\menuhandle.icl
+		Path:	{Application}\Libraries\ObjectIO\devicesystemstate.icl
+		Path:	{Application}\Libraries\ObjectIO\keyfocus.icl
+		Path:	{Application}\Libraries\ObjectIO\receiverhandle.icl
+		Path:	{Application}\Libraries\ObjectIO\StdWindowDef.icl
+		Path:	{Application}\Libraries\ObjectIO\StdControlDef.icl
+		Path:	{Application}\Libraries\ObjectIO\windowhandle.icl
+		Path:	{Application}\Libraries\ObjectIO\StdTimerDef.icl
+		Path:	{Application}\Libraries\ObjectIO\timertable.icl
+		Path:	{Application}\Libraries\ObjectIO\cast.icl
+		Path:	{Application}\Libraries\ObjectIO\semidynamic.icl
+		Path:	{Application}\Libraries\ObjectIO\receivertable.icl
+		Path:	{Application}\Libraries\ObjectIO\receivermessage.icl
+		Path:	{Application}\Libraries\ObjectIO\deviceevents.icl
+		Path:	{Application}\Libraries\ObjectIO\devicefunctions.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osguishare.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osevent.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osactivaterequests.icl
+		Path:	{Application}\Libraries\ObjectIO\iostate.icl
+		Path:	{Application}\Libraries\ObjectIO\StdId.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\windowCrossCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\windowCCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostoolbar.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\menuCrossCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\clCCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\commondef.icl
+		Path:	{Application}\Libraries\ObjectIO\systemid.icl
+		Path:	{Application}\Libraries\ObjectIO\device.icl
+		Path:	{Application}\Libraries\ObjectIO\id.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\oskey.icl
+		Path:	{Application}\Libraries\ObjectIO\StdKey.icl
+		Path:	{Application}\Libraries\ObjectIO\StdPicture.icl
+		Path:	{Application}\Libraries\ObjectIO\StdIOBasic.icl
+		Path:	{Application}\Libraries\ObjectIO\StdPictureDef.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osfont.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\pictCCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\rgnCCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostypes.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osrgn.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ospicture.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osbitmap.icl
+		Path:	{Application}\Libraries\ObjectIO\StdBitmap.icl
+		Path:	{Application}\Libraries\ObjectIO\StdIOCommon.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\osdocumentinterface.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ossystem.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostime.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\clCrossCall_12.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostoolbox.icl
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\ostick.icl
+		Path:	{Application}\Libraries\ObjectIO\StdTime.icl
+		Path:	{Application}\Libraries\Tcp\tcp.icl
+		Path:	{Application}\Libraries\Tcp\StdChannels.icl
+		Path:	{Application}\Libraries\Tcp\StdTCP.icl
+		Path:	{Application}\Libraries\Generics\_Array.icl
+		Path:	{Application}\Libraries\Generics\GenMap.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Debug.icl
+		Path:	{Application}\Projects\iTasks2\graph_copy\dynamic_string.icl
+		Path:	{Application}\Libraries\Directory\Directory.icl
+		Path:	{Application}\Libraries\StdLib\StdLibMisc.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataTrivial.icl
+		Path:	{Application}\Projects\iTasks2\iData\EncodeDecode.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataState.icl
+		Path:	{Application}\Libraries\Generics\GenParse.icl
+		Path:	{Application}\Libraries\Generics\GenPrint.icl
+		Path:	{Application}\Libraries\Generics\GenEq.icl
+		Path:	{Application}\Libraries\StdEnv\_SystemEnumStrict.icl
+		Path:	{Application}\Libraries\StdEnv\_SystemStrictLists.icl
+		Path:	{Application}\Libraries\StdEnv\StdStrictLists.icl
+		Path:	{Application}\Libraries\ArgEnvWindows\ArgEnv.icl
+		Path:	{Application}\Libraries\StdEnv\StdDebug.icl
+		Path:	{Application}\Libraries\StdLib\StdMaybe.icl
+		Path:	{Application}\Libraries\StdEnv\StdGeneric.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataSettings.icl
+		Path:	{Application}\Libraries\StdEnv\StdFunc.icl
+		Path:	{Application}\Libraries\StdEnv\StdCharList.icl
+		Path:	{Application}\Libraries\StdEnv\StdTuple.icl
+		Path:	{Application}\Libraries\StdEnv\StdOrdList.icl
+		Path:	{Application}\Libraries\StdEnv\_SystemEnum.icl
+		Path:	{Application}\Libraries\StdEnv\StdEnum.icl
+		Path:	{Application}\Libraries\StdEnv\StdList.icl
+		Path:	{Application}\Libraries\StdEnv\StdFile.icl
+		Path:	{Application}\Libraries\StdEnv\StdString.icl
+		Path:	{Application}\Libraries\StdEnv\StdReal.icl
+		Path:	{Application}\Libraries\StdEnv\_SystemArray.icl
+		Path:	{Application}\Libraries\StdEnv\StdArray.icl
+		Path:	{Application}\Libraries\StdEnv\StdClass.icl
+		Path:	{Application}\Libraries\StdEnv\StdChar.icl
+		Path:	{Application}\Libraries\StdEnv\StdMisc.icl
+		Path:	{Application}\Libraries\StdEnv\StdInt.icl
+		Path:	{Application}\Libraries\StdEnv\StdBool.icl
+		Path:	{Application}\Libraries\StdEnv\StdEnv.icl
+		Path:	{Application}\Libraries\StdEnv\StdOverloaded.icl
+		Path:	{Application}\Libraries\Dynamics\implementation\windows\_SystemDynamic.icl
+		Path:	{Application}\Libraries\Dynamics\extension\StdCleanTypes.icl
+		Path:	{Application}\Projects\iTasks2\Drup\DrupGeneric.icl
+		Path:	{Application}\Projects\iTasks2\Drup\DrupBasic.icl
+		Path:	{Application}\Projects\iTasks2\Drup\_SystemDrup.icl
+		Path:	{Application}\Projects\iTasks2\Drup\Drup.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataCompileOptions.icl
+		Path:	{Application}\Projects\iTasks2\Http\HttpServer.icl
+		Path:	{Application}\Projects\iTasks2\Http\Http.icl
+		Path:	{Application}\Projects\iTasks2\Http\HttpUtil.icl
+		Path:	{Application}\Projects\iTasks2\Http\HttpTextUtil.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\InternaliTasksThreadHandling.icl
+		Path:	{Application}\Projects\iTasks2\Platform\Html.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\AuthenticationHandler.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\WorkListHandler.icl
+		Path:	{Application}\Projects\iTasks2\Platform\Text.icl
+		Path:	{Application}\Projects\iTasks2\Platform\JSON.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\TaskTree.icl
+		Path:	{Application}\Libraries\Generics\GenBimap.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\WorkTabHandler.icl
+		Path:	{Application}\Projects\iTasks2\iData\iDataWidgets.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\TSt.icl
+		Path:	{Application}\Libraries\MersenneTwister\MersenneTwister.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\DeauthenticationHandler.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\iTasks.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Engine.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\UserDB.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Types.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\ProcessDB.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\TuningCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\ClientCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\NewListHandler.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\NewStartHandler.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\UserTasks.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\TimeAndDateTasks.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\CommonCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\ProcessCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\ExceptionCombinators.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\SessionDB.icl
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\EngineWrapperStandalone.icl
 	Objs
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup0.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup1Trace.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup2.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_system.o
 		Path:	{Project}\Clean System Files\coffeemachine.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\TSt.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\Engine.o
-		Path:	{Application}\fancyTasks\iTasks\Clean System Files\iTasks.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdCharList.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdTuple.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOrdList.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnv.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFile.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFunc.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnum.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnum.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdString.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdReal.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemArray.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdArray.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdChar.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdMisc.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdInt.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdBool.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdClass.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdList.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
-		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
-		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdMaybe.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\TaskTree.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\Types.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Html.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Time.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Pointer.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdDebug.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataForms.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataSettings.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataCompileOptions.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\DataFile.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\DrupGeneric.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\DrupBasic.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\_SystemDrup.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdGeneric.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\Drup.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\HttpServer.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\Http.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\HttpUtil.o
-		Path:	{Application}\fancyTasks\Http\Clean System Files\HttpTextUtil.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCP.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdChannels.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTime.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostick.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbox.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCrossCall_12.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLibMisc.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\id.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\device.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\systemid.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOCommon.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdBitmap.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbitmap.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ospicture.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osrgn.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostypes.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\pictCCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\rgnCCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfont.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPictureDef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOBasic.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPicture.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdKey.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\oskey.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\commondef.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osdocumentinterface.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCrossCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbar.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ossystem.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCrossCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostime.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdId.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\iostate.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osactivaterequests.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osevent.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osguishare.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicefunctions.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\deviceevents.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivermessage.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivertable.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\semidynamic.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\cast.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timertable.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerDef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlDef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindowDef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\keyfocus.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicesystemstate.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuDef.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmenu.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timerhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processstack.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\roundrobin.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmouse.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPSt.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessAttribute.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessDef.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbeep.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\world.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverDef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiver.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverid.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiveraccess.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdefaccess.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverAttribute.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdevice.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\receiverevent.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\scheduler.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPStClass.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdFileSelect.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfileselect.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPChannels.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPDef.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp_bytestreams.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\ostcp.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\iTasksDB.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\StdEventTCP.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdStringChannels.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataState.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenParse.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenPrint.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Void.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\HSt.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\NWorld.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\FormId.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenEq.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataWidgets.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenLexOrd.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataTrivial.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenBimap.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\iDataFormlib.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\dynamic_string.o
-		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnv.o
-		Path:	{Application}\Libraries\Directory\Clean System Files\Directory.o
-		Path:	{Application}\fancyTasks\iData\Clean System Files\EncodeDecode.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenMap.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\_Array.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Clean System Files\ProcessDB.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Clean System Files\SessionDB.o
-		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\Util.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\graph_to_sapl_string.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdStrictLists.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp_bytestreams.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPChannels.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdFileSelect.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\scheduler.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdevice.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdefaccess.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverid.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverDef.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbeep.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessAttribute.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmouse.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processstack.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processhandle.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmenu.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuhandle.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\keyfocus.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindowDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowhandle.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timertable.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\semidynamic.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivermessage.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicefunctions.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osevent.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\iostate.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostime.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ossystem.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbar.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osdocumentinterface.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\commondef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdKey.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOBasic.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfont.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\pictCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osrgn.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbitmap.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOCommon.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\device.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCrossCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostick.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCP.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\EngineWrapperStandalone.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\JSON.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\DeauthenticationHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Clean System Files\InternaliTasksThreadHandling.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\UserDB.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\UITasks.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\BasicCombinators.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemStrictLists.o
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\graph_to_sapl_string.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Util.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\SessionDB.o
+		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpUtil.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenMap.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\EncodeDecode.o
+		Path:	{Application}\Libraries\Directory\Clean System Files\Directory.o
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\dynamic_string.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenBimap.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenLexOrd.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenEq.o
+		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\Http.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\HSt.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenPrint.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataState.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdGeneric.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DrupBasic.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DataFile.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataSettings.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdDebug.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Time.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Types.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdMaybe.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Engine.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdCharList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOrdList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFile.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnum.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdMisc.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdArray.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdReal.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdInt.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdClass.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
+		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
+		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdBool.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdChar.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdString.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemArray.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnum.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFunc.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnv.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdTuple.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Clean System Files\iTasks.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\TSt.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\TaskTree.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Html.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Pointer.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataForms.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataCompileOptions.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DrupGeneric.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\_SystemDrup.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\Drup.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenParse.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Void.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\NWorld.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\FormId.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataWidgets.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataTrivial.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataFormlib.o
+		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnv.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLibMisc.o
+		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpTextUtil.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\_Array.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\ProcessDB.o
+		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdStrictLists.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnumStrict.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\BasicCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\LiftingCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\UITasks.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\TuningCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\UserTasks.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data\Clean System Files\UserDB.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ClientCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\Clean System Files\InternaliTasksThreadHandling.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\DeauthenticationHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\NewListHandler.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\JSON.o
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\Text.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\Debug.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
-		Path:	{Application}\fancyTasks\iTasks\Framework\Clean System Files\EngineWrapperStandalone.o
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks\Clean System Files\iTasksDB.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\LiftingCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\TuningCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\UserTasks.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ClientCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\NewListHandler.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Text.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Debug.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
+		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpServer.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdChannels.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTime.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbox.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\id.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\systemid.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdBitmap.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ospicture.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostypes.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\rgnCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPictureDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPicture.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\oskey.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCrossCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCrossCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdId.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osactivaterequests.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osguishare.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\deviceevents.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivertable.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\cast.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverhandle.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicesystemstate.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuDef.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timerhandle.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\roundrobin.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPSt.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\world.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiver.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiveraccess.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverAttribute.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\receiverevent.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPStClass.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfileselect.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPDef.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\ostcp.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdStringChannels.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
 		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnvC.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFileSelectors_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFont_121.o
@@ -3786,16 +3786,16 @@ Static
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallxDI_121.o
 		Path:	{Application}\Libraries\Directory\Clean System Files\cDirectory.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cTCP_121.o
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_string_to_graph.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_string_to_graph_interface.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string.obj
-		Path:	{Application}\fancyTasks\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_graph_to_string.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_graph_to_string.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_string_to_graph.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_string_to_graph_interface.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_graph_to_string.obj
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\copy_graph_to_string_interface.obj
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cpicture_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCCallWindows_121.o
-		Path:	{Application}\fancyTasks\Drup\Clean System Files\fastreopen.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\fastreopen.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\util_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cpicture_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cdebug_121.o
@@ -3809,7 +3809,7 @@ Static
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\gdi_library
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\comdlg_library
 		Path:	{Application}\Libraries\Directory\Clean System Files\directory_library
-		Path:	{Application}\fancyTasks\Platform\Clean System Files\msvcrt.txt
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\msvcrt.txt
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\userExt_library
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\gdiExt_library
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\kernelExt_library
@@ -3823,19 +3823,18 @@ Static
 		Path:	{Application}\Libraries\Tcp\Clean System Files\wsock_library
 	Pths
 		Path:	{Project}
-		Path:	{Application}\fancyTasks\Platform
-		Path:	{Application}\fancyTasks\iTasks
-		Path:	{Application}\fancyTasks\iTasks\Framework
-		Path:	{Application}\fancyTasks\iTasks\Framework\Data
-		Path:	{Application}\fancyTasks\iTasks\Framework\Handlers
-		Path:	{Application}\fancyTasks\iTasks\BasicTasks
-		Path:	{Application}\fancyTasks\iTasks\TaskCombinators
-		Path:	{Application}\fancyTasks\iData
-		Path:	{Application}\fancyTasks\graph_copy
-		Path:	{Application}\fancyTasks\Drup
-		Path:	{Application}\fancyTasks\Http
-		Path:	{Application}\Libraries\Gerda
-		Path:	{Application}\Libraries\GEC\GEC Implementation
+		Path:	{Application}\Projects\iTasks2\Platform
+		Path:	{Application}\Projects\iTasks2\iTasks
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Path:	{Application}\Projects\iTasks2\iTasks\Handlers
+		Path:	{Application}\Projects\iTasks2\iData
+		Path:	{Application}\Projects\iTasks2\graph_copy
+		Path:	{Application}\Projects\iTasks2\Drup
+		Path:	{Application}\Projects\iTasks2\Http
 		Path:	{Application}\Libraries\Generics
 		Path:	{Application}\Libraries\StdLib
 		Path:	{Application}\Libraries\ObjectIO
@@ -3849,10 +3848,6 @@ Static
 		Path:	{Application}\Libraries\Directory
 		Path:	{Application}\Libraries\Tcp
 		Path:	{Application}\Libraries\MersenneTwister
-		Path:	{Application}\Libraries\Hilde
-		Path:	{Application}\Libraries\Hilde\Parser combinators 2002
-		Path:	{Application}\Libraries\ExceptionsWindows
-		Path:	{Application}\Libraries\WrapDebug
 		Path:	{Application}\Libraries\Email
-	AppP:	C:\Documents and Settings\Bas\Desktop\Clean
-	PrjP:	C:\Documents and Settings\Bas\Desktop\Clean\fancyTasks\iTasks Examples\test examples\coffeemachine
+	AppP:	C:\Documents and Settings\Bas Lijnse\Desktop\Clean
+	PrjP:	C:\Documents and Settings\Bas Lijnse\Desktop\Clean\Projects\iTasks2\iTasks Examples\test examples\coffeemachine

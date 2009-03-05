@@ -69,6 +69,15 @@ forever		:: !(Task a) 								-> Task a 		| iData a
 */
 sequence	:: !String ![LabeledTask a] 				-> Task [a]		| iData a
 
+/**
+* Reduces a multi-step sequence to a single step task
+*
+* @param A label for tracing
+* @param The task that has to be reduced to one step
+* @return The combined task
+*/
+compound 	:: !String !(Task a) 						-> Task a		| iData a 
+
 // Parallel composition
 
 /**
@@ -102,11 +111,12 @@ delegate 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
 (#>>) infixl 1
 (#>>) :== (>>|)
 
-return_V :== return
-foreverTask :== forever
-seqTasks :== sequence "seqTasks"
-allTasksCond :== parallel
-assignTaskTo :== delegate
+return_V		:== return
+foreverTask		:== forever
+seqTasks		:== sequence "seqTasks"
+allTasksCond	:== parallel
+assignTaskTo	:== delegate
+newTask			:== compound
 
 /* Experimental department:
 

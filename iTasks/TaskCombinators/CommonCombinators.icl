@@ -11,13 +11,6 @@ import Util
 derive read		Maybe
 derive write	Maybe
 
-showText   		text :== Text text
-showLabel  		text :== ITag [] [Text text]
-
-
-newTask :: !String !(Task a) -> (Task a) 	| iData a 
-newTask taskname task = sequence taskname [(taskname,task)] >>= \list -> return (hd list)
-
 // ******************************************************************************************************
 // monads for combining iTasks
 (=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
@@ -48,7 +41,6 @@ where
 	=				taska
 		=>> \r -> 		case pred r of
 						(True,_) -> return_V r
-//						(False,msg) -> msg ?>> doTask
 						(False,msg) -> msg ?>> (taska <| pred)
 
 
@@ -56,15 +48,15 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:) nuserId ltask=:(taskname,task) = Task assigntask
+(@:) nuserId ltask=:(taskname,task) = mkSequenceTask "@:" assigntask
 where
-	assigntask tst=:{TSt| userId}
-	= 				accTaskTSt (
-					getDisplayNamesTask [nuserId] =>> \displayNames ->
-					[showText ("Waiting for Task "), showLabel taskname, showText " from ", showLabel (hd displayNames),BrTag []]
-					?>> assignTaskTo nuserId (taskname,task)) tst
-
-	showUser nr = showLabel ("User " <+++ nr)
+	assigntask tst=:{TSt| userId} = accTaskTSt (
+			getDisplayNamesTask [nuserId] =>> \displayNames ->
+			
+			[Text "Waiting for Task ", ITag [] [Text taskname], Text " from ", ITag [] [Text (hd displayNames)], BrTag []]
+			?>>
+			assignTaskTo nuserId (taskname,task)
+		) tst
 
 (@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
 (@::) nuserId taska = nuserId @: ("Task for " <+++ nuserId,taska)
@@ -79,10 +71,7 @@ where
 // choose one or more tasks on forehand out of a set
 
 selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-selection chooser executer tasks = newTask "selection" selection`
-where
-	selection`	= chooser tasks =>> \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < numTasks]
-	numTasks 	= length tasks
+selection chooser executer tasks = chooser tasks =>> \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < length tasks]
 
 chooseTask_btn 	:: ![HtmlTag] ![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt ltasks

@@ -6,11 +6,6 @@ definition module CommonCombinators
 
 import BasicCombinators, iDataWidgets		 
 
-/*
-* Turns a potentially multi-step sequence into a single step sequence 
-*/
-newTask 		:: !String !(Task a) 					-> Task a		| iData a 
-
 /* Assign tasks to user with indicated id:
 (@:)			:: will prompt who is waiting for task with give name
 (@::)			:: as @:, a default task name is chosen as label

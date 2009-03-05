@@ -6,7 +6,7 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 import DrupBasic
 import iDataTrivial, iDataFormlib
 import LiftingCombinators, ClientCombinators
-import Util, InternaliTasksThreadHandling
+import Util
 import GenBimap
 
 derive gForm 	Time
@@ -40,7 +40,7 @@ where
 	forever` tst=:{taskNr} 
 		# (val,tst=:{activated})= accTaskTSt task tst					
 		| activated		
-			# tst = deleteSubTasksAndThreads (tl taskNr) tst
+			# tst = appHStTSt (deleteIData (iTaskId (tl taskNr) "")) tst
 			# tst = resetSequence tst
 			= forever` tst				
 		= (val,tst)
@@ -53,7 +53,7 @@ where
 		| not activated
 			= (a,tst)
 		| not (pred a)			
-			# tst = deleteSubTasksAndThreads (tl taskNr) tst
+			# tst = appHStTSt (deleteIData (iTaskId (tl taskNr) "")) tst
 			# tst = resetSequence tst
 			= doTask tst
 		= (a,tst)
@@ -73,6 +73,11 @@ where
 		| not adone						= (reverse accu, tst)
 		| otherwise						= doseqTasks ts [a:accu] tst
 
+
+compound :: !String !(Task a) -> (Task a) 	| iData a 
+compound label task = mkSequenceTask label compound`
+where
+	compound` tst = accTaskTSt task tst
 
 // Parallel composition
 
@@ -104,10 +109,10 @@ where
 delegate :: !UserId !(LabeledTask a) -> Task a | iData a	
 delegate newUserId (label,task) = Task delegate` 
 where
-	delegate` tst =:{TSt | userId = currentUserId}
+	delegate` tst =:{TSt | userId = currentUserId, delegatorId = currentDelegatorId}
 		# tst		= addUser newUserId tst 
-		# (a, tst)	= accTaskTSt (sequence label [(label,task)]) {TSt | tst & userId = newUserId, delegatorId = tst.TSt.userId}
-		= (hd a, {TSt | tst & userId = currentUserId})
+		# (a, tst)	= accTaskTSt (mkSequenceTask label (accTaskTSt task)) {TSt | tst & userId = newUserId, delegatorId = currentUserId}
+		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 
 
 // ******************************************************************************************************
