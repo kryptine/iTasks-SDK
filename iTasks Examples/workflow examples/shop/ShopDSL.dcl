@@ -1,6 +1,6 @@
 definition module ShopDSL
 
-import iTasks, database
+import iTasks, database, ShopDSLboilerplate
 
 //	The Domain Specific Language for the shop workflow case.
 :: Product			=	{ id_				:: !DBRef Product
@@ -35,43 +35,15 @@ import iTasks, database
 						, pricePerItem		:: !HtmlCurrency
 						}
 
-derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
-
-class toInCart a	:: a -> InCart
-instance toInCart (CartItem a)
-
-//	Boilerplate code for the above data types:
-billingAddressOf	:: !(Order a) -> Address
-shippingAddressOf	:: !(Order a) -> Address
-billingAddressUpd	:: !(Order a) !Address -> Order a
-shippingAddressUpd	:: !(Order a) !Address -> Order a
-itemNrOf			:: !(CartItem a) -> DBRef a
-itemNrUpd			:: !(CartItem a) (DBRef a) -> CartItem a
-amountOrderedOf		:: !(CartItem a) -> Int
-amountOrderedUpd	:: !(CartItem a) !Int -> CartItem a
-
-eqItemNr			:: !(CartItem a) !(CartItem a) -> Bool
-
-class    nameOf  a :: a -> String
-class    nameUpd a :: a String -> a
-class    id_Of   a :: a -> DBRef a
-class    id_Upd  a :: a (DBRef a) -> a
-
-instance nameOf     Product
-instance nameUpd    Product
-instance id_Of      Product
-instance id_Upd     Product
-
-instance nameOf     (Order item)
-instance nameUpd    (Order item)
-instance id_Of      (Order item)
-instance id_Upd     (Order item)
-
+//	Conversions between DSL data types:
+class    toInCart   a :: a -> InCart
 class    toCartItem a :: a -> CartItem a
+
+instance toInCart   (CartItem a)
 instance toCartItem Product
 
+//	Database operations on DSL data types:
 instance DB Product
-instance DB (Order item)
+instance DB (Order a)
+
+eqItemNr			:: !(CartItem a) !(CartItem a) -> Bool
