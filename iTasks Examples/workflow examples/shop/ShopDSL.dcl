@@ -7,7 +7,7 @@ class Product a | nameOf, priceOf, id_Of, inStockOf a
 class InCart  a | nameOf, priceOf, amountOrderedOf  a
 
 :: Book				=	{ id_				:: !DBRef Book
-						, name				:: !String
+						, title				:: !String
 						, author            :: !String
 						, price				:: !HtmlCurrency
 						, inStock			:: !Int
