@@ -4,10 +4,10 @@ import StdClass, StdInt
 import GenBimap
 import iTasks, database
 
-derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
+derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
 
 billingAddressOf :: !(Order a) -> Address
 billingAddressOf   r		= r.billingAddress
@@ -49,6 +49,9 @@ instance nameUpd (Order item) where nameUpd r new	= {r & Order.name   = new}
 
 instance id_Upd Product       where id_Upd r new	= {r & Product.id_  = new}
 instance id_Upd (Order item)  where id_Upd r new	= {r & Order.id_    = new}
+
+class toInCart a	:: a -> InCart
+instance toInCart (CartItem a) where toInCart item = {item=item.description,nrOrdered=item.amountOrdered,pricePerItem=item.pricePerUnit}
 
 class toCartItem a :: a -> CartItem a
 instance toCartItem Product where

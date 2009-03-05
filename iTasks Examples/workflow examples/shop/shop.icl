@@ -100,19 +100,18 @@ where
 			 return_V Void)
 			(return_V Void)
 	where
-		costOrder order	= [boldText "Amount to pay is: ", toHtml (totalCost order.itemsOrdered)]
+		costOrder order	= section "Amount to pay is: " [toHtml (totalCost order.itemsOrdered)]
 	
 		fillInClientInfo order
 			= fillInData name_prompt nameOf              nameUpd           order =>> \order ->
 			  fillInData billing_prompt billingAddressOf billingAddressUpd order =>> \order ->
-			  yesOrNo [ normalText "Billing address:", toHtml order.billingAddress
+			  yesOrNo [ normalText "Billing address:", toHtml (billingAddressOf order)
 			          , normalText "Is the shipping addres same as the billing address above?"
 			          ]
 			          (return_V {order & shippingAddress = order.billingAddress})
 			          (fillInData shipping_prompt 
 						          shippingAddressOf shippingAddressUpd order) =>> \order ->
-			  yesOrNo [ toHtml order, DivTag [] (costOrder order)
-			          , normalText "Is the data above correct?"]
+			  yesOrNo (showOrder        order)
 				      (return_V         order) 
 				      (fillInClientInfo order)
 		where
@@ -123,6 +122,13 @@ where
 			fillInData prompt valueOf updateOf record
 				= [normalText prompt] ?>> editTask "Commit" (valueOf record) =>> \value -> 
 				  return_V (updateOf record value)
+			
+			showOrder order
+				= section "name:"             [toHtml (nameOf            order)] ++
+				  section "billing address:"  [toHtml (billingAddressOf  order)] ++
+				  section "shipping address:" [toHtml (shippingAddressOf order)] ++
+				  section "ordered items:"    (map (toHtml o toInCart) order.itemsOrdered ++ [DivTag [] (costOrder order)]) ++
+				  section "Confirm:"          [normalText "Is the data above correct?"]
 
 
 // The shop management workflow:
@@ -155,7 +161,8 @@ where
 // little markup functions:
 boldText   text				= BTag    [] [Text text, BrTag [], BrTag []]
 normalText text				= BodyTag [] [Text text, BrTag [], BrTag []]
-ruleText   text				= [HrTag  [], boldText text, HrTag []]
+ruleText   text				= section text [HrTag []]
+section    label content	= [HrTag  [], boldText label : content]
 
 // little domain specific functions:
 totalCost cart				= HtmlCurrency EUR (sum [ n * toInt p \\ {pricePerUnit=p,amountOrdered=n} <- cart])

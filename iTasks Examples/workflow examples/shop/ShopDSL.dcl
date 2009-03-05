@@ -30,11 +30,18 @@ import iTasks, database
 						, city				:: !String
 						}
 :: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
+:: InCart			=	{ item				:: !String
+						, nrOrdered			:: !Int
+						, pricePerItem		:: !HtmlCurrency
+						}
 
-derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
-derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
+derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gPrint	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gParse	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction, InCart
+
+class toInCart a	:: a -> InCart
+instance toInCart (CartItem a)
 
 //	Boilerplate code for the above data types:
 billingAddressOf	:: !(Order a) -> Address
