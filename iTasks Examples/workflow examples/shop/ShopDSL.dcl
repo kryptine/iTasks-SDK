@@ -3,41 +3,33 @@ definition module ShopDSL
 import iTasks, database
 
 //	The Domain Specific Language for the shop workflow case.
-:: Product			=	{ id_				:: !ProductId
+:: Product			=	{ id_				:: !DBRef Product
 						, name				:: !String
 						, author            :: !String
 						, price				:: !HtmlCurrency
 						, amount			:: !Int
 						}
-:: ProductId 		:== DBRef Product
-
-:: Cart items		:== [(CartItem items, CartAmount)]
-
-:: CartItem	items	=	{ id_				:: !CartId items
-						, itemNr			:: !DBRef items
+:: Cart     item	:== [CartItem item]
+:: CartItem	item	=	{ itemNr			:: !DBRef item
 						, description		:: !String
 						, amountInStock		:: !Int
 						, amountOrdered		:: !Int
 						, pricePerUnit		:: !HtmlCurrency
 						}
-:: CartAmount		=	{ orderAmount		:: !Int }
-:: CartId items		:== DBRef (Cart items)
-
-:: Order items		=	{ id_				:: !OrderId items
+:: CartAmount		=	{ orderAmount		:: !Int
+						}
+:: Order item		=	{ id_				:: !DBRef (Order item)
 						, name				:: !String
-						, itemsOrdered		:: !Cart items
+						, itemsOrdered		:: !Cart item
 						, billingAddress	:: !Address
 						, shippingAddress	:: !Address
 						}
-:: OrderId items	:== DBRef (Order items)
-
 :: Address			=	{ street			:: !String
 						, number			:: !String
 						, postalCode		:: !String
 						, city				:: !String
 						}
-
-:: ShopAction		= LeaveShop | ToCart | ToPay | ToShop
+:: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
 
 derive gForm	DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
 derive gUpd		DBRef, Product, Order, Address, CartItem, CartAmount, ShopAction
@@ -49,17 +41,30 @@ billingAddressOf	:: !(Order a) -> Address
 shippingAddressOf	:: !(Order a) -> Address
 billingAddressUpd	:: !(Order a) !Address -> Order a
 shippingAddressUpd	:: !(Order a) !Address -> Order a
+itemNrOf			:: !(CartItem a) -> DBRef a
+itemNrUpd			:: !(CartItem a) (DBRef a) -> CartItem a
+amountOrderedOf		:: !(CartItem a) -> Int
+amountOrderedUpd	:: !(CartItem a) !Int -> CartItem a
 
-class    nameOf a :: a -> String
-instance nameOf (Order items)
-instance nameOf Product
+eqItemNr			:: !(CartItem a) !(CartItem a) -> Bool
 
+class    nameOf  a :: a -> String
 class    nameUpd a :: a String -> a
-instance nameUpd Product
-instance nameUpd (Order items)
+class    id_Of   a :: a -> DBRef a
+class    id_Upd  a :: a (DBRef a) -> a
 
-class    toCart a :: Int a -> CartItem a
-instance toCart Product
+instance nameOf     Product
+instance nameUpd    Product
+instance id_Of      Product
+instance id_Upd     Product
+
+instance nameOf     (Order item)
+instance nameUpd    (Order item)
+instance id_Of      (Order item)
+instance id_Upd     (Order item)
+
+class    toCartItem a :: a -> CartItem a
+instance toCartItem Product
 
 instance DB Product
-instance DB (Order items)
+instance DB (Order item)
