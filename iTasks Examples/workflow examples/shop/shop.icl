@@ -20,56 +20,50 @@ where
 			    }
 			  ]
 
-defaultProduct :: Product
-defaultProduct	= createDefault
-
-defaultCart :: Cart Product
-defaultCart		= createDefault
-
 shopPrompt 		= ruleText "Welcome to My Shop"
 cartPrompt 		= ruleText "My Shop Shopping Cart"
 catalogPrompt 	= ruleText "My Shop Product Catalogue Browser"
 
 // The customer workflow:		
 
-browseShop :: [HtmlTag] [HtmlTag] (Cart a) -> Task Void | iData, toCartItem, DB a
+browseShop :: [HtmlTag] [HtmlTag] (Cart a) -> Task Void | iData, DB, Product a
 browseShop shopPrompt cartPrompt initCart 
 	= dbReadAll      =>> \items ->
 	  doShopping initCart items =>> 
 	  doAction   initCart items
 where
-	doShopping :: (Cart a) [a] -> Task (ShopAction,Cart a) | iData, toCartItem a
+	doShopping :: (Cart a) [a] -> Task (ShopAction,Cart a) | iData, Product a
 	doShopping cart []
 		= (shopPrompt ++ [normalText "Currently no items in catalogue, sorry."])
-		  ?>> OK #>> return_V (LeaveShop,cart)
+		  ?>> OK #>> return (LeaveShop,cart)
 	doShopping cart items
 		= orTasksVert
 			[ navigateShop shopPrompt cart
 			: map (itemActions cart) items					
 			] 
 	where
-		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | iData, toCartItem a
+		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | iData, Product a
 		itemActions cart item
 			= chooseTask_btn [toHtml item] 
-			    [("Add to Cart", return_V (ToCart, append (toCartItem item) cart))]
+			    [("Add to Cart", return (ToCart, append (toCartItem item) cart))]
 
 	navigateShop :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | iData a
 	navigateShop prompt cart
 		= chooseTask [] 
-			[ ("Do Shopping",   	return_V (ToShop,   cart))
-			, ("Check Out And Pay", return_V (ToPay,    cart))
-			, ("Show Cart",     	return_V (ToCart,   cart))
-			, ("Leave Shop",    	return_V (LeaveShop,cart))
+			[ ("Do Shopping",   	return (ToShop,   cart))
+			, ("Check Out And Pay", return (ToPay,    cart))
+			, ("Show Cart",     	return (ToCart,   cart))
+			, ("Leave Shop",    	return (LeaveShop,cart))
 			] <<? [ BrTag []
 			      , boldText "Total cost of ordered items = "
 			      , toHtml  (totalCost cart)
 			      , DivTag [] prompt
 			      ]
 
-	doAction :: (Cart a) [a] (ShopAction, Cart a) -> Task Void | iData, toCartItem, DB a
+	doAction :: (Cart a) [a] (ShopAction, Cart a) -> Task Void | iData, DB, Product a
 	doAction initCart items (action,cart)
 		= case action of
-			LeaveShop	= return_V Void
+			LeaveShop	= return Void
 			ToCart		= showCart   cart       =>> doAction initCart items
 			ToShop		= doShopping cart items =>> doAction initCart items
 			ToPay		= checkOutAndPay cart   #>> browseShop shopPrompt cartPrompt initCart
@@ -85,9 +79,9 @@ where
 		itemActions cart item
 			= [toHtml item]
 				?>> editTask "Change" {orderAmount = amountOrderedOf item} =>> \{orderAmount=n} -> 
-				    return_V (ToCart,if (n <= 0) (filter (not o eqItemNr item) cart)
-				                                 (replace eqItemNr (amountOrderedUpd item n) cart)
-				             )
+				    return (ToCart,if (n <= 0) (filter (not o eqItemNr item) cart)
+				                               (replace eqItemNr (amountOrderedUpd item n) cart)
+				           )
 	
 	checkOutAndPay :: (Cart a) -> Task Void | iData a
 	checkOutAndPay cart 
@@ -97,8 +91,8 @@ where
 			 getMyName =>> \(myid,me) ->			
 			 spawnProcess myid      True ("Order Confirmed",        [toHtml order:costOrder order] ?>> OK) #>>	
 			 spawnProcess shopOwner True ("New Order from " <+++ me,[toHtml order:costOrder order] ?>> OK) #>>	
-			 return_V Void)
-			(return_V Void)
+			 return Void)
+			(return Void)
 	where
 		costOrder order	= section "Amount to pay is: " [toHtml (totalCost order.itemsOrdered)]
 	
@@ -108,11 +102,11 @@ where
 			  yesOrNo [ normalText "Billing address:", toHtml (billingAddressOf order)
 			          , normalText "Is the shipping addres same as the billing address above?"
 			          ]
-			          (return_V {order & shippingAddress = order.billingAddress})
+			          (return {order & shippingAddress = billingAddressOf order})
 			          (fillInData shipping_prompt 
 						          shippingAddressOf shippingAddressUpd order) =>> \order ->
 			  yesOrNo (showOrder        order)
-				      (return_V         order) 
+				      (return           order) 
 				      (fillInClientInfo order)
 		where
 			name_prompt     = "Please fill in your name:"
@@ -121,7 +115,7 @@ where
 			
 			fillInData prompt valueOf updateOf record
 				= [normalText prompt] ?>> editTask "Commit" (valueOf record) =>> \value -> 
-				  return_V (updateOf record value)
+				  return (updateOf record value)
 			
 			showOrder order
 				= section "name:"             [toHtml (nameOf            order)] ++

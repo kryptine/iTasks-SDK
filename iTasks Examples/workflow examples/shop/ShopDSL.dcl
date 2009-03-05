@@ -3,18 +3,21 @@ definition module ShopDSL
 import iTasks, database, ShopDSLboilerplate
 
 //	The Domain Specific Language for the shop workflow case.
-:: Product			=	{ id_				:: !DBRef Product
+class Product a | nameOf, priceOf, id_Of, inStockOf a
+class InCart  a | nameOf, priceOf, amountOrderedOf  a
+
+:: Book				=	{ id_				:: !DBRef Book
 						, name				:: !String
 						, author            :: !String
 						, price				:: !HtmlCurrency
-						, amount			:: !Int
+						, inStock			:: !Int
 						}
 :: Cart     item	:== [CartItem item]
 :: CartItem	item	=	{ itemNr			:: !DBRef item
-						, description		:: !String
-						, amountInStock		:: !Int
+						, name				:: !String
+						, inStock			:: !Int
 						, amountOrdered		:: !Int
-						, pricePerUnit		:: !HtmlCurrency
+						, price				:: !HtmlCurrency
 						}
 :: CartAmount		=	{ orderAmount		:: !Int
 						}
@@ -29,23 +32,23 @@ import iTasks, database, ShopDSLboilerplate
 						, postalCode		:: !String
 						, city				:: !String
 						}
-:: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
-:: InCart			=	{ item				:: !String
-						, nrOrdered			:: !Int
-						, pricePerItem		:: !HtmlCurrency
+:: InCart			=	{ name				:: !String
+						, amountOrdered		:: !Int
+						, price				:: !HtmlCurrency
 						}
+:: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
+
+defaultProduct		:: Book
+defaultCart			:: Cart Book
 
 //	Conversions between DSL data types:
-class    toInCart   a :: a -> InCart
-class    toCartItem a :: a -> CartItem a
-
-instance toInCart   (CartItem a)
-instance toCartItem Product
+toCartItem			:: a -> CartItem a | Product a
+toInCart			:: a -> InCart     | InCart  a
 
 //	Database operations on DSL data types:
-instance DB Product
+instance DB Book
 instance DB (Order a)
 
-eqItemNr	:: !(CartItem item) !(CartItem item) -> Bool
-totalCost	:: !(Cart item) -> HtmlCurrency
-shopOwner	:: UserId
+eqItemNr			:: !(CartItem item) !(CartItem item) -> Bool
+totalCost			:: [a] -> HtmlCurrency | priceOf, amountOrderedOf a
+shopOwner			:: UserId
