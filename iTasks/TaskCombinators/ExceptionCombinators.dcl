@@ -5,11 +5,20 @@ definition module ExceptionCombinators
 
 import TSt
 
-/* 
-<^>				:: Evaluate the task; An exception of type e raised by this task, will be catched by the closest handler.
-				   One can use the function create a proper task value or signal the fact that an exception has occured.  
-raise 			:: Raises an exception of type e which will be catched by the closest parent handler for this type
+/**
+* Exception combinator.
+*
+* @param The normal task which will possibly raise an exception of type e
+* @param The exception handling task which gets the exception and the normal task as parameters
+* @return The combined task
 */
+(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e & TC e
 
-(<^>) infix  1  :: !(e -> a) !(Task a) 						-> Task a 					| iData a   & TC e			// assigns an exception Handler
-raise 			:: e 										-> Task a 					| iCreate a & TC e			// rases an exception
+/**
+* Exception raising. This will raise an exception of arbitrary type e which has to be caught
+* by a higher level exception handler combinator.
+*
+* @param The exception value
+* @return The combined task
+*/
+raise 			:: !e 									-> Task a 	| iData a & TC e

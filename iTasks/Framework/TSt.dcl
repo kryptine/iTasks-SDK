@@ -21,6 +21,8 @@ from SessionDB	import :: Session{..}
 							
 					, options		:: !Options									// iData lifespan and storage format
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
+					
+					, exceptions	:: ![Dynamic]								// Optional exceptions
 									
 					, hst			:: !*HSt									// iData state
 					}

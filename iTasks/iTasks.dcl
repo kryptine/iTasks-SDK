@@ -21,3 +21,4 @@ import	Engine						// basic iTask system creator
 	,	ExceptionCombinators		// Handling exceptional situations
 	,	ClientCombinators			// Delegating tasks to the client
 	,	TuningCombinators			// Fine tuning of tasks
+	,	GenBimap
