@@ -29,7 +29,7 @@ instance amountOrderedOf    InCart       where amountOrderedOf    r		= r.InCart.
 instance billingAddressUpd  (Order    a) where billingAddressUpd  r new	= {r & Order.billingAddress   = new}
 instance shippingAddressUpd (Order    a) where shippingAddressUpd r new	= {r & Order.shippingAddress  = new}
 instance amountOrderedUpd   (CartItem a) where amountOrderedUpd   r new	= {r & CartItem.amountOrdered = new}
-instance nameUpd            Book         where nameUpd            r new	= {r & Book.title              = new}
+instance nameUpd            Book         where nameUpd            r new	= {r & Book.title             = new}
 instance nameUpd            (Order    a) where nameUpd            r new	= {r & Order.name             = new}
 instance id_Upd             Book         where id_Upd             r new	= {r & Book.id_               = new}
 instance priceUpd           Book         where priceUpd           r new = {r & Book.price             = new}

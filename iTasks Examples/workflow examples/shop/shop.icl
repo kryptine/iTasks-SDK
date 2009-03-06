@@ -45,7 +45,13 @@ where
 		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | iData, Product a
 		itemActions cart item
 			= chooseTask_btn [toHtml item] 
-			    [("Add to Cart", return (ToCart, append (toCartItem item) cart))]
+			    [("Add to Cart", return (ToCart, add (toCartItem item) cart))]
+		where
+			add :: (CartItem a) [CartItem a] -> [CartItem a]
+			add new []				= [new]
+			add new [item:items]	= if (eqItemNr new item) 
+									     [amountOrderedUpd item (amountOrderedOf item+1):items]
+									     [item:add new items]
 
 	navigateShop :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | iData a
 	navigateShop prompt cart

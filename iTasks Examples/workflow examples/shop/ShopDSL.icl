@@ -19,7 +19,7 @@ toInCart p				= { InCart
 						  , price         = priceOf         p
 						  }
 instance DB Book where
-	databaseId			= mkDBid "products" LSTxtFile
+	databaseId			= mkDBid "books" LSTxtFile
 	getItemId item		= id_Of  item
 	setItemId id item	= id_Upd item id
 instance DB (Order item) where
