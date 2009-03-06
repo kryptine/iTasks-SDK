@@ -12,7 +12,7 @@ import TSt
 * @param The exception handling task which gets the exception and the normal task as parameters
 * @return The combined task
 */
-(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e & TC e
+(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e
 
 /**
 * Exception raising. This will raise an exception of arbitrary type e which has to be caught

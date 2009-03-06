@@ -7,7 +7,7 @@ from StdFunc import id
 import TSt, Engine, Util
 import iDataFormlib
 
-(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e & TC e
+(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e
 (<^>) normaltask exceptiontask = mkSequenceTask "<^>" exceptionTask
 where
 	exceptionTask tst=:{taskNr,options,hst}
