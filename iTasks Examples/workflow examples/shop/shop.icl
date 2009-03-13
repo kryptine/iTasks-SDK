@@ -11,12 +11,12 @@ where
 	flows	= [ { name		= "Manage catalog"
  			    , label		= "Manage catalog"
 			    , roles		= []
-			    , mainTask	= manageCatalog catalogPrompt defaultProduct
+			    , mainTask	= manageCatalog defaultProduct catalogPrompt #>> return Void
 			    }
 			  , { name		= "Browse shop"
 			    , label		= "Browse shop"
 			    , roles		= []
-			    , mainTask	= browseShop shopPrompt cartPrompt defaultCart
+			    , mainTask	= browseShop defaultCart shopPrompt cartPrompt
 			    }
 			  ]
 
@@ -24,10 +24,31 @@ shopPrompt 		= ruleText "Welcome to My Shop"
 cartPrompt 		= ruleText "My Shop Shopping Cart"
 catalogPrompt 	= ruleText "My Shop Product Catalogue Browser"
 
+// The shop management workflow:
+
+manageCatalog :: a [HtmlTag] -> Task a | iData, DB a
+manageCatalog _ prompt
+	= stopTask (prompt ?>> foreverTask (dbReadAll =>> browseCatalog))
+where
+	browseCatalog :: [a] -> Task a | iData, DB a
+	browseCatalog items
+	| isEmpty items	= new
+	| otherwise		= orTasksVert 
+						(map itemActions items ++ [chooseTask_btn [] [("Append",new)]])
+	where
+		new			= dbCreateItem =>> \first -> editTask "Store" first =>> dbUpdateItem
+	
+		itemActions :: a -> Task a | iData, DB a
+		itemActions item
+			= chooseTask_btn [toHtml item] 
+				[("Edit",	editTask "Store" item =>> dbUpdateItem)
+				,("Delete",	dbDeleteItem (getItemId item) #>> return item)
+				]
+
 // The customer workflow:		
 
-browseShop :: [HtmlTag] [HtmlTag] (Cart a) -> Task Void | iData, DB, Product a
-browseShop shopPrompt cartPrompt initCart 
+browseShop :: (Cart a) [HtmlTag] [HtmlTag] -> Task Void | iData, DB, Product a
+browseShop initCart shopPrompt cartPrompt
 	= dbReadAll      =>> \items ->
 	  doShopping initCart items =>> 
 	  doAction   initCart items
@@ -72,9 +93,9 @@ where
 			LeaveShop	= return Void
 			ToCart		= showCart   cart       =>> doAction initCart items
 			ToShop		= doShopping cart items =>> doAction initCart items
-			ToPay		= checkOutAndPay cart   #>> browseShop shopPrompt cartPrompt initCart
+			ToPay		= checkOutAndPay cart   #>> browseShop initCart shopPrompt cartPrompt
 	
-	showCart ::(Cart a) -> Task (ShopAction,Cart a) | iData a
+	showCart :: (Cart a) -> Task (ShopAction,Cart a) | iData a
 	showCart cart=:[]
 		= navigateShop cartPrompt cart <<? [normalText "No items in cart yet!"]
 	showCart cart
@@ -91,9 +112,10 @@ where
 	
 	checkOutAndPay :: (Cart a) -> Task Void | iData a
 	checkOutAndPay cart 
-		= fillInClientInfo {createDefault & itemsOrdered = cart} =>> \order ->
+		= dbCreateItem >>= \order -> 
+		  fillInClientInfo {order & itemsOrdered = cart} =>> \order ->
 		  yesOrNo [DivTag [] (costOrder order),normalText "Confirm Order"]
-			(dbModify (append order) #>>
+		    (dbUpdateItem order #>>
 			 getMyName =>> \(myid,me) ->			
 			 spawnProcess myid      True ("Order Confirmed",        [toHtml order:costOrder order] ?>> OK) #>>	
 			 spawnProcess shopOwner True ("New Order from " <+++ me,[toHtml order:costOrder order] ?>> OK) #>>	
@@ -130,35 +152,8 @@ where
 				  section "ordered items:"    (map (toHtml o toInCart) order.itemsOrdered ++ [DivTag [] (costOrder order)]) ++
 				  section "Confirm:"          [normalText "Is the data above correct?"]
 
-
-// The shop management workflow:
-
-manageCatalog :: [HtmlTag] a -> Task Void | iData, DB a
-manageCatalog prompt defaultValue 
-	= stopTask 
-		(prompt ?>> foreverTask (dbReadAll =>> browseCatalog defaultValue))
-where
-	browseCatalog :: a [a] -> Task Void | iData, DB a
-	browseCatalog defaultValue []	= editTask "Store" defaultValue =>> dbCreate 
-	browseCatalog _ items			= orTasksVert (map itemActions items)
-	where
-		itemActions :: a -> Task Void | iData, DB a
-		itemActions item
-			= chooseTask_btn [toHtml item] 
-				[("Edit",	editTask "Store" item =>> \nitem -> dbModify (replace eqItemId nitem)) 
-				,("Insert",	addItem  (flip (<<?)) span     item)
-				,("Append",	addItem        (?>>)  span_inc item)
-				,("Delete",	dbModify (filter (not o eqItemId item)))
-				]
-		
-		addItem show spanF item
-			= show [toHtml item] (editTask "Store" createDefault) =>> \nitem -> dbModify (addItem` nitem)
-		where
-			addItem` nitem items
-				= let (before,after) = spanF (not o (eqItemId item)) items
-				   in before ++ [setItemId (newDBRef items) nitem] ++ after
-
 // little markup functions:
+
 boldText   text				= BTag    [] [Text text, BrTag [], BrTag []]
 normalText text				= BodyTag [] [Text text, BrTag [], BrTag []]
 ruleText   text				= section text [HrTag []]

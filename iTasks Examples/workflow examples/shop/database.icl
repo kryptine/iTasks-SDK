@@ -1,19 +1,22 @@
 implementation module database
 
-import StdList, StdOrdList
+import StdList, StdListExt, StdOrdList
 import iTasks
 
 //	Operations on database
 
 :: DBRef a		= DBRef Int
-	
-// CRUD
-dbCreate :: a -> Task Void | iData, DB a
-dbCreate item	= writeDB databaseId [setItemId (DBRef 0) item] #>> return_V Void
+derive gForm	DBRef
+derive gUpd		DBRef
+derive gPrint	DBRef
+derive gParse	DBRef
 
-newDBRef :: [a] -> DBRef a | DB a
-newDBRef items	= let (DBRef i) = maxList (map getItemId items) in DBRef (i+1)
-	
+instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
+instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
+
+eqItemId :: a a -> Bool | DB a
+eqItemId a b	= getItemId a == getItemId b
+
 dbReadAll :: Task [a] | iData, DB a
 dbReadAll		= readDB databaseId
 
@@ -21,10 +24,30 @@ dbWriteAll :: ![a] -> Task Void | iData, DB a
 dbWriteAll all	= writeDB databaseId all #>> return_V Void
 
 dbModify :: ([a] -> [a]) -> Task Void | iData, DB a
-dbModify f		= dbReadAll =>> \items -> dbWriteAll (f items)
+dbModify f      = dbReadAll =>> \items -> dbWriteAll (f items)
 
-instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
-instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
+//	C(reate)R(ead)U(pdate)D(elete) operations:
+dbCreateItem :: Task a | iData, DB a
+dbCreateItem
+	= readDB databaseId =>> \items ->
+	  let newid = newDBRef items 
+	   in return (setItemId newid createDefault)
+where
+	newDBRef :: [a] -> DBRef a | DB a
+	newDBRef []		= DBRef 1
+	newDBRef items	= let (DBRef i) = maxList (map getItemId items) in DBRef (i+1)
 
-eqItemId :: a a -> Bool | DB a
-eqItemId a b	= getItemId a == getItemId b
+dbReadItem :: !(DBRef a) -> Task (Maybe a) | iData, DB a
+dbReadItem itemid
+	= readDB databaseId =>> \items -> 
+	  case filter (\item -> itemid == getItemId item) items of
+	  	[found:_]	= return (Just found)
+	  	nothing		= return Nothing
+
+dbUpdateItem :: a -> Task a | iData, DB a
+dbUpdateItem new
+	= dbModify (replace eqItemId new) #>> return new
+
+dbDeleteItem :: !(DBRef a) -> Task Void | iData, DB a
+dbDeleteItem itemid
+	= dbModify (filter (\item -> itemid <> getItemId item))
