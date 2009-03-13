@@ -31,12 +31,10 @@ manageCatalog _ prompt
 	= stopTask (prompt ?>> foreverTask (dbReadAll =>> browseCatalog))
 where
 	browseCatalog :: [a] -> Task a | iData, DB a
-	browseCatalog items
-	| isEmpty items	= new
-	| otherwise		= orTasksVert 
-						(map itemActions items ++ [chooseTask_btn [] [("Append",new)]])
+	browseCatalog items = orTasksVert 
+							(map itemActions items ++ [chooseTask_btn [] [("Append",new)]])
 	where
-		new			= dbCreateItem =>> \first -> editTask "Store" first =>> dbUpdateItem
+		new	= dbCreateItem =>> \first -> editTask "Store" first =>> dbUpdateItem
 	
 		itemActions :: a -> Task a | iData, DB a
 		itemActions item
