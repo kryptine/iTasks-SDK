@@ -26,7 +26,7 @@ where
 								= (createDefault,tst)
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iCreateAndPrint b
-(>>|) taska taskb = taska >>= const taskb
+(>>|) taska taskb = taska >>= \_ -> taskb
 
 return :: !a -> (Task a) | iData a
 return a  = mkBasicTask "return" (\tst -> (a,tst))
