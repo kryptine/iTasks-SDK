@@ -10,6 +10,7 @@ import Types, HSt, TSt
 * Our local process type
 */
 :: Process 		= {	id			:: !Int				//The process identification
+				  , label		:: !String			//A descriptive label of the process
 				  , owner		:: !UserId			//The "main" user of the process
 				  , delegator	:: !UserId			//The user who issued the process
 				  , status		:: !ProcessStatus	//The status of the process (updated after each run)
@@ -25,8 +26,7 @@ import Types, HSt, TSt
 :: StaticProcessEntry = {	workflow	:: !String	//The name of the workflow contained in the process
 						}
 
-:: DynamicProcessEntry = { label	:: !String		//A descriptive label of the process
-						 , result	:: !String		//A serialized final value of the task performed by the process 
+:: DynamicProcessEntry = { result	:: !String		//A serialized final value of the task performed by the process 
 						 , task		:: !String		//A serialized function of the task performed by the process
 						 , parent	:: !Int			//The process that created the current process
 						 }

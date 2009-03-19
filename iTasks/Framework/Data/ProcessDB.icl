@@ -112,6 +112,7 @@ mkStaticProcessEntry :: Workflow UserId UserId ProcessStatus -> Process
 mkStaticProcessEntry workflow owner delegator status
 	=	{ Process
 		| id		= 0
+		, label		= workflow.name
 		, owner		= owner
 		, delegator	= delegator
 		, users		= []
@@ -122,11 +123,12 @@ mkDynamicProcessEntry :: String String UserId UserId ProcessStatus Int-> Process
 mkDynamicProcessEntry label task owner delegator status parent
 	=	{ Process
 		| id		= 0
+		, label		= label
 		, owner		= owner
 		, delegator	= delegator
 		, users		= []
 		, status	= status
-		, process	= RIGHT {label = label, result = "", task = task, parent = parent}
+		, process	= RIGHT {result = "", task = task, parent = parent}
 		}
 		
 processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 

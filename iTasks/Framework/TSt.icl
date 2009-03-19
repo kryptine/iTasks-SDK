@@ -126,38 +126,38 @@ calculateTaskTree pid enableDebug tst
 			= (Just "Process not found", Nothing, tst)
 
 buildProcessTree :: Process !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree {Process | id, owner, delegator, status, process} tst
+buildProcessTree {Process | id, label, owner, delegator, status, process} tst
 	# tst								= resetTSt tst
 	# tst								= setTaskNr [-1,id] tst
 	# tst								= setUserId owner tst
 	# tst								= setDelegatorId delegator tst
 	# tst								= setProcessId id tst
-	# tst								= setTaskTree (TTProcess {processId = id, processLabel = "", userId = owner, delegatorId = delegator, status = status} []) tst	
-	# (label,result,tst)				= applyMainTask process tst
+	# tst								= setTaskTree (TTProcess {processId = id, processLabel = label, userId = owner, delegatorId = delegator, status = status} []) tst	
+	# (result,tst)						= applyMainTask process tst
 	# (TTProcess info sequence, tst)	= getTaskTree tst
 	# (users, tst)						= getUsers tst
 	# (finished, tst)					= taskFinished tst
 	# (_,tst)							= accHStTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst
 	# tst								= garbageCollect finished id tst
-	= (TTProcess {ProcessInfo|info & processLabel = label, status = (if finished Finished Active)} (reverse sequence), tst)
+	= (TTProcess {ProcessInfo | info & status = (if finished Finished Active)} (reverse sequence), tst)
 where
 	applyMainTask (LEFT {workflow}) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
 		= case mbWorkflow of
 			Nothing
-				= ("", Nothing, tst)
-			Just {mainTask,label}
+				= (Nothing, tst)
+			Just {mainTask}
 				# tst	= appTaskTSt mainTask tst
-				= (label, Nothing, tst)
+				= (Nothing, tst)
 				
-	applyMainTask (RIGHT {label,task}) tst //Execute a dynamic process
+	applyMainTask (RIGHT {task}) tst //Execute a dynamic process
 		# (result, tst)		= applyDynamicTask (string_to_dynamic {c \\ c <-: task}) tst
 		#  result			= evalDynamicResult result
 		# (finished, tst)	= taskFinished tst
 		| finished
-			= (label, Just (dynamic_to_string (evalDynamicResult result)), tst)
+			= (Just (dynamic_to_string (evalDynamicResult result)), tst)
 		| otherwise
-			= (label, Nothing, tst)
+			= (Nothing, tst)
 	
 	
 	garbageCollect False id tst	= tst

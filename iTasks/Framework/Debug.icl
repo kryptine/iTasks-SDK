@@ -9,8 +9,9 @@ traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Label"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text (toString process.Process.id)]
+							, TdTag [] [Text process.Process.label]
 							, TdTag [] [Text (toString process.Process.owner)]
 							, TdTag [] [Text (toString process.Process.delegator)]
 							, TdTag [] [Text (case process.Process.process of
