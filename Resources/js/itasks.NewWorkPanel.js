@@ -3,46 +3,49 @@
 */
 Ext.ns('itasks');
 
-itasks.NewWorkPanel = Ext.extend(itasks.RemoteDataPanel, {
+itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 
 	initComponent: function() {
+
 		Ext.apply(this, {
 			title: 'Start new work',
 			iconCls: 'icon-newwork',
-			url: 'handlers/new/list',
-			bodyStyle: 'padding: 10px 0px 0px 15px;'
+			
+			loader: new Ext.tree.TreeLoader({
+				dataUrl: 'handlers/new/list',
+				baseParams: {session: this.sessionId},
+				requestMethod: 'POST'
+			}),
+			root: {text: '_ROOT_', nodeType: 'async', id: '_ROOT_', expanded: true},
+			rootVisible: false,
+			bodyStyle: 'padding-top: 2px;'
 		});
-		
 		itasks.NewWorkPanel.superclass.initComponent.apply(this,arguments);
-	},
-	update: function (data) {
-		//Build the html
-		var list = this.body.createChild({tag: 'ul', cls: 'newwork'});		
-		var num = data.length;
 		
-		for(var i = 0; i < num; i++) {
-		
-			var name = data[i].name;
-			var label = data[i].label;
-			var icon = data[i].icon;
-			
-			var li = list.createChild({tag: 'li', cls : 'icon-' + icon, children: [
-					{tag: 'a', href: '#', html: label}
-				]});
-			
-			//Attach click handler
-			li.on('click', function(el,evt,options) {
-				this.startWork(options.flowName);
-				
-			},this,{flowName : name});
-		}
+		this.on('click', function (node, event) {
+			if(node.leaf) {
+				this.startWorkflow(node.id);
+			}
+		},this);
 	},
-	startWork: function (workflow) {
-		this.remoteCall('handlers/new/start',{workflow: workflow},this.startWorkCallback);
+	startWorkflow: function (workflow) {
+	
+		Ext.Ajax.request({
+			method: 'POST',
+			url: 'handlers/new/start',
+			params: {session: this.sessionId, workflow: workflow},
+			scripts: false,
+			callback: this.startWorkflowCB,
+			scope: this
+		});
 	},
-	startWorkCallback: function(data){
-		//Fire event
-		this.fireEvent('processStarted',data.taskid);
+	startWorkflowCB: function(el, success, response, options){
+		try {
+			var data = Ext.decode(response.responseText);
+	
+			//Fire event
+			this.fireEvent('processStarted',data.taskid);
+		} catch(SyntaxError) {}
 	}
 });
 

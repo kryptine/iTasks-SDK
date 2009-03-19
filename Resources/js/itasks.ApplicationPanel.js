@@ -78,7 +78,6 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		var newpanel 	= this.getComponent('leftpanel').getComponent('newpanel');
 	
 		//Refresh initial overviews
-		newpanel.refresh();
 		worklist.refresh();
 		
 		

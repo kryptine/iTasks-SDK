@@ -91,12 +91,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 					handler: submitHandler,
 					scope: this
 				}]
-			},
-			tools: [{
-				id: 'help',
-				handler: this.showHelp,
-				scope: this	
-			}]
+			}
 		});
 
 		//initialize the superclass (Ext.Window)
@@ -116,16 +111,6 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 				scope: this
 			});
 		},this);
-	},
-	showHelp: function () {
-		Ext.Msg.show({
-			title: 'Help',
-			msg: 'In this development version you can use any of the following usernames:<br />president, manager, worker1 or worker2.<br />You don\'t have to enter a password.',
-			icon: Ext.MessageBox.INFO,
-			buttons: Ext.Msg.OK,
-			modal: false,
-			animEl: this.getEl()
-		});
 	},
 	focus: function() {
 		this.getComponent(0).getForm().findField('username').focus();
