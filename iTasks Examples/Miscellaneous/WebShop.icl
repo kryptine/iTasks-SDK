@@ -3,7 +3,7 @@ implementation module WebShop
 import StdClass, StdList
 from   StdFunc import o, flip
 import iTasks, iDataTrivial
-import StdListExt, database, iTaskCombinatorsExt, ShopDSL
+import StdListExt, iTaskCombinatorsExt, ShopDSL
 	
 webShopExample :: [Workflow]
 webShopExample 

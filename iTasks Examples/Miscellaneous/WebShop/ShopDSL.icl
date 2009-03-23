@@ -2,7 +2,7 @@ implementation module ShopDSL
 
 import StdClass, StdInt, StdList
 import GenBimap
-import iTasks, database
+import iTasks
 import ShopDSLboilerplate
 
 toCartItem :: a -> CartItem a | Product a

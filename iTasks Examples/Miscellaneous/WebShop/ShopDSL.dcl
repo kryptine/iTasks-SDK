@@ -1,6 +1,6 @@
 definition module ShopDSL
 
-import iTasks, database, ShopDSLboilerplate
+import iTasks, ShopDSLboilerplate
 
 //	The Domain Specific Language for the shop workflow case.
 class Product a | nameOf, priceOf, id_Of, inStockOf a

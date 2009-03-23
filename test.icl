@@ -1,6 +1,6 @@
 module test
 
-import StdEnv, iTasks, iData
+import iTasks, iData
 
 // Test program to experiment with the new ExtJS based Web-GUI
 derive gForm TestRec
@@ -91,7 +91,15 @@ initialWorkflows = [
 	, label = "test with embedded sequence"
 	, roles = []
 	, mainTask = sequenceTask
-	}/*,
+	},
+	{ Workflow
+	| name	= "iDataTask"
+	, label = "iDataTask"
+	, roles = []
+	, mainTask = addClient1Task
+	}
+	
+	/*,
 	
 	{ Workflow
 	| name	= "andTasksCancel"
@@ -100,6 +108,59 @@ initialWorkflows = [
 	, mainTask = andTasksCancel_test
 	}*/
 	]
+
+addClient1Task :: Task Void
+addClient1Task = mkBasicTask "addClient1" taskfun
+where
+	taskfun tst
+		# ((title,output,inputs),tst)	= accHStTSt addClient1 tst	//Run iData function
+		# tst							= setOutput output tst		//Register output
+		# tst							= setInputs inputs tst		//Register input fields
+		= (Void,{tst & activated = False})	//Never finish
+
+
+
+addClient1 :: *HSt -> ((String, [HtmlTag], [InputDefinition]), *HSt)
+addClient1 hst
+ # (personF,hst)    = person hst
+ # (civilF, hst)    = civil  hst
+ | civilF.Form.value == Single
+                    = (("Single", flatten [personF.form, civilF.form], flatten [personF.inputs, civilF.inputs]), hst)
+ # (spouseF,hst)    = spouse   hst
+ # (kidsF,  hst)    = nrOfKids hst
+ | kidsF.Form.value <= 0 = (("Married", flatten [personF.form, civilF.form, spouseF.form], flatten [personF.inputs, civilF.inputs, spouseF.inputs]), hst)
+ # (kidsFs, hst)    = seqList (map (kid o toString) [1..kidsF.Form.value]) hst
+ | otherwise        = (("Married with children"
+                       ,(flatten [personF.form, civilF.form, spouseF.form
+                           :map (\kidF -> kidF.form) kidsFs])
+                       ,(flatten [personF.inputs, civilF.inputs, spouseF.inputs
+                           :map (\kidF -> kidF.inputs) kidsFs])
+                       ), hst)
+where
+   civil        = mkCivilStateEditor "civil"
+   person        = mkPersonEditor "person"
+   spouse        = mkPersonEditor "spouse"
+   nrOfKids    = mkIntEditor "kids"
+   kid            = mkPersonEditor
+
+:: Editor d :== *HSt -> *(Form d,*HSt)
+:: CivilState = Single
+
+mkEditor` :: String -> Editor d | iData d
+mkEditor` label = mkIData (Init, mkFormId label createDefault)
+
+mkIData = mkEditForm
+
+mkIntEditor :: (String -> Editor Int)
+mkIntEditor            = mkEditor`
+
+mkPersonEditor :: (String -> Editor Person)
+mkPersonEditor        = mkEditor`
+
+mkCivilStateEditor :: (String -> Editor CivilState)
+mkCivilStateEditor    = mkEditor` 
+
+
 
 sequenceTask :: Task Void
 sequenceTask = newTask "TEST" (newTask "Embedded sequence" (editTask "OK" Void))
