@@ -21,7 +21,7 @@ Global
 			Memory:	False
 			MemoryMinimumHeapSize:	0
 			Time:	True
-			Stack:	True
+			Stack:	False
 		Output
 			Output:	ShowConstructors
 			Font:	Courier
@@ -56,14 +56,30 @@ MainModule
 	DclOpen:	False
 	Icl
 		WindowPosition
-			X:	204
-			Y:	82
-			SizeX:	996
+			X:	125
+			Y:	16
+			SizeX:	1272
 			SizeY:	726
 	IclOpen:	False
 OtherModules
 	Module
-		Name:	EngineWrapperStandalone
+		Name:	UITasks
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Util
 		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
@@ -79,23 +95,7 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	SessionDB
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ExceptionCombinators
+		Name:	PromptingCombinators
 		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
@@ -111,7 +111,7 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	ProcessCombinators
+		Name:	LiftingCombinators
 		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
 		Compiler
 			NeverMemoryProfile:	False
@@ -124,247 +124,17 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	CommonCombinators
-		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	152
-				Y:	25
-				SizeX:	1364
-				SizeY:	640
 		DclOpen:	False
 		Icl
 			WindowPosition
-				X:	340
+				X:	10
 				Y:	10
-				SizeX:	1284
-				SizeY:	640
+				SizeX:	1169
+				SizeY:	544
 		IclOpen:	False
 	Module
-		Name:	TimeAndDateTasks
-		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	UserTasks
-		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	NewStartHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	NewListHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ClientCombinators
+		Name:	BasicCombinators
 		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	TuningCombinators
-		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ProcessDB
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	Types
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	UserDB
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	Engine
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iTasks
-		Dir:	{Application}\Projects\iTasks2\iTasks
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	DeauthenticationHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	MersenneTwister
-		Dir:	{Application}\Libraries\MersenneTwister
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	TSt
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -379,22 +149,107 @@ OtherModules
 		Dcl
 			WindowPosition
 				X:	0
-				Y:	8
-				SizeX:	976
-				SizeY:	661
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	0
-				Y:	3
+				Y:	69
 				SizeX:	1268
 				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1141
+				SizeY:	544
 		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	copy_graph_to_string_interface.obj
-			ObjectFile:	copy_graph_to_string.obj
 	Module
-		Name:	iDataWidgets
+		Name:	Void
+		Dir:	{Application}\Projects\iTasks2\Platform
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ProcessTableHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TaskTreeForestHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1429
+				SizeY:	679
+		IclOpen:	False
+	Module
+		Name:	Pointer
+		Dir:	{Application}\Projects\iTasks2\Platform
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Time
+		Dir:	{Application}\Projects\iTasks2\Platform
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededLibraries
+			Library:	msvcrt.txt
+	Module
+		Name:	NWorld
 		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
@@ -408,59 +263,37 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 		DclOpen:	False
-		Icl
+		IclOpen:	False
+	Module
+		Name:	HSt
+		Dir:	{Application}\Projects\iTasks2\iData
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
 			WindowPosition
 				X:	10
 				Y:	10
 				SizeX:	800
 				SizeY:	544
-		IclOpen:	False
-	Module
-		Name:	WorkTabHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	1292
-				SizeY:	756
-		IclOpen:	False
-	Module
-		Name:	GenBimap
-		Dir:	{Application}\Libraries\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	TaskTree
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
+		Name:	iDataForms
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -469,74 +302,26 @@ OtherModules
 			Fusion:	False
 		Dcl
 			WindowPosition
-				X:	468
-				Y:	19
-				SizeX:	1268
-				SizeY:	640
-		DclOpen:	True
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	544
+		DclOpen:	False
 		Icl
 			WindowPosition
 				X:	10
 				Y:	10
-				SizeX:	1205
+				SizeX:	1398
 				SizeY:	640
 		IclOpen:	False
 	Module
-		Name:	JSON
-		Dir:	{Application}\Projects\iTasks2\Platform
+		Name:	FormId
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	Text
-		Dir:	{Application}\Projects\iTasks2\Platform
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	WorkListHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	AuthenticationHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
+			ListTypes:	StrictExportTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -554,12 +339,12 @@ OtherModules
 			WindowPosition
 				X:	10
 				Y:	10
-				SizeX:	913
-				SizeY:	709
+				SizeX:	800
+				SizeY:	640
 		IclOpen:	False
 	Module
-		Name:	Html
-		Dir:	{Application}\Projects\iTasks2\Platform
+		Name:	iTasksDB
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -573,43 +358,21 @@ OtherModules
 			Fusion:	False
 		Dcl
 			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	642
-				SizeY:	730
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	InternaliTasksThreadHandling
-		Dir:	{Application}\Projects\iTasks2\iTasks
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	48
-				Y:	3
-				SizeX:	1168
-				SizeY:	593
+				X:	135
+				Y:	58
+				SizeX:	1023
+				SizeY:	536
 		DclOpen:	False
 		Icl
 			WindowPosition
-				X:	29
-				Y:	66
-				SizeX:	1202
-				SizeY:	656
+				X:	170
+				Y:	13
+				SizeX:	904
+				SizeY:	503
 		IclOpen:	False
 	Module
-		Name:	HttpTextUtil
-		Dir:	{Application}\Projects\iTasks2\Http
+		Name:	graph_to_sapl_string
+		Dir:	{Application}\Projects\iTasks2\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -624,8 +387,8 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	HttpUtil
-		Dir:	{Application}\Projects\iTasks2\Http
+		Name:	graph_to_string_with_descriptors
+		Dir:	{Application}\Projects\iTasks2\graph_copy
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -639,25 +402,12 @@ OtherModules
 			Fusion:	False
 		DclOpen:	False
 		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	copy_graph_to_string.obj
+			ObjectFile:	copy_graph_to_string_interface.obj
 	Module
-		Name:	Http
-		Dir:	{Application}\Projects\iTasks2\Http
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	HttpServer
-		Dir:	{Application}\Projects\iTasks2\Http
+		Name:	DataFile
+		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -671,20 +421,20 @@ OtherModules
 			Fusion:	False
 		Dcl
 			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
+				X:	58
+				Y:	293
+				SizeX:	867
+				SizeY:	407
 		DclOpen:	False
 		Icl
 			WindowPosition
 				X:	10
 				Y:	10
 				SizeX:	800
-				SizeY:	624
+				SizeY:	640
 		IclOpen:	False
 	Module
-		Name:	iDataCompileOptions
+		Name:	iDataFormlib
 		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
@@ -701,12 +451,2254 @@ OtherModules
 			WindowPosition
 				X:	10
 				Y:	10
-				SizeX:	1061
-				SizeY:	216
+				SizeX:	1202
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1145
+				SizeY:	640
+		IclOpen:	False
+	Module
+		Name:	GenLexOrd
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	Drup
+		Name:	StdStringChannels
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdEventTCP
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ostcp
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cCrossCallTCP_121.
+			ObjectFile:	cTCP_121.
+		NeededLibraries
+			Library:	wsock_library
+	Module
+		Name:	tcp_bytestreams
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTCPDef
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTCPChannels
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osfileselect
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cCrossCallFileSelectors_121.
+	Module
+		Name:	StdFileSelect
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdPStClass
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	scheduler
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receiverevent
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receiverid
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receiverdevice
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdReceiverAttribute
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receiverdefaccess
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receiveraccess
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdReceiver
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdReceiverDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	world
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osbeep
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdProcessDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdProcessAttribute
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdPSt
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osmouse
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	roundrobin
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	processstack
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	timerhandle
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	processhandle
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	menuCCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cCrossCallMenus_121.
+	Module
+		Name:	osmenu
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdMenuDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	menuhandle
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	devicesystemstate
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	keyfocus
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receiverhandle
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdWindowDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdControlDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	windowhandle
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTimerDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	timertable
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	cast
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	semidynamic
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receivertable
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	receivermessage
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	deviceevents
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	devicefunctions
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osguishare
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osevent
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osactivaterequests
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iostate
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdId
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	windowCrossCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	windowCCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cpicture_121.
+			ObjectFile:	cCCallWindows_121.
+	Module
+		Name:	ostoolbar
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	menuCrossCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	clCCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	util_121.
+			ObjectFile:	cpicture_121.
+			ObjectFile:	cdebug_121.
+			ObjectFile:	cCrossCall_121.
+			ObjectFile:	cCrossCallWindows_121.
+			ObjectFile:	cCCallWindows_121.
+			ObjectFile:	cCCallSystem_121.
+	Module
+		Name:	commondef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	systemid
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	device
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	id
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	oskey
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdKey
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdPicture
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdIOBasic
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdPictureDef
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osfont
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	pictCCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	rgnCCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ostypes
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osrgn
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ospicture
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osbitmap
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdBitmap
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdIOCommon
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	osdocumentinterface
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cCrossCallxDI_121.
+	Module
+		Name:	ossystem
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ostime
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	clCrossCall_12
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cCrossCallWindows_121.
+			ObjectFile:	cCrossCallProcedureTable_121.
+			ObjectFile:	cCrossCallCursor_121.
+			ObjectFile:	cCrossCall_121.
+			ObjectFile:	cCCallSystem_121.
+			ObjectFile:	cCCallWindows_121.
+			ObjectFile:	cAcceleratorTable_121.
+		NeededLibraries
+			Library:	userExt_library
+			Library:	gdiExt_library
+			Library:	kernelExt_library
+			Library:	winspool_library
+			Library:	winmm_library
+			Library:	shell32_library
+			Library:	ole32_library
+			Library:	kernel32_library
+			Library:	comctl32_library
+			Library:	advapi32_library
+	Module
+		Name:	ostoolbox
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cCrossCallFont_121.
+	Module
+		Name:	ostick
+		Dir:	{Application}\Libraries\ObjectIO\OS Windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTime
+		Dir:	{Application}\Libraries\ObjectIO
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	tcp
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdChannels
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTCP
+		Dir:	{Application}\Libraries\Tcp
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_Array
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenMap
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Debug
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	dynamic_string
+		Dir:	{Application}\Projects\iTasks2\graph_copy
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	copy_string_to_graph.obj
+			ObjectFile:	copy_string_to_graph_interface.obj
+			ObjectFile:	copy_graph_to_string.obj
+			ObjectFile:	copy_graph_to_string_interface.obj
+	Module
+		Name:	Directory
+		Dir:	{Application}\Libraries\Directory
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	cDirectory.
+		NeededLibraries
+			Library:	directory_library
+	Module
+		Name:	StdLibMisc
+		Dir:	{Application}\Libraries\StdLib
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iDataTrivial
+		Dir:	{Application}\Projects\iTasks2\iData
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		IclOpen:	False
+	Module
+		Name:	EncodeDecode
+		Dir:	{Application}\Projects\iTasks2\iData
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	533
+				Y:	48
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	263
+				Y:	14
+				SizeX:	1259
+				SizeY:	865
+		IclOpen:	False
+	Module
+		Name:	iDataState
+		Dir:	{Application}\Projects\iTasks2\iData
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	189
+				Y:	0
+				SizeX:	956
+				SizeY:	524
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	0
+				Y:	6
+				SizeX:	1270
+				SizeY:	664
+		IclOpen:	False
+	Module
+		Name:	GenParse
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	GenPrint
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
+		IclOpen:	False
+	Module
+		Name:	GenEq
+		Dir:	{Application}\Libraries\Generics
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemEnumStrict
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemStrictLists
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdStrictLists
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ArgEnv
+		Dir:	{Application}\Libraries\ArgEnvWindows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	ArgEnvC.
+	Module
+		Name:	StdDebug
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdMaybe
+		Dir:	{Application}\Libraries\StdLib
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdGeneric
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iDataSettings
+		Dir:	{Application}\Projects\iTasks2\iData
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	25
+				Y:	52
+				SizeX:	1178
+				SizeY:	479
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	69
+				Y:	102
+				SizeX:	800
+				SizeY:	624
+		IclOpen:	False
+	Module
+		Name:	StdFunc
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		IclOpen:	False
+	Module
+		Name:	StdCharList
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdTuple
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdOrdList
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemEnum
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdEnum
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdList
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		IclOpen:	False
+	Module
+		Name:	StdFile
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdString
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdReal
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemArray
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdArray
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdClass
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdChar
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdMisc
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdInt
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdBool
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdEnv
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdOverloaded
+		Dir:	{Application}\Libraries\StdEnv
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	_SystemDynamic
+		Dir:	{Application}\Libraries\Dynamics\implementation\windows
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	StdCleanTypes
+		Dir:	{Application}\Libraries\Dynamics\extension
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	DrupGeneric
+		Dir:	{Application}\Projects\iTasks2\Drup
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
+		IclOpen:	False
+	Module
+		Name:	DrupBasic
 		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
@@ -752,7 +2744,7 @@ OtherModules
 		NeededObjFiles
 			ObjectFile:	fastreopen.o
 	Module
-		Name:	DrupBasic
+		Name:	Drup
 		Dir:	{Application}\Projects\iTasks2\Drup
 		Compiler
 			NeverMemoryProfile:	False
@@ -780,8 +2772,134 @@ OtherModules
 				SizeY:	624
 		IclOpen:	False
 	Module
-		Name:	DrupGeneric
-		Dir:	{Application}\Projects\iTasks2\Drup
+		Name:	iDataCompileOptions
+		Dir:	{Application}\Projects\iTasks2\iData
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1061
+				SizeY:	216
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	HttpServer
+		Dir:	{Application}\Projects\iTasks2\Http
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	624
+		IclOpen:	False
+	Module
+		Name:	Http
+		Dir:	{Application}\Projects\iTasks2\Http
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	HttpUtil
+		Dir:	{Application}\Projects\iTasks2\Http
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	HttpTextUtil
+		Dir:	{Application}\Projects\iTasks2\Http
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Html
+		Dir:	{Application}\Projects\iTasks2\Platform
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	NoTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	642
+				SizeY:	730
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	AuthenticationHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -804,17 +2922,17 @@ OtherModules
 			WindowPosition
 				X:	10
 				Y:	10
-				SizeX:	800
-				SizeY:	640
+				SizeX:	913
+				SizeY:	709
 		IclOpen:	False
 	Module
-		Name:	StdCleanTypes
-		Dir:	{Application}\Libraries\Dynamics\extension
+		Name:	WorkListHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
@@ -824,394 +2942,8 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	_SystemDynamic
-		Dir:	{Application}\Libraries\Dynamics\implementation\windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdOverloaded
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdEnv
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdBool
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdInt
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdMisc
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdChar
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdClass
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdArray
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	_SystemArray
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdReal
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdString
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdFile
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdList
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		IclOpen:	False
-	Module
-		Name:	StdEnum
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	_SystemEnum
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdOrdList
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdTuple
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdCharList
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdFunc
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		IclOpen:	False
-	Module
-		Name:	iDataSettings
-		Dir:	{Application}\Projects\iTasks2\iData
+		Name:	Text
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1225,217 +2957,15 @@ OtherModules
 			Fusion:	False
 		Dcl
 			WindowPosition
-				X:	25
-				Y:	52
-				SizeX:	1178
-				SizeY:	479
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	69
-				Y:	102
-				SizeX:	800
-				SizeY:	624
-		IclOpen:	False
-	Module
-		Name:	StdGeneric
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdMaybe
-		Dir:	{Application}\Libraries\StdLib
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
 				X:	10
 				Y:	10
 				SizeX:	800
-				SizeY:	624
+				SizeY:	640
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	StdDebug
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ArgEnv
-		Dir:	{Application}\Libraries\ArgEnvWindows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	ArgEnvC.
-	Module
-		Name:	StdStrictLists
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	_SystemStrictLists
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	_SystemEnumStrict
-		Dir:	{Application}\Libraries\StdEnv
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	GenEq
-		Dir:	{Application}\Libraries\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	GenPrint
-		Dir:	{Application}\Libraries\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	GenParse
-		Dir:	{Application}\Libraries\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iDataState
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	189
-				Y:	-8
-				SizeX:	956
-				SizeY:	524
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	-15
-				Y:	6
-				SizeX:	1270
-				SizeY:	664
-		IclOpen:	False
-	Module
-		Name:	EncodeDecode
-		Dir:	{Application}\Projects\iTasks2\iData
+		Name:	JSON
+		Dir:	{Application}\Projects\iTasks2\Platform
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -1447,1650 +2977,43 @@ OtherModules
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	533
-				Y:	48
-				SizeX:	800
-				SizeY:	640
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	263
-				Y:	14
-				SizeX:	1259
-				SizeY:	865
-		IclOpen:	False
-	Module
-		Name:	iDataTrivial
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	640
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		IclOpen:	False
-	Module
-		Name:	StdLibMisc
-		Dir:	{Application}\Libraries\StdLib
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	Directory
-		Dir:	{Application}\Libraries\Directory
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cDirectory.
-		NeededLibraries
-			Library:	directory_library
-	Module
-		Name:	dynamic_string
-		Dir:	{Application}\Projects\iTasks2\graph_copy
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	624
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	copy_string_to_graph.obj
-			ObjectFile:	copy_string_to_graph_interface.obj
-			ObjectFile:	copy_graph_to_string.obj
-			ObjectFile:	copy_graph_to_string_interface.obj
-	Module
-		Name:	Debug
+		Name:	TaskTree
 		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
+			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
 			Verbose:	True
 			ReadableABC:	False
 			ReuseUniqueNodes:	True
 			Fusion:	False
-		DclOpen:	False
+		Dcl
+			WindowPosition
+				X:	468
+				Y:	19
+				SizeX:	1268
+				SizeY:	640
+		DclOpen:	True
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1205
+				SizeY:	640
 		IclOpen:	False
 	Module
-		Name:	GenMap
+		Name:	GenBimap
 		Dir:	{Application}\Libraries\Generics
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
 			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	_Array
-		Dir:	{Application}\Libraries\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdTCP
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdChannels
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	tcp
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdTime
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ostick
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ostoolbox
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cCrossCallFont_121.
-	Module
-		Name:	clCrossCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cCrossCallWindows_121.
-			ObjectFile:	cCrossCallProcedureTable_121.
-			ObjectFile:	cCrossCallCursor_121.
-			ObjectFile:	cCrossCall_121.
-			ObjectFile:	cCCallSystem_121.
-			ObjectFile:	cCCallWindows_121.
-			ObjectFile:	cAcceleratorTable_121.
-		NeededLibraries
-			Library:	userExt_library
-			Library:	gdiExt_library
-			Library:	kernelExt_library
-			Library:	winspool_library
-			Library:	winmm_library
-			Library:	shell32_library
-			Library:	ole32_library
-			Library:	kernel32_library
-			Library:	comctl32_library
-			Library:	advapi32_library
-	Module
-		Name:	ostime
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ossystem
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osdocumentinterface
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cCrossCallxDI_121.
-	Module
-		Name:	StdIOCommon
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdBitmap
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osbitmap
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ospicture
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osrgn
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ostypes
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	rgnCCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	pictCCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osfont
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdPictureDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdIOBasic
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdPicture
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdKey
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	oskey
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	id
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	device
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	systemid
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	commondef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	clCCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	util_121.
-			ObjectFile:	cpicture_121.
-			ObjectFile:	cdebug_121.
-			ObjectFile:	cCrossCall_121.
-			ObjectFile:	cCrossCallWindows_121.
-			ObjectFile:	cCCallWindows_121.
-			ObjectFile:	cCCallSystem_121.
-	Module
-		Name:	menuCrossCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ostoolbar
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	windowCCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cpicture_121.
-			ObjectFile:	cCCallWindows_121.
-	Module
-		Name:	windowCrossCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdId
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iostate
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osactivaterequests
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osevent
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osguishare
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	devicefunctions
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	deviceevents
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receivermessage
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receivertable
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	semidynamic
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	cast
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	timertable
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdTimerDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	windowhandle
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdControlDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdWindowDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receiverhandle
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	keyfocus
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	devicesystemstate
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	menuhandle
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdMenuDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osmenu
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	menuCCall_12
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cCrossCallMenus_121.
-	Module
-		Name:	processhandle
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	timerhandle
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	processstack
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	roundrobin
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osmouse
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdPSt
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdProcessAttribute
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdProcessDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osbeep
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	world
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdReceiverDef
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdReceiver
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receiveraccess
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receiverdefaccess
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdReceiverAttribute
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receiverdevice
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receiverid
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	receiverevent
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	scheduler
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdPStClass
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdFileSelect
-		Dir:	{Application}\Libraries\ObjectIO
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	osfileselect
-		Dir:	{Application}\Libraries\ObjectIO\OS Windows
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cCrossCallFileSelectors_121.
-	Module
-		Name:	StdTCPChannels
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdTCPDef
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	tcp_bytestreams
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	ostcp
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	cCrossCallTCP_121.
-			ObjectFile:	cTCP_121.
-		NeededLibraries
-			Library:	wsock_library
-	Module
-		Name:	StdEventTCP
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	StdStringChannels
-		Dir:	{Application}\Libraries\Tcp
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	GenLexOrd
-		Dir:	{Application}\Libraries\Generics
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iDataFormlib
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	1202
-				SizeY:	640
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	1145
-				SizeY:	640
-		IclOpen:	False
-	Module
-		Name:	DataFile
-		Dir:	{Application}\Projects\iTasks2\Drup
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	58
-				Y:	293
-				SizeX:	867
-				SizeY:	407
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	640
-		IclOpen:	False
-	Module
-		Name:	graph_to_string_with_descriptors
-		Dir:	{Application}\Projects\iTasks2\graph_copy
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededObjFiles
-			ObjectFile:	copy_graph_to_string.obj
-			ObjectFile:	copy_graph_to_string_interface.obj
-	Module
-		Name:	graph_to_sapl_string
-		Dir:	{Application}\Projects\iTasks2\graph_copy
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
 			ListTypes:	NoTypes
 			ListAttributes:	True
 			Warnings:	True
@@ -3101,151 +3024,7 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	iTasksDB
-		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	NoTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	135
-				Y:	58
-				SizeX:	1023
-				SizeY:	536
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	170
-				Y:	13
-				SizeX:	904
-				SizeY:	503
-		IclOpen:	False
-	Module
-		Name:	FormId
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	iDataForms
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	544
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	1398
-				SizeY:	640
-		IclOpen:	False
-	Module
-		Name:	HSt
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		Dcl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	800
-				SizeY:	544
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	NWorld
-		Dir:	{Application}\Projects\iTasks2\iData
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	Time
-		Dir:	{Application}\Projects\iTasks2\Platform
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-		NeededLibraries
-			Library:	msvcrt.txt
-	Module
-		Name:	Pointer
-		Dir:	{Application}\Projects\iTasks2\Platform
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	TaskTreeForestHandler
+		Name:	WorkTabHandler
 		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
 		Compiler
 			NeverMemoryProfile:	False
@@ -3263,12 +3042,12 @@ OtherModules
 			WindowPosition
 				X:	10
 				Y:	10
-				SizeX:	1429
-				SizeY:	679
+				SizeX:	1292
+				SizeY:	756
 		IclOpen:	False
 	Module
-		Name:	ProcessTableHandler
-		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Name:	iDataWidgets
+		Dir:	{Application}\Projects\iTasks2\iData
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3281,26 +3060,16 @@ OtherModules
 			ReuseUniqueNodes:	True
 			Fusion:	False
 		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	544
 		IclOpen:	False
 	Module
-		Name:	Void
-		Dir:	{Application}\Projects\iTasks2\Platform
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		IclOpen:	False
-	Module
-		Name:	BasicCombinators
-		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Name:	TSt
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3315,42 +3084,23 @@ OtherModules
 		Dcl
 			WindowPosition
 				X:	0
-				Y:	69
+				Y:	8
+				SizeX:	976
+				SizeY:	661
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	0
+				Y:	3
 				SizeX:	1268
 				SizeY:	640
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	1141
-				SizeY:	544
 		IclOpen:	False
+		NeededObjFiles
+			ObjectFile:	copy_graph_to_string_interface.obj
+			ObjectFile:	copy_graph_to_string.obj
 	Module
-		Name:	LiftingCombinators
-		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
-		Compiler
-			NeverMemoryProfile:	False
-			NeverTimeProfile:	False
-			StrictnessAnalysis:	True
-			ListTypes:	StrictExportTypes
-			ListAttributes:	True
-			Warnings:	True
-			Verbose:	True
-			ReadableABC:	False
-			ReuseUniqueNodes:	True
-			Fusion:	False
-		DclOpen:	False
-		Icl
-			WindowPosition
-				X:	10
-				Y:	10
-				SizeX:	1169
-				SizeY:	544
-		IclOpen:	False
-	Module
-		Name:	PromptingCombinators
-		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Name:	MersenneTwister
+		Dir:	{Application}\Libraries\MersenneTwister
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3365,7 +3115,39 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	Util
+		Name:	DeauthenticationHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	iTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Engine
 		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
@@ -3381,8 +3163,252 @@ OtherModules
 		DclOpen:	False
 		IclOpen:	False
 	Module
-		Name:	UITasks
+		Name:	UserDB
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	Types
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ProcessDB
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	1592
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	22
+				Y:	18
+				SizeX:	1568
+				SizeY:	640
+		IclOpen:	False
+	Module
+		Name:	TuningCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ClientCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	NewListHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	10
+				Y:	10
+				SizeX:	800
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	6
+				Y:	-2
+				SizeX:	1556
+				SizeY:	640
+		IclOpen:	False
+	Module
+		Name:	NewStartHandler
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	UserTasks
 		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	TimeAndDateTasks
+		Dir:	{Application}\Projects\iTasks2\iTasks\BasicTasks
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	CommonCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		Dcl
+			WindowPosition
+				X:	152
+				Y:	25
+				SizeX:	1364
+				SizeY:	640
+		DclOpen:	False
+		Icl
+			WindowPosition
+				X:	340
+				Y:	10
+				SizeX:	1284
+				SizeY:	640
+		IclOpen:	False
+	Module
+		Name:	ProcessCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	ExceptionCombinators
+		Dir:	{Application}\Projects\iTasks2\iTasks\TaskCombinators
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	SessionDB
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework\Data
+		Compiler
+			NeverMemoryProfile:	False
+			NeverTimeProfile:	False
+			StrictnessAnalysis:	True
+			ListTypes:	StrictExportTypes
+			ListAttributes:	True
+			Warnings:	True
+			Verbose:	True
+			ReadableABC:	False
+			ReuseUniqueNodes:	True
+			Fusion:	False
+		DclOpen:	False
+		IclOpen:	False
+	Module
+		Name:	EngineWrapperStandalone
+		Dir:	{Application}\Projects\iTasks2\iTasks\Framework
 		Compiler
 			NeverMemoryProfile:	False
 			NeverTimeProfile:	False
@@ -3553,7 +3579,6 @@ Static
 		Path:	{Application}\Projects\iTasks2\Http\Http.icl
 		Path:	{Application}\Projects\iTasks2\Http\HttpUtil.icl
 		Path:	{Application}\Projects\iTasks2\Http\HttpTextUtil.icl
-		Path:	{Application}\Projects\iTasks2\iTasks\InternaliTasksThreadHandling.icl
 		Path:	{Application}\Projects\iTasks2\Platform\Html.icl
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\AuthenticationHandler.icl
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\WorkListHandler.icl
@@ -3584,193 +3609,192 @@ Static
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\EngineWrapperStandalone.icl
 	Objs
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup0.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup1Trace.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup1Profile.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_startup2.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_system.o
 		Path:	{Project}\Clean System Files\coffeemachine.o
-		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
-		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\iTasksDB.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdEventTCP.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp_bytestreams.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPChannels.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdFileSelect.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\scheduler.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdevice.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdefaccess.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverid.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverDef.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbeep.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessAttribute.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmouse.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processstack.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processhandle.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmenu.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\keyfocus.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindowDef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowhandle.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timertable.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\semidynamic.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivermessage.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicefunctions.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osevent.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\iostate.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostime.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ossystem.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbar.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osdocumentinterface.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\commondef.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdKey.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOBasic.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfont.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\pictCCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osrgn.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbitmap.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOCommon.o
-		Path:	{Application}\Libraries\ObjectIO\Clean System Files\device.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCrossCall_12.o
-		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostick.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp.o
-		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCP.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\EngineWrapperStandalone.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
-		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\JSON.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\NewListHandler.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\DeauthenticationHandler.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Clean System Files\InternaliTasksThreadHandling.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ClientCombinators.o
 		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\PromptingCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\UserDB.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\UserTasks.o
 		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\CommonCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\TuningCombinators.o
 		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\UITasks.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\LiftingCombinators.o
 		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\BasicCombinators.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnumStrict.o
 		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemStrictLists.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdStrictLists.o
 		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\graph_to_sapl_string.o
+		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Util.o
+		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\SessionDB.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\ProcessDB.o
 		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpUtil.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\_Array.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenMap.o
+		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpTextUtil.o
 		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\EncodeDecode.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLibMisc.o
 		Path:	{Application}\Libraries\Directory\Clean System Files\Directory.o
+		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnv.o
 		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\dynamic_string.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataFormlib.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataTrivial.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenBimap.o
 		Path:	{Application}\Libraries\Generics\Clean System Files\GenLexOrd.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenEq.o
-		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\Http.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\HSt.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenPrint.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataState.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdGeneric.o
-		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DrupBasic.o
-		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DataFile.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataSettings.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdDebug.o
-		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Time.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Types.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdMaybe.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Engine.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdCharList.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOrdList.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFile.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnum.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdMisc.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdArray.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdReal.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdInt.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdClass.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
-		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
-		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdList.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdBool.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdChar.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdString.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemArray.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnum.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFunc.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnv.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdTuple.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Clean System Files\iTasks.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\TSt.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\TaskTree.o
-		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Html.o
-		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Pointer.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataForms.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataCompileOptions.o
-		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DrupGeneric.o
-		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\_SystemDrup.o
-		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\Drup.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\GenParse.o
-		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Void.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\NWorld.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\FormId.o
 		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataWidgets.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataTrivial.o
-		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataFormlib.o
-		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnv.o
-		Path:	{Application}\Libraries\StdLib\Clean System Files\StdLibMisc.o
-		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpTextUtil.o
-		Path:	{Application}\Libraries\Generics\Clean System Files\_Array.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Data\Clean System Files\ProcessDB.o
-		Path:	{Application}\Libraries\MersenneTwister\Clean System Files\MersenneTwister.o
-		Path:	{Application}\Projects\iTasks2\graph_copy\Clean System Files\graph_to_string_with_descriptors.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdStrictLists.o
-		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnumStrict.o
-		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\LiftingCombinators.o
-		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\TuningCombinators.o
-		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\UserTasks.o
-		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\TimeAndDateTasks.o
-		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ClientCombinators.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\AuthenticationHandler.o
-		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\NewListHandler.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenEq.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\FormId.o
+		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\Http.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\NWorld.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\HSt.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Void.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenPrint.o
+		Path:	{Application}\Libraries\Generics\Clean System Files\GenParse.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataState.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\Drup.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdGeneric.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\_SystemDrup.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DrupBasic.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DrupGeneric.o
+		Path:	{Application}\Projects\iTasks2\Drup\Clean System Files\DataFile.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataCompileOptions.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataSettings.o
+		Path:	{Application}\Projects\iTasks2\iData\Clean System Files\iDataForms.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdDebug.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Pointer.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Time.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Html.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Types.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\TaskTree.o
+		Path:	{Application}\Libraries\StdLib\Clean System Files\StdMaybe.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\TSt.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Engine.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Clean System Files\iTasks.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdCharList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdTuple.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOrdList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnv.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFile.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdFunc.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdString.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemEnum.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdEnum.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdReal.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\_SystemArray.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdArray.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdChar.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdMisc.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdInt.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdBool.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdClass.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdList.o
+		Path:	{Application}\Libraries\StdEnv\Clean System Files\StdOverloaded.o
+		Path:	{Application}\Libraries\Dynamics\implementation\windows\Clean System Files\_SystemDynamic.o
+		Path:	{Application}\Libraries\Dynamics\extension\Clean System Files\StdCleanTypes.o
+		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\JSON.o
 		Path:	{Application}\Projects\iTasks2\Platform\Clean System Files\Text.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\NewStartHandler.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\WorkListHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\WorkTabHandler.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\Debug.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\TaskTreeForestHandler.o
 		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Handlers\Clean System Files\ProcessTableHandler.o
+		Path:	{Application}\Projects\iTasks2\iTasks\Framework\Clean System Files\EngineWrapperStandalone.o
 		Path:	{Application}\Projects\iTasks2\Http\Clean System Files\HttpServer.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCP.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\StdChannels.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTime.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostick.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbox.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCrossCall_12.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\id.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\device.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\systemid.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOCommon.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdBitmap.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbitmap.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ospicture.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osrgn.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostypes.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\pictCCall_12.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\rgnCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfont.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPictureDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdIOBasic.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPicture.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdKey.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\oskey.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\commondef.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\clCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osdocumentinterface.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCrossCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostoolbar.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ossystem.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\windowCrossCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\ostime.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdId.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\iostate.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osactivaterequests.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osevent.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osguishare.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicefunctions.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\deviceevents.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivermessage.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receivertable.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\semidynamic.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\cast.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timertable.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdTimerDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\windowhandle.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdControlDef.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdWindowDef.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverhandle.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\keyfocus.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\devicesystemstate.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\menuhandle.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdMenuDef.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmenu.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\menuCCall_12.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processhandle.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\timerhandle.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\processstack.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\roundrobin.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osmouse.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPSt.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessAttribute.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdProcessDef.o
+		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osbeep.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\world.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverDef.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiver.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverid.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiveraccess.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdefaccess.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdReceiverAttribute.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\receiverdevice.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\receiverevent.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\scheduler.o
 		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdPStClass.o
+		Path:	{Application}\Libraries\ObjectIO\Clean System Files\StdFileSelect.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\osfileselect.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPChannels.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\StdTCPDef.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\tcp_bytestreams.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\ostcp.o
+		Path:	{Application}\Libraries\Tcp\Clean System Files\StdEventTCP.o
 		Path:	{Application}\Libraries\Tcp\Clean System Files\StdStringChannels.o
+		Path:	{Application}\Projects\iTasks2\iTasks\BasicTasks\Clean System Files\iTasksDB.o
 		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ProcessCombinators.o
+		Path:	{Application}\Projects\iTasks2\iTasks\TaskCombinators\Clean System Files\ExceptionCombinators.o
 		Path:	{Application}\Libraries\ArgEnvWindows\Clean System Files\ArgEnvC.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFileSelectors_121.o
 		Path:	{Application}\Libraries\ObjectIO\OS Windows\Clean System Files\cCrossCallFont_121.o

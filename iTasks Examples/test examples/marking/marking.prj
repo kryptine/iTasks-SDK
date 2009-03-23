@@ -60,7 +60,7 @@ MainModule
 			Y:	51
 			SizeX:	1201
 			SizeY:	577
-	IclOpen:	True
+	IclOpen:	False
 OtherModules
 	Module
 		Name:	ThreadTableHandler

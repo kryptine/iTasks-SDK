@@ -4,20 +4,18 @@ module marking
 // The marks are intended for user 0 who can show them
 // (c) mjp 2007/2008
 
-import StdEnv, StdiTasks, iDataTrivial
-//import iTaskUtil
+import iTasks, iDataTrivial
 
-derive gForm  Mark, [] 
-derive gUpd   Mark, []
+derive gForm  Mark 
+derive gUpd   Mark
 derive gParse Mark
 derive gPrint Mark
-derive gerda  Mark
 derive read   Mark
 derive write  Mark
 
 :: Mark = {userName :: String, loginId :: Int, mark :: Int, comment :: String}
 
-Start world = startTaskEngine (marking 0 "manager") world
+Start world = startEngine (marking 0 "manager") world
 
 marking i accountname 	=	[Text ("Welcome user " <+++ accountname),BrTag [],BrTag []] !>> respond i accountname
 where

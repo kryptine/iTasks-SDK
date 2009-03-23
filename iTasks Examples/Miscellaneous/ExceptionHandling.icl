@@ -1,11 +1,7 @@
-module exception
+implementation module ExceptionHandling
 
-import iTasks
-import StdInt, StdClass
-import iTasksDB 
+import iTasks, iTasksDB
 
-Start :: *World -> *World
-Start world = startEngine [flow] world
 
 //Two different exception types
 :: NegativeValueException = NegativeValueException String
@@ -16,12 +12,13 @@ derive gUpd		NegativeValueException, TooLargeValueException
 derive gPrint	NegativeValueException, TooLargeValueException
 derive gParse	NegativeValueException, TooLargeValueException
 
-flow :: Workflow
-flow =	{ name		= "exception"
-		, label		= "Exception example"
-		, roles		= []
-		, mainTask	= exceptionTask
-		}
+exceptionHandlingExample :: [Workflow]
+exceptionHandlingExample
+=	[{ name		= "Examples/Miscellaneous/Exception handling"
+	 , label	= "Exception example"
+	 , roles	= []
+	 , mainTask	= exceptionTask
+	 }]
 
 exceptionTask :: Task Void
 exceptionTask = normalTask <^> catchNegativeValueTask <^> catchTooLargeValueTask

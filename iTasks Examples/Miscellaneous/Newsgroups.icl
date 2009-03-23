@@ -1,4 +1,4 @@
-module newsGroups
+implementation module Newsgroups
 
 //	In this example newsgroups are created and maintained
 //	User 0 is the manager of the newsgroup who can create new newgroups
@@ -20,8 +20,8 @@ import iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 :: Subscription	:== (GroupName,Index)			// last message read in corresponding group
 :: Index		:== Int							// 0 <= index < length newsgroup 
 
-:: EMail	=	{ to 		:: !DisplayMode !String
-				, mailFrom 	:: !DisplayMode !String
+:: EMail	=	{ to 		:: !DisplayMode String
+				, mailFrom 	:: !DisplayMode String
 				, subject 	:: !String
 				, message	:: !HtmlTextarea
 				}
@@ -33,31 +33,30 @@ derive gPrint	EMail, EMail2
 
 nmessage = 2
 
-Start world = startEngine newsGroups world
-
-newsGroups
+newsgroupsExample :: [Workflow]
+newsgroupsExample
 =	[
-	{	name		= "add news group"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Add newsgroup"
 	,	label		= "add news group"
 	,	roles		= []
 	,	mainTask	= addNewsGroup
 	},
-	{	name		= "show news groups"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Show newsgroups"
 	,	label		= "show news groups"
 	,	roles		= []
 	,	mainTask	= showNewsGroups
 	},
-	{	name		= "subscribe to news group"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Subscribe to newsgroup"
 	,	label		= "subscribe to news group"
 	,	roles		= []
 	,	mainTask	= subscribeNewsGroup
 	},
-	{	name		= "internal email"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Send internal email"
 	,	label		= "internal email"
 	,	roles		= []
 	,	mainTask	= internalEmail2
 	},
-	{	name		= "internal emails with answers"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Send internal emails with answers"
 	,	label		= "internal emails with answers"
 	,	roles		= []
 	,	mainTask	= internalEmailResponse

@@ -60,7 +60,7 @@ MainModule
 			Y:	26
 			SizeX:	1123
 			SizeY:	557
-	IclOpen:	True
+	IclOpen:	False
 OtherModules
 	Module
 		Name:	DeauthenticationHandler

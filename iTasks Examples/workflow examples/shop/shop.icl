@@ -8,12 +8,12 @@ import StdListExt, database, iTaskCombinatorsExt, ShopDSL
 Start :: *World -> *World
 Start world = startEngine flows world
 where
-	flows	= [ { name		= "Manage catalog"
+	flows	= [ { name		= "Examples/Shop/Manage catalog"
  			    , label		= "Manage catalog"
 			    , roles		= []
 			    , mainTask	= manageCatalog defaultProduct catalogPrompt #>> return Void
 			    }
-			  , { name		= "Browse shop"
+			  , { name		= "Examples/Shop/Browse shop"
 			    , label		= "Browse shop"
 			    , roles		= []
 			    , mainTask	= browseShop defaultCart shopPrompt cartPrompt

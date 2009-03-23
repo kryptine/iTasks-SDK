@@ -1,4 +1,4 @@
-module coffeemachine
+implementation module Coffeemachine
 
 // (c) MJP 2007
 //
@@ -11,10 +11,14 @@ module coffeemachine
 import StdList
 import iTasks, iDataTrivial
 
-Start world =  startEngine [{name = "coffeemachine",label="Coffeemachine",roles=[],mainTask=(foreverTask CoffeeMachine) #>> return_V Void}] world
-
-CoffeeMachine :: Task (String,Int)
-CoffeeMachine  
+coffeemachineExample :: [Workflow]
+coffeemachineExample = [{ name = "Examples/Miscellaneous/Coffeemachine"
+						, label = ""
+						, roles =[]
+						, mainTask =(foreverTask coffeemachine) #>> return_V Void
+						}]
+coffeemachine :: Task (String,Int)
+coffeemachine  
 =								chooseTask [Text "Choose product:",Br,Br] 
 									[("Coffee: 100",    return_V (100,"Coffee"))
 									,("Cappucino: 150", return_V (150,"Cappucino"))
