@@ -1,4 +1,4 @@
-module bid
+implementation module Purchase
 /**
 * This module defines a simple workflow to let a number of suppliers
 * bid on a potential purchase.
@@ -27,15 +27,14 @@ derive gUpd		Purchase
 derive gPrint	Purchase
 derive gParse	Purchase
 
-Start :: *World -> *World
-Start world = startEngine [bidFlow] world
-
-bidFlow :: Workflow
-bidFlow = { name		= "bid"
-		  , label		= "Purchase product"
-		  , roles		= []
-		  , mainTask	= purchaseTask
-		  }
+purchaseExample :: [Workflow]
+purchaseExample
+= [	{ name		= "Examples/Business/Purchase"
+	, label		= "Purchase product"
+	, roles		= []
+	, mainTask	= purchaseTask
+	}
+  ]
 
 purchaseTask :: Task Void
 purchaseTask =

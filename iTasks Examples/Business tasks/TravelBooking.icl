@@ -1,6 +1,6 @@
-module travel
+implementation module TravelBooking
 
-import StdList, iTasks, iDataTrivial
+import iTasks, iDataTrivial
 
 // (c) 2007 MJP
 
@@ -9,18 +9,16 @@ import StdList, iTasks, iDataTrivial
 // One by one the chosen bookings will be handled
 // The bill is made up in the end
 
+travelBookingExample :: [Workflow]
+travelBookingExample
+= [	{ name		= "Examples/Business/Travel booking/Book a trip"
+	, label		= "Book a trip"
+	, roles		= []
+	, mainTask	= travel
+	}
+  ]
 
-Start :: *World -> *World
-Start world = startEngine [travelFlow] world
-
-travelFlow :: Workflow
-travelFlow	=	{ name		= "travel"
-		  		, label		= "travel"
-		  		, roles		= []
-		  		, mainTask	= travel
-		  		}
-
-travel :: (Task Void)
+travel :: Task Void
 travel 
 = 			[Text "Book your journey:",BrTag [],BrTag []]
 			?>>	seqTasks	[ ( "Step 1: Make Bookings:"
