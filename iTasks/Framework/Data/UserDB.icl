@@ -10,7 +10,7 @@ derive gPrint User
 derive gParse User
 			  
 initUsers :: [User]
-initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", password = "", roles = ["president","manager","worker"]}
+initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", password = "", roles = ["root", "president","manager","worker"]}
 			  , {User | userId = 1, username = "president", displayname = "President", password = "", roles = ["president"]}
 			  , {User | userId = 2, username = "manager", displayname = "Middle manager", password = "", roles = ["manager"]}
 			  , {User | userId = 3, username = "worker1", displayname = "Office worker 1", password = "", roles = ["worker"]}
