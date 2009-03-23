@@ -1,24 +1,23 @@
-module shop
+implementation module WebShop
 
 import StdClass, StdList
 from   StdFunc import o, flip
 import iTasks, iDataTrivial
 import StdListExt, database, iTaskCombinatorsExt, ShopDSL
 	
-Start :: *World -> *World
-Start world = startEngine flows world
-where
-	flows	= [ { name		= "Examples/Shop/Manage catalog"
- 			    , label		= "Manage catalog"
-			    , roles		= []
-			    , mainTask	= manageCatalog defaultProduct catalogPrompt #>> return Void
-			    }
-			  , { name		= "Examples/Shop/Browse shop"
-			    , label		= "Browse shop"
-			    , roles		= []
-			    , mainTask	= browseShop defaultCart shopPrompt cartPrompt
-			    }
-			  ]
+webShopExample :: [Workflow]
+webShopExample 
+= [ { name		= "Examples/Miscellaneous/Webshop/Manage catalog"
+    , label		= "Manage catalog"
+    , roles		= []
+    , mainTask	= manageCatalog defaultProduct catalogPrompt #>> return Void
+    }
+  , { name		= "Examples/Miscellaneous/Webshop/Browse shop"
+	, label		= "Browse shop"
+	, roles		= []
+	, mainTask	= browseShop defaultCart shopPrompt cartPrompt
+    }
+  ]
 
 shopPrompt 		= ruleText "Welcome to My Shop"
 cartPrompt 		= ruleText "My Shop Shopping Cart"

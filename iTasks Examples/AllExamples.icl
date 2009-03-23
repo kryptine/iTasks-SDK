@@ -11,6 +11,7 @@ import TravelBooking
 import Coffeemachine
 import Newsgroups
 import ExceptionHandling
+import WebShop
 
 Start :: *World -> *World
 Start world = startEngine workflows world
@@ -21,4 +22,5 @@ where
 						, coffeemachineExample
 						, newsgroupsExample
 						, exceptionHandlingExample
+						, webShopExample
 						]
