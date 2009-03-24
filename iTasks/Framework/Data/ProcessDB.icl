@@ -112,7 +112,7 @@ mkStaticProcessEntry :: Workflow UserId UserId ProcessStatus -> Process
 mkStaticProcessEntry workflow owner delegator status
 	=	{ Process
 		| id		= 0
-		, label		= workflow.name
+		, label		= workflow.Workflow.label
 		, owner		= owner
 		, delegator	= delegator
 		, users		= []

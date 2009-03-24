@@ -111,7 +111,11 @@ finalizeHSt :: !*HSt -> *World
 finalizeHSt hst =:{HSt | nworld = nworld =: {NWorld | world, datafile}}
 	# world						= closemDataFile datafile world								// close the datafile if option chosen
 	= world
-	
+
+getApplicationTimestamp :: !*World -> (!Int,!*World)
+getApplicationTimestamp world
+	= (-1,world)
+
 // DataFile OPTION
 openmDataFile datafile world
 	:== IF_DataFile (openDataFile  datafile world) (abort "Trying to open a dataFile while this option is switched off",world)
