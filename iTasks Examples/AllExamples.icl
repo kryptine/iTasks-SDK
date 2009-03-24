@@ -7,6 +7,7 @@ import Vote
 import Purchase
 import TravelBooking
 import OrderProcessing
+import ScheduleMeeting
 
 //Higher order examples
 import MovingTask
@@ -26,6 +27,7 @@ where
 						, purchaseExample
 						, travelBookingExample
 						, orderProcessingExample
+						, scheduleMeetingExample
 						, movingTaskExample
 						, deadlineTaskExample
 						, delegateTaskExample

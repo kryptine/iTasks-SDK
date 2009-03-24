@@ -1,6 +1,7 @@
-module date
+implementation module ScheduleMeeting
 
-import StdList, iTasks, iDataTrivial
+import iTasks, iDataTrivial, iDataFormlib
+import StdMisc
 
 // (c) MJP 2007
 
@@ -11,38 +12,37 @@ import StdList, iTasks, iDataTrivial
 
 npersons = 5
 
-Start world = startEngine [appointmentFlow] world
-
-appointmentFlow :: Workflow
-appointmentFlow
-	= { name		= "make appointment"
-	  , label		= "make appointment"
-	  , roles		= []
-	  , mainTask	= findDate #>> return_V Void
-	  }
-
+scheduleMeetingExample :: [Workflow]
+scheduleMeetingExample
+= [	{	name		= "Examples/Business/Schedule meeting"
+	,	label		= "Schedule meeting"
+	,	roles		= []
+	,	mainTask	= findDate >>| return Void
+	}
+  ]
 
 findDate :: Task (HtmlDate,HtmlTime)
 findDate
-=						[Text "Choose person you want to date:",BrTag []] 
-						?>>	editTask "Set" (HtmlSelect [(toString i,toString i) \\ i <- [1..npersons - 1]] (toString 1)) 
-	=>> \(HtmlSelect _ sel) ->		let whom = toInt sel
+=						[Text "Choose person you want to schedule a meeting with:",BrTag []] 
+						?>>	editTask "Set" (HtmlSelect [(toString i,toString i) \\ i <- [1..npersons - 1]] (toString 1))
+	=>> \(HtmlSelect _ whomPD) ->		
+						let whom = toInt whomPD
 						in
 						[Text "Determining date:",BrTag [],BrTag []] 
 						?>>	findDate` whom (HtmlDate 1 1 2007,HtmlTime 9 0 0) 
 	=>> \datetime	->	[] 
 						?>> confirm 0 whom datetime -&&- confirm whom 0 datetime 
-	#>>					return_V datetime
+	#>>					return datetime
 where
 	findDate` :: Int (HtmlDate,HtmlTime) -> Task (HtmlDate,HtmlTime)
 	findDate` whom daytime
 	=							proposeDateTime daytime 
 		=>> \daytime ->			whom  @: ("Meeting Request",determineDateTime daytime) 
 		=>> \(ok,daytime) ->	if ok 
-									(return_V daytime)
+									(return daytime)
 									(					isOkDateTime daytime 
 										=>> \ok ->		if ok 
-															(return_V daytime)
+															(return daytime)
 										      				(newTask "findDate`" (findDate` whom daytime))
 									)
 	where
@@ -50,28 +50,27 @@ where
 		proposeDateTime (date,time)
 		=							[Text "Propose a new date and time for meeting:",BrTag [],BrTag []] 
 									?>>	editTask "Set" input 
-			=>> \(_,date,_,time) -> return_V (date,time)
+			=>> \(_,date,_,time) -> return (date,time)
 		where
-			input = (HtmlLabel [Text "date: "], date, HtmlLabel [Text "time: "], time)
+			input = (toString (Text "date: "), date, toString (Text "time: "), time)
 
 		determineDateTime :: (HtmlDate,HtmlTime) -> Task (Bool,(HtmlDate,HtmlTime))
 		determineDateTime daytime
 		=					isOkDateTime daytime 
 			=>> \ok ->		if ok 
-								(return_V (ok,daytime))
+								(return (ok,daytime))
 								(					proposeDateTime daytime 
-									=>> \daytime ->	return_V (ok,daytime)
+									=>> \daytime ->	return (ok,daytime)
 								)
 
 		isOkDateTime :: (HtmlDate,HtmlTime) -> Task Bool
 		isOkDateTime (date,time)
 		=	chooseTask [Text ("Can we meet on the " <+++ date <+++ " at " <+++ time <+++ "?"),BrTag []] 
-			[ ("Accept",return_V True)
-			, ("Sorry", return_V False)
+			[ ("Accept",return True)
+			, ("Sorry", return False)
 			]
 
 	confirm  :: Int Int (HtmlDate,HtmlTime) -> Task Void 
 	confirm me you (date,time)
 	= 	me @::	[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
 				?>>	editTask "OK" Void
-				
