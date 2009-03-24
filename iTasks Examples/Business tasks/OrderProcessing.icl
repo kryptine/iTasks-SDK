@@ -1,6 +1,6 @@
-module internetShop
+implementation module OrderProcessing
 
-import iDataTrivial, StdEnv, iTasks
+import iTasks, iDataTrivial, StdArray
 
 /*
  * The scenario contains a number of different events and activities:
@@ -16,16 +16,14 @@ import iDataTrivial, StdEnv, iTasks
  * the confirmation to the customer. 
  */
 
-// High level definitions
-Start :: *World -> *World
-Start world = startEngine [myWorkflow] world
-
-myWorkflow
-=	{	name		= "orderPlacement"
-	,	label		= "orderPlacement"
+orderProcessingExample :: [Workflow]
+orderProcessingExample
+= [	{	name		= "Examples/Business/Order processing"
+	,	label		= "Order processing"
 	,	roles		= []
-	,	mainTask	= orderPlacement customer #>> return_V Void
+	,	mainTask	= orderPlacement customer >>| return Void
 	}
+  ]
 	
 orderPlacement :: UserId -> Task Void
 orderPlacement user =
@@ -58,7 +56,7 @@ fillInAndCheckCreditCard cardInfo =
                 , validateCreditCard cardInfo
                 ) =>> \valid ->
   if valid
-    (return_V cardInfo)
+    (return cardInfo)
     (invalidCreditCard cardInfo #>> 
      fillInAndCheckCreditCard cardInfo
     )
@@ -108,7 +106,7 @@ fillInCreditCard cardInfo =
     ?>> editTask "Ok" cardInfo
 
 validateCreditCard :: CardInfo -> Task Bool
-validateCreditCard cardInfo = return_V (size cardInfo == 5)
+validateCreditCard cardInfo = return (size cardInfo == 5)
 
 invalidCreditCard :: CardInfo -> Task Void	
 invalidCreditCard cardInfo = 

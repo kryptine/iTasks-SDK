@@ -6,6 +6,7 @@ import iTasks
 import Vote
 import Purchase
 import TravelBooking
+import OrderProcessing
 
 //Higher order examples
 import MovingTask
@@ -24,6 +25,7 @@ where
 	workflows = flatten [ voteExample
 						, purchaseExample
 						, travelBookingExample
+						, orderProcessingExample
 						, movingTaskExample
 						, deadlineTaskExample
 						, delegateTaskExample
