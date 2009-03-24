@@ -13,6 +13,7 @@ import ScheduleMeeting
 import MovingTask
 import DeadlineTask
 import DelegateTask
+import ReviewTask
 
 //Miscellaneous examples
 import Coffeemachine
@@ -31,6 +32,7 @@ where
 						, movingTaskExample
 						, deadlineTaskExample
 						, delegateTaskExample
+						, reviewTaskExample
 						, coffeemachineExample
 						, newsgroupsExample
 						, exceptionHandlingExample

@@ -1,6 +1,6 @@
-module quotation
+implementation module ReviewTask
 
-import StdList, iTasks, iDataTrivial, StdBimap
+import iTasks, iDataTrivial
 
 // (c) 2007 MJP
 
@@ -15,10 +15,6 @@ derive gForm 	QForm, Review, Person, Gender
 derive gUpd 	QForm, Review, Person, Gender
 derive gParse 	QForm, Review, Person, Gender
 derive gPrint 	QForm, Review, Person, Gender
-//derive gerda 	QForm, Review, Person, Gender
-//derive read 	QForm, Review, Person, Gender
-//derive write 	QForm, Review, Person, Gender
-
 
 :: PersonData	=	{ name		:: String
 					, e_mail	:: String
@@ -27,8 +23,6 @@ derive gPrint 	QForm, Review, Person, Gender
 					, zipcode 	:: String
 					, city	 	:: String
 					}
-
-Start world = startEngine [myWorkflow] world
 
 :: QForm = 	{ toComp 			:: String
 			, startDate 		:: HtmlDate
@@ -44,18 +38,19 @@ Start world = startEngine [myWorkflow] world
 			 }
 :: Gender = Male | Female
 :: Review = Approved | Rejected | NeedsRework HtmlTextarea
-:: UserID :== Int
 
 
-myWorkflow
-=	{	name		= "quotation"
-	,	label		= "quotation"
+reviewTaskExample :: [Workflow]
+reviewTaskExample
+= [	{	name		= "quotation"
+	,	label		= "Review the results of a task"
 	,	roles		= []
-	,	mainTask	= reviewtask #>> return_V Void
+	,	mainTask	= reviewtask >>| return Void
 	}
+  ]
 
 editTaskSA :: String a -> Task a | iData a
-editTaskSA s a = UseAjax @>> editTask s a <<@ Submit
+editTaskSA s a = editTask s a <<@ Submit
 
 reviewtask :: Task (QForm,Review)
 reviewtask = taskToReview 1 (createDefault, mytask)
@@ -64,7 +59,7 @@ mytask :: a -> (Task a) | iData a
 mytask v =	[Text "Fill in Form:",BrTag [],BrTag []] 
 			?>> editTaskSA "TaskDone" v 
 
-taskToReview :: UserID (a,a -> Task a) -> Task (a,Review) | iData a 
+taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iData a 
 taskToReview reviewer (v`,task) 
 = newTask "taskToReview" taskToReview`
 where
@@ -75,13 +70,13 @@ where
 						?>> editTask "OK" Void 
 		#>>				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
-							else            -> return_V (v,r)
+							else            -> return (v,r)
 
 review :: a -> Task Review | iData a 
 review v
 =	[toHtml v,BrTag [],BrTag []] 
 	?>>	chooseTask []
-			[ ("Rework",  editTaskSA "Done" (NeedsRework createDefault))
-			, ("Approved",return_V Approved)
-			, ("Reject",  return_V Rejected)
+			[ ("Rework",   editTaskSA "Done" (NeedsRework createDefault))
+			, ("Approved", return Approved)
+			, ("Reject",   return Rejected)
 			]
