@@ -13,7 +13,7 @@ import iTasks, iDataTrivial
 
 coffeemachineExample :: [Workflow]
 coffeemachineExample = [{ name = "Examples/Miscellaneous/Coffeemachine"
-						, label = ""
+						, label = "Coffeemachine"
 						, roles =[]
 						, mainTask =(foreverTask coffeemachine) #>> return_V Void
 						}]

@@ -36,27 +36,27 @@ nmessage = 2
 newsgroupsExample :: [Workflow]
 newsgroupsExample
 =	[
-	{	name		= "Examples/Miscellaneous/Newsgroups/Add newsgroup"
-	,	label		= "add news group"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Groups/Add"
+	,	label		= "Add news group"
 	,	roles		= []
 	,	mainTask	= addNewsGroup
 	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Show newsgroups"
-	,	label		= "show news groups"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Groups/Show"
+	,	label		= "Show news groups"
 	,	roles		= []
 	,	mainTask	= showNewsGroups
 	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Subscribe to newsgroup"
-	,	label		= "subscribe to news group"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Groups/Subscribe"
+	,	label		= "Subscribe to news group"
 	,	roles		= []
 	,	mainTask	= subscribeNewsGroup
 	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Send internal email"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Mail/Simple"
 	,	label		= "internal email"
 	,	roles		= []
 	,	mainTask	= internalEmail2
 	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Send internal emails with answers"
+	{	name		= "Examples/Miscellaneous/Newsgroups/Mail/With answers"
 	,	label		= "internal emails with answers"
 	,	roles		= []
 	,	mainTask	= internalEmailResponse
