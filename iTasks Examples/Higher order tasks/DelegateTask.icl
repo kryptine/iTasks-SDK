@@ -1,9 +1,6 @@
-module delegate
+implementation module DelegateTask
 
-import StdEnv, StdiTasks
-
-derive gForm []
-derive gUpd []
+import iTasks, iDataTrivial
 
 // (c) 2007 MJP
 
@@ -19,16 +16,26 @@ npersons = 5
 
 :: UserID :== Int
 
-Start world = startTaskEngine (foreverTask (delegate mytask2 (HtmlTime 0 3 0))) world
+delegateTaskExample :: [Workflow]
+delegateTaskExample
+= []
+/*
+= [	{ name	= "Examples/Higher order tasks/Delegate task"
+	, label = "Delegated task"
+	, roles	= []
+	, mainTask = displayHtml foreverTask (delegateTask trivialTask (HtmlTime 0 3 0))
+	}
+  ]
+*/
+trivialTask :: Task Int
+trivialTask =			editTask "Done1" 0 
+			>>= \v1 ->	editTask "Done2" 0 
+			>>= \v2 ->	editTask "Done3" 0 
+			>>= \v3 -> 	editTask "Result" (v1 + v2 + v3)
 
-mytask = editTask "Done" 0
-mytask2 =				editTask "Done1" 0 
-			=>> \v1 ->	editTask "Done2" 0 
-			=>> \v2 ->	editTask "Done3" 0 
-			=>> \v3 -> 	return_D (v1 + v2 + v3)
-
-delegate :: (Task a) HtmlTime -> (Task a) | iData a
-delegate task time 
+/*
+delegateTask :: (Task a) HtmlTime -> (Task a) | iData a
+delegateTask task time 
 =					[Text "Choose persons you want to delegate work to:",BrTag [],BrTag []] 
 					?>>	determineSet [] 
 	=>> \people -> 	delegateToSomeone task people 
@@ -50,7 +57,7 @@ where
 //		stopTask3		= stopTask -||- timerStop time -||- (0 @::> stopTask)	// alternative : now also a timer can stop the work	
 
 		timerStop time	= waitForTimerTask time #>> return_V True
-
+*/
 determineSet :: [UserID] -> Task [UserID]
 determineSet people = newTask "determineSet" determineSet`
 where

@@ -10,6 +10,7 @@ import TravelBooking
 //Higher order examples
 import MovingTask
 import DeadlineTask
+import DelegateTask
 
 //Miscellaneous examples
 import Coffeemachine
@@ -25,6 +26,7 @@ where
 						, travelBookingExample
 						, movingTaskExample
 						, deadlineTaskExample
+						, delegateTaskExample
 						, coffeemachineExample
 						, newsgroupsExample
 						, exceptionHandlingExample
