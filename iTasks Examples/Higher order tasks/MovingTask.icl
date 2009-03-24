@@ -1,11 +1,7 @@
-module movingTask
+implementation module MovingTask
 
-import StdEnv, iTasks, iDataTrivial
-from ProcessDB import :: ProcessStatus, Suspended, Active, Deleted, Finished
-
-// (c) MJP 2007
-
-// Just a scratch file to test the different combinators in the iTasks library
+import iTasks, iDataTrivial
+from ProcessDB import :: ProcessStatus(..)
 
 derive gForm 	QForm, Person, Gender
 derive gUpd 	QForm, Person, Gender
@@ -26,26 +22,28 @@ derive gPrint 	QForm, Person, Gender
 			}
 :: Gender = Male | Female
 
-Start world = startEngine [myWorkflow] world
-
-myWorkflow
-=	{	name		= "movingTask"
+movingTaskExample :: [Workflow]
+movingTaskExample
+= [ {	name		= "Examples/Higher order tasks/Moving task"
 	,	label		= "movingTask"
 	,	roles		= []
-	,	mainTask	= movingTask ("Task which can be moved", [Text "Please fill in quotation:"] ?>> fillInForm createDefault)
+	,	mainTask	= movingTask ("Task which can be moved", trivialTask )
 	}
+  ]
 
-fillInForm :: QForm -> (Task QForm)
+trivialTask :: Task QForm
+trivialTask = [Text "Please fill in quotation:"] ?>> fillInForm createDefault
+
+fillInForm :: QForm -> Task QForm
 fillInForm form	
 = 					editTask "commit" form 
 	=>> \form ->	chooseTask [Text "Is everything filled in correctly?", toHtml form] 
-						 [("Yes, commit", return_V form) 
+						 [("Yes, commit", return form) 
 						 ,("No", fillInForm form)
 						 ] 
 
 OK 	= button "OK" True
 NOK = button "OK" False
-
 
 movingTask labeltask
 =					newmove
@@ -64,12 +62,12 @@ where
 						,("delete it",	delete wid)
 						,("wait for it",waitForIt wid)
 						] 
-					=>> \finished -> if finished (return_V Void) (inspect wid)
+					=>> \finished -> if finished (return Void) (inspect wid)
 
 	getStatus wid
 	=						getProcessStatus wid
 		=>> \st	->			getProcessOwner wid
-		=>> \mbOwner ->		if (isNothing mbOwner) (return_V ["???"]) (getUserNamesTask [(fromJust mbOwner)])
+		=>> \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (getUserNamesTask [(fromJust mbOwner)])
 		=>> \names ->		case st of
 								Finished	-> [Text "It is finished"] ?>> OK
 								Deleted		-> [Text "It is deleted"]  ?>> OK		
@@ -88,12 +86,12 @@ where
 
 	delete wid
 	=						deleteProcess wid 
-		#>> 				return_V True				
+		#>> 				return True				
 
 	reassign wid
 	=						selectUser "Who is next?"
 		=>> \who ->			setProcessOwner who wid 
-		#>> 				return_V False
+		#>> 				return False
 
 	waitForIt wid
 	=						[Text "Waiting for the result..."]
@@ -107,5 +105,5 @@ selectUser prompt
 	= 						getUsersIds
 		=>> \userIds ->		getUserNamesTask userIds
 		=>> \names ->		chooseTask_pdm [Text prompt] 0
-								[(name, return_V userId) \\ userId <- userIds & name <- names]
+								[(name, return userId) \\ userId <- userIds & name <- names]
 

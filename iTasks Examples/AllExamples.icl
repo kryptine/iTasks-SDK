@@ -7,6 +7,10 @@ import Vote
 import Purchase
 import TravelBooking
 
+//Higher order examples
+import MovingTask
+import DeadlineTask
+
 //Miscellaneous examples
 import Coffeemachine
 import Newsgroups
@@ -19,6 +23,8 @@ where
 	workflows = flatten [ voteExample
 						, purchaseExample
 						, travelBookingExample
+						, movingTaskExample
+						, deadlineTaskExample
 						, coffeemachineExample
 						, newsgroupsExample
 						, exceptionHandlingExample

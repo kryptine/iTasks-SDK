@@ -1,4 +1,4 @@
-module deadline
+implementation module DeadlineTask
 
 import iTasks, iDataTrivial
 import StdClass, StdEnum, StdList
@@ -10,18 +10,19 @@ import StdClass, StdEnum, StdList
 // If the task is not finished on time, the task will be shipped back to the original user who has to do it instead
 // It is also possible that the user becomes impatient and he can cancel the delegated task even though the deadline is not reached
 
-
 npersons = 6
 
-Start world = startEngine [delegateWorkflow] world
+deadlineTaskExample :: [Workflow]
+deadlineTaskExample
+= [ { name	= "Examples/Higher order tasks/Deadline task"
+	, label	= "Do task before deadline"
+	, roles	= []
+	, mainTask	= deadline trivialTask >>| return Void
+	}
+  ] 
 
-delegateWorkflow =	{ name	= "deadline"
-					, label	= "deadline work"
-					, roles	= []
-					, mainTask	= deadline mytask #>> return_V Void
-					} 
-
-mytask = editTask "OK" 0 <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
+trivialTask :: Task Int
+trivialTask = editTask "OK" 0 <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
 
 deadline :: (Task a) -> Task a | iData a
 deadline task
@@ -32,12 +33,12 @@ deadline task
 	=>> \time ->	[Text "Cancel delegated work if you are getting impatient:",BrTag [],BrTag []] 
 					?>> (delegateTask (toInt whom) time task
 					-||-
-					buttonTask "Cancel" (return_V Nothing))
+					buttonTask "Cancel" (return Nothing))
 	=>> 			CheckDone
 where
 	CheckDone (Just value)
 	=	[Text ("Result of task: " +++ printToString value),BrTag [],BrTag []] 
-			?>>	buttonTask "OK" (return_V value)
+			?>>	buttonTask "OK" (return value)
 	CheckDone nothing
 	=	[Text "Task expired or canceled, you have to do it yourself!",BrTag [],BrTag []] 
 			?>>	buttonTask "OK" task
@@ -47,8 +48,8 @@ where
 	where
 		mytask
 		=			(			waitForTimerTask time 
-					#>> 		return_V Nothing)									// return nothing
+					>>| 		return Nothing)									// return nothing
 		 			-||-
 		  			(			[Text ("You have to complete the task in " <+++ time <+++ " time"),BrTag [],BrTag []] 	// tell deadline
 								?>> task 
-					=>> \v -> 	return_V (Just v))				// do task and return its result
+					>>= \v -> 	return (Just v))				// do task and return its result
