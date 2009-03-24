@@ -42,7 +42,7 @@ derive gPrint 	QForm, Review, Person, Gender
 
 reviewTaskExample :: [Workflow]
 reviewTaskExample
-= [	{	name		= "quotation"
+= [	{	name		= "Examples/Higher order/Review task"
 	,	label		= "Review the results of a task"
 	,	roles		= []
 	,	mainTask	= reviewtask >>| return Void

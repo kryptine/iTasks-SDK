@@ -24,8 +24,8 @@ derive gPrint 	QForm, Person, Gender
 
 movingTaskExample :: [Workflow]
 movingTaskExample
-= [ {	name		= "Examples/Higher order tasks/Moving task"
-	,	label		= "movingTask"
+= [ {	name		= "Examples/Higher order/Moving task"
+	,	label		= "Suspend,Activate or move a task"
 	,	roles		= []
 	,	mainTask	= movingTask ("Task which can be moved", trivialTask )
 	}

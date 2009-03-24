@@ -14,7 +14,7 @@ npersons = 6
 
 deadlineTaskExample :: [Workflow]
 deadlineTaskExample
-= [ { name	= "Examples/Higher order tasks/Deadline task"
+= [ { name	= "Examples/Higher order/Deadline task"
 	, label	= "Do task before deadline"
 	, roles	= []
 	, mainTask	= deadline trivialTask >>| return Void

@@ -20,7 +20,7 @@ delegateTaskExample :: [Workflow]
 delegateTaskExample
 = []
 /*
-= [	{ name	= "Examples/Higher order tasks/Delegate task"
+= [	{ name	= "Examples/Higher order/Delegate task"
 	, label = "Delegated task"
 	, roles	= []
 	, mainTask = displayHtml foreverTask (delegateTask trivialTask (HtmlTime 0 3 0))
