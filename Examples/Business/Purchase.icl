@@ -47,7 +47,7 @@ purchaseTask =
 definePurchase :: Task Purchase
 definePurchase = 
 	[Text "Please describe the product you would like to purchase"]
-	?>> editTask "Done" createDefault
+	?>> edit ok snd createDefault
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers

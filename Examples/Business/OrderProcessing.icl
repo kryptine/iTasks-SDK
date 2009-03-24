@@ -137,6 +137,3 @@ failedDelivery :: Basket Address -> Task Void
 failedDelivery basket address =
   [Text ("Your order " <+++ basket <+++ " cannot be delivered to " <+++ address <+++ ".")]
     ?>> ok
-
-ok :: Task Void
-ok = editTask "Ok" Void

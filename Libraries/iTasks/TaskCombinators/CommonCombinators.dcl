@@ -117,3 +117,13 @@ andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a]	-> Task [a] 	| iData a
 waitForTimerTask:: Task is done when specified amount of time has passed 
 */
 waitForTimerTask:: !HtmlTime								-> Task HtmlTime
+
+//Misc
+ok				:: Task Void
+yes				:: Task Bool
+no				:: Task Bool
+
+transform 		:: (a -> b) a -> Task b | iData b
+
+edit			:: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
+view			:: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c

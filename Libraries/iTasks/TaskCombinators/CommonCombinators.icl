@@ -89,7 +89,7 @@ chooseTask_cbox order prompt code_ltasks
 // choose one or more tasks on forehand out of a set
 
 button :: !String !a -> (Task a) | iData a
-button s a = chooseTask_btn [] [(s,return_V a)]
+button s a = chooseTask_btn [] [(s,return a)]
 
 buttonTask :: !String !(Task a) -> (Task a) | iData a
 buttonTask s task = chooseTask_btn [] [(s,task)]
@@ -210,3 +210,39 @@ where
 	=						appHSt "getTimeAndDate" getTimeAndDate
 		=>> \(ctime,_) ->  	waitForTimeTask (ctime + time)
 
+//Misc
+ok :: Task Void
+ok = button "Ok" Void
+
+yes	:: Task Bool
+yes = button "Yes" True
+
+no :: Task Bool
+no = button "No" True
+
+transform :: (a -> b) a -> Task b | iData b
+transform f x = return (f x)
+
+edit :: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
+edit finishTask endTransform val = mkParallelTask "edit" edit`
+where
+	edit` tst
+		# (b,tst)	= accTaskTSt (mkSequenceTask "edit-form" form) {tst & activated = True}
+		# (a,tst)	= accTaskTSt (mkSequenceTask "edit-finish" finish) {tst & activated = True}
+		= (endTransform (a,b), tst)
+	
+	form tst
+		= accTaskTSt (mkBasicTask "edit-editor" editor) tst
+	
+	editor tst =:{taskNr,hst}
+		# editorId		= iTaskId taskNr "editor"
+		# (editor,hst) 	= mkEditForm  (Init, cFormId tst.options editorId val) hst
+		# tst			= setOutput editor.form {tst & hst = hst}
+		# tst			= setInputs editor.inputs tst
+		= (editor.Form.value, {tst & activated = False})
+	
+	finish tst
+		= accTaskTSt finishTask tst
+
+view :: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
+view finishTask f x = return createDefault

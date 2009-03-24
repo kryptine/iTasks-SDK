@@ -28,4 +28,5 @@ import	Engine						// basic iTask system creator
 	,	StdString
 	,	StdList
 	,	StdOrdList
+	,	StdTuple
 	,	StdOverloaded
