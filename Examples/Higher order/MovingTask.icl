@@ -13,7 +13,7 @@ derive gPrint 	QForm, Person, Gender
 			, endDate 			:: HtmlDate
 			, estimatedHours 	:: Int
 			, description		:: HtmlTextarea
-			, price				:: Int 	
+			, price				:: HtmlCurrency 	
 			}
 :: Person = { firstName			:: String
 			, surname			:: String
