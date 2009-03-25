@@ -2,8 +2,9 @@ definition module iTasksDB
 /**
 * Simple database tasks for local storage of data using iData.
 */
-import TSt
-
+from TSt 			import :: Task 
+from StdOverloaded	import class ==, class <
+import iDataForms
 
 DB_PREFIX 	:== "iDBase-"
 

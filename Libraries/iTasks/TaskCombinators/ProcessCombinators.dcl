@@ -5,8 +5,11 @@ definition module ProcessCombinators
 */
 
 import StdMaybe
-import TSt
-from ProcessDB import :: ProcessStatus
+from TSt		import :: Task, :: LabeledTask
+from ProcessDB	import :: ProcessStatus
+from Types		import :: UserId
+
+import iDataForms
 
 derive gForm ProcessReference
 derive gUpd ProcessReference

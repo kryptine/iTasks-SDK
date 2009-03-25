@@ -3,10 +3,11 @@ implementation module BasicCombinators
 import StdList, StdArray, StdTuple, StdMisc
 from StdFunc import id, const
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
+import TSt
 import DrupBasic
 import iDataTrivial, iDataFormlib
 import LiftingCombinators, ClientCombinators
-import Util
+import Util, Time
 import GenBimap
 
 derive gForm 	Time
@@ -110,7 +111,7 @@ delegate :: !UserId !(LabeledTask a) -> Task a | iData a
 delegate newUserId (label,task) = Task delegate` 
 where
 	delegate` tst =:{TSt | userId = currentUserId, delegatorId = currentDelegatorId}
-		# tst		= addUser newUserId tst 
+		# tst		= addAdditionalUser newUserId tst 
 		# (a, tst)	= accTaskTSt (mkSequenceTask label (accTaskTSt task)) {TSt | tst & userId = newUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 

@@ -1,6 +1,6 @@
 implementation module LiftingCombinators
 
-import UITasks, BasicCombinators, CommonCombinators
+import TSt, UITasks, BasicCombinators, CommonCombinators
 import Util
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)

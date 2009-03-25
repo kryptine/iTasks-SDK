@@ -22,7 +22,7 @@ import	Engine						// basic iTask system creator
 	,	ClientCombinators			// Delegating tasks to the client
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap
-	
+
 	//StdEnv modules
 	,	StdInt
 	,	StdString
@@ -30,3 +30,8 @@ import	Engine						// basic iTask system creator
 	,	StdOrdList
 	,	StdTuple
 	,	StdOverloaded
+	
+//Types
+import Types
+from TSt		import :: Workflow{..}
+from TaskTree	import :: TaskCombination(..)

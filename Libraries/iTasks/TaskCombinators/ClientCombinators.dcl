@@ -5,7 +5,11 @@ definition module ClientCombinators
 * workflow code to an interpreter running in the client framework
 */
 
-import TSt
+from TSt	import :: Task
+from Types	import :: EvaluationOption
+
+from iDataSettings	import class iCreateAndPrint, class iParse, class iSpecialStore, class iData
+import iDataForms
 
 class (@>>) infixl 7 b ::  !b !(Task a) -> Task a | iData a	
 instance @>>		  EvaluationOption				

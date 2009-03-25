@@ -113,7 +113,7 @@ where
 		  fillInClientInfo {order & itemsOrdered = cart} =>> \order ->
 		  yesOrNo [DivTag [] (costOrder order),normalText "Confirm Order"]
 		    (dbUpdateItem order #>>
-			 getMyName =>> \(myid,me) ->			
+			 getCurrentUser =>> \(myid,me) ->			
 			 spawnProcess myid      True ("Order Confirmed",        [toHtml order:costOrder order] ?>> OK) #>>	
 			 spawnProcess shopOwner True ("New Order from " <+++ me,[toHtml order:costOrder order] ?>> OK) #>>	
 			 return Void)

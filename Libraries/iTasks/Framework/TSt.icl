@@ -3,7 +3,7 @@ implementation module TSt
 import StdEnv, StdMaybe
 import HSt, Util
 import iDataFormlib
-import ProcessDB, TaskTree
+import ProcessDB, SessionDB, TaskTree
 
 //TODO: Create a better dynamic_string module with option for evaluating
 //      a graph as far as possible to save a closure that is as small as
@@ -135,7 +135,7 @@ buildProcessTree {Process | id, label, owner, delegator, status, process} tst
 	# tst								= setTaskTree (TTProcess {processId = id, processLabel = label, userId = owner, delegatorId = delegator, status = status} []) tst	
 	# (result,tst)						= applyMainTask process tst
 	# (TTProcess info sequence, tst)	= getTaskTree tst
-	# (users, tst)						= getUsers tst
+	# (users, tst)						= getAdditionalUsers tst
 	# (finished, tst)					= taskFinished tst
 	# (_,tst)							= accHStTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst
 	# tst								= garbageCollect finished id tst
@@ -204,11 +204,11 @@ getWorkflowByName name tst
 		[workflow]	= (Just workflow, tst)
 		_			= (Nothing,tst)
 
-addUser :: !UserId !*TSt -> *TSt
-addUser uid tst = {TSt | tst & users = [uid:tst.TSt.users]}
+addAdditionalUser :: !UserId !*TSt -> *TSt
+addAdditionalUser uid tst = {TSt | tst & users = [uid:tst.TSt.users]}
 
-getUsers :: !*TSt -> (![UserId],!*TSt)
-getUsers tst=:{TSt|users} = (users,tst) 
+getAdditionalUsers :: !*TSt -> (![UserId],!*TSt)
+getAdditionalUsers tst=:{TSt|users} = (users,tst) 
 
 addNewProcess :: !ProcessId !*TSt -> *TSt
 addNewProcess pid tst = {tst & newProcesses = [pid:tst.newProcesses]}

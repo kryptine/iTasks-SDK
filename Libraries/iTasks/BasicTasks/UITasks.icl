@@ -2,6 +2,7 @@ implementation module UITasks
 
 import StdList, StdTuple, StdFunc, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
+import TSt
 import TuningCombinators
 import Util
 

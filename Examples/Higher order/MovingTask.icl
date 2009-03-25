@@ -67,7 +67,7 @@ where
 	getStatus wid
 	=						getProcessStatus wid
 		=>> \st	->			getProcessOwner wid
-		=>> \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (getUserNamesTask [(fromJust mbOwner)])
+		=>> \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (getUserNames [(fromJust mbOwner)])
 		=>> \names ->		case st of
 								Finished	-> [Text "It is finished"] ?>> OK
 								Deleted		-> [Text "It is deleted"]  ?>> OK		
@@ -102,8 +102,7 @@ where
 	
 selectUser :: !String -> Task Int
 selectUser prompt
-	= 						getUsersIds
-		=>> \userIds ->		getUserNamesTask userIds
-		=>> \names ->		chooseTask_pdm [Text prompt] 0
-								[(name, return userId) \\ userId <- userIds & name <- names]
+	= 						getUsers
+		=>> \users ->		chooseTask_pdm [Text prompt] 0
+								[(name, return userId) \\ (userId,name) <- users]
 

@@ -12,7 +12,14 @@ implementation module Purchase
 * - A confirmation is sent to the selected supplier
 */
 
-import StdList, StdOrdList, iTasks, iData
+import iTasks
+
+//Additional imports for custom combinator creation
+from TSt 		import accTaskTSt, setCombination, mkSequenceTask, mkParallelTask
+from TSt 		import :: TSt{..}, :: StaticInfo{..}, :: Options{..}
+from SessionDB	import :: Session
+from Types		import :: ProcessId, :: TaskNr
+from TaskTree	import :: TaskTree
 
 //Main types
 :: Purchase	=	{	name	:: !String
@@ -51,7 +58,7 @@ definePurchase =
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
-	= getUsersWithRoleTask "supplier" =>> \suppliers ->
+	= getUsersWithRole "supplier" =>> \suppliers ->
 	  ( mchoiceAndTasks
 	  		[Text "Select the suppliers from which you want to receive a bid"]
 	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]

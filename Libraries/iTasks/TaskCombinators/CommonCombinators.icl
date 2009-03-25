@@ -5,7 +5,13 @@ implementation module CommonCombinators
 */
 import StdList, StdTuple
 import iDataTrivial, iDataFormlib
+from TSt	import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
+from TSt	import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
+from Types	import :: ProcessId
+from SessionDB	import :: Session
+from TaskTree	import :: TaskTree, :: TaskCombination(..)
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
+
 import Util
 
 derive read		Maybe
@@ -51,9 +57,9 @@ where
 (@:) nuserId ltask=:(taskname,task) = mkSequenceTask "@:" assigntask
 where
 	assigntask tst=:{TSt| userId} = accTaskTSt (
-			getDisplayNamesTask [nuserId] =>> \displayNames ->
+			getUser nuserId =>> \(_,displayName) ->
 			
-			[Text "Waiting for Task ", ITag [] [Text taskname], Text " from ", ITag [] [Text (hd displayNames)], BrTag []]
+			[Text "Waiting for Task ", ITag [] [Text taskname], Text " from ", ITag [] [Text displayName], BrTag []]
 			?>>
 			assignTaskTo nuserId (taskname,task)
 		) tst

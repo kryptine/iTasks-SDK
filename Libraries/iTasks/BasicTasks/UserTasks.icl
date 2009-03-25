@@ -1,29 +1,54 @@
 implementation module UserTasks
 
-import TSt
-import UserDB
-import BasicCombinators, LiftingCombinators
+from TSt import :: Task
+from TSt import accHStTSt, mkBasicTask
+from TSt import qualified getCurrentUser
+import StdList
+from UserDB import qualified class UserDB (..)
+from UserDB import qualified instance UserDB HSt
 
-getDisplayNamesTask :: ![Int] -> Task [String]
-getDisplayNamesTask uids
-	= appHSt "getDisplayNamesTask" (getDisplayNames uids)
+import BasicCombinators, LiftingCombinators, UITasks
 
-getUserNamesTask :: ![Int] -> Task [String]
-getUserNamesTask uids
-	= appHSt "getUserNamesTask" (getUserNames uids)
+getCurrentUser :: Task (UserId, String)
+getCurrentUser
+	= mkBasicTask "getCurrentUserId" getCurrentUser`
+where
+	getCurrentUser` tst
+		# (cur,tst)	= TSt@getCurrentUser tst
+		= accHStTSt (UserDB@getUser cur) tst
 
-getRolesTask :: ![Int]	-> Task [[String]]
-getRolesTask uids
-	= appHSt "getRolesTask" (getRoles uids)
+getUser :: !UserId -> Task (UserId,String)
+getUser uid
+	= appHSt "getUser" (UserDB@getUser uid)
+
+getUsers :: Task [(UserId,String)]
+getUsers
+	= appHSt "getUsers" UserDB@getUsers
+
+getUsersWithRole :: !String	-> Task [(UserId,String)]
+getUsersWithRole role
+	= appHSt "getUsersWithRole" (UserDB@getUsersWithRole role)
 	
-getUsersWithRoleTask :: !String	-> Task [(Int,String)]
-getUsersWithRoleTask role
-	= appHSt "getUsersWithRoleTask" (getUsersWithRole role)
+getDisplayNames :: ![UserId] -> Task [String]
+getDisplayNames uids
+	= appHSt "getDisplayNames" (UserDB@getDisplayNames uids)
 
-getUsersIds	:: Task [Int]
-getUsersIds
-	= appHSt "getUsersIds" getUserIds
+getUserNames :: ![UserId] -> Task [String]
+getUserNames uids
+	= appHSt "getUserNames" (UserDB@getUserNames uids)
+
+getRoles :: ![UserId]	-> Task [[String]]
+getRoles uids
+	= appHSt "getRoles" (UserDB@getRoles uids)
 	
-getCurrentUserId :: Task Int
-getCurrentUserId
-	= mkBasicTask "getCurrentUserId" getCurrentUser
+chooseUser :: Task (UserId,String)
+chooseUser
+	= 				getUsers
+	>>= \users ->	selectWithPulldown [name \\ (userId,name) <- users] 0
+	>>= \chosen ->	return (users !! chosen)
+	
+chooseUserWithRole :: !String -> Task (UserId,String)
+chooseUserWithRole role
+	= 				getUsersWithRole role
+	>>= \users ->	selectWithPulldown [name \\ (userId,name) <- users] 0
+	>>= \chosen ->	return (users !! chosen)

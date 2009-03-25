@@ -124,24 +124,24 @@ getWorkflows :: !*TSt -> (![Workflow],!*TSt)
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
 
 /**
-* Adds a user working on some part of the current task
+* Adds an additonal user other than the task owner working on some part of the task
 *
 * @param the new user id
 * @param the task state
 *
 * @return the modified task state
 */
-addUser :: !UserId !*TSt -> *TSt
+addAdditionalUser :: !UserId !*TSt -> *TSt
 
 /**
-* Retrieves the list of users working on some task
+* Retrieves the list of users other than the task owner working on some workflow
 *
 * @param the task state
 * 
 * @return The list of users
 * @return The modified task state
 */
-getUsers :: !*TSt -> (![UserId],!*TSt)
+getAdditionalUsers :: !*TSt -> (![UserId],!*TSt)
 
 /**
 * Adds the id of a newly created process to the list

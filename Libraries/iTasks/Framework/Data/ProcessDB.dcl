@@ -4,7 +4,8 @@ definition module ProcessDB
 * 
 */
 import StdMaybe
-import Types, HSt, TSt
+import Types, HSt
+from TSt import :: Workflow
 
 /**
 * Our local process type

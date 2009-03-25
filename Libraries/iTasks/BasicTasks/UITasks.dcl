@@ -1,6 +1,9 @@
 definition module UITasks
 
-import TSt
+import iDataSettings
+
+from TSt			import :: Task
+from Html			import :: HtmlTag
 
 /* 
 editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task

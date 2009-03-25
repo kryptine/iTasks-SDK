@@ -27,10 +27,22 @@ initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", passw
 			  
 instance UserDB HSt
 where
-	getUserIds :: !*HSt -> (![Int], !*HSt)
-	getUserIds hst
+	getUser :: !Int !*HSt -> (!(Int,String),!*HSt)
+	getUser uid hst
 		# (users, hst)		= userStore id hst
-		= ([user.userId \\ user <- users], hst)
+		= case [(user.userId, user.displayname) \\ user <- users | user.userId == uid] of
+			[x] = (x,hst)
+			_	= ((-1, "Unknown user"),hst)
+
+	getUsers :: !*HSt -> (![(Int,String)], !*HSt)
+	getUsers hst
+		# (users, hst)		= userStore id hst
+		= ([(user.userId, user.displayname) \\ user <- users], hst)
+
+	getUsersWithRole :: !String !*HSt -> (![(Int,String)], !*HSt)
+	getUsersWithRole role hst
+		# (users, hst)		= userStore id hst
+		= ([(user.userId,user.displayname) \\ user <- users | isMember role user.roles], hst)		
 
 	getDisplayNames	:: ![Int] !*HSt -> (![String], !*HSt)
 	getDisplayNames	uids hst
@@ -46,11 +58,6 @@ where
 	getRoles uids hst
 		# (users, hst)		= userStore id hst
 		= (map (lookupUserProperty users (\u -> u.roles) []) uids, hst)
-
-	getUsersWithRole :: !String !*HSt -> (![(Int,String)], !*HSt)
-	getUsersWithRole role hst
-		# (users, hst)		= userStore id hst
-		= ([(user.userId,user.displayname) \\ user <- users | isMember role user.roles], hst)		
 
 	authenticateUser :: !String !String	!*HSt -> (!Maybe (Int,String,[String]), !*HSt)
 	authenticateUser username password hst

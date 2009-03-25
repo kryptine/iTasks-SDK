@@ -2,8 +2,11 @@ definition module PromptingCombinators
 /**
 * This module provides some combinators for displaying information along with tasks
 */
-import TSt, iDataWidgets
+from TSt 	import :: Task
+from Html	import :: HtmlTag
+from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
 
+import iDataForms
 /*
 Prompting variants:
 (?>>)			:: prompt as long as task is active but not finished

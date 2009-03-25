@@ -38,7 +38,7 @@ voteExample = [{ name		= "Examples/Business/Vote/Show votes"
 showVotes :: Task Void
 showVotes
 =  						readVotesDB
-	>>=	\votes 		-> 	getDisplayNamesTask [vote.Vote.userId \\ vote <- votes]
+	>>=	\votes 		-> 	getDisplayNames [vote.Vote.userId \\ vote <- votes]
 	>>= \userNames	->	[ Text "The following votes are given:", BrTag [], BrTag []
 						, formatVotes	[(toString i) 					\\ i <- [0..10]]
 										[(toString (number i votes))	\\ i <- [0..10]]
@@ -57,8 +57,8 @@ where
 	
 giveVote :: Task Void
 giveVote 
-=							getCurrentUserId
-	>>= \currentUser	->	readMyVoteDB currentUser
+=							getCurrentUser
+	>>= \(currentUser,_)->	readMyVoteDB currentUser
 	>>= \(vote,comment) ->	chooseTask 
 								[ Text ("Previous vote given:" <+++ if (vote == -1) "No vote given" (toString vote)), BrTag [], BrTag []
 								, Text "Give your new vote (0 = lowest, 10 = highest)", BrTag [], BrTag []]
@@ -70,8 +70,8 @@ giveVote
 
 giveComment :: Task Void
 giveComment
-=							getCurrentUserId
- 	>>= \currentUser	->	readMyVoteDB currentUser
+=							getCurrentUser
+ 	>>= \(currentUser,_)->	readMyVoteDB currentUser
 	>>= \(vote,comment) ->	[ Text "Previous comment given:", BrTag [], BrTag []
 							, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
 							, Text "Submit a new comment:", BrTag [], BrTag []] 

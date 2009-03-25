@@ -73,8 +73,8 @@ internalEmail2 :: (Task Void)
 internalEmail2
 =							[Text "Type your email message ..."] 
 							?>>	editTask "Send" createDefault
-	=>> \msg ->				msg.to` @: (msg.EMail2.subject`, [toHtml msg] ?>> OK)
-	#>>						[Text "Mail has been read." ] ?>> OK
+	=>> \msg ->				msg.to` @: (msg.EMail2.subject`, [toHtml msg] ?>> ok)
+	#>>						[Text "Mail has been read." ] ?>> ok
 
 
 
@@ -84,7 +84,7 @@ internalEmailResponse :: (Task Void)
 internalEmailResponse = Cancel internalEmailResponse`
 where
 	internalEmailResponse`
-	=							getMyName
+	=							getCurrentUser
 		>>= \(me,myname) ->		getToNames
 		>>= \tos ->				[Text "Type your message ..."] 
 								?>>	editTask "Commit" (initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
@@ -101,17 +101,17 @@ where
 										)
 			>>= \(HtmlTextarea _ reply)
 						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
-									  , showMSg (initMsg myname toname ("RE: " <+++ msg.subject) reply) ?>> OK 
+									  , showMSg (initMsg myname toname ("RE: " <+++ msg.subject) reply) ?>> ok 
 									  )
 
 	
 internalEmail :: (Task Void)
 internalEmail
-=							getMyName
+=							getCurrentUser
 	>>= \(me,myname) ->		getToName
 	>>= \(to,toname) ->		[Text "Type your message ..."] 
 							?>>	editTask "Commit" (initMsg toname myname "" "")
-	>>= \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> OK))
+	>>= \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> ok))
 
 initMsg to for subject msg 
 = {to = DisplayMode to, mailFrom = DisplayMode for, subject = subject , message = HtmlTextarea 4 msg}
@@ -145,7 +145,7 @@ where
 showNewsGroups :: (Task Void)
 showNewsGroups
 =						readNewsGroups
-	>>=	\groups	->		showCurrentNames groups ?>> OK 
+	>>=	\groups	->		showCurrentNames groups ?>> ok 
 
 showCurrentNames []		= [ Text "No names in catalogue yet !", BrTag [],BrTag []] 
 showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
@@ -154,13 +154,12 @@ showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
 
 subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
-=						getCurrentUserId
-	>>= \me ->			getDisplayNamesTask [me]
-	>>= \names ->      	readNewsGroups 
-	>>= 				subscribe me (hd names)
+=						getCurrentUser
+	>>= \(me,name) ->	readNewsGroups 
+	>>= 				subscribe me name
 where
 	subscribe me myname []
-	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> OK 
+	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> ok 
 	subscribe me myname groups
 	=						[Text "Choose a group:", BrTag [],BrTag []] ?>> selectWithPulldown groups 0  
 		>>= \index	->		return_V (groups!!index)
@@ -213,12 +212,12 @@ where
 	show i (who, name, message) 
 	= 	[ Text ("Message : " <+++ i), BrTag []
 		, Text ("From    : " <+++ name) , BrTag [], HrTag []
-		, Text message ] ?>> OK
+		, Text message ] ?>> ok
 		
 
 	commitItem :: String -> Task Void
 	commitItem  group
-	=								getMyName
+	=								getCurrentUser
 		>>= \(me,name) ->      		commit me name group
 	where
 		commit me name group
@@ -227,13 +226,9 @@ where
 		 >>= \(HtmlTextarea _ val) -> 	readNewsGroup  group 
 		 >>= \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
 		 #>>							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
-									?>> OK
+									?>> ok
 
-getMyName
-=					getCurrentUserId
-	>>= \userid ->	getDisplayNamesTask [userid]
-	>>= \names -> 	return_V (userid, hd names)     			
-
+			
 getToNames = getToNames` []
 where
 	getToNames` names 	
@@ -247,13 +242,10 @@ where
 
 getToName ::  (Task (Int,String))
 getToName 
-= 						getUsersIds
-	>>= \userIds ->		getUserNamesTask userIds
-	>>= \names ->		chooseTask_pdm [Text "Select user to mail a message to: "] 0
-							[(name, return_V (userId,name)) \\ userId <- userIds & name <- names]
+= 						getUsers
+	>>= \users ->		chooseTask_pdm [Text "Select user to mail a message to: "] 0
+							[(name, return_V (userId,name)) \\ (userId,name) <- users]
 
-OK :: Task Void
-OK = editTask "OK" Void
 
 Cancel :: (Task a) -> Task a | iData a
 Cancel task

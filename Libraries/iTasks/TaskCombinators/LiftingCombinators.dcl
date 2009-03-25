@@ -2,7 +2,9 @@ definition module LiftingCombinators
 /*
 * Some iTasks combinators for lifting other domains to the iTask domain:
 */
-import TSt
+from TSt	import :: Task, :: TSt
+
+import iDataFormlib
 
 /* 
 (*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 

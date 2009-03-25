@@ -4,6 +4,7 @@ definition module WorkTabHandler
 * content of the "work tabs". These are the collections of tasks
 * that are combined as a single unit of work in the user interface.
 */
-import Http, TSt
+from TSt 	import :: TSt
+from Http	import :: HTTPRequest, :: HTTPResponse
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

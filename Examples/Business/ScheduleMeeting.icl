@@ -24,11 +24,8 @@ scheduleMeetingExample
 findDate :: Task (HtmlDate,HtmlTime)
 findDate
 =						[Text "Choose person you want to schedule a meeting with:",BrTag []] 
-						?>>	editTask "Set" (HtmlSelect [(toString i,toString i) \\ i <- [1..npersons - 1]] (toString 1))
-	=>> \(HtmlSelect _ whomPD) ->		
-						let whom = toInt whomPD
-						in
-						[Text "Determining date:",BrTag [],BrTag []] 
+						?>>	chooseUser
+	=>> \(whom,name) ->	[Text "Determining date:",BrTag [],BrTag []] 
 						?>>	findDate` whom (HtmlDate 1 1 2007,HtmlTime 9 0 0) 
 	=>> \datetime	->	[] 
 						?>> confirm 0 whom datetime -&&- confirm whom 0 datetime 

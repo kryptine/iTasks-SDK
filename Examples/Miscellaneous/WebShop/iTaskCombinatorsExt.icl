@@ -16,8 +16,3 @@ orTasksVert items			= orTasksV [(toString i,item) \\ item <- items & i <- [0..]]
 
 OK :: Task Void
 OK							= editTask "OK" Void
-
-getMyName :: Task (Int,String)
-getMyName					= getCurrentUserId             =>> \userid ->
-							  getDisplayNamesTask [userid] =>> \names  ->
-							  return (userid, hd names)     			

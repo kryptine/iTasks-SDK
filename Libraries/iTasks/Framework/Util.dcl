@@ -1,8 +1,9 @@
 definition module Util
 
-import Time
-import Html
-import TSt
+from TSt 			import :: Task, :: Options
+from Types			import :: GarbageCollect, :: TaskNr
+from StdOverloaded	import class ==, class <
+import iDataForms
 
 derive gForm 	Task						
 derive gUpd 	Task

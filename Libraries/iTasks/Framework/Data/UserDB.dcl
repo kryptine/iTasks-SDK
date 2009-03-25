@@ -16,13 +16,31 @@ import HSt
 class UserDB st
 where
 	/**
-	* getUserIds fetches all user ids from the user database
+	* Fetches the id and display name from the user database for a given user id.
 	*
+	* @param A user id
 	* @param A unique user database handle
-	* @return The list of all user ids
+	* @return The user id and display name combination
 	* @return The database handle
 	*/
-	getUserIds 			:: 					!*st -> (![Int]							, !*st)
+	getUser				::	!Int			!*st -> (!(Int,String)					, !*st)
+	/**
+	* Fetches the id and display name of all users from the from the user database.
+	*
+	* @param A unique user database handle
+	* @return The list of all user id and display name combinations
+	* @return The database handle
+	*/
+	getUsers 			:: 					!*st -> (![(Int,String)]				, !*st)
+	/**
+	* Finds a list of users that have a certain role.
+	*
+	* @param The role to look for
+	* @param A unique user database handle
+	* @return A list of user id/ display name tuples
+	* @return The database handle
+	*/
+	getUsersWithRole	:: !String			!*st -> (![(Int,String)]				, !*st)
 	/**
 	* Maps a list of user ids to a list of display names. Display names are strings which
 	* are suited for displaying directly in a user interface. For example "John Doe".
@@ -54,15 +72,6 @@ where
 	* @return The database handle 
 	*/
 	getRoles			:: ![Int]			!*st -> (![[String]]					, !*st)
-	/**
-	* Finds a list of users that have a certain role.
-	*
-	* @param The role to look for
-	* @param A unique user database handle
-	* @return A list of user id/ display name tuples
-	* @return The database handle
-	*/
-	getUsersWithRole	:: !String			!*st -> (![(Int,String)]				, !*st)
 	/**
 	* Authenticate a user based on a user name or password
 	*
