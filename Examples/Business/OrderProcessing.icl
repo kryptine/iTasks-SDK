@@ -29,17 +29,17 @@ orderPlacement :: UserId -> Task Void
 orderPlacement user =
   customer @:> ( "Order items from shop"
                , orderItemsFromShop -&&- fillInAndCheckCreditCard createDefault
-               ) =>> \(basket, cardInfo) ->
+               ) >>= \(basket, cardInfo) ->
   customer @:> ( "Order confirmation"
                , confirmOrder
-               ) #>> 
+               ) >>| 
   bank     @:> ("Cash request"
                , cashRequest (amountFrom basket) cardInfo
-               ) =>> \granted ->
+               ) >>= \granted ->
   if granted
     (storage  @:> ( "Deliver order"
                   , deliverOrder basket (deliveryAddress cardInfo)
-                  ) #>>
+                  ) >>|
      customer @:> ( "Delivery confirmation"
                   , confirmDelivery basket (deliveryAddress cardInfo)
                   )
@@ -51,13 +51,13 @@ orderPlacement user =
 									  
 fillInAndCheckCreditCard :: CardInfo -> Task CardInfo
 fillInAndCheckCreditCard cardInfo =
-  fillInCreditCard cardInfo =>> \cardInfo ->
+  fillInCreditCard cardInfo >>= \cardInfo ->
   creditcard @: ( "Validate credit card"
                 , validateCreditCard cardInfo
-                ) =>> \valid ->
+                ) >>= \valid ->
   if valid
     (return cardInfo)
-    (invalidCreditCard cardInfo #>> 
+    (invalidCreditCard cardInfo >>| 
      fillInAndCheckCreditCard cardInfo
     )
 			

@@ -28,13 +28,13 @@ deadline :: (Task a) -> Task a | iData a
 deadline task
 =					[Text "Choose person you want to delegate work to:",BrTag [],BrTag []] 
 					?>>	editTask "Set" (HtmlSelect (map (\i -> (toString i,toString i)) [1..npersons - 1]) (toString 1)) 
-	=>> \(HtmlSelect _ whom) ->	[Text "How long do you want to wait?",BrTag [],BrTag []] 
+	>>= \(HtmlSelect _ whom) ->	[Text "How long do you want to wait?",BrTag [],BrTag []] 
 					?>>	editTask "SetTime" (HtmlTime 0 0 0) 
-	=>> \time ->	[Text "Cancel delegated work if you are getting impatient:",BrTag [],BrTag []] 
+	>>= \time ->	[Text "Cancel delegated work if you are getting impatient:",BrTag [],BrTag []] 
 					?>> (delegateTask (toInt whom) time task
 					-||-
 					buttonTask "Cancel" (return Nothing))
-	=>> 			CheckDone
+	>>= 			CheckDone
 where
 	CheckDone (Just value)
 	=	[Text ("Result of task: " +++ printToString value),BrTag [],BrTag []] 

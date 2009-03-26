@@ -22,8 +22,8 @@ derive write	Maybe
 (=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
 (=>>?) t1 t2 
 = 				t1 
-	=>> \r1 -> 	case r1 of 
-					Nothing 	-> return_V Nothing
+	>>= \r1 -> 	case r1 of 
+					Nothing 	-> return Nothing
 					Just r`1 	-> t2 r`1
 
 // ******************************************************************************************************
@@ -33,7 +33,7 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
 repeatTask task pred a = dorepeatTask a
 where
 	dorepeatTask a 
-	= newTask "repeatTask" (Task dorepeatTask`)
+	= compound "repeatTask" (Task dorepeatTask`)
 	where
 		dorepeatTask` tst
 		| pred a	= (a,tst) 
@@ -41,12 +41,12 @@ where
 		= accTaskTSt (dorepeatTask na) tst
 
 (<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iData a
-(<|) taska pred = newTask "repeatTest" doTask
+(<|) taska pred = compound "repeatTest" doTask
 where
 	doTask
 	=				taska
-		=>> \r -> 		case pred r of
-						(True,_) -> return_V r
+		>>= \r -> 		case pred r of
+						(True,_) -> return r
 						(False,msg) -> msg ?>> (taska <| pred)
 
 
@@ -57,18 +57,18 @@ where
 (@:) nuserId ltask=:(taskname,task) = mkSequenceTask "@:" assigntask
 where
 	assigntask tst =:{TSt|userId} = accTaskTSt (
-			getUser nuserId =>> \(_,displayName) ->
+			getUser nuserId >>= \(_,displayName) ->
 			
 			[Text "Waiting for Task ", ITag [] [Text taskname], Text " from ", ITag [] [Text displayName], BrTag []]
 			?>>
-			assignTaskTo nuserId (taskname,task)
+			delegate nuserId (taskname,task)
 		) tst
 
 (@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
 (@::) nuserId taska = nuserId @: ("Task for " <+++ nuserId,taska)
 
 (@:>) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:>) nuserId ltask = assignTaskTo nuserId ltask
+(@:>) nuserId ltask = delegate nuserId ltask
 
 (@::>) infix 3 :: !UserId !(Task a) -> (Task a) | iData  a												
 (@::>) nuserId taska = nuserId @:> ("Task for " <+++ nuserId,taska)
@@ -77,19 +77,19 @@ where
 // choose one or more tasks on forehand out of a set
 
 selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-selection chooser executer tasks = chooser tasks =>> \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < length tasks]
+selection chooser executer tasks = chooser tasks >>= \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < length tasks]
 
 chooseTask_btn 	:: ![HtmlTag] ![LabeledTask a] -> Task a | iData a
 chooseTask_btn prompt ltasks
-	= (prompt ?>> selectWithButtons (map fst ltasks)) =>> \chosen -> (snd (ltasks!!chosen))
+	= (prompt ?>> selectWithButtons (map fst ltasks)) >>= \chosen -> (snd (ltasks!!chosen))
 
 chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iData a
 chooseTask_pdm prompt initial ltasks
-	= (prompt ?>> selectWithPulldown (map fst ltasks) initial) =>> \chosen -> (snd (ltasks!!chosen))
+	= (prompt ?>> selectWithPulldown (map fst ltasks) initial) >>= \chosen -> (snd (ltasks!!chosen))
 	
 chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 chooseTask_cbox order prompt code_ltasks
-	= selectTasks (\_ -> prompt ?>> selectWithCheckboxes [(html,set,setfun) \\ ((set,setfun,html),_) <- code_ltasks] ) order (map snd code_ltasks)		
+	= selection (\_ -> prompt ?>> selectWithCheckboxes [(html,set,setfun) \\ ((set,setfun,html),_) <- code_ltasks] ) order (map snd code_ltasks)		
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
@@ -105,15 +105,15 @@ chooseTask prompt options = chooseTask_btn prompt options
 
 mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
-= chooseTask_cbox seqTasks prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
+= chooseTask_cbox (sequence "mchoiceTasks") prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
 
 mchoiceTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks2 prompt taskOptions 
-= chooseTask_cbox seqTasks prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
+= chooseTask_cbox (sequence "mchoiceTasks2") prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
 
 mchoiceTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks3 prompt taskOptions 
-= chooseTask_cbox seqTasks prompt taskOptions
+= chooseTask_cbox (sequence "mchoiceTasks3") prompt taskOptions
 
 mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceAndTasks prompt taskOptions 
@@ -131,48 +131,48 @@ mchoiceAndTasks3 prompt taskOptions
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
-(-||-) taska taskb =  newTask "-||-" (doOrTask (taska,taskb))
+(-||-) taska taskb =  compound "-||-" (doOrTask (taska,taskb))
 where
 	doOrTask :: !(Task a,Task a) -> (Task a) | iData a
 	doOrTask (taska,taskb)
 	= 			orTask2 (taska,taskb)
-		=>> \at ->  case at of
-						(LEFT a)  -> return_V a
-						(RIGHT b) -> return_V b
+		>>= \at ->  case at of
+						(LEFT a)  -> return a
+						(RIGHT b) -> return b
 
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
 (-&&-) taska taskb = andTask2 (taska,taskb)
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (\tst -> (createDefault,tst))
-orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask"  (\list -> length list >= 1) taskCollection )
-							=>> \list -> return_V (hd list)
+orTasks taskCollection	= compound "orTasks" (parallel "orTask"  (\list -> length list >= 1) taskCollection )
+							>>= \list -> return (hd list)
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
-=	newTask "orTask2" 	( (allTasksCond "orTask" (\list -> length list > 0) 
-								[ ("orTask.0",taska =>> \a -> return_V (LEFT a))
-								, ("orTask.1",taskb =>> \b -> return_V (RIGHT b))
+=	compound "orTask2" 	( (parallel "orTask" (\list -> length list > 0) 
+								[ ("orTask.0",taska >>= \a -> return (LEFT a))
+								, ("orTask.1",taskb >>= \b -> return (RIGHT b))
 								] )<<@ TTHorizontal
-						 =>> \res -> 	return_V (hd res)
+						 >>= \res -> 	return (hd res)
 						) 
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = (allTasksCond "andTask"  (\_ -> False) taskCollection) <<@ (TTSplit msg)
+andTasks taskCollection = parallel "andTask"  (\_ -> False) taskCollection <<@ (TTSplit msg)
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]
 	
 (-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&&-?) t1 t2 
-= 		newTask "maybeTask" (andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
-  							=>>	combineResult)
+= 		compound "maybeTask" (andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
+  							>>=	combineResult)
 where
-	left 	= t1 =>> \tres -> return_V (LEFT tres) 
-	right	= t2 =>> \tres -> return_V (RIGHT tres) 
+	left 	= t1 >>= \tres -> return (LEFT tres) 
+	right	= t2 >>= \tres -> return (RIGHT tres) 
 
-	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= return_V (Just (r1,r2))
-	combineResult	_									= return_V Nothing
+	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= return (Just (r1,r2))
+	combineResult	_									= return Nothing
 
 	noNothing []					= False
 	noNothing [LEFT  Nothing:xs]	= True
@@ -181,11 +181,11 @@ where
 
 andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
-=	newTask "andTask2"	((allTasksCond "andTask" (\l -> False) 
-							[ ("andTask.0",taska =>> \a -> return_V (LEFT a))
-							, ("andTask.1",taskb =>> \b -> return_V (RIGHT b))
+=	compound "andTask2"	((parallel "andTask" (\l -> False) 
+							[ ("andTask.0",taska >>= \a -> return (LEFT a))
+							, ("andTask.1",taskb >>= \b -> return (RIGHT b))
 							] <<@ TTHorizontal)
-						=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
+						>>= \[LEFT a, RIGHT b] -> 	return (a,b) 
 						)
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
@@ -193,9 +193,9 @@ andTasks_mu label tasks = domu_andTasks tasks
 where
 	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
 
-andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
+andTasksCond :: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 andTasksCond label pred taskCollection 
-= allTasksCond label pred taskCollection <<@ TTSplit []
+= parallel label pred taskCollection <<@ TTSplit []
 
 
 // ******************************************************************************************************
@@ -206,7 +206,7 @@ waitForTimerTask time  = waitForTimerTask`
 where
 	waitForTimerTask`
 	=						appHSt "getTimeAndDate" getTimeAndDate
-		=>> \(ctime,_) ->  	waitForTimeTask (ctime + time)
+		>>= \(ctime,_) ->  	waitForTimeTask (ctime + time)
 
 //Misc
 ok :: Task Void

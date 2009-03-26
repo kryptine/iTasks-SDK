@@ -25,39 +25,39 @@ findDate :: Task (HtmlDate,HtmlTime)
 findDate
 =						[Text "Choose person you want to schedule a meeting with:",BrTag []] 
 						?>>	chooseUser
-	=>> \(whom,name) ->	[Text "Determining date:",BrTag [],BrTag []] 
+	>>= \(whom,name) ->	[Text "Determining date:",BrTag [],BrTag []] 
 						?>>	findDate` whom (HtmlDate 1 1 2007,HtmlTime 9 0 0) 
-	=>> \datetime	->	[] 
+	>>= \datetime	->	[] 
 						?>> confirm 0 whom datetime -&&- confirm whom 0 datetime 
-	#>>					return datetime
+	>>|					return datetime
 where
 	findDate` :: Int (HtmlDate,HtmlTime) -> Task (HtmlDate,HtmlTime)
 	findDate` whom daytime
 	=							proposeDateTime daytime 
-		=>> \daytime ->			whom  @: ("Meeting Request",determineDateTime daytime) 
-		=>> \(ok,daytime) ->	if ok 
+		>>= \daytime ->			whom  @: ("Meeting Request",determineDateTime daytime) 
+		>>= \(ok,daytime) ->	if ok 
 									(return daytime)
 									(					isOkDateTime daytime 
-										=>> \ok ->		if ok 
+										>>= \ok ->		if ok 
 															(return daytime)
-										      				(newTask "findDate`" (findDate` whom daytime))
+										      				(compound "findDate`" (findDate` whom daytime))
 									)
 	where
 		proposeDateTime :: (HtmlDate,HtmlTime) -> Task (HtmlDate,HtmlTime)
 		proposeDateTime (date,time)
 		=							[Text "Propose a new date and time for meeting:",BrTag [],BrTag []] 
 									?>>	editTask "Set" input 
-			=>> \(_,date,_,time) -> return (date,time)
+			>>= \(_,date,_,time) -> return (date,time)
 		where
 			input = (toString (Text "date: "), date, toString (Text "time: "), time)
 
 		determineDateTime :: (HtmlDate,HtmlTime) -> Task (Bool,(HtmlDate,HtmlTime))
 		determineDateTime daytime
 		=					isOkDateTime daytime 
-			=>> \ok ->		if ok 
+			>>= \ok ->		if ok 
 								(return (ok,daytime))
 								(					proposeDateTime daytime 
-									=>> \daytime ->	return (ok,daytime)
+									>>= \daytime ->	return (ok,daytime)
 								)
 
 		isOkDateTime :: (HtmlDate,HtmlTime) -> Task Bool

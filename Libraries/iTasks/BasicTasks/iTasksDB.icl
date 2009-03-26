@@ -42,15 +42,15 @@ dbReadAll :: Task [a] | iData, DB a
 dbReadAll		= readDB databaseId
 
 dbWriteAll :: ![a] -> Task Void | iData, DB a
-dbWriteAll all	= writeDB databaseId all #>> return_V Void
+dbWriteAll all	= writeDB databaseId all >>| return Void
 
 dbModify :: ([a] -> [a]) -> Task Void | iData, DB a
-dbModify f      = dbReadAll =>> \items -> dbWriteAll (f items)
+dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
 dbCreateItem :: Task a | iData, DB a
 dbCreateItem
-	= readDB databaseId =>> \items ->
+	= readDB databaseId >>= \items ->
 	  let newid = newDBRef items 
 	   in return (setItemId newid createDefault)
 where
@@ -60,14 +60,14 @@ where
 
 dbReadItem :: !(DBRef a) -> Task (Maybe a) | iData, DB a
 dbReadItem itemid
-	= readDB databaseId =>> \items -> 
+	= readDB databaseId >>= \items -> 
 	  case filter (\item -> itemid == getItemId item) items of
 	  	[found:_]	= return (Just found)
 	  	nothing		= return Nothing
 
 dbUpdateItem :: a -> Task a | iData, DB a
 dbUpdateItem new
-	= dbModify (replace eqItemId new) #>> return new
+	= dbModify (replace eqItemId new) >>| return new
 
 dbDeleteItem :: !(DBRef a) -> Task Void | iData, DB a
 dbDeleteItem itemid

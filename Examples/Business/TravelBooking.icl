@@ -21,7 +21,7 @@ travelBookingExample
 travel :: Task Void
 travel 
 = 			[Text "Book your journey:",BrTag [],BrTag []]
-			?>>	seqTasks	[ ( "Step 1: Make Bookings:"
+			?>>	sequence "travel" [ ( "Step 1: Make Bookings:"
 							  , mchoiceTasks [Text "Choose Booking options:"]
 							  	[ ("Book Flight",BookFlight)
 								, ("Book Hotel", BookHotel)
@@ -29,18 +29,18 @@ travel
 								]
 							  )
 							, ( "Step 2: Confirm Bookings:"
-							  , buttonTask "Confirm" (return_V [])
+							  , buttonTask "Confirm" (return [])
 							  )
 							]
 				-||- 
-				buttonTask "Cancel" (return_V [])
-	=>> \booking -> [Text "Handling bookings:",BrTag [],BrTag []]
+				buttonTask "Cancel" (return [])
+	>>= \booking -> [Text "Handling bookings:",BrTag [],BrTag []]
 					?>> handleBookings booking
 where
 	handleBookings booking
 	| isNil	booking	= 		editTask "Cancelled" Void
 	| otherwise		= 		editTask "Pay" (Dsp (calcCosts booking))
-					  #>>	editTask "Paid" Void
+					  >>|	editTask "Paid" Void
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
 

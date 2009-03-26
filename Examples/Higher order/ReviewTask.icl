@@ -61,14 +61,14 @@ mytask v =	[Text "Fill in Form:",BrTag [],BrTag []]
 
 taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iData a 
 taskToReview reviewer (v`,task) 
-= newTask "taskToReview" taskToReview`
+= compound "taskToReview" taskToReview`
 where
 	taskToReview`
 	=					task v`               
-		=>> \v ->		reviewer @:: review v 
-		=>> \r ->		[Text ("Reviewer " <+++ reviewer <+++ " says "),toHtml r,BrTag []] 
+		>>= \v ->		reviewer @:: review v 
+		>>= \r ->		[Text ("Reviewer " <+++ reviewer <+++ " says "),toHtml r,BrTag []] 
 						?>> editTask "OK" Void 
-		#>>				case r of
+		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
 							else            -> return (v,r)
 

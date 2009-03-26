@@ -101,21 +101,7 @@ parallel 	:: !String !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-delegate 	:: !UserId !(LabeledTask a) 				-> Task a		| iData a
-
-
-//Backwards compatibility
-(=>>) infixl 1
-(=>>) :== (>>=)
-(#>>) infixl 1
-(#>>) :== (>>|)
-
-return_V		:== return
-foreverTask		:== forever
-seqTasks		:== sequence "seqTasks"
-allTasksCond	:== parallel
-assignTaskTo	:== delegate
-newTask			:== compound
+delegate 	:: !UserId !(LabeledTask a) 				-> Task a	| iData a
 
 /* Experimental department:
 

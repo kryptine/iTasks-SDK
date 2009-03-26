@@ -38,42 +38,42 @@ delegateTask :: (Task a) HtmlTime -> (Task a) | iData a
 delegateTask task time 
 =					[Text "Choose persons you want to delegate work to:",BrTag [],BrTag []] 
 					?>>	determineSet [] 
-	=>> \people -> 	delegateToSomeone task people 
-	=>> \result -> 	[Text "Result: ", toHtml result] 
+	>>= \people -> 	delegateToSomeone task people 
+	>>= \result -> 	[Text "Result: ", toHtml result] 
 					?>> editTask "OK" Void 
-	=>> \_ ->		return_V result
+	>>= \_ ->		return result
 where
 	delegateToSomeone :: (Task a) [UserID] -> Task a | iData a
-	delegateToSomeone task people = newTask "delegateToSet" doDelegate
+	delegateToSomeone task people = compound "delegateToSet" doDelegate
 	where 
 		doDelegate						
-		 =								orTasks [("Waiting for " <+++ who, who @:: buttonTask "I Will Do It" (return_V who)) \\ who <- people]	
-		 	=>> \who ->					who @:: stopTask2 who -!> task 
-		 	=>> \(stopped,task) -> 	if (isJust stopped) (delegateToSomeone task people) task   
+		 =								orTasks [("Waiting for " <+++ who, who @:: buttonTask "I Will Do It" (return who)) \\ who <- people]	
+		 	>>= \who ->					who @:: stopTask2 who -!> task 
+		 	>>= \(stopped,task) -> 	if (isJust stopped) (delegateToSomeone task people) task   
 	
-		stopTask 		= buttonTask "Stop" (return_V True)					  			
+		stopTask 		= buttonTask "Stop" (return True)					  			
 
 		stopTask2 who	= stopTask -||- (0 @:> ("Stop worker " <+++ who,stopTask))						// alternative : now also user 0 can stop the work
 //		stopTask3		= stopTask -||- timerStop time -||- (0 @::> stopTask)	// alternative : now also a timer can stop the work	
 
-		timerStop time	= waitForTimerTask time #>> return_V True
+		timerStop time	= waitForTimerTask time #>> return True
 */
 determineSet :: [UserID] -> Task [UserID]
-determineSet people = newTask "determineSet" determineSet`
+determineSet people = compound "determineSet" determineSet`
 where
 	determineSet`	
 	=					chooseTask [Text ("Current set:" +++ print people)] 
 						[("Add Person", cancelTask choosePerson)
-						,("Finished", return_V Nothing)
+						,("Finished", return Nothing)
 						]						
-		=>> \result -> 	case result of
+		>>= \result -> 	case result of
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
-							Nothing		-> if (people == []) (determineSet people) (return_V people)
+							Nothing		-> if (people == []) (determineSet people) (return people)
 
 	choosePerson =					editTask "Set" (HtmlSelect [(toString i,toString i) \\ i <- [1..npersons - 1]] (toString 1))
-					=>> \(HtmlSelect options val) ->	return_V (Just (toInt val))
+					>>= \(HtmlSelect options val) ->	return (Just (toInt val))
 
-	cancelTask task = task -||- buttonTask "Cancel" (return_V createDefault)
+	cancelTask task = task -||- buttonTask "Cancel" (return createDefault)
 	
 	print []     = ""
 	print [x:xs] = toString x +++ " " +++ print xs

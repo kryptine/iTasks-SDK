@@ -45,10 +45,10 @@ purchaseExample
 
 purchaseTask :: Task Void
 purchaseTask =
-	definePurchase					=>>	\purchase	->
-	selectSuppliers 				=>>	\suppliers	->
-	collectBids	purchase suppliers	=>> \bids		->
-	selectBid bids	 				=>> \bid		->
+	definePurchase					>>=	\purchase	->
+	selectSuppliers 				>>=	\suppliers	->
+	collectBids	purchase suppliers	>>= \bids		->
+	selectBid bids	 				>>= \bid		->
 	confirmBid purchase bid
 	
 definePurchase :: Task Purchase
@@ -58,10 +58,10 @@ definePurchase =
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
-	= getUsersWithRole "supplier" =>> \suppliers ->
+	= getUsersWithRole "supplier" >>= \suppliers ->
 	  ( mchoiceAndTasks
 	  		[Text "Select the suppliers from which you want to receive a bid"]
-	  		[(label, return_V supplier) \\ supplier =: (uid, label) <- suppliers]
+	  		[(label, return supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	
 collectBids :: Purchase [(Int,String)] -> Task [((Int,String),HtmlCurrency)]
@@ -78,20 +78,20 @@ where
 	
 selectBid :: [((Int,String),HtmlCurrency)] -> Task ((Int,String),HtmlCurrency)
 selectBid bids
-	= determineCheapest bids	=>> \cheapestBid =: ((uid,name),price) ->	
+	= determineCheapest bids	>>= \cheapestBid =: ((uid,name),price) ->	
 	[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
 	  Text "Do you want to accept this bid?", BrTag []]
 	?>>
-	yesOrNo =>> \acceptCheapest ->
+	yesOrNo >>= \acceptCheapest ->
 	if acceptCheapest
-		( return_V cheapestBid)
+		( return cheapestBid)
 		( chooseTask
 			[Text "Please select one of the following bids"]
-			[(name +++ " " +++ toString price, return_V bid) \\ bid =: ((uid,name),price) <- bids] 
+			[(name +++ " " +++ toString price, return bid) \\ bid =: ((uid,name),price) <- bids] 
 		)
 where
-	determineCheapest bids = return_V (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
-	yesOrNo = (editTask "Yes" Void #>> return_V True) -||- (editTask "No" Void #>> return_V False)
+	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
+	yesOrNo = (editTask "Yes" Void >>| return True) -||- (editTask "No" Void >>| return False)
 	
 confirmBid :: Purchase ((Int,String),HtmlCurrency) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
@@ -107,7 +107,7 @@ where
 	andTasksEnough` tst
 		# tst						= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order
 		# (_,tst =:{activated})		= accTaskTSt (mkSequenceTask "enough" (accTaskTSt ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void))) tst
-		= accTaskTSt (mkSequenceTask "tasks" (accTaskTSt ((allTasksCond "andTask" (\list -> length list >= 1 && activated) taskCollection) <<@ (TTSplit msg)))) {tst & activated = True}
+		= accTaskTSt (mkSequenceTask "tasks" (accTaskTSt ((parallel "andTask" (\list -> length list >= 1 && activated) taskCollection) <<@ (TTSplit msg)))) {tst & activated = True}
 
 	msg = [Text "This task is waiting for the completion of the following tasks:"]
 

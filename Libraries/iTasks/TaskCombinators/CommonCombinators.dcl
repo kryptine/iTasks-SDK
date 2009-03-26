@@ -36,7 +36,6 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a		| iData a
 * @return The combined task
 */
 selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iData a
-selectTasks :== selection
 
 /*
 Choose the tasks you want to do one forehand:
