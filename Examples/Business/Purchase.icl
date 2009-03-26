@@ -72,11 +72,9 @@ where
 	collectBid :: Purchase (Int,String) -> Task ((Int,String),HtmlCurrency)
 	collectBid purchase bid
 		= [Text "Please make a bid to supply the following product"]
-		  ?>> (
-		  	displayValue purchase
-		  	-|||-
-		  	(editTask "Ok" createDefault =>> \price -> return_V (bid, price))
-		  )
+		  ?>> 
+		  (displayValue purchase -||- (editTask "Ok" createDefault >>= \price -> return (bid, price)) <<@ TTVertical)
+		  	
 	
 selectBid :: [((Int,String),HtmlCurrency)] -> Task ((Int,String),HtmlCurrency)
 selectBid bids
@@ -108,13 +106,9 @@ andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
 where
 	andTasksEnough` tst
 		# tst						= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order
-		# (_,tst=:{activated})		= accTaskTSt (mkSequenceTask "enough" (accTaskTSt ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void))) tst
-		= accTaskTSt (mkSequenceTask "tasks" (accTaskTSt (allTasksCond "andTask" (TTSplit msg) (\list -> length list >= 1 && activated) taskCollection))) {tst & activated = True}
+		# (_,tst =:{activated})		= accTaskTSt (mkSequenceTask "enough" (accTaskTSt ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void))) tst
+		= accTaskTSt (mkSequenceTask "tasks" (accTaskTSt ((allTasksCond "andTask" (\list -> length list >= 1 && activated) taskCollection) <<@ (TTSplit msg)))) {tst & activated = True}
 
 	msg = [Text "This task is waiting for the completion of the following tasks:"]
 
-
-(-|||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
-(-|||-) top bottom
-	= allTasksCond "-|||-" TTVertical (\l -> length l == 1) [("top",top),("bottom",bottom)] =>> \firstDone -> return_V (hd firstDone)
 	

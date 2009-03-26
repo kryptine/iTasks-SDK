@@ -81,7 +81,7 @@ internalEmail2
 // BUGs found: filter for tabs does not seem to work ok
 
 internalEmailResponse :: (Task Void)
-internalEmailResponse = Cancel internalEmailResponse`
+internalEmailResponse = cancel internalEmailResponse`
 where
 	internalEmailResponse`
 	=							getCurrentUser
@@ -129,7 +129,7 @@ showMSg msg
 	] 
 
 addNewsGroup :: (Task Void)
-addNewsGroup	= Cancel addNewsGroup` 
+addNewsGroup	= cancel addNewsGroup` 
 where
 	addNewsGroup`
 	=						readNewsGroups
@@ -247,20 +247,19 @@ getToName
 							[(name, return_V (userId,name)) \\ (userId,name) <- users]
 
 
-Cancel :: (Task a) -> Task a | iData a
-Cancel task
-= 	orTasksV [("B",task),("O", cancelTask)]
+cancel :: (Task a) -> Task a | iData a
+cancel task = task -||- cancelTask <<@ TTVertical
 where
-	cancelTask = [HrTag []] ?>> editTask "Cancel Task" Void  #>> return_V createDefault
+	cancelTask = [HrTag []] ?>> button "Cancel Task" createDefault
 
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
 orTasks2 msg taskCollection	
-=	newTask "orTasks" (allTasksCond "orTask" (TTSplit msg) (\list -> length list >= 1) taskCollection)
+=	newTask "orTasks" (allTasksCond "orTask"  (\list -> length list >= 1) taskCollection <<@ (TTSplit msg))
 	>>= \lista -> return_V (hd lista)
 	
 myAndTasks msg taskCollection	
-=	newTask "orTasks" (allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection)
+=	newTask "orTasks" (allTasksCond "andTask"  (\_ -> False) taskCollection <<@ (TTSplit msg))
 	>>= \lista -> return_V (hd lista)
 
 // reading and writing of storages

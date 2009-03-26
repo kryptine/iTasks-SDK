@@ -32,14 +32,6 @@ storageFormId :: !Options !String !a -> FormId a
 storageFormId  options s d = cFormId options s d <@ NoForm
 
 // ******************************************************************************************************
-
-instance == GarbageCollect
-where
-	(==) Collect   Collect 		= True
-	(==) NoCollect NoCollect 	= True
-	(==) _ _ 					= False
-
-// ******************************************************************************************************
 // Task specialization
 // ******************************************************************************************************
 

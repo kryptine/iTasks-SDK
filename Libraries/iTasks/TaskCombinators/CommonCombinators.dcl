@@ -58,7 +58,6 @@ chooseTask_cbox	:: !([LabeledTask a] -> Task [a])
 button 			:: return value when button pressed
 buttonTask		:: do the iTask when button pressed
 chooseTask		:: Choose ONE iTask from list, depending on button pressed, button horizontal displayed
-chooseTaskV		:: as chooseTask, buttons vertical displayed
 
 mchoiceTask		:: Checked tasks will be done SEQUENTIALLY
 mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
@@ -67,18 +66,16 @@ mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 mchoiceTask		:: Checked tasks can be done in INTERLEAVED
 mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
 mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
-
 */
 button 			:: !String 	!a 								-> Task a 		| iData a
 buttonTask		:: !String   !(Task a)						-> Task a 		| iData a
 chooseTask		:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iData a
-chooseTaskV 	:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iData a
 
 mchoiceTasks 	:: ![HtmlTag] ![LabeledTask a] 				-> Task [a] 	| iData a
 mchoiceTasks2 	:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
 mchoiceTasks3 	:: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] 
 															-> Task [a] 	| iData a
-
+															
 mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] 				-> Task [a]		| iData a
 mchoiceAndTasks2:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
 mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] 
@@ -87,7 +84,6 @@ mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),La
 (-||-)			:: do both iTasks in any order, combined task completed as soon as any subtask is done
 (-&&-)			:: do both iTasks in any order (interleaved), task completed when both done
 orTasks			:: do all  iTasks in any order (interleaved), task completed as soon as any subtask is done
-orTasksV		:: same as orTask, but display task vertical
 orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
 andTask2		:: do both iTasks in any order (interleaved), task completed when both done
@@ -97,7 +93,6 @@ andTasksCond 	:: do all  iTasks in any order (interleaved), task completed when 
 (-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iData a
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iData a & iData b
 orTasks 		:: ![LabeledTask a] 						-> Task a 		| iData a
-orTasksV		:: ![LabeledTask a] 						-> Task a 		| iData a
 orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 
 																			| iData a & iData b	
 andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a

@@ -82,8 +82,8 @@ where
 
 // Parallel composition
 
-parallel :: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
-parallel label combination pred taskCollection 
+parallel :: !String !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
+parallel label pred taskCollection 
 	= mkParallelTask label (doandTasks taskCollection)
 where
 	doandTasks [] tst	=  ([],tst)
@@ -94,7 +94,6 @@ where
 		| pred alist
 			= (alist,{tst & activated = True}) 					// stop, all work done so far satisfies predicate
 		| otherwise	
-			# tst		= setCombination combination tst
 			= (alist, {tst & activated	= False})				// show all subtasks using the displayOption function
 	where
 		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iData a

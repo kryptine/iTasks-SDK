@@ -42,8 +42,8 @@ initialOptions location
 	=	{ tasklife 		= location 
 		, taskstorage 	= PlainString
 		, taskmode 		= Edit
+		, combination	= Nothing
 		, trace			= False 
-		, gc			= Collect
 		}
 
 resetTSt :: *TSt -> *TSt
@@ -254,32 +254,34 @@ accTaskTSt (Task fn) tst = fn tst
 mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 mkBasicTask taskname taskfun = mkTask taskname taskfun nodefun id
 where
-	nodefun info	= TTBasicTask info [] []
-
+	nodefun info tst	= (TTBasicTask info [] [], tst)
+	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-mkSequenceTask taskname taskfun = mkTask taskname taskfun nodefun tstfun
+mkSequenceTask taskname taskfun = mkTask taskname taskfun nodefun nrfun
 where
-	nodefun info			= TTSequenceTask info []
-	tstfun tst=:{taskNr}	= {tst & taskNr = [-1:taskNr]}
+	nodefun info tst	= (TTSequenceTask info [], tst)
+	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 			
 mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-mkParallelTask taskname taskfun = mkTask taskname taskfun nodefun tstfun
+mkParallelTask taskname taskfun = mkTask taskname taskfun nodefun nrfun
 where
-	nodefun info			= TTParallelTask info TTVertical []
-	tstfun tst=:{taskNr}	= {tst & taskNr = [-1:taskNr]}
+	nodefun info tst=:{options}	= case options.combination of
+		Just combination	= (TTParallelTask info combination [], {tst & options = {options & combination = Nothing}})	//Apply combination and reset
+		Nothing				= (TTParallelTask info TTVertical [], tst)	//Use default combination
+			
+	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 
-mkTask :: !String !(*TSt -> *(!a,!*TSt)) (TaskInfo -> TaskTree) (*TSt -> *TSt) -> Task a | iData a
-mkTask taskname taskfun nodefun tstfun = Task mkTask`
+mkTask :: !String !(*TSt -> *(!a,!*TSt)) !(TaskInfo *TSt -> *(TaskTree,*TSt)) (*TSt -> *TSt) -> Task a | iData a
+mkTask taskname taskfun nodefun nrfun = Task mkTask`
 where
 	mkTask` tst
-		# (a,done,info,tst=:{taskNr,userId,delegatorId,tree,options}) = initTask taskname tst
+		# (a, done, info, tst =:{taskNr,userId,delegatorId,tree,options}) = initTask taskname tst
+		# (node, tst) = nodefun info {tst & taskNr = taskNr, userId = userId, delegatorId = delegatorId, tree = tree, options = options}
 		| done
-			# tst = addTaskNode (nodefun info) tst
-			= (a, {tst & activated = True})
+			= (a, {addTaskNode node tst & activated = True})
 		| otherwise
-			# (a, tst)	
-				= executeTask (Task taskfun) (tstfun {tst & tree = (nodefun info)})
-			# tst = addTaskNode 
+			# (a, tst)		= executeTask (Task taskfun) (nrfun {tst & tree = node})
+			# tst = addTaskNode
 						(updateTaskNode tst.activated (printToString a) tst.tree)
 						{tst & taskNr = taskNr, userId = userId, delegatorId = delegatorId, tree = tree, options = options}
 			# tst = finalizeTask a tst
@@ -289,6 +291,7 @@ where
 	//- Increases the task number
 	//- Checks if the task is done, and gets its value
 	//- Creates a basicTask node when the task is done
+	//initTask :: String *TSt -> *(a,Bool,TaskInfo,*TSt) | iData a
 	initTask taskName tst
 		# tst =:{taskNr,userId,delegatorId,hst,options,activated}
 			= incTStTaskNr tst
@@ -307,6 +310,7 @@ where
 		= (value,finished,info,{tst & hst = hst})
 	
 	//Shared final task creation part
+	//finalizeTask :: a *TSt -> *TSt | iData a
 	finalizeTask value tst =:{taskNr,activated,hst,options}
 		| activated
 			# hst				= deleteIData (iTaskId taskNr "") hst //Garbage collect
@@ -318,10 +322,9 @@ where
 	//Increate the tasknr of the task state
 	//incTStTaskNr :: *TSt -> *TSt
 	incTStTaskNr tst = {tst & taskNr = incTaskNr tst.taskNr}
-
-
+	
 	//Execute the task when active, else return a default value
-	executeTask :: !(Task a) -> (*TSt -> (a,*TSt)) | iCreateAndPrint a
+	//executeTask :: !(Task a) -> (*TSt -> (a,*TSt)) | iCreateAndPrint a
 	executeTask task = executeTask`
 	where
 		executeTask` tst=:{activated}
@@ -329,21 +332,22 @@ where
 				= accTaskTSt task tst				// Perform task and get its result
 			| otherwise								
 				= (createDefault,tst)				// When a task is not active, don't execute it, return default value
-
+	
 	//update the finished and trace fields of a task tree node
+	//updateTaskNode :: Bool String TaskTree -> TaskTree
 	updateTaskNode finished traceValue (TTBasicTask info output inputs) = TTBasicTask {info & finished = finished, traceValue = traceValue} output inputs
 	updateTaskNode finished traceValue (TTSequenceTask info tasks) = TTSequenceTask {info & finished = finished, traceValue = traceValue} (reverse tasks)
 	updateTaskNode finished traceValue (TTParallelTask info combination tasks) = TTParallelTask {info & finished = finished, traceValue = traceValue} combination (reverse tasks)
 	updateTaskNode finished traceValue (TTProcess info tasks) = TTProcess info tasks
-	
+		
 	//Add a new node to the current sequence or process
+	//addTaskNode :: TaskTree *TSt -> *TSt
 	addTaskNode node tst=:{tree}
 		= case tree of
 			(TTProcess info tasks)					= {tst & tree = TTProcess info [node:tasks]}
 			(TTSequenceTask info tasks)				= {tst & tree = TTSequenceTask info [node:tasks]}
 			(TTParallelTask info combination tasks)	= {tst & tree = TTParallelTask info combination [node:tasks]}
 			_										= {tst & tree = tree}
-
 
 setOutput :: ![HtmlTag] !*TSt -> *TSt
 setOutput output tst=:{tree}
@@ -363,6 +367,12 @@ setCombination combination tst=:{tree}
 	= case tree of 
 		(TTParallelTask info _ branches)	= {tst & tree = TTParallelTask info combination branches}
 		_									= {tst & tree = tree}
+
+setNextCombination	:: !TaskCombination !*TSt	-> *TSt
+setNextCombination newCombination tst=:{options = options=:{combination}}
+	= case combination of
+		Nothing	= {tst & options = {options & combination = Just newCombination}}
+		_		= {tst & options = {options & combination = combination}}
 
 resetSequence :: !*TSt -> *TSt
 resetSequence tst=:{taskNr,tree}

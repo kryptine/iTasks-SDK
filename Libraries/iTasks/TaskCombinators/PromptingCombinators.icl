@@ -4,12 +4,14 @@ implementation module PromptingCombinators
 */
 
 import StdList
-import TSt, UITasks, BasicCombinators
+import TSt, UITasks, BasicCombinators, TuningCombinators
 
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iData a
 (?>>) prompt task		
-	= allTasksCond "?>>" TTVertical (\list -> length list > 0) [("prompt",displayHtml prompt),("task",task)] =>> \list -> return_V (hd list)
+	= 				(allTasksCond "?>>" (\list -> length list > 0) [("prompt",displayHtml prompt),("task",task)]) 	<<@ TTVertical
+	>>= \list ->	return (hd list)
 
 (<<?) infixl 5 	:: !(Task a) ![HtmlTag] -> Task a | iData a
 (<<?) task prompt
-	= allTasksCond "<<?" TTVertical (\list -> length list > 0) [("task",task),("prompt",displayHtml prompt)] =>> \list -> return_V (hd list)
+	= 				(allTasksCond "<<?" (\list -> length list > 0) [("task",task),("prompt",displayHtml prompt)]) 	<<@ TTVertical
+	>>= \list ->	return (hd list)

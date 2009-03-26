@@ -85,13 +85,12 @@ compound 	:: !String !(Task a) 						-> Task a		| iData a
 * user interface and when the combined task is finished.
 *
 * @param A label for tracing
-* @param A TaskCombination directive which determines how the tasks will be combined in the user interface
 * @param A predicate on the list of results of the currently finished tasks which determines if the
 *        combination is finished
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-parallel 	:: !String !TaskCombination !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
+parallel 	:: !String !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
 
 // Multi-user workflows
 

@@ -28,11 +28,6 @@ from   ProcessDB	import :: ProcessStatus
 					, traceValue	:: String											//String representation of value for tracing
 					}
 
-:: TaskCombination	= TTSplit [HtmlTag]													//Treat the tasks as separate units of work
-					| TTVertical														//Group the tasks and display them below each other
-					| TTHorizontal 														//Group the tasks and display them next to each other
-					| TTCustom	([[HtmlTag]] -> [HtmlTag])								//Group the tasks and display them with a custom function
-
 :: ProcessInfo =	{ processId		:: ProcessId
 					, processLabel	:: String
 					, userId		:: UserId

@@ -118,7 +118,8 @@ where
 		= (flatten outputs, flatten inputs, or refresh)	
 	collectTaskContent currentUser (TTParallelTask info combination branches)
 		= case combination of
-			(TTSplit output)		
+			(TTSplit output)
+				| info.TaskInfo.finished				= ([],[],False)		
 				| info.TaskInfo.userId == currentUser	= (taskOverview output branches, [],True)
 				| otherwise								= ([],[],False)
 			mergedCombination

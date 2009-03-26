@@ -1,7 +1,7 @@
 definition module Util
 
 from TSt 			import :: Task, :: Options
-from Types			import :: GarbageCollect, :: TaskNr
+from Types			import :: TaskNr
 from StdOverloaded	import class ==, class <
 import iDataForms
 
@@ -11,9 +11,6 @@ derive gPrint 	Task
 derive gParse 	Task
 derive read 	Task
 derive write 	Task
-
-
-instance == GarbageCollect
 
 // Here follow some commonly used internal functions
 

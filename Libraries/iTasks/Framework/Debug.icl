@@ -46,9 +46,9 @@ where
 			:
 			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
 		  ]]
-	mkTree (TTParallelTask info _ trees)
+	mkTree (TTParallelTask info combination trees)
 		= [TableTag [ClassAttr "trace-parallel"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ],
+			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel, Text " (",Text (showCombination combination), Text ")"] ],
 			TrTag [] [TdTag [] (mkTree tree) \\ tree <- trees]
 		  ]]
 	mkTree (TTProcess info trees)		
@@ -60,5 +60,10 @@ where
 		| info.TaskInfo.active		= "trace-active"
 									= "trace-inactive"
 
+	showCombination TTVertical		= "Vertical"
+	showCombination TTHorizontal	= "Horizontal"
+	showCombination (TTCustom _)	= "Custom"
+	showCombination (TTSplit _)		= "Split"
+	showCombination	_ = ""
 traceTaskForest :: [TaskTree] -> HtmlTag
 traceTaskForest trees = DivTag [] [traceTaskTree tree \\ tree <- trees]

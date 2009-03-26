@@ -30,7 +30,7 @@ from SessionDB	import :: Session{..}
 :: Options		=	{ tasklife		:: !Lifespan								// default: Session		
 					, taskstorage	:: !StorageFormat							// default: PlainString
 					, taskmode		:: !Mode									// default: Edit
-					, gc			:: !GarbageCollect							// default: Collect
+					, combination	:: !Maybe TaskCombination					// default: TTVertical
 					, trace			:: !Bool									// default: False
 					}
 
@@ -285,10 +285,14 @@ setInputs			:: ![InputDefinition] !*TSt			-> *TSt
 */
 setCombination		:: !TaskCombination !*TSt	-> *TSt
 /**
+* Sets the combination type for the next parallel task
+*/
+setNextCombination	:: !TaskCombination !*TSt	-> *TSt
+/**
 * Resets a sequence
 */
 resetSequence		::	!*TSt					-> *TSt
-
+ 
 
 //// UTILITY
 

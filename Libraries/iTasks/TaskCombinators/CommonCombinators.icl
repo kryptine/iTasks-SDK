@@ -10,7 +10,7 @@ from TSt	import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutp
 from Types	import :: ProcessId
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
-import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, PromptingCombinators, LiftingCombinators
+import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
 
 import Util
 
@@ -56,7 +56,7 @@ where
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
 (@:) nuserId ltask=:(taskname,task) = mkSequenceTask "@:" assigntask
 where
-	assigntask tst=:{TSt| userId} = accTaskTSt (
+	assigntask tst =:{TSt|userId} = accTaskTSt (
 			getUser nuserId =>> \(_,displayName) ->
 			
 			[Text "Waiting for Task ", ITag [] [Text taskname], Text " from ", ITag [] [Text displayName], BrTag []]
@@ -103,9 +103,6 @@ buttonTask s task = chooseTask_btn [] [(s,task)]
 chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
 chooseTask prompt options = chooseTask_btn prompt options
 
-chooseTaskV :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iData a
-chooseTaskV prompt options = chooseTask_btn prompt options
-
 mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
 = chooseTask_cbox seqTasks prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
@@ -148,26 +145,21 @@ where
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []				= Task (\tst -> (createDefault,tst))
-orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTHorizontal (\list -> length list >= 1) taskCollection)
-							=>> \list -> return_V (hd list)
-
-orTasksV :: ![LabeledTask a] -> (Task a) | iData a
-orTasksV []				= Task (\tst -> (createDefault,tst))
-orTasksV taskCollection	= newTask "orTasks" (allTasksCond "orTask" TTVertical (\list -> length list >= 1) taskCollection)
+orTasks taskCollection	= newTask "orTasks" (allTasksCond "orTask"  (\list -> length list >= 1) taskCollection )
 							=>> \list -> return_V (hd list)
 
 orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
 orTask2 (taska,taskb) 
-=	newTask "orTask2" 	( allTasksCond "orTask" TTHorizontal (\list -> length list > 0) 
+=	newTask "orTask2" 	( (allTasksCond "orTask" (\list -> length list > 0) 
 								[ ("orTask.0",taska =>> \a -> return_V (LEFT a))
 								, ("orTask.1",taskb =>> \b -> return_V (RIGHT b))
-								]
+								] )<<@ TTHorizontal
 						 =>> \res -> 	return_V (hd res)
 						) 
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = allTasksCond "andTask" (TTSplit msg) (\_ -> False) taskCollection
+andTasks taskCollection = (allTasksCond "andTask"  (\_ -> False) taskCollection) <<@ (TTSplit msg)
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]
 	
@@ -189,10 +181,10 @@ where
 
 andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
 andTask2 (taska,taskb) 
-=	newTask "andTask2"	(allTasksCond "andTask" TTHorizontal (\l -> False) 
+=	newTask "andTask2"	((allTasksCond "andTask" (\l -> False) 
 							[ ("andTask.0",taska =>> \a -> return_V (LEFT a))
 							, ("andTask.1",taskb =>> \b -> return_V (RIGHT b))
-							]
+							] <<@ TTHorizontal)
 						=>> \[LEFT a, RIGHT b] -> 	return_V (a,b) 
 						)
 
@@ -203,7 +195,7 @@ where
 
 andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
 andTasksCond label pred taskCollection 
-= allTasksCond label (TTSplit []) pred taskCollection 
+= allTasksCond label pred taskCollection <<@ TTSplit []
 
 
 // ******************************************************************************************************
