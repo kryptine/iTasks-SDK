@@ -254,13 +254,9 @@ where
 
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
-orTasks2 msg taskCollection	
-=	compound "orTasks" (parallel "orTask"  (\list -> length list >= 1) taskCollection <<@ (TTSplit msg))
-	>>= \lista -> return (hd lista)
-	
-myAndTasks msg taskCollection	
-=	compound "orTasks" (parallel "andTask"  (\_ -> False) taskCollection <<@ (TTSplit msg))
-	>>= \lista -> return (hd lista)
+orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd tasks <<@ (TTSplit msg)
+
+myAndTasks msg tasks =	parallel "andTask" (\_ -> False) hd tasks <<@ (TTSplit msg)
 
 // reading and writing of storages
 

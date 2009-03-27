@@ -82,19 +82,19 @@ where
 
 // Parallel composition
 
-parallel :: !String !([a] -> Bool) ![LabeledTask a] -> Task [a] | iData a 
-parallel label pred taskCollection 
-	= mkParallelTask label (doandTasks taskCollection)
+parallel :: !String !([a] -> Bool) !([a] -> b) ![LabeledTask a] -> Task b | iData a & iData b
+parallel label pred combine tasks 
+	= mkParallelTask label (doandTasks tasks)
 where
-	doandTasks [] tst	=  ([],tst)
+	doandTasks [] tst	=  (combine [],tst)
 	doandTasks taskCollection tst=:{taskNr}
 		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
 		| length alist == length taskCollection					// all tasks are done
-			= (alist,{tst & activated = True})
+			= (combine alist,{tst & activated = True})
 		| pred alist
-			= (alist,{tst & activated = True}) 					// stop, all work done so far satisfies predicate
+			= (combine alist,{tst & activated = True}) 			// stop, all work done so far satisfies predicate
 		| otherwise	
-			= (alist, {tst & activated	= False})				// show all subtasks using the displayOption function
+			= (createDefault, {tst & activated = False})			// show all subtasks using the displayOption function
 	where
 		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iData a
 		checkAllTasks taskCollection index accu tst

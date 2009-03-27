@@ -5,6 +5,7 @@ implementation module CommonCombinators
 */
 import StdList, StdTuple
 import iDataFormlib, iDataTrivial
+from StdFunc	import id
 from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
 from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
 from Types		import :: ProcessId
@@ -12,13 +13,39 @@ from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
-
-
-
 import Util
 
-derive read		Maybe
-derive write	Maybe
+//Task composition
+(-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
+(-||-) taska taskb  
+=	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (LEFT a) = a; (RIGHT b) = b)
+			[("Left",	taska >>= \a -> return (LEFT a))
+			,("Right",	taskb >>= \b -> return (RIGHT b))
+			] <<@ TTHorizontal
+			
+(-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
+(-&&-) taska taskb
+=	parallel "-&&-" (\_ -> False) (\[LEFT a, RIGHT b] -> (a,b))
+			[("Left",	taska >>= \a -> return (LEFT a))
+			,("Right",	taskb >>= \b -> return (RIGHT b))
+			] <<@ TTHorizontal
+
+orTasks :: ![LabeledTask a] -> (Task a) | iData a
+orTasks []		= return createDefault
+orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) hd tasks
+
+andTasks :: ![LabeledTask a] -> Task [a] | iData a
+andTasks tasks = parallel "andTasks"  (\_ -> False) id tasks <<@ (TTSplit msg)
+where
+	msg = [Text "All of the following tasks need to be completed before this task can continue."]				
+
+eitherTask :: !(Task a) !(Task b) -> Task (EITHER a b) | iData a & iData b
+eitherTask taska taskb 
+=	parallel "eitherTask" (\list -> length list > 0) hd
+			[ ("Left",	taska >>= \a -> return (LEFT a))
+			, ("Right",	taskb >>= \b -> return (RIGHT b))
+			] <<@ TTHorizontal
+
 
 // ******************************************************************************************************
 // monads for combining iTasks
@@ -130,67 +157,21 @@ mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),La
 mchoiceAndTasks3 prompt taskOptions 
 = chooseTask_cbox andTasks prompt taskOptions
 
-// ******************************************************************************************************
-// Speculative OR-tasks: task ends as soon as one of its subtasks completes
 
-(-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
-(-||-) taska taskb =  compound "-||-" (doOrTask taska taskb)
-where
-	doOrTask :: !(Task a) !(Task a) -> (Task a) | iData a
-	doOrTask taska taskb
-		= 			eitherTask taska taskb 
-		>>= \at ->  case at of
-						(LEFT a)  -> return a
-						(RIGHT b) -> return b
-
-(-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
-(-&&-) taska taskb = compound "-&&-" (doAndTask taska taskb)
-where
-	doAndTask taska taskb
-		=	parallel "andTask" (\_ -> False)
-				[("andTaskLeft", taska >>= \a -> return (LEFT a))
-				,("andTaskRight", taskb >>= \b -> return (RIGHT b))
-				] <<@ TTHorizontal
-		>>= \[LEFT a, RIGHT b] -> return (a,b) 
-
-orTasks :: ![LabeledTask a] -> (Task a) | iData a
-orTasks []		= Task (\tst -> (createDefault,tst))
-orTasks tasks	= compound "orTasks" (
-									parallel "orTask"  (\list -> length list >= 1) tasks
-					>>= \list ->	return (hd list)
-				  )
-
-eitherTask :: !(Task a) !(Task b) -> Task (EITHER a b) | iData a & iData b
-eitherTask taska taskb = compound "eitherTask" (
-		parallel "orTask" (\list -> length list > 0) 
-			[ ("orTaskLeft",taska >>= \a -> return (LEFT a))
-			, ("orTaskRight",taskb >>= \b -> return (RIGHT b))
-			] <<@ TTHorizontal
-	>>= \res -> return (hd res)
-  ) 
-
-
-andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = parallel "andTasks"  (\_ -> False) taskCollection <<@ (TTSplit msg)
-where
-	msg = [Text "All of the following tasks need to be completed before this task can continue."]
-	
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&?&-) t1 t2 
-= 		compound "maybeTask" (parallel "maybeTask" noNothing [("MaybeLeft",left),("MaybeRight",right)]
-  							>>=	combineResult)
+= 	parallel "maybeTask" noNothing combineResult
+			[("Left",	t1 >>= \tres -> return (LEFT tres))
+			,("Right",	t2 >>= \tres -> return (RIGHT tres))
+			] <<@ TTHorizontal
 where
-	left 	= t1 >>= \tres -> return (LEFT tres) 
-	right	= t2 >>= \tres -> return (RIGHT tres) 
-
-	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= return (Just (r1,r2))
-	combineResult	_									= return Nothing
-
 	noNothing []					= False
 	noNothing [LEFT  Nothing:xs]	= True
 	noNothing [RIGHT Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
 
+	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= Just (r1,r2)
+	combineResult	_									= Nothing
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = domu_andTasks tasks

@@ -30,7 +30,9 @@ import	Engine						// basic iTask system creator
 	,	StdOrdList
 	,	StdTuple
 	,	StdOverloaded
-	
+
+from StdFunc import id, const
+
 //Types
 import Types
 from TSt		import :: Workflow{..}
