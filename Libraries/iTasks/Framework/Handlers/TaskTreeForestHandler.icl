@@ -1,7 +1,7 @@
 implementation module TaskTreeForestHandler
 
 import StdEnv
-import Http, TSt, Debug
+import Http, TSt, Trace
 
 handleTaskTreeForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 handleTaskTreeForestRequest request tst

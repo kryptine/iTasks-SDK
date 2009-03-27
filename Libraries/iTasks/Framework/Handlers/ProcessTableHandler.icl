@@ -1,7 +1,7 @@
 implementation module ProcessTableHandler
 
 import StdEnv
-import Http, TSt, ProcessDB, Debug
+import Http, TSt, ProcessDB, Trace
 
 /**
 * Handles the ajax requests for a ProcessTable tab panel.

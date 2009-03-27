@@ -1,4 +1,4 @@
-definition module Debug
+definition module Trace
 /**
 * This module provides functions for inspecting and visualizing
 * the important datastructures of the iTasks framework

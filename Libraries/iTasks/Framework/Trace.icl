@@ -1,4 +1,4 @@
-implementation module Debug
+implementation module Trace
 
 import StdList
 import Html
