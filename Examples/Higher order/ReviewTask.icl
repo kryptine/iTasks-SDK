@@ -65,7 +65,7 @@ taskToReview reviewer (v`,task)
 where
 	taskToReview`
 	=					task v`               
-		>>= \v ->		reviewer @:: review v 
+		>>= \v ->		reviewer @: ("Review", review v) 
 		>>= \r ->		[Text ("Reviewer " <+++ reviewer <+++ " says "),toHtml r,BrTag []] 
 						?>> editTask "OK" Void 
 		>>|				case r of

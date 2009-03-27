@@ -4,13 +4,16 @@ implementation module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 import StdList, StdTuple
-import iDataTrivial, iDataFormlib
-from TSt	import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
-from TSt	import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
-from Types	import :: ProcessId
+import iDataFormlib, iDataTrivial
+from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
+from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
+from Types		import :: ProcessId
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
+
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
+
+
 
 import Util
 
@@ -19,8 +22,8 @@ derive write	Maybe
 
 // ******************************************************************************************************
 // monads for combining iTasks
-(=>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
-(=>>?) t1 t2 
+(>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iData a & iData b
+(>>?) t1 t2 
 = 				t1 
 	>>= \r1 -> 	case r1 of 
 					Nothing 	-> return Nothing
@@ -64,14 +67,14 @@ where
 			delegate nuserId (taskname,task)
 		) tst
 
-(@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
-(@::) nuserId taska = nuserId @: ("Task for " <+++ nuserId,taska)
+//(@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
+//(@::) nuserId taska = nuserId @: ("Task for " +++ toString nuserId, taska)
 
 (@:>) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
 (@:>) nuserId ltask = delegate nuserId ltask
 
-(@::>) infix 3 :: !UserId !(Task a) -> (Task a) | iData  a												
-(@::>) nuserId taska = nuserId @:> ("Task for " <+++ nuserId,taska)
+//(@::>) infix 3 :: !UserId !(Task a) -> (Task a) | iData  a												
+//(@::>) nuserId taska = nuserId @:> ("Task for " +++ toString nuserId, taska)
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
@@ -131,41 +134,50 @@ mchoiceAndTasks3 prompt taskOptions
 // Speculative OR-tasks: task ends as soon as one of its subtasks completes
 
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
-(-||-) taska taskb =  compound "-||-" (doOrTask (taska,taskb))
+(-||-) taska taskb =  compound "-||-" (doOrTask taska taskb)
 where
-	doOrTask :: !(Task a,Task a) -> (Task a) | iData a
-	doOrTask (taska,taskb)
-	= 			orTask2 (taska,taskb)
+	doOrTask :: !(Task a) !(Task a) -> (Task a) | iData a
+	doOrTask taska taskb
+		= 			eitherTask taska taskb 
 		>>= \at ->  case at of
 						(LEFT a)  -> return a
 						(RIGHT b) -> return b
 
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
-(-&&-) taska taskb = andTask2 (taska,taskb)
+(-&&-) taska taskb = compound "-&&-" (doAndTask taska taskb)
+where
+	doAndTask taska taskb
+		=	parallel "andTask" (\_ -> False)
+				[("andTaskLeft", taska >>= \a -> return (LEFT a))
+				,("andTaskRight", taskb >>= \b -> return (RIGHT b))
+				] <<@ TTHorizontal
+		>>= \[LEFT a, RIGHT b] -> return (a,b) 
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
-orTasks []				= Task (\tst -> (createDefault,tst))
-orTasks taskCollection	= compound "orTasks" (parallel "orTask"  (\list -> length list >= 1) taskCollection )
-							>>= \list -> return (hd list)
+orTasks []		= Task (\tst -> (createDefault,tst))
+orTasks tasks	= compound "orTasks" (
+									parallel "orTask"  (\list -> length list >= 1) tasks
+					>>= \list ->	return (hd list)
+				  )
 
-orTask2 :: !(Task a,Task b) -> Task (EITHER a b) | iData a & iData b
-orTask2 (taska,taskb) 
-=	compound "orTask2" 	( (parallel "orTask" (\list -> length list > 0) 
-								[ ("orTask.0",taska >>= \a -> return (LEFT a))
-								, ("orTask.1",taskb >>= \b -> return (RIGHT b))
-								] )<<@ TTHorizontal
-						 >>= \res -> 	return (hd res)
-						) 
+eitherTask :: !(Task a) !(Task b) -> Task (EITHER a b) | iData a & iData b
+eitherTask taska taskb = compound "eitherTask" (
+		parallel "orTask" (\list -> length list > 0) 
+			[ ("orTaskLeft",taska >>= \a -> return (LEFT a))
+			, ("orTaskRight",taskb >>= \b -> return (RIGHT b))
+			] <<@ TTHorizontal
+	>>= \res -> return (hd res)
+  ) 
 
 
 andTasks :: ![LabeledTask a] -> (Task [a]) | iData a
-andTasks taskCollection = parallel "andTask"  (\_ -> False) taskCollection <<@ (TTSplit msg)
+andTasks taskCollection = parallel "andTasks"  (\_ -> False) taskCollection <<@ (TTSplit msg)
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]
 	
-(-&&-?) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
-(-&&-?) t1 t2 
-= 		compound "maybeTask" (andTasksCond "maybeTask" noNothing [("Maybe 1",left),("Maybe 2",right)]
+(-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
+(-&?&-) t1 t2 
+= 		compound "maybeTask" (parallel "maybeTask" noNothing [("MaybeLeft",left),("MaybeRight",right)]
   							>>=	combineResult)
 where
 	left 	= t1 >>= \tres -> return (LEFT tres) 
@@ -179,23 +191,11 @@ where
 	noNothing [RIGHT Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
 
-andTask2 :: !(Task a,Task b) -> Task (a,b) | iData a & iData b
-andTask2 (taska,taskb) 
-=	compound "andTask2"	((parallel "andTask" (\l -> False) 
-							[ ("andTask.0",taska >>= \a -> return (LEFT a))
-							, ("andTask.1",taskb >>= \b -> return (RIGHT b))
-							] <<@ TTHorizontal)
-						>>= \[LEFT a, RIGHT b] -> 	return (a,b) 
-						)
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = domu_andTasks tasks
 where
-	domu_andTasks list = andTasks [(label  <+++ " " <+++ i, i @:: task) \\ (i,task) <- list] 
-
-andTasksCond :: !String !([a] -> Bool) ![LabeledTask a] -> (Task [a]) 	| iData a 
-andTasksCond label pred taskCollection 
-= parallel label pred taskCollection <<@ TTSplit []
+	domu_andTasks list = andTasks [(label  +++ " " +++ toString i, i @: (toString i,task)) \\ (i,task) <- list] 
 
 
 // ******************************************************************************************************
@@ -241,6 +241,3 @@ where
 	
 	finish tst
 		= accTaskTSt finishTask tst
-
-view :: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
-view finishTask f x = return createDefault

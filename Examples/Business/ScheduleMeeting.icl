@@ -69,5 +69,5 @@ where
 
 	confirm  :: Int Int (HtmlDate,HtmlTime) -> Task Void 
 	confirm me you (date,time)
-	= 	me @::>	[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
-				?>>	editTask "OK" Void
+	= 	me @:>	("confirm",[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
+				?>>	ok)

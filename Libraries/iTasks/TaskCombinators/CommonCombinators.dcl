@@ -6,16 +6,32 @@ definition module CommonCombinators
 
 import BasicCombinators, iDataWidgets		 
 
-/* Assign tasks to user with indicated id:
-(@:)			:: will prompt who is waiting for task with give name
-(@::)			:: as @:, a default task name is chosen as label
-(@:>)			:: as @:, no prompting
-(@::>)			:: as @::, no prompting
-*/
-(@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a
-(@::)  infix 3 	:: !UserId !(Task a)		    			-> Task a		| iData a
-(@:>)  infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a
-(@::>) infix 3 	:: !UserId !(Task a)		    			-> Task a		| iData a
+//Task composition
+
+(-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 			| iData a
+(-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 		| iData a & iData b
+
+orTasks 		:: ![LabeledTask a] 						-> Task a 			| iData a
+andTasks		:: ![LabeledTask a]							-> Task [a]			| iData a
+
+eitherTask		:: !(Task a) !(Task b) 						-> Task (EITHER a b)| iData a & iData b	
+
+//Common user interface tasks
+button			:: !String !a -> Task a | iData a
+
+ok				:: Task Void
+
+yes				:: Task Bool
+no				:: Task Bool
+
+
+//Task selection
+
+
+//Task delegation
+(@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a //will prompt who is waiting for task with give name
+(@:>)  infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a //as @:, no prompting
+
 
 
 /* Handling recursion and loops:
@@ -66,7 +82,7 @@ mchoiceTask		:: Checked tasks can be done in INTERLEAVED
 mchoiceTask2	:: as mchoiceTask, boolean used for initial setting of the checks
 mchoiceTask3	:: as mchoiceTask2, function can be used to (re)set the checkboxes
 */
-button 			:: !String 	!a 								-> Task a 		| iData a
+
 buttonTask		:: !String   !(Task a)						-> Task a 		| iData a
 chooseTask		:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iData a
 
@@ -79,32 +95,25 @@ mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] 				-> Task [a]		| iData a
 mchoiceAndTasks2:: ![HtmlTag] ![(!Bool,LabeledTask a)] 		-> Task [a] 	| iData a
 mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] 
 															-> Task [a] 	| iData a
+
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 (-||-)			:: do both iTasks in any order, combined task completed as soon as any subtask is done
 (-&&-)			:: do both iTasks in any order (interleaved), task completed when both done
 orTasks			:: do all  iTasks in any order (interleaved), task completed as soon as any subtask is done
-orTask2			:: do both iTasks in any order, combined task completed as any subtask is done
 andTasks		:: do all  iTasks in any order (interleaved), task completed when all  done
-andTask2		:: do both iTasks in any order (interleaved), task completed when both done
+eitherTask		:: do both iTasks in any order, combined task completed as any subtask is done
+
 andTasks_mu		:: assign task to indicated users, task completed when all done
-andTasksCond 	:: do all  iTasks in any order (interleaved), task completed when predicate holds for finished tasks 
 */
-(-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 		| iData a
-(-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 	| iData a & iData b
-orTasks 		:: ![LabeledTask a] 						-> Task a 		| iData a
-orTask2			:: !(Task a,Task b) 						-> Task (EITHER a b) 
-																			| iData a & iData b	
-andTasks		:: ![LabeledTask a]							-> Task [a]		| iData a
-andTask2		:: !(Task a,Task b) 						-> Task (a,b) 	| iData a & iData b
+
 andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iData a
-andTasksCond 	:: !String !([a] -> Bool) ![LabeledTask a]	-> Task [a] 	| iData a 
 
 /* convenient combinators for tasks that maybe return a result:
-(=>>?)			:: as bind, but do the second task only if the first one delivers a result 
+(>>?)			:: as bind, but do the second task only if the first one delivers a result 
 (-&&-?)			:: do both tasks in any order, task completed when all done, or one of them delivers nothing
 */
-(=>>?) infixl 1 :: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) 		| iData a & iData b
-(-&&-?)infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iData a & iData b
+(>>?)	infixl 1 :: !(Task (Maybe a)) !(a -> Task (Maybe b))	-> Task (Maybe b) 		| iData a & iData b
+(-&?&-)	infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iData a & iData b
 
 
 /* Time and Date management:
@@ -113,11 +122,5 @@ waitForTimerTask:: Task is done when specified amount of time has passed
 waitForTimerTask:: !HtmlTime								-> Task HtmlTime
 
 //Misc
-ok				:: Task Void
-yes				:: Task Bool
-no				:: Task Bool
-
 transform 		:: (a -> b) a -> Task b | iData b
-
 edit			:: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
-view			:: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c

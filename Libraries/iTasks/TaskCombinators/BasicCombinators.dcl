@@ -105,8 +105,6 @@ delegate 	:: !UserId !(LabeledTask a) 				-> Task a	| iData a
 
 /* Experimental department:
 
-   May not work when the tasks are garbage collected !!
-
 -!>				:: a task, either finished or interrupted (by completion of the first task) is returned in the closure
 				   if interrupted, the work done so far is returned (!) which can be continued somewhere else
 channel			:: splits a task in respectively a sender task closure and receiver taskclosure; 
