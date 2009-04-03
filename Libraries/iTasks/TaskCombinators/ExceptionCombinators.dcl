@@ -12,10 +12,10 @@ import iDataForms
 * Exception combinator.
 *
 * @param The normal task which will possibly raise an exception of type e
-* @param The exception handling task which gets the exception and the normal task as parameters
+* @param The exception handling task which gets the exception as parameter
 * @return The combined task
 */
-(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e
+(<^>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 
 /**
 * Exception raising. This will raise an exception of arbitrary type e which has to be caught

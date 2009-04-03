@@ -21,7 +21,7 @@ exceptionHandlingExample
 	 }]
 
 exceptionTask :: Task Void
-exceptionTask = normalTask <^> catchNegativeValueTask <^> catchTooLargeValueTask
+exceptionTask = normalTask <^> catchNegativeValueTask normalTask <^> catchTooLargeValueTask normalTask
 
 db :: (DBid Int)
 db = mkDBid "MyIntDB" LSTxtFile
@@ -43,8 +43,8 @@ where
 		| otherwise	= return val
 
 
-catchNegativeValueTask :: NegativeValueException (Task Void) -> Task Void
-catchNegativeValueTask (NegativeValueException msg) task
+catchNegativeValueTask :: (Task Void) NegativeValueException  -> Task Void
+catchNegativeValueTask task (NegativeValueException msg) 
 	=		readDB db
 	>>=	\curval ->
 		[Text "A NegativeValueException occurred: ",Text msg, BrTag []
@@ -52,8 +52,8 @@ catchNegativeValueTask (NegativeValueException msg) task
 		] ?>> button "Ok" Void
 		
 
-catchTooLargeValueTask :: TooLargeValueException (Task Void) -> Task Void
-catchTooLargeValueTask (TooLargeValueException msg) task
+catchTooLargeValueTask :: (Task Void) TooLargeValueException  -> Task Void
+catchTooLargeValueTask task (TooLargeValueException msg) 
 	=	[Text "A TooLargeValueException occurred, please try again"] ?>> button "Ok" Void
-	>>| (task <^> catchNegativeValueTask <^> catchTooLargeValueTask)
+	>>| (task <^> catchNegativeValueTask task <^> catchTooLargeValueTask task)
 	

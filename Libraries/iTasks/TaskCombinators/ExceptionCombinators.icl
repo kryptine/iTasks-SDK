@@ -7,7 +7,7 @@ from StdFunc import id
 import TSt, Engine, Util
 import iDataFormlib
 
-(<^>) infixl  1  :: !(Task a) !(e (Task a) -> Task a) 	-> Task a 	| iData a & iData e
+(<^>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 (<^>) normaltask exceptiontask = mkSequenceTask "<^>" exceptionTask
 where
 	exceptionTask tst=:{taskNr,options,hst}
@@ -15,7 +15,7 @@ where
 		# (store,hst) 		= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
 		# (caught,exception)= store.Form.value
 		| caught
-			= accTaskTSt (exceptiontask exception normaltask) {tst & hst = hst}
+			= accTaskTSt (exceptiontask exception) {tst & hst = hst}
 		| otherwise
 			# (a, tst =:{exceptions,hst})	= accTaskTSt normaltask {tst & hst = hst}
 			# (mbEx,otherExceptions)		= findException exceptions
@@ -25,7 +25,7 @@ where
 					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,ex)) hst
 					# tst		= resetSequence {tst & hst = hst}
 					# (a,tst=:{exceptions=newExceptions})
-								= accTaskTSt (exceptiontask ex normaltask) {tst & exceptions = [], activated = True}
+								= accTaskTSt (exceptiontask ex) {tst & exceptions = [], activated = True}
 					= (a, {tst & exceptions = newExceptions ++ otherExceptions})
 				Nothing
 					= (a, {tst & hst = hst})

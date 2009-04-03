@@ -197,7 +197,7 @@ yes	:: Task Bool
 yes = button "Yes" True
 
 no :: Task Bool
-no = button "No" True
+no = button "No" False
 
 transform :: (a -> b) a -> Task b | iData b
 transform f x = return (f x)
