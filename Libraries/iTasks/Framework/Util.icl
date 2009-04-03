@@ -65,4 +65,32 @@ gUpd{|Task|} gc mode                 b		= (mode, b)
 gForm{|Task|} gfa (init,formid) hst
 = ({value=formid.ival,changed=False,form=[], inputs = []},hst)
 
+// ******************************************************************************************************
 
+write{|Dynamic|} dyn wst
+	= write{|*|} (dynamic_to_string dyn) wst
+	
+read {|Dynamic|} wst 
+	# (Read str i file) = read{|*|} wst
+	= Read (deserialize str) i file
+where
+	deserialize :: .String -> .Dynamic
+	deserialize str = string_to_dynamic {c \\ c <-: str }
+
+gPrint{|Dynamic|} dyn ps = ps <<- dynamic_to_string dyn
+
+gParse{|Dynamic|} expr
+# mbstring = parseString expr
+| isNothing mbstring = Nothing
+= Just (string_to_dynamic {s` \\ s` <-: fromJust mbstring})
+where
+	parseString :: Expr -> Maybe String
+	parseString expr = gParse{|*|} expr
+
+gUpd{|Dynamic|} (UpdSearch 0 _)	  	  c = (UpdDone, c)								
+gUpd{|Dynamic|} (UpdSearch cntr val)  c = (UpdSearch (cntr - 1) val,c)						
+gUpd{|Dynamic|} (UpdCreate l)         _ = (UpdCreate l, dynamic "")			
+gUpd{|Dynamic|} mode                  b = (mode, b)										
+
+gForm{|Dynamic|} (init,formid) hst
+= ({value=formid.ival,changed=False,form=[], inputs = []},hst)

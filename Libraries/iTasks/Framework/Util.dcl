@@ -5,12 +5,12 @@ from Types			import :: TaskNr
 from StdOverloaded	import class ==, class <
 import iDataForms
 
-derive gForm 	Task						
-derive gUpd 	Task
-derive gPrint 	Task
-derive gParse 	Task
-derive read 	Task
-derive write 	Task
+derive gForm 	Task, Dynamic						
+derive gUpd 	Task, Dynamic
+derive gPrint 	Task, Dynamic
+derive gParse 	Task, Dynamic
+derive read 	Task, Dynamic
+derive write 	Task, Dynamic
 
 // Here follow some commonly used internal functions
 
