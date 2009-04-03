@@ -7,6 +7,43 @@ from StdFunc import id
 import TSt, Engine, Util
 import iDataFormlib
 
+
+(<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
+(<\/>) normaltask exceptiontask = mkSequenceTask "<v>" exceptionTask
+where
+	exceptionTask tst=:{taskNr,options,hst,changeDemands}
+		# storeId			= iTaskId (tl taskNr) "changeDemand"
+		# (store,hst) 		= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
+		# (changed,change)	= store.Form.value
+		| changed
+			= accTaskTSt (exceptiontask change) {tst & hst = hst}
+		| otherwise
+			= case findChange changeDemands {tst & hst = hst} of
+				(Nothing,tst)	= accTaskTSt normaltask tst			 
+				(Just change,tst)
+					# hst		= deleteIData (iTaskId (tl taskNr) "") tst.hst
+					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,change)) hst
+					# tst		= resetSequence {tst & hst = hst}
+					= accTaskTSt (exceptiontask change) {tst & activated = True}
+	where	
+		findChange [] tst
+			= (Nothing,tst)
+		findChange [(pred,chd):chds] tst
+			# (b,tst)= (pred tst) 
+			= if b
+				(case chd of
+					(ch :: e^)
+						= (Just ch,tst)
+					_	= (Nothing,tst)) (findChange chds tst)
+					
+
+change :: !(*TSt -> *(Bool,*TSt)) !e !(Task a) -> Task a | iData a & TC e	
+change pred e task = mkSequenceTask "change" raise`
+where
+	raise` tst=:{changeDemands}
+		= accTaskTSt task {tst & changeDemands = [(pred,dynamic e):changeDemands]} 
+
+
 (<^>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 (<^>) normaltask exceptiontask = mkSequenceTask "<^>" exceptionTask
 where

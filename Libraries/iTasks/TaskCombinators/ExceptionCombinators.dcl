@@ -3,10 +3,29 @@ definition module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 
-from TSt	import :: Task
+from TSt	import :: Task, ::TSt
 from iDataSettings	import class iCreateAndPrint, class iParse, class iSpecialStore, class iData
 
 import iDataForms
+
+/**
+* Change is possible combinator.
+*
+* @param The normal task can be replaced by another one
+* @param The exception handling task which gets the exception as parameter
+* @return The combined task
+*/
+
+(<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
+
+/**
+* Change raising. This will raise an exception of arbitrary type e which has to be caught
+* by a lower level change handler combinator.
+*
+* @param The exception value
+* @return The combined task
+*/
+change :: !(*TSt -> *(Bool,*TSt)) !e !(Task a) -> Task a | iData a & TC e	
 
 /**
 * Exception combinator.

@@ -23,6 +23,7 @@ from SessionDB	import :: Session{..}
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
 					, exceptions	:: ![Dynamic]								// Optional exceptions
+					, changeDemands	:: ![(*TSt -> *(Bool,TSt),Dynamic)]			// Optional change for a specific task
 									
 					, hst			:: !*HSt									// iData state
 					}
