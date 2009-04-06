@@ -23,7 +23,7 @@ from SessionDB	import :: Session{..}
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
 					, exceptions	:: ![Dynamic]								// Optional exceptions
-					, changeDemands	:: ![(*TSt -> *(Bool,TSt),Dynamic)]			// Optional change for a specific task
+					, changeDemands	:: ![(RaiseCondition, Dynamic)]				// Optional change for a specific task
 									
 					, hst			:: !*HSt									// iData state
 					}
@@ -41,7 +41,10 @@ from SessionDB	import :: Session{..}
 					, threadTableLoc	:: !Lifespan							// where to store the server thread table, default is Session					
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
 					}
+:: RaiseCondition = RC (*TSt -> *(Bool,Maybe RaiseCondition,*TSt))				// used to pass a list of change predicates down the task tree
 														
+
+
 // The task monad
 :: Task a = Task !(*TSt -> *(!a,!*TSt))
 

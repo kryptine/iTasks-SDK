@@ -8,6 +8,7 @@ import TSt, Engine, Util
 import iDataFormlib
 
 
+
 (<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 (<\/>) normaltask exceptiontask = mkSequenceTask "<v>" exceptionTask
 where
@@ -19,26 +20,28 @@ where
 			= accTaskTSt (exceptiontask change) {tst & hst = hst}
 		| otherwise
 			= case findChange changeDemands {tst & hst = hst} of
-				(Nothing,tst)	= accTaskTSt normaltask tst			 
-				(Just change,tst)
+				(Nothing,accu,tst)	= accTaskTSt normaltask tst			 
+				(Just change,accu,tst)
 					# hst		= deleteIData (iTaskId (tl taskNr) "") tst.hst
 					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,change)) hst
 					# tst		= resetSequence {tst & hst = hst}
-					= accTaskTSt (exceptiontask change) {tst & activated = True}
+					= accTaskTSt (exceptiontask change) {tst & activated = True, changeDemands = [] /*accu*/}
 	where	
 		findChange [] tst
-			= (Nothing,tst)
-		findChange [(pred,chd):chds] tst
-			# (b,tst)= (pred tst) 
-			= if b
-				(case chd of
+			= (Nothing,[],tst)
+		findChange [pchd=:(RC pred,chd):chds] tst
+			# (b,mbNextPred,tst) = pred tst
+			| b
+				= case chd of
 					(ch :: e^)
-						= (Just ch,tst)
-					_	= (Nothing,tst)) (findChange chds tst)
+						= (Just ch,if (isNothing mbNextPred) chds [(fromJust mbNextPred,chd):chds],tst)
+					_	= (Nothing,[pchd:chds],tst)
+			# (mc,chds,tst) = findChange chds tst
+			= (mc,[pchd:chds],tst)
 					
 
-change :: !(*TSt -> *(Bool,*TSt)) !e !(Task a) -> Task a | iData a & TC e	
-change pred e task = mkSequenceTask "change" raise`
+raiseChange :: !RaiseCondition !e !(Task a) -> Task a | iData a & TC e	
+raiseChange pred e task = mkSequenceTask "change" raise`
 where
 	raise` tst=:{changeDemands}
 		= accTaskTSt task {tst & changeDemands = [(pred,dynamic e):changeDemands]} 

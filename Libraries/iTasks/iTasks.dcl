@@ -22,6 +22,7 @@ import	Engine						// basic iTask system creator
 	,	ClientCombinators			// Delegating tasks to the client
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap
+	,	Util
 
 	//StdEnv modules
 	,	StdInt
