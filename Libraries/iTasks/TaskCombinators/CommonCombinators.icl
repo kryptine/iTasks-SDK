@@ -6,9 +6,9 @@ implementation module CommonCombinators
 import StdList, StdTuple
 import iDataFormlib, iDataTrivial
 from StdFunc	import id
-from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow, :: RaiseCondition(..)
+from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
 from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
-from Types		import :: ProcessId
+from Types		import :: ProcessId, :: TaskId
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 

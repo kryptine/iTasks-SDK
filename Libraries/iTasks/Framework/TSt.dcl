@@ -22,8 +22,8 @@ from SessionDB	import :: Session{..}
 					, options		:: !Options									// iData lifespan and storage format
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
-					, exceptions	:: ![Dynamic]								// Optional exceptions
-					, changeDemands	:: ![(RaiseCondition, Dynamic)]				// Optional change for a specific task
+					, exceptions	:: ![Dynamic]								// Optional, used when raising exceptions
+					, changeDemands	:: ![(TaskId, RaiseCondition, Dynamic)]		// Optional, used when demanding dynamic changes
 									
 					, hst			:: !*HSt									// iData state
 					}

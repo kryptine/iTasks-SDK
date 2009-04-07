@@ -392,6 +392,7 @@ incTaskNr :: !TaskNr -> TaskNr
 incTaskNr [] = [0]
 incTaskNr [i:is] = [i+1:is]
 
+
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""
 taskNrToString [i] 		= toString i

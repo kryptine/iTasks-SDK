@@ -1,20 +1,20 @@
 definition module Util
 
-from TSt 			import :: Task, :: Options
+from TSt 			import :: Task, :: Options, ::RaiseCondition
 from Types			import :: TaskNr
 from StdOverloaded	import class ==, class <
 import iDataForms
 
-derive gForm 	Task, Dynamic						
-derive gUpd 	Task, Dynamic
-derive gPrint 	Task, Dynamic
-derive gParse 	Task, Dynamic
-derive read 	Task, Dynamic
-derive write 	Task, Dynamic
+derive gForm 	Task, Dynamic, RaiseCondition						
+derive gUpd 	Task, Dynamic, RaiseCondition
+derive gPrint 	Task, Dynamic, RaiseCondition
+derive gParse 	Task, Dynamic, RaiseCondition
+derive read 	Task, Dynamic, RaiseCondition
+derive write 	Task, Dynamic, RaiseCondition
 
 // Here follow some commonly used internal functions
 
-/* Support for user defined combinators
+/* Task number is used to generate a unique id
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation
 */
 

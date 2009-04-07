@@ -21,9 +21,9 @@ derive gParse	Time
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
 (>>=) taska taskb = Task tbind
 where
-	tbind tst=:{options}
+	tbind tst=:{options, changeDemands}
 		# (a,tst=:{activated})	= accTaskTSt taska tst
-		| activated				= accTaskTSt (taskb a) {tst & options = options}
+		| activated				= accTaskTSt (taskb a) {tst & options = options, changeDemands = changeDemands}
 								= (createDefault,tst)
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iCreateAndPrint b
