@@ -10,6 +10,16 @@ import code from library "msvcrt.txt"
 //String buffer size
 MAXBUF :== 256
 
+instance == Time
+where
+	(==) (Time t1) (Time t2) = t1 == t2
+	
+instance < Time
+where
+	(<) (Time t1) (Time t2) = t1 < t2 
+
+
+
 instance toString Tm
 where
 	toString tm = derefString (toStringTmC (packTm tm))

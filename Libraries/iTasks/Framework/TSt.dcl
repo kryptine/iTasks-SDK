@@ -8,6 +8,7 @@ import StdMaybe
 import TaskTree, Types, Void, iDataForms
 from HSt		import :: HSt
 from SessionDB	import :: Session{..}
+from Time		import :: Time(..)
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr									// for generating unique form-id's
@@ -24,7 +25,7 @@ from SessionDB	import :: Session{..}
 					
 					, exceptions	:: ![Dynamic]								// Optional, used when raising exceptions
 					, changeRequests
-									:: ![(TaskId, ChangeCondition, Dynamic)]	// Optional, used when demanding dynamic changes
+									:: ![(!TaskId,!ChangeCondition,!Int,!Dynamic)]	// Optional, used when demanding dynamic changes
 									
 					, hst			:: !*HSt									// iData state
 					}
@@ -42,9 +43,11 @@ from SessionDB	import :: Session{..}
 					, threadTableLoc	:: !Lifespan							// where to store the server thread table, default is Session					
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
 					}
-:: ChangeCondition = RC (*TSt -> *(Bool,Maybe ChangeCondition,*TSt))				// used to pass a list of change predicates down the task tree
-														
-
+:: ChangeCondition = CC (*TSt -> *(ChangeResult,*TSt))							// used to pass a list of change predicates down the task tree
+:: ChangeResult	=	{ newCondition		:: !Maybe !ChangeCondition				// new condition to pass to future handlers	
+					, changePred		:: !Bool								// True if the change is applicable here; note that the dynamic information pushed should also match
+					, makeChange		:: !Bool								// True if the work indeed has to be changed by the alternative defined 		
+					} 														
 
 // The task monad
 :: Task a = Task !(*TSt -> *(!a,!*TSt))

@@ -36,5 +36,6 @@ from StdFunc import id, const
 
 //Types
 import Types
-from TSt		import :: Workflow{..}
+from TSt		import :: Workflow{..}, :: ChangeCondition(..), :: ChangeResult{..}
+from Time		import :: Time(..)
 from TaskTree	import :: TaskCombination(..)

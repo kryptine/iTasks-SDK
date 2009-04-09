@@ -5,7 +5,7 @@ definition module Time
 */
 
 from StdString import class toString
-
+import StdOverloaded
 /**
 * The resolution of the system clock ticks
 */
@@ -29,15 +29,17 @@ CLK_PER_SEC	:== 100
 /**
 * The time data type represents a number of seconds since the epoch (1-1-1970).
 */
-:: Time		= Time Int
+:: Time		= Time !Int
 /**
 * The clock data type represents a number of CPU clock ticks.
 */
-:: Clock	= Clock Int
+:: Clock	= Clock !Int
 
-instance toString Tm
-instance toString Time
-instance toString Clock
+instance toString 	Tm
+instance toString 	Time
+instance toString 	Clock
+instance == 		Time
+instance < 			Time
 
 /**
 * Get the number of clock ticks since the process start

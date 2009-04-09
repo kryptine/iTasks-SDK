@@ -3,7 +3,7 @@ definition module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 
-from TSt	import :: Task, ::TSt, ::ChangeCondition(..)
+from TSt	import :: Task, ::TSt, ::ChangeCondition(..), :: ChangeResult
 from iDataSettings	import class iCreateAndPrint, class iParse, class iSpecialStore, class iData
 
 import iDataForms
