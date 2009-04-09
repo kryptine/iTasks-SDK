@@ -25,7 +25,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, options 		= initialOptions itaskstorage
 		, staticInfo	= initStaticInfo session threadstorage workflows
 		, exceptions	= []
-		, changeDemands	= []
+		, changeRequests= []
 		, hst 			= hst
 		}
 

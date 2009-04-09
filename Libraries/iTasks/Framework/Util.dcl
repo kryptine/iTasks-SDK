@@ -1,16 +1,16 @@
 definition module Util
 
-from TSt 			import :: Task, :: Options, ::RaiseCondition
+from TSt 			import :: Task, :: Options, ::ChangeCondition
 from Types			import :: TaskNr
 from StdOverloaded	import class ==, class <
 import iDataForms
 
-derive gForm 	Task, Dynamic, RaiseCondition						
-derive gUpd 	Task, Dynamic, RaiseCondition
-derive gPrint 	Task, Dynamic, RaiseCondition
-derive gParse 	Task, Dynamic, RaiseCondition
-derive read 	Task, Dynamic, RaiseCondition
-derive write 	Task, Dynamic, RaiseCondition
+derive gForm 	Task, Dynamic, ChangeCondition						
+derive gUpd 	Task, Dynamic, ChangeCondition
+derive gPrint 	Task, Dynamic, ChangeCondition
+derive gParse 	Task, Dynamic, ChangeCondition
+derive read 	Task, Dynamic, ChangeCondition
+derive write 	Task, Dynamic, ChangeCondition
 
 // Here follow some commonly used internal functions
 

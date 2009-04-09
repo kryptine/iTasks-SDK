@@ -9,48 +9,48 @@ import iDataFormlib
 
 
 (<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
-(<\/>) normaltask exceptiontask = mkSequenceTask "<v>" exceptionTask
+(<\/>) normaltask alternativeTask = mkSequenceTask "<v>" exceptionTask
 where
-	exceptionTask tst=:{taskNr,options,hst,changeDemands}
-		# storeId			= iTaskId (tl taskNr) "changeDemand"
+	exceptionTask tst=:{taskNr,options,hst,changeRequests}
+		# storeId			= iTaskId (tl taskNr) "catchChangeDemand"
 		# (store,hst) 		= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
 		# (changed,change)	= store.Form.value
 		| changed
-			= accTaskTSt (exceptiontask change) {tst & hst = hst}
+			= accTaskTSt (alternativeTask change) {tst & hst = hst}				// demand was catched in the past, call alternative task with pushed information
 		| otherwise
-			= case findChange changeDemands {tst & hst = hst} of
-				(Nothing,accu,tst)	= accTaskTSt normaltask tst			 
-				(Just change,accu,tst)
-					# hst		= deleteIData (iTaskId (tl taskNr) "") tst.hst
-					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,change)) hst
+			= case findChange changeRequests {tst & hst = hst} of
+				(Nothing,accu,tst)	= accTaskTSt normaltask tst					// no change requested, perform normal task			 
+				(Just change,accu,tst)								
+					# hst		= deleteIData (iTaskId (tl taskNr) "") tst.hst	// there is a request catched, delete the original task
+					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,change)) hst // remember that we catched
 					# tst		= resetSequence {tst & hst = hst}
-					= accTaskTSt (exceptiontask change) {tst & activated = True, changeDemands = accu}
+					= accTaskTSt (alternativeTask change) {tst & activated = True, changeRequests = accu} // call alternative task with updated request predicate
 	where	
 		findChange [] tst
 			= (Nothing,[],tst)
 		findChange [pchd=:(taskId,RC pred,chd):chds] tst
-			# (b,mbNextPred,tst) 	= pred tst
-			| b 					= case chd of
+			# (b,mbNextPred,tst) 	= pred tst			// test predicate, also returning the updated predicate
+			| b 					= case chd of		// predicate holds, but pushed information should type match as well
 										(ch :: e^)	= (Just ch, if (isNothing mbNextPred) chds [(taskId,fromJust mbNextPred,chd):chds], tst)
 										_			= (Nothing, [pchd:chds], tst)
 			# (mc,chds,tst) = findChange chds tst
 			= (mc,[pchd:chds],tst)
 					
 
-raiseChange :: !RaiseCondition !e !(Task a) -> Task a | iData a & TC e	
-raiseChange pred e task = mkSequenceTask "change" raise`
+pushChangeRequest :: !ChangeCondition !e !(Task a) -> Task a | iData a & TC e	
+pushChangeRequest pred e task = mkSequenceTask "change" raise`
 where
-	raise` tst=:{taskNr,options,hst,changeDemands = orgDemands}
-		# storeId									= iTaskId (tl taskNr) "change"
+	raise` tst=:{taskNr,options,hst,changeRequests = orgRequests}
+		# storeId									= iTaskId (tl taskNr) "pushChangeDemand"
 		# myTaskId									= taskNrToString (tl taskNr)
-		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,pred)) id hst
+		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,pred)) id hst	// store for change request
 		# (b,spred)									= store.Form.value
-		# newDemands								= if b [(myTaskId,spred,dynamic e):orgDemands] orgDemands
-		# (a,tst=:{changeDemands = newDemands})		= accTaskTSt task {tst & changeDemands = newDemands, hst = hst} 
-		# mbDemand									= find myTaskId newDemands
-		# new_bspred								= if (isNothing mbDemand) (False,pred) (True,fromJust mbDemand)
+		# newRequests								= if b [(myTaskId,spred,dynamic e):orgRequests] orgRequests
+		# (a,tst=:{changeRequests = newRequests})	= accTaskTSt task {tst & changeRequests = newRequests, hst = hst} 		// push request down the task tree
+		# mbDemand									= find myTaskId newRequests
+		# new_bspred								= if (isNothing mbDemand) (False,pred) (True,fromJust mbDemand)			// remember updated request for future events
 		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,pred)) (\_ -> new_bspred) hst
-		= (a, {tst & changeDemands = orgDemands})
+		= (a, {tst & changeRequests = orgRequests})																			// recover original request list
 	where
 		find myTaskId []							= Nothing
 		find myTaskId [(taskId,RC pred,chd):chds]
@@ -61,7 +61,7 @@ where
 (<^>) normaltask exceptiontask = mkSequenceTask "<^>" exceptionTask
 where
 	exceptionTask tst=:{taskNr,options,hst}
-		# storeId			= iTaskId (tl taskNr) "exception"
+		# storeId			= iTaskId (tl taskNr) "catchException"
 		# (store,hst) 		= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
 		# (caught,exception)= store.Form.value
 		| caught
@@ -91,7 +91,7 @@ where
 				= (mbEx, [ex:exs])
 
 raise :: !e -> Task a | iData a & TC e	
-raise e = mkBasicTask "raise" raise`
+raise e = mkBasicTask "raiseException" raise`
 where
 	raise` tst
 		# tst	= setOutput [H1Tag [] [Text "Error, an uncaught exception was raised"]] tst
