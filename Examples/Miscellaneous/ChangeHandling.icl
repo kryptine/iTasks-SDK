@@ -18,7 +18,7 @@ editSpecial :: Int -> Task Int
 editSpecial i 
 	= 				chooseTask []
 						[( "normal",	mytask)
-						, ("absurd",	raiseChange (RC (pred 2)) ourList mytask)
+						, ("absurd",	pushChangeRequest (RC (pred 2)) ourList mytask)
 						] >>= editSpecial
 	where
 		mytask = editTask ("OK" <+++ i) i  <\/> myChange (editSpecial i)
@@ -40,3 +40,20 @@ where
 	tasksOfSameType t [] = [("Standard Task",t),("Simple Editor",editTask "Edit" createDefault)]
 	tasksOfSameType t [(t` :: LabeledTask a^) : ts] = [t` : tasksOfSameType t ts]
 	tasksOfSameType t [t` : ts] = tasksOfSameType t ts
+	
+
+/*
+edit` val = editTask ("Normal OK" <+++ val) val  <\/> myChange (alternative val)
+where
+	alternative val _ = 	editTask ("Alternative OK" <+++ val) val
+	
+
+doTest task = pushChangeRequest mypred ourList mytask
+where
+	mypred _ tst = (True,Nothing,tst)
+
+
+//test1 = 
+*/
+
+

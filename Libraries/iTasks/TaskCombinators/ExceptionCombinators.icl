@@ -6,7 +6,7 @@ import StdList, StdArray, StdTuple, StdMisc
 from StdFunc import id
 import TSt, Engine, Util
 import iDataFormlib
-
+import StdDebug
 
 (<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 (<\/>) normaltask alternativeTask = mkSequenceTask "<v>" exceptionTask
@@ -21,10 +21,8 @@ where
 			= case findChange changeRequests {tst & hst = hst} of
 				(Nothing,accu,tst)	= accTaskTSt normaltask tst					// no change requested, perform normal task			 
 				(Just change,accu,tst)								
-					# hst		= deleteIData (iTaskId (tl taskNr) "") tst.hst	// there is a request catched, delete the original task
-					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,change)) hst // remember that we catched
-					# tst		= resetSequence {tst & hst = hst}
-					= accTaskTSt (alternativeTask change) {tst & activated = True, changeRequests = accu} // call alternative task with updated request predicate
+					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,change)) tst.hst // remember that we catched
+					= accTaskTSt (alternativeTask change) {tst & activated = True, changeRequests = accu, hst = hst} // call alternative task with updated request predicate
 	where	
 		findChange [] tst
 			= (Nothing,[],tst)
@@ -46,15 +44,15 @@ where
 		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,pred)) id hst	// store for change request
 		# (b,spred)									= store.Form.value
 		# newRequests								= if b [(myTaskId,spred,dynamic e):orgRequests] orgRequests
-		# (a,tst=:{changeRequests = newRequests})	= accTaskTSt task {tst & changeRequests = newRequests, hst = hst} 		// push request down the task tree
+		# (a,tst=:{changeRequests = newRequests,hst})	= accTaskTSt task {tst & changeRequests = newRequests, hst = hst} 		// push request down the task tree
 		# mbDemand									= find myTaskId newRequests
 		# new_bspred								= if (isNothing mbDemand) (False,pred) (True,fromJust mbDemand)			// remember updated request for future events
 		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,pred)) (\_ -> new_bspred) hst
-		= (a, {tst & changeRequests = orgRequests})																			// recover original request list
+		= (a, {tst & changeRequests = orgRequests, hst = hst})																// recover original request list
 	where
-		find myTaskId []							= Nothing
+		find myTaskId []							= trace_n "Good" Nothing
 		find myTaskId [(taskId,RC pred,chd):chds]
-		| myTaskId == taskId						= Just (RC pred)
+		| myTaskId == taskId						= trace_n "Bad" (Just (RC pred))
 		| otherwise									= find myTaskId chds
 
 (<^>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
