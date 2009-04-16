@@ -1,14 +1,14 @@
-module ChangeHandling
+implementation module ChangeHandling
 
 import iTasks, iDataTrivial
 import StdMisc
 
 
-Start world = startEngine exceptionHandlingExample world
+//Start world = startEngine exceptionHandlingExample world
 
-exceptionHandlingExample :: [Workflow]
-exceptionHandlingExample
-=	[{ name		= "Change handling"
+changeHandlingExample :: [Workflow]
+changeHandlingExample
+=	[{ name		= "Examples/Miscellaneous/Change handling"
 	 , label	= "Change example"
 	 , roles	= []
 	 , mainTask	= doTest >>| return Void

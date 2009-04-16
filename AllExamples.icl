@@ -19,7 +19,11 @@ import ReviewTask
 import Coffeemachine
 import Newsgroups
 import ExceptionHandling
+import ChangeHandling
 import WebShop
+
+//Administrative tasks
+import ProcessAdmin
 
 Start :: *World -> *World
 Start world = startEngine workflows world
@@ -36,5 +40,7 @@ where
 						, coffeemachineExample
 						, newsgroupsExample
 						, exceptionHandlingExample
+						, changeHandlingExample
 						, webShopExample
+						, processAdmin
 						]

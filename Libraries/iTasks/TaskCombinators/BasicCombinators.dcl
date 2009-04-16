@@ -49,7 +49,7 @@ return 		:: !a 										-> Task a 		| iData a
 */
 forever		:: !(Task a) 								-> Task a 		| iData a
 /**
-* Repeats a task as long as a given predicate holds. The predicate is tested as soon as the
+* Repeats a task until a given predicate holds. The predicate is tested as soon as the
 * given task is finished. When it does not hold, the task is restarted.
 *
 * @param The task to be looped

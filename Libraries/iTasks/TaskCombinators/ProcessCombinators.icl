@@ -12,10 +12,11 @@ from ProcessDB import mkDynamicProcessEntry
 import iDataForms
 import CommonCombinators
 
-derive gForm	ProcessReference, ProcessStatus
-derive gUpd		ProcessReference, ProcessStatus
-derive gPrint	ProcessReference, ProcessStatus
-derive gParse	ProcessReference, ProcessStatus
+derive gForm	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gUpd		ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gPrint	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gParse	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+
 
 :: ProcessReference a 	= ProcessReference !Int		//We only keep the id in the process database
 
@@ -109,10 +110,42 @@ where
 		# (pid, tst)	= getCurrentProcess tst
 		= accHStTSt (ProcessDB@deleteProcess pid) tst
 
-setProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iData a 
-setProcessOwner uid (ProcessReference pid) = compound "setProcessOwner" (Task setProcessOwner`)
+updateProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iData a 
+updateProcessOwner uid (ProcessReference pid) = compound "updateProcessOwner" (Task setProcessOwner`)
 where
 	setProcessOwner` tst
 		# (curUid,tst)	= getCurrentUser tst
 		= accHStTSt (ProcessDB@setProcessOwner uid curUid pid) tst
 
+
+//New "meta" process tasks
+getCurrentProcessId :: Task ProcessId
+getCurrentProcessId = mkBasicTask "getCurrentProcessId" getCurrentProcessId`
+where
+	getCurrentProcessId` tst=:{staticInfo}
+		= (staticInfo.currentProcessId,tst)
+
+getProcess :: !ProcessId -> Task (Maybe Process)
+getProcess pid = mkBasicTask "getProcess" (\tst ->	accHStTSt (ProcessDB@getProcess pid) tst)
+
+getProcessForUser :: !UserId !ProcessId -> Task (Maybe Process)
+getProcessForUser uid pid = mkBasicTask "getProcessForUser" (\tst -> accHStTSt (ProcessDB@getProcessForUser uid pid) tst)
+
+getProcesses :: ![ProcessStatus] -> Task [Process]
+getProcesses statuses = mkBasicTask "getProcesses" (\tst -> accHStTSt (ProcessDB@getProcesses statuses) tst)
+
+getProcessesById :: ![ProcessId] -> Task [Process]
+getProcessesById ids = mkBasicTask "getProcessesById" (\tst -> accHStTSt (ProcessDB@getProcessesById ids) tst)
+
+getProcessesForUser	:: !UserId ![ProcessStatus] -> Task [Process]
+getProcessesForUser uid statuses = mkBasicTask "getProcessesForUser" (\tst -> accHStTSt (ProcessDB@getProcessesForUser uid statuses) tst)
+
+setProcessOwner :: !UserId !ProcessId -> Task Bool
+setProcessOwner uid pid = mkBasicTask "setProcessOwner" setProcessOwner`
+where
+	setProcessOwner` tst
+		# (cur,tst)	= getCurrentUser tst //Current user is the new delegator of the process
+		= accHStTSt (ProcessDB@setProcessOwner uid cur pid) tst
+
+setProcessStatus :: !ProcessStatus !ProcessId -> Task Bool
+setProcessStatus status pid = mkBasicTask "setProcessStatus" (\tst -> accHStTSt (ProcessDB@setProcessStatus status pid) tst)

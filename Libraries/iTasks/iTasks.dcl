@@ -30,6 +30,7 @@ import	Engine						// basic iTask system creator
 	,	StdList
 	,	StdOrdList
 	,	StdTuple
+	,	StdEnum
 	,	StdOverloaded
 
 from StdFunc import id, const

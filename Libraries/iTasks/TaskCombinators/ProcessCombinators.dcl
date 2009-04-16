@@ -6,15 +6,15 @@ definition module ProcessCombinators
 
 import StdMaybe
 from TSt		import :: Task, :: LabeledTask
-from ProcessDB	import :: ProcessStatus
-from Types		import :: UserId
+from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: StaticProcessEntry(..), :: DynamicProcessEntry(..)
+from Types		import :: UserId, :: ProcessId
 
 import iDataForms
 
-derive gForm ProcessReference
-derive gUpd ProcessReference
-derive gPrint ProcessReference
-derive gParse ProcessReference
+derive gForm	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gUpd		ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gPrint	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gParse	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
 
 /**
 * A typed process reference. These references are used to reference
@@ -114,4 +114,77 @@ deleteCurrentProcess	::									    Task Bool
 * @return A task that yields True when the process owner was successfully updated
 *         and False when the process could not be found.
 */
-setProcessOwner			:: UserId (ProcessReference a)		->	Task Bool					| iData a 
+updateProcessOwner		:: UserId (ProcessReference a)		->	Task Bool					| iData a
+
+
+//Untyped process tasks, these regard a process as a black box
+
+/**
+* Retrieves the process id of the current process
+*
+* @return The process id of the current process
+*/
+getCurrentProcessId		:: 										Task ProcessId
+/**
+* Retrieves a Process record from the process table
+* 
+* @param The process id
+*
+* @return When found, the Process record. Nothing when the process can not be found.
+*/
+getProcess				:: !ProcessId 							-> Task (Maybe Process)
+/**
+* Retrieves a Process record with an additional check on the process owner. Only
+* when the process is owned by the indicated user it will be returned.
+*
+* @param The owner of the indicated process
+* @param The process id
+*
+* @return When found, the Process record. Nothing when the process can not be found.
+*/
+getProcessForUser		:: !UserId !ProcessId 					-> Task (Maybe Process)
+/**
+* Retrieves all process that have one of the given statuses
+*
+* @param A list of statuses to match on
+* 
+* @return The list of processes having the given statuses
+*/
+getProcesses			:: ![ProcessStatus]						-> Task [Process]
+/**
+* Retrieves the processes with indicated process ids
+*
+* @param A list of process ids to match on
+* 
+* @return The list of found processes
+*/
+getProcessesById		:: ![ProcessId]							-> Task [Process]
+/**
+* Retrieves the processes that are owned by indicated user and have one of the
+* given statuses.
+*
+* @param A process owner to match on
+* @param A list of statuses to match on
+*
+* @return The list of found processes
+*/
+getProcessesForUser		:: !UserId ![ProcessStatus]				-> Task [Process]
+/**
+* Changes the owner of the indicated process. The current user is automatically set
+* as delegator of the process.
+*
+* @param The new process owner
+* @param The process id
+*
+* @return True when the process is updated, False if the process was not found.
+*/
+setProcessOwner			:: !UserId !ProcessId					-> Task Bool
+/**
+* Changes the status of the indicated process.
+*
+* @param The new process status
+* @param The process id
+*
+* @return True when the process is updated, False if the process was not found.
+*/
+setProcessStatus		:: !ProcessStatus !ProcessId			-> Task Bool

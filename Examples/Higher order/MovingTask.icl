@@ -90,7 +90,7 @@ where
 
 	reassign wid
 	=						selectUser "Who is next?"
-		>>= \who ->			setProcessOwner who wid 
+		>>= \who ->			updateProcessOwner who wid 
 		>>| 				return False
 
 	waitForIt wid

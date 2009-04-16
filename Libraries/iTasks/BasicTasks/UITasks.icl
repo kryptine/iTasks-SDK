@@ -60,6 +60,7 @@ mySimpleButton options id label fun hst
 	= FuncBut (Init, (nFormId id (HtmlButton label False,fun)) <@ if (options.tasklife == LSClient) LSClient LSPage) hst
 
 displayHtml	:: ![HtmlTag] -> Task a	| iData a
+displayHtml [] = mkBasicTask "displayHtml" (\tst -> (createDefault,{tst & activated = False}))
 displayHtml html = mkBasicTask "displayHtml" displayTask`
 where
 	displayTask` tst
