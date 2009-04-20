@@ -118,7 +118,7 @@ where
 
 gUpd{|ChangeCondition|} (UpdSearch 0 _)	  	  c = (UpdDone, c)								
 gUpd{|ChangeCondition|} (UpdSearch cntr val)  c = (UpdSearch (cntr - 1) val,c)						
-gUpd{|ChangeCondition|} (UpdCreate l)         _ = (UpdCreate l, CC (\tst -> ({newCondition = Nothing, changePred = False, makeChange = False},tst)))			
+gUpd{|ChangeCondition|} (UpdCreate l)         _ = (UpdCreate l, CC (\tst -> ({newCondition = Nothing, isApplicable = False, applyChange = False},tst)))			
 gUpd{|ChangeCondition|} mode                  b = (mode, b)										
 
 gForm{|ChangeCondition|} (init,formid) hst

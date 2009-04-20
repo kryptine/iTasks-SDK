@@ -15,6 +15,7 @@ derive gForm 	Time
 derive gPrint	Time
 derive gParse	Time
 
+// TODO: change demands still have to be sorted to prevent that some changes are skipped MJP !!!!!!!!!!!!!
 
 (<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 (<\/>) normaltask alternativeTask = mkSequenceTask "<v>" exceptionTask
@@ -39,7 +40,7 @@ where
 		findChange [pchd=:(taskId,CC pred,timeStampChange,chd =:(ch :: e^)):chds] timestamp tst		// pushed dynamic should match
 			| timeStampChange > timestamp
 				# (changeResult,tst) 		= pred tst											// predicate should match as well
-				| changeResult.changePred 	= ( if changeResult.makeChange (Just ch) Nothing	// determine if alternative task has to be taken here
+				| changeResult.isApplicable 	= ( if changeResult.applyChange (Just ch) Nothing	// determine if alternative task has to be taken here
 											  , timeStampChange									// remember new timestamp
 											  , if (isNothing changeResult.newCondition)		// update predicate if there is one, kick it out otherwise 
 													chds 

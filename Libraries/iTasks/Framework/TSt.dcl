@@ -45,8 +45,8 @@ from Time		import :: Time(..)
 					}
 :: ChangeCondition = CC (*TSt -> *(ChangeResult,*TSt))							// used to pass a list of change predicates down the task tree
 :: ChangeResult	=	{ newCondition		:: !Maybe ChangeCondition				// new condition to pass to future handlers	
-					, changePred		:: !Bool								// True if the change is applicable here; note that the dynamic information pushed should also match
-					, makeChange		:: !Bool								// True if the work indeed has to be changed by the alternative defined 		
+					, isApplicable		:: !Bool								// True if the change is applicable here; note that the dynamic information pushed should also match
+					, applyChange		:: !Bool								// True if the work indeed has to be changed by the alternative defined 		
 					} 														
 
 // The task monad

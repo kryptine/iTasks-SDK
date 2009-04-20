@@ -4,27 +4,27 @@ import iTasks, iDataTrivial
 import StdMisc
 
 
-//Start world = startEngine exceptionHandlingExample world
+Start world = startEngine changeHandlingExample world
 
 changeHandlingExample :: [Workflow]
 changeHandlingExample
 =	[{ name		= "Examples/Miscellaneous/Change handling"
 	 , label	= "Change example"
 	 , roles	= []
-	 , mainTask	= doTest >>| return Void
+	 , mainTask	= addMultiUsertask >>| return Void
 	 }]
 
 editSpecial :: Int -> Task Int
 editSpecial i 
 	= 				chooseTask []
 						[( "normal",	mytask)
-						, ("absurd",	pushChangeRequest (CC (pred 2)) ourList mytask)
+						, ("absurd",	pushChangeRequest (CC (pred 30)) ourList mytask)
 						] >>= editSpecial
 	where
 		mytask = editTask ("OK" <+++ i) i  <\/> myChange (editSpecial i)
 
-		pred _ tst =	({newCondition = Nothing, 				 changePred = False, makeChange = True},tst)
-//		pred n tst = (True,Just (RC (pred (n-1))),tst)
+		pred _ tst =	({newCondition = Nothing, 				 isApplicable = False, applyChange = True},tst)
+//		pred n tst = (True,Just (CC (pred (n-1))),tst)
 		
 ourList :: [Dynamic]
 ourList
@@ -54,10 +54,20 @@ myBunch
 		parallel "andTasks"  (\_ -> False) id  [(toString i, edit` i) \\ i <- [0..5]]
 
 
-doTest = pushChangeRequest (CC (pred 50)) Void myBunch
+doTest = pushChangeRequest (CC (pred 30)) Void myBunch
 where
-		pred 0 tst =	({newCondition = Nothing, 				 changePred = False, makeChange = False},tst)
-		pred n tst =	({newCondition = Just (CC (pred (n-1))), changePred = True,  makeChange = isEven n},tst)
+		pred 0 tst =	({newCondition = Nothing, 				 isApplicable = False, applyChange = False},tst)
+		pred n tst =	({newCondition = Just (CC (pred (n-1))), isApplicable = True,  applyChange = isEven n},tst)
+
+
+
+addMultiUsertask :: Task Int 
+addMultiUsertask
+	=					editTask "First Value" createDefault 
+		>>= \s1 ->		chooseUser
+		>>= \(i,_) ->	i @: ("Your work", editTask "Second Value" createDefault)
+		>>= \s2 ->		editTask "Sum" (s1 + s2)
+
 
 
 
