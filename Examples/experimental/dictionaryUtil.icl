@@ -14,8 +14,29 @@ pop_a 0
 iDataVal2Dynamic ::  a -> Dynamic | BoxediData a
 iDataVal2Dynamic val = dynamic (get_iDataDictionaries val)
 
-iDataFun2Dynamic :: (A.a: (Dictionary_iData a) -> b) -> Dynamic | TC b
-iDataFun2Dynamic f = dynamic f :: (A.a: (Dictionary_iData a) -> b^)
+iDataFun2Dynamic :: (A.a: (Dictionary_iData a) -> (b -> Task a)) -> Dynamic | TC b
+iDataFun2Dynamic f = dynamic f :: (A.a: (Dictionary_iData a) -> (b^ -> Task a))
+
+(OO) infixr 9:: (dict a -> b) (dict -> a) -> (dict -> b) 
+(OO) dfun darg = applyTask`
+where
+	applyTask` dictonary
+	# fun = dfun dictonary
+	# arg = darg dictonary
+	= fun arg
+
+applyDynamicTask :: Dynamic (Dictionary_iData b,a) -> Task b | iData b & TC a
+applyDynamicTask 
+	(edit::A.c: (Dictionary_iData c) -> (a^ -> Task c)) (dict,val) = edit dict val 
+applyDynamicTask _ _ = return createDefault
+
+applyDynamicTask2 :: Dynamic a -> Task a | BoxediData a
+applyDynamicTask2 
+	(edit::A.c: (Dictionary_iData c) -> (a^ -> Task c)) val
+	# (dict,val) = get_iDataDictionaries val
+	= edit dict val 
+applyDynamicTask2 _ _ = return createDefault
+
 
 // ***************************************
 
@@ -51,14 +72,3 @@ d_iTaskDelegate fun = code {
     .o 1 0
 } 
 
-// ***************************************
-
-iTaskDelegateEditor :: (a -> Task a) | BoxediData a
-iTaskDelegateEditor = iTaskDelegate iTaskEditor
-
-d_iTaskDelegateEditor :: !(Dictionary_iData a) -> (a -> Task a)
-d_iTaskDelegateEditor fun = code {
-    .d 2 0
-          jmp e_dictionaryUtil_siTaskDelegateEditor
-    .o 1 0
-} 
