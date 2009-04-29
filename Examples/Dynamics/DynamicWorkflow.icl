@@ -8,10 +8,10 @@ import iTasks
 
 import DynamicIO
 
-Start world = startEngine coffeemachineExample world 
+Start world = startEngine readDynamicExample world 
 
-coffeemachineExample :: [Workflow]
-coffeemachineExample = [{ name 		= "Examples/Dynamics/ReadDynamic"
+readDynamicExample :: [Workflow]
+readDynamicExample = [{ name 		= "Examples/Dynamics/ReadDynamic"
 						, label 	= "ReadDynamic"
 						, roles 	= []
 						, mainTask 	= readWorkflow
