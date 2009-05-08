@@ -69,7 +69,7 @@ gridChooseTask xs header rowVisualizeFun rowTasks
 	>>= \task -> 	task																																	//Execute the chosen task
 where
 
-	row x = parallel "row-content" (\list -> length list == 1) (\[index] -> (snd (rowTasks !! index)) x) [("row-buttons", selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks])]
+	row x = parallel "row-content" (\list -> length list == 1) (\_ [index] -> (snd (rowTasks !! index)) x) [("row-buttons", selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks])]
 				<<@ TTCustom (toRow (toCells (rowVisualizeFun x)))
 				
 	toCells html = [TdTag [] cell \\ cell <- html]

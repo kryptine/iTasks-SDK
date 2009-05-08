@@ -254,9 +254,9 @@ where
 
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
-orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd tasks <<@ (TTSplit msg)
+orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) (\_ [x:xs] -> x) tasks <<@ (TTSplit msg)
 
-myAndTasks msg tasks =	parallel "andTask" (\_ -> False) hd tasks <<@ (TTSplit msg)
+myAndTasks msg tasks =	parallel "andTask" (\_ -> False) (\_ [x:xs] -> x) tasks <<@ (TTSplit msg)
 
 // reading and writing of storages
 

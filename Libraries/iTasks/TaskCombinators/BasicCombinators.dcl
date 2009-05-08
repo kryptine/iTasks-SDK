@@ -87,11 +87,11 @@ compound 	:: !String !(Task a) 						-> Task a		| iData a
 * @param A label for tracing
 * @param A predicate on the list of results of the currently finished tasks which determines if the
 *        combination is finished
-* @param A transformation function used to combine the list of results
+* @param A transformation function used to combine the list of results, boolean indicates why composition stopped (True :predicate True, all finished otherwise)
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-parallel 	:: !String !([a] -> Bool) !([a] -> b) ![LabeledTask a] -> Task b | iData a & iData b 
+parallel 	:: !String !([a] -> Bool) !(Bool [a] -> b) ![LabeledTask a] -> Task b | iData a & iData b 
 
 // Multi-user workflows
 

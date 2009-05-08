@@ -50,8 +50,8 @@ where
 	
 
 myBunch 
-	= 	parallel "andTasks"  (\_ -> False) id  [(toString i, edit` i) \\ i <- [0..5]] >>|
-		parallel "andTasks"  (\_ -> False) id  [(toString i, edit` i) \\ i <- [0..5]]
+	= 	parallel "andTasks"  (\_ -> False) (\_ list -> list)  [(toString i, edit` i) \\ i <- [0..5]] >>|
+		parallel "andTasks"  (\_ -> False) (\_ list -> list)  [(toString i, edit` i) \\ i <- [0..5]]
 
 
 doTest = pushChangeRequest (CC (pred 30)) Void myBunch

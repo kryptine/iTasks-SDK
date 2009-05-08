@@ -5,7 +5,7 @@ implementation module CommonCombinators
 */
 import StdList, StdTuple
 import iDataFormlib, iDataTrivial
-from StdFunc	import id
+from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
 from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
 from Types		import :: ProcessId, :: TaskId
@@ -18,30 +18,30 @@ import Util
 //Task composition
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
 (-||-) taska taskb  
-=	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (LEFT a) = a; (RIGHT b) = b)
+=	parallel "-||-" (\list -> length list >= 1) (\_ [x:_] -> case x of (LEFT a) = a; (RIGHT b) = b)
 			[("Left",	taska >>= \a -> return (LEFT a))
 			,("Right",	taskb >>= \b -> return (RIGHT b))
 			] <<@ TTHorizontal
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
 (-&&-) taska taskb
-=	parallel "-&&-" (\_ -> False) (\[LEFT a, RIGHT b] -> (a,b))
+=	parallel "-&&-" (\_ -> False) (\_ [LEFT a, RIGHT b] -> (a,b))
 			[("Left",	taska >>= \a -> return (LEFT a))
 			,("Right",	taskb >>= \b -> return (RIGHT b))
 			] <<@ TTHorizontal
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []		= return createDefault
-orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) hd tasks
+orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) (\_ [x:xs] -> x) tasks
 
 andTasks :: ![LabeledTask a] -> Task [a] | iData a
-andTasks tasks = parallel "andTasks"  (\_ -> False) id tasks <<@ (TTSplit msg)
+andTasks tasks = parallel "andTasks"  (\_ -> False) (\_ list -> list) tasks <<@ (TTSplit msg)
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]				
 
 eitherTask :: !(Task a) !(Task b) -> Task (EITHER a b) | iData a & iData b
 eitherTask taska taskb 
-=	parallel "eitherTask" (\list -> length list > 0) hd
+=	parallel "eitherTask" (\list -> length list > 0) (\_ [x:xs] -> x)
 			[ ("Left",	taska >>= \a -> return (LEFT a))
 			, ("Right",	taskb >>= \b -> return (RIGHT b))
 			] <<@ TTHorizontal
@@ -170,8 +170,8 @@ where
 	noNothing [RIGHT Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
 
-	combineResult	[LEFT (Just r1),RIGHT (Just r2)]	= Just (r1,r2)
-	combineResult	_									= Nothing
+	combineResult	_ [LEFT (Just r1),RIGHT (Just r2)]	= Just (r1,r2)
+	combineResult	_ _									= Nothing
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = domu_andTasks tasks
