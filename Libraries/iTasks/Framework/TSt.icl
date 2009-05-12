@@ -3,7 +3,7 @@ implementation module TSt
 import StdEnv, StdMaybe
 import HSt, Util
 import iDataFormlib
-import ProcessDB, SessionDB, TaskTree
+import ProcessDB, DynamicDB, SessionDB, TaskTree
 
 //TODO: Create a better dynamic_string module with option for evaluating
 //      a graph as far as possible to save a closure that is as small as
@@ -152,14 +152,19 @@ where
 				= (Nothing, tst)
 				
 	applyMainTask (RIGHT {task}) tst //Execute a dynamic process
-		# (result, tst)		= applyDynamicTask (string_to_dynamic {c \\ c <-: task}) tst
-		#  result			= evalDynamicResult result
-		# (finished, tst)	= taskFinished tst
-		| finished
-			= (Just (dynamic_to_string (evalDynamicResult result)), tst)
-		| otherwise
-			= (Nothing, tst)
-	
+		# (mbTask, tst)		= accHStTSt (getDynamic task) tst
+		= case mbTask of
+			(Just dyn)
+				# (result, tst)		= applyDynamicTask dyn tst
+				#  result			= evalDynamicResult result
+				# (finished, tst)	= taskFinished tst
+				| finished
+					# (resid, tst)	= accHStTSt (createDynamic (evalDynamicResult result)) tst
+					= (Just resid, tst)
+				| otherwise
+					= (Nothing, tst)
+			Nothing
+				= (Nothing, tst)
 	
 	garbageCollect False id tst	= tst
 	garbageCollect True id tst	= appHStTSt (deleteIData (iTaskId [id] "")) tst

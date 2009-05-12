@@ -2,12 +2,14 @@ implementation module ProcessCombinators
 
 import StdOverloaded, StdClass, StdInt, StdArray, GenBimap
 import TSt
-import dynamic_string
 
 from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: StaticProcessEntry, :: DynamicProcessEntry{..}
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB HSt
 from ProcessDB import mkDynamicProcessEntry
+
+from DynamicDB import qualified class DynamicDB(..)
+from DynamicDB import qualified instance DynamicDB HSt
 
 import iDataForms
 import CommonCombinators
@@ -26,15 +28,15 @@ where
 	spawnProcess` tst
 		# (curUid,tst)	= getCurrentUser tst
 		# (curPid,tst)	= getCurrentProcess tst
-		# (newPid,tst)	= accHStTSt (ProcessDB@createProcess (entry curPid curUid)) tst
+		# (dynId,tst)	= accHStTSt (DynamicDB@createDynamic (dynamic createDynamicTask task)) tst
+		# (newPid,tst)	= accHStTSt (ProcessDB@createProcess (entry curPid dynId curUid)) tst
 		| uid == curUid
 			# tst			= addNewProcess newPid tst
 			= (ProcessReference newPid, {tst & activated = True})
 		| otherwise
 			= (ProcessReference newPid, {tst & activated = True})
-			
-	closure				= dynamic_to_string (dynamic createDynamicTask task)								// Convert the task to a dynamic task and serialize
-	entry pid curUid	= mkDynamicProcessEntry label closure uid curUid (if activate Active Suspended) pid	// Create a process database entry
+				
+	entry pid did curUid	= mkDynamicProcessEntry label did uid curUid (if activate Active Suspended) pid	// Create a process database entry
 	
 	//Turn a task yielding a value of type a into a value of dynamic
 	createDynamicTask :: !(Task a) -> (Task Dynamic) | iData a
@@ -44,7 +46,6 @@ where
 			# (a, tst)	= accTaskTSt task tst
 			# dyn		= dynamic a
 			= (dyn, tst)
-		
 
 waitForProcess :: (ProcessReference a) -> Task (Maybe a) | iData a
 waitForProcess (ProcessReference pid) = compound "waitForProcess" (Task waitForProcess`)
@@ -54,8 +55,11 @@ where
 		= case mbProcess of
 			Just {Process | id, owner, status, process = RIGHT {result}}
 				= case status of
-					Finished	
-						= (Just (unpackFinalValue (string_to_dynamic {c \\ c <-: result})), {tst & activated = True})	
+					Finished
+						# (mbResult,tst) = accHStTSt (DynamicDB@getDynamic result) tst
+						= case mbResult of
+							(Just dyn)	= (Just (unpackFinalValue dyn), {tst & activated = True}) //We are done and return the result
+							Nothing		= (Nothing, {tst & activated = True}) //We could not find the result dynamic	
 					_
 						= (Nothing, {tst & activated = False})	// We are not done yet...
 			_	= (Nothing, {tst & activated = True})	//We could not find the process in our database, we are done

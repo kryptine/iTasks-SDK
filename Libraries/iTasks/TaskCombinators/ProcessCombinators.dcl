@@ -7,7 +7,7 @@ definition module ProcessCombinators
 import StdMaybe
 from TSt		import :: Task, :: LabeledTask
 from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: StaticProcessEntry(..), :: DynamicProcessEntry(..)
-from Types		import :: UserId, :: ProcessId
+from Types		import :: UserId, :: ProcessId, :: DynamicId
 
 import iDataForms
 

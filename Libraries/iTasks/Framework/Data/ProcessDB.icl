@@ -2,6 +2,7 @@ implementation module ProcessDB
 
 import StdEnv, StdGeneric, StdMaybe, GenBimap
 import HSt, TSt, iDataForms, iDataFormlib
+import DynamicDB
 
 derive gForm	Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
 derive gUpd		Process, StaticProcessEntry, DynamicProcessEntry, ProcessStatus
@@ -75,7 +76,7 @@ where
 	setProcessStatus :: !ProcessStatus !ProcessId !*HSt -> (!Bool,!*HSt)
 	setProcessStatus status processId hst = setProcessProperty (\x -> {Process| x & status = status}) processId hst
 
-	setProcessResult :: !String !ProcessId !*HSt -> (!Bool,!*HSt)
+	setProcessResult :: !DynamicId !ProcessId !*HSt -> (!Bool,!*HSt)
 	setProcessResult result processId hst = setProcessProperty (update result) processId hst 
 	where
 		update result x = case x.Process.process of
@@ -84,7 +85,7 @@ where
 			(RIGHT dynamicProc)
 				= {x & process = (RIGHT {dynamicProc & result = result})}
 
-	updateProcess :: !ProcessStatus !(Maybe String) ![UserId] !ProcessId !*HSt -> (!Bool,!*HSt) 
+	updateProcess :: !ProcessStatus !(Maybe DynamicId) ![UserId] !ProcessId !*HSt -> (!Bool,!*HSt) 
 	updateProcess status mbResult users processId hst = setProcessProperty (update status mbResult users) processId hst 
 	where
 		update status mbResult users x = case x.Process.process of
@@ -119,7 +120,7 @@ mkStaticProcessEntry workflow owner delegator status
 		, status	= status
 		, process	= LEFT {workflow = workflow.name}
 		}
-mkDynamicProcessEntry :: String String UserId UserId ProcessStatus ProcessId -> Process
+mkDynamicProcessEntry :: String DynamicId UserId UserId ProcessStatus ProcessId -> Process
 mkDynamicProcessEntry label task owner delegator status parent
 	=	{ Process
 		| id		= 0
@@ -128,7 +129,7 @@ mkDynamicProcessEntry label task owner delegator status parent
 		, delegator	= delegator
 		, users		= []
 		, status	= status
-		, process	= RIGHT {result = "", task = task, parent = parent}
+		, process	= RIGHT {result = 0, task = task, parent = parent}
 		}
 		
 processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 

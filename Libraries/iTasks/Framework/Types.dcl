@@ -8,6 +8,7 @@ from Html import :: HtmlTag
 :: UserId			:== Int					// A user id of an iTask user must be a unique integer value
 :: ProcessNr		:== Int
 :: ProcessId		:== Int					// processes are identified by an integer
+:: DynamicId		:== Int
 :: TaskId			:== String	
 :: TaskNr			:== [Int]				// task nr i.j is administrated as [j,i]
 

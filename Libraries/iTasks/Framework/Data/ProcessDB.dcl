@@ -27,30 +27,30 @@ from TSt import :: Workflow
 :: StaticProcessEntry = {	workflow	:: !String	//The name of the workflow contained in the process
 						}
 
-:: DynamicProcessEntry = { result	:: !String		//A serialized final value of the task performed by the process 
-						 , task		:: !String		//A serialized function of the task performed by the process
+:: DynamicProcessEntry = { result	:: !DynamicId	//A reference to the final value of the task performed by the process in the DynamicDB 
+						 , task		:: !DynamicId	//A reference to the function of the task performed by the process in the DynamicDB
 						 , parent	:: !ProcessId	//The process that created the current process
 						 }
 
 class ProcessDB st
 where
-	createProcess		:: !Process												!*st -> (!ProcessId,	!*st)
-	deleteProcess		:: !ProcessId											!*st -> (!Bool,			!*st)
-	getProcess			:: !ProcessId											!*st -> (!Maybe Process,!*st)
-	getProcessForUser	:: !UserId !ProcessId									!*st -> (!Maybe Process,!*st)
-	getProcesses		:: ![ProcessStatus]										!*st -> (![Process],	!*st)
-	getProcessesById	:: ![ProcessId]											!*st -> (![Process],	!*st)
-	getProcessesForUser	:: !UserId ![ProcessStatus]								!*st -> (![Process],	!*st)
-	setProcessOwner		:: !UserId !UserId !ProcessId							!*st -> (!Bool,			!*st)
-	setProcessStatus	:: !ProcessStatus !ProcessId							!*st -> (!Bool,			!*st)
-	setProcessResult	:: !String !ProcessId									!*st -> (!Bool,			!*st)
-	updateProcess		:: !ProcessStatus !(Maybe String) ![UserId] !ProcessId	!*st -> (!Bool,			!*st) 
+	createProcess		:: !Process													!*st -> (!ProcessId,	!*st)
+	deleteProcess		:: !ProcessId												!*st -> (!Bool,			!*st)
+	getProcess			:: !ProcessId												!*st -> (!Maybe Process,!*st)
+	getProcessForUser	:: !UserId !ProcessId										!*st -> (!Maybe Process,!*st)
+	getProcesses		:: ![ProcessStatus]											!*st -> (![Process],	!*st)
+	getProcessesById	:: ![ProcessId]												!*st -> (![Process],	!*st)
+	getProcessesForUser	:: !UserId ![ProcessStatus]									!*st -> (![Process],	!*st)
+	setProcessOwner		:: !UserId !UserId !ProcessId								!*st -> (!Bool,			!*st)
+	setProcessStatus	:: !ProcessStatus !ProcessId								!*st -> (!Bool,			!*st)
+	setProcessResult	:: !DynamicId !ProcessId									!*st -> (!Bool,			!*st)
+	updateProcess		:: !ProcessStatus !(Maybe DynamicId) ![UserId] !ProcessId	!*st -> (!Bool,			!*st) 
 
 instance ProcessDB HSt
 /*
 * Utility functions for creating process database entries.
 */
-mkStaticProcessEntry	:: Workflow UserId UserId ProcessStatus					-> Process
-mkDynamicProcessEntry	:: String String UserId UserId ProcessStatus ProcessId	-> Process
+mkStaticProcessEntry	:: Workflow UserId UserId ProcessStatus						-> Process
+mkDynamicProcessEntry	:: String DynamicId UserId UserId ProcessStatus ProcessId	-> Process
 
 instance toString ProcessStatus
