@@ -1,6 +1,7 @@
 implementation module ProcessAdmin
 
 import iTasks
+from TaskTree import :: TaskProperties(..)
 
 processAdmin :: [Workflow]
 processAdmin
@@ -29,11 +30,11 @@ where
 	header = [[Text h] \\ h <- ["Id","Label","Owner","Delegator"]]
 	
 	visualizeProcess :: Process -> [[HtmlTag]]
-	visualizeProcess {Process|id,label,owner,delegator}
-		= [[Text (toString id)]
-		  ,[Text label]
-		  ,[Text (toString owner)]
-		  ,[Text (toString delegator)]
+	visualizeProcess {Process|processId, properties = {subject,userId,delegatorId}}
+		= [[Text (toString processId)]
+		  ,[Text subject]
+		  ,[Text (toString userId)]
+		  ,[Text (toString delegatorId)]
 		  ]
 	
 	processTasks :: [(Process -> String, Process -> Task Bool)]
@@ -49,18 +50,18 @@ stopOrRefresh :: Task Bool
 stopOrRefresh = button "Reload process list" False -||- button "I am done" True <<@ TTHorizontal
 
 toggleProcess :: Process -> Task Bool
-toggleProcess process=:{Process|id,status}
+toggleProcess process=:{Process|processId,status}
 	= case status of
-		Active		= setProcessStatus Suspended id
-		Suspended	= setProcessStatus Active id		
+		Active		= setProcessStatus Suspended processId
+		Suspended	= setProcessStatus Active processId		
 	  >>| return False
 
 inspectProcess :: Process -> Task Bool
 inspectProcess process = yes
 
 killProcess :: Process -> Task Bool
-killProcess process=:{Process|id}
-	=	setProcessStatus Deleted id
+killProcess process=:{Process|processId}
+	=	setProcessStatus Deleted processId
 	>>|	return False
 
 gridChooseTask :: [a] [[HtmlTag]] (a -> [[HtmlTag]]) [(a -> String, a -> Task Bool)] -> Task Bool | iData a

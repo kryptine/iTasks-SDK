@@ -66,13 +66,13 @@ determineTreeWorkItems :: !UserId !Bool !Bool !TaskTree -> [WorkListItem]
 determineTreeWorkItems userId addSequences isLast (TTMainTask ti mti sequence)
 	| (not ti.TaskInfo.active) || ti.TaskInfo.finished									// Inactive or finished, ignore whole branch
 		= []
-	| mti.MainTaskInfo.userId <> userId 												// Not our work, no new item
+	| mti.TaskProperties.userId <> userId 												// Not our work, no new item
 		= determineListWorkItemsFixed userId True isLast sequence	
 	| otherwise
 		= [mainTaskItem : determineListWorkItemsFixed userId False isLast sequence]		// A task we have to do, or have delegated, add a new item.
 where
-	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.MainTaskInfo.subject, delegatorId = mti.MainTaskInfo.delegatorId
-				   , tree_last = isLast, timestamp = (\(Time i) . i) mti.MainTaskInfo.issuedAt, priority = mti.MainTaskInfo.priority }
+	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.TaskProperties.subject, delegatorId = mti.TaskProperties.delegatorId
+				   , tree_last = isLast, timestamp = (\(Time i) . i) mti.TaskProperties.issuedAt, priority = mti.TaskProperties.priority }
 
 //Sequence nodes
 determineTreeWorkItems userId addSequences isLast (TTSequenceTask ti sequence)

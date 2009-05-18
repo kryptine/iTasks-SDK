@@ -291,15 +291,8 @@ mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 *
 * @return The newly constructed sequence task
 */
-mkMainTask 		:: !String !MainTaskInfo !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkMainTask 		:: !String !TaskProperties !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
-
-/**
-* Wraps a function of proper type to create a task that will become
-* part of a parallel set of subtasks. This function should only be used
-* by tasks that are wrapped with mkParallelTask
-*/
-//mkParallelSubTask 	:: !String !Int (Task a) 	-> Task a  		| iCreateAndPrint a
 
 /**
 * Sets Html output of the current task

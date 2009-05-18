@@ -6,15 +6,16 @@ definition module ProcessCombinators
 
 import StdMaybe
 from TSt		import :: Task, :: LabeledTask
-from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: StaticProcessEntry(..), :: DynamicProcessEntry(..)
-from Types		import :: UserId, :: ProcessId, :: DynamicId
+from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: ProcessType(..)
+from Types		import :: UserId, :: ProcessId, :: DynamicId, :: TaskId
+from TaskTree	import :: TaskProperties
 
 import iDataForms
 
-derive gForm	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-derive gUpd		ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-derive gPrint	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-derive gParse	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
+derive gForm	ProcessReference, Process, ProcessStatus
+derive gUpd		ProcessReference, Process, ProcessStatus
+derive gPrint	ProcessReference, Process, ProcessStatus
+derive gParse	ProcessReference, Process, ProcessStatus
 
 /**
 * A typed process reference. These references are used to reference
@@ -165,10 +166,11 @@ getProcessesById		:: ![ProcessId]							-> Task [Process]
 *
 * @param A process owner to match on
 * @param A list of statuses to match on
+* @param Ignore embedded processes
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !UserId ![ProcessStatus]				-> Task [Process]
+getProcessesForUser		:: !UserId ![ProcessStatus] Bool		-> Task [Process]
 /**
 * Changes the owner of the indicated process. The current user is automatically set
 * as delegator of the process.

@@ -18,10 +18,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 	=	{ taskNr		= [-1]
 		, userId		= -1
 		, delegatorId	= -1
-		, tree			= TTMainTask
-							{TaskInfo|taskId = "",taskLabel = "", active = True, finished = False, traceValue = ""}
-							{MainTaskInfo|subject = "", userId = -1, delegatorId = -1, priority = LowPriority, issuedAt = Time 0, firstEvent = Nothing, latestEvent = Nothing}
-							[]
+		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, activated 	= True
 		, users			= []
 		, newProcesses	= []
@@ -48,6 +45,28 @@ initialOptions location
 		, taskmode 		= Edit
 		, combination	= Nothing
 		, trace			= False 
+		}
+
+initTaskInfo :: TaskInfo
+initTaskInfo
+	=	{ TaskInfo
+		| taskId = ""
+		, taskLabel = ""
+		, active = True
+		, finished = False
+		, traceValue = ""
+		}
+
+initTaskProperties :: TaskProperties
+initTaskProperties
+	=	{ TaskProperties
+		| subject = ""
+		, userId = -1
+		, delegatorId = -1
+		, priority = NormalPriority
+		, issuedAt = Time 0
+		, firstEvent = Nothing
+		, latestEvent = Nothing
 		}
 
 resetTSt :: *TSt -> *TSt
@@ -90,13 +109,13 @@ setTaskTree tree tst = {tst & tree = tree}
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
-	# (processes,tst)		= accHStTSt (getProcessesForUser currentUser [Active]) tst	//Lookup all active processes for this user
+	# (processes,tst)		= accHStTSt (getProcessesForUser currentUser [Active] True) tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
 	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	
 where
 	sortProcesses :: ![Process] -> [Process]
-	sortProcesses ps = sortBy (\p1 p2 -> p1.Process.id > p2.Process.id) ps 
+	sortProcesses ps = sortBy (\p1 p2 -> p1.Process.processId > p2.Process.processId) ps 
 
 	addNewProcesses :: ![TaskTree] *TSt -> (![TaskTree],!*TSt)
 	addNewProcesses trees tst
@@ -130,30 +149,25 @@ calculateTaskTree pid enableDebug tst
 			= (Just "Process not found", Nothing, tst)
 			
 initProcessNode :: Process -> TaskTree
-initProcessNode p = 
-	TTMainTask
-		{TaskInfo|taskId = toString p.Process.id, taskLabel = p.Process.label, active = True, finished = False, traceValue = "PROCESS"}
-		{MainTaskInfo|subject = p.Process.label, userId = p.Process.owner, delegatorId = p.Process.owner
-		,priority = LowPriority, issuedAt = Time 0, firstEvent = Nothing, latestEvent = Nothing}
-		[]
+initProcessNode {processId, properties} = TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.subject, active = True, finished = False, traceValue = "Process"} properties []
 
 buildProcessTree :: Process !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree p =: {Process | id, label, owner, delegator, status, process} tst
+buildProcessTree p =: {Process | processId, processType, status, properties = {TaskProperties|userId,delegatorId}} tst
 	# tst								= resetTSt tst
-	# tst								= setTaskNr [-1,id] tst
-	# tst								= setUserId owner tst
-	# tst								= setDelegatorId delegator tst
-	# tst								= setProcessId id tst
+	# tst								= setTaskNr [-1,processId] tst
+	# tst								= setUserId userId tst
+	# tst								= setDelegatorId delegatorId tst
+	# tst								= setProcessId processId tst
 	# tst								= setTaskTree (initProcessNode p) tst	
-	# (result,tst)						= applyMainTask process tst
+	# (result,tst)						= applyMainTask processType tst
 	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
 	# (users, tst)						= getAdditionalUsers tst
 	# (finished, tst)					= taskFinished tst
-	# (_,tst)							= accHStTSt (updateProcess (if finished Finished Active) result (removeDup users) id) tst
-	# tst								= garbageCollect finished id tst
+	# (_,tst)							= accHStTSt (updateProcess (if finished Finished Active) result (removeDup users) processId) tst
+	# tst								= garbageCollect finished processId tst
 	= (TTMainTask {TaskInfo| ti & finished = finished} mti (reverse tasks), tst)
 where
-	applyMainTask (LEFT {workflow}) tst //Execute a static process
+	applyMainTask (StaticProcess workflow) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
 		= case mbWorkflow of
 			Nothing
@@ -162,7 +176,7 @@ where
 				# tst	= appTaskTSt mainTask tst
 				= (Nothing, tst)
 				
-	applyMainTask (RIGHT {task}) tst //Execute a dynamic process
+	applyMainTask (DynamicProcess task) tst //Execute a dynamic process
 		# (mbTask, tst)		= accHStTSt (getDynamic task) tst
 		= case mbTask of
 			(Just dyn)
@@ -176,6 +190,8 @@ where
 					= (Nothing, tst)
 			Nothing
 				= (Nothing, tst)
+				
+	applyMainTask (EmbeddedProcess procid taskid) tst = (Nothing, tst) //Do nothing with embedded processes
 	
 	garbageCollect False id tst	= tst
 	garbageCollect True id tst	= appHStTSt (deleteIData (iTaskId [id] "")) tst
@@ -288,10 +304,17 @@ where
 			
 	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 	
-mkMainTask :: !String !MainTaskInfo !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkMainTask :: !String !TaskProperties !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 mkMainTask taskname mti taskfun = mkTask taskname taskfun nodefun nrfun
 where
-	nodefun ti tst			= (TTMainTask ti mti [], tst)
+	nodefun ti tst=:{taskNr, staticInfo={currentProcessId}}
+		# taskId			= taskNrToString taskNr
+		# (mbProps,tst)		= accHStTSt (getEmbeddedProcess currentProcessId taskId) tst //Lookup task properties in process table
+		= case mbProps of
+			(Just props)	= (TTMainTask ti props.Process.properties [], tst)
+			Nothing
+				# (_,tst)	= accHStTSt (createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active currentProcessId)) tst //TODO use correct main task as direct parent 
+				= (TTMainTask ti mti [], tst)
 	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 
 mkTask :: !String !(*TSt -> *(!a,!*TSt)) !(TaskInfo *TSt -> *(TaskTree,*TSt)) (*TSt -> *TSt) -> Task a | iData a

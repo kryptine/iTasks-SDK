@@ -113,7 +113,7 @@ where
 		# tst		= addAdditionalUser toUserId tst 									//TODO: Will become obsolete, when MainTask info is stored
 		
 		# (now,tst)	= (accHStTSt (accWorldHSt time)) tst								//Retrieve current time
-		# mti		= {MainTaskInfo|subject = label, userId = toUserId, delegatorId = currentUserId, priority = initPriority, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
+		# mti		= {TaskProperties|subject = label, userId = toUserId, delegatorId = currentUserId, priority = initPriority, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
 		# (a, tst)	= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 

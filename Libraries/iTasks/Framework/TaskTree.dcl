@@ -14,7 +14,7 @@ from   ProcessDB	import :: ProcessStatus
 :: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputDefinition]			//Smallest unit of work that has to be performed by a user
 					| TTSequenceTask	TaskInfo 					[TaskTree]			//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]			//A task that is composed of a number of parallel executed subtasks
-					| TTMainTask		TaskInfo MainTaskInfo		[TaskTree]			//A task that is treated as a main chunk of work  
+					| TTMainTask		TaskInfo TaskProperties		[TaskTree]			//A task that is treated as a main chunk of work  
 								
 :: TaskInfo	=		{ taskId		:: TaskId											//Task number in string format
 					, taskLabel		:: String											//Descriptive label of the task
@@ -23,7 +23,7 @@ from   ProcessDB	import :: ProcessStatus
 					, traceValue	:: String											//String representation of value for tracing
 					}
 					
-:: MainTaskInfo =	{ subject		:: String
+:: TaskProperties =	{ subject		:: String
 					, userId		:: UserId
 					, delegatorId	:: UserId
 					
@@ -32,7 +32,6 @@ from   ProcessDB	import :: ProcessStatus
 					, firstEvent	:: Maybe Time										//When was the first work done on this task
 					, latestEvent	:: Maybe Time										//When was the last event on this task				
 					}
-
 /**
 * Finds the sub tree with the given task number
 */

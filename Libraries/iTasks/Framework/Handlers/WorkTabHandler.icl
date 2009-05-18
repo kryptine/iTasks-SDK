@@ -133,10 +133,10 @@ where
 					(TTCustom f)	= (f outputs, flatten inputs, or refresh)
 	//MainTask
 	collectTaskContent currentUser taskid (TTMainTask ti mti sequence)
-		| ti.TaskInfo.taskId == taskid && mti.MainTaskInfo.userId == currentUser 		//Collect the content of the main task
+		| ti.TaskInfo.taskId == taskid && mti.TaskProperties.userId == currentUser 		//Collect the content of the main task
 			# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser taskid) sequence) 
 			= (flatten outputs, flatten inputs, or refresh)
-		| mti.MainTaskInfo.delegatorId == currentUser									//Show delegator status info
+		| mti.TaskProperties.delegatorId == currentUser									//Show delegator status info
 			= ([Text "Waiting for task to finish..."],[],False)
 		| otherwise
 			= ([],[],False)
@@ -159,7 +159,7 @@ where
 	taskInfo (TTBasicTask {TaskInfo|finished,taskLabel} _ _)							= (if finished TaskFinished TaskActive,taskLabel,-1)
 	taskInfo (TTSequenceTask {TaskInfo|finished,taskLabel} _)							= (if finished TaskFinished TaskActive,taskLabel,-1)
 	taskInfo (TTParallelTask {TaskInfo|finished,taskLabel} _ _)							= (if finished TaskFinished TaskActive,taskLabel,-1)
-	taskInfo (TTMainTask {TaskInfo|finished,taskLabel} {MainTaskInfo|delegatorId} _)	= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
+	taskInfo (TTMainTask {TaskInfo|finished,taskLabel} {TaskProperties|delegatorId} _)	= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
 
 	getDelegatorName userId tst
 		# (names, tst)		= accHStTSt (getDisplayNames [userId]) tst

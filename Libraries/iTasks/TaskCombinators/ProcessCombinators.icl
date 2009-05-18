@@ -3,7 +3,7 @@ implementation module ProcessCombinators
 import StdOverloaded, StdClass, StdInt, StdArray, GenBimap
 import TSt
 
-from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: StaticProcessEntry, :: DynamicProcessEntry{..}
+from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: ProcessType(..)
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB HSt
 from ProcessDB import mkDynamicProcessEntry
@@ -14,11 +14,10 @@ from DynamicDB import qualified instance DynamicDB HSt
 import iDataForms
 import CommonCombinators
 
-derive gForm	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-derive gUpd		ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-derive gPrint	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-derive gParse	ProcessReference, Process, DynamicProcessEntry, StaticProcessEntry, ProcessStatus
-
+derive gForm	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
+derive gUpd		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
+derive gPrint	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
+derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
 
 :: ProcessReference a 	= ProcessReference !Int		//We only keep the id in the process database
 
@@ -53,13 +52,17 @@ where
 	waitForProcess` tst
 		# (mbProcess,tst)	= accHStTSt (ProcessDB@getProcess pid) tst
 		= case mbProcess of
-			Just {Process | id, owner, status, process = RIGHT {result}}
+			Just {Process | processId, status, result}
 				= case status of
 					Finished
-						# (mbResult,tst) = accHStTSt (DynamicDB@getDynamic result) tst
-						= case mbResult of
-							(Just dyn)	= (Just (unpackFinalValue dyn), {tst & activated = True}) //We are done and return the result
-							Nothing		= (Nothing, {tst & activated = True}) //We could not find the result dynamic	
+						= case result of
+							(Just dynid)
+								# (mbResult,tst) = accHStTSt (DynamicDB@getDynamic dynid) tst
+								= case mbResult of
+									(Just dyn)	= (Just (unpackFinalValue dyn), {tst & activated = True}) //We are done and return the result
+									Nothing		= (Nothing, {tst & activated = True}) //We could not find the result dynamic	
+							Nothing
+								= (Nothing, {tst & activated = True}) //The process was finished but yielded no result	
 					_
 						= (Nothing, {tst & activated = False})	// We are not done yet...
 			_	= (Nothing, {tst & activated = True})	//We could not find the process in our database, we are done
@@ -82,7 +85,7 @@ getProcessOwner (ProcessReference pid) = compound "getProcess" (Task getProcessS
 where
 	getProcessStatus` tst 
 	# (process,tst)	=	accHStTSt (ProcessDB@getProcess pid) tst
-	# owner = if (isNothing process) Nothing (Just (fromJust process).owner)
+	# owner = if (isNothing process) Nothing (Just (fromJust process).properties.TaskProperties.userId)
 	= (owner,tst)
 
 activateProcess	:: (ProcessReference a)	-> Task Bool | iData a
@@ -141,8 +144,8 @@ getProcesses statuses = mkBasicTask "getProcesses" (\tst -> accHStTSt (ProcessDB
 getProcessesById :: ![ProcessId] -> Task [Process]
 getProcessesById ids = mkBasicTask "getProcessesById" (\tst -> accHStTSt (ProcessDB@getProcessesById ids) tst)
 
-getProcessesForUser	:: !UserId ![ProcessStatus] -> Task [Process]
-getProcessesForUser uid statuses = mkBasicTask "getProcessesForUser" (\tst -> accHStTSt (ProcessDB@getProcessesForUser uid statuses) tst)
+getProcessesForUser	:: !UserId ![ProcessStatus] Bool -> Task [Process]
+getProcessesForUser uid statuses ignoreEmbedded = mkBasicTask "getProcessesForUser" (\tst -> accHStTSt (ProcessDB@getProcessesForUser uid statuses ignoreEmbedded) tst)
 
 setProcessOwner :: !UserId !ProcessId -> Task Bool
 setProcessOwner uid pid = mkBasicTask "setProcessOwner" setProcessOwner`
