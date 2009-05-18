@@ -3,31 +3,38 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdList, StdTuple
-import iDataFormlib, iDataTrivial
+import StdList, StdTuple, StdGeneric, GenBimap
+import iDataForms, iDataFormlib, iDataTrivial
+
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
 from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
-from Types		import :: ProcessId, :: TaskId
+from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..)
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
-import Util
+import Util, Either
+
+
+derive gForm	Either
+derive gUpd		Either
+derive gPrint	Either
+derive gParse	Either
 
 //Task composition
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
 (-||-) taska taskb  
-=	parallel "-||-" (\list -> length list >= 1) (\_ [x:_] -> case x of (LEFT a) = a; (RIGHT b) = b)
-			[("Left",	taska >>= \a -> return (LEFT a))
-			,("Right",	taskb >>= \b -> return (RIGHT b))
+=	parallel "-||-" (\list -> length list >= 1) (\_ [x:_] -> case x of (Left a) = a; (Right b) = b)
+			[("Left",	taska >>= \a -> return (Left a))
+			,("Right",	taskb >>= \b -> return (Right b))
 			] <<@ TTHorizontal
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
 (-&&-) taska taskb
-=	parallel "-&&-" (\_ -> False) (\_ [LEFT a, RIGHT b] -> (a,b))
-			[("Left",	taska >>= \a -> return (LEFT a))
-			,("Right",	taskb >>= \b -> return (RIGHT b))
+=	parallel "-&&-" (\_ -> False) (\_ [Left a, Right b] -> (a,b))
+			[("Left",	taska >>= \a -> return (Left a))
+			,("Right",	taskb >>= \b -> return (Right b))
 			] <<@ TTHorizontal
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
@@ -39,11 +46,11 @@ andTasks tasks = parallel "andTasks"  (\_ -> False) (\_ list -> list) tasks <<@ 
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]				
 
-eitherTask :: !(Task a) !(Task b) -> Task (EITHER a b) | iData a & iData b
+eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iData a & iData b
 eitherTask taska taskb 
 =	parallel "eitherTask" (\list -> length list > 0) (\_ [x:xs] -> x)
-			[ ("Left",	taska >>= \a -> return (LEFT a))
-			, ("Right",	taskb >>= \b -> return (RIGHT b))
+			[ ("Left",	taska >>= \a -> return (Left a))
+			, ("Right",	taskb >>= \b -> return (Right b))
 			] <<@ TTHorizontal
 
 
@@ -84,24 +91,7 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:) nuserId ltask=:(taskname,task) = mkSequenceTask "@:" assigntask
-where
-	assigntask tst =:{TSt|userId} = accTaskTSt (
-			getUser nuserId >>= \(_,displayName) ->
-			
-			[Text "Waiting for Task ", ITag [] [Text taskname], Text " from ", ITag [] [Text displayName], BrTag []]
-			?>>
-			delegate nuserId (taskname,task)
-		) tst
-
-//(@::) infix 3 :: !UserId !(Task a)	-> (Task a) | iData  a												
-//(@::) nuserId taska = nuserId @: ("Task for " +++ toString nuserId, taska)
-
-(@:>) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:>) nuserId ltask = delegate nuserId ltask
-
-//(@::>) infix 3 :: !UserId !(Task a) -> (Task a) | iData  a												
-//(@::>) nuserId taska = nuserId @:> ("Task for " +++ toString nuserId, taska)
+(@:) nuserId ltask = delegate nuserId NormalPriority ltask
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set

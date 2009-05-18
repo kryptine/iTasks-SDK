@@ -250,7 +250,6 @@ taskFinished :: !*TSt -> (!Bool, !*TSt)
 * sequence.
 *
 * @param A name used as the task label
-* @param Force once: If true, the function will never be recomputed, but the result will be stored
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
@@ -261,6 +260,11 @@ mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
 * and the resulting sequence will be combined in a single sequence node.
+*
+* @param A name used as the task label
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed sequence task
 */
 mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
@@ -268,8 +272,27 @@ mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for
 * combining a set of parallel subtasks
+*
+* @param A name used as the task label
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed parallel task
 */
 mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+
+/**
+* Wrap a function of proper type to create a function that will make a
+* main task. This is a sequence node that keeps track of additional information
+* such as task status, event times and user/delegate information.
+*
+* @param A name used as the task label
+* @param The initial task info properties
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed sequence task
+*/
+mkMainTask 		:: !String !MainTaskInfo !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+
 
 /**
 * Wraps a function of proper type to create a task that will become

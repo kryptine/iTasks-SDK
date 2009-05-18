@@ -90,7 +90,7 @@ where
 	doandTasks taskCollection tst=:{taskNr}
 		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
 		| pred alist
-			= (combine True alist,{tst & activated = True}) 				// stop, all work done so far satisfies predicate
+			= (combine True alist,{tst & activated = True}) 		// stop, all work done so far satisfies predicate
 		| length alist == length taskCollection						// all tasks are done
 			= (combine False alist,{tst & activated = True})
 		| otherwise	
@@ -106,14 +106,16 @@ where
 
 // Multi-user workflows
 
-delegate :: !UserId !(LabeledTask a) -> Task a | iData a	
-delegate newUserId (label,task) = Task delegate` 
+delegate :: !UserId !TaskPriority !(LabeledTask a) -> Task a | iData a	
+delegate toUserId initPriority (label,task) = Task delegate` 
 where
-	delegate` tst =:{TSt | userId = currentUserId, delegatorId = currentDelegatorId}
-		# tst		= addAdditionalUser newUserId tst 
-		# (a, tst)	= accTaskTSt (mkSequenceTask label (accTaskTSt task)) {TSt | tst & userId = newUserId, delegatorId = currentUserId}
+	delegate` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
+		# tst		= addAdditionalUser toUserId tst 									//TODO: Will become obsolete, when MainTask info is stored
+		
+		# (now,tst)	= (accHStTSt (accWorldHSt time)) tst								//Retrieve current time
+		# mti		= {MainTaskInfo|subject = label, userId = toUserId, delegatorId = currentUserId, priority = initPriority, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
+		# (a, tst)	= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
-
 
 // ******************************************************************************************************
 

@@ -28,7 +28,7 @@ findDate
 	>>= \(whom,name) ->	[Text "Determining date:",BrTag [],BrTag []] 
 						?>>	findDate` whom (HtmlDate 1 1 2007,HtmlTime 9 0 0) 
 	>>= \datetime	->	[] 
-						?>> confirm 0 whom datetime -&&- confirm whom 0 datetime 
+						?>> (confirm 0 whom datetime -&&- confirm whom 0 datetime)
 	>>|					return datetime
 where
 	findDate` :: Int (HtmlDate,HtmlTime) -> Task (HtmlDate,HtmlTime)
@@ -69,5 +69,5 @@ where
 
 	confirm  :: Int Int (HtmlDate,HtmlTime) -> Task Void 
 	confirm me you (date,time)
-	= 	me @:>	("confirm",[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
+	= 	me @:	("confirm",[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
 				?>>	ok)

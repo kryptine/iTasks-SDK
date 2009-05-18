@@ -58,7 +58,8 @@ definePurchase =
 
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
-	= getUsersWithRole "supplier" >>= \suppliers ->
+//	= getUsersWithRole "supplier" >>= \suppliers ->
+	= getUsers >>= \suppliers ->
 	  ( mchoiceAndTasks
 	  		[Text "Select the suppliers from which you want to receive a bid"]
 	  		[(label, return supplier) \\ supplier =: (uid, label) <- suppliers]

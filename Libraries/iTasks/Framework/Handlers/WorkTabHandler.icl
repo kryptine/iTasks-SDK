@@ -43,7 +43,7 @@ handleWorkTabRequest request tst
 			# (currentUser, tst)						= getCurrentUser tst
 			# (editorStates, tst)						= getEditorStates tst
 		
-			# (taskStatus, subject, delegator, html, inputs, refresh)
+			# (taskStatus, taskTree, subject, delegator, html, inputs, refresh)
 														= determineTaskForTab currentUser taskId taskTree	// filter out the code and inputs to display in this tab
 			# (delegatorName, tst)						= getDelegatorName delegator tst
 			//Tracing
@@ -99,40 +99,47 @@ where
 
 	treeErrorResponse	= {http_emptyResponse & rsp_data = "{\"success\" : false, \"error\" : \"Could not locate task tree\"}"}
 
-	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus, !String, !Int, ![HtmlTag],![InputDefinition], !Bool)
+	determineTaskForTab :: !UserId !TaskId !TaskTree -> (!TaskStatus, !TaskTree, !String, !Int, ![HtmlTag],![InputDefinition], !Bool)
 	determineTaskForTab userid taskid tree
 		= case locateSubTaskTree taskid tree of										//Find the subtree by task id
 			Nothing
-				= (TaskDeleted,"",-1, [], [], True)									//Subtask not found, nothing to do anymore
+				= (TaskDeleted,tree,"",-1, [], [], True)							//Subtask not found, nothing to do anymore
 			Just subtree
-				# (html,inputs,refresh)	= collectTaskContent userid subtree			//Collect only the parts for the current user
+				# (html,inputs,refresh)	= collectTaskContent userid taskid subtree	//Collect only the parts for the current user
 				# (status,subject,delegator) = taskInfo subtree
-				= (status, subject, delegator, html, inputs, refresh)
+				= (status, subtree, subject, delegator, html, inputs, refresh)
 	
-	collectTaskContent :: !UserId !TaskTree -> (![HtmlTag],![InputDefinition], !Bool)
-	collectTaskContent currentUser (TTBasicTask info output inputs)
-		| info.TaskInfo.userId == currentUser	= (output,inputs,False)
-		| otherwise								= ([],[],False)
-	collectTaskContent currentUser (TTSequenceTask info sequence)
-		# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser) sequence) 
+	collectTaskContent :: !UserId !TaskId !TaskTree -> (![HtmlTag],![InputDefinition], !Bool)
+	//BasicTask
+	collectTaskContent currentUser taskid (TTBasicTask info output inputs)
+		= (output,inputs,False)
+	//SequenceTask
+	collectTaskContent currentUser taskid (TTSequenceTask info sequence)
+		# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser taskid) sequence) 
 		= (flatten outputs, flatten inputs, or refresh)	
-	collectTaskContent currentUser (TTParallelTask info combination branches)
+	//ParallelTask
+	collectTaskContent currentUser taskid (TTParallelTask info combination branches)
 		= case combination of
 			(TTSplit output)
-				| info.TaskInfo.finished				= ([],[],False)		
-				| info.TaskInfo.userId == currentUser	= (taskOverview output branches, [],True)
-				| otherwise								= ([],[],False)
+				| info.TaskInfo.finished	= ([],[],False)		
+				| otherwise					= (taskOverview output branches, [],True)
 			mergedCombination
 				| info.TaskInfo.finished = ([],[],False)
-				# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser) branches)
+				# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser taskid) branches)
 				| isEmpty outputs	= ([],[],False)
 				| otherwise			= case mergedCombination of
 					TTVertical		= ([DivTag [ClassAttr "it-vertical"] html \\ html <- outputs], flatten inputs, or refresh)
 					TTHorizontal	= ([TableTag [ClassAttr "it-horizontal"] [TrTag [] [TdTag [] html \\ html <- outputs]]], flatten inputs, or refresh)
 					(TTCustom f)	= (f outputs, flatten inputs, or refresh)
-	collectTaskContent currentUser (TTProcess info sequence)		
-		# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser) sequence) 
-		= (flatten outputs, flatten inputs, or refresh)	
+	//MainTask
+	collectTaskContent currentUser taskid (TTMainTask ti mti sequence)
+		| ti.TaskInfo.taskId == taskid && mti.MainTaskInfo.userId == currentUser 		//Collect the content of the main task
+			# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser taskid) sequence) 
+			= (flatten outputs, flatten inputs, or refresh)
+		| mti.MainTaskInfo.delegatorId == currentUser									//Show delegator status info
+			= ([Text "Waiting for task to finish..."],[],False)
+		| otherwise
+			= ([],[],False)
 	
 	unzip3 :: [(a,b,c)] -> ([a],[b],[c])
 	unzip3 [] = ([],[],[])
@@ -149,12 +156,10 @@ where
 		icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 				
 	taskInfo :: TaskTree -> (TaskStatus,String,Int)
-	taskInfo (TTBasicTask {TaskInfo|finished,taskLabel,delegatorId} _ _)			= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
-	taskInfo (TTSequenceTask {TaskInfo|finished,taskLabel,delegatorId} _)			= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
-	taskInfo (TTParallelTask {TaskInfo|finished,taskLabel,delegatorId} _ _)			= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
-	taskInfo (TTProcess {ProcessInfo|status= Finished,processLabel,delegatorId} _)	= (TaskFinished,processLabel,delegatorId)
-	taskInfo (TTProcess {ProcessInfo|status= Suspended,processLabel,delegatorId} _)	= (TaskSuspended,processLabel,delegatorId)
-	taskInfo (TTProcess {ProcessInfo|processLabel,delegatorId} _)					= (TaskActive,processLabel,delegatorId)
+	taskInfo (TTBasicTask {TaskInfo|finished,taskLabel} _ _)							= (if finished TaskFinished TaskActive,taskLabel,-1)
+	taskInfo (TTSequenceTask {TaskInfo|finished,taskLabel} _)							= (if finished TaskFinished TaskActive,taskLabel,-1)
+	taskInfo (TTParallelTask {TaskInfo|finished,taskLabel} _ _)							= (if finished TaskFinished TaskActive,taskLabel,-1)
+	taskInfo (TTMainTask {TaskInfo|finished,taskLabel} {MainTaskInfo|delegatorId} _)	= (if finished TaskFinished TaskActive,taskLabel,delegatorId)
 
 	getDelegatorName userId tst
 		# (names, tst)		= accHStTSt (getDisplayNames [userId]) tst

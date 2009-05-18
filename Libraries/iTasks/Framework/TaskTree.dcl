@@ -11,28 +11,26 @@ import Html, Time
 from   iDataForms	import :: InputDefinition {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
 from   ProcessDB	import :: ProcessStatus
 
-// New experimental task tree data strucure
 :: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputDefinition]			//Smallest unit of work that has to be performed by a user
-					| TTSequenceTask	TaskInfo [TaskTree]								//A task that is composed of a number of sequentially executed subtasks
-					| TTParallelTask	TaskInfo TaskCombination [TaskTree]				//A task that is composed of a number of parallel executed subtasks
-					| TTProcess			ProcessInfo [TaskTree]							//The top node of a task tree is a process 
-
-				
+					| TTSequenceTask	TaskInfo 					[TaskTree]			//A task that is composed of a number of sequentially executed subtasks
+					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]			//A task that is composed of a number of parallel executed subtasks
+					| TTMainTask		TaskInfo MainTaskInfo		[TaskTree]			//A task that is treated as a main chunk of work  
+								
 :: TaskInfo	=		{ taskId		:: TaskId											//Task number in string format
 					, taskLabel		:: String											//Descriptive label of the task
-					, userId		:: UserId											//User that has to do this task
-					, delegatorId	:: UserId											//User that issued this task
 					, active		:: Bool												//Is the task active?
 					, finished		:: Bool												//Is the task finished?
-					, priority		:: TaskPriority										//How important is the task
 					, traceValue	:: String											//String representation of value for tracing
 					}
-
-:: ProcessInfo =	{ processId		:: ProcessId
-					, processLabel	:: String
+					
+:: MainTaskInfo =	{ subject		:: String
 					, userId		:: UserId
 					, delegatorId	:: UserId
-					, status		:: ProcessStatus
+					
+					, priority		:: TaskPriority										//What is the current priority of this task
+					, issuedAt		:: Time												//When was the task created
+					, firstEvent	:: Maybe Time										//When was the first work done on this task
+					, latestEvent	:: Maybe Time										//When was the last event on this task				
 					}
 
 /**

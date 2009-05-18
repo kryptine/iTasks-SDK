@@ -17,7 +17,7 @@ import iDataForms
 				 		, subject		:: String 					// Name give to the task, which can be a short description of the work to do
 				 		, priority		:: TaskPriority				// Priority of the task
 				 		, timestamp		:: Int						// Time stamp when the task was issued
-				 		, split			:: Bool						// Is this task split into subtasks
+				 		, tree_shift	:: Bool						// Marks if the item has been shifted to the right
 				 		, tree_path		:: [Bool]					// Path in the tree structure
 				 		, tree_last		:: Bool						// Is this item the last of a set of siblings
 				 		, tree_icon		:: String					// An icon name. The actual icon image is defined in the css.
@@ -56,79 +56,75 @@ where
 
 //Calculates the work items for a list of trees, but with
 //a fixed "isLast" parameter. This is necessary to propagate the current "isLast"
-//paramater down the tree when nodes are skipped.
+//parameter down the tree when nodes are skipped.
 determineListWorkItemsFixed :: !UserId !Bool !Bool ![TaskTree] -> [WorkListItem]
 determineListWorkItemsFixed userId addSequences isLast forest = flatten (map (determineTreeWorkItems userId addSequences isLast) forest)
 
-determineTreeWorkItems :: !UserId !Bool !Bool !TaskTree -> [WorkListItem] //Work item, along with the amount of children it has
-//Process nodes
-determineTreeWorkItems userId addSequences isLast (TTProcess info sequence)
-	| info.ProcessInfo.userId <> userId
-		= determineListWorkItemsFixed userId True isLast sequence				//Not our work, no new item
+determineTreeWorkItems :: !UserId !Bool !Bool !TaskTree -> [WorkListItem]
+//MainTask nodes
+//Always a maintask that we have to do, or have delegated.
+determineTreeWorkItems userId addSequences isLast (TTMainTask ti mti sequence)
+	| (not ti.TaskInfo.active) || ti.TaskInfo.finished									// Inactive or finished, ignore whole branch
+		= []
+	| mti.MainTaskInfo.userId <> userId 												// Not our work, no new item
+		= determineListWorkItemsFixed userId True isLast sequence	
 	| otherwise
-		# subitems	= determineListWorkItemsFixed userId False isLast sequence 
-		= case subitems of
-			[]					= [processItem]									//Add a new item
-			[item:items]
-				| item.split	= [{item & taskid = (toString info.processId), subject = info.processLabel}:items]	//'Merge' with subitem
-								= [processItem,item:items]
+		= [mainTaskItem : determineListWorkItemsFixed userId False isLast sequence]		// A task we have to do, or have delegated, add a new item.
 where
-	processItem = mkWorkItem (toString info.processId) info.processLabel False isLast "editTask" info.ProcessInfo.delegatorId						
+	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.MainTaskInfo.subject, delegatorId = mti.MainTaskInfo.delegatorId
+				   , tree_last = isLast, timestamp = (\(Time i) . i) mti.MainTaskInfo.issuedAt, priority = mti.MainTaskInfo.priority }
 
 //Sequence nodes
-determineTreeWorkItems userId addSequences isLast (TTSequenceTask info sequence)
-	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
+determineTreeWorkItems userId addSequences isLast (TTSequenceTask ti sequence)
+	| (not ti.TaskInfo.active) || ti.TaskInfo.finished				// Inactive or finished, ignore whole branch
 		= []
-	| info.TaskInfo.userId <> userId								//Not our work, no new item
-		= determineListWorkItemsFixed userId True isLast sequence	
-	| not addSequences												//We don't need to add the sequence
+	| not addSequences												// We don't need to add the sequence
 		= determineListWorkItemsFixed userId False isLast sequence
 	| otherwise
-		# subitems	= determineListWorkItemsFixed userId False isLast sequence
-		= case subitems of
-			[]					= [sequenceItem]										//Add item
-			[item:items]
-				| item.split	= [{item & taskid = info.TaskInfo.taskId, subject = info.TaskInfo.taskLabel}:items]		//'Merge' with subitem
-								= [sequenceItem,item:items]								//Add item
+		| isLast														//We are last, but maybe our subitems will add some more items
+			= case (determineListWorkItems userId False sequence) of
+				[]		= [sequenceItem]
+				items	= [{sequenceItem & tree_last = shiftedItems items} : items]
+		| otherwise
+			= [sequenceItem: determineListWorkItemsFixed userId False False sequence]
 where
-	sequenceItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel False isLast "editTask" info.TaskInfo.delegatorId
+	sequenceItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, tree_last = isLast}
 
 //Parallel nodes
 determineTreeWorkItems userId addSequences isLast (TTParallelTask info combination branches)	
 	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
 		= []
-	| info.TaskInfo.userId <> userId								//Not our work, no new item
-		= determineListWorkItemsFixed userId True isLast branches
 	| otherwise
 		= case combination of
-			(TTSplit _)	= [parallelItem : map (shiftWorkItem (not isLast)) (determineListWorkItems userId True branches) ]	
+			(TTSplit _)	= map (shiftWorkItem (not isLast)) (determineListWorkItems userId True branches)
 			_			= determineListWorkItemsFixed userId False isLast branches
-where
-	parallelItem = mkWorkItem info.TaskInfo.taskId info.TaskInfo.taskLabel True isLast "andTask" info.TaskInfo.delegatorId
 
 //Basic nodes			
 determineTreeWorkItems _ _ _ _ = []
 
-mkWorkItem :: !TaskId !String !Bool !Bool !String !UserId -> WorkListItem
-mkWorkItem taskId label split last icon delegator
-			=	{ taskid		= taskId
-				, delegatorId	= delegator
+mkWorkItem :: WorkListItem
+mkWorkItem =	{ taskid		= ""
+				, delegatorId	= -1
 				, delegatorName	= ""
 				, processname	= ""
-				, subject		= label
+				, subject		= ""
 				, priority		= NormalPriority
 				, timestamp		= 0
-				, split			= split
+				, tree_shift	= False
 				, tree_path		= []
-				, tree_last		= last
-				, tree_icon		= icon
+				, tree_last		= False
+				, tree_icon		= "editTask"
 				}
 
 shiftWorkItem :: !Bool !WorkListItem -> WorkListItem
-shiftWorkItem step item =:{tree_path} = {item & tree_path = [step:tree_path]}				
+shiftWorkItem step item =:{tree_path} = {item & tree_path = [step:tree_path], tree_shift = True}				
 
 addDelegatorNames :: [WorkListItem] *TSt -> ([WorkListItem], *TSt)
 addDelegatorNames items tst
 	# (names, tst)		= accHStTSt (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items]) tst
-	= ([{i & delegatorName = name} \\ i <- items & name <- names], tst)
+	= ([{i & delegatorName = if (i.WorkListItem.delegatorId <> -1) name ""} \\ i <- items & name <- names], tst)
+
+shiftedItems :: [WorkListItem] -> Bool
+shiftedItems [{WorkListItem|tree_shift}:xs] = tree_shift
 	
+

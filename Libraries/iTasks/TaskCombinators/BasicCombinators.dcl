@@ -4,7 +4,7 @@ definition module BasicCombinators
 * with which additional combinators can be defined.
 */
 from TSt 			import :: Task, :: LabeledTask, :: TaskCombination
-from Types 			import :: UserId 
+from Types 			import :: UserId, :: TaskPriority
 from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
 
 import iDataForms, GenPrint, GenParse
@@ -98,11 +98,12 @@ parallel 	:: !String !([a] -> Bool) !(Bool [a] -> b) ![LabeledTask a] -> Task b 
 /**
 * Delegate a task to a(nother) user.
 *
-* @param The UserId of the user to which the task is delegated
+* @param The initial UserId of the user to which the task is delegated
+* @param The initial priority of the task.
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-delegate 	:: !UserId !(LabeledTask a) 				-> Task a	| iData a
+delegate 	:: !UserId !TaskPriority !(LabeledTask a) 				-> Task a	| iData a
 
 /* Experimental department:
 

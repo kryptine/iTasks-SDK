@@ -4,7 +4,8 @@ definition module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 
-import BasicCombinators, iDataWidgets		 
+import BasicCombinators, iDataWidgets	
+import Either	 
 
 //Task composition
 
@@ -14,7 +15,7 @@ import BasicCombinators, iDataWidgets
 orTasks 		:: ![LabeledTask a] 						-> Task a 			| iData a
 andTasks		:: ![LabeledTask a]							-> Task [a]			| iData a
 
-eitherTask		:: !(Task a) !(Task b) 						-> Task (EITHER a b)| iData a & iData b	
+eitherTask		:: !(Task a) !(Task b) 						-> Task (Either a b)| iData a & iData b	
 
 //Common user interface tasks
 button			:: !String !a -> Task a | iData a
@@ -24,14 +25,11 @@ ok				:: Task Void
 yes				:: Task Bool
 no				:: Task Bool
 
-
 //Task selection
 
 
 //Task delegation
 (@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a //will prompt who is waiting for task with give name
-(@:>)  infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a //as @:, no prompting
-
 
 
 /* Handling recursion and loops:

@@ -31,13 +31,7 @@ where
 	mkTree (TTBasicTask info _ _)
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [
-					TableTag [] [
-						TrTag [] [ThTag [] [Text "User:"] , TdTag [] [Text (toString info.TaskInfo.userId)] ],
-						TrTag [] [ThTag [] [Text "Delegator"] , TdTag [] [Text (toString info.TaskInfo.delegatorId)] ],
-						TrTag [] [ThTag [] [Text "Value:"], TdTag [] [Text info.TaskInfo.traceValue] ]
-					] 		
-				]
+			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
 		    ]
 		  ]
 	mkTree (TTSequenceTask info trees)
@@ -51,9 +45,13 @@ where
 			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel, Text " (",Text (showCombination combination), Text ")"] ],
 			TrTag [] [TdTag [] (mkTree tree) \\ tree <- trees]
 		  ]]
-	mkTree (TTProcess info trees)		
-		= [DivTag [ClassAttr "trace-process"] [H2Tag [] [Text "Process ",Text (toString info.ProcessInfo.processId),Text " (User ", Text (toString info.ProcessInfo.userId),Text ")"]
-											  : flatten (map mkTree trees)]]
+	mkTree (TTMainTask info mti trees)
+		= [TableTag [ClassAttr "trace-sequence"] [
+			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text "MAINTASK:", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
+			:
+			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
+		  ]]
+
 
 	activeClass info
 		| info.TaskInfo.finished	= "trace-finished"
