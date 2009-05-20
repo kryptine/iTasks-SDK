@@ -137,7 +137,7 @@ where
 			# (outputs,inputs,refresh) = unzip3 (map (collectTaskContent currentUser taskid) sequence) 
 			= (flatten outputs, flatten inputs, or refresh)
 		| mti.TaskProperties.delegatorId == currentUser									//Show delegator status info
-			= ([Text "Waiting for task to finish..."],[],False)
+			= ([Text "Waiting for user ", Text (toString mti.TaskProperties.userId), Text " to finish task..."],[],False)
 		| otherwise
 			= ([],[],False)
 	
