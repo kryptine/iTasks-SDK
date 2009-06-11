@@ -9,7 +9,7 @@ derive gUpd User
 derive gPrint User
 derive gParse User
 			  
-initUsers :: [User]
+initUsers :: [User] 
 initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", password = "", roles = ["root", "president","manager","worker"]}
 			  , {User | userId = 1, username = "president", displayname = "President", password = "", roles = ["president"]}
 			  , {User | userId = 2, username = "manager", displayname = "Middle manager", password = "", roles = ["manager"]}
@@ -23,6 +23,17 @@ initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", passw
 			  , {User | userId = 20, username = "megastore", displayname = "Megastore", password = "", roles = ["supplier"]}
 			  , {User | userId = 21, username = "localshop", displayname = "Local shop", password = "", roles = ["supplier"]}
 			  , {User | userId = 22, username = "webshop", displayname = "Webshop.com", password = "", roles = ["supplier"]}   
+
+			  , {User | userId = 30, username = "ambupost0", displayname = "Ambulance Post 0", password = "", roles = ["ambulances"]}
+			  , {User | userId = 31, username = "ambupost1", displayname = "Ambulance Post 1", password = "", roles = ["ambulances"]}
+			  , {User | userId = 32, username = "ambupost2", displayname = "Ambulance Post 2", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 33, username = "ambupost3", displayname = "Ambulance Post 3", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 34, username = "ambupost4", displayname = "Ambulance Post 4", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 35, username = "ambupost5", displayname = "Ambulance Post 5", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 36, username = "ambupost6", displayname = "Ambulance Post 6", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 37, username = "ambupost7", displayname = "Ambulance Post 7", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 38, username = "ambupost8", displayname = "Ambulance Post 8", password = "", roles = ["ambulances"]}   
+			  , {User | userId = 39, username = "ambupost9", displayname = "Ambulance Post 9", password = "", roles = ["ambulances"]}   
 			  ]
 			  
 instance UserDB HSt
