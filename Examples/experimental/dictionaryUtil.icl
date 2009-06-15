@@ -11,8 +11,8 @@ get_iDataDictionaries a = code {
 pop_a 0
 }
 
-iDataVal2Dynamic ::  a -> Dynamic | BoxediData a
-iDataVal2Dynamic val = dynamic (get_iDataDictionaries val)
+get_iDataDictionaries2Dyn ::  a -> Dynamic | BoxediData a
+get_iDataDictionaries2Dyn val = dynamic (get_iDataDictionaries val)
 
 iDataFun2Dynamic :: (A.a: (Dictionary_iData a) -> (b -> Task a)) -> Dynamic | TC b
 iDataFun2Dynamic f = dynamic f :: (A.a: (Dictionary_iData a) -> (b^ -> Task a))
@@ -38,6 +38,17 @@ applyDynamicTask2
 applyDynamicTask2 _ _ = return createDefault
 
 
+f :: !(A.a: a | BoxediData a) -> ((Dictionary_iData a) -> a)
+f g = code {
+	pop_a 0
+	}
+
+h :: !((Dictionary_iData a) -> a) -> a | BoxediData a
+h g = code {
+	pop_a 0
+	}
+
+/*
 // ***************************************
 
 iTaskEditor :: (a -> Task a) | BoxediData a
@@ -72,3 +83,4 @@ d_iTaskDelegate fun = code {
     .o 1 0
 } 
 
+*/
