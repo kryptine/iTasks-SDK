@@ -162,13 +162,9 @@ div.worktab-header-indicator {
 div.worktab-header table {
 	width: 100%;
 }
-
 div.worktab-header th {
-	width: 10%;
+	width: 100px;
 	font-weight: bold;
-}
-div.worktab-header td {
-	width: 40%;
 }
 div.worktab-content {	
 	padding: 10px;	
