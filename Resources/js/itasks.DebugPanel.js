@@ -40,6 +40,12 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 					id: 'trace',
 					boxLabel: 'Enable trace'
 					}]
+			},{
+				xtype: 'fieldset',
+				title: 'Session Id',
+				html: this.sessionId,
+				autoHeight: true,
+				hideLabels: true
 			}]
 		});
 		

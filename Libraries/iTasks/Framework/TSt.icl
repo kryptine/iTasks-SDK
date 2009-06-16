@@ -20,7 +20,6 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, delegatorId	= -1
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, activated 	= True
-		, users			= []
 		, newProcesses	= []
 		, options 		= initialOptions itaskstorage
 		, staticInfo	= initStaticInfo session threadstorage workflows
@@ -60,9 +59,10 @@ initTaskInfo
 initTaskProperties :: TaskProperties
 initTaskProperties
 	=	{ TaskProperties
-		| subject = ""
-		, userId = -1
-		, delegatorId = -1
+		| processId	= 0
+		, subject = ""
+		, user = (-1, "")
+		, delegator = (-1,"")
 		, priority = NormalPriority
 		, issuedAt = Time 0
 		, firstEvent = Nothing
@@ -70,7 +70,7 @@ initTaskProperties
 		}
 
 resetTSt :: *TSt -> *TSt
-resetTSt tst = {tst & taskNr = [-1], activated = True, userId = -1, users = []}
+resetTSt tst = {tst & taskNr = [-1], activated = True, userId = -1}
 
 setTaskNr :: TaskNr *TSt -> *TSt
 setTaskNr taskNr tst = {TSt | tst & taskNr = taskNr}
@@ -133,10 +133,9 @@ where
 		# (trees,tst)	= calculateTrees ps tst
 		= ([tree:trees],tst)
 
-calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
+calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 calculateTaskTree pid enableDebug tst
-	# (currentUser,tst)		= getCurrentUser tst
-	# (mbProcess,tst)		= accHStTSt (getProcessForUser currentUser pid) tst
+	# (mbProcess,tst)		= accHStTSt (getProcess pid) tst
 	= case mbProcess of
 		Just entry
 			= case entry.Process.status of
@@ -152,18 +151,20 @@ initProcessNode :: Process -> TaskTree
 initProcessNode {processId, properties} = TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.subject, active = True, finished = False, traceValue = "Process"} properties []
 
 buildProcessTree :: Process !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree p =: {Process | processId, processType, status, properties = {TaskProperties|userId,delegatorId}} tst
+buildProcessTree p =: {Process | processId, processType, status, properties = {TaskProperties|user,delegator}} tst
 	# tst								= resetTSt tst
 	# tst								= setTaskNr [-1,processId] tst
-	# tst								= setUserId userId tst
-	# tst								= setDelegatorId delegatorId tst
+	# tst								= setUserId (fst user) tst
+	# tst								= setDelegatorId (fst delegator) tst
 	# tst								= setProcessId processId tst
 	# tst								= setTaskTree (initProcessNode p) tst	
 	# (result,tst)						= applyMainTask processType tst
 	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
-	# (users, tst)						= getAdditionalUsers tst
 	# (finished, tst)					= taskFinished tst
-	# (_,tst)							= accHStTSt (updateProcess (if finished Finished Active) result (removeDup users) processId) tst
+	# (_,tst)							= accHStTSt (updateProcess processId (\p -> {Process
+																					| p 
+																					& status = if finished Finished Active
+																					, result = result })) tst
 	# tst								= garbageCollect finished processId tst
 	= (TTMainTask {TaskInfo| ti & finished = finished} mti (reverse tasks), tst)
 where
@@ -237,12 +238,6 @@ getWorkflowByName name tst
 		[workflow]	= (Just workflow, tst)
 		_			= (Nothing,tst)
 
-addAdditionalUser :: !UserId !*TSt -> *TSt
-addAdditionalUser uid tst = {TSt | tst & users = [uid:tst.TSt.users]}
-
-getAdditionalUsers :: !*TSt -> (![UserId],!*TSt)
-getAdditionalUsers tst=:{TSt|users} = (users,tst) 
-
 addNewProcess :: !ProcessId !*TSt -> *TSt
 addNewProcess pid tst = {tst & newProcesses = [pid:tst.newProcesses]}
 
@@ -252,9 +247,9 @@ getNewProcesses tst =:{newProcesses} = (newProcesses, tst)
 clearNewProcesses :: !*TSt -> *TSt
 clearNewProcesses tst = {tst & newProcesses = []}
 		
-getEditorStates :: !*TSt	-> (![HtmlState], !*TSt)
-getEditorStates tst
-	= accHStTSt getPageStates tst
+getEditorStates :: !String !*TSt	-> (![HtmlState], !*TSt)
+getEditorStates prefix tst
+	= accHStTSt (accFormStatesHSt (getHtmlStates prefix)) tst
 
 taskFinished :: !*TSt -> (!Bool, !*TSt)
 taskFinished tst=:{activated} = (activated, {tst & activated = activated})
@@ -284,32 +279,37 @@ accTaskTSt (Task fn) tst = fn tst
 // Every sequential task should increase the task number
 // If a task j is a subtask of task i, than it will get number i.j in reverse order
 
+import StdDebug, Text
+
 mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-mkBasicTask taskname taskfun = mkTask taskname taskfun nodefun id
+mkBasicTask taskname taskfun = mkTask taskname taskfun nodefun id finfun
 where
-	nodefun info tst	= (TTBasicTask info [] [], tst)
+	nodefun info tst	= (TTBasicTask info [] [] [], tst)
+	finfun tst=:{taskNr,tree=TTBasicTask info html inputs _}
+		# (states, tst)	= accHStTSt (accFormStatesHSt (getHtmlStates (iTaskId taskNr "" +++ "-" ))) tst
+		= {tst & tree = TTBasicTask info html inputs states}
 	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-mkSequenceTask taskname taskfun = mkTask taskname taskfun nodefun nrfun
+mkSequenceTask taskname taskfun = mkTask taskname taskfun nodefun nrfun id
 where
 	nodefun info tst	= (TTSequenceTask info [], tst)
 	nrfun tst=:{taskNr}	= {tst & taskNr = [-1:taskNr]}
 			
 mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-mkParallelTask taskname taskfun = mkTask taskname taskfun nodefun nrfun
+mkParallelTask taskname taskfun = mkTask taskname taskfun nodefun nrfun id
 where
-	nodefun info tst=:{options}	= case options.combination of
-		Just combination	= (TTParallelTask info combination [], {tst & options = {options & combination = Nothing}})	//Apply combination and reset
+	nodefun info tst=:{TSt|options}	= case options.combination of
+		Just combination	= (TTParallelTask info combination [], {TSt|tst & options = {options & combination = Nothing}})	//Apply combination and reset
 		Nothing				= (TTParallelTask info TTVertical [], tst)	//Use default combination
 			
 	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 	
 mkMainTask :: !String !TaskProperties !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-mkMainTask taskname mti taskfun = mkTask taskname taskfun nodefun nrfun
+mkMainTask taskname mti taskfun = mkTask taskname taskfun nodefun nrfun id
 where
 	nodefun ti tst=:{taskNr, staticInfo={currentProcessId}}
 		# taskId			= taskNrToString taskNr
-		# (mbProps,tst)		= accHStTSt (getEmbeddedProcess currentProcessId taskId) tst //Lookup task properties in process table
+		# (mbProps,tst)		= accHStTSt (getSubProcess currentProcessId taskId) tst //Lookup task properties in process table
 		= case mbProps of
 			(Just props)	= (TTMainTask ti props.Process.properties [], tst)
 			Nothing
@@ -317,8 +317,8 @@ where
 				= (TTMainTask ti mti [], tst)
 	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 
-mkTask :: !String !(*TSt -> *(!a,!*TSt)) !(TaskInfo *TSt -> *(TaskTree,*TSt)) (*TSt -> *TSt) -> Task a | iData a
-mkTask taskname taskfun nodefun nrfun = Task mkTask`
+mkTask :: !String !(*TSt -> *(!a,!*TSt)) !(TaskInfo *TSt -> *(TaskTree,*TSt)) (*TSt -> *TSt) (*TSt -> *TSt) -> Task a | iData a
+mkTask taskname taskfun nodefun nrfun finfun = Task mkTask`
 where
 	mkTask` tst
 		# (a, done, info, tst =:{taskNr,userId,delegatorId,tree,options}) = initTask taskname tst
@@ -327,6 +327,7 @@ where
 			= (a, {addTaskNode node tst & activated = True})
 		| otherwise
 			# (a, tst)		= executeTask (Task taskfun) (nrfun {tst & tree = node})
+			# tst			= finfun tst
 			# tst = addTaskNode
 						(updateTaskNode tst.activated (printToString a) tst.tree)
 						{tst & taskNr = taskNr, userId = userId, delegatorId = delegatorId, tree = tree, options = options}
@@ -378,7 +379,7 @@ where
 	
 	//update the finished and trace fields of a task tree node
 	//updateTaskNode :: Bool String TaskTree -> TaskTree
-	updateTaskNode finished traceValue (TTBasicTask ti output inputs)			= TTBasicTask {ti & finished = finished, traceValue = traceValue} output inputs
+	updateTaskNode finished traceValue (TTBasicTask ti output inputs states)	= TTBasicTask {ti & finished = finished, traceValue = traceValue} output inputs states
 	updateTaskNode finished traceValue (TTSequenceTask ti tasks) 				= TTSequenceTask {ti & finished = finished, traceValue = traceValue} (reverse tasks)
 	updateTaskNode finished traceValue (TTParallelTask ti combination tasks)	= TTParallelTask {ti & finished = finished, traceValue = traceValue} combination (reverse tasks)
 	updateTaskNode finished traceValue (TTMainTask ti mti tasks)				= TTMainTask {ti & finished = finished, traceValue = traceValue} mti (reverse tasks)
@@ -395,15 +396,15 @@ where
 setOutput :: ![HtmlTag] !*TSt -> *TSt
 setOutput output tst=:{tree}
 	= case tree of
-		(TTBasicTask info _ inputs)					= {tst & tree = TTBasicTask info output inputs}
+		(TTBasicTask info _ inputs states)			= {tst & tree = TTBasicTask info output inputs states}
 		(TTParallelTask info combination branches)	= {tst & tree = TTParallelTask info combination branches}
 		_											= {tst & tree = tree}
 		
 setInputs :: ![InputDefinition] !*TSt -> *TSt
 setInputs inputs tst=:{tree}
 	= case tree of
-		(TTBasicTask info output _)	= {tst & tree = TTBasicTask info output inputs}
-		_							= {tst & tree = tree}
+		(TTBasicTask info output _ states)	= {tst & tree = TTBasicTask info output inputs states}
+		_									= {tst & tree = tree}
 
 setCombination :: !TaskCombination !*TSt	-> *TSt
 setCombination combination tst=:{tree}
@@ -412,10 +413,10 @@ setCombination combination tst=:{tree}
 		_									= {tst & tree = tree}
 
 setNextCombination	:: !TaskCombination !*TSt	-> *TSt
-setNextCombination newCombination tst=:{options = options=:{combination}}
+setNextCombination newCombination tst=:{TSt|options = options=:{combination}}
 	= case combination of
-		Nothing	= {tst & options = {options & combination = Just newCombination}}
-		_		= {tst & options = {options & combination = combination}}
+		Nothing	= {TSt|tst & options = {options & combination = Just newCombination}}
+		_		= {TSt|tst & options = {options & combination = combination}}
 
 resetSequence :: !*TSt -> *TSt
 resetSequence tst=:{taskNr,tree}

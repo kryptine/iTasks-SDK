@@ -4,652 +4,792 @@
 
 Ext.ns('itasks');
 
-itasks.WorkTabPanel = Ext.extend(itasks.RemoteDataPanel, {
-
-	taskId: "",						//The taskid of the task done in this tab
-	
-	updates: {}, 					//Dictionary with form updates
-	inputs: [],
-	state: undefined,				//The encoded state that is temporarily stored in the tab
-	trace: false,					//Request state information
-	
-	lastFocus: undefined,			//The id of the last focused input
-	firstBuffer: false,				//Use the first buffer panel (double buffering is used for rendering)
-	prefixCounter: 0,				//Prefix counter 
-	
-	contentPanel: undefined,		//A reference to the panel which is currently visible
+itasks.InlineEditField = Ext.extend(Ext.Panel, {
 
 	initComponent: function () {
-	
 		Ext.apply(this, {
-			title: "...",
+			layout: 'card',
+			border: false,
+			value: this.field.value,
+			activeItem: 0,
+			
+			items: [{
+				layout: 'column',
+				border: false,
+				items: [{
+					xtype: 'panel',
+					style: 'padding: 3px 0px 0px 2px;',
+					border: false,
+					columnWidth: 1,
+					html: (this.format == undefined) ? this.field.value : this.format(this.field.value, this.field)
+				},{
+					xtype: 'toolbar',
+					border: false,
+					cls: 'x-form-item',
+					width: 28,
+					height: 24,
+					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
+					items: [{
+						icon: 'img/icons/pencil.png',
+						cls: 'x-btn-icon',
+						handler: this.startEdit,
+						scope: this
+					}]
+				}]				
+			},{
+				layout: 'column',
+				border: false,
+				items: [{
+					xtype: 'panel',
+					border: false,
+					layout: 'fit',
+					columnWidth: 1,
+					items: [this.field]
+				},{
+					xtype: 'toolbar',
+					border: false,
+					width: 28,
+					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
+					items: [{
+						icon: 'img/icons/accept.png',
+						cls: 'x-btn-icon',
+						handler: this.stopEdit,
+						scope: this
+					}]
+				}]		
+			}]
+		});
+		itasks.InlineEditField.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('startedit','stopedit');
+	},
+	startEdit: function () {
+		//Switch to edit card
+		this.layout.setActiveItem(1);
+		//Fire startedit event
+		this.fireEvent('startedit');
+	},
+	stopEdit: function() {
+		
+		var field = this.getComponent(1).getComponent(0).getComponent(0);
+		var oldValue = this.value;
+		var newValue = field.getValue();
+		
+		this.value = newValue;
+		
+		//Update the label
+		this.setLabel((this.format == undefined) ? this.value : this.format(this.value, field));
+	
+		//Switch to label card
+		this.layout.setActiveItem(0);
+		
+		//Fire stopedit event
+		this.fireEvent('stopedit',oldValue,newValue);
+	},
+	setLabel: function(msg) {
+		this.getComponent(0).getComponent(0).getEl().update(msg);
+	},
+	getValue: function() {
+		return this.value;
+	}
+});
+
+Ext.reg('inlinefield', itasks.InlineEditField);
+
+
+itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
+
+	taskId: null,
+	sessionId: null,
+	application: null,
+	
+	debug: false,
+	initialized: false,
+	
+	idataEvents: [],
+	idataStates: [],
+	
+	initComponent: function() {
+		Ext.apply(this, {
+			title: "Loading task...",
 			closable: true,
-			url: 'handlers/work/tab',
-			params: {
-				taskid: this.taskId,
-				prefix: ""
-			},
+			iconCls: 'icon-editTask',
+			
+			url: '/handlers/work/tab',
+			params: {task: this.taskId, debug: this.debug ? 1 : 0, prefix: 'ip-0-'},
+			nextPrefix: 1,
+			
 			layout: 'anchor',
 			deferredRender: false,
 			items: [{
-				xtype: 'panel',
-				anchor: '100%',
+				xtype: 'itasks.work-header',
 				height: 50,
-				layout: 'anchor',
-				items: [{
-					xtype: 'panel',
-					anchor: '0 0',
-					baseCls: 'worktab-header'
-					},{
-					xtype: 'panel',
-					anchor: '-50 100%',
-					baseCls: 'worktab-header',
-					html: "<div class=\"worktab-header-indicator\"></div>"
-					}]			
+				anchor: 'r'
 			},{
-				xtype: 'panel',
-				anchor: '100% -50',
-				layout: 'card',
+				xtype: 'tabpanel',
+				anchor: 'r -50',
 				cls: 'worktab-container',
-				deferredRender: false,
+				tabPosition: 'bottom',
+				layoutOnTabChange: true,
+				activeTab: 0,
+				items: [{
+					title: 'Task',
+					iconCls: 'icon-editTask',
+					layout: 'fit',
+					hideMode: 'offsets',
+					border: false,
+					autoWidth: true,
+					autoScroll: true
+				}],
 				tbar: [{
-					text: 'Refresh task',
-					iconCls: 'x-tbar-loading',
-					listeners: {
-						click: {
-							scope: this,
-							fn: function (btn) {
-								this.updateForm();
+						text: 'Refresh task',
+						iconCls: 'x-tbar-loading',
+						listeners: {
+							click: {
+								scope: this,
+								fn: function (btn) {
+									this.refresh();
+								}
 							}
 						}
-					}
-				}],
-				activeItem: 0,
-				items: [{
-					xtype: 'panel', //Task panel (no trace) 1
-					border: false,
-					cls: 'worktab-content',
-					autoWidth: true,
-					autoScroll: true
-				},{
-					xtype: 'panel', //Task panel (no trace) 2
-					border: false,
-					cls: 'worktab-content',
-					autoWidth: true,
-					autoScroll: true
-				},{
-					xtype: 'tabpanel',
-					border: false,
-					tabPosition: 'bottom',
-					autoScroll: true,
-					deferredRender: false,
-					layoutOnTabChange: true,
-					activeTab: 0,
-					items: [{
-						xtype: 'panel', //Task panel (trace) 1
-						autoWidth: true,
-						title: 'Task',
-						cls: 'worktab-content'
-					},{
-						xtype: 'panel', //Task panel (trace) 2
-						autoWidth: true,
-						title: 'Task',
-						cls: 'worktab-content'
-					},{
-						xtype: 'panel',
-						autoWidth: true,
-						title: 'States',
-						cls: 'worktab-content'
-					},{
-						xtype: 'panel',
-						autoWidth: true,
-						title: 'Updates',
-						cls: 'worktab-content'
-					},{
-						xtype: 'panel',
-						autoWidth: true,
-						title: 'Sub task tree',
-						cls: 'worktab-content'
-					}]
 				}]
 			}]
 		});
-
-		itasks.WorkTabPanel.superclass.initComponent.apply(this, arguments);
 		
-		//Set the initial content panel
-		this.contentPanel = this.getComponent(1).getComponent(0);
+		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
 		
 		//Attach event handlers for the loading indicator
 		this.on("remoteCallStart",function() {
-			this.getComponent(0).getComponent(1).getEl().child(".worktab-header-indicator").setVisible(true);
+			this.getComponent(0).setBusy(true);
 		},this);
 		this.on("remoteCallEnd",function() {
-			this.getComponent(0).getComponent(1).getEl().child(".worktab-header-indicator").setVisible(false);
+			this.getComponent(0).setBusy(false);
 		},this);
 	},
-	setTrace: function (trace) {
-		this.trace = trace;
-	},
-	makeFinishedMessage: function() {
-		return "This task is completed. Thank you.";
-	},
-	makeDeletedMessage: function() {
-		return "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
-	},
-	makeSuspendedMessage: function() {
-		return "This task is temporarily suspended.<br />No work is needed at this moment.";
-	},
-	makeErrorMessage: function(msg) {
-		return "<span class=\"error\">" + msg + "</span>";
-	},
 	update: function(data) {
-		var trace = (data.stateTrace != undefined || data.updateTrace != undefined || data.subtreeTrace != undefined);
-		
-		//Determine in which panel the new content must be put
-		this.setNextContentPanel(trace);
-		//Update the header
-		this.setupHeader(data);
-		
-		//Create content
-		if (data.error != null) {
-            this.autoClose(this.makeErrorMessage(data.error), 5);
-        } else if(data.status == 'TaskFinished') { //Check if the task is done
-			this.fireEvent('taskfinished', this.taskId);
-			this.autoClose(this.makeFinishedMessage(), 5);
-        } else if(data.status == 'TaskDeleted') {
-            this.fireEvent('taskdeleted', this.taskId);
-            this.autoClose(this.makeDeletedMessage(), 5);
-       	} else if(data.status == 'TaskSuspended') {
-       		this.fireEvent('tasksuspended', this.taskId);
-       		this.setContent(this.makeSuspendedMessage());
-        } else {
-        	if(data.refresh) {
-        		this.fireEvent('tasksuggestsrefresh',this.taskId);
-        	}	
-			//Fill the content and trace panels
-			this.setupContentPanel(trace, data);
-			this.setupTracePanels(trace, data);
-		}
-		
-		//Hide the current content panel and switch to new content
-		this.switchContentPanels(trace, data.prefix);
+	
+		//Check if the task is finished or became redundant
+		if(data.content == "done" || data.content == "redundant") {
+			var ct = this.getComponent(1).getComponent(0);
+			
+			if(ct.items.length > 0)
+				ct.remove(0,true);
 				
-		//Reset for new updates
-		this.updates = {};
-		this.inputs = data.inputs;
-		this.state = data.state;
+			switch(data.content) {
+				case "done":	
+					ct.add(new itasks.WorkMessagePanel({
+						html: "This task is completed. Thank you."
+					}));
+					break;
+				case "redundant":
+					ct.add(new itasks.WorkMessagePanel({
+						html: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
+					}));
+					break;	
+			}
+			ct.doLayout();			
+			return;
+		}
+		//Update header
+		this.getComponent(0).setContent(this.taskId, data.subject, data.properties);
+		//Update title
+		this.updateTitle(data.subject);
+		//Update debug tab
+		this.updateDebug(data.debug);
+		//Update content
+		this.updateContent(data.content);
+	
+		//Reset params, events and states
+		this.params = { task : this.taskId
+					  , debug: this.debug ? 1 : 0
+					  , prefix: 'ip-' + this.nextPrefix++ + '-'
+					  }
+		this.idataEvents = [];
+		this.idataStates = [];
 	},
-	setNextContentPanel: function (trace) {
-		if(trace) {
-			this.contentPanel = this.getComponent(1).getComponent(2).getComponent(this.firstBuffer ? 0 : 1);
+	updateTitle: function(subject) {
+		this.setTitle(Ext.util.Format.ellipsis(subject.join(" - "),10));
+	},
+	updateContent: function(content) {
+		
+		var ct = this.getComponent(1).getComponent(0);
+
+		if(this.initialized) {
+			//Recursively update tab content
+			var cur = ct.getComponent(0);
+			
+			if(cur.taskId == content.taskId && cur.xtype == content.xtype) {
+				cur.update(content);
+			} else {
+				ct.remove(0,true);
+				ct.add(content);
+				ct.doLayout();
+			}
 		} else {
-			this.contentPanel = this.getComponent(1).getComponent(this.firstBuffer ? 0 : 1);
+			//Build initial content
+			ct.add(content);
+			ct.doLayout();
+			this.initialized = true;
 		}	
 	},
-	setupHeader: function (data) {
-		var html = "<div class=\"worktab-header-table\"><table>"
-			+ "<tr><th>Subject:</th><td>" + data.subject + " (" + data.taskid + ")</td><th>Date:</th><td>" + itasks.util.formatDate(data.timestamp) + "</td></tr>"
-			+ "<tr><th>Delegated by:</th><td>" + data.delegatorName + "</td><th>Priority:</th><td>" + itasks.util.formatPriority(data.priority) + "</td></tr>"
-			+ "</table></div>";
-			
-		this.getComponent(0).getComponent(0).body.dom.innerHTML = html;
-		this.setTitle(Ext.util.Format.ellipsis(data.subject,10));
+	updateDebug: function(debug) {
+		if(debug != null) {
+			if(this.getComponent(1).items.length > 1) {
+				if(this.getComponent(1).getComponent(1).rendered) {
+					this.updateDebugTab(debug);
+				} else {
+					this.removeDebugTab(debug);
+					this.addDebugTab(debug);
+				}
+			} else {
+				this.addDebugTab(debug);
+			}
+		} else {
+			if(this.getComponent(1).items.length > 1)
+				this.removeDebugTab();
+		}
 	},
-	setupContentPanel: function (trace, data) {
-	
-		//Replace the content
-		this.contentPanel.body.dom.innerHTML = data.html;
+	addDebugTab: function(debug) {
+		this.getComponent(1).add({
+			title: 'Debug',
+			iconCls: 'icon-debug',
+			bodyStyle: 'padding: 10px',
+			autoScroll: true,
+			autoWidth: true,
+			items: [{
+				xtype: 'panel',
+				title: 'Task tree',
+				collapsible: true,
+				html: debug.tasktree
+			},{
+				xtype: 'panel',
+				title: 'Task states',
+				collapsible: true,
+				html: debug.states
+			},{
+				xtype: 'panel',
+				title: 'Events',
+				collapsible: true,
+				html: debug.events
+			}] 
+		});
+		this.doLayout();
+	},
+	updateDebugTab: function(debug) {
+		var debugTab = this.getComponent(1).getComponent(1);
 
-		//"ExtJS-ify" the inputs and attach event handlers
-		var num = data.inputs.length;
+		debugTab.getComponent(0).body.update(debug.tasktree);
+		debugTab.getComponent(1).body.update(debug.states);
+		debugTab.getComponent(2).body.update(debug.events);
+	},
+	removeDebugTab: function() {
+		this.getComponent(1).remove(1,true);
+	},
+	setTrace: function(trace) {
+		this.debug = trace;
+		this.params['debug'] = trace ? 1 : 0;
+	},
+	addEvent: function(input, value, states) {
+		//Add an event to the list of events
+		this.idataEvents[input] = value;
+		
+		//Add form states
+		this.idataStates = this.idataStates.concat(states);
+	},
+	sendEvents: function(delayed) {
+		
+		if(delayed) {
+			new Ext.util.DelayedTask().delay(150,this.sendEvents,this);
+		} else {	
+			//Add idata events to params
+			Ext.apply(this.params, this.idataEvents);
+			
+			//Add idata states events to params
+			this.params['state'] = Ext.encode(this.idataStates);
+			
+			this.refresh();
+		}
+	}
+});
+
+itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
+		
+	initComponent: function() {
+		Ext.apply(this, {
+			deferredRender: false,
+			items: [{
+				xtype: 'panel',
+				anchor: '0 0',
+				baseCls: 'worktab-header',
+				html: "Loading..."
+			},{
+				xtype: 'panel',
+				anchor: '-50 100%',
+				baseCls: 'worktab-header',
+				html: "<div class=\"worktab-header-indicator\"></div>"
+			}]
+		});
+		itasks.WorkHeaderPanel.superclass.initComponent.apply(this,arguments);
+		
+	},
+	setContent: function(taskid, subject, properties) {
+		this.getComponent(0).body.update( String.format(
+		      "<div class=\"worktab-header-table\"><table>"
+			+ "<tr><th>Subject:</th><td>{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
+			+ "<tr><th>Delegated by:</th><td>{3}</td><th>Priority:</th><td>{4}</td></tr>"
+			+ "</table></div>"
+			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.issuedAt)
+			, properties.delegator[1], itasks.util.formatPriority(properties.priority)
+			));
+	},
+	setBusy: function(busy) {
+		this.getComponent(1).getEl().child(".worktab-header-indicator").setVisible(busy);
+	}	
+});
+
+itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
+	
+	timeout: 5,
+	
+	initComponent: function() {
+		Ext.apply(this, {
+			bodyStyle: 'padding: 10px',
+			items: [{
+				xtype: 'panel',
+				border: false,
+				html: this.html
+			},{
+				xtype: 'progress',
+				style: 'margin: 10px 0px 0px 0px;',
+				value: 1.0,
+				text: 'This window will automatically close in ' + this.timeout + ' seconds'
+			}],
+			html: null
+		});
+		itasks.WorkMessagePanel.superclass.initComponent.apply(this,arguments);
+		
+		new Ext.util.DelayedTask().delay(1000,this.update,this,[this.timeout - 1]);
+	},
+	update: function(timeout) {
+		if(timeout == 0) {
+			var pt = this.findParentByType('itasks.work');
+			if(pt.ownerCt)
+				pt.ownerCt.remove(pt);
+		} else {
+			var pb = this.getComponent(1);
+			
+			pb.updateText('This window will automatically close in ' + timeout + ' seconds');
+			pb.updateProgress( (1.0 * timeout) / this.timeout);
+			
+			new Ext.util.DelayedTask().delay(1000,this.update,this,[timeout - 1]);
+		}
+	}
+});
+
+itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
+	initComponent: function() {
+		
+		Ext.apply(this,{
+			style: 'padding: 10px',
+			border: false
+		});
+		
+		itasks.TaskFormPanel.superclass.initComponent.apply(this,arguments);
+	},
+	onRender: function () {
+		itasks.TaskFormPanel.superclass.onRender.apply(this,arguments);
+		this.refreshForm();
+	},
+	update: function (data) {
+		//Update properties
+		Ext.apply(this,data);
+		//Update form
+		this.refreshForm();
+	},
+	refreshForm: function() {
+		this.body.update(this.formHtml);
+		
 		var forms = {};
-		
-		for(var i = 0; i < num; i++) {
+		var prefix = "";
 			
-			var inputname = data.inputs[i].formid + '-' + data.inputs[i].inputid;
-			var inputid = data.prefix + inputname;
-			var input = Ext.get(inputid);
+		for(var i = 0; i < this.formInputs.length; i++) {
+			var ip = this.formInputs[i];
+			var ec = null;
 			
-			//Record the formid
-			forms[data.inputs[i].formid] = true;
-		
-			//ExtJS-ify
-			switch(data.inputs[i].type) {
-				
+			//Mark the formid
+			forms[ip.formid] = true;
+			prefix = ip.prefix;
+			
+			//Construct input
+			switch(ip.type) {	
 				case "Int":
 				case "Real":
+				case "HtmlCurrency":
 				case "String":
 				case "HtmlPassword":
-					var value = input.getValue();
-					var parent = input.parent();
-					var next = input.next();
-					
-					//Replace
-					input.remove();
-					if(data.inputs[i].type == "String") {
-						input = new Ext.form.TextField({
-							id: inputid,
-							name: inputid,
-							inputName: inputname,
-							value: value,
-							selectOnFocus: true,
-							width: 200
-						});
-					} else if(data.inputs[i].type == "HtmlPassword") {
-						input = new Ext.form.TextField({
-							id: inputid,
-							name: inputid,
-							inputName: inputname,
-							value: value,
-							inputType: "password",
-							selectOnFocus: true,
-							width: 200
-						});
-					} else {
-						input = new Ext.form.NumberField({
-							id: inputid,
-							name: inputid,
-							inputName: inputname,
-							value: value,
-							allowDecimals: (data.inputs[i].type == "Real"),
-							decimalPrecision: 100, //Arbitrary limit
-							selectOnFocus: true,
-							width: 100
-						});
+				case "HtmlTextarea":
+				case "HtmlTime":
+					switch(ip.type) {
+						case "String":
+						case "HtmlPassword": 
+							ec = new Ext.form.TextField({
+									inputid: ip.inputid,
+									updateon: ip.updateon,
+									value: ip.value,
+									inputType: ip.type == "String" ? "text" : "password",
+									selectOnFocus: true,
+									width: 200
+								});
+							break;
+						case "HtmlTextarea":							
+							ec = new Ext.form.TextArea({
+								inputid: ip.inputid,
+								updateon: ip.updateon,
+								value: ip.value,
+								width: 500
+							});
+							break;
+						case "HtmlTime":
+							ec = new Ext.form.TimeField({
+								inputid: ip.inputid,
+								updateon: ip.updateon,
+								value: ip.value,
+								format: "H:i:s",
+								width: 183
+							});
+							break;
+						default:
+							ec = new Ext.form.NumberField({
+									inputid: ip.inputid,
+									updateon: ip.updateon,
+									value: ip.value,
+									allowDecimals: (ip.type != "Int"),
+									decimalPrecision: (ip.type == "HtmlCurrency" ? 2 : 100),
+									selectOnFocus: true
+								});
 					}
-					input.render(parent, next);
-					
-					//Event handlers
-					if(data.inputs[i].updateon == "OnChange") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal);
-							this.delayedUpdateForm();
+					ec.on("change", function(cmp, nv, ov) {
+							var wt = this.findParentByType('itasks.work');
+							wt.addEvent(cmp.inputid, nv, this.formState);
+							if(cmp.updateon == "OnChange")
+								wt.sendEvents(true);
 						},this);
-					}
-					if(data.inputs[i].updateon == "OnSubmit") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal);
+					break;
+				case "HtmlButton":
+					ec = new Ext.Button({
+							inputid: ip.inputid,
+							text: ip.value,
+							style: "display: inline;"
+						});
+					ec.on("click", function(cmp, e) {
+							var wt = this.findParentByType('itasks.work');
+							wt.addEvent(cmp.inputid,"click",this.formState);
+							wt.sendEvents();
 						},this);
-					}
-					input.on("focus", function (inp) {
-						this.lastFocus = inp.inputName;
-					},this);
-					
 					break;
 				case "Bool":
 				case "Maybe":
 				case "HtmlCheckbox":
-					var checked = input.dom.checked;
-					var parent = input.parent();
-					var next = input.next();
-					
-					//Replace
-					input.remove();
-					input = new Ext.form.Checkbox({
-						id: inputid,
-						name: inputname,
-						inputName: inputname,
-						checked: checked
-					});
-					
-					input.render(parent,next);
-					
-					//Attach event handlers
-					if(data.inputs[i].updateon == "OnChange") {
-						input.on("check", function (inp, checked) {
-							this.addUpdate(inp.inputName, checked ? "checked" : "unchecked");
-							this.delayedUpdateForm();
-						},this);
-					}
-					if(data.inputs[i].updateon == "OnSubmit") {
-						input.on("check", function (inp, checked) {
-							this.addUpdate(inp.inputName, checked ? "checked" : "unchecked");
-						},this);
-					}
-					break;
-				case "HtmlButton":
-					var label = input.dom.innerHTML;
-					var parent = input.parent();
-					var next = input.next();
-					
-					//Replace
-					input.remove();
-					input = new Ext.Button({
-						id: inputid,
-						name: inputid,
-						inputName: inputname,
-						text: label,
-						style: "display: inline;"
-					});
-					
-					input.render(parent,next);
-					
-					//Attach event handler
-					input.on("click", function(but, e) {
-						this.lastFocus = but.inputName;
-						this.addUpdate(but.inputName, "click");
-						this.prepareParams();
-						this.refresh();
+					ec = new Ext.form.Checkbox({
+							id:	ip.prefix + ip.inputid + "-cb",
+							inputid: ip.inputid,
+							updateon: ip.updateon,
+							checked: ip.value == "True"
+						});
+					ec.on("check", function (cmp, checked) {
+						var wt = this.findParentByType('itasks.work');
+						wt.addEvent(cmp.inputid, checked ? "checked" : "unchecked", this.formState);
+						if(cmp.updateon == "OnChange")
+							wt.sendEvents(true);
 					},this);
-					input.on("focus", function(but) {
-						this.lastFocus = but.inputName;
-					},this);
-				
-					//Attach focus handler
-					input.getEl().child("button").on("focus",function() {
-						this.lastFocus = inputname;
-					},this);
-					
-					break;	
-				case "HtmlTextarea":
-					var value = input.dom.innerHTML;
-					var parent = input.parent();
-					var next = input.next();
-					
-					//Replace
-					input.remove();
-					input = new Ext.form.TextArea({
-						id: inputid,
-						name: inputid,
-						inputName: inputname,
-						value: value,
-						width: 500
-					});
-					input.render(parent,next);
-					
-					//Event handlers
-					if(data.inputs[i].updateon == "OnChange") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal);
-							this.delayedUpdateForm();
-						},this);
-					}
-					if(data.inputs[i].updateon == "OnSubmit") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal);
-						},this);
-					}
-					input.on("focus", function (inp) {
-						this.lastFocus = inp.inputName;
-					},this);
-					
 					break;
 				case "HtmlDate":
-					var value = input.getValue();
-					var parent = input.parent();
-					var next = input.next();
-					
-					//Replace
-					input.remove();
-					input = new Ext.form.DateField({
-						id: inputid,
-						name: inputid,
-						inputName: inputname,
-						value: value,
+					ec = new Ext.form.DateField({
+						inputid: ip.inputid,
+						updateon: ip.updateon,
+						value: ip.value,
 						width: 183
 					});
-					input.render(parent,next);
-					if(data.inputs[i].updateon == "OnChange") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal.format("m/d/Y"));
-							this.delayedUpdateForm();
+					ec.on("change", function(cmp, nv, ov) {
+							var wt = this.findParentByType('itasks.work');
+							wt.addEvent(cmp.inputid, nv.format("m/d/Y"), this.formState);
+							if(cmp.updateon == "OnChange")
+								wt.sendEvents(true);
 						},this);
-					}
-					if(data.inputs[i].updateon == "OnSubmit") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal.format("m/d/Y"));
-						},this);
-					}
-					input.on("focus", function (inp) {
-						this.lastFocus = inp.inputName;
-					},this);
-					break;
-				case "HtmlTime":
-					var value = input.getValue();
-					var parent = input.parent();
-					var next = input.next();
-					
-					//Replace
-					input.remove();
-					input = new Ext.form.TimeField({
-						id: inputid,
-						name: inputid,
-						inputName: inputname,
-						format: "H:i:s",
-						value: value,
-						width: 183
-					});
-					input.render(parent,next);
-					if(data.inputs[i].updateon == "OnChange") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal);
-							this.delayedUpdateForm();
-						},this);
-					}
-					if(data.inputs[i].updateon == "OnSubmit") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, newVal);
-						},this);
-					}
-					input.on("focus", function (inp) {
-						this.lastFocus = inp.inputName;
-					},this);
-					break;
-				case "HtmlCurrency":
-					var value = input.getValue();
-					var parent = input.parent();
-					var next = input.next();
-					
-					input.remove();
-					input = new Ext.form.NumberField({
-						id: inputid,
-						name: inputid,
-						inputName: inputname,
-						value: (value / 100),
-						allowDecimals: true,
-						decimalPrecision: 2,
-						selectOnFocus: true,
-						width: 100
-					});
-					input.on("valid", function (inp) {
-						inp.setRawValue(inp.getValue().toFixed(inp.decimalPrecision));
-					},input);
-					
-					input.render(parent,next);
-					if(data.inputs[i].updateon == "OnChange") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, Math.floor(newVal * 100));
-							this.delayedUpdateForm();
-						},this);
-					}
-					if(data.inputs[i].updateon == "OnSubmit") {
-						input.on("change", function (inp, newVal, oldVal) {
-							this.addUpdate(inp.inputName, Math.floor(newVal * 100));
-						},this);
-					}
-					input.on("focus", function (inp) {
-						this.lastFocus = inp.inputName;
-					},this);
 					break;
 				case "HtmlRadiogroup":
 					//Attach event handlers
 					var k = 0;
 					while(true) {
-						var radio = Ext.get(inputid + '-' + k);
+						var radio = Ext.get(ip.prefix + ip.inputid + '-' + k);
+						
 						if(radio == undefined) {
 							break;
+						} else {
+							if(ip.updateon == "OnChange") {
+								radio.on("click", function(e) {
+									var wt = this.findParentByType('itasks.work');
+									wt.addEvent(e.target.name, e.target.value, this.formState);
+									wt.sendEvents(true);
+								},this);
+							} else {
+								radio.on("click", function(e) {
+									this.findParentByType('itasks.work').addEvent(e.target.name, e.target.value, this.formState);
+								},this);
+							}
 						}
-						
-						if(data.inputs[i].updateon == "OnChange") {
-							radio.on("click",function(e) {
-								this.addUpdate(e.target.name,e.target.value);
-								this.delayedUpdateForm();
-							},this);
-						}
-						if(data.inputs[i].updateon == "OnSubmit") {
-							radio.on("click",function(e) {
-								this.addUpdate(e.target.name,e.target.value);
-							},this);
-						}
-						radio.on("focus", function (e) {
-							this.lastFocus = e.target.name;
-						},this);
-						
 						k++;
 					}
 					break;
 				case "HtmlTimer":
-					var update = inputname.substr(0,inputname.length);
-					
-					new Ext.util.DelayedTask().delay(1000 * input.getValue(), function () {
-						this.addUpdate(update,"timeout");
-						this.updateForm();
+					new Ext.util.DelayedTask().delay(1000 * ip.value, function () {
+						var wt = this.findParentByType('itasks.work');
+						wt.addEvent(ip.inputid.substr(0,ip.inputid.length),"timeout", this.formState);
+						wt.sendEvents();
 					},this);
 					
 					break;
 				default:
-					//Constructors and selects
-					if(data.inputs[i].type.substr(0,5) == "CONS:" ||
-					   data.inputs[i].type == "HtmlSelect") {
+					if(ip.type.substr(0,5) == "CONS:" || ip.type == "HtmlSelect") {
 						
-						var parent = input.parent();
-						var next = input.next();
-						
-						input = new Ext.form.ComboBox({
-							id: inputid,
-							name: inputid,
-							inputName: inputname,
+						var getval = function(val, list) {
+							for(var i = 0; i < list.length; i++) {
+								if(list[i][0] == val)
+									return list[i][1];
+							}
+							return null;
+						}
+						ec = new Ext.form.ComboBox({
+							inputid: ip.inputid,
+							updateon: ip.updateon,
 							editable: false,
 							triggerAction: "all",
 							mode: "local",
-							transform: input,
+							store: ip.options,
+							value: getval(ip.value, ip.options),
 							width: 183
 						});
-						
-						input.render(parent,next);
-						
-						switch(data.inputs[i].updateon) {
-							case "OnChange":
-								input.on("select", function (inp) {
-									this.addUpdate(inp.inputName,inp.value);
-									this.delayedUpdateForm();
-								},this);
-								break;
-							case "OnSubmit":
-								input.on("change", function (inp) {
-									//Track changes, but don't send any data
-									this.addUpdate(inp.inputName,inp.value);
-								},this);
-								break;	
-						}
-						
-						input.on("focus", function (inp) {
-							this.lastFocus = inp.inputName;
+						ec.on("select", function(cmp, rec, ind) {
+							var wt = this.findParentByType('itasks.work');
+							wt.addEvent(cmp.inputid, cmp.getValue(), this.formState);
+							if(cmp.updateon == "OnChange")
+								wt.sendEvents(true);
 						},this);
 					}
 			}
+			if (ec != null) {
+				ec.render(ip.prefix + ip.inputid);
+			}
 		}
-
 		//Attach the submit handlers of the forms
 		for(var formid in forms) {
-			var form = Ext.get(data.prefix + formid);
+			var form = Ext.get(prefix + formid);
 			
-			if(form != undefined) {
+			if(form) {
 				//Cancel the form submit;
 				form.dom.onsubmit = function() {return false;}
 				
-				//Attach our replacement event handler
+				//Attach replacement event handler
 				form.on("submit", function (e) {
-					this.refresh();
+					this.findParentByType('itasks.work').sendEvents();
 				},this);
 			}
 		}		
-	},
-	addUpdate: function (inputid, value) {
-		this.updates[inputid] = value;
-	},
-	prepareParams: function () {
-		this.params = this.updates;
-		this.params['taskid'] = this.taskId;
-		this.params['state'] = Ext.encode(this.state);
-		this.params['prefix'] = 'tb' + (this.prefixCounter++) + '_';
-		this.params['trace'] = this.trace ? 1 : 0;
-	},
-	updateForm: function () {
-		this.prepareParams();
-		this.refresh();
-	},
-	delayedUpdateForm: function() {
-		new Ext.util.DelayedTask().delay(150,this.updateForm,this);
-	},
-	setupTracePanels: function (trace, data) {
-
-		if(!trace) {
-			return;
-		}	
-		var tabPanel = this.getComponent(1).getComponent(2);
-				
-		var statePanel = tabPanel.getComponent(2);
-		if(data.stateTrace != undefined) {
-			statePanel.getEl().dom.innerHTML = data.stateTrace;
-			statePanel.enable();
-		} else {
-			statePanel.disable();
-		}
-		var updatePanel = tabPanel.getComponent(3);
-		if(data.updateTrace != undefined) {
-			updatePanel.getEl().dom.innerHTML = data.updateTrace;
-			updatePanel.enable();
-		} else {
-			updatePanel.disable();
-		}
-		var subtreePanel = tabPanel.getComponent(4);
-		if(data.subtreeTrace != undefined) {
-			subtreePanel.getEl().dom.innerHTML = data.subtreeTrace;
-			subtreePanel.enable();
-		} else {
-			subtreePanel.disable();
-		}
-	},
-	setContent: function (msg) {
-		this.contentPanel.body.dom.innerHTML = msg;
-	},
-	switchContentPanels: function (trace, prefix) {
-		
-		var mainPanel = this.getComponent(1);
-		
-		if(trace) {
-			mainPanel.layout.setActiveItem(2);
-			
-			var tabPanel = mainPanel.getComponent(2);
-			
-			tabPanel.setActiveTab(this.firstBuffer ? 0 : 1);
-			tabPanel.unhideTabStripItem(this.firstBuffer ? 0 : 1);
-			tabPanel.hideTabStripItem(this.firstBuffer ? 1 : 0);
-
-		} else {
-			mainPanel.layout.setActiveItem(this.firstBuffer ? 0 : 1);
-		}
-		//Toggle firstbuffer flag
-		this.firstBuffer = !this.firstBuffer;
-		
-		//Refocus
-		var input = Ext.get(prefix + this.lastFocus)
-		if(input != undefined) {
-			input.focus();
-		}
-	},
-	autoClose: function (msg, numSeconds) {
-		if(numSeconds == 0 && this.ownerCt != undefined) {
-			this.ownerCt.remove(this);
-		} else {
-			if(this.ownerCt != undefined) { //Only continue if we were not already closed manually
-				this.contentPanel.body.dom.innerHTML = msg + '<br /><br />This tab will automatically close in ' + numSeconds + ' seconds...';		
-		 		new Ext.util.DelayedTask().delay(1000,this.autoClose,this,[msg,numSeconds - 1]);
-		 	}
-		}
 	}
 });
 
-Ext.reg('itasks.worktab',itasks.WorkTabPanel);
+//Waiting for main task panel
+itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
+	initComponent: function() {
+				
+		Ext.apply(this, {
+			cls: 'worktab-content',
+			border: false,
+			items: [{
+					xtype: 'panel',
+					style: 'padding: 5px;',
+					border: false,
+					cls: 'x-form-item x-form-item-label',
+					html: 'Waiting for <i>' +  this.properties.subject + '</i>'				
+				},{
+					layout: 'column',
+					border: false,
+					items: [{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px; background: none;',
+						width: 100,
+						text: 'Assigned to:'
+					},{
+						xtype: 'inlinefield',
+						width: 300,
+						field: {
+							xtype: 'combo',
+							value: this.properties.user[1],
+							label: this.properties.user[1],
+							store: new Ext.data.JsonStore({
+								root: 'users',
+								totalProperty: 'total',
+								fields: ['userId','displayName'],
+								url: '/handlers/data/users'
+							}),
+							displayField: 'displayName',
+							valueField: 'userId',
+							triggerAction: 'all',
+							editable: false,
+							forceSelection: true,
+							listeners: {
+								'select' : {fn: function(cmt,rec,ind) {cmt.label = rec.get('displayName'); }, scope: this}
+							}
+						},
+						format: function(value, field) {
+							return field.label;
+						},
+						listeners: {
+							'stopedit' : {fn: this.setUser, scope: this}
+						}
+					}]
+				},{
+					layout: 'column',
+					border: false,
+					items: [{
+						width: 100,
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						text: 'Priority:'
+					},{
+						xtype: 'inlinefield',
+						width: 300,
+						format: itasks.util.formatPriority,
+						field: {
+							xtype: 'combo',
+							value: this.properties.priority,
+							store: [['HighPriority','High'],['NormalPriority','Normal'],['LowPriority','Low']],
+							editable: false,
+							triggerAction: 'all',
+							forceSelection: true
+						},
+						listeners: {
+							'stopedit' : {fn: this.setPriority, scope: this}
+						}
+					}]
+				},{
+					layout: 'column',
+					border: false,
+					items: [{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						width: 100,
+						text: 'Issued at:'
+					},{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						text: itasks.util.formatDate(this.properties.issuedAt),
+						columnWidth: 1	
+					}]
+				},{
+					layout: 'column',
+					border: false,
+					items: [{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						width: 100,
+						text: 'First worked on:'
+					},{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						text: this.properties.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.firstEvent),
+						columnWidth: 1	
+					}]
+				},{
+					layout: 'column',
+					border: false,
+					items: [{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						width: 100,
+						text: 'Last worked on:'
+					},{
+						xtype: 'label',
+						cls: 'x-form-item x-form-item-label',
+						style: 'padding: 5px 0px 5px 5px;',
+						text: this.properties.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.latestEvent),
+						columnWidth: 1	
+					}]
+				}]
+		});
+		
+		itasks.TaskWaitingPanel.superclass.initComponent.apply(this,arguments);
+		
+		this.on('render',function() {	
+			var sessionId = this.findParentByType('itasks.work').sessionId;
+			this.sessionId = sessionId;
+			this.getComponent(1).getComponent(1).field.store.baseParams = {session: sessionId}
+		},this);
+	},
+	setUser: function(ov,nv) {
+		if(ov != nv) { //Ugly side-effect event handler
+			Ext.Ajax.request({
+				url:"/handlers/work/property",
+				method: "GET",
+				params: {session : this.sessionId, process : this.properties.processId, property: "user", user: nv }
+			});
+		}
+	},
+	setPriority: function(ov,nv) {
+		if(ov != nv) { //Ugly side-effect event handler
+			Ext.Ajax.request({
+				url:"/handlers/work/property",
+				method: "GET",
+				params: {session : this.sessionId, process : this.properties.processId, property: "priority", priority: nv }
+			});
+		}
+	},
+	
+	update: function (data) {
+		//TODO: Update properties on task refresh
+	}
+});
+
+//Combination of other tasks
+itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
+	initComponent: function() {
+		Ext.apply(this, {
+			border: false,
+			layout: this.combination == "horizontal" ? "table" : null,
+			layoutConfig: this.combination == "horizontal" ? {columns : this.items.length } : null
+		});
+		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
+	},
+	update: function (data) {
+		//Check and update all items
+		var i = 0;
+		var items = data.items;
+	
+		while(i < this.items.length) {
+			if(i >= items.length) {
+				this.remove(i);
+				continue;
+			}
+			if(items[i].taskId == this.items.get(i).taskId) {
+				this.items.get(i).update(items[i]);
+			} else {
+				this.insert(i,items[i]);
+			}
+			i++;
+		}
+		this.doLayout();
+	}
+});
+
+Ext.reg('itasks.work',itasks.WorkPanel);
+Ext.reg('itasks.work-header',itasks.WorkHeaderPanel);
+Ext.reg('itasks.task-form',itasks.TaskFormPanel);
+Ext.reg('itasks.task-waiting',itasks.TaskWaitingPanel);
+Ext.reg('itasks.task-combination',itasks.TaskCombinationPanel);

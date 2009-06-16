@@ -80,7 +80,6 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		//Refresh initial overviews
 		worklist.refresh();
 		
-		
 		//Connect event handlers	
 		worklist.on("cellclick",function (grid,row,col,event) {
 		
@@ -102,7 +101,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					tab[0].setTrace(val);
 				});
 			}
-			tab[0].updateForm();
+			tab[0].refresh();
 		});
 		
 		newpanel.on("processStarted",function(taskid) {
@@ -127,7 +126,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					tab[0].setTrace(val);
 				});
 			}
-			tab[0].updateForm();
+			tab[0].refresh();
 
 		},this);
 		

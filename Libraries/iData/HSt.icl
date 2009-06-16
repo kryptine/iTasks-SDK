@@ -67,7 +67,7 @@ incrHStCntr :: !Int !*HSt -> *HSt
 incrHStCntr i hst					= {hst & cntr = hst.cntr + i}
 
 setHStPrefix :: !String !*HSt -> *HSt
-setHStPrefix s hst = {hst & prefix = s}
+setHStPrefix s hst = {HSt|hst & prefix = s}
 
 
 // It can be convenient to explicitly delete IData, in particular for persistent IData object
@@ -93,8 +93,3 @@ storeStates	:: !*HSt -> *HSt
 storeStates hst =: {states, nworld}
 	# (states,nworld)								= storeServerStates states nworld
 	= {hst & states = states, nworld = nworld}
-	
-getPageStates :: !*HSt -> (![HtmlState], !*HSt)
-getPageStates hst =: {states}
-	# (pagestates, states)	= getHtmlStates states
-	= (pagestates, {hst & states = states})

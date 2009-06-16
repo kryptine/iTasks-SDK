@@ -7,6 +7,7 @@ import GenPrint, GenParse
 
 import HSt
 import FormId
+from JSON import :: JSON
 
 :: Form a 										// result of any form
 	=	{ changed 	:: Bool						// the user has edited the form
@@ -17,9 +18,12 @@ import FormId
 		
 :: InputDefinition
 	=	{ formid	:: !String					// the unique form identifier
-		, inputid	:: !Int						// the identifier within the form
+		, inputid	:: !String					// the identifier within the form
+		, prefix	:: !String					// A prefix that is prepended before the inputid 
 		, type		:: !String					// the type of the input
 		, updateon	:: !UpdateEvent				// the event on which a change in the input needs to be handled
+		, value		:: !String					// the current value of the input
+		, options	:: !Maybe JSON				// additional options
 		}
 
 :: UpdateEvent
@@ -87,7 +91,8 @@ toHtml 				:: a -> HtmlTag 			| gForm {|*|} a								// toHtml displays any type
 toHtmlForm 			:: !(*HSt -> *(Form a,*HSt)) -> [HtmlTag] 								// toHtmlForm displays any form one can make with a form function
 												| gForm{|*|}, gUpd{|*|}, gPrint{|*|}, gParse{|*|}, TC a
 												
-
+mkInputId			:: (FormId d) !Int -> String
+ 
 mkInput				:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkButton			:: !(InIDataId d) String String						!*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkSelect 			:: !(InIDataId d) String String [(String,String)]	!*HSt -> ([HtmlTag],[InputDefinition],*HSt)

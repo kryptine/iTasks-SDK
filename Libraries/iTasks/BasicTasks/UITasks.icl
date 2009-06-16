@@ -15,13 +15,13 @@ where
 	# taskId			= iTaskId taskNr "EdFin"
 	# editId			= iTaskId taskNr "EdVal"
 	# buttonId			= iTaskId taskNr "EdBut"
-	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  		// determine if the task has been done previously
+	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.TSt.options taskId False) id hst  		// determine if the task has been done previously
 	| taskdone.Form.value																			// test if task has completed
-		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)			// yes, read out current value, make editor passive
+		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.TSt.options editId a <@ Display) hst)			// yes, read out current value, make editor passive
 		= (editor.Form.value,{tst & activated = True, hst = hst})									// return result task
-	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a) hst						// no, read out current value from active editor
-	# (finbut,hst)  	= mySimpleButton tst.options buttonId prompt (\_ -> True) hst				// add button for marking task as done
-	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time
+	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.TSt.options editId a) hst						// no, read out current value from active editor
+	# (finbut,hst)  	= mySimpleButton tst.TSt.options buttonId prompt (\_ -> True) hst				// add button for marking task as done
+	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.TSt.options taskId False) finbut.Form.value hst 	// remember task status for next time
 	| taskdone.Form.value	= editTask` prompt a {tst & hst = hst}									// task is now completed, handle as previously
 	# tst				= {tst & hst = hst}
 	# tst				= setOutput [DivTag [ClassAttr "it-editor"] ((if (isEmpty editor.form) [] [DivTag [ClassAttr "it-editor-content"] editor.form]) ++ [DivTag [ClassAttr "it-editor-buttons"] finbut.form])] tst
@@ -34,17 +34,17 @@ where
 	editTaskPred` a tst=:{taskNr,hst}
 	# taskId			= iTaskId taskNr "EdFin"
 	# editId			= iTaskId taskNr "EdVal"
-	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  	// remember if the task has been done
+	# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.TSt.options taskId False) id hst  	// remember if the task has been done
 	| taskdone.Form.value																		// test if task has completed
-		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst)		// yes, read out current value, make editor passive
+		# (editor,hst) 	= (mkEditForm  (Init,cFormId tst.TSt.options editId a <@ Display) hst)		// yes, read out current value, make editor passive
 		# tst			= {tst & hst = hst}
 		# tst			= setOutput [DivTag [ClassAttr "it-editor"] [DivTag [ClassAttr "it-editor-content"] editor.form]] tst
 		# tst			= setInputs editor.inputs tst
 		= (editor.Form.value,{tst & activated = True})											// return result task
-	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a ) hst					// no, read out current value from active editor
+	# (editor,hst) 		= mkEditForm  (Init,cFormId tst.TSt.options editId a ) hst					// no, read out current value from active editor
 	| editor.changed
 		| fst (pred editor.Form.value)
-			# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) (\_ -> True) hst 	// remember task status for next time
+			# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.TSt.options taskId False) (\_ -> True) hst 	// remember task status for next time
 			= editTaskPred` a {tst & hst = hst}													// task is now completed, handle as previously
 		# tst			= {tst & hst = hst}
 		# tst			= setOutput [DivTag [ClassAttr "it-editor"] [DivTag [ClassAttr "it-editor-message"] (snd (pred editor.Form.value)), DivTag [ClassAttr "it-editor-content"] editor.form]] tst
@@ -77,12 +77,12 @@ where
 		# taskId			= iTaskId taskNr "ViewFin"
 		# editId			= iTaskId taskNr "ViewVal"
 		# buttonId			= iTaskId taskNr "ViewBut"
-		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) id hst  				// determine if the task has been done previously
+		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.TSt.options taskId False) id hst  				// determine if the task has been done previously
 		| taskdone.Form.value
 			= (a,{tst & hst = hst, activated = True})															// test if task has completed
-		# (editor,hst) 		= mkEditForm  (Init,cFormId tst.options editId a <@ Display) hst					// no, read out current value from active editor
-		# (finbut,hst)  	= mySimpleButton tst.options buttonId prompt (\_ -> True) hst						// add button for marking task as done
-		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.options taskId False) finbut.Form.value hst 	// remember task status for next time
+		# (editor,hst) 		= mkEditForm  (Init,cFormId tst.TSt.options editId a <@ Display) hst					// no, read out current value from active editor
+		# (finbut,hst)  	= mySimpleButton tst.TSt.options buttonId prompt (\_ -> True) hst						// add button for marking task as done
+		# (taskdone,hst) 	= mkStoreForm (Init,storageFormId tst.TSt.options taskId False) finbut.Form.value hst 	// remember task status for next time
 		| taskdone.Form.value
 			= (a,{tst & hst = hst, activated = True})															// task is now completed, handle as previously
 		# tst				= {tst & hst = hst}

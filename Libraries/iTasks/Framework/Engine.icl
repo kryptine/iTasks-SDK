@@ -9,7 +9,7 @@ import BasicCombinators
 import Http, HttpUtil
 
 import AuthenticationHandler, DeauthenticationHandler
-import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler
+import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
 
 import TSt
@@ -25,6 +25,8 @@ engine flows = [((==) "/handlers/authenticate", handleAnonRequest handleAuthenti
 			   ,((==) "/handlers/new/start", handleSessionRequest flows handleNewStartRequest)
 			   ,((==) "/handlers/work/list", handleSessionRequest flows handleWorkListRequest)
 			   ,((==) "/handlers/work/tab", handleSessionRequest flows handleWorkTabRequest)
+			   ,((==) "/handlers/work/property", handleSessionRequest flows handlePropertyRequest)
+			    ,((==) "/handlers/data/users", handleSessionRequest flows handleUserListRequest)
 			   ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest flows handleTaskTreeForestRequest)
 			   ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
 			   ,(\_ -> True, handleStaticResourceRequest)

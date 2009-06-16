@@ -7,6 +7,7 @@ import StdMaybe
 import Types, HSt
 from TSt import :: Workflow
 from TaskTree import :: TaskProperties
+from Time import :: Time
 
 /**
 * Our local process type
@@ -18,8 +19,6 @@ from TaskTree import :: TaskProperties
 				  , parent			:: !ProcessId		//The (direct) parent process
 				  , properties		:: !TaskProperties	//The properties of the main task node of this process
 				  , result			:: !Maybe DynamicId	//Possibly a stored process result
-			
-				  , users			:: ![UserId]		//OBSOLETE //A list of users involved in the process (updated after each run)
 				  }
 
 :: ProcessType	= StaticProcess !String					//A static process (name of the workflow)
@@ -34,26 +33,28 @@ from TaskTree import :: TaskProperties
 				 
 class ProcessDB st
 where
-	createProcess		:: !Process													!*st -> (!ProcessId,	!*st)
-	deleteProcess		:: !ProcessId												!*st -> (!Bool,			!*st)
-	getProcess			:: !ProcessId												!*st -> (!Maybe Process,!*st)
-	getProcessForUser	:: !UserId !ProcessId										!*st -> (!Maybe Process,!*st)
-	getProcesses		:: ![ProcessStatus]											!*st -> (![Process],	!*st)
-	getProcessesById	:: ![ProcessId]												!*st -> (![Process],	!*st)
-	getProcessesForUser	:: !UserId ![ProcessStatus]	Bool								!*st -> (![Process],	!*st)
-	getEmbeddedProcess	:: !ProcessId !TaskId										!*st -> (!Maybe Process,!*st)
+	createProcess			:: !Process													!*st -> (!ProcessId,	!*st)
+	deleteProcess			:: !ProcessId												!*st -> (!Bool,			!*st)
+	getProcess				:: !ProcessId												!*st -> (!Maybe Process,!*st)
+	getProcessForUser		:: !UserId !ProcessId										!*st -> (!Maybe Process,!*st)
+	getProcesses			:: ![ProcessStatus]											!*st -> (![Process],	!*st)
+	getProcessesById		:: ![ProcessId]												!*st -> (![Process],	!*st)
+	getProcessesForUser		:: !UserId ![ProcessStatus]	Bool							!*st -> (![Process],	!*st)
+	getSubProcess			:: !ProcessId !TaskId										!*st -> (!Maybe Process,!*st)
 
-	setProcessOwner		:: !UserId !UserId !ProcessId								!*st -> (!Bool,			!*st)
-	setProcessStatus	:: !ProcessStatus !ProcessId								!*st -> (!Bool,			!*st)
-	setProcessResult	:: !DynamicId !ProcessId									!*st -> (!Bool,			!*st)
-	updateProcess		:: !ProcessStatus !(Maybe DynamicId) ![UserId] !ProcessId	!*st -> (!Bool,			!*st) 
+	setProcessOwner			:: !(UserId,String) !(UserId,String) !ProcessId				!*st -> (!Bool,			!*st)
+	setProcessStatus		:: !ProcessStatus !ProcessId								!*st -> (!Bool,			!*st)
+	setProcessResult		:: !DynamicId !ProcessId									!*st -> (!Bool,			!*st)
+
+	updateProcess			:: !ProcessId (Process -> Process)							!*st -> (!Bool,			!*st)
+	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)			!*st -> (!Bool,			!*st)
 
 instance ProcessDB HSt
 /*
 * Utility functions for creating process database entries.
 */
-mkStaticProcessEntry	:: Workflow			UserId UserId ProcessStatus				-> Process
-mkDynamicProcessEntry	:: String DynamicId	UserId UserId ProcessStatus ProcessId	-> Process
-mkEmbeddedProcessEntry	:: ProcessId TaskId	TaskProperties ProcessStatus ProcessId	-> Process
+mkStaticProcessEntry	:: Workflow			Time (UserId,String) (UserId,String) ProcessStatus				-> Process
+mkDynamicProcessEntry	:: String DynamicId	Time (UserId,String) (UserId,String) ProcessStatus ProcessId	-> Process
+mkEmbeddedProcessEntry	:: ProcessId TaskId		TaskProperties ProcessStatus ProcessId						-> Process
 
 instance toString ProcessStatus

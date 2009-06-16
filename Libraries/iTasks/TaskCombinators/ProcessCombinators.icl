@@ -1,6 +1,6 @@
 implementation module ProcessCombinators
 
-import StdOverloaded, StdClass, StdInt, StdArray, GenBimap
+import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, GenBimap
 import TSt
 
 from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: ProcessType(..)
@@ -11,6 +11,9 @@ from ProcessDB import mkDynamicProcessEntry
 from DynamicDB import qualified class DynamicDB(..)
 from DynamicDB import qualified instance DynamicDB HSt
 
+import UserDB
+
+import Time
 import iDataForms
 import CommonCombinators
 
@@ -25,17 +28,20 @@ spawnProcess :: !UserId !Bool !(LabeledTask a) -> Task (ProcessReference a) | iD
 spawnProcess uid activate (label,task) = compound "spawnProcess" (Task spawnProcess`)
 where
 	spawnProcess` tst
-		# (curUid,tst)	= getCurrentUser tst
-		# (curPid,tst)	= getCurrentProcess tst
-		# (dynId,tst)	= accHStTSt (DynamicDB@createDynamic (dynamic createDynamicTask task)) tst
-		# (newPid,tst)	= accHStTSt (ProcessDB@createProcess (entry curPid dynId curUid)) tst
+		# (curUid,tst)		= getCurrentUser tst
+		# (curPid,tst)		= getCurrentProcess tst
+		# (user,tst)		= accHStTSt (getUser uid) tst
+		# (delegator,tst)	= accHStTSt (getUser curUid) tst
+		# (curTime,tst) 	= accHStTSt (accWorldHSt time) tst
+		# (dynId,tst)		= accHStTSt (DynamicDB@createDynamic (dynamic createDynamicTask task)) tst
+		# (newPid,tst)		= accHStTSt (ProcessDB@createProcess (entry curPid dynId curTime user delegator)) tst	
 		| uid == curUid
 			# tst			= addNewProcess newPid tst
 			= (ProcessReference newPid, {tst & activated = True})
 		| otherwise
 			= (ProcessReference newPid, {tst & activated = True})
 				
-	entry pid did curUid	= mkDynamicProcessEntry label did uid curUid (if activate Active Suspended) pid	// Create a process database entry
+	entry pid did now user delegator	= mkDynamicProcessEntry label did now user delegator (if activate Active Suspended) pid	// Create a process database entry
 	
 	//Turn a task yielding a value of type a into a value of dynamic
 	createDynamicTask :: !(Task a) -> (Task Dynamic) | iData a
@@ -85,7 +91,7 @@ getProcessOwner (ProcessReference pid) = compound "getProcess" (Task getProcessS
 where
 	getProcessStatus` tst 
 	# (process,tst)	=	accHStTSt (ProcessDB@getProcess pid) tst
-	# owner = if (isNothing process) Nothing (Just (fromJust process).properties.TaskProperties.userId)
+	# owner = if (isNothing process) Nothing (Just (fst (fromJust process).properties.TaskProperties.user))
 	= (owner,tst)
 
 activateProcess	:: (ProcessReference a)	-> Task Bool | iData a
@@ -121,8 +127,10 @@ updateProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iData a
 updateProcessOwner uid (ProcessReference pid) = compound "updateProcessOwner" (Task setProcessOwner`)
 where
 	setProcessOwner` tst
-		# (curUid,tst)	= getCurrentUser tst
-		= accHStTSt (ProcessDB@setProcessOwner uid curUid pid) tst
+		# (curUid,tst)		= getCurrentUser tst
+		# (user,tst)		= accHStTSt (getUser uid) tst
+		# (delegator,tst)	= accHStTSt (getUser curUid) tst
+		= accHStTSt (ProcessDB@setProcessOwner user delegator pid) tst
 
 
 //New "meta" process tasks
@@ -151,8 +159,10 @@ setProcessOwner :: !UserId !ProcessId -> Task Bool
 setProcessOwner uid pid = mkBasicTask "setProcessOwner" setProcessOwner`
 where
 	setProcessOwner` tst
-		# (cur,tst)	= getCurrentUser tst //Current user is the new delegator of the process
-		= accHStTSt (ProcessDB@setProcessOwner uid cur pid) tst
+		# (cur,tst)			= getCurrentUser tst //Current user is the new delegator of the process
+		# (user,tst)		= accHStTSt (getUser uid) tst
+		# (delegator,tst)	= accHStTSt (getUser cur) tst
+		= accHStTSt (ProcessDB@setProcessOwner user delegator pid) tst
 
 setProcessStatus :: !ProcessStatus !ProcessId -> Task Bool
 setProcessStatus status pid = mkBasicTask "setProcessStatus" (\tst -> accHStTSt (ProcessDB@setProcessStatus status pid) tst)

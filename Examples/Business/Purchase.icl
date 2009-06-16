@@ -106,7 +106,7 @@ andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iData a
 andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
 where
 	andTasksEnough` tst
-		# tst						= setCombination (TTCustom (\list -> flatten (reverse list))) tst	//Show parallel sub tasks in reversed order
+		# tst						= setCombination TTVertical  tst	//Show parallel sub tasks in reversed order
 		# (_,tst =:{activated})		= accTaskTSt (mkSequenceTask "enough" (accTaskTSt ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void))) tst
 		= accTaskTSt (mkSequenceTask "tasks" (accTaskTSt ((parallel "andTask" (\list -> length list >= 1 && activated) (\_ list -> list) taskCollection) <<@ (TTSplit msg)))) {tst & activated = True}
 

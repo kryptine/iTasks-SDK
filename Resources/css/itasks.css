@@ -14,6 +14,12 @@ button.icon-process-table {
 button.icon-task-tree {
 	background-image: url('../img/icons/chart_organisation.png');
 }
+button.icon-states {
+	background-image: url('../img/icons/table_gear.png');
+}
+button.icon-events {
+	background-image: url('../img/icons/table_lightning.png');
+}
 .icon-debug {
 	background-image: url('../img/icons/bug.png');
 }
@@ -44,7 +50,9 @@ button.icon-task-tree {
 .icon-finishedTask {
 	background-image: url('../img/icons/tick.png');
 }
-
+.icon-waiting {
+	background-image: url('../img/icons/hourglass.png');
+}
 div.loginWindow {
 	padding: 5px;
 }

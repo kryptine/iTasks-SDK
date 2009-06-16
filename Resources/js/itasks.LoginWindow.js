@@ -30,9 +30,9 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		var failureHandler = function(form, action) {
 			//Show the error and draw attention to the window
 			if(action.failureType == undefined) {
-				this.getComponent(0).getComponent(0).setText(action.result.error);	
+				this.getComponent(0).getComponent(1).setText(action.result.error);	
 			} else {
-				this.getComponent(0).getComponent(0).setText("Could not connect to server");
+				this.getComponent(0).getComponent(1).setText("Could not connect to server");
 			}
 			this.getEl().frame('#ff0000');
 
@@ -41,10 +41,9 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		};
 		
 		Ext.apply(this, {
-			title: 'iTasks',
 			y: 150,
-			width: 350,
-			height: 165,
+			width: 320,
+			height: 185,
 			layout: 'fit',
 			hidden: true,
 			closable: false,
@@ -59,29 +58,36 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 				buttonAlign: 'right',
 				waitMsgTarget: true,
 				items: [{
+							x: 0,
+							y: 0,
+							xtype: 'label',
+							style: "color: red; font-weight: bold; background: url('img/itasks.png')",
+							width: 300,
+							height: 40
+						},{
 							x: 55,
-							y: 5,
+							y: 45,
 							xtype: 'label',
 							html: this.errorMsg,
-							style: 'color: red; font-weight: bold'
+							style: "color: red; font-weight: bold;"
 						},{
 							x: 0,
-							y: 35,
+							y: 70,
 							xtype: 'label',
 							text: 'Username:'
 						},{
 							x: 55,
-							y: 30,
+							y: 65,
 							name: 'username',
 							anchor: '100%'
 						},{
 							x: 0,
-							y: 65,
+							y: 100,
 							xtype: 'label',
 							text: 'Password:'
 						},{
 							x: 55,
-							y: 60,
+							y: 95,
 							name: 'password',
 							anchor: '100%',
 							inputType: 'password'

@@ -205,7 +205,7 @@ where
 	
 	editor tst =:{taskNr,hst}
 		# editorId		= iTaskId taskNr "editor"
-		# (editor,hst) 	= mkEditForm  (Init, cFormId tst.options editorId val) hst
+		# (editor,hst) 	= mkEditForm  (Init, cFormId tst.TSt.options editorId val) hst
 		# tst			= setOutput editor.form {tst & hst = hst}
 		# tst			= setInputs editor.inputs tst
 		= (editor.Form.value, {tst & activated = False})

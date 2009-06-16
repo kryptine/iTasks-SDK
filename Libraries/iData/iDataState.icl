@@ -78,8 +78,7 @@ where
 
 
 string_to_dynamic` :: !{#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
-string_to_dynamic` s	= string_to_dynamic {s` \\ s` <-: s}
-
+string_to_dynamic` s = string_to_dynamic {s` \\ s` <-: s}
 
 getFormUpdates :: !String !*FormStates -> (![FormUpdate], !*FormStates)
 getFormUpdates id formstates =: {updates} = ([update \\ update =:{FormUpdate|formid} <- updates | id == formid],formstates)
@@ -269,42 +268,50 @@ where
 	| life == oldlifespan	= (Node_ left (fid,NewState {fstate & life = newlifespan}) right,world)	
 	= (Node_ left a right,world)
 
-getHtmlStates :: !*FormStates -> (![HtmlState], !*FormStates)
-getHtmlStates formstates =: {fstates}
-	# (fstates, htmlstates) = filterHtmlStates fstates [] 
+getHtmlStates :: !String !*FormStates -> (![HtmlState], !*FormStates)
+getHtmlStates prefix formstates =: {fstates}
+	# (fstates, htmlstates) = filterHtmlStates prefix fstates [] 
 	= (htmlstates, {formstates & fstates = fstates})
 where
-	filterHtmlStates Leaf_ accu	= (Leaf_, accu)
-	filterHtmlStates (Node_ left x right) accu
-		# (left,accu)	= filterHtmlStates left accu
-		= case htmlStateOf x of
+	filterHtmlStates prefix Leaf_ accu	= (Leaf_, accu)
+	filterHtmlStates prefix (Node_ left x right) accu
+		# (left,accu)	= filterHtmlStates prefix left accu
+		= case htmlStateOf prefix x of
 			Nothing
-				# (right,accu)	= filterHtmlStates right accu
+				# (right,accu)	= filterHtmlStates prefix right accu
 				= (Node_ left x right, accu)	
 			Just state
-				# (right,accu)	= filterHtmlStates right [state:accu]
+				# (right,accu)	= filterHtmlStates prefix right [state:accu]
 				= (Node_ left x right, accu)		
 	where
+		// When the prefix is 
+		htmlStateOf prefix (fid,_)
+			| not (startsWith prefix fid)												= Nothing
+	
 		// old states which have not been used this time, but with lifespan session, are stored again in the page
 		// other old states will have lifespan page or are persistent; they need not to be stored
-		htmlStateOf (fid,OldState {life=LSSession,format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSSession, state=stringval, format=PlainString}
-		htmlStateOf (fid,OldState {life=LSSession,format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSSession, state=dynamic_to_string dynval, format=StaticDynamic}
+		htmlStateOf prefix (fid,OldState {life=LSSession,format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSSession, state=stringval, format=PlainString}
+		htmlStateOf prefix (fid,OldState {life=LSSession,format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSSession, state=dynamic_to_string dynval, format=StaticDynamic}
 
-		htmlStateOf (fid,OldState {life=LSClient, format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSClient, state=stringval, format=PlainString}
-		htmlStateOf (fid,OldState {life=LSClient, format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSClient, state=dynamic_to_string dynval, format=StaticDynamic}		
+		htmlStateOf prefix (fid,OldState {life=LSClient, format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSClient, state=stringval, format=PlainString}
+		htmlStateOf prefix (fid,OldState {life=LSClient, format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSClient, state=dynamic_to_string dynval, format=StaticDynamic}		
 
-		htmlStateOf (fid,OldState s)										= Nothing
+		htmlStateOf prefix (fid,OldState s)												= Nothing
 
 		// persistent stores (either old or new) have already been stored in files and can be skipped here
 		// temperal form don't need to be stored and can be skipped as well
 		// the state of all other new forms created are stored in the page 
-		htmlStateOf (fid,NewState {life})
-			| isMember life [LSTxtFile,LSTxtFileRO,LSDataFile,LSTemp]		= Nothing
+		htmlStateOf prefix (fid,NewState {life})
+			| isMember life [LSTxtFile,LSTxtFileRO,LSDataFile,LSTemp]					= Nothing
 
-		htmlStateOf (fid,NewState {format = PlainStr string,life})			= Just {HtmlState|formid=fid, lifespan=life, state=string, format=PlainString}
-		htmlStateOf (fid,NewState {format = StatDyn dynval, life})			= Just {HtmlState|formid=fid, lifespan=life, state=dynamic_to_string dynval, format=StaticDynamic}
+		htmlStateOf prefix (fid,NewState {format = PlainStr string,life})				= Just {HtmlState|formid=fid, lifespan=life, state=string, format=PlainString}
+		htmlStateOf prefix (fid,NewState {format = StatDyn dynval, life})				= Just {HtmlState|formid=fid, lifespan=life, state=dynamic_to_string dynval, format=StaticDynamic}
 
-		htmlStateOf _														= Nothing
+		htmlStateOf prefix _															= Nothing
+
+	startsWith p s
+		| size p > size s	= False
+							= s % (0,size p - 1) == p
 
 storeServerStates :: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
 storeServerStates formstates =:{fstates} nworld

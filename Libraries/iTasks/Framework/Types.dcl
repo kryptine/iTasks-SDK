@@ -4,6 +4,7 @@ definition module Types
 * the iTasks framework.
 */
 from Html import :: HtmlTag
+from StdString import class toString
 
 :: UserId			:== Int					// A user id of an iTask user must be a unique integer value
 :: ProcessNr		:== Int
@@ -19,7 +20,8 @@ from Html import :: HtmlTag
 :: TaskCombination	= TTSplit [HtmlTag]						//Treat the tasks as separate units of work
 					| TTVertical							//Group the tasks and display them below each other
 					| TTHorizontal 							//Group the tasks and display them next to each other
-					| TTCustom ([[HtmlTag]] -> [HtmlTag])	//Group the tasks and display them with a custom function
-
+					
 :: EvaluationOption	= OnClient 				// Evaluate a task on the client whenever possible
 					| OnServer				// Always evaluate a task on the server
+					
+instance toString TaskPriority

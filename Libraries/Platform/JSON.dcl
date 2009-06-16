@@ -12,6 +12,9 @@ import StdGeneric, StdMaybe
 
 //Abstract token type which is the intermediary representation during JSON parsing
 :: Token
+
+:: JSON = JSON String	//String which is already in JSON encoding
+
 /**
 * Encodes any value to JSON format.
 * @param The value to encode
@@ -26,17 +29,25 @@ toJSON		:: a		-> String	| JSONEncode{|*|} a
 * @return Just the result, when parsing succeeds
 */
 fromJSON	:: String	-> Maybe a	| JSONDecode{|*|} a
+
+/**
+* Escapes a string for manual JSON construction
+*
+* @param The unescaped string
+* @return A properly escaped string
+*/
+jsonEscape	:: String	-> String
 /**
 * Generic encoding function. This function should not be used
 * directly but always through the toJSON function. It must be derived
 * for each type you want to encode in JSON format.
 */
 generic JSONEncode t :: t [String] -> [String]
-derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], {}, {!}, Maybe
+derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe, JSON
 /**
 * Generic decoding function. This function should not be used
 * directly, but always through the fromJSON function. It must be derived
 * for each type you want to parse from JSON format.
 */
 generic JSONDecode t :: [Token] -> (Maybe t,[Token])
-derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], {}, {!}, Maybe
+derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe

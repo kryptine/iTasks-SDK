@@ -2,11 +2,9 @@
 /**
 * This module tests the basic tasks in UITasks.dcl
 */
-import StdEnv, iTasks, iData
+import iTasks, iData
 import UITasks, BasicCombinators, CommonCombinators
 
-derive gForm []
-derive gUpd []
 
 Start :: *World -> *World
 Start world = startEngine tests world
@@ -54,13 +52,13 @@ where
 		  	]
 		 
 editTask_test :: Task Void
-editTask_test = editTask_test` #>>return_V Void
+editTask_test = editTask_test` >>| return Void
 where
 	editTask_test` :: Task (Int,String)
 	editTask_test` = editTask "I'm done" createDefault
 
 editTaskPred_test :: Task Void
-editTaskPred_test = editTaskPred_test` #>> return_V Void 
+editTaskPred_test = editTaskPred_test` >>| return Void 
 where
 	editTaskPred_test` :: Task Int
 	editTaskPred_test` = editTaskPred createDefault pred
@@ -76,19 +74,19 @@ displayValue_test = displayValue 42
 
 selectWithButtons_test :: Task Void
 selectWithButtons_test
-	= selectWithButtons ["A","B","C"] =>> \choice -> displayValue choice
+	= selectWithButtons ["A","B","C"] >>= \choice -> displayValue choice
 
 selectWithPulldown_test :: Task Void
 selectWithPulldown_test
-	= selectWithPulldown ["A","B","C"] 1 =>> \choice -> displayValue choice
+	= selectWithPulldown ["A","B","C"] 1 >>= \choice -> displayValue choice
 	
 selectWithRadiogroup_test :: Task Void
 selectWithRadiogroup_test
-	= selectWithRadiogroup [[Text "A"],[Text "B"],[Text "C"]] 1 =>> \choice -> displayValue choice
+	= selectWithRadiogroup [[Text "A"],[Text "B"],[Text "C"]] 1 >>= \choice -> displayValue choice
 
 selectWithCheckboxes_test :: Task Void
 selectWithCheckboxes_test
-	= selectWithCheckboxes options =>> \choices -> displayValue choices
+	= selectWithCheckboxes options >>= \choices -> displayValue choices
 where
 	options = [([Text "A"],True,(\_ cur -> cur))
 			  ,([Text "B"],False,(\_ cur -> cur))

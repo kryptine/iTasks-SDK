@@ -9,6 +9,7 @@ import iDataTrivial, iDataFormlib
 import LiftingCombinators, ClientCombinators
 import Util, Time
 import GenBimap
+import UserDB
 
 derive gForm 	Time
 derive gUpd 	Time
@@ -21,9 +22,9 @@ derive gParse	Time
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
 (>>=) taska taskb = Task tbind
 where
-	tbind tst=:{options}
+	tbind tst=:{TSt|options}
 		# (a,tst=:{activated})	= accTaskTSt taska tst
-		| activated				= accTaskTSt (taskb a) {tst & options = options}
+		| activated				= accTaskTSt (taskb a) {TSt|tst & options = options}
 								= (createDefault,tst)
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iCreateAndPrint b
@@ -68,7 +69,7 @@ where
 		= doseqTasks options [] tst
 
 	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
-	doseqTasks [(taskname,task):ts] accu tst=:{options} 
+	doseqTasks [(taskname,task):ts] accu tst=:{TSt|options} 
 		# (a,tst=:{activated=adone}) 
 										= accTaskTSt task {tst & activated = True}
 		| not adone						= (reverse accu, tst)
@@ -110,11 +111,11 @@ delegate :: !UserId !TaskPriority !(LabeledTask a) -> Task a | iData a
 delegate toUserId initPriority (label,task) = Task delegate` 
 where
 	delegate` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
-		# tst		= addAdditionalUser toUserId tst 									//TODO: Will become obsolete, when MainTask info is stored
-		
-		# (now,tst)	= (accHStTSt (accWorldHSt time)) tst								//Retrieve current time
-		# mti		= {TaskProperties|subject = label, userId = toUserId, delegatorId = currentUserId, priority = initPriority, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
-		# (a, tst)	= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
+		# (toUser,tst)		= accHStTSt (getUser toUserId) tst
+		# (currentUser,tst)	= accHStTSt (getUser currentUserId) tst 
+		# (now,tst)			= (accHStTSt (accWorldHSt time)) tst						//Retrieve current time
+		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, priority = initPriority, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
+		# (a, tst)			= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 
 // ******************************************************************************************************

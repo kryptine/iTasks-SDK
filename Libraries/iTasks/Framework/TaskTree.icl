@@ -8,8 +8,8 @@ locateSubTaskTree	:: !TaskId !TaskTree -> Maybe TaskTree
 locateSubTaskTree taskid tree = locateSubTaskTree` taskid [tree]
 where
 	locateSubTaskTree` taskid [] = Nothing
-	locateSubTaskTree` taskid [(TTBasicTask ti output inputs):xs]
-		| taskid == ti.TaskInfo.taskId		= Just (TTBasicTask ti output inputs)
+	locateSubTaskTree` taskid [(TTBasicTask ti output inputs states):xs]
+		| taskid == ti.TaskInfo.taskId		= Just (TTBasicTask ti output inputs states)
 		| otherwise							= locateSubTaskTree` taskid xs
 	locateSubTaskTree` taskid [(TTSequenceTask ti sequence):xs]
 		| taskid == ti.TaskInfo.taskId		= Just (TTSequenceTask ti sequence)

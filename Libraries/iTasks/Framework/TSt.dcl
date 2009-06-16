@@ -16,7 +16,6 @@ from Time		import :: Time(..)
 					, delegatorId	:: !UserId									// id of user who issued the task
 					, tree			:: !TaskTree								// accumulator for constructing a task tree			
 					, activated		:: !Bool   									// if true activate task, if set as result task completed
-					, users			:: ![UserId]								// list of all users working on some task (including subtasks)
 
 					, newProcesses	:: ![ProcessId]								// A list of spawned processes for the current user
 							
@@ -24,8 +23,8 @@ from Time		import :: Time(..)
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
 					, exceptions	:: ![Dynamic]								// Optional, used when raising exceptions
-					, changeRequests
-									:: ![(!TaskId,!ChangeCondition,!Int,!Dynamic)]	// Optional, used when demanding dynamic changes
+					, changeRequests											// Optional, used when demanding dynamic changes
+									:: ![(!TaskId,!ChangeCondition,!Int,!Dynamic)]	
 									
 					, hst			:: !*HSt									// iData state
 					}
@@ -108,7 +107,7 @@ calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree	:: !Int !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
+calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 
 /**
 * Lists which workflows are available
@@ -130,26 +129,6 @@ getWorkflows :: !*TSt -> (![Workflow],!*TSt)
 * @return The modified task state
 */
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
-
-/**
-* Adds an additonal user other than the task owner working on some part of the task
-*
-* @param the new user id
-* @param the task state
-*
-* @return the modified task state
-*/
-addAdditionalUser :: !UserId !*TSt -> *TSt
-
-/**
-* Retrieves the list of users other than the task owner working on some workflow
-*
-* @param the task state
-* 
-* @return The list of users
-* @return The modified task state
-*/
-getAdditionalUsers :: !*TSt -> (![UserId],!*TSt)
 
 /**
 * Adds the id of a newly created process to the list
@@ -232,7 +211,7 @@ getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 /**
 * Extract the editor states that must be stored in the browser
 */
-getEditorStates :: !*TSt	-> (![HtmlState], !*TSt)
+getEditorStates :: !String !*TSt	-> (![HtmlState], !*TSt)
 
 /**
 * Check if the last executed task was finished. This is used to

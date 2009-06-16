@@ -5,7 +5,7 @@ import iDataTrivial, iDataSettings, iDataState
 import StdGeneric, GenParse, GenPrint, GenBimap
 import Http, HttpUtil, HttpTextUtil
 import HSt
-import Html
+import Html, JSON, Text
 
 derive bimap Form, FormId
 
@@ -438,32 +438,27 @@ derive gUpd (,), (,,), (,,,), Void
 
 // gForm: automatically derives a Html form for any Clean type
 mkForm :: !(InIDataId a) *HSt -> *(Form a, !*HSt)	| gForm {|*|} a
-mkForm (init, formid =: {issub}) hst =:{prefix}
+mkForm (init, formid =: {issub}) hst =:{HSt|prefix}
 	# (form, hst)	= gForm{|*|} (init, formid) hst
 	| issub			= (form, hst) //Subforms are contained in the <form> tags of their parent
 	| otherwise		= ({form &
 						form = if (isEmpty form.form) [] [FormTag [IdAttr (prefix +++ formid.id)] form.form]
 					   }, hst)
 	
+mkInputId :: (FormId d) !Int -> String
+mkInputId formid=:{id} cntr = id +++ "-" +++ toString cntr 
+
 	
 //The basic building blocks for creating inputs
 mkInput :: !(InIDataId d) String String !*HSt -> ([HtmlTag], [InputDefinition],*HSt) 
 mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix} 
 	| mode == Edit || mode == Submit
-		# inputname = formid.id +++ "-" +++ toString cntr
-		# inputid = prefix +++ inputname
-		= ( [InputTag 	[ TypeAttr		"text"
-						, ValueAttr		val
-						, NameAttr		inputid
-						, IdAttr 		inputid
-						]]
-		  , [{formid = formid.id, inputid = cntr, type = type, updateon = if (mode == Edit ) OnChange OnSubmit}]
+		# inputid = mkInputId formid cntr
+		= ( [SpanTag [IdAttr (prefix +++ inputid)] []]
+		  , [{formid = formid.id, inputid = inputid, prefix = prefix, type = type, updateon = if (mode == Edit) OnChange OnSubmit, value = val, options = Nothing}]
 		  , setHStCntr (cntr+1) hst)
 	| mode == Display
-		= ( [InputTag 	[ TypeAttr		"text"
-						, ValueAttr		val
-						, DisabledAttr
-						]]
+		= ( [Text val]
 		  , []
 		  , setHStCntr (cntr+1) hst)
 	= ([], [], setHStCntr (cntr+1) hst)
@@ -471,47 +466,36 @@ mkInput (init,formid=:{mode}) type val hst=:{cntr,prefix}
 	
 mkButton :: !(InIDataId d) String String !*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkButton (init, formid =: {mode}) type label hst =: {cntr,prefix} 
-	# inputname = formid.id +++ "-" +++ toString cntr
-	# inputid = prefix +++ inputname
-	= ( [ButtonTag	[ NameAttr	inputid
-					, IdAttr	inputid
-					, TypeAttr	"button"
-					: if (mode == Display) [DisabledAttr] []
-					] [Text label]]
-	  , [{formid = formid.id, inputid = cntr, type = type, updateon = OnClick}]
+	# inputid = mkInputId formid cntr
+	= ( [SpanTag [IdAttr (prefix +++ inputid)] []]
+	  , [{formid = formid.id, inputid = inputid, prefix = prefix, type = type, updateon = OnClick, value = label, options = Nothing}]
 	  , setHStCntr (cntr + 1) hst)
 
 mkSelect :: !(InIDataId d) String String [(String,String)] !*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkSelect (init, formid=:{mode}) type val options hst =:{cntr,prefix}
-	# inputname = formid.id +++ "-" +++ toString cntr
-	# inputid = prefix +++ inputname
-	= ( [SelectTag	[ NameAttr	inputid
-					, IdAttr	inputid
-					: if (mode == Display) [DisabledAttr] []
-					] [OptionTag [ValueAttr value:if (value == val) [SelectedAttr] [] ] [Text label] \\ (label,value) <- options]]
-	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
+	# inputid = mkInputId formid cntr
+	= ( [SpanTag [IdAttr (prefix +++ inputid)] []]
+	  , [{formid = formid.id, inputid = inputid, prefix = prefix, type = type, updateon = (if (mode == Edit) OnChange OnSubmit), value = val, options = Just (mkOptions options)}]
 	  , setHStCntr (cntr + 1) hst)
+where
+	mkOptions options = JSON ( "[" +++ (join "," ["[\"" +++ value +++ "\",\"" +++ label +++ "\"]" \\ (label,value) <- options]) +++ "]")
+
 
 mkCheckBox :: !(InIDataId d) String [HtmlTag] Bool !*HSt -> ([HtmlTag],[InputDefinition],*HSt)
 mkCheckBox (init, formid=:{mode}) type label val hst =:{cntr,prefix}
-	# inputname = formid.id +++ "-" +++ toString cntr
-	# inputid = prefix +++ inputname
-	= ( checkBoxForm inputid (InputTag	[ NameAttr	inputid
-								, IdAttr	inputid
-								, TypeAttr	"checkbox"
-								: (if (mode == Display) [DisabledAttr] []) ++ (if val [CheckedAttr] [])
-								]) label
-	  , [{formid = formid.id, inputid = cntr, type = type, updateon = (if (mode == Edit) OnChange OnSubmit)}]
+	# inputid = mkInputId formid cntr
+	= ( checkBoxForm (prefix +++ inputid +++ "-cb") (SpanTag	[IdAttr (prefix +++ inputid)] []) label
+	  , [{formid = formid.id, inputid = inputid, prefix = prefix, type = type, updateon = if (mode == Edit) OnChange OnSubmit, value = toString val, options = Nothing}]
 	  , setHStCntr (cntr + 1) hst)
 where
-	checkBoxForm inputid cb	[] = [cb]
-	checkBoxForm inputid cb label = [TableTag [ClassAttr "id-checkbox"] [TrTag [] [TdTag [] [cb],TdTag [] [LabelTag [ForAttr inputid] label]]]]
+	checkBoxForm cbid cb	[] = [cb]
+	checkBoxForm cbid cb label = [TableTag [ClassAttr "id-checkbox"] [TrTag [] [TdTag [] [cb],TdTag [] [LabelTag [ForAttr cbid] label]]]]
 
 // The following two functions are not an example of decent Clean programming, but it works thanks to lazy evaluation...
 toHtml :: a -> HtmlTag | gForm {|*|} a
 toHtml a
 	# (na,_)	= mkForm (Set,mkFormId "__toHtml" a <@ Display) (mkHSt "" http_emptyRequest (mkFormStates [] []) dummy)
-	= BodyTag [] na.form
+	= DivTag [] na.form
 where
 	dummy = { world 	= abort "dummy world for toHtml!\n"
 			, datafile	= abort "dummy datafile for toHtml!\n"

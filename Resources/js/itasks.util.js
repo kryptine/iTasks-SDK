@@ -4,7 +4,7 @@ itasks.util.formatDate = function( timestamp) {
 	if (timestamp == null)
 		return "";
 		
-	return Date.parseDate(timestamp, "U").format("d M Y");
+	return Date.parseDate(timestamp, "U").format("d M Y H:i");
 }
 itasks.util.formatPriority = function(priority) {
 	switch(priority) {

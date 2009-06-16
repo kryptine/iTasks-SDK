@@ -95,55 +95,52 @@ where
 	(HtmlSelect o v)	= formid.ival
 
 gForm{|HtmlRadiogroup|} (init,formid =: {mode}) hst =: {cntr,prefix} 	
-	#inputname = formid.id +++ "-" +++ toString cntr
-	#inputid = prefix +++ inputname
+	#inputid = mkInputId formid cntr
 	= ({ changed		= False
 	   , value			= formid.ival
 	   , form			= [TableTag [] 
 	   						[TrTag [] [
-	   								TdTag [] [InputTag [ NameAttr inputname
-	   										 , IdAttr (inputid +++ "-" +++ toString i)
+	   								TdTag [] [InputTag [ NameAttr inputid
+	   										 , IdAttr (prefix +++ inputid +++ "-" +++ toString i)
 	   										 , ValueAttr (toString i)
 	   										 , TypeAttr "radio"
 	   										 :if (i == cur) [CheckedAttr] []]],
-	   								TdTag [] [LabelTag [ForAttr (inputid +++ "-" +++ toString i)] label]
+	   								TdTag [] [LabelTag [ForAttr (prefix +++ inputid +++ "-" +++ toString i)] label]
 	   								]
 	   						\\ label <- options & i <- [0..]
 	   						]
 	   					  ]
-	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlRadiogroup", updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	   , inputs			= [{formid = formid.id, inputid = inputid, prefix = prefix, type = "HtmlRadiogroup", updateon = (if (mode == Submit) OnSubmit OnChange), value = toString cur, options = Nothing}]
 	   },setHStCntr (cntr + 1) hst)
 where
 	(HtmlRadiogroup options cur)	= formid.ival
 
-
+gForm{|HtmlTextarea|} (init,formid =: {mode=Display}) hst =: {cntr,prefix} 	
+	= ({ changed		= False
+	   , value			= formid.ival
+	   , form			= [TextareaTag [RowsAttr (toString rows), DisabledAttr] [RawText val]]
+	   , inputs			= []
+	   }, hst)
+where
+	(HtmlTextarea rows val) = formid.ival
+	
 gForm{|HtmlTextarea|} (init,formid =:{mode}) hst =:{cntr,prefix}
-# inputid = prefix +++ formid.id +++ "-" +++ toString cntr
-= (	{ changed			= False
-	, value				= formid.ival
-	, form				= [TextareaTag	[ NameAttr inputid
-										, IdAttr inputid
-										, RowsAttr (toString rows)
-										: (if (mode == Display) [DisabledAttr] [])
-										]
-										[RawText val]
-						  ]
-	, inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlTextarea", updateon = (if (mode == Submit) OnSubmit OnChange)}]
-	},setHStCntr (cntr + 1) hst)
+	# inputid = mkInputId formid cntr
+	= (	{ changed			= False
+		, value				= formid.ival
+		, form				= [SpanTag [IdAttr (prefix +++ inputid)] []]
+		, inputs			= [{formid = formid.id, inputid = inputid, prefix = prefix, type = "HtmlTextarea", updateon = (if (mode == Submit) OnSubmit OnChange), value = val, options = Nothing}]
+		},setHStCntr (cntr + 1) hst)
 where
 	(HtmlTextarea rows val) = formid.ival
 
-gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr,prefix} 	
-	#inputid = prefix +++ formid.id +++ "-" +++ toString cntr
 
+gForm{|HtmlPassword|} (init,formid =: {mode}) hst =: {cntr,prefix} 	
+	#inputid = mkInputId formid cntr
 	= ({ changed		= False
 	   , value			= formid.ival
-	   , form			= [InputTag	[ NameAttr inputid
-	   								, IdAttr inputid
-	   								, ValueAttr v
-	   								]
-	   					  ]
-	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlPassword", updateon = (if (mode == Submit) OnSubmit OnChange)}]
+	   , form			= [SpanTag	[IdAttr (prefix +++ inputid)] []]
+	   , inputs			= [{formid = formid.id, inputid = inputid, prefix = prefix, type = "HtmlPassword", updateon = (if (mode == Submit) OnSubmit OnChange), value = v, options = Nothing}]
 	   },setHStCntr (cntr + 1) hst)
 where
 	(HtmlPassword v)	= formid.ival
@@ -189,12 +186,11 @@ where
 		
 
 gForm {|HtmlTimer|} (init, formid) hst =: {cntr,prefix}
-	#inputname = formid.id +++ "-" +++ toString cntr
-	#inputid = prefix +++ inputname
+	#inputid = mkInputId formid cntr
 	= ({ changed		= False
 	   , value			= formid.ival
-	   , form			= [InputTag [TypeAttr "hidden", NameAttr inputname, IdAttr inputid, ValueAttr (toString val)]]
-	   , inputs			= [{formid = formid.id, inputid = cntr, type = "HtmlTimer", updateon = OnTimeout}]
+	   , form			= []
+	   , inputs			= [{formid = formid.id, inputid = inputid, prefix = prefix, type = "HtmlTimer", updateon = OnTimeout, value = toString val, options = Nothing}]
 	   }, hst)
 where
 	(HtmlTimer val _)	= formid.ival

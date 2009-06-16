@@ -18,7 +18,7 @@ JSONEncode{|Real|} x c = [toString x:c]
 JSONEncode{|Char|} x c = [toString x:c]
 JSONEncode{|Bool|} True c = ["true":c]
 JSONEncode{|Bool|} False c = ["false":c]
-JSONEncode{|String|} x c = ["\"",escape x,"\"":c]
+JSONEncode{|String|} x c = ["\"",jsonEscape x,"\"":c]
 JSONEncode{|UNIT|} (UNIT) c = c
 JSONEncode{|PAIR|} fx fy (PAIR x y) c = fx x [", " : fy y c]
 JSONEncode{|EITHER|} fx fy (LEFT x) c = fx x c
@@ -31,17 +31,19 @@ JSONEncode{|CONS of d|} fx (CONS x) c
 	
 JSONEncode{|FIELD of d|} fx (FIELD x) c = ["\"", d.gfd_name, "\" : " : fx x c]							
 JSONEncode{|[]|} fx x c = JSONEncodeList fx x c
+JSONEncode{|(,)|} fx fy (x,y) c = ["[": fx x [",": fy y ["]":c]]]
 JSONEncode{|{}|} fx x c = JSONEncodeList fx [e \\ e <-: x] c
 JSONEncode{|{!}|} fx x c = JSONEncodeList fx [e \\ e <-: x] c
 JSONEncode{|Maybe|} fx (Just x) c = fx x c
 JSONEncode{|Maybe|} fx (Nothing) c = ["null":c]
+JSONEncode{|JSON|} (JSON s) c = [s:c]
 
 //List generation for lists and arrays
 JSONEncodeList fx x c = ["[": ( flatten ( intersperse [","] (map (flip fx []) x)) ) ++ ["]": c]]
 
 //Escape a string
-escape :: String -> String
-escape src = copyChars 0 0 reps src (createArray (size src + length reps) '\0')
+jsonEscape :: String -> String
+jsonEscape src = copyChars 0 0 reps src (createArray (size src + length reps) '\0')
 where
 	reps	= findChars 0 src	
 	//Find the special characters
@@ -307,6 +309,15 @@ JSONDecode{|[]|} fx l = case l of
 		(Just items, ys)	= (Just items, ys)
 		_					= (Nothing, l)
 	_						= (Nothing, l)
+
+JSONDecode{|(,)|} fx fy l = case l of
+	[TokenBracketOpen:xs] = case fx xs of
+		(Just x, [TokenComma:ys]) = case fy ys of
+			(Just y, [TokenBracketClose: zs])	= (Just (x,y), zs)
+			_									= (Nothing, l)
+		_										= (Nothing, l)
+	_											= (Nothing, l)
+
 	
 JSONDecode{|{}|} fx l = case l of
 	[TokenBracketOpen,TokenBracketClose: xs] = (Just {}, xs)

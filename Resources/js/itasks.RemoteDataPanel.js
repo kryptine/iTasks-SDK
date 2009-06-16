@@ -37,21 +37,23 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 			scripts: false,
 			callback: function (el,success,response, options) {
 				if(success) {
+					var data;
 					try {
-						var data = Ext.decode(response.responseText);
-				
-						if(typeof data == 'object') {
-							//Check for (session) errors
-							if(data.error) {
-								this.application.restart(data.error);
-							}
-							callback.call(this,data);
-						} else {
-							callback.call(this,response.responseText);
-						}
+						data = Ext.decode(response.responseText);
 					} catch(SyntaxError) {
+						data = response.responseText;
+					}
+					if(typeof data == 'object') {
+						//Check for (session) errors
+						if(data.error) {
+							this.application.restart(data.error);
+							return;
+						}
+						callback.call(this,data);
+					} else {
 						callback.call(this,response.responseText);
 					}
+					
 				} else {
 					var win = new Ext.Window({
 						title: "Error",

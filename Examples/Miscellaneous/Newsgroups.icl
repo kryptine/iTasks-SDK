@@ -77,9 +77,6 @@ internalEmail2
 	>>|						[Text "Mail has been read." ] ?>> ok
 
 
-
-// BUGs found: filter for tabs does not seem to work ok
-
 internalEmailResponse :: (Task Void)
 internalEmailResponse = cancel internalEmailResponse`
 where

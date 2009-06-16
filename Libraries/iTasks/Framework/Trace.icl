@@ -1,6 +1,6 @@
 implementation module Trace
 
-import StdList
+import StdList, StdTuple
 import Html
 import ProcessDB
 import TaskTree
@@ -12,8 +12,8 @@ where
 	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text (toString process.Process.processId)]
 							, TdTag [] [Text process.Process.properties.TaskProperties.subject]
-							, TdTag [] [Text (toString process.Process.properties.TaskProperties.userId)]
-							, TdTag [] [Text (toString process.Process.properties.TaskProperties.delegatorId)]
+							, TdTag [] [Text (toString (fst process.Process.properties.TaskProperties.user) +++ ": " +++ snd process.Process.properties.TaskProperties.user)]
+							, TdTag [] [Text (toString (fst process.Process.properties.TaskProperties.delegator) +++ ": " +++ snd process.Process.properties.TaskProperties.delegator)]
 							, TdTag [] [Text (case process.Process.processType of
 												(StaticProcess _) 		= "Static"
 												(DynamicProcess _)		= "Dynamic"
@@ -29,7 +29,7 @@ where
 traceTaskTree :: TaskTree -> HtmlTag
 traceTaskTree tree = DivTag [] (mkTree tree)
 where
-	mkTree (TTBasicTask info _ _)
+	mkTree (TTBasicTask info _ _ _)
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
 			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
@@ -61,7 +61,6 @@ where
 
 	showCombination TTVertical		= "Vertical"
 	showCombination TTHorizontal	= "Horizontal"
-	showCombination (TTCustom _)	= "Custom"
 	showCombination (TTSplit _)		= "Split"
 	showCombination	_ 				= ""
 	

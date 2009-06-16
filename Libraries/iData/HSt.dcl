@@ -49,4 +49,3 @@ getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have 
 
 // Storage of the Formstates
 storeStates			:: !*HSt -> *HSt
-getPageStates		:: !*HSt -> (![HtmlState], !*HSt)

@@ -1,0 +1,67 @@
+implementation module PropertyHandler
+
+import TSt, Types
+import StdInt, StdMaybe
+import Http, JSON
+import ProcessDB, UserDB
+
+/**
+* This handler is used to update properties of main tasks.
+*/
+
+:: PropertyResponse =
+	{ success	:: Bool
+	, error		:: Maybe String
+	}
+
+derive JSONEncode PropertyResponse
+
+
+
+handlePropertyRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handlePropertyRequest req tst
+	= case http_getValue "process" req.arg_get 0 of
+		0		= (errorResponse "Invalid process id", tst)
+		proc	= case http_getValue "property" req.arg_get "" of		
+			"priority"	= updatePriority proc (http_getValue "priority" req.arg_get "") tst
+			"user"		= updateUser proc (http_getValue "user" req.arg_get -1) tst
+			_			= (errorResponse "Invalid property", tst)
+where
+	updatePriority proc prio tst
+		= case parsePrio prio of
+			(Just prio)
+				# (_,tst) = accHStTSt (updateProcessProperties proc (\p -> {p & priority = prio})) tst
+				= (successResponse, tst)
+			Nothing
+				= (errorResponse "Unknown priority", tst)
+
+	parsePrio "LowPriority"		= Just LowPriority
+	parsePrio "NormalPriority"	= Just NormalPriority
+	parsePrio "HighPriority"	= Just HighPriority
+	parsePrio _					= Nothing
+	
+	
+	updateUser proc userId tst
+		| userId < 0			
+			= (errorResponse "Invalid user id", tst)	//Only positive user ids are possible
+		| otherwise
+			# (delegatorId,tst)	= getCurrentUser tst
+			# (user,tst)		= accHStTSt (getUser userId) tst
+			# (delegator,tst)	= accHStTSt (getUser delegatorId) tst
+		 	# (_,tst)			= accHStTSt (updateProcessProperties proc (\p -> {TaskProperties| p & user = user, delegator = delegator})) tst
+		 	= (successResponse,tst)
+	
+errorResponse :: String -> HTTPResponse
+errorResponse msg = 
+	{ rsp_headers = []
+	, rsp_data	= toJSON {PropertyResponse|success = False, error = Just msg}
+	}
+successResponse :: HTTPResponse
+successResponse =
+	{ rsp_headers	= []
+	, rsp_data		= toJSON {PropertyResponse|success = True, error = Nothing}
+	}
+
+instance fromString Int
+where
+	fromString x = toInt x

@@ -94,8 +94,9 @@ changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*
 * Collect all form states that can be serialized and stored
 * temporarily in the browser, but have to be sent back with the next
 * request.
+* The string is a prefix to match the form states on.
 */
-getHtmlStates		:: !*FormStates -> (![HtmlState], !*FormStates)
+getHtmlStates		:: !String !*FormStates -> (![HtmlState], !*FormStates)
 
 /**
 * Save all changed form states that are stored in one of the server

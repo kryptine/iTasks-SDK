@@ -30,7 +30,7 @@ where
 	createProcess entry hst 
 		# (procs,hst) 	= processStore id hst
 		# newPid		= inc (maxPid procs)
-		# (procs,hst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid}]) hst
+		# (procs,hst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid, properties = {TaskProperties| entry.properties & processId = newPid} }]) hst
 		= (newPid, hst)
 		
 	deleteProcess :: !ProcessId !*HSt	-> (!Bool, !*HSt)
@@ -49,9 +49,14 @@ where
 	getProcessForUser :: !UserId !ProcessId !*HSt -> (!Maybe Process,!*HSt)
 	getProcessForUser userId processId hst
 		# (procs,hst) 	= processStore id hst
-		= case [process \\ process <- procs | process.Process.processId == processId && (process.Process.properties.TaskProperties.userId == userId || isMember userId process.Process.users)] of
+		#  uids			= [fst p.Process.properties.TaskProperties.user \\ p <- procs | relevantProc processId p]
+		= case [p \\ p <- procs | p.Process.processId == processId && isMember userId uids] of
 			[entry]	= (Just entry, hst)
 			_		= (Nothing, hst)
+	where
+		relevantProc targetId {Process|processType = EmbeddedProcess pid _}	= pid == targetId 
+		relevantProc targetId {Process|processId}							= processId == targetId
+		relevantProc _ _													= False
 			
 	getProcesses :: ![ProcessStatus] !*HSt -> (![Process], !*HSt)
 	getProcesses statusses hst
@@ -66,87 +71,88 @@ where
 	getProcessesForUser	:: !UserId ![ProcessStatus] !Bool !*HSt -> (![Process], !*HSt)
 	getProcessesForUser userId statusses ignoreEmbedded hst
 		# (procs,hst) 	= processStore id hst
-		= ([process \\ process <- procs |  not (isEmbedded process)	
-										&& (process.Process.properties.TaskProperties.userId == userId || isMember userId process.Process.users)
-										&& isMember process.Process.status statusses], hst)
+		#  procids		= filter ((<>) 0) (map (relevantProc userId) procs)
+		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], hst)
 
 	where
-		isEmbedded {processType = EmbeddedProcess _ _}	= True
-		isEmbedded _									= False
-
-	getEmbeddedProcess	:: !ProcessId !TaskId !*HSt -> (!Maybe Process,!*HSt)
-	getEmbeddedProcess processId taskId hst
+		relevantProc userId {processType = EmbeddedProcess pid _, properties = {user}}
+			| fst user == userId	= pid
+			| otherwise				= 0
+		relevantProc userId {processId, properties = {user}}
+			| fst user == userId	= processId
+			| otherwise				= 0
+		
+	getSubProcess :: !ProcessId !TaskId !*HSt -> (!Maybe Process,!*HSt)
+	getSubProcess processId taskId hst
 		# (procs,hst)	= processStore id hst
 		= case [proc \\ proc =: {processType = (EmbeddedProcess pid tid)} <- procs | pid == processId && tid == taskId] of
 			[entry] = (Just entry, hst)
 			_		= (Nothing, hst)
 
 	
-	setProcessOwner	:: !UserId !UserId !ProcessId !*HSt	-> (!Bool, !*HSt)
-	setProcessOwner userId delegatorId processId hst
-		= setProcessProperty (\x -> {Process| x & properties = {TaskProperties|x.properties & userId = userId, delegatorId = delegatorId}}) processId hst
+	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*HSt	-> (!Bool, !*HSt)
+	setProcessOwner user delegator processId hst
+		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & user = user, delegator = delegator}}) hst
 	
 	setProcessStatus :: !ProcessStatus !ProcessId !*HSt -> (!Bool,!*HSt)
-	setProcessStatus status processId hst = setProcessProperty (\x -> {Process| x & status = status}) processId hst
+	setProcessStatus status processId hst = updateProcess processId (\x -> {Process| x & status = status}) hst
 
 	setProcessResult :: !DynamicId !ProcessId !*HSt -> (!Bool,!*HSt)
-	setProcessResult result processId hst = setProcessProperty (\x -> {Process| x & result = Just result}) processId hst 
+	setProcessResult result processId hst = updateProcess processId (\x -> {Process| x & result = Just result}) hst 
 	
-	updateProcess :: !ProcessStatus !(Maybe DynamicId) ![UserId] !ProcessId !*HSt -> (!Bool,!*HSt) 
-	updateProcess status mbResult users processId hst = setProcessProperty (\x -> {Process| x & status = status, result = mbResult, users = users}) processId hst 
+	updateProcess :: ProcessId (Process -> Process) !*HSt -> (!Bool, !*HSt)
+	updateProcess processId f hst
+		# (procs,hst) 	= processStore id hst
+		# (nprocs,upd)	= unzip (map (update f) procs)
+		# (nprocs,hst)	= processStore (\_ -> nprocs) hst
+		= (or upd, hst)
+	where
+		update f x		
+			| x.Process.processId == processId	= (f x, True)
+			| otherwise							= (x, False)
 
-	
-//Generic process property update function
-setProcessProperty :: (Process -> Process) ProcessId *HSt -> (!Bool, *HSt)
-setProcessProperty f processId hst
-	# (procs,hst) 	= processStore id hst
-	# (nprocs,upd)	= unzip (map (update f) procs)
-	# (nprocs,hst)	= processStore (\_ -> nprocs) hst
-	= (or upd, hst)
-where
-	update f x		
-		| x.Process.processId == processId	= (f x, True)
-		| otherwise							= (x, False)
+	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*HSt -> (!Bool, !*HSt)
+	updateProcessProperties processId f hst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) hst
 
 //Utility functions
-mkStaticProcessEntry :: Workflow UserId UserId ProcessStatus -> Process
-mkStaticProcessEntry workflow owner delegator status
+mkStaticProcessEntry :: Workflow Time (UserId,String) (UserId,String) ProcessStatus -> Process
+mkStaticProcessEntry workflow timestamp user delegator status
 	=	{ Process
 		| processId		= 0
 		, processType	= StaticProcess workflow.Workflow.name
 		, parent		= 0
 		, status		= status
 		, properties	=	{ TaskProperties
-							| subject		= workflow.Workflow.label
-							, userId		= owner
-							, delegatorId	= delegator
+							| processId		= 0
+							, subject		= workflow.Workflow.label
+							, user			= user
+							, delegator		= delegator
 							, priority		= NormalPriority
-							, issuedAt		= Time 0 //TODO
+							, issuedAt		= timestamp
 							, firstEvent	= Nothing
 							, latestEvent	= Nothing
 							}
 		, result		= Nothing
-		, users			= []
 		}
 		
-mkDynamicProcessEntry :: String DynamicId UserId UserId ProcessStatus ProcessId -> Process
-mkDynamicProcessEntry label task owner delegator status parent
+mkDynamicProcessEntry :: String DynamicId Time (UserId,String) (UserId,String) ProcessStatus ProcessId -> Process
+mkDynamicProcessEntry label task timestamp user delegator status parent
 	=	{ Process
 		| processId	= 0
 		, processType = DynamicProcess task
 		, parent	= parent
 		, status	= status
 		, properties	=	{ TaskProperties
-							| subject		= label
-							, userId		= owner
-							, delegatorId	= delegator
+							| processId		= 0
+							, subject		= label
+							, user			= user
+							, delegator		= delegator
 							, priority		= NormalPriority
-							, issuedAt		= Time 0 //TODO
+							, issuedAt		= timestamp
 							, firstEvent	= Nothing
 							, latestEvent	= Nothing
 							}
 		, result	= Nothing
-		, users		= []
 		}
 
 mkEmbeddedProcessEntry	:: ProcessId TaskId TaskProperties ProcessStatus ProcessId	-> Process
@@ -158,7 +164,6 @@ mkEmbeddedProcessEntry ancestor taskid properties status parent
 		, status		= status
 		, properties	= properties
 		, result		= Nothing
-		, users			= []
 		}		
 
 processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 

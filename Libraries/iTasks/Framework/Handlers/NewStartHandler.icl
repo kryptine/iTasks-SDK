@@ -1,7 +1,7 @@
 implementation module NewStartHandler
 
 import StdEnv
-import Http, TSt, ProcessDB
+import Http, TSt, ProcessDB, UserDB, Time
 
 handleNewStartRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleNewStartRequest request tst	
@@ -22,5 +22,7 @@ where
 
 	startNewWorkflow :: Workflow *TSt -> (Int, *TSt)
 	startNewWorkflow workflow tst
-		# (currentUser, tst) = getCurrentUser tst
-		= accHStTSt (createProcess (mkStaticProcessEntry workflow currentUser currentUser Active)) tst
+		# (currentUserId, tst)	= getCurrentUser tst
+		# (currentUser,tst)		= accHStTSt (getUser currentUserId) tst
+		# (currentTime, tst)	= accHStTSt (accWorldHSt time) tst
+		= accHStTSt (createProcess (mkStaticProcessEntry workflow currentTime currentUser currentUser Active)) tst

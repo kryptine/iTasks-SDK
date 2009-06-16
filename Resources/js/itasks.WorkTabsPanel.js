@@ -12,6 +12,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 	initComponent: function() {
 		Ext.apply(this,{
 			activeItem: 0,
+			layoutOnTabChange: true,
 			items: {xtype: 'itasks.hometab'}
 		});
 		
@@ -29,7 +30,8 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		if(tab == undefined) {
 			//Create new tab
 			isnew = true;
-			tab = new itasks.WorkTabPanel({id: id, taskId: taskid, sessionId: this.sessionId, application: this.application, trace: trace});
+			tab = new itasks.WorkPanel({id: id, taskId: taskid, sessionId: this.sessionId, application: this.application, debug: trace});
+			
 			//Add new tab
 			this.add(tab);
 			this.activate(tab);
