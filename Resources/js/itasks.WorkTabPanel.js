@@ -18,17 +18,15 @@ itasks.InlineEditField = Ext.extend(Ext.Panel, {
 				border: false,
 				items: [{
 					xtype: 'panel',
-					style: 'padding: 3px 0px 0px 2px;',
+					style: 'padding: 3px 0px 5px 0px;',
 					border: false,
 					columnWidth: 1,
 					html: (this.format == undefined) ? this.field.value : this.format(this.field.value, this.field)
 				},{
 					xtype: 'toolbar',
 					border: false,
-					cls: 'x-form-item',
 					width: 28,
-					height: 24,
-					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
+					style: 'background: none; border: 0',
 					items: [{
 						icon: 'img/icons/pencil.png',
 						cls: 'x-btn-icon',
@@ -136,7 +134,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					title: 'Task',
 					iconCls: 'icon-editTask',
 					layout: 'fit',
-					hideMode: 'offsets',
 					border: false,
 					autoWidth: true,
 					autoScroll: true
@@ -594,7 +591,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 					this.findParentByType('itasks.work').sendEvents();
 				},this);
 			}
-		}		
+		}	
 	}
 });
 
@@ -623,6 +620,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 					},{
 						xtype: 'inlinefield',
 						width: 300,
+						height: 28,
 						field: {
 							xtype: 'combo',
 							value: this.properties.user[1],
@@ -661,6 +659,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 					},{
 						xtype: 'inlinefield',
 						width: 300,
+						height: 28,
 						format: itasks.util.formatPriority,
 						field: {
 							xtype: 'combo',
