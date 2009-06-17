@@ -4,108 +4,6 @@
 
 Ext.ns('itasks');
 
-itasks.InlineEditField = Ext.extend(Ext.Panel, {
-
-	initComponent: function () {
-		Ext.apply(this, {
-			layout: 'card',
-			border: false,
-			value: this.field.value,
-			activeItem: 0,
-			
-			items: [{
-				layout: 'column',
-				border: false,
-				items: [{
-					xtype: 'panel',
-					style: 'padding: 3px 0px 5px 0px;',
-					border: false,
-					columnWidth: 1,
-					html: (this.format == undefined) ? this.field.value : this.format(this.field.value, this.field)
-				},{
-					xtype: 'toolbar',
-					border: false,
-					width: 28,
-					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
-					items: [{
-						icon: 'img/icons/pencil.png',
-						cls: 'x-btn-icon',
-						handler: this.startEdit,
-						scope: this
-					}]
-				}]				
-			},{
-				layout: 'column',
-				border: false,
-				items: [{
-					xtype: 'panel',
-					border: false,
-					layout: 'fit',
-					columnWidth: 1,
-					items: [this.field]
-				},{
-					xtype: 'toolbar',
-					border: false,
-					width: 28,
-					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
-					items: [{
-						icon: 'img/icons/accept.png',
-						cls: 'x-btn-icon',
-						handler: this.stopEdit,
-						scope: this
-					}]
-				}]		
-			}]
-		});
-		itasks.InlineEditField.superclass.initComponent.apply(this,arguments);
-		
-		this.addEvents('startedit','stopedit');
-	},
-	startEdit: function () {
-		//Switch to edit card
-		this.layout.setActiveItem(1);
-		this.doLayout();
-		//Fire startedit event
-		this.fireEvent('startedit');
-	
-	},
-	stopEdit: function() {
-		
-		var field = this.getComponent(1).getComponent(0).getComponent(0);
-		var oldValue = this.value;
-		var newValue = field.getValue();
-		
-		this.value = newValue;
-		
-		//Update the label
-		this.setLabel((this.format == undefined) ? this.value : this.format(this.value, field));
-	
-		//Switch to label card
-		this.layout.setActiveItem(0);
-		this.doLayout();
-		//Fire stopedit event
-		this.fireEvent('stopedit',oldValue,newValue);
-	},
-	setLabel: function(msg) {
-		this.getComponent(0).getComponent(0).getEl().update(msg);
-	},
-	getValue: function() {
-		return this.value;
-	},
-	setValue: function(value) {
-		this.value = value;
-		
-		var field = this.getComponent(1).getComponent(0).getComponent(0);
-		
-		field.setValue(value);
-		
-		this.setLabel((this.format == undefined) ? this.value : this.format(this.value, field));
-	}
-});
-
-Ext.reg('inlinefield', itasks.InlineEditField);
-
-
 itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 
 	taskId: null,
@@ -363,6 +261,7 @@ itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			bodyStyle: 'padding: 10px',
+			border: false,
 			items: [{
 				xtype: 'panel',
 				border: false,
@@ -417,10 +316,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		this.refreshForm();
 	},
 	refreshForm: function() {
-		if(!this.body) {
-			alert(this.taskId);
-			return;
-		}
+	
 		this.body.update(this.formHtml);
 		
 		var forms = {};
@@ -626,16 +522,11 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 					cls: 'x-form-item x-form-item-label',
 					html: 'Waiting for <i>' +  this.properties.subject + '</i>'				
 				},{
-					layout: 'column',
+					layout: 'form',
 					border: false,
 					items: [{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px; background: none;',
-						width: 100,
-						text: 'Assigned to:'
-					},{
 						xtype: 'inlinefield',
+						fieldLabel: 'Assigned to',
 						height: 28,
 						width: 200,
 						field: {
@@ -663,18 +554,9 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 						listeners: {
 							'stopedit' : {fn: this.setUser, scope: this}
 						}
-					}]
-				},{
-					layout: 'column',
-					border: false,
-					items: [{
-						width: 100,
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						text: 'Priority:'
 					},{
 						xtype: 'inlinefield',
+						fieldLabel: 'Priority',
 						width: 200,
 						height: 28,
 						format: itasks.util.formatPriority,
@@ -689,55 +571,18 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 						listeners: {
 							'stopedit' : {fn: this.setPriority, scope: this}
 						}
-					}]
-				},{
-					layout: 'column',
-					border: false,
-					items: [{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						width: 100,
-						text: 'Issued at:'
 					},{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						text: itasks.util.formatDate(this.properties.issuedAt),
-						columnWidth: 1	
-					}]
-				},{
-					layout: 'column',
-					border: false,
-					items: [{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						width: 100,
-						text: 'First worked on:'
+						xtype: 'staticfield',
+						fieldLabel: 'Issued at',
+						value: itasks.util.formatDate(this.properties.issuedAt)
 					},{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						text: this.properties.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.firstEvent),
-						columnWidth: 1	
-					}]
-				},{
-					layout: 'column',
-					border: false,
-					style: 'background: none;',
-					items: [{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						width: 100,
-						text: 'Last worked on:'
+						xtype: 'staticfield',
+						fieldLabel: 'First worked on',
+						value: this.properties.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.firstEvent)
 					},{
-						xtype: 'label',
-						cls: 'x-form-item x-form-item-label',
-						style: 'padding: 5px 0px 5px 5px;',
-						text: this.properties.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.latestEvent),
-						columnWidth: 1	
+						xtype: 'staticfield',
+						fieldLabel: 'Last worked on',
+						value: this.properties.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.latestEvent)
 					}]
 				}]
 		});
@@ -747,7 +592,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 		this.on('render',function() {	
 			var sessionId = this.findParentByType('itasks.work').sessionId;
 			this.sessionId = sessionId;
-			this.getComponent(1).getComponent(1).field.store.baseParams = {session: sessionId}
+			this.getComponent(1).getComponent(0).field.store.baseParams = {session: sessionId}
 		},this);
 	},
 	setUser: function(ov,nv) {
@@ -768,17 +613,21 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 			});
 		}
 	},
-	
 	update: function (data) {
 		this.properties = data.properties;
+		this.updateContent(data.properties);
+	},
+	updateContent: function(props) {
+		var subject = this.getComponent(0);
+		var cols = this.getComponent(1);
 		
-		//Ugly update:
-		this.getComponent(0).body.update('Waiting for <i>' +  this.properties.subject + '</i>');
-		this.getComponent(1).getComponent(1).setValue(this.properties.user[1]);
-		this.getComponent(2).getComponent(1).setValue(this.properties.priority);
-		this.getComponent(3).getComponent(1).setText(itasks.util.formatDate(this.properties.issuedAt));
-		this.getComponent(4).getComponent(1).setText(this.properties.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.firstEvent));
-		this.getComponent(5).getComponent(1).setText(this.properties.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.latestEvent));
+		subject.body.update('Waiting for <i>' + Ext.util.Format.htmlEncode(props.subject) + '</i>');
+	
+		cols.getComponent(0).setValue(props.user[1]);
+		cols.getComponent(1).setValue(props.priority);
+		cols.getComponent(2).setValue(itasks.util.formatDate(props.issuedAt));
+		cols.getComponent(3).setValue(props.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(props.firstEvent));
+		cols.getComponent(4).setValue(props.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(props.latestEvent));
 	}
 });
 
@@ -810,7 +659,6 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 				if(this.items.get(j).taskId == items[i].taskId)
 					break; //Found!
 			}
-			
 			if(j < this.items.length) { //When found...
 				//Remove the existing items between i and j
 				for(var k = 0; k < (j - i); k ++) {
@@ -822,8 +670,13 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 				//Add the new item
 				this.insert(i,items[i]);
 			}
-		
 		}
+		//Remove the trailing items
+		var trailing = (this.items.length - items.length);
+		for (var i = 0; i < trailing; i++) {
+			this.remove(items.length);
+		} 
+		
 		//Update column sizes for horizontal layouts
 		if(this.combination == "horizontal") {
 			var colsize = 1.0 / items.length;
