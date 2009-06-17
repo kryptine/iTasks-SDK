@@ -313,8 +313,8 @@ where
 		= case mbProps of
 			(Just props)	= (TTMainTask ti props.Process.properties [], tst)
 			Nothing
-				# (_,tst)	= accHStTSt (createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active currentProcessId)) tst //TODO use correct main task as direct parent 
-				= (TTMainTask ti mti [], tst)
+				# (pid,tst)	= accHStTSt (createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active currentProcessId)) tst //TODO use correct main task as direct parent 
+				= (TTMainTask ti {TaskProperties | mti & processId = pid} [], tst)
 	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 
 mkTask :: !String !(*TSt -> *(!a,!*TSt)) !(TaskInfo *TSt -> *(TaskTree,*TSt)) (*TSt -> *TSt) (*TSt -> *TSt) -> Task a | iData a
