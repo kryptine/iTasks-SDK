@@ -91,6 +91,15 @@ itasks.InlineEditField = Ext.extend(Ext.Panel, {
 	},
 	getValue: function() {
 		return this.value;
+	},
+	setValue: function(value) {
+		this.value = value;
+		
+		var field = this.getComponent(1).getComponent(0).getComponent(0);
+		
+		field.setValue(value);
+		
+		this.setLabel((this.format == undefined) ? this.value : this.format(this.value, field));
 	}
 });
 
@@ -761,7 +770,15 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 	},
 	
 	update: function (data) {
-		//TODO: Update properties on task refresh
+		this.properties = data.properties;
+		
+		//Ugly update:
+		this.getComponent(0).body.update('Waiting for <i>' +  this.properties.subject + '</i>');
+		this.getComponent(1).getComponent(1).setValue(this.properties.user[1]);
+		this.getComponent(2).getComponent(1).setValue(this.properties.priority);
+		this.getComponent(3).getComponent(1).setText(itasks.util.formatDate(this.properties.issuedAt));
+		this.getComponent(4).getComponent(1).setText(this.properties.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.firstEvent));
+		this.getComponent(5).getComponent(1).setText(this.properties.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.latestEvent));
 	}
 });
 
