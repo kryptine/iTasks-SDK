@@ -26,7 +26,7 @@ itasks.InlineEditField = Ext.extend(Ext.Panel, {
 					xtype: 'toolbar',
 					border: false,
 					width: 28,
-					style: 'background: none; border: 0',
+					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
 					items: [{
 						icon: 'img/icons/pencil.png',
 						cls: 'x-btn-icon',
@@ -64,8 +64,10 @@ itasks.InlineEditField = Ext.extend(Ext.Panel, {
 	startEdit: function () {
 		//Switch to edit card
 		this.layout.setActiveItem(1);
+		this.doLayout();
 		//Fire startedit event
 		this.fireEvent('startedit');
+	
 	},
 	stopEdit: function() {
 		
@@ -80,7 +82,7 @@ itasks.InlineEditField = Ext.extend(Ext.Panel, {
 	
 		//Switch to label card
 		this.layout.setActiveItem(0);
-		
+		this.doLayout();
 		//Fire stopedit event
 		this.fireEvent('stopedit',oldValue,newValue);
 	},
@@ -133,9 +135,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				items: [{
 					title: 'Task',
 					iconCls: 'icon-editTask',
-					layout: 'fit',
 					border: false,
-					autoWidth: true,
 					autoScroll: true
 				}],
 				tbar: [{
@@ -256,7 +256,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			iconCls: 'icon-debug',
 			bodyStyle: 'padding: 10px',
 			autoScroll: true,
-			autoWidth: true,
 			items: [{
 				xtype: 'panel',
 				title: 'Task tree',
@@ -628,8 +627,8 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 						text: 'Assigned to:'
 					},{
 						xtype: 'inlinefield',
-						width: 300,
 						height: 28,
+						width: 200,
 						field: {
 							xtype: 'combo',
 							value: this.properties.user[1],
@@ -667,7 +666,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 						text: 'Priority:'
 					},{
 						xtype: 'inlinefield',
-						width: 300,
+						width: 200,
 						height: 28,
 						format: itasks.util.formatPriority,
 						field: {
@@ -717,6 +716,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 				},{
 					layout: 'column',
 					border: false,
+					style: 'background: none;',
 					items: [{
 						xtype: 'label',
 						cls: 'x-form-item x-form-item-label',
