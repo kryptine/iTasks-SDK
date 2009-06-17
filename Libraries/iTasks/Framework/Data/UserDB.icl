@@ -34,6 +34,17 @@ initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", passw
 			  , {User | userId = 37, username = "ambupost7", displayname = "Ambulance Post 7", password = "", roles = ["ambulances"]}   
 			  , {User | userId = 38, username = "ambupost8", displayname = "Ambulance Post 8", password = "", roles = ["ambulances"]}   
 			  , {User | userId = 39, username = "ambupost9", displayname = "Ambulance Post 9", password = "", roles = ["ambulances"]}   
+
+			  , {User | userId = 40, username = "expert0", displayname = "Expert 0", password = "", roles = ["experts"]}
+			  , {User | userId = 41, username = "expert1", displayname = "Expert 1", password = "", roles = ["experts"]}
+			  , {User | userId = 42, username = "expert2", displayname = "Expert 2", password = "", roles = ["experts"]}   
+			  , {User | userId = 43, username = "expert3", displayname = "Expert 3", password = "", roles = ["experts"]}   
+			  , {User | userId = 44, username = "expert4", displayname = "Expert 4", password = "", roles = ["experts"]}   
+			  , {User | userId = 45, username = "expert5", displayname = "Expert 5", password = "", roles = ["experts"]}   
+			  , {User | userId = 46, username = "expert6", displayname = "Expert 6", password = "", roles = ["experts"]}   
+			  , {User | userId = 47, username = "expert7", displayname = "Expert 7", password = "", roles = ["experts"]}   
+			  , {User | userId = 48, username = "expert8", displayname = "Expert 8", password = "", roles = ["experts"]}   
+			  , {User | userId = 49, username = "expert9", displayname = "Expert 9", password = "", roles = ["experts"]}   
 			  ]
 			  
 instance UserDB HSt
