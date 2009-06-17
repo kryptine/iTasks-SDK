@@ -112,16 +112,17 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			var trace = debugpanel.getTraceCheckbox().getValue();
 			var tab = worktabs.openWorkTab(taskid, trace);
 			if(tab[1]) { //The tab is new
-				tab[0].on("taskfinished",function(taskid) {
+				tab[0].on("taskDone",function(taskid) {
 					worklist.refresh();
 				},this);
-				tab[0].on("taskdeleted",function(taskid) {
+				tab[0].on("taskRedundant",function(taskid) {
 					worklist.refresh();
 				},this);
+				/*
 				tab[0].on("tasksuggestsrefresh",function(taskid) {
 					worklist.refresh();
 				},this);
-				
+				*/
 				debugpanel.getTraceCheckbox().on("check",function(cb,val) {
 					tab[0].setTrace(val);
 				});

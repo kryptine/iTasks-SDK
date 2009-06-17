@@ -154,7 +154,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		});
 		
 		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
-		
+	
+		this.addEvents("taskRedundant","taskDone");
+	
 		//Attach event handlers for the loading indicator
 		this.on("remoteCallStart",function() {
 			this.getComponent(0).setBusy(true);
@@ -177,11 +179,13 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					ct.add(new itasks.WorkMessagePanel({
 						html: "This task is completed. Thank you."
 					}));
+					this.fireEvent("taskDone");
 					break;
 				case "redundant":
 					ct.add(new itasks.WorkMessagePanel({
 						html: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
 					}));
+					this.fireEvent("taskRedundant");
 					break;	
 			}
 			ct.doLayout();			
@@ -368,13 +372,14 @@ itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
 		new Ext.util.DelayedTask().delay(1000,this.update,this,[this.timeout - 1]);
 	},
 	update: function(timeout) {
+		
 		if(timeout == 0) {
 			var pt = this.findParentByType('itasks.work');
 			if(pt.ownerCt)
 				pt.ownerCt.remove(pt);
 		} else {
 			var pb = this.getComponent(1);
-			
+		
 			pb.updateText('This window will automatically close in ' + timeout + ' seconds');
 			pb.updateProgress( (1.0 * timeout) / this.timeout);
 			
@@ -404,6 +409,10 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		this.refreshForm();
 	},
 	refreshForm: function() {
+		if(!this.body) {
+			alert(this.taskId);
+			return;
+		}
 		this.body.update(this.formHtml);
 		
 		var forms = {};
@@ -761,27 +770,49 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			border: false,
-			layout: this.combination == "horizontal" ? "table" : null,
-			layoutConfig: this.combination == "horizontal" ? {columns : this.items.length } : null
+			layout: this.combination == "horizontal" ? "column" : null
 		});
+		
+		//Update column sizes for horizontal layouts
+		if(this.combination == "horizontal") {
+			var colsize = 1.0 / this.items.length;
+			for(var i = 0; i < this.items.length; i++) {
+				this.items[i].columnWidth = colsize;
+			}
+		}
 		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
 	},
 	update: function (data) {
-		//Check and update all items
-		var i = 0;
+		//Check and update all child items
 		var items = data.items;
-	
-		while(i < this.items.length) {
-			if(i >= items.length) {
-				this.remove(i);
-				continue;
+		
+		for(var i = 0; i < items.length; i++) {
+			//Check if the next item already exists
+			var j;
+			for(j = i; j < this.items.length; j++) {
+				if(this.items.get(j).taskId == items[i].taskId)
+					break; //Found!
 			}
-			if(items[i].taskId == this.items.get(i).taskId) {
+			
+			if(j < this.items.length) { //When found...
+				//Remove the existing items between i and j
+				for(var k = 0; k < (j - i); k ++) {
+					this.remove(i);
+				}
+				//Update the existing item
 				this.items.get(i).update(items[i]);
 			} else {
+				//Add the new item
 				this.insert(i,items[i]);
 			}
-			i++;
+		
+		}
+		//Update column sizes for horizontal layouts
+		if(this.combination == "horizontal") {
+			var colsize = 1.0 / items.length;
+			for(var i = 0; i < items.length; i++) {
+				this.items.get(i).columnWidth = colsize;
+			}
 		}
 		this.doLayout();
 	}
