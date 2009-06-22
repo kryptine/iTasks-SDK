@@ -33,7 +33,6 @@ where
 return :: !a -> (Task a) | iData a
 return a  = mkBasicTask "return" (\tst -> (a,tst))
 
-
 //Repetition and loops:
 
 forever :: !(Task a) -> Task a | iData a
@@ -89,7 +88,9 @@ parallel label pred combine tasks
 where
 	doandTasks [] tst	=  (combine (if (pred []) True False) [],tst)
 	doandTasks taskCollection tst=:{taskNr}
-		# (alist,tst)	= checkAllTasks taskCollection 0 [] tst 
+		# (alist,tst=:{exception})	= checkAllTasks taskCollection 0 [] tst
+		| isJust exception
+			= (createDefault, {tst & activated = False})			// stop, an exception occurred in one of the branches
 		| pred alist
 			= (combine True alist,{tst & activated = True}) 		// stop, all work done so far satisfies predicate
 		| length alist == length taskCollection						// all tasks are done
@@ -101,9 +102,12 @@ where
 		checkAllTasks taskCollection index accu tst
 			| index == length taskCollection
 				= (reverse accu,tst)												// all tasks tested
-			# (taskname,task)		= taskCollection!!index
-			# (a,tst=:{activated})	= accTaskTSt (mkSequenceTask taskname (accTaskTSt task)) tst	// check tasks
-			= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
+			# (taskname,task)					= taskCollection!!index
+			# (a,tst=:{activated,exception})	= accTaskTSt (mkSequenceTask taskname (accTaskTSt task)) tst	// check tasks
+			| isJust exception
+				= ([],tst)						//Stop immediately if a branch has an exception
+			| otherwise
+				= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
 // Multi-user workflows
 

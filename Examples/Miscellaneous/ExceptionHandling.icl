@@ -21,7 +21,7 @@ exceptionHandlingExample
 	 }]
 
 exceptionTask :: Task Void
-exceptionTask = normalTask <^> catchNegativeValueTask normalTask <^> catchTooLargeValueTask normalTask
+exceptionTask = try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask)
 
 db :: (DBid Int)
 db = mkDBid "MyIntDB" LSTxtFile
@@ -38,8 +38,8 @@ where
 	msg = [Text "Please enter only values between 0 and 100"]
 	
 	inspectVal val
-		| val < 0	= raise (NegativeValueException "Negative value entered")
-		| val > 100	= raise (TooLargeValueException "Too large value entered")
+		| val < 0	= throw (NegativeValueException "Negative value entered")
+		| val > 100	= throw (TooLargeValueException "Too large value entered")
 		| otherwise	= return val
 
 
@@ -55,5 +55,4 @@ catchNegativeValueTask task (NegativeValueException msg)
 catchTooLargeValueTask :: (Task Void) TooLargeValueException  -> Task Void
 catchTooLargeValueTask task (TooLargeValueException msg) 
 	=	[Text "A TooLargeValueException occurred, please try again"] ?>> button "Ok" Void
-	>>| (task <^> catchNegativeValueTask task <^> catchTooLargeValueTask task)
-	
+	>>| try (try task (catchNegativeValueTask task)) (catchTooLargeValueTask task)	

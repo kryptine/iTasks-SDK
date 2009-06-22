@@ -74,42 +74,28 @@ where
 		| myTaskId == taskId						= Just (CC pred)
 		| otherwise									= find myTaskId chds
 
-(<^>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
-(<^>) normaltask exceptiontask = mkSequenceTask "<^>" exceptionTask
+try :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
+try normalTask handlerTask = mkSequenceTask "try" exceptionTask
 where
 	exceptionTask tst=:{taskNr,options,hst}
-		# storeId			= iTaskId (tl taskNr) "catchException"
-		# (store,hst) 		= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
-		# (caught,exception)= store.Form.value
+		# storeId		= iTaskId (tl taskNr) "exception"
+		# (store,hst) 	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
+		# (caught,e)	= store.Form.value
 		| caught
-			= accTaskTSt (exceptiontask exception) {tst & hst = hst}
+			= accTaskTSt (handlerTask e) {tst & hst = hst}
 		| otherwise
-			# (a, tst =:{exceptions,hst})	= accTaskTSt normaltask {tst & hst = hst}
-			# (mbEx,otherExceptions)		= findException exceptions
-			= case mbEx of
-				Just ex
-					# hst		= deleteIData (iTaskId (tl taskNr) "") hst
-					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,ex)) hst
-					# tst		= resetSequence {tst & hst = hst}
-					# (a,tst=:{exceptions=newExceptions})
-								= accTaskTSt (exceptiontask ex) {tst & exceptions = [], activated = True}
-					= (a, {tst & exceptions = newExceptions ++ otherExceptions})
-				Nothing
-					= (a, {tst & hst = hst})
-	
-	findException []
-		= (Nothing, [])
-	findException [ex:exs]
-		= case ex of
-			(ex :: e^)
-				= (Just ex, exs)
-			_
-				# (mbEx, exs) = findException exs
-				= (mbEx, [ex:exs])
-
-raise :: !e -> Task a | iData a & TC e	
-raise e = mkBasicTask "raiseException" raise`
+			# (a, tst =:{exception,hst})	= accTaskTSt normalTask {tst & hst = hst}
+			= case exception of
+				Just (ex :: e^)
+					# hst		= deleteIData (iTaskId (tl taskNr) "") hst 														//Garbage collect
+					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,ex)) hst 	//Store the exception
+					= accTaskTSt (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, hst = hst})		//Run the handler
+					
+				_	= (a, {tst & hst = hst})	//Don't handle the exception
+						
+throw :: !e -> Task a | iData a & TC e	
+throw e = mkBasicTask "throw" throw`
 where
-	raise` tst
-		# tst	= setOutput [H1Tag [] [Text "Error, an uncaught exception was raised"]] tst
-		= (createDefault, {tst & exceptions = [(dynamic e):tst.exceptions], activated = False})
+	throw` tst
+		# tst	= setOutput [H1Tag [] [Text "Error, an uncaught exception was thrown"]] tst
+		= (createDefault, {tst & exception = Just (dynamic e), activated = False})

@@ -22,9 +22,9 @@ from Time		import :: Time(..)
 					, options		:: !Options									// iData lifespan and storage format
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
-					, exceptions	:: ![Dynamic]								// Optional, used when raising exceptions
+					, exception		:: !Maybe Dynamic							// Optional, used when raising exceptions
 					
-					//, newChange		:: !Maybe Dynamic							// Optional
+					//, newChange		:: !Maybe Dynamic						// Optional
 					//, oldChanges	:: ![Dynamic]								// Optional
 					
 					, changeRequests											// Optional, used when demanding dynamic changes
