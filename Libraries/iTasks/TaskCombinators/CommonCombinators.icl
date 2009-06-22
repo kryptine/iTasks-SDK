@@ -91,7 +91,7 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:) nuserId ltask = delegate nuserId NormalPriority ltask
+(@:) nuserId ltask = assign nuserId NormalPriority Nothing ltask
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set

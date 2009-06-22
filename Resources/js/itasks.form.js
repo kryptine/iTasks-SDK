@@ -2,6 +2,8 @@ Ext.ns("itasks.form");
 
 itasks.form.StaticField = Ext.extend(Ext.form.Field, {
 
+	format: Ext.util.Format.htmlEncode,
+	
 	initComponent: function() {
 		Ext.apply(this,{
 			defaultAutoCreate: {tag: "div"},
@@ -20,7 +22,7 @@ itasks.form.StaticField = Ext.extend(Ext.form.Field, {
 	setValue: function(value) {
 		this.value = value;
 		if(this.rendered) {
-			this.el.update(Ext.util.Format.htmlEncode(this.value));
+			this.el.update(this.format(this.value));
 		}
 	}
 });
@@ -29,50 +31,52 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 
 	initComponent: function () {
 		Ext.apply(this, {
-			layout: 'card',
+			layout: "card",
+			width: 200,
+			height: 28,
+			style: "margin: 0px",
 			border: false,
 			value: this.field.value,
 			activeItem: 0,
 			isFormField: true,
-			
 			items: [{
-				layout: 'column',
+				layout: "column",
 				border: false,
 				items: [{
-					xtype: 'panel',
-					style: 'padding: 3px 0px 5px 0px;',
+					xtype: "panel",
+					style: "padding: 3px 0px 5px 0px;",
 					border: false,
 					columnWidth: 1,
-					html: (this.format == undefined) ? this.field.value : this.format(this.field.value, this.field)
+					html: (this.format == undefined) ? this.value : this.format(this.value, this.field)
 				},{
-					xtype: 'toolbar',
+					xtype: "toolbar",
 					border: false,
 					width: 28,
-					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
+					style: "padding: 0px 0px 0px 2px; background: none; border: 0",
 					items: [{
-						icon: 'img/icons/pencil.png',
-						cls: 'x-btn-icon',
+						icon: "img/icons/pencil.png",
+						cls: "x-btn-icon",
 						handler: this.startEdit,
 						scope: this
 					}]
 				}]				
 			},{
-				layout: 'column',
+				layout: "column",
 				border: false,
 				items: [{
-					xtype: 'panel',
+					xtype: "panel",
 					border: false,
-					layout: 'fit',
+					layout: "fit",
 					columnWidth: 1,
-					items: [this.field]
+					items: [Ext.apply(this.field,{value: this.value})]
 				},{
-					xtype: 'toolbar',
+					xtype: "toolbar",
 					border: false,
 					width: 28,
-					style: 'padding: 0px 0px 0px 2px; background: none; border: 0',
+					style: "padding: 0px 0px 0px 2px; background: none; border: 0",
 					items: [{
-						icon: 'img/icons/accept.png',
-						cls: 'x-btn-icon',
+						icon: "img/icons/accept.png",
+						cls: "x-btn-icon",
 						handler: this.stopEdit,
 						scope: this
 					}]
@@ -81,14 +85,14 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 		});
 		itasks.form.InlineField.superclass.initComponent.apply(this,arguments);
 		
-		this.addEvents('startedit','stopedit');
+		this.addEvents("startedit","stopedit");
 	},
 	startEdit: function () {
 		//Switch to edit card
 		this.layout.setActiveItem(1);
 		this.doLayout();
 		//Fire startedit event
-		this.fireEvent('startedit');
+		this.fireEvent("startedit");
 	
 	},
 	stopEdit: function() {
@@ -97,31 +101,34 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 		var oldValue = this.value;
 		var newValue = field.getValue();
 		
-		this.value = newValue;
-		
-		//Update the label
-		this.setLabel((this.format == undefined) ? this.value : this.format(this.value, field));
+		this.setValue(newValue);
 	
 		//Switch to label card
 		this.layout.setActiveItem(0);
 		this.doLayout();
 		//Fire stopedit event
-		this.fireEvent('stopedit',oldValue,newValue);
-	},
-	setLabel: function(msg) {
-		this.getComponent(0).getComponent(0).getEl().update(msg);
+		this.fireEvent("stopedit",oldValue,newValue);
+		//Fire change event
+		if(oldValue != newValue)
+			this.fireEvent("change",oldValue,newValue);
 	},
 	getValue: function() {
 		return this.value;
 	},
 	setValue: function(value) {
+		
 		this.value = value;
 		
+		var panel = this.getComponent(0).getComponent(0);
 		var field = this.getComponent(1).getComponent(0).getComponent(0);
+		var label = this.format == undefined ? this.value : this.format(this.value, field)
 		
 		field.setValue(value);
 		
-		this.setLabel((this.format == undefined) ? this.value : this.format(this.value, field));
+		if(panel.rendered)
+			panel.getEl().update(label);
+		else
+			panel.html = label;
 	}
 });
 

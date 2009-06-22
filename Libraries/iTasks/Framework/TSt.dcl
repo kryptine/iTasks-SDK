@@ -23,6 +23,10 @@ from Time		import :: Time(..)
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
 					, exceptions	:: ![Dynamic]								// Optional, used when raising exceptions
+					
+					//, newChange		:: !Maybe Dynamic							// Optional
+					//, oldChanges	:: ![Dynamic]								// Optional
+					
 					, changeRequests											// Optional, used when demanding dynamic changes
 									:: ![(!TaskId,!ChangeCondition,!Int,!Dynamic)]	
 									
@@ -46,7 +50,11 @@ from Time		import :: Time(..)
 :: ChangeResult	=	{ newCondition		:: !Maybe ChangeCondition				// new condition to pass to future handlers	
 					, isApplicable		:: !Bool								// True if the change is applicable here; note that the dynamic information pushed should also match
 					, applyChange		:: !Bool								// True if the work indeed has to be changed by the alternative defined 		
-					} 														
+					}
+
+
+//Experimental change definition
+:: Change a = Change String (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe (Change a)))																		
 
 // The task monad
 :: Task a = Task !(*TSt -> *(!a,!*TSt))

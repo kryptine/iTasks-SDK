@@ -107,14 +107,14 @@ where
 
 // Multi-user workflows
 
-delegate :: !UserId !TaskPriority !(LabeledTask a) -> Task a | iData a	
-delegate toUserId initPriority (label,task) = Task delegate` 
+assign :: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) -> Task a | iData a	
+assign toUserId initPriority initDeadline (label,task) = Task assign` 
 where
-	delegate` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
+	assign` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
 		# (toUser,tst)		= accHStTSt (getUser toUserId) tst
 		# (currentUser,tst)	= accHStTSt (getUser currentUserId) tst 
 		# (now,tst)			= (accHStTSt (accWorldHSt time)) tst						//Retrieve current time
-		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, priority = initPriority, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
+		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, deadline = initDeadline, priority = initPriority, progress = TPActive, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
 		# (a, tst)			= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 

@@ -6,6 +6,7 @@ definition module BasicCombinators
 from TSt 			import :: Task, :: LabeledTask, :: TaskCombination
 from Types 			import :: UserId, :: TaskPriority
 from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
+from Time			import :: Time
 
 import iDataForms, GenPrint, GenParse
 
@@ -96,14 +97,15 @@ parallel 	:: !String !([a] -> Bool) !(Bool [a] -> b) ![LabeledTask a] -> Task b 
 // Multi-user workflows
 
 /**
-* Delegate a task to a(nother) user.
+* Assign a task to a(nother) user.
 *
 * @param The initial UserId of the user to which the task is delegated
 * @param The initial priority of the task.
+* @param The optional initial deadline of the task.
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-delegate 	:: !UserId !TaskPriority !(LabeledTask a) 				-> Task a	| iData a
+assign 	:: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) 		-> Task a	| iData a
 
 /* Experimental department:
 

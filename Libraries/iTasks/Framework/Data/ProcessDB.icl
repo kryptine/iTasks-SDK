@@ -4,10 +4,10 @@ import StdEnv, StdGeneric, StdMaybe, GenBimap
 import HSt, TSt, iDataForms, iDataFormlib
 import DynamicDB
 
-derive gForm	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
-derive gUpd		Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
-derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
-derive gParse	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
+derive gForm	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gUpd		Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gParse	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 
 instance == ProcessStatus
 where
@@ -128,6 +128,8 @@ mkStaticProcessEntry workflow timestamp user delegator status
 							, user			= user
 							, delegator		= delegator
 							, priority		= NormalPriority
+							, deadline		= Nothing
+							, progress		= TPActive
 							, issuedAt		= timestamp
 							, firstEvent	= Nothing
 							, latestEvent	= Nothing
@@ -148,6 +150,8 @@ mkDynamicProcessEntry label task timestamp user delegator status parent
 							, user			= user
 							, delegator		= delegator
 							, priority		= NormalPriority
+							, deadline		= Nothing
+							, progress		= TPActive
 							, issuedAt		= timestamp
 							, firstEvent	= Nothing
 							, latestEvent	= Nothing

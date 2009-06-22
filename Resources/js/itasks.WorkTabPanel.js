@@ -2,13 +2,14 @@
 * Tab panel which shows a task a user is working on
 */
 
-Ext.ns('itasks');
+Ext.ns("itasks");
 
 itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 
 	taskId: null,
 	sessionId: null,
 	application: null,
+	properties: null,
 	
 	debug: false,
 	initialized: false,
@@ -20,10 +21,11 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		Ext.apply(this, {
 			title: "Loading task...",
 			closable: true,
-			iconCls: 'icon-editTask',
+			autoDestroy: true,
+			iconCls: "icon-editTask",
 			
-			url: '/handlers/work/tab',
-			params: {task: this.taskId, debug: this.debug ? 1 : 0, prefix: 'ip-0-'},
+			url: "/handlers/work/tab",
+			params: {task: this.taskId, debug: this.debug ? 1 : 0, prefix: "ip-0-"},
 			nextPrefix: 1,
 			
 			layout: 'anchor',
@@ -42,6 +44,12 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				items: [{
 					title: 'Task',
 					iconCls: 'icon-editTask',
+					border: false,
+					autoScroll: true
+				},{
+					title: 'Status',
+					xtype: 'itasks.work-status',
+					iconCls: 'icon-waiting',
 					border: false,
 					autoScroll: true
 				}],
@@ -78,9 +86,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if(data.content == "done" || data.content == "redundant") {
 			var ct = this.getComponent(1).getComponent(0);
 			
-			if(ct.items.length > 0)
-				ct.remove(0,true);
-				
+			if(ct.items.length) {
+				ct.remove(0);
+			}
 			switch(data.content) {
 				case "done":	
 					ct.add(new itasks.WorkMessagePanel({
@@ -98,6 +106,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			ct.doLayout();			
 			return;
 		}
+		//Update properties
+		this.properties = data.properties;
 		//Update header
 		this.getComponent(0).setContent(this.taskId, data.subject, data.properties);
 		//Update title
@@ -106,6 +116,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.updateDebug(data.debug);
 		//Update content
 		this.updateContent(data.content);
+		//Update status
+		this.updateStatus(data.properties);
 	
 		//Reset params, events and states
 		this.params = { task : this.taskId
@@ -140,10 +152,13 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.initialized = true;
 		}	
 	},
+	updateStatus: function(properties) {
+		this.getComponent(1).getComponent(1).update(properties);
+	},
 	updateDebug: function(debug) {
 		if(debug != null) {
-			if(this.getComponent(1).items.length > 1) {
-				if(this.getComponent(1).getComponent(1).rendered) {
+			if(this.getComponent(1).items.length > 2) {
+				if(this.getComponent(1).getComponent(2).rendered) {
 					this.updateDebugTab(debug);
 				} else {
 					this.removeDebugTab(debug);
@@ -153,7 +168,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				this.addDebugTab(debug);
 			}
 		} else {
-			if(this.getComponent(1).items.length > 1)
+			if(this.getComponent(1).items.length > 2)
 				this.removeDebugTab();
 		}
 	},
@@ -216,6 +231,14 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			
 			this.refresh();
 		}
+	},
+	sendPropertyEvent: function(process,name,value) {
+		//Ugly side-effect event handler
+		Ext.Ajax.request({
+			url:"/handlers/work/property",
+			method: "GET",
+			params: {session : this.sessionId, process : process, property: name, value: value }
+		});
 	}
 });
 
@@ -256,42 +279,99 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 
 itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
 	
-	timeout: 5,
+	timeout: 5000,
+	interval: 10,
+	timepassed: 0,
+	runner: null,
 	
 	initComponent: function() {
+		
 		Ext.apply(this, {
-			bodyStyle: 'padding: 10px',
+			cls: "worktab-content",
 			border: false,
 			items: [{
-				xtype: 'panel',
+				xtype: "panel",
 				border: false,
 				html: this.html
 			},{
-				xtype: 'progress',
-				style: 'margin: 10px 0px 0px 0px;',
+				xtype: "progress",
+				style: "margin: 10px 0px 0px 0px;",
 				value: 1.0,
-				text: 'This window will automatically close in ' + this.timeout + ' seconds'
+				text: "This window will automatically close in " + (this.timeout / 1000) + " seconds"
 			}],
 			html: null
 		});
 		itasks.WorkMessagePanel.superclass.initComponent.apply(this,arguments);
 		
-		new Ext.util.DelayedTask().delay(1000,this.update,this,[this.timeout - 1]);
-	},
-	update: function(timeout) {
+		this.runner = {
+			run: this.update,
+			scope: this,
+			interval: this.interval
+		};
 		
-		if(timeout == 0) {
-			var pt = this.findParentByType('itasks.work');
+		Ext.TaskMgr.start(this.runner);
+	},
+	update: function() {
+		if(this.timepassed >= this.timeout) {
+			//Close the parent work panel
+			var pt = this.findParentByType("itasks.work");
 			if(pt.ownerCt)
 				pt.ownerCt.remove(pt);
 		} else {
+			//Update progress
+			this.timepassed += this.interval;
+			
 			var pb = this.getComponent(1);
 		
-			pb.updateText('This window will automatically close in ' + timeout + ' seconds');
-			pb.updateProgress( (1.0 * timeout) / this.timeout);
-			
-			new Ext.util.DelayedTask().delay(1000,this.update,this,[timeout - 1]);
+			pb.updateText("This window will automatically close in " + Math.ceil((this.timeout - this.timepassed) / 1000) + " seconds");
+			pb.updateProgress((this.timeout - this.timepassed) / this.timeout );
 		}
+	},
+	onDestroy: function() {
+		//Stop the taskrunner
+		if(this.runner) {
+			Ext.TaskMgr.stop(this.runner);
+		}
+		itasks.WorkMessagePanel.superclass.onDestroy.apply(this,arguments);
+	}
+});
+
+itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
+	initComponent: function() {
+		Ext.apply(this, {
+			layout: "form",
+			cls: "worktab-content",
+			defaultType: "staticfield",
+			items: [{
+				xtype: "itasks.progress",
+				name: "progress",
+				fieldLabel: "Progress",
+				format: itasks.util.formatProgress,
+				listeners: {
+					"change" : function(ov,nv) {var wt = this.findParentByType("itasks.work"); wt.sendPropertyEvent(wt.properties.processId,"progress",nv); }
+				}
+			},{
+				name: "priority",
+				fieldLabel: "Priority",
+				format: itasks.util.formatPriority
+			},{
+				name: "issuedAt",
+				fieldLabel: "Issued at",
+				format: itasks.util.formatDate
+			},{
+				name: "firstEvent",
+				fieldLabel: "First worked on",
+				format: itasks.util.formatStartDate
+			},{
+				name: "latestEvent",
+				fieldLabel: "Last worked on",
+				format: itasks.util.formatStartDate	
+			}]
+		});
+		itasks.WorkStatusPanel.superclass.initComponent.apply(this,arguments);
+	},
+	update: function (properties) {
+		this.items.each(function(item){item.setValue(properties[item.name]);});
 	}
 });
 
@@ -513,123 +593,116 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 				
 		Ext.apply(this, {
-			cls: 'worktab-content',
+			cls: "worktab-content",
 			border: false,
+			hideBorders: true,
 			items: [{
-					xtype: 'panel',
-					style: 'padding: 5px;',
-					border: false,
-					cls: 'x-form-item x-form-item-label',
-					html: 'Waiting for <i>' +  this.properties.subject + '</i>'				
+					html: "Waiting for <i>" +  this.properties.subject + "</i>",
+					style: "margin: 0px 0px 20px 0px;"			
 				},{
-					layout: 'form',
-					border: false,
+					xtype: "panel",
+					layout: "form",
+					defaultType: "staticfield",
 					items: [{
-						xtype: 'inlinefield',
-						fieldLabel: 'Assigned to',
-						height: 28,
-						width: 200,
-						field: {
-							xtype: 'combo',
-							value: this.properties.user[1],
-							label: this.properties.user[1],
-							store: new Ext.data.JsonStore({
-								root: 'users',
-								totalProperty: 'total',
-								fields: ['userId','displayName'],
-								url: '/handlers/data/users'
-							}),
-							displayField: 'displayName',
-							valueField: 'userId',
-							triggerAction: 'all',
-							editable: false,
-							forceSelection: true,
-							listeners: {
-								'select' : {fn: function(cmt,rec,ind) {cmt.label = rec.get('displayName'); }, scope: this}
-							}
-						},
-						format: function(value, field) {
-							return field.label;
-						},
+						xtype: "itasks.user",
+						fieldLabel: "Assigned to",
+						value: this.properties.user[1],
 						listeners: {
-							'stopedit' : {fn: this.setUser, scope: this}
+							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.processId,"user",nv);}
+									   , scope: this }
 						}
 					},{
-						xtype: 'inlinefield',
-						fieldLabel: 'Priority',
-						width: 200,
-						height: 28,
-						format: itasks.util.formatPriority,
-						field: {
-							xtype: 'combo',
-							value: this.properties.priority,
-							store: [['HighPriority','High'],['NormalPriority','Normal'],['LowPriority','Low']],
-							editable: false,
-							triggerAction: 'all',
-							forceSelection: true
-						},
+						xtype: "itasks.priority",
+						fieldLabel: "Priority",
+						value: this.properties.priority, 
 						listeners: {
-							'stopedit' : {fn: this.setPriority, scope: this}
+							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.processId,"priority",nv);}
+									   , scope: this }
 						}
 					},{
-						xtype: 'staticfield',
-						fieldLabel: 'Issued at',
-						value: itasks.util.formatDate(this.properties.issuedAt)
+						fieldLabel: "Progress",
+						format: itasks.util.formatProgress,
+						value: this.properties.progress
 					},{
-						xtype: 'staticfield',
-						fieldLabel: 'First worked on',
-						value: this.properties.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.firstEvent)
+						fieldLabel: "Issued at",
+						format: itasks.util.formatDate,
+						value: this.properties.issuedAt
 					},{
-						xtype: 'staticfield',
-						fieldLabel: 'Last worked on',
-						value: this.properties.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(this.properties.latestEvent)
+						fieldLabel: "First worked on",
+						format: itasks.util.formatStartDate,
+						value: this.properties.firstEvent
+					},{
+						fieldLabel: "Last worked on",
+						format: itasks.util.formatStartDate,
+						value: this.properties.latestEvent
 					}]
 				}]
 		});
-		
 		itasks.TaskWaitingPanel.superclass.initComponent.apply(this,arguments);
-		
-		this.on('render',function() {	
-			var sessionId = this.findParentByType('itasks.work').sessionId;
-			this.sessionId = sessionId;
-			this.getComponent(1).getComponent(0).field.store.baseParams = {session: sessionId}
-		},this);
-	},
-	setUser: function(ov,nv) {
-		if(ov != nv) { //Ugly side-effect event handler
-			Ext.Ajax.request({
-				url:"/handlers/work/property",
-				method: "GET",
-				params: {session : this.sessionId, process : this.properties.processId, property: "user", user: nv }
-			});
-		}
-	},
-	setPriority: function(ov,nv) {
-		if(ov != nv) { //Ugly side-effect event handler
-			Ext.Ajax.request({
-				url:"/handlers/work/property",
-				method: "GET",
-				params: {session : this.sessionId, process : this.properties.processId, property: "priority", priority: nv }
-			});
-		}
 	},
 	update: function (data) {
 		this.properties = data.properties;
-		this.updateContent(data.properties);
-	},
-	updateContent: function(props) {
-		var subject = this.getComponent(0);
-		var cols = this.getComponent(1);
+
+		var p = data.properties;
+		var props = [p.user[1],p.priority,p.progress,p.issuedAt,p.firstEvent,p.latestEvent];
 		
-		subject.body.update('Waiting for <i>' + Ext.util.Format.htmlEncode(props.subject) + '</i>');
-	
-		cols.getComponent(0).setValue(props.user[1]);
-		cols.getComponent(1).setValue(props.priority);
-		cols.getComponent(2).setValue(itasks.util.formatDate(props.issuedAt));
-		cols.getComponent(3).setValue(props.firstEvent == null ? 'Not started yet' : itasks.util.formatDate(props.firstEvent));
-		cols.getComponent(4).setValue(props.latestEvent == null ? 'Not started yet' : itasks.util.formatDate(props.latestEvent));
+		this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.subject) + "</i>");
+		this.getComponent(1).items.each(function(cmt,i){ cmt.setValue(props[i]); });
 	}
 });
+
+
+itasks.form.UserField = Ext.extend(itasks.form.InlineField, {
+	format: function(value, field) { return (field.label != "") ? field.label : value;},
+	field: {
+		xtype: "combo",
+		value: this.value,
+		label: "",
+		store: new Ext.data.JsonStore({
+			root: "users",
+			totalProperty: "total",
+			fields: ["userId","displayName"],
+			url: "/handlers/data/users"
+		}),
+		displayField: "displayName",
+		valueField: "userId",
+		triggerAction: "all",
+		editable: false,
+		forceSelection: true,
+		listeners: {
+			"select" : function(cmt,rec,ind) {cmt.label = rec.get("displayName");},
+			"beforequery" : function(e) {e.combo.store.baseParams["session"] = e.combo.findParentByType("itasks.work").sessionId;}
+		}
+	}
+});
+
+itasks.form.PriorityField = Ext.extend(itasks.form.InlineField, {
+	format: itasks.util.formatPriority,
+	field: {
+		xtype: "combo",
+		value: this.value,
+		store: [["HighPriority","High"],["NormalPriority","Normal"],["LowPriority","Low"]],
+		editable: false,
+		triggerAction: "all",
+		forceSelection: true
+	}
+});
+
+itasks.form.ProgressField = Ext.extend(itasks.form.InlineField, {
+	format: itasks.util.formatProgress,
+	field: {
+		xtype: "combo",
+		value: this.value,
+		store: [["TPActive","Active"],["TPStuck","Stuck"],["TPWaiting","Waiting"],["TPReject","Reject"]],
+		editable: false,
+		triggerAction: "all",
+		forceSelection: true
+	}
+});
+
+Ext.reg("itasks.user",itasks.form.UserField);
+Ext.reg("itasks.priority",itasks.form.PriorityField);
+Ext.reg("itasks.progress",itasks.form.ProgressField);
 
 //Combination of other tasks
 itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
@@ -688,8 +761,9 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 	}
 });
 
-Ext.reg('itasks.work',itasks.WorkPanel);
-Ext.reg('itasks.work-header',itasks.WorkHeaderPanel);
-Ext.reg('itasks.task-form',itasks.TaskFormPanel);
-Ext.reg('itasks.task-waiting',itasks.TaskWaitingPanel);
-Ext.reg('itasks.task-combination',itasks.TaskCombinationPanel);
+Ext.reg("itasks.work",itasks.WorkPanel);
+Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
+Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
+Ext.reg("itasks.task-form",itasks.TaskFormPanel);
+Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
+Ext.reg("itasks.task-combination",itasks.TaskCombinationPanel);

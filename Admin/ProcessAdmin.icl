@@ -1,7 +1,7 @@
 implementation module ProcessAdmin
 
 import iTasks
-from TaskTree import :: TaskProperties(..)
+from TaskTree import :: TaskProperties(..), :: TaskProgress(..)
 
 processAdmin :: [Workflow]
 processAdmin

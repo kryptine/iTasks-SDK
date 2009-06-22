@@ -97,7 +97,7 @@ where
 
 //JSON derives
 derive JSONEncode	TaskContent, DebugInfo, FormPanel, MainTaskPanel, CombinationPanel
-derive JSONEncode	TaskProperties, TaskPriority, InputDefinition, UpdateEvent, HtmlState, StorageFormat, Lifespan
+derive JSONEncode	TaskProperties, TaskPriority, TaskProgress, InputDefinition, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (FormPanel x) c						= JSONEncode{|*|} x c

@@ -64,6 +64,8 @@ initTaskProperties
 		, user = (-1, "")
 		, delegator = (-1,"")
 		, priority = NormalPriority
+		, deadline = Nothing
+		, progress = TPActive
 		, issuedAt = Time 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing

@@ -17,10 +17,10 @@ import Time
 import iDataForms
 import CommonCombinators
 
-derive gForm	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
-derive gUpd		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
-derive gPrint	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
-derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, Time
+derive gForm	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gUpd		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gPrint	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 
 :: ProcessReference a 	= ProcessReference !Int		//We only keep the id in the process database
 
