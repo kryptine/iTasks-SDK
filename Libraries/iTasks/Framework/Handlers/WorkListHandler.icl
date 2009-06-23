@@ -16,6 +16,7 @@ import iDataForms
 						, processname	:: String					// Name given to the work process the task belongs to
 				 		, subject		:: String 					// Name give to the task, which can be a short description of the work to do
 				 		, priority		:: Maybe TaskPriority		// Priority of the task
+				 		, progress		:: Maybe TaskProgress		// Progress of the task
 				 		, timestamp		:: Maybe Int				// Time stamp when the task was issued
 				 		, tree_shift	:: Bool						// Marks if the item has been shifted to the right
 				 		, tree_path		:: [Bool]					// Path in the tree structure
@@ -25,7 +26,7 @@ import iDataForms
 				  		}
 				  													// And also: andTaskMU, maybeTask
 					
-derive JSONEncode WorkList, WorkListItem, TaskPriority
+derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst
@@ -77,7 +78,8 @@ determineTreeWorkItems userId ourWork addSequences isLast (TTMainTask ti mti seq
 			= [mainTaskItem : determineListWorkItemsFixed userId True False isLast sequence]	// A task we have to do, or have delegated, add a new item.
 where
 	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.TaskProperties.subject, delegatorId = fst mti.TaskProperties.delegator
-				   , tree_last = isLast, timestamp = Just ((\(Time i) . i) mti.TaskProperties.issuedAt), priority = Just mti.TaskProperties.priority }
+				   , tree_last = isLast, timestamp = Just ((\(Time i) . i) mti.TaskProperties.issuedAt), priority = Just mti.TaskProperties.priority
+				   , progress = Just mti.TaskProperties.progress }
 
 //Sequence nodes
 determineTreeWorkItems userId ourWork addSequences isLast (TTSequenceTask ti sequence)
@@ -121,6 +123,7 @@ mkWorkItem =	{ taskid		= ""
 				, processname	= ""
 				, subject		= ""
 				, priority		= Nothing
+				, progress		= Nothing
 				, timestamp		= Nothing
 				, tree_shift	= False
 				, tree_path		= []

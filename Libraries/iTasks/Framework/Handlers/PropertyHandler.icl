@@ -47,7 +47,7 @@ where
 			# (delegatorId,tst)	= getCurrentUser tst
 			# (user,tst)		= getUser userId tst
 			# (delegator,tst)	= getUser delegatorId tst
-		 	# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & user = user, delegator = delegator}) tst
+		 	# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & user = user, delegator = delegator, progress = TPActive}) tst
 		 	= (successResponse,tst)
 		 	
 	updateProgress proc val tst

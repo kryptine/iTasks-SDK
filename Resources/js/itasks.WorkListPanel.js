@@ -24,8 +24,9 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 				successProperty: 'success'
 			},[
 				{name: 'subject'},
-				{name: 'delegatorName'},
 				{name: 'priority'},
+				{name: 'progress'},
+				{name: 'delegatorName'},
 				{name: 'timestamp'},
 				{name: 'taskid'},
 				{name: 'tree_path'},
@@ -77,9 +78,10 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			view: this.workView,
 			selModel: new Ext.ux.grid.livegrid.RowSelectionModel(),
 			columns: [
-				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200},
-				{id: 'delegatorName', header: 'Delegated by', dataIndex: 'delegatorName', width: 100},
+				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200},		
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
+				{id: 'progress', header: 'Progress', dataindex: 'progress', renderer: itasks.util.formatProgress, width: 100},
+				{id: 'delegatorName', header: 'Delegated by', dataIndex: 'delegatorName', width: 100},
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100},
 				{id: 'taskid', header: 'Task nr', dataIndex: 'taskid', width: 100}
 			],
@@ -101,11 +103,6 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 					}
 				}
 			}]
-			/*,
-			bbar: new Ext.ux.grid.livegrid.Toolbar({
-				view: this.workView,
-				displayInfo: true
-			})*/
 		});
 		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
 		

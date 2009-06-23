@@ -80,30 +80,33 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		//Refresh initial overviews
 		worklist.refresh();
 		
-		//Connect event handlers	
-		worklist.on("cellclick",function (grid,row,col,event) {
-		
-			var trace = debugpanel.getTraceCheckbox().getValue();
-			var tab = worktabs.openWorkTab(grid.getTaskId(row),trace);
-			
+		//Connect event handlers
+		var attachTabHandlers = function(tab) {
 			if(tab[1]) { //The tab is new
-				tab[0].on("taskfinished",function(taskid) {
+				tab[0].on("taskDone",function(taskid) {
 					worklist.refresh();
-				},this);
-				tab[0].on("taskdeleted",function(taskid) {
+				});
+				tab[0].on("taskRedundant",function(taskid) {
 					worklist.refresh();
-				},this);
-				tab[0].on("tasksuggestsrefresh",function(taskid) {
+				});
+				tab[0].on("propertyChanged",function(taskid) {
 					worklist.refresh();
-				},this);
+				});
 				
 				debugpanel.getTraceCheckbox().on("check",function(cb,val) {
 					tab[0].setTrace(val);
 				});
 			}
 			tab[0].refresh();
-		});
+		}
 		
+		worklist.on("cellclick",function (grid,row,col,event) {
+		
+			var trace = debugpanel.getTraceCheckbox().getValue();
+			var tab = worktabs.openWorkTab(grid.getTaskId(row),trace);
+			
+			attachTabHandlers(tab);
+		});
 		newpanel.on("processStarted",function(taskid) {
 			//When new work is started, refresh the worklist
 			//and immediately open a tab for the work
@@ -111,24 +114,8 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			
 			var trace = debugpanel.getTraceCheckbox().getValue();
 			var tab = worktabs.openWorkTab(taskid, trace);
-			if(tab[1]) { //The tab is new
-				tab[0].on("taskDone",function(taskid) {
-					worklist.refresh();
-				},this);
-				tab[0].on("taskRedundant",function(taskid) {
-					worklist.refresh();
-				},this);
-				/*
-				tab[0].on("tasksuggestsrefresh",function(taskid) {
-					worklist.refresh();
-				},this);
-				*/
-				debugpanel.getTraceCheckbox().on("check",function(cb,val) {
-					tab[0].setTrace(val);
-				});
-			}
-			tab[0].refresh();
-
+			
+			attachTabHandlers(tab);
 		},this);
 		
 		debugpanel.getTaskForestButton().on("click",function() {

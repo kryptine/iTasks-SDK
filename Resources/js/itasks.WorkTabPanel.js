@@ -70,7 +70,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
 	
-		this.addEvents("taskRedundant","taskDone");
+		this.addEvents("taskRedundant","taskDone","propertyChanged");
 	
 		//Attach event handlers for the loading indicator
 		this.on("remoteCallStart",function() {
@@ -234,11 +234,21 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	},
 	sendPropertyEvent: function(process,name,value) {
 		//Ugly side-effect event handler
+		this.getComponent(0).setBusy(true);
+		
 		Ext.Ajax.request({
 			url:"/handlers/work/property",
 			method: "GET",
-			params: {session : this.sessionId, process : process, property: name, value: value }
+			params: {session : this.sessionId, process : process, property: name, value: value },
+			callback: function(el,success,response,options) {
+				this.getComponent(0).setBusy(false);
+				this.fireEvent("propertyChanged");
+				if(name == "user") //HACK: Fix with proper property events
+					this.refresh();
+			},
+			scope: this
 		});
+		
 	}
 });
 
