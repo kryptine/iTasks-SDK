@@ -23,10 +23,9 @@ from Time		import :: Time(..)
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
 					, exception		:: !Maybe Dynamic							// Optional, used when raising exceptions
+					, changes		:: ![(!String, !DynamicId, !Dynamic)]		// Optional, used to change a running workflow
 					
-					//, newChange		:: !Maybe Dynamic						// Optional
-					//, oldChanges	:: ![Dynamic]								// Optional
-					
+					//TODO: Remove when new changes are finished					
 					, changeRequests											// Optional, used when demanding dynamic changes
 									:: ![(!TaskId,!ChangeCondition,!Int,!Dynamic)]	
 									
@@ -46,20 +45,18 @@ from Time		import :: Time(..)
 					, threadTableLoc	:: !Lifespan							// where to store the server thread table, default is Session					
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
 					}
+
+//TODO: Remove when new changes are finished
 :: ChangeCondition = CC (*TSt -> *(ChangeResult,*TSt))							// used to pass a list of change predicates down the task tree
 :: ChangeResult	=	{ newCondition		:: !Maybe ChangeCondition				// new condition to pass to future handlers	
 					, isApplicable		:: !Bool								// True if the change is applicable here; note that the dynamic information pushed should also match
 					, applyChange		:: !Bool								// True if the work indeed has to be changed by the alternative defined 		
 					}
 
-
-//Experimental change definition
-:: Change a = Change String (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe (Change a)))																		
-
 // The task monad
 :: Task a = Task !(*TSt -> *(!a,!*TSt))
 
-// a task with a label used for labeling buttons, pulldown menus, and the like
+// A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
 
 // A workflow specification
@@ -68,7 +65,10 @@ from Time		import :: Time(..)
 					, roles			:: ![String]								// the roles that are allowed to initate this workflow
 					, mainTask		:: Task Void								// the main task of the workflow
 					}
-					
+
+// A change function which may be used to change tasks at runtime
+:: Change a = Change (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe (Change a)))						
+
 /**
 * Creates an initial task state.
 *
@@ -82,15 +82,6 @@ from Time		import :: Time(..)
 * @return a TSt iTask state
 */
 mkTSt :: !Lifespan !Lifespan !Session ![Workflow] !*HSt -> *TSt
-
-/**
-* Resets the TSt for calculating a new task Tree
-*
-* @param The task state
-*
-* @return The modified task state
-*/
-resetTSt :: *TSt -> *TSt
 
 /**
 * Calculates all task trees that are relevant to the current user
@@ -317,22 +308,7 @@ resetSequence		::	!*TSt					-> *TSt
 * @return The task state
 */
 deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
-/**
-* Utility function to increment the last segment a task number
-*
-* @param The original task number
-*
-* @return The incremented task number
-*/ 
-incTaskNr 			:: !TaskNr 					-> TaskNr
-/**
-* Converts a task number to its dotted string representation
-*
-* @param The task number as integer list
-*
-* @return The formatted task number
-*/
-taskNrToString		:: !TaskNr 					-> String
+
 /**
 * Parses a formatted task number to its integer list representation
 *
@@ -341,6 +317,14 @@ taskNrToString		:: !TaskNr 					-> String
 * @return The task nr as integer list
 */
 taskNrFromString 	:: !String 					-> TaskNr
+/**
+* Converts a task number to its dotted string representation
+*
+* @param The task number as integer list
+*
+* @return The formatted task number
+*/
+taskNrToString		:: !TaskNr 					-> String
 /**
 * Determines the process number part of a task number
 *

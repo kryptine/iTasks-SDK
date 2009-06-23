@@ -19,6 +19,7 @@ import	Engine						// basic iTask system creator
 	,	ProcessCombinators			// Creation an handling of dynamic sub processes
 
 	,	ExceptionCombinators		// Handling exceptional situations
+	,	ChangeCombinators			// Changing flows at runtime
 	,	ClientCombinators			// Delegating tasks to the client
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap

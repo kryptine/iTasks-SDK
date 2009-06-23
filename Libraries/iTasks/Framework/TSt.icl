@@ -24,6 +24,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, options 		= initialOptions itaskstorage
 		, staticInfo	= initStaticInfo session threadstorage workflows
 		, exception		= Nothing
+		, changes		= []
 		, changeRequests= []
 		, hst 			= hst
 		}
@@ -71,23 +72,12 @@ initTaskProperties
 		, latestEvent = Nothing
 		}
 
-resetTSt :: *TSt -> *TSt
-resetTSt tst = {tst & taskNr = [-1], activated = True, userId = -1}
 
-setTaskNr :: TaskNr *TSt -> *TSt
-setTaskNr taskNr tst = {TSt | tst & taskNr = taskNr}
 
-setUserId :: UserId *TSt -> *TSt
-setUserId userId tst = {TSt | tst & userId = userId}
 
-setDelegatorId :: UserId *TSt -> *TSt
-setDelegatorId delegatorId tst = {TSt | tst & delegatorId = delegatorId}
 
 setProcessId :: ProcessId *TSt -> *TSt
 setProcessId processId tst=:{staticInfo} = {TSt | tst & staticInfo = {staticInfo & currentProcessId = processId}}
-
-setTaskTree :: !TaskTree !*TSt	-> *TSt
-setTaskTree tree tst = {tst & tree = tree}
 
 
 /*
@@ -148,28 +138,47 @@ calculateTaskTree pid enableDebug tst
 					= (Nothing, Just (initProcessNode entry), tst)
 		Nothing
 			= (Just "Process not found", Nothing, tst)
-			
-initProcessNode :: Process -> TaskTree
-initProcessNode {processId, properties} = TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.subject, active = True, finished = False, traceValue = "Process"} properties []
+
+initProcessNode :: Process -> TaskTree			
+initProcessNode {processId, properties}
+		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.subject, active = True, finished = False, traceValue = "Process"} properties []
 
 buildProcessTree :: Process !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree p =: {Process | processId, processType, status, properties = {TaskProperties|user,delegator}} tst
-	# tst								= resetTSt tst
-	# tst								= setTaskNr [-1,processId] tst
-	# tst								= setUserId (fst user) tst
-	# tst								= setDelegatorId (fst delegator) tst
-	# tst								= setProcessId processId tst
-	# tst								= setTaskTree (initProcessNode p) tst	
+buildProcessTree p =: {Process | processId, processType, properties = {TaskProperties|user,delegator}, changes} tst =:{staticInfo}
+	# tst								= {TSt|tst	& taskNr = [-1,processId], activated = True, userId = (fst user), delegatorId = (fst delegator)
+													, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p }
+	# tst								= loadChanges changes tst	
 	# (result,tst)						= applyMainTask processType tst
 	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
 	# (finished, tst)					= taskFinished tst
-	# (_,tst)							= accHStTSt (updateProcess processId (\p -> {Process
-																					| p 
-																					& status = if finished Finished Active
-																					, result = result })) tst
-	# tst								= garbageCollect finished processId tst
-	= (TTMainTask {TaskInfo| ti & finished = finished} mti (reverse tasks), tst)
+	| finished
+		# tst							= appHStTSt (deleteIData (iTaskId [processId] "")) tst												//Garbage collect
+		# (_,tst)						= accHStTSt (updateProcess processId (\p -> {Process|p & status = Finished, result = result })) tst	//Save result
+		= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), tst)
+	| otherwise
+		# tst							= storeChanges processId tst
+		= (TTMainTask ti mti tasks, tst)
 where
+	loadChanges changes tst = loadChanges` changes [] tst
+	loadChanges` [] accu tst = {TSt|tst& changes = reverse accu}
+	loadChanges` [(l,c):cs] accu tst
+		# (dyn,tst) = accHStTSt (getDynamic c) tst
+		= case dyn of
+			Just dyn	= loadChanges` cs [(l,c,dyn):accu] tst
+			Nothing		= loadChanges` cs accu tst
+	
+	storeChanges pid tst=:{TSt|changes} = storeChanges` changes [] pid tst
+	storeChanges` [] accu pid tst
+		# (_,tst)	= accHStTSt (updateProcess pid (\p -> {Process|p & changes = reverse accu})) tst
+		= tst
+	storeChanges` [(l,c,d):cs] accu pid tst
+		| c == 0
+			# (c,tst)	= accHStTSt (createDynamic d) tst
+			= storeChanges` cs [(l,c):accu] pid tst
+		| otherwise
+			# (_,tst)	= accHStTSt (updateDynamic d c) tst
+			= storeChanges` cs [(l,c):accu] pid tst
+			
 	applyMainTask (StaticProcess workflow) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
 		= case mbWorkflow of
@@ -177,8 +186,7 @@ where
 				= (Nothing, tst)
 			Just {mainTask}
 				# tst	= appTaskTSt mainTask tst
-				= (Nothing, tst)
-				
+				= (Nothing, tst)				
 	applyMainTask (DynamicProcess task) tst //Execute a dynamic process
 		# (mbTask, tst)		= accHStTSt (getDynamic task) tst
 		= case mbTask of
@@ -192,15 +200,11 @@ where
 				| otherwise
 					= (Nothing, tst)
 			Nothing
-				= (Nothing, tst)
-				
+				= (Nothing, tst)			
 	applyMainTask (EmbeddedProcess procid taskid) tst = (Nothing, tst) //Do nothing with embedded processes
 	
-	garbageCollect False id tst	= tst
-	garbageCollect True id tst	= appHStTSt (deleteIData (iTaskId [id] "")) tst
-	
 	/**
-	* This evaluates the dynamic to normal form before we encode it
+	* This forces evaluation of the dynamic to normal form before we encode it
 	*/
 	evalDynamicResult :: !Dynamic -> Dynamic
 	evalDynamicResult d = code {
@@ -311,9 +315,9 @@ mkMainTask taskname mti taskfun = mkTask taskname taskfun nodefun nrfun id
 where
 	nodefun ti tst=:{taskNr, staticInfo={currentProcessId}}
 		# taskId			= taskNrToString taskNr
-		# (mbProps,tst)		= accHStTSt (getSubProcess currentProcessId taskId) tst //Lookup task properties in process table
-		= case mbProps of
-			(Just props)	= (TTMainTask ti props.Process.properties [], tst)
+		# (mbProc,tst)		= accHStTSt (getSubProcess currentProcessId taskId) tst //Lookup task in process table
+		= case mbProc of
+			(Just proc)		= (TTMainTask ti proc.Process.properties [], tst)
 			Nothing
 				# (pid,tst)	= accHStTSt (createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active currentProcessId)) tst //TODO use correct main task as direct parent 
 				= (TTMainTask ti {TaskProperties | mti & processId = pid} [], tst)
@@ -340,7 +344,6 @@ where
 	//- Increases the task number
 	//- Checks if the task is done, and gets its value
 	//- Creates a basicTask node when the task is done
-	//initTask :: String *TSt -> *(a,Bool,TaskInfo,*TSt) | iData a
 	initTask taskName tst
 		# tst =:{taskNr,userId,delegatorId,hst,options,activated}
 			= incTStTaskNr tst
@@ -356,7 +359,6 @@ where
 		= (value,finished,info,{tst & hst = hst})
 	
 	//Shared final task creation part
-	//finalizeTask :: a *TSt -> *TSt | iData a
 	finalizeTask value tst =:{taskNr,activated,hst,options}
 		| activated
 			# hst				= deleteIData (iTaskId taskNr "") hst //Garbage collect
@@ -364,13 +366,15 @@ where
 			= {tst & hst = hst}
 		| otherwise
 			= {tst & hst = hst}
-	
+
+	//Increas the task nr
+	incTaskNr [] = [0]
+	incTaskNr [i:is] = [i+1:is]
+		
 	//Increate the tasknr of the task state
-	//incTStTaskNr :: *TSt -> *TSt
 	incTStTaskNr tst = {tst & taskNr = incTaskNr tst.taskNr}
 	
 	//Execute the task when active, else return a default value
-	//executeTask :: !(Task a) -> (*TSt -> (a,*TSt)) | iCreateAndPrint a
 	executeTask task = executeTask`
 	where
 		executeTask` tst=:{activated}
@@ -380,14 +384,12 @@ where
 				= (createDefault,tst)				// When a task is not active, don't execute it, return default value
 	
 	//update the finished and trace fields of a task tree node
-	//updateTaskNode :: Bool String TaskTree -> TaskTree
 	updateTaskNode finished traceValue (TTBasicTask ti output inputs states)	= TTBasicTask {ti & finished = finished, traceValue = traceValue} output inputs states
 	updateTaskNode finished traceValue (TTSequenceTask ti tasks) 				= TTSequenceTask {ti & finished = finished, traceValue = traceValue} (reverse tasks)
 	updateTaskNode finished traceValue (TTParallelTask ti combination tasks)	= TTParallelTask {ti & finished = finished, traceValue = traceValue} combination (reverse tasks)
 	updateTaskNode finished traceValue (TTMainTask ti mti tasks)				= TTMainTask {ti & finished = finished, traceValue = traceValue} mti (reverse tasks)
 		
 	//Add a new node to the current sequence or process
-	//addTaskNode :: TaskTree *TSt -> *TSt
 	addTaskNode node tst=:{tree}
 		= case tree of
 			(TTMainTask ti mti tasks)				= {tst & tree = TTMainTask ti mti [node:tasks]}
@@ -431,12 +433,6 @@ deleteAllSubTasks [] tst = tst
 deleteAllSubTasks [tx:txs] tst=:{hst} 
 	# hst	= deleteIData  (iTaskId (tl tx) "") hst
 	= deleteAllSubTasks txs {tst & hst = hst}
-
-
-incTaskNr :: !TaskNr -> TaskNr
-incTaskNr [] = [0]
-incTaskNr [i:is] = [i+1:is]
-
 
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""

@@ -9,7 +9,7 @@ import iDataForms, iDataFormlib, iDataTrivial
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
 from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
-from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..)
+from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 

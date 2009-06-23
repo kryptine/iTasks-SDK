@@ -12,13 +12,15 @@ from Time import :: Time
 /**
 * Our local process type
 */
-:: Process 		= {	processId		:: !Int				//The process identification
-				  , processType		:: !ProcessType		//The type of process
+:: Process 		= {	processId		:: !Int						// The process identification
+				  , processType		:: !ProcessType				// The type of process
 				  
-				  , status			:: !ProcessStatus	//The status of the process (updated after each run)
-				  , parent			:: !ProcessId		//The (direct) parent process
-				  , properties		:: !TaskProperties	//The properties of the main task node of this process
-				  , result			:: !Maybe DynamicId	//Possibly a stored process result
+				  , status			:: !ProcessStatus			// The status of the process (updated after each run)
+				  , parent			:: !ProcessId				// The (direct) parent process
+				  , properties		:: !TaskProperties			// The properties of the main task node of this process
+				  , taskfun			:: !Maybe DynamicId			// Possibly a stored task function
+				  , result			:: !Maybe DynamicId			// Possibly a stored process result
+				  , changes			:: ![(String,DynamicId)]	// Optionally a list of labeled change functions
 				  }
 
 :: ProcessType	= StaticProcess !String					//A static process (name of the workflow)

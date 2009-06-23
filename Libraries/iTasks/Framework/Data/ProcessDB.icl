@@ -134,7 +134,9 @@ mkStaticProcessEntry workflow timestamp user delegator status
 							, firstEvent	= Nothing
 							, latestEvent	= Nothing
 							}
+		, taskfun		= Nothing
 		, result		= Nothing
+		, changes		= []
 		}
 		
 mkDynamicProcessEntry :: String DynamicId Time (UserId,String) (UserId,String) ProcessStatus ProcessId -> Process
@@ -156,7 +158,9 @@ mkDynamicProcessEntry label task timestamp user delegator status parent
 							, firstEvent	= Nothing
 							, latestEvent	= Nothing
 							}
+		, taskfun	= Nothing
 		, result	= Nothing
+		, changes	= []
 		}
 
 mkEmbeddedProcessEntry	:: ProcessId TaskId TaskProperties ProcessStatus ProcessId	-> Process
@@ -167,7 +171,9 @@ mkEmbeddedProcessEntry ancestor taskid properties status parent
 		, parent		= parent
 		, status		= status
 		, properties	= properties
+		, taskfun		= Nothing
 		, result		= Nothing
+		, changes		= []
 		}		
 
 processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 
