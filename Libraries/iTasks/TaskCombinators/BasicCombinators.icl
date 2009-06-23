@@ -115,8 +115,8 @@ assign :: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) -> Task a | iData
 assign toUserId initPriority initDeadline (label,task) = Task assign` 
 where
 	assign` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
-		# (toUser,tst)		= accHStTSt (getUser toUserId) tst
-		# (currentUser,tst)	= accHStTSt (getUser currentUserId) tst 
+		# (toUser,tst)		= getUser toUserId tst
+		# (currentUser,tst)	= getUser currentUserId tst 
 		# (now,tst)			= (accHStTSt (accWorldHSt time)) tst						//Retrieve current time
 		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, deadline = initDeadline, priority = initPriority, progress = TPActive, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
 		# (a, tst)			= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}

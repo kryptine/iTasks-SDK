@@ -1,7 +1,7 @@
 implementation module DynamicDB
 
 import StdList, StdClass, StdTuple, StdArray, StdMaybe
-import Types, HSt, iDataForms, iDataFormlib
+import Types, HSt, TSt, iDataForms, iDataFormlib
 import dynamic_string
 
 from StdFunc import id
@@ -38,3 +38,11 @@ staticDynamicStore fn hst
 
 maxDynId :: [(DynamicId,String)] -> DynamicId
 maxDynId db = foldr max 0 (map fst db)
+
+instance DynamicDB TSt
+where
+	createDynamic dyn tst		= accHStTSt (createDynamic dyn) tst
+	updateDynamic dyn dynid tst	= accHStTSt (updateDynamic dyn dynid) tst
+	deleteDynamic dynid tst		= accHStTSt (deleteDynamic dynid) tst
+	deleteDynamics dynids tst	= accHStTSt (deleteDynamics dynids) tst
+	getDynamic dynid tst		= accHStTSt (getDynamic dynid) tst

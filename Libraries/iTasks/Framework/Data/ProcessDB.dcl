@@ -4,8 +4,7 @@ definition module ProcessDB
 * 
 */
 import StdMaybe
-import Types, HSt
-from TSt import :: Workflow
+import Types, HSt, TSt
 from TaskTree import :: TaskProperties
 from Time import :: Time
 
@@ -52,6 +51,7 @@ where
 	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)			!*st -> (!Bool,			!*st)
 
 instance ProcessDB HSt
+instance ProcessDB TSt
 /*
 * Utility functions for creating process database entries.
 */

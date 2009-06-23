@@ -101,7 +101,7 @@ setProcessId processId tst=:{staticInfo} = {TSt | tst & staticInfo = {staticInfo
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
-	# (processes,tst)		= accHStTSt (getProcessesForUser currentUser [Active] True) tst	//Lookup all active processes for this user
+	# (processes,tst)		= getProcessesForUser currentUser [Active] True tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
 	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	
@@ -113,7 +113,7 @@ where
 	addNewProcesses trees tst
 		# (pids,tst)		= getNewProcesses tst
 		| isEmpty pids		= (trees,tst)									//Nothing to do...
-		# (processes,tst)	= accHStTSt (getProcessesById pids) tst			//Lookup the process entries
+		# (processes,tst)	= getProcessesById pids tst						//Lookup the process entries
 		# tst				= clearNewProcesses tst							//Reset the list of new processes
 		# (ntrees,tst)		= calculateTrees (sortProcesses processes) tst	//Calculate the additional task trees
 		= addNewProcesses (trees ++ reverse ntrees) tst						//Recursively check for more new processes	
@@ -127,7 +127,7 @@ where
 
 calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 calculateTaskTree pid enableDebug tst
-	# (mbProcess,tst)		= accHStTSt (getProcess pid) tst
+	# (mbProcess,tst)		= getProcess pid tst
 	= case mbProcess of
 		Just entry
 			= case entry.Process.status of
@@ -152,8 +152,8 @@ buildProcessTree p =: {Process | processId, processType, properties = {TaskPrope
 	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
 	# (finished, tst)					= taskFinished tst
 	| finished
-		# tst							= appHStTSt (deleteIData (iTaskId [processId] "")) tst												//Garbage collect
-		# (_,tst)						= accHStTSt (updateProcess processId (\p -> {Process|p & status = Finished, result = result })) tst	//Save result
+		# tst							= appHStTSt (deleteIData (iTaskId [processId] "")) tst								//Garbage collect
+		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished, result = result }) tst	//Save result
 		= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), tst)
 	| otherwise
 		# tst							= storeChanges processId tst
@@ -169,14 +169,14 @@ where
 	
 	storeChanges pid tst=:{TSt|changes} = storeChanges` changes [] pid tst
 	storeChanges` [] accu pid tst
-		# (_,tst)	= accHStTSt (updateProcess pid (\p -> {Process|p & changes = reverse accu})) tst
+		# (_,tst)	= updateProcess pid (\p -> {Process|p & changes = reverse accu}) tst
 		= tst
 	storeChanges` [(l,c,d):cs] accu pid tst
 		| c == 0
-			# (c,tst)	= accHStTSt (createDynamic d) tst
+			# (c,tst)	= createDynamic d tst
 			= storeChanges` cs [(l,c):accu] pid tst
 		| otherwise
-			# (_,tst)	= accHStTSt (updateDynamic d c) tst
+			# (_,tst)	= updateDynamic d c tst
 			= storeChanges` cs [(l,c):accu] pid tst
 			
 	applyMainTask (StaticProcess workflow) tst //Execute a static process
@@ -188,14 +188,14 @@ where
 				# tst	= appTaskTSt mainTask tst
 				= (Nothing, tst)				
 	applyMainTask (DynamicProcess task) tst //Execute a dynamic process
-		# (mbTask, tst)		= accHStTSt (getDynamic task) tst
+		# (mbTask, tst)		= getDynamic task tst
 		= case mbTask of
 			(Just dyn)
 				# (result, tst)		= applyDynamicTask dyn tst
 				#  result			= evalDynamicResult result
 				# (finished, tst)	= taskFinished tst
 				| finished
-					# (resid, tst)	= accHStTSt (createDynamic (evalDynamicResult result)) tst
+					# (resid, tst)	= createDynamic (evalDynamicResult result) tst
 					= (Just resid, tst)
 				| otherwise
 					= (Nothing, tst)
@@ -315,11 +315,11 @@ mkMainTask taskname mti taskfun = mkTask taskname taskfun nodefun nrfun id
 where
 	nodefun ti tst=:{taskNr, staticInfo={currentProcessId}}
 		# taskId			= taskNrToString taskNr
-		# (mbProc,tst)		= accHStTSt (getSubProcess currentProcessId taskId) tst //Lookup task in process table
+		# (mbProc,tst)		= getSubProcess currentProcessId taskId tst //Lookup task in process table
 		= case mbProc of
 			(Just proc)		= (TTMainTask ti proc.Process.properties [], tst)
 			Nothing
-				# (pid,tst)	= accHStTSt (createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active currentProcessId)) tst //TODO use correct main task as direct parent 
+				# (pid,tst)	= createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active currentProcessId) tst //TODO use correct main task as direct parent 
 				= (TTMainTask ti {TaskProperties | mti & processId = pid} [], tst)
 	nrfun tst=:{taskNr}		= {tst & taskNr = [-1:taskNr]}
 

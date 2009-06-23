@@ -187,9 +187,9 @@ isActive (TTMainTask 		{TaskInfo|active,finished} _ _ )	= active && not finished
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst
 	# (now,tst)	= accHStTSt (accWorldHSt time) tst
-	= snd (accHStTSt (updateProcessProperties pid (\p -> {p & firstEvent = case p.firstEvent of Nothing = Just now; x = x
-												 			, latestEvent = Just now
-															})) tst)
+	= snd (updateProcessProperties pid (\p -> {p & firstEvent = case p.firstEvent of Nothing = Just now; x = x
+												 , latestEvent = Just now
+												}) tst)
 		
 collectDebugInfo :: TaskTree *TSt -> (Maybe DebugInfo, *TSt)
 collectDebugInfo tree tst

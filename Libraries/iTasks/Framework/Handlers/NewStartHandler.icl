@@ -23,6 +23,6 @@ where
 	startNewWorkflow :: Workflow *TSt -> (Int, *TSt)
 	startNewWorkflow workflow tst
 		# (currentUserId, tst)	= getCurrentUser tst
-		# (currentUser,tst)		= accHStTSt (getUser currentUserId) tst
+		# (currentUser,tst)		= getUser currentUserId tst
 		# (currentTime, tst)	= accHStTSt (accWorldHSt time) tst
-		= accHStTSt (createProcess (mkStaticProcessEntry workflow currentTime currentUser currentUser Active)) tst
+		= createProcess (mkStaticProcessEntry workflow currentTime currentUser currentUser Active) tst

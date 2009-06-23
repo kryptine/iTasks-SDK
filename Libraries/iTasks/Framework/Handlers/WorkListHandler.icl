@@ -133,7 +133,7 @@ shiftWorkItem step item =:{tree_path} = {item & tree_path = [step:tree_path], tr
 
 addDelegatorNames :: [WorkListItem] *TSt -> ([WorkListItem], *TSt)
 addDelegatorNames items tst
-	# (names, tst)		= accHStTSt (getDisplayNames [i.WorkListItem.delegatorId \\ i <- items]) tst
+	# (names, tst)		= getDisplayNames [i.WorkListItem.delegatorId \\ i <- items] tst
 	= ([{i & delegatorName = if (i.WorkListItem.delegatorId <> -1) name ""} \\ i <- items & name <- names], tst)
 
 shiftedItems :: [WorkListItem] -> Bool

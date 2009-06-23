@@ -6,7 +6,7 @@ definition module DynamicDB
 */
 
 import StdMaybe
-import Types, HSt
+import Types, HSt, TSt
 
 class DynamicDB st
 where
@@ -17,3 +17,4 @@ where
 	getDynamic		:: !DynamicId				!*st -> (!Maybe Dynamic, !*st)
 
 instance DynamicDB HSt
+instance DynamicDB TSt

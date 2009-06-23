@@ -4,7 +4,7 @@ definition module UserDB
 * functions for accessing information about system users.
 */
 import StdMaybe
-import HSt
+import HSt, TSt
 
 :: User 	= { userId		:: !Int
 			  , username	:: !String
@@ -84,3 +84,4 @@ where
 	authenticateUser	:: !String !String	!*st -> (!Maybe (Int,String,[String])	, !*st)
 	
 instance UserDB HSt
+instance UserDB TSt

@@ -114,6 +114,23 @@ where
 	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*HSt -> (!Bool, !*HSt)
 	updateProcessProperties processId f hst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) hst
 
+instance ProcessDB TSt
+where
+	createProcess entry tst									= accHStTSt (createProcess entry) tst
+	deleteProcess processId tst								= accHStTSt (deleteProcess processId) tst
+	getProcess processId tst								= accHStTSt (getProcess processId) tst
+	getProcessForUser userId processId tst					= accHStTSt (getProcessForUser userId processId) tst
+	getProcesses statusses tst								= accHStTSt (getProcesses statusses) tst
+	getProcessesById ids tst								= accHStTSt (getProcessesById ids) tst
+	getProcessesForUser userId statusses ignoreEmbedded tst	= accHStTSt (getProcessesForUser userId statusses ignoreEmbedded) tst
+	getSubProcess processId taskId tst						= accHStTSt (getSubProcess processId taskId) tst
+	setProcessOwner user delegator processId tst			= accHStTSt (setProcessOwner user delegator processId) tst
+	setProcessStatus status processId tst					= accHStTSt (setProcessStatus status processId) tst
+	setProcessResult result processId tst					= accHStTSt (setProcessResult result processId) tst
+	updateProcess processId f tst							= accHStTSt (updateProcess processId f) tst
+	updateProcessProperties processId f tst					= accHStTSt (updateProcessProperties processId f) tst
+
+
 //Utility functions
 mkStaticProcessEntry :: Workflow Time (UserId,String) (UserId,String) ProcessStatus -> Process
 mkStaticProcessEntry workflow timestamp user delegator status

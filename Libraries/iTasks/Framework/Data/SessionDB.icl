@@ -2,7 +2,7 @@ implementation module SessionDB
 
 import StdEnv, StdMaybe
 import StdGeneric, GenBimap
-import HSt, iDataFormlib
+import HSt,TSt, iDataFormlib
 
 import Time
 import MersenneTwister
@@ -67,3 +67,9 @@ sessionStore ::  !([Session] -> [Session]) !*HSt -> (![Session],!*HSt)
 sessionStore fn hst		
 	# (form,hst) = mkStoreForm (Init, pFormId "SessionDB" []) fn hst
 	= (form.Form.value, hst)
+	
+instance SessionDB TSt
+where
+	createSession uid roles tst		= accHStTSt (createSession uid roles) tst
+	restoreSession sid tst=:{hst}	= let (mbs,to,hst`) = restoreSession sid hst in (mbs,to,{tst&hst=hst`})
+	destroySession sid tst			= appHStTSt (destroySession sid) tst

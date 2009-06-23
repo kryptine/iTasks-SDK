@@ -2,7 +2,7 @@ implementation module UserDB
 
 import StdEnv, StdMaybe
 import StdGeneric, GenBimap
-import HSt, iDataFormlib
+import HSt, TSt, iDataFormlib
 
 derive gForm User
 derive gUpd User
@@ -52,19 +52,19 @@ where
 	getUser :: !Int !*HSt -> (!(Int,String),!*HSt)
 	getUser uid hst
 		# (users, hst)		= userStore id hst
-		= case [(user.userId, user.displayname) \\ user <- users | user.userId == uid] of
+		= case [(user.User.userId, user.User.displayname) \\ user <- users | user.User.userId == uid] of
 			[x] = (x,hst)
 			_	= ((-1, "Unknown user"),hst)
 
 	getUsers :: !*HSt -> (![(Int,String)], !*HSt)
 	getUsers hst
 		# (users, hst)		= userStore id hst
-		= ([(user.userId, user.displayname) \\ user <- users], hst)
+		= ([(user.User.userId, user.User.displayname) \\ user <- users], hst)
 
 	getUsersWithRole :: !String !*HSt -> (![(Int,String)], !*HSt)
 	getUsersWithRole role hst
 		# (users, hst)		= userStore id hst
-		= ([(user.userId,user.displayname) \\ user <- users | isMember role user.roles], hst)		
+		= ([(user.User.userId,user.User.displayname) \\ user <- users | isMember role user.User.roles], hst)		
 
 	getDisplayNames	:: ![Int] !*HSt -> (![String], !*HSt)
 	getDisplayNames	uids hst
@@ -79,19 +79,19 @@ where
 	getRoles :: ![Int] !*HSt -> (![[String]], !*HSt)
 	getRoles uids hst
 		# (users, hst)		= userStore id hst
-		= (map (lookupUserProperty users (\u -> u.roles) []) uids, hst)
+		= (map (lookupUserProperty users (\u -> u.User.roles) []) uids, hst)
 
 	authenticateUser :: !String !String	!*HSt -> (!Maybe (Int,String,[String]), !*HSt)
 	authenticateUser username password hst
 		# (users, hst)		= userStore id hst
 		= case [u \\ u <- users | u.username == username && u.password == password] of
-			[user]	= (Just (user.userId, user.displayname, user.roles), hst)		
+			[user]	= (Just (user.User.userId, user.User.displayname, user.User.roles), hst)		
 			_		= (Nothing, hst)
 
 //Helper function which finds a property of a certain user
 lookupUserProperty :: ![User] !(User -> a) !a !Int -> a
 lookupUserProperty users selectFunction defaultValue userId
-		= case [selectFunction user \\ user <- users | user.userId == userId] of
+		= case [selectFunction user \\ user <- users | user.User.userId == userId] of
 			[x] = x
 			_	= defaultValue
 
@@ -100,3 +100,13 @@ userStore fn hst
 	# (form,hst) = mkStoreForm (Init, pFormId "UserDB" initUsers) fn hst
 	= (form.Form.value, hst)
 
+instance UserDB TSt
+where
+	getUser uid tst							= accHStTSt (getUser uid) tst
+	getUsers tst							= accHStTSt (getUsers) tst
+	getUsersWithRole role tst				= accHStTSt (getUsersWithRole role) tst
+	getDisplayNames	uids tst				= accHStTSt (getDisplayNames uids) tst
+	getUserNames uids tst					= accHStTSt (getUserNames uids) tst
+	getRoles uids tst						= accHStTSt (getRoles uids) tst
+	authenticateUser username password tst	= accHStTSt (authenticateUser username password) tst
+	
