@@ -74,6 +74,7 @@ where
 // Form task leaf type
 :: FormPanel =
 	{ xtype			:: String
+	, id			:: String
 	, taskId		:: String
 	, formHtml		:: String
 	, formInputs	:: [InputDefinition]
@@ -152,7 +153,7 @@ searchSubTasks taskId split trees
 
 buildTaskPanel :: TaskTree -> TaskPanel
 buildTaskPanel (TTBasicTask ti html inputs states)
-	= FormPanel {FormPanel | xtype = "itasks.task-form", taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] html), formInputs = inputs, formState = states }
+	= FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] html), formInputs = inputs, formState = states }
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
@@ -166,7 +167,7 @@ buildTaskPanel (TTParallelTask ti TTHorizontal tasks)
 buildTaskPanel (TTParallelTask ti TTVertical tasks)
 	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "vertical", items = map buildTaskPanel tasks}
 buildTaskPanel (TTParallelTask ti (TTSplit html) tasks)
-	= FormPanel {FormPanel| xtype = "itasks.task-form", taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] (taskOverview html tasks)), formInputs = [], formState = []}
+	= FormPanel {FormPanel| xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] (taskOverview html tasks)), formInputs = [], formState = []}
 
 taskOverview :: [HtmlTag] [TaskTree] -> [HtmlTag]
 taskOverview prompt branches =

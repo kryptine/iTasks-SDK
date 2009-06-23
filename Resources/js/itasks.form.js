@@ -134,3 +134,18 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 
 Ext.reg("staticfield", itasks.form.StaticField);
 Ext.reg("inlinefield", itasks.form.InlineField);
+
+//Global event firing. This may be used by plugins like
+//Java applets, Flash or Silverlight components
+itasks.fireTaskEvent = function(taskid, field, value) {
+	
+	var ct = Ext.getCmp("taskform-" + taskid);
+	if(!ct)
+		return;
+	var wp = ct.findParentByType("itasks.work");
+	if(!wp)
+		return;
+	
+	wp.addEvent(field,value,ct.formState);
+	wp.sendEvents();
+}

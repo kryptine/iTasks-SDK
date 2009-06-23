@@ -86,7 +86,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		if(data.content == "done" || data.content == "redundant") {
 			var ct = this.getComponent(1).getComponent(0);
 			
-			if(ct.items.length) {
+			if(ct.items && ct.items.length) {
 				ct.remove(0);
 			}
 			switch(data.content) {
@@ -198,14 +198,14 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.doLayout();
 	},
 	updateDebugTab: function(debug) {
-		var debugTab = this.getComponent(1).getComponent(1);
+		var debugTab = this.getComponent(1).getComponent(2);
 
 		debugTab.getComponent(0).body.update(debug.tasktree);
 		debugTab.getComponent(1).body.update(debug.states);
 		debugTab.getComponent(2).body.update(debug.events);
 	},
 	removeDebugTab: function() {
-		this.getComponent(1).remove(1,true);
+		this.getComponent(1).remove(2,true);
 	},
 	setTrace: function(trace) {
 		this.debug = trace;
@@ -389,10 +389,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		
 		Ext.apply(this,{
-			style: 'padding: 10px',
+			style: "padding: 10px",
 			border: false
 		});
-		
 		itasks.TaskFormPanel.superclass.initComponent.apply(this,arguments);
 	},
 	onRender: function () {
