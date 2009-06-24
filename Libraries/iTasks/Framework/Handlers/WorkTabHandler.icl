@@ -163,9 +163,9 @@ buildTaskPanel (TTSequenceTask ti tasks)
 		[t]	= buildTaskPanel t
 		_	= abort "Multiple simultaneously active tasks in a sequence!"
 buildTaskPanel (TTParallelTask ti TTHorizontal tasks)
-	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "horizontal", items = map buildTaskPanel tasks}
+	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "horizontal", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
 buildTaskPanel (TTParallelTask ti TTVertical tasks)
-	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "vertical", items = map buildTaskPanel tasks}
+	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "vertical", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
 buildTaskPanel (TTParallelTask ti (TTSplit html) tasks)
 	= FormPanel {FormPanel| xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] (taskOverview html tasks)), formInputs = [], formState = []}
 
