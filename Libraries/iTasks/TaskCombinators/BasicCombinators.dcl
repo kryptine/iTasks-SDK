@@ -38,7 +38,6 @@ import iDataForms, GenPrint, GenParse
 */
 return 		:: !a 										-> Task a 		| iData a
 
-
 //Repetition and loops:
 
 /**

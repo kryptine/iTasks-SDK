@@ -29,12 +29,12 @@ where
 	header :: [[HtmlTag]]
 	header = [[Text h] \\ h <- ["Id","Label","Owner","Delegator"]]
 	
-	visualizeProcess :: Process -> [[HtmlTag]]
+	visualizeProcess :: Process -> [HtmlTag]
 	visualizeProcess {Process|processId, properties = {subject,user,delegator}}
-		= [[Text (toString processId)]
-		  ,[Text subject]
-		  ,[Text (toString (fst user))]
-		  ,[Text (toString (snd delegator))]
+		= [Text (toString processId)
+		  ,Text subject
+		  ,Text (toString (fst user))
+		  ,Text (toString (snd delegator))
 		  ]
 	
 	processTasks :: [(Process -> String, Process -> Task Bool)]
@@ -64,15 +64,10 @@ killProcess process=:{Process|processId}
 	=	setProcessStatus Deleted processId
 	>>|	return False
 
-gridChooseTask :: [a] [[HtmlTag]] (a -> [[HtmlTag]]) [(a -> String, a -> Task Bool)] -> Task Bool | iData a
+gridChooseTask :: [a] [[HtmlTag]] (a -> [HtmlTag]) [(a -> String, a -> Task Bool)] -> Task Bool | iData a
 gridChooseTask xs header rowVisualizeFun rowTasks
-	=				orTasks [("row-" +++ toString i, row x) \\ x <- xs & i <- [1..]] /*<<@ TTCustom (toTable header)*/	//Show the grid
+	=				orTasks [("row-" +++ toString i, row x) \\ x <- xs & i <- [1..]]	//Show the grid
 	>>= \task -> 	task																																	//Execute the chosen task
 where
 
-	row x = parallel "row-content" (\list -> length list == 1) (\_ [index] -> (snd (rowTasks !! index)) x) [("row-buttons", selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks])]
-				/*<<@ TTCustom (toRow (toCells (rowVisualizeFun x))) */
-				
-	toCells html = [TdTag [] cell \\ cell <- html]
-	toRow info [tasks] = [TrTag [] (info ++ [TdTag [] tasks])]
-	toTable header rows = [TableTag [ClassAttr "debug-table"] [TrTag [] ([ThTag [] cell \\ cell <- header ] ++ [ThTag [] [RawText "&nbsp;"]]):flatten rows]]  
+	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\_ [index] -> (snd (rowTasks !! index)) x) [("row-buttons", selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks])]

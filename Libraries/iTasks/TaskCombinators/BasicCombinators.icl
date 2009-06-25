@@ -119,7 +119,7 @@ where
 		# (currentUser,tst)	= getUser currentUserId tst 
 		# (now,tst)			= (accHStTSt (accWorldHSt time)) tst						//Retrieve current time
 		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, deadline = initDeadline, priority = initPriority, progress = TPActive, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
-		# (a, tst)			= accTaskTSt (mkMainTask label mti (accTaskTSt task)) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
+		# (a, tst)			= accTaskTSt (mkMainTask label mti task) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 
 // ******************************************************************************************************

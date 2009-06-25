@@ -27,14 +27,13 @@ derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskPropert
 spawnProcess :: !UserId !Bool !(LabeledTask a) -> Task (ProcessReference a) | iData a
 spawnProcess uid activate (label,task) = compound "spawnProcess" (Task spawnProcess`)
 where
-	spawnProcess` tst
+	spawnProcess` tst=:{TSt|mainTask}
 		# (curUid,tst)		= getCurrentUser tst
-		# (curPid,tst)		= getCurrentProcess tst
 		# (user,tst)		= getUser uid tst
 		# (delegator,tst)	= getUser curUid tst
 		# (curTime,tst) 	= accHStTSt (accWorldHSt time) tst
 		# (dynId,tst)		= DynamicDB@createDynamic (dynamic createDynamicTask task) tst
-		# (newPid,tst)		= ProcessDB@createProcess (entry curPid dynId curTime user delegator) tst	
+		# (newPid,tst)		= ProcessDB@createProcess (entry mainTask dynId curTime user delegator) tst	
 		| uid == curUid
 			# tst			= addNewProcess newPid tst
 			= (ProcessReference newPid, {tst & activated = True})

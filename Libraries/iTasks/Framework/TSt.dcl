@@ -17,13 +17,16 @@ from Time		import :: Time(..)
 					, tree			:: !TaskTree								// accumulator for constructing a task tree			
 					, activated		:: !Bool   									// if true activate task, if set as result task completed
 
+					, mainTask		:: !ProcessId								// The id of the current main task 
 					, newProcesses	:: ![ProcessId]								// A list of spawned processes for the current user
 							
 					, options		:: !Options									// iData lifespan and storage format
 					, staticInfo	:: !StaticInfo								// info which does not change during a run
 					
 					, exception		:: !Maybe Dynamic							// Optional, used when raising exceptions
-					, changes		:: ![(!String, !DynamicId, !Dynamic)]		// Optional, used to change a running workflow
+					
+					, change		:: !Maybe (!String,!Dynamic)				// New change
+					, changes		:: ![(!String, !DynamicId, !Dynamic)]		// Persistent changes
 					
 					//TODO: Remove when new changes are finished					
 					, changeRequests											// Optional, used when demanding dynamic changes
@@ -109,6 +112,18 @@ calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 
 /**
+* Applies a change to a running task process task state.
+* 
+* @param The process id
+* @param A name for identifying the change.
+* @param The packed change function. Must be a packed "Change a" //TODO: try to move the dynamic packing into this function
+* @param The task state
+*
+* @return The modified task state
+*/
+applyChange :: !ProcessId !String !Dynamic !*TSt -> *TSt
+
+/**
 * Lists which workflows are available
 *
 * @param The task state
@@ -117,7 +132,6 @@ calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, 
 * @return The modified task state
 */
 getWorkflows :: !*TSt -> (![Workflow],!*TSt)
-
 /**
 * Looks up a specific workflow by name
 *
@@ -176,7 +190,6 @@ accHStTSt	:: !.(*HSt -> *(.a,*HSt))	!*TSt -> (.a,!*TSt)
 * @return The modified task state
 */
 appTaskTSt :: !(Task a) !*TSt 					-> *TSt
-
 /**
 * Applies a task to the task state and yields the tasks result.
 *
@@ -265,11 +278,11 @@ mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 *
 * @param A name used as the task label
 * @param The initial task info properties
-* @param The function on the TSt that is the task
+* @param The task that will run inside the main task
 *
 * @return The newly constructed sequence task
 */
-mkMainTask 		:: !String !TaskProperties !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkMainTask 		:: !String !TaskProperties !(Task a) -> Task a | iData a
 
 
 /**
