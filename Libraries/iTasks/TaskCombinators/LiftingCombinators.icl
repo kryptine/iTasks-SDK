@@ -4,26 +4,26 @@ import TSt, UITasks, BasicCombinators, CommonCombinators
 import Util
 
 (*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
-(*=>) ftst b = Task doit
+(*=>) ftst b = Task Nothing doit
 where
 	doit tst
 	# (a,tst) = ftst tst
-	= accTaskTSt (b a) tst
+	= applyTask (b a) tst
 
 (*#>) infix 4 :: !(TSt -> TSt) !(Task a) -> Task a
-(*#>) ftst b = Task doit
+(*#>) ftst b = Task Nothing doit
 where
 	doit tst
 	# tst = ftst tst
-	= accTaskTSt b tst
+	= applyTask b tst
 
 appIData :: !(IDataFun a) -> (Task a) | iData a 
 appIData idatafun = (mkParallelTask "appIData" appIData`)
 where
 	appIData` tst
 		# tst					= setCombination TTVertical tst
-		# (a,tst)				= accTaskTSt (mkSequenceTask "iData" (accTaskTSt (mkBasicTask "doIData" (doIData idatafun)))) tst
-		# (_,tst)				= accTaskTSt (mkSequenceTask "Done" (accTaskTSt (editTask "Done" Void))) tst
+		# (a,tst)				= applyTask (mkSequenceTask "iData" (applyTask (mkBasicTask "doIData" (doIData idatafun)))) tst
+		# (_,tst)				= applyTask (mkSequenceTask "Done" (applyTask (editTask "Done" Void))) tst
 		= (a,tst)
 		
 	doIData idata tst =:{taskNr,hst}
@@ -37,8 +37,8 @@ appIData2 idatafun = (mkParallelTask "appIData" appIData`)
 where
 	appIData` tst
 		# tst					= setCombination TTVertical tst
-		# (a,tst)				= accTaskTSt (mkSequenceTask "iData" (accTaskTSt (mkBasicTask "doIData" (doIData idatafun)))) tst
-		# (_,tst)				= accTaskTSt (mkSequenceTask "Done" (accTaskTSt (editTask "Done" Void))) tst
+		# (a,tst)				= applyTask (mkSequenceTask "iData" (applyTask (mkBasicTask "doIData" (doIData idatafun)))) tst
+		# (_,tst)				= applyTask (mkSequenceTask "Done" (applyTask (editTask "Done" Void))) tst
 		= (a,tst)
 
 	doIData idata tst =:{taskNr,hst}

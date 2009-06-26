@@ -20,11 +20,11 @@ derive gParse	Time
 //Standard monadic operations:
 
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
-(>>=) taska taskb = Task tbind
+(>>=) taska taskb = Task Nothing tbind
 where
 	tbind tst=:{TSt|options}
-		# (a,tst=:{activated})	= accTaskTSt taska tst
-		| activated				= accTaskTSt (taskb a) {TSt|tst & options = options}
+		# (a,tst=:{activated})	= applyTask taska tst
+		| activated				= applyTask (taskb a) {TSt|tst & options = options}
 								= (createDefault,tst)
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iCreateAndPrint b
@@ -39,9 +39,9 @@ forever :: !(Task a) -> Task a | iData a
 forever task = mkSequenceTask "forever" forever`
 where
 	forever` tst=:{taskNr} 
-		# (val,tst=:{activated})= accTaskTSt task tst					
+		# (val,tst=:{activated})= applyTask task tst					
 		| activated		
-			# tst = appHStTSt (deleteIData (iTaskId (tl taskNr) "")) tst
+			# tst = deleteTaskStates (tl taskNr) tst
 			# tst = resetSequence tst
 			= forever` tst				
 		= (val,tst)
@@ -50,11 +50,11 @@ where
 (<!) task pred = mkSequenceTask "<!" doTask
 where
 	doTask tst=:{activated, taskNr}
-		# (a,tst=:{activated}) 	= accTaskTSt task tst
+		# (a,tst=:{activated}) 	= applyTask task tst
 		| not activated
 			= (a,tst)
 		| not (pred a)			
-			# tst = appHStTSt (deleteIData (iTaskId (tl taskNr) "")) tst
+			# tst = deleteTaskStates (tl taskNr) tst
 			# tst = resetSequence tst
 			= doTask tst
 		= (a,tst)
@@ -70,7 +70,7 @@ where
 	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
 	doseqTasks [(taskname,task):ts] accu tst=:{TSt|options} 
 		# (a,tst=:{activated=adone}) 
-										= accTaskTSt task {tst & activated = True}
+										= applyTask task {tst & activated = True}
 		| not adone						= (reverse accu, tst)
 		| otherwise						= doseqTasks ts [a:accu] tst
 
@@ -78,7 +78,7 @@ where
 compound :: !String !(Task a) -> (Task a) 	| iData a 
 compound label task = mkSequenceTask label compound`
 where
-	compound` tst = accTaskTSt task tst
+	compound` tst = applyTask task tst
 
 // Parallel composition
 
@@ -103,7 +103,7 @@ where
 			| index == length taskCollection
 				= (reverse accu,tst)												// all tasks tested
 			# (taskname,task)					= taskCollection!!index
-			# (a,tst=:{activated,exception})	= accTaskTSt (mkSequenceTask taskname (accTaskTSt task)) tst	// check tasks
+			# (a,tst=:{activated,exception})	= applyTask (mkSequenceTask taskname (applyTask task)) tst	// check tasks
 			| isJust exception
 				= ([],tst)						//Stop immediately if a branch has an exception
 			| otherwise
@@ -112,14 +112,14 @@ where
 // Multi-user workflows
 
 assign :: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) -> Task a | iData a	
-assign toUserId initPriority initDeadline (label,task) = Task assign` 
+assign toUserId initPriority initDeadline (label,task) = Task Nothing assign` 
 where
 	assign` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
 		# (toUser,tst)		= getUser toUserId tst
 		# (currentUser,tst)	= getUser currentUserId tst 
 		# (now,tst)			= (accHStTSt (accWorldHSt time)) tst						//Retrieve current time
 		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, deadline = initDeadline, priority = initPriority, progress = TPActive, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
-		# (a, tst)			= accTaskTSt (mkMainTask label mti task) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
+		# (a, tst)			= applyTask (mkMainTask label mti task) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
 		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
 
 // ******************************************************************************************************

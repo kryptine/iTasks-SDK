@@ -20,6 +20,7 @@ from Time import :: Time
 				  , taskfun			:: !Maybe DynamicId			// Possibly a stored task function
 				  , result			:: !Maybe DynamicId			// Possibly a stored process result
 				  , changes			:: ![(String,DynamicId)]	// Optionally a list of labeled change functions
+				  , changeNr		:: !Int						// The number of task changes that have been applied
 				  }
 
 :: ProcessType	= StaticProcess !String					//A static process (name of the workflow)

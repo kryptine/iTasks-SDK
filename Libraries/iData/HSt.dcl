@@ -42,10 +42,12 @@ setHStPrefix			:: !String !*HSt -> *HSt
 // Explicit removal of all (Persistent) IData for with the same prefix IData form id
 // Change lifespan of all IData with the same prefix IData form id
 
-deleteIData			:: !String !*HSt -> *HSt
-changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
+deleteIData				:: !String !*HSt -> *HSt
+copyIData				:: !String !String !*HSt -> *HSt
 
-getChangedId		:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
+changeLifespanIData		:: !String !Lifespan !Lifespan !*HSt -> *HSt
+
+getChangedId			:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
 
 // Storage of the Formstates
 storeStates			:: !*HSt -> *HSt

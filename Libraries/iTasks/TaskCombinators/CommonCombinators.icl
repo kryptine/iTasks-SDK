@@ -8,7 +8,7 @@ import iDataForms, iDataFormlib, iDataTrivial
 
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
-from TSt		import accTaskTSt, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
+from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
 from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
@@ -70,12 +70,12 @@ repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
 repeatTask task pred a = dorepeatTask a
 where
 	dorepeatTask a 
-	= compound "repeatTask" (Task dorepeatTask`)
+	= compound "repeatTask" (Task Nothing dorepeatTask`)
 	where
 		dorepeatTask` tst
 		| pred a	= (a,tst) 
-		# (na,tst)	= accTaskTSt (task a) tst	
-		= accTaskTSt (dorepeatTask na) tst
+		# (na,tst)	= applyTask (task a) tst	
+		= applyTask (dorepeatTask na) tst
 
 (<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iData a
 (<|) taska pred = compound "repeatTest" doTask
@@ -196,12 +196,12 @@ edit :: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
 edit finishTask endTransform val = mkParallelTask "edit" edit`
 where
 	edit` tst
-		# (b,tst)	= accTaskTSt (mkSequenceTask "edit-form" form) {tst & activated = True}
-		# (a,tst)	= accTaskTSt (mkSequenceTask "edit-finish" finish) {tst & activated = True}
+		# (b,tst)	= applyTask (mkSequenceTask "edit-form" form) {tst & activated = True}
+		# (a,tst)	= applyTask (mkSequenceTask "edit-finish" finish) {tst & activated = True}
 		= (endTransform (a,b), tst)
 	
 	form tst
-		= accTaskTSt (mkBasicTask "edit-editor" editor) tst
+		= applyTask (mkBasicTask "edit-editor" editor) tst
 	
 	editor tst =:{taskNr,hst}
 		# editorId		= iTaskId taskNr "editor"
@@ -211,4 +211,4 @@ where
 		= (editor.Form.value, {tst & activated = False})
 	
 	finish tst
-		= accTaskTSt finishTask tst
+		= applyTask finishTask tst

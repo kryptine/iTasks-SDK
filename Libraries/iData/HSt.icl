@@ -69,27 +69,31 @@ incrHStCntr i hst					= {hst & cntr = hst.cntr + i}
 setHStPrefix :: !String !*HSt -> *HSt
 setHStPrefix s hst = {HSt|hst & prefix = s}
 
-
 // It can be convenient to explicitly delete IData, in particular for persistent IData object
 // or to optimize iTasks
 // All IData objects administrated in the state satisfying the predicate will be deleted, no matter where they are stored.
 
 deleteIData :: !String !*HSt -> *HSt
 deleteIData prefix hst=:{states,nworld}
-# (states,nworld) = deleteStates prefix states nworld
-= {hst & states = states, nworld = nworld}
+	# (states,nworld) = deleteStates prefix states nworld
+	= {hst & states = states, nworld = nworld}
+
+copyIData :: !String !String !*HSt -> *HSt
+copyIData fromprefix toprefix hst=:{states,nworld}
+	# (states,nworld) = copyStates fromprefix toprefix states nworld
+	= {hst & states = states, nworld = nworld}
 
 changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
 changeLifespanIData prefix oldspan newspan hst=:{states,nworld}
-# (states,nworld) = changeLifetimeStates  prefix oldspan newspan states nworld
-= {hst & states = states, nworld = nworld}
+	# (states,nworld) = changeLifetimeStates  prefix oldspan newspan states nworld
+	= {hst & states = states, nworld = nworld}
 
 getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
 getChangedId hst=:{states}
-# (ids,states)					= getUpdatedIds states
-= (ids,{hst & states = states })
+	# (ids,states) = getUpdatedIds states
+	= (ids,{hst & states = states })
 
 storeStates	:: !*HSt -> *HSt
 storeStates hst =: {states, nworld}
-	# (states,nworld)								= storeServerStates states nworld
+	# (states,nworld) = storeServerStates states nworld
 	= {hst & states = states, nworld = nworld}

@@ -25,7 +25,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, options 		= initialOptions itaskstorage
 		, staticInfo	= initStaticInfo session threadstorage workflows
 		, exception		= Nothing
-		, change		= Nothing
+		, doChange		= False
 		, changes		= []
 		, changeRequests= []
 		, hst 			= hst
@@ -154,7 +154,7 @@ buildProcessTree p =: {Process | processId, processType, properties = {TaskPrope
 	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
 	# (finished, tst)					= taskFinished tst
 	| finished
-		# tst							= appHStTSt (deleteIData (iTaskId [processId] "")) tst									//Garbage collect
+		# tst							= deleteTaskStates [processId] tst														//Garbage collect
 		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished, result = result }) tst	//Save result
 		= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), tst)
 	| otherwise
@@ -188,7 +188,7 @@ where
 			Nothing
 				= (Nothing, tst)
 			Just {Workflow|mainTask}
-				# tst	= appTaskTSt mainTask tst
+				# (_,tst)	= applyTask mainTask tst
 				= (Nothing, tst)				
 	applyMainTask (DynamicProcess task) tst //Execute a dynamic process
 		# (mbTask, tst)		= getDynamic task tst
@@ -218,7 +218,7 @@ where
 	}
 	
 	applyDynamicTask :: !Dynamic !*TSt -> (!Dynamic, !*TSt)
-	applyDynamicTask (dyntask :: (Task Dynamic)) tst = accTaskTSt dyntask tst 
+	applyDynamicTask (task :: (Task Dynamic)) tst = applyTask task tst 
 	
 
 applyChange :: !ProcessId !String !Dynamic !*TSt -> *TSt
@@ -226,7 +226,7 @@ applyChange pid name change tst
 	# (mbProcess,tst)		= getProcess pid tst
 	= case mbProcess of
 		Just proc
-			= snd (buildProcessTree proc {tst & change = Just (name,change)})
+			= snd (buildProcessTree proc {tst & doChange = True, changes = [(name,0,change)]})
 		Nothing
 			= tst
 
@@ -282,11 +282,7 @@ accHStTSt f tst=:{hst}
 	# (a,hst) = f hst
 	= (a,{tst & hst = hst})
 
-appTaskTSt :: !(Task a) !*TSt -> *TSt
-appTaskTSt (Task fn) tst = snd (fn tst)
 
-accTaskTSt :: !(Task a) !*TSt -> (!a,!*TSt)
-accTaskTSt (Task fn) tst = fn tst
 
 // mkBasicTask is an important wrapper function which should be wrapped around any task
 // It takes care of
@@ -312,76 +308,78 @@ where
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 mkSequenceTask taskname taskfun = mkTask taskname initfun id
 where
-	initfun info tst	= (taskfun,{tst & tree = TTSequenceTask info [], taskNr = [-1:tst.taskNr]})
+	initfun info tst=:{TSt|taskNr}	= (taskfun,{tst & tree = TTSequenceTask info [], taskNr = [-1:taskNr]})
 			
 mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 mkParallelTask taskname taskfun = mkTask taskname initfun id
 where
-	initfun info tst=:{TSt|options}	= case options.combination of
+	initfun info tst=:{TSt|taskNr,options}	= case options.combination of
 		//Apply combination and reset
-		Just combination	= (taskfun,{tst & tree = TTParallelTask info combination [], taskNr = [-1:tst.taskNr], options = {options & combination = Nothing}})
+		Just combination	= (taskfun,{tst & tree = TTParallelTask info combination [], taskNr = [-1:taskNr], options = {options & combination = Nothing}})
 		//Use default combination
-		Nothing				= (taskfun,{tst & tree = TTParallelTask info TTVertical [], taskNr = [-1:tst.taskNr]})												
+		Nothing				= (taskfun,{tst & tree = TTParallelTask info TTVertical [], taskNr = [-1:taskNr]})												
 		
 mkMainTask :: !String !TaskProperties !(Task a) -> Task a | iData a
-mkMainTask taskname mti (Task initfun) = mkTask taskname prefun id
+mkMainTask taskname initProperties task = mkTask taskname prefun id
 where
-	/*
-	* The following is a very very very ugly function which
-	* should be polished a lot once changes have been implemented
-	* properly.
-	*/
-	prefun ti tst=:{taskNr, staticInfo={currentProcessId},mainTask}
+	prefun taskInfo tst=:{taskNr, mainTask, staticInfo={currentProcessId}}
 		# taskId						= taskNrToString taskNr
-		//Lookup task in process table
-		# (mbProc,tst)							= getSubProcess currentProcessId taskId tst 
-		# (properties,pid,curfun,curfunid,tst)	= case mbProc of
-			(Just {Process|properties,processId, taskfun})
-				//Check for a stored task function
-				# (curfun,curfunid,tst) = case taskfun of
-					(Just dynid)
-						# (mbFun,tst)	= getDynamic dynid tst
+		# (mbProc,tst)					= getSubProcess currentProcessId taskId tst 
+		# (properties, processId, curfun, curfunid, changeNr, tst=:{doChange,changes})
+			= case mbProc of
+				(Just {Process | properties, processId, taskfun, changeNr})
+					| isNothing taskfun
+						= (properties, processId, applyTask task, 0, changeNr, tst)
+					| otherwise
+						# fid			= fromJust taskfun
+						# (mbFun,tst)	= getDynamic fid tst
 						= case mbFun of
-							(Just (dynfun :: *TSt -> *(a^,*TSt)))	= (dynfun,dynid,tst)
-							_										= (initfun,0,tst)
-					Nothing
-						= (initfun,0,tst)
-				= (properties, processId, curfun, curfunid, tst)
-			Nothing
-				# (pid,tst)	= createProcess (mkEmbeddedProcessEntry currentProcessId taskId mti Active mainTask) tst
-				= ({TaskProperties | mti & processId = pid}, pid, initfun, 0, tst)
-		//Check if a change needs to be applied
-		# (properties,curfun,tst) = case tst.change of
-			(Just (label,(Change changefun :: Change a^)))
-				//A matching change: execute it's change function
-				# (mbProperties, mbTask, mbChange) = changefun properties (Task initfun) (Task curfun)
-				# change = case mbChange of Nothing = Nothing; (Just c) = Just (label,dynamic c) 
-				| isNothing mbProperties && isNothing mbTask
-					//Nothing changed
-					= (properties, curfun, {tst & change = change})
+							(Just (f :: *TSt -> *(a^,*TSt)))	= (properties, processId, f, fid, changeNr, tst)
+							_									= (properties, processId, applyTask task, 0, changeNr, tst)
+				Nothing
+					# (processId, tst)	= createProcess (mkEmbeddedProcessEntry currentProcessId taskId initProperties Active mainTask) tst
+					= (initProperties, processId, applyTask task, 0, 0, tst)
+		| doChange
+			= case changes of
+				[(label,cid,(Change changefun :: Change a^)):rest]	= do_change processId taskInfo properties changeNr curfun curfunid (label,cid,changefun) rest tst
+				other												= no_change processId taskInfo properties changeNr curfun tst
+		| otherwise
+			= no_change processId taskInfo properties changeNr curfun tst
+		where
+			do_change processId taskInfo properties changeNr curfun curfunid (label,cid,changefun) rest tst
+			 	# (mbProperties, mbTask, mbChange) = changefun properties (Task (Just [-1,changeNr:taskNr]) curfun) task
+				//Determine new change list
+				# changes = case mbChange of
+						(Just change)	= [(label,cid,dynamic change):rest]
+						_				= rest
+				//Update task (and properties when changed) 	
+				| isJust mbTask
+					# changeNr			= inc changeNr 
+					# properties		= if (isJust mbProperties) (fromJust mbProperties) properties
+					# curfun			= applyTask (fromJust mbTask)					
+					# (curfunid,tst)	= updateTaskfunDynamic curfunid (dynamic curfun) tst 
+					# (_,tst) 			= updateProcess processId (\p -> {p & taskfun = Just curfunid, properties = properties, changeNr = changeNr }) tst 
+					= (curfun, {tst & tree = TTMainTask taskInfo properties [], taskNr = [-1,changeNr:taskNr], mainTask = processId, changes = changes})
+				//Only add properties
+				| isJust mbProperties
+					# properties		= fromJust mbProperties
+					# (_,tst) 			= updateProcess processId (\p -> {p & properties = properties}) tst
+					= (curfun, {tst & tree = TTMainTask taskInfo properties [], taskNr = [-1,changeNr:taskNr], mainTask = processId, changes = changes})
+				// Task and properties unchanged
 				| otherwise
-					//If changed, store the task function
-					# (curfun,curfunid, tst) = case mbTask of
-						Just (Task t)
-							| curfunid == 0
-								# (did,tst) = createDynamic (dynamic t) tst
-								= (t,did,tst)
-							| otherwise
-								# (_,tst) = updateDynamic (dynamic t) curfunid tst
-								= (t,curfunid,tst)
-						Nothing	
-							= (curfun,curfunid,tst)
-					//Update the process administration
-					# properties = case mbProperties of Nothing = properties; Just newProps = newProps
-					# (_,tst) = updateProcess pid (\p ->{p	& taskfun = if (curfunid <> 0) (Just curfunid) Nothing
-															, properties = properties }) tst 
-					= (properties, curfun, {tst & change = change})
-				= (properties, curfun, tst)	
- 		//Return
- 		= (curfun, {tst & tree = TTMainTask ti properties [], taskNr = [-1:tst.taskNr], mainTask = pid})
+					= no_change processId taskInfo properties changeNr curfun {TSt|tst & changes = changes}
+			where
+				updateTaskfunDynamic 0 d tst
+					= createDynamic d tst
+				updateTaskfunDynamic i d tst
+					# (_,tst) = updateDynamic d i tst
+					= (i,tst)
+				
+ 			no_change processId taskInfo properties changeNr curfun tst
+ 				= (curfun, {tst & tree = TTMainTask taskInfo properties [], taskNr = [-1,changeNr:taskNr], mainTask = processId})
 
 mkTask :: !String !(TaskInfo *TSt -> (*TSt -> *(!a,!*TSt),*TSt)) (*TSt -> *TSt) -> Task a | iData a
-mkTask taskname prefun postfun = Task mkTask`
+mkTask taskname prefun postfun = Task Nothing mkTask`
 where
 	mkTask` tst
 		# (a, done, info, tst =:{taskNr,userId,delegatorId,tree,options}) = initTask taskname tst
@@ -416,13 +414,13 @@ where
 		= (value,finished,info,{tst & hst = hst})
 	
 	//Shared final task creation part
-	finalizeTask value tst =:{taskNr,activated,hst,options}
+	finalizeTask value tst =:{taskNr,activated,options}
 		| activated
-			# hst				= deleteIData (iTaskId taskNr "") hst //Garbage collect
+			# tst=:{hst}		= deleteTaskStates taskNr tst //Garbage collect
 			# (store,hst) 		= mkStoreForm (Init,storageFormId options (iTaskId taskNr "") (False,createDefault)) (\_ -> (True,value)) hst
 			= {tst & hst = hst}
 		| otherwise
-			= {tst & hst = hst}
+			= tst
 
 	//Increas the task nr
 	incTaskNr [] = [0]
@@ -484,13 +482,17 @@ resetSequence tst=:{taskNr,tree}
 	= case tree of
 		(TTSequenceTask info sequence)	= {tst & taskNr = [-1:tl taskNr], tree = TTSequenceTask info []}
 		_								= {tst & tree = tree}
-				
-deleteAllSubTasks :: ![TaskNr] TSt -> TSt
-deleteAllSubTasks [] tst = tst
-deleteAllSubTasks [tx:txs] tst=:{hst} 
-	# hst	= deleteIData  (iTaskId (tl tx) "") hst
-	= deleteAllSubTasks txs {tst & hst = hst}
 
+deleteTaskStates :: !TaskNr !*TSt -> *TSt
+deleteTaskStates tasknr tst = appHStTSt (deleteIData (iTaskId tasknr "")) tst
+
+copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
+copyTaskStates fromtask totask tst = appHStTSt (copyIData (iTaskId fromtask "") (iTaskId totask "")) tst
+
+//TODO: Migrate existing state
+applyTask :: !(Task a) !*TSt -> (!a,!*TSt)
+applyTask (Task _ fn) tst = fn tst
+			
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""
 taskNrToString [i] 		= toString i

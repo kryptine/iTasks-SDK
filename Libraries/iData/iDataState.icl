@@ -242,6 +242,10 @@ where
 		deleteStorage fid LSTxtFileRO 	world				= deleteStateFile fid world
 		deleteStorage fid _ 			world 				= world
 
+copyStates :: !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)
+copyStates fromprefix toprefix states nworld = (states,nworld)
+//TODO
+
 // change storage option
 
 changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	

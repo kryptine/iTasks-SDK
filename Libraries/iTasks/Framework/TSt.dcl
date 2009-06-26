@@ -25,7 +25,7 @@ from Time		import :: Time(..)
 					
 					, exception		:: !Maybe Dynamic							// Optional, used when raising exceptions
 					
-					, change		:: !Maybe (!String,!Dynamic)				// New change
+					, doChange		:: !Bool									// Apply first change
 					, changes		:: ![(!String, !DynamicId, !Dynamic)]		// Persistent changes
 					
 					//TODO: Remove when new changes are finished					
@@ -57,7 +57,7 @@ from Time		import :: Time(..)
 					}
 
 // The task monad
-:: Task a = Task !(*TSt -> *(!a,!*TSt))
+:: Task a = Task !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
@@ -182,26 +182,6 @@ appHStTSt	:: !.(*HSt -> *HSt)			!*TSt -> *TSt
 accHStTSt	:: !.(*HSt -> *(.a,*HSt))	!*TSt -> (.a,!*TSt)
 
 /**
-* Applies a task to the task state without yielding the result of the task.
-*
-* @param The task that is applied
-* @param The task state
-*
-* @return The modified task state
-*/
-appTaskTSt :: !(Task a) !*TSt 					-> *TSt
-/**
-* Applies a task to the task state and yields the tasks result.
-*
-* @param The task that is applied
-* @param The task state
-*
-* @return The value produced by the task
-* @return The modified task state
-*/
-accTaskTSt 			:: !(Task a) !*TSt			-> (!a,!*TSt)
-
-/**
 * Get the current session from the TSt
 */
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
@@ -307,20 +287,42 @@ setNextCombination	:: !TaskCombination !*TSt	-> *TSt
 * Resets a sequence
 */
 resetSequence		::	!*TSt					-> *TSt
- 
-
-//// UTILITY
 
 /**
-* Deletes iData states for all subtasks of the given task number.
-* This function can be used for ad-hoc garbage collection.
+* Delete task state (for garbage collection) for a task and its subtasks
 * 
-* @param The task number of the task which subtasks must be deleted
+* @param Task nr to delete states for
 * @param The task state
 *
-* @return The task state
+* @return The updated task state
 */
-deleteAllSubTasks 	:: ![TaskNr] TSt 			-> TSt
+deleteTaskStates	:: !TaskNr !*TSt			-> *TSt
+/**
+* Copy task state for a task and its subtasks.
+*
+* @param From task nr
+* @param To task nr
+* @param The task state
+*
+* @return The updated task state
+*/
+copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
+
+//// TASK APPLICATION
+
+/**
+* Applies a task to the task state and yields the tasks result.
+*
+* @param The task that is applied
+* @param The task state
+*
+* @return The value produced by the task
+* @return The modified task state
+*/
+applyTask 			:: !(Task a) !*TSt			-> (!a,!*TSt)
+
+
+//// UTILITY
 
 /**
 * Parses a formatted task number to its integer list representation

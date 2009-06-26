@@ -83,6 +83,13 @@ setState 			:: !(FormId a) a !*FormStates !*NWorld
 deleteStates 		:: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	
 
 /**
+* Copy the states of all forms starting with the first string to a new
+* form where the new name is the old name having the first string replaced
+* by the second.
+*/
+copyStates			:: !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)
+
+/**
 * Update the lifespan of all forms whose identifier starts with the given
 * string and currently have the given lifespan.
 */

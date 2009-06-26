@@ -25,7 +25,7 @@ derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskPropert
 :: ProcessReference a 	= ProcessReference !Int		//We only keep the id in the process database
 
 spawnProcess :: !UserId !Bool !(LabeledTask a) -> Task (ProcessReference a) | iData a
-spawnProcess uid activate (label,task) = compound "spawnProcess" (Task spawnProcess`)
+spawnProcess uid activate (label,task) = mkBasicTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
 		# (curUid,tst)		= getCurrentUser tst
@@ -44,15 +44,13 @@ where
 	
 	//Turn a task yielding a value of type a into a value of dynamic
 	createDynamicTask :: !(Task a) -> (Task Dynamic) | iData a
-	createDynamicTask task = Task (createDynamicTask` task)
+	createDynamicTask task = Task Nothing (createDynamicTask` task)
 	where
 		createDynamicTask` task tst
-			# (a, tst)	= accTaskTSt task tst
-			# dyn		= dynamic a
-			= (dyn, tst)
+			= let (a, tst`) = applyTask task tst in (dynamic a, tst`)
 
 waitForProcess :: (ProcessReference a) -> Task (Maybe a) | iData a
-waitForProcess (ProcessReference pid) = compound "waitForProcess" (Task waitForProcess`)
+waitForProcess (ProcessReference pid) = mkBasicTask "waitForProcess" waitForProcess`
 where
 	waitForProcess` tst
 		# (mbProcess,tst)	= ProcessDB@getProcess pid tst
@@ -74,7 +72,7 @@ where
 
 
 getProcessStatus :: (ProcessReference a) -> Task ProcessStatus | iData a
-getProcessStatus (ProcessReference pid) = compound "getProcessStatus" (Task getProcessStatus`)
+getProcessStatus (ProcessReference pid) = mkBasicTask "getProcessStatus" getProcessStatus`
 where
 	getProcessStatus` tst
 		# (mbProcess,tst)	= ProcessDB@getProcess pid tst
@@ -83,7 +81,7 @@ where
 			Nothing							= (Deleted, tst)
 			
 getProcessOwner :: (ProcessReference a) -> Task (Maybe Int)
-getProcessOwner (ProcessReference pid) = compound "getProcess" (Task getProcessStatus`)
+getProcessOwner (ProcessReference pid) = mkBasicTask "getProcess" getProcessStatus`
 where
 	getProcessStatus` tst 
 	# (process,tst)	= ProcessDB@getProcess pid tst
@@ -91,36 +89,36 @@ where
 	= (owner,tst)
 
 activateProcess	:: (ProcessReference a)	-> Task Bool | iData a
-activateProcess (ProcessReference pid) = compound "activateProcess" (Task activateProcess`)
+activateProcess (ProcessReference pid) = mkBasicTask "activateProcess" activateProcess`
 where
 	activateProcess` tst = ProcessDB@setProcessStatus Active pid tst
 
 suspendProcess :: (ProcessReference a) -> Task Bool	| iData a
-suspendProcess (ProcessReference pid) = compound "suspendProcess" (Task suspendProcess`)
+suspendProcess (ProcessReference pid) = mkBasicTask "suspendProcess" suspendProcess`
 where
 	suspendProcess` tst	= ProcessDB@setProcessStatus Suspended pid tst
 
 suspendCurrentProcess :: Task Bool
-suspendCurrentProcess = compound "suspendCurrentProcess" (Task suspendCurrentProcess`)
+suspendCurrentProcess = mkBasicTask "suspendCurrentProcess" suspendCurrentProcess`
 where
 	suspendCurrentProcess` tst
 		# (pid, tst)	= getCurrentProcess tst
 		= ProcessDB@setProcessStatus Suspended pid tst
 		
 deleteProcess :: (ProcessReference a) -> Task Bool | iData a
-deleteProcess (ProcessReference pid) = compound "deleteProcess" (Task deleteProcess`)
+deleteProcess (ProcessReference pid) = mkBasicTask "deleteProcess" deleteProcess`
 where
 	deleteProcess` tst = ProcessDB@deleteProcess pid tst
 
 deleteCurrentProcess :: Task Bool
-deleteCurrentProcess = compound "deleteCurrentProcess" (Task deleteCurrentProcess`)
+deleteCurrentProcess = mkBasicTask "deleteCurrentProcess" deleteCurrentProcess`
 where
 	deleteCurrentProcess` tst
 		# (pid, tst)	= getCurrentProcess tst
 		= ProcessDB@deleteProcess pid tst
 
 updateProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iData a 
-updateProcessOwner uid (ProcessReference pid) = compound "updateProcessOwner" (Task setProcessOwner`)
+updateProcessOwner uid (ProcessReference pid) = mkBasicTask "updateProcessOwner" setProcessOwner`
 where
 	setProcessOwner` tst
 		# (curUid,tst)		= getCurrentUser tst

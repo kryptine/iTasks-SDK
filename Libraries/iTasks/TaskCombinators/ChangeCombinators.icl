@@ -23,15 +23,15 @@ where
 		# (store,hst) 					= mkStoreForm (Init,storageFormId options storeId (False,0,createDefault)) id hst
 		# (changed,timestamp,change)	= store.Form.value
 		| changed
-			= accTaskTSt (alternativeTask change) {tst & hst = hst}				// demand was catched in the past, call alternative task with pushed information
+			= applyTask (alternativeTask change) {tst & hst = hst}				// demand was catched in the past, call alternative task with pushed information
 		| otherwise
 			= case findChange changeRequests timestamp {tst & hst = hst} of
 				(Nothing,timestamp,accu,tst)	
 					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,0,createDefault)) (\_ -> (False,timestamp,change)) tst.hst // remember timestamp
-					= accTaskTSt normaltask {tst & changeRequests = accu, hst = hst}	// no change requested, perform normal task			 
+					= applyTask normaltask {tst & changeRequests = accu, hst = hst}	// no change requested, perform normal task			 
 				(Just change,timestamp,accu,tst)								
 					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,0,createDefault)) (\_ -> (True,timestamp,change)) tst.hst // remember that we catched
-					= accTaskTSt (alternativeTask change) {tst & activated = True, changeRequests = accu, hst = hst} // call alternative task with updated request predicate
+					= applyTask (alternativeTask change) {tst & activated = True, changeRequests = accu, hst = hst} // call alternative task with updated request predicate
 	where	
 		findChange [] timestamp tst
 			= (Nothing,timestamp,[],tst)
@@ -56,12 +56,12 @@ where
 	raise` tst=:{taskNr,options,hst,changeRequests = orgRequests}
 		# storeId									= iTaskId (tl taskNr) "pushChangeRequest"
 		# myTaskId									= taskNrToString (tl taskNr)
-		# (Time curTime,tst)						= accTaskTSt (appWorld "getTimeForPush" time) tst
+		# (Time curTime,tst)						= applyTask (appWorld "getTimeForPush" time) tst
 		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,curTime,pred)) id tst.hst			// store for change request
 		# (notFinished,curTime,spred)				= store.Form.value
 		# newRequests								= if notFinished [(myTaskId,spred,curTime,dynamic e):orgRequests] orgRequests			// determine if previous request is still active
 		# (a,tst=:{changeRequests = newRequests,hst})	
-													= accTaskTSt task {tst & changeRequests = newRequests, hst = hst} 						// push request down the task tree
+													= applyTask task {tst & changeRequests = newRequests, hst = hst} 						// push request down the task tree
 		# mbDemand									= find myTaskId newRequests
 		# new_bspred								= if (isNothing mbDemand) (False,curTime,pred) (True,curTime,fromJust mbDemand)			// remember updated request for future events
 		# (store,hst) 								= mkStoreForm (Init,storageFormId options storeId (True,curTime,pred)) (\_ -> new_bspred) hst

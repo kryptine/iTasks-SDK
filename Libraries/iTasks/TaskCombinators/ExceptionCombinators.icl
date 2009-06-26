@@ -16,16 +16,16 @@ where
 		# (store,hst) 	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
 		# (caught,e)	= store.Form.value
 		| caught
-			= accTaskTSt (handlerTask e) {tst & hst = hst}
+			= applyTask (handlerTask e) {tst & hst = hst}
 		| otherwise
-			# (a, tst =:{exception,hst})	= accTaskTSt normalTask {tst & hst = hst}
+			# (a, tst =:{exception})	= applyTask normalTask {tst & hst = hst}
 			= case exception of
 				Just (ex :: e^)
-					# hst		= deleteIData (iTaskId (tl taskNr) "") hst 														//Garbage collect
+					# tst=:{hst}	= deleteTaskStates (tl taskNr) tst 														//Garbage collect
 					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,ex)) hst 	//Store the exception
-					= accTaskTSt (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, hst = hst})		//Run the handler
+					= applyTask (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, hst = hst})		//Run the handler
 					
-				_	= (a, {tst & hst = hst})	//Don't handle the exception
+				_	= (a, tst)	//Don't handle the exception
 						
 throw :: !e -> Task a | iData a & TC e	
 throw e = mkBasicTask "throw" throw`

@@ -5,7 +5,7 @@ import Types, TSt
 
 class 	(<<@) infixl 2 b ::  !(Task a) !b  -> (Task a)
 instance <<@  Lifespan
-where   (<<@) task lifespan			= Task setTaskLifespan
+where   (<<@) task lifespan			= Task Nothing setTaskLifespan
 		where
 			setTaskLifespan tst=:{TSt|options}
 			
@@ -14,16 +14,16 @@ where   (<<@) task lifespan			= Task setTaskLifespan
 					(IF_ClientTasks												
 						(if (options.tasklife == LSClient && (lifespan == LSTxtFile || lifespan == LSDataFile))
 							(abort "Cannot make persistent storage on Client\n")
-							(\tst -> accTaskTSt task {TSt|tst & options.tasklife = lifespan}))				// assign option on client
-						(\tst -> accTaskTSt task {TSt|tst & options.tasklife = lifespan})tst				// assign option on server
+							(\tst -> applyTask task {TSt|tst & options.tasklife = lifespan}))				// assign option on client
+						(\tst -> applyTask task {TSt|tst & options.tasklife = lifespan})tst				// assign option on server
 					)
-					(accTaskTSt task {TSt|tst & options.tasklife = lifespan})								// assign option on server
+					(applyTask task {TSt|tst & options.tasklife = lifespan})								// assign option on server
 				)
-				(accTaskTSt task {TSt|tst & options.tasklife = lifespan}) 									// assign option on server
+				(applyTask task {TSt|tst & options.tasklife = lifespan}) 									// assign option on server
 
 instance <<@  StorageFormat
-where   (<<@) task storageformat 	= Task (\tst -> accTaskTSt task {TSt|tst & options.taskstorage = storageformat})
+where   (<<@) task storageformat 	= Task Nothing (\tst -> applyTask task {TSt|tst & options.taskstorage = storageformat})
 instance <<@  Mode
-where   (<<@) task mode 			= Task (\tst -> accTaskTSt task {TSt|tst & options.taskmode = mode})
+where   (<<@) task mode 			= Task Nothing (\tst -> applyTask task {TSt|tst & options.taskmode = mode})
 instance <<@  TaskCombination
-where	(<<@) task combination		= Task (\tst -> accTaskTSt task (setNextCombination combination tst))
+where	(<<@) task combination		= Task Nothing (\tst -> applyTask task (setNextCombination combination tst))
