@@ -137,7 +137,7 @@ Ext.reg("inlinefield", itasks.form.InlineField);
 
 //Global event firing. This may be used by plugins like
 //Java applets, Flash or Silverlight components
-itasks.fireTaskEvent = function(taskid, field, value) {
+fireTaskEvent = function(taskid, field, value) {
 	
 	var ct = Ext.getCmp("taskform-" + taskid);
 	if(!ct)
