@@ -140,13 +140,13 @@ getProcess pid = mkBasicTask "getProcess" (\tst -> ProcessDB@getProcess pid tst)
 getProcessForUser :: !UserId !ProcessId -> Task (Maybe Process)
 getProcessForUser uid pid = mkBasicTask "getProcessForUser" (\tst -> ProcessDB@getProcessForUser uid pid tst)
 
-getProcesses :: ![ProcessStatus] -> Task [Process]
-getProcesses statuses = mkBasicTask "getProcesses" (\tst -> ProcessDB@getProcesses statuses tst)
+getProcesses :: ![ProcessStatus] !Bool -> Task [Process]
+getProcesses statuses ignoreEmbedded = mkBasicTask "getProcesses" (\tst -> ProcessDB@getProcesses statuses ignoreEmbedded tst)
 
 getProcessesById :: ![ProcessId] -> Task [Process]
 getProcessesById ids = mkBasicTask "getProcessesById" (\tst -> ProcessDB@getProcessesById ids tst)
 
-getProcessesForUser	:: !UserId ![ProcessStatus] Bool -> Task [Process]
+getProcessesForUser	:: !UserId ![ProcessStatus] !Bool -> Task [Process]
 getProcessesForUser uid statuses ignoreEmbedded = mkBasicTask "getProcessesForUser" (\tst -> ProcessDB@getProcessesForUser uid statuses ignoreEmbedded tst)
 
 setProcessOwner :: !UserId !ProcessId -> Task Bool

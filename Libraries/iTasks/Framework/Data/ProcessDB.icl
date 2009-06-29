@@ -58,11 +58,14 @@ where
 		relevantProc targetId {Process|processId}							= processId == targetId
 		relevantProc _ _													= False
 			
-	getProcesses :: ![ProcessStatus] !*HSt -> (![Process], !*HSt)
-	getProcesses statusses hst
+	getProcesses :: ![ProcessStatus] !Bool !*HSt -> (![Process], !*HSt)
+	getProcesses statusses ignoreEmbedded hst
 		# (procs,hst) 	= processStore id hst
-		= ([process \\ process <- procs | isMember process.Process.status statusses], hst)
-	
+		| ignoreEmbedded
+			= ([p \\ p <- procs | isMember p.Process.status statusses && not (isEmbedded p)], hst)
+		| otherwise
+			= ([p \\ p <- procs | isMember p.Process.status statusses], hst)
+			
 	getProcessesById :: ![ProcessId] !*HSt -> (![Process], !*HSt)
 	getProcessesById ids hst
 		# (procs,hst) 	= processStore id hst
@@ -114,13 +117,18 @@ where
 	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*HSt -> (!Bool, !*HSt)
 	updateProcessProperties processId f hst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) hst
 
+
+isEmbedded :: Process -> Bool
+isEmbedded {processType = EmbeddedProcess _ _}	= True
+isEmbedded _									= False
+
 instance ProcessDB TSt
 where
 	createProcess entry tst									= accHStTSt (createProcess entry) tst
 	deleteProcess processId tst								= accHStTSt (deleteProcess processId) tst
 	getProcess processId tst								= accHStTSt (getProcess processId) tst
 	getProcessForUser userId processId tst					= accHStTSt (getProcessForUser userId processId) tst
-	getProcesses statusses tst								= accHStTSt (getProcesses statusses) tst
+	getProcesses statusses ignoreEmbedded tst				= accHStTSt (getProcesses statusses ignoreEmbedded) tst
 	getProcessesById ids tst								= accHStTSt (getProcessesById ids) tst
 	getProcessesForUser userId statusses ignoreEmbedded tst	= accHStTSt (getProcessesForUser userId statusses ignoreEmbedded) tst
 	getSubProcess processId taskId tst						= accHStTSt (getSubProcess processId taskId) tst

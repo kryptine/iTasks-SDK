@@ -39,9 +39,9 @@ where
 	deleteProcess			:: !ProcessId												!*st -> (!Bool,			!*st)
 	getProcess				:: !ProcessId												!*st -> (!Maybe Process,!*st)
 	getProcessForUser		:: !UserId !ProcessId										!*st -> (!Maybe Process,!*st)
-	getProcesses			:: ![ProcessStatus]											!*st -> (![Process],	!*st)
+	getProcesses			:: ![ProcessStatus] !Bool									!*st -> (![Process],	!*st)
 	getProcessesById		:: ![ProcessId]												!*st -> (![Process],	!*st)
-	getProcessesForUser		:: !UserId ![ProcessStatus]	Bool							!*st -> (![Process],	!*st)
+	getProcessesForUser		:: !UserId ![ProcessStatus]	!Bool							!*st -> (![Process],	!*st)
 	getSubProcess			:: !ProcessId !TaskId										!*st -> (!Maybe Process,!*st)
 
 	setProcessOwner			:: !(UserId,String) !(UserId,String) !ProcessId				!*st -> (!Bool,			!*st)

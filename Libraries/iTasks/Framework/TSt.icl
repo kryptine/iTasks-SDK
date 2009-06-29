@@ -163,8 +163,8 @@ buildProcessTree p =: {Process | processId, processType, properties = {TaskPrope
 		= (TTMainTask ti mti tasks, tst)
 where
 	loadChanges changes tst = loadChanges` changes [] tst
-	loadChanges` [] accu tst
-		= {TSt|tst& changes = reverse accu}
+	loadChanges` [] accu tst=:{TSt|changes}
+		= {TSt|tst& changes = changes ++ reverse accu}
 	loadChanges` [(l,c):cs] accu tst
 		# (dyn,tst) = accHStTSt (getDynamic c) tst
 		= case dyn of
@@ -222,12 +222,16 @@ where
 	applyDynamicTask (task :: (Task Dynamic)) tst = applyTask task tst 
 	
 
-applyChange :: !ProcessId !String !Dynamic !*TSt -> *TSt
-applyChange pid name change tst
+applyChangeToTaskTree :: !ProcessId !String !(Change a) !*TSt -> *TSt | TC a
+applyChangeToTaskTree pid name change tst
 	# (mbProcess,tst)		= getProcess pid tst
 	= case mbProcess of
 		Just proc
-			= snd (buildProcessTree proc {tst & doChange = True, changes = [(name,0,change)]})
+			# tst =:{taskNr,taskInfo,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changes} = tst
+			# tst = snd (buildProcessTree proc {tst & doChange = True, changes = [(name,0,dynamic change)]})
+			= {tst & taskNr = taskNr, taskInfo = taskInfo, userId = userId, delegatorId = delegatorId, tree = tree
+				, activated = activated, mainTask = mainTask, newProcesses = newProcesses, options = options
+				, staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
 		Nothing
 			= tst
 
@@ -282,18 +286,6 @@ accHStTSt :: !.(*HSt -> *(.a,*HSt)) !*TSt -> (.a,!*TSt)
 accHStTSt f tst=:{hst}
 	# (a,hst) = f hst
 	= (a,{tst & hst = hst})
-
-
-
-// mkBasicTask is an important wrapper function which should be wrapped around any task
-// It takes care of
-//		- deciding whether the task should be called (activated) or not
-//		- adding of trace information
-//		- generating task numbers in a systematic way
-// It is very important that the numbering of the tasks is done systematically
-// Every task should have a unique number
-// Every sequential task should increase the task number
-// If a task j is a subtask of task i, than it will get number i.j in reverse order
 
 mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 mkBasicTask taskname taskfun = Task taskname Nothing mkBasicTask`

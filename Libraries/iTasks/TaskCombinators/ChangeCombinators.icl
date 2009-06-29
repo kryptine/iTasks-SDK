@@ -13,6 +13,10 @@ derive gForm 	Time
 derive gPrint	Time
 derive gParse	Time
 
+applyChangeToProcess :: !ProcessId !String !(Change a)  -> Task Void | TC a
+applyChangeToProcess pid label change
+	= mkBasicTask "applyChangeToProcess" (\tst -> (Void, applyChangeToTaskTree pid label change tst))
+
 // TODO: change demands still have to be sorted to prevent that some changes are skipped MJP !!!!!!!!!!!!!
 
 (<\/>) infixl  1  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e

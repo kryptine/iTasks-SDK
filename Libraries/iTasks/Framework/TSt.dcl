@@ -117,12 +117,12 @@ calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, 
 * 
 * @param The process id
 * @param A name for identifying the change.
-* @param The packed change function. Must be a packed "Change a" //TODO: try to move the dynamic packing into this function
+* @param The change function
 * @param The task state
 *
 * @return The modified task state
 */
-applyChange :: !ProcessId !String !Dynamic !*TSt -> *TSt
+applyChangeToTaskTree :: !ProcessId !String !(Change a) !*TSt -> *TSt | TC a
 
 /**
 * Lists which workflows are available

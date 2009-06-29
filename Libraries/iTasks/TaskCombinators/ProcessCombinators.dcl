@@ -148,10 +148,12 @@ getProcessForUser		:: !UserId !ProcessId 					-> Task (Maybe Process)
 * Retrieves all process that have one of the given statuses
 *
 * @param A list of statuses to match on
+* @param Ignore embedded processes
 * 
 * @return The list of processes having the given statuses
 */
-getProcesses			:: ![ProcessStatus]						-> Task [Process]
+getProcesses			:: ![ProcessStatus]	!Bool				-> Task [Process]
+
 /**
 * Retrieves the processes with indicated process ids
 *
@@ -170,7 +172,7 @@ getProcessesById		:: ![ProcessId]							-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !UserId ![ProcessStatus] Bool		-> Task [Process]
+getProcessesForUser		:: !UserId ![ProcessStatus] !Bool		-> Task [Process]
 /**
 * Changes the owner of the indicated process. The current user is automatically set
 * as delegator of the process.
