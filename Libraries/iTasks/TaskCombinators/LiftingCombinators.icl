@@ -3,20 +3,6 @@ implementation module LiftingCombinators
 import TSt, UITasks, BasicCombinators, CommonCombinators
 import Util
 
-(*=>) infix 4 :: !(TSt -> (!a,!TSt)) !(a -> Task b) -> (Task b)
-(*=>) ftst b = Task Nothing doit
-where
-	doit tst
-	# (a,tst) = ftst tst
-	= applyTask (b a) tst
-
-(*#>) infix 4 :: !(TSt -> TSt) !(Task a) -> Task a
-(*#>) ftst b = Task Nothing doit
-where
-	doit tst
-	# tst = ftst tst
-	= applyTask b tst
-
 appIData :: !(IDataFun a) -> (Task a) | iData a 
 appIData idatafun = (mkParallelTask "appIData" appIData`)
 where

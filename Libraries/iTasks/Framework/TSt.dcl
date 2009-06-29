@@ -12,6 +12,7 @@ from Time		import :: Time(..)
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr									// for generating unique form-id's
+					, taskInfo		:: !TaskInfo								// task information available to tasks
 					, userId		:: !UserId									// id of user to which task is assigned
 					, delegatorId	:: !UserId									// id of user who issued the task
 					, tree			:: !TaskTree								// accumulator for constructing a task tree			
@@ -57,7 +58,7 @@ from Time		import :: Time(..)
 					}
 
 // The task monad
-:: Task a = Task !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
+:: Task a = Task !String !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
@@ -257,13 +258,27 @@ mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 * such as task status, event times and user/delegate information.
 *
 * @param A name used as the task label
-* @param The initial task info properties
 * @param The task that will run inside the main task
 *
 * @return The newly constructed sequence task
 */
-mkMainTask 		:: !String !TaskProperties !(Task a) -> Task a | iData a
+mkMainTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
+//// TASK APPLICATION
+
+/**
+* Applies a task to the task state and yields the tasks result.
+*
+* @param The task that is applied
+* @param The task state
+*
+* @return The value produced by the task
+* @return The modified task state
+*/
+applyTask			:: !(Task a) !*TSt -> (!a,!*TSt) | iData a
+
+
+//// TASK CONTENT
 
 /**
 * Sets Html output of the current task
@@ -308,18 +323,6 @@ deleteTaskStates	:: !TaskNr !*TSt			-> *TSt
 */
 copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
 
-//// TASK APPLICATION
-
-/**
-* Applies a task to the task state and yields the tasks result.
-*
-* @param The task that is applied
-* @param The task state
-*
-* @return The value produced by the task
-* @return The modified task state
-*/
-applyTask 			:: !(Task a) !*TSt			-> (!a,!*TSt)
 
 
 //// UTILITY

@@ -9,7 +9,7 @@ import iDataTrivial, iDataFormlib
 import LiftingCombinators, ClientCombinators
 import Util, Time
 import GenBimap
-import UserDB
+import UserDB, ProcessDB, DynamicDB
 
 derive gForm 	Time
 derive gUpd 	Time
@@ -19,15 +19,15 @@ derive gParse	Time
 
 //Standard monadic operations:
 
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iCreateAndPrint b
-(>>=) taska taskb = Task Nothing tbind
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iData a & iData b
+(>>=) taska taskb = mkSequenceTask ">>=" tbind
 where
-	tbind tst=:{TSt|options}
+	tbind tst
 		# (a,tst=:{activated})	= applyTask taska tst
-		| activated				= applyTask (taskb a) {TSt|tst & options = options}
+		| activated				= applyTask (taskb a) tst
 								= (createDefault,tst)
 
-(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iCreateAndPrint b
+(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iData a & iData b
 (>>|) taska taskb = taska >>= \_ -> taskb
 
 return :: !a -> (Task a) | iData a
@@ -112,15 +112,79 @@ where
 // Multi-user workflows
 
 assign :: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) -> Task a | iData a	
-assign toUserId initPriority initDeadline (label,task) = Task Nothing assign` 
+assign toUserId initPriority initDeadline (label,task) = mkMainTask "assign" assign` 
 where
-	assign` tst =: {TSt | userId = currentUserId, delegatorId = currentDelegatorId}
-		# (toUser,tst)		= getUser toUserId tst
-		# (currentUser,tst)	= getUser currentUserId tst 
-		# (now,tst)			= (accHStTSt (accWorldHSt time)) tst						//Retrieve current time
-		# mti				= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser, deadline = initDeadline, priority = initPriority, progress = TPActive, issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
-		# (a, tst)			= applyTask (mkMainTask label mti task) {TSt | tst & userId = toUserId, delegatorId = currentUserId}
-		= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId})
+	assign` tst =: {TSt| taskNr, taskInfo, mainTask = currentMainTask, staticInfo = {currentProcessId}, userId = currentUserId, delegatorId = currentDelegatorId}
+		# taskId			= taskNrToString taskNr
+		# (mbProc,tst)		= getSubProcess currentProcessId taskId tst
+		# (taskProperties, processId, curTask, curTaskId, changeNr, tst=:{doChange,changes})
+			= case mbProc of
+				(Just {Process | properties, processId, taskfun, changeNr})
+					| isNothing taskfun
+						= (properties, processId, task, 0, changeNr, tst)
+					| otherwise
+						# tid			= fromJust taskfun
+						# (mbTask,tst)	= getDynamic tid tst
+						= case mbTask of
+							(Just (t :: Task a^))	= (properties, processId, t, tid, changeNr, tst)
+							_						= (properties, processId, task, 0, changeNr, tst)
+				Nothing
+					# (toUser,tst)		= getUser toUserId tst
+					# (currentUser,tst)	= getUser currentUserId tst 
+					# (now,tst)			= (accHStTSt (accWorldHSt time)) tst
+					# initProperties	= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser
+							  , deadline = initDeadline, priority = initPriority, progress = TPActive
+							  , issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
+					# (processId, tst)	= createProcess (mkEmbeddedProcessEntry currentProcessId taskId initProperties Active currentMainTask) tst		  
+					= (initProperties, processId, task, 0, 0, tst)
+		//Apply a change
+		| doChange
+			= case changes of
+				[(clabel,cid,(Change cfun :: Change a^)):rest]	= do_change processId taskInfo taskProperties changeNr curTask curTaskId (clabel,cid,cfun) rest tst
+				other											= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
+		| otherwise
+			= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
+		where
+			do_change processId taskInfo taskProperties changeNr curTask curTaskId (changeLabel, changeId, changeFun) rest tst
+			 	# (mbProperties, mbTask, mbChange) = changeFun taskProperties (setTaskContext [0,changeNr: drop 2 taskNr] curTask) task
+				//Determine new change list
+				# changes = case mbChange of
+						(Just change)	= [(changeLabel,changeId,dynamic change):rest]
+						_				= rest
+				//Update task (and properties when changed) 	
+				| isJust mbTask
+					# changeNr			= inc changeNr 
+					# taskProperties	= if (isJust mbProperties) (fromJust mbProperties) taskProperties
+					# curTask			= fromJust mbTask					
+					# (curTaskId,tst)	= updateTaskDynamic curTaskId (dynamic curTask) tst 
+					# (_,tst) 			= updateProcess processId (\p -> {p & taskfun = Just curTaskId, properties = taskProperties, changeNr = changeNr}) tst
+					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changes = changes} 
+				//Only add properties
+				| isJust mbProperties
+					# taskProperties	= fromJust mbProperties
+					# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties}) tst
+					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changes = changes}
+				// Task and properties unchanged
+				| otherwise
+					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changes = changes}
+			where
+				setTaskContext cxt (Task name _ tf) = Task name (Just cxt) tf
+				
+				updateTaskDynamic 0 d tst
+					= createDynamic d tst
+				updateTaskDynamic i d tst
+					# (_,tst) = updateDynamic d i tst
+					= (i,tst)
+			
+ 			do_task processId taskInfo taskProperties taskNr changeNr curTask tst
+ 				# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
+ 								, taskNr		= [0,changeNr: drop 2 taskNr]
+ 								, mainTask		= processId
+ 								, userId		= fst taskProperties.TaskProperties.user
+ 								, delegatorId	= fst taskProperties.TaskProperties.delegator
+ 								}
+ 				# (a, tst)	= applyTask curTask tst
+ 				= (a, {TSt | tst & userId = currentUserId, delegatorId = currentDelegatorId, mainTask = currentMainTask})
 
 // ******************************************************************************************************
 

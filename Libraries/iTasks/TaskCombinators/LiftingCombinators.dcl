@@ -6,13 +6,6 @@ from TSt	import :: Task, :: TSt
 
 import iDataFormlib
 
-/* 
-(*>>)			:: lift functions of type (TSt -> (a,TSt)) to iTask domain 
-(*#>)			:: lift functions of (TSt -> TSt) to iTask domain 
-*/
-(*=>) infix 4 	:: !(TSt -> (!a,!TSt)) !(a -> Task b) 			-> Task b
-(*#>) infix 4 	:: !(TSt -> TSt)     !(Task a) 					-> Task a
-
 /*
 appIData		:: lift iData editors to iTask domain
 appIData2		:: lift iData editors to iTask domain, and pass iDataTasknumber in addition for naming convenience

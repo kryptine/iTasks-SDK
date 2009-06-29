@@ -5,9 +5,10 @@ definition module TuningCombinators
 from TSt	import :: Task
 from Types	import :: TaskCombination
 from FormId	import :: Lifespan, :: StorageFormat, :: Mode
+import iDataForms
 
 //Annotation combinator
-class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 	 
+class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 		| iData a
 
 /**
 * Change where the state of forms is to be stored.

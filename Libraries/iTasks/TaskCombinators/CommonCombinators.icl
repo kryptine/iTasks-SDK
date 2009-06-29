@@ -7,7 +7,7 @@ import StdList, StdTuple, StdGeneric, GenBimap
 import iDataForms, iDataFormlib, iDataTrivial
 
 from StdFunc	import id, const
-from TSt		import :: Task(..), :: TSt{..}, :: StaticInfo{..}, :: Workflow
+from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow
 from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
 from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
 from SessionDB	import :: Session
@@ -67,15 +67,8 @@ eitherTask taska taskb
 // repetition
 
 repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iData a
-repeatTask task pred a = dorepeatTask a
-where
-	dorepeatTask a 
-	= compound "repeatTask" (Task Nothing dorepeatTask`)
-	where
-		dorepeatTask` tst
-		| pred a	= (a,tst) 
-		# (na,tst)	= applyTask (task a) tst	
-		= applyTask (dorepeatTask na) tst
+repeatTask task pred a =
+	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
 (<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iData a
 (<|) taska pred = compound "repeatTest" doTask

@@ -16,7 +16,7 @@ import iTasks
 
 //Additional imports for custom combinator creation
 from TSt 		import applyTask, setCombination, mkSequenceTask, mkParallelTask
-from TSt 		import :: TSt{..}, :: StaticInfo{..}, :: Options{..}
+from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}
 from SessionDB	import :: Session
 from Types		import :: ProcessId, :: TaskNr
 from TaskTree	import :: TaskTree

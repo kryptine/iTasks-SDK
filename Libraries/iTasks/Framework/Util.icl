@@ -58,7 +58,7 @@ gUpd{|Task|} gc (UpdSearch 0 _)	  	 c		= (UpdDone, c)
 gUpd{|Task|} gc (UpdSearch cntr val)  c		= (UpdSearch (cntr - 1) val,c)						
 gUpd{|Task|} gc (UpdCreate l)        _		
 # (mode,default)	= gc (UpdCreate l) undef
-= (UpdCreate l, Task Nothing (\tst -> (default,tst)))			
+= (UpdCreate l, Task "gUpd of Task" Nothing (\tst -> (default,tst)))			
 gUpd{|Task|} gc mode                 b		= (mode, b)										
 
 gForm{|Task|} gfa (init,formid) hst

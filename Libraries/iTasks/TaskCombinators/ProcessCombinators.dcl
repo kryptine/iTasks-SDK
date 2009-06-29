@@ -22,7 +22,7 @@ derive gParse	ProcessReference, Process, ProcessStatus
 * a dynamically created process. The type parameter a ensures that use
 * of the process result is type safe. 
 */
-:: ProcessReference a
+:: ProcessReference a	= ProcessReference !ProcessId
 
 /**
 * Create a new process.
@@ -32,7 +32,7 @@ derive gParse	ProcessReference, Process, ProcessStatus
 *
 * @return A reference to the newly created process
 */
-spawnProcess			:: !UserId !Bool !(LabeledTask a)	-> Task (ProcessReference a)	| iData a
+spawnProcess			:: !UserId !Bool !(LabeledTask a)	-> Task (ProcessReference a) | iData a
 
 /**
 * Wait (blocking) for a process to complete.
