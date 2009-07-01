@@ -17,7 +17,7 @@ processAdminMainTask
 = (	stopOrRefresh
 	-||-
 	(	
-							getProcesses [Active,Suspended]
+							getProcesses [Active,Suspended] True
 		>>= \processes ->	case processes of
 								[]	= return True
 								_	= gridChooseTask processes header visualizeProcess processTasks
