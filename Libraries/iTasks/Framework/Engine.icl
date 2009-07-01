@@ -3,7 +3,7 @@ implementation module Engine
 import StdMisc, StdArray, StdList, StdChar, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import UserDB, ProcessDB, SessionDB
-import Util
+import Text, Util
 import BasicCombinators
 
 import Http, HttpUtil
@@ -31,6 +31,14 @@ engine flows = [((==) "/handlers/authenticate", handleAnonRequest handleAuthenti
 			   ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
 			   ,(\_ -> True, handleStaticResourceRequest)
 				 ]
+workflow :: String (Task a) -> Workflow | iData a
+workflow path task =
+	{ name	= path
+	, label = last (split "/" path)
+	, roles	= []
+	, mainTask = task >>| return Void
+	}
+
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.

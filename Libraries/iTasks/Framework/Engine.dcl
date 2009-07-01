@@ -7,10 +7,12 @@ definition module Engine
 
 import StdOverloaded
 
-from TSt			import :: Workflow
+from TSt			import :: Workflow, :: Task
 from Http			import :: HTTPRequest, :: HTTPResponse
 
+from iDataSettings	import class iData
 from iDataSettings	import ThisExe
+import iDataForms
 
 //Global settings
 applicationVersionNr			:== ThisExe +++ "_Version" 
@@ -26,3 +28,11 @@ usersessionVersionNr thisUser	:== "User" +++ toString thisUser +++ "_VersionSNr"
 *         or CGI wrapper
 */
 engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
+
+/**
+* Wraps any task and a label as a workflow with no access restrictions
+*
+* @param A label for the workflow. This may contain slashes to group workflows
+* @param The task
+*/
+workflow :: String (Task a) -> Workflow | iData a
