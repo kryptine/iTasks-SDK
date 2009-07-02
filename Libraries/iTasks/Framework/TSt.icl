@@ -333,8 +333,10 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated, hs
 	|state === TSDone || not activated
 		# tst = addTaskNode (TTBasicTask taskInfo [] [] []) {tst & hst = hst}
 		= (a, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
-	| otherwise	
+	| otherwise
 		# tst	= {tst & taskInfo = taskInfo, hst = hst}	
+		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
+		# tst	= initializeState state taskNr mbCxt tst
 		// Execute task function
 		# (a, tst=:{tree=node,activated,hst})	= taskfun tst
 		# node									= updateTaskNode activated (printToString a) node
@@ -352,6 +354,9 @@ where
 	//Increase the task nr
 	incTaskNr [] = [0]
 	incTaskNr [i:is] = [i+1:is]
+	
+	initializeState TSNew taskNr (Just oldTaskNr) tst	= copyTaskStates oldTaskNr taskNr tst
+	initializeState _ _ _ tst							= tst
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
