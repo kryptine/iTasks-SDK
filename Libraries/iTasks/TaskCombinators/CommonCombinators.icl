@@ -107,8 +107,6 @@ chooseTask_cbox order prompt code_ltasks
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
 
-button :: !String !a -> (Task a) | iData a
-button s a = chooseTask_btn [] [(s,return a)]
 
 buttonTask :: !String !(Task a) -> (Task a) | iData a
 buttonTask s task = chooseTask_btn [] [(s,task)]
@@ -173,14 +171,7 @@ where
 		>>= \(ctime,_) ->  	waitForTimeTask (ctime + time)
 
 //Misc
-ok :: Task Void
-ok = button "Ok" Void
 
-yes	:: Task Bool
-yes = button "Yes" True
-
-no :: Task Bool
-no = button "No" False
 
 transform :: (a -> b) a -> Task b | iData b
 transform f x = return (f x)
@@ -205,3 +196,4 @@ where
 	
 	finish tst
 		= applyTask finishTask tst
+

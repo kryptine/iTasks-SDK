@@ -17,17 +17,6 @@ andTasks		:: ![LabeledTask a]							-> Task [a]			| iData a
 
 eitherTask		:: !(Task a) !(Task b) 						-> Task (Either a b)| iData a & iData b	
 
-//Common user interface tasks
-button			:: !String !a -> Task a | iData a
-
-ok				:: Task Void
-
-yes				:: Task Bool
-no				:: Task Bool
-
-//Task selection
-
-
 //Task delegation
 (@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a //will prompt who is waiting for task with give name
 
@@ -122,3 +111,6 @@ waitForTimerTask:: !HtmlTime								-> Task HtmlTime
 //Misc
 transform 		:: (a -> b) a -> Task b | iData b
 edit			:: (Task a) ((a,b) -> c) b -> Task c | iData a & iData b & iData c
+
+
+

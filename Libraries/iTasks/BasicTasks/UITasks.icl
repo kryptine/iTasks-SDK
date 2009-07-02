@@ -1,12 +1,11 @@
 implementation module UITasks
 
-import StdList, StdTuple, StdFunc, GenBimap
+import StdList, StdTuple, GenBimap
+from StdFunc import id
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import TSt
-import TuningCombinators
+import BasicCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
 import Util
-
-
 
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkBasicTask "editTask" (editTask` prompt a)
@@ -193,3 +192,64 @@ where
 
 	mkButton						= HtmlButton "Done" False
 	fromButton (HtmlButton _ val) 	= val
+
+
+button :: !String !a -> Task a | iData a
+button s a = selectWithButtons [s] >>| return a
+
+ok :: Task Void
+ok = button "Ok" Void
+
+yes	:: Task Bool
+yes = button "Yes" True
+
+no :: Task Bool
+no = button "No" False
+
+
+class vizHtml a 
+where
+	vizHtml :: a -> [HtmlTag]
+	
+instance vizHtml String
+where
+	vizHtml s = [Text s]
+	
+instance vizHtml [HtmlTag]
+where
+	vizHtml h = h
+
+//Input tasks
+requestInformation :: question -> Task a | vizHtml question & iData a
+requestInformation question = requestInformationWD question createDefault
+
+requestInformationWD :: question a -> Task a | vizHtml question & iData a 			//With default value
+requestInformationWD question default
+	= vizHtml question ?>> editTask "Ok" default
+
+requestInformationAbout	:: question b -> Task a	| vizHtml question & iData a & iData b
+requestInformationAbout question about = requestInformationAboutWD question about createDefault
+
+requestInformationAboutWD :: question b a -> Task a	| vizHtml question & iData a & iData b	//With default value
+requestInformationAboutWD question about default
+	= vizHtml question ?>> (displayValue about -||- editTask "Ok" default <<@ TTVertical)
+
+requestConfirmation	:: question -> Task Bool | vizHtml question
+requestConfirmation question
+	= vizHtml question ?>> (yes -||- no)
+	
+requestChoice :: question [a] -> Task a | vizHtml question & iData a
+requestChoice question options
+	= vizHtml question ?>> selectWithRadiogroup [[toHtml o] \\ o <- options] 0 >>= \i -> return (options !! i)
+
+//requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iData a
+
+//Output tasks
+showMessage	:: message -> Task Void	| vizHtml message
+showMessage message = vizHtml message ?>> button "Ok" Void
+
+showMessageAbout :: message a -> Task Void | vizHtml message & iData a
+showMessageAbout message about = vizHtml message ?>> (displayValue about -||- button "Ok" Void <<@ TTVertical)
+
+//notifyUser				:: message UserId -> Task Void	| vizHtml message
+//notifyGroup				:: message Role -> Task Void	| vizHtml message
