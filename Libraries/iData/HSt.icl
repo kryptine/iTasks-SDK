@@ -83,11 +83,6 @@ copyIData fromprefix toprefix hst=:{states,nworld}
 	# (states,nworld) = copyStates fromprefix toprefix states nworld
 	= {hst & states = states, nworld = nworld}
 
-changeLifespanIData :: !String !Lifespan !Lifespan !*HSt -> *HSt
-changeLifespanIData prefix oldspan newspan hst=:{states,nworld}
-	# (states,nworld) = changeLifetimeStates  prefix oldspan newspan states nworld
-	= {hst & states = states, nworld = nworld}
-
 getChangedId :: !*HSt -> ([String],!*HSt)	// id of form that has been changed by user
 getChangedId hst=:{states}
 	# (ids,states) = getUpdatedIds states
@@ -95,5 +90,5 @@ getChangedId hst=:{states}
 
 storeStates	:: !*HSt -> *HSt
 storeStates hst =: {states, nworld}
-	# (states,nworld) = storeServerStates states nworld
+	# (states,nworld) = flushCache states nworld
 	= {hst & states = states, nworld = nworld}

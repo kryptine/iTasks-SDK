@@ -89,12 +89,6 @@ deleteStates 		:: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)
 */
 copyStates			:: !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)
 
-/**
-* Update the lifespan of all forms whose identifier starts with the given
-* string and currently have the given lifespan.
-*/
-changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld) 
-
 // storage of form states
 
 /**
@@ -106,17 +100,11 @@ changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*
 getHtmlStates		:: !String !*FormStates -> (![HtmlState], !*FormStates)
 
 /**
-* Save all changed form states that are stored in one of the server
-* side stores (TextFile, Database, DataFile)
+* Write all states that are stored in one of the server
+* side stores (TextFile, DataFile) to disk
 */
-storeServerStates	:: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
+flushCache			:: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
 
 // Trace functions
 traceStates			:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the complete state tree
 traceUpdates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace the list of updates 
-traceInStates		:: !*FormStates -> (!HtmlTag,!*FormStates)	//Trace a list of initial html states
-
-// fstate handling used for testing only
-
-initTestFormStates 	::  !*NWorld -> (!*FormStates,!*NWorld) 		// creates initial empty form states
-setTestFormStates 	:: ![FormUpdate] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page

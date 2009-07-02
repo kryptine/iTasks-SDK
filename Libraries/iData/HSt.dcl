@@ -45,8 +45,6 @@ setHStPrefix			:: !String !*HSt -> *HSt
 deleteIData				:: !String !*HSt -> *HSt
 copyIData				:: !String !String !*HSt -> *HSt
 
-changeLifespanIData		:: !String !Lifespan !Lifespan !*HSt -> *HSt
-
 getChangedId			:: !*HSt -> ([String],!*HSt)									// id's of form(s) that have been changed by user
 
 // Storage of the Formstates

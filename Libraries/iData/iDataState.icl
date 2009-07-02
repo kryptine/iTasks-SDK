@@ -6,6 +6,7 @@ import GenPrint, GenParse
 import dynamic_string
 import FormId
 import StdMaybe
+import Map, Text
 
 derive gPrint 	(,), (,,), (,,,), Maybe, Void
 derive gParse	(,), (,,), (,,,), Maybe, Void
@@ -23,27 +24,20 @@ derive bimap	(,), (,,), (,,,), Maybe, Void
 // and new states (states of newly created forms and updated forms)
 
 :: *FormStates 	=												// collection of states of all forms
-				{ fstates 	:: !*FStates						// internal tree of states
-				, updates	:: ![FormUpdate]					// indicates what has changed: which form, which postion, which value
-				, instates	:: ![HtmlState]						// states received from the browser (only stored for tracing)
-				}		
-
-:: FStates		:== Tree_ (!String,!FormState)					// each form needs a different string id
-
-:: Tree_ a 		= Node_ !(Tree_ a) !a !(Tree_ a) | Leaf_
-
-:: FormState 	= OldState !FState								// Old states are the states from the previous calculation
-				| NewState !FState 								// New states are newly created states or old states that have been inspected and updated
-:: FState		= { format	:: !Format							// Encoding method used for serialization
+				{ updates	:: ![FormUpdate]					// indicates what has changed: which form, which postion, which value
+				, cache		:: !(Map String FormState)			// TODO: use this instead of ad-hoc tree
+				}
+				
+:: FormState	= { format	:: !Format							// Encoding method used for serialization
 				  , life	:: !Lifespan						// Its life span
+				  , new		:: !Bool							// Is it a newly created state
 				  }
+
 :: Format		= PlainStr 	!.String 							// Either a string is used for serialization
 				| StatDyn	!Dynamic 							// Or a dynamic which enables serialization of functions defined in the application (no plug ins yet)
 				| CLDBStr   .String (*DataFile -> *DataFile)	// In case a new value has to be stored in a Cleans database file
-				
 
 // DataFile OPTION
-
 readDataFile id datafile 
 :== IF_DataFile (loadDataFile id datafile)
 					(abort "Reading from DataFile, yet option is swiched off\n", 
@@ -57,293 +51,159 @@ deleteDataFile id datafile
 :== IF_DataFile (removeDataFile id datafile)
 					(abort "Deleting data from DataFile, yet option is swiched off\n")
 
-
-
-
 mkFormStates :: ![HtmlState] ![FormUpdate] ->  *FormStates
 mkFormStates states updates
-	= { fstates		= fstates	
-	  , updates		= updates
-	  , instates	= states
+	= { updates		= updates
+	  , cache		= fromList	[(formid, {format = toVal format state, life = lifespan, new = False})
+	  							\\ {formid,lifespan,state,format} <- states
+	  							]
 	  }
 where
-	fstates 
-		= balance (sort [(formid, OldState {format = toExistval format state, life = lifespan}) 
-						\\ {formid,lifespan, state, format} <- states
-						|  formid <> ""
-						])
-	where
-		toExistval PlainString   string	= PlainStr string						// string that has to be parsed in the context where the type is known
-		toExistval StaticDynamic string	= StatDyn (string_to_dynamic` string)	// recover the dynamic
+	toVal PlainString   string	= PlainStr string									// string that has to be parsed in the context where the type is known
+	toVal StaticDynamic string	= StatDyn (string_to_dynamic {s \\ s <-: string})	// recover the dynamic
 
-
-string_to_dynamic` :: !{#Char} -> Dynamic	// just to make a unique copy as requested by string_to_dynamic
-string_to_dynamic` s = string_to_dynamic {s` \\ s` <-: s}
 
 getFormUpdates :: !String !*FormStates -> (![FormUpdate], !*FormStates)
-getFormUpdates id formstates =: {updates} = ([update \\ update =:{FormUpdate|formid} <- updates | id == formid],formstates)
+getFormUpdates id formstates=:{updates} = ([update \\ update =:{FormUpdate|formid} <- updates | id == formid],formstates)
 
 getAllUpdates :: !*FormStates -> (![FormUpdate], !*FormStates)
-getAllUpdates formstates =: {updates} = (updates, formstates)
+getAllUpdates formstates =:{updates} = (updates, formstates)
 
 getUpdatedIds :: !*FormStates -> (![String],!*FormStates)
 getUpdatedIds formstates=:{updates} = (removeDup [formid \\ {FormUpdate|formid} <- updates] ,formstates)
 
-
-getState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a	
-getState formid formstates=:{fstates} world
-# (bool,ma,fstates,world) = findState formid fstates world
-= (bool,ma,{formstates & fstates = fstates},world)
+getState :: !(FormId a) !*FormStates !*NWorld -> (!Bool,!Maybe a,!*FormStates,!*NWorld)	| iPrint, iParse, iSpecialStore a
+getState formid=:{id} formstates=:{FormStates|cache} nworld
+	//Check if the value is available in the cache tree first
+	# (mbState, cache) = getU id cache
+	= case mbState of
+		Just state = (not state.new, unpackState state, {FormStates| formstates & cache = cache}, nworld)
+		//Search the store on disk
+		Nothing					
+			# (mbState, nworld) = searchInStore formid nworld
+			= case mbState of
+				Just (a, state)
+					//Add read value to cache tree
+					# cache		= put id state cache
+					= (True, Just a, {FormStates| formstates & cache = cache}, nworld)
+				_
+					= (False, Nothing, {FormStates| formstates & cache = cache}, nworld)
 where
-	findState formid formstate=:(Node_ left (fid,info) right) world
-	| formid.id == fid	= case info of
-							(OldState state)	= (True, fetchFState state,formstate,world)
-							(NewState state)	= (False,fetchFState state,formstate,world)
-	with
-		fetchFState :: FState -> Maybe a | TC a & gParse{|*|} a
-		fetchFState {FState | format = PlainStr string}	= parseString string
-		fetchFState {FState | format = CLDBStr string _}	= parseString string
-		fetchFState {FState | format = StatDyn (v::a^)}	= Just v    
-		fetchFState _							= Nothing
-	| formid.id  < fid 	= (bool,parsed, Node_ leftformstates (fid,info) right,nworld)
-						with
-							(bool,parsed,leftformstates,nworld)  = findState formid left world
-	| otherwise			= (bool,parsed, Node_  left (fid,info) rightformstates,nworld)
-						with
-							(bool,parsed,rightformstates,nworld) = findState formid right world
-
-	// value is not yet available in the tree storage...
-	// all stuff read out from persistent store is now marked as OldState (was NewState)	
-
-	// read out DataFile and store as string 
-
-	findState {id,lifespan = LSDataFile,storage = PlainString} Leaf_ world=:{datafile} 
-	# (value,datafile)	= readDataFile id datafile
-	# world				= {world & datafile = datafile}
-	= case value of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr (printToString a), life = LSDataFile}) Leaf_,world)
-		Nothing			= (False,Nothing,Leaf_,world)
-
-	// read out DataFile and store as dynamic
-
-	findState {id,lifespan = LSDataFile,storage = StaticDynamic} Leaf_ world=:{datafile} 
-	# (value,datafile)	= readDataFile id datafile
-	# world				= {world & datafile = datafile}
-	= case value of 
-		Nothing 		= (False,Nothing,Leaf_,world)
-		Just string		= case string_to_dynamic` string of
-							dyn=:(dynval::a^) 	-> (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSDataFile}) Leaf_,world)
-							else				-> (False,Nothing,    Leaf_,world)
-	// read out file and store as string
-
-	findState {id,lifespan = LSTxtFile,storage = PlainString} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readStateFile id world)
-	= case parseString string of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = LSTxtFile}) Leaf_,world)
-		Nothing			= (False,Nothing,Leaf_,world)
-
-	findState {id,lifespan = LSTxtFileRO,storage = PlainString} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readStateFile id world)
-	= case parseString string of
-		Just a			= (True, Just a, Node_ Leaf_ (id,OldState {format = PlainStr string, life = LSTxtFileRO}) Leaf_,world)
-		Nothing			= (False,Nothing,Leaf_,world)
-
-	// read out file and store as dynamic
-
-	findState {id,lifespan = LSTxtFile,storage = StaticDynamic} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readStateFile id world)
-	= case string of 
-		""				= (False,Nothing,Leaf_,world)
-		_				= case string_to_dynamic` string of
-							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSTxtFile}) Leaf_,world)
-							else				= (False,Nothing,    Leaf_,world)
-
-	findState {id,lifespan = LSTxtFileRO,storage = StaticDynamic} Leaf_ world 
-	# (string,world)	= IF_Client ("",world) (readStateFile id world)
-	= case string of 
-		""				= (False,Nothing,Leaf_,world)
-		_				= case string_to_dynamic` string of
-							dyn=:(dynval::a^)	= (True, Just dynval,Node_ Leaf_ (id,OldState {format = StatDyn dyn, life = LSTxtFileRO}) Leaf_,world)
-							else				= (False,Nothing,    Leaf_,world)
-
-	// cannot find the value at all
-	findState _ Leaf_ world	= (False,Nothing,Leaf_,world)
-	findState _ _ world		= (False,Nothing,Leaf_,world)
-
-setState ::  !(FormId a) a !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	| iPrint,iSpecialStore a	
-setState formid val formstates=:{fstates} world
-# (fstates,world)		= replaceState formid val fstates world
-= ({formstates & fstates = fstates},world)
-where
-	replaceState ::  !(FormId a) a *FStates *NWorld -> (*FStates,*NWorld)	| iPrint, iSpecialStore a	
-	replaceState formid val Leaf_ world 									// id not part of tree yet
-						= (Node_ Leaf_ (formid.id,NewState (initNewState formid.id (adjustlife formid.FormId.lifespan) LSTemp formid.storage val)) Leaf_,world)
-	replaceState formid val (Node_ left a=:(fid,fstate) right) world
-	| formid.id == fid	= (Node_ left (fid,NewState (initNewState formid.id formid.FormId.lifespan (detlifespan fstate) formid.storage val)) right,world)
-	| formid.id <  fid	= (Node_ nleft a right,nworld)
-							with
-								(nleft, nworld) = replaceState formid val left  world
-	| otherwise			= (Node_ left a nright,nworld)
-							with
-								(nright,nworld) = replaceState formid val right world
-
-	// NewState Handling routines 
-
-	initNewState :: !String !Lifespan !Lifespan !StorageFormat !a  -> FState | iPrint,  iSpecialStore a	
-	initNewState id LSDataFile olifespan PlainString   nv = {format = CLDBStr  (printToString nv) (writeDataFile id nv), 	life = order LSDataFile olifespan}
-	initNewState id lifespan olifespan PlainString   nv = {format = PlainStr (printToString nv),                     		life = order lifespan olifespan}
-	initNewState id lifespan olifespan StaticDynamic nv = {format = StatDyn  (dynamic nv),                           		life = order lifespan olifespan}// convert the hidden state information stored in the html page
-
-	adjustlife LSTxtFileRO 	= LSTxtFile		// to enforce that a read only persistent file is written once
-	adjustlife life			= life
-
-	detlifespan (OldState formstate) = formstate.life
-	detlifespan (NewState formstate) = formstate.life
-
-	order l1 l2			= if (l1 < l2) l2 l1	// longest lifetime chosen will be the final setting Database > DataFile > TxtFile > Session > Page > temp
-
-deleteStates :: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	
-deleteStates prefix formstates=:{fstates} world
-# (fstates,world)		= deleteStates` fstates world
-= ({formstates & fstates = fstates},world)
-where
-	lprefix 	= size prefix		
-
-	deleteStates` :: !*FStates !*NWorld -> (!*FStates,!*NWorld)	
-	deleteStates` Leaf_ world 			= (Leaf_,world)
-	deleteStates` (Node_ left a=:(fid,_) right) world
-	# prefid			= if (size fid <= lprefix) fid (fid%(0,lprefix-1))  // determine prefix of this form
-	# lessegthen		= if (prefid == prefix) 0 (if (prefix < prefid) -1 1)
-	# (nleft, world) 	= if (lessegthen <= 0) (deleteStates` left  world) (left,world)
-	# (nright,world)	= if (lessegthen >= 0) (deleteStates` right world) (right,world)  
-	| prefid == prefix	= deleteIData nleft nright a world
-	= (Node_ nleft a nright,world)
+	unpackState {FormState | format = PlainStr s}			= parseString s
+	unpackState {FormState | format = CLDBStr s _}			= parseString s
+	unpackState {FormState | format = StatDyn (v :: a^)}	= Just v
+	unpackState _											= Nothing
 	
-	deleteIData left right a world
-	# world = deletePersistentStorageIData a world
-	= (join left right,world)
-	where
-		join Leaf_  right 	= right
-		join left   Leaf_  	= left    
-		join left   right	= Node_ nleft largest right
-		where
-			(largest,nleft)	= FindRemoveLargest left
+	//Look for plainstring on disk (Drup)
+	searchInStore {id, lifespan = LSDataFile, storage = PlainString} nworld=:{datafile}
+		# (value,datafile)	= readDataFile id datafile
+		= case value of
+			Nothing		= (Nothing, {nworld & datafile = datafile})
+			Just a		= (Just (a, {format = PlainStr (printToString a), life = LSDataFile, new = False}), {nworld & datafile = datafile})
 	
-			FindRemoveLargest (Node_ left x Leaf_)  = (x,left)
-			FindRemoveLargest (Node_ left x right ) = (largest,Node_ left x nright)
-			where
-				(largest,nright) = FindRemoveLargest right
+	//Look for staticdynamic on disk (Drup)
+	searchInStore {id, lifespan = LSDataFile, storage = StaticDynamic} nworld=:{datafile}
+		# (value,datafile)	= readDataFile id datafile
+		= case value of 
+			Nothing		= (Nothing, {nworld & datafile = datafile})
+			Just s		= case string_to_dynamic` s of
+							dyn=:(a :: a^)	= (Just (a, {format = StatDyn dyn, life = LSDataFile, new = False}), {nworld & datafile = datafile})
+							_				= (Nothing, {nworld & datafile = datafile})
+	
+	//Look for plainstring on disk (Plain text)
+	searchInStore {id, lifespan = LSTxtFile, storage = PlainString} nworld
+		# (string,nworld)	= IF_Client ("",nworld) (readStateFile id nworld)
+		= case parseString string of
+			Just a			= (Just (a, {format = PlainStr string, life = LSTxtFile, new = False}),nworld)
+			Nothing			= (Nothing, nworld)
+	searchInStore {id, lifespan = LSTxtFileRO, storage = PlainString} nworld
+		# (string,nworld)	= IF_Client ("",nworld) (readStateFile id nworld)
+		= case parseString string of
+			Just a			= (Just (a, {format = PlainStr string, life = LSTxtFile, new = False}),nworld)
+			Nothing			= (Nothing, nworld)
 
-		deletePersistentStorageIData (fid,OldState {life}) world 	= deleteStorage fid life world
-		deletePersistentStorageIData (fid,NewState {life}) world 	= deleteStorage fid life world
+	//Look for staticdynamic on disk (Plain text)
+	searchInStore {id, lifespan = LSTxtFile, storage = StaticDynamic} nworld
+		# (string,nworld)	= IF_Client ("",nworld) (readStateFile id nworld)
+		= case string of 
+			""	= (Nothing,nworld)
+			_	= case string_to_dynamic` string of
+				dyn=:(a :: a^)	= (Just (a, {format = StatDyn dyn, life = LSTxtFile, new = False}),nworld)
+				_				= (Nothing, nworld)
+	searchInStore {id, lifespan = LSTxtFileRO, storage = StaticDynamic} nworld
+		# (string,nworld)	= IF_Client ("",nworld) (readStateFile id nworld)
+		= case string of 
+			""	= (Nothing,nworld)
+			_	= case string_to_dynamic` string of
+				dyn=:(a :: a^)	= (Just (a, {format = StatDyn dyn, life = LSTxtFile, new = False}),nworld)
+				_				= (Nothing, nworld)
+	
+	//Other formid types have no store
+	searchInStore _ nworld	= (Nothing, nworld)
 
-		deleteStorage fid LSDataFile 	world=:{datafile}	= {world & datafile  = deleteDataFile fid datafile}
-		deleteStorage fid LSTxtFile 	world 				= deleteStateFile fid world
-		deleteStorage fid LSTxtFileRO 	world				= deleteStateFile fid world
-		deleteStorage fid _ 			world 				= world
+setState :: !(FormId a) a !*FormStates !*NWorld -> (!*FormStates, !*NWorld) | iPrint, iSpecialStore a
+setState formid=:{id,lifespan} a formstates=:{cache} nworld
+	= case lifespan of
+		LSTxtFileRO
+			//Special case for read only lifespan, only add a read-only state once
+			# (mbState,cache) = getU id cache
+			= case mbState of
+				Nothing = ({formstates & cache = put id (packState formid a) cache} ,nworld)
+				Just _	= ({formstates & cache = cache}, nworld)
+		_
+			= ({formstates & cache = put id (packState formid a) cache}, nworld)		
+where
+	packState {id,storage=PlainString,lifespan=LSDataFile} a	= {format = CLDBStr (printToString a) (writeDataFile id a), life = lifespan, new = True}
+	packState {id,storage=StaticDynamic,lifespan} a 			= {format = StatDyn (dynamic a), life = lifespan, new = True}
+	packState {id,storage,lifespan} a 							= {format = PlainStr (printToString a), life = lifespan, new = True}
+
+deleteStates :: !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)
+deleteStates prefix formstates=:{cache} nworld
+	# cache		= fromList [(id,state) \\ (id,state) <- toList cache | not (startsWith prefix id)]
+	# nworld 	= deleteStateFiles prefix nworld
+	= ({formstates & cache = cache}, nworld)
+	//TODO: delete states in datafile
 
 copyStates :: !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)
-copyStates fromprefix toprefix states nworld = (states,nworld)
-//TODO
-
-// change storage option
-
-changeLifetimeStates :: !String !Lifespan !Lifespan !*FormStates !*NWorld -> (!*FormStates,!*NWorld)	
-changeLifetimeStates prefix oldlifespan newlifespan formstates=:{fstates} world
-# (fstates,world)		= changeLifetimeStates` fstates world
-= ({formstates & fstates = fstates},world)
+copyStates frompf topf formstates=:{cache} nworld
+	# cache = fromList (flatten [[(fid,state): if (startsWith frompf fid) [(newId fid, {state & new = True})] [] ]\\ (fid, state) <- toList cache])
+	# nworld = copyStateFiles frompf topf nworld
+	= ({formstates & cache = cache}, nworld)
+	//TODO: copy states in datafile
 where
-	lprefix 	= size prefix		
-
-	changeLifetimeStates` :: !*FStates !*NWorld -> (!*FStates,!*NWorld)	
-	changeLifetimeStates` Leaf_ world 			= (Leaf_,world)
-	changeLifetimeStates` (Node_ left a=:(fid,_) right) world
-	# prefid			= if (size fid <= lprefix) fid (fid%(0,lprefix-1))  // determine prefix of this form
-	# lessegthen		= if (prefid == prefix) 0 (if (prefix < prefid) -1 1)
-	# (nleft, world) 	= if (lessegthen <= 0) (changeLifetimeStates` left  world) (left,world)
-	# (nright,world)	= if (lessegthen >= 0) (changeLifetimeStates` right world) (right,world)  
-	| prefid == prefix	= changeLifetime nleft nright a world
-	= (Node_ nleft a nright,world)
+	newId fid	= topf +++ (fid % (size frompf, size fid))
 	
-	changeLifetime left right a=:(fid,OldState fstate=:{life}) world
-	| life == oldlifespan	= (Node_ left (fid,OldState {fstate & life = newlifespan}) right,world)	
-	= (Node_ left a right,world)
-	changeLifetime left right a=:(fid,NewState fstate=:{life}) world
-	| life == oldlifespan	= (Node_ left (fid,NewState {fstate & life = newlifespan}) right,world)	
-	= (Node_ left a right,world)
 
 getHtmlStates :: !String !*FormStates -> (![HtmlState], !*FormStates)
-getHtmlStates prefix formstates =: {fstates}
-	# (fstates, htmlstates) = filterHtmlStates prefix fstates [] 
-	= (htmlstates, {formstates & fstates = fstates})
+getHtmlStates prefix formstates=:{cache}
+	# states = [mkHtmlState fid state \\ (fid, state) <- toList cache | startsWith prefix fid && storeOnClient state] 
+	= (states,formstates)
 where
-	filterHtmlStates prefix Leaf_ accu	= (Leaf_, accu)
-	filterHtmlStates prefix (Node_ left x right) accu
-		# (left,accu)	= filterHtmlStates prefix left accu
-		= case htmlStateOf prefix x of
-			Nothing
-				# (right,accu)	= filterHtmlStates prefix right accu
-				= (Node_ left x right, accu)	
-			Just state
-				# (right,accu)	= filterHtmlStates prefix right [state:accu]
-				= (Node_ left x right, accu)		
-	where
-		// When the prefix is 
-		htmlStateOf prefix (fid,_)
-			| not (startsWith prefix fid)												= Nothing
+	storeOnClient {life} = isMember life [LSPage,LSSession,LSClient]
 	
-		// old states which have not been used this time, but with lifespan session, are stored again in the page
-		// other old states will have lifespan page or are persistent; they need not to be stored
-		htmlStateOf prefix (fid,OldState {life=LSSession,format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSSession, state=stringval, format=PlainString}
-		htmlStateOf prefix (fid,OldState {life=LSSession,format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSSession, state=dynamic_to_string dynval, format=StaticDynamic}
+	mkHtmlState fid {life,format=PlainStr s}	= {formid=fid,lifespan=life,state=s,format=PlainString}
+	mkHtmlState fid {life,format=StatDyn d}		= {formid=fid,lifespan=life,state=dynamic_to_string d,format=StaticDynamic}
 
-		htmlStateOf prefix (fid,OldState {life=LSClient, format=PlainStr stringval})	= Just  {HtmlState|formid=fid, lifespan=LSClient, state=stringval, format=PlainString}
-		htmlStateOf prefix (fid,OldState {life=LSClient, format=StatDyn  dynval})		= Just  {HtmlState|formid=fid, lifespan=LSClient, state=dynamic_to_string dynval, format=StaticDynamic}		
-
-		htmlStateOf prefix (fid,OldState s)												= Nothing
-
-		// persistent stores (either old or new) have already been stored in files and can be skipped here
-		// temperal form don't need to be stored and can be skipped as well
-		// the state of all other new forms created are stored in the page 
-		htmlStateOf prefix (fid,NewState {life})
-			| isMember life [LSTxtFile,LSTxtFileRO,LSDataFile,LSTemp]					= Nothing
-
-		htmlStateOf prefix (fid,NewState {format = PlainStr string,life})				= Just {HtmlState|formid=fid, lifespan=life, state=string, format=PlainString}
-		htmlStateOf prefix (fid,NewState {format = StatDyn dynval, life})				= Just {HtmlState|formid=fid, lifespan=life, state=dynamic_to_string dynval, format=StaticDynamic}
-
-		htmlStateOf prefix _															= Nothing
-
-	startsWith p s
-		| size p > size s	= False
-							= s % (0,size p - 1) == p
-
-storeServerStates :: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
-storeServerStates formstates =:{fstates} nworld
-	# (fstates, nworld) = writeStates fstates nworld
-	= ({formstates & fstates = fstates},nworld)
+flushCache :: !*FormStates !*NWorld -> (!*FormStates, !*NWorld)
+flushCache formstates=:{cache} nworld
+	= (formstates, writeStates (toList cache) nworld)
 where
-	writeStates Leaf_ nworld
-		= (Leaf_, nworld)
-	writeStates (Node_ left st right) nworld
-		# (left, nworld)	= writeStates left nworld
-		# nworld			= writeState st nworld
-		# (right, nworld)	= writeStates right nworld
-		= (Node_ left st right, nworld)
+	writeStates [] nworld = nworld
+	writeStates [s:ss] nworld = writeStates ss (writeState s nworld) 
 	
-	// only new states need to be stored, since old states have not been changed (assertion)
-	writeState (sid,NewState {format,life = LSDataFile}) nworld=:{datafile}
+	writeState (sid,{format,life = LSDataFile, new = True}) nworld=:{datafile}
 		= case format of
 			CLDBStr   string dfilefun	= {nworld & datafile = dfilefun datafile}										// last value is stored in curried write function
 			StatDyn dynval				= {nworld & datafile = writeDataFile sid (dynamic_to_string dynval) datafile}	// write the dynamic as a string to the datafile
-	writeState (sid,NewState {format,life  = LSTxtFile}) nworld
+
+	writeState (sid,{format,life  = LSTxtFile, new = True}) nworld
 		= IF_Client nworld 
 		 ( case format of
 				PlainStr string			= writeStateFile sid string nworld
 				StatDyn  dynval			= writeStateFile sid (dynamic_to_string dynval) nworld)
 
 	writeState _ nworld					= nworld
-	
- 
+
 // writing and reading of persistent states to a file
 writeStateFile :: !String !String !*NWorld -> *NWorld 
 writeStateFile filename serializedstate env
@@ -359,7 +219,7 @@ writeStateFile filename serializedstate env
 	= env
 
 readStateFile :: !String !*NWorld -> (!String,!*NWorld) 
-readStateFile  filename env
+readStateFile filename env
 	# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
 	| not ok = abort ("readState: cannot create path to " +++ iDataStorageDir)
 	#(_,env)		= case getFileInfo mydir env of
@@ -386,45 +246,92 @@ deleteStateFile  filename env
 	| not ok								= abort "Cannot delete indicated iData"
 	# (_,env)								= fremove path env
 	= env 
- 
-traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
-traceStates formstates=:{fstates}
-# (rows, fstates) = traceStates` fstates
-= (TableTag [ClassAttr "debug-table"] [header : rows], {formstates & fstates = fstates})
+
+deleteStateFiles :: !String !*NWorld -> *NWorld
+deleteStateFiles prefix env
+	# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
+	| not ok = abort ("deleteStates: cannot create path to " +++ iDataStorageDir)
+ 	# ((err,files),env) = getDirectoryContents mydir env
+ 	| err <> NoDirError	= abort ("deleteStates: cannot read directory " +++ iDataStorageDir)
+ 	= removeFiles prefix mydir files env
 where
+	removeFiles prefix mydir [] env = env
+	removeFiles prefix mydir [f:fs] env
+		| startsWith prefix f.fileName
+			# (err,env) = fremove (pathDown mydir f.fileName) env 
+			= removeFiles prefix mydir fs env
+		| otherwise
+			= removeFiles prefix mydir fs env
+			
+copyStateFiles :: !String !String !*NWorld -> *NWorld
+copyStateFiles fromprefix toprefix env
+	# ((ok,mydir),env) = pd_StringToPath iDataStorageDir env
+	| not ok = abort ("deleteStates: cannot create path to " +++ iDataStorageDir)
+ 	# ((err,files),env) = getDirectoryContents mydir env
+ 	| err <> NoDirError	= abort ("deleteStates: cannot read directory " +++ iDataStorageDir)
+  	= copyFiles fromprefix toprefix files env
+where	
+	copyFiles fromprefix toprefix [] env = env
+	copyFiles fromprefix toprefix [f:fs] env
+		| startsWith fromprefix f.fileName
+			# sfile	= (iDataStorageDir +++ "\\" +++ f.fileName)
+			# dfile = (iDataStorageDir +++ "\\" +++ toprefix +++ (f.fileName % (size fromprefix, size f.fileName)))
+			# env	= copyFile sfile dfile env
+			= copyFiles fromprefix toprefix fs env
+		| otherwise
+			= copyFiles fromprefix toprefix fs env
+	  
+traceStates :: !*FormStates -> (!HtmlTag,!*FormStates)
+traceStates formstates=:{cache}
+	= (TableTag [ClassAttr "debug-table"] [header : rows], formstates)
+where
+	rows = map nodeTrace (toList cache)
 	header = TrTag [] [ThTag [] [Text "Form ID"],ThTag [] [Text "Inspected"],ThTag [] [Text "Lifespan"],ThTag [] [Text "Format"], ThTag [] [Text "Value"]]
-
-	traceStates` Leaf_		= ([],Leaf_)
-	traceStates` (Node_ left a right)
-	# (leftTrace,left)		= traceStates` left
-	# nodeTrace				= nodeTrace a
-	# (rightTrace,right)	= traceStates` right
-	= (leftTrace ++ nodeTrace ++ rightTrace, Node_ left a right)
-
-	nodeTrace (id,OldState fstate=:{format,life}) = [TrTag [] [TdTag [] [Text id], TdTag [] [Text "No"], TdTag [] [Text (toString life)]: toCells format] ]
-	nodeTrace (id,NewState fstate=:{format,life}) = [TrTag [] [TdTag [] [Text id], TdTag [] [Text "Yes"], TdTag [] [Text (toString life)]: toCells format] ]
+	
+	nodeTrace (id,{format,life,new}) = TrTag [] [TdTag [] [Text id], TdTag [] [Text (if new "Yes" "No")], TdTag [] [Text (toString life)]: toCells format]
 	
 	toCells (PlainStr str) 		= [TdTag [] [Text "String"],TdTag [] [Text str]]
 	toCells (StatDyn  dyn) 		= [TdTag [] [Text "S_Dynamic"],TdTag [] [Text "---"]]
 	toCells (CLDBStr  str _) 	= [TdTag [] [Text "DataFile"],TdTag [] [Text str]]
 
-strip :: !String -> String
-strip s = { ns \\ ns <-: s | ns >= '\020' && ns <= '\0200'}
-
 traceUpdates :: !*FormStates -> (!HtmlTag,!*FormStates)
-traceUpdates formstates =:{updates}
-= (TableTag [ClassAttr "debug-table"] [header : rows], formstates)
+traceUpdates formstates=:{updates}
+	= (TableTag [ClassAttr "debug-table"] [header : rows], formstates)
 where
 	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Input ID"], ThTag [] [Text "Value"]]
 	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString inputid)], TdTag [] [Text value]] \\ {FormUpdate|formid,inputid,value} <- updates ]
 
-traceInStates	:: !*FormStates -> (!HtmlTag,!*FormStates)
-traceInStates formstates =:{instates}
-= (TableTag [ClassAttr "debug-table"] [header : rows],formstates)
-where
-	header	= TrTag [] [ThTag [] [Text "Form ID"], ThTag [] [Text "Lifespan"], ThTag [] [Text "Format"], ThTag [] [Text "Value"]]
-	rows	= [TrTag [] [TdTag [] [Text formid], TdTag [] [Text (toString lifespan)], TdTag [] [Text (toString format)],TdTag [] [Text state]] \\ {HtmlState|formid,lifespan,state,format} <- instates]
+// utility
+string_to_dynamic` :: !String -> Dynamic
+string_to_dynamic` s = string_to_dynamic {s` \\ s` <-: s}
 
+pathDown :: !Path !String -> Path
+pathDown (RelativePath steps) step = RelativePath (steps ++ [PathDown step]) 
+pathDown (AbsolutePath dn steps) step = AbsolutePath dn (steps ++ [PathDown step])
+
+copyFile :: !String !String !*env -> *env | FileSystem env
+copyFile sfilename dfilename env
+	# (ok,sfile,env) = fopen sfilename FReadData env
+	| not ok = abort ("copyFile: Could not open " +++ sfilename +++ " for reading")
+	# (ok,dfile,env) = fopen dfilename FWriteData env
+	| not ok = abort ("copyFile: Could not open " +++ dfilename +++ " for writing")
+	# (sfile,dfile) = copy sfile dfile
+	# (ok,env) = fclose sfile env
+	| not ok = abort ("copyFile: Could not close " +++ sfilename)
+	# (ok,env) = fclose dfile env
+	| not ok = abort ("copyFile: Could not close " +++ dfilename)
+	= env
+where
+	copy sfile dfile
+		# (ok,c,sfile) = freadc sfile
+		| ok
+			# dfile = fwritec c dfile
+			= copy sfile dfile
+		| otherwise
+			# (err,sfile)= ferror sfile
+			| err		= abort "copyFile: read error during copy"
+			| otherwise = (sfile,dfile)	
+	
 // debugging code 
 print_graph :: !a -> Bool;
 print_graph a = code {
@@ -455,36 +362,3 @@ tohexchar s i
 | c<10
 = toChar (48+c);
 = toChar (55+c);
-
-//Create a balanced storage tree:
-balance :: ![a] -> .(Tree_ a)
-balance []					= Leaf_
-balance [x]					= Node_ Leaf_ x Leaf_
-balance xs
-	= case splitAt (length xs/2) xs of
-		(a,[b:bs])			= Node_ (balance a) b (balance bs)
-		(as,[])				= Node_ (balance (init as)) (last as) Leaf_
-
-
-// functions defined on the FormStates abstract data type
-
-instance < FormState
-where
-	(<) _ _ = True
-
-// interfaces added for testing:
-import GenMap
-derive gMap Tree_
-
-initTestFormStates :: !*NWorld -> (!*FormStates,!*NWorld)													// retrieves all form states hidden in the html page
-initTestFormStates world 
-	= ({ fstates = Leaf_, updates = [], instates = []},world)
-
-setTestFormStates :: ![FormUpdate] !String !String !*FormStates !*NWorld -> (!*FormStates,!*NWorld)			// retrieves all form states hidden in the html page
-setTestFormStates updates updateid update states world 
-	= ({ fstates = gMap{|*->*|} toOldState states.fstates, updates = updates, instates = []},world)
-where
-	toOldState (s,NewState fstate)	= (s,OldState fstate)
-	toOldState else					= else
-	
-
