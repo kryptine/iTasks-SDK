@@ -37,7 +37,6 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, exception		= Nothing
 		, doChange		= False
 		, changes		= []
-		, changeRequests= []
 		, hst 			= hst
 		}
 

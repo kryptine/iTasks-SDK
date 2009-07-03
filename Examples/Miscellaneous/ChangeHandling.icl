@@ -7,6 +7,8 @@ import StdMisc
 Start world = startEngine changeHandlingExample world
 
 changeHandlingExample :: [Workflow]
+changeHandlingExample = []
+/*
 changeHandlingExample
 =	[{ name		= "Examples/Miscellaneous/Change handling"
 	 , label	= "Change example"
@@ -67,7 +69,7 @@ addMultiUsertask
 		>>= \s1 ->		chooseUser
 		>>= \(i,_) ->	i @: ("Your work", editTask "Second Value" createDefault)
 		>>= \s2 ->		editTask "Sum" (s1 + s2)
-
+*/
 
 
 

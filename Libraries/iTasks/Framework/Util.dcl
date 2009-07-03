@@ -1,16 +1,16 @@
 definition module Util
 
-from TSt 			import :: Task, :: Options, ::ChangeCondition
+from TSt 			import :: Task, :: Options
 from Types			import :: TaskNr
 from StdOverloaded	import class ==, class <
 import iDataForms
 
-derive gForm 	Task, Dynamic, ChangeCondition						
-derive gUpd 	Task, Dynamic, ChangeCondition
-derive gPrint 	Task, Dynamic, ChangeCondition
-derive gParse 	Task, Dynamic, ChangeCondition
-derive read 	Task, Dynamic, ChangeCondition
-derive write 	Task, Dynamic, ChangeCondition
+derive gForm 	Task, Dynamic				
+derive gUpd 	Task, Dynamic
+derive gPrint 	Task, Dynamic
+derive gParse 	Task, Dynamic
+derive read 	Task, Dynamic
+derive write 	Task, Dynamic
 
 // Here follow some commonly used internal functions
 
@@ -26,5 +26,3 @@ cFormId 			:: !Options !String !a -> FormId a
 sessionFormId 		:: !Options !String !a -> FormId a
 pageFormId 			:: !Options !String !a -> FormId a
 storageFormId 		:: !Options !String !a -> FormId a
-
-

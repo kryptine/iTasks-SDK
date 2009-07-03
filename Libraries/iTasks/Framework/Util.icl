@@ -94,35 +94,3 @@ gUpd{|Dynamic|} mode                  b = (mode, b)
 gForm{|Dynamic|} (init,formid) hst
 = ({value=formid.ival,changed=False,form=[], inputs = []},hst)
 
-// ******************************************************************************************************
-
-write{|ChangeCondition|} raisefunc wst
-	= write{|*|} (copy_to_string raisefunc) wst
-	
-read {|ChangeCondition|} wst 
-	# (Read str i file) = read{|*|} wst
-	= Read (deserialize str) i file
-where
-	deserialize :: .String -> .ChangeCondition
-	deserialize str = fst (copy_from_string {c \\ c <-: str })
-
-gPrint{|ChangeCondition|} dyn ps = ps <<- copy_to_string dyn
-
-gParse{|ChangeCondition|} expr
-# mbstring = parseString expr
-| isNothing mbstring = Nothing
-= Just (fst (copy_from_string {s` \\ s` <-: fromJust mbstring}))
-where
-	parseString :: Expr -> Maybe String
-	parseString expr = gParse{|*|} expr
-
-gUpd{|ChangeCondition|} (UpdSearch 0 _)	  	  c = (UpdDone, c)								
-gUpd{|ChangeCondition|} (UpdSearch cntr val)  c = (UpdSearch (cntr - 1) val,c)						
-gUpd{|ChangeCondition|} (UpdCreate l)         _ = (UpdCreate l, CC (\tst -> ({newCondition = Nothing, isApplicable = False, applyChange = False},tst)))			
-gUpd{|ChangeCondition|} mode                  b = (mode, b)										
-
-gForm{|ChangeCondition|} (init,formid) hst
-= ({value=formid.ival,changed=False,form=[], inputs = []},hst)
-
-
-

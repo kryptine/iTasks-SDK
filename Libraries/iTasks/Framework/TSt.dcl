@@ -28,10 +28,6 @@ from Time		import :: Time(..)
 					
 					, doChange		:: !Bool									// Apply first change
 					, changes		:: ![(!String, !DynamicId, !Dynamic)]		// Persistent changes
-					
-					//TODO: Remove when new changes are finished					
-					, changeRequests											// Optional, used when demanding dynamic changes
-									:: ![(!TaskId,!ChangeCondition,!Int,!Dynamic)]	
 									
 					, hst			:: !*HSt									// iData state
 					}
@@ -48,13 +44,6 @@ from Time		import :: Time(..)
 					, currentSession	:: !Session								// the current session
 					, threadTableLoc	:: !Lifespan							// where to store the server thread table, default is Session					
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
-					}
-
-//TODO: Remove when new changes are finished
-:: ChangeCondition = CC (*TSt -> *(ChangeResult,*TSt))							// used to pass a list of change predicates down the task tree
-:: ChangeResult	=	{ newCondition		:: !Maybe ChangeCondition				// new condition to pass to future handlers	
-					, isApplicable		:: !Bool								// True if the change is applicable here; note that the dynamic information pushed should also match
-					, applyChange		:: !Bool								// True if the work indeed has to be changed by the alternative defined 		
 					}
 
 // The task monad
@@ -322,8 +311,6 @@ deleteTaskStates	:: !TaskNr !*TSt			-> *TSt
 * @return The updated task state
 */
 copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
-
-
 
 //// UTILITY
 
