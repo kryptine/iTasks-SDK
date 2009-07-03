@@ -27,7 +27,7 @@ from Time		import :: Time(..)
 					, exception		:: !Maybe Dynamic							// Optional, used when raising exceptions
 					
 					, doChange		:: !Bool									// Apply first change
-					, changes		:: ![(!String, !DynamicId, !Dynamic)]		// Persistent changes
+					, changeStack	:: ![Maybe (!String, !DynamicId, !Dynamic)]	// Active changes
 									
 					, hst			:: !*HSt									// iData state
 					}

@@ -36,7 +36,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, staticInfo	= initStaticInfo session threadstorage workflows
 		, exception		= Nothing
 		, doChange		= False
-		, changes		= []
+		, changeStack	= []
 		, hst 			= hst
 		}
 
@@ -162,25 +162,27 @@ buildProcessTree p =: {Process | processId, processType, properties = {TaskPrope
 		= (TTMainTask ti mti tasks, tst)
 where
 	loadChanges changes tst = loadChanges` changes [] tst
-	loadChanges` [] accu tst=:{TSt|changes}
-		= {TSt|tst& changes = changes ++ reverse accu}
+	loadChanges` [] accu tst=:{TSt|changeStack}
+		= {TSt|tst& changeStack = changeStack ++ reverse accu}
 	loadChanges` [(l,c):cs] accu tst
 		# (dyn,tst) = accHStTSt (getDynamic c) tst
 		= case dyn of
-			Just dyn	= loadChanges` cs [(l,c,dyn):accu] tst
+			Just dyn	= loadChanges` cs [Just (l,c,dyn):accu] tst
 			Nothing		= loadChanges` cs accu tst
 	
-	storeChanges pid tst=:{TSt|changes} = storeChanges` changes [] pid tst
+	storeChanges pid tst=:{TSt|changeStack} = storeChanges` changeStack [] pid tst
 	storeChanges` [] accu pid tst
 		# (_,tst)	= updateProcess pid (\p -> {Process|p & changes = reverse accu}) tst
 		= tst
-	storeChanges` [(l,c,d):cs] accu pid tst
+	storeChanges` [Just(l,c,d):cs] accu pid tst
 		| c == 0
 			# (c,tst)	= createDynamic d tst
 			= storeChanges` cs [(l,c):accu] pid tst
 		| otherwise
 			# (_,tst)	= updateDynamic d c tst
 			= storeChanges` cs [(l,c):accu] pid tst
+	storeChanges` [Nothing:cs] accu pid tst
+		= storeChanges` cs accu pid tst
 			
 	applyMainTask (StaticProcess workflow) tst //Execute a static process
 		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
@@ -226,11 +228,11 @@ applyChangeToTaskTree pid name change tst
 	# (mbProcess,tst)		= getProcess pid tst
 	= case mbProcess of
 		Just proc
-			# tst =:{taskNr,taskInfo,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changes} = tst
-			# tst = snd (buildProcessTree proc {tst & doChange = True, changes = [(name,0,dynamic change)]})
+			# tst =:{taskNr,taskInfo,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changeStack} = tst
+			# tst = snd (buildProcessTree proc {tst & doChange = True, changeStack = [Just (name,0,dynamic change)]})
 			= {tst & taskNr = taskNr, taskInfo = taskInfo, userId = userId, delegatorId = delegatorId, tree = tree
 				, activated = activated, mainTask = mainTask, newProcesses = newProcesses, options = options
-				, staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
+				, staticInfo = staticInfo, exception = exception, doChange = doChange, changeStack = changeStack}
 		Nothing
 			= tst
 

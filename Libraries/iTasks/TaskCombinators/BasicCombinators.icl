@@ -10,6 +10,9 @@ import LiftingCombinators, ClientCombinators
 import Util, Time
 import GenBimap
 import UserDB, ProcessDB, DynamicDB
+import StdDebug
+import StdDynamic
+
 
 derive gForm 	Time
 derive gUpd 	Time
@@ -109,16 +112,13 @@ where
 			| otherwise
 				= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
-import StdDebug
-import StdDynamic
-
 assign :: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) -> Task a | iData a	
 assign toUserId initPriority initDeadline (label,task) = mkMainTask "assign" assign` 
 where
 	assign` tst =: {TSt| taskNr, taskInfo, mainTask = currentMainTask, staticInfo = {currentProcessId}, userId = currentUserId, delegatorId = currentDelegatorId}
 		# taskId			= taskNrToString taskNr
 		# (mbProc,tst)		= getSubProcess currentProcessId taskId tst
-		# (taskProperties, processId, curTask, curTaskId, changeNr, tst=:{doChange,changes})
+		# (taskProperties, processId, curTask, curTaskId, changeNr, tst=:{doChange,changeStack})
 			= case mbProc of
 				(Just {Process | properties, processId, taskfun, changeNr})
 					| isNothing taskfun
@@ -140,18 +140,18 @@ where
 					= (initProperties, processId, task, 0, 0, tst)
 		//Apply a change
 		| doChange
-			= case changes of
-				[(clabel,cid,(Change cfun :: Change a^)):rest]	= do_change processId taskInfo taskProperties changeNr curTask curTaskId (clabel,cid,cfun) rest tst
-				other											= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
+			= case changeStack of
+				[Just (clabel,cid,(Change cfun :: Change a^)):rest]	= do_change processId taskInfo taskProperties changeNr curTask curTaskId (clabel,cid,cfun) rest tst
+				other												= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
 		| otherwise
 			= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
 		where
 			do_change processId taskInfo taskProperties changeNr curTask curTaskId (changeLabel, changeId, changeFun) rest tst
 			 	# (mbProperties, mbTask, mbChange) = changeFun taskProperties (setTaskContext [0,changeNr: drop 2 taskNr] curTask) task
 				//Determine new change list
-				# changes = case mbChange of
-						(Just change)	= [(changeLabel,changeId,dynamic change):rest]
-						_				= rest
+				# changeStack = case mbChange of
+						(Just change)	= [Just (changeLabel,changeId,dynamic change):rest]
+						Nothing			= [Nothing:rest]
 				//Update task (and properties when changed) 	
 				| isJust mbTask
 					# changeNr			= inc changeNr 
@@ -159,15 +159,15 @@ where
 					# curTask			= fromJust mbTask					
 					# (curTaskId,tst)	= updateTaskDynamic curTaskId (dynamic curTask) tst 
 					# (_,tst) 			= updateProcess processId (\p -> {p & taskfun = Just curTaskId, properties = taskProperties, changeNr = changeNr}) tst
-					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changes = changes} 
+					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changeStack = changeStack} 
 				//Only add properties
 				| isJust mbProperties
 					# taskProperties	= fromJust mbProperties
 					# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties}) tst
-					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changes = changes}
+					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changeStack = changeStack}
 				// Task and properties unchanged
 				| otherwise
-					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changes = changes}
+					= do_task processId taskInfo taskProperties taskNr changeNr curTask {TSt|tst & changeStack = changeStack}
 			where
 				setTaskContext cxt (Task name _ tf) = Task name (Just cxt) tf
 				
