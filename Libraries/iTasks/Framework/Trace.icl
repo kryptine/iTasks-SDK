@@ -1,7 +1,7 @@
 implementation module Trace
 
 import StdList, StdTuple
-import Html
+import Html, Text
 import ProcessDB
 import TaskTree
 
@@ -9,7 +9,7 @@ traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"], ThTag [] [Text "Active changes"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text (toString process.Process.processId)]
 							, TdTag [] [Text process.Process.properties.TaskProperties.subject]
 							, TdTag [] [Text (toString (fst process.Process.properties.TaskProperties.user) +++ ": " +++ snd process.Process.properties.TaskProperties.user)]
@@ -24,6 +24,7 @@ where
 											0	= [Text "N/A"]
 											x	= [Text (toString x)]
 										)
+							, TdTag [] [Text (join ", " (map fst process.Process.changes))]
 							]
 
 traceTaskTree :: TaskTree -> HtmlTag

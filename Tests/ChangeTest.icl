@@ -64,13 +64,13 @@ changePrio :: Task Void
 changePrio
 	=				[Text "Of which process do you want to change the priority?"]
 	?>>				chooseProcess
-	>>= \proc -> 	applyChangeToProcess proc "allImportant" allImportant
+	>>= \proc -> 	applyChangeToProcess proc allImportant CLTransient
 
 changeTask :: Task Void
 changeTask
 	=				[Text "What process do you want to change?"]
 	?>>				chooseProcess
-	>>= \proc ->	applyChangeToProcess proc "addWarning" (addWarning "Warning you are working on a changed task")		
+	>>= \proc ->	applyChangeToProcess proc (addWarning "Warning you are working on a changed task") (CLPersistent "warning")
 
 duplicateTask :: Task Void
 duplicateTask
@@ -78,7 +78,7 @@ duplicateTask
 	?>>				chooseProcess
 	>>= \proc ->	[Text "How many times?"]	
 	?>>				editTask "Ok" 2
-	>>= \times ->	applyChangeToProcess proc "duplicateTask" (duplicate times)
+	>>= \times ->	applyChangeToProcess proc (duplicate times) CLTransient
 
 //Utility
 chooseProcess :: Task ProcessId

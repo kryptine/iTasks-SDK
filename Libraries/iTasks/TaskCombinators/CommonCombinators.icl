@@ -7,7 +7,7 @@ import StdList, StdTuple, StdGeneric, StdMisc, GenBimap
 import iDataForms, iDataFormlib, iDataTrivial
 
 from StdFunc	import id, const
-from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow
+from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime
 from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput, setInputs
 from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
 from SessionDB	import :: Session

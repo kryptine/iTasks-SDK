@@ -140,16 +140,16 @@ where
 		//Apply a change
 		| doChange
 			= case changeStack of
-				[Just (clabel,cid,(Change cfun :: Change a^)):rest]	= do_change processId taskInfo taskProperties changeNr curTask curTaskId (clabel,cid,cfun) rest tst
+				[Just (clt,cid,(Change cfun :: Change a^)):rest]	= do_change processId taskInfo taskProperties changeNr curTask curTaskId (clt,cid,cfun) rest tst
 				other												= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
 		| otherwise
 			= do_task processId taskInfo taskProperties taskNr changeNr curTask tst
 		where
-			do_change processId taskInfo taskProperties changeNr curTask curTaskId (changeLabel, changeId, changeFun) rest tst
+			do_change processId taskInfo taskProperties changeNr curTask curTaskId (changeLifeTime, changeId, changeFun) rest tst
 			 	# (mbProperties, mbTask, mbChange) = changeFun taskProperties (setTaskContext [0,changeNr: drop 2 taskNr] curTask) task
 				//Determine new change list
 				# changeStack = case mbChange of
-						(Just change)	= [Just (changeLabel,changeId,dynamic change):rest]
+						(Just change)	= [Just (changeLifeTime,changeId,dynamic change):rest]
 						Nothing			= [Nothing:rest]
 				//Update task (and properties when changed) 	
 				| isJust mbTask

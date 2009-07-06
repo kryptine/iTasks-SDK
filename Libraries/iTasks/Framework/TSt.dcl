@@ -11,25 +11,25 @@ from SessionDB	import :: Session{..}
 from Time		import :: Time(..)
 
 // The task state
-:: *TSt 		=	{ taskNr 		:: !TaskNr									// for generating unique form-id's
-					, taskInfo		:: !TaskInfo								// task information available to tasks
-					, userId		:: !UserId									// id of user to which task is assigned
-					, delegatorId	:: !UserId									// id of user who issued the task
-					, tree			:: !TaskTree								// accumulator for constructing a task tree			
-					, activated		:: !Bool   									// if true activate task, if set as result task completed
+:: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
+					, taskInfo		:: !TaskInfo										// task information available to tasks
+					, userId		:: !UserId											// id of user to which task is assigned
+					, delegatorId	:: !UserId											// id of user who issued the task
+					, tree			:: !TaskTree										// accumulator for constructing a task tree			
+					, activated		:: !Bool   											// if true activate task, if set as result task completed
 
-					, mainTask		:: !ProcessId								// The id of the current main task 
-					, newProcesses	:: ![ProcessId]								// A list of spawned processes for the current user
+					, mainTask		:: !ProcessId										// The id of the current main task 
+					, newProcesses	:: ![ProcessId]										// A list of spawned processes for the current user
 							
-					, options		:: !Options									// iData lifespan and storage format
-					, staticInfo	:: !StaticInfo								// info which does not change during a run
+					, options		:: !Options											// iData lifespan and storage format
+					, staticInfo	:: !StaticInfo										// info which does not change during a run
 					
-					, exception		:: !Maybe Dynamic							// Optional, used when raising exceptions
+					, exception		:: !Maybe Dynamic									// Optional, used when raising exceptions
 					
-					, doChange		:: !Bool									// Apply first change
-					, changeStack	:: ![Maybe (!String, !DynamicId, !Dynamic)]	// Active changes
+					, doChange		:: !Bool											// Apply first change
+					, changeStack	:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
 									
-					, hst			:: !*HSt									// iData state
+					, hst			:: !*HSt											// iData state
 					}
 
 :: Options		=	{ tasklife		:: !Lifespan								// default: Session		
@@ -58,6 +58,11 @@ from Time		import :: Time(..)
 
 // A change function which may be used to change tasks at runtime
 :: Change a = Change (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe (Change a)))						
+
+// Changes may be applied only once, or persist for future changes
+:: ChangeLifeTime	= CLTransient
+					| CLPersistent !String
+
 
 /**
 * Creates an initial task state.
@@ -102,13 +107,13 @@ calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, 
 * Applies a change to a running task process task state.
 * 
 * @param The process id
-* @param A name for identifying the change.
 * @param The change function
+* @param The change lifetime
 * @param The task state
 *
 * @return The modified task state
 */
-applyChangeToTaskTree :: !ProcessId !String !(Change a) !*TSt -> *TSt | TC a
+applyChangeToTaskTree :: !ProcessId !(Change a) !ChangeLifeTime !*TSt -> *TSt | TC a
 
 /**
 * Lists which workflows are available
