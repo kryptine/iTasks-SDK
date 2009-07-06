@@ -114,9 +114,9 @@ where
 		  yesOrNo [DivTag [] (costOrder order),normalText "Confirm Order"]
 		    (dbUpdateItem order >>|
 			 getCurrentUser >>= \(myid,me) ->			
-			 spawnProcess myid      True ("Order Confirmed",        [toHtml order:costOrder order] ?>> OK) >>|	
-			 spawnProcess shopOwner True ("New Order from " <+++ me,[toHtml order:costOrder order] ?>> OK) >>|	
-			 return Void)
+			 spawnProcess myid      True (([toHtml order:costOrder order] ?>> OK) <<@ "Order Confirmed" >>|	
+			 	(spawnProcess shopOwner True (([toHtml order:costOrder order] ?>> OK) <<@ "New Order from " <+++ me) )
+			) >>| return Void)
 			(return Void)
 	where
 		costOrder order	= section "Amount to pay is: " [toHtml (totalCost order.itemsOrdered)]

@@ -5,7 +5,7 @@ definition module ProcessCombinators
 */
 
 import StdMaybe
-from TSt		import :: Task, :: LabeledTask
+from TSt		import :: Task
 from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: ProcessType(..)
 from Types		import :: UserId, :: ProcessId, :: DynamicId, :: TaskId
 from TaskTree	import :: TaskProperties
@@ -32,7 +32,7 @@ derive gParse	ProcessReference, Process, ProcessStatus
 *
 * @return A reference to the newly created process
 */
-spawnProcess			:: !UserId !Bool !(LabeledTask a)	-> Task (ProcessReference a) | iData a
+spawnProcess			:: !UserId !Bool !(Task a)	-> Task (ProcessReference a) | iData a
 
 /**
 * Wait (blocking) for a process to complete.

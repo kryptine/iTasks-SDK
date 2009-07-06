@@ -33,6 +33,7 @@ storageFormId  options s d = cFormId options s d <@ NoForm
 // ******************************************************************************************************
 // Task specialization
 // ******************************************************************************************************
+import StdDebug
 
 write{|Task|} write_a task wst
 	= write{|*|} (copy_to_string task) wst
@@ -47,12 +48,12 @@ where
 gPrint{|Task|} ga task ps = ps <<- copy_to_string task
 
 gParse{|Task|} ga expr
-# mbstring = parseString expr
-| isNothing mbstring = Nothing
-= Just (fst(copy_from_string {s` \\ s` <-: fromJust mbstring}))
-where
-	parseString :: Expr -> Maybe String
-	parseString expr = gParse{|*|} expr
+	# mbstring = parseString expr
+	| isNothing mbstring = Nothing
+	= Just (fst(copy_from_string {s` \\ s` <-: fromJust mbstring}))
+	where
+		parseString :: Expr -> Maybe String
+		parseString expr = gParse{|*|} expr
 
 gUpd{|Task|} gc (UpdSearch 0 _)	  	 c		= (UpdDone, c)								
 gUpd{|Task|} gc (UpdSearch cntr val)  c		= (UpdSearch (cntr - 1) val,c)						
@@ -62,8 +63,9 @@ gUpd{|Task|} gc (UpdCreate l)        _
 gUpd{|Task|} gc mode                 b		= (mode, b)										
 
 gForm{|Task|} gfa (init,formid) hst
-= ({value=formid.ival,changed=False,form=[], inputs = []},hst)
-
+	= ({value=formid.ival,changed=False,form=[Text name], inputs = []},hst)
+where
+	(Task name _ _) = formid.ival
 // ******************************************************************************************************
 
 write{|Dynamic|} dyn wst

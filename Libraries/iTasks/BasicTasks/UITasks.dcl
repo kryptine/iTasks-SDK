@@ -56,7 +56,7 @@ requestInformationAbout		:: question b -> Task a			| vizHtml question & iData a 
 requestInformationAboutWD	:: question b a -> Task a		| vizHtml question & iData a & iData b	//With default value
 requestConfirmation			:: question -> Task Bool		| vizHtml question
 requestChoice				:: question [a] -> Task a		| vizHtml question & iData a
-//requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iData a
+requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iData a
 
 //Output tasks
 showMessage					:: message -> Task Void			| vizHtml message

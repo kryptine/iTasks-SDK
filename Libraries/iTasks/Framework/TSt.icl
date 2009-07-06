@@ -434,3 +434,7 @@ where
 taskNrToProcessNr :: !TaskNr -> ProcessNr
 taskNrToProcessNr []	= -1
 taskNrToProcessNr l 	= last l
+
+
+taskLabel :: !(Task a) -> String
+taskLabel (Task label _ _) = label

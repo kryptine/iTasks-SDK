@@ -64,14 +64,14 @@ where
 
 // Sequential composition
 
-sequence :: !String ![LabeledTask a] -> (Task [a])	| iData a
-sequence label options = mkSequenceTask label sequence`
+sequence :: !String ![Task a] -> (Task [a])	| iData a
+sequence label tasks = mkSequenceTask label sequence`
 where
 	sequence` tst
-		= doseqTasks options [] tst
+		= doseqTasks tasks [] tst
 
 	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
-	doseqTasks [(taskname,task):ts] accu tst=:{TSt|options} 
+	doseqTasks [task:ts] accu tst=:{TSt|options} 
 		# (a,tst=:{activated=adone}) 
 										= applyTask task {tst & activated = True}
 		| not adone						= (reverse accu, tst)
@@ -85,7 +85,7 @@ where
 
 // Parallel composition
 
-parallel :: !String !([a] -> Bool) !(Bool [a] -> b) ![LabeledTask a] -> Task b | iData a & iData b
+parallel :: !String !([a] -> Bool) !(Bool [a] -> b) ![Task a] -> Task b | iData a & iData b
 parallel label pred combine tasks 
 	= mkParallelTask label (doandTasks tasks)
 where
@@ -101,19 +101,19 @@ where
 		| otherwise	
 			= (createDefault, {tst & activated = False})			// show all subtasks using the displayOption function
 	where
-		checkAllTasks :: ![LabeledTask a] !Int ![a] !*TSt -> (![a],!*TSt) | iData a
+		checkAllTasks :: ![Task a] !Int ![a] !*TSt -> (![a],!*TSt) | iData a
 		checkAllTasks taskCollection index accu tst
 			| index == length taskCollection
 				= (reverse accu,tst)												// all tasks tested
-			# (taskname,task)					= taskCollection!!index
-			# (a,tst=:{activated,exception})	= applyTask (mkSequenceTask taskname (applyTask task)) tst	// check tasks
+			# task								= taskCollection!!index
+			# (a,tst=:{activated,exception})	= applyTask (mkSequenceTask (taskLabel task) (applyTask task)) tst	// check tasks
 			| isJust exception
 				= ([],tst)						//Stop immediately if a branch has an exception
 			| otherwise
 				= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
-assign :: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) -> Task a | iData a	
-assign toUserId initPriority initDeadline (label,task) = mkMainTask "assign" assign` 
+assign :: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a | iData a	
+assign toUserId initPriority initDeadline task = mkMainTask "assign" assign` 
 where
 	assign` tst =: {TSt| taskNr, taskInfo, mainTask = currentMainTask, staticInfo = {currentProcessId}, userId = currentUserId, delegatorId = currentDelegatorId}
 		# taskId			= taskNrToString taskNr
@@ -133,7 +133,7 @@ where
 					# (toUser,tst)		= getUser toUserId tst
 					# (currentUser,tst)	= getUser currentUserId tst 
 					# (now,tst)			= (accHStTSt (accWorldHSt time)) tst
-					# initProperties	= {TaskProperties|processId = 0, subject = label, user = toUser, delegator = currentUser
+					# initProperties	= {TaskProperties|processId = 0, subject = taskLabel task, user = toUser, delegator = currentUser
 							  , deadline = initDeadline, priority = initPriority, progress = TPActive
 							  , issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
 					# (processId, tst)	= createProcess (mkEmbeddedProcessEntry currentProcessId taskId initProperties Active currentMainTask) tst		  

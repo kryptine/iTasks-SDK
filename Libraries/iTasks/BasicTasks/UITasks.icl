@@ -1,7 +1,7 @@
 implementation module UITasks
 
 import StdList, StdTuple, GenBimap
-from StdFunc import id
+from StdFunc import id, const
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import TSt
 import BasicCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
@@ -242,7 +242,11 @@ requestChoice :: question [a] -> Task a | vizHtml question & iData a
 requestChoice question options
 	= vizHtml question ?>> selectWithRadiogroup [[toHtml o] \\ o <- options] 0 >>= \i -> return (options !! i)
 
-//requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iData a
+requestMultipleChoice :: question [a] -> Task [a]		| vizHtml question & iData a
+requestMultipleChoice question options
+	= 				vizHtml question
+	?>> 			selectWithCheckboxes [([toHtml o], False, (\_ x -> x) ) \\ o <- options]
+	>>= \indexes ->	return [options !! i \\ i <- indexes]
 
 //Output tasks
 showMessage	:: message -> Task Void	| vizHtml message

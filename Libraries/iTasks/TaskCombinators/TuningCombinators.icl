@@ -4,6 +4,10 @@ import StdEnv
 import Types, TSt
 
 class 	(<<@) infixl 2 b ::  !(Task a) !b  -> (Task a) | iData a
+
+instance <<@ String
+where (<<@) (Task _ mbCxt tf) name					= Task name mbCxt tf
+
 instance <<@  Lifespan
 where   (<<@) (Task name mbCxt tf) lifespan			= Task name mbCxt setTaskLifespan
 		where

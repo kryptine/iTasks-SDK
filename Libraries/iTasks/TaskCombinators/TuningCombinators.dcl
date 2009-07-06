@@ -11,6 +11,11 @@ import iDataForms
 class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 		| iData a
 
 /**
+* Change the label of a task
+*/
+instance <<@	String
+
+/**
 * Change where the state of forms is to be stored.
 */
 instance <<@	Lifespan			// default: Session

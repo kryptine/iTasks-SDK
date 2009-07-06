@@ -22,8 +22,8 @@ derive gUpd		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperti
 derive gPrint	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 
-spawnProcess :: !UserId !Bool !(LabeledTask a) -> Task (ProcessReference a) | iData a
-spawnProcess uid activate (label,task) = mkBasicTask "spawnProcess" spawnProcess`
+spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessReference a) | iData a
+spawnProcess uid activate task = mkBasicTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
 		# (curUid,tst)		= getCurrentUser tst
@@ -38,7 +38,7 @@ where
 		| otherwise
 			= (ProcessReference newPid, {tst & activated = True})
 				
-	entry pid did now user delegator	= mkDynamicProcessEntry label did now user delegator (if activate Active Suspended) pid	// Create a process database entry
+	entry pid did now user delegator	= mkDynamicProcessEntry (taskLabel task) did now user delegator (if activate Active Suspended) pid	// Create a process database entry
 	
 	//Turn a task yielding a value of type a into a value of dynamic
 	createDynamicTask :: !(Task a) -> Task Dynamic | iData a

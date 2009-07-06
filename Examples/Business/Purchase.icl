@@ -108,7 +108,7 @@ where
 	andTasksEnough` tst
 		# tst						= setCombination TTVertical  tst	//Show parallel sub tasks in reversed order
 		# (_,tst =:{activated})		= applyTask (mkSequenceTask "enough" (applyTask ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void))) tst
-		= applyTask (mkSequenceTask "tasks" (applyTask ((parallel "andTask" (\list -> length list >= 1 && activated) (\_ list -> list) taskCollection) <<@ (TTSplit msg)))) {tst & activated = True}
+		= applyTask (mkSequenceTask "tasks" (applyTask ((parallel "andTask" (\list -> length list >= 1 && activated) (\_ list -> list) [t <<@ l \\(l,t) <- taskCollection]) <<@ (TTSplit msg)))) {tst & activated = True}
 
 	msg = [Text "This task is waiting for the completion of the following tasks:"]
 

@@ -70,4 +70,4 @@ gridChooseTask xs header rowVisualizeFun rowTasks
 	>>= \task -> 	task																																	//Execute the chosen task
 where
 
-	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\_ [index] -> (snd (rowTasks !! index)) x) [("row-buttons", selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks])]
+	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\_ [index] -> (snd (rowTasks !! index)) x) [selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks]]

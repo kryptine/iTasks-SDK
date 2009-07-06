@@ -7,19 +7,25 @@ definition module CommonCombinators
 import BasicCombinators, iDataWidgets	
 import Either	 
 
+// A task with a label used for labeling buttons, pulldown menus, and the like
+:: LabeledTask a	:== (!String,!Task a)		
+
 //Task composition
 
 (-||-) infixr 3 :: !(Task a) !(Task a) 						-> Task a 			| iData a
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 		| iData a & iData b
 
+anyTask			:: ![Task a]								-> Task a			| iData a
 orTasks 		:: ![LabeledTask a] 						-> Task a 			| iData a
+
+allTasks		:: ![Task a]								-> Task [a]			| iData a
 andTasks		:: ![LabeledTask a]							-> Task [a]			| iData a
 
 eitherTask		:: !(Task a) !(Task b) 						-> Task (Either a b)| iData a & iData b	
 
-//Task delegation
-(@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a //will prompt who is waiting for task with give name
 
+//Task delegation
+(@:)   infix 3 	:: !UserId !(LabeledTask a)					-> Task a		| iData a 
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid

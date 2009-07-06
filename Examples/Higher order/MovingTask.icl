@@ -45,12 +45,12 @@ fillInForm form
 OK 	= button "OK" True
 NOK = button "OK" False
 
-movingTask labeltask
+movingTask (label,task)
 =					newmove
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess who True labeltask
+		>>= \who ->	spawnProcess who True (task <<@ label)
 		>>= 		inspect
 
 	inspect wid

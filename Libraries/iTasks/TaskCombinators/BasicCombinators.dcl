@@ -3,7 +3,7 @@ definition module BasicCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from TSt 			import :: Task, :: LabeledTask, :: TaskCombination
+from TSt 			import :: Task, :: TaskCombination
 from Types 			import :: UserId, :: TaskPriority
 from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
 from Time			import :: Time
@@ -67,7 +67,7 @@ forever		:: !(Task a) 								-> Task a 		| iData a
 * @param The list of tasks to be executed sequentially
 * @return The combined task
 */
-sequence	:: !String ![LabeledTask a] 				-> Task [a]		| iData a
+sequence	:: !String ![Task a] 						-> Task [a]		| iData a
 
 /**
 * Reduces a multi-step sequence to a single step task
@@ -91,7 +91,7 @@ compound 	:: !String !(Task a) 						-> Task a		| iData a
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-parallel 	:: !String !([a] -> Bool) !(Bool [a] -> b) ![LabeledTask a] -> Task b | iData a & iData b 
+parallel 	:: !String !([a] -> Bool) !(Bool [a] -> b) ![Task a] -> Task b | iData a & iData b 
 
 // Multi-user workflows
 
@@ -104,7 +104,7 @@ parallel 	:: !String !([a] -> Bool) !(Bool [a] -> b) ![LabeledTask a] -> Task b 
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-assign 	:: !UserId !TaskPriority !(Maybe Time) !(LabeledTask a) 		-> Task a	| iData a
+assign 	:: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a	| iData a
 
 /* Experimental department:
 

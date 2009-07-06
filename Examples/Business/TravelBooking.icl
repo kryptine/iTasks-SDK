@@ -21,15 +21,17 @@ travelBookingExample
 travel :: Task Void
 travel 
 = 			[Text "Book your journey:",BrTag [],BrTag []]
-			?>>	sequence "travel" [ ( "Step 1: Make Bookings:"
-							  , mchoiceTasks [Text "Choose Booking options:"]
+			?>>	sequence "travel" [ ( 
+							   mchoiceTasks [Text "Choose Booking options:"]
 							  	[ ("Book Flight",BookFlight)
 								, ("Book Hotel", BookHotel)
 								, ("Book Car",   BookCar)
 								]
+							  <<@ "Step 1: Make Bookings:"
 							  )
-							, ( "Step 2: Confirm Bookings:"
-							  , buttonTask "Confirm" (return [])
+							, ( 
+							   buttonTask "Confirm" (return [])
+							   <<@ "Step 2: Confirm Bookings:"
 							  )
 							]
 				-||- 

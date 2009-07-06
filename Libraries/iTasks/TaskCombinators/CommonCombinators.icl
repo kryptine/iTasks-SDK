@@ -26,31 +26,38 @@ derive gParse	Either
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
 (-||-) taska taskb  
 =	parallel "-||-" (\list -> length list >= 1) (\_ [x:_] -> case x of (Left a) = a; (Right b) = b)
-			[("Left",	taska >>= \a -> return (Left a))
-			,("Right",	taskb >>= \b -> return (Right b))
+			[(taska >>= \a -> return (Left a)) <<@ "Left"
+			,(taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
 (-&&-) taska taskb
 =	parallel "-&&-" (\_ -> False) (\_ [Left a, Right b] -> (a,b))
-			[("Left",	taska >>= \a -> return (Left a))
-			,("Right",	taskb >>= \b -> return (Right b))
+			[(taska >>= \a -> return (Left a)) <<@ "Left"
+			,(taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
+
+anyTask	:: ![Task a] -> Task a | iData a
+anyTask []		= return createDefault
+anyTask tasks	= parallel "any" (\list -> length list >= 1) (\_ [x:xs] -> x) tasks
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []		= return createDefault
-orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) (\_ [x:xs] -> x) tasks
+orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) (\_ [x:xs] -> x) [t <<@ l \\ (l,t) <- tasks]
 
 andTasks :: ![LabeledTask a] -> Task [a] | iData a
-andTasks tasks = parallel "andTasks"  (\_ -> False) (\_ list -> list) tasks <<@ (TTSplit msg)
+andTasks tasks = parallel "andTasks"  (\_ -> False) (\_ list -> list) [t <<@ l \\ (l,t) <- tasks] <<@ (TTSplit msg)
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]				
+
+allTasks :: ![Task a] -> Task [a] | iData a
+allTasks tasks = parallel "all" (\_ -> False) (\_ list -> list) tasks
 
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iData a & iData b
 eitherTask taska taskb 
 =	parallel "eitherTask" (\list -> length list > 0) (\_ [x:xs] -> x)
-			[ ("Left",	taska >>= \a -> return (Left a))
-			, ("Right",	taskb >>= \b -> return (Right b))
+			[ (taska >>= \a -> return (Left a)) <<@ "Left"
+			, (taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
 
 
@@ -84,7 +91,7 @@ where
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iData a
-(@:) nuserId ltask = assign nuserId NormalPriority Nothing ltask
+(@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
 
 // ******************************************************************************************************
 // choose one or more tasks on forehand out of a set
@@ -116,15 +123,15 @@ chooseTask prompt options = chooseTask_btn prompt options
 
 mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceTasks prompt taskOptions 
-= chooseTask_cbox (sequence "mchoiceTasks") prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
+= chooseTask_cbox (\tasks -> sequence "mchoiceTasks" [ t <<@ l \\ (l,t) <- tasks]) prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
 
 mchoiceTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks2 prompt taskOptions 
-= chooseTask_cbox (sequence "mchoiceTasks2") prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
+= chooseTask_cbox (\tasks -> sequence "mchoiceTasks2" [ t <<@ l \\ (l,t) <- tasks]) prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
 
 mchoiceTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 mchoiceTasks3 prompt taskOptions 
-= chooseTask_cbox (sequence "mchoiceTasks3") prompt taskOptions
+= chooseTask_cbox (\tasks -> sequence "mchoiceTasks3" [ t <<@ l \\ (l,t) <- tasks]) prompt taskOptions
 
 mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceAndTasks prompt taskOptions 
@@ -142,8 +149,8 @@ mchoiceAndTasks3 prompt taskOptions
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&?&-) t1 t2 
 = 	parallel "maybeTask" noNothing combineResult
-			[("Left",	t1 >>= \tres -> return (LEFT tres))
-			,("Right",	t2 >>= \tres -> return (RIGHT tres))
+			[(t1 >>= \tres -> return (LEFT tres)) <<@ "Left"
+			,(t2 >>= \tres -> return (RIGHT tres)) <<@ "Right"
 			] <<@ TTHorizontal
 where
 	noNothing []					= False
@@ -171,8 +178,6 @@ where
 		>>= \(ctime,_) ->  	waitForTimeTask (ctime + time)
 
 //Misc
-
-
 transform :: (a -> b) a -> Task b | iData b
 transform f x = return (f x)
 

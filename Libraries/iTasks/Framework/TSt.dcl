@@ -49,9 +49,6 @@ from Time		import :: Time(..)
 // The task monad
 :: Task a = Task !String !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
 
-// A task with a label used for labeling buttons, pulldown menus, and the like
-:: LabeledTask a	:== (!String,!Task a)		
-
 // A workflow specification
 :: Workflow		=	{ name			:: !String									// a unique name of this workflow
 					, label			:: !String									// a label that will be used for displaying
@@ -338,3 +335,12 @@ taskNrToString		:: !TaskNr 					-> String
 * @return The process number or -1 when the task number is empty
 */
 taskNrToProcessNr	:: !TaskNr					-> ProcessNr
+
+/**
+* Extracts the task label of a task
+*
+* @param The task
+* 
+* @return The task's label
+*/
+taskLabel			:: !(Task a)				-> String

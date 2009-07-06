@@ -161,7 +161,7 @@ where
 	=						[Text "Choose a group:", BrTag [],BrTag []] ?>> selectWithPulldown groups 0  
 		>>= \index	->		return (groups!!index)
 		>>= \group ->		addSubscription me (group,0)
-		>>|					spawnProcess me True (group <+++ " news group subscription", readNews me group 0)
+		>>|					spawnProcess me True (readNews me group 0 <<@ group <+++ " news group subscription")
 		>>|					return Void
 
 
@@ -175,7 +175,7 @@ readNews me group index
 							 ,("Message list of newsgroup " <+++ group, 		  messageList index >>| return index)  
 							 ]
 		>>= \index -> if (index >= 0)
-						(spawnProcess me True (group <+++ " news group subscription", readNews me group index) >>| return Void) // CODE GENERATION BUG WHEN REPLACE BY >>| 
+						(spawnProcess me True (readNews me group index <<@ group <+++ " news group subscription" ) >>| return Void) // CODE GENERATION BUG WHEN REPLACE BY >>| 
 						(return Void)
 where
 	unsubscribe
@@ -251,9 +251,9 @@ where
 
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
-orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) (\_ [x:xs] -> x) tasks <<@ (TTSplit msg)
+orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) (\_ [x:xs] -> x) [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
 
-myAndTasks msg tasks =	parallel "andTask" (\_ -> False) (\_ [x:xs] -> x) tasks <<@ (TTSplit msg)
+myAndTasks msg tasks =	parallel "andTask" (\_ -> False) (\_ [x:xs] -> x) [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
 
 // reading and writing of storages
 
