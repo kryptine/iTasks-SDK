@@ -85,32 +85,31 @@ where
 
 // Parallel composition
 
-parallel :: !String !([a] -> Bool) !(Bool [a] -> b) ![Task a] -> Task b | iData a & iData b
-parallel label pred combine tasks 
-	= mkParallelTask label (doandTasks tasks)
+parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iData a & iData b
+parallel label pred combinePred combineAll tasks 
+	= mkParallelTask label (parallel` tasks)
 where
-	doandTasks [] tst	=  (combine (if (pred []) True False) [],tst)
-	doandTasks taskCollection tst=:{taskNr}
-		# (alist,tst=:{exception})	= checkAllTasks taskCollection 0 [] tst
+	parallel` [] tst	=  (combineAll [], tst)
+	parallel` tasks tst
+		# (alist,tst=:{exception})	= checkAllTasks tasks 0 [] tst
 		| isJust exception
-			= (createDefault, {tst & activated = False})			// stop, an exception occurred in one of the branches
+			= (createDefault, {tst & activated = False})	// stop, an exception occurred in one of the branches
 		| pred alist
-			= (combine True alist,{tst & activated = True}) 		// stop, all work done so far satisfies predicate
-		| length alist == length taskCollection						// all tasks are done
-			= (combine False alist,{tst & activated = True})
+			= (combinePred alist,{tst & activated = True}) 	// stop, all work done so far satisfies predicate
+		| length alist == length tasks						// all tasks are done
+			= (combineAll alist,{tst & activated = True})
 		| otherwise	
-			= (createDefault, {tst & activated = False})			// show all subtasks using the displayOption function
+			= (createDefault, {tst & activated = False})	// show all subtasks using the displayOption function
 	where
-		checkAllTasks :: ![Task a] !Int ![a] !*TSt -> (![a],!*TSt) | iData a
-		checkAllTasks taskCollection index accu tst
-			| index == length taskCollection
+		checkAllTasks tasks index accu tst
+			| index == length tasks
 				= (reverse accu,tst)												// all tasks tested
-			# task								= taskCollection!!index
+			# task								= tasks !! index
 			# (a,tst=:{activated,exception})	= applyTask (mkSequenceTask (taskLabel task) (applyTask task)) tst	// check tasks
 			| isJust exception
 				= ([],tst)						//Stop immediately if a branch has an exception
 			| otherwise
-				= checkAllTasks taskCollection (inc index) (if activated [a:accu] accu) {tst & activated = True}
+				= checkAllTasks tasks (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
 assign :: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a | iData a	
 assign toUserId initPriority initDeadline task = mkMainTask "assign" assign` 

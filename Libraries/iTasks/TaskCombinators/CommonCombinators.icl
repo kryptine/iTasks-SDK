@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdList, StdTuple, StdGeneric, GenBimap
+import StdList, StdTuple, StdGeneric, StdMisc, GenBimap
 import iDataForms, iDataFormlib, iDataTrivial
 
 from StdFunc	import id, const
@@ -16,7 +16,6 @@ from TaskTree	import :: TaskTree, :: TaskCombination(..)
 import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
 import Util, Either
 
-
 derive gForm	Either
 derive gUpd		Either
 derive gPrint	Either
@@ -25,37 +24,37 @@ derive gParse	Either
 //Task composition
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
 (-||-) taska taskb  
-=	parallel "-||-" (\list -> length list >= 1) (\_ [x:_] -> case x of (Left a) = a; (Right b) = b)
+=	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (Left a) = a; (Right b) = b) undef
 			[(taska >>= \a -> return (Left a)) <<@ "Left"
 			,(taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
 (-&&-) taska taskb
-=	parallel "-&&-" (\_ -> False) (\_ [Left a, Right b] -> (a,b))
+=	parallel "-&&-" (\_ -> False) undef (\[Left a, Right b] -> (a,b))
 			[(taska >>= \a -> return (Left a)) <<@ "Left"
 			,(taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
 
 anyTask	:: ![Task a] -> Task a | iData a
 anyTask []		= return createDefault
-anyTask tasks	= parallel "any" (\list -> length list >= 1) (\_ [x:xs] -> x) tasks
+anyTask tasks	= parallel "any" (\list -> length list >= 1) hd undef tasks
 
 orTasks :: ![LabeledTask a] -> (Task a) | iData a
 orTasks []		= return createDefault
-orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) (\_ [x:xs] -> x) [t <<@ l \\ (l,t) <- tasks]
+orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) hd undef [t <<@ l \\ (l,t) <- tasks]
 
 andTasks :: ![LabeledTask a] -> Task [a] | iData a
-andTasks tasks = parallel "andTasks"  (\_ -> False) (\_ list -> list) [t <<@ l \\ (l,t) <- tasks] <<@ (TTSplit msg)
+andTasks tasks = parallel "andTasks"  (\_ -> False) undef id [t <<@ l \\ (l,t) <- tasks] <<@ (TTSplit msg)
 where
 	msg = [Text "All of the following tasks need to be completed before this task can continue."]				
 
 allTasks :: ![Task a] -> Task [a] | iData a
-allTasks tasks = parallel "all" (\_ -> False) (\_ list -> list) tasks
+allTasks tasks = parallel "all" (\_ -> False) undef id tasks
 
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iData a & iData b
 eitherTask taska taskb 
-=	parallel "eitherTask" (\list -> length list > 0) (\_ [x:xs] -> x)
+=	parallel "eitherTask" (\list -> length list > 0) hd undef
 			[ (taska >>= \a -> return (Left a)) <<@ "Left"
 			, (taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
@@ -148,18 +147,18 @@ mchoiceAndTasks3 prompt taskOptions
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
 (-&?&-) t1 t2 
-= 	parallel "maybeTask" noNothing combineResult
-			[(t1 >>= \tres -> return (LEFT tres)) <<@ "Left"
-			,(t2 >>= \tres -> return (RIGHT tres)) <<@ "Right"
+= 	parallel "maybeTask" noNothing combineResult combineResult
+			[(t1 >>= \tres -> return (Left tres)) <<@ "Left"
+			,(t2 >>= \tres -> return (Right tres)) <<@ "Right"
 			] <<@ TTHorizontal
 where
 	noNothing []					= False
-	noNothing [LEFT  Nothing:xs]	= True
-	noNothing [RIGHT Nothing:xs]	= True
+	noNothing [Left  Nothing:xs]	= True
+	noNothing [Right Nothing:xs]	= True
 	noNothing [x:xs]				= noNothing xs	
 
-	combineResult	_ [LEFT (Just r1),RIGHT (Just r2)]	= Just (r1,r2)
-	combineResult	_ _									= Nothing
+	combineResult	[Left (Just r1),Right (Just r2)]	= Just (r1,r2)
+	combineResult	_									= Nothing
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = domu_andTasks tasks

@@ -5,7 +5,7 @@ implementation module Newsgroups
 //	All other users can subscribe to such a newsgroup, commit a message or read news
 // (c) mjp 2007 
 
-import StdList, StdOrdList, StdTuple, GenBimap
+import StdList, StdOrdList, StdTuple, StdMisc, GenBimap
 import iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 
 
@@ -251,9 +251,9 @@ where
 
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
-orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) (\_ [x:xs] -> x) [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
+orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
 
-myAndTasks msg tasks =	parallel "andTask" (\_ -> False) (\_ [x:xs] -> x) [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
+myAndTasks msg tasks =	parallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
 
 // reading and writing of storages
 

@@ -1,6 +1,7 @@
 implementation module ProcessAdmin
 
 import iTasks
+import StdMisc
 from TaskTree import :: TaskProperties(..), :: TaskProgress(..)
 
 processAdmin :: [Workflow]
@@ -69,5 +70,4 @@ gridChooseTask xs header rowVisualizeFun rowTasks
 	=				orTasks [("row-" +++ toString i, row x) \\ x <- xs & i <- [1..]]	//Show the grid
 	>>= \task -> 	task																																	//Execute the chosen task
 where
-
-	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\_ [index] -> (snd (rowTasks !! index)) x) [selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks]]
+	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\[index] -> (snd (rowTasks !! index)) x) undef [selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks]]
