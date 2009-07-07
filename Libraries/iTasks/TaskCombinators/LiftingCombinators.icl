@@ -1,6 +1,6 @@
 implementation module LiftingCombinators
 
-import TSt, UITasks, BasicCombinators, CommonCombinators
+import TSt, UITasks, CoreCombinators, CommonCombinators
 import Util
 
 appIData :: !(IDataFun a) -> (Task a) | iData a 

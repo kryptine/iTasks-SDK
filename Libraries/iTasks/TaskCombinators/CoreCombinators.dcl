@@ -1,4 +1,4 @@
-definition module BasicCombinators
+definition module CoreCombinators
 /**
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.

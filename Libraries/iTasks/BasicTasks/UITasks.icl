@@ -4,7 +4,7 @@ import StdList, StdTuple, GenBimap
 from StdFunc import id, const
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import TSt
-import BasicCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
+import CoreCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
 import Util
 
 editTask :: !String !a -> (Task a) | iData a 

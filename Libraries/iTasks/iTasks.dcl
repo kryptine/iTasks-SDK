@@ -11,7 +11,7 @@ import	Engine						// basic iTask system creator
 	,	TimeAndDateTasks			// iTasks triggered by time and date 
 	,	iTasksDB					// iTask simple DB access
 			
-	,	BasicCombinators			// The basic iTask combinators
+	,	CoreCombinators				// The core iTask combinators
 
 	,	CommonCombinators			// Set of additional useful iTask combinators
 	,	PromptingCombinators		// Display of messages and prompts
@@ -24,6 +24,9 @@ import	Engine						// basic iTask system creator
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap
 	,	Util
+
+	//Experimental!
+	//,	GUI							// Functions for generating GUIS
 
 	//StdEnv modules
 	,	StdInt

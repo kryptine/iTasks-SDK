@@ -4,7 +4,7 @@ import StdMisc, StdArray, StdList, StdChar, GenBimap
 import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
 import UserDB, ProcessDB, SessionDB
 import Text, Util
-import BasicCombinators
+import CoreCombinators
 
 import Http, HttpUtil
 

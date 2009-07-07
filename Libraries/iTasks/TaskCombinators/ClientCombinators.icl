@@ -1,6 +1,6 @@
 implementation module ClientCombinators
 
-import TSt, BasicCombinators, CommonCombinators
+import TSt, CoreCombinators, CommonCombinators
 
 class 	(@>>) infixl 7 b ::  !b !(Task a)   -> (Task a) | iData a
 instance @>>  EvaluationOption

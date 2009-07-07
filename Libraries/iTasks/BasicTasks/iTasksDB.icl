@@ -4,7 +4,7 @@ import TSt
 import StdList, StdOrdList, GenBimap
 from StdFunc import id, const
 import iDataTrivial, iDataFormlib
-import LiftingCombinators, BasicCombinators
+import CoreCombinators, LiftingCombinators
 
 derive gForm	DBRef
 derive gUpd		DBRef

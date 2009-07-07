@@ -13,7 +13,7 @@ from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
-import UITasks, UserTasks, TimeAndDateTasks, BasicCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
+import UITasks, UserTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
 import Util, Either
 
 derive gForm	Either

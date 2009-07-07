@@ -1,4 +1,4 @@
-implementation module BasicCombinators
+implementation module CoreCombinators
 
 import StdList, StdArray, StdTuple, StdMisc
 from StdFunc import id, const

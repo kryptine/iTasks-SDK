@@ -4,7 +4,7 @@ definition module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 
-import BasicCombinators, iDataWidgets	
+import CoreCombinators, iDataWidgets	
 import Either	 
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
