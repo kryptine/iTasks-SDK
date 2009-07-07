@@ -12,7 +12,7 @@ yesOrNo :: [HtmlTag] (Task a) (Task a) -> Task a | iData a
 yesOrNo question yes no		= chooseTask question [("Yes",yes),("No",no)]
 
 orTasksVert :: [Task a] -> Task a | iData a
-orTasksVert items			= orTasks [(toString i,item) \\ item <- items & i <- [0..]] <<@ TTVertical
+orTasksVert items			= anyTask items <<@ TTVertical
 
 OK :: Task Void
 OK							= editTask "OK" Void

@@ -16,11 +16,7 @@ import Either
 (-&&-) infixr 4 :: !(Task a) !(Task b) 						-> Task (a,b) 		| iData a & iData b
 
 anyTask			:: ![Task a]								-> Task a			| iData a
-orTasks 		:: ![LabeledTask a] 						-> Task a 			| iData a
-
 allTasks		:: ![Task a]								-> Task [a]			| iData a
-andTasks		:: ![LabeledTask a]							-> Task [a]			| iData a
-
 eitherTask		:: !(Task a) !(Task b) 						-> Task (Either a b)| iData a & iData b	
 
 

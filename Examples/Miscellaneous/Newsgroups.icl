@@ -202,7 +202,7 @@ where
 
 	messageList index
 	= 						readNewsGroup group 
-		>>= \newsItems  ->	andTasks [("Message " <+++ i, show i newsItem) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
+		>>= \newsItems  ->	allTasks [show i newsItem <<@ ("Message " <+++ i) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
 		>>|					editTask "Refresh list" Void
 
 	show :: Int NewsItem -> Task Void

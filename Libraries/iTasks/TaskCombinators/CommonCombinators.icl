@@ -25,33 +25,26 @@ derive gParse	Either
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iData a
 (-||-) taska taskb  
 =	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (Left a) = a; (Right b) = b) undef
-			[(taska >>= \a -> return (Left a)) <<@ "Left"
-			,(taskb >>= \b -> return (Right b)) <<@ "Right"
+			[taska >>= \a -> return (Left a)
+			,taskb >>= \b -> return (Right b)
 			] <<@ TTHorizontal
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iData a & iData b
 (-&&-) taska taskb
 =	parallel "-&&-" (\_ -> False) undef (\[Left a, Right b] -> (a,b))
-			[(taska >>= \a -> return (Left a)) <<@ "Left"
-			,(taskb >>= \b -> return (Right b)) <<@ "Right"
+			[taska >>= \a -> return (Left a)
+			,taskb >>= \b -> return (Right b)
 			] <<@ TTHorizontal
 
 anyTask	:: ![Task a] -> Task a | iData a
 anyTask []		= return createDefault
 anyTask tasks	= parallel "any" (\list -> length list >= 1) hd undef tasks
 
-orTasks :: ![LabeledTask a] -> (Task a) | iData a
-orTasks []		= return createDefault
-orTasks tasks	= parallel "orTasks"  (\list -> length list >= 1) hd undef [t <<@ l \\ (l,t) <- tasks]
-
-andTasks :: ![LabeledTask a] -> Task [a] | iData a
-andTasks tasks = parallel "andTasks"  (\_ -> False) undef id [t <<@ l \\ (l,t) <- tasks] <<@ (TTSplit msg)
-where
-	msg = [Text "All of the following tasks need to be completed before this task can continue."]				
-
 allTasks :: ![Task a] -> Task [a] | iData a
-allTasks tasks = parallel "all" (\_ -> False) undef id tasks
-
+allTasks tasks = parallel "all" (\_ -> False) undef id tasks <<@ (TTSplit msg)
+where
+	msg = [Text "Waiting for the completion of the following tasks:"]
+	
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iData a & iData b
 eitherTask taska taskb 
 =	parallel "eitherTask" (\list -> length list > 0) hd undef
@@ -134,15 +127,15 @@ mchoiceTasks3 prompt taskOptions
 
 mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iData a
 mchoiceAndTasks prompt taskOptions 
-= chooseTask_cbox andTasks prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
+= chooseTask_cbox (\tasks -> allTasks [ t <<@ l \\ (l,t) <- tasks]) prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
 
 mchoiceAndTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks2 prompt taskOptions 
-= chooseTask_cbox andTasks prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
+= chooseTask_cbox (\tasks -> allTasks [ t <<@ l \\ (l,t) <- tasks]) prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
 
 mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iData a
 mchoiceAndTasks3 prompt taskOptions 
-= chooseTask_cbox andTasks prompt taskOptions
+= chooseTask_cbox (\tasks -> allTasks [ t <<@ l \\ (l,t) <- tasks]) prompt taskOptions
 
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iData a & iData b
@@ -163,7 +156,7 @@ where
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iData a
 andTasks_mu label tasks = domu_andTasks tasks
 where
-	domu_andTasks list = andTasks [(label  +++ " " +++ toString i, i @: (toString i,task)) \\ (i,task) <- list] 
+	domu_andTasks list = allTasks [ i @: (toString i,task) <<@ (label  +++ " " +++ toString i) \\ (i,task) <- list] 
 
 
 // ******************************************************************************************************

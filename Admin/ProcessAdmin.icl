@@ -67,7 +67,7 @@ killProcess process=:{Process|processId}
 
 gridChooseTask :: [a] [[HtmlTag]] (a -> [HtmlTag]) [(a -> String, a -> Task Bool)] -> Task Bool | iData a
 gridChooseTask xs header rowVisualizeFun rowTasks
-	=				orTasks [("row-" +++ toString i, row x) \\ x <- xs & i <- [1..]]	//Show the grid
+	=				anyTask (map row xs)	//Show the grid
 	>>= \task -> 	task																																	//Execute the chosen task
 where
 	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\[index] -> (snd (rowTasks !! index)) x) undef [selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks]]
