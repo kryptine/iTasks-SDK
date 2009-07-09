@@ -13,6 +13,7 @@ from Time		import :: Time(..)
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
+					, firstRun		:: !Bool											// Is this task evaluated for the first time
 					, userId		:: !UserId											// id of user to which task is assigned
 					, delegatorId	:: !UserId											// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree			
@@ -113,6 +114,7 @@ calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, 
 *
 * @return The modified task state
 */
+//applyChangeToTaskTree :: !ProcessId !(A.a: Change a | iData a) !ChangeLifeTime !*TSt -> *TSt | TC a
 applyChangeToTaskTree :: !ProcessId !(Change a) !ChangeLifeTime !*TSt -> *TSt | TC a
 
 /**

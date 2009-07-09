@@ -26,6 +26,7 @@ mkTSt :: !Lifespan !Lifespan !Session ![Workflow]!*HSt -> *TSt
 mkTSt itaskstorage threadstorage session workflows hst
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
+		, firstRun		= False
 		, userId		= -1
 		, delegatorId	= -1
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
@@ -225,14 +226,13 @@ where
 	applyDynamicTask :: !Dynamic !*TSt -> (!Dynamic, !*TSt)
 	applyDynamicTask (task :: (Task Dynamic)) tst = applyTask task tst 
 	
-
 applyChangeToTaskTree :: !ProcessId !(Change a) !ChangeLifeTime !*TSt -> *TSt | TC a
-applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changeStack}
+applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changeStack}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
 			# tst = snd (buildProcessTree proc (Just (dynamic change,lifetime)) tst)
-			= {tst & taskNr = taskNr, taskInfo = taskInfo, userId = userId, delegatorId = delegatorId
+			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
 			  , tree = tree, activated = activated, mainTask = mainTask, newProcesses = newProcesses, options = options
 			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changeStack = changeStack}
 		Nothing		
@@ -337,7 +337,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated, hs
 		# tst = addTaskNode (TTBasicTask taskInfo [] [] []) {tst & hst = hst}
 		= (a, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
 	| otherwise
-		# tst	= {tst & taskInfo = taskInfo, hst = hst}	
+		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, hst = hst}	
 		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
 		# tst	= initializeState state taskNr mbCxt tst
 		// Execute task function

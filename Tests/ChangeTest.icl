@@ -29,8 +29,12 @@ where
 		  		, label		= "Do something silly"
 		  		, roles		= []
 		  		, mainTask	= doSilly
+		  		},
+		  		{ name		= "Do something silly delayed"
+		  		, label		= "Do something silly delayed"
+		  		, roles		= []
+		  		, mainTask	= doSillyDelayed
 		  		}
-		  	: purchaseExample
 		  	]
 
 //Very simple task to experiment with changes
@@ -40,6 +44,9 @@ where
 	sillyEdit :: Task Int
 	sillyEdit = editTask "Done" createDefault
 
+doSillyDelayed :: Task Void
+doSillyDelayed = requestConfirmation "Start with something silly?" >>| doSilly
+
 //Simple change which will run once and change the priority of all tasks to high
 allImportant :: Change Int
 allImportant =
@@ -48,14 +55,14 @@ allImportant =
 //Add a big red warning message prompt to the running task
 addWarning :: String -> Change Int
 addWarning msg = 
-	Change (\props t t0 -> (Nothing, Just (redText msg ?>> t), Just (addWarning msg)))
+	Change (\props t t0 -> (Nothing, Just (redText msg ?>> t), Nothing))
 where
 	redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
 //This will duplicate a running task n times
 duplicate :: Int -> Change Int
 duplicate howMany =
-	Change (\p t t0 -> (Nothing, Just (orTasks [("dup " +++ toString i,t) \\ i <- [1 .. howMany]]), Just (duplicate howMany) ))
+	Change (\p t t0 -> (Nothing, Just (anyTask [t \\ i <- [1 .. howMany]]), Just (duplicate howMany) ))
 
 
 //Tests
