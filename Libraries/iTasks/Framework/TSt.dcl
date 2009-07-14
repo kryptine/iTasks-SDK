@@ -27,8 +27,8 @@ from Time		import :: Time(..)
 					
 					, exception		:: !Maybe Dynamic									// Optional, used when raising exceptions
 					
-					, doChange		:: !Bool											// Apply first change
-					, changeStack	:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
+					, doChange		:: !Bool											// Apply change
+					, changes		:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
 									
 					, hst			:: !*HSt											// iData state
 					}
@@ -58,7 +58,7 @@ from Time		import :: Time(..)
 					}
 
 // A change function which may be used to change tasks at runtime
-:: Change a = Change (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe (Change a)))						
+:: Change a :== (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic))
 
 // Changes may be applied only once, or persist for future changes
 :: ChangeLifeTime	= CLTransient
@@ -108,14 +108,13 @@ calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, 
 * Applies a change to a running task process task state.
 * 
 * @param The process id
-* @param The change function
+* @param The change in a dynamic
 * @param The change lifetime
 * @param The task state
 *
 * @return The modified task state
 */
-//applyChangeToTaskTree :: !ProcessId !(A.a: Change a | iData a) !ChangeLifeTime !*TSt -> *TSt | TC a
-applyChangeToTaskTree :: !ProcessId !(Change a) !ChangeLifeTime !*TSt -> *TSt | TC a
+applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
 
 /**
 * Lists which workflows are available

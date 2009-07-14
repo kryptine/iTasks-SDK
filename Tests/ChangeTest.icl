@@ -15,10 +15,10 @@ where
 		  		, roles		= []
 		  		, mainTask	= changePrio
 		  		},
-		  		{ name		= "Change task"
-		  		, label		= "Change task"
+		  		{ name		= "Add warning"
+		  		, label		= "Add warning"
 		  		, roles		= []
-		  		, mainTask	= changeTask
+		  		, mainTask	= changeWarningTask
 		  		},
 		  		{ name		= "Duplicate task"
 		  		, label		= "Duplicate task"
@@ -35,36 +35,46 @@ where
 		  		, roles		= []
 		  		, mainTask	= doSillyDelayed
 		  		}
-		  	]
+		  	:purchaseExample]
 
 //Very simple task to experiment with changes
 doSilly :: Task Void
-doSilly = 0 @: ("Root should enter a number", sillyEdit) >>= \nr -> showMessageAbout "The result is" nr
+doSilly = (0 @: ("Root should enter a number", sillyEdit)) -&&- (0 @: ("Root should enter a string", sillyEdit2)) >>= \nr -> showMessageAbout "The result is" nr
 where
 	sillyEdit :: Task Int
 	sillyEdit = editTask "Done" createDefault
+	
+	sillyEdit2 :: Task String
+	sillyEdit2 = editTask "Done" createDefault
 
 doSillyDelayed :: Task Void
 doSillyDelayed = requestConfirmation "Start with something silly?" >>| doSilly
 
 //Simple change which will run once and change the priority of all tasks to high
-allImportant :: Change Int
+allImportant :: Dynamic
 allImportant =
-	Change (\props t t0 -> (Just {TaskProperties| props & priority = HighPriority}, Nothing, Just allImportant))
-
-//Add a big red warning message prompt to the running task
-addWarning :: String -> Change Int
-addWarning msg = 
-	Change (\props t t0 -> (Nothing, Just (redText msg ?>> t), Nothing))
+	dynamic change :: A.a: Change a | iData a
 where
+	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iData a
+	change props t t0 = (Just {TaskProperties| props & priority = HighPriority},Just (editTask "OK" createDefault), Just allImportant)
+	
+//Add a big red warning message prompt to the running task
+addWarning :: String -> Dynamic
+addWarning msg = 
+	dynamic (change msg) :: A.a: Change a | iData a
+where
+	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iData a
+	change msg props t t0 = (Nothing, Just (redText msg ?>> t), Just (addWarning msg))
+
 	redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
 //This will duplicate a running task n times
-duplicate :: Int -> Change Int
+duplicate :: Int -> Dynamic
 duplicate howMany =
-	Change (\p t t0 -> (Nothing, Just (anyTask [t \\ i <- [1 .. howMany]]), Just (duplicate howMany) ))
-
-
+	dynamic (change howMany) :: A.a: Change a | iData a
+where
+	change :: Int TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iData a
+	change howMany p t t0 = (Nothing, Just (anyTask [t \\ i <- [1 .. howMany]]), Just (duplicate howMany) )
 //Tests
 
 changePrio :: Task Void
@@ -73,8 +83,9 @@ changePrio
 	?>>				chooseProcess
 	>>= \proc -> 	applyChangeToProcess proc allImportant CLTransient
 
-changeTask :: Task Void
-changeTask
+
+changeWarningTask :: Task Void
+changeWarningTask
 	=				[Text "What process do you want to change?"]
 	?>>				chooseProcess
 	>>= \proc ->	applyChangeToProcess proc (addWarning "Warning you are working on a changed task") (CLPersistent "warning")

@@ -37,7 +37,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, staticInfo	= initStaticInfo session threadstorage workflows
 		, exception		= Nothing
 		, doChange		= False
-		, changeStack	= []
+		, changes		= []
 		, hst 			= hst
 		}
 
@@ -164,17 +164,17 @@ buildProcessTree p =: {Process | processId, processType, properties = {TaskPrope
 where
 	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
 
-	loadChanges` Nothing [] accu tst=:{TSt|changeStack}
-		= {TSt|tst& changeStack = reverse accu, doChange = False}
-	loadChanges` (Just (change,lifetime)) [] accu tst=:{TSt|changeStack}
-		= {TSt|tst & changeStack = [Just (lifetime, 0,change):changeStack], doChange = True}
+	loadChanges` Nothing [] accu tst=:{TSt|changes}
+		= {TSt|tst& changes = reverse accu, doChange = False}
+	loadChanges` (Just (change,lifetime)) [] accu tst=:{TSt|changes}
+		= {TSt|tst & changes = [Just (lifetime, 0,change):changes], doChange = True}
 	loadChanges` mbNew [(l,c):cs] accu tst
 		# (dyn,tst) = accHStTSt (getDynamic c) tst
 		= case dyn of
 			Just dyn	= loadChanges` mbNew cs [Just (CLPersistent l,c,dyn):accu] tst
 			Nothing		= loadChanges` mbNew cs accu tst
 	
-	storeChanges pid tst=:{TSt|changeStack} = storeChanges` changeStack [] pid tst
+	storeChanges pid tst=:{TSt|changes} = storeChanges` changes [] pid tst
 	storeChanges` [] accu pid tst
 		# (_,tst)	= updateProcess pid (\p -> {Process|p & changes = reverse accu}) tst
 		= tst
@@ -225,16 +225,17 @@ where
 	
 	applyDynamicTask :: !Dynamic !*TSt -> (!Dynamic, !*TSt)
 	applyDynamicTask (task :: (Task Dynamic)) tst = applyTask task tst 
-	
-applyChangeToTaskTree :: !ProcessId !(Change a) !ChangeLifeTime !*TSt -> *TSt | TC a
-applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changeStack}
+
+
+applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
+applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changes}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
-			# tst = snd (buildProcessTree proc (Just (dynamic change,lifetime)) tst)
+			# tst = snd (buildProcessTree proc (Just (change,lifetime)) tst)
 			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
 			  , tree = tree, activated = activated, mainTask = mainTask, newProcesses = newProcesses, options = options
-			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changeStack = changeStack}
+			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
 		Nothing		
 			= tst
 

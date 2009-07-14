@@ -18,4 +18,4 @@ import iDataForms
 *
 * @return The task that will do the change
 */
-applyChangeToProcess :: !ProcessId !(Change a) !ChangeLifeTime  -> Task Void | TC a
+applyChangeToProcess :: !ProcessId !Dynamic !ChangeLifeTime  -> Task Void
