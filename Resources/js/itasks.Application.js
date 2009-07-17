@@ -17,18 +17,25 @@ itasks.Application = function () {
 			}	
 		}),
 		
+		loginWindow: null,
+		loaderWindow: null,
+		mainGui: null,
 		/**
 		* Starts the client GUI framework
 		*/
 		start: function(errorMsg) {
 			//Create the login window
-			var loginWindow = new itasks.LoginWindow({errorMsg: errorMsg});
-			var startPanel = this.viewport.getComponent(0);
+			if(!this.loginWindow) {
+				this.loginWindow = new itasks.LoginWindow({
+					errorMsg: errorMsg,
+					continuation:  this.loadUserInterface.createDelegate(this)
+					});
+				this.viewport.getComponent(0).add(this.loginWindow);
+			} else {
+				this.loginWindow.setError(errorMsg);
+			}
 			
-			startPanel.add(loginWindow);
-			
-			loginWindow.continuation = this.loadUserInterface.createDelegate(this);
-			loginWindow.show();
+			this.loginWindow.show();
 		},	
 		/**
 		* Loads and builds the GUI
@@ -36,60 +43,53 @@ itasks.Application = function () {
 		loadUserInterface: function(displayName, sessionId) {
 			
 			//Remove the login window
-			var startPanel = this.viewport.getComponent(0);
-			var loginWindow = startPanel.getComponent(0);
-			
-			loginWindow.hide();
-			loginWindow.destroy();
+			this.loginWindow.hide();
 		
-			startPanel.remove(loginWindow);
-	
-			//Create the loader window
-			var loaderWindow = new itasks.LoaderWindow();
-			startPanel.add(loaderWindow);
+			var startPanel = this.viewport.getComponent(0);
 			
-			loaderWindow.continuation = this.startUserInterface.createDelegate(this);			
-			loaderWindow.show();
+			//Create the loader window
+			if(!this.loaderWindow) {
+				this.loaderWindow = new itasks.LoaderWindow({
+					continuation: this.startUserInterface.createDelegate(this)
+				});
+				this.viewport.getComponent(0).add(this.loaderWindow);
+			
+			} else {
+				this.loaderWindow.updateProgress(0.0,'Initializing');
+			}
+				
+			this.loaderWindow.show();
 			
 			//Start building the GUI
-			loaderWindow.updateProgress(0.2,'Building User Interface...');
+			this.loaderWindow.updateProgress(0.2,'Building User Interface...');
 	
-			this.gui = new itasks.ApplicationPanel({application: this, displayName: displayName, sessionId: sessionId});
-			this.viewport.add(this.gui);
+			this.mainGui = new itasks.ApplicationPanel({application: this, displayName: displayName, sessionId: sessionId});
+			this.viewport.add(this.mainGui);
 			this.viewport.doLayout();
 				
-			loaderWindow.updateProgress(0.6,'Initializing User Interface...');
-			this.gui.init();
+			this.loaderWindow.updateProgress(0.6,'Initializing User Interface...');
+			this.mainGui.init();
 			
 			//Finish the loader
-			loaderWindow.updateProgress(1.0,'Done.');
-			loaderWindow.finish();
+			this.loaderWindow.updateProgress(1.0,'Done.');
+			this.loaderWindow.finish();
 		},
 		/**
 		* Starts the main interface
 		*/
 		startUserInterface: function() {
-			var startPanel = this.viewport.getComponent(0);
-			var loaderWindow = startPanel.getComponent(0);
-			
 			//Remove the loader window and startpanel
-			loaderWindow.hide();
-			loaderWindow.destroy();
-			
-			startPanel.remove(loaderWindow);
+			this.loaderWindow.hide();
 			
 			//Switch to the main interface
 			this.viewport.layout.setActiveItem(1);
-			//Remove start panel
-			this.viewport.remove(0);
 		},
 		/**
 		* Resets the main viewport to show the start screen
 		*/
 		reset: function() {
-			this.viewport.remove(0);
-			this.viewport.add(new Ext.Panel({baseCls: 'bg'}));
 			this.viewport.layout.setActiveItem(0);
+			this.viewport.remove(1,true);
 		},
 		restart: function (errorMsg) {
 			this.reset();

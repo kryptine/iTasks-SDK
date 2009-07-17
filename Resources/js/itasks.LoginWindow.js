@@ -121,6 +121,9 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 	focus: function() {
 		this.getComponent(0).getForm().findField('username').focus();
 	},
+	setError: function(msg) {
+		this.getComponent(0).getComponent(1).setText(msg ? msg : "");	
+	},
 	continuation: function(displayName, sessionId) {
 	}
 	
