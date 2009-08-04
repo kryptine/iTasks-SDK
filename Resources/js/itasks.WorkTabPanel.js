@@ -14,9 +14,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	debug: false,
 	initialized: false,
 	
-	idataEvents: [],
-	idataStates: [],
-	
 	initComponent: function() {
 		Ext.apply(this, {
 			title: "Loading task...",
@@ -25,37 +22,37 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			iconCls: "icon-editTask",
 			
 			url: "/handlers/work/tab",
-			params: {task: this.taskId, debug: this.debug ? 1 : 0, prefix: "ip-0-"},
-			nextPrefix: 1,
+			params: {_maintask: this.taskId, _debug: this.debug ? 1 : 0},
 			
-			layout: 'anchor',
+			layout: "anchor",
 			deferredRender: false,
 			items: [{
-				xtype: 'itasks.work-header',
+				xtype: "itasks.work-header",
 				height: 50,
-				anchor: 'r'
+				anchor: "r"
 			},{
-				xtype: 'tabpanel',
-				anchor: 'r -50',
-				cls: 'worktab-container',
-				tabPosition: 'bottom',
+				xtype: "tabpanel",
+				anchor: "r -50",
+				cls: "worktab-container",
+				tabPosition: "bottom",
 				layoutOnTabChange: true,
 				activeTab: 0,
 				items: [{
-					title: 'Task',
-					iconCls: 'icon-editTask',
+					title: "Task",
+					iconCls: "icon-editTask",
 					border: false,
+					bodyStyle: "padding: 10px;",
 					autoScroll: true
 				},{
-					title: 'Status',
-					xtype: 'itasks.work-status',
-					iconCls: 'icon-waiting',
+					title: "Status",
+					xtype: "itasks.work-status",
+					iconCls: "icon-waiting",
 					border: false,
 					autoScroll: true
 				}],
 				tbar: [{
-						text: 'Refresh task',
-						iconCls: 'x-tbar-loading',
+						text: "Refresh task",
+						iconCls: "x-tbar-loading",
 						listeners: {
 							click: {
 								scope: this,
@@ -81,7 +78,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		},this);
 	},
 	update: function(data) {
-	
 		//Check if the task is finished or became redundant
 		if(data.content == "done" || data.content == "redundant") {
 			var ct = this.getComponent(1).getComponent(0);
@@ -120,12 +116,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.updateStatus(data.properties);
 	
 		//Reset params, events and states
-		this.params = { task : this.taskId
-					  , debug: this.debug ? 1 : 0
-					  , prefix: 'ip-' + this.nextPrefix++ + '-'
+		this.params = { _maintask : this.taskId
+					  , _debug: this.debug ? 1 : 0
 					  }
-		this.idataEvents = [];
-		this.idataStates = [];
 	},
 	updateTitle: function(subject) {
 		this.setTitle(Ext.util.Format.ellipsis(subject.join(" - "),10));
@@ -174,23 +167,23 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	},
 	addDebugTab: function(debug) {
 		this.getComponent(1).add({
-			title: 'Debug',
-			iconCls: 'icon-debug',
-			bodyStyle: 'padding: 10px',
+			title: "Debug",
+			iconCls: "icon-debug",
+			bodyStyle: "padding: 10px",
 			autoScroll: true,
 			items: [{
-				xtype: 'panel',
-				title: 'Task tree',
+				xtype: "panel",
+				title: "Task tree",
 				collapsible: true,
 				html: debug.tasktree
 			},{
-				xtype: 'panel',
-				title: 'Task states',
+				xtype: "panel",
+				title: "Task states",
 				collapsible: true,
 				html: debug.states
 			},{
-				xtype: 'panel',
-				title: 'Events',
+				xtype: "panel",
+				title: "Events",
 				collapsible: true,
 				html: debug.events
 			}] 
@@ -209,28 +202,17 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	},
 	setTrace: function(trace) {
 		this.debug = trace;
-		this.params['debug'] = trace ? 1 : 0;
+		this.params["_debug"] = trace ? 1 : 0;
 	},
-	addEvent: function(input, value, states) {
-		//Add an event to the list of events
-		this.idataEvents[input] = value;
-		
-		//Add form states
-		this.idataStates = this.idataStates.concat(states);
-	},
-	sendEvents: function(delayed) {
-		
-		if(delayed) {
-			new Ext.util.DelayedTask().delay(150,this.sendEvents,this);
-		} else {	
-			//Add idata events to params
-			Ext.apply(this.params, this.idataEvents);
+	sendTaskUpdates: function(target,updates,state) {
+		//Add task updates to params
+		Ext.apply(this.params, updates);
 			
-			//Add idata states events to params
-			this.params['state'] = Ext.encode(this.idataStates);
+		//Set target and state
+		this.params["_targettask"]	= target;
+		this.params["_targetstate"]	= Ext.encode(state);
 			
-			this.refresh();
-		}
+		this.refresh();
 	},
 	sendPropertyEvent: function(process,name,value) {
 		//Ugly side-effect event handler
@@ -239,7 +221,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		Ext.Ajax.request({
 			url:"/handlers/work/property",
 			method: "GET",
-			params: {session : this.sessionId, process : process, property: name, value: value },
+			params: {_session : this.sessionId, process : process, property: name, value: value },
 			callback: function(el,success,response,options) {
 				this.getComponent(0).setBusy(false);
 				this.fireEvent("propertyChanged");
@@ -248,7 +230,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},
 			scope: this
 		});
-		
 	}
 });
 
@@ -257,33 +238,26 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			deferredRender: false,
-			items: [{
-				xtype: 'panel',
-				anchor: '0 0',
-				baseCls: 'worktab-header',
-				html: "Loading..."
-			},{
-				xtype: 'panel',
-				anchor: '-50 100%',
-				baseCls: 'worktab-header',
-				html: "<div class=\"worktab-header-indicator\"></div>"
-			}]
+			baseCls: "worktab-header",
+			html: "Loading..."
 		});
 		itasks.WorkHeaderPanel.superclass.initComponent.apply(this,arguments);
 		
 	},
 	setContent: function(taskid, subject, properties) {
-		this.getComponent(0).body.update( String.format(
+		this.body.update( String.format(
 		      "<div class=\"worktab-header-table\"><table>"
 			+ "<tr><th>Subject:</th><td>{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
 			+ "<tr><th>Delegated by:</th><td>{3}</td><th>Priority:</th><td>{4}</td></tr>"
-			+ "</table></div>"
+			+ "</table></div><div class=\"worktab-header-indicator\"></div>"
 			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.issuedAt)
 			, properties.delegator[1], itasks.util.formatPriority(properties.priority)
 			));
 	},
 	setBusy: function(busy) {
-		this.getComponent(1).getEl().child(".worktab-header-indicator").setVisible(busy);
+		var indicator = this.getEl().child(".worktab-header-indicator");
+		if(indicator)
+			indicator.setVisible(busy);
 	}	
 });
 
@@ -389,6 +363,8 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		
 		Ext.apply(this,{
+			taskUpdates: {},
+			taskState: {},
 			style: "padding: 10px",
 			border: false
 		});
@@ -468,10 +444,11 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 								});
 					}
 					ec.on("change", function(cmp, nv, ov) {
-							var wt = this.findParentByType('itasks.work');
-							wt.addEvent(cmp.inputid, nv, this.formState);
+							var wt = cmp.findParentByType("itasks.task-form");
+							
+							wt.addUpdate(cmp.inputid, nv);
 							if(cmp.updateon == "OnChange")
-								wt.sendEvents(true);
+								wt.sendUpdates(true);
 						},this);
 					break;
 				case "HtmlButton":
@@ -481,9 +458,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 							style: "display: inline;"
 						});
 					ec.on("click", function(cmp, e) {
-							var wt = this.findParentByType('itasks.work');
-							wt.addEvent(cmp.inputid,"click",this.formState);
-							wt.sendEvents();
+							var wt = cmp.findParentByType("itasks.task-form");
+							wt.addUpdate(cmp.inputid,"click");
+							wt.sendUpdates();
 						},this);
 					break;
 				case "Bool":
@@ -496,10 +473,10 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 							checked: ip.value == "True"
 						});
 					ec.on("check", function (cmp, checked) {
-						var wt = this.findParentByType('itasks.work');
-						wt.addEvent(cmp.inputid, checked ? "checked" : "unchecked", this.formState);
+						var wt = cmp.findParentByType("itasks.task-form");
+						wt.addUpdate(cmp.inputid, checked ? "checked" : "unchecked");
 						if(cmp.updateon == "OnChange")
-							wt.sendEvents(true);
+							wt.sendUpdates(true);
 					},this);
 					break;
 				case "HtmlDate":
@@ -510,10 +487,10 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 						width: 183
 					});
 					ec.on("change", function(cmp, nv, ov) {
-							var wt = this.findParentByType('itasks.work');
-							wt.addEvent(cmp.inputid, nv.format("m/d/Y"), this.formState);
+							var wt = cmp.findParentByType("itasks.task-form");
+							wt.addUpdate(cmp.inputid, nv.format("m/d/Y"));
 							if(cmp.updateon == "OnChange")
-								wt.sendEvents(true);
+								wt.sendUpdates(true);
 						},this);
 					break;
 				case "HtmlRadiogroup":
@@ -527,13 +504,13 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 						} else {
 							if(ip.updateon == "OnChange") {
 								radio.on("click", function(e) {
-									var wt = this.findParentByType('itasks.work');
-									wt.addEvent(e.target.name, e.target.value, this.formState);
-									wt.sendEvents(true);
+									var wt = e.target.findParentByType("itasks.task-form");
+									wt.addUpdates(e.target.name, e.target.value);
+									wt.sendUpdates(true);
 								},this);
 							} else {
 								radio.on("click", function(e) {
-									this.findParentByType('itasks.work').addEvent(e.target.name, e.target.value, this.formState);
+									e.target.findParentByType("itasks.task-form").addUpdate(e.target.name, e.target.value);
 								},this);
 							}
 						}
@@ -542,9 +519,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 					break;
 				case "HtmlTimer":
 					new Ext.util.DelayedTask().delay(1000 * ip.value, function () {
-						var wt = this.findParentByType('itasks.work');
-						wt.addEvent(ip.inputid.substr(0,ip.inputid.length),"timeout", this.formState);
-						wt.sendEvents();
+						var wt = this.findParentByType("itasks.task-form");
+						wt.addUpdate(ip.inputid.substr(0,ip.inputid.length),"timeout");
+						wt.sendUpdates();
 					},this);
 					
 					break;
@@ -569,10 +546,10 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 							width: 183
 						});
 						ec.on("select", function(cmp, rec, ind) {
-							var wt = this.findParentByType('itasks.work');
-							wt.addEvent(cmp.inputid, cmp.getValue(), this.formState);
+							var wt = cmp.findParentByType("itasks.task-form");
+							wt.addUpdate(cmp.inputid, cmp.getValue());
 							if(cmp.updateon == "OnChange")
-								wt.sendEvents(true);
+								wt.sendUpdates(true);
 						},this);
 					}
 			}
@@ -590,12 +567,145 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 				
 				//Attach replacement event handler
 				form.on("submit", function (e) {
-					this.findParentByType('itasks.work').sendEvents();
+					form.findParentByType("itasks.task-form").sendUpdates();
 				},this);
 			}
 		}	
+	},
+	addUpdate: function(name, value) {
+		this.taskUpdates[name] = value;
+	},
+	sendUpdates: function(delay) {
+		if(delay) {
+			new Ext.util.DelayedTask().delay(150,this.sendUpdates,this);
+		} else {
+			var wt = this.findParentByType("itasks.work");
+			if(!wt)
+				return;
+			
+			wt.sendTaskUpdates(this.taskId,this.taskUpdates, this.taskState);
+		
+			this.taskUpdates = {};
+		}
 	}
 });
+
+itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
+
+	initComponent: function() {
+		Ext.apply(this, {
+			taskUpdates: {},
+			taskState: {},
+			border: false,
+			url: "/handlers/work/tab",
+			bodyStyle: "margin: 10px"
+		});
+		itasks.TaskExtFormPanel.superclass.initComponent.apply(this,arguments);
+	},
+	onRender: function() {
+		itasks.TaskExtFormPanel.superclass.onRender.apply(this,arguments);
+		this.attachTaskHandlers(this);
+	},
+	attachTaskHandlers: function(comp) {
+	
+		var changeTaskEvent = function () {
+			var ct = this.findParentByType("itasks.task-ext-form");
+			if(!ct)
+				return;
+
+			var value = this.xtype == "radiogroup" ? this.getValue().value : this.getValue();
+		
+			ct.addUpdate(this.name, value);
+			ct.sendUpdates(true);
+		};
+		var clickTaskEvent = function () {
+			var ct = this.findParentByType("itasks.task-ext-form");
+			if(!ct)
+				return;
+						
+			ct.addUpdate(this.name, this.value);
+			ct.sendUpdates();
+			
+		};
+	
+		switch(comp.getXType()) {
+				case "textfield":
+				case "numberfield":
+				case "radiogroup":
+					comp.on("change",changeTaskEvent);
+					break;
+				case "checkbox":
+					comp.on("check",changeTaskEvent);
+					break;
+		}
+		
+		if(comp.buttons) {
+			var num = comp.buttons.length;
+			for(var i = 0; i < num; i++) {
+				comp.buttons[i].on("click",clickTaskEvent);
+			}
+		}
+		//attach recursively
+		if(comp.items && comp.items.each)
+			comp.items.each(this.attachTaskHandlers, this);
+	},
+	addUpdate: function(name, value) {
+		this.taskUpdates[name] = value;
+	},
+	sendUpdates: function(delay) {
+		if(delay) {
+			new Ext.util.DelayedTask().delay(150,this.sendUpdates,this);
+		} else {
+			var wt = this.findParentByType("itasks.work");
+			if(!wt)
+				return;
+			
+			wt.sendTaskUpdates(this.taskId,this.taskUpdates, this.taskState);
+		
+			this.taskUpdates = {};
+		}
+	},
+	update: function(data) {
+		if(data.updates) {
+			var i = data.updates.length - 1;
+			while(i >= 0) {
+				var update = data.updates[i];
+				switch(update[0]) {
+					case "ExtJSAdd":
+						var ct = Ext.getCmp(update[1]); 
+						if(ct) {
+							//Find the index of the reference component
+							var find = function(cmt,cnt,ind) {
+								if(cnt.items.get(ind) == undefined)
+									return ind;
+								if(cnt.items.get(ind) == cmt)
+									return ind;
+								else
+									return find(cmt,cnt,ind + 1);
+							}
+							
+							var index = find(ct, ct.ownerCt, 0) + 1;
+							var newct = ct.ownerCt.insert(index, update[2]);
+							
+							ct.ownerCt.doLayout();
+							
+							this.attachTaskHandlers(newct);
+						}
+						break;
+					case "ExtJSRemove":
+						var ct = Ext.getCmp(update[1]);
+						if(ct) {
+							var oct = ct.ownerCt;
+							oct.remove(update[1]);
+						}
+						break;
+				}
+				i--;
+			}
+		}
+	}
+});
+
 
 //Waiting for main task panel
 itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
@@ -680,7 +790,7 @@ itasks.form.UserField = Ext.extend(itasks.form.InlineField, {
 		forceSelection: true,
 		listeners: {
 			"select" : function(cmt,rec,ind) {cmt.label = rec.get("displayName");},
-			"beforequery" : function(e) {e.combo.store.baseParams["session"] = e.combo.findParentByType("itasks.work").sessionId;}
+			"beforequery" : function(e) {e.combo.store.baseParams["_session"] = e.combo.findParentByType("itasks.work").sessionId;}
 		}
 	}
 });
@@ -774,5 +884,6 @@ Ext.reg("itasks.work",itasks.WorkPanel);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
 Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
 Ext.reg("itasks.task-form",itasks.TaskFormPanel);
+Ext.reg("itasks.task-ext-form",itasks.TaskExtFormPanel);
 Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
 Ext.reg("itasks.task-combination",itasks.TaskCombinationPanel);

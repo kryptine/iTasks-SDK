@@ -1,12 +1,96 @@
 implementation module UITasks
 
-import StdList, StdTuple, GenBimap
-from StdFunc import id, const
-import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
-import TSt
-import CoreCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
-import Util
+import	StdList, StdTuple, GenBimap
+from	StdFunc import id, const
+import	iDataSettings, iDataForms, iDataFormlib, iDataTrivial
+import	TSt
+import	CoreCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
+import	GUICore, GUIWidgets, Util, Http
 
+from iTasks import class iTask(..)
+
+class vizHtml a 
+where
+	vizHtml :: a -> [HtmlTag]
+	
+instance vizHtml String
+where
+	vizHtml s = [Text s]
+	
+instance vizHtml [HtmlTag]
+where
+	vizHtml h = h
+
+//Input tasks
+requestInformation :: question -> Task a | vizHtml question & iTask a & iData a
+requestInformation question = requestInformationWD question createDefault
+
+requestInformationWD :: question a -> Task a | vizHtml question & iTask a & iData a 			//With default value
+requestInformationWD question initial = mkExtJSTask "requestInformationWD" requestInformationWD`
+where
+	requestInformationWD` tst=:{taskNr}
+		# editorid	= "tf-" +++ taskNrToString taskNr
+		//Read current value
+		# (mbtv,tst) = getTaskValue tst
+		# oldval = case mbtv of Nothing = initial; Just v = v;
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst	
+		//Update GUI
+		| length updates == 0
+			# tst = setExtJSDef (panel description (form (visualizeAsEditor editorid oldval))) tst
+			= (oldval,{tst & activated = False})
+		| otherwise
+			# newval = foldr (\(p,v) -> updateValue p v) oldval updates
+			# done = (http_getValue "ok" updates "") == "ok"
+			| done
+				= (newval,{tst & activated = True})
+			| otherwise
+				# updates = determineEditorUpdates editorid oldval newval
+				# tst = setExtJSUpdates updates tst
+				= (newval,{tst & activated = False})
+			
+	
+	panel d f	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = [d,f], buttons = [okbutton]}
+	description = ExtJSHtmlPanel {ExtJSHtmlPanel| html = toString (SpanTag [] (vizHtml question)), border = False, bodyCssClass = "task-description"} 
+	form items	= ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = []}
+	okbutton	= ExtJSButton {ExtJSButton| name = "ok", text = "Ok", value = "ok", iconCls = "icon-ok"}
+
+/*
+requestInformationAbout	:: question b -> Task a	| vizHtml question & iData a & iTask b & iData b
+requestInformationAbout question about = requestInformationAboutWD question about createDefault
+
+requestInformationAboutWD :: question b a -> Task a	| vizHtml question & iData a & iTask b & iData b //With default value
+requestInformationAboutWD question about default
+	= requestInformationWD question default -||- (requestInformationWD "" about >>| return question)
+*/
+requestConfirmation	:: question -> Task Bool | vizHtml question
+requestConfirmation question
+	= return True//vizHtml question ?>> (yes -||- no)
+	
+requestChoice :: question [a] -> Task a | vizHtml question & iData a
+requestChoice question options
+	= vizHtml question ?>> selectWithRadiogroup [[toHtml o] \\ o <- options] 0 >>= \i -> return (options !! i)
+
+requestMultipleChoice :: question [a] -> Task [a]		| vizHtml question & iData a
+requestMultipleChoice question options
+	= 				vizHtml question
+	?>> 			selectWithCheckboxes [([toHtml o], False, (\_ x -> x) ) \\ o <- options]
+	>>= \indexes ->	return [options !! i \\ i <- indexes]
+
+//Output tasks
+showMessage	:: message -> Task Void	| vizHtml message
+showMessage message = return Void //vizHtml message ?>> button "Ok" Void
+
+showMessageAbout :: message a -> Task Void | vizHtml message & iData a
+showMessageAbout message about = return Void// vizHtml message ?>> (displayValue about -||- button "Ok" Void <<@ TTVertical)
+
+//notifyUser				:: message UserId -> Task Void	| vizHtml message
+//notifyGroup				:: message Role -> Task Void	| vizHtml message
+
+
+
+//TO BE OBSOLETE:
+/*
 editTask :: !String !a -> (Task a) | iData a 
 editTask prompt a = mkBasicTask "editTask" (editTask` prompt a)
 where
@@ -26,7 +110,8 @@ where
 	# tst				= setOutput [DivTag [ClassAttr "it-editor"] ((if (isEmpty editor.form) [] [DivTag [ClassAttr "it-editor-content"] editor.form]) ++ [DivTag [ClassAttr "it-editor-buttons"] finbut.form])] tst
 	# tst				= setInputs (editor.inputs ++ finbut.inputs) tst
 	= (editor.Form.value,{tst & activated = taskdone.Form.value})
-
+*/
+/*
 editTaskPred :: !a !(a -> (Bool, [HtmlTag]))-> (Task a) | iData a 
 editTaskPred  a pred = mkBasicTask "editTask" (editTaskPred` a)
 where
@@ -53,7 +138,7 @@ where
 	# tst			= setOutput editor.form tst
 	# tst			= setInputs editor.inputs tst
 	= (editor.Form.value,{tst & activated = taskdone.Form.value})
-
+*/
 mySimpleButton :: !Options !String !String !(a -> a) !*HSt -> (Form (a -> a),!*HSt)
 mySimpleButton options id label fun hst	
 	= FuncBut (Init, (nFormId id (HtmlButton label False,fun)) <@ if (options.tasklife == LSClient) LSClient LSPage) hst
@@ -206,54 +291,3 @@ yes = button "Yes" True
 no :: Task Bool
 no = button "No" False
 
-
-class vizHtml a 
-where
-	vizHtml :: a -> [HtmlTag]
-	
-instance vizHtml String
-where
-	vizHtml s = [Text s]
-	
-instance vizHtml [HtmlTag]
-where
-	vizHtml h = h
-
-//Input tasks
-requestInformation :: question -> Task a | vizHtml question & iData a
-requestInformation question = requestInformationWD question createDefault
-
-requestInformationWD :: question a -> Task a | vizHtml question & iData a 			//With default value
-requestInformationWD question default
-	= vizHtml question ?>> editTask "Ok" default
-
-requestInformationAbout	:: question b -> Task a	| vizHtml question & iData a & iData b
-requestInformationAbout question about = requestInformationAboutWD question about createDefault
-
-requestInformationAboutWD :: question b a -> Task a	| vizHtml question & iData a & iData b	//With default value
-requestInformationAboutWD question about default
-	= vizHtml question ?>> (displayValue about -||- editTask "Ok" default <<@ TTVertical)
-
-requestConfirmation	:: question -> Task Bool | vizHtml question
-requestConfirmation question
-	= vizHtml question ?>> (yes -||- no)
-	
-requestChoice :: question [a] -> Task a | vizHtml question & iData a
-requestChoice question options
-	= vizHtml question ?>> selectWithRadiogroup [[toHtml o] \\ o <- options] 0 >>= \i -> return (options !! i)
-
-requestMultipleChoice :: question [a] -> Task [a]		| vizHtml question & iData a
-requestMultipleChoice question options
-	= 				vizHtml question
-	?>> 			selectWithCheckboxes [([toHtml o], False, (\_ x -> x) ) \\ o <- options]
-	>>= \indexes ->	return [options !! i \\ i <- indexes]
-
-//Output tasks
-showMessage	:: message -> Task Void	| vizHtml message
-showMessage message = vizHtml message ?>> button "Ok" Void
-
-showMessageAbout :: message a -> Task Void | vizHtml message & iData a
-showMessageAbout message about = vizHtml message ?>> (displayValue about -||- button "Ok" Void <<@ TTVertical)
-
-//notifyUser				:: message UserId -> Task Void	| vizHtml message
-//notifyGroup				:: message Role -> Task Void	| vizHtml message

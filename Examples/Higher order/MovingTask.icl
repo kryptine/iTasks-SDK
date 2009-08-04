@@ -3,10 +3,12 @@ implementation module MovingTask
 import iTasks, iDataTrivial
 from ProcessDB import :: ProcessStatus(..)
 
-derive gForm 	QForm, Person, Gender
-derive gUpd 	QForm, Person, Gender
-derive gParse 	QForm, Person, Gender
-derive gPrint 	QForm, Person, Gender
+derive gForm 		QForm, Person, Gender
+derive gUpd 		QForm, Person, Gender
+derive gVisualize 	QForm, Person, Gender
+derive gUpdate	 	QForm, Person, Gender
+derive gParse 		QForm, Person, Gender
+derive gPrint 		QForm, Person, Gender
 
 :: QForm = 	{ forCompany 		:: String
 			, startDate 		:: HtmlDate

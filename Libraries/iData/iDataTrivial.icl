@@ -2,7 +2,8 @@ implementation module iDataTrivial
 
 import StdMaybe, StdGeneric, StdArray, StdClass, StdInt, StdList, StdString
 import Time
-import iDataWidgets
+import iDataForms
+from GUIWidgets import :: HtmlTime(..), :: HtmlDate(..)
 
 getTimeAndDate :: !*HSt -> *(!(!HtmlTime,!HtmlDate),!*HSt)
 getTimeAndDate hst=:{HSt | nworld = nworld=:{world}}

@@ -1,7 +1,7 @@
 implementation module TSt
 
 import StdEnv, StdMaybe
-import HSt, Util
+import HSt, Http, Util
 import iDataFormlib
 import ProcessDB, DynamicDB, SessionDB, TaskTree
 import GenEq, GenBimap
@@ -27,6 +27,7 @@ mkTSt itaskstorage threadstorage session workflows hst
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
+		, curValue		= Nothing
 		, userId		= -1
 		, delegatorId	= -1
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
@@ -301,6 +302,12 @@ where
 			= accHStTSt (accFormStatesHSt (getHtmlStates (iTaskId taskNr "" +++ "-" ))) tst
 		= (a, {tst & tree = TTBasicTask  info html inputs states})
 	
+mkExtJSTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkExtJSTask taskname taskfun = Task taskname Nothing mkExtJSTask`	
+where
+	mkExtJSTask` tst=:{TSt|taskNr,taskInfo}
+		= taskfun {tst & tree = TTExtJSTask taskInfo (abort "No ExtJS definition given")}
+	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
 where
@@ -338,7 +345,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated, hs
 		# tst = addTaskNode (TTBasicTask taskInfo [] [] []) {tst & hst = hst}
 		= (a, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
 	| otherwise
-		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, hst = hst}	
+		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, hst = hst, curValue = Just (dynamic a)}	
 		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
 		# tst	= initializeState state taskNr mbCxt tst
 		// Execute task function
@@ -371,6 +378,7 @@ where
 	
 	//update the finished, tasks and traceValue fields of a task tree node
 	updateTaskNode f tv (TTBasicTask ti output inputs states)	= TTBasicTask		{ti & finished = f, traceValue = tv} output inputs states
+	updateTaskNode f tv (TTExtJSTask ti defs)					= TTExtJSTask		{ti & finished = f, traceValue = tv} defs
 	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
 	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
 	updateTaskNode f tv (TTMainTask ti mti tasks)				= TTMainTask		{ti & finished = f, traceValue = tv} mti (reverse tasks)		
@@ -387,6 +395,35 @@ setInputs inputs tst=:{tree}
 	= case tree of
 		(TTBasicTask info output _ states)	= {tst & tree = TTBasicTask info output inputs states}
 		_									= {tst & tree = tree}
+
+setExtJSDef	:: !ExtJSDef !*TSt -> *TSt
+setExtJSDef def tst=:{tree}
+	= case tree of
+		(TTExtJSTask info _)				= {tst & tree = TTExtJSTask info (Left def)}
+		_									= tst
+
+setExtJSUpdates :: ![ExtJSUpdate] !*TSt -> *TSt
+setExtJSUpdates upd tst=:{tree}
+	= case tree of
+		(TTExtJSTask info _)				= {tst & tree = TTExtJSTask info (Right upd)}
+		_									= tst
+
+
+getTaskValue :: !*TSt -> (Maybe a, !*TSt) | TC a
+getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)
+getTaskValue tst = (Nothing, tst)
+
+getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
+getUserUpdates tst=:{taskNr,hst=hst=:{request}} = (updates request, {tst & hst = hst});
+where
+	updates request
+		| http_getValue "_targettask" request.arg_post "" == taskNrToString taskNr
+			= [u \\ u =:(k,v) <- request.arg_post | k.[0] <> '_']
+		| otherwise
+			= []
+
+
+
 
 setCombination :: !TaskCombination !*TSt	-> *TSt
 setCombination combination tst=:{tree}

@@ -3,12 +3,12 @@
 */
 Ext.ns('itasks');
 
-itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
+itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 
 	sessionId: undefined,
 	application: undefined,
 
-	workStore: new Ext.ux.grid.livegrid.Store({
+	workStore: new Ext.data.Store({
 		autoLoad: false,
 		bufferSize: 300,
 		sortInfo: {
@@ -18,7 +18,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 		proxy: new Ext.data.HttpProxy({
 			url: 'handlers/work/list'
 		}),
-		reader: new Ext.ux.grid.livegrid.JsonReader({
+		reader: new Ext.data.JsonReader({
 				root: 'worklist',
 				totalProperty: 'total',
 				successProperty: 'success'
@@ -34,7 +34,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 				{name: 'tree_icon'}
 			])
 	}),	
-	workView: new Ext.ux.grid.livegrid.GridView({
+	workView: new Ext.grid.GridView({
 		deferEmptyText: true,
 		emptyText: 'There is no unfinished work.',
 		nearLimit: 100,
@@ -76,7 +76,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 			border: false,
 			store: this.workStore,
 			view: this.workView,
-			selModel: new Ext.ux.grid.livegrid.RowSelectionModel(),
+			selModel: new Ext.grid.RowSelectionModel(),
 			columns: [
 				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200},		
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
@@ -124,7 +124,7 @@ itasks.WorkListPanel = Ext.extend(Ext.ux.grid.livegrid.GridPanel, {
 	*/
 	refresh: function () {
 		this.store.load({
-			params: {session: this.sessionId}
+			params: {_session: this.sessionId}
 		});
 	}
 });

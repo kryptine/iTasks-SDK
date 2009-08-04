@@ -25,17 +25,17 @@ catalogPrompt 	= ruleText "My Shop Product Catalogue Browser"
 
 // The shop management workflow:
 
-manageCatalog :: a [HtmlTag] -> Task a | iData, DB a
+manageCatalog :: a [HtmlTag] -> Task a | iData, iTask, DB a
 manageCatalog _ prompt
 	= stopTask (prompt ?>> forever (dbReadAll >>= browseCatalog))
 where
-	browseCatalog :: [a] -> Task a | iData, DB a
+	browseCatalog :: [a] -> Task a | iData, iTask, DB a
 	browseCatalog items = orTasksVert 
 							(map itemActions items ++ [chooseTask_btn [] [("Append",new)]])
 	where
 		new	= dbCreateItem >>= \first -> editTask "Store" first >>= dbUpdateItem
 	
-		itemActions :: a -> Task a | iData, DB a
+		itemActions :: a -> Task a | iData, iTask, DB a
 		itemActions item
 			= chooseTask_btn [toHtml item] 
 				[("Edit",	editTask "Store" item >>= dbUpdateItem)

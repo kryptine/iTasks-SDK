@@ -1,7 +1,7 @@
 implementation module Engine
 
 import StdMisc, StdArray, StdList, StdChar, GenBimap
-import iDataSettings, iDataForms, iDataWidgets, iDataFormlib, iDataTrivial
+import iDataSettings, iDataForms, iDataFormlib, iDataTrivial
 import UserDB, ProcessDB, SessionDB
 import Text, Util
 import CoreCombinators
@@ -72,7 +72,7 @@ handleAnonRequest handler request world
 handleSessionRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleSessionRequest flows handler request world
 	# hst						= initHSt request world
-	# sessionId					= http_getValue "session" (request.arg_get ++ request.arg_post) ""
+	# sessionId					= http_getValue "_session" (request.arg_get ++ request.arg_post) ""
 	# (mbSession,timeout,hst)	= restoreSession sessionId hst
 	= case mbSession of
 		Nothing

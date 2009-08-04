@@ -3,9 +3,10 @@ implementation module iDataFormlib
 // Handy collection of Form's
 
 import StdEnum, StdFunc, StdList, StdString, StdTuple
-import iDataWidgets, iDataTrivial
+import iDataTrivial
 import StdMaybe, GenBimap
 
+import GUIWidgets
 
 EmptyBody :== SpanTag [] []
 defpixel :== 100
@@ -124,7 +125,7 @@ where
 
 mkShowHideForm :: !(InIDataId a) !*HSt -> (Form a,!*HSt) | iData a
 mkShowHideForm (init,formid) hst 
-| formid.mode == NoForm || formid.FormId.lifespan == LSTemp
+| formid.FormId.mode == NoForm || formid.FormId.lifespan == LSTemp
 	= mkEditForm (init,formid) hst
 # (hiding,hst)				= mkStoreForm (Init,subFormId formid "ShowHideSore" True) id hst			// True == Hide
 # (switch,hst)				= myfuncbut hiding.Form.value hst	
@@ -208,7 +209,7 @@ listForm inIDataId hSt		= layoutListForm (\f1 f2 -> [DivTag [] (f1 ++ f2)]) mkEd
 layoutListForm :: !([HtmlTag] [HtmlTag] -> [HtmlTag]) 
                   !((InIDataId  a)   *HSt -> (Form  a,  *HSt))
                   ! (InIDataId [a]) !*HSt -> (Form [a],!*HSt) | iData a
-layoutListForm layoutF formF (init,formid=:{mode}) hst 
+layoutListForm layoutF formF (init,formid=:{FormId|mode}) hst 
 # (store, hst)				= mkStoreForm (init,formid) id  hst			// enables to store list with different # elements
 # (layout,hst)				= layoutListForm` 0 store.Form.value hst
 # (store, hst)				= mkStoreForm (init,formid) (const layout.Form.value) hst
@@ -246,7 +247,7 @@ FuncButNr i (init,formid) hst
 							  , resetForm	= Just (const button)
 							  }
 		nformid				= case button of
-								HtmlButton name _ -> formid <@ formid.id <+++ iDataIdSeparator <+++ i
+								HtmlButton name _ -> formid <@ formid.FormId.id <+++ iDataIdSeparator <+++ i
 
 TableFuncBut :: !(InIDataId [[(HtmlButton, a -> a)]]) !*HSt -> (Form (a -> a) ,!*HSt)
 TableFuncBut inIDataId hSt
@@ -398,11 +399,11 @@ where
 	where
 		browserButtons :: !Int !Int !Int -> [(Mode,HtmlButton,Int -> Int)]
 		browserButtons init step length
-		=	if (init - range >= 0) [(formid.mode,sbut "--", const (init - range))] [] 
+		=	if (init - range >= 0) [(formid.FormId.mode,sbut "--", const (init - range))] [] 
 							++
 			take nbuttuns [(setmode i index,sbut (toString i),const i) \\ i <- [startval,startval+step .. length-1]] 
 							++ 
-			if (startval + range < length) [(formid.mode,sbut "++", const (startval + range))] []
+			if (startval + range < length) [(formid.FormId.mode,sbut "++", const (startval + range))] []
 		where
 			range 			= nbuttuns * step
 			start i j		= if (i < range) j (start (i-range) (j+range))
@@ -411,7 +412,7 @@ where
 			setmode i index
 			| index <= i && i < index + step
 							= Display
-			| otherwise		= formid.mode
+			| otherwise		= formid.FormId.mode
 
 // scripts
 

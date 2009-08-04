@@ -6,8 +6,7 @@ implementation module Newsgroups
 // (c) mjp 2007 
 
 import StdList, StdOrdList, StdTuple, StdMisc, GenBimap
-import iTasks, iDataTrivial, iDataFormlib, iDataWidgets
-
+import iTasks, iDataTrivial, iDataFormlib
 
 :: NewsGroupNames:== [GroupName]				// list of newsgroup names
 :: GroupName	:== String						// Name of the newsgroup
@@ -26,10 +25,12 @@ import iTasks, iDataTrivial, iDataFormlib, iDataWidgets
 				, message	:: !HtmlTextarea
 				}
 
-derive gForm	EMail, EMail2	
-derive gUpd		EMail, EMail2	
-derive gParse	EMail, EMail2	
-derive gPrint	EMail, EMail2	
+derive gForm		EMail, EMail2	
+derive gUpd			EMail, EMail2
+derive gVisualize	EMail, EMail2		
+derive gUpdate		EMail, EMail2	
+derive gParse		EMail, EMail2	
+derive gPrint		EMail, EMail2	
 
 nmessage = 2
 

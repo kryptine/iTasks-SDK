@@ -2,6 +2,7 @@ implementation module TimeAndDateTasks
 
 import StdFunc
 import iDataFormlib, iDataTrivial
+import GUIWidgets
 import TSt, Util
 
 // Timer Tasks ending when timed out

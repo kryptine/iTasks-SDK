@@ -5,15 +5,17 @@ definition module TaskTree
 * task tree data structures is performed by the basic tasks and
 * task combinators.
 */
-import StdMaybe
+import StdMaybe, Either
 import Types
 import Html, Time
 
 from   iDataForms	import :: InputDefinition {..}, :: HtmlState {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
 from   ProcessDB	import :: ProcessStatus
 from   JSON 		import :: JSON
+from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 
-:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputDefinition] [HtmlState]	//Smallest unit of work that has to be performed by a user
+:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputDefinition] [HtmlState]	//A task that can be worked on through an iData(/ExtJS) gui
+					| TTExtJSTask		TaskInfo (Either ExtJSDef [ExtJSUpdate])			//A task that can be worked on through an ExtJS gui 
 					| TTSequenceTask	TaskInfo 					[TaskTree]				//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks
 					| TTMainTask		TaskInfo TaskProperties		[TaskTree]				//A task that is treated as a main chunk of work  

@@ -4,8 +4,11 @@ definition module CommonCombinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
 
-import CoreCombinators, iDataWidgets	
+import CoreCombinators
 import Either	 
+import GUIWidgets
+
+
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		

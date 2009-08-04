@@ -7,10 +7,10 @@ import iDataForms, iDataState, iDataFormlib
 import JSON
 import Util, Trace
 import UserDB, ProcessDB
+import GUICore, ExtJS
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst
-	# tst						= appHStTSt (setHStPrefix prefix) tst 	// Set prefix for all form inputs
 	# (mbError, mbTree, tst)	= calculateTaskTree procId debug tst	// Calculate the task tree
 	= case mbTree of
 		Nothing	
@@ -38,12 +38,11 @@ handleWorkTabRequest req tst
 				_	= error "Could not locate process information" tst
 			
 where
-	taskId	= http_getValue "task" req.arg_post "0"
+	taskId	= http_getValue "_maintask" req.arg_post "0"
 	taskNr	= taskNrFromString taskId
 	procId	= taskNrToProcessNr taskNr
 	
-	debug	= http_getValue "debug" req.arg_post "0" == "1"
-	prefix	= http_getValue "prefix" req.arg_post ""
+	debug	= http_getValue "_debug" req.arg_post "0" == "1"
 	
 	error msg tst
 		= ({http_emptyResponse & rsp_data = "{ \"success\" : false, \"error\" : \"" +++ msg +++ "\"}"}, tst)
@@ -66,6 +65,8 @@ where
 
 :: TaskPanel
 	= FormPanel FormPanel
+	| ExtFormPanel ExtFormPanel
+	| ExtFormUpdate ExtFormUpdate
 	| MainTaskPanel MainTaskPanel
 	| CombinationPanel CombinationPanel
 	| TaskDone
@@ -80,7 +81,20 @@ where
 	, formInputs	:: [InputDefinition]
 	, formState		:: [HtmlState]
 	}
-
+	
+:: ExtFormPanel =
+	{ xtype			:: String
+	, id			:: String
+	, taskId		:: String
+	, items			:: [ExtJSDef]
+	}
+:: ExtFormUpdate =
+	{ xtype			:: String
+	, id			:: String
+	, taskId		:: String
+	, updates		:: [ExtJSUpdate]
+	}
+	
 // Main task with properties leaf type
 :: MainTaskPanel =
 	{ xtype			:: String
@@ -97,11 +111,13 @@ where
 	}
 
 //JSON derives
-derive JSONEncode	TaskContent, DebugInfo, FormPanel, MainTaskPanel, CombinationPanel
+derive JSONEncode	TaskContent, DebugInfo, FormPanel, ExtFormPanel, ExtFormUpdate, MainTaskPanel, CombinationPanel
 derive JSONEncode	TaskProperties, TaskPriority, TaskProgress, InputDefinition, UpdateEvent, HtmlState, StorageFormat, Lifespan
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (FormPanel x) c						= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (ExtFormPanel x) c					= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (ExtFormUpdate x) c					= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (MainTaskPanel x) c					= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (CombinationPanel x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
@@ -154,6 +170,10 @@ searchSubTasks taskId split trees
 buildTaskPanel :: TaskTree -> TaskPanel
 buildTaskPanel (TTBasicTask ti html inputs states)
 	= FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] html), formInputs = inputs, formState = states }
+buildTaskPanel (TTExtJSTask ti (Left def))
+	= ExtFormPanel {ExtFormPanel | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
+buildTaskPanel (TTExtJSTask ti (Right upd))
+	= ExtFormUpdate {ExtFormUpdate | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
@@ -181,6 +201,7 @@ where
 
 isActive :: TaskTree -> Bool
 isActive (TTBasicTask		{TaskInfo|active,finished} _ _ _ )	= active && not finished
+isActive (TTExtJSTask		{TaskInfo|active,finished} _ )		= active && not finished
 isActive (TTSequenceTask	{TaskInfo|active,finished} _ )		= active && not finished
 isActive (TTParallelTask	{TaskInfo|active,finished} _ _ )	= active && not finished
 isActive (TTMainTask 		{TaskInfo|active,finished} _ _ )	= active && not finished

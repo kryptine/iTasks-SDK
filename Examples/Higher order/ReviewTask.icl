@@ -11,10 +11,12 @@ import iTasks, iDataTrivial
 // Otherwise the task is completed
 // The task itself in the example is a quotation form that needs to be filled in
 
-derive gForm 	QForm, Review, Person, Gender
-derive gUpd 	QForm, Review, Person, Gender
-derive gParse 	QForm, Review, Person, Gender
-derive gPrint 	QForm, Review, Person, Gender
+derive gForm 		QForm, Review, Person, Gender
+derive gUpd 		QForm, Review, Person, Gender
+derive gVisualize 	QForm, Review, Person, Gender
+derive gUpdate 		QForm, Review, Person, Gender
+derive gParse 		QForm, Review, Person, Gender
+derive gPrint 		QForm, Review, Person, Gender
 
 :: PersonData	=	{ name		:: String
 					, e_mail	:: String
@@ -49,13 +51,13 @@ reviewTaskExample
 	}
   ]
 
-editTaskSA :: String a -> Task a | iData a
+editTaskSA :: String a -> Task a | iData a & iTask a
 editTaskSA s a = editTask s a <<@ Submit
 
 reviewtask :: Task (QForm,Review)
 reviewtask = taskToReview 1 (createDefault, mytask)
 
-mytask :: a -> (Task a) | iData a
+mytask :: a -> (Task a) | iData a & iTask a
 mytask v =	[Text "Fill in Form:",BrTag [],BrTag []] 
 			?>> editTaskSA "TaskDone" v 
 

@@ -14,6 +14,7 @@ from Time		import :: Time(..)
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
 					, firstRun		:: !Bool											// Is this task evaluated for the first time
+					, curValue		:: !Maybe Dynamic									// Current task value
 					, userId		:: !UserId											// id of user to which task is assigned
 					, delegatorId	:: !UserId											// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree			
@@ -220,6 +221,9 @@ taskFinished :: !*TSt -> (!Bool, !*TSt)
 */
 mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 
+mkExtJSTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+
+
 /**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
@@ -280,7 +284,16 @@ setOutput			:: ![HtmlTag] !*TSt			-> *TSt
 /**
 * Sets the inputs of the current task (only for BasicTasks)
 */
-setInputs			:: ![InputDefinition] !*TSt			-> *TSt
+setInputs			:: ![InputDefinition] !*TSt		-> *TSt
+
+setExtJSDef			:: !ExtJSDef !*TSt				-> *TSt
+
+setExtJSUpdates		:: ![ExtJSUpdate] !*TSt			-> *TSt
+
+getTaskValue		:: !*TSt						-> (Maybe a, !*TSt) | TC a
+
+getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
+
 
 /**
 * Sets the combination type of the current task (only for ParallelTasks)

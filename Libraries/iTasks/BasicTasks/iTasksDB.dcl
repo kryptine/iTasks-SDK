@@ -4,14 +4,17 @@ definition module iTasksDB
 */
 from TSt 			import :: Task 
 from StdOverloaded	import class ==, class <
+import GUICore
 import iDataForms
 
 DB_PREFIX 	:== "iDBase-"
 
-derive gForm	DBRef
-derive gUpd		DBRef
-derive gPrint	DBRef
-derive gParse	DBRef
+derive gForm		DBRef
+derive gUpd			DBRef
+derive gVisualize	DBRef
+derive gUpdate		DBRef
+derive gPrint		DBRef
+derive gParse		DBRef
 
 
 //Core database access functions

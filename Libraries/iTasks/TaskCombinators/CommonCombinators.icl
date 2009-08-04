@@ -15,6 +15,7 @@ from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
 import UITasks, UserTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
 import Util, Either
+import GUIWidgets
 
 derive gForm	Either
 derive gUpd		Either

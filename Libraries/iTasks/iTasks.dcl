@@ -24,10 +24,9 @@ import	Engine						// basic iTask system creator
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap
 	,	Util
-
-	//Experimental!
-	//,	GUI							// Functions for generating GUIS
-
+	,	GUICore						// Functions for generating GUIS
+	,	GUIWidgets					// Additional GUI widgets
+	
 	//StdEnv modules
 	,	StdInt
 	,	StdString
@@ -36,6 +35,11 @@ import	Engine						// basic iTask system creator
 	,	StdTuple
 	,	StdEnum
 	,	StdOverloaded
+	,	StdGeneric
+
+	//Generic modules
+	,	GenPrint
+	,	GenParse
 
 from StdFunc import id, const
 
@@ -44,3 +48,10 @@ import Types
 from TSt		import :: Workflow{..}, :: Change(..), :: ChangeLifeTime(..)
 from Time		import :: Time(..)
 from TaskTree	import :: TaskCombination(..)
+
+//iTask context restriction
+class iTask a
+	| gPrint {|*|}
+	, gParse {|*|}
+	, gVisualize{|*|}
+	, gUpdate{|*|} a

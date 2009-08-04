@@ -28,7 +28,7 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 		this.fireEvent("remoteCallStart");
 		
 		//Add session id parameter
-		params['session'] = this.sessionId
+		params["_session"] = this.sessionId
 		
 		Ext.Ajax.request({
 			method: 'POST',

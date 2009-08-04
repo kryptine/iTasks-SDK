@@ -1,12 +1,15 @@
 definition module ShopDSLboilerplate
 
 import ShopDSL
+import GUICore
 
 //	Generic boilerplate code:
-derive gForm	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpd		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gPrint	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gParse	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gForm		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gUpd			Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 
 //	Manual boilerplate code:
 class billingAddressOf   a :: a -> Address

@@ -20,6 +20,9 @@ button.icon-states {
 button.icon-events {
 	background-image: url('../img/icons/table_lightning.png');
 }
+button.icon-ok {
+	background-image: url('../img/icons/tick.png');
+}
 .icon-debug {
 	background-image: url('../img/icons/bug.png');
 }
@@ -84,31 +87,7 @@ div.loginWindow {
 #northpanel #user a:hover {
 	text-decoration: underline;
 }
-#leftpanel {
-	background-color: #ccc;
-	background-image: url('../img/tab.png');
-	background-position: top;
-	background-repeat: repeat-x;
-}
-/* NEW WORK LIST STYLES */
-ul.newwork {
-	font-size: 11px;
-	list-style: none;
-	padding: 0px;
-}
-ul.newwork li {
-	padding: 0px 0px 0px 18px;
-	background-repeat: no-repeat;
-	height: 16px;
-	margin: 0px 0px 2px 0px;
-}
-ul.newwork a {
-	color: #000;
-	text-decoration: underline;
-}
-ul.newwork a:hover {
-	color: #f90;
-}
+
 /* WORK LIST PANEL STYLES */
 div.treegrid {
 	position: absolute;
@@ -118,13 +97,13 @@ div.treegrid {
 div.treegrid-empty {
 }
 div.treegrid-line {
-	background: url('../ext/resources/images/default/tree/elbow-line.gif') no-repeat;
+	background: url('../ext3/resources/images/default/tree/elbow-line.gif') no-repeat;
 }
 div.treegrid-middle {
-	background: url('../ext/resources/images/default/tree/elbow.gif') no-repeat;
+	background: url('../ext3/resources/images/default/tree/elbow.gif') no-repeat;
 }
 div.treegrid-last {
-	background: url('../ext/resources/images/default/tree/elbow-end.gif') no-repeat;
+	background: url('../ext3/resources/images/default/tree/elbow-end.gif') no-repeat;
 }
 div.treegrid-icon {
 	background-position: 0 2px;
@@ -139,14 +118,15 @@ div.treegrid-label {
 
 /* WORK TAB PANEL STYLES */
 div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
-	background: #ccc url('../img/tab.png') top repeat-x;
+	background: #eee;
 }
 div.worktab-container form {
 	display: inline;
 }
 div.worktab-header {
 	padding: 5px 0px 0px 10px;
-	background: #fff;
+	color: #fff;
+	background: url('../img/tab-header.png') top;
 }
 div.worktab-header-indicator {
 	position: absolute;
@@ -172,24 +152,9 @@ div.worktab-content {
 div.worktab form {
 	display: inline;
 }
+
 table.form-table th {
 	vertical-align: top;
-}
-div.it-display {
-	margin-bottom: 10px;
-	padding: 5px;
-}
-div.it-editor {
-	margin-bottom: 10px;
-	border: solid 1px #93b8d0;
-	background-color: #fff;
-}
-div.it-editor-content {
-	padding: 5px;
-}
-div.it-editor-buttons {
-	background: #93b8d0 url('../img/body.png') top repeat-x;
-	padding: 2px 5px 2px 5px;
 }
 
 div.it-task-overview {
@@ -203,7 +168,11 @@ div.it-task-overview-icon {
 	width: 16px;
 	height: 16px;
 }
-
+div.task-description {
+	padding: 0px 0px 5px 0px;
+	margin: 0px 0px 15px 0px;
+	border-width: 0px 0px 1px 0px !important;
+}
 
 /* DEBUG STYLES */
 .debug-button button.x-btn-text {
@@ -306,42 +275,4 @@ div.trace-node th {
 }
 .trace-inactive {
 	background-color: #ccc;
-}
-
-/* WELCOME SCREEN STYLES */
-#welcome {
-	background: url('../img/welcome/bg.png') top repeat-x;
-	height: 400px;
-}
-#welcome-logo {
-	position: absolute;
-	top: 0px;
-	left: 100%;
-	margin-left: -243px;
-	width: 243px;
-	height: 197px;
-	background: url('../img/welcome/logo.png') no-repeat;
-}
-#welcome-text {
-	position: absolute;
-	top: 0px;
-	left: 20px;
-	width: 243px;
-	height: 65px;
-	background: url('../img/welcome/text.png') no-repeat;
-}
-#welcome-content {
-	position: absolute;
-	top: 100px;
-	left: 20px;
-	width: 500px;
-}
-#welcome-content h2 {
-	font-size: 16px;
-	margin: 10px 0px 5px 0px;
-}
-#welcome-content a {
-	color: #2e72b6;
-	font-weight: bold;
-	text-decoration: none;
 }

@@ -1,7 +1,8 @@
 definition module iDataTrivial
 
 import StdMaybe, StdGeneric, StdOverloaded
-import iDataWidgets
+import iDataForms
+from GUIWidgets import ::HtmlTime, :: HtmlDate
 
 // utility 
 

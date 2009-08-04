@@ -9,7 +9,7 @@ itasks.HomeTabPanel = Ext.extend(Ext.Panel, {
 	initComponent: function () {
 		Ext.apply(this, {
 			title: 'Welcome',
-			closable: true,
+			closable: false,
 			autoLoad: 'welcome.html'
 		});
 		

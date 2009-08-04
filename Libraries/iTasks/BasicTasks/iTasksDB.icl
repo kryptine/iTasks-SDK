@@ -5,11 +5,14 @@ import StdList, StdOrdList, GenBimap
 from StdFunc import id, const
 import iDataTrivial, iDataFormlib
 import CoreCombinators, LiftingCombinators
+import GUICore
 
-derive gForm	DBRef
-derive gUpd		DBRef
-derive gPrint	DBRef
-derive gParse	DBRef
+derive gForm		DBRef
+derive gUpd			DBRef
+derive gPrint		DBRef
+derive gParse		DBRef
+derive gVisualize	DBRef
+derive gUpdate		DBRef
 
 ::DBid a :== (!String,!Lifespan)
 

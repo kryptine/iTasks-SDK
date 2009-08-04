@@ -3,8 +3,9 @@ definition module iDataFormlib
 // Handy collection of Form creating functions and layout functions
 // (c) MJP 2005
 
-import iDataWidgets
-
+import HSt
+import iDataForms
+from GUIWidgets import :: HtmlButton, :: HtmlCheckbox
 // **** easy creation of a simple html page ****
 
 mkHtml				:: !String ![HtmlTag] 					*HSt 	-> (!(!Bool,!String),HtmlTag,*HSt)	// string is used for the title of the page
