@@ -4,14 +4,15 @@ definition module PromptingCombinators
 */
 from TSt 	import :: Task
 from Html	import :: HtmlTag
-from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
 
-import iDataForms
+from	iTasks import class iTask
+import	GenPrint, GenParse, GUICore
+
 /*
 Prompting variants:
 (?>>)			:: prompt as long as task is active but not finished
 (<<?)			:: as ?>>, except that prompt is displayed *after* task
 */
 
-(?>>) infixr 5 	:: ![HtmlTag] !(Task a) 						-> Task a		| iData a
-(<<?) infixl 5 	:: !(Task a) ![HtmlTag] 						-> Task a		| iData a
+(?>>) infixr 5 	:: ![HtmlTag] !(Task a) 						-> Task a		| iTask a
+(<<?) infixl 5 	:: !(Task a) ![HtmlTag] 						-> Task a		| iTask a

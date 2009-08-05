@@ -3,7 +3,8 @@ implementation module EngineWrapperStandalone
 import StdFile
 import Engine
 import Http, HttpServer
-import iDataSettings
+
+TraceHTTP :== False
 
 startEngine :: ![Workflow] !*World -> *World 
 startEngine flows world

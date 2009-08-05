@@ -14,22 +14,19 @@ from DynamicDB import qualified instance DynamicDB TSt
 import UserDB
 
 import Time
-import iDataForms
 import CommonCombinators
 
-derive gForm	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
-derive gUpd		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 derive gPrint	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 
-spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessReference a) | iData a
+spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessReference a) | iTask a
 spawnProcess uid activate task = mkBasicTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
 		# (curUid,tst)		= getCurrentUser tst
 		# (user,tst)		= getUser uid tst
 		# (delegator,tst)	= getUser curUid tst
-		# (curTime,tst) 	= accHStTSt (accWorldHSt time) tst
+		# (curTime,tst) 	= accWorldTSt time tst
 		# (dynId,tst)		= DynamicDB@createDynamic (dynamic createDynamicTask task) tst
 		# (newPid,tst)		= ProcessDB@createProcess (entry mainTask dynId curTime user delegator) tst	
 		| uid == curUid
@@ -41,7 +38,7 @@ where
 	entry pid did now user delegator	= mkDynamicProcessEntry (taskLabel task) did now user delegator (if activate Active Suspended) pid	// Create a process database entry
 	
 	//Turn a task yielding a value of type a into a value of dynamic
-	createDynamicTask :: !(Task a) -> Task Dynamic | iData a
+	createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
 	createDynamicTask (Task name mbCxt tf) = Task name mbCxt createDynamicTask`
 	where
 		createDynamicTask` tst
@@ -49,7 +46,7 @@ where
 			# dyn		= dynamic a
 			= (dyn, tst)
 
-waitForProcess :: (ProcessReference a) -> Task (Maybe a) | iData a
+waitForProcess :: (ProcessReference a) -> Task (Maybe a) | iTask a
 waitForProcess (ProcessReference pid) = mkBasicTask "waitForProcess" waitForProcess`
 where
 	waitForProcess` tst
@@ -71,7 +68,7 @@ where
 			_	= (Nothing, {tst & activated = True})	//We could not find the process in our database, we are done
 
 
-getProcessStatus :: (ProcessReference a) -> Task ProcessStatus | iData a
+getProcessStatus :: (ProcessReference a) -> Task ProcessStatus | iTask a
 getProcessStatus (ProcessReference pid) = mkBasicTask "getProcessStatus" getProcessStatus`
 where
 	getProcessStatus` tst
@@ -88,12 +85,12 @@ where
 	# owner = if (isNothing process) Nothing (Just (fst (fromJust process).properties.TaskProperties.user))
 	= (owner,tst)
 
-activateProcess	:: (ProcessReference a)	-> Task Bool | iData a
+activateProcess	:: (ProcessReference a)	-> Task Bool | iTask a
 activateProcess (ProcessReference pid) = mkBasicTask "activateProcess" activateProcess`
 where
 	activateProcess` tst = ProcessDB@setProcessStatus Active pid tst
 
-suspendProcess :: (ProcessReference a) -> Task Bool	| iData a
+suspendProcess :: (ProcessReference a) -> Task Bool	| iTask a
 suspendProcess (ProcessReference pid) = mkBasicTask "suspendProcess" suspendProcess`
 where
 	suspendProcess` tst	= ProcessDB@setProcessStatus Suspended pid tst
@@ -105,7 +102,7 @@ where
 		# (pid, tst)	= getCurrentProcess tst
 		= ProcessDB@setProcessStatus Suspended pid tst
 		
-deleteProcess :: (ProcessReference a) -> Task Bool | iData a
+deleteProcess :: (ProcessReference a) -> Task Bool | iTask a
 deleteProcess (ProcessReference pid) = mkBasicTask "deleteProcess" deleteProcess`
 where
 	deleteProcess` tst = ProcessDB@deleteProcess pid tst
@@ -117,7 +114,7 @@ where
 		# (pid, tst)	= getCurrentProcess tst
 		= ProcessDB@deleteProcess pid tst
 
-updateProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iData a 
+updateProcessOwner :: UserId (ProcessReference a) ->	Task Bool | iTask a 
 updateProcessOwner uid (ProcessReference pid) = mkBasicTask "updateProcessOwner" setProcessOwner`
 where
 	setProcessOwner` tst

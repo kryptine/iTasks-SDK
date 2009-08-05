@@ -1,7 +1,7 @@
 implementation module GUICore
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap
-import Void
+import Void, Either
 import Text, Html, ExtJS, JSON
 
 MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
@@ -131,7 +131,11 @@ gVisualize{|String|} old new vst=:{vizType,label,idPrefix,dataPath}
 		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = old, fieldLabel = label})], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment old],{vst & dataPath = stepDataPath dataPath})
 
-derive gVisualize [], Maybe, (,), (,,), (,,,), Void
+
+gVisualize{|Dynamic|} old new vst
+	= ([],vst)
+
+derive gVisualize [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Generic updater
 generic gUpdate a :: a *USt ->  (a, *USt)
@@ -260,6 +264,10 @@ gUpdate{|String|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|String|} s ust = (s, ust)
 
+//Specialize instance for Dynamic
+gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
+gUpdate{|Dynamic|} d ust						= (d, ust)
+
 //Specialized instances for [] and Maybe that choose the non-recursive constructor 
 
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
@@ -303,7 +311,7 @@ gUpdate{|Maybe|} fx m ust=:{USt|currentPath,searchPath,update}
 				= (Just x, {ust & currentPath = stepDataPath currentPath})
 
 
-derive gUpdate (,), (,,), (,,,), Void
+derive gUpdate Either, (,), (,,), (,,,), Void
 
 //Utility functions
 

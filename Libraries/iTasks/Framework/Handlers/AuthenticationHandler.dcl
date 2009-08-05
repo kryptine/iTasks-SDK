@@ -1,10 +1,10 @@
 definition module AuthenticationHandler
 
 import Http
-import HSt
+import TSt
 
 /**
 * Handles the ajax request from the login window. It validates the username and
 * password and returns session information to the client.
 */
-handleAuthenticationRequest :: !HTTPRequest *HSt -> (!HTTPResponse, !*HSt)
+handleAuthenticationRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)

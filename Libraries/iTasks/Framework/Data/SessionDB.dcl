@@ -4,7 +4,7 @@ definition module SessionDB
 * functions for creating and restoring user sessions.
 */
 import StdMaybe
-import HSt,TSt
+import TSt
 
 :: Session	= { sessionId	::	!String
 			  , userId		::	!Int
@@ -37,5 +37,4 @@ where
 	*/
 	destroySession	:: !String !*st -> *st
 	
-instance SessionDB HSt
 instance SessionDB TSt

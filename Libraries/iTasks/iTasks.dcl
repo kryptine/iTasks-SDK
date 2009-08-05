@@ -6,10 +6,11 @@ import	Engine						// basic iTask system creator
 	,	EngineWrapperStandalone		// standalone wrapper
 	//,	EngineWrapperCGI			// CGI wrapper
 
-	,	UITasks						// basic html editors for any type
+	,	GUITasks					// basic html editors for any type
 	,	UserTasks					// tasks for accessing the user database		
 	,	TimeAndDateTasks			// iTasks triggered by time and date 
-	,	iTasksDB					// iTask simple DB access
+	,	StoreTasks					// iTasks store access
+	,	ChangeTasks					// Tasks for changing existing workflows
 			
 	,	CoreCombinators				// The core iTask combinators
 
@@ -19,7 +20,6 @@ import	Engine						// basic iTask system creator
 	,	ProcessCombinators			// Creation an handling of dynamic sub processes
 
 	,	ExceptionCombinators		// Handling exceptional situations
-	,	ChangeCombinators			// Changing flows at runtime
 	,	ClientCombinators			// Delegating tasks to the client
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap
@@ -36,6 +36,7 @@ import	Engine						// basic iTask system creator
 	,	StdEnum
 	,	StdOverloaded
 	,	StdGeneric
+	,	StdDynamic
 
 	//Generic modules
 	,	GenPrint
@@ -54,4 +55,5 @@ class iTask a
 	| gPrint {|*|}
 	, gParse {|*|}
 	, gVisualize{|*|}
-	, gUpdate{|*|} a
+	, gUpdate{|*|}
+	, TC a

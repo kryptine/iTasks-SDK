@@ -6,7 +6,7 @@ definition module DynamicDB
 */
 
 import StdMaybe
-import Types, HSt, TSt
+import Types, TSt
 
 class DynamicDB st
 where
@@ -16,5 +16,4 @@ where
 	deleteDynamics	:: ![DynamicId]				!*st -> (!Bool, !*st) //Mass-delete for garbage collection purposes
 	getDynamic		:: !DynamicId				!*st -> (!Maybe Dynamic, !*st)
 
-instance DynamicDB HSt
 instance DynamicDB TSt

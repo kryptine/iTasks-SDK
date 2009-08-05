@@ -5,10 +5,16 @@ definition module TSt
 * Additionally it provides utility functions to manipulate the state.
 */
 import StdMaybe
-import TaskTree, Types, Void, iDataForms
-from HSt		import :: HSt
+import Types, Void
+import TaskTree
+
 from SessionDB	import :: Session{..}
+from Store		import :: Store(..)
 from Time		import :: Time(..)
+from Http		import :: HTTPRequest
+
+from iTasks		import class iTask(..)
+import GenPrint, GenParse, GUICore
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
@@ -30,21 +36,19 @@ from Time		import :: Time(..)
 					
 					, doChange		:: !Bool											// Apply change
 					, changes		:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
+					
+					, request		:: !HTTPRequest										// The current http request
 									
-					, hst			:: !*HSt											// iData state
+					, store			:: !Store											// Generic store
+					, world			:: !*World											// The world
 					}
 
-:: Options		=	{ tasklife		:: !Lifespan								// default: Session		
-					, taskstorage	:: !StorageFormat							// default: PlainString
-					, taskmode		:: !Mode									// default: Edit
+:: Options		=	{ trace			:: !Bool									// default: False
 					, combination	:: !Maybe TaskCombination					// default: TTVertical
-					, trace			:: !Bool									// default: False
 					}
 
-:: StaticInfo	=	{ currentUserId		:: !UserId								// id of current user
-					, currentProcessId	:: !ProcessId							// the id of the current process
-					, currentSession	:: !Session								// the current session
-					, threadTableLoc	:: !Lifespan							// where to store the server thread table, default is Session					
+:: StaticInfo	=	{ currentProcessId	:: !ProcessId							// the id of the current process
+					, currentSession	:: Session								// the current session			
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
 					}
 
@@ -65,7 +69,6 @@ from Time		import :: Time(..)
 :: ChangeLifeTime	= CLTransient
 					| CLPersistent !String
 
-
 /**
 * Creates an initial task state.
 *
@@ -73,12 +76,13 @@ from Time		import :: Time(..)
 * @param The default storage location of threads
 * @param The session data
 * @param The workflows available in the application
+* @param The generic data store
 * @param The iData HSt state for creating editors and doing IO
 * @param The process database
 *
 * @return a TSt iTask state
 */
-mkTSt :: !Lifespan !Lifespan !Session ![Workflow] !*HSt -> *TSt
+mkTSt :: HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
 
 /**
 * Calculates all task trees that are relevant to the current user
@@ -166,14 +170,14 @@ getNewProcesses :: !*TSt -> (![ProcessId], !*TSt)
 clearNewProcesses :: !*TSt -> *TSt
 
 /**
-* Apply a function on HSt on a TSt
+* Apply a function on World on a TSt
 */ 
-appHStTSt	:: !.(*HSt -> *HSt)			!*TSt -> *TSt
+appWorldTSt	:: !.(*World -> *World) !*TSt -> *TSt
 
 /**
-* Apply a function yielding a result on HSt on a TSt
+* Apply a function yielding a result on World on a TSt
 */
-accHStTSt	:: !.(*HSt -> *(.a,*HSt))	!*TSt -> (.a,!*TSt)
+accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
 
 /**
 * Get the current session from the TSt
@@ -194,10 +198,6 @@ getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 */
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 
-/**
-* Extract the editor states that must be stored in the browser
-*/
-getEditorStates :: !String !*TSt	-> (![HtmlState], !*TSt)
 
 /**
 * Check if the last executed task was finished. This is used to
@@ -219,10 +219,9 @@ taskFinished :: !*TSt -> (!Bool, !*TSt)
 *
 * @return The newly constructed basic task
 */
-mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
-mkExtJSTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
-
+mkExtJSTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
 /**
 * Wraps a function of proper type to create a task that will consist
@@ -234,7 +233,7 @@ mkExtJSTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 *
 * @return The newly constructed sequence task
 */
-mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that also
@@ -246,7 +245,7 @@ mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 *
 * @return The newly constructed parallel task
 */
-mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that will make a
@@ -258,7 +257,7 @@ mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 *
 * @return The newly constructed sequence task
 */
-mkMainTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkMainTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
 //// TASK APPLICATION
 
@@ -271,7 +270,7 @@ mkMainTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
 * @return The value produced by the task
 * @return The modified task state
 */
-applyTask			:: !(Task a) !*TSt -> (!a,!*TSt) | iData a
+applyTask			:: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 
 
 //// TASK CONTENT
@@ -284,7 +283,6 @@ setOutput			:: ![HtmlTag] !*TSt			-> *TSt
 /**
 * Sets the inputs of the current task (only for BasicTasks)
 */
-setInputs			:: ![InputDefinition] !*TSt		-> *TSt
 
 setExtJSDef			:: !ExtJSDef !*TSt				-> *TSt
 
@@ -327,6 +325,12 @@ deleteTaskStates	:: !TaskNr !*TSt			-> *TSt
 * @return The updated task state
 */
 copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
+
+/**
+* Writes all cached values in the store
+*/
+flushStore			:: !*TSt					-> *TSt
+
 
 //// UTILITY
 

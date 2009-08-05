@@ -30,7 +30,7 @@ where
 traceTaskTree :: TaskTree -> HtmlTag
 traceTaskTree tree = DivTag [] (mkTree tree)
 where
-	mkTree (TTBasicTask info _ _ _)
+	mkTree (TTBasicTask info _ )
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
 			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]

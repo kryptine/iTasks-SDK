@@ -1,26 +1,18 @@
 implementation module CoreCombinators
 
-import StdList, StdArray, StdTuple, StdMisc
-from StdFunc import id, const
-import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
-import TSt
-import DrupBasic
-import iDataTrivial, iDataFormlib
-import LiftingCombinators, ClientCombinators
-import Util, Time
-import GenBimap
-import UserDB, ProcessDB, DynamicDB
-import StdDebug
-import StdDynamic
+import	StdList, StdArray, StdTuple, StdMisc
+from	StdFunc import id, const
 
-derive gForm 	Time
-derive gUpd 	Time
-derive gPrint	Time
-derive gParse	Time
+import	TSt
+import	Util
+import	GenBimap
+import	UserDB, ProcessDB, DynamicDB
+import	StdDebug
+import	StdDynamic
 
 //Standard monadic operations:
 
-(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iData a & iData b
+(>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>=) taska taskb = mkSequenceTask ">>=" tbind
 where
 	tbind tst
@@ -28,15 +20,15 @@ where
 		| activated				= applyTask (taskb a) tst
 								= (createDefault,tst)
 
-(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iData a & iData b
+(>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
 
-return :: !a -> (Task a) | iData a
+return :: !a -> (Task a) | iTask a
 return a  = mkBasicTask "return" (\tst -> (a,tst))
 
 //Repetition and loops:
 
-forever :: !(Task a) -> Task a | iData a
+forever :: !(Task a) -> Task a | iTask a
 forever task = mkSequenceTask "forever" forever`
 where
 	forever` tst=:{taskNr} 
@@ -47,7 +39,7 @@ where
 			= forever` tst				
 		= (val,tst)
 
-(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iData a
+(<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred = mkSequenceTask "<!" doTask
 where
 	doTask tst=:{activated, taskNr}
@@ -62,7 +54,7 @@ where
 
 // Sequential composition
 
-sequence :: !String ![Task a] -> (Task [a])	| iData a
+sequence :: !String ![Task a] -> (Task [a])	| iTask a
 sequence label tasks = mkSequenceTask label sequence`
 where
 	sequence` tst
@@ -76,14 +68,14 @@ where
 		| otherwise						= doseqTasks ts [a:accu] tst
 
 
-compound :: !String !(Task a) -> (Task a) 	| iData a 
+compound :: !String !(Task a) -> (Task a) 	| iTask a 
 compound label task = mkSequenceTask label compound`
 where
 	compound` tst = applyTask task tst
 
 // Parallel composition
 
-parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iData a & iData b
+parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
 parallel label pred combinePred combineAll tasks 
 	= mkParallelTask label (parallel` tasks)
 where
@@ -116,10 +108,10 @@ where
 
 
 
-assign :: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a | iData a	
+assign :: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a | iTask a	
 assign toUserId initPriority initDeadline task = mkMainTask "assign" (assign` toUserId initPriority initDeadline task) 
 
-assign` :: !UserId !TaskPriority !(Maybe Time) !(Task a) *TSt -> (a, *TSt) | iData a
+assign` :: !UserId !TaskPriority !(Maybe Time) !(Task a) *TSt -> (a, *TSt) | iTask a
 assign` toUserId initPriority initDeadline task tst =: {TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
 			   , userId = currentUserId, delegatorId = currentDelegatorId, doChange, changes}
 	# taskId			= taskNrToString taskNr
@@ -138,7 +130,7 @@ assign` toUserId initPriority initDeadline task tst =: {TSt| taskNr, taskInfo, f
 			Nothing
 				# (toUser,tst)		= getUser toUserId tst
 				# (currentUser,tst)	= getUser currentUserId tst 
-				# (now,tst)			= (accHStTSt (accWorldHSt time)) tst
+				# (now,tst)			= (accWorldTSt time) tst
 				# initProperties	= {TaskProperties|processId = 0, subject = taskLabel task, user = toUser, delegator = currentUser
 						  , deadline = initDeadline, priority = initPriority, progress = TPActive
 						  , issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
@@ -158,7 +150,7 @@ assign` toUserId initPriority initDeadline task tst =: {TSt| taskNr, taskInfo, f
 		= do_task processId taskInfo taskProperties taskNr changeNr currentUserId currentDelegatorId currentMainTask curTask tst
 
 //Just execute the task
-all_changes :: ProcessId TaskInfo TaskProperties TaskNr Int (Task a) UserId UserId ProcessId (Task a) DynamicId [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iData a
+all_changes :: ProcessId TaskInfo TaskProperties TaskNr Int (Task a) UserId UserId ProcessId (Task a) DynamicId [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
 all_changes processId taskInfo taskProperties taskNr changeNr origTask origUserId origDelegatorId origMainTask curTask curTaskId [] tst
 	= do_task processId taskInfo taskProperties taskNr changeNr origUserId origDelegatorId origMainTask curTask tst
 	
@@ -193,7 +185,7 @@ all_changes processId taskInfo taskProperties taskNr changeNr origTask origUserI
 all_changes processId taskInfo taskProperties taskNr changeNr origTask origUserId origDelegatorId origMainTask curTask curTaskId [c:cs] tst=:{TSt|changes}
 	= all_changes processId taskInfo taskProperties taskNr changeNr origTask origUserId origDelegatorId origMainTask curTask curTaskId cs {TSt|tst & changes = [c:changes]}
 
-one_change :: ProcessId TaskInfo TaskProperties TaskNr Int (Task a) UserId UserId ProcessId (Task a) DynamicId (ChangeLifeTime, DynamicId, Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iData a
+one_change :: ProcessId TaskInfo TaskProperties TaskNr Int (Task a) UserId UserId ProcessId (Task a) DynamicId (ChangeLifeTime, DynamicId, Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
 one_change processId taskInfo taskProperties taskNr changeNr origTask origUserId origDelegatorId origMainTask curTask curTaskId (changeLifeTime, changeId, changeDyn) rest tst
  	# (mbProperties, mbTask, mbChange) = appChange changeDyn taskProperties (setTaskContext [0,changeNr: drop 2 taskNr] curTask) origTask
 	//Determine new change list
@@ -217,7 +209,7 @@ one_change processId taskInfo taskProperties taskNr changeNr origTask origUserId
 	| otherwise
 		= do_task processId taskInfo taskProperties taskNr changeNr origUserId origDelegatorId origMainTask curTask {TSt|tst & changes = changes}
 
-do_task :: ProcessId TaskInfo TaskProperties TaskNr Int UserId UserId ProcessId (Task a) *TSt -> (a,*TSt) | iData a
+do_task :: ProcessId TaskInfo TaskProperties TaskNr Int UserId UserId ProcessId (Task a) *TSt -> (a,*TSt) | iTask a
 do_task processId taskInfo taskProperties taskNr changeNr origUserId origDelegatorId origMainTask curTask tst
 	# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
 					, taskNr		= [0,changeNr: drop 2 taskNr]
@@ -229,8 +221,8 @@ do_task processId taskInfo taskProperties taskNr changeNr origUserId origDelegat
 	= (a, {TSt | tst & userId = origUserId, delegatorId = origDelegatorId, mainTask = origMainTask})
 
 //The tricky dynamic part of applying changes
-appChange :: !Dynamic !TaskProperties !(Task a) !(Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe Dynamic) | iData a
-appChange (fun :: A.c: Change c | iData c) properties curTask origTask
+appChange :: !Dynamic !TaskProperties !(Task a) !(Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe Dynamic) | iTask a
+appChange (fun :: A.c: Change c | iTask c) properties curTask origTask
 	= fun properties curTask origTask
 appChange (fun :: Change a^) properties curTask origTask
 	= fun properties curTask origTask

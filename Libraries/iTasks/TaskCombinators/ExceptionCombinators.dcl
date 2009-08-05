@@ -4,8 +4,10 @@ definition module ExceptionCombinators
 */
 
 from TSt			import :: Task
-from iDataSettings	import class iCreateAndPrint, class iParse, class iSpecialStore, class iData
-import iDataForms
+
+from	iTasks import class iTask
+import	GenPrint, GenParse, GUICore
+
 /**
 * Exception combinator.
 *
@@ -13,7 +15,7 @@ import iDataForms
 * @param The exception handling task which gets the exception as parameter
 * @return The combined task
 */
-try  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
+try  :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 
 /**
 * Exception throwing. This will trough an exception of arbitrary type e which has to be caught
@@ -22,4 +24,4 @@ try  :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
 * @param The exception value
 * @return The combined task
 */
-throw 			:: !e 				-> Task a 	| iData a & TC e
+throw 			:: !e 				-> Task a 	| iTask a & TC e

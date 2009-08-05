@@ -2,21 +2,15 @@ implementation module GUIWidgets
 
 import StdList, StdString, StdArray, StdMisc
 import GUICore
-import GenLexOrd, GenBimap
-
-
-
-import iDataForms, iDataFormlib, iDataTrivial
-
-derive gForm	HtmlTag, HtmlAttr
-derive gUpd		HtmlTag, HtmlAttr, <->, <|>, DisplayMode
+import GenPrint, GenParse, GenLexOrd, GenBimap
 
 derive gVisualize	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel
 derive gUpdate  	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel
 
-derive gPrint	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel
-derive gParse	HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel
+derive gPrint		HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel, (,)
+derive gParse		HtmlTag, HtmlAttr, <->, <|>, DisplayMode, HtmlButton, HtmlCheckbox, HtmlSelect, HtmlRadiogroup, HtmlTextarea, HtmlPassword, HtmlDate, HtmlTime, HtmlCurrency, HtmlCurrencyCode, HtmlTimer, HtmlLabel, (,)
 
+/*
 // <-> works exactly the same as (,) and places its arguments next to each other, for compatibility with GEC's
 gForm{|(<->)|} gHa gHb (init,formid) hst
 # (na,hst)				= gHa (init,reuseFormId formid a) (incrHStCntr 1 hst)   	// one more for the now invisible <-> constructor 
@@ -211,9 +205,9 @@ gForm {|HtmlLabel|} (init, formid) hst
 	   },hst)
 where
 	(HtmlLabel html)	= formid.ival
-
+*/
 // Updates that have to be treated specially:
-
+/*
 gUpd{|HtmlButton|}		(UpdSearch 0 upd) 		(HtmlButton s _)		= (UpdDone, HtmlButton s (upd == "click"))						// update value
 gUpd{|HtmlButton|}		(UpdSearch cntr upd)	cur						= (UpdSearch (dec cntr) upd,cur)								// continue search, don't change
 gUpd{|HtmlButton|}		(UpdCreate l)			_						= (UpdCreate l, HtmlButton "Press" False)						// create default value
@@ -272,7 +266,7 @@ gUpd{|HtmlLabel|}		(UpdSearch 0 upd)		cur						= (UpdDone, cur)												// We
 gUpd{|HtmlLabel|}		(UpdSearch cntr upd)	cur						= (UpdSearch cntr upd, cur)										// continue search, don't change
 gUpd{|HtmlLabel|}		(UpdCreate l)			_						= (UpdCreate l, HtmlLabel [])									// create default value
 gUpd{|HtmlLabel|}		mode					cur						= (mode, cur)
-
+*/
 // small utility stuf
 
 derive gEq HtmlTime, HtmlDate

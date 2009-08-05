@@ -1,14 +1,13 @@
 implementation module TimeAndDateTasks
 
-import StdFunc
-import iDataFormlib, iDataTrivial
+import StdFunc, StdMisc
 import GUIWidgets
 import TSt, Util
 
 // Timer Tasks ending when timed out
 
 waitForTimeTask:: !HtmlTime	-> (Task HtmlTime)
-waitForTimeTask time = mkBasicTask "waitForTimeTask" waitForTimeTask`
+waitForTimeTask time = abort "TODO: waitForTimeTask" /*mkBasicTask "waitForTimeTask" waitForTimeTask`
 where
 	waitForTimeTask` tst=:{taskNr,hst}
 	# taskId				= iTaskId taskNr "Time_"
@@ -16,9 +15,9 @@ where
 	# ((currtime,_),hst)	= getTimeAndDate hst
 	| currtime < stime.Form.value= (stime.Form.value,{tst & activated = False,hst = hst})
 	= (currtime - stime.Form.value,{tst & hst = hst})
-
+*/
 waitForDateTask:: !HtmlDate	-> (Task HtmlDate)
-waitForDateTask date = mkBasicTask "waitForDateTask" waitForDateTask`
+waitForDateTask date = abort "TODO: waitForDateTask" /* mkBasicTask "waitForDateTask" waitForDateTask`
 where
 	waitForDateTask` tst=:{taskNr,hst}
 	# taskId				= iTaskId taskNr "Date_"
@@ -26,3 +25,4 @@ where
 	# ((_,currdate),hst) 	= getTimeAndDate hst
 	| currdate < date		= (date,{tst & activated = False, hst = hst})
 	= (date,{tst & hst = hst})
+*/

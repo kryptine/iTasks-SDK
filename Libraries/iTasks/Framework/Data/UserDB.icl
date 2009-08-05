@@ -2,13 +2,11 @@ implementation module UserDB
 
 import StdEnv, StdMaybe
 import StdGeneric, GenBimap
-import HSt, TSt, iDataFormlib
+import TSt, Store
 
-derive gForm User
-derive gUpd User
 derive gPrint User
 derive gParse User
-			  
+		  
 initUsers :: [User] 
 initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", password = "", roles = ["root", "president","manager","worker"]}
 			  , {User | userId = 1, username = "president", displayname = "President", password = "", roles = ["president"]}
@@ -47,46 +45,46 @@ initUsers	= [ {User | userId = 0, username = "root", displayname = "Root", passw
 			  , {User | userId = 49, username = "expert9", displayname = "Expert 9", password = "", roles = ["experts"]}   
 			  ]
 			  
-instance UserDB HSt
+instance UserDB TSt
 where
-	getUser :: !Int !*HSt -> (!(Int,String),!*HSt)
-	getUser uid hst
-		# (users, hst)		= userStore id hst
+	getUser :: !Int !*TSt -> (!(Int,String),!*TSt)
+	getUser uid tst
+		# (users, tst)		= userStore id tst
 		= case [(user.User.userId, user.User.displayname) \\ user <- users | user.User.userId == uid] of
-			[x] = (x,hst)
-			_	= ((-1, "Unknown user"),hst)
+			[x] = (x,tst)
+			_	= ((-1, "Unknown user"),tst)
 
-	getUsers :: !*HSt -> (![(Int,String)], !*HSt)
-	getUsers hst
-		# (users, hst)		= userStore id hst
-		= ([(user.User.userId, user.User.displayname) \\ user <- users], hst)
+	getUsers :: !*TSt -> (![(Int,String)], !*TSt)
+	getUsers tst
+		# (users, tst)		= userStore id tst
+		= ([(user.User.userId, user.User.displayname) \\ user <- users], tst)
 
-	getUsersWithRole :: !String !*HSt -> (![(Int,String)], !*HSt)
-	getUsersWithRole role hst
-		# (users, hst)		= userStore id hst
-		= ([(user.User.userId,user.User.displayname) \\ user <- users | isMember role user.User.roles], hst)		
+	getUsersWithRole :: !String !*TSt -> (![(Int,String)], !*TSt)
+	getUsersWithRole role tst
+		# (users, tst)		= userStore id tst
+		= ([(user.User.userId,user.User.displayname) \\ user <- users | isMember role user.User.roles], tst)		
 
-	getDisplayNames	:: ![Int] !*HSt -> (![String], !*HSt)
-	getDisplayNames	uids hst
-		# (users, hst)		= userStore id hst
-		= (map (lookupUserProperty users (\u -> u.displayname) "Unknown user") uids, hst)
+	getDisplayNames	:: ![Int] !*TSt -> (![String], !*TSt)
+	getDisplayNames	uids tst
+		# (users, tst)		= userStore id tst
+		= (map (lookupUserProperty users (\u -> u.displayname) "Unknown user") uids, tst)
 	
-	getUserNames :: ![Int] !*HSt -> (![String], !*HSt)
-	getUserNames uids hst
-		# (users, hst)		= userStore id hst
-		= (map (lookupUserProperty users (\u -> u.username) "") uids, hst)
+	getUserNames :: ![Int] !*TSt -> (![String], !*TSt)
+	getUserNames uids tst
+		# (users, tst)		= userStore id tst
+		= (map (lookupUserProperty users (\u -> u.username) "") uids, tst)
 	
-	getRoles :: ![Int] !*HSt -> (![[String]], !*HSt)
-	getRoles uids hst
-		# (users, hst)		= userStore id hst
-		= (map (lookupUserProperty users (\u -> u.User.roles) []) uids, hst)
+	getRoles :: ![Int] !*TSt -> (![[String]], !*TSt)
+	getRoles uids tst
+		# (users, tst)		= userStore id tst
+		= (map (lookupUserProperty users (\u -> u.User.roles) []) uids, tst)
 
-	authenticateUser :: !String !String	!*HSt -> (!Maybe (Int,String,[String]), !*HSt)
-	authenticateUser username password hst
-		# (users, hst)		= userStore id hst
+	authenticateUser :: !String !String	!*TSt -> (!Maybe (Int,String,[String]), !*TSt)
+	authenticateUser username password tst
+		# (users, tst)		= userStore id tst
 		= case [u \\ u <- users | u.username == username && u.password == password] of
-			[user]	= (Just (user.User.userId, user.User.displayname, user.User.roles), hst)		
-			_		= (Nothing, hst)
+			[user]	= (Just (user.User.userId, user.User.displayname, user.User.roles), tst)		
+			_		= (Nothing, tst)
 
 //Helper function which finds a property of a certain user
 lookupUserProperty :: ![User] !(User -> a) !a !Int -> a
@@ -95,18 +93,9 @@ lookupUserProperty users selectFunction defaultValue userId
 			[x] = x
 			_	= defaultValue
 
-userStore ::  !([User] -> [User]) !*HSt -> (![User],!*HSt) 
-userStore fn hst		
-	# (form,hst) = mkStoreForm (Init, pFormId "UserDB" initUsers) fn hst
-	= (form.Form.value, hst)
-
-instance UserDB TSt
-where
-	getUser uid tst							= accHStTSt (getUser uid) tst
-	getUsers tst							= accHStTSt (getUsers) tst
-	getUsersWithRole role tst				= accHStTSt (getUsersWithRole role) tst
-	getDisplayNames	uids tst				= accHStTSt (getDisplayNames uids) tst
-	getUserNames uids tst					= accHStTSt (getUserNames uids) tst
-	getRoles uids tst						= accHStTSt (getRoles uids) tst
-	authenticateUser username password tst	= accHStTSt (authenticateUser username password) tst
-	
+userStore ::  !([User] -> [User]) !*TSt -> (![User],!*TSt) 	
+userStore fn tst=:{store,world}
+	# (mbList,store,world)	= loadValue "UserDB" store world
+	# list 					= fn (case mbList of Nothing = initUsers; Just list = list)
+	# store					= storeValue "UserDB" list store 
+	= (list, {tst & store = store, world = world})

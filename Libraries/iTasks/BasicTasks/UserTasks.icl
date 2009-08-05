@@ -1,13 +1,13 @@
 implementation module UserTasks
 
 from TSt import :: Task
-from TSt import accHStTSt, mkBasicTask
+from TSt import mkBasicTask
 from TSt import qualified getCurrentUser
 import StdList
 from UserDB import qualified class UserDB (..)
 from UserDB import qualified instance UserDB TSt
 
-import CoreCombinators, LiftingCombinators, UITasks
+import CoreCombinators, LiftingCombinators, GUITasks
 
 getCurrentUser :: Task (UserId, String)
 getCurrentUser = mkBasicTask "getCurrentUserId" getCurrentUser`

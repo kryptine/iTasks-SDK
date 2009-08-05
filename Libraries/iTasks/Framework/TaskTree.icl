@@ -8,7 +8,7 @@ locateSubTaskTree	:: !TaskId !TaskTree -> Maybe TaskTree
 locateSubTaskTree taskid tree = locateSubTaskTree` taskid [tree]
 where
 	locateSubTaskTree` taskid [] = Nothing
-	locateSubTaskTree` taskid [x =:(TTBasicTask ti _ _ _):xs]
+	locateSubTaskTree` taskid [x =:(TTBasicTask ti _):xs]
 		| taskid == ti.TaskInfo.taskId		= Just x
 		| otherwise							= locateSubTaskTree` taskid xs
 	locateSubTaskTree` taskid [x =:(TTExtJSTask ti _):xs]

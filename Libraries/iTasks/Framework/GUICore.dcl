@@ -1,7 +1,7 @@
 definition module GUICore
 
 import Html, ExtJS, JSON
-import StdMaybe, Void
+import StdMaybe, Void, Either
 import StdGeneric
 
 //Datapath is used to point to substructures of data structures
@@ -19,11 +19,11 @@ generic gUpdate a		:: a 		*USt -> (a, *USt)
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
-derive gVisualize [], Maybe, (,), (,,), (,,,), Void
+derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
-derive gUpdate [], Maybe, (,), (,,), (,,,), Void
+derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Additional available instances for "special" data
 //derive gVisualize HtmlDate, HtmlTime, HtmlButton 
@@ -37,6 +37,8 @@ visualizeAsTextDisplay	:: a -> String					| gVisualize{|*|} a
 determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
 
 //Wrapper functions for updating
+createDefault			:== defaultValue
+
 defaultValue			:: a					| gUpdate{|*|} a
 updateValue				:: String String a -> a	| gUpdate{|*|} a 
 

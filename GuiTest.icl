@@ -28,10 +28,6 @@ derive gUpdate Person, Address
 derive gPrint Person, Address
 derive gParse Person, Address
 
-//TO BE OBSOLETE
-derive  gForm	Person, Address
-derive	gUpd	Person, Address
-
 Start :: *World -> *World
 Start world = startEngine [workflow "GUI test" guiTestTask] world
 

@@ -1,29 +1,22 @@
 implementation module TSt
 
 import StdEnv, StdMaybe
-import HSt, Http, Util
-import iDataFormlib
+import Http, Util
 import ProcessDB, DynamicDB, SessionDB, TaskTree
-import GenEq, GenBimap
-
-//TODO: Create a better dynamic_string module with option for evaluating
-//      a graph as far as possible to save a closure that is as small as
-//		possible, but is still able to hold infinite structures
-//
+import GenPrint, GenParse, GenEq, GenBimap
+import GUICore, Store
 
 import code from "copy_graph_to_string.obj";
 import code from "copy_graph_to_string_interface.obj";
 
 :: TaskState = TSNew | TSActive | TSDone
 
-derive gForm	TaskState
-derive gUpd		TaskState
-derive gPrint	TaskState
-derive gParse	TaskState
-derive gEq		TaskState
+derive gPrint		TaskState
+derive gParse		TaskState
+derive gEq			TaskState
 
-mkTSt :: !Lifespan !Lifespan !Session ![Workflow]!*HSt -> *TSt
-mkTSt itaskstorage threadstorage session workflows hst
+mkTSt :: HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
+mkTSt request session workflows store world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
@@ -34,30 +27,27 @@ mkTSt itaskstorage threadstorage session workflows hst
 		, activated 	= True
 		, mainTask		= -1
 		, newProcesses	= []
-		, options 		= initialOptions itaskstorage
-		, staticInfo	= initStaticInfo session threadstorage workflows
+		, options 		= initialOptions
+		, staticInfo	= initStaticInfo session workflows
 		, exception		= Nothing
 		, doChange		= False
 		, changes		= []
-		, hst 			= hst
+		, request		= request
+		, store			= store
+		, world			= world
 		}
 
-initStaticInfo :: !Session !Lifespan ![Workflow] -> StaticInfo
-initStaticInfo session location workflows
-	=	{ currentUserId		= session.Session.userId
-		, currentProcessId	= -1
+initStaticInfo :: Session ![Workflow] -> StaticInfo
+initStaticInfo session workflows
+	=	{ currentProcessId	= -1
 		, currentSession 	= session
-		, threadTableLoc	= location
 		, staticWorkflows	= workflows
 		}
 
-initialOptions :: !Lifespan -> Options 
-initialOptions location 
-	=	{ tasklife 		= location 
-		, taskstorage 	= PlainString
-		, taskmode 		= Edit
+initialOptions :: Options 
+initialOptions
+	=	{ trace			= False 
 		, combination	= Nothing
-		, trace			= False 
 		}
 
 initTaskInfo :: TaskInfo
@@ -170,7 +160,7 @@ where
 	loadChanges` (Just (change,lifetime)) [] accu tst=:{TSt|changes}
 		= {TSt|tst & changes = [Just (lifetime, 0,change):changes], doChange = True}
 	loadChanges` mbNew [(l,c):cs] accu tst
-		# (dyn,tst) = accHStTSt (getDynamic c) tst
+		# (dyn,tst) = getDynamic c tst
 		= case dyn of
 			Just dyn	= loadChanges` mbNew cs [Just (CLPersistent l,c,dyn):accu] tst
 			Nothing		= loadChanges` mbNew cs accu tst
@@ -245,7 +235,7 @@ getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
 
 getCurrentUser :: !*TSt -> (!UserId, !*TSt)
 getCurrentUser tst =: {staticInfo}
-	= (staticInfo.currentUserId, {tst & staticInfo = staticInfo})
+	= (staticInfo.currentSession.Session.userId, {tst & staticInfo = staticInfo})
 
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 getCurrentProcess tst =: {staticInfo}
@@ -275,46 +265,37 @@ getNewProcesses tst =:{newProcesses} = (newProcesses, tst)
 clearNewProcesses :: !*TSt -> *TSt
 clearNewProcesses tst = {tst & newProcesses = []}
 
-
-getEditorStates :: !String !*TSt	-> (![HtmlState], !*TSt)
-getEditorStates prefix tst
-	= accHStTSt (accFormStatesHSt (getHtmlStates prefix)) tst
-
 taskFinished :: !*TSt -> (!Bool, !*TSt)
 taskFinished tst=:{activated} = (activated, {tst & activated = activated})
 
-appHStTSt :: !.(*HSt -> *HSt) !*TSt -> *TSt
-appHStTSt f tst=:{hst}
-	= {tst & hst=f hst}
+appWorldTSt	:: !.(*World -> *World) !*TSt -> *TSt
+appWorldTSt f tst=:{TSt|world}
+	= {TSt|tst & world = f world}
 
-accHStTSt :: !.(*HSt -> *(.a,*HSt)) !*TSt -> (.a,!*TSt)
-accHStTSt f tst=:{hst}
-	# (a,hst) = f hst
-	= (a,{tst & hst = hst})
+accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
+accWorldTSt f tst=:{TSt|world}
+	# (a,world) = f world
+	= (a, {TSt|tst & world = world})
 
-mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
 mkBasicTask taskname taskfun = Task taskname Nothing mkBasicTask`
 where
 	mkBasicTask` tst=:{TSt|taskNr,taskInfo}
-		# (a, tst)			
-			= taskfun {tst & tree = TTBasicTask taskInfo [] [] []}
-		# (states, tst=:{tree = TTBasicTask info html inputs _})
-			= accHStTSt (accFormStatesHSt (getHtmlStates (iTaskId taskNr "" +++ "-" ))) tst
-		= (a, {tst & tree = TTBasicTask  info html inputs states})
-	
-mkExtJSTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+		= taskfun {tst & tree = TTBasicTask taskInfo [] }
+		
+mkExtJSTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
 mkExtJSTask taskname taskfun = Task taskname Nothing mkExtJSTask`	
 where
 	mkExtJSTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTExtJSTask taskInfo (abort "No ExtJS definition given")}
 	
-mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
-mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkParallelTask taskname taskfun = Task taskname Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo,options}
@@ -325,42 +306,47 @@ where
 				= {tst & tree = TTParallelTask taskInfo TTVertical [], taskNr = [0:taskNr]}												
 		= taskfun tst
 			
-mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a | iData a
+mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task taskname Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo undef [], taskNr = [0,0:taskNr]}
 
-applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iData a
-applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated, hst}
-	# (store,hst) 	= mkStoreForm (Init,storageFormId options (iTaskId taskNr "") (TSNew,createDefault)) id hst
-	# (state, a)	= store.Form.value
+applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
+applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,store,world}
+	# taskId				= iTaskId taskNr ""
+	# (mbtv,store,world)	= loadValue taskId store world
+	# (state,curval)		= case mbtv of
+								(Just (state, value))	= (state, Just value)
+								_						= (TSNew, Nothing)
 	# taskInfo =	{ taskId		= taskNrToString taskNr
 					, taskLabel		= name
 					, active		= activated
 					, finished		= state === TSDone
-					, traceValue	= printToString a
+					, traceValue	= ""
 					}
+	# tst = {tst & store = store, world = world}
 	|state === TSDone || not activated
-		# tst = addTaskNode (TTBasicTask taskInfo [] [] []) {tst & hst = hst}
-		= (a, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
+		# tst = addTaskNode (TTBasicTask taskInfo []) tst
+		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
 	| otherwise
-		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, hst = hst, curValue = Just (dynamic a)}	
+		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, curValue = case curval of Nothing = Nothing ; Just a = Just (dynamic a)}	
 		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
 		# tst	= initializeState state taskNr mbCxt tst
 		// Execute task function
-		# (a, tst=:{tree=node,activated,hst})	= taskfun tst
+		# (a, tst=:{tree=node,activated,store})	= taskfun tst
 		# node									= updateTaskNode activated (printToString a) node
 		// Update task state
 		| activated
-			# tst=:{hst}		= deleteTaskStates taskNr {tst & hst = hst}
-			# (store,hst) 		= mkStoreForm (Init,storageFormId options (iTaskId taskNr "") (TSNew,createDefault)) (\_ -> (TSDone, a)) hst
-			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, hst = hst}
+			# tst=:{store}		= deleteTaskStates taskNr {tst & store = store}
+			# store				= storeValue taskId (TSDone, a) store
+			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
 			= (a, tst)
 		| otherwise
-			# (store,hst) 		= mkStoreForm (Init,storageFormId options (iTaskId taskNr "") (TSNew,createDefault)) (\_ -> (TSActive, a)) hst
-			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, hst = hst}
-			= (a, tst)			
+			# store				= storeValue taskId (TSActive, a) store
+			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
+			= (a, tst)
+	
 where
 	//Increase the task nr
 	incTaskNr [] = [0]
@@ -377,7 +363,7 @@ where
 		_										= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode f tv (TTBasicTask ti output inputs states)	= TTBasicTask		{ti & finished = f, traceValue = tv} output inputs states
+	updateTaskNode f tv (TTBasicTask ti output)					= TTBasicTask		{ti & finished = f, traceValue = tv} output
 	updateTaskNode f tv (TTExtJSTask ti defs)					= TTExtJSTask		{ti & finished = f, traceValue = tv} defs
 	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
 	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
@@ -386,16 +372,10 @@ where
 setOutput :: ![HtmlTag] !*TSt -> *TSt
 setOutput output tst=:{tree}
 	= case tree of
-		(TTBasicTask info _ inputs states)			= {tst & tree = TTBasicTask info output inputs states}
+		(TTBasicTask info _ )						= {tst & tree = TTBasicTask info output}
 		(TTParallelTask info combination branches)	= {tst & tree = TTParallelTask info combination branches}
 		_											= {tst & tree = tree}
 		
-setInputs :: ![InputDefinition] !*TSt -> *TSt
-setInputs inputs tst=:{tree}
-	= case tree of
-		(TTBasicTask info output _ states)	= {tst & tree = TTBasicTask info output inputs states}
-		_									= {tst & tree = tree}
-
 setExtJSDef	:: !ExtJSDef !*TSt -> *TSt
 setExtJSDef def tst=:{tree}
 	= case tree of
@@ -414,16 +394,13 @@ getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)
 getTaskValue tst = (Nothing, tst)
 
 getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
-getUserUpdates tst=:{taskNr,hst=hst=:{request}} = (updates request, {tst & hst = hst});
+getUserUpdates tst=:{taskNr,request} = (updates request, tst);
 where
 	updates request
 		| http_getValue "_targettask" request.arg_post "" == taskNrToString taskNr
 			= [u \\ u =:(k,v) <- request.arg_post | k.[0] <> '_']
 		| otherwise
 			= []
-
-
-
 
 setCombination :: !TaskCombination !*TSt	-> *TSt
 setCombination combination tst=:{tree}
@@ -444,11 +421,20 @@ resetSequence tst=:{taskNr,tree}
 		_								= {tst & tree = tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
-deleteTaskStates tasknr tst = appHStTSt (deleteIData (iTaskId tasknr "")) tst
-
+deleteTaskStates tasknr tst=:{store,world}
+	# (store,world) = deleteValues (iTaskId tasknr "") store world
+	= {tst & store = store, world = world}
+	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
-copyTaskStates fromtask totask tst = appHStTSt (copyIData (iTaskId fromtask "") (iTaskId totask "")) tst
-			
+copyTaskStates fromtask totask tst=:{store,world}
+	# (store,world) = copyValues (iTaskId fromtask "") (iTaskId totask "") store world
+	= {tst & store = store, world = world}
+
+flushStore :: !*TSt -> *TSt
+flushStore tst=:{store,world}
+	# (store,world) = flushCache store world
+	= {tst & store = store, world = world}
+
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""
 taskNrToString [i] 		= toString i
@@ -474,7 +460,6 @@ where
 taskNrToProcessNr :: !TaskNr -> ProcessNr
 taskNrToProcessNr []	= -1
 taskNrToProcessNr l 	= last l
-
 
 taskLabel :: !(Task a) -> String
 taskLabel (Task label _ _) = label

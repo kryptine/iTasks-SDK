@@ -1,62 +1,56 @@
 implementation module DynamicDB
 
 import StdList, StdClass, StdTuple, StdArray, StdMaybe
-import Types, HSt, TSt, iDataForms, iDataFormlib
+import Store, Types, TSt
 import dynamic_string
 
 from StdFunc import id
 
-instance DynamicDB HSt
+instance DynamicDB TSt
 where
-	createDynamic :: !Dynamic !*HSt -> (!DynamicId,!*HSt)
-	createDynamic dyn hst
-		# (dyns, hst)	= staticDynamicStore id hst
+	createDynamic :: !Dynamic !*TSt -> (!DynamicId,!*TSt)
+	createDynamic dyn tst
+		# (dyns, tst)	= staticDynamicStore id tst
 		# newDid		= inc (maxDynId dyns)
-		# (dyns, hst)	= staticDynamicStore (\_ -> dyns ++ [(newDid, dynamic_to_string dyn)]) hst
-		= (newDid,hst)
+		# (dyns, tst)	= staticDynamicStore (\_ -> dyns ++ [(newDid, dynamic_to_string dyn)]) tst
+		= (newDid,tst)
 	
-	updateDynamic :: !Dynamic !DynamicId !*HSt -> (!Bool, !*HSt)
-	updateDynamic dyn dynid hst
-		# (dyns, hst)	= staticDynamicStore id hst
+	updateDynamic :: !Dynamic !DynamicId !*TSt -> (!Bool, !*TSt)
+	updateDynamic dyn dynid tst
+		# (dyns, tst)	= staticDynamicStore id tst
 		# (ndyns,upd)	= unzip (map (update dyn) dyns)
-		# (ndyns,hst)	= staticDynamicStore (\_ -> ndyns) hst
-		= (or upd,hst)
+		# (ndyns,tst)	= staticDynamicStore (\_ -> ndyns) tst
+		= (or upd,tst)
 	where
 		update dyn (x,s)
 			| x == dynid	= ((x, dynamic_to_string dyn), True)
 			| otherwise		= ((x,s),False) 
 	
-	deleteDynamic :: !DynamicId !*HSt -> (!Bool, !*HSt)
-	deleteDynamic dynid hst
-		# (dyns,hst)	= staticDynamicStore id hst
-		# (ndyns,hst)	= staticDynamicStore (\_ -> [(x,s) \\ (x,s) <- dyns | x <> dynid]) hst
-		= (length dyns <> length ndyns, hst)
+	deleteDynamic :: !DynamicId !*TSt -> (!Bool, !*TSt)
+	deleteDynamic dynid tst
+		# (dyns,tst)	= staticDynamicStore id tst
+		# (ndyns,tst)	= staticDynamicStore (\_ -> [(x,s) \\ (x,s) <- dyns | x <> dynid]) tst
+		= (length dyns <> length ndyns, tst)
 	
-	deleteDynamics :: ![DynamicId] !*HSt -> (!Bool, !*HSt)
-	deleteDynamics dynids hst
-		# (dyns,hst)	= staticDynamicStore id hst
-		# (ndyns,hst)	= staticDynamicStore (\_ -> [(x,s) \\ (x,s) <- dyns | not (isMember x dynids)]) hst
-		= (length dyns <> length ndyns, hst)
+	deleteDynamics :: ![DynamicId] !*TSt -> (!Bool, !*TSt)
+	deleteDynamics dynids tst
+		# (dyns,tst)	= staticDynamicStore id tst
+		# (ndyns,tst)	= staticDynamicStore (\_ -> [(x,s) \\ (x,s) <- dyns | not (isMember x dynids)]) tst
+		= (length dyns <> length ndyns, tst)
 		
-	getDynamic :: !DynamicId !*HSt -> (!Maybe Dynamic, !*HSt)
-	getDynamic dynid hst 
-		# (dyns, hst)	= staticDynamicStore id hst
+	getDynamic :: !DynamicId !*TSt -> (!Maybe Dynamic, !*TSt)
+	getDynamic dynid tst 
+		# (dyns, tst)	= staticDynamicStore id tst
 		= case [dyn \\ (did,dyn) <- dyns | did == dynid] of
-			[entry]	= (Just (string_to_dynamic {c \\ c <-: entry}),hst)
-			_		= (Nothing, hst)
+			[entry]	= (Just (string_to_dynamic {c \\ c <-: entry}),tst)
+			_		= (Nothing, tst)
 
-staticDynamicStore ::  !([(DynamicId,String)] -> [(DynamicId,String)]) !*HSt -> (![(DynamicId,String)],!*HSt) 
-staticDynamicStore fn hst		
-	# (form,hst) = mkStoreForm (Init, pFormId "DynamicDB" []) fn hst
-	= (form.Form.value, hst)
+staticDynamicStore ::  !([(DynamicId,String)] -> [(DynamicId,String)]) !*TSt -> (![(DynamicId,String)],!*TSt) 
+staticDynamicStore fn tst=:{store,world}
+	# (mbList,store,world)	= loadValue "DynamicDB" store world
+	# list 					= fn (case mbList of Nothing = []; Just list = list)
+	# store					= storeValue "DynamicDB" list store 
+	= (list, {tst & store = store, world = world})
 
 maxDynId :: [(DynamicId,String)] -> DynamicId
 maxDynId db = foldr max 0 (map fst db)
-
-instance DynamicDB TSt
-where
-	createDynamic dyn tst		= accHStTSt (createDynamic dyn) tst
-	updateDynamic dyn dynid tst	= accHStTSt (updateDynamic dyn dynid) tst
-	deleteDynamic dynid tst		= accHStTSt (deleteDynamic dynid) tst
-	deleteDynamics dynids tst	= accHStTSt (deleteDynamics dynids) tst
-	getDynamic dynid tst		= accHStTSt (getDynamic dynid) tst

@@ -1,12 +1,10 @@
 implementation module ProcessDB
 
 import StdEnv, StdGeneric, StdMaybe, GenBimap
-import HSt, TSt, iDataForms, iDataFormlib
-import DynamicDB
+import TSt, Store, DynamicDB, Util
 
-derive gForm	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
-derive gUpd		Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
-derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gUpdate	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time 
+derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time 
 derive gParse	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
 
 instance == ProcessStatus
@@ -24,58 +22,58 @@ where
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
 
-instance ProcessDB HSt
+instance ProcessDB TSt
 where
-	createProcess :: !Process !*HSt -> (!ProcessId,!*HSt)
-	createProcess entry hst 
-		# (procs,hst) 	= processStore id hst
+	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
+	createProcess entry tst 
+		# (procs,tst) 	= processStore id tst
 		# newPid		= inc (maxPid procs)
-		# (procs,hst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid, properties = {TaskProperties| entry.properties & processId = newPid} }]) hst
-		= (newPid, hst)
+		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid, properties = {TaskProperties| entry.properties & processId = newPid} }]) tst
+		= (newPid, tst)
 		
-	deleteProcess :: !ProcessId !*HSt	-> (!Bool, !*HSt)
-	deleteProcess processId hst 
-		# (procs,hst) 	= processStore id hst
-		# (nprocs,hst)	= processStore (\_ -> [process \\ process <- procs | process.Process.processId <> processId]) hst
-		= (length procs <> length nprocs, hst)
+	deleteProcess :: !ProcessId !*TSt	-> (!Bool, !*TSt)
+	deleteProcess processId tst 
+		# (procs,tst) 	= processStore id tst
+		# (nprocs,tst)	= processStore (\_ -> [process \\ process <- procs | process.Process.processId <> processId]) tst
+		= (length procs <> length nprocs, tst)
 		
-	getProcess :: !ProcessId !*HSt -> (!Maybe Process,!*HSt)
-	getProcess processId hst
-		# (procs,hst) 	= processStore id hst
+	getProcess :: !ProcessId !*TSt -> (!Maybe Process,!*TSt)
+	getProcess processId tst
+		# (procs,tst) 	= processStore id tst
 		= case [process \\ process <- procs | process.Process.processId == processId] of
-			[entry]	= (Just entry, hst)
-			_		= (Nothing, hst)
+			[entry]	= (Just entry, tst)
+			_		= (Nothing, tst)
 
-	getProcessForUser :: !UserId !ProcessId !*HSt -> (!Maybe Process,!*HSt)
-	getProcessForUser userId processId hst
-		# (procs,hst) 	= processStore id hst
+	getProcessForUser :: !UserId !ProcessId !*TSt -> (!Maybe Process,!*TSt)
+	getProcessForUser userId processId tst
+		# (procs,tst) 	= processStore id tst
 		#  uids			= [fst p.Process.properties.TaskProperties.user \\ p <- procs | relevantProc processId p]
 		= case [p \\ p <- procs | p.Process.processId == processId && isMember userId uids] of
-			[entry]	= (Just entry, hst)
-			_		= (Nothing, hst)
+			[entry]	= (Just entry, tst)
+			_		= (Nothing, tst)
 	where
 		relevantProc targetId {Process|processType = EmbeddedProcess pid _}	= pid == targetId 
 		relevantProc targetId {Process|processId}							= processId == targetId
 		relevantProc _ _													= False
 			
-	getProcesses :: ![ProcessStatus] !Bool !*HSt -> (![Process], !*HSt)
-	getProcesses statusses ignoreEmbedded hst
-		# (procs,hst) 	= processStore id hst
+	getProcesses :: ![ProcessStatus] !Bool !*TSt -> (![Process], !*TSt)
+	getProcesses statusses ignoreEmbedded tst
+		# (procs,tst) 	= processStore id tst
 		| ignoreEmbedded
-			= ([p \\ p <- procs | isMember p.Process.status statusses && not (isEmbedded p)], hst)
+			= ([p \\ p <- procs | isMember p.Process.status statusses && not (isEmbedded p)], tst)
 		| otherwise
-			= ([p \\ p <- procs | isMember p.Process.status statusses], hst)
+			= ([p \\ p <- procs | isMember p.Process.status statusses], tst)
 			
-	getProcessesById :: ![ProcessId] !*HSt -> (![Process], !*HSt)
-	getProcessesById ids hst
-		# (procs,hst) 	= processStore id hst
-		= ([process \\ process <- procs | isMember process.Process.processId ids], hst)
+	getProcessesById :: ![ProcessId] !*TSt -> (![Process], !*TSt)
+	getProcessesById ids tst
+		# (procs,tst) 	= processStore id tst
+		= ([process \\ process <- procs | isMember process.Process.processId ids], tst)
 
-	getProcessesForUser	:: !UserId ![ProcessStatus] !Bool !*HSt -> (![Process], !*HSt)
-	getProcessesForUser userId statusses ignoreEmbedded hst
-		# (procs,hst) 	= processStore id hst
+	getProcessesForUser	:: !UserId ![ProcessStatus] !Bool !*TSt -> (![Process], !*TSt)
+	getProcessesForUser userId statusses ignoreEmbedded tst
+		# (procs,tst) 	= processStore id tst
 		#  procids		= filter ((<>) 0) (map (relevantProc userId) procs)
-		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], hst)
+		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
 
 	where
 		relevantProc userId {processType = EmbeddedProcess pid _, properties = {user}}
@@ -85,59 +83,42 @@ where
 			| fst user == userId	= processId
 			| otherwise				= 0
 		
-	getSubProcess :: !ProcessId !TaskId !*HSt -> (!Maybe Process,!*HSt)
-	getSubProcess processId taskId hst
-		# (procs,hst)	= processStore id hst
+	getSubProcess :: !ProcessId !TaskId !*TSt -> (!Maybe Process,!*TSt)
+	getSubProcess processId taskId tst
+		# (procs,tst)	= processStore id tst
 		= case [proc \\ proc =: {processType = (EmbeddedProcess pid tid)} <- procs | pid == processId && tid == taskId] of
-			[entry] = (Just entry, hst)
-			_		= (Nothing, hst)
+			[entry] = (Just entry, tst)
+			_		= (Nothing, tst)
 
 	
-	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*HSt	-> (!Bool, !*HSt)
-	setProcessOwner user delegator processId hst
-		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & user = user, delegator = delegator}}) hst
+	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*TSt	-> (!Bool, !*TSt)
+	setProcessOwner user delegator processId tst
+		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & user = user, delegator = delegator}}) tst
 	
-	setProcessStatus :: !ProcessStatus !ProcessId !*HSt -> (!Bool,!*HSt)
-	setProcessStatus status processId hst = updateProcess processId (\x -> {Process| x & status = status}) hst
+	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
+	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst
 
-	setProcessResult :: !DynamicId !ProcessId !*HSt -> (!Bool,!*HSt)
-	setProcessResult result processId hst = updateProcess processId (\x -> {Process| x & result = Just result}) hst 
+	setProcessResult :: !DynamicId !ProcessId !*TSt -> (!Bool,!*TSt)
+	setProcessResult result processId tst = updateProcess processId (\x -> {Process| x & result = Just result}) tst 
 	
-	updateProcess :: ProcessId (Process -> Process) !*HSt -> (!Bool, !*HSt)
-	updateProcess processId f hst
-		# (procs,hst) 	= processStore id hst
+	updateProcess :: ProcessId (Process -> Process) !*TSt -> (!Bool, !*TSt)
+	updateProcess processId f tst
+		# (procs,tst) 	= processStore id tst
 		# (nprocs,upd)	= unzip (map (update f) procs)
-		# (nprocs,hst)	= processStore (\_ -> nprocs) hst
-		= (or upd, hst)
+		# (nprocs,tst)	= processStore (\_ -> nprocs) tst
+		= (or upd, tst)
 	where
 		update f x		
 			| x.Process.processId == processId	= (f x, True)
 			| otherwise							= (x, False)
 
-	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*HSt -> (!Bool, !*HSt)
-	updateProcessProperties processId f hst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) hst
+	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*TSt -> (!Bool, !*TSt)
+	updateProcessProperties processId f tst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) tst
 
 
 isEmbedded :: Process -> Bool
 isEmbedded {processType = EmbeddedProcess _ _}	= True
 isEmbedded _									= False
-
-instance ProcessDB TSt
-where
-	createProcess entry tst									= accHStTSt (createProcess entry) tst
-	deleteProcess processId tst								= accHStTSt (deleteProcess processId) tst
-	getProcess processId tst								= accHStTSt (getProcess processId) tst
-	getProcessForUser userId processId tst					= accHStTSt (getProcessForUser userId processId) tst
-	getProcesses statusses ignoreEmbedded tst				= accHStTSt (getProcesses statusses ignoreEmbedded) tst
-	getProcessesById ids tst								= accHStTSt (getProcessesById ids) tst
-	getProcessesForUser userId statusses ignoreEmbedded tst	= accHStTSt (getProcessesForUser userId statusses ignoreEmbedded) tst
-	getSubProcess processId taskId tst						= accHStTSt (getSubProcess processId taskId) tst
-	setProcessOwner user delegator processId tst			= accHStTSt (setProcessOwner user delegator processId) tst
-	setProcessStatus status processId tst					= accHStTSt (setProcessStatus status processId) tst
-	setProcessResult result processId tst					= accHStTSt (setProcessResult result processId) tst
-	updateProcess processId f tst							= accHStTSt (updateProcess processId f) tst
-	updateProcessProperties processId f tst					= accHStTSt (updateProcessProperties processId f) tst
-
 
 //Utility functions
 mkStaticProcessEntry :: Workflow Time (UserId,String) (UserId,String) ProcessStatus -> Process
@@ -204,10 +185,12 @@ mkEmbeddedProcessEntry ancestor taskid properties status parent
 		, changeNr		= 0
 		}		
 
-processStore ::  !([Process] -> [Process]) !*HSt -> (![Process],!*HSt) 
-processStore fn hst		
-	# (form,hst) = mkStoreForm (Init, pFormId "ProcessDB" []) fn hst
-	= (form.Form.value, hst)
+processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
+processStore fn tst=:{store,world}
+	# (mbList,store,world)	= loadValue "ProcessDB" store world
+	# list 					= fn (case mbList of Nothing = []; Just list = list)
+	# store					= storeValue "ProcessDB" list store 
+	= (list, {tst & store = store, world = world})
 
 maxPid :: [Process] -> ProcessId
 maxPid db = foldr max 0 [processId \\ {Process|processId} <- db]

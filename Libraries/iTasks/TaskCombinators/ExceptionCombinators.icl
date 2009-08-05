@@ -3,31 +3,28 @@ implementation module ExceptionCombinators
 * This module contains iTask combinators for Exception Handling
 */
 import	StdList, StdArray, StdTuple
-from	StdFunc import id
-import	TSt, Engine, Util
-import	iDataFormlib
-import	LiftingCombinators
+import	TSt, Store, Util
 
-try :: !(Task a) !(e -> Task a) 	-> Task a 	| iData a & iData e
+try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 try normalTask handlerTask = mkSequenceTask "try" exceptionTask
 where
-	exceptionTask tst=:{taskNr,options,hst}
-		# storeId		= iTaskId (tl taskNr) "exception"
-		# (store,hst) 	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) id hst
-		# (caught,e)	= store.Form.value
-		| caught
-			= applyTask (handlerTask e) {tst & hst = hst}
-		| otherwise
-			# (a, tst =:{exception})	= applyTask normalTask {tst & hst = hst}
-			= case exception of
-				Just (ex :: e^)
-					# tst=:{hst}	= deleteTaskStates (tl taskNr) tst 														//Garbage collect
-					# (_,hst)	= mkStoreForm (Init,storageFormId options storeId (False,createDefault)) (\_ -> (True,ex)) hst 	//Store the exception
-					= applyTask (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, hst = hst})		//Run the handler
-					
-				_	= (a, tst)	//Don't handle the exception
+	exceptionTask tst=:{taskNr,options,store,world}
+		# key				= iTaskId (tl taskNr) "exception"
+		# (mbEx,store,world)= loadValue key store world
+		= case mbEx of
+			Just ex
+				= applyTask (handlerTask ex) {tst & store = store, world = world}
+			Nothing				
+				# (a, tst =:{exception})	= applyTask normalTask {tst & store = store, world = world}
+				= case exception of
+					Just (ex :: e^)
+						# tst=:{store}		= deleteTaskStates (tl taskNr) tst 														//Garbage collect
+						# store				= storeValueAs SFDynamic key ex store													//Store the exception
+						= applyTask (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, store = store})	//Run the handler
 						
-throw :: !e -> Task a | iData a & TC e	
+					_	= (a, tst)	//Don't handle the exception
+						
+throw :: !e -> Task a | iTask a & TC e	
 throw e = mkBasicTask "throw" throw`
 where
 	throw` tst

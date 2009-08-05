@@ -1,13 +1,12 @@
-definition module UITasks
-
-import iDataSettings
+definition module GUITasks
 
 from iTasks import class iTask(..)
+import GenPrint, GenParse, GUICore
 
 from TSt			import :: Task
 from Html			import :: HtmlTag
 
-import GUICore
+import CoreCombinators
 
 //HIGH LEVEL
 
@@ -21,20 +20,20 @@ instance vizHtml String
 instance vizHtml [HtmlTag]
 
 //Input tasks
-requestInformation			:: question -> Task a			| vizHtml question & iTask a & iData a
-requestInformationWD		:: question a -> Task a			| vizHtml question & iTask a & iData a 	//With default value
+requestInformation			:: question -> Task a			| vizHtml question & iTask a
+requestInformationWD		:: question a -> Task a			| vizHtml question & iTask a 	//With default value
 
 //requestInformationAbout		:: question b -> Task a			| vizHtml question & iData a & iTask b & iData b
 //requestInformationAboutWD	:: question b a -> Task a		| vizHtml question & iData a & iTask b & iData b	//With default value
 
 requestConfirmation			:: question -> Task Bool		| vizHtml question
 
-requestChoice				:: question [a] -> Task a		| vizHtml question & iData a
-requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iData a
+requestChoice				:: question [a] -> Task a		| vizHtml question & iTask a
+requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iTask a
 
 //Output tasks
 showMessage					:: message -> Task Void			| vizHtml message
-showMessageAbout			:: message a -> Task Void		| vizHtml message & iData a
+showMessageAbout			:: message a -> Task Void		| vizHtml message & iTask a
 
 //notifyUser					:: message UserId -> Task Void	| vizHtml message
 //notifyGroup					:: message Role -> Task Void	| vizHtml message
@@ -60,8 +59,9 @@ editTaskPred	:: create a task editor (with submit button) to edit a value of giv
 /**
 * Creates a basic task that displays the given html and never finishes.
 */
-displayHtml		:: ![HtmlTag] -> Task a										| iData a
-displayValue	:: !a -> Task b												| iData a & iData b
+
+displayHtml	msg	:== showMessage msg >>| return defaultValue
+displayValue x	:== showMessageAbout "" x >>| return defaultValue
 
 /**
 * Tasks for offering choices to users
@@ -74,7 +74,7 @@ selectWithCheckboxes	:: ![(![HtmlTag], !Bool, !(Bool [Bool] -> [Bool]))]	-> Task
 /**
 * Common user interface tasks
 */
-button			:: !String !a -> Task a | iData a
+button			:: !String !a -> Task a | iTask a
 
 ok				:: Task Void
 

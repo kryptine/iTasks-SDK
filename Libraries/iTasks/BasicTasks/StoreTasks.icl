@@ -1,36 +1,39 @@
-implementation module iTasksDB
+implementation module StoreTasks
 
-import TSt
-import StdList, StdOrdList, GenBimap
+import TSt, Store
+import StdList, StdOrdList, StdMisc, GenBimap
 from StdFunc import id, const
-import iDataTrivial, iDataFormlib
-import CoreCombinators, LiftingCombinators
-import GUICore
 
-derive gForm		DBRef
-derive gUpd			DBRef
-derive gPrint		DBRef
-derive gParse		DBRef
+import CoreCombinators
+import GenPrint, GenParse, GUICore
+
 derive gVisualize	DBRef
 derive gUpdate		DBRef
+derive gPrint		DBRef
+derive gParse		DBRef
 
-::DBid a :== (!String,!Lifespan)
+::DBid a :== String
 
 // Core db access
 
-readDB	:: !(DBid a) -> Task a | iData a
-readDB 	name=:(idn,_) = appHSt ("readDB " +++ idn) (db name id)
+readDB :: !(DBid a) -> Task a | iTask a
+readDB key = mkBasicTask "readDB" readDB`
+where
+	readDB` tst=:{store,world}
+		# (mbVal,store,world) = loadValue (DB_PREFIX +++ key) store world
+		= case mbVal of
+			Just val	= (val,{tst & store = store, world = world})
+			Nothing		= (createDefault,{tst & store = store, world = world})
 
-writeDB	:: !(DBid a) !a -> Task a | iData a
-writeDB name=:(idn,_) value = appHSt ("writeDB " +++ idn) (db name (const value))
-
-db :: !(DBid a) !(a -> a) !*HSt -> (!a,!*HSt) | iData a
-db (name,storageKind) fun hst 
-	# (form,hst)	= mkStoreForm (Init,nFormId (DB_PREFIX +++ name) createDefault <@ storageKind <@ NoForm) fun hst
-	= (form.Form.value,hst)
-
-mkDBid :: !String !Lifespan -> (DBid a)
-mkDBid s attr = (s,attr)
+writeDB	:: !(DBid a) !a -> Task a | iTask a
+writeDB key value = mkBasicTask "writeDB" writeDB`
+where
+	writeDB` tst=:{store}
+		# store = storeValue (DB_PREFIX +++ key) value store
+		= (value, {tst & store = store})
+		
+mkDBid :: !String -> (DBid a)
+mkDBid s = s
 
 //	Convenient operations on databases
 :: DBRef a		= DBRef Int
@@ -41,17 +44,17 @@ instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
 eqItemId :: a a -> Bool | DB a
 eqItemId a b	= getItemId a == getItemId b
 
-dbReadAll :: Task [a] | iData, DB a
+dbReadAll :: Task [a] | iTask, DB a
 dbReadAll		= readDB databaseId
 
-dbWriteAll :: ![a] -> Task Void | iData, DB a
+dbWriteAll :: ![a] -> Task Void | iTask, DB a
 dbWriteAll all	= writeDB databaseId all >>| return Void
 
-dbModify :: ([a] -> [a]) -> Task Void | iData, DB a
+dbModify :: ([a] -> [a]) -> Task Void | iTask, DB a
 dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem :: Task a | iData, DB a
+dbCreateItem :: Task a | iTask, DB a
 dbCreateItem
 	= readDB databaseId >>= \items ->
 	  let newid = newDBRef items 
@@ -61,18 +64,18 @@ where
 	newDBRef []		= DBRef 1
 	newDBRef items	= let (DBRef i) = maxList (map getItemId items) in DBRef (i+1)
 
-dbReadItem :: !(DBRef a) -> Task (Maybe a) | iData, DB a
+dbReadItem :: !(DBRef a) -> Task (Maybe a) | iTask, DB a
 dbReadItem itemid
 	= readDB databaseId >>= \items -> 
 	  case filter (\item -> itemid == getItemId item) items of
 	  	[found:_]	= return (Just found)
 	  	nothing		= return Nothing
 
-dbUpdateItem :: a -> Task a | iData, DB a
+dbUpdateItem :: a -> Task a | iTask, DB a
 dbUpdateItem new
 	= dbModify (replace eqItemId new) >>| return new
 
-dbDeleteItem :: !(DBRef a) -> Task Void | iData, DB a
+dbDeleteItem :: !(DBRef a) -> Task Void | iTask, DB a
 dbDeleteItem itemid
 	= dbModify (filter (\item -> itemid <> getItemId item))
  

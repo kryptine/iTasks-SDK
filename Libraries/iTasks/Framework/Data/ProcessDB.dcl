@@ -4,9 +4,9 @@ definition module ProcessDB
 * 
 */
 import StdMaybe
-import Types, HSt, TSt
-from TaskTree import :: TaskProperties
-from Time import :: Time
+import Types, TSt
+from TaskTree	import :: TaskProperties
+from Time		import :: Time
 
 /**
 * Our local process type
@@ -51,7 +51,6 @@ where
 	updateProcess			:: !ProcessId (Process -> Process)							!*st -> (!Bool,			!*st)
 	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)			!*st -> (!Bool,			!*st)
 
-instance ProcessDB HSt
 instance ProcessDB TSt
 /*
 * Utility functions for creating process database entries.

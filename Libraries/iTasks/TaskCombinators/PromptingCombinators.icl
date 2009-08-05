@@ -4,10 +4,10 @@ implementation module PromptingCombinators
 */
 
 import StdList, StdMisc
-import TSt, UITasks, CoreCombinators, TuningCombinators
+import TSt, GUITasks, CoreCombinators, TuningCombinators
 
-(?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iData a
+(?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iTask a
 (?>>) prompt task = parallel "?>>" (\list -> length list > 0) hd undef [displayHtml prompt <<@ "prompt",task <<@ "task"] <<@ TTVertical
 
-(<<?) infixl 5 	:: !(Task a) ![HtmlTag] -> Task a | iData a
+(<<?) infixl 5 	:: !(Task a) ![HtmlTag] -> Task a | iTask a
 (<<?) task prompt = parallel "<<?" (\list -> length list > 0) hd undef [task <<@ "task",displayHtml prompt <<@ "task"] <<@ TTVertical

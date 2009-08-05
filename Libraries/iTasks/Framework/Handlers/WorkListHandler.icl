@@ -3,7 +3,6 @@ implementation module WorkListHandler
 import StdEnv
 import Http, TSt, UserDB
 import Text, JSON, Time, Util
-import iDataForms
 
 :: WorkList			= 	{ success		:: Bool
 						, total			:: Int

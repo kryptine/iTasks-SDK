@@ -1,21 +1,19 @@
-definition module iTasksDB
+definition module StoreTasks
 /**
-* Simple database tasks for local storage of data using iData.
+* Simple storage in the iTasks store
 */
 from TSt 			import :: Task 
 from StdOverloaded	import class ==, class <
-import GUICore
-import iDataForms
 
-DB_PREFIX 	:== "iDBase-"
+from	iTasks import class iTask
+import	GenPrint, GenParse, GUICore
 
-derive gForm		DBRef
-derive gUpd			DBRef
+DB_PREFIX 	:== "UserStore-"
+
 derive gVisualize	DBRef
 derive gUpdate		DBRef
 derive gPrint		DBRef
 derive gParse		DBRef
-
 
 //Core database access functions
 
@@ -29,14 +27,14 @@ derive gParse		DBRef
 * @param The storage type of the database. Either LSTxtFile or LSDataFile.
 * @return A database reference
 */
-mkDBid 	:: !String !Lifespan -> (DBid a)
+mkDBid 	:: !String -> (DBid a)
 /**
 * Read the database.
 *
 * @param The database reference
 * @return The value in the database
 */
-readDB	:: !(DBid a) 		-> Task a | iData a
+readDB	:: !(DBid a) 		-> Task a | iTask a
 /**
 * Write the database.
 *
@@ -44,7 +42,9 @@ readDB	:: !(DBid a) 		-> Task a | iData a
 * @param The new value to store in the database
 * @return The new value of the database
 */
-writeDB	:: !(DBid a) !a 	-> Task a | iData a
+writeDB	:: !(DBid a) !a 	-> Task a | iTask a
+
+
 
 //Convenience wrapper functions for databases with multiple values of type a 
 
@@ -59,11 +59,11 @@ instance == (DBRef a)
 instance <  (DBRef a)
 eqItemId 		:: a a -> Bool | DB a
 
-dbReadAll		::                 Task [a]       | iData, DB a
-dbWriteAll		:: ![a]         -> Task Void      | iData, DB a
+dbReadAll		::                 Task [a]       | iTask, DB a
+dbWriteAll		:: ![a]         -> Task Void      | iTask, DB a
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem	::                 Task a         | iData, DB a
-dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iData, DB a
-dbUpdateItem	:: a			-> Task a         | iData, DB a
-dbDeleteItem	:: !(DBRef a)	-> Task Void      | iData, DB a
+dbCreateItem	::                 Task a         | iTask, DB a
+dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iTask, DB a
+dbUpdateItem	:: a			-> Task a         | iTask, DB a
+dbDeleteItem	:: !(DBRef a)	-> Task Void      | iTask, DB a

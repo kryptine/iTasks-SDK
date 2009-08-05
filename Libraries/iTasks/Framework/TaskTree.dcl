@@ -9,12 +9,11 @@ import StdMaybe, Either
 import Types
 import Html, Time
 
-from   iDataForms	import :: InputDefinition {..}, :: HtmlState {..}, ::UpdateEvent, :: Mode, :: StorageFormat, :: Lifespan
 from   ProcessDB	import :: ProcessStatus
 from   JSON 		import :: JSON
 from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 
-:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag] [InputDefinition] [HtmlState]	//A task that can be worked on through an iData(/ExtJS) gui
+:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag]									//A task that can be worked on through an iData(/ExtJS) gui
 					| TTExtJSTask		TaskInfo (Either ExtJSDef [ExtJSUpdate])			//A task that can be worked on through an ExtJS gui 
 					| TTSequenceTask	TaskInfo 					[TaskTree]				//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks

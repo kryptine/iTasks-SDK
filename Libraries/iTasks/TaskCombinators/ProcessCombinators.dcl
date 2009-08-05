@@ -10,12 +10,8 @@ from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: ProcessType(..)
 from Types		import :: UserId, :: ProcessId, :: DynamicId, :: TaskId
 from TaskTree	import :: TaskProperties
 
-import iDataForms
-
-derive gForm	ProcessReference, Process, ProcessStatus
-derive gUpd		ProcessReference, Process, ProcessStatus
-derive gPrint	ProcessReference, Process, ProcessStatus
-derive gParse	ProcessReference, Process, ProcessStatus
+from iTasks		import class iTask
+import GenPrint, GenParse, GUICore
 
 /**
 * A typed process reference. These references are used to reference
@@ -32,7 +28,7 @@ derive gParse	ProcessReference, Process, ProcessStatus
 *
 * @return A reference to the newly created process
 */
-spawnProcess			:: !UserId !Bool !(Task a)	-> Task (ProcessReference a) | iData a
+spawnProcess			:: !UserId !Bool !(Task a)	-> Task (ProcessReference a) | iTask a
 
 /**
 * Wait (blocking) for a process to complete.
@@ -42,7 +38,7 @@ spawnProcess			:: !UserId !Bool !(Task a)	-> Task (ProcessReference a) | iData a
 * @return A task that maybe gives the result of the process.
 *         When a process is prematurely deleted, the task yields Nothing
 */
-waitForProcess			:: (ProcessReference a)				-> Task (Maybe a)				| iData a
+waitForProcess			:: (ProcessReference a)				-> Task (Maybe a)				| iTask a
 
 /**
 * Poll the status of a process.
@@ -51,7 +47,7 @@ waitForProcess			:: (ProcessReference a)				-> Task (Maybe a)				| iData a
 *
 * @return A task that yields the status of the referenced process
 */
-getProcessStatus		:: (ProcessReference a)				-> Task ProcessStatus			| iData a
+getProcessStatus		:: (ProcessReference a)				-> Task ProcessStatus			| iTask a
 
 /**
 * Poll who is the owner of a process.
@@ -69,7 +65,7 @@ getProcessOwner 		:: (ProcessReference a) 			-> Task (Maybe Int)
 * @return A task that yields True when the process was successfully activated
 *         and False when the process could not be found.
 */
-activateProcess			:: (ProcessReference a)				-> Task Bool					| iData a
+activateProcess			:: (ProcessReference a)				-> Task Bool					| iTask a
 
 /**
 * Change the process status to suspended.
@@ -80,7 +76,7 @@ activateProcess			:: (ProcessReference a)				-> Task Bool					| iData a
 * @return A task that yields True when the process was successfully suspended
 *         and False when the process could not be found.
 */
-suspendProcess			:: (ProcessReference a)				-> Task Bool					| iData a
+suspendProcess			:: (ProcessReference a)				-> Task Bool					| iTask a
 /**
 * Change the process status of the current process to suspended.
 *
@@ -97,7 +93,7 @@ suspendCurrentProcess	::									   Task Bool
 * @return A task that yields True when the process was successfully deleted
 *         and False when the process could not be found.
 */
-deleteProcess			:: (ProcessReference a)				-> Task Bool					| iData a
+deleteProcess			:: (ProcessReference a)				-> Task Bool					| iTask a
 /**
 * Delete the current process from the process database
 * 
@@ -115,7 +111,7 @@ deleteCurrentProcess	::									    Task Bool
 * @return A task that yields True when the process owner was successfully updated
 *         and False when the process could not be found.
 */
-updateProcessOwner		:: UserId (ProcessReference a)		->	Task Bool					| iData a
+updateProcessOwner		:: UserId (ProcessReference a)		->	Task Bool					| iTask a
 
 
 //Untyped process tasks, these regard a process as a black box

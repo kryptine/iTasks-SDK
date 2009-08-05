@@ -3,12 +3,12 @@ definition module CoreCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from TSt 			import :: Task, :: TaskCombination
-from Types 			import :: UserId, :: TaskPriority
-from iDataSettings	import class iPrint, class iParse, class iCreate, class iCreateAndPrint, class iSpecialStore, class iData
+from TSt 			import :: Task,		:: TaskCombination
+from Types 			import :: UserId,	:: TaskPriority
 from Time			import :: Time
 
-import iDataForms, GenPrint, GenParse
+from	iTasks		import class iTask(..)
+import	GenPrint, GenParse, GUICore
 
 //Standard monadic operations:
 
@@ -20,7 +20,7 @@ import iDataForms, GenPrint, GenParse
 * @param The second task, which receives the result of the first task
 * @return The combined task
 */
-(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iData a & iData b
+(>>=) infixl 1 	:: !(Task a) !(a -> Task b) 			-> Task b		| iTask a & iTask b
 /**
 * Combines two tasks sequentially just as >>=, but the result of the first task is disregarded.
 *
@@ -28,7 +28,7 @@ import iDataForms, GenPrint, GenParse
 * @param The second task to be executed
 * @return The combined task
 */
-(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iData a & iData b
+(>>|) infixl 1 :: !(Task a) (Task b)					-> Task b		| iTask a & iTask b
 /**
 * Lifts a value to the task domain. The return_V task finishes immediately and yields its parameter
 * as result of the task.
@@ -36,7 +36,7 @@ import iDataForms, GenPrint, GenParse
 * @param The value to be returned
 * @return A task that will return the value defined by the parameter
 */
-return 		:: !a 										-> Task a 		| iData a
+return 		:: !a 										-> Task a 		| iTask a
 
 //Repetition and loops:
 
@@ -47,7 +47,7 @@ return 		:: !a 										-> Task a 		| iData a
 * @param The task that has to be repeated infinitely
 * @return The combined task
 */
-forever		:: !(Task a) 								-> Task a 		| iData a
+forever		:: !(Task a) 								-> Task a 		| iTask a
 /**
 * Repeats a task until a given predicate holds. The predicate is tested as soon as the
 * given task is finished. When it does not hold, the task is restarted.
@@ -56,7 +56,7 @@ forever		:: !(Task a) 								-> Task a 		| iData a
 * @param The predicate over the result of the task to determine if the combination is finished
 * @return The combined task
 */
-(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iData a
+(<!)  infixl 6 	:: !(Task a)  !(a -> .Bool) 			-> Task a 		| iTask a
 
 // Sequential composition
 
@@ -67,7 +67,7 @@ forever		:: !(Task a) 								-> Task a 		| iData a
 * @param The list of tasks to be executed sequentially
 * @return The combined task
 */
-sequence	:: !String ![Task a] 						-> Task [a]		| iData a
+sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
 /**
 * Reduces a multi-step sequence to a single step task
@@ -76,7 +76,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iData a
 * @param The task that has to be reduced to one step
 * @return The combined task
 */
-compound 	:: !String !(Task a) 						-> Task a		| iData a 
+compound 	:: !String !(Task a) 						-> Task a		| iTask a 
 
 // Parallel composition
 
@@ -92,7 +92,7 @@ compound 	:: !String !(Task a) 						-> Task a		| iData a
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iData a & iData b 
+parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
 
 // Multi-user workflows
 
@@ -105,7 +105,7 @@ parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | 
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-assign 	:: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a	| iData a
+assign 	:: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a	| iTask a
 
 /* Experimental department:
 

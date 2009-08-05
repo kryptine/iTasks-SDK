@@ -24,5 +24,5 @@ where
 	startNewWorkflow workflow tst
 		# (currentUserId, tst)	= getCurrentUser tst
 		# (currentUser,tst)		= getUser currentUserId tst
-		# (currentTime, tst)	= accHStTSt (accWorldHSt time) tst
+		# (currentTime, tst)	= accWorldTSt time tst
 		= createProcess (mkStaticProcessEntry workflow currentTime currentUser currentUser Active) tst
