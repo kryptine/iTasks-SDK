@@ -28,5 +28,5 @@ myAddress = {street = "Berg en Dalseweg", number = 24, postalCode = "6521JG"}
 Start :: *World -> *World
 Start world = startEngine [workflow "GUI test" guiTestTask] world
 
-guiTestTask :: Task Person
-guiTestTask = requestInformationWD "Please tell me who you are" myPerson
+guiTestTask :: Task Void
+guiTestTask = requestChoice "Pick a number" [1,2,3] >>| return Void

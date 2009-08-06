@@ -65,7 +65,7 @@ killProcess process=:{Process|processId}
 	=	setProcessStatus Deleted processId
 	>>|	return False
 
-gridChooseTask :: [a] [[HtmlTag]] (a -> [HtmlTag]) [(a -> String, a -> Task Bool)] -> Task Bool | iData a
+gridChooseTask :: [a] [[HtmlTag]] (a -> [HtmlTag]) [(a -> String, a -> Task Bool)] -> Task Bool | iTask a
 gridChooseTask xs header rowVisualizeFun rowTasks
 	=				anyTask (map row xs)	//Show the grid
 	>>= \task -> 	task																																	//Execute the chosen task

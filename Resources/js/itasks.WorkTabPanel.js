@@ -637,6 +637,9 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 				case "checkbox":
 					comp.on("check",changeTaskEvent);
 					break;
+				case "button":
+					comp.on("click",clickTaskEvent);
+					break;
 		}
 		
 		if(comp.buttons) {

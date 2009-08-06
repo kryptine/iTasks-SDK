@@ -16,8 +16,10 @@ import UserDB
 import Time
 import CommonCombinators
 
-derive gPrint	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gParse	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gVisualize	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gUpdate		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gPrint		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gParse		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
 
 spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessReference a) | iTask a
 spawnProcess uid activate task = mkBasicTask "spawnProcess" spawnProcess`

@@ -1,6 +1,7 @@
 implementation module DeadlineTask
 
-import iTasks, iDataTrivial
+import iTasks
+import CommonDomain
 import StdClass, StdEnum, StdList
 
 // (c) MJP 2007
@@ -24,12 +25,12 @@ deadlineTaskExample
 trivialTask :: Task Int
 trivialTask = editTask "OK" 0 <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
 
-deadline :: (Task a) -> Task a | iData a
+deadline :: (Task a) -> Task a | iTask a
 deadline task
 =					[Text "Choose person you want to delegate work to:",BrTag [],BrTag []] 
-					?>>	editTask "Set" (HtmlSelect (map (\i -> (toString i,toString i)) [1..npersons - 1]) (toString 1)) 
-	>>= \(HtmlSelect _ whom) ->	[Text "How long do you want to wait?",BrTag [],BrTag []] 
-					?>>	editTask "SetTime" (HtmlTime 0 0 0) 
+					?>>	chooseUser
+	>>= \(whom,name) ->	[Text "How long do you want to wait?",BrTag [],BrTag []] 
+					?>>	editTask "SetTime" {Time|hour = 0, min = 0, sec = 0} 
 	>>= \time ->	[Text "Cancel delegated work if you are getting impatient:",BrTag [],BrTag []] 
 					?>> (delegateTask (toInt whom) time task
 					-||-

@@ -19,11 +19,11 @@ toInCart p				= { InCart
 						  , price         = priceOf         p
 						  }
 instance DB Book where
-	databaseId			= mkDBid "books" LSTxtFile
+	databaseId			= mkDBid "books"
 	getItemId item		= id_Of  item
 	setItemId id item	= id_Upd item id
 instance DB (Order item) where
-	databaseId			= mkDBid "orders" LSTxtFile
+	databaseId			= mkDBid "orders"
 	getItemId item		= id_Of  item
 	setItemId id item	= id_Upd item id
 
@@ -37,8 +37,8 @@ defaultCart				= createDefault
 eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
 eqItemNr x y			= x.itemNr == y.itemNr
 
-totalCost :: [a] -> HtmlCurrency | priceOf, amountOrderedOf a
-totalCost set			= HtmlCurrency EUR (sum [amountOrderedOf item * toInt (priceOf item) \\ item <- set])
+totalCost :: [a] -> Money | priceOf, amountOrderedOf a
+totalCost set			= Money EUR (sum [amountOrderedOf item * toInt (priceOf item) \\ item <- set])
 
 shopOwner :: UserId
 shopOwner				= 0

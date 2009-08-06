@@ -1,6 +1,6 @@
 implementation module ChangeHandling
 
-import iTasks, iDataTrivial
+import iTasks
 import StdMisc
 
 

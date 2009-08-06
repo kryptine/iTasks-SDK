@@ -8,8 +8,7 @@ implementation module Coffeemachine
 
 // Some alternative coffee machine definitions have been added as example for the ICFP07 paper.
 
-import StdList
-import iTasks, iDataTrivial
+import iTasks
 
 coffeemachineExample :: [Workflow]
 coffeemachineExample = [{ name = "Examples/Miscellaneous/Coffeemachine"
@@ -35,10 +34,9 @@ getCoins :: (Int,Int) -> Task (Bool,Int)
 getCoins (cost,paid) = getCoins`
 where
 	getCoins`		
-	= 						(chooseTask [Text ("To pay: " <+++ cost),Br,Br] 
-					  		[(c +++> " cents", return (False,c)) \\ c <- coins]
+		=  					requestChoice ("To pay: " <+++ cost) coins >>= \c -> return (False,c)
 						  	-||-
-						  	buttonTask "Cancel" (return (True,0)))
+						  	buttonTask "Cancel" (return (True,0))
 		>>= handleMoney
 
 	handleMoney (cancel,coin)

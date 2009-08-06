@@ -1,6 +1,6 @@
 definition module StoreTasks
 /**
-* Simple storage in the iTasks store
+* This module provides tasks for simple storage in the iTasks store
 */
 from TSt 			import :: Task 
 from StdOverloaded	import class ==, class <
@@ -10,15 +10,18 @@ import	GenPrint, GenParse, GUICore
 
 DB_PREFIX 	:== "UserStore-"
 
+//Database identifier for storing a single value of type a
+:: DBid a
+
+//Database identifier to a value of type a in a database with multiple values
+:: DBRef a
+
 derive gVisualize	DBRef
 derive gUpdate		DBRef
 derive gPrint		DBRef
 derive gParse		DBRef
 
 //Core database access functions
-
-//Database reference for storing a value of type a
-:: DBid a
 
 /**
 * Create a database reference
@@ -44,19 +47,15 @@ readDB	:: !(DBid a) 		-> Task a | iTask a
 */
 writeDB	:: !(DBid a) !a 	-> Task a | iTask a
 
-
-
 //Convenience wrapper functions for databases with multiple values of type a 
-
 class DB a where
 	databaseId	:: DBid [a]
 	getItemId	:: a -> DBRef a
 	setItemId	:: (DBRef a) a -> a
 
-:: DBRef a
-
 instance == (DBRef a)
 instance <  (DBRef a)
+
 eqItemId 		:: a a -> Bool | DB a
 
 dbReadAll		::                 Task [a]       | iTask, DB a

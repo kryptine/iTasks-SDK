@@ -1,6 +1,7 @@
 implementation module ScheduleMeeting
 
-import iTasks, iDataTrivial, iDataFormlib
+import iTasks
+import CommonDomain
 import StdMisc
 
 // (c) MJP 2007
@@ -21,17 +22,17 @@ scheduleMeetingExample
 	}
   ]
 
-findDate :: Task (HtmlDate,HtmlTime)
+findDate :: Task (Date,Time)
 findDate
 =						[Text "Choose person you want to schedule a meeting with:",BrTag []] 
 						?>>	chooseUser
 	>>= \(whom,name) ->	[Text "Determining date:",BrTag [],BrTag []] 
-						?>>	findDate` whom (HtmlDate 1 1 2007,HtmlTime 9 0 0) 
+						?>>	findDate` whom ({Date|year = 2007, mon = 1, day = 1},{Time|hour = 9, min = 0, sec = 0}) 
 	>>= \datetime	->	[] 
 						?>> (confirm 0 whom datetime -&&- confirm whom 0 datetime)
 	>>|					return datetime
 where
-	findDate` :: Int (HtmlDate,HtmlTime) -> Task (HtmlDate,HtmlTime)
+	findDate` :: Int (Date,Time) -> Task (Date,Time)
 	findDate` whom daytime
 	=							proposeDateTime daytime 
 		>>= \daytime ->			whom  @: ("Meeting Request",determineDateTime daytime) 
@@ -43,7 +44,7 @@ where
 										      				(compound "findDate`" (findDate` whom daytime))
 									)
 	where
-		proposeDateTime :: (HtmlDate,HtmlTime) -> Task (HtmlDate,HtmlTime)
+		proposeDateTime :: (Date,Time) -> Task (Date,Time)
 		proposeDateTime (date,time)
 		=							[Text "Propose a new date and time for meeting:",BrTag [],BrTag []] 
 									?>>	editTask "Set" input 
@@ -51,7 +52,7 @@ where
 		where
 			input = (toString (Text "date: "), date, toString (Text "time: "), time)
 
-		determineDateTime :: (HtmlDate,HtmlTime) -> Task (Bool,(HtmlDate,HtmlTime))
+		determineDateTime :: (Date,Time) -> Task (Bool,(Date,Time))
 		determineDateTime daytime
 		=					isOkDateTime daytime 
 			>>= \ok ->		if ok 
@@ -60,14 +61,14 @@ where
 									>>= \daytime ->	return (ok,daytime)
 								)
 
-		isOkDateTime :: (HtmlDate,HtmlTime) -> Task Bool
+		isOkDateTime :: (Date,Time) -> Task Bool
 		isOkDateTime (date,time)
 		=	chooseTask [Text ("Can we meet on the " <+++ date <+++ " at " <+++ time <+++ "?"),BrTag []] 
 			[ ("Accept",return True)
 			, ("Sorry", return False)
 			]
 
-	confirm  :: Int Int (HtmlDate,HtmlTime) -> Task Void 
+	confirm  :: Int Int (Date,Time) -> Task Void 
 	confirm me you (date,time)
 	= 	me @:	("confirm",[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
 				?>>	ok)

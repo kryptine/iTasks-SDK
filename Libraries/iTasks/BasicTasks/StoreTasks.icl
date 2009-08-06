@@ -1,7 +1,7 @@
 implementation module StoreTasks
 
 import TSt, Store
-import StdList, StdOrdList, StdMisc, GenBimap
+import StdList, StdOrdList, GenBimap
 from StdFunc import id, const
 
 import CoreCombinators

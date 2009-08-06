@@ -2,8 +2,8 @@ implementation module StdListExt
 
 import StdList
 
-replace :: (a a -> Bool) a [a] -> [a]
-replace cond new []         = [new]
-replace cond new [x:xs]
+lreplace :: (a a -> Bool) a [a] -> [a]
+lreplace cond new []         = [new]
+lreplace cond new [x:xs]
     | cond new x            = [new : xs]
-    | otherwise             = [x : replace cond new xs]
+    | otherwise             = [x : lreplace cond new xs]

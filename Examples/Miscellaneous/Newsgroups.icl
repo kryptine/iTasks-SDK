@@ -6,7 +6,8 @@ implementation module Newsgroups
 // (c) mjp 2007 
 
 import StdList, StdOrdList, StdTuple, StdMisc, GenBimap
-import iTasks, iDataTrivial, iDataFormlib
+import iTasks
+import CommonDomain
 
 :: NewsGroupNames:== [GroupName]				// list of newsgroup names
 :: GroupName	:== String						// Name of the newsgroup
@@ -19,18 +20,16 @@ import iTasks, iDataTrivial, iDataFormlib
 :: Subscription	:== (GroupName,Index)			// last message read in corresponding group
 :: Index		:== Int							// 0 <= index < length newsgroup 
 
-:: EMail	=	{ to 		:: !DisplayMode String
-				, mailFrom 	:: !DisplayMode String
+:: EMail	=	{ to 		:: !String
+				, mailFrom 	:: !String
 				, subject 	:: !String
-				, message	:: !HtmlTextarea
+				, message	:: !Note
 				}
 
-derive gForm		EMail, EMail2	
-derive gUpd			EMail, EMail2
-derive gVisualize	EMail, EMail2		
-derive gUpdate		EMail, EMail2	
+derive gPrint		EMail, EMail2
 derive gParse		EMail, EMail2	
-derive gPrint		EMail, EMail2	
+derive gVisualize	EMail, EMail2	
+derive gUpdate		EMail, EMail2
 
 nmessage = 2
 
@@ -67,14 +66,14 @@ newsgroupsExample
 
 :: EMail2	=	{ to` 		:: !UserId
 				, subject` 	:: !String
-				, message`	:: !HtmlTextarea
+				, message`	:: !Note
 				}
 
 internalEmail2 :: (Task Void)
 internalEmail2
 =							[Text "Type your email message ..."] 
 							?>>	editTask "Send" createDefault
-	>>= \msg ->				msg.to` @: (msg.EMail2.subject`, [toHtml msg] ?>> ok)
+	>>= \msg ->				msg.to` @: (msg.EMail2.subject`, visualizeAsHtmlDisplay msg ?>> ok)
 	>>|						[Text "Mail has been read." ] ?>> ok
 
 
@@ -95,9 +94,9 @@ where
 		MailAndReply msg (me,myname) (to,toname)
 		=						to @: 	( msg.subject
 										, (showMSg msg ++ [Text "Reply requested: ", BrTag []])
-										  ?>> editTask "Reply" (HtmlTextarea 4 "")
+										  ?>> editTask "Reply" (Note "")
 										)
-			>>= \(HtmlTextarea _ reply)
+			>>= \(Note reply)
 						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
 									  , showMSg (initMsg myname toname ("RE: " <+++ msg.subject) reply) ?>> ok 
 									  )
@@ -112,12 +111,12 @@ internalEmail
 	>>= \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> ok))
 
 initMsg to for subject msg 
-= {to = DisplayMode to, mailFrom = DisplayMode for, subject = subject , message = HtmlTextarea 4 msg}
+= {to = to, mailFrom = for, subject = subject , message = Note msg}
 
 showMSg msg
-# (HtmlTextarea _ text) = msg.message
-# (DisplayMode to)		= msg.to
-# (DisplayMode for)		= msg.mailFrom
+# (Note text) = msg.message
+# to		= msg.to
+# for		= msg.mailFrom
 
 =	[ Text ("For : " <+++ to), 			BrTag [] 
 	, Text ("From : " <+++ for), 		BrTag [] 
@@ -147,7 +146,7 @@ showNewsGroups
 
 showCurrentNames []		= [ Text "No names in catalogue yet !", BrTag [],BrTag []] 
 showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
-						  , toHtml (HtmlTextarea (min (length names) 5) (foldr (\s1 s2 -> s1 +++ "\n" +++ s2) "" names)), BrTag [], BrTag []
+						  : visualizeAsHtmlDisplay (Note (foldr (\s1 s2 -> s1 +++ "\n" +++ s2) "" names))
 						  ]
 
 subscribeNewsGroup :: (Task Void)
@@ -220,8 +219,8 @@ where
 	where
 		commit me name group
 		=							[Text "Type your message ..."] 
-									?>>	editTask "Commit" (HtmlTextarea 4  "") 
-		 >>= \(HtmlTextarea _ val) -> 	readNewsGroup  group 
+									?>>	editTask "Commit" (Note "") 
+		 >>= \(Note val) -> 		readNewsGroup  group 
 		 >>= \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
 		 >>|							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 									?>> ok
@@ -245,13 +244,13 @@ getToName
 							[(name, return (userId,name)) \\ (userId,name) <- users]
 
 
-cancel :: (Task a) -> Task a | iData a
+cancel :: (Task a) -> Task a | iTask a
 cancel task = task -||- cancelTask <<@ TTVertical
 where
-	cancelTask = [HrTag []] ?>> button "Cancel Task" createDefault
+	cancelTask = [HrTag []] ?>> button "Cancel Task" defaultValue
 
 
-orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iData a
+orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iTask a
 orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
 
 myAndTasks msg tasks =	parallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks] <<@ (TTSplit msg)
@@ -259,13 +258,13 @@ myAndTasks msg tasks =	parallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t
 // reading and writing of storages
 
 newsGroupsId ::  (DBid NewsGroupNames)
-newsGroupsId		=	mkDBid "newsGroups" LSTxtFile
+newsGroupsId		=	mkDBid "newsGroups"
 
 readerId :: Int -> (DBid Subscriptions)
-readerId i			= 	mkDBid ("reader" <+++ i) LSTxtFile
+readerId i			= 	mkDBid ("reader" <+++ i)
 
 groupNameId :: String -> (DBid NewsGroup)
-groupNameId name	=	mkDBid ("NewsGroup-" +++ name) LSTxtFile
+groupNameId name	=	mkDBid ("NewsGroup-" +++ name)
 
 readNewsGroups :: Task NewsGroupNames
 readNewsGroups = readDB newsGroupsId

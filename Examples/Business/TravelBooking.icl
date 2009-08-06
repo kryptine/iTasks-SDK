@@ -1,6 +1,7 @@
 implementation module TravelBooking
 
-import iTasks, iDataTrivial
+import iTasks
+import CommonDomain
 
 // (c) 2007 MJP
 
@@ -41,7 +42,7 @@ travel
 where
 	handleBookings booking
 	| isNil	booking	= 		editTask "Cancelled" Void
-	| otherwise		= 		editTask "Pay" (Dsp (calcCosts booking))
+	| otherwise		= 		editTask "Pay" (calcCosts booking)
 					  >>|	editTask "Paid" Void
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
@@ -49,11 +50,8 @@ where
 		isNil [] = True
 		isNil _ = False
 
-	BookFlight  = editTask "BookFlight" (Dsp "Flight Number "	,"",Dsp "Costs ",DefCosts) 	<<@ Submit
-	BookHotel  	= editTask "BookHotel" 	(Dsp "Hotel Name "		,"",Dsp "Costs ",DefCosts)	<<@ Submit
-	BookCar  	= editTask "BookCar" 	(Dsp "Car Brand "		,"",Dsp "Costs ",DefCosts)	<<@ Submit
+	BookFlight  = editTask "BookFlight" ("Flight Number "	,"", "Costs ",DefCosts)
+	BookHotel  	= editTask "BookHotel" 	("Hotel Name "		,"", "Costs ",DefCosts)
+	BookCar  	= editTask "BookCar" 	("Car Brand "		,"", "Costs ",DefCosts)
 
-
-Dsp = DisplayMode 
-
-DefCosts = HtmlCurrency EUR 0
+DefCosts = Money EUR 0

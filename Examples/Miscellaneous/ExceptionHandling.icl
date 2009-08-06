@@ -1,16 +1,16 @@
 implementation module ExceptionHandling
 
-import iTasks, iTasksDB
+import iTasks
 
 
 //Two different exception types
 :: NegativeValueException = NegativeValueException String
 :: TooLargeValueException = TooLargeValueException String
 
-derive gForm	NegativeValueException, TooLargeValueException
-derive gUpd		NegativeValueException, TooLargeValueException
-derive gPrint	NegativeValueException, TooLargeValueException
-derive gParse	NegativeValueException, TooLargeValueException
+derive gVisualize	NegativeValueException, TooLargeValueException
+derive gUpdate		NegativeValueException, TooLargeValueException
+derive gPrint		NegativeValueException, TooLargeValueException
+derive gParse		NegativeValueException, TooLargeValueException
 
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
@@ -24,7 +24,7 @@ exceptionTask :: Task Void
 exceptionTask = try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask)
 
 db :: (DBid Int)
-db = mkDBid "MyIntDB" LSTxtFile
+db = mkDBid "MyIntDB"
 
 normalTask :: Task Void
 normalTask

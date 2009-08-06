@@ -3,11 +3,11 @@ implementation module TimeAndDateTasks
 import StdFunc, StdMisc
 import TSt, Util
 
+from CommonDomain import :: Date, :: Time
 // Timer Tasks ending when timed out
 
-//waitForTimeTask:: !HtmlTime	-> (Task HtmlTime)
-//waitForTimeTask time = abort "TODO: waitForTimeTask" /*mkBasicTask "waitForTimeTask" waitForTimeTask`
-/*
+waitForTimeTask :: !Time	-> Task Time
+waitForTimeTask time = abort "TODO: waitForTimeTask" /*mkBasicTask "waitForTimeTask" waitForTimeTask`
 where
 	waitForTimeTask` tst=:{taskNr,hst}
 	# taskId				= iTaskId taskNr "Time_"
@@ -16,9 +16,9 @@ where
 	| currtime < stime.Form.value= (stime.Form.value,{tst & activated = False,hst = hst})
 	= (currtime - stime.Form.value,{tst & hst = hst})
 */
-//waitForDateTask:: !HtmlDate	-> (Task HtmlDate)
-//waitForDateTask date = abort "TODO: waitForDateTask" /* mkBasicTask "waitForDateTask" waitForDateTask`
-/*
+
+waitForDateTask :: !Date	-> Task Date
+waitForDateTask date = abort "TODO: waitForDateTask" /* mkBasicTask "waitForDateTask" waitForDateTask`
 where
 	waitForDateTask` tst=:{taskNr,hst}
 	# taskId				= iTaskId taskNr "Date_"
@@ -27,3 +27,6 @@ where
 	| currdate < date		= (date,{tst & activated = False, hst = hst})
 	= (date,{tst & hst = hst})
 */
+
+waitForTimerTask :: !Time	-> Task Time
+waitForTimerTask time = abort "TODO: waitForDateTask"

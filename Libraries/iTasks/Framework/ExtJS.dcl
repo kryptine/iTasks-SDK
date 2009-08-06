@@ -86,6 +86,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, items			:: [ExtJSDef]
 	, buttons		:: [ExtJSDef]
 	, border		:: Bool
+	, bodyCssClass	:: String
 	}
 :: ExtJSHtmlPanel =
 	{ html			:: String

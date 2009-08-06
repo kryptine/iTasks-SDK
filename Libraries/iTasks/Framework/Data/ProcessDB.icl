@@ -3,10 +3,6 @@ implementation module ProcessDB
 import StdEnv, StdGeneric, StdMaybe, GenBimap
 import TSt, Store, DynamicDB, Util
 
-derive gUpdate	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gParse	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-
 instance == ProcessStatus
 where
 	(==) Active		Active		= True

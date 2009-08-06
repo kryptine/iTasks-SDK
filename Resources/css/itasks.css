@@ -20,8 +20,11 @@ button.icon-states {
 button.icon-events {
 	background-image: url('../img/icons/table_lightning.png');
 }
-button.icon-ok {
+button.icon-ok, button.icon-yes {
 	background-image: url('../img/icons/tick.png');
+}
+button.icon-no {
+	background-image: url('../img/icons/cancel.png');
 }
 .icon-debug {
 	background-image: url('../img/icons/bug.png');

@@ -1,6 +1,6 @@
 implementation module OrderProcessing
 
-import iTasks, iDataTrivial, StdArray
+import iTasks
 
 /*
  * The scenario contains a number of different events and activities:
@@ -74,20 +74,18 @@ creditcard :== 13 // not used at the moment (see validateCreditCard)
 deliveryAddress :: CardInfo -> String
 deliveryAddress cardInfo = "delivery address: " +++ cardInfo
 
-:: ItemInfo :== (Int, DisplayMode String, DisplayMode Real)
+:: ItemInfo :== (Int, String, Real)
 :: Basket   :== ItemInfo
 
-instance toString (DisplayMode a) | toString a where
-  toString (DisplayMode a) = toString a
 
 instance toString (a, b, c) | toString a & toString b & toString c where
-  toString (a, b, c) = "(" <+++ a <+++ ", " <+++ b <+++ ", " <+++ c <+++ ")" 
+  toString (a, b, c) = "(" +++ toString a +++ ", " +++ toString b +++ ", " +++ toString c +++ ")" 
   
 amountFrom :: ItemInfo -> Real
-amountFrom (amount, _, DisplayMode price) = toReal amount * price
+amountFrom (amount, _,price) = toReal amount * price
 
 items :: [ItemInfo]
-items = map (\(descr, price) -> (1, DisplayMode descr, DisplayMode price)) descrs
+items = map (\(descr, price) -> (1, descr, price)) descrs
   where 
     descrs :: [(String, Real)]
     descrs = [ ("The Shawshank Redemption", 4.99)
@@ -120,20 +118,20 @@ confirmOrder =
 
 cashRequest :: Real CardInfo -> Task Bool
 cashRequest amount cardInfo =
-  [Text ("Can we subtract " <+++ amount <+++ " from card " <+++ cardInfo <+++ "?")]
+  [Text ("Can we subtract " +++ toString amount +++ " from card " +++ toString cardInfo +++ "?")]
     ?>> editTask "Ok" False
     
 deliverOrder :: Basket Address -> Task Void 
 deliverOrder basket address =
-  [Text ("Please deliver " <+++ basket <+++ " to " <+++ address <+++ ".")]
+  [Text ("Please deliver " +++ toString basket +++ " to " +++ toString address +++ ".")]
     ?>> ok
 
 confirmDelivery :: Basket Address -> Task Void
 confirmDelivery basket address =
-  [Text ("Your order " <+++ basket <+++ " will be delivered to " <+++ address <+++ ".")]
+  [Text ("Your order " +++ toString basket +++ " will be delivered to " +++ toString address +++ ".")]
     ?>> ok
 
 failedDelivery :: Basket Address -> Task Void
 failedDelivery basket address =
-  [Text ("Your order " <+++ basket <+++ " cannot be delivered to " <+++ address <+++ ".")]
+  [Text ("Your order " +++ toString basket +++ " cannot be delivered to " +++ toString address +++ ".")]
     ?>> ok

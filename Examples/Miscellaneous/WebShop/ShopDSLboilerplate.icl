@@ -5,12 +5,10 @@ import GUICore
 import ShopDSL
 
 //	Generic boilerplate code:
-derive gForm		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpd			Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 
 //	Manual boilerplate code:
 instance billingAddressOf   (Order    a) where billingAddressOf   r		= r.Order.billingAddress

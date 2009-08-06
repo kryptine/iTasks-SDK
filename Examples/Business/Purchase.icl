@@ -13,10 +13,13 @@ implementation module Purchase
 */
 
 import iTasks
+import CommonDomain
+import StdBool
+
 
 //Additional imports for custom combinator creation
 from TSt 		import applyTask, setCombination, mkSequenceTask, mkParallelTask
-from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}
+from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}, :: Store
 from SessionDB	import :: Session
 from Types		import :: ProcessId, :: TaskNr
 from TaskTree	import :: TaskTree
@@ -25,14 +28,14 @@ from TaskTree	import :: TaskTree
 :: Purchase	=	{	name	:: !String
 				,	amount	:: !Int
 				,	express	:: !Bool
-				,	note	:: !HtmlTextarea
+				,	note	:: !Note
 				}
 				
 //Generic derives
-derive gForm	Purchase
-derive gUpd		Purchase
-derive gPrint	Purchase
-derive gParse	Purchase
+derive gPrint		Purchase
+derive gParse		Purchase
+derive gVisualize	Purchase
+derive gUpdate		Purchase
 
 purchaseExample :: [Workflow]
 purchaseExample
@@ -52,10 +55,8 @@ purchaseTask =
 	confirmBid purchase bid
 	
 definePurchase :: Task Purchase
-definePurchase = 
-	[Text "Please describe the product you would like to purchase"]
-	?>> edit ok snd createDefault
-
+definePurchase = requestInformation "Please describe the product you would like to purchase"
+	
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
 	= getUsersWithRole "supplier" >>= \suppliers ->
@@ -65,19 +66,19 @@ selectSuppliers
 	  		[(label, return supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	
-collectBids :: Purchase [(Int,String)] -> Task [((Int,String),HtmlCurrency)]
+collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Money)]
 collectBids purchase suppliers
 	= andTasksEnough
 		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
 where
-	collectBid :: Purchase (Int,String) -> Task ((Int,String),HtmlCurrency)
+	collectBid :: Purchase (Int,String) -> Task ((Int,String),Money)
 	collectBid purchase bid
 		= [Text "Please make a bid to supply the following product"]
 		  ?>> 
 		  (displayValue purchase -||- (editTask "Ok" createDefault >>= \price -> return (bid, price)) <<@ TTVertical)
 		  	
 	
-selectBid :: [((Int,String),HtmlCurrency)] -> Task ((Int,String),HtmlCurrency)
+selectBid :: [((Int,String),Money)] -> Task ((Int,String),Money)
 selectBid bids
 	= determineCheapest bids	>>= \cheapestBid =: ((uid,name),price) ->	
 	[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
@@ -94,7 +95,7 @@ where
 	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
 	yesOrNo = (editTask "Yes" Void >>| return True) -||- (editTask "No" Void >>| return False)
 	
-confirmBid :: Purchase ((Int,String),HtmlCurrency) -> Task Void
+confirmBid :: Purchase ((Int,String),Money) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
 	= uid @: ("Bid confirmation",(
 		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
@@ -102,7 +103,7 @@ confirmBid purchase bid =: ((uid,label),price)
 	))
 	
 //Custom utility combinators 
-andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iData a
+andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iTask a
 andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
 where
 	andTasksEnough` tst

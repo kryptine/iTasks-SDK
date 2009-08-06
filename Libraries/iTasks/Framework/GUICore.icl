@@ -22,6 +22,13 @@ visualizeAsHtmlDisplay x = []
 visualizeAsTextDisplay :: a -> String | gVisualize{|*|} a
 visualizeAsTextDisplay x = join "" (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextDisplay})))
 
+visualizeAsHtmlLabel :: a -> [HtmlTag] | gVisualize{|*|} a
+visualizeAsHtmlLabel x = []
+
+visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
+visualizeAsTextLabel x = join "" (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextLabel})))
+
+
 determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
 determineEditorUpdates name old new = coerceToExtJSUpdates (fst (gVisualize{|*|} old new {mkVSt & vizType = VEditorUpdate, idPrefix = name}))
 

@@ -8,10 +8,17 @@ import StdMaybe
 from TSt		import :: Task
 from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: ProcessType(..)
 from Types		import :: UserId, :: ProcessId, :: DynamicId, :: TaskId
-from TaskTree	import :: TaskProperties
+from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress
+from Time		import :: Timestamp 
 
 from iTasks		import class iTask
 import GenPrint, GenParse, GUICore
+
+derive gVisualize	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gUpdate		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gPrint		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gParse		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+
 
 /**
 * A typed process reference. These references are used to reference

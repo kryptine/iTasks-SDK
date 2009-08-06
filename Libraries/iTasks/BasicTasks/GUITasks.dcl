@@ -1,64 +1,44 @@
 definition module GUITasks
 
-from iTasks import class iTask(..)
+from TSt	import :: Task
+from Types	import :: Role
+from Html	import :: HtmlTag
+from iTasks	import class iTask(..)
 import GenPrint, GenParse, GUICore
 
-from TSt			import :: Task
-from Html			import :: HtmlTag
-
-import CoreCombinators
-
-//HIGH LEVEL
-
-//High level user interaction tasks
-
-class vizHtml a //This class will also be obsolete soon 
+// This type class contains types that are
+// easily displayed as static html
+class html a  
 where
-	vizHtml :: a -> [HtmlTag]
+	html :: a -> [HtmlTag]
 	
-instance vizHtml String
-instance vizHtml [HtmlTag]
+instance html String
+instance html [HtmlTag]
 
 //Input tasks
-requestInformation			:: question -> Task a			| vizHtml question & iTask a
-requestInformationWD		:: question a -> Task a			| vizHtml question & iTask a 	//With default value
+requestInformation			:: question -> Task a			| html question & iTask a
+requestInformationWD		:: question a -> Task a			| html question & iTask a 		//With default value
 
-//requestInformationAbout		:: question b -> Task a			| vizHtml question & iData a & iTask b & iData b
-//requestInformationAboutWD	:: question b a -> Task a		| vizHtml question & iData a & iTask b & iData b	//With default value
+requestInformationAbout		:: question b -> Task a			| html question & iTask a & iTask b
+requestInformationAboutWD	:: question b a -> Task a		| html question & iTask a & iTask b	//With default value
 
-requestConfirmation			:: question -> Task Bool		| vizHtml question
+requestConfirmation			:: question -> Task Bool		| html question
 
-requestChoice				:: question [a] -> Task a		| vizHtml question & iTask a
-requestMultipleChoice		:: question [a] -> Task [a]		| vizHtml question & iTask a
+requestChoice				:: question [a] -> Task a		| html question & iTask a
+requestMultipleChoice		:: question [a] -> Task [a]		| html question & iTask a
 
 //Output tasks
-showMessage					:: message -> Task Void			| vizHtml message
-showMessageAbout			:: message a -> Task Void		| vizHtml message & iTask a
+showMessage					:: message -> Task Void			| html message
+showMessageAbout			:: message a -> Task Void		| html message & iTask a
 
-//notifyUser					:: message UserId -> Task Void	| vizHtml message
-//notifyGroup					:: message Role -> Task Void	| vizHtml message
-
-
-
-
-
+notifyUser					:: message UserId -> Task Void	| html message
+notifyGroup					:: message Role -> Task Void	| html message
 
 //SOON TO BE OBSOLETE!
+import CoreCombinators
 
 //editTask :: !String !a -> Task a | iData a
 editTask s a :== requestInformationWD "Please edit this value" a 
-
-
-/* 
-editTask		:: create a task editor to edit a value of given type, and add a button with given name to finish the task
-editTaskPred	:: create a task editor (with submit button) to edit a value of given type, finish only if predicate holds 
-*/
-//editTask 		:: !String 	!a 								-> Task a		| iData a 
-//editTaskPred 	:: 			!a !(a -> (Bool, [HtmlTag]))	-> Task a		| iData a 
-
-/**
-* Creates a basic task that displays the given html and never finishes.
-*/
 
 displayHtml	msg	:== showMessage msg >>| return defaultValue
 displayValue x	:== showMessageAbout "" x >>| return defaultValue

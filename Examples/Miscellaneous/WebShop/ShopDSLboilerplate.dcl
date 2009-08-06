@@ -4,12 +4,10 @@ import ShopDSL
 import GUICore
 
 //	Generic boilerplate code:
-derive gForm		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpd			Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
 
 //	Manual boilerplate code:
 class billingAddressOf   a :: a -> Address
@@ -17,7 +15,7 @@ class shippingAddressOf  a :: a -> Address
 class amountOrderedOf    a :: a -> Int
 class nameOf             a :: a -> String
 class id_Of              a :: a -> DBRef a
-class priceOf            a :: a -> HtmlCurrency
+class priceOf            a :: a -> Money
 class inStockOf          a :: a -> Int
 
 class billingAddressUpd  a :: a Address      -> a
@@ -25,7 +23,7 @@ class shippingAddressUpd a :: a Address      -> a
 class amountOrderedUpd   a :: a Int          -> a
 class nameUpd            a :: a String       -> a
 class id_Upd             a :: a (DBRef a)    -> a
-class priceUpd           a :: a HtmlCurrency -> a
+class priceUpd           a :: a Money		 -> a
 class inStockUpd         a :: a Int          -> a
 
 instance id_Of              Book;			instance id_Upd             Book

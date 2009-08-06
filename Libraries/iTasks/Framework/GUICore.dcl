@@ -32,6 +32,8 @@ derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 visualizeAsEditor		:: String a -> [ExtJSDef]		| gVisualize{|*|} a
 visualizeAsHtmlDisplay	:: a -> [HtmlTag]				| gVisualize{|*|} a
 visualizeAsTextDisplay	:: a -> String					| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: a -> [HtmlTag]				| gVisualize{|*|} a
+visualizeAsTextLabel	:: a -> String					| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
 determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a

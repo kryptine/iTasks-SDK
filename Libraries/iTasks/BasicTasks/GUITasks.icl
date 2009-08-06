@@ -8,23 +8,23 @@ import	GUICore, Util, Http
 
 from iTasks import class iTask(..)
 
-class vizHtml a 
+class html a 
 where
-	vizHtml :: a -> [HtmlTag]
+	html :: a -> [HtmlTag]
 	
-instance vizHtml String
+instance html String
 where
-	vizHtml s = [Text s]
+	html s = [Text s]
 	
-instance vizHtml [HtmlTag]
+instance html [HtmlTag]
 where
-	vizHtml h = h
+	html h = h
 
 //Input tasks
-requestInformation :: question -> Task a | vizHtml question & iTask a
-requestInformation question = requestInformationWD question createDefault
+requestInformation :: question -> Task a | html question & iTask a
+requestInformation question = requestInformationWD question defaultValue
 
-requestInformationWD :: question a -> Task a | vizHtml question & iTask a //With default value
+requestInformationWD :: question a -> Task a | html question & iTask a //With default value
 requestInformationWD question initial = mkExtJSTask "requestInformationWD" requestInformationWD`
 where
 	requestInformationWD` tst=:{taskNr}
@@ -36,59 +36,146 @@ where
 		# (updates,tst) = getUserUpdates tst	
 		//Update GUI
 		| length updates == 0
-			# tst = setExtJSDef (panel description (form (visualizeAsEditor editorid oldval))) tst
+			# form = visualizeAsEditor editorid oldval
+			# tst = setExtJSDef (taskPanel (html question) Nothing (Just form) [("done","done","Ok","icon-ok")]) tst
 			= (oldval,{tst & activated = False})
 		| otherwise
 			# newval = foldr (\(p,v) -> updateValue p v) oldval updates
-			# done = (http_getValue "ok" updates "") == "ok"
+			# done = (http_getValue "done" updates "") == "done"
 			| done
 				= (newval,{tst & activated = True})
 			| otherwise
-				# updates = determineEditorUpdates editorid oldval newval
-				# tst = setExtJSUpdates updates tst
-				= (newval,{tst & activated = False})
-			
+				# updates	= determineEditorUpdates editorid oldval newval
+				# tst		= setExtJSUpdates updates tst
+				= (newval, {tst & activated = False})
+
+
+requestInformationAbout	:: question b -> Task a	| html question & iTask a & iTask b
+requestInformationAbout question about = requestInformationAboutWD question about defaultValue
+
+requestInformationAboutWD :: question b a -> Task a	| html question & iTask a & iTask b //With default value
+requestInformationAboutWD question about initial = mkExtJSTask "requestInformationAbout" requestInformationAboutWD`
+where
+	requestInformationAboutWD` tst=:{taskNr}
+		# editorid	= "tf-" +++ taskNrToString taskNr
+		//Read current value
+		# (mbtv,tst) = getTaskValue tst
+		# oldval = case mbtv of Nothing = initial; Just v = v;
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst	
+		//Update GUI
+		| length updates == 0
+			# context = visualizeAsHtmlDisplay about
+			# form = visualizeAsEditor editorid oldval
+			# tst = setExtJSDef (taskPanel (html question) (Just context) (Just form) [("done","done","Ok","icon-ok")]) tst
+			= (oldval,{tst & activated = False})
+		| otherwise
+			# newval = foldr (\(p,v) -> updateValue p v) oldval updates
+			# done = (http_getValue "done" updates "") == "done"
+			| done
+				= (newval,{tst & activated = True})
+			| otherwise
+				# updates	= determineEditorUpdates editorid oldval newval
+				# tst		= setExtJSUpdates updates tst
+				= (newval, {tst & activated = False})
+
+requestConfirmation	:: question -> Task Bool | html question
+requestConfirmation question = mkExtJSTask "requestConfirmation" requestConfirmation`
+where
+	requestConfirmation` tst
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst
+		| length updates == 0
+			# tst = setExtJSDef (taskPanel (html question) Nothing Nothing [("answer-no","no","No","icon-no"),("answer-yes","yes","Yes","icon-yes")]) tst
+			= (False,{tst & activated = False})
+		| otherwise
+			= (snd (hd updates) == "yes", tst)
 	
-	panel d f	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = [d,f], buttons = [okbutton]}
-	description = ExtJSHtmlPanel {ExtJSHtmlPanel| html = toString (SpanTag [] (vizHtml question)), border = False, bodyCssClass = "task-description"} 
-	form items	= ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = []}
-	okbutton	= ExtJSButton {ExtJSButton| name = "ok", text = "Ok", value = "ok", iconCls = "icon-ok"}
+requestChoice :: question [a] -> Task a | html question & iTask a
+requestChoice question [] = abort "requestChoice: cannot choose from empty option list"
+requestChoice question options = mkExtJSTask "requestChoice" requestChoice`
+where
+	requestChoice` tst
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst
+		| length updates == 0
+			# form = [ExtJSButton {ExtJSButton	| name = "button-" +++ toString i
+												, value = toString i
+												, text = visualizeAsTextLabel option
+												, iconCls = ""} \\ option <- options & i <- [0..] ]
+			# tst = setExtJSDef (taskPanel (html question) Nothing (Just form) []) tst
+			= (hd options, {tst & activated = False})
+		| otherwise
+			= (options !! (toInt (snd (hd updates))), tst) 
 
-/*
-requestInformationAbout	:: question b -> Task a	| vizHtml question & iData a & iTask b & iData b
-requestInformationAbout question about = requestInformationAboutWD question about createDefault
-
-requestInformationAboutWD :: question b a -> Task a	| vizHtml question & iData a & iTask b & iData b //With default value
-requestInformationAboutWD question about default
-	= requestInformationWD question default -||- (requestInformationWD "" about >>| return question)
-*/
-requestConfirmation	:: question -> Task Bool | vizHtml question
-requestConfirmation question
-	= return True//vizHtml question ?>> (yes -||- no)
-	
-requestChoice :: question [a] -> Task a | vizHtml question & iTask a
-requestChoice question options
-	= abort "TODO requestChoice" // vizHtml question ?>> selectWithRadiogroup [[toHtml o] \\ o <- options] 0 >>= \i -> return (options !! i)
-
-requestMultipleChoice :: question [a] -> Task [a] | vizHtml question & iTask a
+requestMultipleChoice :: question [a] -> Task [a] | html question & iTask a
 requestMultipleChoice question options
 	= abort "TODO: requestMultipleChoice"
-	
-	/*
-	= 				vizHtml question
-	?>> 			selectWithCheckboxes [([toHtml o], False, (\_ x -> x) ) \\ o <- options]
-	>>= \indexes ->	return [options !! i \\ i <- indexes]
-	*/
-	
+
 //Output tasks
-showMessage	:: message -> Task Void	| vizHtml message
-showMessage message = return Void //vizHtml message ?>> button "Ok" Void
+showMessage	:: message -> Task Void	| html message
+showMessage message = mkExtJSTask "showMessage" showMessage`
+where
+	showMessage` tst
+		# (updates,tst) = getUserUpdates tst
+		| length updates == 0
+			# tst = setExtJSDef (taskPanel (html message) Nothing Nothing [("done","done","Ok","icon-ok")]) tst
+			= (Void,{tst & activated = False})
+		| otherwise
+			= (Void, tst)
 
-showMessageAbout :: message a -> Task Void | vizHtml message & iTask a
-showMessageAbout message about = return Void// vizHtml message ?>> (displayValue about -||- button "Ok" Void <<@ TTVertical)
+showMessageAbout :: message a -> Task Void | html message & iTask a
+showMessageAbout message about = mkExtJSTask "showMessageAbout" showMessageAbout`
+where
+	showMessageAbout` tst
+		# (updates,tst) = getUserUpdates tst
+		| length updates == 0
+			# context = visualizeAsHtmlDisplay about
+			# tst = setExtJSDef (taskPanel (html message) (Just context) Nothing [("done","done","Ok","icon-ok")]) tst
+			= (Void,{tst & activated = False})
+		| otherwise
+			= (Void, tst)
 
-//notifyUser				:: message UserId -> Task Void	| vizHtml message
-//notifyGroup				:: message Role -> Task Void	| vizHtml message
+taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [ExtJSDef]) [(String,String,String,String)] -> ExtJSDef
+taskPanel description mbContext mbForm buttons
+	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task"}
+where
+	items = [taskDescriptionPanel description] ++
+			(case mbContext of Just context = [taskContextPanel context]; Nothing = []) ++
+			(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
+			
+	taskDescriptionPanel :: [HtmlTag] -> ExtJSDef
+	taskDescriptionPanel description = ExtJSHtmlPanel {ExtJSHtmlPanel| html = toString (SpanTag [] description), border = False, bodyCssClass = "task-description"} 
+	
+	taskContextPanel :: [HtmlTag] -> ExtJSDef
+	taskContextPanel context = ExtJSHtmlPanel {ExtJSHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
+	
+	taskFormPanel :: [ExtJSDef] -> ExtJSDef
+	taskFormPanel items = ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = [], bodyCssClass = "task-form"}
+	
+	taskButtons	:: [(String,String,String,String)] -> [ExtJSDef]
+	taskButtons buttons = [ExtJSButton {ExtJSButton| name = name, value = value, text = text, iconCls = icon} \\ (name,value,text,icon) <- buttons]
+
+notifyUser :: message UserId -> Task Void | html message
+notifyUser message uid = return Void
+
+notifyGroup :: message Role -> Task Void | html message
+notifyGroup message role = return Void
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 selectWithButtons :: ![String] -> Task Int
 selectWithButtons labels = abort "TODO: selectWithButtons" //mkBasicTask "selectWithButtons" (selectWithButtons` labels)	

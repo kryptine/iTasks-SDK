@@ -1,25 +1,23 @@
 implementation module MovingTask
 
-import iTasks, iDataTrivial
-from ProcessDB import :: ProcessStatus(..)
+import iTasks
+import CommonDomain
 
-derive gForm 		QForm, Person, Gender
-derive gUpd 		QForm, Person, Gender
 derive gVisualize 	QForm, Person, Gender
 derive gUpdate	 	QForm, Person, Gender
 derive gParse 		QForm, Person, Gender
 derive gPrint 		QForm, Person, Gender
 
 :: QForm = 	{ forCompany 		:: String
-			, startDate 		:: HtmlDate
-			, endDate 			:: HtmlDate
+			, startDate 		:: Date
+			, endDate 			:: Date
 			, estimatedHours 	:: Int
-			, description		:: HtmlTextarea
-			, price				:: HtmlCurrency 	
+			, description		:: Note
+			, price				:: Money	
 			}
 :: Person = { firstName			:: String
 			, surname			:: String
-			, dateOfBirth		:: HtmlDate
+			, dateOfBirth		:: Date
 			, gender			:: Gender
 			}
 :: Gender = Male | Female
@@ -39,7 +37,7 @@ trivialTask = [Text "Please fill in quotation:"] ?>> fillInForm createDefault
 fillInForm :: QForm -> Task QForm
 fillInForm form	
 = 					editTask "commit" form 
-	>>= \form ->	chooseTask [Text "Is everything filled in correctly?", toHtml form] 
+	>>= \form ->	chooseTask [Text "Is everything filled in correctly?": visualizeAsHtmlDisplay form] 
 						 [("Yes, commit", return form) 
 						 ,("No", fillInForm form)
 						 ] 
@@ -99,7 +97,7 @@ where
 	=						[Text "Waiting for the result..."]
 							?>> waitForProcess wid 
 		>>= \(Just res) -> 	deleteProcess wid 
-		>>| 				[Text "Finished, the result = ", toHtml res]?>> OK
+		>>| 				[Text "Finished, the result = ": visualizeAsHtmlDisplay res]?>> OK
 
 	
 selectUser :: !String -> Task Int

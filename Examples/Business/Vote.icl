@@ -3,14 +3,13 @@ implementation module Vote
 //This example lets users give a vote.
 //Only the user with role "root" can view the votes
  
-import iTasks, iDataTrivial
+import iTasks
+import CommonDomain
 
-derive gForm  Vote 
-derive gUpd   Vote
-derive gParse Vote
 derive gPrint Vote
-derive read   Vote
-derive write  Vote
+derive gParse Vote
+derive gVisualize Vote
+derive gUpdate Vote
 
 :: Vote = { userId		:: Int
 		  , vote		:: Int
@@ -60,12 +59,12 @@ giveVote
 =							getCurrentUser
 	>>= \(currentUser,_)->	readMyVoteDB currentUser
 	>>= \(vote,comment) ->	chooseTask 
-								[ Text ("Previous vote given:" <+++ if (vote == -1) "No vote given" (toString vote)), BrTag [], BrTag []
+								[ Text ("Previous vote given:" +++ if (vote == -1) "No vote given" (toString vote)), BrTag [], BrTag []
 								, Text "Give your new vote (0 = lowest, 10 = highest)", BrTag [], BrTag []]
 								[(toString i,return i) \\ i <- [0..10]]
 	>>= \vote -> 			readMyVoteDB currentUser
 	>>= \(_,comment) ->		writeVotesDB {userId = currentUser, vote = vote, comment = comment}
-	>>|						[Text ("Your vote " <+++ vote <+++ " has been stored!")]
+	>>|						[Text ("Your vote " +++ toString vote +++ " has been stored!")]
 							?>> button "Ok" Void
 
 giveComment :: Task Void
@@ -75,8 +74,8 @@ giveComment
 	>>= \(vote,comment) ->	[ Text "Previous comment given:", BrTag [], BrTag []
 							, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
 							, Text "Submit a new comment:", BrTag [], BrTag []] 
-							?>> editTask "Ok" textBox <<@ Submit
-	>>= \(HtmlTextarea _ comment) -> readMyVoteDB currentUser
+							?>> editTask "Ok" textBox
+	>>= \(Note comment) -> readMyVoteDB currentUser
 	>>= \(vote,_) ->		
 							writeVotesDB {userId = currentUser, vote = vote, comment = comment}
 	>>|						[ Text "Your comment:", BrTag [], BrTag []
@@ -84,13 +83,13 @@ giveComment
 							, Text "has been stored!"]
 							?>> button "Ok" Void
 where
-	textBox :: HtmlTextarea
+	textBox :: Note
 	textBox = createDefault
 
 //Simple votes database
 
 votesId :: DBid [Vote]
-votesId	= mkDBid "votes" LSTxtFile
+votesId	= mkDBid "votes"
 
 readVotesDB :: Task [Vote]
 readVotesDB = readDB votesId

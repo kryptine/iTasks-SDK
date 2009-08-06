@@ -1,6 +1,6 @@
 implementation module DelegateTask
 
-import iTasks, iDataTrivial
+import iTasks
 
 // (c) 2007 MJP
 
@@ -70,8 +70,7 @@ where
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
-	choosePerson =					editTask "Set" (HtmlSelect [(toString i,toString i) \\ i <- [1..npersons - 1]] (toString 1))
-					>>= \(HtmlSelect options val) ->	return (Just (toInt val))
+	choosePerson = chooseUser >>= \(uid,name) -> return (Just uid)
 
 	cancelTask task = task -||- buttonTask "Cancel" (return createDefault)
 	

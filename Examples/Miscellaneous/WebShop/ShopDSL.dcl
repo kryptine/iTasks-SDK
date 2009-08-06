@@ -1,6 +1,7 @@
 definition module ShopDSL
 
 import iTasks, ShopDSLboilerplate
+import CommonDomain
 
 //	The Domain Specific Language for the shop workflow case.
 class Product a | nameOf, priceOf, id_Of, inStockOf a
@@ -9,7 +10,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 :: Book				=	{ id_				:: !DBRef Book
 						, title				:: !String
 						, author            :: !String
-						, price				:: !HtmlCurrency
+						, price				:: !Money
 						, inStock			:: !Int
 						}
 :: Cart     item	:== [CartItem item]
@@ -17,7 +18,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						, name				:: !String
 						, inStock			:: !Int
 						, amountOrdered		:: !Int
-						, price				:: !HtmlCurrency
+						, price				:: !Money
 						}
 :: CartAmount		=	{ orderAmount		:: !Int
 						}
@@ -34,7 +35,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						}
 :: InCart			=	{ name				:: !String
 						, amountOrdered		:: !Int
-						, price				:: !HtmlCurrency
+						, price				:: !Money
 						}
 :: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
 
@@ -50,5 +51,5 @@ instance DB Book
 instance DB (Order a)
 
 eqItemNr			:: !(CartItem item) !(CartItem item) -> Bool
-totalCost			:: [a] -> HtmlCurrency | priceOf, amountOrderedOf a
+totalCost			:: [a] -> Money | priceOf, amountOrderedOf a
 shopOwner			:: UserId

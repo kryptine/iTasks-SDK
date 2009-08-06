@@ -28,12 +28,14 @@ import	Engine						// basic iTask system creator
 	
 	//StdEnv modules
 	,	StdInt
+	,	StdBool
 	,	StdString
 	,	StdList
 	,	StdOrdList
 	,	StdTuple
 	,	StdEnum
 	,	StdOverloaded
+	,	StdArray
 	,	StdGeneric
 	,	StdDynamic
 
