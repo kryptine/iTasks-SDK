@@ -15,7 +15,7 @@ from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
 import GUITasks, UserTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
 import Util, Either
-import GUICore, GUIWidgets
+import GUICore
 
 derive gPrint Either
 derive gParse Either
@@ -161,8 +161,8 @@ where
 // ******************************************************************************************************
 // Timer Tasks ending when timed out
 
-waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
-waitForTimerTask time  = abort "TODO: fix waitForTimerTask" //waitForTimerTask`
+//waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
+//waitForTimerTask time  = abort "TODO: fix waitForTimerTask" //waitForTimerTask`
 /*
 where
 	waitForTimerTask`

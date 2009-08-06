@@ -29,17 +29,17 @@ CLK_PER_SEC	:== 100
 /**
 * The time data type represents a number of seconds since the epoch (1-1-1970).
 */
-:: Time		= Time !Int
+:: Timestamp	= Timestamp !Int
 /**
 * The clock data type represents a number of CPU clock ticks.
 */
-:: Clock	= Clock !Int
+:: Clock		= Clock !Int
 
 instance toString 	Tm
-instance toString 	Time
 instance toString 	Clock
-instance == 		Time
-instance < 			Time
+instance toString 	Timestamp
+instance == 		Timestamp
+instance < 			Timestamp
 
 /**
 * Get the number of clock ticks since the process start
@@ -48,7 +48,7 @@ clock		:: !*World -> (!Clock, !*World)
 /**
 * Get the number of seconds since the epoch
 */
-time		:: !*World -> (!Time, !*World)
+time		:: !*World -> (!Timestamp, !*World)
 /**
 * Get the current time as GMT
 */
@@ -58,13 +58,13 @@ gmTime		:: !*World -> (!Tm, !*World)
 */
 localTime	:: !*World -> (!Tm, !*World)
 /**
-* Convert a Tm record (local time) to a Time value
+* Convert a Tm record (local time) to a Timestamp value
 */
-mkTime		:: !Tm -> Time
+mkTime		:: !Tm -> Timestamp
 /**
 * Calculate the difference in seconds between two times
 */
-diffTime	:: !Time !Time -> Int
+diffTime	:: !Timestamp !Timestamp -> Int
 /**
 * Format the time structure using the format defined by C's time.h
 */

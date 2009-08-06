@@ -77,7 +77,7 @@ determineTreeWorkItems userId ourWork addSequences isLast (TTMainTask ti mti seq
 			= [mainTaskItem : determineListWorkItemsFixed userId True False isLast sequence]	// A task we have to do, or have delegated, add a new item.
 where
 	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.TaskProperties.subject, delegatorId = fst mti.TaskProperties.delegator
-				   , tree_last = isLast, timestamp = Just ((\(Time i) . i) mti.TaskProperties.issuedAt), priority = Just mti.TaskProperties.priority
+				   , tree_last = isLast, timestamp = Just ((\(Timestamp i) . i) mti.TaskProperties.issuedAt), priority = Just mti.TaskProperties.priority
 				   , progress = Just mti.TaskProperties.progress }
 
 //Sequence nodes

@@ -58,7 +58,7 @@ genSessionId tst
 
 getTimeStamp :: !*TSt -> (!Int, !*TSt)
 getTimeStamp tst
-	# (Time t, tst) = accWorldTSt time tst
+	# (Timestamp t, tst) = accWorldTSt time tst
 	= (t, tst)
 
 sessionStore ::  !([Session] -> [Session]) !*TSt -> (![Session],!*TSt) 

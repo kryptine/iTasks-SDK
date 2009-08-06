@@ -4,7 +4,7 @@ import	StdList, StdTuple, StdMisc, GenBimap
 from	StdFunc import id, const
 import	TSt
 import	CoreCombinators, CommonCombinators, TuningCombinators, PromptingCombinators
-import	GUICore, GUIWidgets, Util, Http	
+import	GUICore, Util, Http	
 
 from iTasks import class iTask(..)
 

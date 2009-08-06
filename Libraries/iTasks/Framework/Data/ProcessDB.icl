@@ -3,9 +3,9 @@ implementation module ProcessDB
 import StdEnv, StdGeneric, StdMaybe, GenBimap
 import TSt, Store, DynamicDB, Util
 
-derive gUpdate	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time 
-derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time 
-derive gParse	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Time
+derive gUpdate	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gPrint	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gParse	Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
 
 instance == ProcessStatus
 where
@@ -121,7 +121,7 @@ isEmbedded {processType = EmbeddedProcess _ _}	= True
 isEmbedded _									= False
 
 //Utility functions
-mkStaticProcessEntry :: Workflow Time (UserId,String) (UserId,String) ProcessStatus -> Process
+mkStaticProcessEntry :: Workflow Timestamp (UserId,String) (UserId,String) ProcessStatus -> Process
 mkStaticProcessEntry workflow timestamp user delegator status
 	=	{ Process
 		| processId		= 0
@@ -146,7 +146,7 @@ mkStaticProcessEntry workflow timestamp user delegator status
 		, changeNr		= 0
 		}
 		
-mkDynamicProcessEntry :: String DynamicId Time (UserId,String) (UserId,String) ProcessStatus ProcessId -> Process
+mkDynamicProcessEntry :: String DynamicId Timestamp (UserId,String) (UserId,String) ProcessStatus ProcessId -> Process
 mkDynamicProcessEntry label task timestamp user delegator status parent
 	=	{ Process
 		| processId	= 0

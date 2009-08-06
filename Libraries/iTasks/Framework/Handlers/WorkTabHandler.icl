@@ -120,8 +120,8 @@ JSONEncode{|TaskPanel|} (CombinationPanel x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
 JSONEncode{|TaskPanel|} (TaskRedundant) c					= ["\"redundant\"" : c]
 
-//JSON specialization for Time: Ignore the constructor
-JSONEncode{|Time|}		(Time x) c							= JSONEncode{|*|} x c
+//JSON specialization for Timestamp: Ignore the constructor
+JSONEncode{|Timestamp|}	(Timestamp x) c						= JSONEncode{|*|} x c
 
 /*
 	Find the relevant content in the task tree:

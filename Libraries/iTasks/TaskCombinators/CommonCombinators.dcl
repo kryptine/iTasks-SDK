@@ -5,10 +5,7 @@ definition module CommonCombinators
 */
 
 import CoreCombinators
-import Either	 
-import GUIWidgets
-
-
+import Either
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
@@ -111,6 +108,6 @@ andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iTask a
 /* Time and Date management:
 waitForTimerTask:: Task is done when specified amount of time has passed 
 */
-waitForTimerTask:: !HtmlTime								-> Task HtmlTime
+//waitForTimerTask:: !HtmlTime								-> Task HtmlTime
 
 

@@ -25,7 +25,6 @@ import	Engine						// basic iTask system creator
 	,	GenBimap
 	,	Util
 	,	GUICore						// Functions for generating GUIS
-	,	GUIWidgets					// Additional GUI widgets
 	
 	//StdEnv modules
 	,	StdInt
@@ -47,7 +46,6 @@ from StdFunc import id, const
 //Types
 import Types
 from TSt		import :: Workflow{..}, :: Change(..), :: ChangeLifeTime(..)
-from Time		import :: Time(..)
 from TaskTree	import :: TaskCombination(..)
 
 //iTask context restriction

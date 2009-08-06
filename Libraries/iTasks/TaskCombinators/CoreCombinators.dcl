@@ -5,7 +5,7 @@ definition module CoreCombinators
 */
 from TSt 			import :: Task,		:: TaskCombination
 from Types 			import :: UserId,	:: TaskPriority
-from Time			import :: Time
+from Time			import :: Timestamp
 
 from	iTasks		import class iTask(..)
 import	GenPrint, GenParse, GUICore
@@ -105,7 +105,7 @@ parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | 
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-assign 	:: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a	| iTask a
+assign 	:: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
 
 /* Experimental department:
 

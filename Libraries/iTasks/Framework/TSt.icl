@@ -70,7 +70,7 @@ initTaskProperties
 		, priority = NormalPriority
 		, deadline = Nothing
 		, progress = TPActive
-		, issuedAt = Time 0
+		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing
 		}

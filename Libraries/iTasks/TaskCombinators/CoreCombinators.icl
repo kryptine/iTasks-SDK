@@ -108,10 +108,10 @@ where
 
 
 
-assign :: !UserId !TaskPriority !(Maybe Time) !(Task a) -> Task a | iTask a	
+assign :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
 assign toUserId initPriority initDeadline task = mkMainTask "assign" (assign` toUserId initPriority initDeadline task) 
 
-assign` :: !UserId !TaskPriority !(Maybe Time) !(Task a) *TSt -> (a, *TSt) | iTask a
+assign` :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) *TSt -> (a, *TSt) | iTask a
 assign` toUserId initPriority initDeadline task tst =: {TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
 			   , userId = currentUserId, delegatorId = currentDelegatorId, doChange, changes}
 	# taskId			= taskNrToString taskNr

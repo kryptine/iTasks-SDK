@@ -1,6 +1,7 @@
 module GuiTest
 
 import iTasks
+import CommonDomain
 
 :: Address =
 	{ street		:: String
@@ -16,17 +17,13 @@ import iTasks
 	, grades		:: [Int]
 	}
 
-myAddress = {street = "Berg en Dalseweg", number = 24, postalCode = "6521JG"}
+derive gPrint		Person, Address
+derive gParse		Person, Address
+derive gVisualize	Person, Address
+derive gUpdate		Person, Address
+
 myPerson = {name = "Bas", cool = True, address = myAddress, age = Just 25, grades = []}
-
-myDefault :: Person
-myDefault = defaultValue
-
-derive gVisualize Person, Address
-derive gUpdate Person, Address
-
-derive gPrint Person, Address
-derive gParse Person, Address
+myAddress = {street = "Berg en Dalseweg", number = 24, postalCode = "6521JG"}
 
 Start :: *World -> *World
 Start world = startEngine [workflow "GUI test" guiTestTask] world

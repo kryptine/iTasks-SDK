@@ -10,7 +10,7 @@ import TaskTree
 
 from SessionDB	import :: Session{..}
 from Store		import :: Store(..)
-from Time		import :: Time(..)
+from Time		import :: Timestamp(..)
 from Http		import :: HTTPRequest
 
 from iTasks		import class iTask(..)

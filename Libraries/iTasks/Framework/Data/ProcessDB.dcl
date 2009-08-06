@@ -6,7 +6,7 @@ definition module ProcessDB
 import StdMaybe
 import Types, TSt
 from TaskTree	import :: TaskProperties
-from Time		import :: Time
+from Time		import :: Timestamp
 
 /**
 * Our local process type
@@ -55,8 +55,8 @@ instance ProcessDB TSt
 /*
 * Utility functions for creating process database entries.
 */
-mkStaticProcessEntry	:: Workflow			Time (UserId,String) (UserId,String) ProcessStatus				-> Process
-mkDynamicProcessEntry	:: String DynamicId	Time (UserId,String) (UserId,String) ProcessStatus ProcessId	-> Process
+mkStaticProcessEntry	:: Workflow			Timestamp (UserId,String) (UserId,String) ProcessStatus				-> Process
+mkDynamicProcessEntry	:: String DynamicId	Timestamp (UserId,String) (UserId,String) ProcessStatus ProcessId	-> Process
 mkEmbeddedProcessEntry	:: ProcessId TaskId		TaskProperties ProcessStatus ProcessId						-> Process
 
 instance toString ProcessStatus
