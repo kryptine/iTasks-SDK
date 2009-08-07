@@ -58,8 +58,6 @@ where
 		
 :: DebugInfo =
 	{ tasktree		:: String
-	, states		:: String
-	, events		:: String
 	}
 
 :: TaskPanel
@@ -213,4 +211,4 @@ updateTimeStamps pid tst
 collectDebugInfo :: TaskTree *TSt -> (Maybe DebugInfo, *TSt)
 collectDebugInfo tree tst
 	# tasktree			= traceTaskTree tree
-	= (Just {tasktree = toString tasktree, states = "TODO", events = "TODO"}, tst)
+	= (Just {tasktree = toString tasktree}, tst)

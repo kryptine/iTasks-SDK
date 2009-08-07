@@ -20,13 +20,13 @@ visualizeAsHtmlDisplay :: a -> [HtmlTag] | gVisualize{|*|} a
 visualizeAsHtmlDisplay x = []
 
 visualizeAsTextDisplay :: a -> String | gVisualize{|*|} a
-visualizeAsTextDisplay x = join "" (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextDisplay})))
+visualizeAsTextDisplay x = join " " (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextDisplay})))
 
 visualizeAsHtmlLabel :: a -> [HtmlTag] | gVisualize{|*|} a
 visualizeAsHtmlLabel x = []
 
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
-visualizeAsTextLabel x = join "" (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextLabel})))
+visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextLabel})))
 
 
 determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
@@ -96,11 +96,14 @@ gVisualize{|CONS of d|} fx (CONS ox) (CONS nx) vst=:{vizType,idPrefix,dataPath,l
 			= ((consSelector d idPrefix dataPath label) ++ vizBody, {VSt|vst & dataPath = stepDataPath dataPath})	
 	_ 	//Text and html visualization
 		# (vizBody, vst) = fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath}
-		= (vizBody, {vst & dataPath = stepDataPath dataPath})
+		= (vizCons ++ vizBody, {vst & dataPath = stepDataPath dataPath})
 		
 where
 	title (Just t)	= t
 	title Nothing	= ""
+	
+	//Do not show constructors that start with an underscore (_Tuple2,_Cons etc.)
+	vizCons = if (d.gcd_name.[0] == '_') [] [TextFragment d.gcd_name]
 
 gVisualize{|OBJECT of d|} fx (OBJECT ox) (OBJECT nx) vst
 	= fx ox nx vst
@@ -271,6 +274,7 @@ gUpdate{|String|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|String|} s ust = (s, ust)
 
+
 //Specialize instance for Dynamic
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
@@ -278,8 +282,9 @@ gUpdate{|Dynamic|} d ust						= (d, ust)
 //Specialized instances for [] and Maybe that choose the non-recursive constructor 
 
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
-gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch}
-	= gUpdateList fx l ust
+gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,currentPath}
+	# (l,ust) = gUpdateList fx l ust
+	= (l,{ust & currentPath = stepDataPath currentPath})
 where
 	gUpdateList fx [] ust=:{USt|currentPath,searchPath,update}
 		| dp2s currentPath == searchPath && update == "_Cons"
@@ -321,7 +326,6 @@ gUpdate{|Maybe|} fx m ust=:{USt|currentPath,searchPath,update}
 derive gUpdate Either, (,), (,,), (,,,), Void
 
 //Utility functions
-
 dp2s :: DataPath -> String
 dp2s path = join "-" (map toString (reverse path))
 

@@ -21,13 +21,13 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	| ExtJSButton ExtJSButton
 	| ExtJSNumberField ExtJSNumberField
 	| ExtJSTextField ExtJSTextField
-	| ExtJSTextArea
+	| ExtJSTextArea ExtJSTextArea
 	| ExtJSComboBox
 	| ExtJSCheckBox ExtJSCheckBox
 	| ExtJSRadio ExtJSRadio
 	| ExtJSRadioGroup ExtJSRadioGroup
-	| ExtJSTimeField
-	| ExtJSDateField
+	| ExtJSTimeField ExtJSTimeField
+	| ExtJSDateField ExtJSDateField
 	| ExtJSHtmlEditor
 	| ExtJSFieldSet ExtJSFieldSet
 	| ExtJSPanel ExtJSPanel
@@ -40,7 +40,6 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, value			:: String
 	, iconCls		:: String
 	}
-
 :: ExtJSNumberField =
 	{ name			:: String
 	, id			:: String
@@ -53,6 +52,14 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, id			:: String
 	, value			:: String
 	, fieldLabel	:: Maybe String
+	}
+:: ExtJSTextArea =
+	{ name			:: String
+	, id			:: String
+	, value			:: String
+	, fieldLabel	:: Maybe String
+	, width			:: Int
+	, height		:: Int
 	}
 :: ExtJSCheckBox =
 	{ name			:: String
@@ -73,6 +80,20 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, id			:: String
 	, fieldLabel	:: Maybe String	
 	, items			:: [ExtJSDef]
+	}
+:: ExtJSDateField =
+	{ name			:: String
+	, id			:: String
+	, value			:: String
+	, format		:: String
+	, fieldLabel	:: Maybe String
+	}
+:: ExtJSTimeField =
+	{ name			:: String
+	, id			:: String
+	, value			:: String
+	, format		:: String
+	, fieldLabel	:: Maybe String
 	}
 :: ExtJSFieldSet =
 	{ title			:: String

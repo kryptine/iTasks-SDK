@@ -28,23 +28,28 @@ import StdString
 	}
 	
 // Money
-:: Money	= Money Currency Int	// Type of currency and amount in cents
-:: Currency 						// A selection of ISO4217 currency codes 
-	= EUR
-	| GBP
-	| USD
-	| JPY
+:: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
+	= EUR Int
+	| GBP Int
+	| USD Int
+	| JPY Int
 	
-derive gPrint		EmailAddress, Password, Note, Date, Time, Money, Currency
-derive gParse		EmailAddress, Password, Note, Date, Time, Money, Currency
-derive gVisualize	EmailAddress, Password, Note, Date, Time, Money, Currency
-derive gUpdate		EmailAddress, Password, Note, Date, Time, Money, Currency
+derive gPrint		EmailAddress, Password, Note, Date, Time, Currency
+derive gParse		EmailAddress, Password, Note, Date, Time, Currency
+derive gVisualize	EmailAddress, Password, Note, Date, Time, Currency
+derive gUpdate		EmailAddress, Password, Note, Date, Time, Currency
 
-instance toString Money
+instance toString Date
+instance toString Time
 instance toString Currency
 
-instance toInt Money
+instance toInt Currency
 
-instance < Money
-instance + Money
-instance zero Money
+instance fromString Date
+instance fromString Time
+
+
+instance < Currency
+instance + Currency
+instance - Currency
+instance zero Currency

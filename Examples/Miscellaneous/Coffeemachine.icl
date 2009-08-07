@@ -9,6 +9,7 @@ implementation module Coffeemachine
 // Some alternative coffee machine definitions have been added as example for the ICFP07 paper.
 
 import iTasks
+import CommonDomain
 
 coffeemachineExample :: [Workflow]
 coffeemachineExample = [{ name = "Examples/Miscellaneous/Coffeemachine"
@@ -16,35 +17,37 @@ coffeemachineExample = [{ name = "Examples/Miscellaneous/Coffeemachine"
 						, roles =[]
 						, mainTask =(forever coffeemachine) >>| return Void
 						}]
-coffeemachine :: Task (String,Int)
-coffeemachine  
-=								chooseTask [Text "Choose product:",Br,Br] 
-									[("Coffee: 100",    return (100,"Coffee"))
-									,("Cappucino: 150", return (150,"Cappucino"))
-									,("Tea: 50",        return (50, "Tea"))
-									,("Chocolate: 100", return (100,"Chocolate"))
+coffeemachine :: Task (String,Currency)
+coffeemachine  =				requestChoice "Choose product"
+									[("Coffee", EUR 100)
+									,("Cappucino", EUR 150)
+									,("Tea", EUR 50)
+									,("Chocolate", EUR 100)
 									] 
-	>>= \(toPay,product) ->		[Text ("Chosen product: " <+++ product),Br,Br] 
-								?>>	getCoins (toPay,0)
+	>>= \(product,toPay) ->		getCoins product (toPay,EUR 0)
 	>>= \(cancel,returnMoney) ->let nproduct = if cancel "Cancelled" product in
-								[Text ("product = " <+++ nproduct <+++ ", returned money = " <+++ returnMoney),Br,Br] 
-								?>>	buttonTask "Thanks" (return (nproduct,returnMoney))
+								showMessage ("product = " <+++ nproduct <+++ ", returned money = " <+++ returnMoney)
+									>>| return (nproduct,returnMoney) 
 
-getCoins :: (Int,Int) -> Task (Bool,Int)
-getCoins (cost,paid) = getCoins`
+getCoins :: String (Currency,Currency) -> Task (Bool,Currency)
+getCoins product (cost,paid) = getCoins`
 where
 	getCoins`		
-		=  					requestChoice ("To pay: " <+++ cost) coins >>= \c -> return (False,c)
+		=  					(requestChoice [ Text ("Chosen product: " <+++ product), BrTag[]
+							              , BrTag []
+							              , Text ("To pay: " <+++ cost), BrTag []
+							              , Text "Please insert a coin..."
+							              ] coins >>= \c -> return (False,c))
 						  	-||-
-						  	buttonTask "Cancel" (return (True,0))
+							((requestConfirmation "...or do you want to stop and get your money back?" <! id )>>| return (True, EUR 0))
 		>>= handleMoney
 
 	handleMoney (cancel,coin)
-	| cancel		= return (cancel,   paid)
-	| cost > coin	= getCoins (cost-coin,paid+coin)
-	| otherwise		= return (cancel,   coin-cost)
-
-	coins			= [5,10,20,50,100,200]
+		| cancel		= return (cancel,   paid)
+		| cost > coin	= getCoins product (cost-coin,paid+coin)
+		| otherwise		= return (cancel,   coin-cost)
+	
+	coins			= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 
 //	getCoins2 is alternative definition of getCoins, but uses repeatTask instead of direct recursion
 

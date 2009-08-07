@@ -334,8 +334,10 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
 		# tst	= initializeState state taskNr mbCxt tst
 		// Execute task function
-		# (a, tst=:{tree=node,activated,store})	= taskfun tst
-		# node									= updateTaskNode activated (printToString a) node
+		# (a, tst)	= taskfun tst
+		// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
+		# tst=:{tree=node,activated,store}	= clearUserUpdates tst
+		# node								= updateTaskNode activated (printToString a) node
 		// Update task state
 		| activated
 			# tst=:{store}		= deleteTaskStates taskNr {tst & store = store}
@@ -401,7 +403,13 @@ where
 			= [u \\ u =:(k,v) <- request.arg_post | k.[0] <> '_']
 		| otherwise
 			= []
-
+clearUserUpdates	:: !*TSt						-> *TSt
+clearUserUpdates tst=:{taskNr, request}
+	| http_getValue "_targettask" request.arg_post "" == taskNrToString taskNr
+		= {tst & request = {request & arg_post = [u \\ u =:(k,v) <- request.arg_post | k.[0] == '_']}}
+	| otherwise
+		= tst
+		
 setCombination :: !TaskCombination !*TSt	-> *TSt
 setCombination combination tst=:{tree}
 	= case tree of 

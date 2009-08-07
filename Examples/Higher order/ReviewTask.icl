@@ -30,7 +30,7 @@ derive gUpdate 		QForm, Review, Person, Gender
 			, endDate 			:: Date
 			, estimatedHours 	:: Int
 			, description		:: Note
-			, price				:: Money 	
+			, price				:: Currency 	
 			}
 :: Person = { firstName			:: String
 			 , surname			:: String

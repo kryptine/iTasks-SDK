@@ -10,7 +10,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 :: Book				=	{ id_				:: !DBRef Book
 						, title				:: !String
 						, author            :: !String
-						, price				:: !Money
+						, price				:: !Currency
 						, inStock			:: !Int
 						}
 :: Cart     item	:== [CartItem item]
@@ -18,7 +18,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						, name				:: !String
 						, inStock			:: !Int
 						, amountOrdered		:: !Int
-						, price				:: !Money
+						, price				:: !Currency
 						}
 :: CartAmount		=	{ orderAmount		:: !Int
 						}
@@ -35,7 +35,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						}
 :: InCart			=	{ name				:: !String
 						, amountOrdered		:: !Int
-						, price				:: !Money
+						, price				:: !Currency
 						}
 :: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
 
@@ -51,5 +51,5 @@ instance DB Book
 instance DB (Order a)
 
 eqItemNr			:: !(CartItem item) !(CartItem item) -> Bool
-totalCost			:: [a] -> Money | priceOf, amountOrderedOf a
+totalCost			:: [a] -> Currency | priceOf, amountOrderedOf a
 shopOwner			:: UserId

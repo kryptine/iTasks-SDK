@@ -292,6 +292,11 @@ getTaskValue		:: !*TSt						-> (Maybe a, !*TSt) | TC a
 
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
 
+/**
+* Removes all events for the current task. This is automatically called by applyTask
+* after task evaluation to prevent updates from being applied twice.
+*/
+clearUserUpdates	:: !*TSt						-> *TSt
 
 /**
 * Sets the combination type of the current task (only for ParallelTasks)

@@ -37,8 +37,8 @@ defaultCart				= createDefault
 eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
 eqItemNr x y			= x.itemNr == y.itemNr
 
-totalCost :: [a] -> Money | priceOf, amountOrderedOf a
-totalCost set			= Money EUR (sum [amountOrderedOf item * toInt (priceOf item) \\ item <- set])
+totalCost :: [a] -> Currency | priceOf, amountOrderedOf a
+totalCost set			= EUR (sum [amountOrderedOf item * toInt (priceOf item) \\ item <- set])
 
 shopOwner :: UserId
 shopOwner				= 0

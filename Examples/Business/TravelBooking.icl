@@ -54,4 +54,4 @@ where
 	BookHotel  	= editTask "BookHotel" 	("Hotel Name "		,"", "Costs ",DefCosts)
 	BookCar  	= editTask "BookCar" 	("Car Brand "		,"", "Costs ",DefCosts)
 
-DefCosts = Money EUR 0
+DefCosts = EUR 0

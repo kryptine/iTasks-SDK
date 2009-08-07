@@ -36,6 +36,12 @@ where
 			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
 		    ]
 		  ]
+	mkTree (TTExtJSTask info _ )
+		= [DivTag [ClassAttr "trace-node"] [
+			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
+			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
+		    ]
+		  ]
 	mkTree (TTSequenceTask info trees)
 		= [TableTag [ClassAttr "trace-sequence"] [
 			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]

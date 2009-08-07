@@ -66,19 +66,19 @@ selectSuppliers
 	  		[(label, return supplier) \\ supplier =: (uid, label) <- suppliers]
 	  )
 	
-collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Money)]
+collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Currency)]
 collectBids purchase suppliers
 	= andTasksEnough
 		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
 where
-	collectBid :: Purchase (Int,String) -> Task ((Int,String),Money)
+	collectBid :: Purchase (Int,String) -> Task ((Int,String),Currency)
 	collectBid purchase bid
 		= [Text "Please make a bid to supply the following product"]
 		  ?>> 
 		  (displayValue purchase -||- (editTask "Ok" createDefault >>= \price -> return (bid, price)) <<@ TTVertical)
 		  	
 	
-selectBid :: [((Int,String),Money)] -> Task ((Int,String),Money)
+selectBid :: [((Int,String),Currency)] -> Task ((Int,String),Currency)
 selectBid bids
 	= determineCheapest bids	>>= \cheapestBid =: ((uid,name),price) ->	
 	[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
@@ -95,7 +95,7 @@ where
 	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
 	yesOrNo = (editTask "Yes" Void >>| return True) -||- (editTask "No" Void >>| return False)
 	
-confirmBid :: Purchase ((Int,String),Money) -> Task Void
+confirmBid :: Purchase ((Int,String),Currency) -> Task Void
 confirmBid purchase bid =: ((uid,label),price)
 	= uid @: ("Bid confirmation",(
 		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]

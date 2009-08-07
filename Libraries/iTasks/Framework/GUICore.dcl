@@ -79,4 +79,13 @@ updateValue				:: String String a -> a	| gUpdate{|*|} a
 	| HtmlFragment [HtmlTag]
 	| ExtJSFragment ExtJSDef
 	| ExtJSUpdate ExtJSUpdate
-	
+
+//Utility functions making specializations of gVisualize
+dp2s			:: DataPath			-> String
+dp2id			:: String DataPath	-> String
+isdps			:: String			-> Bool
+stepDataPath	:: DataPath			-> DataPath
+shiftDataPath	:: DataPath			-> DataPath
+dataPathLevel	:: DataPath			-> Int
+
+

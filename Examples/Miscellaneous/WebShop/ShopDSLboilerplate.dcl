@@ -15,7 +15,7 @@ class shippingAddressOf  a :: a -> Address
 class amountOrderedOf    a :: a -> Int
 class nameOf             a :: a -> String
 class id_Of              a :: a -> DBRef a
-class priceOf            a :: a -> Money
+class priceOf            a :: a -> Currency
 class inStockOf          a :: a -> Int
 
 class billingAddressUpd  a :: a Address      -> a
@@ -23,7 +23,7 @@ class shippingAddressUpd a :: a Address      -> a
 class amountOrderedUpd   a :: a Int          -> a
 class nameUpd            a :: a String       -> a
 class id_Upd             a :: a (DBRef a)    -> a
-class priceUpd           a :: a Money		 -> a
+class priceUpd           a :: a Currency	 -> a
 class inStockUpd         a :: a Int          -> a
 
 instance id_Of              Book;			instance id_Upd             Book
