@@ -14,8 +14,6 @@ implementation module Purchase
 
 import iTasks
 import CommonDomain
-import StdBool
-
 
 //Additional imports for custom combinator creation
 from TSt 		import applyTask, setCombination, mkSequenceTask, mkParallelTask
@@ -73,42 +71,35 @@ collectBids purchase suppliers
 where
 	collectBid :: Purchase (Int,String) -> Task ((Int,String),Currency)
 	collectBid purchase bid
-		= [Text "Please make a bid to supply the following product"]
-		  ?>> 
-		  (displayValue purchase -||- (editTask "Ok" createDefault >>= \price -> return (bid, price)) <<@ TTVertical)
-		  	
+		=	requestInformationAbout
+				[Text "Please make a bid to supply the following product"]
+				purchase
+				>>= \price -> return (bid,price)  	
 	
 selectBid :: [((Int,String),Currency)] -> Task ((Int,String),Currency)
 selectBid bids
-	= determineCheapest bids	>>= \cheapestBid =: ((uid,name),price) ->	
-	[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
-	  Text "Do you want to accept this bid?", BrTag []]
-	?>>
-	yesOrNo >>= \acceptCheapest ->
-	if acceptCheapest
-		( return cheapestBid)
-		( chooseTask
-			[Text "Please select one of the following bids"]
-			[(name +++ " " +++ toString price, return bid) \\ bid =: ((uid,name),price) <- bids] 
-		)
+	=	determineCheapest bids	>>= \cheapestBid=:((uid,name),price) ->	
+		requestConfirmation
+			[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
+	  		  Text "Do you want to accept this bid?"
+	  		] >>= \acceptCheapest ->
+		if acceptCheapest
+			( return cheapestBid )
+			( requestChoice "Please select one of the following bids" bids )
 where
 	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
-	yesOrNo = (editTask "Yes" Void >>| return True) -||- (editTask "No" Void >>| return False)
 	
 confirmBid :: Purchase ((Int,String),Currency) -> Task Void
-confirmBid purchase bid =: ((uid,label),price)
-	= uid @: ("Bid confirmation",(
-		[Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."]
-		?>> editTask "Ok" Void
-	))
-	
+confirmBid purchase bid =: ((uid,label), price)
+	= uid @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."])
+			
 //Custom utility combinators 
 andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iTask a
 andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
 where
 	andTasksEnough` tst
 		# tst						= setCombination TTVertical  tst	//Show parallel sub tasks in reversed order
-		# (_,tst =:{activated})		= applyTask (mkSequenceTask "enough" (applyTask ([Text "Stop if enough results are returned..."] ?>> editTask "Enough" Void))) tst
+		# (_,tst =:{activated})		= applyTask (mkSequenceTask "enough" (applyTask (showMessage "Stop if enough results are returned..."))) tst
 		= applyTask (mkSequenceTask "tasks" (applyTask ((parallel "andTask" (\list -> length list >= 1 && activated) id id [t <<@ l \\(l,t) <- taskCollection]) <<@ (TTSplit msg)))) {tst & activated = True}
 
 	msg = [Text "This task is waiting for the completion of the following tasks:"]

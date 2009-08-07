@@ -1,4 +1,4 @@
-definition module GUITasks
+definition module InteractionTasks
 
 from TSt	import :: Task
 from Types	import :: Role
@@ -37,7 +37,6 @@ notifyGroup					:: message Role -> Task Void	| html message
 //SOON TO BE OBSOLETE!
 import CoreCombinators
 
-//editTask :: !String !a -> Task a | iData a
 editTask s a :== requestInformationWD "Please edit this value" a 
 
 displayHtml	msg	:== showMessage msg >>| return defaultValue

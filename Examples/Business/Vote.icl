@@ -38,13 +38,14 @@ showVotes :: Task Void
 showVotes
 =  						readVotesDB
 	>>=	\votes 		-> 	getDisplayNames [vote.Vote.userId \\ vote <- votes]
-	>>= \userNames	->	[ Text "The following votes are given:", BrTag [], BrTag []
-						, formatVotes	[(toString i) 					\\ i <- [0..10]]
-										[(toString (number i votes))	\\ i <- [0..10]]
-						, HrTag []
-						, formatComments [(u,v) \\ v <- votes & u <- userNames]
-						, HrTag []
-						] ?>> button "Ok" Void
+	>>= \userNames	->	showMessage
+							[ Text "The following votes are given:", BrTag [], BrTag []
+							, formatVotes	[(toString i) 					\\ i <- [0..10]]
+											[(toString (number i votes))	\\ i <- [0..10]]
+							, HrTag []
+							, formatComments [(u,v) \\ v <- votes & u <- userNames]
+							, HrTag []
+							]
 where	
 	number i votes = length [n \\ n <- votes | n.vote == i]
 	formatVotes	header data	= TableTag	[StyleAttr "border: 1px solid #ccc"]
@@ -64,24 +65,27 @@ giveVote
 								[(toString i,return i) \\ i <- [0..10]]
 	>>= \vote -> 			readMyVoteDB currentUser
 	>>= \(_,comment) ->		writeVotesDB {userId = currentUser, vote = vote, comment = comment}
-	>>|						[Text ("Your vote " +++ toString vote +++ " has been stored!")]
-							?>> button "Ok" Void
+	>>|						showMessage [Text ("Your vote " +++ toString vote +++ " has been stored!")]
 
 giveComment :: Task Void
 giveComment
 =							getCurrentUser
  	>>= \(currentUser,_)->	readMyVoteDB currentUser
-	>>= \(vote,comment) ->	[ Text "Previous comment given:", BrTag [], BrTag []
-							, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
-							, Text "Submit a new comment:", BrTag [], BrTag []] 
-							?>> editTask "Ok" textBox
+	>>= \(vote,comment) ->	requestInformationWD 
+								[ Text "Previous comment given:", BrTag [], BrTag []
+								, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
+								, Text "Submit a new comment:", BrTag [], BrTag []
+								] 
+								textBox
 	>>= \(Note comment) -> readMyVoteDB currentUser
 	>>= \(vote,_) ->		
 							writeVotesDB {userId = currentUser, vote = vote, comment = comment}
-	>>|						[ Text "Your comment:", BrTag [], BrTag []
-							, Text comment, BrTag [], BrTag []
-							, Text "has been stored!"]
-							?>> button "Ok" Void
+	>>|						showMessage
+								[ Text "Your comment:", BrTag [], BrTag []
+								, Text comment, BrTag [], BrTag []
+								, Text "has been stored!"
+								]
+						
 where
 	textBox :: Note
 	textBox = createDefault

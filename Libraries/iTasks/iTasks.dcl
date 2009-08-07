@@ -6,7 +6,7 @@ import	Engine						// basic iTask system creator
 	,	EngineWrapperStandalone		// standalone wrapper
 	//,	EngineWrapperCGI			// CGI wrapper
 
-	,	GUITasks					// basic html editors for any type
+	,	InteractionTasks			// tasks for interaction with users
 	,	UserTasks					// tasks for accessing the user database		
 	,	TimeAndDateTasks			// iTasks triggered by time and date 
 	,	StoreTasks					// iTasks store access

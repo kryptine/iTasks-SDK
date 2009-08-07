@@ -1,4 +1,4 @@
-implementation module GUITasks
+implementation module InteractionTasks
 
 import	StdList, StdTuple, StdMisc, GenBimap
 from	StdFunc import id, const

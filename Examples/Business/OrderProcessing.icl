@@ -60,8 +60,7 @@ fillInAndCheckCreditCard cardInfo =
     (invalidCreditCard cardInfo >>| 
      fillInAndCheckCreditCard cardInfo
     )
-			
-									
+												
 // Low level definitions
 customer   :== 10
 bank       :== 11
@@ -77,10 +76,6 @@ deliveryAddress cardInfo = "delivery address: " +++ cardInfo
 :: ItemInfo :== (Int, String, Real)
 :: Basket   :== ItemInfo
 
-
-instance toString (a, b, c) | toString a & toString b & toString c where
-  toString (a, b, c) = "(" +++ toString a +++ ", " +++ toString b +++ ", " +++ toString c +++ ")" 
-  
 amountFrom :: ItemInfo -> Real
 amountFrom (amount, _,price) = toReal amount * price
 
@@ -94,44 +89,40 @@ items = map (\(descr, price) -> (1, descr, price)) descrs
              ]    
 
 orderItemsFromShop :: Task ItemInfo
-orderItemsFromShop =
-  [Text "Please select how many items you would like to order from our shop:"]
-    ?>> editTask "Ok" (hd items)
+orderItemsFromShop
+	= requestInformationWD
+		"Please select how many items you would like to order from our shop:"
+		(hd items)
 
 fillInCreditCard :: CardInfo -> Task CardInfo
-fillInCreditCard cardInfo =
-  [Text "Please fill in your credit card number (at least 5 digits):"]
-    ?>> editTask "Ok" cardInfo
-
+fillInCreditCard cardInfo
+	= requestInformationWD
+		"Please fill in your credit card number (at least 5 digits):"
+		cardInfo
+		
 validateCreditCard :: CardInfo -> Task Bool
 validateCreditCard cardInfo = return (size cardInfo == 5)
 
 invalidCreditCard :: CardInfo -> Task Void	
-invalidCreditCard cardInfo = 
-  [Text "Your credit card was invalid!"] 
-    ?>> ok
+invalidCreditCard cardInfo
+	= showMessage "Your credit card was invalid!"
 
 confirmOrder :: Task Void
-confirmOrder = 
-  [Text "Your order will be processed!"]
-    ?>> ok
+confirmOrder
+	= showMessage "Your order will be processed!"
 
 cashRequest :: Real CardInfo -> Task Bool
-cashRequest amount cardInfo =
-  [Text ("Can we subtract " +++ toString amount +++ " from card " +++ toString cardInfo +++ "?")]
-    ?>> editTask "Ok" False
+cashRequest amount cardInfo
+	= requestConfirmation ("Can we subtract " <+++ amount <+++ " from card " <+++ cardInfo <+++ "?")
     
 deliverOrder :: Basket Address -> Task Void 
-deliverOrder basket address =
-  [Text ("Please deliver " +++ toString basket +++ " to " +++ toString address +++ ".")]
-    ?>> ok
+deliverOrder basket address
+	= showMessage ("Please deliver " <+++ basket <+++ " to " <+++ address <+++ ".")
 
 confirmDelivery :: Basket Address -> Task Void
-confirmDelivery basket address =
-  [Text ("Your order " +++ toString basket +++ " will be delivered to " +++ toString address +++ ".")]
-    ?>> ok
+confirmDelivery basket address
+	= showMessage ("Your order " <+++ basket <+++ " will be delivered to " <+++ address <+++ ".")
 
 failedDelivery :: Basket Address -> Task Void
-failedDelivery basket address =
-  [Text ("Your order " +++ toString basket +++ " cannot be delivered to " +++ toString address +++ ".")]
-    ?>> ok
+failedDelivery basket address
+	= showMessage ("Your order " <+++ basket <+++ " cannot be delivered to " <+++ address <+++ ".")

@@ -70,5 +70,5 @@ where
 
 	confirm  :: Int Int (Date,Time) -> Task Void 
 	confirm me you (date,time)
-	= 	me @:	("confirm",[Text ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time),BrTag [],BrTag []] 
-				?>>	ok)
+	= 	me @:	("Meeting confirmation", showMessage ("User " <+++ me <+++ " and " <+++ you <+++ " have a meeting on " <+++ date <+++ " at " <+++ time))
+				

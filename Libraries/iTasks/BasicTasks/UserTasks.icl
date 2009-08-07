@@ -7,7 +7,7 @@ import StdList
 from UserDB import qualified class UserDB (..)
 from UserDB import qualified instance UserDB TSt
 
-import CoreCombinators, LiftingCombinators, GUITasks
+import CoreCombinators, LiftingCombinators, InteractionTasks
 
 getCurrentUser :: Task (UserId, String)
 getCurrentUser = mkBasicTask "getCurrentUserId" getCurrentUser`

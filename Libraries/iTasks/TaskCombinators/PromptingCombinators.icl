@@ -4,7 +4,7 @@ implementation module PromptingCombinators
 */
 
 import StdList, StdMisc
-import TSt, GUITasks, CoreCombinators, TuningCombinators
+import TSt, InteractionTasks, CoreCombinators, TuningCombinators
 
 (?>>) infixr 5 	:: ![HtmlTag] !(Task a) -> Task a | iTask a
 (?>>) prompt task = parallel "?>>" (\list -> length list > 0) hd undef [displayHtml prompt <<@ "prompt",task <<@ "task"] <<@ TTVertical
