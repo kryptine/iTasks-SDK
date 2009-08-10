@@ -109,12 +109,12 @@ chooseTask_cbox order prompt code_ltasks
 buttonTask :: !String !(Task a) -> (Task a) | iTask a
 buttonTask s task = chooseTask_btn [] [(s,task)]
 
-chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iTask a
-chooseTask prompt options = chooseTask_btn prompt options
+//chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iTask a
+//chooseTask prompt options = chooseTask_btn prompt options
 
-mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iTask a
-mchoiceTasks prompt taskOptions 
-= chooseTask_cbox (\tasks -> sequence "mchoiceTasks" [ t <<@ l \\ (l,t) <- tasks]) prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
+//mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iTask a
+//mchoiceTasks prompt taskOptions 
+//= chooseTask_cbox (\tasks -> sequence "mchoiceTasks" [ t <<@ l \\ (l,t) <- tasks]) prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
 
 mchoiceTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iTask a
 mchoiceTasks2 prompt taskOptions 

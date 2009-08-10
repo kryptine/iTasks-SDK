@@ -31,13 +31,13 @@ manageCatalog _ prompt
 where
 	browseCatalog :: [a] -> Task a | iTask, DB a
 	browseCatalog items = orTasksVert 
-							(map itemActions items ++ [chooseTask_btn [] [("Append",new)]])
+							(map itemActions items ++ [chooseTask "" [("Append",new)]])
 	where
 		new	= dbCreateItem >>= \first -> editTask "Store" first >>= dbUpdateItem
 	
 		itemActions :: a -> Task a | iTask, DB a
 		itemActions item
-			= chooseTask_btn (visualizeAsHtmlDisplay item) 
+			= chooseTask (visualizeAsHtmlDisplay item) 
 				[("Edit",	editTask "Store" item >>= dbUpdateItem)
 				,("Delete",	dbDeleteItem (getItemId item) >>| return item)
 				]
@@ -62,7 +62,7 @@ where
 	where
 		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | iTask, Product a
 		itemActions cart item
-			= chooseTask_btn (visualizeAsHtmlDisplay item)
+			= chooseTask (visualizeAsHtmlDisplay item)
 			    [("Add to Cart", return (ToCart, add (toCartItem item) cart))]
 		where
 			add :: (CartItem a) [CartItem a] -> [CartItem a]
@@ -73,7 +73,7 @@ where
 
 	navigateShop :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | iTask a
 	navigateShop prompt cart
-		= chooseTask [] 
+		= chooseTask "" 
 			[ ("Do Shopping",   	return (ToShop,   cart))
 			, ("Check Out And Pay", return (ToPay,    cart))
 			, ("Show Cart",     	return (ToCart,   cart))

@@ -76,7 +76,7 @@ where
 review :: a -> Task Review | iTask a 
 review v
 =	((visualizeAsHtmlDisplay v) ++ [BrTag [],BrTag []])
-	?>>	chooseTask []
+	?>>	chooseTask ""
 			[ ("Rework",   editTaskSA "Done" (NeedsRework createDefault))
 			, ("Approved", return Approved)
 			, ("Reject",   return Rejected)

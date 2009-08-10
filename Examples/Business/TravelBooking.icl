@@ -13,45 +13,45 @@ import CommonDomain
 travelBookingExample :: [Workflow]
 travelBookingExample
 = [	{ name		= "Examples/Business/Travel booking/Book a trip"
-	, label		= "Book a trip"
+	, label		= "Book your journey"
 	, roles		= []
 	, mainTask	= travel
 	}
   ]
 
+:: Booking :== (String,String,String,Currency)
+
 travel :: Task Void
 travel 
-= 			[Text "Book your journey:",BrTag [],BrTag []]
-			?>>	sequence "travel" [ ( 
-							   mchoiceTasks [Text "Choose Booking options:"]
-							  	[ ("Book Flight",BookFlight)
-								, ("Book Hotel", BookHotel)
-								, ("Book Car",   BookCar)
-								]
-							  <<@ "Step 1: Make Bookings:"
-							  )
-							, ( 
-							   buttonTask "Confirm" (return [])
-							   <<@ "Step 2: Confirm Bookings:"
-							  )
-							]
-				-||- 
-				buttonTask "Cancel" (return [])
-	>>= \booking -> [Text "Handling bookings:",BrTag [],BrTag []]
-					?>> handleBookings booking
+	=	sequence "travel" [ makeBookings <<@ "Step 1: Make Bookings:"
+						  , confirmBookings <<@ "Step 2: Confirm Bookings:"					   
+						  ]
+		-||- 
+		buttonTask "Cancel" (return [])
+
+	>>= \booking -> handleBookings booking
 where
+	makeBookings :: Task [Booking]
+	makeBookings = requestMultipleChoice [Text "Choose Booking options:"]
+						[ (BookFlight <<@ "Book Flight")
+						, (BookHotel <<@ "Book Hotel")
+						, (BookCar <<@ "Book Car")
+						]
+					>>= \tasks -> sequence "bookings" tasks
+
+	confirmBookings :: Task [Booking]
+ 	confirmBookings = buttonTask "Confirm" (return [])
+ 	
+	handleBookings :: [[Booking]] -> Task Void
 	handleBookings booking
-	| isNil	booking	= 		editTask "Cancelled" Void
-	| otherwise		= 		editTask "Pay" (calcCosts booking)
-					  >>|	editTask "Paid" Void
+		| isEmpty	booking	= editTask "Cancelled" Void
+		| otherwise			= (editTask "Pay" (calcCosts booking) >>| editTask "Paid" Void)
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
 
-		isNil [] = True
-		isNil _ = False
 
 	BookFlight  = editTask "BookFlight" ("Flight Number "	,"", "Costs ",DefCosts)
 	BookHotel  	= editTask "BookHotel" 	("Hotel Name "		,"", "Costs ",DefCosts)
 	BookCar  	= editTask "BookCar" 	("Car Brand "		,"", "Costs ",DefCosts)
 
-DefCosts = EUR 0
+	DefCosts = EUR 0

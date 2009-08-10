@@ -1,7 +1,7 @@
 definition module InteractionTasks
 
 from TSt	import :: Task
-from Types	import :: Role
+from Types	import :: UserId, :: Role
 from Html	import :: HtmlTag
 from iTasks	import class iTask(..)
 import GenPrint, GenParse, GUICore
@@ -35,12 +35,6 @@ notifyUser					:: message UserId -> Task Void	| html message
 notifyGroup					:: message Role -> Task Void	| html message
 
 //SOON TO BE OBSOLETE!
-import CoreCombinators
-
-editTask s a :== requestInformationWD "Please edit this value" a 
-
-displayHtml	msg	:== showMessage msg >>| return defaultValue
-displayValue x	:== showMessageAbout "" x >>| return defaultValue
 
 /**
 * Tasks for offering choices to users

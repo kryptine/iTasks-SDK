@@ -71,10 +71,9 @@ newsgroupsExample
 
 internalEmail2 :: (Task Void)
 internalEmail2
-=							[Text "Type your email message ..."] 
-							?>>	editTask "Send" createDefault
-	>>= \msg ->				msg.to` @: (msg.EMail2.subject`, visualizeAsHtmlDisplay msg ?>> ok)
-	>>|						[Text "Mail has been read." ] ?>> ok
+=							requestInformation "Type your email message ..."
+	>>= \msg ->				msg.to` @: (msg.EMail2.subject`, showMessageAbout "You have received the following message:" msg)
+	>>|						showMessage "Mail has been read."
 
 
 internalEmailResponse :: (Task Void)
@@ -83,8 +82,8 @@ where
 	internalEmailResponse`
 	=							getCurrentUser
 		>>= \(me,myname) ->		getToNames
-		>>= \tos ->				[Text "Type your message ..."] 
-								?>>	editTask "Commit" (initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
+		>>= \tos ->				requestInformationWD "Type your message ..."
+									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
 		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
 										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
 										, MailAndReply msg (me,myname) (to,toname))
@@ -93,12 +92,11 @@ where
 	where
 		MailAndReply msg (me,myname) (to,toname)
 		=						to @: 	( msg.subject
-										, (showMSg msg ++ [Text "Reply requested: ", BrTag []])
-										  ?>> editTask "Reply" (Note "")
+										, requestInformationAbout "Reply requested" msg
 										)
 			>>= \(Note reply)
 						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
-									  , showMSg (initMsg myname toname ("RE: " <+++ msg.subject) reply) ?>> ok 
+									  , showMessageAbout "" (initMsg myname toname ("RE: " <+++ msg.subject) reply)
 									  )
 
 	
@@ -106,32 +104,18 @@ internalEmail :: (Task Void)
 internalEmail
 =							getCurrentUser
 	>>= \(me,myname) ->		getToName
-	>>= \(to,toname) ->		[Text "Type your message ..."] 
-							?>>	editTask "Commit" (initMsg toname myname "" "")
-	>>= \msg ->				showMSg msg ?>> (to @: (msg.subject, showMSg msg ?>> ok))
+	>>= \(to,toname) ->		requestInformationWD "Type your message ..." (initMsg toname myname "" "")
+	>>= \msg ->				(showMessageAbout "" msg) -&&- (to @: (msg.subject, showMessageAbout "" msg)) >>| return Void
 
 initMsg to for subject msg 
 = {to = to, mailFrom = for, subject = subject , message = Note msg}
-
-showMSg msg
-# (Note text) = msg.message
-# to		= msg.to
-# for		= msg.mailFrom
-
-=	[ Text ("For : " <+++ to), 			BrTag [] 
-	, Text ("From : " <+++ for), 		BrTag [] 
-	, Text ("Subject : " <+++ msg.subject), BrTag [], HrTag [], BrTag []
-	, Text text
-	, BrTag [], BrTag [], HrTag [] 
-	] 
 
 addNewsGroup :: (Task Void)
 addNewsGroup	= cancel addNewsGroup` 
 where
 	addNewsGroup`
 	=						readNewsGroups
-		>>= \groups ->		(showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
-							?>> editTask "Define" ""
+		>>= \groups ->		requestInformation (showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
 		>>= \newName ->		readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
 		>>= \groups ->		chooseTask (showCurrentNames groups ++ [Text "Do you want to add more ?"])
@@ -203,7 +187,7 @@ where
 	messageList index
 	= 						readNewsGroup group 
 		>>= \newsItems  ->	allTasks [show i newsItem <<@ ("Message " <+++ i) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
-		>>|					editTask "Refresh list" Void
+		>>|					showMessage "Refresh list"
 
 	show :: Int NewsItem -> Task Void
 	show i (who, name, message) 
@@ -218,12 +202,10 @@ where
 		>>= \(me,name) ->      		commit me name group
 	where
 		commit me name group
-		=							[Text "Type your message ..."] 
-									?>>	editTask "Commit" (Note "") 
+		=							requestInformation [Text "Type your message ..."] 
 		 >>= \(Note val) -> 		readNewsGroup  group 
 		 >>= \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
-		 >>|							[Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
-									?>> ok
+		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 
 			
 getToNames = getToNames` []
@@ -240,7 +222,7 @@ where
 getToName ::  (Task (Int,String))
 getToName 
 = 						getUsers
-	>>= \users ->		chooseTask_pdm [Text "Select user to mail a message to: "] 0
+	>>= \users ->		chooseTask [Text "Select user to mail a message to: "]
 							[(name, return (userId,name)) \\ (userId,name) <- users]
 
 

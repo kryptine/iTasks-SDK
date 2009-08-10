@@ -103,6 +103,6 @@ where
 selectUser :: !String -> Task Int
 selectUser prompt
 	= 						getUsers
-		>>= \users ->		chooseTask_pdm [Text prompt] 0
+		>>= \users ->		chooseTask prompt
 								[(name, return userId) \\ (userId,name) <- users]
 

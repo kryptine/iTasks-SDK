@@ -59,9 +59,9 @@ selectSuppliers :: Task [(Int,String)]
 selectSuppliers
 	= getUsersWithRole "supplier" >>= \suppliers ->
 //	= getUsers >>= \suppliers ->
-	  ( mchoiceAndTasks
+	  ( requestMultipleChoice
 	  		[Text "Select the suppliers from which you want to receive a bid"]
-	  		[(label, return supplier) \\ supplier =: (uid, label) <- suppliers]
+	  		suppliers
 	  )
 	
 collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Currency)]
