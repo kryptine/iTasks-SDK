@@ -29,7 +29,7 @@ db = mkDBid "MyIntDB"
 normalTask :: Task Void
 normalTask
 	= forever (				readDB db
-		>>= \initval 	->	requestInformationWD msg initval
+		>>= \initval 	->	updateInformation msg initval
 		>>= \setval		->	inspectVal setval
 		>>= \setval		->	writeDB db setval
 		>>|					return Void

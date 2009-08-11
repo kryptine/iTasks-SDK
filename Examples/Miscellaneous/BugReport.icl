@@ -29,7 +29,7 @@ reportBug
 
 fileReport :: Task BugReport
 fileReport
-	= requestInformation "Please describe the bug you have found"
+	= enterInformation "Please describe the bug you have found"
 		
 assessReport :: BugReport -> Task Void
 assessReport report = return Void

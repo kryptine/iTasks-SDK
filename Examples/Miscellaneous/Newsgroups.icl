@@ -71,7 +71,7 @@ newsgroupsExample
 
 internalEmail2 :: (Task Void)
 internalEmail2
-=							requestInformation "Type your email message ..."
+=							enterInformation "Type your email message ..."
 	>>= \msg ->				msg.to` @: (msg.EMail2.subject`, showMessageAbout "You have received the following message:" msg)
 	>>|						showMessage "Mail has been read."
 
@@ -82,7 +82,7 @@ where
 	internalEmailResponse`
 	=							getCurrentUser
 		>>= \(me,myname) ->		getToNames
-		>>= \tos ->				requestInformationWD "Type your message ..."
+		>>= \tos ->				updateInformation "Type your message ..."
 									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
 		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
 										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
@@ -92,7 +92,7 @@ where
 	where
 		MailAndReply msg (me,myname) (to,toname)
 		=						to @: 	( msg.subject
-										, requestInformationAbout "Reply requested" msg
+										, enterInformationAbout "Please draft a reply to the following message:" msg
 										)
 			>>= \(Note reply)
 						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
@@ -104,7 +104,7 @@ internalEmail :: (Task Void)
 internalEmail
 =							getCurrentUser
 	>>= \(me,myname) ->		getToName
-	>>= \(to,toname) ->		requestInformationWD "Type your message ..." (initMsg toname myname "" "")
+	>>= \(to,toname) ->		updateInformation "Type your message ..." (initMsg toname myname "" "")
 	>>= \msg ->				(showMessageAbout "" msg) -&&- (to @: (msg.subject, showMessageAbout "" msg)) >>| return Void
 
 initMsg to for subject msg 
@@ -115,7 +115,7 @@ addNewsGroup	= cancel addNewsGroup`
 where
 	addNewsGroup`
 	=						readNewsGroups
-		>>= \groups ->		requestInformation (showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
+		>>= \groups ->		enterInformation (showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
 		>>= \newName ->		readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
 		>>= \groups ->		chooseTask (showCurrentNames groups ++ [Text "Do you want to add more ?"])
@@ -199,7 +199,7 @@ where
 		>>= \(me,name) ->      		commit me name group
 	where
 		commit me name group
-		=							requestInformation [Text "Type your message ..."] 
+		=							enterInformation [Text "Type your message ..."] 
 		 >>= \(Note val) -> 		readNewsGroup  group 
 		 >>= \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
 		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 

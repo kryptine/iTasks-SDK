@@ -22,13 +22,13 @@ where
 	html h = h
 
 //Input tasks
-requestInformation :: question -> Task a | html question & iTask a
-requestInformation question = requestInformationWD question defaultValue
+enterInformation :: question -> Task a | html question & iTask a
+enterInformation question = updateInformation question defaultValue
 
-requestInformationWD :: question a -> Task a | html question & iTask a //With default value
-requestInformationWD question initial = mkExtJSTask "requestInformationWD" requestInformationWD`
+updateInformation :: question a -> Task a | html question & iTask a //With default value
+updateInformation question initial = mkExtJSTask "updateInformation" updateInformation`
 where
-	requestInformationWD` tst=:{taskNr}
+	updateInformation` tst=:{taskNr}
 		# editorid	= "tf-" +++ taskNrToString taskNr
 		//Read current value
 		# (mbtv,tst) = getTaskValue tst
@@ -51,13 +51,13 @@ where
 				= (newval, {tst & activated = False})
 
 
-requestInformationAbout	:: question b -> Task a	| html question & iTask a & iTask b
-requestInformationAbout question about = requestInformationAboutWD question about defaultValue
+enterInformationAbout	:: question b -> Task a	| html question & iTask a & iTask b
+enterInformationAbout question about = updateInformationAbout question about defaultValue
 
-requestInformationAboutWD :: question b a -> Task a	| html question & iTask a & iTask b //With default value
-requestInformationAboutWD question about initial = mkExtJSTask "requestInformationAbout" requestInformationAboutWD`
+updateInformationAbout :: question b a -> Task a	| html question & iTask a & iTask b 
+updateInformationAbout question about initial = mkExtJSTask "updateInformationAbout" updateInformationAbout`
 where
-	requestInformationAboutWD` tst=:{taskNr}
+	updateInformationAbout` tst=:{taskNr}
 		# editorid	= "tf-" +++ taskNrToString taskNr
 		//Read current value
 		# (mbtv,tst) = getTaskValue tst

@@ -71,7 +71,7 @@ giveComment :: Task Void
 giveComment
 =							getCurrentUser
  	>>= \(currentUser,_)->	readMyVoteDB currentUser
-	>>= \(vote,comment) ->	requestInformationWD 
+	>>= \(vote,comment) ->	updateInformation
 								[ Text "Previous comment given:", BrTag [], BrTag []
 								, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
 								, Text "Submit a new comment:", BrTag [], BrTag []

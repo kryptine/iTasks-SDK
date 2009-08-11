@@ -45,13 +45,13 @@ where
 	handleBookings :: [[Booking]] -> Task Void
 	handleBookings booking
 		| isEmpty	booking	= showMessage "Cancelled"
-		| otherwise			= (requestInformationWD "Pay" (calcCosts booking) >>| showMessage "Paid")
+		| otherwise			= (updateInformation "Pay" (calcCosts booking) >>| showMessage "Paid")
 	where
 		calcCosts booked = sum [cost \\ (_,_,_,cost) <- hd booked]
 
 
-	BookFlight  = requestInformationWD "BookFlight" ("Flight Number "	,"", "Costs ",DefCosts)
-	BookHotel  	= requestInformationWD "BookHotel" 	("Hotel Name "		,"", "Costs ",DefCosts)
-	BookCar  	= requestInformationWD "BookCar" 	("Car Brand "		,"", "Costs ",DefCosts)
+	BookFlight  = updateInformation "BookFlight" ("Flight Number "	,"", "Costs ",DefCosts)
+	BookHotel  	= updateInformation "BookHotel" 	("Hotel Name "		,"", "Costs ",DefCosts)
+	BookCar  	= updateInformation "BookCar" 	("Car Brand "		,"", "Costs ",DefCosts)
 
 	DefCosts = EUR 0

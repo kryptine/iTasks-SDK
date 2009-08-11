@@ -16,11 +16,11 @@ instance html String
 instance html [HtmlTag]
 
 //Input tasks
-requestInformation			:: question -> Task a			| html question & iTask a
-requestInformationWD		:: question a -> Task a			| html question & iTask a 		//With default value
+enterInformation			:: question -> Task a			| html question & iTask a
+updateInformation			:: question a -> Task a			| html question & iTask a
 
-requestInformationAbout		:: question b -> Task a			| html question & iTask a & iTask b
-requestInformationAboutWD	:: question b a -> Task a		| html question & iTask a & iTask b	//With default value
+enterInformationAbout		:: question b -> Task a			| html question & iTask a & iTask b
+updateInformationAbout		:: question b a -> Task a		| html question & iTask a & iTask b
 
 requestChoice				:: question [a] -> Task a		| html question & iTask a
 //requestChoiceWD				::

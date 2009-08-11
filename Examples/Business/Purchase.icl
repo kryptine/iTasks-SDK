@@ -53,7 +53,7 @@ purchaseTask =
 	confirmBid purchase bid
 	
 definePurchase :: Task Purchase
-definePurchase = requestInformation "Please describe the product you would like to purchase"
+definePurchase = enterInformation "Please describe the product you would like to purchase"
 	
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
@@ -71,7 +71,7 @@ collectBids purchase suppliers
 where
 	collectBid :: Purchase (Int,String) -> Task ((Int,String),Currency)
 	collectBid purchase bid
-		=	requestInformationAbout
+		=	enterInformationAbout
 				[Text "Please make a bid to supply the following product"]
 				purchase
 				>>= \price -> return (bid,price)  	

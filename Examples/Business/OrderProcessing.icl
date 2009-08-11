@@ -90,13 +90,13 @@ items = map (\(descr, price) -> (1, descr, price)) descrs
 
 orderItemsFromShop :: Task ItemInfo
 orderItemsFromShop
-	= requestInformationWD
+	= updateInformation
 		"Please select how many items you would like to order from our shop:"
 		(hd items)
 
 fillInCreditCard :: CardInfo -> Task CardInfo
 fillInCreditCard cardInfo
-	= requestInformationWD
+	= updateInformation
 		"Please fill in your credit card number (at least 5 digits):"
 		cardInfo
 		

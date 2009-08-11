@@ -54,7 +54,7 @@ reviewtask :: Task (QForm,Review)
 reviewtask = taskToReview 1 (createDefault, mytask)
 
 mytask :: a -> (Task a) | iTask a
-mytask v =	requestInformationWD "Fill in Form:" v
+mytask v =	updateInformation "Fill in Form:" v
 
 taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
@@ -72,7 +72,7 @@ review :: a -> Task Review | iTask a
 review v
 =	((visualizeAsHtmlDisplay v) ++ [BrTag [],BrTag []])
 	?>>	chooseTask ""
-			[ ("Rework",   requestInformationWD "Please add your comments" (NeedsRework createDefault))
+			[ ("Rework",   updateInformation "Please add your comments" (NeedsRework createDefault))
 			, ("Approved", return Approved)
 			, ("Reject",   return Rejected)
 			]
