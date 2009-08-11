@@ -51,15 +51,28 @@ eitherTask taska taskb
 			, (taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
 
-
-// ******************************************************************************************************
-// monads for combining iTasks
 (>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
 (>>?) t1 t2 
 = 				t1 
 	>>= \r1 -> 	case r1 of 
 					Nothing 	-> return Nothing
 					Just r`1 	-> t2 r`1
+
+(-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
+(-&?&-) t1 t2 
+= 	parallel "maybeTask" noNothing combineResult combineResult
+			[(t1 >>= \tres -> return (Left tres)) <<@ "Left"
+			,(t2 >>= \tres -> return (Right tres)) <<@ "Right"
+			] <<@ TTHorizontal
+where
+	noNothing []					= False
+	noNothing [Left  Nothing:xs]	= True
+	noNothing [Right Nothing:xs]	= True
+	noNothing [x:xs]				= noNothing xs	
+
+	combineResult	[Left (Just r1),Right (Just r2)]	= Just (r1,r2)
+	combineResult	_									= Nothing
+
 
 // ******************************************************************************************************
 // repetition
@@ -89,68 +102,6 @@ where
 
 selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iTask a
 selection chooser executer tasks = chooser tasks >>= \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < length tasks]
-
-chooseTask_btn 	:: ![HtmlTag] ![LabeledTask a] -> Task a | iTask a
-chooseTask_btn prompt ltasks
-	= (prompt ?>> selectWithButtons (map fst ltasks)) >>= \chosen -> (snd (ltasks!!chosen))
-
-chooseTask_pdm 	:: ![HtmlTag] !Int ![LabeledTask a] -> Task a | iTask a
-chooseTask_pdm prompt initial ltasks
-	= (prompt ?>> selectWithPulldown (map fst ltasks) initial) >>= \chosen -> (snd (ltasks!!chosen))
-	
-chooseTask_cbox	:: !([LabeledTask a] -> Task [a]) ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iTask a
-chooseTask_cbox order prompt code_ltasks
-	= selection (\_ -> prompt ?>> selectWithCheckboxes [(html,set,setfun) \\ ((set,setfun,html),_) <- code_ltasks] ) order (map snd code_ltasks)		
-
-// ******************************************************************************************************
-// choose one or more tasks on forehand out of a set
-
-
-buttonTask :: !String !(Task a) -> (Task a) | iTask a
-buttonTask s task = chooseTask_btn [] [(s,task)]
-
-//chooseTask :: ![HtmlTag] ![LabeledTask a] -> (Task a) | iTask a
-//chooseTask prompt options = chooseTask_btn prompt options
-
-//mchoiceTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iTask a
-//mchoiceTasks prompt taskOptions 
-//= chooseTask_cbox (\tasks -> sequence "mchoiceTasks" [ t <<@ l \\ (l,t) <- tasks]) prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
-
-mchoiceTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iTask a
-mchoiceTasks2 prompt taskOptions 
-= chooseTask_cbox (\tasks -> sequence "mchoiceTasks2" [ t <<@ l \\ (l,t) <- tasks]) prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
-
-mchoiceTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iTask a
-mchoiceTasks3 prompt taskOptions 
-= chooseTask_cbox (\tasks -> sequence "mchoiceTasks3" [ t <<@ l \\ (l,t) <- tasks]) prompt taskOptions
-
-mchoiceAndTasks :: ![HtmlTag] ![LabeledTask a] -> (Task [a]) | iTask a
-mchoiceAndTasks prompt taskOptions 
-= chooseTask_cbox (\tasks -> allTasks [ t <<@ l \\ (l,t) <- tasks]) prompt [((False,\b bs -> bs,[Text label]),(label,task)) \\ (label,task) <- taskOptions]
-
-mchoiceAndTasks2 :: ![HtmlTag] ![(!Bool,LabeledTask a)] -> Task [a] | iTask a
-mchoiceAndTasks2 prompt taskOptions 
-= chooseTask_cbox (\tasks -> allTasks [ t <<@ l \\ (l,t) <- tasks]) prompt [((set,\b bs -> bs,[Text label]),(label,task)) \\ (set,(label,task)) <- taskOptions]
-
-mchoiceAndTasks3 :: ![HtmlTag] ![((!Bool,!(Bool [Bool] -> [Bool]),![HtmlTag]),LabeledTask a)] -> Task [a] | iTask a
-mchoiceAndTasks3 prompt taskOptions 
-= chooseTask_cbox (\tasks -> allTasks [ t <<@ l \\ (l,t) <- tasks]) prompt taskOptions
-
-
-(-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
-(-&?&-) t1 t2 
-= 	parallel "maybeTask" noNothing combineResult combineResult
-			[(t1 >>= \tres -> return (Left tres)) <<@ "Left"
-			,(t2 >>= \tres -> return (Right tres)) <<@ "Right"
-			] <<@ TTHorizontal
-where
-	noNothing []					= False
-	noNothing [Left  Nothing:xs]	= True
-	noNothing [Right Nothing:xs]	= True
-	noNothing [x:xs]				= noNothing xs	
-
-	combineResult	[Left (Just r1),Right (Just r2)]	= Just (r1,r2)
-	combineResult	_									= Nothing
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iTask a
 andTasks_mu label tasks = domu_andTasks tasks

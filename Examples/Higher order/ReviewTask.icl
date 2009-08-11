@@ -50,15 +50,11 @@ reviewTaskExample
 	}
   ]
 
-editTaskSA :: String a -> Task a | iTask a
-editTaskSA s a = editTask s a 
-
 reviewtask :: Task (QForm,Review)
 reviewtask = taskToReview 1 (createDefault, mytask)
 
 mytask :: a -> (Task a) | iTask a
-mytask v =	[Text "Fill in Form:",BrTag [],BrTag []] 
-			?>> editTaskSA "TaskDone" v 
+mytask v =	requestInformationWD "Fill in Form:" v
 
 taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
@@ -67,8 +63,7 @@ where
 	taskToReview`
 	=					task v`               
 		>>= \v ->		reviewer @: ("Review", review v) 
-		>>= \r ->		[Text ("Reviewer " <+++ reviewer <+++ " says ") :visualizeAsHtmlDisplay r] 
-						?>> editTask "OK" Void 
+		>>= \r ->		showMessageAbout [Text ("Reviewer " <+++ reviewer <+++ " says ")] r 
 		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
 							else            -> return (v,r)
@@ -77,7 +72,7 @@ review :: a -> Task Review | iTask a
 review v
 =	((visualizeAsHtmlDisplay v) ++ [BrTag [],BrTag []])
 	?>>	chooseTask ""
-			[ ("Rework",   editTaskSA "Done" (NeedsRework createDefault))
+			[ ("Rework",   requestInformationWD "Please add your comments" (NeedsRework createDefault))
 			, ("Approved", return Approved)
 			, ("Reject",   return Rejected)
 			]

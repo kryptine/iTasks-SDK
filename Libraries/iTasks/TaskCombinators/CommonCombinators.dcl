@@ -47,8 +47,6 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 */
 selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iTask a
 
-editTask s a :== requestInformationWD "Please edit this value" a 
-
 displayHtml	msg	:== showMessage msg >>| return defaultValue
 displayValue x	:== showMessageAbout "" x >>| return defaultValue
 
@@ -59,9 +57,14 @@ chooseTask msg tasks :== requestChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \task
 //mchoiceTasks 	:: ![HtmlTag] ![LabeledTask a] 				-> Task [a] 	| iTask a
 mchoiceTasks msg tasks :== requestChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \sel -> sequence "mchoiceTasks" sel
 
+//buttonTask		:: !String   !(Task a)						-> Task a 		| iTask a
+buttonTask s t :== requestChoice "" [t <<@ s] >>= \task -> task
 
-buttonTask		:: !String   !(Task a)						-> Task a 		| iTask a
+//button :: !String !a -> Task a | iTask a
+button s a :== requestChoice "" [s] >>| return a
 
+//ok :: Task Void
+ok :== showMessage ""
 
 /* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
 

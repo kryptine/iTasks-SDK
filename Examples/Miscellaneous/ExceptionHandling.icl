@@ -29,13 +29,13 @@ db = mkDBid "MyIntDB"
 normalTask :: Task Void
 normalTask
 	= forever (				readDB db
-		>>= \initval 	->	(msg ?>> editTask "Set" initval)
+		>>= \initval 	->	requestInformationWD msg initval
 		>>= \setval		->	inspectVal setval
 		>>= \setval		->	writeDB db setval
 		>>|					return Void
 		)
 where
-	msg = [Text "Please enter only values between 0 and 100"]
+	msg = "Please enter only values between 0 and 100"
 	
 	inspectVal val
 		| val < 0	= throw (NegativeValueException "Negative value entered")

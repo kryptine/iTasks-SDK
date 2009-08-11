@@ -33,12 +33,12 @@ where
 	browseCatalog items = orTasksVert 
 							(map itemActions items ++ [chooseTask "" [("Append",new)]])
 	where
-		new	= dbCreateItem >>= \first -> editTask "Store" first >>= dbUpdateItem
+		new	= dbCreateItem >>= \first -> requestInformationWD "Enter details of new item:" first >>= dbUpdateItem
 	
 		itemActions :: a -> Task a | iTask, DB a
 		itemActions item
 			= chooseTask (visualizeAsHtmlDisplay item) 
-				[("Edit",	editTask "Store" item >>= dbUpdateItem)
+				[("Edit",	requestInformationWD "Please update the following item:" item >>= dbUpdateItem)
 				,("Delete",	dbDeleteItem (getItemId item) >>| return item)
 				]
 
@@ -101,7 +101,7 @@ where
 		itemActions :: (Cart a) (CartItem a) -> Task (ShopAction,Cart a) | iTask a
 		itemActions cart item
 			= (visualizeAsHtmlDisplay item)
-				?>> editTask "Change" {orderAmount = amountOrderedOf item} >>= \{orderAmount=n} -> 
+				?>> requestInformationWD "Change amount: " {orderAmount = amountOrderedOf item} >>= \{orderAmount=n} -> 
 				    return (ToCart,if (n <= 0) (filter (not o eqItemNr item) cart)
 				                               (lreplace eqItemNr (amountOrderedUpd item n) cart)
 				           )
@@ -138,7 +138,7 @@ where
 			shipping_prompt = "Please fill in the shipping address:"
 			
 			fillInData prompt valueOf updateOf record
-				= [normalText prompt] ?>> editTask "Commit" (valueOf record) >>= \value -> 
+				= requestInformationWD [normalText prompt] (valueOf record) >>= \value -> 
 				  return (updateOf record value)
 			
 			showOrder order

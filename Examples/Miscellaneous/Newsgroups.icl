@@ -142,8 +142,7 @@ where
 	subscribe me myname []
 	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> ok 
 	subscribe me myname groups
-	=						[Text "Choose a group:", BrTag [],BrTag []] ?>> selectWithPulldown groups 0  
-		>>= \index	->		return (groups!!index)
+	=						requestChoice "Choose a group:" groups
 		>>= \group ->		addSubscription me (group,0)
 		>>|					spawnProcess me True (readNews me group 0 <<@ group <+++ " news group subscription")
 		>>|					return Void
@@ -163,13 +162,11 @@ readNews me group index
 						(return Void)
 where
 	unsubscribe
-	=						chooseTask [Text "Do you realy want to unsubscribe ?", BrTag [], BrTag []]
-								[ ("Yes",return -1)
-								, ("No",return index)
-								]
+	=						requestConfirmation "Do you realy want to unsubscribe ?"
+								>>= \yn -> return (if yn -1 index) 
 
 	readMore 
-	=						chooseTask [Text "Browse through messagelist...", BrTag [], BrTag []]
+	=						chooseTask "Browse through messagelist..."
 								[ ("Previous " <+++ nmessage, readMoreNews (~nmessage))
 								, ("Next " <+++ nmessage, 	  readMoreNews nmessage)
 								]

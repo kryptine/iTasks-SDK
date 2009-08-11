@@ -32,11 +32,11 @@ movingTaskExample
   ]
 
 trivialTask :: Task QForm
-trivialTask = [Text "Please fill in quotation:"] ?>> fillInForm createDefault
+trivialTask = fillInForm createDefault
 
 fillInForm :: QForm -> Task QForm
 fillInForm form	
-= 					editTask "commit" form 
+= 					requestInformationWD "Please fill in quotation:" form 
 	>>= \form ->	chooseTask [Text "Is everything filled in correctly?": visualizeAsHtmlDisplay form] 
 						 [("Yes, commit", return form) 
 						 ,("No", fillInForm form)

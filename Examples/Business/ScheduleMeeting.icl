@@ -46,8 +46,7 @@ where
 	where
 		proposeDateTime :: (Date,Time) -> Task (Date,Time)
 		proposeDateTime (date,time)
-		=							[Text "Propose a new date and time for meeting:",BrTag [],BrTag []] 
-									?>>	editTask "Set" input 
+		=							requestInformationWD [Text "Propose a new date and time for meeting:",BrTag [],BrTag []] input 
 			>>= \(_,date,_,time) -> return (date,time)
 		where
 			input = (toString (Text "date: "), date, toString (Text "time: "), time)

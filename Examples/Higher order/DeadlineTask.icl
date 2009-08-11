@@ -23,14 +23,13 @@ deadlineTaskExample
   ] 
 
 trivialTask :: Task Int
-trivialTask = editTask "OK" 0 <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
+trivialTask = requestInformation "Enter a number larger than 42" <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
 
 deadline :: (Task a) -> Task a | iTask a
 deadline task
 =					[Text "Choose person you want to delegate work to:",BrTag [],BrTag []] 
 					?>>	chooseUser
-	>>= \(whom,name) ->	[Text "How long do you want to wait?",BrTag [],BrTag []] 
-					?>>	editTask "SetTime" {Time|hour = 0, min = 0, sec = 0} 
+	>>= \(whom,name) ->	requestInformation "How long do you want to wait?" 
 	>>= \time ->	[Text "Cancel delegated work if you are getting impatient:",BrTag [],BrTag []] 
 					?>> (delegateTask (toInt whom) time task
 					-||-

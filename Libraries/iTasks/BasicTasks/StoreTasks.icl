@@ -28,9 +28,9 @@ where
 writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkBasicTask "writeDB" writeDB`
 where
-	writeDB` tst=:{store}
+	writeDB` tst=:{TSt|store}
 		# store = storeValue (DB_PREFIX +++ key) value store
-		= (value, {tst & store = store})
+		= (value, {TSt| tst & store = store})
 		
 mkDBid :: !String -> (DBid a)
 mkDBid s = s

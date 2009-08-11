@@ -18,7 +18,7 @@ where
 				# (a, tst =:{exception})	= applyTask normalTask {tst & store = store, world = world}
 				= case exception of
 					Just (ex :: e^)
-						# tst=:{store}		= deleteTaskStates (tl taskNr) tst 														//Garbage collect
+						# tst=:{TSt|store}	= deleteTaskStates (tl taskNr) tst 														//Garbage collect
 						# store				= storeValueAs SFDynamic key ex store													//Store the exception
 						= applyTask (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, store = store})	//Run the handler
 						

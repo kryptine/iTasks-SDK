@@ -340,7 +340,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 		# node								= updateTaskNode activated (printToString a) node
 		// Update task state
 		| activated
-			# tst=:{store}		= deleteTaskStates taskNr {tst & store = store}
+			# tst=:{TSt|store}	= deleteTaskStates taskNr {TSt|tst & store = store}
 			# store				= storeValue taskId (TSDone, a) store
 			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
 			= (a, tst)

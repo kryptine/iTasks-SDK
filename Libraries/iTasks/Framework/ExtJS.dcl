@@ -22,7 +22,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	| ExtJSNumberField ExtJSNumberField
 	| ExtJSTextField ExtJSTextField
 	| ExtJSTextArea ExtJSTextArea
-	| ExtJSComboBox
+	| ExtJSComboBox ExtJSComboBox
 	| ExtJSCheckBox ExtJSCheckBox
 	| ExtJSRadio ExtJSRadio
 	| ExtJSRadioGroup ExtJSRadioGroup
@@ -60,6 +60,15 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, fieldLabel	:: Maybe String
 	, width			:: Int
 	, height		:: Int
+	}
+:: ExtJSComboBox =
+	{ name			:: String
+	, id			:: String
+	, value			:: String
+	, fieldLabel	:: Maybe String
+	, store			:: [(String,String)]
+	, triggerAction	:: String
+	, editable		:: Bool
 	}
 :: ExtJSCheckBox =
 	{ name			:: String

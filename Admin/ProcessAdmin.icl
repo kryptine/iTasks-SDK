@@ -40,7 +40,7 @@ where
 	
 	processTasks :: [(Process -> String, Process -> Task Bool)]
  	processTasks = [(\proc -> if (isActive proc) "Suspend" "Activate",	toggleProcess)
- 				   ,(\_ -> "Inspect",									inspectProcess)
+ 				   ,(\_ -> "Inspect",									\p -> ok >>| return True)
  				   ,(\_ -> "Kill",										killProcess)
  				   ]
 
@@ -57,8 +57,6 @@ toggleProcess process=:{Process|processId,status}
 		Suspended	= setProcessStatus Active processId		
 	  >>| return False
 
-inspectProcess :: Process -> Task Bool
-inspectProcess process = yes
 
 killProcess :: Process -> Task Bool
 killProcess process=:{Process|processId}
@@ -66,8 +64,4 @@ killProcess process=:{Process|processId}
 	>>|	return False
 
 gridChooseTask :: [a] [[HtmlTag]] (a -> [HtmlTag]) [(a -> String, a -> Task Bool)] -> Task Bool | iTask a
-gridChooseTask xs header rowVisualizeFun rowTasks
-	=				anyTask (map row xs)	//Show the grid
-	>>= \task -> 	task																																	//Execute the chosen task
-where
-	row x = rowVisualizeFun x ?>> parallel "row-content" (\list -> length list == 1) (\[index] -> (snd (rowTasks !! index)) x) undef [selectWithButtons [labelFun x \\ (labelFun,_) <- rowTasks]]
+gridChooseTask xs header rowVisualizeFun rowTasks = abort "TODO: REMOVE gridChooseTask"

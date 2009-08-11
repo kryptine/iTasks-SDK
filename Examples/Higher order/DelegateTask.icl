@@ -28,10 +28,10 @@ delegateTaskExample
   ]
 */
 trivialTask :: Task Int
-trivialTask =			editTask "Done1" 0 
-			>>= \v1 ->	editTask "Done2" 0 
-			>>= \v2 ->	editTask "Done3" 0 
-			>>= \v3 -> 	editTask "Result" (v1 + v2 + v3)
+trivialTask =			requestInformation "Enter nr 1" 
+			>>= \v1 ->	requestInformation "Enter nr 2"  
+			>>= \v2 ->	requestInformation "Enter nr 3" 
+			>>= \v3 -> 	requestInformationWD "Your result is:" (v1 + v2 + v3)
 
 /*
 delegateTask :: (Task a) HtmlTime -> (Task a) | iData a

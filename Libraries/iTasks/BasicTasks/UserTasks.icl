@@ -1,13 +1,13 @@
 implementation module UserTasks
 
-from TSt import :: Task
+from TSt import :: Task, :: TSt
 from TSt import mkBasicTask
 from TSt import qualified getCurrentUser
 import StdList
 from UserDB import qualified class UserDB (..)
 from UserDB import qualified instance UserDB TSt
 
-import CoreCombinators, LiftingCombinators, InteractionTasks
+import InteractionTasks, CoreCombinators
 
 getCurrentUser :: Task (UserId, String)
 getCurrentUser = mkBasicTask "getCurrentUserId" getCurrentUser`
@@ -37,11 +37,10 @@ getRoles uids = mkBasicTask "getRoles" (UserDB@getRoles uids)
 chooseUser :: Task (UserId,String)
 chooseUser
 	= 				getUsers
-	>>= \users ->	selectWithPulldown [name \\ (userId,name) <- users] 0
-	>>= \chosen ->	return (users !! chosen)
+	>>= \users ->	requestChoice "Select a user" users
+
 	
 chooseUserWithRole :: !String -> Task (UserId,String)
 chooseUserWithRole role
 	= 				getUsersWithRole role
-	>>= \users ->	selectWithPulldown [name \\ (userId,name) <- users] 0
-	>>= \chosen ->	return (users !! chosen)
+	>>= \users ->	requestChoice "Select a user" users

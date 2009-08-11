@@ -364,10 +364,11 @@ consSelector d idPrefix dataPath label
 		= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label})]
 	//Use combobox to choose a constructor
 	| otherwise
-		= [] //TODO
+		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = d.gcd_name, fieldLabel = label, store = store, triggerAction = "all", editable = False})]
 where
 	items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = c.gcd_index == index, fieldLabel = Nothing} 
 			  \\ c <- d.gcd_type_def.gtd_conses]
+	store	= [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]
 	name	= dp2s dataPath
 	id		= dp2id idPrefix dataPath
 	index	= d.gcd_index
