@@ -46,11 +46,13 @@ updateValue				:: String String a -> a	| gUpdate{|*|} a
 
 //Type definitions for visualization & updating
 :: *VSt =
-	{ vizType			:: VisualizationType	//Type of preferred visualization
-	, idPrefix			:: String				//Prefix for all identity strings of editor fields 
-	, dataPath			:: DataPath				//Accumulated path through the data structure, used to identify sub-structures
-	, label				:: Maybe String			//Optional label to attach to editor fields
-	, consBody			:: Bool					//Only generate a constructor body for editors
+	{ vizType			:: VisualizationType	// Type of preferred visualization
+	, idPrefix			:: String				// Prefix for all identity strings of editor fields 
+	, dataPath			:: DataPath				// Accumulated path through the data structure, used to identify sub-structures
+	, label				:: Maybe String			// Optional label to attach to editor fields
+	, consBody			:: Bool					// Only generate a constructor body for editors
+	, optional			:: Bool					// Create optional form fields
+	, blank				:: Bool					// Is the editor to use a blank entry field
 	}
 
 :: *USt =
@@ -88,4 +90,5 @@ stepDataPath	:: DataPath			-> DataPath
 shiftDataPath	:: DataPath			-> DataPath
 dataPathLevel	:: DataPath			-> Int
 
-
+value2s :: Bool a -> String | toString a
+label2s :: Bool (Maybe String) -> Maybe String

@@ -80,6 +80,7 @@ where
 				# tst		= setExtJSUpdates updates tst
 				= (newval, {tst & activated = False})
 
+
 requestConfirmation	:: question -> Task Bool | html question
 requestConfirmation question = mkExtJSTask "requestConfirmation" requestConfirmation`
 where

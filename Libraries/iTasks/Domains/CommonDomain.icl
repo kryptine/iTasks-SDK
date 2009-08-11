@@ -11,19 +11,19 @@ derive gVisualize	EmailAddress, Password
 derive gUpdate		EmailAddress, Password, Note, Currency
 derive gLexOrd		Currency
 
-gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,dataPath}
+gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = toString old, format = "d-m-Y", fieldLabel = label})], {VSt|vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, format = "d-m-Y", fieldLabel = label2s optional label})], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
 
-gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,dataPath}
+gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = toString old, format = "H:i:s", fieldLabel = label})], {VSt|vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, format = "H:i:s", fieldLabel = label2s optional label})], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
 
-gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,dataPath}
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = toString old, fieldLabel = label, width = 400, height = 150 })], {VSt|vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s blank old, fieldLabel = label2s optional label, width = 400, height = 150 })], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
 where
 	// Use the path to the inner constructor instead of the current path.

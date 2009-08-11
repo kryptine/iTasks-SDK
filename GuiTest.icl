@@ -8,7 +8,8 @@ import CommonDomain
 	, number		:: Int
 	, postalCode	:: String
 	}
-	
+
+
 :: Person =
 	{ name			:: String
 	, cool			:: Bool
@@ -31,5 +32,5 @@ myAddress = {street = "Berg en Dalseweg", number = 24, postalCode = "6521JG"}
 Start :: *World -> *World
 Start world = startEngine [workflow "GUI test" guiTestTask] world
 
-guiTestTask :: Task Void
-guiTestTask = requestInformationWD "Please update your personal information" myPerson >>| return Void
+guiTestTask :: Task Person
+guiTestTask = requestInformation "Please enter your personal information"
