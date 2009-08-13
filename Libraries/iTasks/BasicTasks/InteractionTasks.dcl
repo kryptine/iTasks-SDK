@@ -22,20 +22,20 @@ updateInformation			:: question a -> Task a			| html question & iTask a
 enterInformationAbout		:: question b -> Task a			| html question & iTask a & iTask b
 updateInformationAbout		:: question b a -> Task a		| html question & iTask a & iTask b
 
-requestChoice				:: question [a] -> Task a		| html question & iTask a
+enterChoice					:: question [a] -> Task a		| html question & iTask a
 //requestChoiceWD				::
 
 //requestChoiceAbout			::
 //requestChoiceAboutWD		::
 
-requestMultipleChoice		:: question [a] -> Task [a]		| html question & iTask a
+enterMultipleChoice			:: question [a] -> Task [a]		| html question & iTask a
 //requestMultipleChoiceWD		::
 
 //requestMultipleChoiceAbout	::
 //requestMultipleChoiceAboutWD::
 
 requestConfirmation			:: question -> Task Bool		| html question
-//requestConfirmationAbout	::
+requestConfirmationAbout	:: question a -> Task Bool		| html question & iTask a
 
 //Output tasks
 showMessage					:: message -> Task Void			| html message

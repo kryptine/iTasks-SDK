@@ -14,7 +14,7 @@ DB_PREFIX 	:== "UserStore-"
 :: DBid a
 
 //Database identifier to a value of type a in a database with multiple values
-:: DBRef a
+:: DBRef a = DBRef Int
 
 derive gVisualize	DBRef
 derive gUpdate		DBRef

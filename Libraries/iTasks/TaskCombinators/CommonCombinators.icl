@@ -98,10 +98,6 @@ where
 (@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
 
 // ******************************************************************************************************
-// choose one or more tasks on forehand out of a set
-
-selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iTask a
-selection chooser executer tasks = chooser tasks >>= \chosen -> executer [tasks!!i \\ i <- chosen | i >=0 && i < length tasks]
 
 andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iTask a
 andTasks_mu label tasks = domu_andTasks tasks

@@ -35,33 +35,21 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 
 //TO BE OBSOLETE
 
-/**
-* Select n tasks to do out of m (n <= m) and execute them in indicated order. First a
-* selecting task is executed which determines which tasks have to be done. Then these selected
-* tasks are combined by
-*
-* @param A selecting task that given a list of labeled tasks yields a list of indexes in the list
-*        of labeled tasks. The tasks with these indexes will be executed.
-* @param A task that combines a list of labeled tasks into a single task
-* @return The combined task
-*/
-selection :: !([LabeledTask a] -> Task [Int]) !([LabeledTask a] -> Task [a]) ![LabeledTask a] -> Task [a] | iTask a
-
 displayHtml	msg	:== showMessage msg >>| return defaultValue
 displayValue x	:== showMessageAbout "" x >>| return defaultValue
 
 //Choose the tasks you want to do on forehand:
 //chooseTask		:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iTask a
-chooseTask msg tasks :== requestChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \task -> task
+chooseTask msg tasks :== enterChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \task -> task
 
 //mchoiceTasks 	:: ![HtmlTag] ![LabeledTask a] 				-> Task [a] 	| iTask a
-mchoiceTasks msg tasks :== requestChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \sel -> sequence "mchoiceTasks" sel
+mchoiceTasks msg tasks :== enterChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \sel -> sequence "mchoiceTasks" sel
 
 //buttonTask		:: !String   !(Task a)						-> Task a 		| iTask a
-buttonTask s t :== requestChoice "" [t <<@ s] >>= \task -> task
+buttonTask s t :== enterChoice "" [t <<@ s] >>= \task -> task
 
 //button :: !String !a -> Task a | iTask a
-button s a :== requestChoice "" [s] >>| return a
+button s a :== enterChoice "" [s] >>| return a
 
 //ok :: Task Void
 ok :== showMessage ""

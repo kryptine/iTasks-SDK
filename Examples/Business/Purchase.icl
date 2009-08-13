@@ -58,8 +58,7 @@ definePurchase = enterInformation "Please describe the product you would like to
 selectSuppliers :: Task [(Int,String)]
 selectSuppliers
 	= getUsersWithRole "supplier" >>= \suppliers ->
-//	= getUsers >>= \suppliers ->
-	  ( requestMultipleChoice
+	  ( enterMultipleChoice
 	  		[Text "Select the suppliers from which you want to receive a bid"]
 	  		suppliers
 	  )
@@ -85,7 +84,7 @@ selectBid bids
 	  		] >>= \acceptCheapest ->
 		if acceptCheapest
 			( return cheapestBid )
-			( requestChoice "Please select one of the following bids" bids )
+			( enterChoice "Please select one of the following bids" bids )
 where
 	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
 	

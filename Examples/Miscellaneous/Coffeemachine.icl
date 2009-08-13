@@ -18,7 +18,7 @@ coffeemachineExample = [{ name = "Examples/Miscellaneous/Coffeemachine"
 						, mainTask =(forever coffeemachine) >>| return Void
 						}]
 coffeemachine :: Task (String,Currency)
-coffeemachine  =				requestChoice "Choose product"
+coffeemachine  =				enterChoice "Choose product"
 									[("Coffee", EUR 100)
 									,("Cappucino", EUR 150)
 									,("Tea", EUR 50)
@@ -33,7 +33,7 @@ getCoins :: String (Currency,Currency) -> Task (Bool,Currency)
 getCoins product (cost,paid) = getCoins`
 where
 	getCoins`		
-		=  					(requestChoice [ Text ("Chosen product: " <+++ product), BrTag[]
+		=  					(enterChoice [ Text ("Chosen product: " <+++ product), BrTag[]
 							              , BrTag []
 							              , Text ("To pay: " <+++ cost), BrTag []
 							              , Text "Please insert a coin..."

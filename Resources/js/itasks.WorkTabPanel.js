@@ -421,7 +421,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 	sendUpdates: function(delay) {
 		if(delay) {
-			new Ext.util.DelayedTask().delay(150,this.sendUpdates,this);
+			new Ext.util.DelayedTask().delay(250,this.sendUpdates,this);
 		} else {
 			var wt = this.findParentByType("itasks.work");
 			if(!wt)

@@ -92,12 +92,16 @@ where
 			= (False,{tst & activated = False})
 		| otherwise
 			= (snd (hd updates) == "yes", tst)
-	
-requestChoice :: question [a] -> Task a | html question & iTask a
-requestChoice question [] = abort "requestChoice: cannot choose from empty option list"
-requestChoice question options = mkExtJSTask "requestChoice" requestChoice`
+
+requestConfirmationAbout :: question a -> Task Bool | html question & iTask a
+requestConfirmationAbout question about = requestConfirmation question
+
+
+enterChoice :: question [a] -> Task a | html question & iTask a
+enterChoice question [] = abort "requestChoice: cannot choose from empty option list"
+enterChoice question options = mkExtJSTask "enterChoice" enterChoice`
 where
-	requestChoice` tst
+	enterChoice` tst
 		//Check for user updates
 		# (updates,tst) = getUserUpdates tst
 		| length updates == 0
@@ -110,10 +114,22 @@ where
 		| otherwise
 			= (options !! (toInt (snd (hd updates))), tst) 
 
-requestMultipleChoice :: question [a] -> Task [a] | html question & iTask a
-requestMultipleChoice question options
-	= abort "TODO: requestMultipleChoice"
-
+enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
+enterMultipleChoice question options = mkExtJSTask "enterMultipleChoice" enterMultipleChoice`
+where
+	enterMultipleChoice` tst=:{taskNr}
+		# editorid	= "tf-" +++ taskNrToString taskNr
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst
+		| length updates == 0
+			# tst = setExtJSDef (taskPanel (html question) Nothing Nothing [("done","done","Ok","icon-ok")]) tst
+			= ([],{tst & activated = False})
+		| otherwise
+			# done = (http_getValue "done" updates "") == "done"
+			| done
+				= ([],{tst & activated = True})
+			| otherwise
+				= ([],{tst & activated = False})
 //Output tasks
 showMessage	:: message -> Task Void	| html message
 showMessage message = mkExtJSTask "showMessage" showMessage`

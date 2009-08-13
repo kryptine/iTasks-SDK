@@ -37,10 +37,10 @@ getRoles uids = mkBasicTask "getRoles" (UserDB@getRoles uids)
 chooseUser :: Task (UserId,String)
 chooseUser
 	= 				getUsers
-	>>= \users ->	requestChoice "Select a user" users
+	>>= \users ->	enterChoice "Select a user" users
 
 	
 chooseUserWithRole :: !String -> Task (UserId,String)
 chooseUserWithRole role
 	= 				getUsersWithRole role
-	>>= \users ->	requestChoice "Select a user" users
+	>>= \users ->	enterChoice "Select a user" users

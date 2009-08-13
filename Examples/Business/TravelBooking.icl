@@ -32,7 +32,7 @@ travel
 	>>= \booking -> handleBookings booking
 where
 	makeBookings :: Task [Booking]
-	makeBookings = requestMultipleChoice [Text "Choose Booking options:"]
+	makeBookings = enterMultipleChoice [Text "Choose Booking options:"]
 						[ (BookFlight <<@ "Book Flight")
 						, (BookHotel <<@ "Book Hotel")
 						, (BookCar <<@ "Book Car")

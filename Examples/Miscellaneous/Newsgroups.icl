@@ -142,7 +142,7 @@ where
 	subscribe me myname []
 	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> ok 
 	subscribe me myname groups
-	=						requestChoice "Choose a group:" groups
+	=						enterChoice "Choose a group:" groups
 		>>= \group ->		addSubscription me (group,0)
 		>>|					spawnProcess me True (readNews me group 0 <<@ group <+++ " news group subscription")
 		>>|					return Void
