@@ -13,7 +13,7 @@ import TaskTreeForestHandler, ProcessTableHandler
 
 import TSt
 
-RESOURCE_DIR :== "Resources/" //TODO: Use config file
+RESOURCE_DIR :== "Client" //TODO: Use config file
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
