@@ -1,0 +1,5 @@
+//iTask client configuration
+{ serverUrl: "/"
+, skin: "default"
+, debug: true
+}

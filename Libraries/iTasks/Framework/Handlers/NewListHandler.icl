@@ -5,7 +5,7 @@ import Http, TSt
 import JSON, Util, Text
 
 :: NewWorkItem	= 	{ id				:: !String			// The name of the workflow that is started
-					, icon				:: !String 			// An icon name. The actual icon image is defined in the css. 
+					, iconCls			:: !String 			// An icon name. The actual icon image is defined in the css. 
 					, text				:: !String 			// A label of the workflow that is started
 					, leaf				:: !Bool			// Is it a leaf in the tree structure
 					, singleClickExpand :: !Bool 			// Single click expand extjs option
@@ -34,10 +34,10 @@ where
 		# shortPath 	= flow.Workflow.name % (size path, size flow.Workflow.name)
 		# slashPosition	= indexOf "/" shortPath
 		| slashPosition == -1
-			= {id = flow.Workflow.name, icon = "/img/icons/report_add.png", text = shortPath, leaf = True, singleClickExpand = True}
+			= {id = flow.Workflow.name, iconCls = "icon-workflow", text = shortPath, leaf = True, singleClickExpand = True}
 		| otherwise
 			# text = shortPath % (0, slashPosition - 1)
-			= {id = path +++ text +++ "/", icon = "/img/icons/folder.png", text = text, leaf = False, singleClickExpand = True}
+			= {id = path +++ text +++ "/", iconCls = "icon-folder", text = text, leaf = False, singleClickExpand = True}
 			
 instance == NewWorkItem
 where

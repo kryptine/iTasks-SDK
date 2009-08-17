@@ -44,7 +44,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			y: 150,
 			width: 320,
 			height: 185,
-			layout: 'fit',
+			layout: "fit",
 			hidden: true,
 			closable: false,
 			resizable: false,
@@ -52,7 +52,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 				xtype: 'form',
 				url: 'handlers/authenticate',
 				baseCls: 'x-plain',
-				cls: 'loginWindow',
+				style: 'padding: 5px',
 				layout: 'absolute',
 				defaultType: 'textfield',
 				buttonAlign: 'right',
@@ -61,7 +61,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 							x: 0,
 							y: 0,
 							xtype: 'label',
-							style: "color: red; font-weight: bold; background: url('img/itasks.png')",
+							style: "color: red; font-weight: bold; background: url('skins/" + itasks.config.skin + "/img/loginwindow.png')",
 							width: 300,
 							height: 40
 						},{
@@ -78,8 +78,8 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 						},{
 							x: 55,
 							y: 65,
-							name: 'username',
-							anchor: '100%'
+							anchor: '100%',
+							name: 'username'
 						},{
 							x: 0,
 							y: 100,
@@ -88,8 +88,8 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 						},{
 							x: 55,
 							y: 95,
-							name: 'password',
 							anchor: '100%',
+							name: 'password',
 							inputType: 'password'
 				}],
 				buttons: [{

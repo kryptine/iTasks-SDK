@@ -2,19 +2,19 @@
 * Tab panel which shows a dashboard style 'home' screen.
 */
 
-Ext.ns('itasks');
+Ext.ns("itasks");
 
 itasks.HomeTabPanel = Ext.extend(Ext.Panel, {
 
 	initComponent: function () {
 		Ext.apply(this, {
-			title: 'Welcome',
+			title: "Welcome",
 			closable: false,
-			autoLoad: 'welcome.html'
+			autoLoad: "skins/" + itasks.config.skin + "/welcome.html"
 		});
 		
 		itasks.HomeTabPanel.superclass.initComponent.apply(this, arguments);
 	}
 });
 
-Ext.reg('itasks.hometab',itasks.HomeTabPanel);
+Ext.reg("itasks.hometab",itasks.HomeTabPanel);

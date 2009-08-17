@@ -1,70 +1,84 @@
+@import url('welcome.css');
+body {
+   font: normal 12px Verdana;
+   margin: 0;
+   padding: 0;
+   border: 0 none;
+   overflow: hidden;
+   height: 100%;
+}
+.bg {
+	background: #3a81ad url('img/body.png') top repeat-x;
+}
 .error {
 	font-weight: bold;
 	color: red;
 }
 button.icon-refresh {
-	background-image: url('../img/icons/refresh.png');
+	background-image: url('img/icons/refresh.png');
 }
 button.icon-thread-table {
-	background-image: url('../img/icons/table_lightning.png');
+	background-image: url('img/icons/table_lightning.png');
 }
 button.icon-process-table {
-	background-image: url('../img/icons/table_gear.png');
+	background-image: url('img/icons/table_gear.png');
 }
 button.icon-task-tree {
-	background-image: url('../img/icons/chart_organisation.png');
+	background-image: url('img/icons/chart_organisation.png');
 }
 button.icon-states {
-	background-image: url('../img/icons/table_gear.png');
+	background-image: url('img/icons/table_gear.png');
 }
 button.icon-events {
-	background-image: url('../img/icons/table_lightning.png');
+	background-image: url('img/icons/table_lightning.png');
 }
 button.icon-ok, button.icon-yes {
-	background-image: url('../img/icons/tick.png');
+	background-image: url('img/icons/tick.png');
 }
 button.icon-no {
-	background-image: url('../img/icons/cancel.png');
+	background-image: url('img/icons/cancel.png');
 }
 .icon-debug {
-	background-image: url('../img/icons/bug.png');
+	background-image: url('img/icons/bug.png');
 }
 .icon-currentwork {
-	background-image: url('../img/icons/report_edit.png');
+	background-image: url('img/icons/report_edit.png');
 }
 .icon-newwork {
-	background-image: url('../img/icons/report_add.png');
+	background-image: url('img/icons/report_add.png');
 }
 .icon-editTask {
-	background-image: url('../img/icons/page_edit.png');
+	background-image: url('img/icons/page_edit.png');
 }
 .icon-andTask {
-	background-image: url('../img/icons/sitemap.png');
+	background-image: url('img/icons/sitemap.png');
 }
 .icon-orTask {
-	background-image: url('../img/icons/sitemap.png');
+	background-image: url('img/icons/sitemap.png');
 }
 .icon-conditionTask {
-	background-image: url('../img/icons/sitemap.png');
+	background-image: url('img/icons/sitemap.png');
 }
 .icon-timeTask {
-	background-image: url('../img/icons/time.png');
+	background-image: url('img/icons/time.png');
 }
 .icon-systemTask {
-	background-image: url('../img/icons/cog.png');
+	background-image: url('img/icons/cog.png');
 }
 .icon-finishedTask {
-	background-image: url('../img/icons/tick.png');
+	background-image: url('img/icons/tick.png');
 }
 .icon-waiting {
-	background-image: url('../img/icons/hourglass.png');
+	background-image: url('img/icons/hourglass.png');
 }
-div.loginWindow {
-	padding: 5px;
+.icon-workflow {
+	background-image: url('img/icons/page_edit.png');
 }
-
+.icon-folder {
+	background-image: url('img/icons/folder.png');
+}
 #northpanel .x-panel-body {
-	background: #3a81ad url('../img/body.png') top repeat-x;
+	background: #3a81ad url('img/body.png') top repeat-x;
 }
 #northpanel #logo {
 	position: absolute;
@@ -72,7 +86,7 @@ div.loginWindow {
 	left: 0px;
 	width: 300px;
 	height: 40px;
-	background: url('../img/itasks.png');
+	background: url('img/itasks.png');
 }
 #northpanel #user {
 	position: absolute;
@@ -100,13 +114,13 @@ div.treegrid {
 div.treegrid-empty {
 }
 div.treegrid-line {
-	background: url('../ext3/resources/images/default/tree/elbow-line.gif') no-repeat;
+	background: url('../../ext3/resources/images/default/tree/elbow-line.gif') no-repeat;
 }
 div.treegrid-middle {
-	background: url('../ext3/resources/images/default/tree/elbow.gif') no-repeat;
+	background: url('../../ext3/resources/images/default/tree/elbow.gif') no-repeat;
 }
 div.treegrid-last {
-	background: url('../ext3/resources/images/default/tree/elbow-end.gif') no-repeat;
+	background: url('../../ext3/resources/images/default/tree/elbow-end.gif') no-repeat;
 }
 div.treegrid-icon {
 	background-position: 0 2px;
@@ -129,7 +143,7 @@ div.worktab-container form {
 div.worktab-header {
 	padding: 5px 0px 0px 10px;
 	color: #fff;
-	background: url('../img/tab-header.png') top;
+	background: url('img/tab-header.png') top;
 }
 div.worktab-header-indicator {
 	position: absolute;
@@ -139,7 +153,7 @@ div.worktab-header-indicator {
 	width: 32px;
 	height: 32px;
 	
-	background: url('../img/loading.gif') no-repeat;
+	background: url('img/loading.gif') no-repeat;
 	display: none;
 }
 div.worktab-header table {

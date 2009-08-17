@@ -24,18 +24,42 @@ itasks.Application = function () {
 		* Starts the client GUI framework
 		*/
 		start: function(errorMsg) {
+			//Store message
+			this.errorMsg = errorMsg;
+			
+			//Load the config
+			this.loadConfig();
+		},
+		loadConfig: function() {
+			Ext.Ajax.request({url:"config.json",success: this.continueConfig, scope: this});
+		},
+		continueConfig: function(response) {
+			//Globally store config
+			itasks.config = Ext.decode(response.responseText);
+			
+			//Load skin
+			this.loadSkin();
+			
 			//Create the login window
 			if(!this.loginWindow) {
 				this.loginWindow = new itasks.LoginWindow({
-					errorMsg: errorMsg,
+					errorMsg: this.errorMsg,
 					continuation:  this.loadUserInterface.createDelegate(this)
 					});
 				this.viewport.getComponent(0).add(this.loginWindow);
 			} else {
-				this.loginWindow.setError(errorMsg);
+				this.loginWindow.setError(this.errorMsg);
 			}
 			
 			this.loginWindow.show();
+		},
+		loadSkin: function() {
+			var link = document.createElement("link");
+			link.rel = "stylesheet";
+			link.type = "text/css";
+			link.href = "skins/" + itasks.config.skin + "/main.css";
+			
+			document.body.appendChild(link);
 		},	
 		/**
 		* Loads and builds the GUI

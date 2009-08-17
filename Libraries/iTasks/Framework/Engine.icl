@@ -89,5 +89,6 @@ where
  
 initTSt :: !HTTPRequest ![Workflow] !*World -> *TSt
 initTSt request flows world = mkTSt request (abort "session not active yet") flows (createStore "iTask-data") world
+
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world
