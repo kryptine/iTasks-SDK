@@ -24,6 +24,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	| ExtJSTextArea ExtJSTextArea
 	| ExtJSComboBox ExtJSComboBox
 	| ExtJSCheckBox ExtJSCheckBox
+	| ExtJSCheckBoxGroup ExtJSCheckBoxGroup
 	| ExtJSRadio ExtJSRadio
 	| ExtJSRadioGroup ExtJSRadioGroup
 	| ExtJSTimeField ExtJSTimeField
@@ -73,9 +74,17 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 :: ExtJSCheckBox =
 	{ name			:: String
 	, id			:: String
-	, value			:: Bool
+	, value			:: String
+	, boxLabel		:: Maybe String
 	, fieldLabel	:: Maybe String
 	, checked		:: Bool
+	}
+:: ExtJSCheckBoxGroup =
+	{ name			:: String
+	, id			:: String
+	, fieldLabel	:: Maybe String
+	, columns		:: Int
+	, items			:: [ExtJSDef]
 	}
 :: ExtJSRadio =
 	{ name			:: String

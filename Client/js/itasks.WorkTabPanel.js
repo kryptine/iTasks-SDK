@@ -368,9 +368,21 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 			if(!ct)
 				return;
 
+			//Helper function to get the value of a checkbox group
+			function checkboxValues(boxes) {
+				var values = [];
+				var num = boxes.length;
+				for(var i = 0; i < num; i++) {
+					values[values.length] = boxes[i].value;
+				}
+				return Ext.encode(values);
+				console.log(Ext.encode(values));
+			}
+			
 			var value;
 			switch(this.xtype) {
 				case "radiogroup": value = this.getValue().value; break;
+				case "checkboxgroup": value = checkboxValues(arguments[1]); break;
 				case "datefield": value = this.getRawValue(); break;
 				default: value = this.getValue();
 			}
@@ -385,8 +397,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 			ct.addUpdate(this.name, this.value);
 			ct.sendUpdates();
 			
-		};
-	
+		};		
 		switch(comp.getXType()) {
 				case "textfield":
 				case "textarea":
@@ -398,6 +409,9 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 					break;
 				case "checkbox":
 					comp.on("check",changeTaskEvent);
+					break;
+				case "checkboxgroup":
+					comp.on("change",changeTaskEvent);
 					break;
 				case "combo":
 					comp.on("select",changeTaskEvent);

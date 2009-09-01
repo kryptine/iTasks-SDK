@@ -35,9 +35,11 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					width: 200,
 					minWidth: 200,
 					maxWidth: 400,
-					items: [
+					items: itasks.config.debug ? [
 						{id: 'newpanel', xtype: 'itasks.nwpanel', sessionId: this.sessionId, application: this.application },
 						{id: 'debugpanel', xtype: 'itasks.debug', sessionId: this.sessionId, application: this.application }
+					] : [
+						{id: 'newpanel', xtype: 'itasks.nwpanel', sessionId: this.sessionId, application: this.application }
 					]
 				},{
 					id: 'centerpanel',
@@ -118,12 +120,14 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			attachTabHandlers(tab);
 		},this);
 		
-		debugpanel.getTaskForestButton().on("click",function() {
-			worktabs.openTaskForestTab();
-		});
-		debugpanel.getProcessTableButton().on("click",function() {
-			worktabs.openProcessTableTab();
-		});
+		if(itasks.config.debug) {
+			debugpanel.getTaskForestButton().on("click",function() {
+				worktabs.openTaskForestTab();
+			});
+			debugpanel.getProcessTableButton().on("click",function() {
+				worktabs.openProcessTableTab();
+			});
+		}
 		Ext.get("logout").on("click",function() {
 			apppanel.logout();
 		});

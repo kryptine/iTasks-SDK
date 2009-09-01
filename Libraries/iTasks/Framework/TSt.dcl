@@ -47,7 +47,8 @@ import GenPrint, GenParse, GUICore
 					, combination	:: !Maybe TaskCombination					// default: TTVertical
 					}
 
-:: StaticInfo	=	{ currentProcessId	:: !ProcessId							// the id of the current process
+:: StaticInfo	=	{ appName			:: String								// the name of the server executable
+					, currentProcessId	:: !ProcessId							// the id of the current process
 					, currentSession	:: Session								// the current session			
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
 					}
@@ -72,17 +73,16 @@ import GenPrint, GenParse, GUICore
 /**
 * Creates an initial task state.
 *
-* @param The default storage location of task states
-* @param The default storage location of threads
+* @param The application name
+* @param The current HTTP request
 * @param The session data
 * @param The workflows available in the application
 * @param The generic data store
-* @param The iData HSt state for creating editors and doing IO
-* @param The process database
+* @param The world
 *
 * @return a TSt iTask state
 */
-mkTSt :: HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
+mkTSt :: String HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
 
 /**
 * Calculates all task trees that are relevant to the current user
@@ -291,6 +291,16 @@ setExtJSUpdates		:: ![ExtJSUpdate] !*TSt			-> *TSt
 getTaskValue		:: !*TSt						-> (Maybe a, !*TSt) | TC a
 
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
+
+/**
+* Writes a 'task scoped' value to the store
+* These values are copied and garbage collected along with a task
+*/
+setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
+/**
+* Reads a 'task scoped' value from the store
+*/
+getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
 
 /**
 * Removes all events for the current task. This is automatically called by applyTask

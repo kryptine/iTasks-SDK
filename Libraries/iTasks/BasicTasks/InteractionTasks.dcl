@@ -16,30 +16,27 @@ instance html String
 instance html [HtmlTag]
 
 //Input tasks
-enterInformation			:: question -> Task a			| html question & iTask a
-updateInformation			:: question a -> Task a			| html question & iTask a
+enterInformation			:: question -> Task a				| html question & iTask a
+updateInformation			:: question a -> Task a				| html question & iTask a
+enterInformationAbout		:: question b -> Task a				| html question & iTask a & iTask b
+updateInformationAbout		:: question b a -> Task a			| html question & iTask a & iTask b
 
-enterInformationAbout		:: question b -> Task a			| html question & iTask a & iTask b
-updateInformationAbout		:: question b a -> Task a		| html question & iTask a & iTask b
+enterChoice					:: question [a] -> Task a			| html question & iTask a
+updateChoice				:: question [a] Int -> Task a		| html question & iTask a //TODO
+enterChoiceAbout			:: question b [a] -> Task a			| html question & iTask a & iTask b //TODO
+updateChoiceAbout			:: question b [a] Int -> Task a		| html question & iTask a & iTask b //TODO
 
-enterChoice					:: question [a] -> Task a		| html question & iTask a
-//requestChoiceWD				::
+enterMultipleChoice			:: question [a] -> Task [a]			| html question & iTask a
+updateMultipleChoice		:: question [a] [Int] -> Task [a]	| html question & iTask a
+enterMultipleChoiceAbout	:: question b [a] -> Task [a]		| html question & iTask a & iTask b
+updateMultipleChoiceAbout	:: question b [a] [Int] -> Task [a]	| html question & iTask a & iTask b
 
-//requestChoiceAbout			::
-//requestChoiceAboutWD		::
-
-enterMultipleChoice			:: question [a] -> Task [a]		| html question & iTask a
-//requestMultipleChoiceWD		::
-
-//requestMultipleChoiceAbout	::
-//requestMultipleChoiceAboutWD::
-
-requestConfirmation			:: question -> Task Bool		| html question
-requestConfirmationAbout	:: question a -> Task Bool		| html question & iTask a
+requestConfirmation			:: question -> Task Bool			| html question
+requestConfirmationAbout	:: question a -> Task Bool			| html question & iTask a
 
 //Output tasks
-showMessage					:: message -> Task Void			| html message
-showMessageAbout			:: message a -> Task Void		| html message & iTask a
+showMessage					:: message -> Task Void				| html message
+showMessageAbout			:: message a -> Task Void			| html message & iTask a
 
-notifyUser					:: message UserId -> Task Void	| html message
-notifyGroup					:: message Role -> Task Void	| html message
+notifyUser					:: message UserId -> Task Void		| html message
+notifyGroup					:: message Role -> Task Void		| html message

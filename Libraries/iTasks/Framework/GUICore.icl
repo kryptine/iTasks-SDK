@@ -16,13 +16,13 @@ visualizeAsEditor :: String a -> [ExtJSDef] | gVisualize{|*|} a
 visualizeAsEditor name x = coerceToExtJSDefs (fst (gVisualize{|*|} x x {mkVSt & vizType =VEditorDefinition, idPrefix = name}))
 	
 visualizeAsHtmlDisplay :: a -> [HtmlTag] | gVisualize{|*|} a
-visualizeAsHtmlDisplay x = []
+visualizeAsHtmlDisplay x = flatten (coerceToHtml (fst (gVisualize{|*|} x x {mkVSt & vizType = VHtmlDisplay})))
 
 visualizeAsTextDisplay :: a -> String | gVisualize{|*|} a
 visualizeAsTextDisplay x = join " " (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextDisplay})))
 
 visualizeAsHtmlLabel :: a -> [HtmlTag] | gVisualize{|*|} a
-visualizeAsHtmlLabel x = []
+visualizeAsHtmlLabel x =  flatten (coerceToHtml (fst (gVisualize{|*|} x x {mkVSt & vizType = VHtmlLabel})))
 
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextLabel})))
@@ -88,6 +88,7 @@ where
 gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,dataPath,label,consBody,optional,blank}
 	# (ox,nx) = if blank (undef,undef) (case (old,new) of (CONS ox,CONS nx) = (ox,nx))
 	= case vizType of
+		//Editor definition
 		VEditorDefinition
 			# (vizBody,vst)	= fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath, consBody = False}
 			| not (isEmpty d.gcd_fields) //Records	
@@ -103,7 +104,14 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,dataPath,label,consBod
 				= (vizBody, {VSt|vst & dataPath = stepDataPath dataPath})
 			| otherwise	//Normal ADT's with constructor selector
 				= ((consSelector d idPrefix dataPath (label2s optional label)) ++ vizBody, {VSt|vst & dataPath = stepDataPath dataPath})	
-		_ 	//Text and html visualization
+		//Html display vizualization
+		VHtmlDisplay
+			# (vizBody, vst) = fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath}
+			| not (isEmpty d.gcd_fields) //Records
+				= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]],{vst & dataPath = stepDataPath dataPath})
+			| otherwise
+				= (vizCons ++ vizBody, {vst & dataPath = stepDataPath dataPath})
+		_ 	//Other visualizations
 			# (vizBody, vst) = fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath}
 			= (vizCons ++ vizBody, {vst & dataPath = stepDataPath dataPath})
 			
@@ -122,9 +130,12 @@ gVisualize{|OBJECT of d|} fx old new vst=:{blank}
 	
 gVisualize{|FIELD of d|} fx (FIELD ox) (FIELD nx) vst=:{vizType}
 	= case vizType of
+		VHtmlDisplay
+			# (vizBody,vst) 	= fx ox nx {VSt |vst & label = Nothing}
+			= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],vst)
 		VTextDisplay
 			# (vizBody,vst) 	= fx ox nx {VSt |vst & label = Just (formatLabel d.gfd_name)}
-			= ([TextFragment d.gfd_name,TextFragment ": " : vizBody], vst)
+			= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody], vst)
 		_
 			= fx ox nx {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
@@ -145,7 +156,7 @@ gVisualize{|Char|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 
 gVisualize{|Bool|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = if blank False old, fieldLabel = label2s optional label, checked = (if blank False old)})], {VSt|vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = if blank "false" (if old "true" "false"), boxLabel = Nothing, fieldLabel = label2s optional label, checked = (if blank False old)})], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})		
 
 gVisualize{|String|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
@@ -436,3 +447,13 @@ coerceToExtJSUpdates visualizations = [u \\ (ExtJSUpdate u) <- visualizations]
 
 coerceToStrings :: [Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]
+
+coerceToHtml :: [Visualization] -> [[HtmlTag]]
+coerceToHtml visualizations = [coerce h \\h <- visualizations | coercable h]
+where
+	coerce (TextFragment s)		= [Text s]
+	coerce (HtmlFragment h)		= h
+	
+	coercable (TextFragment _)	= True
+	coercable (HtmlFragment _)	= True
+	coercable _					= False

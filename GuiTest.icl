@@ -32,5 +32,7 @@ myAddress = {street = "Berg en Dalseweg", number = 24, postalCode = "6521JG"}
 Start :: *World -> *World
 Start world = startEngine [workflow "GUI test" guiTestTask] world
 
-guiTestTask :: Task Person
-guiTestTask = requestInformation "Please enter your personal information"
+guiTestTask :: Task Void
+//guiTestTask = updateInformation "Please update your personal information" myPerson >>= showMessageAbout "You have entered:"
+guiTestTask = enterMultipleChoice "Pick your fruits" ["Apple","Pear","Orange"] >>= showMessageAbout "Your selection:" 
+//guiTestTask = enterMultipleChoice "Pick your numbers" [0..30] >>= showMessageAbout "Your selection:" 

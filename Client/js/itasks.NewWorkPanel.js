@@ -9,7 +9,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 
 		Ext.apply(this, {
 			title: "Start new work",
-			//iconCls: "icon-newwork",
+			iconCls: "icon-newwork",
 			
 			loader: new Ext.tree.TreeLoader({
 				dataUrl: "handlers/new/list",

@@ -4,6 +4,7 @@ import StdMisc, StdArray, StdList, StdChar, GenBimap
 import Store, UserDB, ProcessDB, SessionDB
 import Text, Util
 import CoreCombinators
+import CommandLine
 
 import Http, HttpUtil
 
@@ -38,6 +39,12 @@ workflow path task =
 	, mainTask = task >>| return Void
 	}
 
+// Determines the server executables name
+determineAppName :: !*World -> (!String,!*World)
+determineAppName world 
+	# (args,world)	= getCommandLine world
+	= (hd args,world)
+
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
@@ -64,14 +71,16 @@ handleStaticResourceRequest req world
 
 handleAnonRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleAnonRequest flows handler request world
-	# tst						= initTSt request flows world
+	# (appName,world)			= determineAppName world
+	# tst						= initTSt appName request flows world
 	# (response, tst)			= handler request tst
 	# world						= finalizeTSt tst
 	= (response, world)
 
 handleSessionRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleSessionRequest flows handler request world
-	# tst						= mkTSt request (abort "session not active yet") flows (createStore "iTask-data") world
+	# (appName,world)			= determineAppName world
+	# tst						= mkTSt appName request (abort "session not active yet") flows (createStore "iTask-data") world
 	# sessionId					= http_getValue "_session" (request.arg_get ++ request.arg_post) ""
 	# (mbSession,timeout,tst=:{staticInfo})	= restoreSession sessionId tst
 	= case mbSession of
@@ -87,8 +96,8 @@ handleSessionRequest flows handler request world
 where
 	mkSessionFailureResponse to = "{\"success\" : false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
  
-initTSt :: !HTTPRequest ![Workflow] !*World -> *TSt
-initTSt request flows world = mkTSt request (abort "session not active yet") flows (createStore "iTask-data") world
+initTSt :: !String !HTTPRequest ![Workflow] !*World -> *TSt
+initTSt appName request flows world = mkTSt appName request (abort "session not active yet") flows (createStore "iTask-data") world
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world

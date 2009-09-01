@@ -1,6 +1,6 @@
 implementation module InteractionTasks
 
-import	StdList, StdTuple, StdMisc, GenBimap
+import	StdList, StdOrdList, StdTuple, StdMisc, GenBimap
 from	StdFunc import id, const
 import	TSt
 
@@ -114,22 +114,66 @@ where
 		| otherwise
 			= (options !! (toInt (snd (hd updates))), tst) 
 
+
+updateChoice :: question [a] Int -> Task a | html question & iTask a //TODO
+updateChoice question options index = abort "TODO: updateChoice"
+
+enterChoiceAbout :: question b [a] -> Task a | html question & iTask a & iTask b //TODO
+enterChoiceAbout question about options = abort "TODO: enterChoiceAbout"
+
+updateChoiceAbout :: question b [a] Int -> Task a | html question & iTask a & iTask b //TODO
+updateChoiceAbout question about options index = abort "TODO: updateChoiceAbout"
+
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
-enterMultipleChoice question options = mkExtJSTask "enterMultipleChoice" enterMultipleChoice`
-where
-	enterMultipleChoice` tst=:{taskNr}
-		# editorid	= "tf-" +++ taskNrToString taskNr
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst
-		| length updates == 0
-			# tst = setExtJSDef (taskPanel (html question) Nothing Nothing [("done","done","Ok","icon-ok")]) tst
-			= ([],{tst & activated = False})
+enterMultipleChoice question options = mkExtJSTask "enterMultipleChoice" (makeMultipleChoiceTask question options [] Nothing)
+
+updateMultipleChoice :: question [a] [Int] -> Task [a] | html question & iTask a
+updateMultipleChoice question options indices = mkExtJSTask "updateMultipleChoice" (makeMultipleChoiceTask question options indices Nothing)
+
+enterMultipleChoiceAbout :: question b [a] -> Task [a] | html question & iTask a & iTask b
+enterMultipleChoiceAbout question about options = mkExtJSTask "enterMultipleChoiceAbout" (makeMultipleChoiceTask question options [] (Just (visualizeAsHtmlDisplay about)))
+
+updateMultipleChoiceAbout :: question b [a] [Int] -> Task [a] | html question & iTask a & iTask b
+updateMultipleChoiceAbout question about options indices = mkExtJSTask "updateMultipleChoiceAbout" (makeMultipleChoiceTask question options indices (Just (visualizeAsHtmlDisplay about)))
+
+makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) !*TSt -> (![a],!*TSt) | html question & iTask a
+makeMultipleChoiceTask question options inselection context tst=:{taskNr}
+	# editorid	= "tf-" +++ taskNrToString taskNr
+	# (mbSel,tst)	= getTaskStore "selection" tst
+	# selection		= case mbSel of Nothing = inselection; Just sel = sel
+	//Check for user updates
+	# (updates,tst) = getUserUpdates tst
+	| length updates == 0
+		# checks	= [isMember i selection \\ i <- [0..(length options) - 1]]
+		# cboxes	= [ExtJSCheckBox 
+					  {ExtJSCheckBox
+					  | name = "sel-" +++ toString i
+					  , id = editorid +++ "-cb-" +++ toString i
+					  , value = toString i
+					  , fieldLabel = Nothing
+					  , boxLabel = Just (visualizeAsTextLabel o)
+					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
+		# form = [ ExtJSCheckBoxGroup {ExtJSCheckBoxGroup |name = "selection", id = editorid +++ "-selection", fieldLabel = Nothing, columns = 3, items = cboxes}]
+		# tst = setExtJSDef (taskPanel (html question) context (Just form) [("done","done","Ok","icon-ok")]) tst
+		= ([],{tst & activated = False})
+	| otherwise
+		# done = (http_getValue "done" updates "") == "done"
+		| done
+			= (select selection options,{tst & activated = True})
 		| otherwise
-			# done = (http_getValue "done" updates "") == "done"
-			| done
-				= ([],{tst & activated = True})
-			| otherwise
-				= ([],{tst & activated = False})
+			# mbSel		= parseSelection updates 
+			# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
+			# tst		= setTaskStore "selection" (sort selection) tst
+			# tst		= setExtJSUpdates [] tst
+			= ([],{tst & activated = False})
+where
+	parseSelection :: [(String,String)] -> Maybe [String]
+	parseSelection updates = fromJSON (http_getValue "selection" updates "[]")	
+
+	select :: [Int] [a] -> [a]
+	select indices options = [options !! index \\ index <- indices]
+
+
 //Output tasks
 showMessage	:: message -> Task Void	| html message
 showMessage message = mkExtJSTask "showMessage" showMessage`

@@ -15,8 +15,8 @@ derive gPrint		TaskState
 derive gParse		TaskState
 derive gEq			TaskState
 
-mkTSt :: HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
-mkTSt request session workflows store world
+mkTSt :: String HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
+mkTSt appName request session workflows store world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
@@ -28,7 +28,7 @@ mkTSt request session workflows store world
 		, mainTask		= -1
 		, newProcesses	= []
 		, options 		= initialOptions
-		, staticInfo	= initStaticInfo session workflows
+		, staticInfo	= initStaticInfo appName session workflows
 		, exception		= Nothing
 		, doChange		= False
 		, changes		= []
@@ -37,9 +37,10 @@ mkTSt request session workflows store world
 		, world			= world
 		}
 
-initStaticInfo :: Session ![Workflow] -> StaticInfo
-initStaticInfo session workflows
-	=	{ currentProcessId	= -1
+initStaticInfo :: String Session ![Workflow] -> StaticInfo
+initStaticInfo appName session workflows
+	=	{ appName			= appName
+		, currentProcessId	= -1
 		, currentSession 	= session
 		, staticWorkflows	= workflows
 		}
@@ -394,6 +395,20 @@ setExtJSUpdates upd tst=:{tree}
 getTaskValue :: !*TSt -> (Maybe a, !*TSt) | TC a
 getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)
 getTaskValue tst = (Nothing, tst)
+
+setTaskStore :: !String !a !*TSt -> *TSt | iTask a
+setTaskStore key value tst=:{taskNr,store}
+	# store = storeValue storekey value store
+	= {TSt|tst & store = store}
+where
+	storekey = taskNrToString taskNr +++ "-" +++ key
+
+getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | iTask a
+getTaskStore key tst=:{taskNr,store,world}
+	# (mbValue,store,world) = loadValue storekey store world
+	= (mbValue,{TSt|tst&store = store, world = world})
+where
+	storekey = taskNrToString taskNr +++ "-" +++ key
 
 getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
 getUserUpdates tst=:{taskNr,request} = (updates request, tst);
