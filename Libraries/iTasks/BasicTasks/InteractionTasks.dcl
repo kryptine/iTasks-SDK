@@ -22,9 +22,9 @@ enterInformationAbout		:: question b -> Task a				| html question & iTask a & iT
 updateInformationAbout		:: question b a -> Task a			| html question & iTask a & iTask b
 
 enterChoice					:: question [a] -> Task a			| html question & iTask a
-updateChoice				:: question [a] Int -> Task a		| html question & iTask a //TODO
-enterChoiceAbout			:: question b [a] -> Task a			| html question & iTask a & iTask b //TODO
-updateChoiceAbout			:: question b [a] Int -> Task a		| html question & iTask a & iTask b //TODO
+updateChoice				:: question [a] Int -> Task a		| html question & iTask a
+enterChoiceAbout			:: question b [a] -> Task a			| html question & iTask a & iTask b
+updateChoiceAbout			:: question b [a] Int -> Task a		| html question & iTask a & iTask b
 
 enterMultipleChoice			:: question [a] -> Task [a]			| html question & iTask a
 updateMultipleChoice		:: question [a] [Int] -> Task [a]	| html question & iTask a

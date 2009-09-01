@@ -81,48 +81,38 @@ where
 				= (newval, {tst & activated = False})
 
 
-requestConfirmation	:: question -> Task Bool | html question
-requestConfirmation question = mkExtJSTask "requestConfirmation" requestConfirmation`
-where
-	requestConfirmation` tst
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst
-		| length updates == 0
-			# tst = setExtJSDef (taskPanel (html question) Nothing Nothing [("answer-no","no","No","icon-no"),("answer-yes","yes","Yes","icon-yes")]) tst
-			= (False,{tst & activated = False})
-		| otherwise
-			= (snd (hd updates) == "yes", tst)
 
-requestConfirmationAbout :: question a -> Task Bool | html question & iTask a
-requestConfirmationAbout question about = requestConfirmation question
 
 
 enterChoice :: question [a] -> Task a | html question & iTask a
-enterChoice question [] = abort "requestChoice: cannot choose from empty option list"
-enterChoice question options = mkExtJSTask "enterChoice" enterChoice`
-where
-	enterChoice` tst
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst
-		| length updates == 0
-			# form = [ExtJSButton {ExtJSButton	| name = "button-" +++ toString i
-												, value = toString i
-												, text = visualizeAsTextLabel option
-												, iconCls = ""} \\ option <- options & i <- [0..] ]
-			# tst = setExtJSDef (taskPanel (html question) Nothing (Just form) []) tst
-			= (hd options, {tst & activated = False})
-		| otherwise
-			= (options !! (toInt (snd (hd updates))), tst) 
+enterChoice question []			= abort "enterChoice: cannot choose from empty option list"
+enterChoice question options	= mkExtJSTask "enterChoice" (makeChoiceTask question options -1 Nothing)
 
+updateChoice :: question [a] Int -> Task a | html question & iTask a 
+updateChoice question [] index		= abort "updateChoice: cannot choose from empty option list"
+updateChoice question options index = mkExtJSTask "updateChoice" (makeChoiceTask question options index Nothing)
 
-updateChoice :: question [a] Int -> Task a | html question & iTask a //TODO
-updateChoice question options index = abort "TODO: updateChoice"
+enterChoiceAbout :: question b [a] -> Task a | html question & iTask a & iTask b
+enterChoiceAbout question about []		= abort "enterChoiceAbout: cannot choose from empty option list"
+enterChoiceAbout question about options = mkExtJSTask "enterChoiceAbout" (makeChoiceTask question options -1 (Just (visualizeAsHtmlDisplay about)))
 
-enterChoiceAbout :: question b [a] -> Task a | html question & iTask a & iTask b //TODO
-enterChoiceAbout question about options = abort "TODO: enterChoiceAbout"
+updateChoiceAbout :: question b [a] Int -> Task a | html question & iTask a & iTask b
+updateChoiceAbout question about [] index		= abort "updateChoiceAbout: cannot choose from empty option list"
+updateChoiceAbout question about options index  = mkExtJSTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)))
 
-updateChoiceAbout :: question b [a] Int -> Task a | html question & iTask a & iTask b //TODO
-updateChoiceAbout question about options index = abort "TODO: updateChoiceAbout"
+makeChoiceTask :: question [a] Int (Maybe [HtmlTag]) !*TSt -> (!a,!*TSt) | html question & iTask a
+makeChoiceTask question options index context tst
+	//Check for user updates
+	# (updates,tst) = getUserUpdates tst
+	| length updates == 0
+		# form = [ExtJSButton {ExtJSButton	| name = "button-" +++ toString i
+											, value = toString i
+											, text = visualizeAsTextLabel option +++ if (i == index) " (current)" ""
+											, iconCls = ""} \\ option <- options & i <- [0..] ]
+		# tst = setExtJSDef (taskPanel (html question) context (Just form) []) tst
+		= (hd options, {tst & activated = False})
+	| otherwise
+		= (options !! (toInt (snd (hd updates))), tst) 
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
 enterMultipleChoice question options = mkExtJSTask "enterMultipleChoice" (makeMultipleChoiceTask question options [] Nothing)
@@ -173,6 +163,21 @@ where
 	select :: [Int] [a] -> [a]
 	select indices options = [options !! index \\ index <- indices]
 
+requestConfirmation	:: question -> Task Bool | html question
+requestConfirmation question = mkExtJSTask "requestConfirmation" (makeConfirmationTask question Nothing)
+
+requestConfirmationAbout :: question a -> Task Bool | html question & iTask a
+requestConfirmationAbout question about = mkExtJSTask "requestConfirmationAbout" (makeConfirmationTask question (Just (visualizeAsHtmlDisplay about)))
+
+makeConfirmationTask :: question (Maybe [HtmlTag]) *TSt -> (Bool,*TSt) | html question
+makeConfirmationTask question context tst
+	//Check for user updates
+	# (updates,tst) = getUserUpdates tst
+	| length updates == 0
+		# tst = setExtJSDef (taskPanel (html question) context Nothing [("answer-no","no","No","icon-no"),("answer-yes","yes","Yes","icon-yes")]) tst
+		= (False,{tst & activated = False})
+	| otherwise
+		= (snd (hd updates) == "yes", tst)
 
 //Output tasks
 showMessage	:: message -> Task Void	| html message
