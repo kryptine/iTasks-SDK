@@ -14,17 +14,14 @@ import Text, JSON, Time, Util
 						, delegatorName	:: String					// Display name of the user who issued the work 
 						, processname	:: String					// Name given to the work process the task belongs to
 				 		, subject		:: String 					// Name give to the task, which can be a short description of the work to do
-				 		, priority		:: Maybe TaskPriority		// Priority of the task
-				 		, progress		:: Maybe TaskProgress		// Progress of the task
-				 		, timestamp		:: Maybe Int				// Time stamp when the task was issued
+				 		, priority		:: TaskPriority				// Priority of the task
+				 		, progress		:: TaskProgress				// Progress of the task
+				 		, timestamp		:: Timestamp				// Time stamp when the task was issued
 				 		, deadline		:: Maybe Timestamp			// Time stamp with deadline
-				 		, tree_shift	:: Bool						// Marks if the item has been shifted to the right
 				 		, tree_path		:: [Bool]					// Path in the tree structure
 				 		, tree_last		:: Bool						// Is this item the last of a set of siblings
-				 		, tree_icon		:: String					// An icon name. The actual icon image is defined in the css.
-				 													// Current possible values: editTask, orTask, andTask, conditionTask, timeTask, systemTask, finishedTask 
+				 		, tree_icon		:: String					// An icon name. The actual icon image is defined in the css.											
 				  		}
-				  													// And also: andTaskMU, maybeTask
 
 //JSON encoding for the used types 				
 derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
@@ -35,7 +32,7 @@ handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst
 	# (mbError,forest,tst)			= calculateTaskForest False tst
 	# (uid, tst)					= getCurrentUser tst
-	# (workitems,tst)				= addDelegatorNames (determineListWorkItems uid False False forest) tst
+	# (workitems,tst)				= addDelegatorNames (determineListWorkItems uid forest) tst
 	# worklist						= { success		= True
 										, total		= length workitems
 										, worklist	= workitems
@@ -48,72 +45,62 @@ handleWorkListRequest request tst
 //when a single tree has no output the second last must be treated
 //as last in the forest. This is needed to get the tree lines displayed
 //correct.
-determineListWorkItems :: !UserId !Bool !Bool ![TaskTree] -> [WorkListItem]
-determineListWorkItems userId ourWork addSequences forest = flatten (reverse (determineListWorkItems` userId ourWork addSequences (reverse forest)))
+determineListWorkItems :: !UserId ![TaskTree] -> [WorkListItem]
+determineListWorkItems userId forest = flatten (reverse (determineListWorkItems` userId (reverse forest)))
 where
-	determineListWorkItems` userId ourWork addSequences [] 	= []
-	determineListWorkItems` userId ourWork addSequences [x:xs]
-		# tree = determineTreeWorkItems userId ourWork addSequences True x
-		| isEmpty tree	= determineListWorkItems` userId ourWork addSequences xs
-		| otherwise		= [tree : map (determineTreeWorkItems userId ourWork addSequences False) xs]
+	determineListWorkItems` userId []
+		= []
+	determineListWorkItems` userId [x:xs]
+		# tree = determineTreeWorkItems userId True x
+		| isEmpty tree	= determineListWorkItems` userId xs
+		| otherwise		= [tree : map (determineTreeWorkItems userId False) xs]
 	
 
 //Calculates the work items for a list of trees, but with
 //a fixed "isLast" parameter. This is necessary to propagate the current "isLast"
 //parameter down the tree when nodes are skipped.
-determineListWorkItemsFixed :: !UserId !Bool !Bool !Bool ![TaskTree] -> [WorkListItem]
-determineListWorkItemsFixed userId ourWork addSequences isLast forest = flatten (map (determineTreeWorkItems userId ourWork addSequences isLast) forest)
+determineListWorkItemsFixed :: !UserId !Bool ![TaskTree] -> [WorkListItem]
+determineListWorkItemsFixed userId isLast forest = flatten (map (determineTreeWorkItems userId isLast) forest)
 
-determineTreeWorkItems :: !UserId !Bool !Bool !Bool !TaskTree -> [WorkListItem]
-//MainTask nodes
-//Always a maintask that we have to do, or have delegated.
-determineTreeWorkItems userId ourWork addSequences isLast (TTMainTask ti mti sequence)
+determineTreeWorkItems :: !UserId !Bool !TaskTree -> [WorkListItem]
+//MainTask nodes: the actual entries
+determineTreeWorkItems userId isLast (TTMainTask ti mti sequence)
 	| (not ti.TaskInfo.active) || ti.TaskInfo.finished									// Inactive or finished, ignore whole branch
 		= []
 	| fst mti.TaskProperties.user <> userId 											// Not our work, no new item
-		= determineListWorkItemsFixed userId False True isLast sequence	
+		= determineListWorkItemsFixed userId isLast sequence	
 	| otherwise
-		| isLast
-			= case (determineListWorkItems userId True False sequence) of
-				[] 		= [mainTaskItem]
-				items	= [{mainTaskItem & tree_last = shiftedItems items} : items]
-		| otherwise
-			= [mainTaskItem : determineListWorkItemsFixed userId True False isLast sequence]	// A task we have to do, or have delegated, add a new item.
+		# items		= determineListWorkItems userId sequence
+		= [{mainTaskItem & tree_last = isLast}: shiftWorkItems (not isLast) items]
 where
-	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.TaskProperties.subject, delegatorId = fst mti.TaskProperties.delegator
-				   , tree_last = isLast, timestamp = Just ((\(Timestamp i) . i) mti.TaskProperties.issuedAt)
+	mainTaskItem = {mkWorkItem
+				   & taskid = ti.TaskInfo.taskId
+				   , subject = mti.TaskProperties.subject
+				   , delegatorId = fst mti.TaskProperties.delegator
+				   , tree_last = isLast
+				   , timestamp = mti.TaskProperties.issuedAt
 				   , deadline = mti.TaskProperties.deadline
-				   , priority = Just mti.TaskProperties.priority
-				   , progress = Just mti.TaskProperties.progress }
+				   , priority = mti.TaskProperties.priority
+				   , progress = mti.TaskProperties.progress
+				   }
 
 //Sequence nodes
-determineTreeWorkItems userId ourWork addSequences isLast (TTSequenceTask ti sequence)
+determineTreeWorkItems userId isLast (TTSequenceTask ti sequence)
 	| (not ti.TaskInfo.active) || ti.TaskInfo.finished				// Inactive or finished, ignore whole branch
 		= []
-	| not addSequences												// We don't need to add the sequence
-		= determineListWorkItemsFixed userId ourWork False isLast sequence
-	| not ourWork
-		= determineListWorkItemsFixed userId ourWork False isLast sequence
 	| otherwise
-		| isLast													// We are last, but maybe our subitems will add some more items
-			= case (determineListWorkItems userId ourWork False sequence) of
-				[]		= [sequenceItem]
-				items	= [{sequenceItem & tree_last = shiftedItems items} : items]
-		| otherwise
-			= [sequenceItem: determineListWorkItemsFixed userId ourWork False False sequence]
-where
-	sequenceItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, tree_last = isLast}
-
+		| isLast	= determineListWorkItems userId sequence
+		| otherwise	= determineListWorkItemsFixed userId False sequence
 //Parallel nodes
-determineTreeWorkItems userId ourWork addSequences isLast (TTParallelTask info combination branches)	
+determineTreeWorkItems userId isLast (TTParallelTask info combination branches)	
 	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
 		= []
 	| otherwise
-		| isLast	= determineListWorkItems userId ourWork False branches
-		| otherwise	= determineListWorkItemsFixed userId ourWork False False branches
+		| isLast	= determineListWorkItems userId branches
+		| otherwise	= determineListWorkItemsFixed userId False branches
 
-//Basic nodes	
-determineTreeWorkItems _ _ _ _ _ = []
+//Other nodes	
+determineTreeWorkItems _ _ _ = []
 
 mkWorkItem :: WorkListItem
 mkWorkItem =	{ taskid		= ""
@@ -121,25 +108,24 @@ mkWorkItem =	{ taskid		= ""
 				, delegatorName	= ""
 				, processname	= ""
 				, subject		= ""
-				, priority		= Nothing
-				, progress		= Nothing
-				, timestamp		= Nothing
+				, priority		= NormalPriority
+				, progress		= TPActive
+				, timestamp		= Timestamp 0
 				, deadline		= Nothing
-				, tree_shift	= False
 				, tree_path		= []
 				, tree_last		= False
-				, tree_icon		= "editTask"
+				, tree_icon		= "task"
 				}
 
 shiftWorkItem :: !Bool !WorkListItem -> WorkListItem
-shiftWorkItem step item =:{tree_path} = {item & tree_path = [step:tree_path], tree_shift = True}				
+shiftWorkItem step item =:{tree_path} = {item & tree_path = [step:tree_path]}				
+
+shiftWorkItems :: !Bool ![WorkListItem] -> [WorkListItem]
+shiftWorkItems step items = map (shiftWorkItem step) items
 
 addDelegatorNames :: [WorkListItem] *TSt -> ([WorkListItem], *TSt)
 addDelegatorNames items tst
 	# (names, tst)		= getDisplayNames [i.WorkListItem.delegatorId \\ i <- items] tst
 	= ([{i & delegatorName = if (i.WorkListItem.delegatorId <> -1) name ""} \\ i <- items & name <- names], tst)
-
-shiftedItems :: [WorkListItem] -> Bool
-shiftedItems [{WorkListItem|tree_shift}:xs] = tree_shift
 	
 

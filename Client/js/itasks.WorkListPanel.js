@@ -11,10 +11,6 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	workStore: new Ext.data.Store({
 		autoLoad: false,
 		bufferSize: 300,
-		sortInfo: {
-			field: 'subject',
-			direction: 'ASC'
-		},
 		proxy: new Ext.data.HttpProxy({
 			url: 'handlers/work/list'
 		}),

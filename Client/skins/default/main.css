@@ -53,26 +53,8 @@ button.icon-accept {
 .icon-newwork {
 	background-image: url('img/icons/report_add.png');
 }
-.icon-editTask {
+.icon-task {
 	background-image: url('img/icons/page_edit.png');
-}
-.icon-andTask {
-	background-image: url('img/icons/sitemap.png');
-}
-.icon-orTask {
-	background-image: url('img/icons/sitemap.png');
-}
-.icon-conditionTask {
-	background-image: url('img/icons/sitemap.png');
-}
-.icon-timeTask {
-	background-image: url('img/icons/time.png');
-}
-.icon-systemTask {
-	background-image: url('img/icons/cog.png');
-}
-.icon-finishedTask {
-	background-image: url('img/icons/tick.png');
 }
 .icon-waiting {
 	background-image: url('img/icons/hourglass.png');
