@@ -54,7 +54,7 @@ where
 enterInformationAbout	:: question b -> Task a	| html question & iTask a & iTask b
 enterInformationAbout question about = updateInformationAbout question about defaultValue
 
-updateInformationAbout :: question b a -> Task a	| html question & iTask a & iTask b 
+updateInformationAbout :: question b a -> Task a | html question & iTask a & iTask b 
 updateInformationAbout question about initial = mkExtJSTask "updateInformationAbout" updateInformationAbout`
 where
 	updateInformationAbout` tst=:{taskNr}
@@ -143,7 +143,7 @@ makeMultipleChoiceTask question options inselection context tst=:{taskNr}
 					  , fieldLabel = Nothing
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
-		# form = [ ExtJSCheckBoxGroup {ExtJSCheckBoxGroup |name = "selection", id = editorid +++ "-selection", fieldLabel = Nothing, columns = 3, items = cboxes}]
+		# form = [ ExtJSCheckBoxGroup {ExtJSCheckBoxGroup |name = "selection", id = editorid +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 3, items = cboxes}]
 		# tst = setExtJSDef (taskPanel (html question) context (Just form) [("done","done","Ok","icon-ok")]) tst
 		= ([],{tst & activated = False})
 	| otherwise

@@ -234,11 +234,12 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	setContent: function(taskid, subject, properties) {
 		this.body.update( String.format(
 		      "<div class=\"worktab-header-table\"><table>"
-			+ "<tr><th>Subject:</th><td>{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
-			+ "<tr><th>Delegated by:</th><td>{3}</td><th>Priority:</th><td>{4}</td></tr>"
+			+ "<tr><th>Subject:</th><td colspan=\"3\">{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
+			+ "<tr><th>Delegated by:</th><td>{3}</td><th>Priority:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></tr>"
 			+ "</table></div><div class=\"worktab-header-indicator\"></div>"
 			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.issuedAt)
 			, properties.delegator[1], itasks.util.formatPriority(properties.priority)
+			, itasks.util.formatDeadline(properties.deadline)
 			));
 	},
 	setBusy: function(busy) {
@@ -487,6 +488,14 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 	}
 });
 
+itasks.TaskMonitorPanel = Ext.extend(Ext.Panel, {
+	initComponent: function() {
+		itasks.TaskMonitorPanel.superclass.initComponent.apply(this,arguments);
+	},
+	update: function(data) {
+		this.el.update(data.html);
+	}
+});
 
 //Waiting for main task panel
 itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
@@ -665,5 +674,6 @@ Ext.reg("itasks.work",itasks.WorkPanel);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
 Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
 Ext.reg("itasks.task-ext-form",itasks.TaskExtFormPanel);
+Ext.reg("itasks.task-waiting",itasks.TaskMonitorPanel);
 Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
 Ext.reg("itasks.task-combination",itasks.TaskCombinationPanel);

@@ -277,19 +277,25 @@ accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
 accWorldTSt f tst=:{TSt|world}
 	# (a,world) = f world
 	= (a, {TSt|tst & world = world})
-
-mkBasicTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
-mkBasicTask taskname taskfun = Task taskname Nothing mkBasicTask`
-where
-	mkBasicTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTBasicTask taskInfo [] }
 		
 mkExtJSTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
 mkExtJSTask taskname taskfun = Task taskname Nothing mkExtJSTask`	
 where
 	mkExtJSTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTExtJSTask taskInfo (abort "No ExtJS definition given")}
-	
+
+mkInstantTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkInstantTask taskname taskfun = Task taskname Nothing mkInstantTask`
+where
+	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
+		= taskfun {tst & tree = TTFinishedTask taskInfo} //We use a FinishedTask node because the task is finished after one evaluation
+
+mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkMonitorTask taskname taskfun = Task taskname Nothing mkMonitorTask`
+where
+	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
+		= taskfun {tst & tree = TTMonitorTask taskInfo []}
+		
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
 where
@@ -328,7 +334,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 					}
 	# tst = {tst & store = store, world = world}
 	|state === TSDone || not activated
-		# tst = addTaskNode (TTBasicTask taskInfo []) tst
+		# tst = addTaskNode (TTFinishedTask taskInfo) tst
 		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
 	| otherwise
 		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, curValue = case curval of Nothing = Nothing ; Just a = Just (dynamic a)}	
@@ -338,14 +344,14 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 		# (a, tst)	= taskfun tst
 		// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
 		# tst=:{tree=node,activated,store}	= clearUserUpdates tst
-		# node								= updateTaskNode activated (printToString a) node
 		// Update task state
 		| activated
 			# tst=:{TSt|store}	= deleteTaskStates taskNr {TSt|tst & store = store}
 			# store				= storeValue taskId (TSDone, a) store
-			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
+			# tst				= addTaskNode (TTFinishedTask taskInfo) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
 			= (a, tst)
 		| otherwise
+			# node				= updateTaskNode activated (printToString a) node
 			# store				= storeValue taskId (TSActive, a) store
 			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
 			= (a, tst)
@@ -366,18 +372,11 @@ where
 		_										= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode f tv (TTBasicTask ti output)					= TTBasicTask		{ti & finished = f, traceValue = tv} output
 	updateTaskNode f tv (TTExtJSTask ti defs)					= TTExtJSTask		{ti & finished = f, traceValue = tv} defs
 	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
 	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
 	updateTaskNode f tv (TTMainTask ti mti tasks)				= TTMainTask		{ti & finished = f, traceValue = tv} mti (reverse tasks)		
 
-setOutput :: ![HtmlTag] !*TSt -> *TSt
-setOutput output tst=:{tree}
-	= case tree of
-		(TTBasicTask info _ )						= {tst & tree = TTBasicTask info output}
-		(TTParallelTask info combination branches)	= {tst & tree = TTParallelTask info combination branches}
-		_											= {tst & tree = tree}
 		
 setExtJSDef	:: !ExtJSDef !*TSt -> *TSt
 setExtJSDef def tst=:{tree}
@@ -391,6 +390,11 @@ setExtJSUpdates upd tst=:{tree}
 		(TTExtJSTask info _)				= {tst & tree = TTExtJSTask info (Right upd)}
 		_									= tst
 
+setStatus :: ![HtmlTag] !*TSt -> *TSt
+setStatus msg tst=:{tree}
+	= case tree of
+		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info msg}
+		_									= tst
 
 getTaskValue :: !*TSt -> (Maybe a, !*TSt) | TC a
 getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)

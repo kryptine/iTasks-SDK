@@ -32,8 +32,9 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	| ExtJSHtmlEditor
 	| ExtJSFieldSet ExtJSFieldSet
 	| ExtJSPanel ExtJSPanel
+	| ExtJSBox ExtJSBox
 	| ExtJSHtmlPanel ExtJSHtmlPanel
-	| ExtJSCustom
+	| ExtJSCustom JSON
 
 :: ExtJSButton =
 	{ name			:: String
@@ -83,6 +84,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	{ name			:: String
 	, id			:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, columns		:: Int
 	, items			:: [ExtJSDef]
 	}
@@ -126,6 +128,9 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, buttons		:: [ExtJSDef]
 	, border		:: Bool
 	, bodyCssClass	:: String
+	}
+:: ExtJSBox =
+	{ html			:: String
 	}
 :: ExtJSHtmlPanel =
 	{ html			:: String

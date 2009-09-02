@@ -26,7 +26,7 @@ derive gParse		Person, Address
 derive gVisualize	Person, Address
 derive gUpdate		Person, Address
 
-myPerson = {name = "Bas", cool = True, dob = {Date | year = 1984, mon = 1, day = 13}, tob = {Time| hour= 8, min = 23, sec = 0}, address = myAddress, age = Just 25, grades = [], note = Note ""}
+myPerson = {name = "Bas", cool = True, dob = {Date | year = 1984, mon = 1, day = 13}, tob = {Time| hour= 8, min = 23, sec = 0}, address = myAddress, age = Just 25, grades = [7,8,6,8], note = Note ""}
 myAddress = {street = "Berg en Dalseweg", number = 24, postalCode = "6521JG"}
 
 Start :: *World -> *World

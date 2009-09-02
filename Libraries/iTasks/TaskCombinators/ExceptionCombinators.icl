@@ -25,8 +25,8 @@ where
 					_	= (a, tst)	//Don't handle the exception
 						
 throw :: !e -> Task a | iTask a & TC e	
-throw e = mkBasicTask "throw" throw`
+throw e = mkMonitorTask "throw" throw`
 where
 	throw` tst
-		# tst	= setOutput [H1Tag [] [Text "Error, an uncaught exception was thrown"]] tst
+		# tst	= setStatus [H1Tag [] [Text "Error, an uncaught exception was thrown"]] tst
 		= (createDefault, {tst & exception = Just (dynamic e), activated = False})

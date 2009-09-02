@@ -54,7 +54,7 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 					width: 28,
 					style: "padding: 0px 0px 0px 2px; background: none; border: 0",
 					items: [{
-						icon: "img/icons/pencil.png",
+						iconCls: "icon-edit",
 						cls: "x-btn-icon",
 						handler: this.startEdit,
 						scope: this
@@ -75,7 +75,7 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 					width: 28,
 					style: "padding: 0px 0px 0px 2px; background: none; border: 0",
 					items: [{
-						icon: "img/icons/accept.png",
+						iconCls: "icon-accept",
 						cls: "x-btn-icon",
 						handler: this.stopEdit,
 						scope: this

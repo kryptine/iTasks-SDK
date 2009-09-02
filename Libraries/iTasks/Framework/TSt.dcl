@@ -219,9 +219,33 @@ taskFinished :: !*TSt -> (!Bool, !*TSt)
 *
 * @return The newly constructed basic task
 */
-mkBasicTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-
 mkExtJSTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+
+/**
+* Wrap a function of proper type to create a function that also
+* keeps track of the the internal numbering and administration.
+* The given task function will add a single instantly computed step to
+* the current sequence.
+*
+* @param A name used as the task label
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed basic task
+*/
+mkInstantTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+
+/**
+* Wrap a function of proper type to create a function that also
+* keeps track of the the internal numbering and administration.
+* The given task function will add a monitoring task to the 
+* the current sequence.
+*
+* @param A name used as the task label
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed basic task
+*/
+mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
 /**
 * Wraps a function of proper type to create a task that will consist
@@ -274,23 +298,17 @@ applyTask			:: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 
 
 //// TASK CONTENT
+setExtJSDef			:: !ExtJSDef !*TSt				-> *TSt	//Only for interactive tasks
 
-/**
-* Sets Html output of the current task
-*/
-setOutput			:: ![HtmlTag] !*TSt			-> *TSt
+setExtJSUpdates		:: ![ExtJSUpdate] !*TSt			-> *TSt //Only for interactive tasks
 
-/**
-* Sets the inputs of the current task (only for BasicTasks)
-*/
-
-setExtJSDef			:: !ExtJSDef !*TSt				-> *TSt
-
-setExtJSUpdates		:: ![ExtJSUpdate] !*TSt			-> *TSt
+setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
 
 getTaskValue		:: !*TSt						-> (Maybe a, !*TSt) | TC a
 
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
+
+
 
 /**
 * Writes a 'task scoped' value to the store

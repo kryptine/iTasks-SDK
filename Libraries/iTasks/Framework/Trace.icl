@@ -29,14 +29,14 @@ where
 
 traceTaskTree :: TaskTree -> HtmlTag
 traceTaskTree tree = DivTag [] (mkTree tree)
-where
-	mkTree (TTBasicTask info _ )
+where	
+	mkTree (TTExtJSTask info _ )
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
 			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
 		    ]
 		  ]
-	mkTree (TTExtJSTask info _ )
+	mkTree (TTMonitorTask info _ )
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
 			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
@@ -59,7 +59,12 @@ where
 			:
 			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
 		  ]]
-
+	mkTree (TTFinishedTask info)
+		= [DivTag [ClassAttr "trace-node"] [
+			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
+			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
+		    ]
+		  ]
 
 	activeClass info
 		| info.TaskInfo.finished	= "trace-finished"
@@ -68,8 +73,6 @@ where
 
 	showCombination TTVertical		= "Vertical"
 	showCombination TTHorizontal	= "Horizontal"
-	showCombination (TTSplit _)		= "Split"
-	showCombination	_ 				= ""
 	
 traceTaskForest :: [TaskTree] -> HtmlTag
 traceTaskForest trees = DivTag [] [traceTaskTree tree \\ tree <- trees]

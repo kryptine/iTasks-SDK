@@ -17,6 +17,7 @@ import Text, JSON, Time, Util
 				 		, priority		:: Maybe TaskPriority		// Priority of the task
 				 		, progress		:: Maybe TaskProgress		// Progress of the task
 				 		, timestamp		:: Maybe Int				// Time stamp when the task was issued
+				 		, deadline		:: Maybe Timestamp			// Time stamp with deadline
 				 		, tree_shift	:: Bool						// Marks if the item has been shifted to the right
 				 		, tree_path		:: [Bool]					// Path in the tree structure
 				 		, tree_last		:: Bool						// Is this item the last of a set of siblings
@@ -24,8 +25,11 @@ import Text, JSON, Time, Util
 				 													// Current possible values: editTask, orTask, andTask, conditionTask, timeTask, systemTask, finishedTask 
 				  		}
 				  													// And also: andTaskMU, maybeTask
-					
+
+//JSON encoding for the used types 				
 derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
+//JSON specialization for Timestamp: Ignore the constructor
+JSONEncode{|Timestamp|}	(Timestamp x) c						= JSONEncode{|*|} x c
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst
@@ -77,7 +81,9 @@ determineTreeWorkItems userId ourWork addSequences isLast (TTMainTask ti mti seq
 			= [mainTaskItem : determineListWorkItemsFixed userId True False isLast sequence]	// A task we have to do, or have delegated, add a new item.
 where
 	mainTaskItem = {mkWorkItem & taskid = ti.TaskInfo.taskId, subject = mti.TaskProperties.subject, delegatorId = fst mti.TaskProperties.delegator
-				   , tree_last = isLast, timestamp = Just ((\(Timestamp i) . i) mti.TaskProperties.issuedAt), priority = Just mti.TaskProperties.priority
+				   , tree_last = isLast, timestamp = Just ((\(Timestamp i) . i) mti.TaskProperties.issuedAt)
+				   , deadline = mti.TaskProperties.deadline
+				   , priority = Just mti.TaskProperties.priority
 				   , progress = Just mti.TaskProperties.progress }
 
 //Sequence nodes
@@ -103,14 +109,8 @@ determineTreeWorkItems userId ourWork addSequences isLast (TTParallelTask info c
 	| (not info.TaskInfo.active) || info.TaskInfo.finished			//Inactive or finished, ignore whole branch
 		= []
 	| otherwise
-		= case combination of
-			(TTSplit _)
-				# subitems	= determineListWorkItems userId ourWork True branches
-				| ourWork	= map (shiftWorkItem (not isLast)) subitems 
-				| otherwise	= subitems
-			_			
-				| isLast	= determineListWorkItems userId ourWork False branches
-				| otherwise	= determineListWorkItemsFixed userId ourWork False False branches
+		| isLast	= determineListWorkItems userId ourWork False branches
+		| otherwise	= determineListWorkItemsFixed userId ourWork False False branches
 
 //Basic nodes	
 determineTreeWorkItems _ _ _ _ _ = []
@@ -124,6 +124,7 @@ mkWorkItem =	{ taskid		= ""
 				, priority		= Nothing
 				, progress		= Nothing
 				, timestamp		= Nothing
+				, deadline		= Nothing
 				, tree_shift	= False
 				, tree_path		= []
 				, tree_last		= False

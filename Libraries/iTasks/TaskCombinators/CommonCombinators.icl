@@ -7,7 +7,7 @@ import StdBool, StdList, StdTuple, StdGeneric, StdMisc, GenBimap
 
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime, :: Options, :: HTTPRequest
-from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkBasicTask, setOutput
+from TSt		import applyTask, mkSequenceTask, mkParallelTask
 from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
 from Store		import :: Store
 from SessionDB	import :: Session
@@ -40,10 +40,8 @@ anyTask []		= return createDefault
 anyTask tasks	= parallel "any" (\list -> length list >= 1) hd undef tasks
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel "all" (\_ -> False) undef id tasks <<@ (TTSplit msg)
-where
-	msg = [Text "Waiting for the completion of the following tasks:"]
-	
+allTasks tasks = parallel "all" (\_ -> False) undef id tasks
+
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb 
 =	parallel "eitherTask" (\list -> length list > 0) hd undef

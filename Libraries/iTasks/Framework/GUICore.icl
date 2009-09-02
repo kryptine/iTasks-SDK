@@ -184,12 +184,26 @@ where
 
 gVisualize{|Dynamic|} old new vst
 	= ([],vst)
+/*
+gVisualize{|[]|} fx old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+	= case vizType of
+		VEditorDefinition
+			= (newEntry,{vst & dataPath = stepDataPath dataPath})
+		_
+			= ([],vst)
+where
+	newEntry = [ ExtJSFragment (ExtJSCustom (JSON "{ xtype : \"displayfield\", value : \"<a href=\\\"#\\\">Add more</a>\"}"))
+			   , ExtJSFragment (ExtJSHtmlPanel {ExtJSHtmlPanel|html = "TEST",border = False, bodyCssClass = ""})
+			   ]
+	
+//Calc body visualizations
+//Add list modifier controls
+//Add new entry control
+//Wrap in panel
+*/
+derive gVisualize []
 
-
-
-
-
-derive gVisualize [], Either, (,), (,,), (,,,), Void
+derive gVisualize Either, (,), (,,), (,,,), Void
 
 //Generic updater
 generic gUpdate a :: a *USt ->  (a, *USt)

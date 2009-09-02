@@ -17,7 +17,7 @@ derive gParse		DBRef
 // Core db access
 
 readDB :: !(DBid a) -> Task a | iTask a
-readDB key = mkBasicTask "readDB" readDB`
+readDB key = mkInstantTask "readDB" readDB`
 where
 	readDB` tst=:{store,world}
 		# (mbVal,store,world) = loadValue (DB_PREFIX +++ key) store world
@@ -26,7 +26,7 @@ where
 			Nothing		= (createDefault,{tst & store = store, world = world})
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
-writeDB key value = mkBasicTask "writeDB" writeDB`
+writeDB key value = mkInstantTask "writeDB" writeDB`
 where
 	writeDB` tst=:{TSt|store}
 		# store = storeValue (DB_PREFIX +++ key) value store

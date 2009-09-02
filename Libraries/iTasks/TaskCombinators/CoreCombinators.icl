@@ -24,7 +24,7 @@ where
 (>>|) taska taskb = taska >>= \_ -> taskb
 
 return :: !a -> (Task a) | iTask a
-return a  = mkBasicTask "return" (\tst -> (a,tst))
+return a  = mkInstantTask "return" (\tst -> (a,tst))
 
 //Repetition and loops:
 

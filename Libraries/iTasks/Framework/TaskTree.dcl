@@ -14,12 +14,13 @@ from   ProcessDB	import :: ProcessStatus
 from   JSON 		import :: JSON
 from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 
-:: TaskTree			= TTBasicTask		TaskInfo [HtmlTag]									//A task that can be worked on through an iData(/ExtJS) gui
+:: TaskTree			= TTMainTask		TaskInfo TaskProperties		[TaskTree]				//A task that is treated as a main chunk of work
 					| TTExtJSTask		TaskInfo (Either ExtJSDef [ExtJSUpdate])			//A task that can be worked on through an ExtJS gui 
+					| TTMonitorTask		TaskInfo [HtmlTag]									//A task that upon evaluation monitors a condition and may give status output
 					| TTSequenceTask	TaskInfo 					[TaskTree]				//A task that is composed of a number of sequentially executed subtasks
-					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks
-					| TTMainTask		TaskInfo TaskProperties		[TaskTree]				//A task that is treated as a main chunk of work  
-								
+					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks  
+					| TTFinishedTask	TaskInfo											//A completed task
+							
 :: TaskInfo	=		{ taskId		:: TaskId												//Task number in string format
 					, taskLabel		:: String												//Descriptive label of the task
 					, active		:: Bool													//Is the task active?

@@ -12,6 +12,12 @@ itasks.util.formatStartDate = function (ts) {
 	else
 		return Date.parseDate(ts, "U").format("d M Y H:i");
 }
+itasks.util.formatDeadline = function(ts) {
+	if(ts == null)
+		return "No deadline"
+	else
+		return Date.parseDate(ts, "U").format("d M Y H:i");
+}
 itasks.util.formatPriority = function(priority) {
 	switch(priority) {
 		case null : return "";

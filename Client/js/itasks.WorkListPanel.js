@@ -28,10 +28,11 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{name: 'progress'},
 				{name: 'delegatorName'},
 				{name: 'timestamp'},
-				{name: 'taskid'},
+				{name: 'deadline'},
 				{name: 'tree_path'},
 				{name: 'tree_last'},
-				{name: 'tree_icon'}
+				{name: 'tree_icon'},
+				{name: 'taskid'}
 			])
 	}),	
 	workView: new Ext.grid.GridView({
@@ -83,7 +84,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{id: 'progress', header: 'Progress', dataindex: 'progress', renderer: itasks.util.formatProgress, width: 100},
 				{id: 'delegatorName', header: 'Delegated by', dataIndex: 'delegatorName', width: 100},
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100},
-				{id: 'taskid', header: 'Task nr', dataIndex: 'taskid', width: 100}
+				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', renderer: itasks.util.formatDeadline, width: 100}
 			],
 			autoExpandColumn: 'subject',
 			enableColumnMove: false,

@@ -16,7 +16,7 @@ handleWorkTabRequest req tst
 			= redundant tst
 		Just tree
 			// Search the relevant part of the task tree
-			= case searchContent taskId False tree of					
+			= case searchContent taskId tree of					
 				(Just properties, subject, Just panel)
 					// Collect debug information
 					# (debuginfo,tst)
@@ -61,20 +61,20 @@ where
 	}
 
 :: TaskPanel
-	= FormPanel FormPanel
-	| ExtFormPanel ExtFormPanel
+	= ExtFormPanel ExtFormPanel
 	| ExtFormUpdate ExtFormUpdate
+	| MonitorPanel MonitorPanel
 	| MainTaskPanel MainTaskPanel
 	| CombinationPanel CombinationPanel
 	| TaskDone
 	| TaskRedundant
 
 // Form task leaf type
-:: FormPanel =
+:: MonitorPanel =
 	{ xtype			:: String
 	, id			:: String
 	, taskId		:: String
-	, formHtml		:: String
+	, html			:: String
 	}
 	
 :: ExtFormPanel =
@@ -106,13 +106,13 @@ where
 	}
 
 //JSON derives
-derive JSONEncode	TaskContent, DebugInfo, FormPanel, ExtFormPanel, ExtFormUpdate, MainTaskPanel, CombinationPanel
+derive JSONEncode	TaskContent, DebugInfo, ExtFormPanel, ExtFormUpdate, MonitorPanel, MainTaskPanel, CombinationPanel
 derive JSONEncode	TaskProperties, TaskPriority, TaskProgress
 
 //JSON specialization for TaskPanel: Ignore the union constructor
-JSONEncode{|TaskPanel|} (FormPanel x) c						= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (ExtFormPanel x) c					= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (ExtFormUpdate x) c					= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (MonitorPanel x) c					= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (MainTaskPanel x) c					= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (CombinationPanel x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
@@ -123,29 +123,21 @@ JSONEncode{|Timestamp|}	(Timestamp x) c						= JSONEncode{|*|} x c
 
 /*
 	Find the relevant content in the task tree:
-	- The properties of the task we want to work on.
-	  In case of a split parallel task we use the properties of
-	  the main task the parallel task is part of.
 	- A subject for labeling the tab. This is a path from the main
 	  task node to the task node we want to work on.
 	- The sub task tree of the task we want to work on.
 */
-searchContent :: TaskId Bool TaskTree -> (Maybe TaskProperties, [String], Maybe TaskPanel)
-searchContent taskId split (TTBasicTask ti html)
-	| ti.TaskInfo.taskId == taskId	= (Nothing, [], Just (buildTaskPanel (TTBasicTask ti html)))
-									= (Nothing, [], Nothing)
-searchContent taskId split (TTSequenceTask ti tasks)
-	| ti.TaskInfo.taskId == taskId	= (Nothing, if split [ti.TaskInfo.taskLabel] [], Just (buildTaskPanel (TTSequenceTask ti tasks)))									
-									= case searchSubTasks taskId False tasks of
-										(Nothing, l, x) = (Nothing, if split [ti.TaskInfo.taskLabel:l] l, x)
-										x				= x
-searchContent taskId split (TTParallelTask ti comb tasks)
+searchContent :: TaskId TaskTree -> (Maybe TaskProperties, [String], Maybe TaskPanel)
+searchContent taskId (TTSequenceTask ti tasks)
+	| ti.TaskInfo.taskId == taskId	= (Nothing, [], Just (buildTaskPanel (TTSequenceTask ti tasks)))									
+									= searchSubTasks taskId tasks 
+searchContent taskId (TTParallelTask ti comb tasks)
 	| ti.TaskInfo.taskId == taskId	= (Nothing, [], Just (buildTaskPanel (TTParallelTask ti comb tasks)))						
-									= searchSubTasks taskId (case comb of (TTSplit _) = True; _ = False) tasks
+									= searchSubTasks taskId tasks
 
-searchContent taskId split (TTMainTask ti mti tasks)
+searchContent taskId (TTMainTask ti mti tasks)
 	| ti.TaskInfo.taskId == taskId	= (Just mti, [mti.TaskProperties.subject],Just panel)
-									= case searchSubTasks taskId False tasks of
+									= case searchSubTasks taskId tasks of
 										(Nothing, l, x)	= (Just mti, [mti.TaskProperties.subject:l], x)
 										x				= x
 where
@@ -156,19 +148,19 @@ where
 			[x]	= buildTaskPanel x
 			_	= abort "Multiple simultaneously active tasks in a main task!"
 
-searchSubTasks :: TaskId Bool [TaskTree] -> (Maybe TaskProperties, [String], Maybe TaskPanel)
-searchSubTasks taskId split trees
-	= case dropWhile (\x -> case x of (_,_,Nothing) = True; _ = False) [searchContent taskId split tree \\ tree <- trees] of
+searchSubTasks :: TaskId [TaskTree] -> (Maybe TaskProperties, [String], Maybe TaskPanel)
+searchSubTasks taskId trees
+	= case dropWhile (\x -> case x of (_,_,Nothing) = True; _ = False) [searchContent taskId tree \\ tree <- trees] of
 		[x:_] 	= x						
 		_		= (Nothing,[],Nothing)			
 
 buildTaskPanel :: TaskTree -> TaskPanel
-buildTaskPanel (TTBasicTask ti html)
-	= FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] html) }
 buildTaskPanel (TTExtJSTask ti (Left def))
 	= ExtFormPanel {ExtFormPanel | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
 buildTaskPanel (TTExtJSTask ti (Right upd))
 	= ExtFormUpdate {ExtFormUpdate | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
+buildTaskPanel (TTMonitorTask ti html)
+	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
@@ -181,8 +173,6 @@ buildTaskPanel (TTParallelTask ti TTHorizontal tasks)
 	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "horizontal", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
 buildTaskPanel (TTParallelTask ti TTVertical tasks)
 	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "vertical", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
-buildTaskPanel (TTParallelTask ti (TTSplit html) tasks)
-	= FormPanel {FormPanel| xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, formHtml = toString (DivTag [] (taskOverview html tasks))}
 
 taskOverview :: [HtmlTag] [TaskTree] -> [HtmlTag]
 taskOverview prompt branches =
@@ -195,11 +185,12 @@ where
 	icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 
 isActive :: TaskTree -> Bool
-isActive (TTBasicTask		{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTExtJSTask		{TaskInfo|active,finished} _ )	= active && not finished
+isActive (TTMonitorTask		{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTSequenceTask	{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTParallelTask	{TaskInfo|active,finished} _ _ )= active && not finished
 isActive (TTMainTask 		{TaskInfo|active,finished} _ _ )= active && not finished
+isActive (TTFinishedTask	_ )								= False
 
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst

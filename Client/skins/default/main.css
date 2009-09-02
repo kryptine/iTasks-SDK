@@ -38,6 +38,12 @@ button.icon-ok, button.icon-yes {
 button.icon-no {
 	background-image: url('img/icons/cancel.png');
 }
+button.icon-edit {
+	background-image: url('img/icons/pencil.png');
+}
+button.icon-accept {
+	background-image: url('img/icons/accept.png');
+}
 .icon-debug {
 	background-image: url('img/icons/bug.png');
 }

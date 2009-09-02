@@ -18,8 +18,7 @@ from StdString import class toString
 					| NormalPriority
 					| LowPriority
 
-:: TaskCombination	= TTSplit [HtmlTag]		//Treat the tasks as separate units of work
-					| TTVertical			//Group the tasks and display them below each other
+:: TaskCombination	= TTVertical			//Group the tasks and display them below each other
 					| TTHorizontal 			//Group the tasks and display them next to each other
 					
 :: EvaluationOption	= OnClient 				// Evaluate a task on the client whenever possible
