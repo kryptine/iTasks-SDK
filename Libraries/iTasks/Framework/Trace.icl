@@ -33,36 +33,36 @@ where
 	mkTree (TTExtJSTask info _ )
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
+			DivTag [ClassAttr "trace-node-content " ] [Text "INT: ",Text info.TaskInfo.traceValue]
 		    ]
 		  ]
 	mkTree (TTMonitorTask info _ )
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
+			DivTag [ClassAttr "trace-node-content " ] [Text "MON: ", Text info.TaskInfo.traceValue]
 		    ]
 		  ]
 	mkTree (TTSequenceTask info trees)
 		= [TableTag [ClassAttr "trace-sequence"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
+			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text "SEQ: ", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
 			:
 			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
 		  ]]
 	mkTree (TTParallelTask info combination trees)
 		= [TableTag [ClassAttr "trace-parallel"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel, Text " (",Text (showCombination combination), Text ")"] ],
+			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text "PAR: ",Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel, Text " (",Text (showCombination combination), Text ")"] ],
 			TrTag [] [TdTag [] (mkTree tree) \\ tree <- trees]
 		  ]]
 	mkTree (TTMainTask info mti trees)
 		= [TableTag [ClassAttr "trace-sequence"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text "MAINTASK:", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
+			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text "MNT: ", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
 			:
 			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
 		  ]]
 	mkTree (TTFinishedTask info)
 		= [DivTag [ClassAttr "trace-node"] [
 			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [Text info.TaskInfo.traceValue]
+			DivTag [ClassAttr "trace-node-content " ] [Text "FIN: ", Text info.TaskInfo.traceValue]
 		    ]
 		  ]
 

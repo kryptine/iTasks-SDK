@@ -19,7 +19,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			title: "Loading task...",
 			closable: true,
 			autoDestroy: true,
-			iconCls: "icon-editTask",
+			iconCls: "icon-task",
 			
 			url: "/handlers/work/tab",
 			params: {_maintask: this.taskId, _debug: this.debug ? 1 : 0},
@@ -39,7 +39,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				activeTab: 0,
 				items: [{
 					title: "Task",
-					iconCls: "icon-editTask",
+					iconCls: "icon-task",
 					border: false,
 					bodyStyle: "padding: 10px;",
 					autoScroll: true

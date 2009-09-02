@@ -10,14 +10,20 @@ import GUICore, ExtJS
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst
-	# (mbError, mbTree, tst)	= calculateTaskTree procId debug tst	// Calculate the task tree
+	# (mbError, mbTree, tst) = calculateTaskTree procId debug tst	// Calculate the task tree
 	= case mbTree of
 		Nothing	
 			= redundant tst
 		Just tree
 			// Search the relevant part of the task tree
-			= case searchContent taskId tree of					
-				(Just properties, subject, Just panel)
+			= case locateSubTaskTree taskId tree of
+				Just (TTMainTask ti properties tasks)
+					# subject = [properties.TaskProperties.subject]
+					# panel = case [t \\ t <- tasks | isActive t] of
+						[]	= TaskRedundant
+						[x]	= buildTaskPanel x
+						_	= abort "Multiple simultaneously active tasks in a main task!"
+					
 					// Collect debug information
 					# (debuginfo,tst)
 								= if debug (collectDebugInfo tree tst) (Nothing, tst)
@@ -32,10 +38,10 @@ handleWorkTabRequest req tst
 					
 					| otherwise
 						= redundant tst
-				(Just properties, subject, Nothing)
+				Just (TTFinishedTask ti)
+					= finished tst
+				_
 					= redundant tst
-				_	= error "Could not locate process information" tst
-			
 where
 	taskId	= http_getValue "_maintask" req.arg_post "0"
 	taskNr	= taskNrFromString taskId
@@ -47,6 +53,9 @@ where
 		= ({http_emptyResponse & rsp_data = "{ \"success\" : false, \"error\" : \"" +++ msg +++ "\"}"}, tst)
 	redundant tst
 		= let content = {TaskContent| properties = Nothing, subject = [], content = TaskRedundant, debug = Nothing} in
+			({http_emptyResponse & rsp_data = toJSON content}, tst)
+	finished tst
+		= let content = {TaskContent| properties = Nothing, subject = [], content = TaskDone, debug = Nothing} in
 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 			
 :: TaskContent =
@@ -120,39 +129,6 @@ JSONEncode{|TaskPanel|} (TaskRedundant) c					= ["\"redundant\"" : c]
 
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c						= JSONEncode{|*|} x c
-
-/*
-	Find the relevant content in the task tree:
-	- A subject for labeling the tab. This is a path from the main
-	  task node to the task node we want to work on.
-	- The sub task tree of the task we want to work on.
-*/
-searchContent :: TaskId TaskTree -> (Maybe TaskProperties, [String], Maybe TaskPanel)
-searchContent taskId (TTSequenceTask ti tasks)
-	| ti.TaskInfo.taskId == taskId	= (Nothing, [], Just (buildTaskPanel (TTSequenceTask ti tasks)))									
-									= searchSubTasks taskId tasks 
-searchContent taskId (TTParallelTask ti comb tasks)
-	| ti.TaskInfo.taskId == taskId	= (Nothing, [], Just (buildTaskPanel (TTParallelTask ti comb tasks)))						
-									= searchSubTasks taskId tasks
-
-searchContent taskId (TTMainTask ti mti tasks)
-	| ti.TaskInfo.taskId == taskId	= (Just mti, [mti.TaskProperties.subject],Just panel)
-									= case searchSubTasks taskId tasks of
-										(Nothing, l, x)	= (Just mti, [mti.TaskProperties.subject:l], x)
-										x				= x
-where
-	panel
-		| ti.TaskInfo.finished	= TaskDone
-		| otherwise				= case [t \\ t <- tasks | isActive t] of
-			[]	= TaskRedundant
-			[x]	= buildTaskPanel x
-			_	= abort "Multiple simultaneously active tasks in a main task!"
-
-searchSubTasks :: TaskId [TaskTree] -> (Maybe TaskProperties, [String], Maybe TaskPanel)
-searchSubTasks taskId trees
-	= case dropWhile (\x -> case x of (_,_,Nothing) = True; _ = False) [searchContent taskId tree \\ tree <- trees] of
-		[x:_] 	= x						
-		_		= (Nothing,[],Nothing)			
 
 buildTaskPanel :: TaskTree -> TaskPanel
 buildTaskPanel (TTExtJSTask ti (Left def))
