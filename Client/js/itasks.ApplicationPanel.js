@@ -83,6 +83,10 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		worklist.refresh();
 		
 		//Connect event handlers
+		Ext.get("logout").on("click",function() {
+			apppanel.logout();
+		});
+		
 		var attachTabHandlers = function(tab) {
 			if(tab[1]) { //The tab is new
 				tab[0].on("taskDone",function(taskid) {
@@ -127,10 +131,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			debugpanel.getProcessTableButton().on("click",function() {
 				worktabs.openProcessTableTab();
 			});
-		}
-		Ext.get("logout").on("click",function() {
-			apppanel.logout();
-		});
+		}	
 	},
 	
 	logout: function() {	

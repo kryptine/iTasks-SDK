@@ -53,6 +53,9 @@ button.icon-accept {
 .icon-newwork {
 	background-image: url('img/icons/report_add.png');
 }
+.icon-home {
+	background-image: url('img/icons/house.png');
+}
 .icon-task {
 	background-image: url('img/icons/page_edit.png');
 }

@@ -10,6 +10,7 @@ itasks.HomeTabPanel = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			title: "Welcome",
 			closable: false,
+			iconCls: "icon-home",
 			autoLoad: "skins/" + itasks.config.skin + "/welcome.html"
 		});
 		
