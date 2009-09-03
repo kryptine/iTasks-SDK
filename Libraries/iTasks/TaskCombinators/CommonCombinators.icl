@@ -49,6 +49,19 @@ eitherTask taska taskb
 			, (taskb >>= \b -> return (Right b)) <<@ "Right"
 			] <<@ TTHorizontal
 
+(||-) infixr 3		:: !(Task a) !(Task b)						-> Task b				| iTask a & iTask b
+(||-) taska taskb
+	= parallel "||-" rightDone takeRight takeRight
+		[ (taska >>= \a -> return (Left a)) <<@ "Left"
+		, (taskb >>= \b -> return (Right b)) <<@ "Right"
+		]
+where
+	rightDone [Right x] = True
+	rightDone _			= False
+	
+	takeRight l			= hd [ x \\ (Right x) <- l] 
+
+
 (>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
 (>>?) t1 t2 
 = 				t1 

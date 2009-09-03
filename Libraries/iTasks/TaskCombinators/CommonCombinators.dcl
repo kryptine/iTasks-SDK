@@ -18,6 +18,8 @@ anyTask				:: ![Task a]								-> Task a				| iTask a
 allTasks			:: ![Task a]								-> Task [a]				| iTask a
 eitherTask			:: !(Task a) !(Task b) 						-> Task (Either a b)	| iTask a & iTask b	
 
+(||-) infixr 3		:: !(Task a) !(Task b)						-> Task b				| iTask a & iTask b
+
 //Task composition for optional values
 (>>?)	infixl 1	:: !(Task (Maybe a)) !(a -> Task (Maybe b))	-> Task (Maybe b) 		| iTask a & iTask b
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b

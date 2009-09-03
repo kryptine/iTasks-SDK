@@ -36,14 +36,9 @@ trivialTask = fillInForm createDefault
 
 fillInForm :: QForm -> Task QForm
 fillInForm form	
-= 					updateInformation "Please fill in quotation:" form 
-	>>= \form ->	chooseTask [Text "Is everything filled in correctly?": visualizeAsHtmlDisplay form] 
-						 [("Yes, commit", return form) 
-						 ,("No", fillInForm form)
-						 ] 
-
-OK 	= button "OK" True
-NOK = button "OK" False
+	= 				updateInformation "Please fill in quotation:" form 
+	>>= \form ->	requestConfirmationAbout "Is everything filled in correctly?" form
+	>>= \ok	->		if ok (return form) (fillInForm form) 
 
 movingTask (label,task)
 =					newmove
@@ -54,35 +49,36 @@ where
 		>>= 		inspect
 
 	inspect wid
-	=				chooseTask [Text "Go ahead impatient boss:",BrTag [],BrTag []] 
-						[("get status",	getStatus wid)
-						,("suspend",	suspend wid)
-						,("activate",	activate wid)
-						,("re assign",	reassign wid)
-						,("delete it",	delete wid)
-						,("wait for it",waitForIt wid)
-						] 
-					>>= \finished -> if finished (return Void) (inspect wid)
+	=					enterChoice "Go ahead impatient boss:" 
+							[ getStatus wid <<@ "Get status"
+							, suspend wid <<@ "Suspend"
+							, activate wid <<@ "Activate"
+							, reassign wid <<@ "Reassign"
+							, delete wid <<@ "Delete task"
+							, waitForIt wid <<@ "Wait for task"
+							]
+		>>= \action ->	action
+		>>= \finished -> if finished (return Void) (inspect wid)
 
 	getStatus wid
 	=						getProcessStatus wid
 		>>= \st	->			getProcessOwner wid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (getUserNames [(fromJust mbOwner)])
 		>>= \names ->		case st of
-								Finished	-> [Text "It is finished"] ?>> OK
-								Deleted		-> [Text "It is deleted"]  ?>> OK		
-								Active		-> [Text ("User " <+++ hd names <+++ " is working on it")]  ?>> NOK		
-								Suspended	-> [Text ("It is suspended, user " <+++ hd names <+++ " was working on it")]  ?>> NOK		
+								Finished	-> showMessage "It is finished" >>| return True
+								Deleted		-> showMessage "It is deleted" >>| return True		
+								Active		-> showMessage ("User " <+++ hd names <+++ " is working on it") >>| return False		
+								Suspended	-> showMessage ("It is suspended, user " <+++ hd names <+++ " was working on it") >>| return False		
 	suspend wid
 	=						suspendProcess wid
 		>>= \ok ->			if ok
-								([Text "workflow is suspended"] ?>> NOK)
-								([Text "workflow could not be suspended"] ?>> NOK)
+								(showMessage "workflow is suspended" >>| return False)
+								(showMessage "workflow could not be suspended" >>| return False)
 	activate wid
 	=						activateProcess wid
 		>>= \ok ->			if ok
-								([Text "workflow is activated"] ?>> NOK)
-								([Text "workflow could not be activated"] ?>> NOK)
+								(showMessage "workflow is activated" >>| return False)
+								(showMessage "workflow could not be activated"  >>| return False)
 
 	delete wid
 	=						deleteProcess wid 
@@ -94,15 +90,15 @@ where
 		>>| 				return False
 
 	waitForIt wid
-	=						[Text "Waiting for the result..."]
-							?>> waitForProcess wid 
+	=						showStickyMessage "Waiting for the result..." ||- waitForProcess wid
 		>>= \(Just res) -> 	deleteProcess wid 
-		>>| 				[Text "Finished, the result = ": visualizeAsHtmlDisplay res]?>> OK
+		>>| 				showMessageAbout "Finished, the result = " res
+		>>|					return False
 
 	
 selectUser :: !String -> Task Int
-selectUser prompt
+selectUser question
 	= 						getUsers
-		>>= \users ->		chooseTask prompt
-								[(name, return userId) \\ (userId,name) <- users]
+		>>= \users ->		enterChoice question users
+		>>= \user ->		return (fst user)
 

@@ -374,6 +374,7 @@ where
 	
 	//update the finished, tasks and traceValue fields of a task tree node
 	updateTaskNode f tv (TTExtJSTask ti defs)					= TTExtJSTask		{ti & finished = f, traceValue = tv} defs
+	updateTaskNode f tv (TTMonitorTask ti status)				= TTMonitorTask		{ti & finished = f, traceValue = tv} status
 	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
 	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
 	updateTaskNode f tv (TTMainTask ti mti tasks)				= TTMainTask		{ti & finished = f, traceValue = tv} mti (reverse tasks)		
