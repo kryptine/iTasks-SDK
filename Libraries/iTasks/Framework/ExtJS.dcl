@@ -48,6 +48,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, value			:: String
 	, fieldLabel	:: Maybe String
 	, allowDecimals	:: Bool
+	, numDecimals	:: Int
 	}
 :: ExtJSTextField =
 	{ name			:: String
@@ -128,6 +129,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, buttons		:: [ExtJSDef]
 	, border		:: Bool
 	, bodyCssClass	:: String
+	, fieldLabel	:: Maybe String
 	}
 :: ExtJSBox =
 	{ html			:: String

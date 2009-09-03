@@ -71,7 +71,7 @@ where
 	collectBid :: Purchase (Int,String) -> Task ((Int,String),Currency)
 	collectBid purchase bid
 		=	enterInformationAbout
-				[Text "Please make a bid to supply the following product"]
+				"Please make a bid to supply the following product"
 				purchase
 				>>= \price -> return (bid,price)  	
 	

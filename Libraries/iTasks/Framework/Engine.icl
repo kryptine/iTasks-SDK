@@ -39,15 +39,6 @@ workflow path task =
 	, mainTask = task >>| return Void
 	}
 
-// Determines the server executables name
-determineAppName :: !*World -> (!String,!*World)
-determineAppName world 
-	# (args,world)	= getCommandLine world
-	= (strip (hd args),world)
-where
-	strip path = let executable = last (split "\\" path) in executable % (0, size executable - 5)
-
-
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
@@ -78,7 +69,6 @@ handleAnonRequest flows handler request world
 	# world						= finalizeTSt tst
 	= (response, world)
 
-
 handleSessionRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleSessionRequest flows handler request world
 	# tst						= initTSt request flows world
@@ -104,3 +94,14 @@ initTSt request flows world
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world
+
+// Determines the server executables name
+determineAppName :: !*World -> (!String,!*World)
+determineAppName world 
+	# (args,world)	= getCommandLine world
+	= (strip (hd args),world)
+where
+	strip path = let executable = last (split "\\" path) in executable % (0, size executable - 5)
+
+
+

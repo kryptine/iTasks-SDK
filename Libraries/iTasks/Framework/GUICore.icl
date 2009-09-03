@@ -141,12 +141,12 @@ gVisualize{|FIELD of d|} fx (FIELD ox) (FIELD nx) vst=:{vizType}
 
 gVisualize{|Int|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label, allowDecimals = False})], {VSt|vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label, allowDecimals = False, numDecimals = 0})], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
 		
 gVisualize{|Real|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label, allowDecimals = True})], {VSt|vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label, allowDecimals = True, numDecimals = 1000})], {VSt|vst & dataPath = stepDataPath dataPath})
 		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
 		
 gVisualize{|Char|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}

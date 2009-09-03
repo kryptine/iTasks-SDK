@@ -4,11 +4,12 @@ import iTasks
 import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenLexOrd, GUICore
 import GUICore
+import Text
 
 derive gPrint		EmailAddress, Password, Note, Date, Time, Currency
 derive gParse		EmailAddress, Password, Note, Date, Time, Currency
 derive gVisualize	EmailAddress, Password
-derive gUpdate		EmailAddress, Password, Note, Currency
+derive gUpdate		EmailAddress, Password, Note
 derive gLexOrd		Currency
 
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
@@ -30,11 +31,21 @@ where
 	// This way the generic gUpdate will work for this type
 	contentPath				= shiftDataPath dataPath				
 
-gVisualize{|Currency|} old new vst=:{vizType}
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
 	= case vizType of
-		//VEditorDefinition
+		VEditorDefinition
+			= ([ExtJSFragment combinedPanel], {VSt|vst & dataPath = stepDataPath dataPath})
 		_
 			= ([TextFragment (toString old)],vst)
+where
+	combinedPanel			= ExtJSPanel {ExtJSPanel| layout = "hbox", fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
+	numberField				= ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath
+								, value = value2s blank (decFormat (toInt old)), fieldLabel = Nothing, allowDecimals = True, numDecimals = 2}
+	currencyLabel			= ExtJSCustom (JSON ("{xtype : \"displayfield\", value : \"" +++ curLabel old +++ "\", style : \"padding: 3px 5px 2px 2px;\"}"))
+	curLabel (EUR _)		= "&euro;"
+	curLabel (GBP _)		= "&pound;"
+	curLabel (USD _)		= "$"
+	curLabel (JPY _)		= "&yen;"
 
 gUpdate{|Date|} _ ust=:{USt|mode=UDCreate} = ({Date|year = 2000, mon = 1, day = 1}, ust)
 gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
@@ -51,7 +62,29 @@ gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Time|} s ust = (s, ust)
+
+gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate} = (EUR 0, ust)
+gUpdate{|Currency|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+	| dp2s currentPath == searchPath
+		= (parseUpdate s update, {USt|ust & mode = UDDone})
+	| otherwise
+		= (s, {USt| ust & currentPath = stepDataPath currentPath})
+where
+	parseUpdate orig update
+		= case split "." update of
+			[whole]		= replaceVal orig (100 * toInt whole)
+			[whole,dec] = replaceVal orig (100 * toInt whole + (if (size dec == 1) (10 * toInt dec) (toInt (dec % (0,1)))))
+			_			= orig
 	
+	replaceVal (EUR _) x = (EUR x)
+	replaceVal (GBP _) x = (GBP x)
+	replaceVal (USD _) x = (USD x)
+	replaceVal (JPY _) x = (JPY x)
+	
+gUpdate{|Currency|} s ust = (s,ust)
+
+
+
 instance toString Time
 where
 	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)

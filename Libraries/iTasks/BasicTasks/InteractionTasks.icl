@@ -78,10 +78,9 @@ where
 			| otherwise
 				# updates	= determineEditorUpdates editorid oldval newval
 				# tst		= setExtJSUpdates updates tst
-				= (newval, {tst & activated = False})
+				= (newval,{tst & activated = False})
 
-
-
+import StdDebug
 
 
 enterChoice :: question [a] -> Task a | html question & iTask a
@@ -205,7 +204,7 @@ where
 
 taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [ExtJSDef]) [(String,String,String,String)] -> ExtJSDef
 taskPanel description mbContext mbForm buttons
-	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task"}
+	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing}
 where
 	items = [taskDescriptionPanel description] ++
 			(case mbContext of Just context = [taskContextPanel context]; Nothing = []) ++
@@ -218,7 +217,7 @@ where
 	taskContextPanel context = ExtJSHtmlPanel {ExtJSHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
 	
 	taskFormPanel :: [ExtJSDef] -> ExtJSDef
-	taskFormPanel items = ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = [], bodyCssClass = "task-form"}
+	taskFormPanel items = ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}
 	
 	taskButtons	:: [(String,String,String,String)] -> [ExtJSDef]
 	taskButtons buttons = [ExtJSButton {ExtJSButton| name = name, value = value, text = text, iconCls = icon} \\ (name,value,text,icon) <- buttons]
