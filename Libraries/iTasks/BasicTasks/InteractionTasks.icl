@@ -1,6 +1,6 @@
 implementation module InteractionTasks
 
-import	StdList, StdOrdList, StdTuple, StdMisc, GenBimap
+import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, GenBimap
 from	StdFunc import id, const
 import	TSt
 
@@ -180,27 +180,26 @@ makeConfirmationTask question context tst
 
 //Output tasks
 showMessage	:: message -> Task Void	| html message
-showMessage message = mkExtJSTask "showMessage" showMessage`
-where
-	showMessage` tst
-		# (updates,tst) = getUserUpdates tst
-		| length updates == 0
-			# tst = setExtJSDef (taskPanel (html message) Nothing Nothing [("done","done","Ok","icon-ok")]) tst
-			= (Void,{tst & activated = False})
-		| otherwise
-			= (Void, tst)
+showMessage message = mkExtJSTask "showMessage"  (makeMessageTask message Nothing False)
 
 showMessageAbout :: message a -> Task Void | html message & iTask a
-showMessageAbout message about = mkExtJSTask "showMessageAbout" showMessageAbout`
-where
-	showMessageAbout` tst
-		# (updates,tst) = getUserUpdates tst
-		| length updates == 0
-			# context = visualizeAsHtmlDisplay about
-			# tst = setExtJSDef (taskPanel (html message) (Just context) Nothing [("done","done","Ok","icon-ok")]) tst
-			= (Void,{tst & activated = False})
-		| otherwise
-			= (Void, tst)
+showMessageAbout message about = mkExtJSTask "showMessageAbout" (makeMessageTask message (Just (visualizeAsHtmlDisplay about)) False)
+
+showStickyMessage :: message -> Task Void | html message
+showStickyMessage message = mkExtJSTask "showStickyMessage" (makeMessageTask message Nothing True)
+
+showStickyMessageAbout :: message a -> Task Void | html message & iTask a
+showStickyMessageAbout message about = mkExtJSTask "showStickyMessageAbout" (makeMessageTask message (Just (visualizeAsHtmlDisplay about)) True)
+
+makeMessageTask :: message (Maybe [HtmlTag]) Bool *TSt -> (Void, *TSt) | html message
+makeMessageTask message context sticky tst
+	# (updates,tst) = getUserUpdates tst
+	| length updates == 0 || sticky
+		# tst = setExtJSDef (taskPanel (html message) context Nothing (if sticky [] [("done","done","Ok","icon-ok")])) tst
+		= (Void,{tst & activated = False})
+	| otherwise
+		= (Void, tst)
+
 
 taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [ExtJSDef]) [(String,String,String,String)] -> ExtJSDef
 taskPanel description mbContext mbForm buttons

@@ -35,8 +35,15 @@ requestConfirmation			:: question -> Task Bool			| html question
 requestConfirmationAbout	:: question a -> Task Bool			| html question & iTask a
 
 //Output tasks
+
+//Show a basic message to the current user. The user can end the task after reading the message.
 showMessage					:: message -> Task Void				| html message
 showMessageAbout			:: message a -> Task Void			| html message & iTask a
 
+//Show a message to the current user. The user can not finish this task. It has to be made obsolete by another parallel task. 
+showStickyMessage			:: message -> Task Void				| html message
+showStickyMessageAbout		:: message a -> Task Void			| html message & iTask a
+
+//Notify a user through external media. For example via e-mail or sms.
 notifyUser					:: message UserId -> Task Void		| html message
 notifyGroup					:: message Role -> Task Void		| html message

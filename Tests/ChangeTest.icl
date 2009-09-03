@@ -64,7 +64,7 @@ addWarning msg =
 	dynamic (change msg) :: A.a: Change a | iTask a
 where
 	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change msg props t t0 = (Nothing, Just (redText msg ?>> t), Just (addWarning msg))
+	change msg props t t0 = (Nothing, Just (((showStickyMessage (redText msg) >>| return defaultValue) -||- t) <<@ TTVertical), Just (addWarning msg))
 
 	redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
