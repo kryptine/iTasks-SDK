@@ -43,7 +43,9 @@ workflow path task =
 determineAppName :: !*World -> (!String,!*World)
 determineAppName world 
 	# (args,world)	= getCommandLine world
-	= (hd args,world)
+	= (strip (hd args),world)
+where
+	strip path = let executable = last (split "\\" path) in executable % (0, size executable - 5)
 
 
 // Request handler which serves static resources from the application directory,
@@ -71,16 +73,15 @@ handleStaticResourceRequest req world
 
 handleAnonRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleAnonRequest flows handler request world
-	# (appName,world)			= determineAppName world
-	# tst						= initTSt appName request flows world
+	# tst						= initTSt request flows world
 	# (response, tst)			= handler request tst
 	# world						= finalizeTSt tst
 	= (response, world)
 
+
 handleSessionRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleSessionRequest flows handler request world
-	# (appName,world)			= determineAppName world
-	# tst						= mkTSt appName request (abort "session not active yet") flows (createStore "iTask-data") world
+	# tst						= initTSt request flows world
 	# sessionId					= http_getValue "_session" (request.arg_get ++ request.arg_post) ""
 	# (mbSession,timeout,tst=:{staticInfo})	= restoreSession sessionId tst
 	= case mbSession of
@@ -96,8 +97,10 @@ handleSessionRequest flows handler request world
 where
 	mkSessionFailureResponse to = "{\"success\" : false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
  
-initTSt :: !String !HTTPRequest ![Workflow] !*World -> *TSt
-initTSt appName request flows world = mkTSt appName request (abort "session not active yet") flows (createStore "iTask-data") world
+initTSt :: !HTTPRequest ![Workflow] !*World -> *TSt
+initTSt request flows world
+	# (appName,world)			= determineAppName world
+	= mkTSt appName request (abort "session not active yet") flows (createStore (appName +++ "-store")) world
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world
