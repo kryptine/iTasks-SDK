@@ -1,6 +1,6 @@
 implementation module Util
 
-import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc
+import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc, StdFile
 import Time
 import TSt
 
@@ -21,6 +21,29 @@ iTaskId tasknr postfix
 
 (<+++) infixl 5	:: !String !a -> String | gVisualize{|*|} a
 (<+++) s a = s +++ visualizeAsTextLabel a
+
+readfile :: !String !*World -> (!String,!*World)
+readfile filename world
+	# (ok,file,world)	= fopen filename FReadData world
+	| ok
+		# (content,file)= rec file ""
+		# (ok,world)	= fclose file world
+		= (content,world)
+	| otherwise
+		= ("",world)
+where		
+	rec :: *File String -> (String, *File)
+	rec file acc # (string, file) = freads file 100
+		| string == "" = (acc, file)
+		| otherwise    = rec file (acc +++ string)
+
+writefile :: !String !String !*World -> *World
+writefile filename content world
+	# (ok,file,world)	= fopen filename FWriteData world
+	| not ok			= abort ("Failed to write file: " +++ filename)
+	# file				= fwrites content file
+	# (ok,world)		= fclose file world
+	= world
 
 // ******************************************************************************************************
 // Task specialization

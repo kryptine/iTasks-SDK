@@ -17,7 +17,7 @@ import CommonDomain
 
 //Additional imports for custom combinator creation
 from TSt 		import applyTask, setCombination, mkSequenceTask, mkParallelTask
-from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}, :: Store
+from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}, :: Store, :: Config
 from SessionDB	import :: Session
 from Types		import :: ProcessId, :: TaskNr
 from TaskTree	import :: TaskTree

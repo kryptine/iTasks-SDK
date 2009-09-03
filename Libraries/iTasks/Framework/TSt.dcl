@@ -9,6 +9,7 @@ import Types, Void
 import TaskTree
 
 from SessionDB	import :: Session{..}
+from Config		import :: Config(..)
 from Store		import :: Store(..)
 from Time		import :: Timestamp(..)
 from Http		import :: HTTPRequest
@@ -37,6 +38,7 @@ import GenPrint, GenParse, GUICore
 					, doChange		:: !Bool											// Apply change
 					, changes		:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
 					
+					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
 									
 					, store			:: !Store											// Generic store
@@ -74,6 +76,7 @@ import GenPrint, GenParse, GUICore
 * Creates an initial task state.
 *
 * @param The application name
+* @param The server configuration
 * @param The current HTTP request
 * @param The session data
 * @param The workflows available in the application
@@ -82,7 +85,7 @@ import GenPrint, GenParse, GUICore
 *
 * @return a TSt iTask state
 */
-mkTSt :: String HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
 
 /**
 * Calculates all task trees that are relevant to the current user

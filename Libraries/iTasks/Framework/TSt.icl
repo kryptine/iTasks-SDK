@@ -4,7 +4,7 @@ import StdEnv, StdMaybe
 import Http, Util
 import ProcessDB, DynamicDB, SessionDB, TaskTree
 import GenPrint, GenParse, GenEq, GenBimap
-import GUICore, Store
+import GUICore, Store, Config
 
 import code from "copy_graph_to_string.obj";
 import code from "copy_graph_to_string_interface.obj";
@@ -15,8 +15,8 @@ derive gPrint		TaskState
 derive gParse		TaskState
 derive gEq			TaskState
 
-mkTSt :: String HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
-mkTSt appName request session workflows store world
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
+mkTSt appName config request session workflows store world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
@@ -32,6 +32,7 @@ mkTSt appName request session workflows store world
 		, exception		= Nothing
 		, doChange		= False
 		, changes		= []
+		, config		= config
 		, request		= request
 		, store			= store
 		, world			= world

@@ -1,6 +1,7 @@
 implementation module Engine
 
 import StdMisc, StdArray, StdList, StdChar, GenBimap
+from StdFunc import o
 import Store, UserDB, ProcessDB, SessionDB
 import Text, Util
 import CoreCombinators
@@ -12,9 +13,9 @@ import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
 
-import TSt
+import Config, TSt
 
-RESOURCE_DIR :== "Client" //TODO: Use config file
+PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
@@ -44,16 +45,10 @@ workflow path task =
 // This request handler is used for serving system wide javascript, css, images, etc...
 handleStaticResourceRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleStaticResourceRequest req world
+	# (appName,world)		= determineAppName world
+	# (config,world)		= loadConfig appName world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
-	# (cwd,world)			= ("./",world) //TODO
-	# filename				= cwd +++ path	
-	# (type, world)			= http_staticFileMimeType filename world
-	# (ok, content, world)	= http_staticFileContent filename world
-	| ok					= ({rsp_headers = [("Status","200 OK"),
-											   ("Content-Type", type),
-											   ("Content-Length", toString (size content))]
-							   ,rsp_data = content}, world)
-	# filename				= RESOURCE_DIR +++ path
+	# filename				= config.clientPath +++ filePath path
 	# (type, world)			= http_staticFileMimeType filename world
 	# (ok, content, world)	= http_staticFileContent filename world
 	|  ok 					= ({rsp_headers = [("Status","200 OK"),
@@ -61,7 +56,10 @@ handleStaticResourceRequest req world
 											   ("Content-Length", toString (size content))]
 							   	,rsp_data = content}, world)		 							   
 	= http_notfoundResponse req world
-
+where
+	//Translate a URL path to a filesystem path
+	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
+	
 handleAnonRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
 handleAnonRequest flows handler request world
 	# tst						= initTSt request flows world
@@ -90,7 +88,8 @@ where
 initTSt :: !HTTPRequest ![Workflow] !*World -> *TSt
 initTSt request flows world
 	# (appName,world)			= determineAppName world
-	= mkTSt appName request (abort "session not active yet") flows (createStore (appName +++ "-store")) world
+	# (config,world)			= loadConfig appName world
+	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-store")) world
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world
@@ -101,7 +100,7 @@ determineAppName world
 	# (args,world)	= getCommandLine world
 	= (strip (hd args),world)
 where
-	strip path = let executable = last (split "\\" path) in executable % (0, size executable - 5)
+	strip path = let executable = last (split PATH_SEP path) in executable % (0, size executable - 5)
 
 
 
