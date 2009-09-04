@@ -7,6 +7,7 @@ definition module UserTasks
 from TSt	import :: Task
 from Types	import :: UserId
 
+import InteractionTasks
 //User database access
 
 /**
@@ -39,5 +40,5 @@ getUserNames		:: ![UserId]	-> Task [String]
 getRoles			:: ![UserId]	-> Task [[String]]
 
 //Interactively choose a user
-chooseUser			:: 				Task (UserId, String)
-chooseUserWithRole	:: !String	-> 	Task (UserId, String)
+chooseUser			:: !question			-> Task (UserId, String) | html question
+chooseUserWithRole	:: !question !String	-> Task (UserId, String) | html question

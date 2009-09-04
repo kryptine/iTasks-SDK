@@ -27,7 +27,7 @@ catalogPrompt 	= ruleText "My Shop Product Catalogue Browser"
 
 manageCatalog :: a [HtmlTag] -> Task a | iTask, DB a
 manageCatalog _ prompt
-	= stopTask (prompt ?>> forever (dbReadAll >>= browseCatalog))
+	= stopTask (showStickyMessage prompt ||- forever (dbReadAll >>= browseCatalog))
 where
 	browseCatalog :: [a] -> Task a | iTask, DB a
 	browseCatalog items = orTasksVert 
@@ -52,8 +52,8 @@ browseShop initCart shopPrompt cartPrompt
 where
 	doShopping :: (Cart a) [a] -> Task (ShopAction,Cart a) | iTask, Product a
 	doShopping cart []
-		= (shopPrompt ++ [normalText "Currently no items in catalogue, sorry."])
-		  ?>> OK >>| return (LeaveShop,cart)
+		= showMessage (shopPrompt ++ [normalText "Currently no items in catalogue, sorry."])
+		  >>| return (LeaveShop,cart)
 	doShopping cart items
 		= orTasksVert
 			[ navigateShop shopPrompt cart
@@ -78,11 +78,11 @@ where
 			, ("Check Out And Pay", return (ToPay,    cart))
 			, ("Show Cart",     	return (ToCart,   cart))
 			, ("Leave Shop",    	return (LeaveShop,cart))
-			] <<? ([ BrTag []
-			      , boldText "Total cost of ordered items = "
-			      : visualizeAsHtmlDisplay (totalCost cart)] ++
-			      [ DivTag [] prompt])
-
+			]  -||- (( showStickyMessageAbout [BrTag [], boldText "Total cost of ordered items = "] (totalCost cart)
+			      	  -&&-
+			      	  showStickyMessage prompt
+			      	 ) >>| return defaultValue)
+			     
 	doAction :: (Cart a) [a] (ShopAction, Cart a) -> Task Void | iTask, DB, Product a
 	doAction initCart items (action,cart)
 		= case action of
@@ -93,16 +93,18 @@ where
 	
 	showCart :: (Cart a) -> Task (ShopAction,Cart a) | iTask a
 	showCart cart=:[]
-		= navigateShop cartPrompt cart <<? [normalText "No items in cart yet!"]
+		= navigateShop cartPrompt cart -||- (showStickyMessage [normalText "No items in cart yet!"] >>| return defaultValue)
 	showCart cart
 		= orTasksVert 
 			[ navigateShop cartPrompt cart : map (itemActions cart) cart ]
 	where
 		itemActions :: (Cart a) (CartItem a) -> Task (ShopAction,Cart a) | iTask a
 		itemActions cart item
-			= (visualizeAsHtmlDisplay item)
-				?>> updateInformation "Change amount: " {orderAmount = amountOrderedOf item} >>= \{orderAmount=n} -> 
-				    return (ToCart,if (n <= 0) (filter (not o eqItemNr item) cart)
+			= 	showStickyMessageAbout "Item: " item
+				||-
+			 	updateInformation "Change amount: " {orderAmount = amountOrderedOf item}
+				>>= \{orderAmount=n} -> 
+					return (ToCart,if (n <= 0) (filter (not o eqItemNr item) cart)
 				                               (lreplace eqItemNr (amountOrderedUpd item n) cart)
 				           )
 	
@@ -110,15 +112,17 @@ where
 	checkOutAndPay cart 
 		= dbCreateItem >>= \order -> 
 		  fillInClientInfo {order & itemsOrdered = cart} >>= \order ->
-		  yesOrNo [DivTag [] (costOrder order),normalText "Confirm Order"]
+		  yesOrNo [normalText "Confirm Order"]
 		    (dbUpdateItem order >>|
 		     getCurrentUser >>= \(myid,me) -> 
-			 spawnProcess myid True (((visualizeAsHtmlDisplay order ++ costOrder order) ?>> OK) <<@ "Order Confirmed" >>|	
-			 	(spawnProcess shopOwner True (((visualizeAsHtmlDisplay order ++ costOrder order) ?>> OK) <<@ "New Order from " <+++ me) )
-			) >>| return Void)
+			 spawnProcess myid True (showMessageAbout "Order:" (order,costOrder order) <<@ "Order Confirmed")
+			 >>|	
+			 spawnProcess shopOwner True (showMessageAbout "Order" (order,costOrder order) <<@ "New Order from " <+++ me) 
+			 >>| return Void
+			)
 			(return Void)
 	where
-		costOrder order	= section "Amount to pay is: " (visualizeAsHtmlDisplay (totalCost order.itemsOrdered))
+		costOrder order	= totalCost order.itemsOrdered
 	
 		fillInClientInfo order
 			= fillInData name_prompt nameOf              nameUpd           order >>= \order ->
@@ -145,7 +149,7 @@ where
 				= section "name:"             (visualizeAsHtmlDisplay (nameOf            order)) ++
 				  section "billing address:"  (visualizeAsHtmlDisplay (billingAddressOf  order)) ++
 				  section "shipping address:" (visualizeAsHtmlDisplay (shippingAddressOf order)) ++
-				  section "ordered items:"    (flatten (map (visualizeAsHtmlDisplay o toInCart) order.itemsOrdered) ++ [DivTag [] (costOrder order)]) ++
+				  section "ordered items:"    (flatten (map (visualizeAsHtmlDisplay o toInCart) order.itemsOrdered) ++ [DivTag [] (visualizeAsHtmlDisplay (costOrder order))]) ++
 				  section "Confirm:"          [normalText "Is the data above correct?"]
 
 // little markup functions:

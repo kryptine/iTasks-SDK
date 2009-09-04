@@ -70,9 +70,9 @@ where
 
 review :: a -> Task Review | iTask a 
 review v
-=	((visualizeAsHtmlDisplay v) ++ [BrTag [],BrTag []])
-	?>>	chooseTask ""
-			[ ("Rework",   updateInformation "Please add your comments" (NeedsRework createDefault))
-			, ("Approved", return Approved)
-			, ("Reject",   return Rejected)
+	=	enterChoiceAbout "What is your verdict?" v
+			[ updateInformation "Please add your comments" (NeedsRework createDefault) <<@ "Rework"
+			, return Approved <<@ "Approved"
+			, return Rejected <<@ "Reject"
 			]
+	>>= \task -> task

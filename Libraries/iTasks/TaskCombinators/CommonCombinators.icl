@@ -13,7 +13,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
-import InteractionTasks, UserTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, PromptingCombinators, LiftingCombinators
+import InteractionTasks, UserTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
 import GUICore
 
@@ -99,7 +99,7 @@ where
 	=				taska
 		>>= \r -> 		case pred r of
 						(True,_) -> return r
-						(False,msg) -> msg ?>> (taska <| pred)
+						(False,msg) -> showStickyMessage msg ||- (taska <| pred)
 
 
 // ******************************************************************************************************

@@ -34,13 +34,13 @@ getUserNames uids = mkInstantTask "getUserNames" (UserDB@getUserNames uids)
 getRoles :: ![UserId]	-> Task [[String]]
 getRoles uids = mkInstantTask "getRoles" (UserDB@getRoles uids)
 	
-chooseUser :: Task (UserId,String)
-chooseUser
+chooseUser :: !question -> Task (UserId,String) | html question
+chooseUser question
 	= 				getUsers
-	>>= \users ->	enterChoice "Select a user" users
+	>>= \users ->	enterChoice question users
 
 	
-chooseUserWithRole :: !String -> Task (UserId,String)
-chooseUserWithRole role
+chooseUserWithRole :: !question !String -> Task (UserId,String) | html question
+chooseUserWithRole question role
 	= 				getUsersWithRole role
-	>>= \users ->	enterChoice "Select a user" users
+	>>= \users ->	enterChoice question users

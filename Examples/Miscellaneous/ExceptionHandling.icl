@@ -45,14 +45,15 @@ where
 
 catchNegativeValueTask :: (Task Void) NegativeValueException  -> Task Void
 catchNegativeValueTask task (NegativeValueException msg) 
-	=		readDB db
+	=	readDB db
 	>>=	\curval ->
-		[Text "A NegativeValueException occurred: ",Text msg, BrTag []
-		,Text "The current stored value is: ", Text (toString curval)
-		] ?>> button "Ok" Void
+		showMessageAbout 
+			[Text "A NegativeValueException occurred: ",Text msg, BrTag []
+			,Text "The current stored value is: "
+			] curval
 		
 
 catchTooLargeValueTask :: (Task Void) TooLargeValueException  -> Task Void
 catchTooLargeValueTask task (TooLargeValueException msg) 
-	=	[Text "A TooLargeValueException occurred, please try again"] ?>> button "Ok" Void
+	=	showMessage "A TooLargeValueException occurred, please try again"
 	>>| try (try task (catchNegativeValueTask task)) (catchTooLargeValueTask task)	

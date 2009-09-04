@@ -15,8 +15,7 @@ import	Engine						// basic iTask system creator
 	,	CoreCombinators				// The core iTask combinators
 
 	,	CommonCombinators			// Set of additional useful iTask combinators
-	,	PromptingCombinators		// Display of messages and prompts
-	,	LiftingCombinators			// Lifting of other domains (e.g. iData) to the iTask domain
+	,	LiftingCombinators			// Lifting of other domains (e.g. World) to the iTask domain
 	,	ProcessCombinators			// Creation an handling of dynamic sub processes
 
 	,	ExceptionCombinators		// Handling exceptional situations

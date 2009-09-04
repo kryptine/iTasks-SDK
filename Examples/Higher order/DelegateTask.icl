@@ -70,7 +70,7 @@ where
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
-	choosePerson = chooseUser >>= \(uid,name) -> return (Just uid)
+	choosePerson = chooseUser "Select a user" >>= \(uid,name) -> return (Just uid)
 
 	cancelTask task = task -||- buttonTask "Cancel" (return createDefault)
 	

@@ -27,29 +27,29 @@ trivialTask = enterInformation "Enter a number larger than 42" <| (\n -> if (n <
 
 deadline :: (Task a) -> Task a | iTask a
 deadline task
-=					[Text "Choose person you want to delegate work to:",BrTag [],BrTag []] 
-					?>>	chooseUser
+=					chooseUser "Choose person you want to delegate work to:"
 	>>= \(whom,name) ->	enterInformation "How long do you want to wait?" 
-	>>= \time ->	[Text "Cancel delegated work if you are getting impatient:",BrTag [],BrTag []] 
-					?>> (delegateTask (toInt whom) time task
+	>>= \time ->	(delegateTask whom time task)
 					-||-
-					buttonTask "Cancel" (return Nothing))
-	>>= 			CheckDone
+					(showMessage "Cancel delegated work if you are getting impatient:" >>| return Nothing)
+	>>= 			checkDone
 where
-	CheckDone (Just value)
-	=	[Text ("Result of task: " +++ printToString value),BrTag [],BrTag []] 
-			?>>	buttonTask "OK" (return value)
-	CheckDone nothing
-	=	[Text "Task expired or canceled, you have to do it yourself!",BrTag [],BrTag []] 
-			?>>	buttonTask "OK" task
+	checkDone (Just value)
+		= showMessageAbout "Result of task:" value >>| return value
+	checkDone Nothing
+		= showMessage "Task expired or canceled, you have to do it yourself!" >>| task
 
 	delegateTask who time task
 	= who  @: ("Timed Task",mytask)
 	where
 		mytask
-		=			(			waitForTimerTask time 
-					>>| 		return Nothing)									// return nothing
+		=			// wait for timeout and return nothing
+					( waitForTimerTask time
+					  >>| return Nothing
+					)									
 		 			-||-
-		  			(			[Text ("You have to complete the task in " <+++ time <+++ " time"),BrTag [],BrTag []] 	// tell deadline
-								?>> task 
-					>>= \v -> 	return (Just v))				// do task and return its result
+		 			// do task and return its result
+		  			( showStickyMessage ("You have to complete the task in " <+++ time <+++ " time")
+		  			  ||- task 
+					  >>= \v -> return (Just v)
+					)				

@@ -110,28 +110,26 @@ internalEmail
 initMsg to for subject msg 
 = {to = to, mailFrom = for, subject = subject , message = Note msg}
 
+showCurrentGroups :: NewsGroupNames -> Task Void
+showCurrentGroups groups = showStickyMessageAbout "Current groups:" groups
+
 addNewsGroup :: (Task Void)
 addNewsGroup	= cancel addNewsGroup` 
 where
 	addNewsGroup`
 	=						readNewsGroups
-		>>= \groups ->		enterInformation (showCurrentNames groups ++ [Text "Enter new news group name to add:",BrTag []])
+		>>= \groups ->		showCurrentGroups groups ||- enterInformation "Enter new news group name to add:"
 		>>= \newName ->		readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
-		>>= \groups ->		chooseTask (showCurrentNames groups ++ [Text "Do you want to add more ?"])
-								[("Yes", addNewsGroup`)
-								,("No",  return Void)
-								]
-
+		>>= \groups ->		showCurrentGroups groups  ||- requestConfirmation "Do you want to add more?"
+		>>= \yn ->			if yn addNewsGroup` (return Void)
+							
 showNewsGroups :: (Task Void)
 showNewsGroups
 =						readNewsGroups
-	>>=	\groups	->		showCurrentNames groups ?>> ok 
-
-showCurrentNames []		= [ Text "No names in catalogue yet !", BrTag [],BrTag []] 
-showCurrentNames names	= [ Text "Current names in catalogue:", BrTag [],BrTag []
-						  : visualizeAsHtmlDisplay (Note (foldr (\s1 s2 -> s1 +++ "\n" +++ s2) "" names))
-						  ]
+	>>=	\groups	->		if (length groups == 0)
+							(showMessage "No names in catalogue yet !")
+							(showMessageAbout "Current names in catalogue: " groups)
 
 subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
@@ -140,7 +138,7 @@ subscribeNewsGroup
 	>>= 				subscribe me name
 where
 	subscribe me myname []
-	=						[Text "No newsgroups in catalogue yet:", BrTag [],BrTag []] ?>> ok 
+	=						showMessage "No newsgroups in catalogue yet:"
 	subscribe me myname groups
 	=						enterChoice "Choose a group:" groups
 		>>= \group ->		addSubscription me (group,0)
@@ -188,9 +186,7 @@ where
 
 	show :: Int NewsItem -> Task Void
 	show i (who, name, message) 
-	= 	[ Text ("Message : " <+++ i), BrTag []
-		, Text ("From    : " <+++ name) , BrTag [], HrTag []
-		, Text message ] ?>> ok
+	= 	showMessageAbout [Text ("Message: " <+++ i), BrTag [], Text ("From: " <+++ name)] message
 		
 
 	commitItem :: String -> Task Void
@@ -209,12 +205,16 @@ getToNames = getToNames` []
 where
 	getToNames` names 	
 	=						showCurrentNames (map snd names)
-							?>> getToName
+							||- getToName
 		>>= \(id,name) ->	let newnames = [(id,name):names] in
-							chooseTask (showCurrentNames (map snd newnames) ++ [BrTag [], Text "More names to add? ", BrTag []])
-								[ ("Yes", getToNames` newnames)
-								, ("No",  return    newnames)
-								]
+								showCurrentNames (map snd newnames)
+								||- requestConfirmation "Add more names?"
+								>>= \yn ->
+									if yn (getToNames` newnames) (return newnames)
+
+
+showCurrentNames :: [String] -> Task Void
+showCurrentNames names = showStickyMessageAbout "Current names:" names
 
 getToName ::  (Task (Int,String))
 getToName 
@@ -224,10 +224,7 @@ getToName
 
 
 cancel :: (Task a) -> Task a | iTask a
-cancel task = task -||- cancelTask <<@ TTVertical
-where
-	cancelTask = [HrTag []] ?>> button "Cancel Task" defaultValue
-
+cancel task = task -||- (showMessage "Cancel this task" >>| return defaultValue) <<@ TTVertical
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iTask a
 orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] 

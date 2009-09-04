@@ -65,12 +65,12 @@ where
 
 // for the ICFP07 paper: a single step coffee machine
 
+/*
 singleStepCoffeeMachine :: Task (String,Int)
 singleStepCoffeeMachine
 =						chooseTask [Text "Choose product:",Br,Br] 
 						[(p<+++": "<+++c, return prod) \\ prod=:(p,c)<-products]
-	>>= \prod=:(p,c) -> [Text ("Chosen product: "<+++p),Br,Br] 
-						?>>	pay prod (buttonTask "Thanks" (return prod))
+	>>= \prod=:(p,c) -> pay prod (buttonTask "Thanks" (return prod))
 where
 	products	= [("Coffee",100),("Tea",50)]
 	
@@ -88,33 +88,24 @@ where
 				            [Text ("Product = "<+++p<+++". Returned money ="<+++(paid-c)),Br,Br]
 				  ?>> t
 
+*/
 
 // A very simple coffee machine
 
 SimpleCoffee :: Task Void
 SimpleCoffee
-= 								chooseTask [Text "Choose product:",Br,Br] 
-									[("Coffee",	return ("Coffee"))
-									,("Tea",	return ("Tea"))
-									]	
-	>>=  \(product) ->			[Text ("Enjoy your " <+++ product)]
-								?>> buttonTask "OK" (return Void)
+= 							enterChoice "Choose product:" ["Coffee","Tea"]
+	>>=  \product ->		showMessage ("Enjoy your " +++ product)
 
 // and another one
-
 SimpleCoffee2 :: Task Void
 SimpleCoffee2
-= 								chooseTask [Text "Choose product:",Br,Br] 
-									[("Coffee: 20", return (20,"Coffee"))
-									,("Tea: 10", 	return (10,"Tea"))
-									]	
+	= 							enterChoice "Choose product:" [(20,"Coffee"), (10,"Tea")]
 	>>=  \(toPay,product) ->	payDimes toPay 
-	>>|							[Text ("Enjoy your " <+++ product)]
-								?>> buttonTask "OK" (return Void)
+	>>|							showMessage ("Enjoy your " +++ product)
 where
-	payDimes 0 = 							return Void
-	payDimes n = 							buttonTask "10 cts" (return Void) 
-					>>| payDimes (n - 10)
+	payDimes 0 = return Void
+	payDimes n = buttonTask "10 cts" (return Void) >>| payDimes (n - 10)
 
 
 Br = BrTag []
