@@ -4,8 +4,7 @@ import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, GenBimap
 from	StdFunc import id, const
 import	TSt
 
-import	GUICore, Util, Http	
-import	CoreCombinators
+import	GenVisualize, GenUpdate, Util, Http	
 
 from iTasks import class iTask(..)
 
@@ -222,7 +221,7 @@ where
 	taskButtons buttons = [ExtJSButton {ExtJSButton| name = name, value = value, text = text, iconCls = icon} \\ (name,value,text,icon) <- buttons]
 
 notifyUser :: message UserId -> Task Void | html message
-notifyUser message uid = return Void
+notifyUser message uid = mkInstantTask "notifyUser" (\tst -> (Void,tst))
 
 notifyGroup :: message Role -> Task Void | html message
-notifyGroup message role = return Void
+notifyGroup message role = mkInstantTask "notifyGroup" (\tst -> (Void,tst))

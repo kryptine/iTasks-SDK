@@ -29,10 +29,10 @@ instance DB (Order item) where
 
 
 defaultProduct :: Book
-defaultProduct			= createDefault
+defaultProduct			= defaultValue
 
 defaultCart :: Cart Book
-defaultCart				= createDefault
+defaultCart				= defaultValue
 
 eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
 eqItemNr x y			= x.itemNr == y.itemNr

@@ -51,7 +51,7 @@ reviewTaskExample
   ]
 
 reviewtask :: Task (QForm,Review)
-reviewtask = taskToReview 1 (createDefault, mytask)
+reviewtask = taskToReview 1 (defaultValue, mytask)
 
 mytask :: a -> (Task a) | iTask a
 mytask v =	updateInformation "Fill in Form:" v
@@ -71,7 +71,7 @@ where
 review :: a -> Task Review | iTask a 
 review v
 	=	enterChoiceAbout "What is your verdict?" v
-			[ updateInformation "Please add your comments" (NeedsRework createDefault) <<@ "Rework"
+			[ updateInformation "Please add your comments" (NeedsRework defaultValue) <<@ "Rework"
 			, return Approved <<@ "Approved"
 			, return Rejected <<@ "Reject"
 			]

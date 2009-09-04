@@ -6,7 +6,7 @@ import TaskTree
 import JSON
 import Util, Trace
 import UserDB, ProcessDB
-import GUICore, ExtJS
+import GenVisualize, GenUpdate, ExtJS
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst

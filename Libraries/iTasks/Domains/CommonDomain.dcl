@@ -3,7 +3,7 @@ definition module CommonDomain
 * This module provides a series of data types, their iTask generics obligations and utility
 * functions for common data in workflows.
 */
-import GenPrint, GenParse, GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate
 import StdString
 
 // Strings with special meanings

@@ -9,7 +9,7 @@ from TSt	import :: Task
 from Types	import :: EvaluationOption
 
 from iTasks	import class iTask
-import GenPrint, GenParse, GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate
 
 class (@>>) infixl 7 b ::  !b !(Task a) -> Task a | iTask a	
 instance @>>		  EvaluationOption				

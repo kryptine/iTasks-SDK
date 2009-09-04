@@ -6,7 +6,7 @@ definition module ExceptionCombinators
 from TSt			import :: Task
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GUICore
+import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 /**
 * Exception combinator.

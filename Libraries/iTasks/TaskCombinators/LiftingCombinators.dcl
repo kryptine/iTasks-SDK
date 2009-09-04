@@ -5,7 +5,7 @@ definition module LiftingCombinators
 from TSt	import :: Task, :: TSt
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GUICore
+import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 /*
 appWorld		:: lift *World domain to TSt domain. string used for tracing

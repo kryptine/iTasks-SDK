@@ -1,7 +1,7 @@
 definition module ShopDSLboilerplate
 
 import ShopDSL
-import GUICore
+import GenVisualize, GenUpdate
 
 //	Generic boilerplate code:
 derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart

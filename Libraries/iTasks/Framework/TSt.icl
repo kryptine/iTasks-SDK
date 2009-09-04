@@ -4,7 +4,7 @@ import StdEnv, StdMaybe
 import Http, Util
 import ProcessDB, DynamicDB, SessionDB, TaskTree
 import GenPrint, GenParse, GenEq, GenBimap
-import GUICore, Store, Config
+import GenVisualize, GenUpdate, Store, Config
 
 import code from "copy_graph_to_string.obj";
 import code from "copy_graph_to_string_interface.obj";

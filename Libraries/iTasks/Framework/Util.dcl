@@ -4,7 +4,7 @@ from TSt 			import :: Task
 from Types			import :: TaskNr
 from Void			import :: Void
 
-import GenPrint, GenParse, GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate
 
 //TODO: Create visualization and update for tasks
 derive gPrint 	Task, Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)

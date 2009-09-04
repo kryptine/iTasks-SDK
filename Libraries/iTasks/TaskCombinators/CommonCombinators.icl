@@ -15,7 +15,7 @@ from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
 import InteractionTasks, UserTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
-import GUICore
+import GenVisualize, GenUpdate
 
 derive gPrint Either
 derive gParse Either
@@ -36,7 +36,7 @@ derive gParse Either
 			] <<@ TTHorizontal
 
 anyTask	:: ![Task a] -> Task a | iTask a
-anyTask []		= return createDefault
+anyTask []		= return defaultValue
 anyTask tasks	= parallel "any" (\list -> length list >= 1) hd undef tasks
 
 allTasks :: ![Task a] -> Task [a] | iTask a

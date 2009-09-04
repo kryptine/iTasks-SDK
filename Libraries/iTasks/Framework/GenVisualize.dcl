@@ -1,32 +1,16 @@
-definition module GUICore
+definition module GenVisualize
 
 import Html, ExtJS, JSON
-import StdMaybe, Void, Either
-import StdGeneric
-
-//Datapath is used to point to substructures of data structures
-:: DataPath :== [Int]
+import StdGeneric, StdMaybe, Void, Either
+import GenUpdate
 
 //Generic visualization function
 generic gVisualize a	:: a a		*VSt -> ([Visualization], *VSt)
-generic gUpdate a		:: a 		*USt -> (a, *USt)
-
-//At least create instances for:
-// -All generic types
-// -All basic types
-// [], (,), (,,), (,,,), Maybe, Task, Void, HtmlTag
 
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
-
-derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
-derive gUpdate Int, Real, Char, Bool, String
-derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
-
-//Additional available instances for "special" data
-//derive gVisualize HtmlDate, HtmlTime, HtmlButton 
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: String a -> [ExtJSDef]		| gVisualize{|*|} a
@@ -38,13 +22,7 @@ visualizeAsTextLabel	:: a -> String					| gVisualize{|*|} a
 //Wrapper function for calculating form delta's
 determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
 
-//Wrapper functions for updating
-createDefault			:== defaultValue
-
-defaultValue			:: a					| gUpdate{|*|} a
-updateValue				:: String String a -> a	| gUpdate{|*|} a 
-
-//Type definitions for visualization & updating
+//Type definitions for visualization
 :: *VSt =
 	{ vizType			:: VisualizationType	// Type of preferred visualization
 	, idPrefix			:: String				// Prefix for all identity strings of editor fields 
@@ -54,19 +32,6 @@ updateValue				:: String String a -> a	| gUpdate{|*|} a
 	, optional			:: Bool					// Create optional form fields
 	, blank				:: Bool					// Is the editor to use a blank entry field
 	}
-
-:: *USt =
-	{ mode				:: UpdateMode
-	, searchPath		:: String
-	, currentPath		:: DataPath
-	, update			:: String
-	, consPath			:: [ConsPos]
-	}
-
-:: UpdateMode
-	= UDSearch
-	| UDCreate
-	| UDDone
 
 :: VisualizationType
 	= VEditorDefinition
@@ -83,12 +48,5 @@ updateValue				:: String String a -> a	| gUpdate{|*|} a
 	| ExtJSUpdate ExtJSUpdate
 
 //Utility functions making specializations of gVisualize
-dp2s			:: DataPath			-> String
-dp2id			:: String DataPath	-> String
-isdps			:: String			-> Bool
-stepDataPath	:: DataPath			-> DataPath
-shiftDataPath	:: DataPath			-> DataPath
-dataPathLevel	:: DataPath			-> Int
-
 value2s :: Bool a -> String | toString a
 label2s :: Bool (Maybe String) -> Maybe String

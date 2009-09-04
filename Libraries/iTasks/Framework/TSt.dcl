@@ -15,7 +15,7 @@ from Time		import :: Timestamp(..)
 from Http		import :: HTTPRequest
 
 from iTasks		import class iTask(..)
-import GenPrint, GenParse, GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's

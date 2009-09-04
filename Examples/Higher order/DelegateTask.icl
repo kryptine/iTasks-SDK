@@ -72,7 +72,7 @@ where
 
 	choosePerson = chooseUser "Select a user" >>= \(uid,name) -> return (Just uid)
 
-	cancelTask task = task -||- buttonTask "Cancel" (return createDefault)
+	cancelTask task = task -||- buttonTask "Cancel" (return defaultValue)
 	
 	print []     = ""
 	print [x:xs] = toString x +++ " " +++ print xs

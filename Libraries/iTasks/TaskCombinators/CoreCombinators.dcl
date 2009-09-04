@@ -8,7 +8,7 @@ from Types 			import :: UserId,	:: TaskPriority
 from Time			import :: Timestamp
 
 from	iTasks		import class iTask(..)
-import	GenPrint, GenParse, GUICore
+import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 //Standard monadic operations:
 

@@ -12,7 +12,7 @@ from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress
 from Time		import :: Timestamp 
 
 from iTasks		import class iTask
-import GenPrint, GenParse, GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate
 
 derive gVisualize	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
 derive gUpdate		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp

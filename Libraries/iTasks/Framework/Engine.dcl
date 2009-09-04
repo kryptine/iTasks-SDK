@@ -8,7 +8,7 @@ from TSt			import :: Workflow, :: Task
 from Http			import :: HTTPRequest, :: HTTPResponse
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GUICore
+import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 /**
 * Creates the iTasks system from a set of workflow definitions

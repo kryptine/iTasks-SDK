@@ -29,4 +29,4 @@ throw e = mkMonitorTask "throw" throw`
 where
 	throw` tst
 		# tst	= setStatus [H1Tag [] [Text "Error, an uncaught exception was thrown"]] tst
-		= (createDefault, {tst & exception = Just (dynamic e), activated = False})
+		= (defaultValue, {tst & exception = Just (dynamic e), activated = False})

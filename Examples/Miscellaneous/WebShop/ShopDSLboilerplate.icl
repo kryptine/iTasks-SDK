@@ -1,7 +1,6 @@
 implementation module ShopDSLboilerplate
 
-import GenBimap
-import GUICore
+import GenBimap, GenVisualize, GenUpdate
 import ShopDSL
 
 //	Generic boilerplate code:

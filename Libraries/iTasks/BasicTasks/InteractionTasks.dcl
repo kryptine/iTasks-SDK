@@ -4,7 +4,7 @@ from TSt	import :: Task
 from Types	import :: UserId, :: Role
 from Html	import :: HtmlTag
 from iTasks	import class iTask(..)
-import GenPrint, GenParse, GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate
 
 // This type class contains types that are
 // easily displayed as static html

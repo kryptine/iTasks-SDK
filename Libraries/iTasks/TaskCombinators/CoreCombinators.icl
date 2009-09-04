@@ -18,7 +18,7 @@ where
 	tbind tst
 		# (a,tst=:{activated})	= applyTask taska tst
 		| activated				= applyTask (taskb a) tst
-								= (createDefault,tst)
+								= (defaultValue,tst)
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
@@ -83,13 +83,13 @@ where
 	parallel` tasks tst
 		# (alist,tst=:{exception})	= checkAllTasks tasks 0 [] tst
 		| isJust exception
-			= (createDefault, {tst & activated = False})	// stop, an exception occurred in one of the branches
+			= (defaultValue, {tst & activated = False})	// stop, an exception occurred in one of the branches
 		| pred alist
 			= (combinePred alist,{tst & activated = True}) 	// stop, all work done so far satisfies predicate
 		| length alist == length tasks						// all tasks are done
 			= (combineAll alist,{tst & activated = True})
 		| otherwise	
-			= (createDefault, {tst & activated = False})	// show all subtasks using the displayOption function
+			= (defaultValue, {tst & activated = False})	// show all subtasks using the displayOption function
 	where
 		checkAllTasks tasks index accu tst
 			| index == length tasks

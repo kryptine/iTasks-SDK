@@ -2,8 +2,7 @@ implementation module CommonDomain
 
 import iTasks
 import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
-import GenPrint, GenParse, GenLexOrd, GUICore
-import GUICore
+import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
 import Text
 
 derive gPrint		EmailAddress, Password, Note, Date, Time, Currency

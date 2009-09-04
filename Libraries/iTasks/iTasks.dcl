@@ -23,7 +23,8 @@ import	Engine						// basic iTask system creator
 	,	TuningCombinators			// Fine tuning of tasks
 	,	GenBimap
 	,	Util
-	,	GUICore						// Functions for generating GUIS
+	,	GenVisualize				// Functions for generating GUIS
+	,	GenUpdate					// Functions for updating arbitrary values
 	
 	//StdEnv modules
 	,	StdInt

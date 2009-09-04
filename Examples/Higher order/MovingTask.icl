@@ -32,7 +32,7 @@ movingTaskExample
   ]
 
 trivialTask :: Task QForm
-trivialTask = fillInForm createDefault
+trivialTask = fillInForm defaultValue
 
 fillInForm :: QForm -> Task QForm
 fillInForm form	

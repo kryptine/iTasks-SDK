@@ -88,7 +88,7 @@ giveComment
 						
 where
 	textBox :: Note
-	textBox = createDefault
+	textBox = defaultValue
 
 //Simple votes database
 
