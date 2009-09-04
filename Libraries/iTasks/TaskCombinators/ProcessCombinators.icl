@@ -16,10 +16,10 @@ import UserDB
 import Time
 import CommonCombinators
 
-derive gVisualize	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gUpdate		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gPrint		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gParse		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gVisualize	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
+derive gUpdate		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
+derive gPrint		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
+derive gParse		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
 
 spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessReference a) | iTask a
 spawnProcess uid activate task = mkInstantTask "spawnProcess" spawnProcess`
@@ -84,7 +84,7 @@ getProcessOwner (ProcessReference pid) = mkInstantTask "getProcess" getProcessSt
 where
 	getProcessStatus` tst 
 	# (process,tst)	= ProcessDB@getProcess pid tst
-	# owner = if (isNothing process) Nothing (Just (fst (fromJust process).properties.TaskProperties.user))
+	# owner = if (isNothing process) Nothing (Just (fst (fromJust process).properties.managerProps.worker))
 	= (owner,tst)
 
 activateProcess	:: (ProcessReference a)	-> Task Bool | iTask a

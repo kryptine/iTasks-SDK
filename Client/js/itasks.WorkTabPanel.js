@@ -235,11 +235,11 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 		this.body.update( String.format(
 		      "<div class=\"worktab-header-table\"><table>"
 			+ "<tr><th>Subject:</th><td colspan=\"3\">{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
-			+ "<tr><th>Delegated by:</th><td>{3}</td><th>Priority:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></tr>"
+			+ "<tr><th>Managed by:</th><td>{3}</td><th>Priority:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></tr>"
 			+ "</table></div><div class=\"worktab-header-indicator\"></div>"
-			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.issuedAt)
-			, properties.delegator[1], itasks.util.formatPriority(properties.priority)
-			, itasks.util.formatDeadline(properties.deadline)
+			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.systemProps.issuedAt)
+			, properties.systemProps.manager[1], itasks.util.formatPriority(properties.managerProps.priority)
+			, itasks.util.formatDeadline(properties.managerProps.deadline)
 			));
 	},
 	setBusy: function(busy) {
@@ -320,7 +320,7 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 				fieldLabel: "Progress",
 				format: itasks.util.formatProgress,
 				listeners: {
-					"change" : function(ov,nv) {var wt = this.findParentByType("itasks.work"); wt.sendPropertyEvent(wt.properties.processId,"progress",nv); }
+					"change" : function(ov,nv) {var wt = this.findParentByType("itasks.work"); wt.sendPropertyEvent(wt.properties.systemProps.processId,"progress",nv); }
 				}
 			},{
 				name: "priority",
@@ -506,7 +506,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 			border: false,
 			hideBorders: true,
 			items: [{
-					html: "Waiting for <i>" +  this.properties.subject + "</i>",
+					html: "Waiting for <i>" +  this.properties.systemProps.subject + "</i>",
 					style: "margin: 0px 0px 20px 0px;"			
 				},{
 					xtype: "panel",
@@ -515,35 +515,35 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 					items: [{
 						xtype: "itasks.user",
 						fieldLabel: "Assigned to",
-						value: this.properties.user[1],
+						value: this.properties.managerProps.worker[1],
 						listeners: {
-							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.processId,"user",nv);}
+							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.systemProps.processId,"user",nv);}
 									   , scope: this }
 						}
 					},{
 						xtype: "itasks.priority",
 						fieldLabel: "Priority",
-						value: this.properties.priority, 
+						value: this.properties.managerProps.priority, 
 						listeners: {
-							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.processId,"priority",nv);}
+							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.systemProps.processId,"priority",nv);}
 									   , scope: this }
 						}
 					},{
 						fieldLabel: "Progress",
 						format: itasks.util.formatProgress,
-						value: this.properties.progress
+						value: this.properties.workerProps.progress
 					},{
 						fieldLabel: "Issued at",
 						format: itasks.util.formatDate,
-						value: this.properties.issuedAt
+						value: this.properties.systemProps.issuedAt
 					},{
 						fieldLabel: "First worked on",
 						format: itasks.util.formatStartDate,
-						value: this.properties.firstEvent
+						value: this.properties.systemProps.firstEvent
 					},{
 						fieldLabel: "Last worked on",
 						format: itasks.util.formatStartDate,
-						value: this.properties.latestEvent
+						value: this.properties.systemProps.latestEvent
 					}]
 				}]
 		});
@@ -553,9 +553,9 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 		this.properties = data.properties;
 
 		var p = data.properties;
-		var props = [p.user[1],p.priority,p.progress,p.issuedAt,p.firstEvent,p.latestEvent];
+		var props = [p.managerProps.worker[1],p.managerProps.priority,p.workerProps.progress,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
 		
-		this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.subject) + "</i>");
+		this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.systemProps.subject) + "</i>");
 		this.getComponent(1).items.each(function(cmt,i){ cmt.setValue(props[i]); });
 	}
 });

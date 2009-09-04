@@ -64,18 +64,26 @@ initTaskInfo
 
 initTaskProperties :: TaskProperties
 initTaskProperties
-	=	{ TaskProperties
-		| processId	= 0
+	= { systemProps =
+		{TaskSystemProperties
+		| processId = 0
 		, subject = ""
-		, user = (-1, "")
-		, delegator = (-1,"")
-		, priority = NormalPriority
-		, deadline = Nothing
-		, progress = TPActive
+		, manager = (-1,"")
 		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing
 		}
+	  , managerProps =
+	    {TaskManagerProperties
+	    | worker = (-1,"")
+	    , priority = NormalPriority
+	    , deadline = Nothing
+	    }
+	  , workerProps =
+	    {TaskWorkerProperties
+	    | progress = TPActive
+	    }
+	 }
 /*
 * When the complete task forest for a certain user is calculated, we do this
 * in a specific order to make sure that we get the complete forest and that
@@ -137,11 +145,11 @@ calculateTaskTree pid enableDebug tst
 
 initProcessNode :: Process -> TaskTree			
 initProcessNode {processId, properties}
-		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.subject, active = True, finished = False, traceValue = "Process"} properties []
+		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.systemProps.subject, active = True, finished = False, traceValue = "Process"} properties []
 
 buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree p =: {Process | processId, processType, properties = {TaskProperties|user,delegator}, changes} mbChange tst =:{staticInfo}
-	# tst								= {TSt|tst	& taskNr = [0,processId], activated = True, userId = (fst user), delegatorId = (fst delegator)
+buildProcessTree p =: {Process | processId, processType, properties = {TaskProperties|systemProps,managerProps}, changes} mbChange tst =:{staticInfo}
+	# tst								= {TSt|tst	& taskNr = [0,processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
 													, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
 	# tst								= loadChanges mbChange changes tst	
 	# (result,tst)						= applyMainTask processType tst

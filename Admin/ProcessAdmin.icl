@@ -2,7 +2,7 @@ implementation module ProcessAdmin
 
 import iTasks
 import StdMisc
-from TaskTree import :: TaskProperties(..), :: TaskProgress(..)
+from TaskTree import :: TaskProperties(..), :: TaskSystemProperties(..), :: TaskManagerProperties(..), :: TaskWorkerProperties(..), :: TaskProgress(..)
 
 processAdmin :: [Workflow]
 processAdmin
@@ -31,11 +31,11 @@ where
 	header = [[Text h] \\ h <- ["Id","Label","Owner","Delegator"]]
 	
 	visualizeProcess :: Process -> [HtmlTag]
-	visualizeProcess {Process|processId, properties = {subject,user,delegator}}
+	visualizeProcess {Process|processId, properties = {systemProps,managerProps}}
 		= [Text (toString processId)
-		  ,Text subject
-		  ,Text (toString (fst user))
-		  ,Text (toString (snd delegator))
+		  ,Text systemProps.subject
+		  ,Text (toString (fst managerProps.worker))
+		  ,Text (toString (snd systemProps.manager))
 		  ]
 	
 	processTasks :: [(Process -> String, Process -> Task Bool)]

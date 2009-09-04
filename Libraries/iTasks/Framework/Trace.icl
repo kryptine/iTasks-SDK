@@ -11,9 +11,9 @@ where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
 	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"], ThTag [] [Text "Active changes"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text (toString process.Process.processId)]
-							, TdTag [] [Text process.Process.properties.TaskProperties.subject]
-							, TdTag [] [Text (toString (fst process.Process.properties.TaskProperties.user) +++ ": " +++ snd process.Process.properties.TaskProperties.user)]
-							, TdTag [] [Text (toString (fst process.Process.properties.TaskProperties.delegator) +++ ": " +++ snd process.Process.properties.TaskProperties.delegator)]
+							, TdTag [] [Text process.Process.properties.systemProps.subject]
+							, TdTag [] [Text (toString (fst process.Process.properties.managerProps.worker) +++ ": " +++ snd process.Process.properties.managerProps.worker)]
+							, TdTag [] [Text (toString (fst process.Process.properties.systemProps.manager) +++ ": " +++ snd process.Process.properties.systemProps.manager)]
 							, TdTag [] [Text (case process.Process.processType of
 												(StaticProcess _) 		= "Static"
 												(DynamicProcess _)		= "Dynamic"

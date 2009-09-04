@@ -18,7 +18,7 @@ handleWorkTabRequest req tst
 			// Search the relevant part of the task tree
 			= case locateSubTaskTree taskId tree of
 				Just (TTMainTask ti properties tasks)
-					# subject = [properties.TaskProperties.subject]
+					# subject = [properties.systemProps.TaskSystemProperties.subject]
 					# panel = case [t \\ t <- tasks | isActive t] of
 						[]	= TaskRedundant
 						[x]	= buildTaskPanel x
@@ -29,9 +29,9 @@ handleWorkTabRequest req tst
 								= if debug (collectDebugInfo tree tst) (Nothing, tst)
 					// Check the user who has to do the work: if not the correct user, give task redundant message.
 					# (uid,tst)	= getCurrentUser tst
-					| uid == fst properties.TaskProperties.user
+					| uid == fst properties.managerProps.TaskManagerProperties.worker
 						// Update the task timestamps 
-						# tst		= updateTimeStamps properties.TaskProperties.processId tst
+						# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 						// Create the response
 						= let content = {TaskContent| properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
 				 			({http_emptyResponse & rsp_data = toJSON content}, tst)
@@ -116,7 +116,7 @@ where
 
 //JSON derives
 derive JSONEncode	TaskContent, DebugInfo, ExtFormPanel, ExtFormUpdate, MonitorPanel, MainTaskPanel, CombinationPanel
-derive JSONEncode	TaskProperties, TaskPriority, TaskProgress
+derive JSONEncode	TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (ExtFormPanel x) c					= JSONEncode{|*|} x c
@@ -171,9 +171,9 @@ isActive (TTFinishedTask	_ )								= False
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst
 	# (now,tst)	= accWorldTSt time tst
-	= snd (updateProcessProperties pid (\p -> {p & firstEvent = case p.firstEvent of Nothing = Just now; x = x
+	= snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
 												 , latestEvent = Just now
-												}) tst)
+												}}) tst)
 		
 collectDebugInfo :: TaskTree *TSt -> (Maybe DebugInfo, *TSt)
 collectDebugInfo tree tst

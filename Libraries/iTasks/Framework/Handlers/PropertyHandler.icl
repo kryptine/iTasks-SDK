@@ -29,7 +29,7 @@ where
 	updatePriority proc prio tst
 		= case parsePrio prio of
 			(Just prio)
-				# (_,tst) = updateProcessProperties proc (\p -> {p & priority = prio}) tst
+				# (_,tst) = updateProcessProperties proc (\p -> {p & managerProps = {p.managerProps & priority = prio}}) tst
 				= (successResponse, tst)
 			Nothing
 				= (errorResponse "Unknown priority", tst)
@@ -47,13 +47,13 @@ where
 			# (delegatorId,tst)	= getCurrentUser tst
 			# (user,tst)		= getUser userId tst
 			# (delegator,tst)	= getUser delegatorId tst
-		 	# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & user = user, delegator = delegator, progress = TPActive}) tst
+		 	# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & systemProps = {p.systemProps & manager = delegator},managerProps = {p.managerProps & worker = user}, workerProps = {p.workerProps & progress = TPActive}}) tst
 		 	= (successResponse,tst)
 		 	
 	updateProgress proc val tst
 		= case parseProgress val of
 			(Just val)
-				# (_,tst) = updateProcessProperties proc (\p -> {p & progress = val}) tst
+				# (_,tst) = updateProcessProperties proc (\p -> {p & workerProps = {p.workerProps & progress = val}}) tst
 				= (successResponse, tst)
 			Nothing
 				= (errorResponse "Unknown progress value", tst)

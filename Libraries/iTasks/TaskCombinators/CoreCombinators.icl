@@ -124,9 +124,26 @@ assign` toUserId initPriority initDeadline task tst =: {TSt| taskNr, taskInfo, f
 				# (toUser,tst)		= getUser toUserId tst
 				# (currentUser,tst)	= getUser currentUserId tst 
 				# (now,tst)			= (accWorldTSt time) tst
-				# initProperties	= {TaskProperties|processId = 0, subject = taskLabel task, user = toUser, delegator = currentUser
-						  , deadline = initDeadline, priority = initPriority, progress = TPActive
-						  , issuedAt = now, firstEvent = Nothing, latestEvent = Nothing}
+				# initProperties	= { systemProps =
+									    {TaskSystemProperties
+									    | processId 	= 0
+									    , subject		= taskLabel task
+									    , manager		= currentUser
+									    , issuedAt		= now
+									    , firstEvent	= Nothing
+									    , latestEvent	= Nothing
+									    },
+									    managerProps =
+									    {TaskManagerProperties
+									    | worker		= toUser
+									    , priority		= initPriority
+									    , deadline		= initDeadline
+									    },
+									    workerProps =
+									    {TaskWorkerProperties
+									    | progress		= TPActive
+									    }
+									  }						  
 				# (processId, tst)	= createProcess (mkEmbeddedProcessEntry currentProcessId taskId initProperties Active currentMainTask) tst		  
 				= (initProperties, processId, task, 0, 0, tst)
 	//Apply all active changes (oldest change first, hence the 'reverse changes')
@@ -207,8 +224,8 @@ do_task processId taskInfo taskProperties taskNr changeNr origUserId origDelegat
 	# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
 					, taskNr		= [0,changeNr: drop 2 taskNr]
 					, mainTask		= processId
-					, userId		= fst taskProperties.TaskProperties.user
-					, delegatorId	= fst taskProperties.TaskProperties.delegator
+					, userId		= fst taskProperties.managerProps.worker
+					, delegatorId	= fst taskProperties.systemProps.manager
 					}
 	# (a, tst)	= applyTask curTask tst
 	= (a, {TSt | tst & userId = origUserId, delegatorId = origDelegatorId, mainTask = origMainTask})

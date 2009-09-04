@@ -24,7 +24,7 @@ where
 	createProcess entry tst 
 		# (procs,tst) 	= processStore id tst
 		# newPid		= inc (maxPid procs)
-		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid, properties = {TaskProperties| entry.properties & processId = newPid} }]) tst
+		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid, properties = {TaskProperties| entry.properties & systemProps = {TaskSystemProperties|entry.properties.systemProps & processId = newPid}} }]) tst
 		= (newPid, tst)
 		
 	deleteProcess :: !ProcessId !*TSt	-> (!Bool, !*TSt)
@@ -43,7 +43,7 @@ where
 	getProcessForUser :: !UserId !ProcessId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForUser userId processId tst
 		# (procs,tst) 	= processStore id tst
-		#  uids			= [fst p.Process.properties.TaskProperties.user \\ p <- procs | relevantProc processId p]
+		#  uids			= [fst p.Process.properties.managerProps.worker \\ p <- procs | relevantProc processId p]
 		= case [p \\ p <- procs | p.Process.processId == processId && isMember userId uids] of
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
@@ -72,11 +72,11 @@ where
 		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
 
 	where
-		relevantProc userId {processType = EmbeddedProcess pid _, properties = {user}}
-			| fst user == userId	= pid
+		relevantProc userId {processType = EmbeddedProcess pid _, properties = {managerProps ={worker}}}
+			| fst worker == userId	= pid
 			| otherwise				= 0
-		relevantProc userId {processId, properties = {user}}
-			| fst user == userId	= processId
+		relevantProc userId {processId, properties = {managerProps = {worker}}}
+			| fst worker == userId	= processId
 			| otherwise				= 0
 		
 	getSubProcess :: !ProcessId !TaskId !*TSt -> (!Maybe Process,!*TSt)
@@ -88,8 +88,8 @@ where
 
 	
 	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*TSt	-> (!Bool, !*TSt)
-	setProcessOwner user delegator processId tst
-		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & user = user, delegator = delegator}}) tst
+	setProcessOwner worker manager processId tst
+		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & systemProps = {x.properties.systemProps & manager = manager}, managerProps = {x.properties.managerProps & worker = worker}}}) tst
 	
 	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
 	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst
@@ -124,17 +124,25 @@ mkStaticProcessEntry workflow timestamp user delegator status
 		, processType	= StaticProcess workflow.Workflow.name
 		, parent		= 0
 		, status		= status
-		, properties	=	{ TaskProperties
-							| processId		= 0
-							, subject		= workflow.Workflow.label
-							, user			= user
-							, delegator		= delegator
-							, priority		= NormalPriority
-							, deadline		= Nothing
-							, progress		= TPActive
-							, issuedAt		= timestamp
-							, firstEvent	= Nothing
-							, latestEvent	= Nothing
+		, properties	=	{ systemProps =
+							  {TaskSystemProperties
+							  | processId	= 0
+							  , subject		= workflow.Workflow.label
+							  , manager		= delegator
+							  , issuedAt	= timestamp
+							  , firstEvent	= Nothing
+							  , latestEvent	= Nothing
+							  }
+							, managerProps =
+							  { TaskManagerProperties
+							  | worker		= user
+							  , priority	= NormalPriority
+							  , deadline	= Nothing
+							  }
+							, workerProps =
+							  { TaskWorkerProperties
+							  | progress	= TPActive
+							  }
 							}
 		, taskfun		= Nothing
 		, result		= Nothing
@@ -149,17 +157,25 @@ mkDynamicProcessEntry label task timestamp user delegator status parent
 		, processType = DynamicProcess task
 		, parent	= parent
 		, status	= status
-		, properties	=	{ TaskProperties
-							| processId		= 0
-							, subject		= label
-							, user			= user
-							, delegator		= delegator
-							, priority		= NormalPriority
-							, deadline		= Nothing
-							, progress		= TPActive
-							, issuedAt		= timestamp
-							, firstEvent	= Nothing
-							, latestEvent	= Nothing
+		, properties=	{ systemProps =
+							  {TaskSystemProperties
+							  | processId	= 0
+							  , subject		= label
+							  , manager		= delegator
+							  , issuedAt	= timestamp
+							  , firstEvent	= Nothing
+							  , latestEvent	= Nothing
+							  }
+							, managerProps =
+							  { TaskManagerProperties
+							  | worker		= user
+							  , priority	= NormalPriority
+							  , deadline	= Nothing
+							  }
+							, workerProps =
+							  { TaskWorkerProperties
+							  | progress	= TPActive
+							  }
 							}
 		, taskfun	= Nothing
 		, result	= Nothing

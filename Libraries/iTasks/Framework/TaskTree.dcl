@@ -9,7 +9,6 @@ import StdMaybe, Either
 import Types
 import Html, Time
 
-
 from   ProcessDB	import :: ProcessStatus
 from   JSON 		import :: JSON
 from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
@@ -27,24 +26,31 @@ from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 					, finished		:: Bool													//Is the task finished?
 					, traceValue	:: String												//String representation of value for tracing
 					}
-					
-:: TaskProperties =	{ processId		:: ProcessId											//READ ONLY: Identifier of the task in the process database
-					, subject		:: String												//READ ONLY: A very short description of the task
 
-					//Delegator properties
-					, user			:: (UserId,String)										//Who has to do the task?
-					, delegator		:: (UserId,String)										//Who has issued the task?
-					, priority		:: TaskPriority											//What is the current priority of this task?
-					, deadline		:: Maybe Timestamp										//When is the task due?
-					
-					//Worker properties
-					, progress		:: TaskProgress											//
-					//System properties
-					, issuedAt		:: Timestamp											//READ ONLY: When was the task created
-					, firstEvent	:: Maybe Timestamp										//READ ONLY: When was the first work done on this task
-					, latestEvent	:: Maybe Timestamp										//READ ONLY: When was the last event on this task				
+:: TaskProperties = { systemProps	:: TaskSystemProperties
+					, managerProps	:: TaskManagerProperties
+					, workerProps	:: TaskWorkerProperties
 					}
-					
+
+:: TaskSystemProperties =
+	{ processId		:: ProcessId		// Process table identification
+	, subject		:: String 			// Probably redundant with task label  TODO: Remove
+	, manager		:: (UserId,String)	// Who is managing this task
+	
+	, issuedAt		:: Timestamp		// When was the task created
+	, firstEvent	:: Maybe Timestamp	// When was the first work done on this task
+	, latestEvent	:: Maybe Timestamp	// When was the latest event on this task	
+	}
+
+:: TaskManagerProperties =
+	{ worker		:: (UserId, String)	// Who has to do the task? 
+	, priority		:: TaskPriority		// What is the current priority of this task?
+	, deadline		:: Maybe Timestamp	// When is the task due?
+	}					
+:: TaskWorkerProperties =
+	{ progress		:: TaskProgress		// Indication of the worker's progress
+	}
+
 :: TaskProgress		= TPActive																//Worker is happily working on the task
 					| TPStuck																//Worker is stuck and needs assistence
 					| TPWaiting																//Worker is waiting, not actively working on the task
