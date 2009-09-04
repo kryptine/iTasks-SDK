@@ -38,7 +38,7 @@ where
 									(					isOkDateTime daytime 
 										>>= \ok ->		if ok 
 															(return daytime)
-										      				(compound "findDate`" (findDate` whom daytime))
+										      				(findDate` whom daytime)
 									)
 	where
 		proposeDateTime :: (Date,Time) -> Task (Date,Time)

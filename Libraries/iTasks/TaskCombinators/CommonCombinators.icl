@@ -93,11 +93,9 @@ repeatTask task pred a =
 	task a >>= \na -> if (pred na) (return na) (repeatTask task pred na)
 
 (<|) infixl 6 :: !(Task a) !(a -> (Bool, [HtmlTag])) -> Task a | iTask a
-(<|) taska pred = compound "repeatTest" doTask
-where
-	doTask
-	=				taska
-		>>= \r -> 		case pred r of
+(<|) taska pred 
+		=			taska
+		>>= \r -> 	case pred r of
 						(True,_) -> return r
 						(False,msg) -> showStickyMessage msg ||- (taska <| pred)
 

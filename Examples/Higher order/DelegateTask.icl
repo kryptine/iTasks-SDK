@@ -59,7 +59,7 @@ where
 		timerStop time	= waitForTimerTask time #>> return True
 */
 determineSet :: [UserID] -> Task [UserID]
-determineSet people = compound "determineSet" determineSet`
+determineSet people = determineSet`
 where
 	determineSet`	
 	=					chooseTask [Text ("Current set:" +++ print people)] 

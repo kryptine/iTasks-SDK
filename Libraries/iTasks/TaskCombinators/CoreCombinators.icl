@@ -53,7 +53,6 @@ where
 		= (a,tst)
 
 // Sequential composition
-
 sequence :: !String ![Task a] -> (Task [a])	| iTask a
 sequence label tasks = mkSequenceTask label sequence`
 where
@@ -68,13 +67,7 @@ where
 		| otherwise						= doseqTasks ts [a:accu] tst
 
 
-compound :: !String !(Task a) -> (Task a) 	| iTask a 
-compound label task = mkSequenceTask label compound`
-where
-	compound` tst = applyTask task tst
-
 // Parallel composition
-
 parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
 parallel label pred combinePred combineAll tasks 
 	= mkParallelTask label (parallel` tasks)

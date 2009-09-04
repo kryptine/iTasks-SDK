@@ -58,9 +58,6 @@ mytask v =	updateInformation "Fill in Form:" v
 
 taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
-= compound "taskToReview" taskToReview`
-where
-	taskToReview`
 	=					task v`               
 		>>= \v ->		reviewer @: ("Review", review v) 
 		>>= \r ->		showMessageAbout [Text ("Reviewer " <+++ reviewer <+++ " says ")] r 

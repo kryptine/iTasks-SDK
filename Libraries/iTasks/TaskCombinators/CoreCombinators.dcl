@@ -69,15 +69,6 @@ forever		:: !(Task a) 								-> Task a 		| iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-/**
-* Reduces a multi-step sequence to a single step task
-*
-* @param A label for tracing
-* @param The task that has to be reduced to one step
-* @return The combined task
-*/
-compound 	:: !String !(Task a) 						-> Task a		| iTask a 
-
 // Parallel composition
 
 /**
