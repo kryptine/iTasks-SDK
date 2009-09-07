@@ -2,5 +2,8 @@ implementation module LiftingCombinators
 
 import TSt
 
-appWorld :: !String !(*World -> *(!a,!*World)) -> (Task a) | iTask a
-appWorld label fun = mkInstantTask label (accWorldTSt fun)
+appWorld :: !(*World -> *World) -> Task Void
+appWorld fun = mkInstantTask "appWorld" (\tst -> (Void,appWorldTSt fun tst))
+
+accWorld :: !(*World -> *(!a,!*World)) -> Task a | iTask a
+accWorld fun = mkInstantTask "accWorld" (accWorldTSt fun)

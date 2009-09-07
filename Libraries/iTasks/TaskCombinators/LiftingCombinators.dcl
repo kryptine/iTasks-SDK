@@ -1,13 +1,10 @@
 definition module LiftingCombinators
 /*
-* Some iTasks combinators for lifting other domains to the iTask domain:
+* Combinators for lifting "World" functions to the task domain.
 */
-from TSt	import :: Task, :: TSt
-
-from	iTasks import class iTask
+from	TSt		import :: Task, :: TSt
+from	iTasks	import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
-/*
-appWorld		:: lift *World domain to TSt domain. string used for tracing
-*/
-appWorld 		:: !String !(*World -> *(!a,!*World)) 			-> Task a		| iTask a
+appWorld :: !(*World -> *World)			-> Task Void
+accWorld :: !(*World -> *(!a,!*World))	-> Task a | iTask a
