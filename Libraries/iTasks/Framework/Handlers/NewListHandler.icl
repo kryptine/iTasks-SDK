@@ -25,9 +25,11 @@ handleNewListRequest request tst
 															]))}, tst)
 where
 	checkRoles flow session
-		| isEmpty flow.Workflow.roles												= True  //The workflow does not have required roles
-		| or [isMember role session.Session.user.User.roles \\ role <- flow.Workflow.roles]	= True	//User has at least one of the roles needed for the flow
-		| otherwise																	= False //Workflow is not allowed
+		| isEmpty flow.Workflow.roles						= True  //The workflow does not have required roles
+		| session.Session.user.User.userId == 0				= True	//The "root" user does not need to have assigned roles
+		| or [isMember role session.Session.user.User.roles \\ role <- flow.Workflow.roles]
+															= True	//User has at least one of the roles needed for the flow
+		| otherwise											= False //Workflow is not allowed
 		
 	checkPath flow path	= flow.Workflow.name % (0, (size path - 1)) == path
 	

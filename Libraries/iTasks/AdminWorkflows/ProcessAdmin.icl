@@ -9,7 +9,7 @@ processAdmin
 	= [	{Workflow
 		| name = "Admin/Manage processes"
 		, label = "Manage processes"
-		, roles	= []
+		, roles	= ["admin"]
 		, mainTask = processAdminMainTask
 		}]
 		

@@ -10,9 +10,8 @@ unknownUser = {User | userId = -1, userName = "", displayName = "Unknown user", 
 rootUser :: User
 rootUser = {User | userId = 0, userName = "root", displayName = "Root", password = "", roles = []}
 	  
-initUsers :: [User] 
-initUsers	= [ {User | userId = 0, userName = "root", displayName = "Root", password = "", roles = ["root", "president","manager","worker"]}
-			  , {User | userId = 1, userName = "president", displayName = "President", password = "", roles = ["president"]}
+testUsers :: [User] 
+testUsers	= [ {User | userId = 1, userName = "president", displayName = "President", password = "", roles = ["president"]}
 			  , {User | userId = 2, userName = "manager", displayName = "Middle manager", password = "", roles = ["manager"]}
 			  , {User | userId = 3, userName = "worker1", displayName = "Office worker 1", password = "", roles = ["worker"]}
 			  
@@ -48,6 +47,8 @@ initUsers	= [ {User | userId = 0, userName = "root", displayName = "Root", passw
 			  , {User | userId = 49, userName = "expert9", displayName = "Expert 9", password = "", roles = ["experts"]}   
 			  ]	  
 getUser :: !Int !*TSt -> (!User,!*TSt)
+getUser 0 tst
+	= (rootUser,tst)
 getUser uid tst
 	# (users, tst)		= userStore id tst
 	= case filter (\u -> u.User.userId == uid) users of
@@ -56,23 +57,30 @@ getUser uid tst
 
 getUsers :: !*TSt -> (![User], !*TSt)
 getUsers tst
-	= userStore id tst
-
+	# (users, tst) = userStore id tst
+	= (users,tst)	//Do not include the "root" user"
+	
 getUsersWithRole :: !String !*TSt -> (![User], !*TSt)
 getUsersWithRole role tst
 	# (users, tst)		= userStore id tst
-	= (filter (\u -> isMember role u.User.roles) users, tst)
+	= (filter (\u -> isMember role u.User.roles) users, tst) //Do not include the "root" user"
 
 getDisplayNames	:: ![Int] !*TSt -> (![String], !*TSt)
 getDisplayNames	uids tst
 	# (users, tst)		= userStore id tst
-	= (map (lookupUserProperty users (\u -> u.displayName) "Unknown user") uids, tst)
-
+	= (map (displayName users) uids, tst)
+where
+	displayName users 0 = "Root"
+	displayName users uid = lookupUserProperty users (\u -> u.displayName) "Unknown user" uid
+	
 getUserNames :: ![Int] !*TSt -> (![String], !*TSt)
 getUserNames uids tst
 	# (users, tst)		= userStore id tst
-	= (map (lookupUserProperty users (\u -> u.userName) "") uids, tst)
-
+	= (map (userName users) uids, tst)
+where
+	userName users 0 = "root"
+	userName users uid = lookupUserProperty users (\u -> u.userName) "" uid
+	
 getRoles :: ![Int] !*TSt -> (![[String]], !*TSt)
 getRoles uids tst
 	# (users, tst)		= userStore id tst
@@ -80,10 +88,16 @@ getRoles uids tst
 
 authenticateUser :: !String !String	!*TSt -> (!Maybe User, !*TSt)
 authenticateUser username password tst
-	# (users, tst)		= userStore id tst
-	= case [u \\ u <- users | u.userName == username && u.password == password] of
-		[user]	= (Just user, tst)		
-		_		= (Nothing, tst)
+	| username == "root"
+		| password	== tst.config.rootPassword
+			= (Just rootUser, tst)
+		| otherwise
+			= (Nothing, tst)
+	| otherwise
+		# (users, tst)		= userStore id tst
+		= case [u \\ u <- users | u.userName == username && u.password == password] of
+			[user]	= (Just user, tst)		
+			_		= (Nothing, tst)
 
 //Helper function which finds a property of a certain user
 lookupUserProperty :: ![User] !(User -> a) !a !Int -> a
@@ -95,6 +109,6 @@ lookupUserProperty users selectFunction defaultValue userId
 userStore ::  !([User] -> [User]) !*TSt -> (![User],!*TSt) 	
 userStore fn tst=:{store,world}
 	# (mbList,store,world)	= loadValue "UserDB" store world
-	# list 					= fn (case mbList of Nothing = initUsers; Just list = list)
+	# list 					= fn (case mbList of Nothing = testUsers; Just list = list)
 	# store					= storeValue "UserDB" list store 
 	= (list, {tst & store = store, world = world})
