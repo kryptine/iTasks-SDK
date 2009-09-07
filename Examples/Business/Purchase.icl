@@ -37,7 +37,7 @@ derive gUpdate		Purchase
 
 purchaseExample :: [Workflow]
 purchaseExample
-= [	{ name		= "Examples/Business/Purchase"
+= [	{Workflow| name		= "Examples/Business/Purchase"
 	, label		= "Purchase product"
 	, roles		= []
 	, mainTask	= purchaseTask
@@ -55,7 +55,7 @@ purchaseTask =
 definePurchase :: Task Purchase
 definePurchase = enterInformation "Please describe the product you would like to purchase"
 	
-selectSuppliers :: Task [(Int,String)]
+selectSuppliers :: Task [User]
 selectSuppliers
 	= getUsersWithRole "supplier" >>= \suppliers ->
 	  ( enterMultipleChoice
@@ -63,23 +63,23 @@ selectSuppliers
 	  		suppliers
 	  )
 	
-collectBids :: Purchase [(Int,String)] -> Task [((Int,String),Currency)]
+collectBids :: Purchase [User] -> Task [(User,Currency)]
 collectBids purchase suppliers
 	= andTasksEnough
-		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ name, uid @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier =: (uid,name) <- suppliers]
+		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ supplier.User.displayName, supplier.User.userId @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier <- suppliers]
 where
-	collectBid :: Purchase (Int,String) -> Task ((Int,String),Currency)
+	collectBid :: Purchase User -> Task (User,Currency)
 	collectBid purchase bid
 		=	enterInformationAbout
 				"Please make a bid to supply the following product"
 				purchase
 				>>= \price -> return (bid,price)  	
 	
-selectBid :: [((Int,String),Currency)] -> Task ((Int,String),Currency)
+selectBid :: [(User,Currency)] -> Task (User,Currency)
 selectBid bids
-	=	determineCheapest bids	>>= \cheapestBid=:((uid,name),price) ->	
+	=	determineCheapest bids	>>= \cheapestBid=:(supplier,price) ->	
 		requestConfirmation
-			[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text name, BrTag [],
+			[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text supplier.User.displayName, BrTag [],
 	  		  Text "Do you want to accept this bid?"
 	  		] >>= \acceptCheapest ->
 		if acceptCheapest
@@ -88,9 +88,9 @@ selectBid bids
 where
 	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
 	
-confirmBid :: Purchase ((Int,String),Currency) -> Task Void
-confirmBid purchase bid =: ((uid,label), price)
-	= uid @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."])
+confirmBid :: Purchase (User,Currency) -> Task Void
+confirmBid purchase bid =: (user, price)
+	= user.User.userId @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."])
 			
 //Custom utility combinators 
 andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iTask a

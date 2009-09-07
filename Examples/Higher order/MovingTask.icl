@@ -96,9 +96,9 @@ where
 		>>|					return False
 
 	
-selectUser :: !String -> Task Int
+selectUser :: !String -> Task UserId
 selectUser question
 	= 						getUsers
 		>>= \users ->		enterChoice question users
-		>>= \user ->		return (fst user)
+		>>= \user ->		return user.User.userId
 

@@ -81,12 +81,12 @@ internalEmailResponse = cancel internalEmailResponse`
 where
 	internalEmailResponse`
 	=							getCurrentUser
-		>>= \(me,myname) ->		getToNames
+		>>= \me ->				getToNames
 		>>= \tos ->				updateInformation "Type your message ..."
-									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) myname "" "")
+									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) me.User.displayName "" "")
 		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
 										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
-										, MailAndReply msg (me,myname) (to,toname))
+										, MailAndReply msg (me.User.userId,me.User.displayName) (to,toname))
 										\\ (to,toname) <- tos
 										]  
 	where
@@ -103,8 +103,8 @@ where
 internalEmail :: (Task Void)
 internalEmail
 =							getCurrentUser
-	>>= \(me,myname) ->		getToName
-	>>= \(to,toname) ->		updateInformation "Type your message ..." (initMsg toname myname "" "")
+	>>= \me ->				getToName
+	>>= \(to,toname) ->		updateInformation "Type your message ..." (initMsg toname me.User.displayName "" "")
 	>>= \msg ->				(showMessageAbout "" msg) -&&- (to @: (msg.subject, showMessageAbout "" msg)) >>| return Void
 
 initMsg to for subject msg 
@@ -133,9 +133,9 @@ showNewsGroups
 
 subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
-=						getCurrentUser
-	>>= \(me,name) ->	readNewsGroups 
-	>>= 				subscribe me name
+=					getCurrentUser
+	>>= \user ->	readNewsGroups 
+	>>= 			subscribe user.User.userId user.User.displayName
 where
 	subscribe me myname []
 	=						showMessage "No newsgroups in catalogue yet:"
@@ -192,7 +192,7 @@ where
 	commitItem :: String -> Task Void
 	commitItem  group
 	=								getCurrentUser
-		>>= \(me,name) ->      		commit me name group
+		>>= \user ->      			commit user.User.userId user.User.displayName group
 	where
 		commit me name group
 		=							enterInformation [Text "Type your message ..."] 
@@ -220,7 +220,7 @@ getToName ::  (Task (Int,String))
 getToName 
 = 						getUsers
 	>>= \users ->		chooseTask [Text "Select user to mail a message to: "]
-							[(name, return (userId,name)) \\ (userId,name) <- users]
+							[(user.User.displayName, return (user.User.userId,user.User.displayName)) \\ user <- users]
 
 
 cancel :: (Task a) -> Task a | iTask a

@@ -25,8 +25,8 @@ scheduleMeetingExample
 findDate :: Task (Date,Time)
 findDate			
 	=					chooseUser "Choose person you want to schedule a meeting with:"
-	>>= \(whom,name) ->	findDate` whom ({Date|year = 2007, mon = 1, day = 1},{Time|hour = 9, min = 0, sec = 0}) 
-	>>= \datetime	->	(confirm 0 whom datetime -&&- confirm whom 0 datetime)
+	>>= \whom 		->	findDate` whom.User.userId ({Date|year = 2007, mon = 1, day = 1},{Time|hour = 9, min = 0, sec = 0}) 
+	>>= \datetime	->	(confirm 0 whom.User.userId datetime -&&- confirm whom.User.userId 0 datetime)
 	>>|					return datetime
 where
 	findDate` :: Int (Date,Time) -> Task (Date,Time)

@@ -114,10 +114,10 @@ where
 		  fillInClientInfo {order & itemsOrdered = cart} >>= \order ->
 		  yesOrNo [normalText "Confirm Order"]
 		    (dbUpdateItem order >>|
-		     getCurrentUser >>= \(myid,me) -> 
-			 spawnProcess myid True (showMessageAbout "Order:" (order,costOrder order) <<@ "Order Confirmed")
+		     getCurrentUser >>= \me -> 
+			 spawnProcess me.User.userId True (showMessageAbout "Order:" (order,costOrder order) <<@ "Order Confirmed")
 			 >>|	
-			 spawnProcess shopOwner True (showMessageAbout "Order" (order,costOrder order) <<@ "New Order from " <+++ me) 
+			 spawnProcess shopOwner True (showMessageAbout "Order" (order,costOrder order) <<@ "New Order from " <+++ me.User.displayName) 
 			 >>| return Void
 			)
 			(return Void)

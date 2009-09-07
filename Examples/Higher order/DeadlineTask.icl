@@ -28,8 +28,8 @@ trivialTask = enterInformation "Enter a number larger than 42" <| (\n -> if (n <
 deadline :: (Task a) -> Task a | iTask a
 deadline task
 =					chooseUser "Choose person you want to delegate work to:"
-	>>= \(whom,name) ->	enterInformation "How long do you want to wait?" 
-	>>= \time ->	(delegateTask whom time task)
+	>>= \whom ->	enterInformation "How long do you want to wait?" 
+	>>= \time ->	(delegateTask whom.User.userId time task)
 					-||-
 					(showMessage "Cancel delegated work if you are getting impatient:" >>| return Nothing)
 	>>= 			checkDone

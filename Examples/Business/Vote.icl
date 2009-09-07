@@ -6,10 +6,10 @@ implementation module Vote
 import iTasks
 import CommonDomain
 
-derive gPrint Vote
-derive gParse Vote
-derive gVisualize Vote
-derive gUpdate Vote
+derive gPrint 		Vote
+derive gParse		Vote
+derive gVisualize	Vote
+derive gUpdate		Vote
 
 :: Vote = { userId		:: Int
 		  , vote		:: Int
@@ -58,28 +58,28 @@ where
 giveVote :: Task Void
 giveVote 
 =							getCurrentUser
-	>>= \(currentUser,_)->	readMyVoteDB currentUser
+	>>= \currentUser ->		readMyVoteDB currentUser.User.userId
 	>>= \(vote,comment) ->	chooseTask 
 								[ Text ("Previous vote given:" +++ if (vote == -1) "No vote given" (toString vote)), BrTag [], BrTag []
 								, Text "Give your new vote (0 = lowest, 10 = highest)", BrTag [], BrTag []]
 								[(toString i,return i) \\ i <- [0..10]]
-	>>= \vote -> 			readMyVoteDB currentUser
-	>>= \(_,comment) ->		writeVotesDB {userId = currentUser, vote = vote, comment = comment}
+	>>= \vote -> 			readMyVoteDB currentUser.User.userId
+	>>= \(_,comment) ->		writeVotesDB {userId = currentUser.User.userId, vote = vote, comment = comment}
 	>>|						showMessage [Text ("Your vote " +++ toString vote +++ " has been stored!")]
 
 giveComment :: Task Void
 giveComment
 =							getCurrentUser
- 	>>= \(currentUser,_)->	readMyVoteDB currentUser
+ 	>>= \currentUser ->		readMyVoteDB currentUser.User.userId
 	>>= \(vote,comment) ->	updateInformation
 								[ Text "Previous comment given:", BrTag [], BrTag []
 								, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
 								, Text "Submit a new comment:", BrTag [], BrTag []
 								] 
 								textBox
-	>>= \(Note comment) -> readMyVoteDB currentUser
+	>>= \(Note comment) -> readMyVoteDB currentUser.User.userId
 	>>= \(vote,_) ->		
-							writeVotesDB {userId = currentUser, vote = vote, comment = comment}
+							writeVotesDB {userId = currentUser.User.userId, vote = vote, comment = comment}
 	>>|						showMessage
 								[ Text "Your comment:", BrTag [], BrTag []
 								, Text comment, BrTag [], BrTag []

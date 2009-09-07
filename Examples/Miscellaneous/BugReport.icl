@@ -82,8 +82,8 @@ where
 	fileBugReport :: BugReport -> Task BugNr
 	fileBugReport report
 		=	dbCreateItem -&&- getCurrentUser
-		>>= \(bug,(uid,name)) ->
-			dbUpdateItem {bug & report = report, reportedBy = uid}
+		>>= \(bug,user) ->
+			dbUpdateItem {bug & report = report, reportedBy = user.User.userId}
 		>>| return bug.bugNr 
 
 selectDeveloper :: (DBRef Application) (Maybe String) -> Task UserId
@@ -91,13 +91,13 @@ selectDeveloper application version
 	=	dbReadItem application
 	>>= \mbapp -> case mbapp of
 		Nothing
-			= getCurrentUser >>= \(uid,name) -> return uid
+			= getCurrentUser >>= \user -> return user.User.userId
 		Just app
 			= selectLeastBusy app.developers
 where
 	selectLeastBusy :: [UserId] -> Task UserId
 	selectLeastBusy []
-		=	getCurrentUser >>= \(uid,name) -> return uid
+		=	getCurrentUser >>= \user -> return user.User.userId
 	selectLeastBusy uids
 		= 	allTasks [getNumTasksForUser uid \\ uid <- uids]
 		>>= \activity -> 
