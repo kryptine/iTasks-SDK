@@ -3,8 +3,16 @@ implementation module BugReport
 import iTasks
 import CommonDomain
 
+
+:: Application =
+	{ appNr			:: AppNr
+	, name			:: String
+	, versions		:: [String]
+	, developers	:: [UserId]
+	}
+	
 :: BugReport =
-	{ application	:: String
+	{ application	:: DBRef Application
 	, version		:: Maybe String
 	, severity		:: BugSeverity
 	, description	:: Note
@@ -17,18 +25,24 @@ import CommonDomain
 	, report		:: BugReport
 	, status		:: BugStatus
 	}
-	
+
+:: AppNr :== Int
 :: BugNr :== Int
 :: BugSeverity = Low | Medium | High | Critical
 :: BugStatus = Reported | Assigned | Reproduced | Resolved
 
-derive gPrint     BugReport, Bug, BugSeverity, BugStatus	
-derive gParse	  BugReport, Bug, BugSeverity, BugStatus
-derive gVisualize BugReport, Bug, BugSeverity, BugStatus
-derive gUpdate	  BugReport, Bug, BugSeverity, BugStatus
+derive gPrint     Application, BugReport, Bug, BugSeverity, BugStatus	
+derive gParse	  Application, BugReport, Bug, BugSeverity, BugStatus
+derive gVisualize Application, BugReport, Bug, BugSeverity, BugStatus
+derive gUpdate	  Application, BugReport, Bug, BugSeverity, BugStatus
 
+instance DB Application where
+	databaseId					= mkDBid "Application"
+	getItemId {appNr}			= DBRef appNr
+	setItemId (DBRef appNr) app	= {app & appNr = appNr}
+	
 instance DB Bug where
-	databaseId					= mkDBid "Bugs"
+	databaseId					= mkDBid "Bug"
 	getItemId bug=:{bugNr}		= DBRef bugNr
 	setItemId (DBRef bugNr) bug	= {bug & bugNr = bugNr}
 
@@ -44,7 +58,7 @@ reportBug
 	>>= \bugnr ->
 		case report.severity of
 			Critical 
-				= selectAssessor report.application report.version
+				= selectDeveloper report.application report.version
 				>>= \assessor ->
 					assessor @: 
 					 ("Bug report assessment",
@@ -67,9 +81,29 @@ where
 			dbUpdateItem {bug & report = report, reportedBy = uid}
 		>>| return bug.bugNr 
 
-selectAssessor :: String (Maybe String) -> Task UserId
-selectAssessor application version = return 0
-
+selectDeveloper :: (DBRef Application) (Maybe String) -> Task UserId
+selectDeveloper application version
+	=	dbReadItem application
+	>>= \mbapp -> case mbapp of
+		Nothing
+			= getCurrentUser >>= \(uid,name) -> return uid
+		Just app
+			= selectLeastBusy app.developers
+where
+	selectLeastBusy :: [UserId] -> Task UserId
+	selectLeastBusy []
+		=	getCurrentUser >>= \(uid,name) -> return uid
+	selectLeastBusy uids
+		= 	allTasks [getNumTasksForUser uid \\ uid <- uids]
+		>>= \activity -> 
+			return (snd (minimum (zip (activity,uids))))
+	where	
+		minimum l = foldl min (hd l) (tl l) 
+		
+	getNumTasksForUser :: UserId -> Task Int
+	getNumTasksForUser uid = return 42			//TODO: Use API function
+	
+	 
 resolveBug :: BugNr -> Task Void
 resolveBug bugnr = showMessage "You are done"
 
