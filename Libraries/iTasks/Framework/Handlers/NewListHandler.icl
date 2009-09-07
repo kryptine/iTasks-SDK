@@ -3,6 +3,7 @@ implementation module NewListHandler
 import StdEnv
 import Http, TSt
 import JSON, Util, Text
+import UserDB, SessionDB
 
 :: NewWorkItem	= 	{ id				:: !String			// The name of the workflow that is started
 					, iconCls			:: !String 			// An icon name. The actual icon image is defined in the css. 
@@ -25,7 +26,7 @@ handleNewListRequest request tst
 where
 	checkRoles flow session
 		| isEmpty flow.Workflow.roles												= True  //The workflow does not have required roles
-		| or [isMember role session.Session.roles \\ role <- flow.Workflow.roles]	= True	//User has at least one of the roles needed for the flow
+		| or [isMember role session.Session.user.User.roles \\ role <- flow.Workflow.roles]	= True	//User has at least one of the roles needed for the flow
 		| otherwise																	= False //Workflow is not allowed
 		
 	checkPath flow path	= flow.Workflow.name % (0, (size path - 1)) == path

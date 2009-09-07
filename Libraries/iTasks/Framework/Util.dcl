@@ -10,8 +10,8 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 derive gPrint 	Task, Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
 derive gParse 	Task, Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
 
-derive gVisualize Task
-derive gUpdate Task
+derive gVisualize	Task
+derive gUpdate		Task
 
 /* Task number is used to generate a unique id
 iTaskId 			:: generate an id based on the task nr, important for garbage collection and family relation

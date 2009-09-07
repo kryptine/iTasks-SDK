@@ -25,4 +25,4 @@ where
 		# (currentUserId, tst)	= getCurrentUser tst
 		# (currentUser,tst)		= getUser currentUserId tst
 		# (currentTime, tst)	= accWorldTSt time tst
-		= createProcess (mkStaticProcessEntry workflow currentTime currentUser currentUser Active) tst
+		= createProcess (mkStaticProcessEntry workflow currentTime (currentUser.User.userId,currentUser.User.displayName) (currentUser.User.userId,currentUser.User.displayName) Active) tst

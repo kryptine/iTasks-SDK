@@ -7,6 +7,7 @@ definition module Config
 :: Config =
 	{ clientPath	:: !String	// Where is the client located.
 	, rootPassword	:: !String	// Password for the 'root' superuser.
+	, sessionTime	:: !Int		// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, debug			:: !Bool	// Run the server in debug mode.
 	}
 

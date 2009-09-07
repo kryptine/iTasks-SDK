@@ -30,7 +30,7 @@ where
 		# (delegator,tst)	= getUser curUid tst
 		# (curTime,tst) 	= accWorldTSt time tst
 		# (dynId,tst)		= DynamicDB@createDynamic (dynamic createDynamicTask task) tst
-		# (newPid,tst)		= ProcessDB@createProcess (entry mainTask dynId curTime user delegator) tst	
+		# (newPid,tst)		= ProcessDB@createProcess (entry mainTask dynId curTime (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName)) tst	
 		| uid == curUid
 			# tst			= addNewProcess newPid tst
 			= (ProcessReference newPid, {tst & activated = True})
@@ -123,7 +123,7 @@ where
 		# (curUid,tst)		= getCurrentUser tst
 		# (user,tst)		= getUser uid tst
 		# (delegator,tst)	= getUser curUid tst
-		= ProcessDB@setProcessOwner user delegator pid tst
+		= ProcessDB@setProcessOwner (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName) pid tst
 
 
 //New "meta" process tasks
@@ -155,7 +155,7 @@ where
 		# (cur,tst)			= getCurrentUser tst //Current user is the new delegator of the process
 		# (user,tst)		= getUser uid tst
 		# (delegator,tst)	= getUser cur tst
-		= ProcessDB@setProcessOwner user delegator pid tst
+		= ProcessDB@setProcessOwner (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName) pid tst
 
 setProcessStatus :: !ProcessStatus !ProcessId -> Task Bool
 setProcessStatus status pid = mkInstantTask "setProcessStatus" (\tst -> ProcessDB@setProcessStatus status pid tst)

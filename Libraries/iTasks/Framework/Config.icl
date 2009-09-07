@@ -9,6 +9,7 @@ defaultConfig :: Config
 defaultConfig =
 	{ clientPath	= "Client"
 	, rootPassword	= ""
+	, sessionTime	= 3600
 	, debug			= False
 	}
 

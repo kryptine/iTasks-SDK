@@ -128,14 +128,14 @@ assign` toUserId initPriority initDeadline task tst =: {TSt| taskNr, taskInfo, f
 									    {TaskSystemProperties
 									    | processId 	= 0
 									    , subject		= taskLabel task
-									    , manager		= currentUser
+									    , manager		= (currentUser.User.userId, currentUser.User.displayName)
 									    , issuedAt		= now
 									    , firstEvent	= Nothing
 									    , latestEvent	= Nothing
 									    },
 									    managerProps =
 									    {TaskManagerProperties
-									    | worker		= toUser
+									    | worker		= (toUser.User.userId, toUser.User.displayName)
 									    , priority		= initPriority
 									    , deadline		= initDeadline
 									    },

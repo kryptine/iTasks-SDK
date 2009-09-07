@@ -1,28 +1,28 @@
-implementation module UserTasks
+implementation module UserDBTasks
 
 from TSt import :: Task, :: TSt
 from TSt import mkInstantTask
-from TSt import qualified getCurrentUser
-import StdList
-from UserDB import qualified class UserDB (..)
-from UserDB import qualified instance UserDB TSt
+import StdList, StdMaybe
+
+from UserDB import :: User
+from UserDB import qualified getCurrentUser
+from UserDB import qualified getUser
+from UserDB import qualified getUsers
+from UserDB import qualified getUsersWithRole
+from UserDB import qualified getDisplayNames
+from UserDB import qualified getUserNames
+from UserDB import qualified getRoles
+from UserDB import qualified authenticateUser
 
 import InteractionTasks, CoreCombinators
 
-getCurrentUser :: Task (UserId, String)
-getCurrentUser = mkInstantTask "getCurrentUserId" getCurrentUser`
-where
-	getCurrentUser` tst
-		# (cur,tst)	= TSt@getCurrentUser tst
-		= UserDB@getUser cur tst
-
-getUser :: !UserId -> Task (UserId,String)
+getUser :: !UserId -> Task User
 getUser uid = mkInstantTask "getUser" (UserDB@getUser uid)
 
-getUsers :: Task [(UserId,String)]
+getUsers :: Task [User]
 getUsers = mkInstantTask "getUsers" UserDB@getUsers
 
-getUsersWithRole :: !String	-> Task [(UserId,String)]
+getUsersWithRole :: !String	-> Task [User]
 getUsersWithRole role = mkInstantTask "getUsersWithRole" (UserDB@getUsersWithRole role)
 	
 getDisplayNames :: ![UserId] -> Task [String]
@@ -33,14 +33,17 @@ getUserNames uids = mkInstantTask "getUserNames" (UserDB@getUserNames uids)
 
 getRoles :: ![UserId]	-> Task [[String]]
 getRoles uids = mkInstantTask "getRoles" (UserDB@getRoles uids)
-	
-chooseUser :: !question -> Task (UserId,String) | html question
+
+authenticateUser :: !String !String	-> Task (Maybe User)
+authenticateUser username password = mkInstantTask "authenticateUser" (UserDB@authenticateUser username password)
+
+chooseUser :: !question -> Task User | html question
 chooseUser question
 	= 				getUsers
 	>>= \users ->	enterChoice question users
 
 	
-chooseUserWithRole :: !question !String -> Task (UserId,String) | html question
+chooseUserWithRole :: !question !String -> Task User | html question
 chooseUserWithRole question role
 	= 				getUsersWithRole role
 	>>= \users ->	enterChoice question users

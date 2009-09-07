@@ -6,12 +6,12 @@ import SessionDB, UserDB
 
 handleAuthenticationRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 handleAuthenticationRequest req tst
-	# (mbCredentials, tst) = authenticateUser username password tst
-	= case mbCredentials of
-		Just (uid,displayName,roles)
-			# (session, tst)	= createSession uid roles tst
+	# (mbUser, tst) = authenticateUser username password tst
+	= case mbUser of
+		Just user
+			# (session, tst)	= createSession user tst
 			# tst				= flushStore tst
-			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId displayName},tst)
+			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId user.displayName},tst)
 		Nothing
 			= ({http_emptyResponse & rsp_data = encodeFailure},tst)
 where

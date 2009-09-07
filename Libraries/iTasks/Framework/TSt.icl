@@ -2,7 +2,7 @@ implementation module TSt
 
 import StdEnv, StdMaybe
 import Http, Util
-import ProcessDB, DynamicDB, SessionDB, TaskTree
+import ProcessDB, DynamicDB, SessionDB, UserDB, TaskTree
 import GenPrint, GenParse, GenEq, GenBimap
 import GenVisualize, GenUpdate, Store, Config
 
@@ -245,7 +245,7 @@ getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
 
 getCurrentUser :: !*TSt -> (!UserId, !*TSt)
 getCurrentUser tst =: {staticInfo}
-	= (staticInfo.currentSession.Session.userId, {tst & staticInfo = staticInfo})
+	= (staticInfo.currentSession.Session.user.User.userId, {tst & staticInfo = staticInfo})
 
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 getCurrentProcess tst =: {staticInfo}

@@ -1,31 +1,29 @@
-definition module UserTasks
+definition module UserDBTasks
 /**
-* This modules provides tasks to retrieve information about other the users
+* This modules provides tasks to retrieve information from the user database
 * of the iTask system. These tasks are useful when work is to be delegated to
 * other users.
 */
+import StdMaybe
+
 from TSt	import :: Task
 from Types	import :: UserId
+from UserDB	import :: User
 
-import InteractionTasks
-//User database access
+from InteractionTasks 	import class html
 
-/**
-* Returns user id of user logged in the iTask system
-*/
-getCurrentUser		::  Task (UserId, String)
 /**
 * Finds a specific user
 */
-getUser 			:: !UserId		-> Task (UserId, String)
+getUser 			:: !UserId		-> Task User
 /**
 * Finds all users
 */
-getUsers			:: Task [(UserId, String)]
+getUsers			:: Task [User]
 /**
 * Finds all users (user id + display name) who have the given role
 */
-getUsersWithRole	:: !String	-> Task [(UserId, String)]
+getUsersWithRole	:: !String	-> Task [User]
 /**
 * Looks up the corresponding display names for a list of user ids
 */
@@ -38,7 +36,11 @@ getUserNames		:: ![UserId]	-> Task [String]
 * Looks up the corresponding roles for a list of user ids
 */
 getRoles			:: ![UserId]	-> Task [[String]]
+/**
+* Authenticates a user by username and password
+*/
+authenticateUser	:: !String !String	-> Task (Maybe User)
 
 //Interactively choose a user
-chooseUser			:: !question			-> Task (UserId, String) | html question
-chooseUserWithRole	:: !question !String	-> Task (UserId, String) | html question
+chooseUser			:: !question			-> Task User | html question
+chooseUserWithRole	:: !question !String	-> Task User | html question

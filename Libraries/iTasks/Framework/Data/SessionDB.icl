@@ -7,44 +7,37 @@ import TSt, Store
 import Time
 import MersenneTwister
 
-SESSION_TIMEOUT :== 1800 // Half-hour sessions
-
-derive gPrint Session
-derive gParse Session
-
-instance SessionDB TSt
-where
-	createSession	:: !Int ![String] !*TSt	-> (!Session,!*TSt)
-	createSession uid roles tst
-		# (sid, tst)		= genSessionId tst
-		# (ts, tst)			= getTimeStamp tst
-		# session			= {Session | sessionId = sid, userId = uid, roles = roles, timestamp = ts}
-		# (sessions, tst)	= sessionStore (\l -> [session:l]) tst
-		= (session,tst)
-			
-	restoreSession	:: !String !*TSt -> (!Maybe Session, !Bool, !*TSt)
-	restoreSession sid tst 
-		# (sessions, tst)				= sessionStore id tst
-		# (ts, tst)						= getTimeStamp tst
-		# (mbSession, before, after)	= findSession sid [] sessions
-		= case mbSession of
-			Nothing
-				= (Nothing, False, tst)					//Not found and no timeout
-			Just s
-				| (ts - s.timestamp) > SESSION_TIMEOUT	//Session found but timed out
-					# (_, tst)	= sessionStore (\_ -> (before ++ after)) tst
-					= (Nothing, True, tst)
-				| otherwise								//Session found and still valid
-					# (_, tst)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) tst
-				 	= (Just s, False, tst)
+createSession :: !User !*TSt -> (!Session,!*TSt)
+createSession user tst
+	# (sid, tst)		= genSessionId tst
+	# (ts, tst)			= getTimeStamp tst
+	# session			= {Session | sessionId = sid, user = user, timestamp = ts}
+	# (sessions, tst)	= sessionStore (\l -> [session:l]) tst
+	= (session,tst)
 		
-	destroySession	:: !String !*TSt -> *TSt
-	destroySession sid tst
-		# (sessions, tst)		= sessionStore id tst
-		# (_, before, after)	= findSession sid [] sessions
-		# (_, tst)				= sessionStore (\_ -> (before ++ after)) tst
-		= tst
+restoreSession	:: !String !*TSt -> (!Maybe Session, !Bool, !*TSt)
+restoreSession sid tst 
+	# (sessions, tst)				= sessionStore id tst
+	# (ts, tst)						= getTimeStamp tst
+	# (mbSession, before, after)	= findSession sid [] sessions
+	= case mbSession of
+		Nothing
+			= (Nothing, False, tst)							// Not found and no timeout
+		Just s
+			| (ts - s.timestamp) > tst.config.sessionTime	// Session found but timed out
+				# (_, tst)	= sessionStore (\_ -> (before ++ after)) tst
+				= (Nothing, True, tst)
+			| otherwise										// Session found and still valid
+				# (_, tst)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) tst
+			 	= (Just s, False, tst)
 	
+destroySession	:: !String !*TSt -> *TSt
+destroySession sid tst
+	# (sessions, tst)		= sessionStore id tst
+	# (_, before, after)	= findSession sid [] sessions
+	# (_, tst)				= sessionStore (\_ -> (before ++ after)) tst
+	= tst
+
 findSession :: !String ![Session] ![Session] -> (!Maybe Session, ![Session], ![Session]) 
 findSession sid before [] = (Nothing, reverse before, [])
 findSession sid before [s=:{sessionId}:after]

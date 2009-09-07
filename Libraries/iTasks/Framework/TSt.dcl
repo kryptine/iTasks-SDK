@@ -8,7 +8,7 @@ import StdMaybe
 import Types, Void
 import TaskTree
 
-from SessionDB	import :: Session{..}
+from SessionDB	import :: Session
 from Config		import :: Config(..)
 from Store		import :: Store(..)
 from Time		import :: Timestamp(..)

@@ -20,4 +20,4 @@ handleUserListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleUserListRequest req tst
 	# (users,tst) = getUsers tst
 	= ({http_emptyResponse & rsp_data = toJSON
-		{UserResponse| users = [{userId = uid, displayName = dn} \\ (uid,dn) <- users], total = length users}}, tst)
+		{UserResponse| users = [{UserRecord|userId = user.User.userId, displayName = user.User.displayName} \\ user <- users], total = length users}}, tst)

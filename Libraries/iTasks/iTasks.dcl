@@ -6,12 +6,20 @@ import	Engine						// basic iTask system creator
 	,	EngineWrapperStandalone		// standalone wrapper
 	//,	EngineWrapperCGI			// CGI wrapper
 
+	//	Basic tasks
 	,	InteractionTasks			// tasks for interaction with users
-	,	UserTasks					// tasks for accessing the user database		
-	,	TimeAndDateTasks			// iTasks triggered by time and date 
-	,	StoreTasks					// iTasks store access
+	,	SystemTasks					// tasks for interaction with the iTasks system itself
+	,	StoreTasks					// tasks for accessing the generic store
+	
+	,	UserDBTasks					// tasks for accessing the user database
+	,	SessionDBTasks				// tasks for accessing the session database
+	,	ProcessDBTasks				// tasks for accessing the process database
+	
+	,	TimeAndDateTasks			// tasks triggered by time and date 
+
 	,	ChangeTasks					// Tasks for changing existing workflows
-			
+	
+	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
 
 	,	CommonCombinators			// Set of additional useful iTask combinators
@@ -21,9 +29,11 @@ import	Engine						// basic iTask system creator
 	,	ExceptionCombinators		// Handling exceptional situations
 	,	ClientCombinators			// Delegating tasks to the client
 	,	TuningCombinators			// Fine tuning of tasks
+	
+	//	Miscellaneous machinery
 	,	GenBimap
 	,	Util
-	,	GenVisualize				// Functions for generating GUIS
+	,	GenVisualize				// Functions for generating GUIs
 	,	GenUpdate					// Functions for updating arbitrary values
 	
 	//StdEnv modules
