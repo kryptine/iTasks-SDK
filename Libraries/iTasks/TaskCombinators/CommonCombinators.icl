@@ -13,7 +13,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
-import InteractionTasks, TimeAndDateTasks, CoreCombinators, TuningCombinators, LiftingCombinators
+import InteractionTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
 import GenVisualize, GenUpdate
 

@@ -1,9 +1,16 @@
-implementation module TimeAndDateTasks
+implementation module DateTimeTasks
 
 import StdFunc, StdMisc
-import TSt, Util
+import TSt
 
 from CommonDomain import :: Date, :: Time
+
+/*
+getCurrentTime :: Task Time
+getCurrentTime = mkInstantTask "getCurrentTime" getTime
+
+getCurrentDate :: Task Date
+*/
 // Timer Tasks ending when timed out
 
 waitForTimeTask :: !Time	-> Task Time
