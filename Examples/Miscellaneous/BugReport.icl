@@ -3,7 +3,6 @@ implementation module BugReport
 import iTasks
 import CommonDomain
 
-
 :: Application =
 	{ appNr			:: AppNr
 	, name			:: String
@@ -25,16 +24,22 @@ import CommonDomain
 	, report		:: BugReport
 	, status		:: BugStatus
 	}
-
+	
+:: BugAnalysis =
+	{ bug				:: DBRef Bug
+	, cause				:: Note
+	, affectedVersions	:: [String]
+	}
+	
 :: AppNr :== Int
 :: BugNr :== Int
 :: BugSeverity = Low | Medium | High | Critical
 :: BugStatus = Reported | Assigned | Reproduced | Resolved
 
-derive gPrint     Application, BugReport, Bug, BugSeverity, BugStatus	
-derive gParse	  Application, BugReport, Bug, BugSeverity, BugStatus
-derive gVisualize Application, BugReport, Bug, BugSeverity, BugStatus
-derive gUpdate	  Application, BugReport, Bug, BugSeverity, BugStatus
+derive gPrint     Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis	
+derive gParse	  Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis
+derive gVisualize Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis
+derive gUpdate	  Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis
 
 instance DB Application where
 	databaseId					= mkDBid "Application"
@@ -65,10 +70,10 @@ reportBug
 					  requestConfirmationAbout
 					  	"Is this bug really critical?" report)
 				>>= \confirmed -> if confirmed
-						(quickResolveBug bugnr)
-						(resolveBug bugnr)
+						(resolveCriticalBug (DBRef bugnr))
+						(resolveBug (DBRef bugnr))
 			_ 
-				= resolveBug bugnr
+				= resolveBug (DBRef bugnr)
 where		
 	enterInitialReport :: Task BugReport
 	enterInitialReport
@@ -102,11 +107,62 @@ where
 		
 	getNumTasksForUser :: UserId -> Task Int
 	getNumTasksForUser uid = return 42			//TODO: Use API function
-	
 	 
-resolveBug :: BugNr -> Task Void
-resolveBug bugnr = showMessage "You are done"
+resolveBug :: (DBRef Bug) -> Task Void
+resolveBug bugnr
+	=	dbSafeReadItem bugnr
+	>>= \bug ->
+		analyzeBug bug
+	>>|	developBugFix bugnr
+	>>| mergeFixInMainLine bugnr
+	>>| notifyReporter
 
-quickResolveBug :: BugNr -> Task Void
-quickResolveBug bugnr = showMessage "You are done"
+resolveCriticalBug :: (DBRef Bug) -> Task Void
+resolveCriticalBug bugnr
+	=	dbSafeReadItem bugnr
+	>>= \bug ->
+		analyzeBug bug
+	>>| developBugFix bugnr
+	>>| makePatches defaultValue [] -&&- mergeFixInMainLine bugnr
+	>>| notifyReporter
+	
+analyzeBug :: Bug -> Task BugAnalysis
+analyzeBug bug
+	=	determineCause bug -&&- determineAffectedVersions bug
+	>>=	\(cause,versions) ->
+		return {bug = getItemId bug, cause = cause, affectedVersions = versions}
+where
+	determineCause bug
+		= enterInformationAbout "What is the cause of the following bug?" bug
 
+	determineAffectedVersions bug
+		=	dbSafeReadItem bug.report.application
+		>>= \application ->
+			enterMultipleChoiceAbout
+				("Which versions of " <+++ application.Application.name <+++ " have been affected by this bug?")
+				bug
+				application.versions
+				
+		
+developBugFix :: (DBRef Bug) -> Task Void
+developBugFix bugnr = showMessage "TODO"
+
+mergeFixInMainLine :: (DBRef Bug) -> Task Void
+mergeFixInMainLine bugnr = showMessage "TODO"
+
+makePatches :: (DBRef Application) [String] -> Task Void
+makePatches application versions = showMessage "TODO"
+
+notifyReporter :: Task Void
+notifyReporter = showMessage "TODO"
+
+dbSafeReadItem :: (DBRef a) -> Task a | iTask, DB a
+dbSafeReadItem ref
+	=	dbReadItem ref
+	>>= \mbval = case mbval of
+		Just val
+			= return val
+		Nothing
+			=	dbReadAll
+			>>= \all ->
+				enterChoice ("Item " <+++ ref <+++ " could not be found. Please select an alternative.") all
