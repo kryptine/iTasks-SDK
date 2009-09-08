@@ -20,7 +20,7 @@ readDB :: !(DBid a) -> Task a | iTask a
 readDB key = mkInstantTask "readDB" readDB`
 where
 	readDB` tst=:{store,world}
-		# (mbVal,store,world) = loadValue (DB_PREFIX +++ key) store world
+		# (mbVal,store,world) = loadValue key store world
 		= case mbVal of
 			Just val	= (val,{tst & store = store, world = world})
 			Nothing		= (defaultValue,{tst & store = store, world = world})
@@ -29,7 +29,7 @@ writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkInstantTask "writeDB" writeDB`
 where
 	writeDB` tst=:{TSt|store}
-		# store = storeValue (DB_PREFIX +++ key) value store
+		# store = storeValue key value store
 		= (value, {TSt| tst & store = store})
 		
 mkDBid :: !String -> (DBid a)

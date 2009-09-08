@@ -8,8 +8,6 @@ from StdOverloaded	import class ==, class <
 from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
-DB_PREFIX 	:== "UserStore-"
-
 //Database identifier for storing a single value of type a
 :: DBid a
 

@@ -6,8 +6,11 @@ from Html	import :: HtmlTag
 from iTasks	import class iTask(..)
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
-// This type class contains types that are
-// easily displayed as static html
+// This type class contains types that may be used as
+// messages and questions: plain strings and html.
+// 
+// It is for convenience only, do not create new instances yourself.
+// Use the generic visualization instead.
 class html a  
 where
 	html :: a -> [HtmlTag]

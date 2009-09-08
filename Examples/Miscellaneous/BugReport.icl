@@ -22,12 +22,12 @@ import CommonDomain
 	, reportedAt	:: (Date,Time)
 	, reportedBy	:: UserId
 	, report		:: BugReport
+	, analysis		:: Maybe BugAnalysis
 	, status		:: BugStatus
 	}
 	
 :: BugAnalysis =
-	{ bug				:: DBRef Bug
-	, cause				:: Note
+	{ cause				:: Note
 	, affectedVersions	:: [String]
 	}
 	
@@ -113,24 +113,26 @@ resolveBug bugnr
 	=	dbSafeReadItem bugnr
 	>>= \bug ->
 		analyzeBug bug
-	>>|	developBugFix bugnr
-	>>| mergeFixInMainLine bugnr
-	>>| notifyReporter
+	>>= \bug ->
+		developBugFix bug
+	>>| mergeFixInMainLine bug
+	>>| notifyReporter bug
 
 resolveCriticalBug :: (DBRef Bug) -> Task Void
 resolveCriticalBug bugnr
 	=	dbSafeReadItem bugnr
 	>>= \bug ->
 		analyzeBug bug
-	>>| developBugFix bugnr
-	>>| makePatches defaultValue [] -&&- mergeFixInMainLine bugnr
-	>>| notifyReporter
+	>>= \bug ->
+		developBugFix bug
+	>>| makePatches bug -&&- mergeFixInMainLine bug
+	>>| notifyReporter bug
 	
-analyzeBug :: Bug -> Task BugAnalysis
+analyzeBug :: Bug -> Task Bug
 analyzeBug bug
 	=	determineCause bug -&&- determineAffectedVersions bug
 	>>=	\(cause,versions) ->
-		return {bug = getItemId bug, cause = cause, affectedVersions = versions}
+		dbUpdateItem {bug & analysis = Just {cause = cause, affectedVersions = versions}}
 where
 	determineCause bug
 		= enterInformationAbout "What is the cause of the following bug?" bug
@@ -138,23 +140,35 @@ where
 	determineAffectedVersions bug
 		=	dbSafeReadItem bug.report.application
 		>>= \application ->
-			enterMultipleChoiceAbout
-				("Which versions of " <+++ application.Application.name <+++ " have been affected by this bug?")
-				bug
-				application.versions
-				
+			case application.versions of
+				[]	= return []
+				_	=
+					enterMultipleChoiceAbout
+						("Which versions of " <+++ application.Application.name <+++ " have been affected by this bug?")
+						bug
+						application.versions
+						
 		
-developBugFix :: (DBRef Bug) -> Task Void
-developBugFix bugnr = showMessage "TODO"
+developBugFix :: Bug -> Task Void
+developBugFix bug = showMessageAbout "Please implement a fix for the following bug:" bug
 
-mergeFixInMainLine :: (DBRef Bug) -> Task Void
-mergeFixInMainLine bugnr = showMessage "TODO"
+mergeFixInMainLine :: Bug -> Task Void
+mergeFixInMainLine bug = showMessageAbout "Please merge the bugfix in the main line of version control" bug
 
-makePatches :: (DBRef Application) [String] -> Task Void
-makePatches application versions = showMessage "TODO"
+makePatches :: Bug -> Task Void
+makePatches bug =
+	case bug.analysis of
+		Nothing
+			= return Void
+		Just {affectedVersions = []}
+			= return Void
+		Just {affectedVersions = versions}
+			= showMessageAbout ("Please make patches of the fix of bug " <+++ bug.bugNr <+++
+								" for the following versions of " <+++ bug.report.application)
+								versions
 
-notifyReporter :: Task Void
-notifyReporter = showMessage "TODO"
+notifyReporter :: Bug -> Task Void
+notifyReporter bug = notifyUser "The bug you reported has been fixed" bug.reportedBy
 
 dbSafeReadItem :: (DBRef a) -> Task a | iTask, DB a
 dbSafeReadItem ref
@@ -164,5 +178,7 @@ dbSafeReadItem ref
 			= return val
 		Nothing
 			=	dbReadAll
-			>>= \all ->
-				enterChoice ("Item " <+++ ref <+++ " could not be found. Please select an alternative.") all
+			>>= \all ->	
+				case all of
+					[]	= dbCreateItem
+					all	= enterChoice ("Item " <+++ ref <+++ " could not be found. Please select an alternative.") all
