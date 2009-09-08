@@ -11,7 +11,7 @@ import CommonDomain
 	}
 	
 :: BugReport =
-	{ application	:: DBRef Application
+	{ application	:: String
 	, version		:: Maybe String
 	, severity		:: BugSeverity
 	, description	:: Note
@@ -22,6 +22,7 @@ import CommonDomain
 	, reportedAt	:: (Date,Time)
 	, reportedBy	:: UserId
 	, report		:: BugReport
+	, application	:: AppNr
 	, analysis		:: Maybe BugAnalysis
 	, status		:: BugStatus
 	}
@@ -63,7 +64,7 @@ reportBug
 	>>= \bugnr ->
 		case report.severity of
 			Critical 
-				= selectDeveloper report.application report.version
+				= selectDeveloper report.BugReport.application report.version
 				>>= \assessor ->
 					assessor @: 
 					 ("Bug report assessment",
@@ -86,15 +87,20 @@ where
 			dbUpdateItem {bug & report = report, reportedBy = user.User.userId}
 		>>| return bug.bugNr 
 
-selectDeveloper :: (DBRef Application) (Maybe String) -> Task UserId
+selectDeveloper :: String (Maybe String) -> Task UserId
 selectDeveloper application version
-	=	dbReadItem application
-	>>= \mbapp -> case mbapp of
-		Nothing
-			= getCurrentUser >>= \user -> return user.User.userId
-		Just app
-			= selectLeastBusy app.developers
+	=	findAppDevelopers application
+	>>= \developers -> case developers of
+		[]	= getCurrentUser >>= \user -> return user.User.userId
+		_	= selectLeastBusy developers
 where
+	findAppDevelopers :: String -> Task [UserId]
+	findAppDevelopers name
+		=	dbReadAll
+		>>= \apps -> case [app \\ app <- apps |app.Application.name == name] of
+			[x] = return x.developers
+			_	= return []
+			
 	selectLeastBusy :: [UserId] -> Task UserId
 	selectLeastBusy []
 		=	getCurrentUser >>= \user -> return user.User.userId
@@ -138,7 +144,7 @@ where
 		= enterInformationAbout "What is the cause of the following bug?" bug
 
 	determineAffectedVersions bug
-		=	dbSafeReadItem bug.report.application
+		=	dbSafeReadItem (DBRef bug.Bug.application)
 		>>= \application ->
 			case application.versions of
 				[]	= return []
@@ -164,7 +170,7 @@ makePatches bug =
 			= return Void
 		Just {affectedVersions = versions}
 			= showMessageAbout ("Please make patches of the fix of bug " <+++ bug.bugNr <+++
-								" for the following versions of " <+++ bug.report.application)
+								" for the following versions of " <+++ bug.Bug.application)
 								versions
 
 notifyReporter :: Bug -> Task Void
