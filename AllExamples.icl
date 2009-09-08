@@ -16,6 +16,7 @@ import DelegateTask
 import ReviewTask
 
 //Miscellaneous examples
+import SmallExamples
 import BugReport
 import Coffeemachine
 import Newsgroups
@@ -38,6 +39,7 @@ where
 						, deadlineTaskExample
 						, delegateTaskExample
 						, reviewTaskExample
+						, smallExamples
 						, bugReportExample
 						, coffeemachineExample
 						, newsgroupsExample
