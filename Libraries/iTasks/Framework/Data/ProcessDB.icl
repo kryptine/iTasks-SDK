@@ -198,11 +198,11 @@ mkEmbeddedProcessEntry ancestor taskid properties status parent
 		}		
 
 processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
-processStore fn tst=:{store,world}
+processStore fn tst=:{TSt|store,world}
 	# (mbList,store,world)	= loadValue "ProcessDB" store world
 	# list 					= fn (case mbList of Nothing = []; Just list = list)
 	# store					= storeValue "ProcessDB" list store 
-	= (list, {tst & store = store, world = world})
+	= (list, {TSt|tst & store = store, world = world})
 
 maxPid :: [Process] -> ProcessId
 maxPid db = foldr max 0 [processId \\ {Process|processId} <- db]

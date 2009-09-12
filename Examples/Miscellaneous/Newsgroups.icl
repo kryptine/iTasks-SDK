@@ -225,7 +225,7 @@ getToName
 
 
 cancel :: (Task a) -> Task a | iTask a
-cancel task = task -||- (showMessage "Cancel this task" >>| return defaultValue) <<@ TTVertical
+cancel task = task -||- (showMessage "Cancel this task" >>| getDefaultValue) <<@ TTVertical
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iTask a
 orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] 

@@ -13,7 +13,7 @@ from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
-import InteractionTasks, CoreCombinators, TuningCombinators, LiftingCombinators
+import SystemTasks, InteractionTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
 import GenVisualize, GenUpdate
 
@@ -36,7 +36,7 @@ derive gParse Either
 			] <<@ TTHorizontal
 
 anyTask	:: ![Task a] -> Task a | iTask a
-anyTask []		= return defaultValue
+anyTask []		= getDefaultValue
 anyTask tasks	= parallel "any" (\list -> length list >= 1) hd undef tasks
 
 allTasks :: ![Task a] -> Task [a] | iTask a

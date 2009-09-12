@@ -4,14 +4,19 @@ import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMay
 import Void, Either
 import Text
 
-defaultValue :: a | gUpdate{|*|} a
-defaultValue = fst (gUpdate{|*|} undef {USt|mode = UDCreate, searchPath = "", currentPath = [], consPath = [], update = ""})
+defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
+defaultValue world  
+	# (a,ust=:{world}) = gUpdate{|*|} undef {USt|mode = UDCreate, searchPath = "", currentPath = [], consPath = [], update = "", mask = [], world = world}
+	= (a,world)
 
-updateValue :: String String a -> a	| gUpdate{|*|} a 
-updateValue path update a
+updateValue	:: String String a !*World -> (a,!*World)	| gUpdate{|*|} a  
+updateValue path update a world
 	//Only try to update when the 'path' string is a datapath formatted string
-	| isdps path	= fst (gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = [0], consPath = [], update = update})
-	| otherwise		= a
+	| isdps path	
+		# (a,ust=:{world}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = [0], consPath = [], update = update, mask = [], world = world}
+		= (a,world)
+	| otherwise	
+		= (a,world)
 
 
 //Generic updater

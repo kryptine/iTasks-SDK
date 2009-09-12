@@ -22,64 +22,48 @@ where
 
 //Input tasks
 enterInformation :: question -> Task a | html question & iTask a
-enterInformation question = updateInformation question defaultValue
+enterInformation question = mkExtJSTask "enterInformation" (makeInformationTask question Nothing Nothing) 
 
-updateInformation :: question a -> Task a | html question & iTask a //With default value
-updateInformation question initial = mkExtJSTask "updateInformation" updateInformation`
-where
-	updateInformation` tst=:{taskNr}
-		# editorid	= "tf-" +++ taskNrToString taskNr
-		//Read current value
-		# (mbtv,tst) = getTaskValue tst
-		# oldval = case mbtv of Nothing = initial; Just v = v;
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst	
-		//Update GUI
-		| length updates == 0
-			# form = visualizeAsEditor editorid oldval
-			# tst = setExtJSDef (taskPanel (html question) Nothing (Just form) [("done","done","Ok","icon-ok")]) tst
-			= (oldval,{tst & activated = False})
-		| otherwise
-			# newval = foldr (\(p,v) -> updateValue p v) oldval updates
-			# done = (http_getValue "done" updates "") == "done"
-			| done
-				= (newval,{tst & activated = True})
-			| otherwise
-				# updates	= determineEditorUpdates editorid oldval newval
-				# tst		= setExtJSUpdates updates tst
-				= (newval, {tst & activated = False})
+updateInformation :: question a -> Task a | html question & iTask a
+updateInformation question initial = mkExtJSTask "updateInformation" (makeInformationTask question (Just initial) Nothing) 
 
-
-enterInformationAbout	:: question b -> Task a	| html question & iTask a & iTask b
-enterInformationAbout question about = updateInformationAbout question about defaultValue
+enterInformationAbout :: question b -> Task a	| html question & iTask a & iTask b
+enterInformationAbout question about = mkExtJSTask "enterInformationAbout" (makeInformationTask question Nothing (Just (visualizeAsHtmlDisplay about))) 
 
 updateInformationAbout :: question b a -> Task a | html question & iTask a & iTask b 
-updateInformationAbout question about initial = mkExtJSTask "updateInformationAbout" updateInformationAbout`
-where
-	updateInformationAbout` tst=:{taskNr}
-		# editorid	= "tf-" +++ taskNrToString taskNr
-		//Read current value
-		# (mbtv,tst) = getTaskValue tst
-		# oldval = case mbtv of Nothing = initial; Just v = v;
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst	
-		//Update GUI
-		| length updates == 0
-			# context = visualizeAsHtmlDisplay about
-			# form = visualizeAsEditor editorid oldval
-			# tst = setExtJSDef (taskPanel (html question) (Just context) (Just form) [("done","done","Ok","icon-ok")]) tst
-			= (oldval,{tst & activated = False})
-		| otherwise
-			# newval = foldr (\(p,v) -> updateValue p v) oldval updates
-			# done = (http_getValue "done" updates "") == "done"
-			| done
-				= (newval,{tst & activated = True})
-			| otherwise
-				# updates	= determineEditorUpdates editorid oldval newval
-				# tst		= setExtJSUpdates updates tst
-				= (newval,{tst & activated = False})
+updateInformationAbout question about initial = mkExtJSTask "updateInformationAbout" (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)))
 
-import StdDebug
+makeInformationTask :: question (Maybe a) (Maybe [HtmlTag])  !*TSt -> (!a,!*TSt) | html question & iTask a
+makeInformationTask question initial context tst=:{taskNr}
+	# editorId		= "tf-" +++ taskNrToString taskNr
+	//Read current value
+	# (mbtv,tst)	= getTaskValue tst
+	# (oldval,tst)	= case mbtv of
+						Just v	= (v,tst)
+						Nothing = case initial of
+							Just v	= (v,tst)
+							Nothing
+								= accWorldTSt defaultValue tst	
+	//Check for user updates
+	# (updates,tst) = getUserUpdates tst	
+	| length updates == 0
+		# form = visualizeAsEditor editorId oldval
+		# tst = setExtJSDef (taskPanel (html question) context (Just form) [("done","done","Ok","icon-ok")]) tst
+		= (oldval,{tst & activated = False})
+	| otherwise
+		# (newval,tst) = applyUpdates updates oldval tst
+		# done = (http_getValue "done" updates "") == "done"
+		| done
+			= (newval,{tst & activated = True})
+		| otherwise
+			# updates	= determineEditorUpdates editorId oldval newval
+			# tst		= setExtJSUpdates updates tst
+			= (newval, {tst & activated = False})
+where
+	applyUpdates [] val tst = (val,tst)
+	applyUpdates [(p,v):us] val tst
+		# (val,tst) = accWorldTSt (updateValue p v val) tst
+		= applyUpdates us val tst
 
 
 enterChoice :: question [a] -> Task a | html question & iTask a

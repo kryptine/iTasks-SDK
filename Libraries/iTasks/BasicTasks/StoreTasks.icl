@@ -4,6 +4,7 @@ import TSt, Store
 import StdList, StdOrdList, GenBimap
 from StdFunc import id, const
 
+from SystemTasks import getDefaultValue
 import CoreCombinators
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
@@ -19,11 +20,14 @@ derive gParse		DBRef
 readDB :: !(DBid a) -> Task a | iTask a
 readDB key = mkInstantTask "readDB" readDB`
 where
-	readDB` tst=:{store,world}
+	readDB` tst=:{TSt|store,world}
 		# (mbVal,store,world) = loadValue key store world
 		= case mbVal of
-			Just val	= (val,{tst & store = store, world = world})
-			Nothing		= (defaultValue,{tst & store = store, world = world})
+			Just val
+				= (val,{TSt|tst & store = store, world = world})
+			Nothing		
+				# (val,world) = defaultValue world
+				= (val,{TSt|tst & store = store, world = world})
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkInstantTask "writeDB" writeDB`
@@ -57,8 +61,8 @@ dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)
 dbCreateItem :: Task a | iTask, DB a
 dbCreateItem
 	= readDB databaseId >>= \items ->
-	  let newid = newDBRef items 
-	   in return (setItemId newid defaultValue)
+	  let newid = newDBRef items
+	   in getDefaultValue >>= \newval -> return (setItemId newid newval)
 where
 	newDBRef :: [a] -> DBRef a | DB a
 	newDBRef []		= DBRef 1

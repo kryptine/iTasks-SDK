@@ -10,12 +10,12 @@ webShopExample
 = [ { name		= "Examples/Miscellaneous/Webshop/Manage catalog"
     , label		= "Manage catalog"
     , roles		= []
-    , mainTask	= manageCatalog defaultProduct catalogPrompt >>| return Void
+    , mainTask	= defaultProduct >>= \defProd -> manageCatalog defProd catalogPrompt >>| return Void
     }
   , { name		= "Examples/Miscellaneous/Webshop/Browse shop"
 	, label		= "Browse shop"
 	, roles		= []
-	, mainTask	= browseShop defaultCart shopPrompt cartPrompt
+	, mainTask	= defaultCart >>= \defCart -> browseShop defCart shopPrompt cartPrompt
     }
   ]
 
@@ -82,7 +82,7 @@ where
 			] >>= \task -> task) -||- (( showStickyMessageAbout [BrTag [], boldText "Total cost of ordered items = "] (totalCost cart)
 			      	  -&&-
 			      	  showStickyMessage prompt
-			      	 ) >>| return defaultValue)
+			      	 ) >>| getDefaultValue)
 			     
 	doAction :: (Cart a) [a] (ShopAction, Cart a) -> Task Void | iTask, DB, Product a
 	doAction initCart items (action,cart)
@@ -94,7 +94,7 @@ where
 	
 	showCart :: (Cart a) -> Task (ShopAction,Cart a) | iTask a
 	showCart cart=:[]
-		= navigateShop cartPrompt cart -||- (showStickyMessage [normalText "No items in cart yet!"] >>| return defaultValue)
+		= navigateShop cartPrompt cart -||- (showStickyMessage [normalText "No items in cart yet!"] >>| getDefaultValue)
 	showCart cart
 		= orTasksVert 
 			[ navigateShop cartPrompt cart : map (itemActions cart) cart ]

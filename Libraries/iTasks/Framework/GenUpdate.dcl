@@ -12,6 +12,8 @@ import StdGeneric, StdMaybe, Void, Either
 	, currentPath		:: DataPath
 	, update			:: String
 	, consPath			:: [ConsPos]
+	, mask				:: DataMask
+	, world				:: *World
 	}
 
 :: UpdateMode
@@ -26,8 +28,8 @@ derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Wrapper functions for updating
-defaultValue			:: a					| gUpdate{|*|} a
-updateValue				:: String String a -> a	| gUpdate{|*|} a 
+defaultValue			:: !*World -> (!a,!*World)					| gUpdate{|*|} a
+updateValue				:: String String a !*World -> (a,!*World)	| gUpdate{|*|} a 
 
 //Utility functions for dealing with DataPath values
 stepDataPath	:: DataPath			-> DataPath

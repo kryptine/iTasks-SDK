@@ -71,12 +71,11 @@ giveComment :: Task Void
 giveComment
 =							getCurrentUser
  	>>= \currentUser ->		readMyVoteDB currentUser.User.userId
-	>>= \(vote,comment) ->	updateInformation
+	>>= \(vote,comment) ->	enterInformation
 								[ Text "Previous comment given:", BrTag [], BrTag []
 								, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
 								, Text "Submit a new comment:", BrTag [], BrTag []
 								] 
-								textBox
 	>>= \(Note comment) -> readMyVoteDB currentUser.User.userId
 	>>= \(vote,_) ->		
 							writeVotesDB {userId = currentUser.User.userId, vote = vote, comment = comment}
@@ -85,10 +84,6 @@ giveComment
 								, Text comment, BrTag [], BrTag []
 								, Text "has been stored!"
 								]
-						
-where
-	textBox :: Note
-	textBox = defaultValue
 
 //Simple votes database
 

@@ -97,20 +97,3 @@ parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | 
 * @return The combined task
 */ 
 assign 	:: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
-
-/* Experimental department:
-
--!>				:: a task, either finished or interrupted (by completion of the first task) is returned in the closure
-				   if interrupted, the work done so far is returned (!) which can be continued somewhere else
-channel			:: splits a task in respectively a sender task closure and receiver taskclosure; 
-				   when the sender is evaluated, the original task is evaluated as usual;
-				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
-				   Important: Notice that a receiver will never finish if you don't activate the corresponding receiver somewhere.
-*/
-/*
-(-!>) infix 4 	:: (Task stop) (Task a) 					-> Task (Maybe stop,Task a) 	| iCreateAndPrint stop & iCreateAndPrint a
-channel  		:: String (Task a) 							-> Task (Task a,Task a) 		| iCreateAndPrint a
-
-closureTask  	:: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
-closureLzTask  	:: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
-*/

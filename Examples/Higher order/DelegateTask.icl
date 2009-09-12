@@ -73,5 +73,5 @@ where
 
 	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user.User.userId)
 
-	cancelTask task = task -||- (showMessage "Cancel task?" >>| return defaultValue)
+	cancelTask task = task -||- (showMessage "Cancel task?" >>| getDefaultValue )
 	

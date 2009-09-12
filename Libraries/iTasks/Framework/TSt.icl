@@ -341,7 +341,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 					, finished		= state === TSDone
 					, traceValue	= ""
 					}
-	# tst = {tst & store = store, world = world}
+	# tst = {TSt|tst & store = store, world = world}
 	|state === TSDone || not activated
 		# tst = addTaskNode (TTFinishedTask taskInfo) tst
 		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
@@ -458,19 +458,19 @@ resetSequence tst=:{taskNr,tree}
 		_								= {tst & tree = tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
-deleteTaskStates tasknr tst=:{store,world}
+deleteTaskStates tasknr tst=:{TSt|store,world}
 	# (store,world) = deleteValues (iTaskId tasknr "") store world
-	= {tst & store = store, world = world}
+	= {TSt|tst & store = store, world = world}
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
-copyTaskStates fromtask totask tst=:{store,world}
+copyTaskStates fromtask totask tst=:{TSt|store,world}
 	# (store,world) = copyValues (iTaskId fromtask "") (iTaskId totask "") store world
-	= {tst & store = store, world = world}
+	= {TSt|tst & store = store, world = world}
 
 flushStore :: !*TSt -> *TSt
-flushStore tst=:{store,world}
+flushStore tst=:{TSt|store,world}
 	# (store,world) = flushCache store world
-	= {tst & store = store, world = world}
+	= {TSt|tst & store = store, world = world}
 
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""

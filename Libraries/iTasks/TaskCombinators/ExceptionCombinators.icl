@@ -13,9 +13,9 @@ where
 		# (mbEx,store,world)= loadValue key store world
 		= case mbEx of
 			Just ex
-				= applyTask (handlerTask ex) {tst & store = store, world = world}
+				= applyTask (handlerTask ex) {TSt|tst & store = store, world = world}
 			Nothing				
-				# (a, tst =:{exception})	= applyTask normalTask {tst & store = store, world = world}
+				# (a, tst =:{exception})	= applyTask normalTask {TSt|tst & store = store, world = world}
 				= case exception of
 					Just (ex :: e^)
 						# tst=:{TSt|store}	= deleteTaskStates (tl taskNr) tst 														//Garbage collect
@@ -29,4 +29,4 @@ throw e = mkMonitorTask "throw" throw`
 where
 	throw` tst
 		# tst	= setStatus [H1Tag [] [Text "Error, an uncaught exception was thrown"]] tst
-		= (defaultValue, {tst & exception = Just (dynamic e), activated = False})
+		= accWorldTSt defaultValue {tst & exception = Just (dynamic e), activated = False}

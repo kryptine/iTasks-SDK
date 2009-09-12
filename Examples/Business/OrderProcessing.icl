@@ -28,7 +28,7 @@ orderProcessingExample
 orderPlacement :: UserId -> Task Void
 orderPlacement user =
   customer @:  ( "Order items from shop"
-               , orderItemsFromShop -&&- fillInAndCheckCreditCard defaultValue
+               , orderItemsFromShop -&&- (getDefaultValue >>= fillInAndCheckCreditCard)
                ) >>= \(basket, cardInfo) ->
   customer @:  ( "Order confirmation"
                , confirmOrder

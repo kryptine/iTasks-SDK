@@ -46,11 +46,11 @@ where
 			_		= (Nothing, tst)
 
 staticDynamicStore ::  !([(DynamicId,String)] -> [(DynamicId,String)]) !*TSt -> (![(DynamicId,String)],!*TSt) 
-staticDynamicStore fn tst=:{store,world}
+staticDynamicStore fn tst=:{TSt|store,world}
 	# (mbList,store,world)	= loadValue "DynamicDB" store world
 	# list 					= fn (case mbList of Nothing = []; Just list = list)
 	# store					= storeValue "DynamicDB" list store 
-	= (list, {tst & store = store, world = world})
+	= (list, {TSt|tst & store = store, world = world})
 
 maxDynId :: [(DynamicId,String)] -> DynamicId
 maxDynId db = foldr max 0 (map fst db)

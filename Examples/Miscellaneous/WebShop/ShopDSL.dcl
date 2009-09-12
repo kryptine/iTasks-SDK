@@ -39,8 +39,8 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						}
 :: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
 
-defaultProduct		:: Book
-defaultCart			:: Cart Book
+defaultProduct		:: Task Book
+defaultCart			:: Task (Cart Book)
 
 //	Conversions between DSL data types:
 toCartItem			:: a -> CartItem a | Product a

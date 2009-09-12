@@ -107,8 +107,8 @@ lookupUserProperty users selectFunction defaultValue userId
 			_	= defaultValue
 
 userStore ::  !([User] -> [User]) !*TSt -> (![User],!*TSt) 	
-userStore fn tst=:{store,world}
+userStore fn tst=:{TSt|store,world}
 	# (mbList,store,world)	= loadValue "UserDB" store world
 	# list 					= fn (case mbList of Nothing = testUsers; Just list = list)
 	# store					= storeValue "UserDB" list store 
-	= (list, {tst & store = store, world = world})
+	= (list, {TSt|tst & store = store, world = world})

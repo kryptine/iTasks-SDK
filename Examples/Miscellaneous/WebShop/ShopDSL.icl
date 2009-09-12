@@ -28,11 +28,11 @@ instance DB (Order item) where
 	setItemId id item	= id_Upd item id
 
 
-defaultProduct :: Book
-defaultProduct			= defaultValue
+defaultProduct :: Task Book
+defaultProduct			= getDefaultValue
 
-defaultCart :: Cart Book
-defaultCart				= defaultValue
+defaultCart :: Task (Cart Book)
+defaultCart				= getDefaultValue
 
 eqItemNr :: !(CartItem a) !(CartItem a) -> Bool
 eqItemNr x y			= x.itemNr == y.itemNr

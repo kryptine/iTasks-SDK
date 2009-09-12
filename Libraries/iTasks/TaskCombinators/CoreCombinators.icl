@@ -5,9 +5,8 @@ from	StdFunc import id, const
 
 import	TSt
 import	Util
-import	GenBimap
+import	GenUpdate, GenBimap
 import	UserDB, ProcessDB, DynamicDB
-import	StdDebug
 import	StdDynamic
 
 //Standard monadic operations:
@@ -18,7 +17,7 @@ where
 	tbind tst
 		# (a,tst=:{activated})	= applyTask taska tst
 		| activated				= applyTask (taskb a) tst
-								= (defaultValue,tst)
+								= accWorldTSt defaultValue tst
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
@@ -76,13 +75,13 @@ where
 	parallel` tasks tst
 		# (alist,tst=:{exception})	= checkAllTasks tasks 0 [] tst
 		| isJust exception
-			= (defaultValue, {tst & activated = False})	// stop, an exception occurred in one of the branches
+			= accWorldTSt defaultValue {tst & activated = False}// stop, an exception occurred in one of the branches
 		| pred alist
 			= (combinePred alist,{tst & activated = True}) 	// stop, all work done so far satisfies predicate
 		| length alist == length tasks						// all tasks are done
 			= (combineAll alist,{tst & activated = True})
-		| otherwise	
-			= (defaultValue, {tst & activated = False})	// show all subtasks using the displayOption function
+		| otherwise
+			= accWorldTSt defaultValue {tst & activated = False}// show all subtasks using the displayOption function
 	where
 		checkAllTasks tasks index accu tst
 			| index == length tasks
@@ -93,12 +92,6 @@ where
 				= ([],tst)						//Stop immediately if a branch has an exception
 			| otherwise
 				= checkAllTasks tasks (inc index) (if activated [a:accu] accu) {tst & activated = True}
-
-
-
-
-
-
 
 
 assign :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
