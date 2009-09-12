@@ -59,10 +59,7 @@ where
 
 		isOkDateTime :: (Date,Time) -> Task Bool
 		isOkDateTime (date,time)
-		=	chooseTask [Text ("Can we meet on the " <+++ date <+++ " at " <+++ time <+++ "?"),BrTag []] 
-			[ ("Accept",return True)
-			, ("Sorry", return False)
-			]
+		=	requestConfirmation ("Can we meet on the " <+++ date <+++ " at " <+++ time <+++ "?")
 
 	confirm  :: Int Int (Date,Time) -> Task Void 
 	confirm me you (date,time)

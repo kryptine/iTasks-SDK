@@ -62,17 +62,16 @@ determineSet :: [UserID] -> Task [UserID]
 determineSet people = determineSet`
 where
 	determineSet`	
-	=					chooseTask [Text ("Current set:" +++ print people)] 
-						[("Add Person", cancelTask choosePerson)
-						,("Finished", return Nothing)
-						]						
+	=					enterChoiceAbout "Current set:" people
+						[ cancelTask choosePerson <<@ "Add Person"
+						, return Nothing <<@ "Finished"
+						] 	
+		>>= \task	->	task					
 		>>= \result -> 	case result of
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
 	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user.User.userId)
 
-	cancelTask task = task -||- buttonTask "Cancel" (return defaultValue)
+	cancelTask task = task -||- (showMessage "Cancel task?" >>| return defaultValue)
 	
-	print []     = ""
-	print [x:xs] = toString x +++ " " +++ print xs

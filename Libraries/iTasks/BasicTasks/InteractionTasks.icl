@@ -139,6 +139,7 @@ makeMultipleChoiceTask question options inselection context tst=:{taskNr}
 					  , id = editorid +++ "-cb-" +++ toString i
 					  , value = toString i
 					  , fieldLabel = Nothing
+					  , hideLabel = True
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
 		# form = [ ExtJSCheckBoxGroup {ExtJSCheckBoxGroup |name = "selection", id = editorid +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 3, items = cboxes}]

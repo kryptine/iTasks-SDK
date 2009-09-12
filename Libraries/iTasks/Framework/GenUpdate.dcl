@@ -4,6 +4,7 @@ import StdGeneric, StdMaybe, Void, Either
 
 //Datapath is used to point to substructures of data structures
 :: DataPath :== [Int]
+:: DataMask :== [DataPath]
 
 :: *USt =
 	{ mode				:: UpdateMode

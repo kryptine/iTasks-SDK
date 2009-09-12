@@ -59,10 +59,10 @@ giveVote :: Task Void
 giveVote 
 =							getCurrentUser
 	>>= \currentUser ->		readMyVoteDB currentUser.User.userId
-	>>= \(vote,comment) ->	chooseTask 
+	>>= \(vote,comment) ->	enterChoice
 								[ Text ("Previous vote given:" +++ if (vote == -1) "No vote given" (toString vote)), BrTag [], BrTag []
-								, Text "Give your new vote (0 = lowest, 10 = highest)", BrTag [], BrTag []]
-								[(toString i,return i) \\ i <- [0..10]]
+								, Text "Give your new vote (0 = lowest, 10 = highest)"
+								] [0..10]
 	>>= \vote -> 			readMyVoteDB currentUser.User.userId
 	>>= \(_,comment) ->		writeVotesDB {userId = currentUser.User.userId, vote = vote, comment = comment}
 	>>|						showMessage [Text ("Your vote " +++ toString vote +++ " has been stored!")]

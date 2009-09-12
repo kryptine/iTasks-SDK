@@ -674,6 +674,6 @@ Ext.reg("itasks.work",itasks.WorkPanel);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
 Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
 Ext.reg("itasks.task-ext-form",itasks.TaskExtFormPanel);
-Ext.reg("itasks.task-waiting",itasks.TaskMonitorPanel);
+Ext.reg("itasks.task-monitor",itasks.TaskMonitorPanel);
 Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
 Ext.reg("itasks.task-combination",itasks.TaskCombinationPanel);

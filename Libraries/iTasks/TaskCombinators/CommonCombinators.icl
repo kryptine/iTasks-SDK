@@ -107,21 +107,3 @@ repeatTask task pred a =
 (@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
 
 // ******************************************************************************************************
-
-andTasks_mu :: !String ![(Int,Task a)] -> (Task [a]) | iTask a
-andTasks_mu label tasks = domu_andTasks tasks
-where
-	domu_andTasks list = allTasks [ i @: (toString i,task) <<@ (label  +++ " " +++ toString i) \\ (i,task) <- list] 
-
-
-// ******************************************************************************************************
-// Timer Tasks ending when timed out
-
-//waitForTimerTask:: !HtmlTime	-> (Task HtmlTime)
-//waitForTimerTask time  = abort "TODO: fix waitForTimerTask" //waitForTimerTask`
-/*
-where
-	waitForTimerTask`
-	=						appHSt "getTimeAndDate" getTimeAndDate
-		>>= \(ctime,_) ->  	waitForTimeTask (ctime + time)
-*/

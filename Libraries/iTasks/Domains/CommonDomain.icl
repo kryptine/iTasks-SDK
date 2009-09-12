@@ -11,35 +11,35 @@ derive gVisualize	EmailAddress, Password
 derive gUpdate		EmailAddress, Password, Note
 derive gLexOrd		Currency
 
-gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, format = "d-m-Y", fieldLabel = label2s optional label})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, format = "H:i:s", fieldLabel = label2s optional label})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s blank old, fieldLabel = label2s optional label, width = 400, height = 150 })], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label, width = 400, height = 150 })], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
-	contentPath				= shiftDataPath dataPath				
+	contentPath				= shiftDataPath currentPath				
 
-gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
 		VEditorDefinition
-			= ([ExtJSFragment combinedPanel], {VSt|vst & dataPath = stepDataPath dataPath})
+			= ([ExtJSFragment combinedPanel], {VSt|vst & currentPath = stepDataPath currentPath})
 		_
 			= ([TextFragment (toString old)],vst)
 where
 	combinedPanel			= ExtJSPanel {ExtJSPanel| layout = "hbox", fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
-	numberField				= ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath
-								, value = value2s blank (decFormat (toInt old)), fieldLabel = Nothing, allowDecimals = True, numDecimals = 2}
+	numberField				= ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath
+								, value = value2s blank (decFormat (toInt old)), fieldLabel = Nothing, hideLabel = True, allowDecimals = True, numDecimals = 2}
 	currencyLabel			= ExtJSCustom (JSON ("{xtype : \"displayfield\", value : \"" +++ curLabel old +++ "\", style : \"padding: 3px 5px 2px 2px;\"}"))
 	curLabel (EUR _)		= "&euro;"
 	curLabel (GBP _)		= "&pound;"
@@ -123,7 +123,23 @@ where
 	(<) x y = case x =?= y of
 		LT	= True
 		_	= False
+
+instance < Time
+where
+	(<) x y
+		| x.hour < y.hour										= True
+		| x.hour == y.hour && x.min < y.min						= True
+		| x.hour == y.hour && x.min == y.min && x.sec < y.sec	= True
+		| otherwise												= False
 		
+instance < Date
+where
+	(<) x y 
+		| x.year < y.year										= True
+		| x.year == y.year && x.mon < y.mon						= True
+		| x.year == y.year && x.mon == y.mon && x.day < y.day	= True
+		| otherwise												= False
+
 instance zero Currency
 where
 	zero = EUR 0
@@ -135,6 +151,22 @@ where
 	(+) (USD x) (USD y) = USD (x + y)
 	(+) (JPY x) (JPY y) = JPY (x + y)
 	(+) _ _ = abort "Trying to add money of different currencies!"
+
+instance + Time
+where
+	(+) x y = {hour = x.hour + y.hour, min = x.min + y.min, sec = x.sec + y.sec}
+
+instance + Date
+where
+	(+) x y = {year = x.year + y.year, mon = x.mon + y.mon, day = x.day + y.day}
+
+instance - Time
+where
+	(-) x y = {hour = x.hour - y.hour, min = x.min - y.min, sec = x.sec - y.sec}
+
+instance - Date
+where
+	(-) x y = {year = x.year - y.year, mon = x.mon - y.mon, day = x.day - y.day}
 
 instance - Currency
 where

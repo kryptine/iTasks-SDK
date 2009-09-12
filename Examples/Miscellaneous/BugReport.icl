@@ -70,11 +70,15 @@ reportBug
 					 ("Bug report assessment",
 					  requestConfirmationAbout
 					  	"Is this bug really critical?" report)
-				>>= \confirmed -> if confirmed
-						(resolveCriticalBug (DBRef bugnr))
-						(resolveBug (DBRef bugnr))
+				>>= \confirmed ->
+					selectDeveloper report.BugReport.application report.version
+				>>= \developer -> if confirmed
+						(assign developer HighPriority Nothing (resolveCriticalBug (DBRef bugnr)))
+						(assign developer NormalPriority Nothing (resolveBug (DBRef bugnr)))
 			_ 
-				= resolveBug (DBRef bugnr)
+				=	selectDeveloper report.BugReport.application report.version 
+				>>= \developer ->
+					assign developer NormalPriority Nothing (resolveBug (DBRef bugnr))
 where		
 	enterInitialReport :: Task BugReport
 	enterInitialReport
@@ -171,7 +175,7 @@ makePatches bug =
 		Just {affectedVersions = versions}
 			= showMessageAbout ("Please make patches of the fix of bug " <+++ bug.bugNr <+++
 								" for the following versions of " <+++ bug.Bug.application)
-								versions
+								versions //TODO replace by allTasks
 
 notifyReporter :: Bug -> Task Void
 notifyReporter bug = notifyUser "The bug you reported has been fixed" bug.reportedBy

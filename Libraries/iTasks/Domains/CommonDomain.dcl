@@ -48,8 +48,13 @@ instance toInt Currency
 instance fromString Date
 instance fromString Time
 
-
 instance < Currency
-instance + Currency
+instance < Time
+instance < Date
+instance + Currency 
+instance + Time		//Naive fieldwise addition
+instance + Date		//Naive fieldwise addition
 instance - Currency
+instance - Time		//Naive fieldwise subtraction
+instance - Date		//Naive fieldwise subtraction
 instance zero Currency

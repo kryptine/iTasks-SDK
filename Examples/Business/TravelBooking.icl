@@ -27,7 +27,7 @@ travel
 						  , confirmBookings <<@ "Step 2: Confirm Bookings:"					   
 						  ]
 		-||- 
-		buttonTask "Cancel" (return [])
+		(showMessage "Cancel task?" >>| return [])
 
 	>>= \booking -> handleBookings booking
 where
@@ -40,7 +40,7 @@ where
 					>>= \tasks -> sequence "bookings" tasks
 
 	confirmBookings :: Task [Booking]
- 	confirmBookings = buttonTask "Confirm" (return [])
+ 	confirmBookings = showMessage "Confirm" >>| return []
  	
 	handleBookings :: [[Booking]] -> Task Void
 	handleBookings booking

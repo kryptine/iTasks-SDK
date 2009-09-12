@@ -55,10 +55,11 @@ getCoins2 :: ((Bool,Int,Int) -> Task (Bool,Int,Int))
 getCoins2 			= repeatTask get (\(cancel,cost,paid) -> cancel || cost <= 0)
 where
 	get (cancel,cost,paid)
-	= 						chooseTask[Text ("To pay: " <+++ cost),Br,Br]
-					 		[(c +++> " cents", return (False,c)) \\ c <- coins]
+	= 						(enterChoice ("To pay: " <+++ cost) [return (False,c) <<@ (c +++> " cents") \\ c <- coins]
+					  		 >>= \task -> task
+					  		)
 					  		-||-
-					  		buttonTask "Cancel" (return (True,0))
+					  		(showMessage "Cancel task?" >>| return (True,0))
 		>>= \(cancel,c) ->	return (cancel,cost-c,paid+c)
 
 	coins			= [5,10,20,50,100,200]
@@ -105,7 +106,5 @@ SimpleCoffee2
 	>>|							showMessage ("Enjoy your " +++ product)
 where
 	payDimes 0 = return Void
-	payDimes n = buttonTask "10 cts" (return Void) >>| payDimes (n - 10)
+	payDimes n = showMessage "Pay 10 cts" >>| payDimes (n - 10)
 
-
-Br = BrTag []

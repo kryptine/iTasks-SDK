@@ -33,32 +33,3 @@ repeatTask		:: repeat Task until predicate is valid
 */
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 					| iTask a
-
-
-//TO BE OBSOLETE
-
-displayHtml	msg	:== showMessage msg >>| return defaultValue
-displayValue x	:== showMessageAbout "" x >>| return defaultValue
-
-//Choose the tasks you want to do on forehand:
-//chooseTask		:: ![HtmlTag] ![LabeledTask a] 				-> Task a 		| iTask a
-chooseTask msg tasks :== enterChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \task -> task
-
-//mchoiceTasks 	:: ![HtmlTag] ![LabeledTask a] 				-> Task [a] 	| iTask a
-mchoiceTasks msg tasks :== enterChoice msg [t <<@ l \\ (l,t) <- tasks] >>= \sel -> sequence "mchoiceTasks" sel
-
-//buttonTask		:: !String   !(Task a)						-> Task a 		| iTask a
-buttonTask s t :== enterChoice "" [t <<@ s] >>= \task -> task
-
-//button :: !String !a -> Task a | iTask a
-button s a :== enterChoice "" [s] >>| return a
-
-//ok :: Task Void
-ok :== showMessage ""
-
-/* Do m Tasks parallel / interleaved and FINISH as soon as SOME Task completes:
-
-andTasks_mu		:: assign task to indicated users, task completed when all done
-*/
-
-andTasks_mu 	:: !String ![(Int,Task a)]					-> Task [a] 	| iTask a

@@ -1,39 +1,55 @@
 implementation module DateTimeTasks
 
-import StdFunc, StdMisc
-import TSt
+import StdInt
+import TSt, Void
+import Time
 
-from CommonDomain import :: Date, :: Time
+import CommonDomain
+import CoreCombinators
 
-/*
+tm2time :: Tm -> Time
+tm2time tm = {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec} 
+
+tm2date :: Tm -> Date
+tm2date tm = {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year }
+
 getCurrentTime :: Task Time
-getCurrentTime = mkInstantTask "getCurrentTime" getTime
-
+getCurrentTime = mkInstantTask "getCurrentTime" getCurrentTime`
+where
+	getCurrentTime` tst
+		# (tm,tst) = accWorldTSt localTime tst
+		= (tm2time tm ,tst)
+	
 getCurrentDate :: Task Date
-*/
-// Timer Tasks ending when timed out
-
-waitForTimeTask :: !Time	-> Task Time
-waitForTimeTask time = abort "TODO: waitForTimeTask" /*mkBasicTask "waitForTimeTask" waitForTimeTask`
+getCurrentDate = mkInstantTask "getCurrentDate" getCurrentDate`
 where
-	waitForTimeTask` tst=:{taskNr,hst}
-	# taskId				= iTaskId taskNr "Time_"
-	# (stime,hst) 			= mkStoreForm (Init,storageFormId tst.TSt.options taskId time) id hst  			// remember time
-	# ((currtime,_),hst)	= getTimeAndDate hst
-	| currtime < stime.Form.value= (stime.Form.value,{tst & activated = False,hst = hst})
-	= (currtime - stime.Form.value,{tst & hst = hst})
-*/
+	getCurrentDate` tst
+		# (tm,tst) = accWorldTSt localTime tst
+		= (tm2date tm,tst)
 
-waitForDateTask :: !Date	-> Task Date
-waitForDateTask date = abort "TODO: waitForDateTask" /* mkBasicTask "waitForDateTask" waitForDateTask`
+waitForTime :: !Time -> Task Void
+waitForTime time = mkMonitorTask "waitForTime" waitForTime`
 where
-	waitForDateTask` tst=:{taskNr,hst}
-	# taskId				= iTaskId taskNr "Date_"
-	# (taskdone,hst) 		= mkStoreForm (Init,storageFormId tst.TSt.options taskId (False,date)) id hst  			// remember date
-	# ((_,currdate),hst) 	= getTimeAndDate hst
-	| currdate < date		= (date,{tst & activated = False, hst = hst})
-	= (date,{tst & hst = hst})
-*/
+	waitForTime` tst
+		# (tm,tst) = accWorldTSt localTime tst
+		| tm2time tm < time
+			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel time] tst
+			= (Void,{tst & activated = False})
+		| otherwise
+			= (Void,{tst & activated = True})
 
-waitForTimerTask :: !Time	-> Task Time
-waitForTimerTask time = abort "TODO: waitForDateTask"
+waitForDate :: !Date -> Task Void
+waitForDate date = mkMonitorTask "waitForDate" waitForDate`
+where
+	waitForDate` tst
+		# (tm,tst) = accWorldTSt localTime tst
+		| tm2date tm < date
+			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel date] tst
+			= (Void,{tst & activated = False})
+		| otherwise
+			= (Void,{tst & activated = True})
+
+waitForTimer :: !Time -> Task Void
+waitForTimer time
+	= getCurrentTime >>= \now -> waitForTime (now + time)
+

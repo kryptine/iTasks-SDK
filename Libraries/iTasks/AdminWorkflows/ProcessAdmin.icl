@@ -40,7 +40,7 @@ where
 	
 	processTasks :: [(Process -> String, Process -> Task Bool)]
  	processTasks = [(\proc -> if (isActive proc) "Suspend" "Activate",	toggleProcess)
- 				   ,(\_ -> "Inspect",									\p -> ok >>| return True)
+ 				   ,(\_ -> "Inspect",									\p -> showMessage "Inspect" >>| return True)
  				   ,(\_ -> "Kill",										killProcess)
  				   ]
 
@@ -48,7 +48,7 @@ where
 	isActive _					= False
  	
 stopOrRefresh :: Task Bool
-stopOrRefresh = button "Reload process list" False -||- button "I am done" True <<@ TTHorizontal
+stopOrRefresh = (showMessage "Reload process list" >>| return False) -||- (showMessage "I am done" >>| return True) 
 
 toggleProcess :: Process -> Task Bool
 toggleProcess process=:{Process|processId,status}

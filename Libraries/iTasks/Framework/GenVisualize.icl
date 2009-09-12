@@ -10,7 +10,7 @@ MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the 
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
 mkVSt :: *VSt
-mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", dataPath = [0], label = Nothing, consBody = False, optional = False, blank = False}
+mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, consBody = False, optional = False, blank = False, mask = [], valid = True}
 
 //Wrapper functions
 visualizeAsEditor :: String a -> [ExtJSDef] | gVisualize{|*|} a
@@ -50,7 +50,7 @@ gVisualize{|PAIR|} fx fy old new vst=:{blank}
 		= (vizx ++ vizy, vst)
 
 
-gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,dataPath,consBody,blank}
+gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,blank}
 	| blank
 		= fx undef undef vst
 	| otherwise
@@ -62,51 +62,51 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,dataPath,consBody,blan
 			(LEFT ox, RIGHT ny)
 				= case vizType of
 					VEditorUpdate
-						# (old,vst) = fx ox ox {vst & vizType = VEditorDefinition, dataPath = dataPath, consBody = True}
-						# (new,vst) = fy ny ny {vst & vizType = VEditorDefinition, dataPath = dataPath, consBody = True}
-						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, dataPath = dataPath, consBody = consBody})
+						# (old,vst) = fx ox ox {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
+						# (new,vst) = fy ny ny {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
+						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, currentPath = currentPath, consBody = consBody})
 					_
 						= fx ox ox vst //Default case: ignore the new value
 			(RIGHT oy, LEFT nx)
 				= case vizType of
 					VEditorUpdate
-						# (old,vst) = fy oy oy {vst & vizType = VEditorDefinition, dataPath = dataPath, consBody = True}
-						# (new,vst) = fx nx nx {vst & vizType = VEditorDefinition, dataPath = dataPath, consBody = True}
-						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, dataPath = dataPath, consBody = consBody})
+						# (old,vst) = fy oy oy {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
+						# (new,vst) = fx nx nx {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
+						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, currentPath = currentPath, consBody = consBody})
 					_
 						= fy oy oy vst //Default case: ignore the new value			
 where
-	pathid = dp2id idPrefix dataPath		
+	pathid = dp2id idPrefix currentPath		
 	
-gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,dataPath,label,consBody,optional,blank}
+gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,consBody,optional,blank}
 	# (ox,nx) = if blank (undef,undef) (case (old,new) of (CONS ox,CONS nx) = (ox,nx))
 	= case vizType of
 		//Editor definition
 		VEditorDefinition
-			# (vizBody,vst)	= fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath, consBody = False}
+			# (vizBody,vst)	= fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, consBody = False}
 			| not (isEmpty d.gcd_fields) //Records	
-				| dataPathLevel dataPath == 1	//Don't nest on the first level
-					= (vizBody, {VSt|vst & dataPath = stepDataPath dataPath})
+				| dataPathLevel currentPath == 1	//Don't nest on the first level
+					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
 				| otherwise						//Add a fieldset on nested records
-					= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet | id = (dp2id idPrefix dataPath) +++ "-fs"
+					= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet | id = (dp2id idPrefix currentPath) +++ "-fs"
 																	, title = title label
 																	, items = coerceToExtJSDefs vizBody
 																	, autoHeight = True, border = True})]
-																	, {VSt|vst & dataPath = stepDataPath dataPath})	
+																	, {VSt|vst & currentPath = stepDataPath currentPath})	
 			| consBody //Normal ADT's without constructor selector
-				= (vizBody, {VSt|vst & dataPath = stepDataPath dataPath})
+				= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
 			| otherwise	//Normal ADT's with constructor selector
-				= ((consSelector d idPrefix dataPath (label2s optional label)) ++ vizBody, {VSt|vst & dataPath = stepDataPath dataPath})	
+				= ((consSelector d idPrefix currentPath (label2s optional label)) ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath})	
 		//Html display vizualization
 		VHtmlDisplay
-			# (vizBody, vst) = fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath}
+			# (vizBody, vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath}
 			| not (isEmpty d.gcd_fields) //Records
-				= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]],{vst & dataPath = stepDataPath dataPath})
+				= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]],{VSt|vst & currentPath = stepDataPath currentPath})
 			| otherwise
-				= (vizCons ++ vizBody, {vst & dataPath = stepDataPath dataPath})
+				= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
 		_ 	//Other visualizations
-			# (vizBody, vst) = fx ox nx {vst & label = Nothing, dataPath = shiftDataPath dataPath}
-			= (vizCons ++ vizBody, {vst & dataPath = stepDataPath dataPath})
+			# (vizBody, vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath}
+			= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
 			
 where
 	title (Just t)	= t
@@ -132,39 +132,39 @@ gVisualize{|FIELD of d|} fx (FIELD ox) (FIELD nx) vst=:{vizType}
 		_
 			= fx ox nx {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
-gVisualize{|Int|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Int|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label, allowDecimals = False, numDecimals = 0})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = False, numDecimals = 0})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 		
-gVisualize{|Real|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Real|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label, allowDecimals = True, numDecimals = 1000})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = True, numDecimals = 1000})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 		
-gVisualize{|Char|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Char|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Bool|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|Bool|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = if blank "false" (if old "true" "false"), boxLabel = Nothing, fieldLabel = label2s optional label, checked = (if blank False old)})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment (toString old)],{vst & dataPath = stepDataPath dataPath})		
+		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = if blank "false" (if old "true" "false"), boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = isNothing label, checked = (if blank False old)})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})		
 
-gVisualize{|String|} old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|String|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s dataPath, id = dp2id idPrefix dataPath, value = value2s blank old, fieldLabel = label2s optional label})], {VSt|vst & dataPath = stepDataPath dataPath})
-		_					= ([TextFragment old],{vst & dataPath = stepDataPath dataPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment old],{VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Maybe|} fx old new vst=:{vizType,dataPath,optional,blank}
+gVisualize{|Maybe|} fx old new vst=:{vizType,currentPath,optional,blank}
 	= case vizType of
 		VEditorDefinition
 			# (cblank, cval) = childval blank old 
 			# (viz,vst) = fx cval cval {vst & optional = True, blank = cblank}
-			= (viz,{vst & optional = optional, blank = blank, dataPath = stepDataPath dataPath})
+			= (viz,{vst & optional = optional, blank = blank, currentPath = stepDataPath currentPath})
 		VEditorUpdate
-			= ([],{vst & dataPath = stepDataPath dataPath})
+			= ([],{VSt|vst & currentPath = stepDataPath currentPath})
 		_	
 			= case old of
 				Nothing		= ([TextFragment "-"],vst)
@@ -178,10 +178,10 @@ where
 gVisualize{|Dynamic|} old new vst
 	= ([],vst)
 /*
-gVisualize{|[]|} fx old new vst=:{vizType,label,idPrefix,dataPath,optional,blank}
+gVisualize{|[]|} fx old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
 	= case vizType of
 		VEditorDefinition
-			= (newEntry,{vst & dataPath = stepDataPath dataPath})
+			= (newEntry,{vst & currentPath = stepDataPath currentPath})
 		_
 			= ([],vst)
 where
@@ -218,22 +218,22 @@ where
 		| otherwise			= [c:addspace cs]
 
 consSelector :: GenericConsDescriptor String DataPath (Maybe String) -> [Visualization]
-consSelector d idPrefix dataPath label
+consSelector d idPrefix currentPath label
 	//No choice needed with only one constructor
 	| d.gcd_type_def.gtd_num_conses == 1 
 		= []
 	//Use radiogroup to choose a constructor
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-		= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label})]
+		= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = isNothing label})]
 	//Use combobox to choose a constructor
 	| otherwise
-		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = d.gcd_name, fieldLabel = label, store = store, triggerAction = "all", editable = False})]
+		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = d.gcd_name, fieldLabel = label, hideLabel = isNothing label, store = store, triggerAction = "all", editable = False})]
 where
-	items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = c.gcd_index == index, fieldLabel = Nothing} 
+	items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = c.gcd_index == index, fieldLabel = Nothing, hideLabel = True} 
 			  \\ c <- d.gcd_type_def.gtd_conses]
 	store	= [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]
-	name	= dp2s dataPath
-	id		= dp2id idPrefix dataPath
+	name	= dp2s currentPath
+	id		= dp2id idPrefix currentPath
 	index	= d.gcd_index
 	
 	

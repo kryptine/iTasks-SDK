@@ -164,10 +164,11 @@ where
 								>>= \yn -> return (if yn -1 index) 
 
 	readMore 
-	=						chooseTask "Browse through messagelist..."
-								[ ("Previous " <+++ nmessage, readMoreNews (~nmessage))
-								, ("Next " <+++ nmessage, 	  readMoreNews nmessage)
+	=						(enterChoice "Browse through messagelist..."
+								[ readMoreNews (~nmessage) <<@ ("Previous " <+++ nmessage)
+								, readMoreNews nmessage <<@ ("Next " <+++ nmessage)
 								]
+							>>= \task -> task)
 	where
 		readMoreNews offset
 		=					readIndex me group
@@ -219,8 +220,8 @@ showCurrentNames names = showStickyMessageAbout "Current names:" names
 getToName ::  (Task (Int,String))
 getToName 
 = 						getUsers
-	>>= \users ->		chooseTask [Text "Select user to mail a message to: "]
-							[(user.User.displayName, return (user.User.userId,user.User.displayName)) \\ user <- users]
+	>>= \users ->		enterChoice "Select user to mail a message to: " users
+	>>= \user ->		return (user.User.userId,user.User.displayName)
 
 
 cancel :: (Task a) -> Task a | iTask a

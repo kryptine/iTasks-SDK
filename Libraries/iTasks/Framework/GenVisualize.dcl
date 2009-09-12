@@ -26,11 +26,14 @@ determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
 :: *VSt =
 	{ vizType			:: VisualizationType	// Type of preferred visualization
 	, idPrefix			:: String				// Prefix for all identity strings of editor fields 
-	, dataPath			:: DataPath				// Accumulated path through the data structure, used to identify sub-structures
 	, label				:: Maybe String			// Optional label to attach to editor fields
+	// Additional information for form generation
+	, currentPath		:: DataPath				// Accumulated path through the data structure, used to identify sub-structures
 	, consBody			:: Bool					// Only generate a constructor body for editors
 	, optional			:: Bool					// Create optional form fields
-	, blank				:: Bool					// Is the editor to use a blank entry field
+	, blank				:: Bool					// Is the editor to use a blank entry field (Probably unneccesary when DataMask is used)
+	, mask				:: DataMask				// The section of the datastructure that is "complete"
+	, valid				:: Bool					// Is the form valid
 	}
 
 :: VisualizationType

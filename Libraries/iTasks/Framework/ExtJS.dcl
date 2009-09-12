@@ -47,6 +47,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, id			:: String
 	, value			:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, allowDecimals	:: Bool
 	, numDecimals	:: Int
 	}
@@ -55,12 +56,14 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, id			:: String
 	, value			:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	}
 :: ExtJSTextArea =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, width			:: Int
 	, height		:: Int
 	}
@@ -69,6 +72,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, id			:: String
 	, value			:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, store			:: [(String,String)]
 	, triggerAction	:: String
 	, editable		:: Bool
@@ -79,6 +83,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, value			:: String
 	, boxLabel		:: Maybe String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, checked		:: Bool
 	}
 :: ExtJSCheckBoxGroup =
@@ -94,12 +99,14 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, value			:: String
 	, boxLabel		:: Maybe String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, checked		:: Bool
 	}
 :: ExtJSRadioGroup =
 	{ name			:: String
 	, id			:: String
-	, fieldLabel	:: Maybe String	
+	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	, items			:: [ExtJSDef]
 	}
 :: ExtJSDateField =
@@ -108,6 +115,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, value			:: String
 	, format		:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	}
 :: ExtJSTimeField =
 	{ name			:: String
@@ -115,6 +123,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, value			:: String
 	, format		:: String
 	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	}
 :: ExtJSFieldSet =
 	{ title			:: String

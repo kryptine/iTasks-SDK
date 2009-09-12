@@ -8,7 +8,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 	initComponent: function() {
 
 		Ext.apply(this, {
-			title: "Start new work",
+			title: "New task...",
 			iconCls: "icon-newwork",
 			
 			loader: new Ext.tree.TreeLoader({

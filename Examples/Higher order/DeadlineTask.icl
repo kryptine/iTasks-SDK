@@ -44,7 +44,7 @@ where
 	where
 		mytask
 		=			// wait for timeout and return nothing
-					( waitForTimerTask time
+					( waitForTimer time
 					  >>| return Nothing
 					)									
 		 			-||-

@@ -31,16 +31,17 @@ manageCatalog _ prompt
 where
 	browseCatalog :: [a] -> Task a | iTask, DB a
 	browseCatalog items = orTasksVert 
-							(map itemActions items ++ [chooseTask "" [("Append",new)]])
+							(map itemActions items ++ [showMessage "Append?" >>| new])
 	where
 		new	= dbCreateItem >>= \first -> updateInformation "Enter details of new item:" first >>= dbUpdateItem
 	
 		itemActions :: a -> Task a | iTask, DB a
 		itemActions item
-			= chooseTask (visualizeAsHtmlDisplay item) 
-				[("Edit",	updateInformation "Please update the following item:" item >>= dbUpdateItem)
-				,("Delete",	dbDeleteItem (getItemId item) >>| return item)
+			= enterChoiceAbout "" item
+				[(updateInformation "Please update the following item:" item >>= dbUpdateItem) <<@ "Edit"
+				,(dbDeleteItem (getItemId item) >>| return item) <<@ "Delete"
 				]
+			>>= \task -> task
 
 // The customer workflow:		
 
@@ -62,8 +63,8 @@ where
 	where
 		itemActions :: (Cart a) a -> Task (ShopAction,Cart a) | iTask, Product a
 		itemActions cart item
-			= chooseTask (visualizeAsHtmlDisplay item)
-			    [("Add to Cart", return (ToCart, add (toCartItem item) cart))]
+			=	showMessageAbout "Add to cart" item
+			>>|	return (ToCart, add (toCartItem item) cart)
 		where
 			add :: (CartItem a) [CartItem a] -> [CartItem a]
 			add new []				= [new]
@@ -73,12 +74,12 @@ where
 
 	navigateShop :: [HtmlTag] (Cart a) -> Task (ShopAction, Cart a) | iTask a
 	navigateShop prompt cart
-		= chooseTask "" 
-			[ ("Do Shopping",   	return (ToShop,   cart))
-			, ("Check Out And Pay", return (ToPay,    cart))
-			, ("Show Cart",     	return (ToCart,   cart))
-			, ("Leave Shop",    	return (LeaveShop,cart))
-			]  -||- (( showStickyMessageAbout [BrTag [], boldText "Total cost of ordered items = "] (totalCost cart)
+		= (enterChoice "" 
+			[ return (ToShop,   cart) <<@ "Do Shopping"
+			, return (ToPay,    cart) <<@ "Check Out And Pay"
+			, return (ToCart,   cart) <<@ "Show Cart"
+			, return (LeaveShop,cart) <<@ "Leave Shop"
+			] >>= \task -> task) -||- (( showStickyMessageAbout [BrTag [], boldText "Total cost of ordered items = "] (totalCost cart)
 			      	  -&&-
 			      	  showStickyMessage prompt
 			      	 ) >>| return defaultValue)
