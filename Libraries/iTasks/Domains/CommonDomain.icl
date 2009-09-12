@@ -48,24 +48,24 @@ where
 
 gUpdate{|Date|} _ ust=:{USt|mode=UDCreate} = ({Date|year = 2000, mon = 1, day = 1}, ust)
 gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (fromString update, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (fromString update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Date|} s ust = (s, ust)
 
 gUpdate{|Time|} _ ust=:{USt|mode=UDCreate} = ({Time|hour = 0, min = 0, sec = 0}, ust)
 gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (fromString update, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (fromString update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Time|} s ust = (s, ust)
 
 gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate} = (EUR 0, ust)
 gUpdate{|Currency|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (parseUpdate s update, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (parseUpdate s update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt| ust & currentPath = stepDataPath currentPath})
 where

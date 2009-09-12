@@ -44,6 +44,10 @@ makeInformationTask question initial context tst=:{taskNr}
 							Just v	= (v,tst)
 							Nothing
 								= accWorldTSt defaultValue tst	
+	# (mbmask,tst)	= getTaskStore "mask" tst
+	# mask			= case mbmask of
+						Just m = m
+						Nothing = []
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst	
 	| length updates == 0
@@ -51,20 +55,23 @@ makeInformationTask question initial context tst=:{taskNr}
 		# tst = setExtJSDef (taskPanel (html question) context (Just form) [("done","done","Ok","icon-ok")]) tst
 		= (oldval,{tst & activated = False})
 	| otherwise
-		# (newval,tst) = applyUpdates updates oldval tst
+		# (newval,mask,tst) = applyUpdates updates oldval mask tst
 		# done = (http_getValue "done" updates "") == "done"
 		| done
 			= (newval,{tst & activated = True})
 		| otherwise
+			# tst		= setTaskStore "mask" mask tst
+			# tst		= trace_n (printToString mask) tst
 			# updates	= determineEditorUpdates editorId oldval newval
 			# tst		= setExtJSUpdates updates tst
 			= (newval, {tst & activated = False})
 where
-	applyUpdates [] val tst = (val,tst)
-	applyUpdates [(p,v):us] val tst
-		# (val,tst) = accWorldTSt (updateValue p v val) tst
-		= applyUpdates us val tst
+	applyUpdates [] val mask tst = (val,mask,tst)
+	applyUpdates [(p,v):us] val mask tst=:{TSt|world}
+		# (val,mask,world) = updateValueAndMask p v val mask world
+		= applyUpdates us val mask {TSt|tst & world = world}
 
+import StdDebug
 
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= abort "enterChoice: cannot choose from empty option list"

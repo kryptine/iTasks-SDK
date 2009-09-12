@@ -6,18 +6,22 @@ import Text
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
-	# (a,ust=:{world}) = gUpdate{|*|} undef {USt|mode = UDCreate, searchPath = "", currentPath = [], consPath = [], update = "", mask = [], world = world}
+	# (a,ust=:{world}) = gUpdate{|*|} undef {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], world = world}
 	= (a,world)
 
 updateValue	:: String String a !*World -> (a,!*World)	| gUpdate{|*|} a  
 updateValue path update a world
+	# (a,_,world) = updateValueAndMask path update a [] world
+	= (a,world)
+
+updateValueAndMask :: String String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
+updateValueAndMask path update a mask world
 	//Only try to update when the 'path' string is a datapath formatted string
 	| isdps path	
-		# (a,ust=:{world}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = [0], consPath = [], update = update, mask = [], world = world}
-		= (a,world)
+		# (a,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = s2dp path, currentPath = [0], consPath = [], update = update, mask = mask, world = world}
+		= (a,mask,world)
 	| otherwise	
-		= (a,world)
-
+		= (a,mask,world)
 
 //Generic updater
 generic gUpdate a :: a *USt ->  (a, *USt)
@@ -75,9 +79,9 @@ gUpdate{|CONS|} fx _ ust=:{mode=UDCreate}
 gUpdate{|CONS|} fx c ust = (c, ust)
 
 gUpdate{|OBJECT of d|} fx o ust=:{mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		# (nx,ust) = fx undef {USt|ust & mode = UDCreate, consPath = path}
-		= (OBJECT nx, {USt|ust & mode = UDDone})			 
+	| currentPath == searchPath
+		# (nx,ust)	= fx undef {USt|ust & mode = UDCreate, consPath = path}
+		= (OBJECT nx, toggleMask {USt|ust & mode = UDDone})			 
 	| otherwise
 		# (nx,ust) = fx x {USt|ust & currentPath = shiftDataPath currentPath}
 		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath})
@@ -108,40 +112,40 @@ gUpdate{|FIELD|} fx f ust = (f, ust)
 
 gUpdate{|Int|} _ ust=:{USt|mode=UDCreate} = (0,ust)
 gUpdate{|Int|} i ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (toInt update, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (toInt update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (i, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Int|} i ust = (i,ust)
 
 gUpdate{|Real|} _ ust=:{USt|mode=UDCreate} = (0.0, ust)
 gUpdate{|Real|} r ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (toReal update, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (toReal update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (r, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Real|} r ust = (r, ust)
 
 gUpdate{|Char|} _ ust=:{USt|mode=UDCreate} = (' ', ust)
 gUpdate{|Char|} c ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (if (size update > 0) update.[0] c, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (if (size update > 0) update.[0] c, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (c, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Char|} c ust = (c, ust)
 
 gUpdate{|Bool|} _ ust=:{USt|mode=UDCreate} = (False, ust)
 gUpdate{|Bool|} b ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (update == "True", {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (update == "True", toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (b, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Bool|} b ust = (b, ust)
 
 gUpdate{|String|} _ ust=:{USt|mode=UDCreate} = ("", ust)
 gUpdate{|String|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| dp2s currentPath == searchPath
-		= (update, {USt|ust & mode = UDDone})
+	| currentPath == searchPath
+		= (update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|String|} s ust = (s, ust)
@@ -159,17 +163,17 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,currentPath}
 	= (l,{ust & currentPath = stepDataPath currentPath})
 where
 	gUpdateList fx [] ust=:{USt|currentPath,searchPath,update}
-		| dp2s currentPath == searchPath && update == "_Cons"
+		| currentPath == searchPath && update == "_Cons"
 			# (a,ust) = fx undef {ust& mode = UDCreate}
-			= ([a],{USt|ust & mode = UDDone})	
+			= ([a], toggleMask {USt|ust & mode = UDDone})	
 		| otherwise	
 			= ([],ust)
 	gUpdateList fx [x:xs] ust=:{USt|currentPath,searchPath,update}
-		|dp2s currentPath == searchPath
+		| currentPath == searchPath
 			| update == "_Nil"
-				= ([],{USt|ust & mode = UDDone})
+				= ([], toggleMask {USt|ust & mode = UDDone})
 			| otherwise
-				= ([x:xs],{USt|ust & mode = UDDone})
+				= ([x:xs], toggleMask {USt|ust & mode = UDDone})
 		| otherwise
 			# (x,ust)	= fx x {ust & currentPath = shiftDataPath currentPath}
 			# (xs,ust)	= gUpdateList fx xs {ust & currentPath = stepDataPath (shiftDataPath currentPath)}
@@ -178,8 +182,8 @@ gUpdate{|[]|} fx l ust = (l,ust)
 
 gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate} = (Nothing,ust)
 gUpdate{|Maybe|} fx m ust=:{USt|currentPath,searchPath,update}
-	| dp2s currentPath == searchPath && update == ""	
-		= (Nothing, {USt|ust & mode = UDDone}) //Reset
+	| currentPath == searchPath && update == ""	
+		= (Nothing, toggleMask {USt|ust & mode = UDDone}) //Reset
 	| otherwise
 		= case m of
 			Nothing
@@ -201,6 +205,9 @@ dp2s path = join "-" (map toString (reverse path))
 dp2id :: String DataPath -> String
 dp2id prefix path = prefix +++ "-" +++ dp2s path 
 
+s2dp :: String -> DataPath
+s2dp path = reverse (map toInt (split "-" path))
+
 isdps :: String -> Bool
 isdps path = and [c == '-' || isDigit c \\ c <-: path]
 
@@ -213,3 +220,33 @@ shiftDataPath path	= [0:path]
 
 dataPathLevel :: DataPath -> Int
 dataPathLevel l	= length l
+
+instance == DataPath
+where
+	(==) a b = (length a == length b) && and (map (\(x,y) -> x == y) (zip (a,b)))
+
+//Masking and unmasking of fields
+toggleMask :: *USt -> *USt
+toggleMask ust=:{searchPath,currentPath,update,mask}
+	| searchPath == currentPath
+		| update == ""
+			//Remove the current path from the mask
+			= {ust & mask = filter (\x -> x <> currentPath) mask}
+		| otherwise
+			//Add the current path to the mask (if it is not already in it)
+			# mask = if (isMember currentPath mask) mask [currentPath:mask]
+			//Remove the underlying fields from the mask
+			# mask = [m \\ m <- mask | not (childOf currentPath m)]
+			= {ust & mask = mask}
+	| otherwise
+		= ust
+where
+	//Check if a datapath is a child of another
+	childOf parent child 
+		| clen > plen
+			= take plen (reverse child) == reverse parent
+		| otherwise
+			= False
+	where
+		plen = length parent
+		clen = length child

@@ -73,12 +73,12 @@ reportBug
 				>>= \confirmed ->
 					selectDeveloper report.BugReport.application report.version
 				>>= \developer -> if confirmed
-						(assign developer HighPriority Nothing (resolveCriticalBug (DBRef bugnr)))
-						(assign developer NormalPriority Nothing (resolveBug (DBRef bugnr)))
+						(assign developer HighPriority Nothing (resolveCriticalBug (DBRef bugnr) <<@ ("Critical bug resolvement " <+++ bugnr) ))
+						(assign developer NormalPriority Nothing (resolveBug (DBRef bugnr) <<@ ("Bug resolvement " <+++ bugnr)))
 			_ 
 				=	selectDeveloper report.BugReport.application report.version 
 				>>= \developer ->
-					assign developer NormalPriority Nothing (resolveBug (DBRef bugnr))
+					assign developer NormalPriority Nothing (resolveBug (DBRef bugnr) <<@ ("Bug resolvement " <+++ bugnr))
 where		
 	enterInitialReport :: Task BugReport
 	enterInitialReport
