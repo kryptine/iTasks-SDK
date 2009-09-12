@@ -26,6 +26,9 @@ import StdString
 	, min	:: Int
 	, sec	:: Int
 	}
+
+currentTime :: !*World -> (!Time,!*World)
+currentDate :: !*World -> (!Date,!*World)
 	
 // Money
 :: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used

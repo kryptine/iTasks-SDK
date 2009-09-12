@@ -3,7 +3,7 @@ implementation module CommonDomain
 import iTasks
 import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
-import Text
+import Text, Time
 
 derive gPrint		EmailAddress, Password, Note, Date, Time, Currency
 derive gParse		EmailAddress, Password, Note, Date, Time, Currency
@@ -46,7 +46,9 @@ where
 	curLabel (USD _)		= "$"
 	curLabel (JPY _)		= "&yen;"
 
-gUpdate{|Date|} _ ust=:{USt|mode=UDCreate} = ({Date|year = 2000, mon = 1, day = 1}, ust)
+gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,world}
+	# (date,world) = currentDate world
+	= (date, {USt|ust & world = world})
 gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
 		= (fromString update, toggleMask {USt|ust & mode = UDDone})
@@ -54,7 +56,9 @@ gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Date|} s ust = (s, ust)
 
-gUpdate{|Time|} _ ust=:{USt|mode=UDCreate} = ({Time|hour = 0, min = 0, sec = 0}, ust)
+gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,world}
+	# (time,world) = currentTime world
+	= (time, {USt|ust & world = world})
 gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
 		= (fromString update, toggleMask {USt|ust & mode = UDDone})
@@ -82,8 +86,16 @@ where
 	
 gUpdate{|Currency|} s ust = (s,ust)
 
+currentTime :: !*World -> (!Time,!*World)
+currentTime world
+	# (tm,world) = localTime world
+	= ({Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec},world)
 
-
+currentDate :: !*World -> (!Date,!*World)
+currentDate world
+	# (tm,world) = localTime world
+	= ({Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year},world)
+	
 instance toString Time
 where
 	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
@@ -127,18 +139,18 @@ where
 instance < Time
 where
 	(<) x y
-		| x.hour < y.hour										= True
-		| x.hour == y.hour && x.min < y.min						= True
-		| x.hour == y.hour && x.min == y.min && x.sec < y.sec	= True
-		| otherwise												= False
+		| x.Time.hour < y.Time.hour															= True
+		| x.Time.hour == y.Time.hour && x.Time.min < y.Time.min								= True
+		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
+		| otherwise																			= False
 		
 instance < Date
 where
 	(<) x y 
-		| x.year < y.year										= True
-		| x.year == y.year && x.mon < y.mon						= True
-		| x.year == y.year && x.mon == y.mon && x.day < y.day	= True
-		| otherwise												= False
+		| x.Date.year < y.Date.year															= True
+		| x.Date.year == y.Date.year && x.Date.mon < y.Date.mon								= True
+		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
+		| otherwise																			= False
 
 instance zero Currency
 where
@@ -154,19 +166,19 @@ where
 
 instance + Time
 where
-	(+) x y = {hour = x.hour + y.hour, min = x.min + y.min, sec = x.sec + y.sec}
+	(+) x y = {Time|hour = x.Time.hour + y.Time.hour, min = x.Time.min + y.Time.min, sec = x.Time.sec + y.Time.sec}
 
 instance + Date
 where
-	(+) x y = {year = x.year + y.year, mon = x.mon + y.mon, day = x.day + y.day}
+	(+) x y = {Date|year = x.Date.year + y.Date.year, mon = x.Date.mon + y.Date.mon, day = x.Date.day + y.Date.day}
 
 instance - Time
 where
-	(-) x y = {hour = x.hour - y.hour, min = x.min - y.min, sec = x.sec - y.sec}
+	(-) x y = {Time|hour = x.Time.hour - y.Time.hour, min = x.Time.min - y.Time.min, sec = x.Time.sec - y.Time.sec}
 
 instance - Date
 where
-	(-) x y = {year = x.year - y.year, mon = x.mon - y.mon, day = x.day - y.day}
+	(-) x y = {Date|year = x.Date.year - y.Date.year, mon = x.Date.mon - y.Date.mon, day = x.Date.day - y.Date.day}
 
 instance - Currency
 where

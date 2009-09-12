@@ -61,7 +61,6 @@ makeInformationTask question initial context tst=:{taskNr}
 			= (newval,{tst & activated = True})
 		| otherwise
 			# tst		= setTaskStore "mask" mask tst
-			# tst		= trace_n (printToString mask) tst
 			# updates	= determineEditorUpdates editorId oldval newval
 			# tst		= setExtJSUpdates updates tst
 			= (newval, {tst & activated = False})
@@ -70,8 +69,6 @@ where
 	applyUpdates [(p,v):us] val mask tst=:{TSt|world}
 		# (val,mask,world) = updateValueAndMask p v val mask world
 		= applyUpdates us val mask {TSt|tst & world = world}
-
-import StdDebug
 
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= abort "enterChoice: cannot choose from empty option list"
