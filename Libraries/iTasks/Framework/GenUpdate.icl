@@ -242,7 +242,7 @@ gUpdate{|[]|} fx l ust = (l,ust)
 			
 
 gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate} = (Nothing,ust)
-gUpdate{|Maybe|} fx m ust=:{USt|currentPath,searchPath,update}
+gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 	| currentPath == searchPath && update == ""	
 		= (Nothing, toggleMask {USt|ust & mode = UDDone}) //Reset
 	| otherwise
@@ -256,6 +256,13 @@ gUpdate{|Maybe|} fx m ust=:{USt|currentPath,searchPath,update}
 			Just x
 				# (x,ust) = fx x ust
 				= (Just x,ust)
+
+gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
+	= case m of
+		Nothing	= (m, {USt|ust & currentPath = stepDataPath currentPath})
+		Just x
+			# (_,ust) = fx x ust
+			= (m, {USt|ust & currentPath = stepDataPath currentPath})
 
 derive gUpdate Either, (,), (,,), (,,,), Void
 
