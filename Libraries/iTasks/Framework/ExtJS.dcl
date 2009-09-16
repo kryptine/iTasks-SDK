@@ -15,6 +15,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	= ExtJSAdd ExtJSId ExtJSDef		// Add the additional component *after* the component with indicated id
 	| ExtJSRemove ExtJSId			// Remove the component with indicated id
 	| ExtJSSetValue ExtJSId String	// Call setValue on the component with indicated id
+	| ExtJSSetEnabled ExtJSId Bool	// Enable/disable form elements
 
 :: ExtJSDef
 	= ExtJSLabel
@@ -38,8 +39,10 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 
 :: ExtJSButton =
 	{ name			:: String
+	, id			:: String
 	, text			:: String
 	, value			:: String
+	, disabled		:: Bool
 	, iconCls		:: String
 	}
 :: ExtJSNumberField =

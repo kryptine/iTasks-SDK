@@ -36,6 +36,7 @@ updateInformationAbout question about initial = mkExtJSTask "updateInformationAb
 makeInformationTask :: question (Maybe a) (Maybe [HtmlTag])  !*TSt -> (!a,!*TSt) | html question & iTask a
 makeInformationTask question initial context tst=:{taskNr}
 	# editorId		= "tf-" +++ taskNrToString taskNr
+	# doneId		= editorId +++ "-done"
 	//Read current value
 	# (mbtv,tst)	= getTaskValue tst
 	# (oldval,tst)	= case mbtv of
@@ -45,14 +46,16 @@ makeInformationTask question initial context tst=:{taskNr}
 							Nothing
 								= accWorldTSt defaultValue tst	
 	# (mbmask,tst)	= getTaskStore "mask" tst
-	# mask			= case mbmask of
-						Just m = m
-						Nothing = []
+	# (mask,tst)	= case mbmask of
+						Just m = (m,tst)
+						Nothing = case initial of
+							Just v	= accWorldTSt (defaultMask initial) tst
+							Nothing	= ([],tst)
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst	
 	| length updates == 0
-		# form = visualizeAsEditor editorId oldval
-		# tst = setExtJSDef (taskPanel (html question) context (Just form) [("done","done","Ok","icon-ok")]) tst
+		# (form,valid) 	= visualizeAsEditor editorId mask oldval
+		# tst			= setExtJSDef (taskPanel (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",valid)]) tst
 		= (oldval,{tst & activated = False})
 	| otherwise
 		# (newval,mask,tst) = applyUpdates updates oldval mask tst
@@ -60,9 +63,9 @@ makeInformationTask question initial context tst=:{taskNr}
 		| done
 			= (newval,{tst & activated = True})
 		| otherwise
-			# tst		= setTaskStore "mask" mask tst
-			# updates	= determineEditorUpdates editorId oldval newval
-			# tst		= setExtJSUpdates updates tst
+			# tst				= setTaskStore "mask" mask tst
+			# (updates,valid)	= determineEditorUpdates editorId mask oldval newval
+			# tst				= setExtJSUpdates [ExtJSSetEnabled doneId valid:updates] tst
 			= (newval, {tst & activated = False})
 where
 	applyUpdates [] val mask tst = (val,mask,tst)
@@ -87,12 +90,15 @@ updateChoiceAbout question about [] index		= abort "updateChoiceAbout: cannot ch
 updateChoiceAbout question about options index  = mkExtJSTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)))
 
 makeChoiceTask :: question [a] Int (Maybe [HtmlTag]) !*TSt -> (!a,!*TSt) | html question & iTask a
-makeChoiceTask question options index context tst
+makeChoiceTask question options index context tst=:{taskNr}
+	# editorid	= "tf-" +++ taskNrToString taskNr
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0
 		# form = [ExtJSButton {ExtJSButton	| name = "button-" +++ toString i
+											, id	= editorid +++ "-" +++ toString i
 											, value = toString i
+											, disabled = False
 											, text = visualizeAsTextLabel option +++ if (i == index) " (current)" ""
 											, iconCls = ""} \\ option <- options & i <- [0..] ]
 		# tst = setExtJSDef (taskPanel (html question) context (Just form) []) tst
@@ -114,7 +120,8 @@ updateMultipleChoiceAbout question about options indices = mkExtJSTask "updateMu
 
 makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) !*TSt -> (![a],!*TSt) | html question & iTask a
 makeMultipleChoiceTask question options inselection context tst=:{taskNr}
-	# editorid	= "tf-" +++ taskNrToString taskNr
+	# editorId		= "tf-" +++ taskNrToString taskNr
+	# doneId		= editorId +++ "-done"
 	# (mbSel,tst)	= getTaskStore "selection" tst
 	# selection		= case mbSel of Nothing = inselection; Just sel = sel
 	//Check for user updates
@@ -124,14 +131,14 @@ makeMultipleChoiceTask question options inselection context tst=:{taskNr}
 		# cboxes	= [ExtJSCheckBox 
 					  {ExtJSCheckBox
 					  | name = "sel-" +++ toString i
-					  , id = editorid +++ "-cb-" +++ toString i
+					  , id = editorId +++ "-cb-" +++ toString i
 					  , value = toString i
 					  , fieldLabel = Nothing
 					  , hideLabel = True
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
-		# form = [ ExtJSCheckBoxGroup {ExtJSCheckBoxGroup |name = "selection", id = editorid +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 3, items = cboxes}]
-		# tst = setExtJSDef (taskPanel (html question) context (Just form) [("done","done","Ok","icon-ok")]) tst
+		# form = [ ExtJSCheckBoxGroup {ExtJSCheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 3, items = cboxes}]
+		# tst = setExtJSDef (taskPanel (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",True)]) tst
 		= ([],{tst & activated = False})
 	| otherwise
 		# done = (http_getValue "done" updates "") == "done"
@@ -157,11 +164,12 @@ requestConfirmationAbout :: question a -> Task Bool | html question & iTask a
 requestConfirmationAbout question about = mkExtJSTask "requestConfirmationAbout" (makeConfirmationTask question (Just (visualizeAsHtmlDisplay about)))
 
 makeConfirmationTask :: question (Maybe [HtmlTag]) *TSt -> (Bool,*TSt) | html question
-makeConfirmationTask question context tst
+makeConfirmationTask question context tst=:{taskNr}
 	//Check for user updates
+	# editorid	= "tf-" +++ taskNrToString taskNr
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0
-		# tst = setExtJSDef (taskPanel (html question) context Nothing [("answer-no","no","No","icon-no"),("answer-yes","yes","Yes","icon-yes")]) tst
+		# tst = setExtJSDef (taskPanel (html question) context Nothing [(editorid +++ "-no","answer-no","no","No","icon-no",True),(editorid +++ "-no","answer-yes","yes","Yes","icon-yes",True)]) tst
 		= (False,{tst & activated = False})
 	| otherwise
 		= (snd (hd updates) == "yes", tst)
@@ -180,16 +188,17 @@ showStickyMessageAbout :: message a -> Task Void | html message & iTask a
 showStickyMessageAbout message about = mkExtJSTask "showStickyMessageAbout" (makeMessageTask message (Just (visualizeAsHtmlDisplay about)) True)
 
 makeMessageTask :: message (Maybe [HtmlTag]) Bool *TSt -> (Void, *TSt) | html message
-makeMessageTask message context sticky tst
+makeMessageTask message context sticky tst=:{taskNr}
+	# editorid	= "tf-" +++ taskNrToString taskNr
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0 || sticky
-		# tst = setExtJSDef (taskPanel (html message) context Nothing (if sticky [] [("done","done","Ok","icon-ok")])) tst
+		# tst = setExtJSDef (taskPanel (html message) context Nothing (if sticky [] [(editorid +++ "-done","done","done","Ok","icon-ok",True)])) tst
 		= (Void,{tst & activated = False})
 	| otherwise
 		= (Void, tst)
 
 
-taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [ExtJSDef]) [(String,String,String,String)] -> ExtJSDef
+taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [ExtJSDef]) [(String,String,String,String,String,Bool)] -> ExtJSDef
 taskPanel description mbContext mbForm buttons
 	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing}
 where
@@ -206,8 +215,8 @@ where
 	taskFormPanel :: [ExtJSDef] -> ExtJSDef
 	taskFormPanel items = ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}
 	
-	taskButtons	:: [(String,String,String,String)] -> [ExtJSDef]
-	taskButtons buttons = [ExtJSButton {ExtJSButton| name = name, value = value, text = text, iconCls = icon} \\ (name,value,text,icon) <- buttons]
+	taskButtons	:: [(String,String,String,String,String,Bool)] -> [ExtJSDef]
+	taskButtons buttons = [ExtJSButton {ExtJSButton| name = name, id = id, value = value, disabled = not enabled, text = text, iconCls = icon} \\ (id,name,value,text,icon,enabled) <- buttons]
 
 notifyUser :: message UserId -> Task Void | html message
 notifyUser message uid = mkInstantTask "notifyUser" (\tst -> (Void,tst))

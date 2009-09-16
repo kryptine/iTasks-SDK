@@ -19,6 +19,7 @@ import StdGeneric, StdMaybe, Void, Either
 :: UpdateMode
 	= UDSearch
 	| UDCreate
+	| UDMask
 	| UDDone
 
 generic gUpdate a		:: a 		*USt -> (a, *USt)
@@ -28,9 +29,11 @@ derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Wrapper functions for updating
-defaultValue			:: !*World -> (!a,!*World)									| gUpdate{|*|} a
-updateValue				:: String String a !*World -> (a,!*World)					| gUpdate{|*|} a 
-updateValueAndMask		:: String String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
+defaultValue		:: !*World -> (!a,!*World)									| gUpdate{|*|} a
+defaultMask			:: a !*World -> (DataMask,*World)							| gUpdate{|*|} a
+updateValue			:: String String a !*World -> (a,!*World)					| gUpdate{|*|} a 
+updateValueAndMask	:: String String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
+
 
 //Utility functions for dealing with DataPath values
 stepDataPath	:: DataPath			-> DataPath
@@ -45,4 +48,5 @@ isdps			:: String			-> Bool
 instance == DataPath
 
 //Masking and unmasking of fields
-toggleMask :: *USt -> *USt
+toggleMask	:: *USt -> *USt
+isMasked	:: DataPath DataMask -> Bool

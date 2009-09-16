@@ -13,14 +13,14 @@ derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String a -> [ExtJSDef]		| gVisualize{|*|} a
-visualizeAsHtmlDisplay	:: a -> [HtmlTag]				| gVisualize{|*|} a
-visualizeAsTextDisplay	:: a -> String					| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: a -> [HtmlTag]				| gVisualize{|*|} a
-visualizeAsTextLabel	:: a -> String					| gVisualize{|*|} a
+visualizeAsEditor		:: String DataMask a -> ([ExtJSDef],Bool)	| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: a -> [HtmlTag]							| gVisualize{|*|} a
+visualizeAsTextDisplay	:: a -> String								| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: a -> [HtmlTag]							| gVisualize{|*|} a
+visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
+determineEditorUpdates	:: String DataMask a a -> ([ExtJSUpdate],Bool)			| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: *VSt =
@@ -31,7 +31,7 @@ determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
 	, currentPath		:: DataPath				// Accumulated path through the data structure, used to identify sub-structures
 	, consBody			:: Bool					// Only generate a constructor body for editors
 	, optional			:: Bool					// Create optional form fields
-	, blank				:: Bool					// Is the editor to use a blank entry field (Probably unneccesary when DataMask is used)
+	, blank				:: Bool					// Build a structure  with undefs
 	, mask				:: DataMask				// The section of the datastructure that is "complete"
 	, valid				:: Bool					// Is the form valid
 	}
@@ -51,5 +51,6 @@ determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
 	| ExtJSUpdate ExtJSUpdate
 
 //Utility functions making specializations of gVisualize
-value2s :: Bool a -> String | toString a
-label2s :: Bool (Maybe String) -> Maybe String
+value2s 	:: DataPath DataMask a			-> String | toString a
+label2s 	:: Bool (Maybe String)			-> Maybe String
+stillValid	:: DataPath DataMask Bool Bool	-> Bool

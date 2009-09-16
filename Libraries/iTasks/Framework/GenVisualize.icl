@@ -13,8 +13,10 @@ mkVSt :: *VSt
 mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, consBody = False, optional = False, blank = False, mask = [], valid = True}
 
 //Wrapper functions
-visualizeAsEditor :: String a -> [ExtJSDef] | gVisualize{|*|} a
-visualizeAsEditor name x = coerceToExtJSDefs (fst (gVisualize{|*|} x x {mkVSt & vizType =VEditorDefinition, idPrefix = name}))
+visualizeAsEditor :: String DataMask a -> ([ExtJSDef],Bool) | gVisualize{|*|} a
+visualizeAsEditor name mask x
+	# (defs,vst=:{valid}) = gVisualize{|*|} x x {mkVSt & vizType =VEditorDefinition, idPrefix = name, mask = mask}
+	= (coerceToExtJSDefs defs, valid)
 	
 visualizeAsHtmlDisplay :: a -> [HtmlTag] | gVisualize{|*|} a
 visualizeAsHtmlDisplay x = flatten (coerceToHtml (fst (gVisualize{|*|} x x {mkVSt & vizType = VHtmlDisplay})))
@@ -28,8 +30,10 @@ visualizeAsHtmlLabel x =  flatten (coerceToHtml (fst (gVisualize{|*|} x x {mkVSt
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} x x {mkVSt & vizType = VTextLabel})))
 
-determineEditorUpdates	:: String a a -> [ExtJSUpdate]	| gVisualize{|*|} a
-determineEditorUpdates name old new = coerceToExtJSUpdates (fst (gVisualize{|*|} old new {mkVSt & vizType = VEditorUpdate, idPrefix = name}))
+determineEditorUpdates	:: String DataMask a a -> ([ExtJSUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates name mask old new
+	# (updates,vst=:{valid}) = gVisualize{|*|} old new {mkVSt & vizType = VEditorUpdate, idPrefix = name, mask = mask}
+	= (coerceToExtJSUpdates updates, valid)
 
 
 //Generic visualizer
@@ -50,7 +54,7 @@ gVisualize{|PAIR|} fx fy old new vst=:{blank}
 		= (vizx ++ vizy, vst)
 
 
-gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,blank}
+gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,blank,valid}
 	| blank
 		= fx undef undef vst
 	| otherwise
@@ -62,16 +66,16 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,b
 			(LEFT ox, RIGHT ny)
 				= case vizType of
 					VEditorUpdate
-						# (old,vst) = fx ox ox {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
-						# (new,vst) = fy ny ny {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
+						# (old,vst) = fx ox ox {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
+						# (new,vst) = fy ny ny {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
 						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, currentPath = currentPath, consBody = consBody})
 					_
 						= fx ox ox vst //Default case: ignore the new value
 			(RIGHT oy, LEFT nx)
 				= case vizType of
 					VEditorUpdate
-						# (old,vst) = fy oy oy {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
-						# (new,vst) = fx nx nx {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True}
+						# (old,vst) = fy oy oy {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
+						# (new,vst) = fx nx nx {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
 						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, currentPath = currentPath, consBody = consBody})
 					_
 						= fy oy oy vst //Default case: ignore the new value			
@@ -132,30 +136,38 @@ gVisualize{|FIELD of d|} fx (FIELD ox) (FIELD nx) vst=:{vizType}
 		_
 			= fx ox nx {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
-gVisualize{|Int|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Int|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = False, numDecimals = 0})], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath mask old , fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = False, numDecimals = 0})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
 		
-gVisualize{|Real|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Real|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = True, numDecimals = 1000})], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath mask old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = True, numDecimals = 1000})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
 		
-gVisualize{|Char|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Char|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath mask old, fieldLabel = label2s optional label, hideLabel = isNothing label})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
 
-gVisualize{|Bool|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Bool|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = if blank "false" (if old "true" "false"), boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = isNothing label, checked = (if blank False old)})], {VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = isNothing label, checked = (if (isMasked currentPath mask) old False)})]
+								, {VSt|vst & currentPath = stepDataPath currentPath})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})		
+where
+	value = if (isMasked currentPath mask) (if old "true" "false") "false" 
 
-gVisualize{|String|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|String|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment old],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath mask old, fieldLabel = label2s optional label, hideLabel = isNothing label})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
+		_					= ([TextFragment old],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath mask optional valid})
+
 
 gVisualize{|Maybe|} fx old new vst=:{vizType,currentPath,optional,blank}
 	= case vizType of
@@ -198,16 +210,21 @@ derive gVisualize []
 
 derive gVisualize Either, (,), (,,), (,,,), Void
 
-
-value2s :: Bool a -> String | toString a
-value2s True _	= ""
-value2s False a	= toString a
+value2s :: DataPath DataMask a -> String | toString a
+value2s dp dm a
+	| isMasked dp dm	= toString a
+	| otherwise			= ""
 
 label2s :: Bool (Maybe String) -> Maybe String
 label2s _		Nothing		= Nothing
 label2s True	(Just l)	= Just (l +++ " (optional)")
 label2s False	(Just l)	= Just l
 
+stillValid :: DataPath DataMask Bool Bool -> Bool
+stillValid dp dm optional valid
+	| optional	= valid 					//Nothing changes
+	| otherwise	= isMasked dp dm && valid	//A non-optional field must be masked to be valid
+	
 formatLabel :: String -> String
 formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
 where

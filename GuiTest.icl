@@ -33,7 +33,7 @@ Start :: *World -> *World
 Start world = startEngine [workflow "GUI test" guiTestTask] world
 
 guiTestTask :: Task Void
-guiTestTask = updateInformation "Please update your personal information" myPerson >>= showMessageAbout "You have entered:"
+guiTestTask = updateInformation "Please update your personal information" myPerson  >>= showMessageAbout "You have entered:"
 //guiTestTask = enterMultipleChoice "Pick your fruits" ["Apple","Pear","Orange"] >>= showMessageAbout "Your selection:" 
 //guiTestTask = enterMultipleChoice "Pick your numbers" [0..30] >>= showMessageAbout "Your selection:" 
 //guiTestTask = updateChoice "Pick your favorite fruit" ["Apple","Pear","Orange"] 1 >>= showMessageAbout "Your choice:" 

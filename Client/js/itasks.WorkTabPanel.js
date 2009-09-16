@@ -481,6 +481,12 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 							oct.remove(update[1]);
 						}
 						break;
+					case "ExtJSSetEnabled":
+						var ct = Ext.getCmp(update[1]);
+						if(ct && ct.setDisabled) {
+							ct.setDisabled(!update[2]);
+						}
+						break;
 				}
 				i--;
 			}

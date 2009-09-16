@@ -11,35 +11,38 @@ derive gVisualize	EmailAddress, Password
 derive gUpdate		EmailAddress, Password, Note
 derive gLexOrd		Currency
 
-gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath mask old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = isNothing label})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath mask optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath mask optional valid})
 
-gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s blank old, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = isNothing label})], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath mask old, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = isNothing label})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath mask optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath mask optional valid})
 
-gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s blank old, fieldLabel = label2s optional label, hideLabel = isNothing label, width = 400, height = 150 })], {VSt|vst & currentPath = stepDataPath currentPath})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s currentPath mask old, fieldLabel = label2s optional label, hideLabel = isNothing label, width = 400, height = 150 })]
+							, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath mask optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath mask optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
 	contentPath				= shiftDataPath currentPath				
 
-gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,optional,blank}
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,optional,mask,valid}
 	= case vizType of
 		VEditorDefinition
-			= ([ExtJSFragment combinedPanel], {VSt|vst & currentPath = stepDataPath currentPath})
+			= ([ExtJSFragment combinedPanel], {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath mask optional valid})
 		_
-			= ([TextFragment (toString old)],vst)
+			= ([TextFragment (toString old)],{VSt|vst & valid= stillValid currentPath mask optional valid})
 where
 	combinedPanel			= ExtJSPanel {ExtJSPanel| layout = "hbox", fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
 	numberField				= ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath
-								, value = value2s blank (decFormat (toInt old)), fieldLabel = Nothing, hideLabel = True, allowDecimals = True, numDecimals = 2}
+								, value = value2s currentPath mask (decFormat (toInt old)), fieldLabel = Nothing, hideLabel = True, allowDecimals = True, numDecimals = 2}
 	currencyLabel			= ExtJSCustom (JSON ("{xtype : \"displayfield\", value : \"" +++ curLabel old +++ "\", style : \"padding: 3px 5px 2px 2px;\"}"))
 	curLabel (EUR _)		= "&euro;"
 	curLabel (GBP _)		= "&pound;"
@@ -54,6 +57,9 @@ gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (fromString update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,mask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
+
 gUpdate{|Date|} s ust = (s, ust)
 
 gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,world}
@@ -64,6 +70,8 @@ gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (fromString update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Time|} s ust=:{USt|mode=UDMask,currentPath,mask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
 gUpdate{|Time|} s ust = (s, ust)
 
 gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate} = (EUR 0, ust)
@@ -83,7 +91,9 @@ where
 	replaceVal (GBP _) x = (GBP x)
 	replaceVal (USD _) x = (USD x)
 	replaceVal (JPY _) x = (JPY x)
-	
+
+gUpdate{|Currency|} s ust=:{USt|mode=UDMask,currentPath,mask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})	
 gUpdate{|Currency|} s ust = (s,ust)
 
 currentTime :: !*World -> (!Time,!*World)

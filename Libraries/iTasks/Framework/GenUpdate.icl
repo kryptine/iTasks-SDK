@@ -8,7 +8,12 @@ defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
 	# (a,ust=:{world}) = gUpdate{|*|} undef {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], world = world}
 	= (a,world)
-
+	
+defaultMask :: a !*World -> (DataMask,*World) | gUpdate{|*|} a
+defaultMask a world
+	# (_,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = [], currentPath = [0], consPath = [], update = "", mask = [], world = world}
+	= (mask,world)
+	
 updateValue	:: String String a !*World -> (a,!*World)	| gUpdate{|*|} a  
 updateValue path update a world
 	# (a,_,world) = updateValueAndMask path update a [] world
@@ -29,6 +34,11 @@ generic gUpdate a :: a *USt ->  (a, *USt)
 gUpdate{|UNIT|} _ ust=:{mode=UDCreate} = (UNIT, ust)
 gUpdate{|UNIT|} u ust = (u, ust)
 
+gUpdate{|PAIR|} fx fy _ ust=:{mode=UDCreate}
+	# (nx,ust) = fx undef ust
+	# (ny,ust) = fy undef ust
+	= (PAIR nx ny, ust)
+	
 gUpdate{|PAIR|} fx fy p ust=:{mode=UDSearch}
 	# (nx,ust) = fx x ust
 	# (ny,ust) = fy y ust
@@ -36,22 +46,15 @@ gUpdate{|PAIR|} fx fy p ust=:{mode=UDSearch}
 where
 	(PAIR x y) = p
 	
-gUpdate{|PAIR|} fx fy _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
-	# (ny,ust) = fy undef ust
+gUpdate{|PAIR|} fx fy p ust=:{mode=UDMask}
+	# (nx,ust) = fx x ust
+	# (ny,ust) = fy y ust
 	= (PAIR nx ny, ust)
+where
+	(PAIR x y) = p	
 	
 gUpdate{|PAIR|} fx fy p ust = (p, ust)
 
-gUpdate{|EITHER|} fx fy e ust=:{mode=UDSearch}
-	= case e of
-		(LEFT x)	
-			# (nx,ust) = fx x ust
-			= (LEFT nx, ust)
-		(RIGHT y)
-			# (ny,ust) = fy y ust
-			= (RIGHT ny,ust)
-			
 gUpdate{|EITHER|} fx fy _ ust=:{mode=UDCreate,consPath}
 	= case consPath of
 		[ConsLeft:cl]
@@ -64,19 +67,47 @@ gUpdate{|EITHER|} fx fy _ ust=:{mode=UDCreate,consPath}
 			# (nx,ust) = fx undef ust
 			= (LEFT nx, ust)
 
+gUpdate{|EITHER|} fx fy e ust=:{mode=UDSearch}
+	= case e of
+		(LEFT x)	
+			# (nx,ust) = fx x ust
+			= (LEFT nx, ust)
+		(RIGHT y)
+			# (ny,ust) = fy y ust
+			= (RIGHT ny,ust)
+			
+gUpdate{|EITHER|} fx fy e ust=:{mode=UDMask}
+	= case e of
+		(LEFT x)	
+			# (nx,ust) = fx x ust
+			= (LEFT nx, ust)
+		(RIGHT y)
+			# (ny,ust) = fy y ust
+			= (RIGHT ny,ust)
+					
 gUpdate{|EITHER|} fx fy e ust = (e, ust)
-	
+
+gUpdate{|CONS|} fx _ ust=:{mode=UDCreate}
+	# (nx,ust) = fx undef ust
+	= (CONS nx, ust)
+		
 gUpdate{|CONS|} fx c ust=:{mode=UDSearch}
 	# (nx,ust) = fx x ust
 	= (CONS nx, ust)
 where
 	(CONS x) = c
 	
-gUpdate{|CONS|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
+gUpdate{|CONS|} fx c ust=:{mode=UDMask}
+	# (nx,ust) = fx x ust
 	= (CONS nx, ust)
-
+where
+	(CONS x) = c
+	
 gUpdate{|CONS|} fx c ust = (c, ust)
+
+gUpdate{|OBJECT|} fx _ ust=:{mode=UDCreate}
+	# (nx,ust) = fx undef ust
+	= (OBJECT nx, ust)
 
 gUpdate{|OBJECT of d|} fx o ust=:{mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
@@ -91,22 +122,30 @@ where
 	path = case [cons \\ cons <- d.gtd_conses | cons.gcd_name == update] of
 		[cons]	= getConsPath cons
 		_		= []
-	
-gUpdate{|OBJECT|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
-	= (OBJECT nx, ust)
+
+gUpdate{|OBJECT of d|} fx o ust=:{mode=UDMask,currentPath,mask}
+	# (_,ust)	= fx x {USt|ust & currentPath = shiftDataPath currentPath, mask = [currentPath:mask]}
+	= (o,{USt|ust & currentPath = stepDataPath currentPath})
+where
+	(OBJECT x) = o
 
 gUpdate{|OBJECT|} fx o ust = (o, ust)
+
+gUpdate{|FIELD|} fx _ ust=:{mode=UDCreate}
+	# (nx,ust) = fx undef ust
+	= (FIELD nx, ust)
 
 gUpdate{|FIELD|} fx f ust=:{mode=UDSearch}
 	# (nx,ust) = fx x ust
 	= (FIELD nx, ust)
 where
 	(FIELD x) = f
-		
-gUpdate{|FIELD|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
+	
+gUpdate{|FIELD|} fx f ust=:{mode=UDMask}
+	# (nx,ust) = fx x ust
 	= (FIELD nx, ust)
+where
+	(FIELD x) = f
 
 gUpdate{|FIELD|} fx f ust = (f, ust)
 
@@ -116,6 +155,8 @@ gUpdate{|Int|} i ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (toInt update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (i, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Int|} i ust=:{USt|mode=UDMask,currentPath,mask}
+	= (i, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|Int|} i ust = (i,ust)
 
 gUpdate{|Real|} _ ust=:{USt|mode=UDCreate} = (0.0, ust)
@@ -124,6 +165,8 @@ gUpdate{|Real|} r ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (toReal update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (r, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Real|} r ust=:{USt|mode=UDMask,currentPath,mask}
+	= (r, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|Real|} r ust = (r, ust)
 
 gUpdate{|Char|} _ ust=:{USt|mode=UDCreate} = (' ', ust)
@@ -132,6 +175,8 @@ gUpdate{|Char|} c ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (if (size update > 0) update.[0] c, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (c, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Char|} c ust=:{USt|mode=UDMask,currentPath,mask}
+	= (c, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|Char|} c ust = (c, ust)
 
 gUpdate{|Bool|} _ ust=:{USt|mode=UDCreate} = (False, ust)
@@ -140,6 +185,8 @@ gUpdate{|Bool|} b ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (update == "True", toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (b, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Bool|} b ust=:{USt|mode=UDMask,currentPath,mask}
+	= (b, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|Bool|} b ust = (b, ust)
 
 gUpdate{|String|} _ ust=:{USt|mode=UDCreate} = ("", ust)
@@ -148,6 +195,8 @@ gUpdate{|String|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		= (update, toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|String|} s ust=:{USt|mode=UDMask,currentPath,mask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|String|} s ust = (s, ust)
 
 
@@ -178,7 +227,19 @@ where
 			# (x,ust)	= fx x {ust & currentPath = shiftDataPath currentPath}
 			# (xs,ust)	= gUpdateList fx xs {ust & currentPath = stepDataPath (shiftDataPath currentPath)}
 			= ([x:xs],ust)
+		
+gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,mask}
+	= (l, gMarkList fx l {USt|ust & mask = [currentPath:mask]})
+where
+	gMarkList fx [] ust
+		= ust
+	gMarkList fx [x:xs] ust=:{USt|currentPath,mask}
+		# stepPath	= shiftDataPath currentPath
+		# (_,ust)	= fx x {USt|ust & currentPath = stepPath, mask = [stepPath:mask]}
+		= gMarkList fx xs {USt|ust & currentPath = stepDataPath stepPath}
+		
 gUpdate{|[]|} fx l ust = (l,ust)
+			
 
 gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate} = (Nothing,ust)
 gUpdate{|Maybe|} fx m ust=:{USt|currentPath,searchPath,update}
@@ -250,3 +311,6 @@ where
 	where
 		plen = length parent
 		clen = length child
+		
+isMasked :: DataPath DataMask -> Bool
+isMasked dp dm = isMember dp dm
