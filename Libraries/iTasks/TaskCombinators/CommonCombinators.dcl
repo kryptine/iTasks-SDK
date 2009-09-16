@@ -27,6 +27,9 @@ eitherTask			:: !(Task a) !(Task b) 						-> Task (Either a b)	| iTask a & iTask
 //Task delegation
 (@:)   infix 3 		:: !UserId !(LabeledTask a)					-> Task a				| iTask a 
 
+assignByName		:: !String !String !TaskPriority !(Maybe Timestamp) (Task a)
+																-> Task a				| iTask a
+
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid
 (<|)			:: repeat task (recursively) as long as predicate does not hold, and give error message otherwise

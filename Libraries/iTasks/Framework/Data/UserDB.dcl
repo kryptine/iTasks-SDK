@@ -16,6 +16,15 @@ import TSt
 */
 getUser				::	!Int			!*TSt -> (!User						, !*TSt)
 /**
+* Fetches the id and display name from the user database for a given user id.
+*
+* @param A username
+* @param A unique user database handle
+* @return The user
+* @return The database handle
+*/
+getUserByName		::	!String			!*TSt -> (!User						, !*TSt)
+/**
 * Fetches the id and display name of all users from the from the user database.
 *
 * @param A unique user database handle

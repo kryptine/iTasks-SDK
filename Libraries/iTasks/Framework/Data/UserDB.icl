@@ -9,7 +9,17 @@ unknownUser = {User | userId = -1, userName = "", displayName = "Unknown user", 
 
 rootUser :: User
 rootUser = {User | userId = 0, userName = "root", displayName = "Root", password = "", roles = []}
-	  
+
+//TEMPORARY ALTERNATIVE HARDCODED USER SET
+testUsers :: [User]
+testUsers = [ {User | userId = 1, userName = "bas", displayName = "Bas", password = "", roles = []}
+			, {User | userId = 2, userName = "rinus", displayName = "Rinus", password = "", roles = []}
+			, {User | userId = 3, userName = "thomas", displayName = "Thomas", password = "", roles = []}
+			, {User | userId = 4, userName = "peter", displayName = "Peter", password = "", roles = []}
+			, {User | userId = 5, userName = "pieter", displayName = "Pieter", password = "", roles = []}
+			, {User | userId = 6, userName = "janmartin", displayName = "Jan Martin", password = "", roles = []}
+			]
+/*
 testUsers :: [User] 
 testUsers	= [ {User | userId = 1, userName = "president", displayName = "President", password = "", roles = ["president"]}
 			  , {User | userId = 2, userName = "manager", displayName = "Middle manager", password = "", roles = ["manager"]}
@@ -45,13 +55,24 @@ testUsers	= [ {User | userId = 1, userName = "president", displayName = "Preside
 			  , {User | userId = 47, userName = "expert7", displayName = "Expert 7", password = "", roles = ["experts"]}   
 			  , {User | userId = 48, userName = "expert8", displayName = "Expert 8", password = "", roles = ["experts"]}   
 			  , {User | userId = 49, userName = "expert9", displayName = "Expert 9", password = "", roles = ["experts"]}   
-			  ]	  
+			  ]	
+*/
+
 getUser :: !Int !*TSt -> (!User,!*TSt)
 getUser 0 tst
 	= (rootUser,tst)
 getUser uid tst
 	# (users, tst)		= userStore id tst
 	= case filter (\u -> u.User.userId == uid) users of
+		[x] = (x,tst)
+		_	= (unknownUser,tst)
+
+getUserByName :: !String !*TSt -> (!User, !*TSt)
+getUserByName "root" tst
+	= (rootUser,tst)
+getUserByName name tst
+	# (users, tst)		= userStore id tst
+	= case filter (\u -> u.User.userName == name) users of
 		[x] = (x,tst)
 		_	= (unknownUser,tst)
 

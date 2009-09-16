@@ -7,6 +7,7 @@ import StdList, StdMaybe
 from UserDB import :: User
 from UserDB import qualified getCurrentUser
 from UserDB import qualified getUser
+from UserDB import qualified getUserByName
 from UserDB import qualified getUsers
 from UserDB import qualified getUsersWithRole
 from UserDB import qualified getDisplayNames
@@ -18,6 +19,9 @@ import InteractionTasks, CoreCombinators
 
 getUser :: !UserId -> Task User
 getUser uid = mkInstantTask "getUser" (UserDB@getUser uid)
+
+getUserByName :: !String -> Task User
+getUserByName name = mkInstantTask "getUserByName" (UserDB@getUserByName name)
 
 getUsers :: Task [User]
 getUsers = mkInstantTask "getUsers" UserDB@getUsers

@@ -14,13 +14,14 @@ import MovingTask
 import DeadlineTask
 import DelegateTask
 import ReviewTask
+import ExceptionHandling
 
 //Miscellaneous examples
 import SmallExamples
+import GUIDemo
 import BugReport
 import Coffeemachine
 import Newsgroups
-import ExceptionHandling
 import ChangeHandling
 import WebShop
 
@@ -40,6 +41,7 @@ where
 						, delegateTaskExample
 						, reviewTaskExample
 						, smallExamples
+						, guiDemoExample
 						, bugReportExample
 						, coffeemachineExample
 						, newsgroupsExample

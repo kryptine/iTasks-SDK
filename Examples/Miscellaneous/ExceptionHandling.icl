@@ -14,7 +14,7 @@ derive gParse		NegativeValueException, TooLargeValueException
 
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
-=	[{ name		= "Examples/Miscellaneous/Exception handling"
+=	[{ name		= "Examples/Higher order/Exception handling"
 	 , label	= "Exception example"
 	 , roles	= []
 	 , mainTask	= exceptionTask

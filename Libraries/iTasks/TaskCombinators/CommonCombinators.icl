@@ -8,12 +8,12 @@ import StdBool, StdList, StdTuple, StdGeneric, StdMisc, GenBimap
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime, :: Options, :: HTTPRequest, :: Config
 from TSt		import applyTask, mkSequenceTask, mkParallelTask
-from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..)
+from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskCombination(..)
 
-import SystemTasks, InteractionTasks, CoreCombinators, TuningCombinators, LiftingCombinators
+import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
 import GenVisualize, GenUpdate
 
@@ -106,4 +106,9 @@ repeatTask task pred a =
 (@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iTask a
 (@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
 
+assignByName :: !String !String !TaskPriority !(Maybe Timestamp) (Task a) -> Task a | iTask a
+assignByName name subject priority deadline task
+	=	getUserByName name
+	>>= \user ->
+		assign user.User.userId priority deadline (task <<@ subject)
 // ******************************************************************************************************

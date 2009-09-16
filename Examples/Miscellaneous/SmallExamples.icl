@@ -3,7 +3,7 @@ implementation module SmallExamples
 import iTasks
 
 smallExamples :: [Workflow]
-smallExamples = [workflow "Examples/Miscellaneous/calculateSum" calculateSum]
+smallExamples = [workflow "Examples/Miscellaneous/Calculate sum" calculateSum]
 	
 calculateSum :: Task Int
 calculateSum

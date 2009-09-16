@@ -54,10 +54,24 @@ instance DB Bug where
 
 bugReportExample :: [Workflow]
 bugReportExample
-	= [workflow "Examples/Miscellaneous/Bug report" reportBug]
+	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBug1
+	  , workflow "Examples/Miscellaneous/Bug report (intermediate)" reportBug2
+	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBug3
+	  ]
+	  
+reportBug1 :: Task BugReport
+reportBug1
+	=	enterInformation "Please describe the bug you have found"
+	>>=	\report ->
+		assignByName "bas" "Bug fix" NormalPriority Nothing
+			(showMessageAbout "The following bug has been reported" report)
+	>>| return report
 
-reportBug :: Task Void
-reportBug
+reportBug2 :: Task Void
+reportBug2 = return Void
+
+reportBug3 :: Task Void
+reportBug3
 	=	enterInitialReport
 	>>= \report ->
 		fileBugReport report
