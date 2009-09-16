@@ -53,7 +53,6 @@ gVisualize{|PAIR|} fx fy old new vst=:{blank}
 		# (vizy, vst) = fy oy ny vst
 		= (vizx ++ vizy, vst)
 
-
 gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,blank,valid}
 	| blank
 		= fx undef undef vst
@@ -260,6 +259,7 @@ where
 	collectIds [] = []
 	collectIds [ExtJSNumberField {ExtJSNumberField|id}:is] = [id:collectIds is]
 	collectIds [ExtJSTextField {ExtJSTextField|id}:is] = [id:collectIds is]
+	collectIds [ExtJSTextArea {ExtJSTextArea|id}:is] = [id:collectIds is]
 	collectIds [ExtJSCheckBox {ExtJSCheckBox|id}:is] = [id:collectIds is]
 	collectIds [ExtJSRadioGroup {ExtJSRadioGroup|id}:is] = [id:collectIds is]
 	collectIds [ExtJSFieldSet {ExtJSFieldSet|id}:is] = [id:collectIds is]

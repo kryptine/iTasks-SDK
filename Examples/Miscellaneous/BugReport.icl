@@ -3,18 +3,23 @@ implementation module BugReport
 import iTasks
 import CommonDomain
 
+:: BugReport =
+	{ application	:: String
+	, version		:: Maybe String
+	, occursAt		:: BugOccurance
+	, severity		:: BugSeverity
+	, description	:: Note
+	}
+
+:: BugSeverity	= Low | Medium | High | Critical	
+:: BugOccurance	= Startup | Shutdown | Other Note
+
+
 :: Application =
 	{ appNr			:: AppNr
 	, name			:: String
 	, versions		:: [String]
 	, developers	:: [UserId]
-	}
-	
-:: BugReport =
-	{ application	:: String
-	, version		:: Maybe String
-	, severity		:: BugSeverity
-	, description	:: Note
 	}
 	
 :: Bug =
@@ -34,13 +39,13 @@ import CommonDomain
 	
 :: AppNr :== Int
 :: BugNr :== Int
-:: BugSeverity = Low | Medium | High | Critical
+
 :: BugStatus = Reported | Assigned | Reproduced | Resolved
 
-derive gPrint     Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis	
-derive gParse	  Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis
-derive gVisualize Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis
-derive gUpdate	  Application, BugReport, Bug, BugSeverity, BugStatus, BugAnalysis
+derive gPrint     Application, BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis	
+derive gParse	  Application, BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
+derive gVisualize Application, BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
+derive gUpdate	  Application, BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 
 instance DB Application where
 	databaseId					= mkDBid "Application"
