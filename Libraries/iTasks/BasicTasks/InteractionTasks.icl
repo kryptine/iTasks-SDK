@@ -169,7 +169,7 @@ makeConfirmationTask question context tst=:{taskNr}
 	# editorid	= "tf-" +++ taskNrToString taskNr
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0
-		# tst = setExtJSDef (taskPanel (html question) context Nothing [(editorid +++ "-no","answer-no","no","No","icon-no",True),(editorid +++ "-no","answer-yes","yes","Yes","icon-yes",True)]) tst
+		# tst = setExtJSDef (taskPanel (html question) context Nothing [(editorid +++ "-no","answer-no","no","No","icon-no",True),(editorid +++ "-yes","answer-yes","yes","Yes","icon-yes",True)]) tst
 		= (False,{tst & activated = False})
 	| otherwise
 		= (snd (hd updates) == "yes", tst)

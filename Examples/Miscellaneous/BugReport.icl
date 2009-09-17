@@ -59,24 +59,20 @@ instance DB Bug where
 
 bugReportExample :: [Workflow]
 bugReportExample
-	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBug1
-	  , workflow "Examples/Miscellaneous/Bug report (intermediate)" reportBug2
-	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBug3
+	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBugSimple
+	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBugAdvanced
 	  ]
 	  
-reportBug1 :: Task BugReport
-reportBug1
+reportBugSimple :: Task BugReport
+reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
 		assignByName "bas" "Bug fix" NormalPriority Nothing
 			(showMessageAbout "The following bug has been reported" report)
 	>>| return report
 
-reportBug2 :: Task Void
-reportBug2 = return Void
-
-reportBug3 :: Task Void
-reportBug3
+reportBugAdvanced :: Task Void
+reportBugAdvanced
 	=	enterInitialReport
 	>>= \report ->
 		fileBugReport report
@@ -192,12 +188,17 @@ makePatches bug =
 		Just {affectedVersions = []}
 			= return Void
 		Just {affectedVersions = versions}
-			= showMessageAbout ("Please make patches of the fix of bug " <+++ bug.bugNr <+++
-								" for the following versions of " <+++ bug.Bug.application)
-								versions //TODO replace by allTasks
-
+			= allTasks [showMessageAbout ("Please make a patch of bugfix " <+++ bug.bugNr <+++
+								" for the following version of " <+++ bug.Bug.application)
+								version
+						\\ version <- versions
+					   ]
+			  >>| return Void
+		
 notifyReporter :: Bug -> Task Void
 notifyReporter bug = notifyUser "The bug you reported has been fixed" bug.reportedBy
+
+//UTIL:
 
 dbSafeReadItem :: (DBRef a) -> Task a | iTask, DB a
 dbSafeReadItem ref
