@@ -67,7 +67,7 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,b
 					VEditorUpdate
 						# (old,vst) = fx ox ox {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
 						# (new,vst) = fy ny ny {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, currentPath = currentPath, consBody = consBody})
+						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, consBody = consBody})
 					_
 						= fx ox ox vst //Default case: ignore the new value
 			(RIGHT oy, LEFT nx)
@@ -75,7 +75,7 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,b
 					VEditorUpdate
 						# (old,vst) = fy oy oy {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
 						# (new,vst) = fx nx nx {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, currentPath = currentPath, consBody = consBody})
+						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = vizType, idPrefix = idPrefix, consBody = consBody})
 					_
 						= fy oy oy vst //Default case: ignore the new value			
 where
@@ -221,9 +221,15 @@ label2s False	(Just l)	= Just l
 
 stillValid :: DataPath DataMask Bool Bool -> Bool
 stillValid dp dm optional valid
-	| optional	= valid 					//Nothing changes
-	| otherwise	= isMasked dp dm && valid	//A non-optional field must be masked to be valid
-	
+	| optional				= valid //Nothing changes
+	| not (isMasked dp dm)	= False
+	| otherwise				= valid	//A non-optional field must be masked to be valid
+
+	//| optional				= trace_n (printToString dp +++ " OPT") valid 	//Nothing changes
+	//| not (isMasked dp dm)	= trace_n (printToString dp +++ " BAD") False
+	//| otherwise				= trace_n (printToString dp +++ " OK") valid	//A non-optional field must be masked to be valid
+//import StdDebug, GenPrint
+
 formatLabel :: String -> String
 formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
 where
