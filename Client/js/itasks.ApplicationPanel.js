@@ -5,11 +5,6 @@ Ext.ns('itasks');
 
 itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 
-	sessionId: undefined,
-	application: undefined,
-	
-	displayName: undefined,
-
 	initComponent: function() {
 
 		Ext.apply(this, {
@@ -22,25 +17,19 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					xtype: 'panel',
 					region: 'north',
 					height: 40,
-					html: '<div id="logo" ></div><div id="user">Welcome ' + this.displayName + ' | <a id="logout" href="javascript:void(0);">Log out &raquo;</a></div>'
+					html: '<div id="logo" ></div><div id="user">Welcome ' + itasks.app.displayName + ' | <a id="logout" href="javascript:void(0);">Log out &raquo;</a></div>'
 				},{
 					id: 'leftpanel',
-					xtype: 'panel',
+					xtype: 'itasks.nwpanel',
 					region: 'west',
-					layout: 'accordion',
 					layoutConfig: {animate: true},
+					collapsible: true,
 					split: true,
 					border: false,
 					deferredRender: false,
 					width: 200,
 					minWidth: 200,
-					maxWidth: 400,
-					items: itasks.config.debug ? [
-						{id: 'newpanel', xtype: 'itasks.nwpanel', sessionId: this.sessionId, application: this.application },
-						{id: 'debugpanel', xtype: 'itasks.debug', sessionId: this.sessionId, application: this.application }
-					] : [
-						{id: 'newpanel', xtype: 'itasks.nwpanel', sessionId: this.sessionId, application: this.application }
-					]
+					maxWidth: 400
 				},{
 					id: 'centerpanel',
 					region: 'center',
@@ -53,31 +42,25 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 						xtype: 'itasks.worklist',
 						region: 'north',
 						split: true,
-						height: 150,
-						sessionId: this.sessionId,
-						application: this.application
+						height: 150
 					},{
 						id: 'worktabs',
 						xtype: 'itasks.worktabs',
 						border: false,
-						region: 'center',
-						sessionId: this.sessionId,
-						application: this.application
+						region: 'center'
 					}]
 				}]
 		});
 	
 		itasks.ApplicationPanel.superclass.initComponent.apply(this, arguments);
 	},
-	init: function () {
-		
+	init: function () {	
 		//Initializing the gui...
 		var apppanel	= this;
 		
+		var newpanel 	= this.getComponent('leftpanel');
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
 		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
-		var debugpanel	= this.getComponent('leftpanel').getComponent('debugpanel');
-		var newpanel 	= this.getComponent('leftpanel').getComponent('newpanel');
 	
 		//Refresh initial overviews
 		worklist.refresh();
@@ -98,52 +81,54 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 				tab[0].on("propertyChanged",function(taskid) {
 					worklist.refresh();
 				});
-				
-				debugpanel.getTraceCheckbox().on("check",function(cb,val) {
-					tab[0].setTrace(val);
-				});
 			}
 			tab[0].refresh();
-		}
-		
+		};
 		worklist.on("cellclick",function (grid,row,col,event) {
-		
-			var trace = debugpanel.getTraceCheckbox().getValue();
-			var tab = worktabs.openWorkTab(grid.getTaskId(row),trace);
-			
-			attachTabHandlers(tab);
+			attachTabHandlers(worktabs.openWorkTab(grid.getTaskId(row)));
 		});
 		newpanel.on("processStarted",function(taskid) {
 			//When new work is started, refresh the worklist
 			//and immediately open a tab for the work
-			worklist.refresh();
-			
-			var trace = debugpanel.getTraceCheckbox().getValue();
-			var tab = worktabs.openWorkTab(taskid, trace);
-			
-			attachTabHandlers(tab);
+			worklist.refresh();	
+			attachTabHandlers(worktabs.openWorkTab(taskid));
 		},this);
 		
+		
+		//Add debug button
 		if(itasks.config.debug) {
-			debugpanel.getTaskForestButton().on("click",function() {
-				worktabs.openTaskForestTab();
-			});
-			debugpanel.getProcessTableButton().on("click",function() {
-				worktabs.openProcessTableTab();
-			});
-		}	
+		
+			var tb = worklist.getTopToolbar()
+			var button = {
+				xtype: "tbbutton",
+				text: "Debug...",
+				iconCls: "icon-debug",
+				listeners: {
+					click: {
+						fn: function() {
+							worktabs.openDebugTab();
+						},
+						scope: this
+					}
+				}
+			};
+			if(worklist.rendered) {
+				tb.add(button);
+			} else {
+				tb[tb.length] = button;
+			}
+		}
 	},
-	
 	logout: function() {	
 		//Send logout request to the server
 		Ext.Ajax.request({
 			url: 'handlers/deauthenticate',
 			method: "POST",
-			params: {session: this.sessionId},
+			params: {session: itasks.app.session},
 			scripts: false,
 			callback: function () {
 				//On return, restart the app
-				this.application.restart();
+				itasks.app.restart();
 			},
 			scope: this
 		});

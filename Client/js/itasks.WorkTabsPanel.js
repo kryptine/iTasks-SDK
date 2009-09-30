@@ -2,23 +2,20 @@
 * This panel will show the current work in tabs.
 */
 
-Ext.ns('itasks');
+Ext.ns("itasks");
 
 itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
-
-	sessionId: undefined,
-	application: undefined,
 	
 	initComponent: function() {
 		Ext.apply(this,{
 			activeItem: 0,
 			layoutOnTabChange: true,
-			items: {xtype: 'itasks.hometab'}
+			items: {xtype: "itasks.hometab"}
 		});
 		
 		itasks.WorkTabsPanel.superclass.initComponent.apply(this, arguments);
 	},
-	openWorkTab: function (taskid, trace) {
+	openWorkTab: function (taskid) {
 
 		//Id is prefixed with the string "worktab-"
 		var id = "worktab-" + taskid;
@@ -30,7 +27,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		if(tab == undefined) {
 			//Create new tab
 			isnew = true;
-			tab = new itasks.WorkPanel({id: id, taskId: taskid, sessionId: this.sessionId, application: this.application, debug: trace});
+			tab = new itasks.WorkPanel({id: id, taskId: taskid});
 			
 			//Add new tab
 			this.add(tab);
@@ -42,10 +39,19 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		//Return a reference to the new tab
 		return [tab,isnew];
 	},
+	openDebugTab: function() {
+		var tab = this.getComponent("debugtab");
+		if(tab == undefined) {
+			tab = new itasks.DebugPanel({id: "debugtab", worktabs: this, closable: true});
+			this.add(tab);
+		}
+		this.activate(tab);
+		return tab;	
+	},
 	openTaskForestTab: function () {
 		var tab = this.getComponent("taskforesttab");
 		if(tab == undefined) {
-			tab = new itasks.TaskForestTabPanel({id: "taskforesttab", sessionId: this.sessionId, application: this.application});
+			tab = new itasks.TaskForestTabPanel({id: "taskforesttab"});
 			this.add(tab);
 		}
 		this.activate(tab);
@@ -55,7 +61,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 	openProcessTableTab: function () {
 		var tab = this.getComponent("processtabletab");
 		if(tab == undefined) {
-			tab = new itasks.ProcessTableTabPanel({id: "processtabletab", sessionId: this.sessionId, application: this.application});
+			tab = new itasks.ProcessTableTabPanel({id: "processtabletab"});
 			this.add(tab);
 		}
 		this.activate(tab);
@@ -64,4 +70,4 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 	}
 });
 
-Ext.reg('itasks.worktabs',itasks.WorkTabsPanel);
+Ext.reg("itasks.worktabs",itasks.WorkTabsPanel);

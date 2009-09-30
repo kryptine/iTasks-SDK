@@ -5,9 +5,6 @@ Ext.ns('itasks');
 
 itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 
-	sessionId: undefined,
-	application: undefined,
-
 	workStore: new Ext.data.Store({
 		autoLoad: false,
 		bufferSize: 300,
@@ -92,7 +89,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				text: 'Refresh worklist',
 				iconCls: 'x-tbar-loading',
 				listeners: {
-					click : { 
+					click: { 
 						scope: this,
 						fn: function (btn) {
 							this.refresh();
@@ -106,7 +103,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 		//Check session error responses
 		this.store.on('loadexception',function() {
 			if(this.store.reader.jsonData.error) {
-				this.application.restart(this.store.reader.jsonData.error);
+				itasks.app.restart(this.store.reader.jsonData.error);
 			}
 		},this);
 	},
@@ -121,7 +118,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	*/
 	refresh: function () {
 		this.store.load({
-			params: {_session: this.sessionId}
+			params: {_session: itasks.app.session}
 		});
 	}
 });

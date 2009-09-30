@@ -10,15 +10,16 @@ itasks.ProcessTableTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 	initComponent: function () {
 		Ext.apply(this, {
-			title: 'Process table',
+			title: "Process table",
 			closable: true,
 			autoScroll: true,
-			url: 'handlers/debug/processtable',
-			cls: 'worktab-container',
-			bodyStyle: 'padding: 10px;',
+			url: "handlers/debug/processtable",
+			cls: "worktab-container",
+			iconCls: "icon-process-table",
+			bodyStyle: "padding: 10px;",
 			tbar: [{
-					text: 'Refresh',
-					iconCls: 'x-tbar-loading',
+					text: "Refresh",
+					iconCls: "x-tbar-loading",
 					listeners: { click: { fn: function (btn) {this.refresh();}, scope: this}}
 				}]
 		});	
@@ -29,4 +30,4 @@ itasks.ProcessTableTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 	}
 });
 
-Ext.reg('itasks.processtabletab',itasks.ProcessTableTabPanel);
+Ext.reg("itasks.processtabletab",itasks.ProcessTableTabPanel);

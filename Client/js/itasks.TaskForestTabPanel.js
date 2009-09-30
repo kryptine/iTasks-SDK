@@ -2,20 +2,21 @@
 * Tab panel which shows the global task forest.
 */
 
-Ext.ns('itasks');
+Ext.ns("itasks");
 
 itasks.TaskForestTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 	initComponent: function () {
 		Ext.apply(this, {
-			title: 'Task forest',
+			title: "Task forest",
 			closable: true,
 			autoScroll: true,
-			url: 'handlers/debug/tasktreeforest',
-			cls: 'worktab-container',
+			url: "handlers/debug/tasktreeforest",
+			cls: "worktab-container",
+			iconCls: "icon-task-tree",
 			tbar: [{
-					text: 'Refresh',
-					iconCls: 'x-tbar-loading',
+					text: "Refresh",
+					iconCls: "x-tbar-loading",
 					listeners: {click: {fn: function (btn) {this.refresh();},scope: this}}
 				}]
 		});
@@ -27,4 +28,4 @@ itasks.TaskForestTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 	}
 });
 
-Ext.reg('itasks.taskforesttab',itasks.TaskForestTabPanel);
+Ext.reg("itasks.taskforesttab",itasks.TaskForestTabPanel);

@@ -7,8 +7,6 @@ Ext.ns("itasks");
 itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 
 	taskId: null,
-	sessionId: null,
-	application: null,
 	properties: null,
 	
 	debug: false,
@@ -22,7 +20,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			iconCls: "icon-task",
 			
 			url: "/handlers/work/tab",
-			params: {_maintask: this.taskId, _debug: this.debug ? 1 : 0},
+			params: {_maintask: this.taskId, _debug: itasks.app.debug ? 1 : 0},
 			
 			layout: "anchor",
 			deferredRender: false,
@@ -117,7 +115,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 		//Reset params, events and states
 		this.params = { _maintask : this.taskId
-					  , _debug: this.debug ? 1 : 0
+					  , _debug: itasks.app.debug ? 1 : 0
 					  }
 	},
 	updateTitle: function(subject) {
@@ -188,10 +186,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	removeDebugTab: function() {
 		this.getComponent(1).remove(2,true);
 	},
-	setTrace: function(trace) {
-		this.debug = trace;
-		this.params["_debug"] = trace ? 1 : 0;
-	},
 	sendTaskUpdates: function(target,updates) {
 		//Add task updates to params
 		Ext.apply(this.params, updates);
@@ -208,7 +202,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		Ext.Ajax.request({
 			url:"/handlers/work/property",
 			method: "GET",
-			params: {_session : this.sessionId, process : process, property: name, value: value },
+			params: {_session : itasks.app.session, process : process, property: name, value: value },
 			callback: function(el,success,response,options) {
 				this.getComponent(0).setBusy(false);
 				this.fireEvent("propertyChanged");
@@ -586,7 +580,7 @@ itasks.form.UserField = Ext.extend(itasks.form.InlineField, {
 		forceSelection: true,
 		listeners: {
 			"select" : function(cmt,rec,ind) {cmt.label = rec.get("displayName");},
-			"beforequery" : function(e) {e.combo.store.baseParams["_session"] = e.combo.findParentByType("itasks.work").sessionId;}
+			"beforequery" : function(e) {e.combo.store.baseParams["_session"] = itasks.app.session;}
 		}
 	}
 });

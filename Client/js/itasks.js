@@ -1,6 +1,8 @@
-Ext.BLANK_IMAGE_URL = '/ext3/resources/images/default/s.gif';
-Ext.onReady(function(){
+Ext.BLANK_IMAGE_URL = "/ext3/resources/images/default/s.gif";
 
-	app = new itasks.Application();
-	app.start();
+Ext.ns("itasks");
+
+Ext.onReady(function(){
+	itasks.app = new itasks.Application();
+	itasks.app.start();
 });

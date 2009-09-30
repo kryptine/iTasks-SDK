@@ -9,11 +9,10 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 
 		Ext.apply(this, {
 			title: "New task...",
-			iconCls: "icon-newwork",
-			
+			iconCls: "icon-newwork",	
 			loader: new Ext.tree.TreeLoader({
 				dataUrl: "handlers/new/list",
-				baseParams: {_session: this.sessionId},
+				baseParams: {_session: itasks.app.session},
 				requestMethod: "POST"
 			}),
 			root: {text: "_ROOT_", nodeType: "async", id: "_ROOT_", expanded: true},
@@ -33,7 +32,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 		Ext.Ajax.request({
 			method: "POST",
 			url: "handlers/new/start",
-			params: {_session: this.sessionId, workflow: workflow},
+			params: {_session: itasks.app.session, workflow: workflow},
 			scripts: false,
 			callback: this.startWorkflowCB,
 			scope: this
@@ -42,8 +41,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 	startWorkflowCB: function(el, success, response, options){
 		try {
 			var data = Ext.decode(response.responseText);
-	
-			//Fire event
+
 			this.fireEvent("processStarted",data.taskid);
 		} catch(SyntaxError) {}
 	}

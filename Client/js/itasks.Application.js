@@ -5,6 +5,11 @@ Ext.ns('itasks');
 
 itasks.Application = function () {
 	return {
+		//Application-wide state
+		debug: false,
+		session: null,
+		displayName: null,
+		
 		viewport: new Ext.Viewport({
 			layout: 'card',
 			activeItem: 0,
@@ -60,11 +65,16 @@ itasks.Application = function () {
 			link.href = "skins/" + itasks.config.skin + "/main.css";
 			
 			document.body.appendChild(link);
+			document.title = itasks.config.appTitle;
 		},	
 		/**
 		* Loads and builds the GUI
 		*/	
-		loadUserInterface: function(displayName, sessionId) {
+		loadUserInterface: function(displayName, session) {
+			
+			//Update global state
+			this.session = session;
+			this.displayName = displayName;
 			
 			//Remove the login window
 			this.loginWindow.hide();
@@ -87,7 +97,7 @@ itasks.Application = function () {
 			//Start building the GUI
 			this.loaderWindow.updateProgress(0.2,'Building User Interface...');
 	
-			this.mainGui = new itasks.ApplicationPanel({application: this, displayName: displayName, sessionId: sessionId});
+			this.mainGui = new itasks.ApplicationPanel();
 			this.viewport.add(this.mainGui);
 			this.viewport.doLayout();
 				

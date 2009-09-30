@@ -5,9 +5,6 @@ Ext.ns("itasks");
 
 itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 
-	sessionId: undefined,
-	application: undefined,
-	
 	url: undefined,
 	params: {},
 	busy: false,
@@ -28,7 +25,7 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 		this.fireEvent("remoteCallStart");
 		
 		//Add session id parameter
-		params["_session"] = this.sessionId
+		params["_session"] = itasks.app.session
 		
 		Ext.Ajax.request({
 			method: 'POST',
@@ -46,7 +43,7 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 					if(typeof data == 'object') {
 						//Check for (session) errors
 						if(data.error) {
-							this.application.restart(data.error);
+							itasks.app.restart(data.error);
 							return;
 						}
 						callback.call(this,data);
