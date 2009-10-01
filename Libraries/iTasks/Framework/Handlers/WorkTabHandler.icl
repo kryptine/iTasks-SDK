@@ -137,6 +137,8 @@ buildTaskPanel (TTExtJSTask ti (Right upd))
 	= ExtFormUpdate {ExtFormUpdate | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
 buildTaskPanel (TTMonitorTask ti html)
 	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}
+buildTaskPanel (TTRpcTask ti rpc)
+	= MonitorPanel {MonitorPanel | xtype = "itask.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCInfo.methodName, Text ": ", Text rpc.RPCInfo.status])}
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
@@ -163,6 +165,7 @@ where
 isActive :: TaskTree -> Bool
 isActive (TTExtJSTask		{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTMonitorTask		{TaskInfo|active,finished} _ )	= active && not finished
+isActive (TTRpcTask			{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTSequenceTask	{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTParallelTask	{TaskInfo|active,finished} _ _ )= active && not finished
 isActive (TTMainTask 		{TaskInfo|active,finished} _ _ )= active && not finished

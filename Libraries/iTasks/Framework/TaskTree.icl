@@ -17,6 +17,9 @@ where
 	locateSubTaskTree` taskid [x =:(TTMonitorTask ti _):xs]
 		| taskid == ti.TaskInfo.taskId		= Just x
 		| otherwise							= locateSubTaskTree` taskid xs
+	locateSubTaskTree` taskid [x =:(TTRpcTask ti _):xs]
+		| taskid == ti.TaskInfo.taskId		= Just x
+		| otherwise							= locateSubTaskTree` taskid xs
 	locateSubTaskTree` taskid [x =:(TTSequenceTask ti sequence):xs]
 		| taskid == ti.TaskInfo.taskId		= Just x
 		| otherwise							= locateSubTaskTree` taskid (xs ++ sequence)

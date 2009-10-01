@@ -16,6 +16,7 @@ from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 :: TaskTree			= TTMainTask		TaskInfo TaskProperties		[TaskTree]				//A task that is treated as a main chunk of work
 					| TTExtJSTask		TaskInfo (Either ExtJSDef [ExtJSUpdate])			//A task that can be worked on through an ExtJS gui 
 					| TTMonitorTask		TaskInfo [HtmlTag]									//A task that upon evaluation monitors a condition and may give status output
+					| TTRpcTask			TaskInfo RPCInfo									//A task that represents an rpc invocation
 					| TTSequenceTask	TaskInfo 					[TaskTree]				//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks  
 					| TTFinishedTask	TaskInfo											//A completed task
@@ -55,6 +56,17 @@ from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 					| TPStuck																//Worker is stuck and needs assistence
 					| TPWaiting																//Worker is waiting, not actively working on the task
 					| TPReject																//Worker does not want to continue working on the task
+:: RPCInfo =
+	{ methodName	:: String
+	, endPoint		:: String
+	, protocol		:: RPCProtocol
+	, status		:: RPCStatus
+	, parameters	:: [(String,String)]
+	}
+
+:: RPCProtocol	= RPCHttp RPCMethod | RCPTcp
+:: RPCMethod	= RPCGet | RPCPost
+:: RPCStatus	:== String
 
 /**
 * Finds the sub tree with the given task number

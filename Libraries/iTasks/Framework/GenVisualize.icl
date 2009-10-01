@@ -174,8 +174,10 @@ gVisualize{|Maybe|} fx old new vst=:{vizType,currentPath,optional,blank}
 			# (cblank, cval) = childval blank old 
 			# (viz,vst) = fx cval cval {vst & optional = True, blank = cblank}
 			= (viz,{vst & optional = optional, blank = blank, currentPath = stepDataPath currentPath})
-		VEditorUpdate
-			= ([],{VSt|vst & currentPath = stepDataPath currentPath})
+		VEditorUpdate //Same as VEditorDefinition
+			# (cblank, cval) = childval blank old
+			# (viz,vst) = fx cval cval {vst & optional = True, blank = cblank}
+			= (viz,{vst & optional = optional, blank = blank, currentPath = stepDataPath currentPath})
 		_	
 			= case old of
 				Nothing		= ([TextFragment "-"],vst)
@@ -268,6 +270,7 @@ where
 	collectIds [ExtJSTextArea {ExtJSTextArea|id}:is] = [id:collectIds is]
 	collectIds [ExtJSCheckBox {ExtJSCheckBox|id}:is] = [id:collectIds is]
 	collectIds [ExtJSRadioGroup {ExtJSRadioGroup|id}:is] = [id:collectIds is]
+	collectIds [ExtJSComboBox {ExtJSComboBox|id}:is] = [id:collectIds is]
 	collectIds [ExtJSFieldSet {ExtJSFieldSet|id}:is] = [id:collectIds is]
 	collectIds [_:is] = collectIds is
 	

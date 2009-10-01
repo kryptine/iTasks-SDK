@@ -304,7 +304,13 @@ mkMonitorTask taskname taskfun = Task taskname Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
-		
+
+mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a
+mkRpcTask taskname info parsefun = Task taskname Nothing mkRpcTask`
+where
+	mkRpcTask` tst
+		= (undef, tst)
+	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
 where

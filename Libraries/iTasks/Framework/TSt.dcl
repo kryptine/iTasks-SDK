@@ -250,6 +250,20 @@ mkInstantTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 */
 mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
+
+/**
+* Creates an rpc task from an rpc call definition.
+* A parse function is used to parse the result of the rpc call
+*
+* @param A name used as the task label
+* @param The initial RPC info record
+* @param The parse function
+*
+* @return The constructed RPC task
+*/
+mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a
+
+
 /**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
