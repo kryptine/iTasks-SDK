@@ -182,7 +182,7 @@ gUpdate{|Char|} c ust = (c, ust)
 gUpdate{|Bool|} _ ust=:{USt|mode=UDCreate} = (False, ust)
 gUpdate{|Bool|} b ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
-		= (update == "True", toggleMask {USt|ust & mode = UDDone})
+		= (update == "true", toggleMask {USt|ust & mode = UDDone})
 	| otherwise
 		= (b, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Bool|} b ust=:{USt|mode=UDMask,currentPath,mask}
@@ -212,9 +212,12 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,currentPath}
 	= (l,{ust & currentPath = stepDataPath currentPath})
 where
 	gUpdateList fx [] ust=:{USt|currentPath,searchPath,update}
-		| currentPath == searchPath && update == "_Cons"
-			# (a,ust) = fx undef {ust& mode = UDCreate}
-			= ([a], toggleMask {USt|ust & mode = UDDone})	
+		| currentPath == searchPath
+			| update == "_Cons"
+				# (a,ust) = fx undef {ust& mode = UDCreate}
+				= ([a], toggleMask {USt|ust & mode = UDDone})
+			| otherwise
+				= ([], toggleMask {USt |ust & mode = UDDone})
 		| otherwise	
 			= ([],ust)
 	gUpdateList fx [x:xs] ust=:{USt|currentPath,searchPath,update}
@@ -263,6 +266,8 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 		Just x
 			# (_,ust) = fx x ust
 			= (m, {USt|ust & currentPath = stepDataPath currentPath})
+
+gUpdate{|Maybe|} fx l ust = (l,ust)
 
 derive gUpdate Either, (,), (,,), (,,,), Void
 

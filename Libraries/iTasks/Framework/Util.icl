@@ -73,7 +73,8 @@ gParse{|Dynamic|} expr
 		parseString expr = gParse{|*|} expr
 
 
-gVisualize{|Task|} fx (Task label _ _) _ vst = ([TextFragment label],vst)
+gVisualize{|Task|} fx (VValue (Task label _ _) _) _ vst = ([TextFragment label],vst)
+gVisualize{|Task|} fx _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx undef ust

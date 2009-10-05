@@ -18,6 +18,10 @@ testUsers = [ {User | userId = 1, userName = "bas", displayName = "Bas", passwor
 			, {User | userId = 4, userName = "peter", displayName = "Peter", password = "", roles = []}
 			, {User | userId = 5, userName = "pieter", displayName = "Pieter", password = "", roles = []}
 			, {User | userId = 6, userName = "janmartin", displayName = "Jan Martin", password = "", roles = []}
+
+  			, {User | userId = 20, userName = "megastore", displayName = "Megastore", password = "", roles = ["supplier"]}
+			, {User | userId = 21, userName = "localshop", displayName = "Local shop", password = "", roles = ["supplier"]}
+			, {User | userId = 22, userName = "webshop", displayName = "Webshop.com", password = "", roles = ["supplier"]}   
 			]
 /*
 testUsers :: [User] 

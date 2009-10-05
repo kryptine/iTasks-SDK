@@ -46,7 +46,7 @@ makeInformationTask question initial context tst=:{taskNr}
 							Nothing
 								= accWorldTSt defaultValue tst	
 	# (mbmask,tst)	= getTaskStore "mask" tst
-	# (mask,tst)	= case mbmask of
+	# (omask,tst)	= case mbmask of
 						Just m = (m,tst)
 						Nothing = case initial of
 							Just v	= accWorldTSt (defaultMask initial) tst
@@ -54,17 +54,17 @@ makeInformationTask question initial context tst=:{taskNr}
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst	
 	| length updates == 0
-		# (form,valid) 	= visualizeAsEditor editorId mask oldval
+		# (form,valid) 	= visualizeAsEditor editorId omask oldval
 		# tst			= setExtJSDef (taskPanel (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",valid)]) tst
 		= (oldval,{tst & activated = False})
 	| otherwise
-		# (newval,mask,tst) = applyUpdates updates oldval mask tst
+		# (newval,nmask,tst) = applyUpdates updates oldval omask tst
 		# done = (http_getValue "done" updates "") == "done"
 		| done
 			= (newval,{tst & activated = True})
 		| otherwise
-			# tst				= setTaskStore "mask" mask tst
-			# (updates,valid)	= determineEditorUpdates editorId mask oldval newval
+			# tst				= setTaskStore "mask" nmask tst
+			# (updates,valid)	= determineEditorUpdates editorId omask nmask oldval newval
 			# tst				= setExtJSUpdates [ExtJSSetEnabled doneId valid:updates] tst
 			= (newval, {tst & activated = False})
 where

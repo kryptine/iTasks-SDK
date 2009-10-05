@@ -443,8 +443,9 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 	},
 	update: function(data) {
 		if(data.updates) {
-			var i = data.updates.length - 1;
-			while(i >= 0) {
+			
+			var num = data.updates.length;
+			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
 				switch(update[0]) {
 					case "ExtJSAdd":
@@ -482,7 +483,6 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 						}
 						break;
 				}
-				i--;
 			}
 		}
 	}

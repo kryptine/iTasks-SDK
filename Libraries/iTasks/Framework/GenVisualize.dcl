@@ -5,7 +5,7 @@ import StdGeneric, StdMaybe, Void, Either
 import GenUpdate
 
 //Generic visualization function
-generic gVisualize a	:: a a		*VSt -> ([Visualization], *VSt)
+generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], *VSt)
 
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
@@ -20,20 +20,26 @@ visualizeAsHtmlLabel	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String DataMask a a -> ([ExtJSUpdate],Bool)			| gVisualize{|*|} a
+determineEditorUpdates	:: String DataMask DataMask a a -> ([ExtJSUpdate],Bool)	| gVisualize{|*|} a
 
 //Type definitions for visualization
+:: VisualizationValue a
+	= VValue a DataMask
+	| VBlank
+
+//Bimap for visualization values
+derive bimap VisualizationValue
+
 :: *VSt =
-	{ vizType			:: VisualizationType	// Type of preferred visualization
-	, idPrefix			:: String				// Prefix for all identity strings of editor fields 
-	, label				:: Maybe String			// Optional label to attach to editor fields
+	{ vizType			:: !VisualizationType		// Type of preferred visualization
+	, idPrefix			:: !String					// Prefix for all identity strings of editor fields 
+	, label				:: !Maybe String			// Optional label to attach to editor fields
 	// Additional information for form generation
-	, currentPath		:: DataPath				// Accumulated path through the data structure, used to identify sub-structures
-	, consBody			:: Bool					// Only generate a constructor body for editors
-	, optional			:: Bool					// Create optional form fields
-	, blank				:: Bool					// Build a structure  with undefs
-	, mask				:: DataMask				// The section of the datastructure that is "complete"
-	, valid				:: Bool					// Is the form valid
+	, currentPath		:: !DataPath				// Accumulated path through the data structure, used to identify sub-structures
+	, consBody			:: !Bool					// Only generate a constructor body for editors
+	, optional			:: !Bool					// Create optional form fields
+	, valid				:: !Bool					// Is the form valid
+	, cons				:: !Bool					// Is the current input an ADT constructor
 	}
 
 :: VisualizationType
@@ -51,6 +57,8 @@ determineEditorUpdates	:: String DataMask a a -> ([ExtJSUpdate],Bool)			| gVisua
 	| ExtJSUpdate ExtJSUpdate
 
 //Utility functions making specializations of gVisualize
-value2s 	:: DataPath DataMask a			-> String | toString a
-label2s 	:: Bool (Maybe String)			-> Maybe String
-stillValid	:: DataPath DataMask Bool Bool	-> Bool
+instance toString (VisualizationValue a) | toString a
+
+value2s 	:: DataPath (VisualizationValue a)				-> String | toString a
+label2s 	:: Bool (Maybe String)							-> Maybe String
+stillValid	:: DataPath (VisualizationValue a) Bool Bool	-> Bool
