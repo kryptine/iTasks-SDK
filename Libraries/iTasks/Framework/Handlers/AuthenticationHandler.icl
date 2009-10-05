@@ -19,4 +19,4 @@ where
 	password = http_getValue "password" req.arg_post ""
 	
 	encodeFailure	= "{\"success\": false, \"error\": \"Incorrect username or password\"}"
-	encodeSuccess sid displayName	= "{\"success\": true, \"displayName\": \"" +++ displayName +++ "\", sessionId: \"" +++ sid +++ "\"}"
+	encodeSuccess sid displayName	= "{\"success\": true, \"displayName\": \"" +++ displayName +++ "\", \"sessionId\": \"" +++ sid +++ "\"}"
