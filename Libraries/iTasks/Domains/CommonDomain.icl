@@ -14,20 +14,20 @@ derive gLexOrd		Currency
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSDateField {ExtJSDateField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = isNothing label})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid, cons = False})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 
 gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSTimeField {ExtJSTimeField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = isNothing label})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid, cons = False})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 
 gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSTextArea {ExtJSTextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s contentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label, width = 400, height = 150 })]
-							, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid, cons = False})
+							, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
@@ -36,9 +36,9 @@ where
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition
-			= ([ExtJSFragment combinedPanel], {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid, cons = False})
+			= ([ExtJSFragment combinedPanel], {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		_
-			= ([TextFragment (toString old)],{VSt|vst & valid= stillValid currentPath new optional valid, cons = False})
+			= ([TextFragment (toString old)],{VSt|vst & valid= stillValid currentPath new optional valid})
 where
 	combinedPanel			= ExtJSPanel {ExtJSPanel| layout = "hbox", fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
 	numberField				= ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath

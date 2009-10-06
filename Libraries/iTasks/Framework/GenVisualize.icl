@@ -10,7 +10,7 @@ MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the 
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
 mkVSt :: *VSt
-mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, consBody = False, optional = False, valid = True, cons = False}
+mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, consBody = False, optional = False, valid = True}
 
 //Wrapper functions
 visualizeAsEditor :: String DataMask a -> ([ExtJSDef],Bool) | gVisualize{|*|} a
@@ -184,9 +184,9 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,cons
 																	, title = title label
 																	, items = coerceToExtJSDefs vizBody
 																	, autoHeight = True, border = True})]
-																	, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, cons = False})
+																	, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 				| otherwise
-					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath, cons = False})
+					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
 						
 			//ADT's with only one constructor
 			| d.gcd_type_def.gtd_num_conses == 1 
@@ -199,10 +199,10 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,cons
 						(fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, consBody = False, optional = False})
 						([], vst)	 	
 				| consBody //Normal ADT's without constructor selector
-					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional, cons = True})
+					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
 				| otherwise	//Normal ADT's with constructor selector
 					= ((consSelector d idPrefix currentPath old (label2s optional label)) ++ vizBody
-					  ,{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional, cons = True})
+					  ,{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
 		//Html display vizualization
 		VHtmlDisplay
 			= case (old,new) of
@@ -225,7 +225,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,cons
 						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					//A validity check is used
 					| otherwise
-						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional, cons = isEmpty d.gcd_fields})
+						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
 				_
 					= ([], {VSt|vst & currentPath = stepDataPath currentPath})		
 where
@@ -269,26 +269,26 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old , fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = False, numDecimals = 0})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid, cons = False})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		
 gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = True, numDecimals = 1000})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid, cons = False})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		
 gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid, cons = False})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 
 gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = isNothing label, checked = checked })]
-								, {VSt|vst & currentPath = stepDataPath currentPath, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, cons = False})		
+								, {VSt|vst & currentPath = stepDataPath currentPath})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})		
 where
 	checked	= case old of
 		VBlank			= False
@@ -298,8 +298,8 @@ where
 gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, cons = False})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid, cons = False})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 
 
 gVisualize{|Maybe|} fx old new vst=:{vizType,idPrefix,currentPath,optional,valid,consBody}

@@ -39,7 +39,6 @@ derive bimap VisualizationValue
 	, consBody			:: !Bool					// Only generate a constructor body for editors
 	, optional			:: !Bool					// Create optional form fields
 	, valid				:: !Bool					// Is the form valid
-	, cons				:: !Bool					// Is the current input an ADT constructor
 	}
 
 :: VisualizationType
