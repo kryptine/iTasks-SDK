@@ -22,6 +22,18 @@ testUsers = [ {User | userId = 1, userName = "bas", displayName = "Bas", passwor
   			, {User | userId = 20, userName = "megastore", displayName = "Megastore", password = "", roles = ["supplier"]}
 			, {User | userId = 21, userName = "localshop", displayName = "Local shop", password = "", roles = ["supplier"]}
 			, {User | userId = 22, userName = "webshop", displayName = "Webshop.com", password = "", roles = ["supplier"]}   
+			
+			, {User | userId = 30, userName = "ambupost0", displayName = "Ambulance Post 0", password = "", roles = ["ambulances"]}
+			, {User | userId = 31, userName = "ambupost1", displayName = "Ambulance Post 1", password = "", roles = ["ambulances"]}
+			, {User | userId = 32, userName = "ambupost2", displayName = "Ambulance Post 2", password = "", roles = ["ambulances"]}   
+			, {User | userId = 33, userName = "ambupost3", displayName = "Ambulance Post 3", password = "", roles = ["ambulances"]}   
+			, {User | userId = 34, userName = "ambupost4", displayName = "Ambulance Post 4", password = "", roles = ["ambulances"]}   
+			, {User | userId = 35, userName = "ambupost5", displayName = "Ambulance Post 5", password = "", roles = ["ambulances"]}   
+			, {User | userId = 36, userName = "ambupost6", displayName = "Ambulance Post 6", password = "", roles = ["ambulances"]}   
+			, {User | userId = 37, userName = "ambupost7", displayName = "Ambulance Post 7", password = "", roles = ["ambulances"]}   
+			, {User | userId = 38, userName = "ambupost8", displayName = "Ambulance Post 8", password = "", roles = ["ambulances"]}   
+			, {User | userId = 39, userName = "ambupost9", displayName = "Ambulance Post 9", password = "", roles = ["ambulances"]}  
+			
 			]
 /*
 testUsers :: [User] 

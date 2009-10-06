@@ -25,6 +25,9 @@ import Newsgroups
 import ChangeHandling
 import WebShop
 
+//Crisis response examples
+import AmbulanceDispatch
+
 //Administrative tasks
 import ProcessAdmin
 
@@ -48,5 +51,6 @@ where
 						, exceptionHandlingExample
 						, changeHandlingExample
 						, webShopExample
+						, ambulanceDispatchExamples
 						, processAdmin
 						]
