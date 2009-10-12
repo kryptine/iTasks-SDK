@@ -4,6 +4,10 @@ import StdList, StdTuple
 import Html, Text
 import ProcessDB
 import TaskTree
+import JSON
+
+derive JSONEncode TraceTree
+derive JSONDecode TraceTree
 
 traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
@@ -27,52 +31,119 @@ where
 							, TdTag [] [Text (join ", " (map fst process.Process.changes))]
 							]
 
-traceTaskTree :: TaskTree -> HtmlTag
-traceTaskTree tree = DivTag [] (mkTree tree)
-where	
-	mkTree (TTExtJSTask info _ )
-		= [DivTag [ClassAttr "trace-node"] [
-			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [Text "INT: ",Text info.TaskInfo.traceValue]
-		    ]
-		  ]
+traceTaskTree :: TaskTree -> TraceTree
+traceTaskTree tree = mkTree tree
+where
+	mkTree (TTExtJSTask info _ ) 
+		= { cls = "master-task"
+		  , user = ""
+		  , uiProvider = "col"
+		  , leaf = True
+		  , iconCls = "task-int"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "INT"
+		  , activeClass = activeClass info
+		  , children = []
+		  }
+	
 	mkTree (TTMonitorTask info _ )
-		= [DivTag [ClassAttr "trace-node"] [
-			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [Text "MON: ", Text info.TaskInfo.traceValue]
-		    ]
-		  ]
+		= { cls = "master-task"
+		  , user = ""
+		  , uiProvider = "col"
+		  , leaf = True
+		  , iconCls = "task-mon"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "MON"
+		  , activeClass = activeClass info
+		  , children = []
+		  }
+	
+	mkTree (TTRpcTask info _ )
+		= { cls = "master-task"
+		  , user = ""
+		  , uiProvider = "col"
+		  , leaf = True
+		  , iconCls = "task-rpc"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "RPC"
+		  , activeClass = activeClass info
+		  , children = []
+		  }		  
+		  
 	mkTree (TTSequenceTask info trees)
-		= [TableTag [ClassAttr "trace-sequence"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text "SEQ: ", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
-			:
-			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
-		  ]]
+		= { cls = "master-task"
+		  , user = ""
+		  , uiProvider = "col"
+		  , leaf = checkIfLeaf trees
+		  , iconCls = "task-seq"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = ""
+		  , taskClass = "SEQ"
+		  , activeClass = activeClass info
+		  , children = [traceTaskTree tree \\ tree <- trees]
+		  }
+	
 	mkTree (TTParallelTask info combination trees)
-		= [TableTag [ClassAttr "trace-parallel"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info), ColspanAttr (toString (length trees))] [Text "PAR: ",Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel, Text " (",Text (showCombination combination), Text ")"] ],
-			TrTag [] [TdTag [] (mkTree tree) \\ tree <- trees]
-		  ]]
+		= { cls = "master-task"
+		  , user = ""
+		  , uiProvider = "col"
+		  , leaf = checkIfLeaf trees
+		  , iconCls = "task-par"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = ""
+		  , taskClass = "PAR"
+		  , activeClass = activeClass info
+		  , children = [traceTaskTree tree \\ tree <- trees]
+		  }
+	
 	mkTree (TTMainTask info mti trees)
-		= [TableTag [ClassAttr "trace-sequence"] [
-			TrTag [] [ThTag [ClassAttr (activeClass info)] [Text "MNT: ", Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel] ]
-			:
-			[TrTag [] [TdTag [] (mkTree tree)] \\ tree <- trees]
-		  ]]
+		# (userId, userName) =  mti.TaskProperties.managerProps.TaskManagerProperties.worker
+		= { cls = "master-task"
+		  , uiProvider = "col"
+		  , user = userName+++" ("+++toString userId+++")"
+		  , leaf = checkIfLeaf trees
+		  , iconCls = "task-mnt"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = ""
+		  , taskClass = "MNT"
+		  , activeClass = activeClass info
+		  , children = [traceTaskTree tree \\ tree <- trees]
+		  }
+	
 	mkTree (TTFinishedTask info)
-		= [DivTag [ClassAttr "trace-node"] [
-			DivTag [ClassAttr ("trace-node-title " +++ (activeClass info))] [Text info.TaskInfo.taskId, Text ": ", Text info.TaskInfo.taskLabel],
-			DivTag [ClassAttr "trace-node-content " ] [Text "FIN: ", Text info.TaskInfo.traceValue]
-		    ]
-		  ]
-
+		= { cls = "master-task"
+		  , user = ""
+		  , uiProvider = "col"
+		  , leaf = True
+		  , iconCls = "task-fin"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = info.TaskInfo.taskLabel
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "FIN"
+		  , activeClass = activeClass info
+		  , children = []
+		  }
+	
 	activeClass info
-		| info.TaskInfo.finished	= "trace-finished"
-		| info.TaskInfo.active		= "trace-active"
-									= "trace-inactive"
+		| info.TaskInfo.finished	= "finished"
+		| info.TaskInfo.active		= "active"
+									= "inactive"
 
 	showCombination TTVertical		= "Vertical"
 	showCombination TTHorizontal	= "Horizontal"
 	
-traceTaskForest :: [TaskTree] -> HtmlTag
-traceTaskForest trees = DivTag [] [traceTaskTree tree \\ tree <- trees]
+	checkIfLeaf trees
+		| length trees > 0 			= False
+		| otherwise 				= True
+	
+traceTaskForest :: [TaskTree] -> String
+traceTaskForest trees = toJSON [traceTaskTree tree \\ tree <- trees]

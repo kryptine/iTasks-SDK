@@ -7,7 +7,26 @@ from Html		import :: HtmlTag
 from ProcessDB	import :: Process
 from TaskTree	import :: TaskTree
 
+import JSON
+
+:: TraceTree =
+	{ cls			:: String
+	, user			:: String
+	, uiProvider	:: String
+	, leaf			:: Bool
+	, iconCls		:: String
+	, taskId 		:: String
+	, taskLabel 	:: String
+	, traceValue	:: String
+	, taskClass		:: String
+	, activeClass	:: String
+	, children		:: [TraceTree]
+	}
+
+derive JSONEncode TraceTree
+derive JSONDecode TraceTree
+
 traceProcesses 		:: [Process]		-> HtmlTag
 
-traceTaskTree		:: TaskTree			-> HtmlTag
-traceTaskForest		:: [TaskTree]		-> HtmlTag
+traceTaskTree		:: TaskTree			-> TraceTree
+traceTaskForest		:: [TaskTree]		-> String
