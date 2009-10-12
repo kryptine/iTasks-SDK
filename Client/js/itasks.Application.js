@@ -6,7 +6,6 @@ Ext.ns('itasks');
 itasks.Application = function () {
 	return {
 		//Application-wide state
-		debug: false,
 		session: null,
 		displayName: null,
 		

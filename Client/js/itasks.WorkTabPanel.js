@@ -30,7 +30,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				anchor: "r"
 			},{
 				xtype: "tabpanel",
-				anchor: "r -50",
+				anchor: "r -25",
 				cls: "worktab-container",
 				tabPosition: "bottom",
 				layoutOnTabChange: true,
@@ -458,9 +458,12 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 						break;
 					case "ExtJSRemove":
 						var ct = Ext.getCmp(update[1]);
+						
 						if(ct) {
 							var oct = ct.ownerCt;
+							
 							oct.remove(update[1]);
+							oct.doLayout();
 						}
 						break;
 					case "ExtJSSetEnabled":

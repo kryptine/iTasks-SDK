@@ -56,7 +56,7 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 		this.iconPanel = new Ext.Panel({
 			id: 'iconpanel', 
 			region: 'south',
-		
+			height: 20,
 			border: false,
 			
 			html: '<div class="taskForestLegend task-mnt">Main Task</div>'+
@@ -75,7 +75,6 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 			title: "Task forest",
 			closable: true,
 			autoScroll: false,
-			header: false,
 			
 			cls: "worktab-container",
 			iconCls: "icon-task-tree",

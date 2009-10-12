@@ -44,26 +44,6 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 					}
 				}]
 			},{
-				id: "options",
-				xtype: "fieldset",
-				title: "Options",
-				defaultType: "checkbox",
-				hideLabels: true,
-				autoHeight: true,
-				layout: "form",
-				items: [{
-					id: "trace",
-					boxLabel: "Enable trace",
-					listeners: {
-						check: {
-							fn: function(oldv,newv) {
-								itasks.app.debug = newv;
-							},
-							scope: this
-							}
-						}
-					}]
-			},{
 				xtype: "fieldset",
 				title: "Session",
 				html: itasks.app.session,
