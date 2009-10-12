@@ -2,22 +2,38 @@ module RPCTest
 
 import iTasks
 import TaskTree
+import Base64
+import JSON
+from StdFunc import o
 from TSt import mkRpcTask
 
-rpcTestTask :: Task Void
-rpcTestTask = return Void
+:: OceanName = 
+	{ ocean :: Ocean }
+:: Ocean = 
+	{ name :: String }
 
-rpcStub :: Int Int -> Task String
-rpcStub a0 a1 = mkRpcTask
-	"rpcStub"
+derive JSONEncode OceanName, Ocean
+derive JSONDecode OceanName, Ocean
+
+rpcTestTask :: Task Void
+rpcTestTask = 
+	enterInformation "Lattitude" >>= \lat ->
+	enterInformation "Longitude" >>= \lng ->
+	rpcStub2 lat lng >>= \json ->
+	showMessage json	
+	
+rpcStub2 :: Real Real -> Task String
+rpcStub2 lat lng = mkRpcTask
+	"Ocean Name"
 	{ RPCInfo
-	| methodName	= "test"
-	, endPoint		= "http://foo.com/"
-	, protocol		= RPCHttp RPCPost
-	, status		= "Not started yet"
-	, parameters	= [("a0",toJSON a0),("a1",toJSON a1)]
+	| methodName	= "Geoweb Ocean Names"
+	, endPoint		= "http://ws.geonames.org/oceanJSON"
+	, protocol		= RPCHttp RPCGet
+	, status		= "Not Started"
+	, parameters	= [("lat",toJSON lat),("lng",toJSON lng)]
 	}
-	id
+	base64Decode
+	
 	
 Start :: *World -> *World
 Start world = startEngine [workflow "RPC Test" rpcTestTask ] world
