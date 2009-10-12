@@ -151,6 +151,9 @@ buildTaskPanel (TTParallelTask ti TTHorizontal tasks)
 	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "horizontal", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
 buildTaskPanel (TTParallelTask ti TTVertical tasks)
 	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "vertical", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
+buildTaskPanel (TTFinishedTask _)
+	= TaskDone
+
 
 taskOverview :: [HtmlTag] [TaskTree] -> [HtmlTag]
 taskOverview prompt branches =
@@ -169,7 +172,7 @@ isActive (TTRpcTask			{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTSequenceTask	{TaskInfo|active,finished} _ )	= active && not finished
 isActive (TTParallelTask	{TaskInfo|active,finished} _ _ )= active && not finished
 isActive (TTMainTask 		{TaskInfo|active,finished} _ _ )= active && not finished
-isActive (TTFinishedTask	_ )								= False
+isActive (TTFinishedTask	_ )								= True
 
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst
