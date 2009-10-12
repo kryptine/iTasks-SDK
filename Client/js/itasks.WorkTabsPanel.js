@@ -13,7 +13,7 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 			items: {xtype: "itasks.hometab"}
 		});
 		
-		itasks.WorkTabsPanel.superclass.initComponent.apply(this, arguments);
+		itasks.WorkTabsPanel.superclass.initComponent.apply(this,arguments);
 	},
 	openWorkTab: function (taskid) {
 

@@ -40,7 +40,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					iconCls: "icon-task",
 					border: false,
 					bodyStyle: "padding: 10px;",
-					autoScroll: true
+					autoScroll: true	
 				},{
 					title: "Status",
 					xtype: "itasks.work-status",
@@ -229,8 +229,7 @@ itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
 	timepassed: 0,
 	runner: null,
 	
-	initComponent: function() {
-		
+	initComponent: function() {	
 		Ext.apply(this, {
 			cls: "worktab-content",
 			border: false,
@@ -612,14 +611,13 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			border: false,
-			layout: this.combination == "horizontal" ? "column" : null
+			layout: this.combination == "horizontal" ? "hbox" : null
 		});
-		
-		//Update column sizes for horizontal layouts
+
+		//Set flex property for children of horizontal layouts
 		if(this.combination == "horizontal") {
-			var colsize = 1.0 / this.items.length;
 			for(var i = 0; i < this.items.length; i++) {
-				this.items[i].columnWidth = colsize;
+				this.items[i].flex = 1;
 			}
 		}
 		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
@@ -652,12 +650,11 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 		for (var i = 0; i < trailing; i++) {
 			this.remove(items.length);
 		}
-			
-		//Update column sizes for horizontal layouts
+		
+		//Update flex for horizontal layouts
 		if(this.combination == "horizontal") {
-			var colsize = 1.0 / items.length;
 			for(var i = 0; i < items.length; i++) {
-				this.items.get(i).columnWidth = colsize;
+				this.items.get(i).flex = 1;
 			}
 		}
 		this.doLayout();

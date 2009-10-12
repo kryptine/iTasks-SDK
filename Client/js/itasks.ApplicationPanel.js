@@ -94,6 +94,10 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			attachTabHandlers(worktabs.openWorkTab(taskid));
 		},this);
 		
+		//Fix for tabpanel resize event bug
+		worktabs.on("resize",function(c) {
+			c.doLayout();
+		});
 		
 		//Add debug button
 		if(itasks.config.debug) {
