@@ -109,25 +109,32 @@ calculateTaskForest enableDebug tst
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
 	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	
-where
-	sortProcesses :: ![Process] -> [Process]
-	sortProcesses ps = sortBy (\p1 p2 -> p1.Process.processId > p2.Process.processId) ps 
 
-	addNewProcesses :: ![TaskTree] *TSt -> (![TaskTree],!*TSt)
-	addNewProcesses trees tst
-		# (pids,tst)		= getNewProcesses tst
-		| isEmpty pids		= (trees,tst)									//Nothing to do...
-		# (processes,tst)	= getProcessesById pids tst						//Lookup the process entries
-		# tst				= clearNewProcesses tst							//Reset the list of new processes
-		# (ntrees,tst)		= calculateTrees (sortProcesses processes) tst	//Calculate the additional task trees
-		= addNewProcesses (trees ++ reverse ntrees) tst						//Recursively check for more new processes	
+calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
+calculateCompleteTaskForest enableDebug tst 
+	# (processes, tst) = getProcesses [Active,Suspended] True tst
+	# (trees, tst) = calculateTrees processes tst
+	# (trees, tst) = addNewProcesses trees tst
+	= (Nothing, trees, tst)
 
-	calculateTrees :: ![Process] !*TSt -> (![TaskTree], !*TSt)
-	calculateTrees [] tst = ([],tst)
-	calculateTrees [p:ps] tst
-		# (tree,tst)	= buildProcessTree p Nothing tst
-		# (trees,tst)	= calculateTrees ps tst
-		= ([tree:trees],tst)
+sortProcesses :: ![Process] -> [Process]
+sortProcesses ps = sortBy (\p1 p2 -> p1.Process.processId > p2.Process.processId) ps 
+
+addNewProcesses :: ![TaskTree] *TSt -> (![TaskTree],!*TSt)
+addNewProcesses trees tst
+	# (pids,tst)		= getNewProcesses tst
+	| isEmpty pids		= (trees,tst)									//Nothing to do...
+	# (processes,tst)	= getProcessesById pids tst						//Lookup the process entries
+	# tst				= clearNewProcesses tst							//Reset the list of new processes
+	# (ntrees,tst)		= calculateTrees (sortProcesses processes) tst	//Calculate the additional task trees
+	= addNewProcesses (trees ++ reverse ntrees) tst						//Recursively check for more new processes	
+
+calculateTrees :: ![Process] !*TSt -> (![TaskTree], !*TSt)
+calculateTrees [] tst = ([],tst)
+calculateTrees [p:ps] tst
+	# (tree,tst)	= buildProcessTree p Nothing tst
+	# (trees,tst)	= calculateTrees ps tst
+	= ([tree:trees],tst)
 
 calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 calculateTaskTree pid enableDebug tst
@@ -305,11 +312,50 @@ where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
-mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a
-mkRpcTask taskname info parsefun = Task taskname Nothing mkRpcTask`
+mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a | gUpdate{|*|} a
+mkRpcTask taskname rpci parsefun = Task taskname Nothing mkRpcTask`
 where
-	mkRpcTask` tst
-		= (undef, tst)
+	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
+		# (updates, tst) = getRpcUpdates tst
+		# (rpci, tst) = checkRpcStatus rpci tst
+		| length updates == 0 
+			= applyRpcDefault {tst & activated = False, tree = TTRpcTask taskInfo rpci }					
+		| otherwise 
+			= applyRpcUpdates updates tst rpci parsefun
+	
+	checkRpcStatus :: RPCInfo *TSt -> (RPCInfo, *TSt)
+	checkRpcStatus rpci tst 
+		# (mbStatus, tst) = getTaskStore "status" tst 
+		= case mbStatus of
+		Nothing 
+			# tst = setTaskStore "status" "Pending" tst
+			= ({RPCInfo | rpci & status = "Pending"},tst)
+		Just s
+			= ({RPCInfo | rpci & status = s},tst)
+	
+getRpcUpdates :: !*TSt -> ([(String,String)],*TSt)
+getRpcUpdates tst=:{taskNr,request} = (updates request, tst)
+where
+	updates request
+		| http_getValue "_rpctasknr" request.arg_post "" == taskNrToString taskNr
+			= [u \\ u =: (k,v) <- request.arg_post]
+		| otherwise
+			= []
+	
+applyRpcUpdates :: [(String,String)] !*TSt !RPCInfo !(String -> a) -> *(!a,!*TSt) | gUpdate{|*|} a	
+applyRpcUpdates [] tst rpci parsefun = applyRpcDefault tst
+applyRpcUpdates [(n,v):xs] tst rpci parsefun
+	| n == "_rpcstatus"
+		# tst = setTaskStore "status" v tst //update the status message		
+		= applyRpcUpdates xs tst rpci parsefun
+	| n == "_rpcresult"
+		= (parsefun v,{tst & activated = True})
+	| otherwise = applyRpcUpdates xs tst rpci parsefun
+
+applyRpcDefault :: !*TSt -> *(!a,!*TSt) | gUpdate{|*|} a
+applyRpcDefault tst=:{TSt|world}
+	# (def,wrld) = defaultValue world
+	= (def,{TSt | tst & world=wrld, activated = False })
 	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
@@ -349,7 +395,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 					}
 	# tst = {TSt|tst & store = store, world = world}
 	|state === TSDone || not activated
-		# tst = addTaskNode (TTFinishedTask taskInfo) tst
+		# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString(fromJust curval)}) tst
 		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
 	| otherwise
 		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, curValue = case curval of Nothing = Nothing ; Just a = Just (dynamic a)}	
@@ -363,7 +409,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 		| activated
 			# tst=:{TSt|store}	= deleteTaskStates taskNr {TSt|tst & store = store}
 			# store				= storeValue taskId (TSDone, a) store
-			# tst				= addTaskNode (TTFinishedTask taskInfo) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
+			# tst				= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
 			= (a, tst)
 		| otherwise
 			# node				= updateTaskNode activated (printToString a) node
@@ -392,7 +438,7 @@ where
 	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
 	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
 	updateTaskNode f tv (TTMainTask ti mti tasks)				= TTMainTask		{ti & finished = f, traceValue = tv} mti (reverse tasks)		
-
+	updateTaskNode f tv (TTRpcTask ti rpci)						= TTRpcTask			{ti & finished = f, traceValue = tv} rpci
 		
 setExtJSDef	:: !ExtJSDef !*TSt -> *TSt
 setExtJSDef def tst=:{tree}
@@ -438,6 +484,7 @@ where
 			= [u \\ u =:(k,v) <- request.arg_post | k.[0] <> '_']
 		| otherwise
 			= []
+			
 clearUserUpdates	:: !*TSt						-> *TSt
 clearUserUpdates tst=:{taskNr, request}
 	| http_getValue "_targettask" request.arg_post "" == taskNrToString taskNr

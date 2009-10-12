@@ -64,7 +64,7 @@ from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 	, parameters	:: [(String,String)]
 	}
 
-:: RPCProtocol	= RPCHttp RPCMethod | RCPTcp
+:: RPCProtocol	= RPCHttp RPCMethod | RPCTcp | RPCSystem
 :: RPCMethod	= RPCGet | RPCPost
 :: RPCStatus	:== String
 

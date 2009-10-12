@@ -12,6 +12,7 @@ import Http, HttpUtil
 import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
+import RPCHandlers
 
 import Config, TSt
 
@@ -27,6 +28,8 @@ engine flows = [((==) "/handlers/authenticate", handleAnonRequest flows handleAu
 			   ,((==) "/handlers/work/tab", handleSessionRequest flows handleWorkTabRequest)
 			   ,((==) "/handlers/work/property", handleSessionRequest flows handlePropertyRequest)
 			   ,((==) "/handlers/data/users", handleSessionRequest flows handleUserListRequest)
+			   ,((==) "/handlers/rpc/request", handleSessionRequest flows handleRPCListRequest)
+			   ,((==) "/handlers/rpc/response", handleSessionRequest flows handleRPCUpdates)
 			   ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest flows handleTaskTreeForestRequest)
 			   ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
 			   ,(\_ -> True, handleStaticResourceRequest)

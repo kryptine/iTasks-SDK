@@ -99,6 +99,8 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
 */
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 
+calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
+
 /**
 * Calculates a single task tree for a given process id
 *
@@ -261,7 +263,7 @@ mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 *
 * @return The constructed RPC task
 */
-mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a
+mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a | gUpdate{|*|} a
 
 
 /**
