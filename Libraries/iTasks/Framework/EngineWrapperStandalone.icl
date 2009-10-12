@@ -1,21 +1,23 @@
 implementation module EngineWrapperStandalone
 
-import StdFile
+import StdFile, StdInt
 import Engine
 import Http, HttpServer
-
-TraceHTTP :== False
+import Config
 
 startEngine :: ![Workflow] !*World -> *World 
 startEngine flows world
-	# world		= instructions world
-	# options	= if TraceHTTP [HTTPServerOptDebug True] []
-	= http_startServer options (engine flows) world
+	# (config,world)	= config world
+	# world				= instructions config.serverPort world
+	# options			= [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
+	= http_startServer options (engine config flows) world
 where
-	instructions :: *World -> *World
-	instructions world
+	instructions :: !Int *World -> *World
+	instructions port world
 		# (console, world)	= stdio world
 		# console			= fwrites "iTasks standalone server started...\n" console
-		# console			= fwrites ("Please point your browser to http://localhost/\n") console
+		# console			= fwrites ("Please point your browser to " +++ host +++ "\n") console
 		# (_,world)			= fclose console world
 		= world
+		where
+			host	= if (port == 80) "http://localhost/" ("http://localhost:" +++ toString port +++ "/")

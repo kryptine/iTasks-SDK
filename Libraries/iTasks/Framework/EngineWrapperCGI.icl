@@ -2,8 +2,8 @@ implementation module EngineWrapperCGI
 
 import Engine
 import Http, HttpCGI
-import iDataSettings
 
 startEngine :: ![Workflow] !*World -> *World 
 startEngine flows world
-	= http_startCGI [] (engine flows) world
+	# (config,world) = config world
+	= http_startCGI [] (engine config flows) world

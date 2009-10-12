@@ -19,20 +19,21 @@ import Config, TSt
 PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
-engine flows = [((==) "/handlers/authenticate", handleAnonRequest flows handleAuthenticationRequest)
-			   ,((==) "/handlers/deauthenticate", handleSessionRequest flows handleDeauthenticationRequest)							
-			   ,((==) "/handlers/new/list", handleSessionRequest flows handleNewListRequest)
-			   ,((==) "/handlers/new/start", handleSessionRequest flows handleNewStartRequest)
-			   ,((==) "/handlers/work/list", handleSessionRequest flows handleWorkListRequest)
-			   ,((==) "/handlers/work/tab", handleSessionRequest flows handleWorkTabRequest)
-			   ,((==) "/handlers/work/property", handleSessionRequest flows handlePropertyRequest)
-			   ,((==) "/handlers/data/users", handleSessionRequest flows handleUserListRequest)
-			   ,((==) "/handlers/rpc/request", handleSessionRequest flows handleRPCListRequest)
-			   ,((==) "/handlers/rpc/response", handleSessionRequest flows handleRPCUpdates)
-			   ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest flows handleTaskTreeForestRequest)
-			   ,((==) "/handlers/debug/processtable", handleSessionRequest flows handleProcessTableRequest)
-			   ,(\_ -> True, handleStaticResourceRequest)
+engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
+engine config flows 
+	= [((==) "/handlers/authenticate", handleAnonRequest config flows handleAuthenticationRequest)
+	  ,((==) "/handlers/deauthenticate", handleSessionRequest config flows handleDeauthenticationRequest)							
+	  ,((==) "/handlers/new/list", handleSessionRequest config flows handleNewListRequest)
+	  ,((==) "/handlers/new/start", handleSessionRequest config flows handleNewStartRequest)
+	  ,((==) "/handlers/work/list", handleSessionRequest config flows handleWorkListRequest)
+	  ,((==) "/handlers/work/tab", handleSessionRequest config flows handleWorkTabRequest)
+	  ,((==) "/handlers/work/property", handleSessionRequest config flows handlePropertyRequest)
+	  ,((==) "/handlers/data/users", handleSessionRequest config flows handleUserListRequest)
+	  ,((==) "/handlers/rpc/request", handleSessionRequest config flows handleRPCListRequest)
+	  ,((==) "/handlers/rpc/response", handleSessionRequest config flows handleRPCUpdates)
+	  ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest config flows handleTaskTreeForestRequest)
+	  ,((==) "/handlers/debug/processtable", handleSessionRequest config flows handleProcessTableRequest)
+	  ,(\_ -> True, handleStaticResourceRequest)
 				 ]
 workflow :: String (Task a) -> Workflow | iTask a
 workflow path task =
@@ -42,6 +43,11 @@ workflow path task =
 	, roles	= []
 	, mainTask = task >>| return Void
 	}
+
+config :: !*World -> (!Config,!*World)
+config world
+	# (appName,world) = determineAppName world
+	= loadConfig appName world
 
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
@@ -63,16 +69,16 @@ where
 	//Translate a URL path to a filesystem path
 	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
 	
-handleAnonRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleAnonRequest flows handler request world
-	# tst						= initTSt request flows world
+handleAnonRequest :: Config [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleAnonRequest config flows handler request world
+	# tst						= initTSt request config flows world
 	# (response, tst)			= handler request tst
 	# world						= finalizeTSt tst
 	= (response, world)
 
-handleSessionRequest :: [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleSessionRequest flows handler request world
-	# tst						= initTSt request flows world
+handleSessionRequest :: Config [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleSessionRequest config flows handler request world
+	# tst						= initTSt request config flows world
 	# sessionId					= http_getValue "_session" (request.arg_get ++ request.arg_post) ""
 	# (mbSession,timeout,tst=:{staticInfo})	= restoreSession sessionId tst
 	= case mbSession of
@@ -88,10 +94,9 @@ handleSessionRequest flows handler request world
 where
 	mkSessionFailureResponse to = "{\"success\" : false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
  
-initTSt :: !HTTPRequest ![Workflow] !*World -> *TSt
-initTSt request flows world
-	# (appName,world)			= determineAppName world
-	# (config,world)			= loadConfig appName world
+initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
+initTSt request config flows world
+	# (appName,world) = determineAppName world
 	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-store")) world
 
 finalizeTSt :: !*TSt -> *World

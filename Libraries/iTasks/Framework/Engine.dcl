@@ -6,6 +6,7 @@ definition module Engine
 */
 from TSt			import :: Workflow, :: Task
 from Http			import :: HTTPRequest, :: HTTPResponse
+from Config			import :: Config
 
 from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
@@ -17,7 +18,17 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @return A list of predicate/handler pairs that can be plugged into a server
 *         or CGI wrapper
 */
-engine :: [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
+engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
+
+/**
+* Loads the itasks specific config
+*
+* @param The world
+* 
+* @return The configuration options
+* @return The updated world
+*/
+config :: !*World -> (!Config,!*World)
 
 /**
 * Wraps any task and a label as a workflow with no access restrictions
