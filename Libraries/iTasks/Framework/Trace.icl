@@ -41,7 +41,7 @@ where
 		  , leaf = True
 		  , iconCls = "task-int"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "INT"
 		  , activeClass = activeClass info
@@ -55,7 +55,7 @@ where
 		  , leaf = True
 		  , iconCls = "task-mon"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "MON"
 		  , activeClass = activeClass info
@@ -69,7 +69,7 @@ where
 		  , leaf = True
 		  , iconCls = "task-rpc"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "RPC"
 		  , activeClass = activeClass info
@@ -83,7 +83,7 @@ where
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-seq"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = ""
 		  , taskClass = "SEQ"
 		  , activeClass = activeClass info
@@ -97,7 +97,7 @@ where
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-par"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = ""
 		  , taskClass = "PAR"
 		  , activeClass = activeClass info
@@ -112,7 +112,7 @@ where
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = ""
 		  , taskClass = "MNT"
 		  , activeClass = activeClass info
@@ -126,7 +126,7 @@ where
 		  , leaf = True
 		  , iconCls = "task-fin"
 		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = info.TaskInfo.taskLabel
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "FIN"
 		  , activeClass = activeClass info
