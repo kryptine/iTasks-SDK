@@ -315,12 +315,9 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 		});
 		itasks.WorkStatusPanel.superclass.initComponent.apply(this,arguments);
 	},
-	update: function (properties) {
-		this.items.get(0).setValue(properties.workerProps.progress);
-		this.items.get(1).setValue(properties.managerProps.priority);
-		this.items.get(2).setValue(properties.systemProps.issuedAt);
-		this.items.get(3).setValue(properties.systemProps.firstEvent);
-		this.items.get(4).setValue(properties.systemProps.latestEvent);
+	update: function (p) {
+		var props = [p.workerProps.progress,p.managerProps.priority,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
+		this.items.each(function(cmt,i){ cmt.setValue(props[i]); });
 	}
 });
 
@@ -473,6 +470,14 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 						break;
 				}
 			}
+			
+		} else {
+			//Completely replace form
+			this.removeAll();
+			this.add(data.items[0]);
+			this.doLayout();
+			//Attach eventhandlers
+			this.attachTaskHandlers(this);
 		}
 	}
 });
@@ -488,8 +493,7 @@ itasks.TaskMonitorPanel = Ext.extend(Ext.Panel, {
 
 //Waiting for main task panel
 itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
-	initComponent: function() {
-		
+	initComponent: function() {	
 			
 		Ext.apply(this, {
 			cls: "worktab-content",
@@ -647,8 +651,8 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 		var trailing = (this.items.length - items.length);
 		for (var i = 0; i < trailing; i++) {
 			this.remove(items.length);
-		} 
-		
+		}
+			
 		//Update column sizes for horizontal layouts
 		if(this.combination == "horizontal") {
 			var colsize = 1.0 / items.length;
