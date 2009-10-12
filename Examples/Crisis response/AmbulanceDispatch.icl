@@ -170,10 +170,12 @@ ambulanceTask amount
 	= updateInformation ("I need " <+ amount <+ " ambulances, how much can you provide?") amount
 
 showAmbulances :: [(Provider, Maybe Int)] -> Task Void
-showAmbulances providers
+showAmbulances providers = showMessage "Ambulances are on their way"
+/*
 	= showMessage (tableView [[p.Provider.name +++ ": ", case i of Nothing = "Timed out" ; (Just n) = ("Can send " <+ n <+ " ambulances")] \\ (p,i) <- providers])
 where
 	tableView rows = [TableTag [] [TrTag [] [TdTag [] [Text cell] \\cell <- row] \\row <- rows]]	
+*/
 
 //Utilities
 (<+) infixl :: !String !a -> String | toString a
