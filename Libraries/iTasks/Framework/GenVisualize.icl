@@ -10,7 +10,7 @@ MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the 
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
 mkVSt :: *VSt
-mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, consBody = False, optional = False, valid = True}
+mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, useLabels = False, onlyBody = False, optional = False, valid = True}
 
 //Wrapper functions
 visualizeAsEditor :: String DataMask a -> ([ExtJSDef],Bool) | gVisualize{|*|} a
@@ -67,7 +67,7 @@ gVisualize{|PAIR|} fx fy old new vst
 			# (vizy, vst) = fy VBlank VBlank vst
 			= (vizx ++ vizy, vst)
 
-gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,valid}
+gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,onlyBody,valid}
 	= case (old,new) of
 		//Same structure:
 		(VValue (LEFT ox) omask, VValue (LEFT nx) nmask)
@@ -76,9 +76,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			= case vizType of
 				VEditorUpdate
 					| maskChanged currentPath omask nmask
-						# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-						# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})			
+						# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})			
 					| otherwise
 						= fx oval nval vst
 				_
@@ -89,9 +89,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			= case vizType of
 				VEditorUpdate
 					| maskChanged currentPath omask nmask
-						# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-						# (new,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+						# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						# (new,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 					| otherwise
 						= fy oval nval vst
 				_
@@ -102,9 +102,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			# nval = VValue ny nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					# (new,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VValue (RIGHT oy) omask, VValue (LEFT nx) nmask)
@@ -112,9 +112,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			# nval = VValue nx nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+					# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fy oval oval vst //Default case: ignore the new value
 		
@@ -124,9 +124,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			# nval = VBlank
 			= case vizType of
 				VEditorUpdate
-					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VValue (RIGHT oy) omask, VBlank)
@@ -134,9 +134,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			# nval = VBlank
 			= case vizType of
 				VEditorUpdate
-					# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+					# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fy oval oval vst //Default case: ignore the new value					
 		//No value any more
@@ -145,9 +145,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			# nval = VValue nx nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VBlank, VValue (RIGHT ny) nmask)
@@ -155,9 +155,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,consBody,v
 			# nval = VValue ny nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					# (new,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, consBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, consBody = consBody})
+					# (old,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		//Default case
@@ -168,7 +168,7 @@ where
 	pathid					= dp2id idPrefix currentPath		
 
 
-gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,consBody,optional,valid}
+gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,onlyBody,optional,valid}
 	= case vizType of
 		//Editor definition
 		VEditorDefinition
@@ -177,13 +177,15 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,cons
 					_												= (VBlank,VBlank)
 			// Records
 			| not (isEmpty d.gcd_fields)	
-				# (vizBody,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, consBody = False, optional = False}
+				# (vizBody,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, onlyBody = False, useLabels = True, optional = False}
 				//Add a containing fieldset on the first level
 				| dataPathLevel currentPath > 1						
 					= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet | id = (dp2id idPrefix currentPath) +++ "-fs"
+																	, layout = Nothing
 																	, title = title label
 																	, items = coerceToExtJSDefs vizBody
-																	, autoHeight = True, border = True})]
+																	, autoHeight = True, border = True
+																	, fieldLabel = Nothing, hideLabel = True})]
 																	, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 				| otherwise
 					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
@@ -196,13 +198,14 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,cons
 			| otherwise
 				# (vizBody, vst=:{valid})
 					= if (showBody currentPath old)
-						(fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, consBody = False, optional = False})
+						(fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, onlyBody = False, optional = False})
 						([], vst)	 	
-				| consBody //Normal ADT's without constructor selector
+				| onlyBody //Normal ADT's without constructor selector
 					= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
 				| otherwise	//Normal ADT's with constructor selector
-					= ((consSelector d idPrefix currentPath old (label2s optional label)) ++ vizBody
-					  ,{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
+					= ((consSelector d idPrefix currentPath old (label2s optional label) useLabels) ++ vizBody, 
+						{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
+					
 		//Html display vizualization
 		VHtmlDisplay
 			= case (old,new) of
@@ -219,7 +222,8 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,cons
 		_ 	//Other visualizations
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
-					# (vizBody, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, optional = False}
+					# useLabels = not (isEmpty d.gcd_fields) || useLabels
+					# (vizBody, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = useLabels, optional = False}
 					//No validity check is needed when there is only one constructor
 					| d.gcd_type_def.gtd_num_conses == 1
 						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
@@ -266,27 +270,27 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
-gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
+gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old , fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = False, numDecimals = 0})]
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old , fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = False, numDecimals = 0})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		
-gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
+gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label, allowDecimals = True, numDecimals = 1000})]
+		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = True, numDecimals = 1000})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		
-gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
+gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label})]
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 
-gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
+gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = isNothing label, checked = checked })]
+		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = not useLabels, checked = checked })]
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})		
 where
@@ -295,14 +299,14 @@ where
 		(VValue v mask) = if (isMasked currentPath mask) v False
 	value	= if checked "true" "false"
 
-gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,optional,valid}
+gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = isNothing label})]
+		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 
 
-gVisualize{|Maybe|} fx old new vst=:{vizType,idPrefix,currentPath,optional,valid,consBody}
+gVisualize{|Maybe|} fx old new vst=:{vizType,idPrefix,currentPath,optional,valid,onlyBody}
 	= case vizType of
 		VEditorDefinition
 			= case (old,new) of
@@ -339,8 +343,32 @@ where
 gVisualize{|Dynamic|} old new vst
 	= ([],vst)
 
+/*
+gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,label,optional}
+	= case vizType of
+		VEditorDefinition
+			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, label = Nothing}
+			# (viz2,vst) = f2 v2 v2 vst
+			= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet|id = dp2id idPrefix currentPath, title ="()", layout = Just "hbox"
+											 , items = (coerceToExtJSDefs viz1 ++ coerceToExtJSDefs viz2),border = True
+											 , fieldLabel = label2s optional label, hideLabel = isNothing label, autoHeight = True})]
+			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
+		_
+			= case (old,new) of
+				(VValue (o1,o2) omask, VValue(n1,n2) nmask)
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, label = Nothing}
+					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
+					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})
+				_
+					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
+					# (viz2,vst) = f2 VBlank VBlank vst
+					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})
+*/
+derive gVisualize (,)				
+		
 derive gVisualize []
-derive gVisualize Either, (,), (,,), (,,,), Void
+derive gVisualize Either, (,,), (,,,), Void
 
 
 instance toString (VisualizationValue a) | toString a
@@ -381,8 +409,8 @@ where
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
-consSelector :: GenericConsDescriptor String DataPath (VisualizationValue a) (Maybe String) -> [Visualization]
-consSelector d idPrefix dp value label
+consSelector :: GenericConsDescriptor String DataPath (VisualizationValue a) (Maybe String) Bool -> [Visualization]
+consSelector d idPrefix dp value label useLabels
 	# masked = case value of (VValue _ dm) = isMasked dp dm; _ = False
 	//No choice needed with only one constructor
 	| d.gcd_type_def.gtd_num_conses == 1 
@@ -392,7 +420,7 @@ consSelector d idPrefix dp value label
 	//	= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = isNothing label})]
 	//Use combobox to choose a constructor
 	| otherwise
-		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = isNothing label, store = store, triggerAction = "all", editable = False})]
+		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
 where
 	//items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
 	//		  \\ c <- d.gcd_type_def.gtd_conses]

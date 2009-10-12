@@ -36,7 +36,8 @@ derive bimap VisualizationValue
 	, label				:: !Maybe String			// Optional label to attach to editor fields
 	// Additional information for form generation
 	, currentPath		:: !DataPath				// Accumulated path through the data structure, used to identify sub-structures
-	, consBody			:: !Bool					// Only generate a constructor body for editors
+	, useLabels			:: !Bool					// Indent for labels, whether there is a label or not
+	, onlyBody			:: !Bool					// Only generate a constructor body for editors
 	, optional			:: !Bool					// Create optional form fields
 	, valid				:: !Bool					// Is the form valid
 	}

@@ -131,9 +131,12 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 :: ExtJSFieldSet =
 	{ title			:: String
 	, id			:: String
+	, layout		:: Maybe String
 	, items			:: [ExtJSDef]
 	, autoHeight	:: Bool
 	, border		:: Bool
+	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	}
 :: ExtJSPanel =
 	{ layout		:: String
