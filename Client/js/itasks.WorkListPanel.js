@@ -25,6 +25,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{name: 'tree_path'},
 				{name: 'tree_last'},
 				{name: 'tree_icon'},
+				{name: 'tree_new'},
 				{name: 'taskid'}
 			])
 	}),	
@@ -61,8 +62,11 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 			html += '<div class="treegrid treegrid-icon icon-' + record.data.tree_icon +'" style="left: ' + (level + 1) * 16 + 'px"></div>';
 			
 			//Add label
-			html += '<div class="treegrid-label" style="left: ' + (level + 2) * 16 + 'px">' + label + '</div>';
-
+			if(record.data.tree_new) {
+				html += '<div class="treegrid-label" style="font-weight: bold; left: ' + (level + 2) * 16 + 'px">' + label + '</div>';
+			} else {
+				html += '<div class="treegrid-label" style="left: ' + (level + 2) * 16 + 'px">' + label + '</div>';
+			}
 			return html;
 		};
 	

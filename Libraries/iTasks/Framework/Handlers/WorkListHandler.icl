@@ -21,6 +21,7 @@ import Text, JSON, Time, Util
 				 		, tree_path		:: [Bool]					// Path in the tree structure
 				 		, tree_last		:: Bool						// Is this item the last of a set of siblings
 				 		, tree_icon		:: String					// An icon name. The actual icon image is defined in the css.											
+				  		, tree_new		:: Bool						// Is this item new
 				  		}
 
 //JSON encoding for the used types 				
@@ -78,6 +79,7 @@ where
 				   , subject = mti.systemProps.TaskSystemProperties.subject
 				   , delegatorId = fst mti.systemProps.TaskSystemProperties.manager
 				   , tree_last = isLast
+				   , tree_new = isNothing mti.systemProps.TaskSystemProperties.firstEvent
 				   , timestamp = mti.systemProps.TaskSystemProperties.issuedAt
 				   , deadline = mti.managerProps.TaskManagerProperties.deadline
 				   , priority = mti.managerProps.TaskManagerProperties.priority
@@ -115,6 +117,7 @@ mkWorkItem =	{ taskid		= ""
 				, tree_path		= []
 				, tree_last		= False
 				, tree_icon		= "task"
+				, tree_new		= False
 				}
 
 shiftWorkItem :: !Bool !WorkListItem -> WorkListItem
