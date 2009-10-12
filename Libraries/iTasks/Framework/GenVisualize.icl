@@ -181,7 +181,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 				//Add a containing fieldset on the first level
 				| dataPathLevel currentPath > 1						
 					= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet | id = (dp2id idPrefix currentPath) +++ "-fs"
-																	, layout = Nothing
+																	, layout = Just "form"
 																	, title = title label
 																	, items = coerceToExtJSDefs vizBody
 																	, autoHeight = True, border = True
