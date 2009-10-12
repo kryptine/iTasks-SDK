@@ -21,9 +21,9 @@ handleWorkTabRequest req tst
 				Just (TTMainTask ti properties tasks)
 					# subject = [properties.systemProps.TaskSystemProperties.subject]
 					# panel = case [t \\ t <- tasks | isActive t] of
-						[]	= TaskRedundant
-						[x]	= buildTaskPanel x
-						_	= abort "Multiple simultaneously active tasks in a main task!"
+						[]	= if (allFinished tasks) TaskDone TaskRedundant
+						[t]	= buildTaskPanel t
+						_	= abort  "Multiple simultaneously active tasks in a main task!"
 					
 					// Collect debug information
 					# (debuginfo,tst)
@@ -145,9 +145,9 @@ buildTaskPanel (TTMainTask ti mti _)
 buildTaskPanel (TTSequenceTask ti tasks)
 	| ti.TaskInfo.finished	= TaskDone
 	| otherwise 			= case [t \\ t <- tasks | isActive t] of
-		[]	= TaskRedundant
+		[]	= if (allFinished tasks) TaskDone TaskRedundant
 		[t]	= buildTaskPanel t
-		_	= abort "Multiple simultaneously active tasks in a sequence!"
+		_	= (abort "Multiple simultaneously active tasks in a sequence!")
 buildTaskPanel (TTParallelTask ti TTHorizontal tasks)
 	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "horizontal", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
 buildTaskPanel (TTParallelTask ti TTVertical tasks)
@@ -167,14 +167,21 @@ where
 	icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 
 isActive :: TaskTree -> Bool
-isActive (TTExtJSTask		{TaskInfo|active,finished} _ )	= active && not finished
-isActive (TTMonitorTask		{TaskInfo|active,finished} _ )	= active && not finished
-isActive (TTRpcTask			{TaskInfo|active,finished} _ )	= active && not finished
-isActive (TTSequenceTask	{TaskInfo|active,finished} _ )	= active && not finished
-isActive (TTParallelTask	{TaskInfo|active,finished} _ _ )= active && not finished
-isActive (TTMainTask 		{TaskInfo|active,finished} _ _ )= active && not finished
-isActive (TTFinishedTask	_ )								= True
+isActive (TTExtJSTask		{TaskInfo|active} _ )	= active 
+isActive (TTMonitorTask		{TaskInfo|active} _ )	= active
+isActive (TTRpcTask			{TaskInfo|active} _ )	= active
+isActive (TTSequenceTask	{TaskInfo|active} _ )	= active
+isActive (TTParallelTask	{TaskInfo|active} _ _ )	= active
+isActive (TTMainTask 		{TaskInfo|active} _ _ )	= active
+isActive (TTFinishedTask	_ )						= False
 
+isFinished :: TaskTree -> Bool
+isFinished (TTFinishedTask	_ )	= True
+isFinished _					= False
+
+allFinished :: [TaskTree] -> Bool
+allFinished ts = and (map isFinished ts)
+	
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst
 	# (now,tst)	= accWorldTSt time tst
