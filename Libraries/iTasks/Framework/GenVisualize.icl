@@ -343,29 +343,30 @@ where
 gVisualize{|Dynamic|} old new vst
 	= ([],vst)
 
-/*
-gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,label,optional}
+gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
 		VEditorDefinition
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
-			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, label = Nothing}
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
-			= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet|id = dp2id idPrefix currentPath, title ="()", layout = Just "hbox"
-											 , items = (coerceToExtJSDefs viz1 ++ coerceToExtJSDefs viz2),border = True
-											 , fieldLabel = label2s optional label, hideLabel = isNothing label, autoHeight = True})]
+			= ([ExtJSFragment (ExtJSPanel {ExtJSPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+											 items = [ 
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz1},
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz2}
+											 ]})]			 
 			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2) omask, VValue(n1,n2) nmask)
-					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, label = Nothing}
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
 					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})
 				_
 					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,vst) = f2 VBlank VBlank vst
 					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})
-*/
-derive gVisualize (,)				
+
+//derive gVisualize (,)				
 		
 derive gVisualize []
 derive gVisualize Either, (,,), (,,,), Void

@@ -142,6 +142,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	{ layout		:: String
 	, items			:: [ExtJSDef]
 	, buttons		:: [ExtJSDef]
+	, autoHeight	:: Bool
 	, border		:: Bool
 	, bodyCssClass	:: String
 	, fieldLabel	:: Maybe String

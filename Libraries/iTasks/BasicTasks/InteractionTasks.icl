@@ -200,7 +200,7 @@ makeMessageTask message context sticky tst=:{taskNr}
 
 taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [ExtJSDef]) [(String,String,String,String,String,Bool)] -> ExtJSDef
 taskPanel description mbContext mbForm buttons
-	= ExtJSPanel {ExtJSPanel| layout = "", border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing}
+	= ExtJSPanel {ExtJSPanel| layout = "", autoHeight = True, border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing}
 where
 	items = [taskDescriptionPanel description] ++
 			(case mbContext of Just context = [taskContextPanel context]; Nothing = []) ++
@@ -213,7 +213,7 @@ where
 	taskContextPanel context = ExtJSHtmlPanel {ExtJSHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
 	
 	taskFormPanel :: [ExtJSDef] -> ExtJSDef
-	taskFormPanel items = ExtJSPanel {ExtJSPanel| layout = "form", border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}
+	taskFormPanel items = ExtJSPanel {ExtJSPanel| layout = "form", autoHeight = True, border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}
 	
 	taskButtons	:: [(String,String,String,String,String,Bool)] -> [ExtJSDef]
 	taskButtons buttons = [ExtJSButton {ExtJSButton| name = name, id = id, value = value, disabled = not enabled, text = text, iconCls = icon} \\ (id,name,value,text,icon,enabled) <- buttons]

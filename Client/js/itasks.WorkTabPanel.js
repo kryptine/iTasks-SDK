@@ -164,7 +164,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			callback: function(el,success,response,options) {
 				this.getComponent(0).setBusy(false);
 				this.fireEvent("propertyChanged");
-				if(name == "user") //HACK: Fix with proper property events
+				if(name == "user" || name == "progress") //HACK: Fix with proper property events
 					this.refresh();
 			},
 			scope: this
@@ -182,17 +182,7 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 		itasks.WorkHeaderPanel.superclass.initComponent.apply(this,arguments);
 		
 	},
-	setContent: function(taskid, subject, properties) {
-		/*this.body.update( String.format(
-		      "<div class=\"worktab-header-table\"><table>"
-			+ "<tr><th>Subject:</th><td colspan=\"3\">{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
-			+ "<tr><th>Managed by:</th><td>{3}</td><th>Priority:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></tr>"
-			+ "</table></div><div class=\"worktab-header-indicator\"></div>"
-			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.systemProps.issuedAt)
-			, properties.systemProps.manager[1], itasks.util.formatPriority(properties.managerProps.priority)
-			, itasks.util.formatDeadline(properties.managerProps.deadline)
-			));*/
-			
+	setContent: function(taskid, subject, properties) {		
 			worktabStatus = function(progress){
 				switch(progress){
 					case null : return ""
@@ -212,15 +202,17 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 				}		
 			}
 			
+			var subject = subject.join(" &raquo; ") + (itasks.config.debug ? (" (" + taskid + ")") : "");
+			
 			this.body.update( String.format(
 				'<div class="worktab-header {1}">'+
 					'<div class="worktab-header-status {0}"></div><div class="worktab-header-separator"></div><div class="worktab-header-text">'+
-						'<table><tr><th>Subject:</th><td>{2} ({3})</td><th>Delegated by:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></table>'+
+						'<table><tr><th>Subject:</th><td>{2}</td><th>Delegated by:</th><td>{3}</td><th>Deadline:</th><td>{4}</td></table>'+
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.workerProps.progress),worktabBackground(properties.managerProps.priority),subject.join(" &raquo; "), taskid, properties.systemProps.manager[1]
-				, itasks.util.formatDate(properties.managerProps.deadline)
+				, worktabStatus(properties.workerProps.progress),worktabBackground(properties.managerProps.priority),subject, properties.systemProps.manager[1]
+				, itasks.util.formatDeadline(properties.managerProps.deadline)
 				));
 	},
 	setBusy: function(busy) {
@@ -324,7 +316,11 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 		itasks.WorkStatusPanel.superclass.initComponent.apply(this,arguments);
 	},
 	update: function (properties) {
-		this.items.each(function(item){item.setValue(properties[item.name]);});
+		this.items.get(0).setValue(properties.workerProps.progress);
+		this.items.get(1).setValue(properties.managerProps.priority);
+		this.items.get(2).setValue(properties.systemProps.issuedAt);
+		this.items.get(3).setValue(properties.systemProps.firstEvent);
+		this.items.get(4).setValue(properties.systemProps.latestEvent);
 	}
 });
 
@@ -452,6 +448,8 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 							var newct = ct.ownerCt.insert(index, update[2]);
 							
 							ct.ownerCt.doLayout();
+							ct.ownerCt.syncSize();
+							ct.ownerCt.ownerCt.doLayout();
 							
 							this.attachTaskHandlers(newct);
 						}
@@ -461,9 +459,10 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 						
 						if(ct) {
 							var oct = ct.ownerCt;
-							
 							oct.remove(update[1]);
-							oct.doLayout();
+							
+							oct.ownerCt.doLayout();
+							oct.ownerCt.syncSize();
 						}
 						break;
 					case "ExtJSSetEnabled":
@@ -490,7 +489,8 @@ itasks.TaskMonitorPanel = Ext.extend(Ext.Panel, {
 //Waiting for main task panel
 itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
-				
+		
+			
 		Ext.apply(this, {
 			cls: "worktab-content",
 			border: false,
