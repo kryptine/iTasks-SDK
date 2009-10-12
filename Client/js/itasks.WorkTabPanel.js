@@ -26,7 +26,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			deferredRender: false,
 			items: [{
 				xtype: "itasks.work-header",
-				height: 50,
+				height: 25,
 				anchor: "r"
 			},{
 				xtype: "tabpanel",
@@ -106,8 +106,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.getComponent(0).setContent(this.taskId, data.subject, data.properties);
 		//Update title
 		this.updateTitle(data.subject);
-		//Update debug tab
-		this.updateDebug(data.debug);
 		//Update content
 		this.updateContent(data.content);
 		//Update status
@@ -146,46 +144,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	updateStatus: function(properties) {
 		this.getComponent(1).getComponent(1).update(properties);
 	},
-	updateDebug: function(debug) {
-		if(debug != null) {
-			if(this.getComponent(1).items.length > 2) {
-				if(this.getComponent(1).getComponent(2).rendered) {
-					this.updateDebugTab(debug);
-				} else {
-					this.removeDebugTab(debug);
-					this.addDebugTab(debug);
-				}
-			} else {
-				this.addDebugTab(debug);
-			}
-		} else {
-			if(this.getComponent(1).items.length > 2)
-				this.removeDebugTab();
-		}
-	},
-	addDebugTab: function(debug) {
-		this.getComponent(1).add({
-			title: "Debug",
-			iconCls: "icon-debug",
-			bodyStyle: "padding: 10px",
-			autoScroll: true,
-			items: [{
-				xtype: "panel",
-				title: "Task tree",
-				collapsible: true,
-				html: debug.tasktree
-			}] 
-		});
-		this.doLayout();
-	},
-	updateDebugTab: function(debug) {
-		var debugTab = this.getComponent(1).getComponent(2);
-
-		debugTab.getComponent(0).body.update(debug.tasktree);
-	},
-	removeDebugTab: function() {
-		this.getComponent(1).remove(2,true);
-	},
 	sendTaskUpdates: function(target,updates) {
 		//Add task updates to params
 		Ext.apply(this.params, updates);
@@ -219,14 +177,13 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			deferredRender: false,
-			baseCls: "worktab-header",
 			html: "Loading..."
 		});
 		itasks.WorkHeaderPanel.superclass.initComponent.apply(this,arguments);
 		
 	},
 	setContent: function(taskid, subject, properties) {
-		this.body.update( String.format(
+		/*this.body.update( String.format(
 		      "<div class=\"worktab-header-table\"><table>"
 			+ "<tr><th>Subject:</th><td colspan=\"3\">{0} ({1})</td><th>Date:</th><td>{2}</td></tr>"
 			+ "<tr><th>Managed by:</th><td>{3}</td><th>Priority:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></tr>"
@@ -234,7 +191,37 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 			, subject.join(" &raquo; "), taskid, itasks.util.formatDate(properties.systemProps.issuedAt)
 			, properties.systemProps.manager[1], itasks.util.formatPriority(properties.managerProps.priority)
 			, itasks.util.formatDeadline(properties.managerProps.deadline)
-			));
+			));*/
+			
+			worktabStatus = function(progress){
+				switch(progress){
+					case null : return ""
+					case "TPActive" : return "worktab-header-progress-active"
+					case "TPStuck" : return "worktab-header-progress-stuck"
+					case "TPWaiting": return "worktab-header-progress-waiting"
+					case "TPReject": return "worktab-header-progress-reject"
+				}
+			}
+			
+			worktabBackground = function(priority){
+				switch(priority) {
+					case null : return "";
+					case "LowPriority": return "worktab-header-low-priority"
+					case "NormalPriority": return "worktab-header-normal-priority"
+					case "HighPriority": return "worktab-header-high-priority"
+				}		
+			}
+			
+			this.body.update( String.format(
+				'<div class="worktab-header {1}">'+
+					'<div class="worktab-header-status {0}"></div><div class="worktab-header-separator"></div><div class="worktab-header-text">'+
+						'<table><tr><th>Subject:</th><td>{2} ({3})</td><th>Delegated by:</th><td>{4}</td><th>Deadline:</th><td>{5}</td></table>'+
+					'</div>'+
+				'</div>'+
+				'<div class="worktab-header-indicator">'
+				, worktabStatus(properties.workerProps.progress),worktabBackground(properties.managerProps.priority),subject.join(" &raquo; "), taskid, properties.systemProps.manager[1]
+				, itasks.util.formatDate(properties.managerProps.deadline)
+				));
 	},
 	setBusy: function(busy) {
 		var indicator = this.getEl().child(".worktab-header-indicator");
