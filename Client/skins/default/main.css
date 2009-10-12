@@ -165,13 +165,13 @@ div.worktab-header-text{
 
 div.worktab-header-indicator {
 	position: absolute;
-	top: 0px;
+	top: 5spx;
 	left: 100%;
 	margin-left: -42px;
-	width: 25px;
-	height: 25px;
+	width: 16px;
+	height: 16px;
 	
-	background: url('img/loading.gif') no-repeat;
+	background: url('img/loading-small.gif') no-repeat;
 	display: none;
 }
 
