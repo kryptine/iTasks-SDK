@@ -55,8 +55,8 @@ getTimeStamp tst
 	= (t, tst)
 
 sessionStore ::  !([Session] -> [Session]) !*TSt -> (![Session],!*TSt) 
-sessionStore fn tst=:{TSt|store,world = world}
-	# (mbList,store,world)	= loadValue "SessionDB" store world
+sessionStore fn tst=:{TSt|systemStore,world = world}
+	# (mbList,sstore,world)	= loadValue "SessionDB" systemStore world
 	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# store					= storeValue "SessionDB" list store 
-	= (list, {TSt|tst & store = store, world = world })
+	# sstore				= storeValue "SessionDB" list sstore 
+	= (list, {TSt|tst & systemStore = sstore, world = world })

@@ -20,21 +20,21 @@ derive gParse		DBRef
 readDB :: !(DBid a) -> Task a | iTask a
 readDB key = mkInstantTask "readDB" readDB`
 where
-	readDB` tst=:{TSt|store,world}
-		# (mbVal,store,world) = loadValue key store world
+	readDB` tst=:{TSt|dataStore,world}
+		# (mbVal,dstore,world) = loadValue key dataStore world
 		= case mbVal of
 			Just val
-				= (val,{TSt|tst & store = store, world = world})
+				= (val,{TSt|tst & dataStore = dstore, world = world})
 			Nothing		
 				# (val,world) = defaultValue world
-				= (val,{TSt|tst & store = store, world = world})
+				= (val,{TSt|tst & dataStore = dstore, world = world})
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkInstantTask "writeDB" writeDB`
 where
-	writeDB` tst=:{TSt|store}
-		# store = storeValue key value store
-		= (value, {TSt| tst & store = store})
+	writeDB` tst=:{TSt|dataStore}
+		# dstore = storeValue key value dataStore
+		= (value, {TSt| tst & dataStore = dstore})
 		
 mkDBid :: !String -> (DBid a)
 mkDBid s = s

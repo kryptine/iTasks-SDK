@@ -8,19 +8,19 @@ import	TSt, Store, Util
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 try normalTask handlerTask = mkSequenceTask "try" exceptionTask
 where
-	exceptionTask tst=:{taskNr,options,store,world}
+	exceptionTask tst=:{taskNr,options,dataStore,world}
 		# key				= iTaskId (tl taskNr) "exception"
-		# (mbEx,store,world)= loadValue key store world
+		# (mbEx,dstore,world)= loadValue key dataStore world
 		= case mbEx of
 			Just ex
-				= applyTask (handlerTask ex) {TSt|tst & store = store, world = world}
+				= applyTask (handlerTask ex) {TSt|tst & dataStore = dstore, world = world}
 			Nothing				
-				# (a, tst =:{exception})	= applyTask normalTask {TSt|tst & store = store, world = world}
+				# (a, tst =:{exception})	= applyTask normalTask {TSt|tst & dataStore = dstore, world = world}
 				= case exception of
 					Just (ex :: e^)
-						# tst=:{TSt|store}	= deleteTaskStates (tl taskNr) tst 														//Garbage collect
-						# store				= storeValueAs SFDynamic key ex store													//Store the exception
-						= applyTask (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, store = store})	//Run the handler
+						# tst=:{TSt|dataStore}	= deleteTaskStates (tl taskNr) tst 														//Garbage collect
+						# dstore				= storeValueAs SFDynamic key ex dataStore													//Store the exception
+						= applyTask (handlerTask ex) (resetSequence {tst & exception = Nothing, activated = True, dataStore = dstore})	//Run the handler
 						
 					_	= (a, tst)	//Don't handle the exception
 						

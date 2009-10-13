@@ -41,7 +41,8 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
 									
-					, store			:: !Store											// Generic store
+					, systemStore	:: !Store											// ProcessDB, UserDB
+					, dataStore		:: !Store											// Runtime data (Sessions, Tasks, Dynamics)
 					, world			:: !*World											// The world
 					}
 
@@ -85,7 +86,7 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 *
 * @return a TSt iTask state
 */
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
 
 /**
 * Calculates all task trees that are relevant to the current user

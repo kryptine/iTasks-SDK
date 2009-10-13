@@ -15,8 +15,8 @@ derive gPrint		TaskState
 derive gParse		TaskState
 derive gEq			TaskState
 
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*World -> *TSt
-mkTSt appName config request session workflows store world
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
+mkTSt appName config request session workflows systemStore dataStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
@@ -34,7 +34,8 @@ mkTSt appName config request session workflows store world
 		, changes		= []
 		, config		= config
 		, request		= request
-		, store			= store
+		, systemStore	= systemStore
+		, dataStore		= dataStore
 		, world			= world
 		}
 
@@ -381,9 +382,9 @@ where
 		= taskfun {tst & tree = TTMainTask taskInfo undef [], taskNr = [0,0:taskNr]}
 
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
-applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,store,world}
+applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
 	# taskId				= iTaskId taskNr ""
-	# (mbtv,store,world)	= loadValue taskId store world
+	# (mbtv,dstore,world)	= loadValue taskId dataStore world
 	# (state,curval)		= case mbtv of
 								(Just (state, value))	= (state, Just value)
 								_						= (TSNew, Nothing)
@@ -393,7 +394,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 					, finished		= state === TSDone
 					, traceValue	= ""
 					}
-	# tst = {TSt|tst & store = store, world = world}
+	# tst = {TSt|tst & dataStore = dstore, world = world}
 	|state === TSDone || not activated
 		# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString(fromJust curval)}) tst
 		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
@@ -404,17 +405,17 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,sto
 		// Execute task function
 		# (a, tst)	= taskfun tst
 		// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
-		# tst=:{tree=node,activated,store}	= clearUserUpdates tst
+		# tst=:{tree=node,activated,dataStore}	= clearUserUpdates tst
 		// Update task state
 		| activated
-			# tst=:{TSt|store}	= deleteTaskStates taskNr {TSt|tst & store = store}
-			# store				= storeValue taskId (TSDone, a) store
-			# tst				= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
+			# tst=:{TSt|dataStore}	= deleteTaskStates taskNr {TSt|tst & dataStore = dataStore}
+			# dataStore				= storeValue taskId (TSDone, a) dataStore
+			# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
 			= (a, tst)
 		| otherwise
 			# node				= updateTaskNode activated (printToString a) node
-			# store				= storeValue taskId (TSActive, a) store
-			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, store = store}
+			# dataStore			= storeValue taskId (TSActive, a) dataStore
+			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
 			= (a, tst)
 	
 where
@@ -463,18 +464,18 @@ getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)
 getTaskValue tst = (Nothing, tst)
 
 setTaskStore :: !String !a !*TSt -> *TSt | iTask a
-setTaskStore key value tst=:{taskNr,store}
-	# store = storeValue storekey value store
-	= {TSt|tst & store = store}
+setTaskStore key value tst=:{taskNr,dataStore}
+	# dataStore = storeValue storekey value dataStore
+	= {TSt|tst & dataStore = dataStore}
 where
-	storekey = taskNrToString taskNr +++ "-" +++ key
+	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
 getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | iTask a
-getTaskStore key tst=:{taskNr,store,world}
-	# (mbValue,store,world) = loadValue storekey store world
-	= (mbValue,{TSt|tst&store = store, world = world})
+getTaskStore key tst=:{taskNr,dataStore,world}
+	# (mbValue,dataStore,world) = loadValue storekey dataStore world
+	= (mbValue,{TSt|tst&dataStore = dataStore, world = world})
 where
-	storekey = taskNrToString taskNr +++ "-" +++ key
+	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
 getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
 getUserUpdates tst=:{taskNr,request} = (updates request, tst);
@@ -511,19 +512,20 @@ resetSequence tst=:{taskNr,tree}
 		_								= {tst & tree = tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
-deleteTaskStates tasknr tst=:{TSt|store,world}
-	# (store,world) = deleteValues (iTaskId tasknr "") store world
-	= {TSt|tst & store = store, world = world}
+deleteTaskStates tasknr tst=:{TSt|dataStore,world}
+	# (dstore,world) = deleteValues (iTaskId tasknr "") dataStore world
+	= {TSt|tst & dataStore = dstore, world = world}
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
-copyTaskStates fromtask totask tst=:{TSt|store,world}
-	# (store,world) = copyValues (iTaskId fromtask "") (iTaskId totask "") store world
-	= {TSt|tst & store = store, world = world}
+copyTaskStates fromtask totask tst=:{TSt|dataStore,world}
+	# (dstore,world) = copyValues (iTaskId fromtask "") (iTaskId totask "") dataStore world
+	= {TSt|tst & dataStore = dstore, world = world}
 
 flushStore :: !*TSt -> *TSt
-flushStore tst=:{TSt|store,world}
-	# (store,world) = flushCache store world
-	= {TSt|tst & store = store, world = world}
+flushStore tst=:{TSt|dataStore,systemStore,world}
+	# (dstore,world) = flushCache dataStore world
+	# (sstore,world) = flushCache systemStore world
+	= {TSt|tst & dataStore = dstore, systemStore = sstore, world = world}
 
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""

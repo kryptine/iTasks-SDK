@@ -1,11 +1,15 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdChar, GenBimap
+import StdMisc, StdArray, StdList, StdChar, StdFile, GenBimap
+
 from StdFunc import o
+from StdLibMisc import ::Date{..}, ::Time{..}
+
 import Store, UserDB, ProcessDB, SessionDB
 import Text, Util
 import CoreCombinators
 import CommandLine
+import Directory
 
 import Http, HttpUtil
 
@@ -97,10 +101,23 @@ where
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world
 	# (appName,world) = determineAppName world
-	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-store")) world
-
+	# (pathstr,world)			= determineAppPath world
+	# ((ok, path),world)		= pd_StringToPath (pathstr) world
+	| not ok					= abort "Cannot find the executable."
+	# ((err,info),world)		= getFileInfo path world
+	| err <> NoDirError			= abort "Cannot get executable info."
+	# (date,time)				= info.pi_fileInfo.lastModified
+	# datestr					= (toString date.Date.year)+++(toString date.Date.month)+++(toString date.Date.day)+++"-"+++(toString time.Time.hours)+++(toString time.Time.minutes)+++(toString time.Time.seconds)
+	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-systemStore")) (createStore (appName +++ "-dataStore-" +++ datestr)) world //TODO: Insert exec.-compile time as data store suffix
+	
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world
+
+// Determines the server executables path
+determineAppPath :: !*World -> (!String, !*World)
+determineAppPath world
+	# (args,world) = getCommandLine world
+	= (hd args,world)
 
 // Determines the server executables name
 determineAppName :: !*World -> (!String,!*World)
