@@ -7,8 +7,6 @@ import Map, Text
 import GenPrint
 import GenParse
 
-import StdDebug
-
 import dynamic_string //Static dynamic serialization
 
 :: *Store =
@@ -90,7 +88,7 @@ where
 deleteValues :: !String !*Store !*World -> (!*Store, !*World)
 deleteValues prefix store=:{cache,location} world
 	//Delete items from cache
-	# cache = trace_n("Delete values for " +++ prefix) fromList [(key,item) \\ (key,item) <- toList cache | not (startsWith prefix key)]
+	# cache = fromList [(key,item) \\ (key,item) <- toList cache | not (startsWith prefix key)]
 	//Delete items from disk
 	# world = deleteFromDisk prefix location world
 	= ({store & cache = cache},world)
@@ -106,7 +104,7 @@ where
 		= world
 	unlink prefix dir [f:fs] world
 		| startsWith prefix f.fileName
-			# (err,world) = trace_n("Removing file: "+++f.fileName) fremove (pathDown dir f.fileName) world 
+			# (err,world) = fremove (pathDown dir f.fileName) world 
 			= unlink prefix dir fs world
 		| otherwise
 			= unlink prefix dir fs world
@@ -190,7 +188,7 @@ where
 		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin")
 		# (ok,file,world)	= fopen filename FWriteData world
 		| not ok			= abort ("Failed to write value to store: " +++ filename)
-		# file				= trace_n("Writing file to disk: "+++filename) fwrites content file
+		# file				= fwrites content file
 		# (ok,world)		= fclose file world
 		= world
 
