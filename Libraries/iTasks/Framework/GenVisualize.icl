@@ -339,7 +339,6 @@ gVisualize{|Maybe|} fx old new vst=:{vizType,idPrefix,currentPath,optional,valid
 where
 	pathid = dp2id idPrefix currentPath		
 
-
 gVisualize{|Dynamic|} old new vst
 	= ([],vst)
 
@@ -364,13 +363,68 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 				_
 					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})
+					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})			
 
-//derive gVisualize (,)				
+gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
+	= case vizType of
+		VEditorDefinition
+			# (v1,v2,v3) = case old of (VValue (o1,o2,o3) omask) = (VValue o1 omask, VValue o2 omask, VValue o3 omask) ; _ = (VBlank,VBlank,VBlank)
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (viz2,vst) = f2 v2 v2 vst
+			# (viz3,vst) = f3 v3 v3 vst
+			= ([ExtJSFragment (ExtJSPanel {ExtJSPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+											 items = [ 
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz1},
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz2},
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz3}
+											 ]})]			 
+			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
+		_
+			= case (old,new) of
+				(VValue (o1,o2,o3) omask, VValue(n1,n2,n3) nmask)
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
+					# (viz3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
+					= (viz1 ++ viz2 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath})
+				_
+					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
+					# (viz2,vst) = f2 VBlank VBlank vst
+					# (viz3,vst) = f3 VBlank VBlank vst
+					= (viz1 ++ viz2 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath})	
+
+gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
+	= case vizType of
+		VEditorDefinition
+			# (v1,v2,v3,v4) = case old of (VValue (o1,o2,o3,o4) omask) = (VValue o1 omask, VValue o2 omask, VValue o3 omask,VValue o4 omask) ; _ = (VBlank,VBlank,VBlank,VBlank)
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (viz2,vst) = f2 v2 v2 vst
+			# (viz3,vst) = f3 v3 v3 vst
+			# (viz4,vst) = f4 v4 v4 vst
+			= ([ExtJSFragment (ExtJSPanel {ExtJSPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+											 items = [ 
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz1},
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz2},
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz3},
+											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz4}
+											 ]})]			 
+			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
+		_
+			= case (old,new) of
+				(VValue (o1,o2,o3,o4) omask, VValue(n1,n2,n3,n4) nmask)
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
+					# (viz3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
+					# (viz4,vst) = f4 (VValue o4 omask) (VValue n4 nmask) vst
+					= (viz1 ++ viz2 ++ viz3 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath})
+				_
+					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
+					# (viz2,vst) = f2 VBlank VBlank vst
+					# (viz3,vst) = f3 VBlank VBlank vst
+					# (viz4,vst) = f4 VBlank VBlank vst
+					= (viz1 ++ viz2 ++ viz3 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath})
 		
 derive gVisualize []
-derive gVisualize Either, (,,), (,,,), Void
-
+derive gVisualize Either, Void
 
 instance toString (VisualizationValue a) | toString a
 where
@@ -417,14 +471,15 @@ consSelector d idPrefix dp value label useLabels
 	| d.gcd_type_def.gtd_num_conses == 1 
 		= []
 	//Use radiogroup to choose a constructor
-	//| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-	//	= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = isNothing label})]
+	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
+		# items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
+				   \\ c <- d.gcd_type_def.gtd_conses]
+		= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels})]
 	//Use combobox to choose a constructor
 	| otherwise
 		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
 where
-	//items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
-	//		  \\ c <- d.gcd_type_def.gtd_conses]
+	
 	store	= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
 	name	= dp2s dp
 	id		= dp2id idPrefix dp
