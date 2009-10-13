@@ -133,6 +133,11 @@ where
 	getCurrentProcessId` tst=:{staticInfo}
 		= (staticInfo.currentProcessId,tst)
 
+deleteProcessById :: ProcessId -> Task Bool 
+deleteProcessById pid = mkInstantTask "deleteProcess" deleteProcess`
+where
+	deleteProcess` tst = ProcessDB@deleteProcess pid tst
+
 getProcess :: !ProcessId -> Task (Maybe Process)
 getProcess pid = mkInstantTask "getProcess" (\tst -> ProcessDB@getProcess pid tst)
 

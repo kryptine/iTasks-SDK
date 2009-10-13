@@ -4,7 +4,7 @@ import iTasks
 import dictionaryUtil
 import iDataTrivial
 import StdMisc
-
+from   TSt			import Task 
 
 Start world = startEngine tryout world
 
@@ -34,7 +34,6 @@ where
 	where
 		myTask val = normalTask val <\/> alternativeTask val
 
-
 // ***************************************
 // replace 50% of the normaltask by iTaskEditor 
 
@@ -45,10 +44,10 @@ normalTask :: a -> Task a | iData a
 normalTask val = editTask ("Normal OK") val 
 
 alternativeTask :: a Dynamic -> Task a | iData a
-alternativeTask val dyn 	= fromDynamic dyn val
+alternativeTask val dyn = fromDynamic dyn val
 
 whatToApply :: Dynamic
-whatToApply = toDynamic iTaskEditor
+whatToApply = dynamic  iTaskEditor :: A.a: a -> Task a | iData a
 
 whenToApply :: ChangeCondition
 whenToApply = CC (pred 30)
@@ -75,6 +74,17 @@ whatToApply3 :: Dynamic
 whatToApply3 = toDynamic (iTaskDelegate normalTask)
 
 // ***************************************
+// attempt to define an alternative definition for @: 
+
+/*
+(@:^) infix 3 :: !UserId !(LabeledTask a) -> Task a	| iData a 
+(@:^) uid ltaska =  uid @: (ltaska <\/> catch)
+where
+	catch ::  MyChange -> Taska
+	catch (NewProperties prop) = 
+*/
+
+// ***************************************
 // Some simple iTask editors to play with...
 
 iTaskEditor :: (a -> Task a) | iData a
@@ -94,7 +104,7 @@ where
 
 // ***************************************
 // casting section...
-// waiting for John to enabling the storage of overloaded functions into a Dynamic....
+// waiting for John to enable the storage of overloaded functions into a Dynamic....
 
 :: TF a :== a -> Task a
 

@@ -44,7 +44,7 @@ purchaseExample
 	}
   ]
 
-purchaseTask :: Task Void
+purchaseTask :: Task Void 
 purchaseTask =
 	definePurchase					>>=	\purchase	->
 	selectSuppliers 				>>=	\suppliers	->

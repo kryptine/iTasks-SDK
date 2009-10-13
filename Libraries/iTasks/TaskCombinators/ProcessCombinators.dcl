@@ -130,6 +130,16 @@ updateProcessOwner		:: UserId (ProcessReference a)		->	Task Bool					| iTask a
 */
 getCurrentProcessId		:: 										Task ProcessId
 /**
+* Delete a process from the process database
+* Once a process is deleted all of its results are lost.
+*
+* @param The process id
+*
+* @return A task that yields True when the process was successfully deleted
+*         and False when the process could not be found.
+*/
+deleteProcessById :: ProcessId -> Task Bool 
+/**
 * Retrieves a Process record from the process table
 * 
 * @param The process id
