@@ -28,8 +28,8 @@ import WebShop
 //Crisis response examples
 import AmbulanceDispatch
 
-//Administrative tasks
-import ProcessAdmin
+//Change examples
+import SimpleChanges
 
 Start :: *World -> *World
 Start world = startEngine workflows world
@@ -52,5 +52,5 @@ where
 						, changeHandlingExample
 						, webShopExample
 						, ambulanceDispatchExamples
-						, processAdmin
+						, changeExamples
 						]
