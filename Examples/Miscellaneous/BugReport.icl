@@ -17,37 +17,26 @@ import CommonDomain
 
 :: Bug =
 	{ bugNr			:: BugNr
+	, status		:: BugStatus
 	, reportedAt	:: (Date,Time)
 	, reportedBy	:: UserId
 	, report		:: BugReport
-	, application	:: AppNr
 	, analysis		:: Maybe BugAnalysis
 	}
+
+:: BugStatus = Reported | Assigned UserId | Fixed
 
 :: BugAnalysis =
 	{ cause				:: Note
 	, affectedVersions	:: [String]
 	}
-	
-:: Application =
-	{ appNr			:: AppNr
-	, name			:: String
-	, versions		:: [String]
-	, developers	:: [UserId]
-	}
-	
-:: AppNr :== Int
+
 :: BugNr :== Int
 
-derive gPrint     Application, BugReport, Bug, BugSeverity, BugOccurance, BugAnalysis	
-derive gParse	  Application, BugReport, Bug, BugSeverity, BugOccurance, BugAnalysis
-derive gVisualize Application, BugReport, Bug, BugSeverity, BugOccurance, BugAnalysis
-derive gUpdate	  Application, BugReport, Bug, BugSeverity, BugOccurance, BugAnalysis
-
-instance DB Application where
-	databaseId					= mkDBid "Application"
-	getItemId {appNr}			= DBRef appNr
-	setItemId (DBRef appNr) app	= {app & appNr = appNr}
+derive gPrint     BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis	
+derive gParse	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
+derive gVisualize BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
+derive gUpdate	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 	
 instance DB Bug where
 	databaseId					= mkDBid "Bug"
@@ -57,7 +46,7 @@ instance DB Bug where
 bugReportExample :: [Workflow]
 bugReportExample
 	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBugSimple
-	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBugAdvanced
+	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBug
 	  ]
 	  
 reportBugSimple :: Task BugReport
@@ -67,65 +56,87 @@ reportBugSimple
 		assignByName "bas" "Bug fix" NormalPriority Nothing
 			(showMessageAbout "The following bug has been reported, please fix it." report)
 	>>| return report
-
-reportBugAdvanced :: Task Void
-reportBugAdvanced
-	=	enterInitialReport
+	
+//Main workflow	  
+reportBug :: Task Void
+reportBug
+	=	enterBugReport
 	>>= \report ->
-		fileBugReport report
+		fileBug report
 	>>= \bug ->
 		case report.severity of
 			Critical 
-				=	(confirmCriticalBug bug
+				= (confirmCritical bug.report
 					>>= \critical ->
 					assignBug bug critical)
 			_
 				=	assignBug bug False
 
-enterInitialReport :: Task BugReport
-enterInitialReport
-=	enterInformation "Please describe the bug you have found"
+assignBug :: Bug Bool -> Task Void
+assignBug bug critical
+	=	selectDeveloper bug.report.BugReport.application
+	>>=	\developer ->
+		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
+	>>= \bug ->
+		assign developer priority Nothing
+			(subject @>> resolveBug bug critical)
+where
+	priority = if critical HighPriority NormalPriority
+	subject  = if critical "Critical bug!" "Bug"
+
+resolveBug :: Bug Bool -> Task Void
+resolveBug bug critical
+	=	analyzeBug bug
+	>>= \bug ->
+		developBugFix bug
+	>>| if critical
+		( makePatches bug -&&- mergeFixInMainLine bug
+		  >>| wrapUp bug)
+		( mergeFixInMainLine bug
+		  >>| wrapUp bug)
+
+wrapUp :: Bug -> Task Void
+wrapUp bug
+	=	updateBug (\b -> {Bug| b & status = Fixed}) bug
+	>>= \bug ->
+		notifyReporter bug
+
+//Sub tasks
+
+enterBugReport :: Task BugReport
+enterBugReport
+	=	enterInformation "Please describe the bug you have found"
 	
-fileBugReport :: BugReport -> Task Bug
-fileBugReport report
+fileBug :: BugReport -> Task Bug
+fileBug report
 	=	dbCreateItem -&&- getCurrentUser
 	>>= \(bug,user) ->
 		dbUpdateItem {bug & report = report, reportedBy = user.User.userId}
 
-confirmCriticalBug :: Bug -> Task Bool
-confirmCriticalBug bug
-	=	selectDeveloper bug.report.BugReport.application bug.report.version
+updateBug :: (Bug -> Bug) Bug -> Task Bug
+updateBug f bug = dbUpdateItem (f bug)
+
+confirmCritical :: BugReport -> Task Bool
+confirmCritical report
+	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
 		assign assessor HighPriority Nothing
 			( "Bug report assessment"
 			  @>>
-			  requestConfirmationAbout "Is this bug really critical?" bug.report
+			  requestConfirmationAbout "Is this bug really critical?" report
 			)
-
-assignBug :: Bug Bool -> Task Void
-assignBug bug critical
-	=	selectDeveloper bug.report.BugReport.application bug.report.version
-	>>=	\developer ->
-		assign developer priority Nothing (subject @>> resolveBug bugid critical)
-where
-	bugid    = getItemId bug
-	priority = if critical HighPriority NormalPriority
-	subject  = if critical "Critical bug!" "Bug"
 	
-selectDeveloper :: String (Maybe String) -> Task UserId
-selectDeveloper application version
+selectDeveloper :: String -> Task UserId
+selectDeveloper application
 	=	findAppDevelopers application
 	>>= \developers -> case developers of
 		[]	= getCurrentUser >>= \user -> return user.User.userId
 		_	= selectLeastBusy developers
 where
 	findAppDevelopers :: String -> Task [UserId]
-	findAppDevelopers name
-		=	dbReadAll
-		>>= \apps -> case [app \\ app <- apps |app.Application.name == name] of
-			[x] = return x.developers
-			_	= return []
-			
+	findAppDevelopers "itasks"	= return [0]
+	findAppDevelopers _			= return []
+		
 	selectLeastBusy :: [UserId] -> Task UserId
 	selectLeastBusy []
 		=	getCurrentUser >>= \user -> return user.User.userId
@@ -139,39 +150,14 @@ where
 	getNumTasksForUser :: UserId -> Task Int
 	getNumTasksForUser uid = return 42			//TODO: Use API function
 	 
-resolveBug :: (DBRef Bug) Bool -> Task Void
-resolveBug bugnr critical
-	=	dbSafeReadItem bugnr
-	>>= \bug ->
-		analyzeBug bug
-	>>= \bug ->
-		developBugFix bug
-	>>| if critical
-		( makePatches bug -&&- mergeFixInMainLine bug
-		  >>| notifyReporter bug)
-		( mergeFixInMainLine bug
-		  >>| notifyReporter bug)
-	
 analyzeBug :: Bug -> Task Bug
 analyzeBug bug
-	=	determineCause bug -&&- determineAffectedVersions bug
-	>>=	\(cause,versions) ->
-		dbUpdateItem {bug & analysis = Just {cause = cause, affectedVersions = versions}}
+	=	determineCause bug 
+	>>=	\cause ->
+		dbUpdateItem {bug & analysis = Just {cause = cause, affectedVersions = []}}
 where
 	determineCause bug
 		= enterInformationAbout "What is the cause of the following bug?" bug
-
-	determineAffectedVersions bug
-		=	dbSafeReadItem (DBRef bug.Bug.application)
-		>>= \application ->
-			case application.versions of
-				[]	= return []
-				_	=
-					enterMultipleChoiceAbout
-						("Which versions of " <+++ application.Application.name <+++ " have been affected by this bug?")
-						bug
-						application.versions
-						
 		
 developBugFix :: Bug -> Task Void
 developBugFix bug = showMessageAbout "Please implement a fix for the following bug:" bug
@@ -188,7 +174,7 @@ makePatches bug =
 			= return Void
 		Just {affectedVersions = versions}
 			= allTasks [showMessageAbout ("Please make a patch of bugfix " <+++ bug.bugNr <+++
-								" for the following version of " <+++ bug.Bug.application)
+								" for the following version of " <+++ bug.Bug.report.application)
 								version
 						\\ version <- versions
 					   ]
@@ -196,18 +182,3 @@ makePatches bug =
 		
 notifyReporter :: Bug -> Task Void
 notifyReporter bug = notifyUser "The bug you reported has been fixed" bug.reportedBy
-
-//UTIL:
-
-dbSafeReadItem :: (DBRef a) -> Task a | iTask, DB a
-dbSafeReadItem ref
-	=	dbReadItem ref
-	>>= \mbval = case mbval of
-		Just val
-			= return val
-		Nothing
-			=	dbReadAll
-			>>= \all ->	
-				case all of
-					[]	= dbCreateItem
-					all	= enterChoice ("Item " <+++ ref <+++ " could not be found. Please select an alternative.") all
