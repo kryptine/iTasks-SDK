@@ -6,14 +6,28 @@ import ProcessDB, DynamicDB, SessionDB, UserDB, TaskTree
 import GenPrint, GenParse, GenEq, GenBimap
 import GenVisualize, GenUpdate, Store, Config
 
+import dynamic_string
+
+from JSON 				import JSONDecode, fromJSON
+
 import code from "copy_graph_to_string.obj";
 import code from "copy_graph_to_string_interface.obj";
 
 :: TaskState = TSNew | TSActive | TSDone
 
+:: RPCMessage = 
+		{ success		:: Bool
+		, resultChange	:: Bool
+		, finished		:: Bool
+		, status		:: String
+		, result		:: String
+		}
+
 derive gPrint		TaskState
 derive gParse		TaskState
 derive gEq			TaskState
+
+derive JSONDecode RPCMessage
 
 mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
 mkTSt appName config request session workflows systemStore dataStore world
@@ -25,7 +39,7 @@ mkTSt appName config request session workflows systemStore dataStore world
 		, delegatorId	= -1
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, activated 	= True
-		, mainTask		= -1
+		, mainTask		= ""
 		, newProcesses	= []
 		, options 		= initialOptions
 		, staticInfo	= initStaticInfo appName session workflows
@@ -42,7 +56,7 @@ mkTSt appName config request session workflows systemStore dataStore world
 initStaticInfo :: String Session ![Workflow] -> StaticInfo
 initStaticInfo appName session workflows
 	=	{ appName			= appName
-		, currentProcessId	= -1
+		, currentProcessId	= ""
 		, currentSession 	= session
 		, staticWorkflows	= workflows
 		}
@@ -67,7 +81,7 @@ initTaskProperties :: TaskProperties
 initTaskProperties
 	= { systemProps =
 		{TaskSystemProperties
-		| processId = 0
+		| processId = ""
 		, subject = ""
 		, manager = (-1,"")
 		, issuedAt = Timestamp 0
@@ -103,17 +117,21 @@ initTaskProperties
 * - Check if the new processes have spawned new processes themselves
 * - repeat...
 */
+
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
+	# (ok,tst)				= removeFinishedProcesses tst
+	| not ok				= abort "Failure in cleaning up the process DB."
 	# (currentUser,tst)		= getCurrentUser tst
 	# (processes,tst)		= getProcessesForUser currentUser [Active] True tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
 	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	
 
+//Needed for RPC Daemon
 calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
 calculateCompleteTaskForest enableDebug tst 
-	# (processes, tst) = getProcesses [Active,Suspended] True tst
+	# (processes, tst) = getProcesses [Active,Suspended] tst
 	# (trees, tst) = calculateTrees processes tst
 	# (trees, tst) = addNewProcesses trees tst
 	= (Nothing, trees, tst)
@@ -133,18 +151,28 @@ addNewProcesses trees tst
 calculateTrees :: ![Process] !*TSt -> (![TaskTree], !*TSt)
 calculateTrees [] tst = ([],tst)
 calculateTrees [p:ps] tst
-	# (tree,tst)	= buildProcessTree p Nothing tst
-	# (trees,tst)	= calculateTrees ps tst
-	= ([tree:trees],tst)
+	# (tree, par, tst)	= buildProcessTree p Nothing tst
+	= case par of 
+		(Just procId)
+			# (mbProc,tst) 	= getProcess procId tst
+			| isJust mbProc	
+				# (trees,tst)	= calculateTrees [fromJust mbProc:ps] tst
+				= ([tree:trees],tst)
+			| otherwise	
+				# (trees,tst)	= calculateTrees ps tst
+				= ([tree:trees],tst)
+		Nothing
+			# (trees,tst)		= calculateTrees ps tst
+			= ([tree:trees],tst)
 
 calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
 calculateTaskTree pid enableDebug tst
-	# (mbProcess,tst)		= getProcess pid tst
+	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		Just entry
 			= case entry.Process.status of
 				Active
-					# (tree,tst)	= buildProcessTree entry Nothing tst
+					# (tree,_,tst)	= buildProcessTree entry Nothing tst
 					= (Nothing, Just tree, tst)
 				_
 					= (Nothing, Just (initProcessNode entry), tst)
@@ -155,21 +183,23 @@ initProcessNode :: Process -> TaskTree
 initProcessNode {processId, properties}
 		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.systemProps.subject, active = True, finished = False, traceValue = "Process"} properties []
 
-buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, !*TSt)
-buildProcessTree p =: {Process | processId, processType, properties = {TaskProperties|systemProps,managerProps}, changes} mbChange tst =:{staticInfo}
-	# tst								= {TSt|tst	& taskNr = [0,processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
-													, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
-	# tst								= loadChanges mbChange changes tst	
-	# (result,tst)						= applyMainTask processType tst
+//If parent has to be evaluated, the Id is returned and accumelated into the list of proccesses still to be evaluated in buildtree.
+
+buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, (Maybe ProcessId), !*TSt)
+buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeNr} mbChange tst =:{staticInfo}
+	# tst								= {TSt|tst & taskNr = [0,changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
+												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
+	# tst								= (loadChanges mbChange changes tst)
+	# tst								= applyMainTask tst
 	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
 	# (finished, tst)					= taskFinished tst
 	| finished
-		# tst							= deleteTaskStates [processId] tst														//Garbage collect
-		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished, result = result }) tst	//Save result
-		= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), tst)
+		# tst							= deleteTaskStates (taskNrFromString processId) tst							//Garbage collect
+		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished}) tst		//Save result
+		= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), (parentProcId parent), tst)
 	| otherwise
 		# tst							= storeChanges processId tst
-		= (TTMainTask ti mti tasks, tst)
+		= (TTMainTask ti mti tasks, Nothing, tst)
 where
 	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
 
@@ -196,52 +226,54 @@ where
 			= storeChanges` cs [(l,c):accu] pid tst
 	storeChanges` [c:cs] accu pid tst
 		= storeChanges` cs accu pid tst
-			
-	applyMainTask (StaticProcess workflow) tst //Execute a static process
-		# (mbWorkflow,tst)	= getWorkflowByName workflow tst
-		= case mbWorkflow of
-			Nothing
-				= (Nothing, tst)
-			Just {Workflow|mainTask}
-				# (_,tst)	= applyTask mainTask tst
-				= (Nothing, tst)				
-	applyMainTask (DynamicProcess task) tst //Execute a dynamic process
-		# (mbTask, tst)		= getDynamic task tst
-		= case mbTask of
-			(Just dyn)
-				# (result, tst)		= applyDynamicTask dyn tst
-				#  result			= evalDynamicResult result
-				# (finished, tst)	= taskFinished tst
-				| finished
-					# (resid, tst)	= createDynamic (evalDynamicResult result) tst
-					= (Just resid, tst)
-				| otherwise
-					= (Nothing, tst)
-			Nothing
-				= (Nothing, tst)			
-	applyMainTask (EmbeddedProcess procid taskid) tst = (Nothing, tst) //Do nothing with embedded processes
-	
-	/**
-	* This forces evaluation of the dynamic to normal form before we encode it
-	*/
-	evalDynamicResult :: !Dynamic -> Dynamic
-	evalDynamicResult d = code {
-		push_a 0
-		.d 1 0
-		jsr	_eval_to_nf
-		.o 0 0
-	}
-	
-	applyDynamicTask :: !Dynamic !*TSt -> (!Dynamic, !*TSt)
-	applyDynamicTask (task :: (Task Dynamic)) tst = applyTask task tst 
 
+	applyMainTask tst =: {TSt | taskNr, dataStore, world}
+		# dTaskNr		 = (drop 2 taskNr)	
+		# (dynTask, tst) = loadTaskFunctionDynamic dTaskNr tst			  
+		= case dynTask of
+			(Just dyn)
+				# (result, tst) 	= applyTask dyn tst
+				#  result			= evalDynamicResult result
+				# (finished, tst =: {TSt | dataStore}) 	= taskFinished tst
+				| finished 
+					# dataStore = storeValue (storekey dTaskNr) result dataStore
+					= {TSt | tst & dataStore = dataStore}
+				| otherwise	= tst	
+			Nothing
+				= tst
+				//= abort ("(ApplyMainTask) Cannot load task function for "+++taskNrToString dTaskNr)
+	where
+		storekey taskNr = "iTask_"+++(taskNrToString taskNr)+++"-taskresult"
+
+	parentProcId ""		=  Nothing
+	parentProcId procId = (Just procId)
+
+/**
+* This forces evaluation of the dynamic to normal form before we encode it
+*/	
+evalDynamicResult :: !Dynamic -> Dynamic
+evalDynamicResult d = code {
+	push_a 0
+	.d 1 0
+	jsr	_eval_to_nf
+	.o 0 0
+}
+
+//Turn a task yielding a value of type a into a value of dynamic
+createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
+createDynamicTask (Task name mbCxt tf) = Task name mbCxt createDynamicTask`
+where
+	createDynamicTask` tst
+		# (a, tst)	= tf tst
+		# dyn		= evalDynamicResult (dynamic a)
+		= (dyn, tst)
 
 applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
 applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changes}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
-			# tst = snd (buildProcessTree proc (Just (change,lifetime)) tst)
+			# tst = thd3 (buildProcessTree proc (Just (change,lifetime)) tst)
 			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
 			  , tree = tree, activated = activated, mainTask = mainTask, newProcesses = newProcesses, options = options
 			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
@@ -317,14 +349,15 @@ mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a | gUpdate{|*|} a
 mkRpcTask taskname rpci parsefun = Task taskname Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
-		# (updates, tst) = getRpcUpdates tst
-		# (rpci, tst) = checkRpcStatus rpci tst
+		# rpci				= {RPCInfo | rpci & taskId = taskNrToString taskNr}
+		# (updates, tst) 	= getRpcUpdates tst
+		# (rpci, tst) 		= checkRpcStatus rpci tst
 		| length updates == 0 
 			= applyRpcDefault {tst & activated = False, tree = TTRpcTask taskInfo rpci }					
 		| otherwise 
 			= applyRpcUpdates updates tst rpci parsefun
 	
-	checkRpcStatus :: RPCInfo *TSt -> (RPCInfo, *TSt)
+	checkRpcStatus :: RPCInfo !*TSt -> (!RPCInfo, !*TSt)
 	checkRpcStatus rpci tst 
 		# (mbStatus, tst) = getTaskStore "status" tst 
 		= case mbStatus of
@@ -334,29 +367,46 @@ where
 		Just s
 			= ({RPCInfo | rpci & status = s},tst)
 	
-getRpcUpdates :: !*TSt -> ([(String,String)],*TSt)
-getRpcUpdates tst=:{taskNr,request} = (updates request, tst)
-where
-	updates request
-		| http_getValue "_rpctasknr" request.arg_post "" == taskNrToString taskNr
-			= [u \\ u =: (k,v) <- request.arg_post]
-		| otherwise
-			= []
-	
+	getRpcUpdates :: !*TSt -> ([(String,String)],!*TSt)
+	getRpcUpdates tst=:{taskNr,request} = (updates request, tst)
+	where
+		updates request
+			| http_getValue "_rpctaskid" request.arg_post "" == taskNrToString taskNr
+				= [u \\ u =: (k,v) <- request.arg_post]
+			| otherwise
+				= []
+
+import StdDebug
+
+/* Error handling needs to be implemented! */	
 applyRpcUpdates :: [(String,String)] !*TSt !RPCInfo !(String -> a) -> *(!a,!*TSt) | gUpdate{|*|} a	
 applyRpcUpdates [] tst rpci parsefun = applyRpcDefault tst
 applyRpcUpdates [(n,v):xs] tst rpci parsefun
-	| n == "_rpcstatus"
-		# tst = setTaskStore "status" v tst //update the status message		
-		= applyRpcUpdates xs tst rpci parsefun
-	| n == "_rpcresult"
-		= (parsefun v,{tst & activated = True})
-	| otherwise = applyRpcUpdates xs tst rpci parsefun
+| n == "_rpcmessage" 
+# (mbMsg) = trace_n("Recieved message: "+++v) fromJSON v
+= case mbMsg of
+	Just msg = applyRpcMessage msg tst rpci parsefun
+	Nothing = abort("Cannot parse daemon message "+++v) //needs to be exception!
+| otherwise = applyRpcUpdates xs tst rpci parsefun
+where
+	applyRpcMessage msg tst rpci parsfun
+	# tst = (setTaskStore "status" msg.RPCMessage.status tst)
+	= case msg.RPCMessage.success of
+		True
+		# tst = checkFinished msg.RPCMessage.finished tst
+		| msg.RPCMessage.resultChange = (parsefun msg.RPCMessage.result, tst)
+		| otherwise = applyRpcDefault tst
+		False
+		# tst = {TSt | tst & activated = True}
+		= applyRpcDefault tst
+	
+	checkFinished True 	tst = {TSt | tst & activated = True}
+	checkFinished False tst = {TSt | tst & activated = False}
 
 applyRpcDefault :: !*TSt -> *(!a,!*TSt) | gUpdate{|*|} a
 applyRpcDefault tst=:{TSt|world}
 	# (def,wrld) = defaultValue world
-	= (def,{TSt | tst & world=wrld, activated = False })
+	= (def,{TSt | tst & world=wrld})
 	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
@@ -463,6 +513,37 @@ getTaskValue :: !*TSt -> (Maybe a, !*TSt) | TC a
 getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)
 getTaskValue tst = (Nothing, tst)
 
+loadTaskFunctionStatic :: !TaskNr !*TSt -> (!Maybe (Task a), !*TSt) | TC a
+loadTaskFunctionStatic taskNr tst =: {TSt | dataStore, world}
+# (mbDyn, dataStore, world) = loadValue (storekey taskNr) dataStore world
+= case mbDyn of 
+	(Just (t :: Task a^)) 	= ((Just t), {TSt | tst & dataStore = dataStore, world = world})
+	Nothing				  	= (Nothing , {TSt | tst & dataStore = dataStore, world = world})
+where
+	storekey taskNr  	 = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-static"
+
+loadTaskFunctionDynamic :: !TaskNr !*TSt -> (!Maybe (Task Dynamic), !*TSt)
+loadTaskFunctionDynamic taskNr tst =: {TSt | dataStore, world}
+# (mbDyn, dataStore, world) = loadValue (storekey taskNr) dataStore world
+= case mbDyn of 
+	(Just (t :: Task Dynamic)) 	= ((Just t), {TSt | tst & dataStore = dataStore, world = world})
+	Nothing				  		= (Nothing , {TSt | tst & dataStore = dataStore, world = world})
+where
+	storekey taskNr 	 = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-dynamic"
+
+storeTaskFunctionStatic :: !TaskNr !(Task a) !*TSt -> *TSt | TC a
+storeTaskFunctionStatic taskNr task tst = storeTaskFunction taskNr task "static" tst
+
+storeTaskFunctionDynamic :: !TaskNr !(Task Dynamic) !*TSt -> *TSt
+storeTaskFunctionDynamic taskNr task tst = storeTaskFunction taskNr task "dynamic" tst
+
+storeTaskFunction :: !TaskNr !(Task a) String !*TSt -> *TSt | TC a
+storeTaskFunction taskNr task key tst =: {TSt | dataStore}
+# dataStore = storeValueAs SFDynamic (storekey taskNr key) (dynamic task) dataStore
+= {TSt | tst & dataStore = dataStore}
+where
+	storekey taskNr key = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-"+++key 
+
 setTaskStore :: !String !a !*TSt -> *TSt | iTask a
 setTaskStore key value tst=:{taskNr,dataStore}
 	# dataStore = storeValue storekey value dataStore
@@ -548,10 +629,6 @@ where
 	stl :: [Char] -> [Char]
 	stl [] = []
 	stl xs = tl xs
-
-taskNrToProcessNr :: !TaskNr -> ProcessNr
-taskNrToProcessNr []	= -1
-taskNrToProcessNr l 	= last l
 
 taskLabel :: !(Task a) -> String
 taskLabel (Task label _ _) = label

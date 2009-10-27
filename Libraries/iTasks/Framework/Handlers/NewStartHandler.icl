@@ -17,12 +17,17 @@ where
 	workflowId :: String
 	workflowId = http_getValue "workflow" request.arg_post ""
 	
-	response :: Int -> String
-	response taskid	= "{\"success\" : true, \"taskid\": \""  +++ (toString taskid) +++ "\"}"
+	response :: String -> String
+	response taskid	= "{\"success\" : true, \"taskid\": \""  +++ taskid +++ "\"}"
 
-	startNewWorkflow :: Workflow *TSt -> (Int, *TSt)
+	startNewWorkflow :: Workflow *TSt -> (ProcessId, *TSt)
 	startNewWorkflow workflow tst
 		# (currentUserId, tst)	= getCurrentUser tst
 		# (currentUser,tst)		= getUser currentUserId tst
 		# (currentTime, tst)	= accWorldTSt time tst
-		= createProcess (mkStaticProcessEntry workflow currentTime (currentUser.User.userId,currentUser.User.displayName) (currentUser.User.userId,currentUser.User.displayName) Active) tst
+		# (taskId, tst) 		= createProcess (mkProcessEntry workflow.Workflow.label currentTime 
+									(currentUser.User.userId,currentUser.User.displayName) 
+									(currentUser.User.userId,currentUser.User.displayName) Active "") tst
+		# taskNr				= taskNrFromString taskId
+		# tst					= storeTaskFunctionDynamic taskNr (createDynamicTask workflow.Workflow.mainTask) tst
+		= (taskId, tst)

@@ -6,7 +6,7 @@ definition module ProcessCombinators
 
 import StdMaybe
 from TSt		import :: Task
-from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: ProcessType(..)
+from ProcessDB	import :: ProcessStatus(..), :: Process(..)
 from Types		import :: UserId, :: ProcessId, :: DynamicId, :: TaskId
 from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress
 from Time		import :: Timestamp 
@@ -14,10 +14,10 @@ from Time		import :: Timestamp
 from iTasks		import class iTask
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
-derive gVisualize	ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gUpdate		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gPrint		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gParse		ProcessReference, Process, ProcessStatus, ProcessType, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gVisualize	ProcessReference, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gUpdate		ProcessReference, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gPrint		ProcessReference, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gParse		ProcessReference, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
 
 
 /**
@@ -161,11 +161,10 @@ getProcessForUser		:: !UserId !ProcessId 					-> Task (Maybe Process)
 * Retrieves all process that have one of the given statuses
 *
 * @param A list of statuses to match on
-* @param Ignore embedded processes
 * 
 * @return The list of processes having the given statuses
 */
-getProcesses			:: ![ProcessStatus]	!Bool				-> Task [Process]
+getProcesses			:: ![ProcessStatus]				-> Task [Process]
 
 /**
 * Retrieves the processes with indicated process ids

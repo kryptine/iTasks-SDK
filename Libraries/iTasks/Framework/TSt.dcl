@@ -7,6 +7,7 @@ definition module TSt
 import StdMaybe
 import Types, Void
 import TaskTree
+import RPC
 
 from SessionDB	import :: Session
 from Config		import :: Config(..)
@@ -328,7 +329,7 @@ getTaskValue		:: !*TSt						-> (Maybe a, !*TSt) | TC a
 
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
 
-
+//loadTaskFunction	:: !TaskNr !*TSt				-> (Maybe (Task a), !*TSt)
 
 /**
 * Writes a 'task scoped' value to the store
@@ -339,6 +340,23 @@ setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
 * Reads a 'task scoped' value from the store
 */
 getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
+
+/**
+* Loads the task function from the store
+*/
+loadTaskFunctionStatic  :: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
+loadTaskFunctionDynamic :: !TaskNr !*TSt -> (!Maybe (Task Dynamic), !*TSt)
+
+/**
+* Stores the task function in the store
+*/
+storeTaskFunctionStatic  :: !TaskNr !(Task a)       !*TSt -> *TSt | TC a
+storeTaskFunctionDynamic :: !TaskNr !(Task Dynamic) !*TSt -> *TSt
+
+/**
+* Turn a task yielding a value of type a into a value of dynamic
+*/
+createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
 
 /**
 * Removes all events for the current task. This is automatically called by applyTask
@@ -403,14 +421,6 @@ taskNrFromString 	:: !String 					-> TaskNr
 * @return The formatted task number
 */
 taskNrToString		:: !TaskNr 					-> String
-/**
-* Determines the process number part of a task number
-*
-* @param The task number as integer list
-* 
-* @return The process number or -1 when the task number is empty
-*/
-taskNrToProcessNr	:: !TaskNr					-> ProcessNr
 
 /**
 * Extracts the task label of a task
@@ -420,3 +430,4 @@ taskNrToProcessNr	:: !TaskNr					-> ProcessNr
 * @return The task's label
 */
 taskLabel			:: !(Task a)				-> String
+

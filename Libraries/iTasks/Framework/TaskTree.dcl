@@ -8,6 +8,7 @@ definition module TaskTree
 import StdMaybe, Either
 import Types
 import Html, Time
+import RPC
 
 from   ProcessDB	import :: ProcessStatus
 from   JSON 		import :: JSON
@@ -52,21 +53,22 @@ from   ExtJS		import :: ExtJSDef, :: ExtJSUpdate
 	{ progress		:: TaskProgress		// Indication of the worker's progress
 	}
 
-:: TaskProgress		= TPActive																//Worker is happily working on the task
-					| TPStuck																//Worker is stuck and needs assistence
-					| TPWaiting																//Worker is waiting, not actively working on the task
-					| TPReject																//Worker does not want to continue working on the task
-:: RPCInfo =
-	{ methodName	:: String
-	, endPoint		:: String
-	, protocol		:: RPCProtocol
-	, status		:: RPCStatus
-	, parameters	:: [(String,String)]
-	}
-
-:: RPCProtocol	= RPCHttp RPCMethod | RPCTcp | RPCSystem
-:: RPCMethod	= RPCGet | RPCPost
-:: RPCStatus	:== String
+:: TaskProgress		= TPActive			//Worker is happily working on the task
+					| TPStuck			//Worker is stuck and needs assistence
+					| TPWaiting			//Worker is waiting, not actively working on the task
+					| TPReject			//Worker does not want to continue working on the task
+					
+/*
+	The actual call to a service
+*/
+:: RPCInfo		  = { taskId		:: TaskId
+					, name			:: String
+					, interface		:: RPCInterface
+					, location		:: String
+					, parameters	:: [RPCCallParam]
+					, callType		:: RPCCallType
+					, status		:: String 			//Status message
+					}															
 
 /**
 * Finds the sub tree with the given task number

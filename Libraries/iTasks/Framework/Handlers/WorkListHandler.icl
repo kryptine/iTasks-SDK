@@ -27,7 +27,7 @@ import Text, JSON, Time, Util
 //JSON encoding for the used types 				
 derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
 //JSON specialization for Timestamp: Ignore the constructor
-JSONEncode{|Timestamp|}	(Timestamp x) c						= JSONEncode{|*|} x c
+JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst
@@ -46,6 +46,11 @@ handleWorkListRequest request tst
 //when a single tree has no output the second last must be treated
 //as last in the forest. This is needed to get the tree lines displayed
 //correct.
+
+derive JSONEncode TaskTree, TaskInfo, TaskCombination, HtmlTag, HtmlAttr, Either, TaskProperties
+derive JSONEncode TaskWorkerProperties, TaskManagerProperties, TaskSystemProperties
+derive JSONEncode RPCInfo, RPCCallType, RPCInterface, RPCMessageType, RPCProtocol, RPCHttpMethod
+
 determineListWorkItems :: !UserId ![TaskTree] -> [WorkListItem]
 determineListWorkItems userId forest = flatten (reverse (determineListWorkItems` userId (reverse forest)))
 where

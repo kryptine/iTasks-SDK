@@ -13,19 +13,14 @@ traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"],ThTag [] [Text "Type"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"], ThTag [] [Text "Active changes"] ]
-	mkRow process		= TrTag []	[ TdTag [] [Text (toString process.Process.processId)]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"], ThTag [] [Text "Active changes"] ]
+	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
 							, TdTag [] [Text process.Process.properties.systemProps.subject]
 							, TdTag [] [Text (toString (fst process.Process.properties.managerProps.worker) +++ ": " +++ snd process.Process.properties.managerProps.worker)]
 							, TdTag [] [Text (toString (fst process.Process.properties.systemProps.manager) +++ ": " +++ snd process.Process.properties.systemProps.manager)]
-							, TdTag [] [Text (case process.Process.processType of
-												(StaticProcess _) 		= "Static"
-												(DynamicProcess _)		= "Dynamic"
-												(EmbeddedProcess _ _)	= "Embedded"
-											  )]
 							, TdTag [] [Text (toString process.Process.status)]
 							, TdTag [] (case process.Process.parent of
-											0	= [Text "N/A"]
+											""	= [Text "N/A"]
 											x	= [Text (toString x)]
 										)
 							, TdTag [] [Text (join ", " (map fst process.Process.changes))]
@@ -84,7 +79,7 @@ where
 		  , iconCls = "task-seq"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = ""
+		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "SEQ"
 		  , activeClass = activeClass info
 		  , children = [traceTaskTree tree \\ tree <- trees]
@@ -98,7 +93,7 @@ where
 		  , iconCls = "task-par"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = ""
+		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "PAR"
 		  , activeClass = activeClass info
 		  , children = [traceTaskTree tree \\ tree <- trees]
@@ -113,7 +108,7 @@ where
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = ""
+		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "MNT"
 		  , activeClass = activeClass info
 		  , children = [traceTaskTree tree \\ tree <- trees]

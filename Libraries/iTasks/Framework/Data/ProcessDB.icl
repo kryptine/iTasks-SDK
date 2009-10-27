@@ -17,15 +17,15 @@ where
 	toString Suspended	= "Suspended"
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
-
+	
 instance ProcessDB TSt
 where
 	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
-	createProcess entry tst 
-		# (procs,tst) 	= processStore id tst
-		# newPid		= inc (maxPid procs)
-		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = newPid, properties = {TaskProperties| entry.properties & systemProps = {TaskSystemProperties|entry.properties.systemProps & processId = newPid}} }]) tst
-		= (newPid, tst)
+	createProcess entry tst
+		#(procs,tst)	= processStore id tst
+		# pid = if (entry.Process.processId <> "") entry.Process.processId (getNewPid procs entry)
+		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = pid, properties = {TaskProperties| entry.properties & systemProps = {TaskSystemProperties|entry.properties.systemProps & processId = pid}} }]) tst
+		= (pid, tst)
 		
 	deleteProcess :: !ProcessId !*TSt	-> (!Bool, !*TSt)
 	deleteProcess processId tst 
@@ -48,10 +48,10 @@ where
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
 	where
-		relevantProc targetId {Process|processType = EmbeddedProcess pid _}	= pid == targetId 
+		//relevantProc targetId {Process|processType = EmbeddedProcess pid _}	= pid == targetId 
 		relevantProc targetId {Process|processId}							= processId == targetId
 		relevantProc _ _													= False
-			
+	/*		
 	getProcesses :: ![ProcessStatus] !Bool !*TSt -> (![Process], !*TSt)
 	getProcesses statusses ignoreEmbedded tst
 		# (procs,tst) 	= processStore id tst
@@ -59,6 +59,12 @@ where
 			= ([p \\ p <- procs | isMember p.Process.status statusses && not (isEmbedded p)], tst)
 		| otherwise
 			= ([p \\ p <- procs | isMember p.Process.status statusses], tst)
+	*/
+	
+	getProcesses :: ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+	getProcesses statusses tst 
+		# (procs, tst)	= processStore id tst
+		= ([p \\ p <- procs | isMember p.Process.status statusses], tst)
 			
 	getProcessesById :: ![ProcessId] !*TSt -> (![Process], !*TSt)
 	getProcessesById ids tst
@@ -68,23 +74,26 @@ where
 	getProcessesForUser	:: !UserId ![ProcessStatus] !Bool !*TSt -> (![Process], !*TSt)
 	getProcessesForUser userId statusses ignoreEmbedded tst
 		# (procs,tst) 	= processStore id tst
-		#  procids		= filter ((<>) 0) (map (relevantProc userId) procs)
+		# rprocs	 	= map (relevantProc userId) procs
+		# procids		= [p \\ p <- rprocs | p <> ""]
+		//filter ((<>) "") (map (relevantProc userId) procs)
 		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
-
 	where
-		relevantProc userId {processType = EmbeddedProcess pid _, properties = {managerProps ={worker}}}
-			| fst worker == userId	= pid
-			| otherwise				= 0
+		//relevantProc userId {processId, processType = EmbeddedProcess pid _, properties = {managerProps ={worker}}}
+		//	| fst worker == userId	= pid
+		//	| otherwise				= ""
 		relevantProc userId {processId, properties = {managerProps = {worker}}}
 			| fst worker == userId	= processId
-			| otherwise				= 0
-		
+			| otherwise				= ""
+	
+	/*	
 	getSubProcess :: !ProcessId !TaskId !*TSt -> (!Maybe Process,!*TSt)
 	getSubProcess processId taskId tst
 		# (procs,tst)	= processStore id tst
 		= case [proc \\ proc =: {processType = (EmbeddedProcess pid tid)} <- procs | pid == processId && tid == taskId] of
 			[entry] = (Just entry, tst)
 			_		= (Nothing, tst)
+	*/
 
 	
 	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*TSt	-> (!Bool, !*TSt)
@@ -94,8 +103,8 @@ where
 	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
 	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst
 
-	setProcessResult :: !DynamicId !ProcessId !*TSt -> (!Bool,!*TSt)
-	setProcessResult result processId tst = updateProcess processId (\x -> {Process| x & result = Just result}) tst 
+	//setProcessResult :: !DynamicId !ProcessId !*TSt -> (!Bool,!*TSt)
+	//setProcessResult result processId tst = updateProcess processId (\x -> {Process| x & result = Just result}) tst 
 	
 	updateProcess :: ProcessId (Process -> Process) !*TSt -> (!Bool, !*TSt)
 	updateProcess processId f tst
@@ -111,22 +120,63 @@ where
 	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*TSt -> (!Bool, !*TSt)
 	updateProcessProperties processId f tst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) tst
 
+	removeFinishedProcesses :: !*TSt -> (!Bool, !*TSt)
+	removeFinishedProcesses tst
+	# (proc,tst) = getProcesses [Finished] tst
+	= removeFinishedProcesses` proc tst
+	where
+		removeFinishedProcesses` :: ![Process] !*TSt -> (!Bool, !*TSt)
+		removeFinishedProcesses` [] tst = (True, tst)
+		removeFinishedProcesses` [p:ps] tst
+		# (ok,tst) = deleteProcess p.Process.processId tst
+		| ok 		= removeFinishedProcesses` ps tst
+		| otherwise = (False,tst) 
 
-isEmbedded :: Process -> Bool
-isEmbedded {processType = EmbeddedProcess _ _}	= True
-isEmbedded _									= False
+//isEmbedded :: Process -> Bool
+//isEmbedded {processType = EmbeddedProcess _ _}	= True
+//isEmbedded _									= False
 
 //Utility functions
+mkProcessEntry :: String Timestamp (UserId, String) (UserId, String) ProcessStatus ProcessId -> Process
+mkProcessEntry label timestamp user delegator status parent
+	=	{ Process
+		| processId		= ""
+		, status		= status
+		, parent		= parent
+		, properties	=	{ systemProps =
+							  {TaskSystemProperties
+							  | processId	= ""
+							  , subject		= label
+							  , manager		= delegator
+							  , issuedAt	= timestamp
+							  , firstEvent	= Nothing
+							  , latestEvent	= Nothing
+							  }
+							, managerProps =
+							  { TaskManagerProperties
+							  | worker		= user
+							  , priority	= NormalPriority
+							  , deadline	= Nothing
+							  }
+							, workerProps =
+							  { TaskWorkerProperties
+							  | progress	= TPActive
+							  }
+							}
+		, changes		= []
+		, changeNr		= 0
+		}
+/*
 mkStaticProcessEntry :: Workflow Timestamp (UserId,String) (UserId,String) ProcessStatus -> Process
 mkStaticProcessEntry workflow timestamp user delegator status
 	=	{ Process
-		| processId		= 0
+		| processId		= ""
 		, processType	= StaticProcess workflow.Workflow.name
-		, parent		= 0
+		, parent		= ""
 		, status		= status
 		, properties	=	{ systemProps =
 							  {TaskSystemProperties
-							  | processId	= 0
+							  | processId	= ""
 							  , subject		= workflow.Workflow.label
 							  , manager		= delegator
 							  , issuedAt	= timestamp
@@ -153,13 +203,13 @@ mkStaticProcessEntry workflow timestamp user delegator status
 mkDynamicProcessEntry :: String DynamicId Timestamp (UserId,String) (UserId,String) ProcessStatus ProcessId -> Process
 mkDynamicProcessEntry label task timestamp user delegator status parent
 	=	{ Process
-		| processId	= 0
+		| processId	= ""
 		, processType = DynamicProcess task
 		, parent	= parent
 		, status	= status
 		, properties=	{ systemProps =
 							  {TaskSystemProperties
-							  | processId	= 0
+							  | processId	= ""
 							  , subject		= label
 							  , manager		= delegator
 							  , issuedAt	= timestamp
@@ -186,7 +236,7 @@ mkDynamicProcessEntry label task timestamp user delegator status parent
 mkEmbeddedProcessEntry	:: ProcessId TaskId TaskProperties ProcessStatus ProcessId	-> Process
 mkEmbeddedProcessEntry ancestor taskid properties status parent
 	=	{ Process
-		| processId		= 0
+		| processId		= ""
 		, processType	= EmbeddedProcess ancestor taskid
 		, parent		= parent
 		, status		= status
@@ -196,21 +246,31 @@ mkEmbeddedProcessEntry ancestor taskid properties status parent
 		, changes		= []
 		, changeNr		= 0
 		}		
+*/
 
 processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
-processStore fn tst=:{TSt|systemStore,world}
-	# (mbList,sstore,world)	= loadValue "ProcessDB" systemStore world
+processStore fn tst=:{TSt|dataStore,world}
+	# (mbList,dstore,world)	= loadValue "ProcessDB" dataStore world
 	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# sstore					= storeValue "ProcessDB" list sstore 
-	= (list, {TSt|tst & systemStore = sstore, world = world})
+	# dstore				= storeValue "ProcessDB" list dstore 
+	= (list, {TSt|tst & dataStore = dstore, world = world})
 
-maxPid :: [Process] -> ProcessId
-maxPid db = foldr max 0 [processId \\ {Process|processId} <- db]
+maxPid :: [Process] -> Int
+maxPid db = foldr max 0 (map (last o taskNrFromString) [processId \\ {Process|processId} <- db])
 
-indexPid :: !ProcessId [Process] -> Int
-indexPid pid db = indexPid` pid 0 db
+getNewPid :: ![Process] !Process -> ProcessId
+getNewPid db entry = (toString(inc(maxPid db)))
+
+/*
+getNewPid :: ![Process] !Process -> ProcessId
+getNewPid db entry = 
+| isEmbedded entry
+	= fetchTaskNr entry
+| otherwise
+	= (toString(inc(maxPid db)))
 where
-	indexPid` pid i [] = -1
-	indexPid` pid i [{Process|processId}:xs]
-		| pid == processId	= i
-							= indexPid` pid (i + 1) xs
+	fetchTaskNr entry =
+		case entry.processType of
+		(EmbeddedProcess an tid) = tid
+		_ = abort "Not an Embedded process"*/
+							

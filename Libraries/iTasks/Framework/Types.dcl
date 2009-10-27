@@ -25,8 +25,7 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 	, timestamp	::	!Int
 	}
 
-:: ProcessNr		:== Int
-:: ProcessId		:== Int					// processes are identified by an integer
+:: ProcessId		:== String
 :: DynamicId		:== Int
 :: TaskId			:== String	
 :: TaskNr			:== [Int]				// task nr i.j is administrated as [j,i]

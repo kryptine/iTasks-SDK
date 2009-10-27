@@ -18,8 +18,8 @@ derive JSONEncode PropertyResponse
 
 handlePropertyRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handlePropertyRequest req tst
-	= case http_getValue "process" req.arg_get 0 of
-		0		= (errorResponse "Invalid process id", tst)
+	= case http_getValue "process" req.arg_get "" of
+		""		= (errorResponse "Invalid process id", tst)
 		proc	= case http_getValue "property" req.arg_get "" of		
 			"priority"	= updatePriority proc (http_getValue "value" req.arg_get "") tst
 			"user"		= updateUser proc (http_getValue "value" req.arg_get -1) tst

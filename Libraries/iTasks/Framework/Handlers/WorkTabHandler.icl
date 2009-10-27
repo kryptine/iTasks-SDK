@@ -7,7 +7,6 @@ import JSON
 import Util, Trace
 import UserDB, ProcessDB
 import GenVisualize, GenUpdate, ExtJS
-import StdDebug
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst
@@ -46,7 +45,7 @@ handleWorkTabRequest req tst
 where
 	taskId	= http_getValue "_maintask" req.arg_post "0"
 	taskNr	= taskNrFromString taskId
-	procId	= taskNrToProcessNr taskNr
+	procId	= toString (last taskNr)
 	
 	debug	= http_getValue "_debug" req.arg_post "0" == "1"
 	
@@ -139,7 +138,7 @@ buildTaskPanel (TTExtJSTask ti (Right upd))
 buildTaskPanel (TTMonitorTask ti html)
 	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}
 buildTaskPanel (TTRpcTask ti rpc)
-	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCInfo.methodName, Text ": ", Text rpc.RPCInfo.status])}
+	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCInfo.name, Text ": ", Text rpc.RPCInfo.status])}
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
