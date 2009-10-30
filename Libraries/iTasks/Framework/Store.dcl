@@ -41,6 +41,11 @@ storeValueAs	:: 	!StoreFormat !String !a !*Store	-> *Store	| gPrint{|*|}, TC a
 loadValue		:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | gParse{|*|}, TC a
 
 /**
+* Loads a dynamic from the store without unwrapping it
+*/
+loadDynamicValue :: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
+
+/**
 * Deletes all values that start with the prefix from the store
 */
 deleteValues	:: !String !*Store !*World -> (!*Store, !*World)

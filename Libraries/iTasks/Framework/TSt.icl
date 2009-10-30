@@ -120,8 +120,8 @@ initTaskProperties
 
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
-	# (ok,tst)				= removeFinishedProcesses tst
-	| not ok				= abort "Failure in cleaning up the process DB."
+	# (ok,tst)	   	   		= removeFinishedProcesses tst //Garbage collect if the process is finished
+	| not ok	        	= abort "Failure in cleaning up the process DB."
 	# (currentUser,tst)		= getCurrentUser tst
 	# (processes,tst)		= getProcessesForUser currentUser [Active] True tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
@@ -132,8 +132,8 @@ calculateTaskForest enableDebug tst
 calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
 calculateCompleteTaskForest enableDebug tst 
 	# (processes, tst) = getProcesses [Active,Suspended] tst
-	# (trees, tst) = calculateTrees processes tst
-	# (trees, tst) = addNewProcesses trees tst
+	# (trees, tst) 	   = calculateTrees processes tst
+	# (trees, tst)	   = addNewProcesses trees tst
 	= (Nothing, trees, tst)
 
 sortProcesses :: ![Process] -> [Process]
@@ -184,22 +184,23 @@ initProcessNode {processId, properties}
 		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.systemProps.subject, active = True, finished = False, traceValue = "Process"} properties []
 
 //If parent has to be evaluated, the Id is returned and accumelated into the list of proccesses still to be evaluated in buildtree.
-
 buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, (Maybe ProcessId), !*TSt)
 buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeNr} mbChange tst =:{staticInfo}
-	# tst								= {TSt|tst & taskNr = [0,changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
+	# tst									= {TSt|tst & taskNr = [0,changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
 												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
-	# tst								= (loadChanges mbChange changes tst)
-	# tst								= applyMainTask tst
-	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
-	# (finished, tst)					= taskFinished tst
+	# tst									= (loadChanges mbChange changes tst)
+	# tst									= applyMainTask tst
+	# (TTMainTask ti mti tasks, tst)		= getTaskTree tst
+	# (finished, tst)						= taskFinished tst
 	| finished
-		# tst							= deleteTaskStates (taskNrFromString processId) tst							//Garbage collect
-		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished}) tst		//Save result
-		= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), (parentProcId parent), tst)
+		//# tst							= trace_n "(BuildProcessTree)" deleteTaskStates (taskNrFromString processId) tst //Garbage collect
+		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished}) tst
+		//= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), (parentProcId parent), tst)
+		= (TTFinishedTask {TaskInfo | ti & finished = True}, (parentProcId parent), tst) // ->Why no finished task here?
 	| otherwise
 		# tst							= storeChanges processId tst
 		= (TTMainTask ti mti tasks, Nothing, tst)
+		
 where
 	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
 
@@ -227,9 +228,9 @@ where
 	storeChanges` [c:cs] accu pid tst
 		= storeChanges` cs accu pid tst
 
-	applyMainTask tst =: {TSt | taskNr, dataStore, world}
+	applyMainTask tst =: {taskNr} 
 		# dTaskNr		 = (drop 2 taskNr)	
-		# (dynTask, tst) = loadTaskFunctionDynamic dTaskNr tst			  
+		# (dynTask, tst) = loadTaskFunctionDynamic dTaskNr tst		  
 		= case dynTask of
 			(Just dyn)
 				# (result, tst) 	= applyTask dyn tst
@@ -383,7 +384,7 @@ applyRpcUpdates :: [(String,String)] !*TSt !RPCInfo !(String -> a) -> *(!a,!*TSt
 applyRpcUpdates [] tst rpci parsefun = applyRpcDefault tst
 applyRpcUpdates [(n,v):xs] tst rpci parsefun
 | n == "_rpcmessage" 
-# (mbMsg) = trace_n("Recieved message: "+++v) fromJSON v
+# (mbMsg) = fromJSON v
 = case mbMsg of
 	Just msg = applyRpcMessage msg tst rpci parsefun
 	Nothing = abort("Cannot parse daemon message "+++v) //needs to be exception!
@@ -431,9 +432,12 @@ where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo undef [], taskNr = [0,0:taskNr]}
 
+import StdDebug
+
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
-	# taskId				= iTaskId taskNr ""
+	# taskId				= trace_n("(applyTask) "+++(taskNrToString taskNr)) (iTaskId taskNr "")
+	
 	# (mbtv,dstore,world)	= loadValue taskId dataStore world
 	# (state,curval)		= case mbtv of
 								(Just (state, value))	= (state, Just value)

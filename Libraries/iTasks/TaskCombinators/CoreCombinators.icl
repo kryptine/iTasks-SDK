@@ -59,12 +59,10 @@ where
 		= doseqTasks tasks [] tst
 
 	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
-	doseqTasks [task:ts] accu tst=:{TSt|options} 
-		# (a,tst=:{activated=adone}) 
-										= applyTask task {tst & activated = True}
+	doseqTasks [task:ts] accu tst=:{TSt|options} 	
+		# (a,tst=:{activated=adone}) 	= applyTask task {tst & activated = True}
 		| not adone						= (reverse accu, tst)
 		| otherwise						= doseqTasks ts [a:accu] tst
-
 
 // Parallel composition
 parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
@@ -96,28 +94,25 @@ where
 assign :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
 assign toUserId initPriority initDeadline task = mkMainTask "assign" (assign` toUserId initPriority initDeadline task) 
 
+import StdDebug
+
 assign` :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) *TSt -> (a, *TSt) | iTask a
 assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
-													   , userId = currentUserId, delegatorId = currentDelegatorId, doChange, changes}
-	# dTaskNr = (drop 2 taskNr)
-	# taskId = taskNrToString dTaskNr
-	# (mbProc,tst) = getProcess taskId tst
+													   , userId = currentUserId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world, activated}
+	# dTaskNr 			   = drop 2 taskNr
+	# taskId  			   = taskNrToString dTaskNr
+	# (mbProc,tst) 		   = trace_n("(Assign) TaskNr "+++taskId+++", Finished: "+++toString taskInfo.finished+++", Activated: "+++toString activated) (getProcess taskId tst)
 	# (taskProperties, curTask, dynTask, changeNr, tst)
 		= case mbProc of
 			(Just {Process | properties, processId, changeNr})
 				# (dynTask,tst) = loadTaskFunctionDynamic dTaskNr tst //loadValue (storekey taskNr) dataStore world
 				# (curTask,tst) = loadTaskFunctionStatic  dTaskNr tst
-				//| isNothing curTask && isNothing dynTask
-				//	= abort ("(Assign`) No task functions stored for task "+++taskNrToString dTaskNr) //(properties, processId, task, 0, changeNr, tst)
-				//| isNothing curTask
-				//	= abort ("(Assign`) No task static function stored for task "+++taskNrToString dTaskNr) //(properties, processId, task, 0, changeNr, tst)
-				//| isNothing dynTask
-				//	= abort ("(Assign`) No task dynamic function stored for task "+++taskNrToString dTaskNr) //(properties, processId, task, 0, changeNr, tst)
-				| isNothing curTask || isNothing dynTask
-					# dynTask = createDynamicTask task
-					# tst 	  = storeTaskFunctionStatic dTaskNr task tst
-					# tst	  = storeTaskFunctionDynamic dTaskNr dynTask tst
-					= (properties, task, dynTask, changeNr, tst)
+				| isNothing curTask && isNothing dynTask
+					= abort ("(Assign) No task functions stored for process "+++taskNrToString dTaskNr)
+				| isNothing curTask
+					= abort ("(Assign) No task static function stored for process "+++taskNrToString dTaskNr)
+				| isNothing dynTask
+					= abort ("(Assign) No task dynamic function stored for process "+++taskNrToString dTaskNr)
 				| otherwise
 					= (properties, fromJust curTask, fromJust dynTask, changeNr, tst)		
 			Nothing
@@ -241,7 +236,7 @@ do_task taskNr taskInfo taskProperties changeNr curTask tst=:{userId,delegatorId
 					, delegatorId	= fst taskProperties.systemProps.manager
 					}
 	# (dyn, tst)		= applyTask curTask tst
-	# (def, tst) = accWorldTSt defaultValue tst
+	# (def, tst) 		= accWorldTSt defaultValue tst
 	# (finished,tst)	= taskFinished tst
 	| finished
 		= case dyn of

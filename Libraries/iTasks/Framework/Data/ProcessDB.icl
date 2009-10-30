@@ -128,7 +128,8 @@ where
 		removeFinishedProcesses` :: ![Process] !*TSt -> (!Bool, !*TSt)
 		removeFinishedProcesses` [] tst = (True, tst)
 		removeFinishedProcesses` [p:ps] tst
-		# (ok,tst) = deleteProcess p.Process.processId tst
+		# (ok,tst)  = deleteProcess p.Process.processId tst
+		# tst		= deleteTaskStates (taskNrFromString p.Process.processId) tst
 		| ok 		= removeFinishedProcesses` ps tst
 		| otherwise = (False,tst) 
 

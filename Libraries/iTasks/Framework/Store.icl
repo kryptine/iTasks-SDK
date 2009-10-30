@@ -38,6 +38,24 @@ where
 		SFPlain		= printToString value
 		SFDynamic	= dynamic_to_string (dynamic value)
 
+loadDynamicValue :: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
+loadDynamicValue key store=:{cache,location} world
+	#(mbItem,cache) = getU key cache
+	= case mbItem of
+		Just (dirty,item)
+			= (unpackItem item, {store & cache = cache}, world)
+		Nothing
+			# (mbItem, world)	= loadFromDisk key location world
+			= case mbItem of
+				Just item
+					# cache	= put key (False,item) cache
+					= (unpackItem item, {store & cache = cache}, world)
+				Nothing
+					= (Nothing, {store & cache = cache}, world)
+where
+	unpackItem {StoreItem | format=SFPlain, content} = Nothing
+	unpackItem {StoreItem | format=SFDynamic, content} = Just (string_to_dynamic { s \\ s <-: content})
+
 loadValue :: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | gParse{|*|}, TC a
 loadValue key store=:{cache,location} world
 	#(mbItem,cache) = getU key cache
@@ -58,7 +76,8 @@ where
 			(value :: a^)	= Just value
 			_				= Nothing
 	
-	loadFromDisk key location world			
+loadFromDisk :: String String !*World -> (Maybe StoreItem, !*World)	
+loadFromDisk key location world			
 		//Try plain format first
 		# filename			= location +++ "/" +++ key +++ ".txt"
 		# (ok,file,world)	= fopen filename FReadData world
@@ -76,14 +95,14 @@ where
 				=(Just {StoreItem|format = SFDynamic, content = content}, world)
 			| otherwise
 				= (Nothing, world)
-
+where
 	freadfile file = rec file ""
 	  where rec :: *File String -> (String, *File)
 	        rec file acc # (string, file) = freads file 100
 	                     | string == "" = (acc, file)
 	                     | otherwise    = rec file (acc +++ string)
 
-
+import StdDebug
 
 deleteValues :: !String !*Store !*World -> (!*Store, !*World)
 deleteValues prefix store=:{cache,location} world

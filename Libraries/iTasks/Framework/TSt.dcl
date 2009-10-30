@@ -42,8 +42,8 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
 									
-					, systemStore	:: !Store											// ProcessDB, UserDB
-					, dataStore		:: !Store											// Runtime data (Sessions, Tasks, Dynamics)
+					, systemStore	:: !Store											// UserDB
+					, dataStore		:: !Store											// Runtime data (Processes, Sessions, Tasks, Dynamics)
 					, world			:: !*World											// The world
 					}
 

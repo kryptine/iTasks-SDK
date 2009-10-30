@@ -107,9 +107,13 @@ initTSt request config flows world
 	# ((err,info),world)		= getFileInfo path world
 	| err <> NoDirError			= abort "Cannot get executable info."
 	# (date,time)				= info.pi_fileInfo.lastModified
-	# datestr					= (toString date.Date.year)+++(toString date.Date.month)+++(toString date.Date.day)+++"-"+++(toString time.Time.hours)+++(toString time.Time.minutes)+++(toString time.Time.seconds)
+	# datestr					= (toString date.Date.year)+++(addPrefixZero date.Date.month)+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++(addPrefixZero time.Time.minutes)+++(addPrefixZero time.Time.seconds)
 	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-systemStore")) (createStore (appName +++ "-dataStore-" +++ datestr)) world
-	
+where 
+	addPrefixZero number
+	| number < 10 = "0"+++toString number
+	| otherwise = toString number
+
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|world} = world
 
