@@ -6,7 +6,7 @@ import TaskTree
 import JSON
 import Util, Trace
 import UserDB, ProcessDB
-import GenVisualize, GenUpdate, ExtJS
+import GenVisualize, GenUpdate, TUIDefinition
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst
@@ -70,8 +70,8 @@ where
 	}
 
 :: TaskPanel
-	= ExtFormPanel ExtFormPanel
-	| ExtFormUpdate ExtFormUpdate
+	= FormPanel FormPanel
+	| FormUpdate FormUpdate
 	| MonitorPanel MonitorPanel
 	| MainTaskPanel MainTaskPanel
 	| CombinationPanel CombinationPanel
@@ -86,17 +86,17 @@ where
 	, html			:: String
 	}
 	
-:: ExtFormPanel =
+:: FormPanel =
 	{ xtype			:: String
 	, id			:: String
 	, taskId		:: String
-	, items			:: [ExtJSDef]
+	, items			:: [TUIDef]
 	}
-:: ExtFormUpdate =
+:: FormUpdate =
 	{ xtype			:: String
 	, id			:: String
 	, taskId		:: String
-	, updates		:: [ExtJSUpdate]
+	, updates		:: [TUIUpdate]
 	}
 	
 // Main task with properties leaf type
@@ -115,26 +115,26 @@ where
 	}
 
 //JSON derives
-derive JSONEncode	TaskContent, DebugInfo, ExtFormPanel, ExtFormUpdate, MonitorPanel, MainTaskPanel, CombinationPanel
+derive JSONEncode	TaskContent, DebugInfo, FormPanel, FormUpdate, MonitorPanel, MainTaskPanel, CombinationPanel
 derive JSONEncode	TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress
 
 //JSON specialization for TaskPanel: Ignore the union constructor
-JSONEncode{|TaskPanel|} (ExtFormPanel x) c					= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (ExtFormUpdate x) c					= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (MonitorPanel x) c					= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (MainTaskPanel x) c					= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (CombinationPanel x) c				= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
-JSONEncode{|TaskPanel|} (TaskRedundant) c					= ["\"redundant\"" : c]
+JSONEncode{|TaskPanel|} (FormPanel x) c					= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (FormUpdate x) c				= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (MonitorPanel x) c				= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (MainTaskPanel x) c				= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (CombinationPanel x) c			= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (TaskDone) c					= ["\"done\"" : c]
+JSONEncode{|TaskPanel|} (TaskRedundant) c				= ["\"redundant\"" : c]
 
 //JSON specialization for Timestamp: Ignore the constructor
-JSONEncode{|Timestamp|}	(Timestamp x) c						= JSONEncode{|*|} x c
+JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 
 buildTaskPanel :: TaskTree -> TaskPanel
-buildTaskPanel (TTExtJSTask ti (Left def))
-	= ExtFormPanel {ExtFormPanel | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
-buildTaskPanel (TTExtJSTask ti (Right upd))
-	= ExtFormUpdate {ExtFormUpdate | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
+buildTaskPanel (TTInteractiveTask ti (Left def))
+	= FormPanel {FormPanel | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
+buildTaskPanel (TTInteractiveTask ti (Right upd))
+	= FormUpdate {FormUpdate | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
 buildTaskPanel (TTMonitorTask ti html)
 	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}
 buildTaskPanel (TTRpcTask ti rpc)
@@ -166,7 +166,7 @@ where
 	icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 
 isActive :: TaskTree -> Bool
-isActive (TTExtJSTask		{TaskInfo|active} _ )	= active 
+isActive (TTInteractiveTask	{TaskInfo|active} _ )	= active 
 isActive (TTMonitorTask		{TaskInfo|active} _ )	= active
 isActive (TTRpcTask			{TaskInfo|active} _ )	= active
 isActive (TTSequenceTask	{TaskInfo|active} _ )	= active

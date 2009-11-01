@@ -71,6 +71,6 @@ duplicateTask
 //Utility
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=				getProcesses [Active] True
+	=				getProcesses [Active]
 	>>= \procs ->	enterChoice question procs
 	>>= \proc ->	return proc.Process.processId

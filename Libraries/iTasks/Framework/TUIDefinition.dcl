@@ -1,43 +1,43 @@
-definition module ExtJS
+definition module TUIDefinition
 /**
-* This module provides a data representation of ExtJS
+* This module provides a data representation of 'T'ask 'U'ser 'I'nterface
 * component definitions and a specialized instance of
 * JSONEncode for serializing them to JSON
 */
 import JSON
 
-//Specialized JSON encoding of ExtJS definitions
-derive JSONEncode ExtJSDef, ExtJSUpdate
+//Specialized JSON encoding of TUI definitions
+derive JSONEncode TUIDef, TUIUpdate
 
-:: ExtJSId :== String
+:: TUIId :== String
 
-:: ExtJSUpdate
-	= ExtJSAdd ExtJSId ExtJSDef		// Add the additional component *after* the component with indicated id
-	| ExtJSRemove ExtJSId			// Remove the component with indicated id
-	| ExtJSSetValue ExtJSId String	// Call setValue on the component with indicated id
-	| ExtJSSetEnabled ExtJSId Bool	// Enable/disable form elements
+:: TUIUpdate
+	= TUIAdd TUIId TUIDef		// Add the additional component *after* the component with indicated id
+	| TUIRemove TUIId			// Remove the component with indicated id
+	| TUISetValue TUIId String	// Call setValue on the component with indicated id
+	| TUISetEnabled TUIId Bool	// Enable/disable form elements
 
-:: ExtJSDef
-	= ExtJSLabel
-	| ExtJSButton ExtJSButton
-	| ExtJSNumberField ExtJSNumberField
-	| ExtJSTextField ExtJSTextField
-	| ExtJSTextArea ExtJSTextArea
-	| ExtJSComboBox ExtJSComboBox
-	| ExtJSCheckBox ExtJSCheckBox
-	| ExtJSCheckBoxGroup ExtJSCheckBoxGroup
-	| ExtJSRadio ExtJSRadio
-	| ExtJSRadioGroup ExtJSRadioGroup
-	| ExtJSTimeField ExtJSTimeField
-	| ExtJSDateField ExtJSDateField
-	| ExtJSHtmlEditor
-	| ExtJSFieldSet ExtJSFieldSet
-	| ExtJSPanel ExtJSPanel
-	| ExtJSBox ExtJSBox
-	| ExtJSHtmlPanel ExtJSHtmlPanel
-	| ExtJSCustom JSON
+:: TUIDef
+	= TUILabel
+	| TUIButton TUIButton
+	| TUINumberField TUINumberField
+	| TUITextField TUITextField
+	| TUITextArea TUITextArea
+	| TUIComboBox TUIComboBox
+	| TUICheckBox TUICheckBox
+	| TUICheckBoxGroup TUICheckBoxGroup
+	| TUIRadio TUIRadio
+	| TUIRadioGroup TUIRadioGroup
+	| TUITimeField TUITimeField
+	| TUIDateField TUIDateField
+	| TUIHtmlEditor
+	| TUIFieldSet TUIFieldSet
+	| TUIPanel TUIPanel
+	| TUIBox TUIBox
+	| TUIHtmlPanel TUIHtmlPanel
+	| TUICustom JSON
 
-:: ExtJSButton =
+:: TUIButton =
 	{ name			:: String
 	, id			:: String
 	, text			:: String
@@ -45,7 +45,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, disabled		:: Bool
 	, iconCls		:: String
 	}
-:: ExtJSNumberField =
+:: TUINumberField =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
@@ -54,14 +54,14 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, allowDecimals	:: Bool
 	, numDecimals	:: Int
 	}
-:: ExtJSTextField =
+:: TUITextField =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
 	}
-:: ExtJSTextArea =
+:: TUITextArea =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
@@ -70,7 +70,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, width			:: Int
 	, height		:: Int
 	}
-:: ExtJSComboBox =
+:: TUIComboBox =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
@@ -80,7 +80,7 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, triggerAction	:: String
 	, editable		:: Bool
 	}
-:: ExtJSCheckBox =
+:: TUICheckBox =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
@@ -89,15 +89,15 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, hideLabel		:: Bool
 	, checked		:: Bool
 	}
-:: ExtJSCheckBoxGroup =
+:: TUICheckBoxGroup =
 	{ name			:: String
 	, id			:: String
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
 	, columns		:: Int
-	, items			:: [ExtJSDef]
+	, items			:: [TUIDef]
 	}
-:: ExtJSRadio =
+:: TUIRadio =
 	{ name			:: String
 	, value			:: String
 	, boxLabel		:: Maybe String
@@ -105,22 +105,14 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, hideLabel		:: Bool
 	, checked		:: Bool
 	}
-:: ExtJSRadioGroup =
+:: TUIRadioGroup =
 	{ name			:: String
 	, id			:: String
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
-	, items			:: [ExtJSDef]
+	, items			:: [TUIDef]
 	}
-:: ExtJSDateField =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, format		:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	}
-:: ExtJSTimeField =
+:: TUIDateField =
 	{ name			:: String
 	, id			:: String
 	, value			:: String
@@ -128,29 +120,37 @@ derive JSONEncode ExtJSDef, ExtJSUpdate
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
 	}
-:: ExtJSFieldSet =
+:: TUITimeField =
+	{ name			:: String
+	, id			:: String
+	, value			:: String
+	, format		:: String
+	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
+	}
+:: TUIFieldSet =
 	{ title			:: String
 	, id			:: String
 	, layout		:: Maybe String
-	, items			:: [ExtJSDef]
+	, items			:: [TUIDef]
 	, autoHeight	:: Bool
 	, border		:: Bool
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
 	}
-:: ExtJSPanel =
+:: TUIPanel =
 	{ layout		:: String
-	, items			:: [ExtJSDef]
-	, buttons		:: [ExtJSDef]
+	, items			:: [TUIDef]
+	, buttons		:: [TUIDef]
 	, autoHeight	:: Bool
 	, border		:: Bool
 	, bodyCssClass	:: String
 	, fieldLabel	:: Maybe String
 	}
-:: ExtJSBox =
+:: TUIBox =
 	{ html			:: String
 	}
-:: ExtJSHtmlPanel =
+:: TUIHtmlPanel =
 	{ html			:: String
 	, border		:: Bool
 	, bodyCssClass	:: String

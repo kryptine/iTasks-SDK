@@ -328,11 +328,11 @@ accWorldTSt f tst=:{TSt|world}
 	# (a,world) = f world
 	= (a, {TSt|tst & world = world})
 		
-mkExtJSTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
-mkExtJSTask taskname taskfun = Task taskname Nothing mkExtJSTask`	
+mkInteractiveTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
+mkInteractiveTask taskname taskfun = Task taskname Nothing mkInteractiveTask`	
 where
-	mkExtJSTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTExtJSTask taskInfo (abort "No ExtJS definition given")}
+	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task taskname Nothing mkInstantTask`
@@ -488,23 +488,23 @@ where
 		_										= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode f tv (TTExtJSTask ti defs)					= TTExtJSTask		{ti & finished = f, traceValue = tv} defs
+	updateTaskNode f tv (TTInteractiveTask ti defs)				= TTInteractiveTask	{ti & finished = f, traceValue = tv} defs
 	updateTaskNode f tv (TTMonitorTask ti status)				= TTMonitorTask		{ti & finished = f, traceValue = tv} status
 	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
 	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
 	updateTaskNode f tv (TTMainTask ti mti tasks)				= TTMainTask		{ti & finished = f, traceValue = tv} mti (reverse tasks)		
 	updateTaskNode f tv (TTRpcTask ti rpci)						= TTRpcTask			{ti & finished = f, traceValue = tv} rpci
 		
-setExtJSDef	:: !ExtJSDef !*TSt -> *TSt
-setExtJSDef def tst=:{tree}
+setTUIDef	:: !TUIDef !*TSt -> *TSt
+setTUIDef def tst=:{tree}
 	= case tree of
-		(TTExtJSTask info _)				= {tst & tree = TTExtJSTask info (Left def)}
+		(TTInteractiveTask info _)			= {tst & tree = TTInteractiveTask info (Left def)}
 		_									= tst
 
-setExtJSUpdates :: ![ExtJSUpdate] !*TSt -> *TSt
-setExtJSUpdates upd tst=:{tree}
+setTUIUpdates :: ![TUIUpdate] !*TSt -> *TSt
+setTUIUpdates upd tst=:{tree}
 	= case tree of
-		(TTExtJSTask info _)				= {tst & tree = TTExtJSTask info (Right upd)}
+		(TTInteractiveTask info _)			= {tst & tree = TTInteractiveTask info (Right upd)}
 		_									= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt

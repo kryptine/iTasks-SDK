@@ -226,7 +226,7 @@ taskFinished :: !*TSt -> (!Bool, !*TSt)
 *
 * @return The newly constructed basic task
 */
-mkExtJSTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkInteractiveTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that also
@@ -319,9 +319,9 @@ applyTask			:: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 
 
 //// TASK CONTENT
-setExtJSDef			:: !ExtJSDef !*TSt				-> *TSt	//Only for interactive tasks
+setTUIDef			:: !TUIDef !*TSt				-> *TSt	//Only for interactive tasks
 
-setExtJSUpdates		:: ![ExtJSUpdate] !*TSt			-> *TSt //Only for interactive tasks
+setTUIUpdates		:: ![TUIUpdate] !*TSt			-> *TSt //Only for interactive tasks
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
 

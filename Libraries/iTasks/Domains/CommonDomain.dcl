@@ -71,7 +71,7 @@ instance zero Currency
 	, navigationControl		:: Bool		  		// Show the control for panning
 	, scaleControl			:: Bool		  		// Show the control for zooming
 	, zoom					:: Int	      		// The zoom level (Required by maps)
-	, mapType				:: GoogleMapType	// The map type
+//	, mapType				:: GoogleMapType	// The map type
 	, markers				:: [MapMarker]		// Markers placed on the map
 	}
 	
@@ -79,7 +79,7 @@ instance zero Currency
 
 :: MapMarker =
 	{ position				:: Coordinate		// Coordinate of the marker point
-	  infoWindow			:: MapInfoWindow	// Information which is shown on click
+	, infoWindow			:: MapInfoWindow	// Information which is shown on click
 	}
 	
 :: MapInfoWindow =

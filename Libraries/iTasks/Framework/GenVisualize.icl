@@ -3,7 +3,7 @@ implementation module GenVisualize
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap
 import GenUpdate
 import Void, Either
-import Text, Html, ExtJS, JSON
+import Text, Html, JSON, TUIDefinition
 
 MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
 						//with radio buttons. When it exceeds this, a combobox is used.
@@ -13,10 +13,10 @@ mkVSt :: *VSt
 mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, useLabels = False, onlyBody = False, optional = False, valid = True}
 
 //Wrapper functions
-visualizeAsEditor :: String DataMask a -> ([ExtJSDef],Bool) | gVisualize{|*|} a
+visualizeAsEditor :: String DataMask a -> ([TUIDef],Bool) | gVisualize{|*|} a
 visualizeAsEditor name mask x
 	# (defs,vst=:{valid}) = gVisualize{|*|} val val {mkVSt & vizType =VEditorDefinition, idPrefix = name}
-	= (coerceToExtJSDefs defs, valid)	
+	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x mask
 	
@@ -40,12 +40,12 @@ visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} val val
 where
 	val = VValue x []
 	
-determineEditorUpdates	:: String DataMask DataMask a a -> ([ExtJSUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates	:: String DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 determineEditorUpdates name omask nmask old new
 //	# omask	= trace_n ("OLD MASK: " +++ printToString omask) omask
 //	# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask
 	# (updates,vst=:{valid}) = gVisualize{|*|} (VValue old omask) (VValue new nmask) {mkVSt & vizType = VEditorUpdate, idPrefix = name}
-	= (coerceToExtJSUpdates updates, valid)
+	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue
@@ -180,10 +180,10 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 				# (vizBody,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, onlyBody = False, useLabels = True, optional = False}
 				//Add a containing fieldset on the first level
 				| dataPathLevel currentPath > 1						
-					= ([ExtJSFragment (ExtJSFieldSet {ExtJSFieldSet | id = (dp2id idPrefix currentPath) +++ "-fs"
+					= ([TUIFragment (TUIFieldSet {TUIFieldSet | id = (dp2id idPrefix currentPath) +++ "-fs"
 																	, layout = Just "form"
 																	, title = title label
-																	, items = coerceToExtJSDefs vizBody
+																	, items = coerceToTUIDefs vizBody
 																	, autoHeight = True, border = True
 																	, fieldLabel = Nothing, hideLabel = True})]
 																	, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
@@ -272,25 +272,25 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 
 gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old , fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = False, numDecimals = 0})]
+		VEditorDefinition	= ([TUIFragment (TUINumberField {TUINumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old , fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = False, numDecimals = 0})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		
 gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSNumberField {ExtJSNumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = True, numDecimals = 1000})]
+		VEditorDefinition	= ([TUIFragment (TUINumberField {TUINumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = True, numDecimals = 1000})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		
 gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUITextField {TUITextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 
 gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSCheckBox {ExtJSCheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = not useLabels, checked = checked })]
+		VEditorDefinition	= ([TUIFragment (TUICheckBox {TUICheckBox|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = not useLabels, checked = checked })]
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})		
 where
@@ -301,7 +301,7 @@ where
 
 gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([ExtJSFragment (ExtJSTextField {ExtJSTextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUITextField {TUITextField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels})]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 
@@ -348,10 +348,10 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
-			= ([ExtJSFragment (ExtJSPanel {ExtJSPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz1},
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz2}
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2}
 											 ]})]			 
 			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
 		_
@@ -372,11 +372,11 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
-			= ([ExtJSFragment (ExtJSPanel {ExtJSPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz1},
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz2},
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz3}
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3}
 											 ]})]			 
 			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
 		_
@@ -400,12 +400,12 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			# (viz4,vst) = f4 v4 v4 vst
-			= ([ExtJSFragment (ExtJSPanel {ExtJSPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz1},
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz2},
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz3},
-											 	ExtJSPanel {ExtJSPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToExtJSDefs viz4}
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz4}
 											 ]})]			 
 			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
 		_
@@ -472,12 +472,12 @@ consSelector d idPrefix dp value label useLabels
 		= []
 	//Use radiogroup to choose a constructor
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-		# items	= [ExtJSRadio {ExtJSRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
+		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
 				   \\ c <- d.gcd_type_def.gtd_conses]
-		= [ExtJSFragment (ExtJSRadioGroup {ExtJSRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels})]
+		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels})]
 	//Use combobox to choose a constructor
 	| otherwise
-		= [ExtJSFragment (ExtJSComboBox {ExtJSComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
+		= [TUIFragment (TUIComboBox {TUIComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
 where
 	
 	store	= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
@@ -487,27 +487,27 @@ where
 	
 	
 determineRemovals :: [Visualization] -> [Visualization]
-determineRemovals editor = [ExtJSUpdate (ExtJSRemove consid) \\ consid <- collectIds (coerceToExtJSDefs editor)]
+determineRemovals editor = [TUIUpdate (TUIRemove consid) \\ consid <- collectIds (coerceToTUIDefs editor)]
 where
 	collectIds [] = []
-	collectIds [ExtJSNumberField {ExtJSNumberField|id}:is] = [id:collectIds is]
-	collectIds [ExtJSTextField {ExtJSTextField|id}:is] = [id:collectIds is]
-	collectIds [ExtJSTextArea {ExtJSTextArea|id}:is] = [id:collectIds is]
-	collectIds [ExtJSCheckBox {ExtJSCheckBox|id}:is] = [id:collectIds is]
-	collectIds [ExtJSRadioGroup {ExtJSRadioGroup|id}:is] = [id:collectIds is]
-	collectIds [ExtJSComboBox {ExtJSComboBox|id}:is] = [id:collectIds is]
-	collectIds [ExtJSFieldSet {ExtJSFieldSet|id}:is] = [id:collectIds is]
+	collectIds [TUINumberField {TUINumberField|id}:is] = [id:collectIds is]
+	collectIds [TUITextField {TUITextField|id}:is] = [id:collectIds is]
+	collectIds [TUITextArea {TUITextArea|id}:is] = [id:collectIds is]
+	collectIds [TUICheckBox {TUICheckBox|id}:is] = [id:collectIds is]
+	collectIds [TUIRadioGroup {TUIRadioGroup|id}:is] = [id:collectIds is]
+	collectIds [TUIComboBox {TUIComboBox|id}:is] = [id:collectIds is]
+	collectIds [TUIFieldSet {TUIFieldSet|id}:is] = [id:collectIds is]
 	collectIds [_:is] = collectIds is
 	
 determineAdditions :: String [Visualization] -> [Visualization]
-determineAdditions consid editor = reverse [ExtJSUpdate (ExtJSAdd consid def) \\ def <- coerceToExtJSDefs editor]
+determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def <- coerceToTUIDefs editor]
 
 //Coercion of visualizations
-coerceToExtJSDefs :: [Visualization] -> [ExtJSDef]
-coerceToExtJSDefs visualizations = [d \\ (ExtJSFragment d) <- visualizations]
+coerceToTUIDefs :: [Visualization] -> [TUIDef]
+coerceToTUIDefs visualizations = [d \\ (TUIFragment d) <- visualizations]
 
-coerceToExtJSUpdates :: [Visualization] -> [ExtJSUpdate]
-coerceToExtJSUpdates visualizations = [u \\ (ExtJSUpdate u) <- visualizations]
+coerceToTUIUpdates :: [Visualization] -> [TUIUpdate]
+coerceToTUIUpdates visualizations = [u \\ (TUIUpdate u) <- visualizations]
 
 coerceToStrings :: [Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]

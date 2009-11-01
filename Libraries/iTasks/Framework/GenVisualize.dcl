@@ -1,6 +1,6 @@
 definition module GenVisualize
 
-import Html, ExtJS, JSON
+import Html, JSON, TUIDefinition
 import StdGeneric, StdMaybe, Void, Either
 import GenUpdate
 
@@ -13,14 +13,14 @@ derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String DataMask a -> ([ExtJSDef],Bool)	| gVisualize{|*|} a
+visualizeAsEditor		:: String DataMask a -> ([TUIDef],Bool)	| gVisualize{|*|} a
 visualizeAsHtmlDisplay	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextDisplay	:: a -> String								| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String DataMask DataMask a a -> ([ExtJSUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates	:: String DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a
@@ -53,8 +53,8 @@ derive bimap VisualizationValue
 :: Visualization
 	= TextFragment String
 	| HtmlFragment [HtmlTag]
-	| ExtJSFragment ExtJSDef
-	| ExtJSUpdate ExtJSUpdate
+	| TUIFragment TUIDef
+	| TUIUpdate TUIUpdate
 
 //Utility functions making specializations of gVisualize
 instance toString (VisualizationValue a) | toString a

@@ -11,7 +11,7 @@ where
 	locateSubTaskTree` taskid [x =:(TTMainTask ti _ sequence):xs]
 		| taskid == ti.TaskInfo.taskId		= Just x
 		| otherwise							= locateSubTaskTree` taskid (xs ++ sequence)
-	locateSubTaskTree` taskid [x =:(TTExtJSTask ti _):xs]
+	locateSubTaskTree` taskid [x =:(TTInteractiveTask ti _):xs]
 		| taskid == ti.TaskInfo.taskId		= Just x
 		| otherwise							= locateSubTaskTree` taskid xs
 	locateSubTaskTree` taskid [x =:(TTMonitorTask ti _):xs]
