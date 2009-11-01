@@ -1,0 +1,36 @@
+#welcome {
+	background: url("img/welcome/bg.png") top repeat-x;
+	height: 400px;
+}
+#welcome-logo {
+	position: absolute;
+	top: 0px;
+	left: 100%;
+	margin-left: -243px;
+	width: 243px;
+	height: 197px;
+	background: url("img/welcome/logo.png") no-repeat;
+}
+#welcome-text {
+	position: absolute;
+	top: 0px;
+	left: 20px;
+	width: 243px;
+	height: 65px;
+	background: url("img/welcome/text.png") no-repeat;
+}
+#welcome-content {
+	position: absolute;
+	top: 100px;
+	left: 20px;
+	width: 500px;
+}
+#welcome-content h2 {
+	font-size: 16px;
+	margin: 10px 0px 5px 0px;
+}
+#welcome-content a {
+	color: #2e72b6;
+	font-weight: bold;
+	text-decoration: none;
+}
