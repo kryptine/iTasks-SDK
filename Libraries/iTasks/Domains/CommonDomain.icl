@@ -85,8 +85,8 @@ gUpdate{|Currency|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| otherwise
 		= (s, {USt| ust & currentPath = stepDataPath currentPath})
 where
-	parseUpdate orig update
-		= case split "." update of
+	parseUpdate orig update =
+		 case split "." update of
 			[whole]		= replaceVal orig (100 * toInt whole)
 			[whole,dec] = replaceVal orig (100 * toInt whole + (if (size dec == 1) (10 * toInt dec) (toInt (dec % (0,1)))))
 			_			= orig

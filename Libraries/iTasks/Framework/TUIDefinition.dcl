@@ -14,6 +14,7 @@ derive JSONEncode TUIDef, TUIUpdate
 :: TUIUpdate
 	= TUIAdd TUIId TUIDef		// Add the additional component *after* the component with indicated id
 	| TUIRemove TUIId			// Remove the component with indicated id
+	| TUIReplace TUIId TUIDef	// Replace a component
 	| TUISetValue TUIId String	// Call setValue on the component with indicated id
 	| TUISetEnabled TUIId Bool	// Enable/disable form elements
 

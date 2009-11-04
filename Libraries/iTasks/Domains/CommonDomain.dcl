@@ -5,6 +5,7 @@ definition module CommonDomain
 */
 import GenPrint, GenParse, GenVisualize, GenUpdate
 import StdString
+from Html	import :: HtmlTag
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
@@ -61,33 +62,3 @@ instance - Currency
 instance - Time		//Naive fieldwise subtraction
 instance - Date		//Naive fieldwise subtraction
 instance zero Currency
-
-// Maps
-
-:: Map = 
-	{ center				:: Coordinate 		// Coordinate of the center point (Required by maps)
-	, size					:: (Int, Int) 		// Width height of the map
-	, mapTypeControl		:: Bool		  		// Show the control for switching between map types
-	, navigationControl		:: Bool		  		// Show the control for panning
-	, scaleControl			:: Bool		  		// Show the control for zooming
-	, zoom					:: Int	      		// The zoom level (Required by maps)
-//	, mapType				:: GoogleMapType	// The map type
-	, markers				:: [MapMarker]		// Markers placed on the map
-	}
-	
-:: Coordinate :== (Real, Real) // (Lattitude, Longitude)
-
-:: MapMarker =
-	{ position				:: Coordinate		// Coordinate of the marker point
-	, infoWindow			:: MapInfoWindow	// Information which is shown on click
-	}
-	
-:: MapInfoWindow =
-	{ content				:: [HtmlTag]		// Contents of the window
-	, width					:: Int				// Width of the window
-	}
-
-//derive gPrint 	  Map, Coordinate, MapMarker, MapInfoWindow
-//derive gParse 	  Map, Coordinate, MapMarker, MapInfoWindow
-//derive gVisualize Map, Coordinate, MapMarker, MapInfoWindow
-//derive gUpdate	  Map, Coordinate, MapMarker, MapInfoWindow

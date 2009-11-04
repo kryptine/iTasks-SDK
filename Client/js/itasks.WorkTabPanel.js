@@ -76,6 +76,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		},this);
 	},
 	update: function(data) {
+
 		//Check if the task is finished or became redundant
 		if(data.content == "done" || data.content == "redundant") {
 			var ct = this.getComponent(1).getComponent(0);
@@ -173,7 +174,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 });
 
 itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
-		
+				
 	initComponent: function() {
 		Ext.apply(this, {
 			deferredRender: false,
@@ -350,7 +351,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 					values[values.length] = boxes[i].value;
 				}
 				return Ext.encode(values);
-				console.log(Ext.encode(values));
+				//console.log(Ext.encode(values));
 			}
 			
 			var value;
@@ -427,7 +428,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
 				switch(update[0]) {
-					case "ExtJSAdd":
+					case "TUIAdd":
 						var ct = Ext.getCmp(update[1]); 
 						if(ct) {
 							//Find the index of the reference component
@@ -450,7 +451,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 							this.attachTaskHandlers(newct);
 						}
 						break;
-					case "ExtJSRemove":
+					case "TUIRemove":
 						var ct = Ext.getCmp(update[1]);
 						
 						if(ct) {
@@ -461,7 +462,33 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 							oct.ownerCt.syncSize();
 						}
 						break;
-					case "ExtJSSetEnabled":
+					case "TUIReplace":
+						var ct = Ext.getCmp(update[1]);
+						if(ct) {
+							var oct = ct.ownerCt;
+							//Find the index of the reference component
+							var find = function(cmt,cnt,ind) {
+								if(cnt.items.get(ind) == undefined)
+									return ind;
+								if(cnt.items.get(ind) == cmt)
+									return ind;
+								else
+									return find(cmt,cnt,ind + 1);
+							}
+							
+							var index = find(ct, ct.ownerCt, 0);
+							
+							oct.remove(index);
+							var newct = oct.insert(index, update[2]);
+							
+							oct.doLayout();
+							oct.syncSize();
+							oct.ownerCt.doLayout();
+							
+							this.attachTaskHandlers(newct);
+						}
+						break;
+					case "TUISetEnabled":
 						var ct = Ext.getCmp(update[1]);
 						if(ct && ct.setDisabled) {
 							ct.setDisabled(!update[2]);
