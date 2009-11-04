@@ -94,30 +94,27 @@ where
 assign :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
 assign toUserId initPriority initDeadline task = mkMainTask "assign" (assign` toUserId initPriority initDeadline task) 
 
-import StdDebug
-
 assign` :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) *TSt -> (a, *TSt) | iTask a
 assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
-													   , userId = currentUserId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world, activated}
-	# dTaskNr 			   = drop 2 taskNr
-	# taskId  			   = taskNrToString dTaskNr
-	# (mbProc,tst) 		   = trace_n("(Assign) TaskNr "+++taskId+++", Finished: "+++toString taskInfo.finished+++", Activated: "+++toString activated) (getProcess taskId tst)
-	# (taskProperties, curTask, dynTask, changeNr, tst)
+													   , userId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world, activated}
+	# taskId  			   = taskNrToString taskNr
+	# (mbProc,tst) 		   = getProcess taskId tst
+	# (taskStatus, taskProperties, curTask, dynTask, changeNr, tst)
 		= case mbProc of
-			(Just {Process | properties, processId, changeNr})
-				# (dynTask,tst) = loadTaskFunctionDynamic dTaskNr tst //loadValue (storekey taskNr) dataStore world
-				# (curTask,tst) = loadTaskFunctionStatic  dTaskNr tst
+			(Just {Process | status, properties, changeNr})
+				# (dynTask,tst) = loadTaskFunctionDynamic taskNr tst
+				# (curTask,tst) = loadTaskFunctionStatic  taskNr tst
 				| isNothing curTask && isNothing dynTask
-					= abort ("(Assign) No task functions stored for process "+++taskNrToString dTaskNr)
+					= abort ("(assign) No task functions stored for process " +++ taskNrToString taskNr)
 				| isNothing curTask
-					= abort ("(Assign) No task static function stored for process "+++taskNrToString dTaskNr)
+					= abort ("(assign) No task static function stored for process " +++ taskNrToString taskNr)
 				| isNothing dynTask
-					= abort ("(Assign) No task dynamic function stored for process "+++taskNrToString dTaskNr)
+					= abort ("(assign) No task dynamic function stored for process " +++ taskNrToString taskNr)
 				| otherwise
-					= (properties, fromJust curTask, fromJust dynTask, changeNr, tst)		
+					= (status, properties, fromJust curTask, fromJust dynTask, changeNr, tst)		
 			Nothing
 				# (toUser,tst)		= getUser toUserId tst
-				# (currentUser,tst)	= getUser currentUserId tst 
+				# (currentUser,tst)	= getUser userId tst 
 				# (now,tst)			= (accWorldTSt time) tst
 				# initProperties	= { systemProps =
 									    {TaskSystemProperties
@@ -142,10 +139,15 @@ assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, 
 				# process			= mkProcessEntry (taskLabel task) now (toUser.User.userId, toUser.User.displayName) (currentUser.User.userId, currentUser.User.displayName) Active currentMainTask
 				# (processId, tst) 	= createProcess  ({Process | process & processId = taskId, properties = initProperties}) tst
 				# dynTask			= createDynamicTask task
-				# tst				= storeTaskFunctionStatic  dTaskNr task tst
-				# tst				= storeTaskFunctionDynamic dTaskNr dynTask tst
-				= (initProperties, task, dynTask, 0, tst)
-	
+				# tst				= storeTaskFunctionStatic  taskNr task tst
+				# tst				= storeTaskFunctionDynamic taskNr dynTask tst
+				= (Active, initProperties, task, dynTask, 0, tst)
+	//Process has finished, unpack the dynamic result
+	| taskStatus == Finished
+		# (mbRes,tst) = loadProcessResult taskNr tst
+		= case mbRes of
+			Just a	= (a, {tst & activated = True})
+			Nothing	= abort "(assign) Could not unpack process result"
 	//Apply all active changes (oldest change first, hence the 'reverse changes')
 	| firstRun
 		= all_changes taskNr taskInfo taskProperties changeNr task curTask dynTask (reverse changes) {TSt|tst & changes = []}
@@ -165,7 +167,7 @@ all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [] 
 	= do_task taskNr taskInfo taskProperties changeNr dynTask tst
 	
 all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [Just (clt,cid,cdyn):cs] tst=:{TSt|changes}
-	# processId = taskNrToString (drop 2 taskNr)
+	# processId = taskNrToString taskNr
 	# (mbProperties,mbTask,mbChange) = appChange cdyn taskProperties curTask origTask
 	# changes = case mbChange of
 		(Just change)	= [Just (clt,cid,change):changes]
@@ -176,8 +178,8 @@ all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [Ju
 		# taskProperties	= if (isJust mbProperties) (fromJust mbProperties) taskProperties
 		# curTask			= fromJust mbTask					
 		# dynTask			= createDynamicTask curTask
-		# tst				= storeTaskFunctionStatic (drop 2 taskNr) curTask tst
-		# tst				= storeTaskFunctionDynamic (drop 2 taskNr) dynTask tst
+		# tst				= storeTaskFunctionStatic taskNr curTask tst
+		# tst				= storeTaskFunctionDynamic taskNr dynTask tst
 		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties, changeNr = changeNr}) tst
 		# (a,tst)			= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes}
 		= case cs of
@@ -200,8 +202,8 @@ all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [c:
 
 one_change :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) (Task Dynamic) (ChangeLifeTime, DynamicId, Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
 one_change taskNr taskInfo taskProperties changeNr origTask curTask dynTask (changeLifeTime, changeId, changeDyn) rest tst
- 	# processId = taskNrToString (drop 2 taskNr)
- 	# (mbProperties, mbTask, mbChange) = appChange changeDyn taskProperties (setTaskContext [0,changeNr: drop 2 taskNr] curTask) origTask
+ 	# processId = taskNrToString taskNr
+ 	# (mbProperties, mbTask, mbChange) = appChange changeDyn taskProperties (setTaskContext [changeNr:taskNr] curTask) origTask
 	//Determine new change list
 	# changes = case mbChange of
 			(Just change)	= [Just (changeLifeTime,changeId,change):rest]
@@ -213,8 +215,8 @@ one_change taskNr taskInfo taskProperties changeNr origTask curTask dynTask (cha
 		# curTask			= fromJust mbTask					
 		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties, changeNr = changeNr}) tst
 		# dynTask			= createDynamicTask curTask 										//Convert the changed task with context into a dynamic task
-		# tst				= storeTaskFunctionStatic (drop 2 taskNr) curTask tst				//Store the changed task with context
-		# tst				= storeTaskFunctionDynamic (drop 2 taskNr) dynTask tst				//Store the changed taks as dynamic
+		# tst				= storeTaskFunctionStatic taskNr curTask tst				//Store the changed task with context
+		# tst				= storeTaskFunctionDynamic taskNr dynTask tst				//Store the changed taks as dynamic
 		= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes} //Execute
 	//Only add properties
 	| isJust mbProperties
@@ -230,8 +232,8 @@ one_change taskNr taskInfo taskProperties changeNr origTask curTask dynTask (cha
 do_task :: TaskNr TaskInfo TaskProperties Int (Task Dynamic) *TSt -> (a,*TSt) | iTask a
 do_task taskNr taskInfo taskProperties changeNr curTask tst=:{userId,delegatorId, mainTask}
 	# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
-					, taskNr		= [0,changeNr: drop 2 taskNr]
-					, mainTask		= taskNrToString (drop 2 taskNr)
+					, taskNr		= [changeNr:taskNr]
+					, mainTask		= taskNrToString taskNr
 					, userId		= fst taskProperties.managerProps.worker
 					, delegatorId	= fst taskProperties.systemProps.manager
 					}
@@ -257,95 +259,3 @@ appChange dyn properties curTask origTask
 setTaskContext :: TaskNr (Task a) -> (Task a)
 setTaskContext cxt (Task name _ tf) = Task name (Just cxt) tf
 
-
-// ******************************************************************************************************
-
-// Higher order tasks ! Experimental
-/* Experimental department:
-
-   May not work when the tasks are garbage collected !!
-
--!>				:: a task, either finished or interrupted (by completion of the first task) is returned in the closure
-				   if interrupted, the work done so far is returned (!) which can be continued somewhere else
-channel			:: splits a task in respectively a sender task closure and receiver taskclosure; 
-				   when the sender is evaluated, the original task is evaluated as usual;
-				   when the receiver task is evaluated, it will wait upon completeion of the sender and then get's its result;
-				   Important: Notice that a receiver will never finish if you don't activate the corresponding sender somewhere.
-closureTask		:: The task is executed as usual, but a receiver closure is returned immediately.
-				   When the closure is evaluated somewhere, one has to wait until the task is finished.
-				   Handy for passing a result to several interested parties.
-closureLZTask	:: Same, but now the original task will not be done unless someone is asking for the result somewhere.
-*/
-/*
-(-!>) infix 4  :: (Task s) (Task a) -> (Task (Maybe s,Task a)) | iCreateAndPrint s & iCreateAndPrint a
-(-!>)  stoptask task =  mkBasicTask "-!>" (Task stop`)
-where
-	stop` tst=:{taskNr,userId,options,html}
-		# (val,tst=:{activated = taskdone,html = taskhtml}) = accTaskTSt task     {tst & activated = True, html = BT [] [], taskNr = normalTaskId,options = options}
-		# (s,  tst=:{activated = stopped, html = stophtml})	= accTaskTSt stoptask {tst & activated = True, html = BT [] [], taskNr = stopTaskId,  options = options}
-		| stopped	= accTaskTSt (return_V (Just s, Task (close task)))   {tst & html = html, activated = True}
-		| taskdone	= accTaskTSt (return_V (Nothing,return_V val)) {tst & html = html +|+ taskhtml , activated = True}
-		= accTaskTSt (return_V (Nothing,return_V val)) {tst & html = html +|+ taskhtml +|+ stophtml , activated = False}
-	where
-		close t = \tst -> accTaskTSt t {tst & taskNr = normalTaskId, options = options, userId = userId} // reset userId because it influences the task id
-
-		stopTaskId 		= [-1,0:taskNr]
-		normalTaskId  	= [-1,1:taskNr]
-
-channel  :: String (Task a) -> (Task (Task a,Task a)) | iCreateAndPrint a
-channel name task =  mkBasicTask "channel" (Task (doSplit name task))
-
-doSplit name task tst=:{taskNr,options,userId}
-= accTaskTSt (return_V (Task (sender (Task myTask)),Task (receiver (Task myTask)))) tst
-where
-	myTask tst = accTaskTSt task {tst & taskNr = [-1:taskNr], options = options, userId = userId}
-
-	sender task tst=:{activated,taskNr}
-	| not activated				= (createDefault,tst)
-	# (val,tst) 				= accTaskTSt task tst
-	= (val,{tst & taskNr = taskNr})
-
-	receiver task  tst=:{activated,taskNr,html}
-	| not activated			 	= (createDefault,tst)
-	# (val,tst=:{activated}) 	= accTaskTSt task tst
-	| activated	= (val,{tst & html = html, activated = True , taskNr = taskNr})
-	= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, taskNr = taskNr})
-
-closureTask  ::  (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
-closureTask (name, task) = mkBasicTask ("closure " +++ name) (Task mkClosure)
-where
-	mkClosure tst=:{taskNr,options,userId}
-	# ((sa,ra),tst) 		= doSplit name task tst
-	# (_,tst)     			= accTaskTSt sa {tst & activated = True}
-	= (ra, {tst & activated = True})
-
-closureLzTask  :: (LabeledTask a) -> (Task (Task a)) | iCreateAndPrint a
-closureLzTask (name, task) = mkBasicTask ("lazy closure " +++ name) (Task mkClosure)
-where
-	mkClosure tst=:{taskNr,options,userId}
-	# ((sa,ra),tst) 		= doSplit name task tst
-	# (_,tst)     			= accTaskTSt sa tst
-	= (ra, {tst & activated = True})
-
-	doSplit name task tst=:{taskNr,options,userId}
-		= accTaskTSt (return_V (Task (sender (Task myTask)), Task (receiver (Task myTask)))) tst
-	where
-		myTask tst = accTaskTSt task {tst & taskNr = [-1:taskNr], options = options, userId = userId}
-	
-		sender task tst=:{activated,taskNr}
-		| not activated				= (createDefault,tst)
-		# (requested,tst)			= (sharedMem id) tst  // is this task demanded ?
-		| not requested.Form.value	= (createDefault,tst)
-		# (val,tst) 				= accTaskTSt task tst
-		= (val,{tst & taskNr = taskNr})
-	
-		receiver task tst=:{activated,taskNr,html}
-		| not activated			 	= (createDefault,tst)
-		# (requested,tst)			= (sharedMem (\_ -> True)) tst  // this task is now demanded !
-		# (val,tst=:{activated}) 	= accTaskTSt task tst
-		| activated	= (val,{tst & html = html, activated = True , taskNr = taskNr})
-		= (val,{tst & html = html /*+|+ BT [showText ("Waiting for completion of "<+++ name)]*/, taskNr = taskNr})
-
-		sharedStoreId	= iTaskId userId taskNr "Shared_Store"
-		sharedMem fun	= liftHst (mkStoreForm (Init,storageFormId options sharedStoreId False) fun)
-*/

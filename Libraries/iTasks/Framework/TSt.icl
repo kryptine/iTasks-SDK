@@ -120,8 +120,6 @@ initTaskProperties
 
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
-	# (ok,tst)	   	   		= removeFinishedProcesses tst //Garbage collect if the process is finished
-	| not ok	        	= abort "Failure in cleaning up the process DB."
 	# (currentUser,tst)		= getCurrentUser tst
 	# (processes,tst)		= getProcessesForUser currentUser [Active] True tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
@@ -185,18 +183,16 @@ initProcessNode {processId, properties}
 
 //If parent has to be evaluated, the Id is returned and accumelated into the list of proccesses still to be evaluated in buildtree.
 buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, (Maybe ProcessId), !*TSt)
-buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeNr} mbChange tst =:{staticInfo}
-	# tst									= {TSt|tst & taskNr = [0,changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
+buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeNr} mbChange tst =:{taskNr,staticInfo}
+	//Init tst
+	# tst									= {TSt|tst & taskNr = [changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
 												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
 	# tst									= (loadChanges mbChange changes tst)
 	# tst									= applyMainTask tst
 	# (TTMainTask ti mti tasks, tst)		= getTaskTree tst
 	# (finished, tst)						= taskFinished tst
 	| finished
-		//# tst							= trace_n "(BuildProcessTree)" deleteTaskStates (taskNrFromString processId) tst //Garbage collect
-		# (_,tst)						= updateProcess processId (\p -> {Process|p & status = Finished}) tst
-		//= (TTMainTask {TaskInfo| ti & finished = True} mti (reverse tasks), (parentProcId parent), tst)
-		= (TTFinishedTask {TaskInfo | ti & finished = True}, (parentProcId parent), tst) // ->Why no finished task here?
+		= (TTFinishedTask {TaskInfo | ti & finished = True}, (parentProcId parent), tst)
 	| otherwise
 		# tst							= storeChanges processId tst
 		= (TTMainTask ti mti tasks, Nothing, tst)
@@ -228,23 +224,20 @@ where
 	storeChanges` [c:cs] accu pid tst
 		= storeChanges` cs accu pid tst
 
-	applyMainTask tst =: {taskNr} 
-		# dTaskNr		 = (drop 2 taskNr)	
-		# (dynTask, tst) = loadTaskFunctionDynamic dTaskNr tst		  
+	applyMainTask tst=:{taskNr}
+		# procNr			= taskNrFromString processId
+		# (dynTask, tst)	= loadTaskFunctionDynamic procNr tst		  
 		= case dynTask of
 			(Just dyn)
 				# (result, tst) 	= applyTask dyn tst
 				#  result			= evalDynamicResult result
-				# (finished, tst =: {TSt | dataStore}) 	= taskFinished tst
-				| finished 
-					# dataStore = storeValue (storekey dTaskNr) result dataStore
-					= {TSt | tst & dataStore = dataStore}
-				| otherwise	= tst	
+				# (finished, tst)	= taskFinished tst
+				| finished
+					= storeProcessResult procNr result tst
+				| otherwise	
+					= tst
 			Nothing
-				= tst
-				//= abort ("(ApplyMainTask) Cannot load task function for "+++taskNrToString dTaskNr)
-	where
-		storekey taskNr = "iTask_"+++(taskNrToString taskNr)+++"-taskresult"
+				= abort ("(buildProcessTree) could not find task function for " +++ processId)
 
 	parentProcId ""		=  Nothing
 	parentProcId procId = (Just procId)
@@ -430,14 +423,11 @@ mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task taskname Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo undef [], taskNr = [0,0:taskNr]}
-
-import StdDebug
+		= taskfun {tst & tree = TTMainTask taskInfo undef []}
 
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
-	# taskId				= trace_n("(applyTask) "+++(taskNrToString taskNr)) (iTaskId taskNr "")
-	
+	# taskId				= taskNrToString taskNr
 	# (mbtv,dstore,world)	= loadValue taskId dataStore world
 	# (state,curval)		= case mbtv of
 								(Just (state, value))	= (state, Just value)
@@ -548,6 +538,25 @@ storeTaskFunction taskNr task key tst =: {TSt | dataStore}
 where
 	storekey taskNr key = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-"+++key 
 
+/**
+* Store and load the result of a workflow instance
+*/
+loadProcessResult :: !TaskNr !*TSt -> (!Maybe a, !*TSt) | TC a
+loadProcessResult taskNr tst =:{dataStore, world}
+	# (mbDyn, dataStore, world) = loadValue storekey dataStore world
+	= case mbDyn of
+		( Just (result :: a^))	= (Just result, {TSt | tst & dataStore = dataStore, world = world})
+		Nothing					= (Nothing, {TSt | tst & dataStore = dataStore, world = world})
+where
+	storekey = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	
+storeProcessResult :: !TaskNr !Dynamic !*TSt -> *TSt
+storeProcessResult taskNr result tst=:{dataStore}
+	# dataStore	= storeValueAs SFDynamic storekey result dataStore
+	= {TSt |tst & dataStore = dataStore}
+where
+	storekey = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	
 setTaskStore :: !String !a !*TSt -> *TSt | iTask a
 setTaskStore key value tst=:{taskNr,dataStore}
 	# dataStore = storeValue storekey value dataStore

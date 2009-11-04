@@ -56,3 +56,4 @@ instance ProcessDB TSt
 mkProcessEntry :: String Timestamp (UserId, String) (UserId, String) ProcessStatus ProcessId -> Process
 
 instance toString ProcessStatus
+instance == ProcessStatus

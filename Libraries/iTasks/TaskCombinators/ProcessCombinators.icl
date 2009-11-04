@@ -45,25 +45,18 @@ where
 waitForProcess :: (ProcessReference a) -> Task (Maybe a) | iTask a
 waitForProcess (ProcessReference pid) = mkMonitorTask "waitForProcess" waitForProcess`
 where
-	waitForProcess` tst
-		# (mbProcess,tst =: {TSt | taskNr, dataStore, world}) = ProcessDB@getProcess pid tst
+	waitForProcess` tst 
+		# (mbProcess,tst) = ProcessDB@getProcess pid tst
 		= case mbProcess of
 			Just {Process | processId, status}
 				= case status of
 					Finished
-						# (mbResult, dataStore, world)	= loadValue (storekey taskNr) dataStore world
-						= case toDynamic mbResult of
-							(Just (result :: a^))	= (Just result, {tst & activated = True, dataStore = dataStore, world = world})
-							_						= (Nothing, {tst & activated = True, dataStore = dataStore, world = world})
+						# (mbResult,tst)			= loadProcessResult (taskNrFromString pid) tst
+						= (mbResult,{tst & activated = True})
 					_	
 						= (Nothing, {tst & activated = False})	// We are not done yet...
 			_	
 				= (Nothing, {tst & activated = True})	//We could not find the process in our database, we are done
-
-	storekey taskNr = "iTask_"+++(taskNrToString taskNr)+++"-taskresult"
-
-	toDynamic (Just s) = (Just (string_to_dynamic {c \\ c <- s}))
-	toDynamic Nothing = Nothing
 
 getProcessStatus :: (ProcessReference a) -> Task ProcessStatus | iTask a
 getProcessStatus (ProcessReference pid) = mkInstantTask "getProcessStatus" getProcessStatus`

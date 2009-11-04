@@ -10,42 +10,36 @@ import GenVisualize, GenUpdate, TUIDefinition
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst
-	# (mbError, mbTree, tst) = calculateTaskTree procId debug tst	// Calculate the task tree
+	# (mbError, mbTree, tst) = calculateTaskTree taskId debug tst	// Calculate the task tree
 	= case mbTree of
-		Nothing	
+		Just tree =:(TTMainTask ti properties tasks)
+			# subject = [properties.systemProps.TaskSystemProperties.subject]
+			# panel = case [t \\ t <- tasks | isActive t] of
+				[]	= if (allFinished tasks) TaskDone TaskRedundant
+				[t]	= buildTaskPanel t
+				_	= abort  "Multiple simultaneously active tasks in a main task!"
+			
+			// Collect debug information
+			# (debuginfo,tst)
+						= if debug (collectDebugInfo tree tst) (Nothing, tst)
+			// Check the user who has to do the work: if not the correct user, give task redundant message.
+			# (uid,tst)	= getCurrentUser tst
+			| uid == fst properties.managerProps.TaskManagerProperties.worker
+				// Update the task timestamps 
+				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
+				// Create the response
+				= let content = {TaskContent| properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
+		 			({http_emptyResponse & rsp_data = toJSON content}, tst)
+			
+			| otherwise
+				= redundant tst
+		Just (TTFinishedTask ti)
+			= finished tst
+		_
 			= redundant tst
-		Just tree
-			// Search the relevant part of the task tree
-			= case locateSubTaskTree taskId tree of
-				Just (TTMainTask ti properties tasks)
-					# subject = [properties.systemProps.TaskSystemProperties.subject]
-					# panel = case [t \\ t <- tasks | isActive t] of
-						[]	= if (allFinished tasks) TaskDone TaskRedundant
-						[t]	= buildTaskPanel t
-						_	= abort  "Multiple simultaneously active tasks in a main task!"
-					
-					// Collect debug information
-					# (debuginfo,tst)
-								= if debug (collectDebugInfo tree tst) (Nothing, tst)
-					// Check the user who has to do the work: if not the correct user, give task redundant message.
-					# (uid,tst)	= getCurrentUser tst
-					| uid == fst properties.managerProps.TaskManagerProperties.worker
-						// Update the task timestamps 
-						# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
-						// Create the response
-						= let content = {TaskContent| properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
-				 			({http_emptyResponse & rsp_data = toJSON content}, tst)
-					
-					| otherwise
-						= redundant tst
-				Just (TTFinishedTask ti)
-					= finished tst
-				_
-					= redundant tst
 where
 	taskId	= http_getValue "_maintask" req.arg_post "0"
 	taskNr	= taskNrFromString taskId
-	procId	= toString (last taskNr)
 	
 	debug	= http_getValue "_debug" req.arg_post "0" == "1"
 	

@@ -17,7 +17,7 @@ where
 	toString Suspended	= "Suspended"
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
-	
+
 instance ProcessDB TSt
 where
 	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
@@ -132,10 +132,6 @@ where
 		# tst		= deleteTaskStates (taskNrFromString p.Process.processId) tst
 		| ok 		= removeFinishedProcesses` ps tst
 		| otherwise = (False,tst) 
-
-//isEmbedded :: Process -> Bool
-//isEmbedded {processType = EmbeddedProcess _ _}	= True
-//isEmbedded _									= False
 
 //Utility functions
 mkProcessEntry :: String Timestamp (UserId, String) (UserId, String) ProcessStatus ProcessId -> Process

@@ -342,6 +342,11 @@ setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
 getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
 
 /**
+* Converts a task returning a value of type a to a task returning a dynamic
+*/
+createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
+
+/**
 * Loads the task function from the store
 */
 loadTaskFunctionStatic  :: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
@@ -354,9 +359,10 @@ storeTaskFunctionStatic  :: !TaskNr !(Task a)       !*TSt -> *TSt | TC a
 storeTaskFunctionDynamic :: !TaskNr !(Task Dynamic) !*TSt -> *TSt
 
 /**
-* Turn a task yielding a value of type a into a value of dynamic
+* Store and load the result of a workflow instance
 */
-createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
+loadProcessResult		:: !TaskNr 					!*TSt -> (!Maybe a, !*TSt) | TC a
+storeProcessResult		:: !TaskNr !Dynamic			!*TSt -> *TSt
 
 /**
 * Removes all events for the current task. This is automatically called by applyTask
