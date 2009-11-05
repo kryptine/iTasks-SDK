@@ -32,8 +32,8 @@ where
 		# (user,tst)				= getUser uid tst
 		# (delegator,tst)			= getUser curUid tst
 		# (curTime,tst) 			= accWorldTSt time tst
-		# (newPid,tst)				= ProcessDB@createProcess (entry mainTask curTime (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName)) tst	
-		# tst						= storeTaskFunctionDynamic (taskNrFromString newPid) (createDynamicTask task) tst
+		# (newPid,tst)				= ProcessDB@createProcess (entry mainTask curTime (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName)) tst
+		# tst						= storeTaskThread (taskNrFromString newPid) (createTaskThread task) tst
 		| uid == curUid
 			# tst					= addNewProcess newPid tst
 			= (ProcessReference newPid, {tst & activated = True})

@@ -99,19 +99,14 @@ assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, 
 													   , userId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world, activated}
 	# taskId  			   = taskNrToString taskNr
 	# (mbProc,tst) 		   = getProcess taskId tst
-	# (taskStatus, taskProperties, curTask, dynTask, changeNr, tst)
+	# (taskStatus, taskProperties, curTask, changeNr, tst)
 		= case mbProc of
 			(Just {Process | status, properties, changeNr})
-				# (dynTask,tst) = loadTaskFunctionDynamic taskNr tst
-				# (curTask,tst) = loadTaskFunctionStatic  taskNr tst
-				| isNothing curTask && isNothing dynTask
-					= abort ("(assign) No task functions stored for process " +++ taskNrToString taskNr)
+				# (curTask,tst) = loadTaskFunctionStatic taskNr tst
 				| isNothing curTask
-					= abort ("(assign) No task static function stored for process " +++ taskNrToString taskNr)
-				| isNothing dynTask
-					= abort ("(assign) No task dynamic function stored for process " +++ taskNrToString taskNr)
+					= abort ("(assign) No task function stored for process " +++ taskNrToString taskNr)
 				| otherwise
-					= (status, properties, fromJust curTask, fromJust dynTask, changeNr, tst)		
+					= (status, properties, fromJust curTask, changeNr, tst)		
 			Nothing
 				# (toUser,tst)		= getUser toUserId tst
 				# (currentUser,tst)	= getUser userId tst 
@@ -138,10 +133,9 @@ assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, 
 									  }					  
 				# process			= mkProcessEntry (taskLabel task) now (toUser.User.userId, toUser.User.displayName) (currentUser.User.userId, currentUser.User.displayName) Active currentMainTask
 				# (processId, tst) 	= createProcess  ({Process | process & processId = taskId, properties = initProperties}) tst
-				# dynTask			= createDynamicTask task
 				# tst				= storeTaskFunctionStatic  taskNr task tst
-				# tst				= storeTaskFunctionDynamic taskNr dynTask tst
-				= (Active, initProperties, task, dynTask, 0, tst)
+				# tst				= storeTaskThread taskNr (createTaskThread task) tst
+				= (Active, initProperties, task, 0, tst)
 	//Process has finished, unpack the dynamic result
 	| taskStatus == Finished
 		# (mbRes,tst) = loadProcessResult taskNr tst
@@ -150,23 +144,23 @@ assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, 
 			Nothing	= abort "(assign) Could not unpack process result"
 	//Apply all active changes (oldest change first, hence the 'reverse changes')
 	| firstRun
-		= all_changes taskNr taskInfo taskProperties changeNr task curTask dynTask (reverse changes) {TSt|tst & changes = []}
+		= all_changes taskNr taskInfo taskProperties changeNr task curTask (reverse changes) {TSt|tst & changes = []}
 	//Apply the current change change
 	| doChange
 		= case changes of
 			[Just (clt,cid,cdyn):rest]
-				= one_change taskNr taskInfo taskProperties changeNr task curTask dynTask (clt,cid,cdyn) rest tst
+				= one_change taskNr taskInfo taskProperties changeNr task curTask (clt,cid,cdyn) rest tst
 			other
-				= do_task taskNr taskInfo taskProperties changeNr dynTask tst
+				= do_task taskNr taskInfo taskProperties changeNr curTask tst
 	| otherwise
-		= do_task taskNr taskInfo taskProperties changeNr dynTask tst
+		= do_task taskNr taskInfo taskProperties changeNr curTask tst
 
 //Just execute the task
-all_changes :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) (Task Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
-all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [] tst
-	= do_task taskNr taskInfo taskProperties changeNr dynTask tst
+all_changes :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
+all_changes taskNr taskInfo taskProperties changeNr origTask curTask [] tst
+	= do_task taskNr taskInfo taskProperties changeNr curTask tst
 	
-all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [Just (clt,cid,cdyn):cs] tst=:{TSt|changes}
+all_changes taskNr taskInfo taskProperties changeNr origTask curTask [Just (clt,cid,cdyn):cs] tst=:{TSt|changes}
 	# processId = taskNrToString taskNr
 	# (mbProperties,mbTask,mbChange) = appChange cdyn taskProperties curTask origTask
 	# changes = case mbChange of
@@ -176,32 +170,31 @@ all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [Ju
 	| isJust mbTask
 		# changeNr			= inc changeNr 
 		# taskProperties	= if (isJust mbProperties) (fromJust mbProperties) taskProperties
-		# curTask			= fromJust mbTask					
-		# dynTask			= createDynamicTask curTask
+		# curTask			= fromJust mbTask				
+		# tst				= storeTaskThread taskNr (createTaskThread curTask) tst
 		# tst				= storeTaskFunctionStatic taskNr curTask tst
-		# tst				= storeTaskFunctionDynamic taskNr dynTask tst
 		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties, changeNr = changeNr}) tst
-		# (a,tst)			= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes}
+		# (a,tst)			= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
 		= case cs of
 			[]	-> (a,tst)
-			_	-> all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask cs {TSt|tst & changes = changes}
+			_	-> all_changes taskNr taskInfo taskProperties changeNr origTask curTask cs {TSt|tst & changes = changes}
 	//Only add properties
 	| isJust mbProperties
 		# taskProperties	= fromJust mbProperties
 		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties}) tst
-		# (a,tst) 			= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes}
+		# (a,tst) 			= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
 		= case cs of
 			[]	= (a,tst)
-			_	= all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask cs {TSt|tst & changes = changes}
+			_	= all_changes taskNr taskInfo taskProperties changeNr origTask curTask cs {TSt|tst & changes = changes}
 	// Task and properties unchanged
 	| otherwise
-		= all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask cs {TSt|tst & changes = changes}	
+		= all_changes taskNr taskInfo taskProperties changeNr origTask curTask cs {TSt|tst & changes = changes}	
 
-all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask [c:cs] tst=:{TSt|changes}
-	= all_changes taskNr taskInfo taskProperties changeNr origTask curTask dynTask cs {TSt|tst & changes = [c:changes]}
+all_changes taskNr taskInfo taskProperties changeNr origTask curTask [c:cs] tst=:{TSt|changes}
+	= all_changes taskNr taskInfo taskProperties changeNr origTask curTask cs {TSt|tst & changes = [c:changes]}
 
-one_change :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) (Task Dynamic) (ChangeLifeTime, DynamicId, Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
-one_change taskNr taskInfo taskProperties changeNr origTask curTask dynTask (changeLifeTime, changeId, changeDyn) rest tst
+one_change :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) (ChangeLifeTime, DynamicId, Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
+one_change taskNr taskInfo taskProperties changeNr origTask curTask (changeLifeTime, changeId, changeDyn) rest tst
  	# processId = taskNrToString taskNr
  	# (mbProperties, mbTask, mbChange) = appChange changeDyn taskProperties (setTaskContext [changeNr:taskNr] curTask) origTask
 	//Determine new change list
@@ -214,22 +207,19 @@ one_change taskNr taskInfo taskProperties changeNr origTask curTask dynTask (cha
 		# taskProperties	= if (isJust mbProperties) (fromJust mbProperties) taskProperties
 		# curTask			= fromJust mbTask					
 		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties, changeNr = changeNr}) tst
-		# dynTask			= createDynamicTask curTask 										//Convert the changed task with context into a dynamic task
 		# tst				= storeTaskFunctionStatic taskNr curTask tst				//Store the changed task with context
-		# tst				= storeTaskFunctionDynamic taskNr dynTask tst				//Store the changed taks as dynamic
-		= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes} //Execute
+		# tst				= storeTaskThread taskNr (createTaskThread curTask) tst
+		= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes} //Execute
 	//Only add properties
 	| isJust mbProperties
 		# taskProperties	= fromJust mbProperties
 		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties}) tst
-		= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes}
-		//= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
+		= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
 	// Task and properties unchanged
 	| otherwise
-		= do_task taskNr taskInfo taskProperties changeNr dynTask {TSt|tst & changes = changes}
-		//= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
+		= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
 
-do_task :: TaskNr TaskInfo TaskProperties Int (Task Dynamic) *TSt -> (a,*TSt) | iTask a
+do_task :: TaskNr TaskInfo TaskProperties Int (Task a) *TSt -> (a,*TSt) | iTask a
 do_task taskNr taskInfo taskProperties changeNr curTask tst=:{userId,delegatorId, mainTask}
 	# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
 					, taskNr		= [changeNr:taskNr]
@@ -237,15 +227,8 @@ do_task taskNr taskInfo taskProperties changeNr curTask tst=:{userId,delegatorId
 					, userId		= fst taskProperties.managerProps.worker
 					, delegatorId	= fst taskProperties.systemProps.manager
 					}
-	# (dyn, tst)		= applyTask curTask tst
-	# (def, tst) 		= accWorldTSt defaultValue tst
-	# (finished,tst)	= taskFinished tst
-	| finished
-		= case dyn of
-			(val :: a^)	= (val, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
-			_			= (def, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
-	| otherwise
-		= (def, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
+	# (a, tst)		= applyTask curTask tst
+	= (a, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
 
 //The tricky dynamic part of applying changes
 appChange :: !Dynamic !TaskProperties !(Task a) !(Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe Dynamic) | iTask a

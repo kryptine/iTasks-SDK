@@ -344,7 +344,12 @@ getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
 /**
 * Converts a task returning a value of type a to a task returning a dynamic
 */
-createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
+//createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
+
+createTaskThread :: !(Task a) -> (!*TSt -> *(!Dynamic,!*TSt)) | iTask a
+
+storeTaskThread :: !TaskNr !(!*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
+loadTaskThread :: !TaskNr !*TSt -> (!*TSt -> *(!Dynamic,!*TSt), !*TSt)
 
 /**
 * Loads the task function from the store

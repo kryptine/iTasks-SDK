@@ -187,11 +187,13 @@ buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties
 	//Init tst
 	# tst									= {TSt|tst & taskNr = [changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
 												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
-	# tst									= (loadChanges mbChange changes tst)
-	# tst									= applyMainTask tst
+	# tst									= loadChanges mbChange changes tst
+	# (result, tst)							= applyMainTask tst
 	# (TTMainTask ti mti tasks, tst)		= getTaskTree tst
 	# (finished, tst)						= taskFinished tst
 	| finished
+		# tst 			= storeProcessResult (taskNrFromString processId) result tst
+		# (_,tst)		= updateProcess processId (\p -> {Process|p & status = Finished}) tst
 		= (TTFinishedTask {TaskInfo | ti & finished = True}, (parentProcId parent), tst)
 	| otherwise
 		# tst							= storeChanges processId tst
@@ -225,22 +227,34 @@ where
 		= storeChanges` cs accu pid tst
 
 	applyMainTask tst=:{taskNr}
-		# procNr			= taskNrFromString processId
-		# (dynTask, tst)	= loadTaskFunctionDynamic procNr tst		  
-		= case dynTask of
-			(Just dyn)
-				# (result, tst) 	= applyTask dyn tst
-				#  result			= evalDynamicResult result
-				# (finished, tst)	= taskFinished tst
-				| finished
-					= storeProcessResult procNr result tst
-				| otherwise	
-					= tst
-			Nothing
-				= abort ("(buildProcessTree) could not find task function for " +++ processId)
-
+		# (thread, tst)		= loadTaskThread (taskNrFromString processId) tst		  
+		# (result, tst) 	= thread tst
+		#  result			= evalDynamicResult result
+		= (result,tst)
+		
 	parentProcId ""		=  Nothing
 	parentProcId procId = (Just procId)
+
+
+/*
+//Turn a task yielding a value of type a into a value of dynamic
+createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
+createDynamicTask (Task name mbCxt tf) = Task name mbCxt createDynamicTask`
+where
+	createDynamicTask` tst
+		# (a, tst)	= tf tst
+		# dyn		= evalDynamicResult (dynamic a)
+		= (dyn, tst)
+*/
+
+createTaskThread :: !(Task a) -> (!*TSt -> *(!Dynamic,!*TSt)) | iTask a
+createTaskThread task = createTaskThread` task
+where
+	createTaskThread` :: !(Task a) !*TSt -> *(!Dynamic, !*TSt) | iTask a
+	createTaskThread` task tst
+		# (a, tst)	= applyTask task tst
+		# dyn		= evalDynamicResult (dynamic a)
+		= (dyn,tst)
 
 /**
 * This forces evaluation of the dynamic to normal form before we encode it
@@ -252,15 +266,6 @@ evalDynamicResult d = code {
 	jsr	_eval_to_nf
 	.o 0 0
 }
-
-//Turn a task yielding a value of type a into a value of dynamic
-createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
-createDynamicTask (Task name mbCxt tf) = Task name mbCxt createDynamicTask`
-where
-	createDynamicTask` tst
-		# (a, tst)	= tf tst
-		# dyn		= evalDynamicResult (dynamic a)
-		= (dyn, tst)
 
 applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
 applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changes}
@@ -533,29 +538,51 @@ storeTaskFunctionDynamic taskNr task tst = storeTaskFunction taskNr task "dynami
 
 storeTaskFunction :: !TaskNr !(Task a) String !*TSt -> *TSt | TC a
 storeTaskFunction taskNr task key tst =: {TSt | dataStore}
-# dataStore = storeValueAs SFDynamic (storekey taskNr key) (dynamic task) dataStore
+# dataStore = storeValueAs SFPlain (storekey taskNr key) (dynamic task) dataStore
 = {TSt | tst & dataStore = dataStore}
 where
 	storekey taskNr key = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-"+++key 
+
+storeTaskThread :: !TaskNr !(!*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
+storeTaskThread taskNr thread tst =:{dataStore}
+	# dataStore = storeValueAs SFDynamic key (dynamic thread :: !*TSt -> *(!Dynamic,!*TSt)) dataStore
+	= {TSt | tst & dataStore = dataStore}
+where
+	key = "iTask_" +++ (taskNrToString taskNr) +++ "-thread"
+
+
+loadTaskThread :: !TaskNr !*TSt -> (!*TSt -> *(!Dynamic,!*TSt), !*TSt)
+loadTaskThread taskNr tst =:{dataStore,world}
+	# (mbDyn, dataStore, world)	= loadValue key dataStore world
+	= case mbDyn of
+		(Just (f :: !*TSt -> *(!Dynamic, !*TSt)))
+			= (f, {TSt | tst & dataStore = dataStore, world = world})
+		(Just _)
+			= abort ("(loadTaskThread) Failed to match thread for " +++ taskNrToString taskNr)
+		Nothing
+			= abort ("(loadTaskThread) Failed to load thread for " +++ taskNrToString taskNr)	
+where
+	key = "iTask_" +++ (taskNrToString taskNr) +++ "-thread"
+
 
 /**
 * Store and load the result of a workflow instance
 */
 loadProcessResult :: !TaskNr !*TSt -> (!Maybe a, !*TSt) | TC a
 loadProcessResult taskNr tst =:{dataStore, world}
-	# (mbDyn, dataStore, world) = loadValue storekey dataStore world
+	# (mbDyn, dataStore, world) = loadValue key dataStore world
 	= case mbDyn of
 		( Just (result :: a^))	= (Just result, {TSt | tst & dataStore = dataStore, world = world})
 		Nothing					= (Nothing, {TSt | tst & dataStore = dataStore, world = world})
 where
-	storekey = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
 storeProcessResult :: !TaskNr !Dynamic !*TSt -> *TSt
 storeProcessResult taskNr result tst=:{dataStore}
-	# dataStore	= storeValueAs SFDynamic storekey result dataStore
+	# dataStore	= storeValueAs SFDynamic key result dataStore
 	= {TSt |tst & dataStore = dataStore}
 where
-	storekey = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
 setTaskStore :: !String !a !*TSt -> *TSt | iTask a
 setTaskStore key value tst=:{taskNr,dataStore}

@@ -28,6 +28,5 @@ where
 		# (taskId, tst) 		= createProcess (mkProcessEntry workflow.Workflow.label currentTime 
 									(currentUser.User.userId,currentUser.User.displayName) 
 									(currentUser.User.userId,currentUser.User.displayName) Active "") tst
-		# taskNr				= taskNrFromString taskId
-		# tst					= storeTaskFunctionDynamic taskNr (createDynamicTask workflow.Workflow.mainTask) tst
+		# tst					= storeTaskThread (taskNrFromString taskId) (createTaskThread workflow.Workflow.mainTask) tst
 		= (taskId, tst)
