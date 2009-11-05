@@ -2,13 +2,10 @@ definition module GeoDomain
 
 import Html, InteractionTasks
 
-derive gPrint 	  	Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-derive gParse 	  	Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-derive gVisualize   Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-derive gUpdate	  	Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-
-:: StaticMap = StaticMap Url
-:: Url :== String
+derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gVisualize   Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gUpdate	  	Map, MapMarker, MapInfoWindow, GoogleMapType
 
 :: Map = 
 	{ center				:: Coordinate 		// Coordinate of the center point (Required by maps)
@@ -36,8 +33,4 @@ derive gUpdate	  	Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
 
 :: GoogleMapType = ROADMAP | SATELLITE | HYBRID | TERRAIN
 
-convertToStaticMap :: Map -> StaticMap
-
-instance toString StaticMap
 instance toString GoogleMapType
-instance html StaticMap

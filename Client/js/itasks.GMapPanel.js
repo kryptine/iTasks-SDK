@@ -21,35 +21,43 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		this.show();
 	},
 	
+	setValue : function(_data){
+		var data = Ext.decode(_data);
+		//this.gmap.setCenter(new google.maps.LatLng(data.center[0],data.center[1]));
+		//this.gmap.setZoom(data.zoom);
+		//this.gmap.setMapTypeId(this.getMapType(data.mapType));
+	},
+	
+	getMapType : function (mapType){
+		return eval("google.maps.MapTypeId."+mapType);
+	},
+
 	afterRender : function(){
 				
 		itasks.GMapPanel.superclass.afterRender.call(this);  
 		
-		var getMapType = function (mapType){
-			return eval("google.maps.MapTypeId."+mapType);
-		}
 		
 		var options = 
 			{ center : new google.maps.LatLng(this.center[0],this.center[1])
 			, zoom: this.zoom
-			, mapTypeId : getMapType(this.mapType)
+			, mapTypeId : this.getMapType(this.mapType)
 		}
 		
-		var gmap = new google.maps.Map(this.body.dom, options);
+		this.gmap = new google.maps.Map(this.body.dom, options);
 
-		this.addMarkers(gmap)
+		//this.addMarkers(gmap)
 		
 		var parent = this;
 		
 		var mvcEventHandler = function(){
 			
-			var ll = gmap.getCenter();
-			var zm = gmap.getZoom();
+			var ll = parent.gmap.getCenter();
+			var zm = parent.gmap.getZoom();
 			
 			var value = {
 				center : [ll.lat(),ll.lng()],
 				zoom   : zm,
-				type   : gmap.getMapTypeId().toUpperCase()
+				type   : parent.gmap.getMapTypeId().toUpperCase()
 			}
 			
 			var ct = parent.findParentByType("itasks.task-ext-form");
@@ -77,9 +85,9 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		}
 				
 		if(this.isEditor){
-			google.maps.event.addListener(gmap, 'maptypeid_changed', mvcEventHandler);
-			google.maps.event.addListener(gmap, 'idle', mvcEventHandler);
-			google.maps.event.addListener(gmap, 'click', lclickEventHandler);
+			google.maps.event.addListener(this.gmap, 'maptypeid_changed', mvcEventHandler);
+			google.maps.event.addListener(this.gmap, 'idle', mvcEventHandler);
+			google.maps.event.addListener(this.gmap, 'click', lclickEventHandler);
 		}
 				
 	},

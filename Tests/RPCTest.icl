@@ -6,34 +6,26 @@ import Base64
 import JSON
 from StdFunc import o
 from TSt import mkRpcTask
-
-:: OceanName = 
-	{ ocean :: Ocean }
-:: Ocean = 
-	{ name :: String }
-
-derive JSONEncode OceanName, Ocean
-derive JSONDecode OceanName, Ocean
-
-rpcTestTask :: Task Void
-rpcTestTask = 
-	enterInformation "Lattitude" >>= \lat ->
-	enterInformation "Longitude" >>= \lng ->
-	rpcStub2 lat lng >>= \json ->
-	showMessage json	
 	
-rpcStub2 :: Real Real -> Task String
-rpcStub2 lat lng = mkRpcTask
-	"Ocean Name"
+rpcStub :: Real Real -> Task String
+rpcStub lat lng = mkRpcTask
+	"Fetch Ocean Name"
 	{ RPCInfo
-	| methodName	= "Geoweb Ocean Names"
-	, endPoint		= "http://ws.geonames.org/oceanJSON"
-	, protocol		= RPCHttp RPCGet
-	, status		= "Not Started"
-	, parameters	= [("lat",toJSON lat),("lng",toJSON lng)]
+	| name			= "Geoweb Ocean Names"
+	, location		= "http://ws.geonames.org/oceanJSON"
+	, interface		= { protocol = HTTP GET
+					  , type 	 = JSONRPC
+					  }
+	, parameters	= [("lat", toJSON lat),("lon", toJSON lng)]
+	, callType		= Notification
+	, status		= ""
+	, taskId		= ""
 	}
 	base64Decode
 	
+rpcTestTask :: Task Void
+rpcTestTask = 
+	enterInformation "Lattitude" >>= \lat -> enterInformation "Longitude" >>= \lng -> (rpcStub lat lng) >>= showMessage
 	
 Start :: *World -> *World
 Start world = startEngine [workflow "RPC Test" rpcTestTask ] world

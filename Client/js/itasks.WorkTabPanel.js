@@ -494,6 +494,12 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 							ct.setDisabled(!update[2]);
 						}
 						break;
+					case "TUISetValue":
+						var ct = Ext.getCmp(update[1]);
+						if(ct && ct.setValue) {
+							ct.setValue(update[2]);
+						}				
+						break;
 				}
 			}
 			

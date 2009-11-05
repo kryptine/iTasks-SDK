@@ -5,10 +5,10 @@ import Html, InteractionTasks, StdEnv, JSON
 derive JSONEncode JSONMap, MapMarker, GoogleMapType, MapInfoWindow
 derive JSONDecode MVCUpdate, ClickUpdate, GoogleMapType, ClickSource, ClickEvent
 
-derive gPrint 	  	Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-derive gParse 	  	Map, StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-derive gVisualize   StaticMap, MapMarker, MapInfoWindow, GoogleMapType
-derive gUpdate	  	StaticMap, MapMarker, MapInfoWindow, GoogleMapType
+derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gVisualize   MapMarker, MapInfoWindow, GoogleMapType
+derive gUpdate	  	MapMarker, MapInfoWindow, GoogleMapType
 
 :: JSONMap = 
 	{ center 			:: Coordinate
@@ -41,10 +41,6 @@ derive gUpdate	  	StaticMap, MapMarker, MapInfoWindow, GoogleMapType
 :: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
 :: ClickSource  = MAP | MARKER Coordinate
 
-instance toString StaticMap
-where
-	toString (StaticMap url) = url
-	
 instance toString GoogleMapType
 where 
 	toString ROADMAP = "ROADMAP"
@@ -52,25 +48,21 @@ where
 	toString HYBRID = "HYBRID"
 	toString TERRAIN = "TERRAIN"
 	
-instance html StaticMap
-where 
-	html (StaticMap url) = [ImgTag [SrcAttr url]]
-	
-convertToStaticMap :: Map -> StaticMap
-convertToStaticMap map = (StaticMap "")
-
 gVisualize {|Map|} old new vst=:{vizType,label,idPrefix,currentPath, valid, optional}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (mapsPanel old currentPath idPrefix True)], {VSt | vst & currentPath = stepDataPath currentPath })
-		VEditorUpdate		= ([TUIUpdate (TUIReplace mapid (mapsPanel old currentPath idPrefix True))],{VSt | vst & currentPath = stepDataPath currentPath })
-		_					= ([TUIFragment (mapsPanel new currentPath idPrefix False)], {VSt | vst & currentPath = stepDataPath currentPath })
+		VEditorDefinition	= ([TUIFragment (mapsPanel old True)], {VSt | vst & currentPath = stepDataPath currentPath })
+		VEditorUpdate		
+			= case new of
+				VBlank = ([TUIFragment (mapsPanel old True)], {VSt | vst & currentPath = stepDataPath currentPath })
+				(VValue map _) = ([TUIUpdate (TUISetValue mapid (toJSON (jsonMap map True)))], {VSt | vst & currentPath = stepDataPath currentPath })
+		_	= ([TUIFragment (mapsPanel new False)], {VSt | vst & currentPath = stepDataPath currentPath })
 where
-	mapsPanel  VBlank cp ip editor  = TUICustom (JSON (""))
-	mapsPanel (VValue map _) cp ip editor = TUICustom (JSON (toJSON (jsonMap map cp ip editor)))
+	mapsPanel  VBlank editor  = TUICustom (JSON (""))
+	mapsPanel (VValue map _) editor = TUICustom (JSON (toJSON (jsonMap map editor)))
 	
 	mapid = dp2id idPrefix currentPath
 	
-	jsonMap map cp ip editor =
+	jsonMap map editor =
 		{ JSONMap
 		| center = map.Map.center
 		, width = map.Map.width
@@ -82,8 +74,8 @@ where
 		, mapType = map.Map.mapType
 		, markers = map.Map.markers
 		, xtype = "itasks.gmappanel"
-		, name = dp2s cp
-		, id = dp2id ip cp
+		, name = dp2s currentPath
+		, id = dp2id idPrefix currentPath
 		, isEditor = editor
 		}
 
