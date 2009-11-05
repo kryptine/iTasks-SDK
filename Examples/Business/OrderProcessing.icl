@@ -22,9 +22,20 @@ orderProcessingExample
 	,	label		= "Order processing"
 	,	roles		= []
 	,	mainTask	= orderPlacement customer >>| return Void
+	},
+	{	name		= "Examples/Test"
+	,	label		= "Test"
+	,	roles		= []
+	, 	mainTask	= brokenTask
 	}
   ]
-	
+
+brokenTask :: Task Void
+brokenTask =
+	0 @: ("Test assigned task", updateInformation "Give me a number" 42)
+	>>=
+		showMessageAbout "The magic number is"
+
 orderPlacement :: UserId -> Task Void
 orderPlacement user =
   customer @:  ( "Order items from shop"

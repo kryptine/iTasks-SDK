@@ -121,7 +121,7 @@ initTaskProperties
 calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
 calculateTaskForest enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
-	# (processes,tst)		= getProcessesForUser currentUser [Active] True tst	//Lookup all active processes for this user
+	# (processes,tst)		= getProcessesForUser currentUser [Active] tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
 	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	

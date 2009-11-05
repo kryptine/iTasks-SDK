@@ -48,18 +48,8 @@ where
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
 	where
-		//relevantProc targetId {Process|processType = EmbeddedProcess pid _}	= pid == targetId 
 		relevantProc targetId {Process|processId}							= processId == targetId
 		relevantProc _ _													= False
-	/*		
-	getProcesses :: ![ProcessStatus] !Bool !*TSt -> (![Process], !*TSt)
-	getProcesses statusses ignoreEmbedded tst
-		# (procs,tst) 	= processStore id tst
-		| ignoreEmbedded
-			= ([p \\ p <- procs | isMember p.Process.status statusses && not (isEmbedded p)], tst)
-		| otherwise
-			= ([p \\ p <- procs | isMember p.Process.status statusses], tst)
-	*/
 	
 	getProcesses :: ![ProcessStatus] !*TSt -> (![Process], !*TSt)
 	getProcesses statusses tst 
@@ -71,17 +61,13 @@ where
 		# (procs,tst) 	= processStore id tst
 		= ([process \\ process <- procs | isMember process.Process.processId ids], tst)
 
-	getProcessesForUser	:: !UserId ![ProcessStatus] !Bool !*TSt -> (![Process], !*TSt)
-	getProcessesForUser userId statusses ignoreEmbedded tst
+	getProcessesForUser	:: !UserId ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+	getProcessesForUser userId statusses tst
 		# (procs,tst) 	= processStore id tst
 		# rprocs	 	= map (relevantProc userId) procs
 		# procids		= [p \\ p <- rprocs | p <> ""]
-		//filter ((<>) "") (map (relevantProc userId) procs)
 		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
 	where
-		//relevantProc userId {processId, processType = EmbeddedProcess pid _, properties = {managerProps ={worker}}}
-		//	| fst worker == userId	= pid
-		//	| otherwise				= ""
 		relevantProc userId {processId, properties = {managerProps = {worker}}}
 			| fst worker == userId	= processId
 			| otherwise				= ""

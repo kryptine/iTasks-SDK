@@ -58,7 +58,7 @@ dispatch _ _			= return False
 
 exit :: User -> Task Void
 exit user
-	=					getProcessesForUser user.userId [Active, Suspended, Finished] False
+	=					getProcessesForUser user.userId [Active, Suspended, Finished]
 		>>= \procs ->	deleteAll [process.processId \\ process <- procs]
 where
 	deleteAll []		= return Void

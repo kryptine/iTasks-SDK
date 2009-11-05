@@ -184,7 +184,7 @@ getProcessesById		:: ![ProcessId]							-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !UserId ![ProcessStatus] !Bool		-> Task [Process]
+getProcessesForUser		:: !UserId ![ProcessStatus] 			-> Task [Process]
 /**
 * Changes the owner of the indicated process. The current user is automatically set
 * as delegator of the process.

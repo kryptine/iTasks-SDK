@@ -138,8 +138,8 @@ getProcesses statuses = mkInstantTask "getProcesses" (\tst -> ProcessDB@getProce
 getProcessesById :: ![ProcessId] -> Task [Process]
 getProcessesById ids = mkInstantTask "getProcessesById" (\tst -> ProcessDB@getProcessesById ids tst)
 
-getProcessesForUser	:: !UserId ![ProcessStatus] !Bool -> Task [Process]
-getProcessesForUser uid statuses ignoreEmbedded = mkInstantTask "getProcessesForUser" (\tst -> ProcessDB@getProcessesForUser uid statuses ignoreEmbedded tst)
+getProcessesForUser	:: !UserId ![ProcessStatus] -> Task [Process]
+getProcessesForUser uid statuses = mkInstantTask "getProcessesForUser" (\tst -> ProcessDB@getProcessesForUser uid statuses tst)
 
 setProcessOwner :: !UserId !ProcessId -> Task Bool
 setProcessOwner uid pid = mkInstantTask "setProcessOwner" setProcessOwner`
