@@ -14,6 +14,7 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 			, height: 400
 			, width: 500
 			, scope: this
+			, displayedMarkers : new Array()
 			});
 
 		itasks.GMapPanel.superclass.initComponent.apply(this,arguments);
@@ -26,6 +27,8 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		//this.gmap.setCenter(new google.maps.LatLng(data.center[0],data.center[1]));
 		//this.gmap.setZoom(data.zoom);
 		//this.gmap.setMapTypeId(this.getMapType(data.mapType));
+		this.markers = data.markers;
+		this.addMarkers();
 	},
 	
 	getMapType : function (mapType){
@@ -45,7 +48,7 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		
 		this.gmap = new google.maps.Map(this.body.dom, options);
 
-		//this.addMarkers(gmap)
+		this.addMarkers()
 		
 		var parent = this;
 		
@@ -92,14 +95,22 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 				
 	},
 	
-	addMarkers : function (gmap){
+	addMarkers : function (){
 		var i=0;
+		for(i=0; i<this.displayedMarkers.length; i++){
+			this.displayedMarkers[i].setMap(null);
+		}
+		
+		this.displayedMarkers = new Array();
+		
 		for(i=0; i<this.markers.length; i++){
 						
 			var markerObj = new google.maps.Marker({
-				map : gmap,
+				map : this.gmap,
 				position : new google.maps.LatLng(this.markers[i].position[0],this.markers[i].position[1])
-			});		
+			});	
+
+			this.displayedMarkers[i] = markerObj;
 		}		
 	}
 });

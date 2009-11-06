@@ -1,6 +1,6 @@
 implementation module GeoDomain
 
-import Html, InteractionTasks, StdEnv, JSON
+import Html, InteractionTasks, StdEnv, JSON, CommonDomain
 
 derive JSONEncode JSONMap, MapMarker, GoogleMapType, MapInfoWindow
 derive JSONDecode MVCUpdate, ClickUpdate, GoogleMapType, ClickSource, ClickEvent
@@ -26,27 +26,16 @@ derive gUpdate	  	MapMarker, MapInfoWindow, GoogleMapType
 	, isEditor			:: Bool
 	}
 	
-:: MVCUpdate = 
-	{ center			:: Coordinate
-	, zoom				:: Int
-	, type				:: GoogleMapType
-	}	
-	
-:: ClickUpdate = 
-	{ event				:: ClickEvent
-	, source			:: ClickSource
-	, point				:: Coordinate
-	}
-	
-:: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
-:: ClickSource  = MAP | MARKER Coordinate
-
 instance toString GoogleMapType
 where 
 	toString ROADMAP = "ROADMAP"
 	toString SATELLITE = "SATELLITE"
 	toString HYBRID = "HYBRID"
 	toString TERRAIN = "TERRAIN"
+	
+instance html StaticMap
+where
+	html (StaticMap width height url) = [DivTag [WidthAttr (toString width), HeightAttr (toString height)] [ImgTag [SrcAttr url, WidthAttr (toString width), HeightAttr (toString height)]]]
 	
 gVisualize {|Map|} old new vst=:{vizType,label,idPrefix,currentPath, valid, optional}
 	= case vizType of
@@ -102,15 +91,55 @@ where
 	# mbMVC		= fromJSON update
 	| isJust mbMVC
 		# mvc = fromJust mbMVC
+		//= case orig.Map.mvcFun of
+		//	Nothing 	
 		= {Map | orig & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, mapType = mvc.MVCUpdate.type}
+		//	(Just fun)	= fun mvc
 	# mbClick 	= fromJSON update
 	| isJust mbClick
 		# click = fromJust mbClick
-		# marker = {MapMarker | position = click.ClickUpdate.point, infoWindow = {MapInfoWindow | content = "HI!", width=200}}
-		= {Map | orig & markers = [marker : orig.Map.markers]}
+		//= case orig.Map.clickFun of
+		//	Nothing 	= orig
+		//	(Just fun) 	= fun click
+		# marker = {MapMarker | position = click.ClickUpdate.point, infoWindow = {MapInfoWindow | content = "", width=0}} 
+		= {Map | orig & markers = [marker:orig.Map.markers]}
 	| otherwise = orig
 
 gUpdate {|Map|} s ust =: {USt | mode = UDMask, currentPath, mask}
 	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
 
 gUpdate {|Map|} s ust = (s,ust)
+
+// -- Utility Functions --
+
+mkMap :: Map
+mkMap = { Map
+		| center 			= (0.0,0.0)
+		, width 			= 500
+		, height 			= 400
+		, mapTypeControl	= True
+		, navigationControl = True
+		, scaleControl		= True
+		, zoom				= 10
+		, mapType			= ROADMAP
+		, markers			= []
+		}
+
+convertToStaticMap :: Map -> StaticMap
+convertToStaticMap map =:{Map | center = (lat,lng), width, height, zoom, mapType, markers}
+# url 		= "http://maps.google.com/maps/api/staticmap?"
+# cntr		= "center="+++(toString lat)+++","+++(toString lng)
+# zm		= "zoom="+++(toString zoom)
+# sz		= "size="+++(toString width)+++"x"+++(toString height)
+# tp		= "maptype="+++(toString mapType)
+# mrkrs		= "markers="+++(convertMarkers markers)
+= StaticMap width height (url+++cntr+++"&"+++zm+++"&"+++sz+++"&"+++tp+++"&"+++mrkrs+++"&sensor=false&key="+++GOOGLE_API_KEY)
+where
+	convertMarkers :: [MapMarker] -> String
+	convertMarkers [] = "";
+	convertMarkers [x] = convertMarker x
+	convertMarkers [x:xs] = (convertMarker x)+++"|"+++(convertMarkers xs)
+	
+	convertMarker :: MapMarker -> String
+	convertMarker mrkr =: {position = (lat,lng), infoWindow}
+	= toString lat+++","+++toString lng
