@@ -188,7 +188,7 @@ buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties
 	# tst									= {TSt|tst & taskNr = [changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
 												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
 	# tst									= loadChanges mbChange changes tst
-	# (result, tst)							= applyMainTask tst
+	# (result, tst)							= executeTaskThread tst
 	# (TTMainTask ti mti tasks, tst)		= getTaskTree tst
 	# (finished, tst)						= taskFinished tst
 	| finished
@@ -226,7 +226,7 @@ where
 	storeChanges` [c:cs] accu pid tst
 		= storeChanges` cs accu pid tst
 
-	applyMainTask tst=:{taskNr}
+	executeTaskThread tst=:{taskNr}
 		# (thread, tst)		= loadTaskThread (taskNrFromString processId) tst		  
 		# (result, tst) 	= thread tst
 		#  result			= evalDynamicResult result
@@ -235,17 +235,6 @@ where
 	parentProcId ""		=  Nothing
 	parentProcId procId = (Just procId)
 
-
-/*
-//Turn a task yielding a value of type a into a value of dynamic
-createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
-createDynamicTask (Task name mbCxt tf) = Task name mbCxt createDynamicTask`
-where
-	createDynamicTask` tst
-		# (a, tst)	= tf tst
-		# dyn		= evalDynamicResult (dynamic a)
-		= (dyn, tst)
-*/
 
 createTaskThread :: !(Task a) -> (!*TSt -> *(!Dynamic,!*TSt)) | iTask a
 createTaskThread task = createTaskThread` task
@@ -432,7 +421,7 @@ where
 
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
-	# taskId				= taskNrToString taskNr
+	# taskId				= iTaskId taskNr ""
 	# (mbtv,dstore,world)	= loadValue taskId dataStore world
 	# (state,curval)		= case mbtv of
 								(Just (state, value))	= (state, Just value)
@@ -457,7 +446,9 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dat
 		# tst=:{tree=node,activated,dataStore}	= clearUserUpdates tst
 		// Update task state
 		| activated
+			//Garbage collect
 			# tst=:{TSt|dataStore}	= deleteTaskStates taskNr {TSt|tst & dataStore = dataStore}
+			// Store final value
 			# dataStore				= storeValue taskId (TSDone, a) dataStore
 			# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
 			= (a, tst)
@@ -521,20 +512,8 @@ loadTaskFunctionStatic taskNr tst =: {TSt | dataStore, world}
 where
 	storekey taskNr  	 = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-static"
 
-loadTaskFunctionDynamic :: !TaskNr !*TSt -> (!Maybe (Task Dynamic), !*TSt)
-loadTaskFunctionDynamic taskNr tst =: {TSt | dataStore, world}
-# (mbDyn, dataStore, world) = loadValue (storekey taskNr) dataStore world
-= case mbDyn of 
-	(Just (t :: Task Dynamic)) 	= ((Just t), {TSt | tst & dataStore = dataStore, world = world})
-	Nothing				  		= (Nothing , {TSt | tst & dataStore = dataStore, world = world})
-where
-	storekey taskNr 	 = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-dynamic"
-
 storeTaskFunctionStatic :: !TaskNr !(Task a) !*TSt -> *TSt | TC a
 storeTaskFunctionStatic taskNr task tst = storeTaskFunction taskNr task "static" tst
-
-storeTaskFunctionDynamic :: !TaskNr !(Task Dynamic) !*TSt -> *TSt
-storeTaskFunctionDynamic taskNr task tst = storeTaskFunction taskNr task "dynamic" tst
 
 storeTaskFunction :: !TaskNr !(Task a) String !*TSt -> *TSt | TC a
 storeTaskFunction taskNr task key tst =: {TSt | dataStore}
@@ -633,9 +612,9 @@ resetSequence tst=:{taskNr,tree}
 		_								= {tst & tree = tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
-deleteTaskStates tasknr tst=:{TSt|dataStore,world}
-	# (dstore,world) = deleteValues (iTaskId tasknr "") dataStore world
-	= {TSt|tst & dataStore = dstore, world = world}
+deleteTaskStates taskNr tst=:{TSt|dataStore,world}
+	# (dataStore,world) = deleteValues (iTaskId taskNr "") dataStore world
+	= {TSt|tst & dataStore = dataStore, world = world}
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
 copyTaskStates fromtask totask tst=:{TSt|dataStore,world}

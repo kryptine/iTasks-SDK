@@ -355,14 +355,11 @@ loadTaskThread :: !TaskNr !*TSt -> (!*TSt -> *(!Dynamic,!*TSt), !*TSt)
 * Loads the task function from the store
 */
 loadTaskFunctionStatic  :: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
-loadTaskFunctionDynamic :: !TaskNr !*TSt -> (!Maybe (Task Dynamic), !*TSt)
 
 /**
 * Stores the task function in the store
 */
 storeTaskFunctionStatic  :: !TaskNr !(Task a)       !*TSt -> *TSt | TC a
-storeTaskFunctionDynamic :: !TaskNr !(Task Dynamic) !*TSt -> *TSt
-
 /**
 * Store and load the result of a workflow instance
 */
