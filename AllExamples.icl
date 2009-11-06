@@ -28,6 +28,7 @@ import ideExample
 
 //Crisis response examples
 import AmbulanceDispatch
+import AmbulanceDispatchMap
 
 //Change examples
 import SimpleChanges
@@ -54,5 +55,6 @@ where
 						, ideExample
 						, webShopExample
 						, ambulanceDispatchExamples
+						, ambulanceDispatchMapExamples
 						, changeExamples
 						]
