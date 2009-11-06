@@ -34,11 +34,7 @@ where
 		# (curTime,tst) 			= accWorldTSt time tst
 		# (newPid,tst)				= ProcessDB@createProcess (entry mainTask curTime (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName)) tst
 		# tst						= storeTaskThread (taskNrFromString newPid) (createTaskThread task) tst
-		| uid == curUid
-			# tst					= addNewProcess newPid tst
-			= (ProcessReference newPid, {tst & activated = True})
-		| otherwise
-			= (ProcessReference newPid, {tst & activated = True})
+		= (ProcessReference newPid, {tst & activated = True})
 				
 	entry pid now user delegator	= mkProcessEntry (taskLabel task) now user delegator (if activate Active Suspended) pid	// Create a process database entry
 

@@ -29,9 +29,8 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 					, activated		:: !Bool   											// if true activate task, if set as result task completed
 
 					, mainTask		:: !ProcessId										// The id of the current main task 
-					, newProcesses	:: ![ProcessId]										// A list of spawned processes for the current user
 							
-					, options		:: !Options											// iData lifespan and storage format
+					, options		:: !Options											// options
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
 					
 					, exception		:: !Maybe Dynamic									// Optional, used when raising exceptions
@@ -147,34 +146,6 @@ getWorkflows :: !*TSt -> (![Workflow],!*TSt)
 * @return The modified task state
 */
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
-
-/**
-* Adds the id of a newly created process to the list
-* in the task state, such that it can be executed later on.
-*
-* @param The id of the newly created process
-* @param The task state
-*
-* @return The modified task state
-*/
-addNewProcess :: !ProcessId !*TSt -> *TSt
-/**
-* Get the list of newly created processes
-*
-* @param The task state
-*
-* @return The list of new process ids
-* @return The modified task state
-*/
-getNewProcesses :: !*TSt -> (![ProcessId], !*TSt)
-/**
-* Clears the list of newly created processes
-*
-* @param The task state
-*
-* @return The modified task state
-*/
-clearNewProcesses :: !*TSt -> *TSt
 
 /**
 * Apply a function on World on a TSt

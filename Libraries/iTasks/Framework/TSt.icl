@@ -40,7 +40,6 @@ mkTSt appName config request session workflows systemStore dataStore world
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, activated 	= True
 		, mainTask		= ""
-		, newProcesses	= []
 		, options 		= initialOptions
 		, staticInfo	= initStaticInfo appName session workflows
 		, exception		= Nothing
@@ -123,7 +122,6 @@ calculateTaskForest enableDebug tst
 	# (currentUser,tst)		= getCurrentUser tst
 	# (processes,tst)		= getProcessesForUser currentUser [Active] tst	//Lookup all active processes for this user
 	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
-	# (trees,tst)			= addNewProcesses (reverse trees) tst
 	= (Nothing, trees, tst)	
 
 //Needed for RPC Daemon
@@ -131,20 +129,11 @@ calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
 calculateCompleteTaskForest enableDebug tst 
 	# (processes, tst) = getProcesses [Active,Suspended] tst
 	# (trees, tst) 	   = calculateTrees processes tst
-	# (trees, tst)	   = addNewProcesses trees tst
 	= (Nothing, trees, tst)
 
 sortProcesses :: ![Process] -> [Process]
 sortProcesses ps = sortBy (\p1 p2 -> p1.Process.processId > p2.Process.processId) ps 
 
-addNewProcesses :: ![TaskTree] *TSt -> (![TaskTree],!*TSt)
-addNewProcesses trees tst
-	# (pids,tst)		= getNewProcesses tst
-	| isEmpty pids		= (trees,tst)									//Nothing to do...
-	# (processes,tst)	= getProcessesById pids tst						//Lookup the process entries
-	# tst				= clearNewProcesses tst							//Reset the list of new processes
-	# (ntrees,tst)		= calculateTrees (sortProcesses processes) tst	//Calculate the additional task trees
-	= addNewProcesses (trees ++ reverse ntrees) tst						//Recursively check for more new processes	
 
 calculateTrees :: ![Process] !*TSt -> (![TaskTree], !*TSt)
 calculateTrees [] tst = ([],tst)
@@ -257,13 +246,13 @@ evalDynamicResult d = code {
 }
 
 applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
-applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,newProcesses,options,staticInfo,exception,doChange,changes}
+applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,options,staticInfo,exception,doChange,changes}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
 			# tst = thd3 (buildProcessTree proc (Just (change,lifetime)) tst)
 			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
-			  , tree = tree, activated = activated, mainTask = mainTask, newProcesses = newProcesses, options = options
+			  , tree = tree, activated = activated, mainTask = mainTask, options = options
 			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
 		Nothing		
 			= tst
@@ -293,15 +282,6 @@ getWorkflowByName name tst
 	= case filter (\wf -> wf.Workflow.name == name) workflows of
 		[workflow]	= (Just workflow, tst)
 		_			= (Nothing,tst)
-
-addNewProcess :: !ProcessId !*TSt -> *TSt
-addNewProcess pid tst = {tst & newProcesses = [pid:tst.newProcesses]}
-
-getNewProcesses :: !*TSt -> (![ProcessId], !*TSt)
-getNewProcesses tst =:{newProcesses} = (newProcesses, tst)
-
-clearNewProcesses :: !*TSt -> *TSt
-clearNewProcesses tst = {tst & newProcesses = []}
 
 taskFinished :: !*TSt -> (!Bool, !*TSt)
 taskFinished tst=:{activated} = (activated, {tst & activated = activated})
