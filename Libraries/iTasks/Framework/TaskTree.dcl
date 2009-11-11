@@ -36,7 +36,6 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: TaskSystemProperties =
 	{ processId		:: ProcessId		// Process table identification
-	, subject		:: String 			// Probably redundant with task label  TODO: Remove
 	, manager		:: (UserId,String)	// Who is managing this task
 	
 	, issuedAt		:: Timestamp		// When was the task created
@@ -46,9 +45,11 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: TaskManagerProperties =
 	{ worker		:: (UserId, String)	// Who has to do the task? 
+	, subject		:: String 			// The subject of the task
 	, priority		:: TaskPriority		// What is the current priority of this task?
 	, deadline		:: Maybe Timestamp	// When is the task due?
-	}					
+	}
+					
 :: TaskWorkerProperties =
 	{ progress		:: TaskProgress		// Indication of the worker's progress
 	}

@@ -72,16 +72,6 @@ where
 			| fst worker == userId	= processId
 			| otherwise				= ""
 	
-	/*	
-	getSubProcess :: !ProcessId !TaskId !*TSt -> (!Maybe Process,!*TSt)
-	getSubProcess processId taskId tst
-		# (procs,tst)	= processStore id tst
-		= case [proc \\ proc =: {processType = (EmbeddedProcess pid tid)} <- procs | pid == processId && tid == taskId] of
-			[entry] = (Just entry, tst)
-			_		= (Nothing, tst)
-	*/
-
-	
 	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*TSt	-> (!Bool, !*TSt)
 	setProcessOwner worker manager processId tst
 		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & systemProps = {x.properties.systemProps & manager = manager}, managerProps = {x.properties.managerProps & worker = worker}}}) tst
@@ -119,118 +109,6 @@ where
 		| ok 		= removeFinishedProcesses` ps tst
 		| otherwise = (False,tst) 
 
-//Utility functions
-mkProcessEntry :: String Timestamp (UserId, String) (UserId, String) ProcessStatus ProcessId -> Process
-mkProcessEntry label timestamp user delegator status parent
-	=	{ Process
-		| processId		= ""
-		, status		= status
-		, parent		= parent
-		, properties	=	{ systemProps =
-							  {TaskSystemProperties
-							  | processId	= ""
-							  , subject		= label
-							  , manager		= delegator
-							  , issuedAt	= timestamp
-							  , firstEvent	= Nothing
-							  , latestEvent	= Nothing
-							  }
-							, managerProps =
-							  { TaskManagerProperties
-							  | worker		= user
-							  , priority	= NormalPriority
-							  , deadline	= Nothing
-							  }
-							, workerProps =
-							  { TaskWorkerProperties
-							  | progress	= TPActive
-							  }
-							}
-		, changes		= []
-		, changeNr		= 0
-		}
-/*
-mkStaticProcessEntry :: Workflow Timestamp (UserId,String) (UserId,String) ProcessStatus -> Process
-mkStaticProcessEntry workflow timestamp user delegator status
-	=	{ Process
-		| processId		= ""
-		, processType	= StaticProcess workflow.Workflow.name
-		, parent		= ""
-		, status		= status
-		, properties	=	{ systemProps =
-							  {TaskSystemProperties
-							  | processId	= ""
-							  , subject		= workflow.Workflow.label
-							  , manager		= delegator
-							  , issuedAt	= timestamp
-							  , firstEvent	= Nothing
-							  , latestEvent	= Nothing
-							  }
-							, managerProps =
-							  { TaskManagerProperties
-							  | worker		= user
-							  , priority	= NormalPriority
-							  , deadline	= Nothing
-							  }
-							, workerProps =
-							  { TaskWorkerProperties
-							  | progress	= TPActive
-							  }
-							}
-		, taskfun		= Nothing
-		, result		= Nothing
-		, changes		= []
-		, changeNr		= 0
-		}
-		
-mkDynamicProcessEntry :: String DynamicId Timestamp (UserId,String) (UserId,String) ProcessStatus ProcessId -> Process
-mkDynamicProcessEntry label task timestamp user delegator status parent
-	=	{ Process
-		| processId	= ""
-		, processType = DynamicProcess task
-		, parent	= parent
-		, status	= status
-		, properties=	{ systemProps =
-							  {TaskSystemProperties
-							  | processId	= ""
-							  , subject		= label
-							  , manager		= delegator
-							  , issuedAt	= timestamp
-							  , firstEvent	= Nothing
-							  , latestEvent	= Nothing
-							  }
-							, managerProps =
-							  { TaskManagerProperties
-							  | worker		= user
-							  , priority	= NormalPriority
-							  , deadline	= Nothing
-							  }
-							, workerProps =
-							  { TaskWorkerProperties
-							  | progress	= TPActive
-							  }
-							}
-		, taskfun	= Nothing
-		, result	= Nothing
-		, changes	= []
-		, changeNr	= 0
-		}
-
-mkEmbeddedProcessEntry	:: ProcessId TaskId TaskProperties ProcessStatus ProcessId	-> Process
-mkEmbeddedProcessEntry ancestor taskid properties status parent
-	=	{ Process
-		| processId		= ""
-		, processType	= EmbeddedProcess ancestor taskid
-		, parent		= parent
-		, status		= status
-		, properties	= properties
-		, taskfun		= Nothing
-		, result		= Nothing
-		, changes		= []
-		, changeNr		= 0
-		}		
-*/
-
 processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
 processStore fn tst=:{TSt|dataStore,world}
 	# (mbList,dstore,world)	= loadValue "ProcessDB" dataStore world
@@ -244,16 +122,3 @@ maxPid db = foldr max 0 (map (last o taskNrFromString) [processId \\ {Process|pr
 getNewPid :: ![Process] !Process -> ProcessId
 getNewPid db entry = (toString(inc(maxPid db)))
 
-/*
-getNewPid :: ![Process] !Process -> ProcessId
-getNewPid db entry = 
-| isEmbedded entry
-	= fetchTaskNr entry
-| otherwise
-	= (toString(inc(maxPid db)))
-where
-	fetchTaskNr entry =
-		case entry.processType of
-		(EmbeddedProcess an tid) = tid
-		_ = abort "Not an Embedded process"*/
-							

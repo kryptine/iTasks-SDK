@@ -532,7 +532,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 			border: false,
 			hideBorders: true,
 			items: [{
-					html: "Waiting for <i>" +  this.properties.systemProps.subject + "</i>",
+					html: "Waiting for <i>" +  this.properties.managerProps.subject + "</i>",
 					style: "margin: 0px 0px 20px 0px;"			
 				},{
 					xtype: "panel",
@@ -581,7 +581,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 		var p = data.properties;
 		var props = [p.managerProps.worker[1],p.managerProps.priority,p.workerProps.progress,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
 		
-		this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.systemProps.subject) + "</i>");
+		this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.managerProps.subject) + "</i>");
 		this.getComponent(1).items.each(function(cmt,i){ cmt.setValue(props[i]); });
 	}
 });

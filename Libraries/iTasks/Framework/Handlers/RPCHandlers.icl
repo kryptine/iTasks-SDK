@@ -9,7 +9,7 @@ derive JSONEncode RPCInfo, RPCCallType, RPCInterface, RPCMessageType, RPCProtoco
 
 handleRPCListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCListRequest request tst
-	# (mbError, forest, tst) = calculateCompleteTaskForest False tst
+	# (forest, tst) = calculateTaskForest tst
 	# (rpcinfos, tst) = determineRPCItems forest tst
 	= ({http_emptyResponse & rsp_data = (toJSON rpcinfos)},tst)
 	
@@ -31,15 +31,10 @@ determineTreeRPCItems _ = []
 
 handleRPCUpdates :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCUpdates request tst
-	# (mbError, mbTree, tst) = calculateTaskTree procId debug tst
-	= case mbTree of
-		Nothing = error ("Process "+++procId+++" does not exist anymore.") tst
-		Just tree
-			= case locateSubTaskTree taskId tree of
-				Just (TTFinishedTask ti)				= finished tst
-				Just _ 									= success tst
-				Nothing									= error ("Task with id "+++taskId+++" does not exist anymore.") tst
-	
+	# (tree, tst) = calculateTaskTree procId tst
+	= case tree of
+		(TTFinishedTask ti)				= finished tst
+		_								= success tst
 where
 	taskId	= http_getValue "_rpctaskid" request.arg_post "0"
 	taskNr	= taskNrFromString taskId

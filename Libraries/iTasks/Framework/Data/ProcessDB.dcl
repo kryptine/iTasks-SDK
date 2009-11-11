@@ -36,7 +36,6 @@ where
 
 	setProcessOwner			:: !(UserId,String) !(UserId,String) !ProcessId				!*st -> (!Bool,			!*st)
 	setProcessStatus		:: !ProcessStatus !ProcessId								!*st -> (!Bool,			!*st)
-	//setProcessResult		:: !DynamicId !ProcessId									!*st -> (!Bool,			!*st)
 
 	updateProcess			:: !ProcessId (Process -> Process)							!*st -> (!Bool,			!*st)
 	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)			!*st -> (!Bool,			!*st)
@@ -44,14 +43,5 @@ where
 	removeFinishedProcesses :: 															!*st -> (!Bool, 		!*st)
 
 instance ProcessDB TSt
-/*
-* Utility function for creating process database entries.
-*/
-//mkStaticProcessEntry	:: Workflow			Timestamp (UserId,String) (UserId,String) ProcessStatus				-> Process
-//mkDynamicProcessEntry	:: String DynamicId	Timestamp (UserId,String) (UserId,String) ProcessStatus ProcessId	-> Process
-//mkEmbeddedProcessEntry	:: ProcessId TaskId		TaskProperties ProcessStatus ProcessId						-> Process
-
-mkProcessEntry :: String Timestamp (UserId, String) (UserId, String) ProcessStatus ProcessId -> Process
-
 instance toString ProcessStatus
 instance == ProcessStatus

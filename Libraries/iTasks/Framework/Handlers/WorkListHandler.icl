@@ -44,7 +44,7 @@ bldWorkItems processes
 		{ taskid		= processId
 		, delegatorId	= fst p.systemProps.TaskSystemProperties.manager
 		, delegatorName	= snd p.systemProps.TaskSystemProperties.manager
-		, subject		= p.systemProps.TaskSystemProperties.subject
+		, subject		= p.managerProps.TaskManagerProperties.subject
 		, priority		= p.managerProps.TaskManagerProperties.priority
 		, progress		= p.workerProps.TaskWorkerProperties.progress
 		, timestamp		= p.systemProps.TaskSystemProperties.issuedAt

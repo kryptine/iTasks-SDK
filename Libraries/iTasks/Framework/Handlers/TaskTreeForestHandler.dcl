@@ -6,4 +6,4 @@ definition module TaskTreeForestHandler
 from TSt 	import :: TSt
 from Http	import :: HTTPRequest, :: HTTPResponse
 
-handleTaskTreeForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+handleTaskForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)

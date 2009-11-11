@@ -10,10 +10,10 @@ import GenVisualize, GenUpdate, TUIDefinition
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst
-	# (mbError, mbTree, tst) = calculateTaskTree taskId debug tst	// Calculate the task tree
-	= case mbTree of
-		Just tree =:(TTMainTask ti properties tasks)
-			# subject = [properties.systemProps.TaskSystemProperties.subject]
+	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
+	= case tree of
+		(TTMainTask ti properties tasks)
+			# subject = [properties.managerProps.TaskManagerProperties.subject]
 			# panel = case [t \\ t <- tasks | isActive t] of
 				[]	= if (allFinished tasks) TaskDone TaskRedundant
 				[t]	= buildTaskPanel t
@@ -33,7 +33,7 @@ handleWorkTabRequest req tst
 			
 			| otherwise
 				= redundant tst
-		Just (TTFinishedTask ti)
+		(TTFinishedTask ti)
 			= finished tst
 		_
 			= redundant tst

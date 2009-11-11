@@ -6,7 +6,6 @@ import TSt
 from ProcessDB import :: Process{..}, :: ProcessStatus(..)
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB TSt
-from ProcessDB import mkProcessEntry
 
 from DynamicDB import qualified class DynamicDB(..)
 from DynamicDB import qualified instance DynamicDB TSt
@@ -28,16 +27,18 @@ spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessReference a) | iTask a
 spawnProcess uid activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
-		# (curUid,tst)				= getCurrentUser tst
-		# (user,tst)				= getUser uid tst
-		# (delegator,tst)			= getUser curUid tst
-		# (curTime,tst) 			= accWorldTSt time tst
-		# (newPid,tst)				= ProcessDB@createProcess (entry mainTask curTime (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName)) tst
-		# tst						= storeTaskThread (taskNrFromString newPid) (createTaskThread task) tst
-		= (ProcessReference newPid, {tst & activated = True})
-				
-	entry pid now user delegator	= mkProcessEntry (taskLabel task) now user delegator (if activate Active Suspended) pid	// Create a process database entry
-
+		# (curUid,tst)		= getCurrentUser tst
+		# (user,tst)		= getUser uid tst
+		# properties =
+			{ TaskManagerProperties
+			| worker	= (user.User.userId,user.User.displayName)
+			, subject 	= taskLabel task
+			, priority	= NormalPriority
+			, deadline	= Nothing
+			}
+		# (pid,tst)			= createTaskInstance task properties True tst
+		= (ProcessReference pid, {tst & activated = True})
+	
 waitForProcess :: (ProcessReference a) -> Task (Maybe a) | iTask a
 waitForProcess (ProcessReference pid) = mkMonitorTask "waitForProcess" waitForProcess`
 where

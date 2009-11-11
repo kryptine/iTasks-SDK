@@ -108,34 +108,22 @@ assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, 
 				| otherwise
 					= (status, properties, fromJust curTask, changeNr, tst)		
 			Nothing
-				# (toUser,tst)		= getUser toUserId tst
-				# (currentUser,tst)	= getUser userId tst 
-				# (now,tst)			= (accWorldTSt time) tst
-				# initProperties	= { systemProps =
-									    {TaskSystemProperties
-									    | processId 	= taskId
-									    , subject		= taskLabel task
-									    , manager		= (currentUser.User.userId, currentUser.User.displayName)
-									    , issuedAt		= now
-									    , firstEvent	= Nothing
-									    , latestEvent	= Nothing
-									    },
-									    managerProps =
-									    {TaskManagerProperties
-									    | worker		= (toUser.User.userId, toUser.User.displayName)
-									    , priority		= initPriority
-									    , deadline		= initDeadline
-									    },
-									    workerProps =
-									    {TaskWorkerProperties
-									    | progress		= TPActive
-									    }
-									  }					  
-				# process			= mkProcessEntry (taskLabel task) now (toUser.User.userId, toUser.User.displayName) (currentUser.User.userId, currentUser.User.displayName) Active currentMainTask
-				# (processId, tst) 	= createProcess  ({Process | process & processId = taskId, properties = initProperties}) tst
-				# tst				= storeTaskFunctionStatic  taskNr task tst
-				# tst				= storeTaskThread taskNr (createTaskThread task) tst
-				= (Active, initProperties, task, 0, tst)
+				# (user,tst)		= getUser toUserId tst
+				# initProperties
+					= {TaskManagerProperties
+					  | worker		= (user.User.userId, user.User.displayName)
+					  , subject		= taskLabel task
+					  , priority	= initPriority
+					  , deadline	= initDeadline
+					}
+				# (processId,tst)	= createTaskInstance task initProperties False tst
+				# (mbProc,tst)		= getProcess processId tst
+				= case mbProc of
+					(Just {Process | status, properties, changeNr})
+						= (status, properties, task, changeNr, tst)
+					_
+						= abort "(assign) Could not load newly created process"
+				
 	//Process has finished, unpack the dynamic result
 	| taskStatus == Finished
 		# (mbRes,tst) = loadProcessResult taskNr tst

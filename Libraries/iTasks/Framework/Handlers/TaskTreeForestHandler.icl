@@ -3,8 +3,7 @@ implementation module TaskTreeForestHandler
 import StdEnv
 import Http, TSt, Trace
 
-handleTaskTreeForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-handleTaskTreeForestRequest request tst
-	# (mbError, forest, tst)	= calculateTaskForest True tst
-	# content					= toString (traceTaskForest forest)
-	= ({http_emptyResponse & rsp_data = content}, tst)
+handleTaskForestRequest :: !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+handleTaskForestRequest request tst
+	# (forest, tst)	= calculateTaskForest tst
+	= ({http_emptyResponse & rsp_data = traceTaskForest forest}, tst)

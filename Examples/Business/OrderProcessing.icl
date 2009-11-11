@@ -32,7 +32,10 @@ orderProcessingExample
 
 brokenTask :: Task Void
 brokenTask =
-	0 @: ("Test assigned task", updateInformation "Give me a number" 42)
+	getCurrentUser
+	>>= \user ->
+	//Doubly assigned task, first to root then back to current user
+	(0 @: ("Test assigned task", user.userId @: ("Test assigned task back", updateInformation "Give me a number" 42)))
 	>>=
 		showMessageAbout "The magic number is"
 

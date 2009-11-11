@@ -35,7 +35,7 @@ engine config flows
 	  ,((==) "/handlers/data/users", handleSessionRequest config flows handleUserListRequest)
 	  ,((==) "/handlers/rpc/request", handleSessionRequest config flows handleRPCListRequest)
 	  ,((==) "/handlers/rpc/response", handleSessionRequest config flows handleRPCUpdates)
-	  ,((==) "/handlers/debug/tasktreeforest", handleSessionRequest config flows handleTaskTreeForestRequest)
+	  ,((==) "/handlers/debug/taskforest", handleSessionRequest config flows handleTaskForestRequest)
 	  ,((==) "/handlers/debug/processtable", handleSessionRequest config flows handleProcessTableRequest)
 	  ,(\_ -> True, handleStaticResourceRequest)
 				 ]

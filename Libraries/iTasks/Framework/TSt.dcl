@@ -89,31 +89,38 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
 
 /**
-* Calculates all task trees that are relevant to the current user
+* Creates an instance of a task definition
 *
-* @param Calculate debug information
+* @param The task
+* @param Start as toplevel, or as subtask of another task (parent information is read from the task state)
 * @param The task state
 *
-* @return An optional error message
-* @return The list of task trees (task forest)
-* @return The modified task state
+* @param The process id of the instance
+* @param The modified task state
 */
-calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
-
-calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!ProcessId, !*TSt) | iTask a
 
 /**
 * Calculates a single task tree for a given process id
 *
 * @param The process id
-* @param Calculate debug information
 * @param The task state
 *
-* @return An optional error message
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
+calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
+
+/**
+* Calculates all task trees
+*
+* @param The task state
+*
+* @return The list of task trees (task forest)
+* @return The modified task state
+*/
+calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
+
 
 /**
 * Applies a change to a running task process task state.
@@ -175,14 +182,6 @@ getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 * Extract the calculated task forest data structure from the TSt
 */
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
-
-
-/**
-* Check if the last executed task was finished. This is used to
-* determine if a process is finished. (A process is finished when
-* its main task is finished)
-*/
-taskFinished :: !*TSt -> (!Bool, !*TSt)
 
 //// TASK CREATION
 
@@ -313,25 +312,6 @@ setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
 getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
 
 /**
-* Converts a task returning a value of type a to a task returning a dynamic
-*/
-//createDynamicTask :: !(Task a) -> Task Dynamic | iTask a
-
-createTaskThread :: !(Task a) -> (!*TSt -> *(!Dynamic,!*TSt)) | iTask a
-
-storeTaskThread :: !TaskNr !(!*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
-loadTaskThread :: !TaskNr !*TSt -> (!*TSt -> *(!Dynamic,!*TSt), !*TSt)
-
-/**
-* Loads the task function from the store
-*/
-loadTaskFunctionStatic  :: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
-
-/**
-* Stores the task function in the store
-*/
-storeTaskFunctionStatic  :: !TaskNr !(Task a)       !*TSt -> *TSt | TC a
-/**
 * Store and load the result of a workflow instance
 */
 loadProcessResult		:: !TaskNr 					!*TSt -> (!Maybe a, !*TSt) | TC a
@@ -410,3 +390,9 @@ taskNrToString		:: !TaskNr 					-> String
 */
 taskLabel			:: !(Task a)				-> String
 
+//Should not be public!
+createTaskThread :: !(Task a) -> (*TSt -> *(!Dynamic,!*TSt)) | iTask a
+storeTaskThread :: !TaskNr !(*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
+loadTaskThread :: !TaskNr !*TSt -> (*TSt -> *(!Dynamic,!*TSt), !*TSt)
+loadTaskFunctionStatic  :: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
+storeTaskFunctionStatic  :: !TaskNr !(Task a)       !*TSt -> *TSt | TC a

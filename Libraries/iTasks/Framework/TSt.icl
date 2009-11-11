@@ -81,7 +81,6 @@ initTaskProperties
 	= { systemProps =
 		{TaskSystemProperties
 		| processId = ""
-		, subject = ""
 		, manager = (-1,"")
 		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
@@ -90,6 +89,7 @@ initTaskProperties
 	  , managerProps =
 	    {TaskManagerProperties
 	    | worker = (-1,"")
+	    , subject = ""
 	    , priority = NormalPriority
 	    , deadline = Nothing
 	    }
@@ -98,97 +98,101 @@ initTaskProperties
 	    | progress = TPActive
 	    }
 	 }
-/*
-* When the complete task forest for a certain user is calculated, we do this
-* in a specific order to make sure that we get the complete forest and that
-* sub processes are always calculated before their parent processes because since
-* these parent processes may be waiting for their final value.
-*
-* The informal algorithm to calculate the forest is as follows:
-* - Retrieve all processes for the current user from the database
-* - Sort these processes on process id in descending order
-*  (this ensures that child processes are executed before their parent)
-* - Calculate the tasktrees for the sorted list of processes
-* - Reverse the list to get the task trees in ascending order
-* - Check the TSt for newly created process ids for the current user
-* - When there are new processes calculate their tasktrees and append
-*   them to the list.
-* - Check if the new processes have spawned new processes themselves
-* - repeat...
-*/
+	  
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!ProcessId, !*TSt) | iTask a
+createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
+	# (managerId, tst)		= getCurrentUser tst
+	# (manager,tst)			= getUser managerId tst
+	# (currentTime, tst)	= accWorldTSt time tst
+	# processId				= if toplevel "" (taskNrToString taskNr)
+	# parent				= if toplevel "" mainTask
+	# properties =
+		{TaskProperties
+		| systemProps =
+			{TaskSystemProperties
+			| processId	= ""
+			, manager		= (manager.User.userId, manager.User.displayName)
+			, issuedAt	= currentTime
+			, firstEvent	= Nothing
+			, latestEvent	= Nothing
+			}
+		, managerProps = managerProps
+		, workerProps =
+			{TaskWorkerProperties
+			| progress	= TPActive
+			}
+		}
+	# process =
+		{ Process
+		| processId		= processId
+		, status		= Active
+		, parent		= parent
+		, properties	= properties
+		, changes		= []
+		, changeNr		= 0
+		}
+	//Create an entry in the process table
+	# (processId, tst)	= createProcess process tst
+	//Store the task as dynamic
+	# tst				= storeTaskFunctionStatic (taskNrFromString processId) task tst
+	//Store the runnable theread
+	# tst				= storeTaskThread (taskNrFromString processId) (createTaskThread task) tst	
+	//Evaluate the process once to kickstart automated steps that can be set in motion immediately
+	# (_,tst)			= calculateTaskTree processId tst
+	= (processId,tst)
 
-calculateTaskForest :: !Bool !*TSt -> (!Maybe String, ![TaskTree], !*TSt)
-calculateTaskForest enableDebug tst
-	# (currentUser,tst)		= getCurrentUser tst
-	# (processes,tst)		= getProcessesForUser currentUser [Active] tst	//Lookup all active processes for this user
-	# (trees,tst)			= calculateTrees (sortProcesses processes) tst
-	= (Nothing, trees, tst)	
 
-//Needed for RPC Daemon
-calculateCompleteTaskForest :: !Bool !*TSt -> (Maybe String, ![TaskTree], !*TSt)
-calculateCompleteTaskForest enableDebug tst 
-	# (processes, tst) = getProcesses [Active,Suspended] tst
-	# (trees, tst) 	   = calculateTrees processes tst
-	= (Nothing, trees, tst)
+calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
+calculateTaskTree processId tst
+	# (mbProcess,tst) = getProcess processId tst
+	| isNothing mbProcess
+		= abort "(calculateTaskTree) Could not load process" //TODO no abort
+	# process=:{status,parent,properties} = fromJust mbProcess
+	= case status of
+		Active
+			# (tree,tst=:{activated}) = buildProcessTree process Nothing tst
+			//When finished, also evaluate the parent tree (and it's parent when it is also finished etc...)
+			| activated && parent <> ""
+				# (_,tst)	= calculateTaskTree parent tst 
+				= (tree, tst)
+			| otherwise
+				= (tree, tst)
+		_
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, finished = True, traceValue = "Finished"}, tst)
 
-sortProcesses :: ![Process] -> [Process]
-sortProcesses ps = sortBy (\p1 p2 -> p1.Process.processId > p2.Process.processId) ps 
+calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
+calculateTaskForest tst 
+	# (processes, tst) = getProcesses [Active] tst
+	= calculateTrees [processId \\ {Process|processId} <- processes | isTopLevel processId] tst
+where
+	isTopLevel p	= length (taskNrFromString p) == 1
+	
+	calculateTrees []     tst = ([],tst)
+	calculateTrees [p:ps] tst
+		# (tree,tst)	= calculateTaskTree p tst
+		# (trees,tst)	= calculateTrees ps tst
+		= ([tree:trees],tst)
 
-
-calculateTrees :: ![Process] !*TSt -> (![TaskTree], !*TSt)
-calculateTrees [] tst = ([],tst)
-calculateTrees [p:ps] tst
-	# (tree, par, tst)	= buildProcessTree p Nothing tst
-	= case par of 
-		(Just procId)
-			# (mbProc,tst) 	= getProcess procId tst
-			| isJust mbProc	
-				# (trees,tst)	= calculateTrees [fromJust mbProc:ps] tst
-				= ([tree:trees],tst)
-			| otherwise	
-				# (trees,tst)	= calculateTrees ps tst
-				= ([tree:trees],tst)
-		Nothing
-			# (trees,tst)		= calculateTrees ps tst
-			= ([tree:trees],tst)
-
-calculateTaskTree	:: !ProcessId !Bool !*TSt -> (!Maybe String, !Maybe TaskTree, !*TSt)
-calculateTaskTree pid enableDebug tst
-	# (mbProcess,tst) = getProcess pid tst
-	= case mbProcess of
-		Just entry
-			= case entry.Process.status of
-				Active
-					# (tree,_,tst)	= buildProcessTree entry Nothing tst
-					= (Nothing, Just tree, tst)
-				_
-					= (Nothing, Just (initProcessNode entry), tst)
-		Nothing
-			= (Just "Process not found", Nothing, tst)
-
-initProcessNode :: Process -> TaskTree			
-initProcessNode {processId, properties}
-		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.systemProps.subject, active = True, finished = False, traceValue = "Process"} properties []
-
-//If parent has to be evaluated, the Id is returned and accumelated into the list of proccesses still to be evaluated in buildtree.
-buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, (Maybe ProcessId), !*TSt)
+//If parent has to be evaluated, the Id is returned and accumulated into the list of proccesses still to be evaluated in buildtree.
+buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, !*TSt)
 buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeNr} mbChange tst =:{taskNr,staticInfo}
-	//Init tst
+
 	# tst									= {TSt|tst & taskNr = [changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
 												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
 	# tst									= loadChanges mbChange changes tst
 	# (result, tst)							= executeTaskThread tst
-	# (TTMainTask ti mti tasks, tst)		= getTaskTree tst
-	# (finished, tst)						= taskFinished tst
-	| finished
+	# (TTMainTask ti mti tasks, tst=:{activated})	= getTaskTree tst
+	| activated
 		# tst 			= storeProcessResult (taskNrFromString processId) result tst
 		# (_,tst)		= updateProcess processId (\p -> {Process|p & status = Finished}) tst
-		= (TTFinishedTask {TaskInfo | ti & finished = True}, (parentProcId parent), tst)
+		= (TTFinishedTask {TaskInfo | ti & finished = True}, tst)
 	| otherwise
-		# tst							= storeChanges processId tst
-		= (TTMainTask ti mti tasks, Nothing, tst)
-		
-where
+		# tst			= storeChanges processId tst
+		= (TTMainTask ti mti tasks, tst)	
+where	
+	initProcessNode {Process|processId, properties}
+		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, finished = False, traceValue = "Process"} properties []
+	
 	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
 
 	loadChanges` Nothing [] accu tst=:{TSt|changes}
@@ -220,19 +224,7 @@ where
 		# (result, tst) 	= thread tst
 		#  result			= evalDynamicResult result
 		= (result,tst)
-		
-	parentProcId ""		=  Nothing
-	parentProcId procId = (Just procId)
 
-
-createTaskThread :: !(Task a) -> (!*TSt -> *(!Dynamic,!*TSt)) | iTask a
-createTaskThread task = createTaskThread` task
-where
-	createTaskThread` :: !(Task a) !*TSt -> *(!Dynamic, !*TSt) | iTask a
-	createTaskThread` task tst
-		# (a, tst)	= applyTask task tst
-		# dyn		= evalDynamicResult (dynamic a)
-		= (dyn,tst)
 
 /**
 * This forces evaluation of the dynamic to normal form before we encode it
@@ -245,12 +237,23 @@ evalDynamicResult d = code {
 	.o 0 0
 }
 
+createTaskThread :: !(Task a) -> (*TSt -> *(!Dynamic,!*TSt)) | iTask a
+createTaskThread task = createTaskThread` task
+where
+	createTaskThread` :: !(Task a) !*TSt -> *(!Dynamic, !*TSt) | iTask a
+	createTaskThread` task tst
+		# (a, tst)	= applyTask task tst
+		# dyn		= evalDynamicResult (dynamic a)
+		= (dyn,tst)
+
+
+
 applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
 applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,options,staticInfo,exception,doChange,changes}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
-			# tst = thd3 (buildProcessTree proc (Just (change,lifetime)) tst)
+			# tst = snd (buildProcessTree proc (Just (change,lifetime)) tst)
 			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
 			  , tree = tree, activated = activated, mainTask = mainTask, options = options
 			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
@@ -282,9 +285,6 @@ getWorkflowByName name tst
 	= case filter (\wf -> wf.Workflow.name == name) workflows of
 		[workflow]	= (Just workflow, tst)
 		_			= (Nothing,tst)
-
-taskFinished :: !*TSt -> (!Bool, !*TSt)
-taskFinished tst=:{activated} = (activated, {tst & activated = activated})
 
 appWorldTSt	:: !.(*World -> *World) !*TSt -> *TSt
 appWorldTSt f tst=:{TSt|world}
@@ -502,19 +502,18 @@ storeTaskFunction taskNr task key tst =: {TSt | dataStore}
 where
 	storekey taskNr key = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-"+++key 
 
-storeTaskThread :: !TaskNr !(!*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
+storeTaskThread :: !TaskNr !(*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
 storeTaskThread taskNr thread tst =:{dataStore}
-	# dataStore = storeValueAs SFDynamic key (dynamic thread :: !*TSt -> *(!Dynamic,!*TSt)) dataStore
+	# dataStore = storeValueAs SFDynamic key (dynamic thread :: *TSt -> *(!Dynamic,!*TSt)) dataStore
 	= {TSt | tst & dataStore = dataStore}
 where
 	key = "iTask_" +++ (taskNrToString taskNr) +++ "-thread"
 
-
-loadTaskThread :: !TaskNr !*TSt -> (!*TSt -> *(!Dynamic,!*TSt), !*TSt)
+loadTaskThread :: !TaskNr !*TSt -> (*TSt -> *(!Dynamic,!*TSt), !*TSt)
 loadTaskThread taskNr tst =:{dataStore,world}
 	# (mbDyn, dataStore, world)	= loadValue key dataStore world
 	= case mbDyn of
-		(Just (f :: !*TSt -> *(!Dynamic, !*TSt)))
+		(Just (f :: *TSt -> *(!Dynamic, !*TSt)))
 			= (f, {TSt | tst & dataStore = dataStore, world = world})
 		(Just _)
 			= abort ("(loadTaskThread) Failed to match thread for " +++ taskNrToString taskNr)
