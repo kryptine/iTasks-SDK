@@ -399,6 +399,7 @@ where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo undef []}
 
+import StdDebug
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
 	# taskId				= iTaskId taskNr ""
@@ -413,9 +414,10 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dat
 					, traceValue	= ""
 					}
 	# tst = {TSt|tst & dataStore = dstore, world = world}
-	|state === TSDone || not activated
-		# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString(fromJust curval)}) tst
-		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = state === TSDone})
+	| state === TSDone
+		# traceValue = if (isJust curval) (printToString (fromJust curval)) ""
+		# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = traceValue}) tst
+		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = True})
 	| otherwise
 		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, curValue = case curval of Nothing = Nothing ; Just a = Just (dynamic a)}	
 		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
