@@ -147,10 +147,6 @@ div.worktab-header {
 	height: 100%;
 }
 
-div.worktab-header-low-priority{
-	background: url('img/worktab-header-low-back.png');
-}
-
 div.worktab-header-normal-priority{
 	background: url('img/worktab-header-normal-back.png');
 }
@@ -165,9 +161,9 @@ div.worktab-header-text{
 
 div.worktab-header-indicator {
 	position: absolute;
-	top: 5spx;
+	top: 5px;
 	left: 100%;
-	margin-left: -42px;
+	margin-left: -22px;
 	width: 16px;
 	height: 16px;
 	

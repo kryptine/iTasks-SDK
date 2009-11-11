@@ -21,8 +21,8 @@ itasks.util.formatDeadline = function(ts) {
 itasks.util.formatPriority = function(priority) {
 	switch(priority) {
 		case null : return "";
-		case "LowPriority": return itasks.util.coloredLabel("green","Low");
-		case "NormalPriority": return itasks.util.coloredLabel("orange","Normal");
+		case "LowPriority": return "Low";
+		case "NormalPriority": return "Normal";
 		case "HighPriority": return itasks.util.coloredLabel("red","High");
 	}
 	return priority;

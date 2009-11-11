@@ -186,20 +186,20 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	setContent: function(taskid, subject, properties) {		
 			worktabStatus = function(progress){
 				switch(progress){
-					case null : return ""
-					case "TPActive" : return "worktab-header-progress-active"
-					case "TPStuck" : return "worktab-header-progress-stuck"
-					case "TPWaiting": return "worktab-header-progress-waiting"
-					case "TPReject": return "worktab-header-progress-reject"
+					case null : return "";
+					case "TPActive" : return "worktab-header-progress-active";
+					case "TPStuck" : return "worktab-header-progress-stuck";
+					case "TPWaiting": return "worktab-header-progress-waiting";
+					case "TPReject": return "worktab-header-progress-reject";
 				}
 			}
 			
 			worktabBackground = function(priority){
 				switch(priority) {
 					case null : return "";
-					case "LowPriority": return "worktab-header-low-priority"
-					case "NormalPriority": return "worktab-header-normal-priority"
-					case "HighPriority": return "worktab-header-high-priority"
+					case "LowPriority":
+					case "NormalPriority": return "worktab-header-normal-priority";
+					case "HighPriority": return "worktab-header-high-priority";
 				}		
 			}
 			
@@ -208,7 +208,7 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 			this.body.update( String.format(
 				'<div class="worktab-header {1}">'+
 					'<div class="worktab-header-status {0}"></div><div class="worktab-header-separator"></div><div class="worktab-header-text">'+
-						'<table><tr><th>Subject:</th><td>{2}</td><th>Delegated by:</th><td>{3}</td><th>Deadline:</th><td>{4}</td></table>'+
+						'<table><tr><th>Subject:</th><td>{2}</td><th>Managed by:</th><td>{3}</td><th>Deadline:</th><td>{4}</td></table>'+
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
