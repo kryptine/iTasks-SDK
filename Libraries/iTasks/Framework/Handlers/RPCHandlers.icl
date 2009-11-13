@@ -5,7 +5,7 @@ import Http, TSt
 import Text, JSON, Time, Util
 import RPC
 
-derive JSONEncode RPCInfo, RPCCallType, RPCInterface, RPCMessageType, RPCProtocol, RPCHttpMethod
+derive JSONEncode RPCInfo, RPCCallType, RPCInterface, RPCMessageType, RPCProtocol, RPCHttpMethod, RPCParam
 
 handleRPCListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCListRequest request tst

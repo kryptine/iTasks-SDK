@@ -2,12 +2,12 @@ definition module GeoDomain
 
 import Html, InteractionTasks, CommonDomain
 
-derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
-derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
-derive gVisualize   Map, MapMarker, MapInfoWindow, GoogleMapType
-derive gUpdate	  	Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
+derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
+derive gVisualize   Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
+derive gUpdate	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
 
-GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRSrEXT3fNkwKSNTH8TDIqmpG-dFexSqJbR7bjG_6PAGWu4c1EGXviNLNQ"
+GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4lboFdTKu2o9gr_i8kRV0Pn1fNw"
 
 :: StaticMap = StaticMap Int Int String
 
@@ -56,4 +56,4 @@ convertToStaticMap :: Map -> StaticMap
 mkMap :: Map
 
 instance toString GoogleMapType
-instance html	  StaticMap
+//instance html	  StaticMap

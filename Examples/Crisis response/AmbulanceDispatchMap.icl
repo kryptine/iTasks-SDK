@@ -20,7 +20,7 @@ where
 	, type			:: IncidentType
 	, time			:: Time
 	, nrInjured		:: Int
-	, description	:: String
+	, description	:: Note
 	}
 	
 :: IncidentType = Accident | Fire | Fight | Other String
@@ -46,6 +46,6 @@ specifyIncident marker
 			 , type = Accident
 			 , time = {Time | hour = 0, min = 0, sec = 0}
 			 , nrInjured = 0
-			 , description = ""
+			 , description = Note ""
 			 }
-= showStickyMessage smap ||- updateInformation "Specify incident details" incident 
+= showStickyMessageAbout "Incident location:" smap ||- updateInformation "Specify incident details" incident 

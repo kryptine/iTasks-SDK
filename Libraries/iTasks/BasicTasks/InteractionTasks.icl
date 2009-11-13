@@ -207,10 +207,12 @@ where
 			(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
 			
 	taskDescriptionPanel :: [HtmlTag] -> TUIDef
-	taskDescriptionPanel description = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] description), border = False, bodyCssClass = "task-description"} 
+	//taskDescriptionPanel description = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] description), border = False, bodyCssClass = "task-description"} 
+	taskDescriptionPanel description = TUIHtmlPanel {TUIHtmlPanel| html = toString (DivTag [] description), border = False, bodyCssClass = "task-description"} 
 	
 	taskContextPanel :: [HtmlTag] -> TUIDef
-	taskContextPanel context = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
+	//taskContextPanel context = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
+	taskContextPanel context = TUIHtmlPanel {TUIHtmlPanel| html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context"} 
 	
 	taskFormPanel :: [TUIDef] -> TUIDef
 	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}

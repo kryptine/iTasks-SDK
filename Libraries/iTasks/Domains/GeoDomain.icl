@@ -2,13 +2,13 @@ implementation module GeoDomain
 
 import Html, InteractionTasks, StdEnv, JSON, CommonDomain
 
-derive JSONEncode JSONMap, MapMarker, GoogleMapType, MapInfoWindow
+derive JSONEncode JSONMap, JSONStaticMap,MapMarker, GoogleMapType, MapInfoWindow
 derive JSONDecode MVCUpdate, ClickUpdate, GoogleMapType, ClickSource, ClickEvent
 
-derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
-derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType
+derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
+derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
 derive gVisualize   MapMarker, MapInfoWindow, GoogleMapType
-derive gUpdate	  	MapMarker, MapInfoWindow, GoogleMapType
+derive gUpdate	  	MapMarker, MapInfoWindow, GoogleMapType, StaticMap
 
 :: JSONMap = 
 	{ center 			:: Coordinate
@@ -26,17 +26,22 @@ derive gUpdate	  	MapMarker, MapInfoWindow, GoogleMapType
 	, isEditor			:: Bool
 	}
 	
+::JSONStaticMap =
+	{ width				:: Int
+	, height			:: Int
+	, xtype				:: String
+	, id				:: String
+	, name				:: String
+	, url				:: String
+	}
+	
 instance toString GoogleMapType
 where 
-	toString ROADMAP = "ROADMAP"
-	toString SATELLITE = "SATELLITE"
-	toString HYBRID = "HYBRID"
-	toString TERRAIN = "TERRAIN"
-	
-instance html StaticMap
-where
-	html (StaticMap width height url) = [DivTag [WidthAttr (toString width), HeightAttr (toString height)] [ImgTag [SrcAttr url, WidthAttr (toString width), HeightAttr (toString height)]]]
-	
+	toString ROADMAP 	= "ROADMAP"
+	toString SATELLITE 	= "SATELLITE"
+	toString HYBRID 	= "HYBRID"
+	toString TERRAIN 	= "TERRAIN"
+
 gVisualize {|Map|} old new vst=:{vizType,label,idPrefix,currentPath, valid, optional}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (mapsPanel old True)], {VSt | vst & currentPath = stepDataPath currentPath })
@@ -68,6 +73,28 @@ where
 		, isEditor = editor
 		}
 
+ vizType = VHtmlDisplay
+
+gVisualize {|StaticMap|} VBlank _ vst = ([TextFragment ""],vst)
+gVisualize {|StaticMap|} (VValue (StaticMap w h u) _ ) _ vst=:{vizType,idPrefix,currentPath}
+	= case vizType of
+		VHtmlDisplay	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]],{VSt | vst & currentPath = stepDataPath currentPath})
+		//VHtmlDisplay	= ([HtmlFragment [IframeTag [SrcAttr u, FrameborderAttr "0", WidthAttr (toString w), HeightAttr (toString h)][(Text "Cannot Display iFrame")]]],{VSt | vst & currentPath = stepDataPath currentPath})
+		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})
+		VHtmlLabel		= ([HtmlFragment [Text "Static Map"]],{VSt | vst & currentPath = stepDataPath currentPath})
+		VTextLabel		= ([TextFragment "Static Map"],{VSt | vst & currentPath = stepDataPath currentPath})
+		_				= ([TUIFragment (TUICustom (JSON (toJSON staticMap)))],{VSt | vst & currentPath = stepDataPath currentPath})
+where
+	staticMap =
+		{ JSONStaticMap
+		| width 	= w
+		, height 	= h	
+		, xtype		= "itasks.gstaticmappanel"
+		, name		= dp2s currentPath
+		, id		= dp2id idPrefix currentPath
+		, url		= u
+		}	
+		
 gUpdate {|Map|} _ ust =: {USt | mode=UDCreate} = (
 	{ Map
 	| center 			= (51.82,5.86)
@@ -109,6 +136,8 @@ gUpdate {|Map|} s ust =: {USt | mode = UDMask, currentPath, mask}
 	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
 
 gUpdate {|Map|} s ust = (s,ust)
+
+//gUpdate {|StaticMap|} s ust =:{USt | currentPath, mask} = (s,{USt | ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
 
 // -- Utility Functions --
 
