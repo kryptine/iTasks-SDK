@@ -25,18 +25,18 @@ PATH_SEP :== "\\"
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
 engine config flows 
-	= [((==) "/handlers/authenticate", handleAnonRequest config flows handleAuthenticationRequest)
-	  ,((==) "/handlers/deauthenticate", handleSessionRequest config flows handleDeauthenticationRequest)							
-	  ,((==) "/handlers/new/list", handleSessionRequest config flows handleNewListRequest)
-	  ,((==) "/handlers/new/start", handleSessionRequest config flows handleNewStartRequest)
-	  ,((==) "/handlers/work/list", handleSessionRequest config flows handleWorkListRequest)
-	  ,((==) "/handlers/work/tab", handleSessionRequest config flows handleWorkTabRequest)
-	  ,((==) "/handlers/work/property", handleSessionRequest config flows handlePropertyRequest)
-	  ,((==) "/handlers/data/users", handleSessionRequest config flows handleUserListRequest)
-	  ,((==) "/handlers/rpc/request", handleSessionRequest config flows handleRPCListRequest)
-	  ,((==) "/handlers/rpc/response", handleSessionRequest config flows handleRPCUpdates)
-	  ,((==) "/handlers/debug/taskforest", handleSessionRequest config flows handleTaskForestRequest)
-	  ,((==) "/handlers/debug/processtable", handleSessionRequest config flows handleProcessTableRequest)
+	= [((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
+	  ,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
+	  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
+	  ,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
+	  ,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
+	  ,((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
+	  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
+	  ,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
+	  ,((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
+	  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
+	  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)
+	  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
 	  ,(\_ -> True, handleStaticResourceRequest)
 				 ]
 workflow :: String (Task a) -> Workflow | iTask a
