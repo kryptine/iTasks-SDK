@@ -1,5 +1,5 @@
 //iTask client configuration
-{ serverUrl: "/"
+{ serverUrl: "/handlers"
 , appTitle: "iTasks"
 , skin: "default"
 , debug: true
