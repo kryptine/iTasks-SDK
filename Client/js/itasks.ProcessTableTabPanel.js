@@ -13,7 +13,7 @@ itasks.ProcessTableTabPanel = Ext.extend(itasks.RemoteDataPanel, {
 			title: "Process table",
 			closable: true,
 			autoScroll: true,
-			url: "handlers/debug/processtable",
+			url: itasks.config.serverUrl + "/debug/processtable",
 			cls: "worktab-container",
 			iconCls: "icon-process-table",
 			bodyStyle: "padding: 10px;",

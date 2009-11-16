@@ -126,7 +126,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 	logout: function() {	
 		//Send logout request to the server
 		Ext.Ajax.request({
-			url: 'handlers/deauthenticate',
+			url: itasks.config.serverUrl + "/deauthenticate",
 			method: "POST",
 			params: {session: itasks.app.session},
 			scripts: false,

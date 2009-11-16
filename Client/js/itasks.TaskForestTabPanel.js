@@ -42,7 +42,7 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 					}],	
 			
 			loader: new Ext.tree.TreeLoader({
-						dataUrl: "handlers/debug/tasktreeforest",
+						dataUrl: itasks.config.serverUrl + "/debug/tasktreeforest",
 						baseParams: {_session: itasks.app.session},
 						requestMethod: "POST",
 						uiProviders: { col : Ext.ux.tree.ColumnNodeUI }

@@ -11,7 +11,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 			title: "New task...",
 			iconCls: "icon-newwork",	
 			loader: new Ext.tree.TreeLoader({
-				dataUrl: "handlers/new/list",
+				dataUrl: itasks.config.serverUrl + "/new/list",
 				baseParams: {_session: itasks.app.session},
 				requestMethod: "POST"
 			}),
@@ -31,7 +31,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 	
 		Ext.Ajax.request({
 			method: "POST",
-			url: "handlers/new/start",
+			url: itasks.config.serverUrl + "/new/start",
 			params: {_session: itasks.app.session, workflow: workflow},
 			scripts: false,
 			callback: this.startWorkflowCB,

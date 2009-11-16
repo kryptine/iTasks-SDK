@@ -19,7 +19,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			autoDestroy: true,
 			iconCls: "icon-task",
 			
-			url: "/handlers/work/tab",
+			url: itasks.config.serverUrl + "/work/tab",
 			params: {_maintask: this.taskId, _debug: itasks.app.debug ? 1 : 0},
 			
 			layout: "anchor",
@@ -159,7 +159,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.getComponent(0).setBusy(true);
 		
 		Ext.Ajax.request({
-			url:"/handlers/work/property",
+			url: itasks.config.serverUrl + "/work/property",
 			method: "GET",
 			params: {_session : itasks.app.session, process : process, property: name, value: value },
 			callback: function(el,success,response,options) {

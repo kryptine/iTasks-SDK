@@ -5,36 +5,6 @@ Ext.ns('itasks');
 
 itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 
-	workStore: new Ext.data.Store({
-		autoLoad: false,
-		bufferSize: 300,
-		proxy: new Ext.data.HttpProxy({
-			url: 'handlers/work/list'
-		}),
-		reader: new Ext.data.JsonReader({
-				root: 'worklist',
-				totalProperty: 'total',
-				successProperty: 'success'
-			},[
-				{name: 'subject'},
-				{name: 'priority'},
-				{name: 'progress'},
-				{name: 'delegatorName'},
-				{name: 'timestamp'},
-				{name: 'deadline'},
-				{name: 'tree_path'},
-				{name: 'tree_last'},
-				{name: 'tree_icon'},
-				{name: 'tree_new'},
-				{name: 'taskid'}
-			])
-	}),	
-	workView: new Ext.grid.GridView({
-		deferEmptyText: true,
-		emptyText: 'There is no unfinished work.',
-		nearLimit: 100,
-		loadMask: { msg: 'Please wait...'}
-	}),
 	initComponent: function () {
 	
 		var treeRenderer = function (label, meta, record) {
@@ -69,6 +39,37 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 			}
 			return html;
 		};
+	
+	
+		this.workStore = new Ext.data.Store({
+			autoLoad: false,
+			bufferSize: 300,
+			url: itasks.config.serverUrl + "/work/list",
+			reader: new Ext.data.JsonReader({
+					root: 'worklist',
+					totalProperty: 'total',
+					successProperty: 'success',
+					fields: [
+						{name: 'subject'},
+						{name: 'priority'},
+						{name: 'progress'},
+						{name: 'delegatorName'},
+						{name: 'timestamp'},
+						{name: 'deadline'},
+						{name: 'tree_path'},
+						{name: 'tree_last'},
+						{name: 'tree_icon'},
+						{name: 'tree_new'},
+						{name: 'taskid'}
+					]})
+			});
+		
+		this.workView = new Ext.grid.GridView({
+			deferEmptyText: true,
+			emptyText: 'There is no unfinished work.',
+			nearLimit: 100,
+			loadMask: { msg: 'Please wait...'}
+		});
 	
 		Ext.apply(this, {
 			border: false,

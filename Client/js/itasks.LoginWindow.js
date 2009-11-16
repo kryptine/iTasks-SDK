@@ -50,7 +50,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			resizable: false,
 			items: {
 				xtype: 'form',
-				url: 'handlers/authenticate',
+				url: itasks.config.serverUrl + '/authenticate',
 				baseCls: 'x-plain',
 				style: 'padding: 5px',
 				layout: 'absolute',
