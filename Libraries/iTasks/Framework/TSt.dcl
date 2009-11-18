@@ -235,7 +235,7 @@ mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 *
 * @return The constructed RPC task
 */
-mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a | gUpdate{|*|} a
+mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 
 
 /**

@@ -5,7 +5,8 @@ import Http, TSt
 import Text, JSON, Time, Util
 import RPC
 
-derive JSONEncode RPCInfo, RPCCallType, RPCInterface, RPCMessageType, RPCProtocol, RPCHttpMethod, RPCParam
+derive JSONEncode RPCExecute, RPCCallType, RPCInterface, RPCMessageType, RPCProtocol, RPCHttpMethod, RPCParam,
+	    		  RPCParamValue, RPCOperation, RPCParameterType
 
 handleRPCListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCListRequest request tst
@@ -13,10 +14,10 @@ handleRPCListRequest request tst
 	# (rpcinfos, tst) = determineRPCItems forest tst
 	= ({http_emptyResponse & rsp_data = (toJSON rpcinfos)},tst)
 	
-determineRPCItems :: ![TaskTree] !*TSt -> ([RPCInfo],!*TSt)
+determineRPCItems :: ![TaskTree] !*TSt -> ([RPCExecute],!*TSt)
 determineRPCItems forest tst = (flatten [determineTreeRPCItems tree \\ tree <- forest],tst)
 		
-determineTreeRPCItems :: !TaskTree -> [RPCInfo]
+determineTreeRPCItems :: !TaskTree -> [RPCExecute]
 determineTreeRPCItems (TTMainTask ti mti children)
 	| (not ti.TaskInfo.active) || ti.TaskInfo.finished= []
 	| otherwise = flatten [(determineTreeRPCItems child) \\ child <- children]

@@ -17,7 +17,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskTree			= TTMainTask		TaskInfo TaskProperties		[TaskTree]				//A task that is treated as a main chunk of work
 					| TTInteractiveTask	TaskInfo (Either TUIDef 	[TUIUpdate])			//A task that can be worked on through a gui 
 					| TTMonitorTask		TaskInfo [HtmlTag]									//A task that upon evaluation monitors a condition and may give status output
-					| TTRpcTask			TaskInfo RPCInfo									//A task that represents an rpc invocation
+					| TTRpcTask			TaskInfo RPCExecute									//A task that represents an rpc invocation
 					| TTSequenceTask	TaskInfo 					[TaskTree]				//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks  
 					| TTFinishedTask	TaskInfo											//A completed task
@@ -58,19 +58,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| TPStuck			//Worker is stuck and needs assistence
 					| TPWaiting			//Worker is waiting, not actively working on the task
 					| TPReject			//Worker does not want to continue working on the task
-					
-/*
-	The actual call to a service
-*/
-:: RPCInfo		  = { taskId		:: TaskId
-					, name			:: String
-					, interface		:: RPCInterface
-					, location		:: String
-					, parameters	:: [RPCCallParam]
-					, callType		:: RPCCallType
-					, status		:: String 			//Status message
-					}															
-
+										
 /**
 * Finds the sub tree with the given task number
 */

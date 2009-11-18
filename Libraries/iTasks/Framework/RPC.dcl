@@ -18,8 +18,8 @@ from TSt 	import :: Task
 					, type			:: RPCMessageType
 					}
 					
-:: RPCOperation =	{ name			:: String
-					, parameters	:: [RPCDescParam]
+:: RPCOperation  =	{ name			:: String
+					, parameters	:: [RPCParam]
 					, location		:: String
 					, callType		:: RPCCallType
 					}
@@ -40,11 +40,27 @@ from TSt 	import :: Task
 					| SolicitResponse 		//Client <- Server & Client -> Server
 					| Notification			//Client <- Server
 					
-:: RPCDescParam = 	{ name			:: String
-					, type			:: RPCDescParamType
+:: RPCParam		 = 	{ name			:: String
+					, type			:: RPCParameterType
 					}
 					
-:: RPCCallParam :== ( String, String )
+:: RPCParameterType	= RPCString 
+					| RPCBool
+					| RPCInt
+					| RPCReal		
 					
-:: RPCDescParamType	= RPCInt | RPCReal | RPCString
+/*
+	The execution message sent to the daemon
+*/
 
+:: RPCExecute = 	 { taskId		:: String
+					 , interface	:: RPCInterface
+					 , operation	:: RPCOperation
+					 , paramValues	:: [RPCParamValue]
+					 , status		:: String
+					 }
+					 
+:: RPCParamValue    = { name			:: String
+				   	  , serializedValue	:: String
+				      }
+				  

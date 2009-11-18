@@ -96,7 +96,7 @@ handleSessionRequest config flows handler request world
 			# world					= finalizeTSt tst
 			= (response, world)		
 where
-	mkSessionFailureResponse to = "{\"success\" : false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
+	mkSessionFailureResponse to = "{\"success\" : false, \"session\": false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
  
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world

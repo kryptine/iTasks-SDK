@@ -15,13 +15,14 @@ import code from "copy_graph_to_string_interface.obj";
 
 :: TaskState = TSNew | TSActive | TSDone
 
-:: RPCMessage = 
-		{ success		:: Bool
-		, resultChange	:: Bool
-		, finished		:: Bool
-		, status		:: String
-		, result		:: String
-		}
+:: RPCMessage =
+			{ success		:: Bool
+			, error			:: Bool
+			, finished		:: Bool
+			, result		:: String
+			, status		:: String
+			, errormsg		:: String
+			}
 
 derive gPrint		TaskState
 derive gParse		TaskState
@@ -313,27 +314,27 @@ where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
-mkRpcTask :: !String !RPCInfo !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpci parsefun = Task taskname Nothing mkRpcTask`
+mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
+mkRpcTask taskname rpce parsefun = Task taskname Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
-		# rpci				= {RPCInfo | rpci & taskId = taskNrToString taskNr}
+		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
 		# (updates, tst) 	= getRpcUpdates tst
-		# (rpci, tst) 		= checkRpcStatus rpci tst
+		# (rpce, tst) 		= checkRpcStatus rpce tst
 		| length updates == 0 
-			= applyRpcDefault {tst & activated = False, tree = TTRpcTask taskInfo rpci }					
+			= applyRpcDefault {tst & activated = False, tree = TTRpcTask taskInfo rpce }					
 		| otherwise 
-			= applyRpcUpdates updates tst rpci parsefun
+			= applyRpcUpdates updates tst rpce parsefun
 	
-	checkRpcStatus :: RPCInfo !*TSt -> (!RPCInfo, !*TSt)
-	checkRpcStatus rpci tst 
+	checkRpcStatus :: RPCExecute !*TSt -> (!RPCExecute, !*TSt)
+	checkRpcStatus rpce tst 
 		# (mbStatus, tst) = getTaskStore "status" tst 
 		= case mbStatus of
 		Nothing 
 			# tst = setTaskStore "status" "Pending" tst
-			= ({RPCInfo | rpci & status = "Pending"},tst)
+			= ({RPCExecute | rpce & status = "Pending"},tst)
 		Just s
-			= ({RPCInfo | rpci & status = s},tst)
+			= ({RPCExecute | rpce & status = s},tst)
 	
 	getRpcUpdates :: !*TSt -> ([(String,String)],!*TSt)
 	getRpcUpdates tst=:{taskNr,request} = (updates request, tst)
@@ -347,34 +348,38 @@ where
 import StdDebug
 
 /* Error handling needs to be implemented! */	
-applyRpcUpdates :: [(String,String)] !*TSt !RPCInfo !(String -> a) -> *(!a,!*TSt) | gUpdate{|*|} a	
-applyRpcUpdates [] tst rpci parsefun = applyRpcDefault tst
-applyRpcUpdates [(n,v):xs] tst rpci parsefun
-| n == "_rpcmessage" 
+applyRpcUpdates :: [(String,String)] !*TSt !RPCExecute !(String -> a) -> *(!a,!*TSt) | gUpdate{|*|} a	
+applyRpcUpdates [] tst rpce parsefun = applyRpcDefault tst
+applyRpcUpdates [(n,v):xs] tst rpce parsefun
+| n == "_rpcresult" 
 # (mbMsg) = fromJSON v
 = case mbMsg of
-	Just msg = applyRpcMessage msg tst rpci parsefun
-	Nothing = abort("Cannot parse daemon message "+++v) //needs to be exception!
-| otherwise = applyRpcUpdates xs tst rpci parsefun
+	Just msg = applyRpcMessage msg tst rpce parsefun
+	Nothing  = abort("Cannot parse daemon message "+++v) //needs to be exception!
+| otherwise  = applyRpcUpdates xs tst rpce parsefun
 where
 	applyRpcMessage msg tst rpci parsfun
-	# tst = (setTaskStore "status" msg.RPCMessage.status tst)
+	# tst = setStatus msg.RPCMessage.status tst
 	= case msg.RPCMessage.success of
 		True
-		# tst = checkFinished msg.RPCMessage.finished tst
-		| msg.RPCMessage.resultChange = (parsefun msg.RPCMessage.result, tst)
-		| otherwise = applyRpcDefault tst
+			# tst = checkFinished msg.RPCMessage.finished tst
+			= (parsefun msg.RPCMessage.result, tst)
 		False
-		# tst = {TSt | tst & activated = True}
-		= applyRpcDefault tst
+			# tst = {TSt | tst & activated = True}
+			= applyRpcDefault tst
 	
 	checkFinished True 	tst = {TSt | tst & activated = True}
 	checkFinished False tst = {TSt | tst & activated = False}
+
+	setStatus status tst
+	| status <> "" =  (setTaskStore "status" status tst)
+	| otherwise = tst
 
 applyRpcDefault :: !*TSt -> *(!a,!*TSt) | gUpdate{|*|} a
 applyRpcDefault tst=:{TSt|world}
 	# (def,wrld) = defaultValue world
 	= (def,{TSt | tst & world=wrld})
+
 	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
