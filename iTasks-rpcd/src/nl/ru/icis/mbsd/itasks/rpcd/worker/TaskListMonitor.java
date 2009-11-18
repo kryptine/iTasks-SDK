@@ -93,10 +93,10 @@ public class TaskListMonitor implements Runnable {
 					if(login()) loggedIn = true;
 				} catch (ClientProtocolException e) {
 					log.error("ClientProtocolException while logging in to iTasks-system",e);
-					synchronized(t){ try { t.wait(interval*5); } catch (InterruptedException e1) {} }
+					synchronized(t){ try { t.wait(interval); } catch (InterruptedException e1) {} }
 				} catch (IOException e) {
 					log.error("IOException while logging in to iTasks-system. "+e.getLocalizedMessage());
-					synchronized(t){ try { t.wait(interval*5); } catch (InterruptedException e1) {} }
+					synchronized(t){ try { t.wait(interval); } catch (InterruptedException e1) {} }
 				}				
 			}
 		

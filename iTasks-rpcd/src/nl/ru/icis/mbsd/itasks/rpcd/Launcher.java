@@ -12,14 +12,20 @@ import org.apache.log4j.FileAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
 
+/**
+ * Launcher Class
+ * @author Erik Crombag
+ */
+
 public class Launcher {
 
 	/**
 	 * This daemon handles the operation of RPC-tasks in the iTasks-system. 
-	 * 
-	 * @param args Command line arguments.
-	 *
-	 * @author Erik Crombag
+	 * @param args <br>Command line arguments:
+	 * <li> <b>-i &#60;amount&#62;</b> Set the interval in ms
+	 * <li> <b>-u &#60;url&#62;</b> Url to the iTasks System
+	 * <li> <b>-h &#60;path&#62;</b> Path the the handlers
+	 * <li> <b>-v</b> Verbose output
 	 */
 		
 	@SuppressWarnings("static-access")
