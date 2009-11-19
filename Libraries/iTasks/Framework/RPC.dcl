@@ -1,14 +1,23 @@
 definition module RPC
 
 from TSt 	import :: Task
+import JSON
 
 /*
 	To describe a set of web-services
 */
-:: RPCDescription = { service 		:: RPCService
-					, interface 	:: RPCInterface
-					, operations 	:: [RPCOperation]
-					}
+
+derive JSONDecode RPCDescription, RPCOperation, RPCInterface, RPCService, RPCCallType,
+			      RPCParam, RPCMessageType, RPCProtocol, RPCParameterType, RPCHttpMethod
+
+derive JSONEncode RPCExecute, RPCParamValue, RPCDescription, RPCOperation, RPCInterface, RPCService, RPCCallType,
+			      RPCParam, RPCMessageType, RPCProtocol, RPCParameterType, RPCHttpMethod
+
+
+:: RPCDescription  = { service 		:: RPCService
+					 , interface 	:: RPCInterface
+					 , operations 	:: [RPCOperation]
+					 }
 				
 :: RPCService =		{ name			:: String
 					, description	:: String
@@ -22,6 +31,7 @@ from TSt 	import :: Task
 					, parameters	:: [RPCParam]
 					, location		:: String
 					, callType		:: RPCCallType
+					, returnType	:: String
 					}
 
 :: RPCProtocol		= HTTP RPCHttpMethod

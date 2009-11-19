@@ -5,9 +5,6 @@ import Http, TSt
 import Text, JSON, Time, Util
 import RPC
 
-derive JSONEncode RPCExecute, RPCCallType, RPCInterface, RPCMessageType, RPCProtocol, RPCHttpMethod, RPCParam,
-	    		  RPCParamValue, RPCOperation, RPCParameterType
-
 handleRPCListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCListRequest request tst
 	# (forest, tst) = calculateTaskForest tst
