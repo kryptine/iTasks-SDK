@@ -109,6 +109,10 @@ currentDate :: !*World -> (!Date,!*World)
 currentDate world
 	# (tm,world) = localTime world
 	= ({Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year},world)
+
+instance html Note
+where
+	html (Note msg) = [Text msg]
 	
 instance toString Time
 where

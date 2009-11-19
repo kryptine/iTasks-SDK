@@ -2,6 +2,9 @@ module AllExamples
 
 import iTasks
 
+//Basic workflows
+import BasicWorkflows
+
 //Business examples
 import Vote
 import Purchase
@@ -36,7 +39,8 @@ import SimpleChanges
 Start :: *World -> *World
 Start world = startEngine workflows world
 where
-	workflows = flatten [ voteExample
+	workflows = flatten [ basicWorkflows
+						, voteExample
 						, purchaseExample
 						, travelBookingExample
 						, orderProcessingExample

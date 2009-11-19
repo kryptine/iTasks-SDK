@@ -6,6 +6,7 @@ definition module CommonDomain
 import GenPrint, GenParse, GenVisualize, GenUpdate
 import StdString
 from Html	import :: HtmlTag
+from InteractionTasks import class html
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
@@ -42,6 +43,8 @@ derive gPrint		EmailAddress, Password, Note, Date, Time, Currency
 derive gParse		EmailAddress, Password, Note, Date, Time, Currency
 derive gVisualize	EmailAddress, Password, Note, Date, Time, Currency
 derive gUpdate		EmailAddress, Password, Note, Date, Time, Currency
+
+instance html Note
 
 instance toString Date
 instance toString Time
