@@ -9,8 +9,10 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.FileAppender;
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.SimpleLayout;
+import org.apache.log4j.lf5.LogLevel;
 
 /**
  * Launcher Class
@@ -26,6 +28,7 @@ public class Launcher {
 	 * <li> <b>-u &#60;url&#62;</b> Url to the iTasks System
 	 * <li> <b>-h &#60;path&#62;</b> Path the the handlers
 	 * <li> <b>-v</b> Verbose output
+	 * <li> <b>-d</b> Debug Level (0 (nothing), 1 (fatal) - 6 (trace))
 	 */
 		
 	@SuppressWarnings("static-access")
@@ -59,6 +62,13 @@ public class Launcher {
 							 .create("h")
 		);
 		
+		options.addOption(
+				OptionBuilder.withLongOpt("debug")
+							 .withDescription("Debug Level. Default: 2")
+							 .hasArg()
+							 .withArgName("LEVEL")
+							 .create("d")
+		);		
 				
 		options.addOption("v","verbose",false,"Verbose Output");		
 		
@@ -71,7 +81,7 @@ public class Launcher {
 		
 		
 		try {
-			rootlog.addAppender(new FileAppender(new SimpleLayout(),"rpcdaemon.log",true));
+			rootlog.addAppender(new FileAppender(new SimpleLayout(),"log/rpcdaemon.log",true));
 		} catch (IOException e1) {
 			System.err.println("Cannot start logger. Exiting daemon.");
 			System.exit(1);
@@ -104,6 +114,38 @@ public class Launcher {
 			//Verbose output
 			if(cl.hasOption("v")){
 				rootlog.addAppender(new ConsoleAppender(new SimpleLayout(),ConsoleAppender.SYSTEM_ERR));
+			}
+			
+			if(cl.hasOption("d")){
+				int lvl = new Integer(cl.getOptionValue("d")).intValue();
+				
+				switch(lvl){
+				case 0:
+					rootlog.setLevel(Level.OFF);
+					break;
+				case 1:
+					rootlog.setLevel(Level.FATAL);
+					break;
+				case 2:
+					rootlog.setLevel(Level.ERROR);
+					break;
+				case 3:
+					rootlog.setLevel(Level.WARN);
+					break;
+				case 4:
+					rootlog.setLevel(Level.INFO);
+					break;
+				case 5:
+					rootlog.setLevel(Level.DEBUG);
+					break;
+				case 6:
+					rootlog.setLevel(Level.TRACE);
+					break;
+				default:
+					rootlog.setLevel(Level.ALL);
+					break;
+				}
+				
 			}
 			
 			//Start the main daemon class
