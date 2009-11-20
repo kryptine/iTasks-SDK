@@ -22,23 +22,8 @@ orderProcessingExample
 	,	label		= "Order processing"
 	,	roles		= []
 	,	mainTask	= orderPlacement customer >>| return Void
-	},
-	{	name		= "Examples/Test"
-	,	label		= "Test"
-	,	roles		= []
-	, 	mainTask	= brokenTask
 	}
   ]
-
-brokenTask :: Task Void
-brokenTask =
-	getCurrentUser
-	>>= \user ->
-	//Doubly assigned task, first to root then back to current user
-	(0 @: ("Test assigned task", user.userId @: ("Test assigned task back", updateInformation "Give me a number" 42)))
-	>>=
-		showMessageAbout "The magic number is"
-
 orderPlacement :: UserId -> Task Void
 orderPlacement user =
   customer @:  ( "Order items from shop"
