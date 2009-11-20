@@ -1,0 +1,31 @@
+{ "projectName" : "iTasks Client"
+, "deployDir" : "build"
+, "licenseText" : ""
+, "pkgs" : [{
+	 "name" : "itasks-all"
+	,"file" : "itasks-all.js" 
+	,"isDebug" : false
+	,"fileIncludes" :
+		[{"text":"itasks.util.js","path":"js/"}
+		,{"text":"itasks.form.js","path":"js/"}
+		,{"text":"itasks.LoginWindow.js","path":"js/"}
+		,{"text":"itasks.LoaderWindow.js","path":"js/"}
+		,{"text":"itasks.RemoteDataPanel.js","path":"js/"}
+		,{"text":"itasks.NewWorkPanel.js","path":"js/"}
+		,{"text":"itasks.DebugPanel.js","path":"js/"}
+		,{"text":"itasks.WorkListPanel.js","path":"js/"}
+		,{"text":"itasks.HomeTabPanel.js","path":"js/"}
+		,{"text":"itasks.TaskForestTabPanel.js","path":"js/"}
+		,{"text":"itasks.ProcessTableTabPanel.js","path":"js/"}
+		,{"text":"itasks.WorkTabPanel.js","path":"js/"}
+		,{"text":"itasks.WorkTabsPanel.js","path":"js/"}
+		,{"text":"itasks.ApplicationPanel.js","path":"js/"}
+		,{"text":"itasks.Application.js","path":"js/"}
+		,{"text":"itasks.GMapPanel.js","path":"js/"}
+		,{"text":"itasks.GStaticMapPanel.js","path":"js/"}
+		,{"text":"itasks.js","path":"js/"}]
+	,"pkgDeps" : []
+	,"includeDeps" : false
+	}]
+, "resources" :[]
+}

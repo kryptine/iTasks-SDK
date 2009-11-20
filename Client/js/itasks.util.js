@@ -1,4 +1,4 @@
-Ext.ns('itasks.util');
+Ext.ns("itasks.util");
 
 itasks.util.formatDate = function(ts) {
 	if (ts == null)
@@ -8,13 +8,13 @@ itasks.util.formatDate = function(ts) {
 }
 itasks.util.formatStartDate = function (ts) {
 	if (ts == null)
-		return "Not started yet"
+		return "Not started yet";
 	else
 		return Date.parseDate(ts, "U").format("d M Y H:i");
 }
 itasks.util.formatDeadline = function(ts) {
 	if(ts == null)
-		return "No deadline"
+		return "No deadline";
 	else
 		return Date.parseDate(ts, "U").format("d M Y H:i");
 }

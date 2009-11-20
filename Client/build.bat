@@ -1,0 +1,1 @@
+java -jar JSBuilder2.jar --projectFile .\build.jsb2 --homeDir .
