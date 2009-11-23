@@ -4,7 +4,7 @@ itasks.util.formatDate = function(ts) {
 	if (ts == null)
 		return "";
 	else	
-		return Date.parseDate(ts, "U").format("d M Y H:i");
+		return Date.parseDate(ts, "U").format("d M Y H:i:s");
 }
 itasks.util.formatStartDate = function (ts) {
 	if (ts == null)

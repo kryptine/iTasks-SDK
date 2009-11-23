@@ -86,6 +86,7 @@ initTaskProperties
 		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing
+		, latestExtEvent = Nothing
 		}
 	  , managerProps =
 	    {TaskManagerProperties
@@ -116,6 +117,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 			, issuedAt	= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
+			, latestExtEvent = Nothing
 			}
 		, managerProps = managerProps
 		, workerProps =
@@ -344,8 +346,6 @@ where
 				= [u \\ u =: (k,v) <- request.arg_post]
 			| otherwise
 				= []
-
-import StdDebug
 
 /* Error handling needs to be implemented! */	
 applyRpcUpdates :: [(String,String)] !*TSt !RPCExecute !(String -> a) -> *(!a,!*TSt) | gUpdate{|*|} a	

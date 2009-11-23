@@ -665,7 +665,9 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				}
 			}]
 		});
+		
 		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
+		this.addEvents("workListRefreshed");
 		
 		//Check session error responses
 		this.store.on('loadexception',function() {
@@ -673,6 +675,8 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				itasks.app.restart(this.store.reader.jsonData.error);
 			}
 		},this);
+	
+		this.startAutoRefresh();
 	},
 	/*
 	* Return the taskid of the selected row
@@ -687,7 +691,28 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 		this.store.load({
 			params: {_session: itasks.app.session}
 		});
-	}
+		
+		this.fireEvent("workListRefreshed", this);
+	},
+	
+	/* 
+	* Start the timed task for auto-refreshing.
+	*/
+	startAutoRefresh: function(){
+		console.log(itasks.config);
+		
+		if(itasks.config.autoRefresh){
+		
+			var parent = this;
+		
+			Ext.TaskMgr.start({
+				run: function(){
+					parent.refresh();
+				},
+				interval: itasks.config.refreshRate
+			})
+		}
+	},
 });
 
 Ext.reg('itasks.worklist',itasks.WorkListPanel);
@@ -939,6 +964,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.on("remoteCallEnd",function() {
 			this.getComponent(0).setBusy(false);
 		},this);
+		this.on("workListRefreshed",this.receiveWorkListRefreshEvent,this);
 	},
 	update: function(data) {
 
@@ -1035,6 +1061,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},
 			scope: this
 		});
+	},
+	receiveWorkListRefreshEvent: function(worklist){
+		console.log("Refresh!");
+		console.log(worklist);
 	}
 });
 

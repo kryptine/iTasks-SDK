@@ -1,7 +1,7 @@
 implementation module RPCHandlers
 
 import StdEnv
-import Http, TSt
+import Http, TSt, ProcessDB
 import Text, JSON, Time, Util
 import RPC
 
@@ -27,9 +27,12 @@ determineTreeRPCItems (TTSequenceTask ti children)
 determineTreeRPCItems (TTRpcTask ti rpci) = [rpci]
 determineTreeRPCItems _ = []
 
+import StdDebug
+
 handleRPCUpdates :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCUpdates request tst
 	# (tree, tst) = calculateTaskTree procId tst
+	# tst		  = updateTimeStamps procId tst
 	= case tree of
 		(TTFinishedTask ti)				= finished tst
 		_								= success tst
@@ -43,3 +46,10 @@ where
 	finished tst = ({http_emptyResponse & rsp_data = "{ \"success\" : true, \"finished\" : true, \"error\" : \"\" }"}, tst)
 	success tst = ({http_emptyResponse & rsp_data = "{ \"success\" : true, \"finished\" : false, \"error\" : \"\" }"}, tst)
 	error msg tst = ({http_emptyResponse & rsp_data = "{ \"success\" : false, \"finished\" : true, \"error\" : \"" +++ msg +++ "\"}"}, tst)
+	
+updateTimeStamps :: !ProcessId !*TSt -> *TSt
+updateTimeStamps pid tst
+	# (now,tst)	= accWorldTSt time tst
+	= trace_n("TimeStamp: "+++(toString now)) (snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
+												 , latestExtEvent = Just now
+												}}) tst))

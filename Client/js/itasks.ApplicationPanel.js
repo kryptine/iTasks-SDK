@@ -87,6 +87,22 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		worklist.on("cellclick",function (grid,row,col,event) {
 			attachTabHandlers(worktabs.openWorkTab(grid.getTaskId(row)));
 		});
+		
+		worklist.on("workListRefreshed",function(worklist) {
+			worklist.workStore.each(function(){
+				var tab = worktabs.getComponent("worktab-"+this.data.taskid);
+				var wlTStamp = this.data.latestExtEvent;
+				
+				if(tab != null){
+					var tTStamp = tab.properties.systemProps.latestEvent
+				
+					if(wlTStamp > tTStamp){
+						tab.refresh();
+					}				
+				}				
+			});
+		});
+		
 		newpanel.on("processStarted",function(taskid) {
 			//When new work is started, refresh the worklist
 			//and immediately open a tab for the work

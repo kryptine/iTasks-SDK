@@ -38,9 +38,10 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 	{ processId		:: ProcessId		// Process table identification
 	, manager		:: (UserId,String)	// Who is managing this task
 	
-	, issuedAt		:: Timestamp		// When was the task created
-	, firstEvent	:: Maybe Timestamp	// When was the first work done on this task
-	, latestEvent	:: Maybe Timestamp	// When was the latest event on this task	
+	, issuedAt			:: Timestamp		// When was the task created
+	, firstEvent		:: Maybe Timestamp	// When was the first work done on this task
+	, latestEvent		:: Maybe Timestamp	// When was the latest event on this task	
+	, latestExtEvent	:: Maybe Timestamp  // When was the latest event from an external source (e.g. Rpc Daemon)
 	}
 
 :: TaskManagerProperties =

@@ -55,6 +55,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 						{name: 'progress'},
 						{name: 'delegatorName'},
 						{name: 'timestamp'},
+						{name: 'latestExtEvent'},
 						{name: 'deadline'},
 						{name: 'tree_path'},
 						{name: 'tree_last'},
@@ -81,7 +82,8 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
 				{id: 'progress', header: 'Progress', dataindex: 'progress', renderer: itasks.util.formatProgress, width: 100},
 				{id: 'delegatorName', header: 'Managed by', dataIndex: 'delegatorName', width: 100},
-				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100},
+				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 120},
+				{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
 				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', renderer: itasks.util.formatDeadline, width: 100}
 			],
 			autoExpandColumn: 'subject',
@@ -103,7 +105,9 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				}
 			}]
 		});
+		
 		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
+		this.addEvents("workListRefreshed");
 		
 		//Check session error responses
 		this.store.on('loadexception',function() {
@@ -111,7 +115,10 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				itasks.app.restart(this.store.reader.jsonData.error);
 			}
 		},this);
+	
+		this.startAutoRefresh();
 	},
+	
 	/*
 	* Return the taskid of the selected row
 	*/
@@ -122,10 +129,31 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	* Refresh the list
 	*/
 	refresh: function () {
-		this.store.load({
-			params: {_session: itasks.app.session}
-		});
-	}
+		if(this.store != null){
+			this.store.load({
+				params: {_session: itasks.app.session}
+			});
+			
+			this.fireEvent("workListRefreshed", this);
+		}
+	},
+	
+	/* 
+	* Start the timed task for auto-refreshing.
+	*/
+	startAutoRefresh: function(){
+		if(itasks.config.autoRefresh){
+		
+			var parent = this;
+		
+			Ext.TaskMgr.start({
+				run: function(){
+					parent.refresh();
+				},
+				interval: itasks.config.refreshRate
+			})
+		}
+	},
 });
 
 Ext.reg('itasks.worklist',itasks.WorkListPanel);
