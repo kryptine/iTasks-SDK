@@ -27,8 +27,6 @@ determineTreeRPCItems (TTSequenceTask ti children)
 determineTreeRPCItems (TTRpcTask ti rpci) = [rpci]
 determineTreeRPCItems _ = []
 
-import StdDebug
-
 handleRPCUpdates :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCUpdates request tst
 	# (tree, tst) = calculateTaskTree procId tst
@@ -50,6 +48,6 @@ where
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst
 	# (now,tst)	= accWorldTSt time tst
-	= trace_n("TimeStamp: "+++(toString now)) (snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
+	= snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
 												 , latestExtEvent = Just now
-												}}) tst))
+												}}) tst)

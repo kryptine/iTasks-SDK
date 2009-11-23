@@ -122,7 +122,7 @@ where
 
 instance toString RPCParam
 where
-	toString x = "{ RPCParamValue | name=\""+++x.RPCParam.name+++"\", serializedValue = toJSON "+++x.RPCParam.name+++"}"
+	toString x = "{ RPCParamValue | name=\""+++x.RPCParam.name+++"\", serializedValue = toString "+++x.RPCParam.name+++"}"
 	
 writeDCL :: !RPCDescription !Path !*World -> *World
 writeDCL rpcd wpath world
@@ -173,7 +173,7 @@ writeWrapper rpcds wpath world
 	= world	
 where
 	writeImports []     f = f
-	writeImports [x:xs] f = writeImports xs ( fwrites ("import "+++(prepName x.service.RPCService.name)) f)
+	writeImports [x:xs] f = writeImports xs ( fwrites ("import "+++(prepName x.service.RPCService.name)+++"\n") f)
 
 //=== UTILITY =====================================================================
 

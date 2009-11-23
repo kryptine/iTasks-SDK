@@ -7,7 +7,7 @@ itasks.util.formatDate = function(ts) {
 	if (ts == null)
 		return "";
 	else	
-		return Date.parseDate(ts, "U").format("d M Y H:i");
+		return Date.parseDate(ts, "U").format("d M Y H:i:s");
 }
 itasks.util.formatStartDate = function (ts) {
 	if (ts == null)
@@ -617,6 +617,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 						{name: 'progress'},
 						{name: 'delegatorName'},
 						{name: 'timestamp'},
+						{name: 'latestExtEvent'},
 						{name: 'deadline'},
 						{name: 'tree_path'},
 						{name: 'tree_last'},
@@ -643,7 +644,8 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
 				{id: 'progress', header: 'Progress', dataindex: 'progress', renderer: itasks.util.formatProgress, width: 100},
 				{id: 'delegatorName', header: 'Managed by', dataIndex: 'delegatorName', width: 100},
-				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 100},
+				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 120},
+				{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
 				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', renderer: itasks.util.formatDeadline, width: 100}
 			],
 			autoExpandColumn: 'subject',
@@ -678,6 +680,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	
 		this.startAutoRefresh();
 	},
+	
 	/*
 	* Return the taskid of the selected row
 	*/
@@ -688,19 +691,19 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 	* Refresh the list
 	*/
 	refresh: function () {
-		this.store.load({
-			params: {_session: itasks.app.session}
-		});
-		
-		this.fireEvent("workListRefreshed", this);
+		if(this.store != null){
+			this.store.load({
+				params: {_session: itasks.app.session}
+			});
+			
+			this.fireEvent("workListRefreshed", this);
+		}
 	},
 	
 	/* 
 	* Start the timed task for auto-refreshing.
 	*/
 	startAutoRefresh: function(){
-		console.log(itasks.config);
-		
 		if(itasks.config.autoRefresh){
 		
 			var parent = this;
@@ -964,7 +967,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.on("remoteCallEnd",function() {
 			this.getComponent(0).setBusy(false);
 		},this);
-		this.on("workListRefreshed",this.receiveWorkListRefreshEvent,this);
 	},
 	update: function(data) {
 
@@ -1061,10 +1063,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},
 			scope: this
 		});
-	},
-	receiveWorkListRefreshEvent: function(worklist){
-		console.log("Refresh!");
-		console.log(worklist);
 	}
 });
 
@@ -1475,7 +1473,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 
 		var p = data.properties;
 		var props = [p.managerProps.worker[1],p.managerProps.priority,p.workerProps.progress,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
-		
+				
 		this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.managerProps.subject) + "</i>");
 		this.getComponent(1).items.each(function(cmt,i){ cmt.setValue(props[i]); });
 	}
@@ -1756,6 +1754,22 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		worklist.on("cellclick",function (grid,row,col,event) {
 			attachTabHandlers(worktabs.openWorkTab(grid.getTaskId(row)));
 		});
+		
+		worklist.on("workListRefreshed",function(worklist) {
+			worklist.workStore.each(function(){
+				var tab = worktabs.getComponent("worktab-"+this.data.taskid);
+				var wlTStamp = this.data.latestExtEvent;
+				
+				if(tab != null){
+					var tTStamp = tab.properties.systemProps.latestEvent
+				
+					if(wlTStamp > tTStamp){
+						tab.refresh();
+					}				
+				}				
+			});
+		});
+		
 		newpanel.on("processStarted",function(taskid) {
 			//When new work is started, refresh the worklist
 			//and immediately open a tab for the work
