@@ -104,7 +104,6 @@ where
 :: CombinationPanel =
 	{ xtype			:: String
 	, taskId		:: String
-	, combination	:: String
 	, items			:: [TaskPanel]
 	}
 
@@ -136,35 +135,21 @@ buildTaskPanel (TTRpcTask ti rpc)
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
-	| ti.TaskInfo.finished	= TaskDone
-	| otherwise 			= case [t \\ t <- tasks | isActive t] of
+	= case [t \\ t <- tasks | isActive t] of
 		[]	= if (allFinished tasks) TaskDone TaskRedundant
 		[t]	= buildTaskPanel t
 		_	= (abort "Multiple simultaneously active tasks in a sequence!")
-buildTaskPanel (TTParallelTask ti TTHorizontal tasks)
-	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "horizontal", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
-buildTaskPanel (TTParallelTask ti TTVertical tasks)
-	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, combination = "vertical", items = [buildTaskPanel t \\ t <- tasks | isActive t]}
+buildTaskPanel (TTParallelTask ti tasks)
+	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, items = [buildTaskPanel t \\ t <- tasks | isActive t]}
 buildTaskPanel (TTFinishedTask _)
 	= TaskDone
-
-
-taskOverview :: [HtmlTag] [TaskTree] -> [HtmlTag]
-taskOverview prompt branches =
-	[ DivTag [ClassAttr "it-display"] prompt
-	, DivTag [ClassAttr "it-task-overview"] 
-		[TableTag [] [TrTag [] [TdTag [] [icon info.TaskInfo.finished],TdTag [] [Text info.TaskInfo.taskLabel]] \\ (TTSequenceTask info _) <- branches]]
-	]
-where
-	icon True	= DivTag [ClassAttr "it-task-overview-icon icon-finishedTask"] []
-	icon False	= DivTag [ClassAttr "it-task-overview-icon icon-editTask"] []
 
 isActive :: TaskTree -> Bool
 isActive (TTInteractiveTask	{TaskInfo|active} _ )	= active 
 isActive (TTMonitorTask		{TaskInfo|active} _ )	= active
 isActive (TTRpcTask			{TaskInfo|active} _ )	= active
 isActive (TTSequenceTask	{TaskInfo|active} _ )	= active
-isActive (TTParallelTask	{TaskInfo|active} _ _ )	= active
+isActive (TTParallelTask	{TaskInfo|active} _ )	= active
 isActive (TTMainTask 		{TaskInfo|active} _ _ )	= active
 isActive (TTFinishedTask	_ )						= False
 

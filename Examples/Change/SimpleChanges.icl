@@ -38,7 +38,7 @@ addWarning msg =
 	dynamic (change msg) :: A.a: Change a | iTask a
 where
 	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change msg props t t0 = (Nothing, Just (((showStickyMessage (redText msg) >>| getDefaultValue) -||- t) <<@ TTVertical), Just (addWarning msg))
+	change msg props t t0 = (Nothing, Just (((showStickyMessage (redText msg) >>| getDefaultValue) -||- t)), Just (addWarning msg))
 
 	redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
@@ -71,6 +71,6 @@ duplicateTask
 //Utility
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=				getProcesses [Active]
+	=				getProcessesWithStatus [Active]
 	>>= \procs ->	enterChoice question procs
 	>>= \proc ->	return proc.Process.processId

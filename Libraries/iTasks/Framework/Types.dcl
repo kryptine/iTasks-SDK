@@ -3,8 +3,9 @@ definition module Types
 * This module provides types for all the globally shared concepts within
 * the iTasks framework.
 */
-from Html import :: HtmlTag
-from StdString import class toString
+from TSt 		import :: TSt
+from Html 		import :: HtmlTag
+from StdString	import class toString
 
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
@@ -19,6 +20,7 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 
 :: Role				:== String				// A role is identified by a string
 
+:: SessionId		:== String
 :: Session			=
 	{ sessionId	::	!String
 	, user		::	!User
@@ -26,16 +28,24 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 	}
 
 :: ProcessId		:== String
+:: ProcessRef a		= ProcessRef !ProcessId
+
+
 :: DynamicId		:== Int
 :: TaskId			:== String	
 :: TaskNr			:== [Int]				// task nr i.j is administrated as [j,i]
 
+
+// The task monad
+:: Task a 			= Task !TaskDescription !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
+:: TaskDescription	=
+	{ title			:: !String
+	, description	:: !String
+	}
+	
 :: TaskPriority		= HighPriority			// tasks can have three levels of priority
 					| NormalPriority
 					| LowPriority
-
-:: TaskCombination	= TTVertical			//Group the tasks and display them below each other
-					| TTHorizontal 			//Group the tasks and display them next to each other
 					
 :: EvaluationOption	= OnClient 				// Evaluate a task on the client whenever possible
 					| OnServer				// Always evaluate a task on the server

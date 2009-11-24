@@ -20,11 +20,8 @@ import	Engine						// basic iTask system creator
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
-
 	,	CommonCombinators			// Set of additional useful iTask combinators
 	,	LiftingCombinators			// Lifting of other domains (e.g. World) to the iTask domain
-	,	ProcessCombinators			// Creation an handling of dynamic sub processes
-
 	,	ExceptionCombinators		// Handling exceptional situations
 	,	TuningCombinators			// Fine tuning of tasks
 	
@@ -56,7 +53,6 @@ from StdFunc import id, const
 //Types
 import Types
 from TSt		import :: Workflow{..}, :: Change(..), :: ChangeLifeTime(..)
-from TaskTree	import :: TaskCombination(..)
 
 //iTask context restriction
 class iTask a

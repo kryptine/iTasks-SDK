@@ -1536,16 +1536,8 @@ Ext.reg("itasks.progress",itasks.form.ProgressField);
 itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
-			border: false,
-			layout: this.combination == "horizontal" ? "hbox" : null
+			border: false
 		});
-
-		//Set flex property for children of horizontal layouts
-		if(this.combination == "horizontal") {
-			for(var i = 0; i < this.items.length; i++) {
-				this.items[i].flex = 1;
-			}
-		}
 		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
 	},
 	update: function (data) {
@@ -1577,12 +1569,6 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 			this.remove(items.length);
 		}
 		
-		//Update flex for horizontal layouts
-		if(this.combination == "horizontal") {
-			for(var i = 0; i < items.length; i++) {
-				this.items.get(i).flex = 1;
-			}
-		}
 		this.doLayout();
 	}
 });

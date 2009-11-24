@@ -1,9 +1,8 @@
 definition module SessionDBTasks
 
-from SessionDB	import :: Session
-from UserDB		import :: User
-
 from TSt		import :: Task
+from Types		import :: SessionId, :: Session, :: User
+
 from iTasks import class iTask
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
@@ -21,4 +20,4 @@ createSession :: !User -> Task Session
 *
 * @param The session identifier
 */
-destroySession :: !String -> Task Void
+destroySession :: !SessionId -> Task Void

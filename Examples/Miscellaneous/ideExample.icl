@@ -62,7 +62,7 @@ exit user
 		>>= \procs ->	deleteAll [process.processId \\ process <- procs]
 where
 	deleteAll []		= return Void
-	deleteAll [p:ps] 	= deleteProcessById p >>| deleteAll ps
+	deleteAll [p:ps] 	= deleteProcess p >>| deleteAll ps
 
 newFile :: User -> Task Void
 newFile user

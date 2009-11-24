@@ -16,7 +16,7 @@ import iTasks
 import CommonDomain
 
 //Additional imports for custom combinator creation
-from TSt 		import applyTask, setCombination, mkSequenceTask, mkParallelTask
+from TSt 		import applyTask, mkSequenceTask, mkParallelTask
 from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}, :: Store, :: Config
 from SessionDB	import :: Session
 from Types		import :: ProcessId, :: TaskNr
@@ -97,7 +97,6 @@ andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iTask a
 andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
 where
 	andTasksEnough` tst
-		# tst						= setCombination TTVertical  tst	//Show parallel sub tasks in reversed order
 		# (_,tst =:{activated})		= applyTask (mkSequenceTask "enough" (applyTask (showMessage "Stop if enough results are returned..."))) tst
 		= applyTask (mkSequenceTask "tasks" (applyTask ((parallel "andTask" (\list -> length list >= 1 && activated) id id [t <<@ l \\(l,t) <- taskCollection])))) {tst & activated = True}
 

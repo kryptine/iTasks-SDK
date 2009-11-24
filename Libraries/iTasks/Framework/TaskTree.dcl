@@ -14,19 +14,18 @@ from   ProcessDB		import :: ProcessStatus
 from   JSON 			import :: JSON
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
-:: TaskTree			= TTMainTask		TaskInfo TaskProperties		[TaskTree]				//A task that is treated as a main chunk of work
-					| TTInteractiveTask	TaskInfo (Either TUIDef 	[TUIUpdate])			//A task that can be worked on through a gui 
-					| TTMonitorTask		TaskInfo [HtmlTag]									//A task that upon evaluation monitors a condition and may give status output
-					| TTRpcTask			TaskInfo RPCExecute									//A task that represents an rpc invocation
-					| TTSequenceTask	TaskInfo 					[TaskTree]				//A task that is composed of a number of sequentially executed subtasks
-					| TTParallelTask	TaskInfo TaskCombination	[TaskTree]				//A task that is composed of a number of parallel executed subtasks  
-					| TTFinishedTask	TaskInfo											//A completed task
+:: TaskTree			= TTMainTask		TaskInfo TaskProperties	[TaskTree]		//A task that is treated as a main chunk of work
+					| TTInteractiveTask	TaskInfo (Either TUIDef [TUIUpdate])	//A task that can be worked on through a gui 
+					| TTMonitorTask		TaskInfo [HtmlTag]						//A task that upon evaluation monitors a condition and may give status output
+					| TTRpcTask			TaskInfo RPCExecute						//A task that represents an rpc invocation
+					| TTSequenceTask	TaskInfo [TaskTree]						//A task that is composed of a number of sequentially executed subtasks
+					| TTParallelTask	TaskInfo [TaskTree]						//A task that is composed of a number of parallel executed subtasks  
+					| TTFinishedTask	TaskInfo								//A completed task
 							
-:: TaskInfo	=		{ taskId		:: TaskId												//Task number in string format
-					, taskLabel		:: String												//Descriptive label of the task
-					, active		:: Bool													//Is the task active?
-					, finished		:: Bool													//Is the task finished?
-					, traceValue	:: String												//String representation of value for tracing
+:: TaskInfo	=		{ taskId		:: TaskId									//Task number in string format
+					, taskLabel		:: String									//Descriptive label of the task
+					, active		:: Bool										//Is the task active?
+					, traceValue	:: String									//String representation of value for tracing
 					}
 
 :: TaskProperties = { systemProps	:: TaskSystemProperties
@@ -59,8 +58,3 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| TPStuck			//Worker is stuck and needs assistence
 					| TPWaiting			//Worker is waiting, not actively working on the task
 					| TPReject			//Worker does not want to continue working on the task
-										
-/**
-* Finds the sub tree with the given task number
-*/
-locateSubTaskTree	:: !TaskId !TaskTree -> Maybe TaskTree

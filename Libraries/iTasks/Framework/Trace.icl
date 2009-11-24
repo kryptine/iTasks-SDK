@@ -85,7 +85,7 @@ where
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
-	mkTree (TTParallelTask info combination trees)
+	mkTree (TTParallelTask info trees)
 		= { cls = "master-task"
 		  , user = ""
 		  , uiProvider = "col"
@@ -129,12 +129,8 @@ where
 		  }
 	
 	activeClass info
-		| info.TaskInfo.finished	= "finished"
 		| info.TaskInfo.active		= "active"
 									= "inactive"
-
-	showCombination TTVertical		= "Vertical"
-	showCombination TTHorizontal	= "Horizontal"
 	
 	checkIfLeaf trees
 		| length trees > 0 			= False

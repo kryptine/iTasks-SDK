@@ -12,7 +12,7 @@ yesOrNo :: [HtmlTag] (Task a) (Task a) -> Task a | iTask a
 yesOrNo question yes no		= requestConfirmation question >>= \yn -> if yn yes no
 
 orTasksVert :: [Task a] -> Task a | iTask a
-orTasksVert items			= anyTask items <<@ TTVertical
+orTasksVert items			= anyTask items
 
 OK :: Task Void
 OK							= enterInformation ""

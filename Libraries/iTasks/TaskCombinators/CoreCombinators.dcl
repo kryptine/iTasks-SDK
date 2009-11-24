@@ -3,8 +3,7 @@ definition module CoreCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from TSt 			import :: Task,		:: TaskCombination
-from Types 			import :: UserId,	:: TaskPriority
+from Types 			import :: UserId, :: Task, :: TaskPriority
 from Time			import :: Timestamp
 
 from	iTasks		import class iTask(..)

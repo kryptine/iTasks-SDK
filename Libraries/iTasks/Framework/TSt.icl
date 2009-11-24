@@ -64,7 +64,6 @@ initStaticInfo appName session workflows
 initialOptions :: Options 
 initialOptions
 	=	{ trace			= False 
-		, combination	= Nothing
 		}
 
 initTaskInfo :: TaskInfo
@@ -73,7 +72,6 @@ initTaskInfo
 		| taskId = ""
 		, taskLabel = ""
 		, active = True
-		, finished = False
 		, traceValue = ""
 		}
 
@@ -161,7 +159,7 @@ calculateTaskTree processId tst
 			| otherwise
 				= (tree, tst)
 		_
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, finished = True, traceValue = "Finished"}, tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, traceValue = "Finished"}, tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -188,13 +186,13 @@ buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties
 	| activated
 		# tst 			= storeProcessResult (taskNrFromString processId) result tst
 		# (_,tst)		= updateProcess processId (\p -> {Process|p & status = Finished}) tst
-		= (TTFinishedTask {TaskInfo | ti & finished = True}, tst)
+		= (TTFinishedTask ti, tst)
 	| otherwise
 		# tst			= storeChanges processId tst
 		= (TTMainTask ti mti tasks, tst)	
 where	
 	initProcessNode {Process|processId, properties}
-		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, finished = False, traceValue = "Process"} properties []
+		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, traceValue = "Process"} properties []
 	
 	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
 
@@ -299,25 +297,25 @@ accWorldTSt f tst=:{TSt|world}
 	= (a, {TSt|tst & world = world})
 		
 mkInteractiveTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
-mkInteractiveTask taskname taskfun = Task taskname Nothing mkInteractiveTask`	
+mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkInstantTask taskname taskfun = Task taskname Nothing mkInstantTask`
+mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkMonitorTask taskname taskfun = Task taskname Nothing mkMonitorTask`
+mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task taskname Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = ""} Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -382,40 +380,35 @@ applyRpcDefault tst=:{TSt|world}
 
 	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkSequenceTask taskname taskfun = Task taskname Nothing mkSequenceTask`
+mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkParallelTask taskname taskfun = Task taskname Nothing mkParallelTask`
+mkParallelTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkParallelTask`
 where
-	mkParallelTask` tst=:{TSt|taskNr,taskInfo,options}
-		# tst = case options.combination of
-			Just combination
-				= {tst & tree = TTParallelTask taskInfo combination [], taskNr = [0:taskNr], options = {options & combination = Nothing}}
-			Nothing
-				= {tst & tree = TTParallelTask taskInfo TTVertical [], taskNr = [0:taskNr]}												
+	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
+		# tst = {tst & tree = TTParallelTask taskInfo [], taskNr = [0:taskNr]}												
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkMainTask taskname taskfun = Task taskname Nothing mkMainTask`
+mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo undef []}
 
 import StdDebug
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
-applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
+applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
 	# taskId				= iTaskId taskNr ""
 	# (mbtv,dstore,world)	= loadValue taskId dataStore world
 	# (state,curval)		= case mbtv of
 								(Just (state, value))	= (state, Just value)
 								_						= (TSNew, Nothing)
 	# taskInfo =	{ taskId		= taskNrToString taskNr
-					, taskLabel		= name
+					, taskLabel		= desc.TaskDescription.title
 					, active		= activated
-					, finished		= state === TSDone
 					, traceValue	= ""
 					}
 	# tst = {TSt|tst & dataStore = dstore, world = world}
@@ -440,7 +433,7 @@ applyTask (Task name mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dat
 			# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
 			= (a, tst)
 		| otherwise
-			# node				= updateTaskNode activated (printToString a) node
+			# node				= updateTaskNode (printToString a) node
 			# dataStore			= storeValue taskId (TSActive, a) dataStore
 			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
 			= (a, tst)
@@ -455,18 +448,18 @@ where
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti tasks)				= {tst & tree = TTMainTask ti mti [node:tasks]}
-		(TTSequenceTask ti tasks)				= {tst & tree = TTSequenceTask ti [node:tasks]}
-		(TTParallelTask ti combination tasks)	= {tst & tree = TTParallelTask ti combination [node:tasks]}
-		_										= {tst & tree = tree}
+		(TTMainTask ti mti tasks)	= {tst & tree = TTMainTask ti mti [node:tasks]}
+		(TTSequenceTask ti tasks)	= {tst & tree = TTSequenceTask ti [node:tasks]}
+		(TTParallelTask ti tasks)	= {tst & tree = TTParallelTask ti [node:tasks]}
+		_							= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode f tv (TTInteractiveTask ti defs)				= TTInteractiveTask	{ti & finished = f, traceValue = tv} defs
-	updateTaskNode f tv (TTMonitorTask ti status)				= TTMonitorTask		{ti & finished = f, traceValue = tv} status
-	updateTaskNode f tv (TTSequenceTask ti tasks) 				= TTSequenceTask	{ti & finished = f, traceValue = tv} (reverse tasks)
-	updateTaskNode f tv (TTParallelTask ti combination tasks)	= TTParallelTask	{ti & finished = f, traceValue = tv} combination (reverse tasks)
-	updateTaskNode f tv (TTMainTask ti mti tasks)				= TTMainTask		{ti & finished = f, traceValue = tv} mti (reverse tasks)		
-	updateTaskNode f tv (TTRpcTask ti rpci)						= TTRpcTask			{ti & finished = f, traceValue = tv} rpci
+	updateTaskNode tv (TTInteractiveTask ti defs)		= TTInteractiveTask	{ti & traceValue = tv} defs
+	updateTaskNode tv (TTMonitorTask ti status)		= TTMonitorTask		{ti & traceValue = tv} status
+	updateTaskNode tv (TTSequenceTask ti tasks) 		= TTSequenceTask	{ti & traceValue = tv} (reverse tasks)
+	updateTaskNode tv (TTParallelTask ti tasks)		= TTParallelTask	{ti & traceValue = tv} (reverse tasks)
+	updateTaskNode tv (TTMainTask ti mti tasks)		= TTMainTask		{ti & traceValue = tv} mti (reverse tasks)		
+	updateTaskNode tv (TTRpcTask ti rpci)				= TTRpcTask			{ti & traceValue = tv} rpci
 		
 setTUIDef	:: !TUIDef !*TSt -> *TSt
 setTUIDef def tst=:{tree}
@@ -579,18 +572,6 @@ clearUserUpdates tst=:{taskNr, request}
 	| otherwise
 		= tst
 		
-setCombination :: !TaskCombination !*TSt	-> *TSt
-setCombination combination tst=:{tree}
-	= case tree of 
-		(TTParallelTask info _ branches)	= {tst & tree = TTParallelTask info combination branches}
-		_									= {tst & tree = tree}
-
-setNextCombination	:: !TaskCombination !*TSt	-> *TSt
-setNextCombination newCombination tst=:{TSt|options = options=:{combination}}
-	= case combination of
-		Nothing	= {TSt|tst & options = {options & combination = Just newCombination}}
-		_		= {TSt|tst & options = {options & combination = combination}}
-
 resetSequence :: !*TSt -> *TSt
 resetSequence tst=:{taskNr,tree}
 	= case tree of
@@ -636,4 +617,4 @@ where
 	stl xs = tl xs
 
 taskLabel :: !(Task a) -> String
-taskLabel (Task label _ _) = label
+taskLabel (Task desc _ _) = desc.TaskDescription.title

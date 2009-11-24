@@ -15,8 +15,8 @@ from Store		import :: Store(..)
 from Time		import :: Timestamp(..)
 from Http		import :: HTTPRequest
 
-from iTasks		import class iTask(..)
-import GenPrint, GenParse, GenVisualize, GenUpdate
+from	iTasks import class iTask(..)
+import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
@@ -47,7 +47,6 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 					}
 
 :: Options		=	{ trace			:: !Bool									// default: False
-					, combination	:: !Maybe TaskCombination					// default: TTVertical
 					}
 
 :: StaticInfo	=	{ appName			:: String								// the name of the server executable
@@ -56,8 +55,7 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
 					}
 
-// The task monad
-:: Task a = Task !String !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
+
 
 // A workflow specification
 :: Workflow		=	{ name			:: !String									// a unique name of this workflow
@@ -323,14 +321,6 @@ storeProcessResult		:: !TaskNr !Dynamic			!*TSt -> *TSt
 */
 clearUserUpdates	:: !*TSt						-> *TSt
 
-/**
-* Sets the combination type of the current task (only for ParallelTasks)
-*/
-setCombination		:: !TaskCombination !*TSt	-> *TSt
-/**
-* Sets the combination type for the next parallel task
-*/
-setNextCombination	:: !TaskCombination !*TSt	-> *TSt
 /**
 * Resets a sequence
 */

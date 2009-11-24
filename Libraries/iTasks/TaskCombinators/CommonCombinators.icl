@@ -6,12 +6,12 @@ implementation module CommonCombinators
 import StdBool, StdList, StdTuple, StdGeneric, StdMisc, GenBimap
 
 from StdFunc	import id, const
-from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime, :: Options, :: HTTPRequest, :: Config
+from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime, :: Options, :: HTTPRequest, :: Config
 from TSt		import applyTask, mkSequenceTask, mkParallelTask
 from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store
 from SessionDB	import :: Session
-from TaskTree	import :: TaskTree, :: TaskCombination(..)
+from TaskTree	import :: TaskTree
 
 import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
@@ -26,14 +26,14 @@ derive gParse Either
 =	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (Left a) = a; (Right b) = b) undef
 			[taska >>= \a -> return (Left a)
 			,taskb >>= \b -> return (Right b)
-			] <<@ TTHorizontal
+			]
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
 =	parallel "-&&-" (\_ -> False) undef (\[Left a, Right b] -> (a,b))
 			[taska >>= \a -> return (Left a)
 			,taskb >>= \b -> return (Right b)
-			] <<@ TTHorizontal
+			]
 
 anyTask	:: ![Task a] -> Task a | iTask a
 anyTask []		= getDefaultValue
@@ -47,7 +47,7 @@ eitherTask taska taskb
 =	parallel "eitherTask" (\list -> length list > 0) hd undef
 			[ (taska >>= \a -> return (Left a)) <<@ "Left"
 			, (taskb >>= \b -> return (Right b)) <<@ "Right"
-			] <<@ TTHorizontal
+			]
 
 (||-) infixr 3		:: !(Task a) !(Task b)						-> Task b				| iTask a & iTask b
 (||-) taska taskb
@@ -74,7 +74,7 @@ where
 = 	parallel "maybeTask" noNothing combineResult combineResult
 			[(t1 >>= \tres -> return (Left tres)) <<@ "Left"
 			,(t2 >>= \tres -> return (Right tres)) <<@ "Right"
-			] <<@ TTHorizontal
+			]
 where
 	noNothing []					= False
 	noNothing [Left  Nothing:xs]	= True

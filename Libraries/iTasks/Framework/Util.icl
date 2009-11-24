@@ -10,7 +10,6 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 derive gPrint Maybe, Void, (,), (,,), (,,,), (,,,,)
 derive gParse Maybe, Void, (,), (,,), (,,,), (,,,,)
 
-
 iTaskId :: !TaskNr !String -> String
 iTaskId tasknr postfix 
 	# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
@@ -73,12 +72,12 @@ gParse{|Dynamic|} expr
 		parseString expr = gParse{|*|} expr
 
 
-gVisualize{|Task|} fx (VValue (Task label _ _) _) _ vst = ([TextFragment label],vst)
+gVisualize{|Task|} fx (VValue (Task desc _ _) _) _ vst = ([TextFragment desc.TaskDescription.title],vst)
 gVisualize{|Task|} fx _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx undef ust
-	= (Task "return" Nothing (\tst -> (a,tst)), ust)
+	= (Task {TaskDescription|title = "return", description = ""} Nothing (\tst -> (a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
 
 
