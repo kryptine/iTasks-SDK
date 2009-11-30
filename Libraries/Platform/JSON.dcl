@@ -10,8 +10,21 @@ definition module JSON
 
 import StdGeneric, StdMaybe
 
-//Abstract token type which is the intermediary representation during JSON parsing
-:: Token
+//Token type which is the intermediary representation during JSON parsing
+:: Token	= TokenInt Int
+			| TokenReal	Real
+			| TokenString String
+			| TokenBool	Bool
+			| TokenNull
+			| TokenBracketOpen
+			| TokenBracketClose
+			| TokenBraceOpen
+			| TokenBraceClose
+			| TokenName	String
+			| TokenColon
+			| TokenComma
+			| TokenWhitespace String
+			| TokenFail	
 
 :: JSON = JSON String	//String which is already in JSON encoding
 
@@ -37,6 +50,12 @@ fromJSON	:: String	-> Maybe a	| JSONDecode{|*|} a
 * @return A properly escaped string
 */
 jsonEscape	:: String	-> String
+
+/**
+* Lexer for Json-Strings. This function is used by the JSONTree-module.
+**/
+lex :: String Int [Token] -> (Int, [Token])
+
 /**
 * Generic encoding function. This function should not be used
 * directly but always through the toJSON function. It must be derived

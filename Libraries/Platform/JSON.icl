@@ -102,21 +102,6 @@ intersperse i [x:xs] = [x,i:intersperse i xs]
 fromJSON :: String -> Maybe a | JSONDecode{|*|} a
 fromJSON input = fst (JSONDecode{|*|} (removeWhitespace (snd (lex input 0 []))))
 
-:: Token	= TokenInt Int
-			| TokenReal	Real
-			| TokenString String
-			| TokenBool	Bool
-			| TokenNull
-			| TokenBracketOpen
-			| TokenBracketClose
-			| TokenBraceOpen
-			| TokenBraceClose
-			| TokenName	String
-			| TokenColon
-			| TokenComma
-			| TokenWhitespace String
-			| TokenFail		
-
 removeWhitespace :: [Token] -> [Token]
 removeWhitespace l = filter (not o isWhitespaceToken) l
 

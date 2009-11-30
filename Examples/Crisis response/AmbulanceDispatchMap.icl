@@ -3,6 +3,9 @@ implementation module AmbulanceDispatchMap
 import iTasks
 import CommonDomain
 import GeoDomain
+import RPCStubs
+import Base64
+import JSONTree
 
 derive gPrint		Incident, IncidentType
 derive gParse		Incident, IncidentType
@@ -16,10 +19,11 @@ where
 	flows = [ workflow "Examples/Crisis response/Report incident (Map)" reportIncident ]
 
 :: Incident =
-	{ location		:: Coordinate
+	{ address		:: Note
 	, type			:: IncidentType
 	, time			:: Time
 	, nrInjured		:: Int
+	, location		:: Coordinate
 	, description	:: Note
 	}
 	
@@ -36,13 +40,28 @@ markLocations =
 	enterInformation "Mark all locations where incidents have occurred"
 	
 specifiyIncidents :: Map -> Task [Incident]
-specifiyIncidents map = sequence "Specify individual incident details" [ (specifyIncident m) \\ m <- map.Map.markers ]
+specifiyIncidents map = sequence "Specify individual incident details" [ (addressLookup m) >>= \addr -> (specifyIncident addr m) \\ m <- (reverse map.Map.markers) ]
 
-specifyIncident :: MapMarker -> Task Incident
-specifyIncident marker
+addressLookup :: MapMarker -> Task String
+addressLookup marker
+	# (lat,lng) = marker.position
+	= showStickyMessage ("Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") 
+	  ||- reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
+where
+	parseJSON info 
+	= case toJSONTree (base64Decode info) of
+		(Just tree)
+			= case queryJSONTree "Placemark\\1\\address" tree of
+				(Just addr) = addr
+				_			= "Address Unknown"
+		_	= "Address Unknown"
+
+specifyIncident :: String MapMarker -> Task Incident
+specifyIncident addr marker
 # smap = convertToStaticMap {Map | mkMap & center = marker.position, width = 200, height = 200, zoom = 15, markers = [marker]}
 # incident = { Incident
 			 | location = marker.position
+			 , address = Note addr
 			 , type = Accident
 			 , time = {Time | hour = 0, min = 0, sec = 0}
 			 , nrInjured = 0
