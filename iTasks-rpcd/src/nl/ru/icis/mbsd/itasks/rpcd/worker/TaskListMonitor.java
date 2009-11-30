@@ -93,10 +93,10 @@ public class TaskListMonitor implements Runnable {
 					if(login()) loggedIn = true;
 				} catch (ClientProtocolException e) {
 					log.error("ClientProtocolException while logging in to iTasks-system",e);
-					synchronized(t){ try { t.wait(interval); } catch (InterruptedException e1) {} }
+					synchronized(t){ try { t.wait(interval*Constants.SLOWDOWN); } catch (InterruptedException e1) {} }
 				} catch (IOException e) {
 					log.error("IOException while logging in to iTasks-system. "+e.getLocalizedMessage());
-					synchronized(t){ try { t.wait(interval); } catch (InterruptedException e1) {} }
+					synchronized(t){ try { t.wait(interval*Constants.SLOWDOWN); } catch (InterruptedException e1) {} }
 				}				
 			}
 		
@@ -105,25 +105,27 @@ public class TaskListMonitor implements Runnable {
 				this.running = false;
 			}else{
 				try{
+					// XXX: This is the main daemon routine
 					//1. Check for Tasks-list, retrieve info and start new workers
 					checkList();
 					//2. Garbage collect finished workers
 					garbageCollect();
-
-					//3. Reset attempt watchdog.
+					//3. Reset attempt watch dog.
 					attempt = 0;
 									
 				} catch (ClientProtocolException e) {
 					log.fatal("("+attempt+" of "+Constants.MAXATTEMPTS+") ClientProtocolException while communicating with iTasks-system.",e);
+					synchronized(t){ try { t.wait(interval*(Constants.SLOWDOWN-1)); } catch (InterruptedException e1) {} }
 				} catch (IOException e) {
 					log.fatal("("+attempt+" of "+Constants.MAXATTEMPTS+") IOException while communicating with iTasks-system.",e);
+					synchronized(t){ try { t.wait(interval*(Constants.SLOWDOWN-1)); } catch (InterruptedException e1) {} }
 				}	
 				
 				synchronized(t){
 					try {
 						t.wait(interval);
 					} catch (InterruptedException e) {
-						log.trace("TaskListMonitor Interrupted",e);
+						log.trace("TaskListMonitor Interrupted");
 					}
 				}					
 			}
@@ -237,12 +239,13 @@ public class TaskListMonitor implements Runnable {
 	private RemoteServiceWorker startWorker(RpcInfo execInfo){
 		RemoteServiceWorker worker = null;
 
+		//At the moment the daemon does not make any difference between the message types.
 		if(execInfo.rpcInterface.protocol == RpcProtocol.HTTP){
-			worker = new WebServiceWorker(url,handlerpath,sessionKey,execInfo);
+			worker = new WebServiceWorker(url,handlerpath,sessionKey,execInfo,interval);
 		}
 
 		if(execInfo.rpcInterface.protocol == RpcProtocol.System){
-			worker = new SystemCallWorker(url,handlerpath,sessionKey,execInfo);
+			worker = new SystemCallWorker(url,handlerpath,sessionKey,execInfo,interval);
 		}
 		
 		return worker;

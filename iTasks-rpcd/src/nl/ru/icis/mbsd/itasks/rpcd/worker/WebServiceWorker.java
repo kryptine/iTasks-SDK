@@ -16,6 +16,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.utils.URIUtils;
@@ -26,12 +27,18 @@ import org.apache.log4j.Logger;
 /**
  * Does a call to a Web Service. 
  * This worker is started if the protocol tag in {@link RpcInfo} equals 'HTTP'.  
- * How the call is made depends on the configuration of the {@code HTTPMethod} and the {@code MessageType}.
+ * How the call is made depends on the configuration of the {@code HTTPMethod}.
+ * Parameters are passed in URL-encoded format in the request and the result is passed
+ * to the iTasks-system without any conversion.
+ * 
  * @see RpcInfo
  * @author Erik Crombag
  */
 public class WebServiceWorker extends RemoteServiceWorker {
 
+	/**
+	 * Whether the daemon is finished.
+	 */
 	private boolean done = false;
 
 	private Logger log;
@@ -40,9 +47,9 @@ public class WebServiceWorker extends RemoteServiceWorker {
 	 * Default Constructor
 	 * @see RemoteServiceWorker
 	 */
-	public WebServiceWorker(String url, String handlerpath, String session, RpcInfo execInfo){
+	public WebServiceWorker(String url, String handlerpath, String session, RpcInfo execInfo, int interval){
 
-		super(url,handlerpath,session,execInfo);
+		super(url,handlerpath,session,execInfo, interval);
 
 		this.log = Logger.getLogger("rpcd.remoteserviceworker.webserviceworker");
 
@@ -100,6 +107,7 @@ public class WebServiceWorker extends RemoteServiceWorker {
 		this.done = true;
 	}
 
+	// Do this in case of a HTTP Get
 	private HttpResponse doGet() throws ClientProtocolException, IOException, URISyntaxException{
 
 		List<NameValuePair> params = new ArrayList<NameValuePair>();
@@ -114,13 +122,25 @@ public class WebServiceWorker extends RemoteServiceWorker {
 
 		HttpGet get = new HttpGet(uri);
 
-		HttpResponse response = this.httpClient.execute(get);
-
-		return response;
+		return this.httpClient.execute(get);
 	}
 
-	private HttpResponse doPost() throws ClientProtocolException, IOException{
-		HttpPost post = new HttpPost();
+	// Do this in case of a HTTP Post
+	private HttpResponse doPost() throws ClientProtocolException, IOException, URISyntaxException{
+	
+		List<NameValuePair> params = new ArrayList<NameValuePair>();
+		RpcParameterValue[] callParams = execInfo.paramValues;
+		
+		for(RpcParameterValue callParam : callParams){
+			params.add(new BasicNameValuePair(callParam.name,callParam.serializedValue));
+		}
+
+		URI location = new URI(execInfo.operation.location);
+		
+		HttpPost post = new HttpPost(location);
+		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(params,"UTF-8");
+		post.setEntity(entity);		
+		
 		return this.httpClient.execute(post);
 	}
 

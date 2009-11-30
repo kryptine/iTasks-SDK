@@ -4,15 +4,16 @@ import java.io.IOException;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.PosixParser;
 import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.FileAppender;
+import org.apache.log4j.Layout;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-import org.apache.log4j.lf5.LogLevel;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.RollingFileAppender;
 
 /**
  * Launcher Class
@@ -59,7 +60,7 @@ public class Launcher {
 							 .withDescription("Path to the handler collection. Default: /handler")
 							 .hasArg()
 							 .withArgName("PATH")
-							 .create("h")
+							 .create("p")
 		);
 		
 		options.addOption(
@@ -68,20 +69,52 @@ public class Launcher {
 							 .hasArg()
 							 .withArgName("LEVEL")
 							 .create("d")
-		);		
+		);	
+		
+		options.addOption(
+				OptionBuilder.withDescription("Factor in which the interval get's lengthened in case of a non responsive server. Default: 5")
+							 .hasArg()
+							 .withArgName("FACTOR")
+							 .create("slowdown")
+		);	
+		
+		options.addOption(
+				OptionBuilder.withDescription("Maximum amounts of retries before the daemon quits. Default: 10")
+							 .hasArg()
+							 .withArgName("RETRIES")
+							 .create("maxattempts")
+		);
+		
+		options.addOption(
+				OptionBuilder.withDescription("Maximum amounts of retries before the daemon quits. Default: 10")
+							 .hasArg()
+							 .withArgName("RETRIES")
+							 .create("maxattempts")
+		);	
 				
 		options.addOption("v","verbose",false,"Verbose Output");		
 		
+		options.addOption(
+				OptionBuilder.withLongOpt("help")
+							 .withDescription("Shows this help statement")
+							 .create("h")
+		);
+		
 		//Parse the command line
-		CommandLineParser parser = new PosixParser();
+		CommandLineParser parser = new GnuParser();
 		
 		//Start logging messages
+		Layout layout = new PatternLayout("%d (%F:%L) [%-5p] %c - %m%n");
 		Logger rootlog = Logger.getRootLogger();
 		
-		
-		
+		//Add file handler
 		try {
-			rootlog.addAppender(new FileAppender(new SimpleLayout(),"log/rpcdaemon.log",true));
+						
+			RollingFileAppender file = new RollingFileAppender(layout,"log/rpcdaemon.log",true);
+			file.setMaxBackupIndex(20);
+			file.setMaxFileSize("1MB");
+		
+			rootlog.addAppender(file);
 		} catch (IOException e1) {
 			System.err.println("Cannot start logger. Exiting daemon.");
 			System.exit(1);
@@ -113,9 +146,10 @@ public class Launcher {
 			
 			//Verbose output
 			if(cl.hasOption("v")){
-				rootlog.addAppender(new ConsoleAppender(new SimpleLayout(),ConsoleAppender.SYSTEM_ERR));
+				rootlog.addAppender(new ConsoleAppender(layout,ConsoleAppender.SYSTEM_ERR));
 			}
 			
+			//Debug level
 			if(cl.hasOption("d")){
 				int lvl = new Integer(cl.getOptionValue("d")).intValue();
 				
@@ -146,10 +180,30 @@ public class Launcher {
 					break;
 				}
 				
+			}else{
+				rootlog.setLevel(Level.ERROR);
 			}
 			
-			//Start the main daemon class
+			//Slowdown factor
+			if(cl.hasOption("slowdown")){
+				Constants.SLOWDOWN = new Integer(cl.getOptionValue("slowdown")).intValue();
+			}
+			
+			//Maximum of retries
+			if(cl.hasOption("slowdown")){
+				Constants.MAXATTEMPTS = new Integer(cl.getOptionValue("maxattempts")).intValue();
+			}
+			
+			//Show either the help statement or..
+			if(cl.hasOption("help")){
+				HelpFormatter formatter = new HelpFormatter();
+				formatter.printHelp("java -jar rpcd.jar",options);
+				System.exit(0);
+			}
+			
+			//..start the main daemon class
 			new Rpcd(url,handler,interval);
+			
 			
 		} catch (Exception e) {
 			rootlog.error("Exception while initializing daemon. "+e.getLocalizedMessage());

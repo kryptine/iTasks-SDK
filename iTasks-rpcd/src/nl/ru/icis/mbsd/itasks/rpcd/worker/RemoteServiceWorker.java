@@ -33,6 +33,7 @@ public abstract class RemoteServiceWorker implements Runnable{
 	private String url;
 	private String handler;
 	private String session;
+	private int interval;
 	
 	/**
 	 * The call information
@@ -55,12 +56,14 @@ public abstract class RemoteServiceWorker implements Runnable{
 	 * @param handler The path to the handlers
 	 * @param session The session key
 	 * @param execInfo The call info
+	 * @param interval The interval between different retries, multiplied by the slow-down factor
 	 */
-	protected RemoteServiceWorker(String url, String handler, String session, RpcInfo execInfo){
+	protected RemoteServiceWorker(String url, String handler, String session, RpcInfo execInfo, int interval){
 		this.url = url;
 		this.handler = handler;
 		this.session = session;
 		this.execInfo = execInfo;
+		this.interval = interval;
 	}
 	
 	/**
@@ -154,6 +157,9 @@ public abstract class RemoteServiceWorker implements Runnable{
 				return false;
 			}else{	
 				log.error("("+attempt+" of "+Constants.MAXATTEMPTS+") Failed to send message to iTasks-system for taskId "+execInfo.taskId+", error message returned: "+root.path("error").getTextValue());
+				synchronized(t){
+					try { t.wait(interval*Constants.SLOWDOWN); } catch (InterruptedException e) {}
+				}
 				return sendMessage(msg,attempt++);
 			}
 		}else{

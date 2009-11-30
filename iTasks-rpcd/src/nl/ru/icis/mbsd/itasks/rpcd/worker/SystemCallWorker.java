@@ -28,8 +28,8 @@ public class SystemCallWorker extends RemoteServiceWorker {
 	 * Default constructor
 	 * @see RemoteServiceWorker
 	 */
-	public SystemCallWorker(String url, String handlerpath, String session, RpcInfo execInfo){
-		super(url,handlerpath,session,execInfo);
+	public SystemCallWorker(String url, String handlerpath, String session, RpcInfo execInfo, int interval){
+		super(url,handlerpath,session,execInfo, interval);
 
 		log = Logger.getLogger("rpcd.remoteserviceworker.systemcallworker");
 

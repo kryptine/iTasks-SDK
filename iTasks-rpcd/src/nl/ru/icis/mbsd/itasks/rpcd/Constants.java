@@ -16,7 +16,6 @@ public class Constants {
 	 * The default URL where the iTasks system is residing. It can be
 	 * set using the -u option on the command line. Default: http://localhost:8080
 	 */
-	//TODO: Set to the correct default
 	public static final String DEFAULTURL = "http://localhost:8080";
 	
 	/**
@@ -43,5 +42,10 @@ public class Constants {
 	/**
 	 * The maximum amount of retries.
 	 */
-	public static final int MAXATTEMPTS = 10;
+	public static int MAXATTEMPTS = 10;
+	
+	/**
+	 * Factor of in which the wait get's lengthened in case of a retry.
+	 */
+	public static int SLOWDOWN = 5;
 }

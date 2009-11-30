@@ -22,9 +22,8 @@ public class RpcInfo {
 	public enum RpcHttpMethod {GET, POST}
 	
 	/**
-	 * The communication format used. At the moment, the daemon passes the 
-	 * response directly to the iTasks-system. So this is unused. In the future
-	 * this will be used to pass correct POST-messages.
+	 * The communication format used. This determines which worker
+	 * will be started to handle the message.
 	 */
 	public enum RpcMessageType {JSONRPC, XMLRPC, SOAP, Plain}
 	
@@ -58,7 +57,8 @@ public class RpcInfo {
 		public String name;
 		public RpcParameter[] parameters;
 		public String location;
-		public RpcCallType callType;		
+		public RpcCallType callType;
+		public String returnType;
 	}
 	
 	/**
@@ -119,6 +119,7 @@ public class RpcInfo {
 		this.operation.name = info.path("operation").path("name").getTextValue();
 		this.operation.location = info.path("operation").path("location").getTextValue();
 		this.operation.callType = RpcCallType.valueOf(info.path("operation").path("callType").getTextValue());
+		this.operation.returnType = info.path("operation").path("returnType").getTextValue();
 		
 		Iterator<JsonNode> paramList = info.path("parameters").getElements();
 		ArrayList<RpcParameter> parameters = new ArrayList<RpcParameter>();
