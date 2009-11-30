@@ -24,9 +24,6 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 	
 	setValue : function(_data){
 		var data = Ext.decode(_data);
-		//this.gmap.setCenter(new google.maps.LatLng(data.center[0],data.center[1]));
-		//this.gmap.setZoom(data.zoom);
-		//this.gmap.setMapTypeId(this.getMapType(data.mapType));
 		this.markers = data.markers;
 		this.addMarkers();
 	},
@@ -34,12 +31,8 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 	getMapType : function (mapType){
 		return eval("google.maps.MapTypeId."+mapType);
 	},
-
-	afterRender : function(){
-				
-		itasks.GMapPanel.superclass.afterRender.call(this);  
-		
-		
+	
+	buildMap : function(){
 		var options = 
 			{ center : new google.maps.LatLng(this.center[0],this.center[1])
 			, zoom: this.zoom
@@ -93,6 +86,32 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 			google.maps.event.addListener(this.gmap, 'click', lclickEventHandler);
 		}
 				
+	},
+	
+	afterRender : function(){
+		itasks.GMapPanel.superclass.afterRender.call(this);  
+		
+		var parent = this;
+		
+		if(itasks.app.googleMapsLoaded){
+			parent.buildMap();
+		}else{
+			Ext.Ajax.remoteRequest({
+				url : 'http://maps.google.com/maps/api/js',
+				method : 'GET',
+				scriptTag: true,
+				params : {
+					sensor : false
+				},
+				success : function(response){
+					parent.buildMap();
+					itasks.app.googleMapsLoaded = true
+				},
+				failure : function(response){
+					Ext.Msg.alert('Failed to load Google maps API');
+				},
+			});
+		}
 	},
 	
 	addMarkers : function (){

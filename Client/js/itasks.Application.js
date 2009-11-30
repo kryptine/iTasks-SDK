@@ -8,6 +8,7 @@ itasks.Application = function () {
 		//Application-wide state
 		session: null,
 		displayName: null,
+		googleMapsLoaded: false,
 		
 		viewport: new Ext.Viewport({
 			layout: 'card',
