@@ -345,6 +345,7 @@ gVisualize{|Dynamic|} old new vst
 gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
 		VEditorDefinition
+			# oldLabels = useLabels
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
@@ -353,21 +354,24 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2}
 											 ]})]			 
-			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
+			  ,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2) omask, VValue(n1,n2) nmask)
+					# oldLabels = useLabels
 					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})
+					= (viz1 ++ [TextFragment ", "] ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
+					# oldLabels = useLabels
 					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath})			
+					= (viz1 ++ [TextFragment ", "] ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})			
 
 gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
 		VEditorDefinition
+			# oldLabels = useLabels
 			# (v1,v2,v3) = case old of (VValue (o1,o2,o3) omask) = (VValue o1 omask, VValue o2 omask, VValue o3 omask) ; _ = (VBlank,VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
@@ -378,23 +382,27 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3}
 											 ]})]			 
-			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
+			  ,{VSt|vst & currentPath = stepDataPath currentPath, useLabels=oldLabels})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2,o3) omask, VValue(n1,n2,n3) nmask)
+					# oldLabels = useLabels
 					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
 					# (viz3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
-					= (viz1 ++ viz2 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath})
+					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
+					# oldLabels = useLabels
 					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,vst) = f2 VBlank VBlank vst
 					# (viz3,vst) = f3 VBlank VBlank vst
-					= (viz1 ++ viz2 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath})	
+					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})	
 
 gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
+	# oldLabel = useLabels
 	= case vizType of
 		VEditorDefinition
+			# oldLabels = useLabels
 			# (v1,v2,v3,v4) = case old of (VValue (o1,o2,o3,o4) omask) = (VValue o1 omask, VValue o2 omask, VValue o3 omask,VValue o4 omask) ; _ = (VBlank,VBlank,VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
@@ -407,21 +415,23 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz4}
 											 ]})]			 
-			  ,{VSt|vst & currentPath = stepDataPath currentPath})		
+			  ,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2,o3,o4) omask, VValue(n1,n2,n3,n4) nmask)
+					# oldLabels = useLabels
 					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
 					# (viz3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
 					# (viz4,vst) = f4 (VValue o4 omask) (VValue n4 nmask) vst
-					= (viz1 ++ viz2 ++ viz3 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath})
+					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3 ++ [TextFragment ", "] ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
+					# oldLabels = useLabels
 					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,vst) = f2 VBlank VBlank vst
 					# (viz3,vst) = f3 VBlank VBlank vst
 					# (viz4,vst) = f4 VBlank VBlank vst
-					= (viz1 ++ viz2 ++ viz3 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath})
+					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3 ++ [TextFragment ", "] ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 		
 derive gVisualize []
 derive gVisualize Either, Void
