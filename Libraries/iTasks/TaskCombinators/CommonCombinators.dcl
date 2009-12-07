@@ -7,6 +7,8 @@ definition module CommonCombinators
 import CoreCombinators, TuningCombinators, InteractionTasks
 import Either
 
+from Types import :: User (..)
+
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
 
@@ -25,10 +27,13 @@ eitherTask			:: !(Task a) !(Task b) 						-> Task (Either a b)	| iTask a & iTask
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
 //Task delegation
-(@:)   infix 3 		:: !UserId !(LabeledTask a)					-> Task a				| iTask a 
+class (@:) infix 3 u :: u !(LabeledTask a) -> Task a | iTask a
 
-assignByName		:: !String !String !TaskPriority !(Maybe Timestamp) (Task a)
-																-> Task a				| iTask a
+instance @: UserId
+instance @: User
+instance @: String
+
+assignByName		:: !String !String !TaskPriority !(Maybe Timestamp) (Task a) -> Task a	| iTask a
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid

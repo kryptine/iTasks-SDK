@@ -16,6 +16,7 @@ from TaskTree	import :: TaskTree
 import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
 import GenVisualize, GenUpdate
+import Chat
 
 derive gPrint Either
 derive gParse Either
@@ -103,8 +104,22 @@ repeatTask task pred a =
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
-(@:) infix 3 :: !UserId !(LabeledTask a) -> Task a | iTask a
-(@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
+instance @: UserId
+where
+	(@:) :: !UserId !(LabeledTask a) -> Task a | iTask a
+	(@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
+
+instance @: User
+where
+	(@:) :: !User !(LabeledTask a) -> Task a | iTask a
+	(@:) user task = user.User.userId @: task
+
+instance @: String
+where
+	(@:) :: String !(LabeledTask a) -> Task a | iTask a
+	(@:) name task
+		 = getUserByName name
+		 >>= \user -> user.User.userId @: task
 
 assignByName :: !String !String !TaskPriority !(Maybe Timestamp) (Task a) -> Task a | iTask a
 assignByName name subject priority deadline task
