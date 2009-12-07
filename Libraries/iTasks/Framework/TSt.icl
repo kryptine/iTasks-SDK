@@ -8,7 +8,7 @@ import GenVisualize, GenUpdate, Store, Config
 
 import dynamic_string
 
-from JSON 				import JSONDecode, fromJSON
+from JSON import JSONDecode, fromJSON
 
 import code from "copy_graph_to_string.obj";
 import code from "copy_graph_to_string_interface.obj";
@@ -147,7 +147,7 @@ calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	| isNothing mbProcess
-		= abort "(calculateTaskTree) Could not load process" //TODO no abort
+		= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", active = True, traceValue="Deleted"}, tst)
 	# process=:{status,parent,properties} = fromJust mbProcess
 	= case status of
 		Active
@@ -353,7 +353,7 @@ applyRpcUpdates [(n,v):xs] tst rpce parsefun
 # (mbMsg) = fromJSON v
 = case mbMsg of
 	Just msg = applyRpcMessage msg tst rpce parsefun
-	Nothing  = abort("Cannot parse daemon message "+++v) //needs to be exception!
+	Nothing  = applyRpcUpdates xs tst rpce parsefun //Ignore the message and go on..
 | otherwise  = applyRpcUpdates xs tst rpce parsefun
 where
 	applyRpcMessage msg tst rpci parsfun
@@ -398,7 +398,6 @@ where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo undef []}
 
-import StdDebug
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
 	# taskId				= iTaskId taskNr ""
