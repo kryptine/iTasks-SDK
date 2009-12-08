@@ -4,11 +4,13 @@ import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc, StdFile
 import Time
 import TSt
 import Types
+import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
-derive gPrint Maybe, Void, (,), (,,), (,,,), (,,,,)
-derive gParse Maybe, Void, (,), (,,), (,,,), (,,,,)
+derive gPrint Maybe, Void, (,), (,,), (,,,), (,,,,), User
+derive gParse Maybe, Void, (,), (,,), (,,,), (,,,,), User
+
 
 iTaskId :: !TaskNr !String -> String
 iTaskId tasknr postfix 
@@ -77,7 +79,10 @@ gVisualize{|Task|} fx _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx undef ust
-	= (Task {TaskDescription|title = "return", description = ""} Nothing (\tst -> (a,tst)), ust)
+	= (Task {TaskDescription|title = "return", description = Note ""} Nothing (\tst -> (a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
+
+derive gUpdate User
+derive gVisualize User
 
 

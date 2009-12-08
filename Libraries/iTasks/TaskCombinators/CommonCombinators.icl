@@ -12,11 +12,11 @@ from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..), :
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree
+from CommonDomain	import :: Note
 
 import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators
 import Util, Either
 import GenVisualize, GenUpdate
-import Chat
 
 derive gPrint Either
 derive gParse Either

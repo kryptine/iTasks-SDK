@@ -5,8 +5,10 @@ import GenUpdate
 import Void, Either
 import Text, Html, JSON, TUIDefinition
 
-MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
+MAX_CONS_RADIO	:== 3	//When the number of constructors is upto this number, the choice is made
 						//with radio buttons. When it exceeds this, a combobox is used.
+RADIO_WIDTH		:== 200	//The width of radio buttons
+
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
 mkVSt :: *VSt
@@ -192,7 +194,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						
 			//ADT's with only one constructor
 			| d.gcd_type_def.gtd_num_conses == 1 
-				# (vizBody,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, optional = False}
+				# (vizBody,vst=:{valid}) = fx ox nx {vst & /*label = Nothing,*/ currentPath = shiftDataPath currentPath, optional = False}
 				= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 			//ADT's with multiple constructors
 			| otherwise
@@ -222,14 +224,14 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 		_ 	//Other visualizations
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
-					# useLabels = not (isEmpty d.gcd_fields) || useLabels
-					# (vizBody, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = useLabels, optional = False}
+					# labels = not (isEmpty d.gcd_fields) || useLabels
+					# (vizBody, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = labels, optional = False}
 					//No validity check is needed when there is only one constructor
 					| d.gcd_type_def.gtd_num_conses == 1
-						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
+						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 					//A validity check is used
 					| otherwise
-						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
+						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional, useLabels = useLabels})
 				_
 					= ([], {VSt|vst & currentPath = stepDataPath currentPath})		
 where
@@ -482,15 +484,16 @@ consSelector d idPrefix dp value label useLabels
 		= []
 	//Use radiogroup to choose a constructor
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
+		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just (formatLabel c.gcd_name), checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
 				   \\ c <- d.gcd_type_def.gtd_conses]
-		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels})]
+		# cols	= repeatn (length items) RADIO_WIDTH
+		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels, columns = cols})]
 	//Use combobox to choose a constructor
 	| otherwise
 		= [TUIFragment (TUIComboBox {TUIComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
 where
 	
-	store	= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
+	store	= [("","Select...") : [(c.gcd_name,formatLabel c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
 	name	= dp2s dp
 	id		= dp2id idPrefix dp
 	index	= d.gcd_index

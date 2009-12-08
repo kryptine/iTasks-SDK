@@ -3,11 +3,12 @@ implementation module Types
 import GenPrint, GenParse, GenVisualize, GenUpdate
 import Html
 import Util
+import CommonDomain
 
-derive gPrint		User, Session
-derive gParse		User, Session
-derive gVisualize	User, Session
-derive gUpdate		User, Session
+derive gPrint		Session
+derive gParse		Session
+derive gVisualize	Session
+derive gUpdate		Session
 
 instance toString TaskPriority
 where

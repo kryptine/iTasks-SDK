@@ -3,9 +3,10 @@ definition module Types
 * This module provides types for all the globally shared concepts within
 * the iTasks framework.
 */
-from TSt 		import :: TSt
-from Html 		import :: HtmlTag
-from StdString	import class toString
+from TSt 			import :: TSt
+from Html 			import :: HtmlTag
+from CommonDomain	import :: Note
+from StdString		import class toString
 
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
@@ -40,7 +41,7 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 :: Task a 			= Task !TaskDescription !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
 :: TaskDescription	=
 	{ title			:: !String
-	, description	:: !String
+	, description	:: !Note
 	}
 	
 :: TaskPriority		= HighPriority			// tasks can have three levels of priority
@@ -50,9 +51,9 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 :: EvaluationOption	= OnClient 				// Evaluate a task on the client whenever possible
 					| OnServer				// Always evaluate a task on the server
 					
-derive gPrint		User, Session
-derive gParse		User, Session
-derive gVisualize	User, Session
-derive gUpdate		User, Session			
+derive gPrint		Session
+derive gParse		Session
+derive gVisualize	Session
+derive gUpdate		Session			
 
 instance toString TaskPriority

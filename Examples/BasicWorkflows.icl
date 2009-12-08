@@ -5,23 +5,47 @@ import CommonDomain
 
 basicWorkflows :: [Workflow]
 basicWorkflows =
-	[ workflow "Basic/Basic task" basicTask
-	, workflow "Basic/Information task" informationTask
+	[ {Workflow|name="Basic/Action task",label="New action task...",roles=[],mainTask=actionTask >>|return Void}
+	, {Workflow|name="Basic/Information task",label="New information task",roles=[],mainTask=informationTask >>| return Void}
 	, workflow "Basic/Decision task" decisionTask
 	, workflow "Basic/Notification task" notificationTask
 	]
-	
-basicTask :: Task Void
-basicTask = define >>= perform >>| report
-where
-	define :: Task Note
-	define = enterInformation "What needs to be done?"
-	
-	perform :: Note -> Task Void
- 	perform description = showMessage description
 
-	report :: Task Void
-	report = showMessage "The task has been done"
+
+:: AssignTo = Yourself | OtherUser UserId
+
+:: ActionTaskInfo =
+	{ taskDescription	:: TaskDescription
+	, initialTaskProperties	:: InitialTaskProperties
+	}
+:: InitialTaskProperties =
+	{ assignTo			:: AssignTo
+	, priority			:: Maybe TaskPriority
+	, deadline			:: Maybe Timestamp
+	}
+
+derive gPrint 		ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
+derive gParse		ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
+derive gVisualize	ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
+derive gUpdate		ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
+
+actionTask :: Task (ProcessRef Void)
+actionTask = define >>= start
+where
+	define :: Task ActionTaskInfo
+	define = enterInformation "Define a new action"
+	
+	start :: ActionTaskInfo -> Task (ProcessRef Void)
+	start info 
+		= case info.initialTaskProperties.assignTo of
+			(Yourself)
+				= getCurrentUser >>= \user -> spawnProcess user.userId True task
+			(OtherUser uid)
+				= spawnProcess uid True task
+	where
+		task		= showMessage info.taskDescription.TaskDescription.title <<@ info.taskDescription
+		priority	= case info.priority of (Just p) = p; Nothing = NormalPriority
+		deadline	= info.deadline
 
 informationTask :: Task Void
 informationTask = define >>= perform >>= report

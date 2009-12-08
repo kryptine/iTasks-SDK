@@ -14,11 +14,11 @@ where
 //Crisis management data domain
 
 :: Incident =
-	{ location    :: Location
-	, type        :: IncidentType
+	{ type        :: IncidentType
 	, time        :: Time
 	, nrInjured   :: Int
 	, description :: String
+	, location    :: Address
 	}
 
 :: IncidentType = Accident | Fire | Fight | Other String
@@ -28,7 +28,12 @@ where
 	, place			:: String
 	, coordinates	:: Maybe MapCoordinates
 	}	
-	
+
+:: Address =
+	{ street		:: String
+	, place			:: String
+	}
+
 :: MapCoordinates =
 	{ lat			:: Real
 	, lon			:: Real
@@ -57,45 +62,59 @@ allproviders  = [{name="Ambulance Post 0",id=30,location={street="Teststreet",pl
 				,{name="Ambulance Post 9",id=39,location={street="Teststreet",place="Testville",coordinates=Just{lat=9.0,lon=3.0}},capacity=2}
 				]
 
-derive gPrint		Incident, IncidentType, Location, MapCoordinates, Provider, Opinion			
-derive gParse		Incident, IncidentType, Location, MapCoordinates, Provider, Opinion
-derive gVisualize 	Incident, IncidentType, Location, MapCoordinates, Provider, Opinion
-derive gUpdate		Incident, IncidentType, Location, MapCoordinates, Provider, Opinion
+derive gPrint		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion			
+derive gParse		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
+derive gVisualize 	Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
+derive gUpdate		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
 
 
 
 derive gEq IncidentType
 
-
-
-// Crisis management procedure examples		
 reportIncident :: Task [Void]
 reportIncident
-	=				enterInformation "Please provide as many details about the incident as possible"
-	>>= \inc ->		enterMultipleChoice "Which actions must be taken?"
-						(map fst (filter snd 
-							[(requestAmbulances inc.Incident.nrInjured inc.Incident.location <<@ "Send ambulances", inc.Incident.nrInjured > 0)
-							,(requestFireBrigade <<@ "Request fire brigade", inc.Incident.type === Fire)
-							]))
-	>>= \tasks ->	allTasks tasks
+  = enterIncident >>= chooseResponse >>= allTasks
+where
+  enterIncident :: Task Incident
+  enterIncident = enterInformation "Describe the incident"
+
+  chooseResponse :: Incident -> Task [Task Void]
+  chooseResponse incident
+    = updateMultipleChoice "Choose response" options (suggestion incident.type)
+
+  where
+    //Generate the list of possible tasks to choose from
+    options = [f incident \\ f <- [sendPolice,sendMedics,sendFireBrigade]]
+
+    //Compute the indexes in the options list that are initially selected
+    suggestion Accident = [0,1]
+    suggestion Fire     = [0,2]
+    suggestion Fight    = [0]
+    suggestion _        = []
+
+sendPolice :: Incident -> Task Void
+sendPolice incident = "Send police" @>> showMessage "Please send police" 
+
+sendMedics :: Incident -> Task Void
+sendMedics incident = "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
+
+sendFireBrigade :: Incident -> Task Void
+sendFireBrigade incident = "Send fire brigade" @>> showMessage "Please send fire brigade"
 
 dispatchAmbulances :: Task Void
 dispatchAmbulances
 	=					enterInformation "How many ambulances do you need at what location?"
 	>>= \(nr,loc) ->	requestAmbulances nr loc
-
-requestFireBrigade :: Task Void
-requestFireBrigade = return Void
-
+ 
 // Request for amount ambulances from list of candidate providers
 // First, from the list enough providers are selected that can in principle provide the needed amount
 // They are asked in parallel
 // But in case they do not provide enough, more providers are asked
 // This is repeated until the requested amount can be fulfilled
 // Nore: we assume there are enough providers to supply all ambulances
-requestAmbulances :: Int Location -> Task Void
-requestAmbulances amount location	
-	| isJust location.coordinates	= requestAmbulances` amount (sortProviders location allproviders) >>= showAmbulances
+requestAmbulances :: Int Address -> Task Void
+requestAmbulances amount address	
+	//| isJust location.coordinates	= requestAmbulances` amount (sortProviders location allproviders) >>= showAmbulances
 	| otherwise						= requestAmbulances` amount allproviders >>= showAmbulances
 
 requestAmbulances` amount providers

@@ -4,5 +4,5 @@
 , skin: "default"
 , debug: true
 , autoRefresh: true
-, refreshRate: 2000
+, refreshRate: 60000
 }

@@ -3,6 +3,8 @@ implementation module TSt
 import StdEnv, StdMaybe
 import Http, Util
 import ProcessDB, DynamicDB, SessionDB, UserDB, TaskTree
+import CommonDomain
+
 import GenPrint, GenParse, GenEq, GenBimap
 import GenVisualize, GenUpdate, Store, Config
 
@@ -297,25 +299,25 @@ accWorldTSt f tst=:{TSt|world}
 	= (a, {TSt|tst & world = world})
 		
 mkInteractiveTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
-mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkInteractiveTask`	
+mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkInstantTask`
+mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkMonitorTask`
+mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = ""} Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -380,20 +382,20 @@ applyRpcDefault tst=:{TSt|world}
 
 	
 mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkSequenceTask`
+mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkParallelTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkParallelTask`
+mkParallelTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo [], taskNr = [0:taskNr]}												
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
-mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = ""} Nothing mkMainTask`
+mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo undef []}

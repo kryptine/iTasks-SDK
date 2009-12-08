@@ -112,6 +112,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
 	, items			:: [TUIDef]
+	, columns		:: [Int]
 	}
 :: TUIDateField =
 	{ name			:: String
