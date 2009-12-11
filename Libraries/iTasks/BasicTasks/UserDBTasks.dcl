@@ -45,6 +45,13 @@ getRoles			:: ![UserId]	-> Task [[String]]
 */
 authenticateUser	:: !String !String	-> Task (Maybe User)
 
+/**
+* Add a new user
+*/
+createUser			:: !String !String !String ![String] -> Task User
+
+
+
 //Interactively choose a user
 chooseUser			:: !question			-> Task User | html question
 chooseUserWithRole	:: !question !String	-> Task User | html question

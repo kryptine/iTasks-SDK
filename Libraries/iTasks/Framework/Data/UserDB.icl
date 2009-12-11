@@ -136,6 +136,17 @@ authenticateUser username password tst
 			[user]	= (Just user, tst)		
 			_		= (Nothing, tst)
 
+
+createUser :: !String !String !String ![String] !*TSt -> (User,!*TSt)
+createUser username password displayname roles tst
+	# (users, tst)		= userStore id tst
+	# user	= {userId= maxid users, userName = username, password = password, displayName = displayname, roles = roles}
+	# (users, tst)		= userStore (\_-> [user:users]) tst
+	= (user,tst)
+where
+	maxid [] = 1 
+	maxid users	= maxList [user.User.userId \\ user <- users] + 1
+
 //Helper function which finds a property of a certain user
 lookupUserProperty :: ![User] !(User -> a) !a !Int -> a
 lookupUserProperty users selectFunction defaultValue userId

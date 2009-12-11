@@ -82,3 +82,14 @@ getRoles			:: ![Int]			!*TSt -> (![[String]]					, !*TSt)
 * @return The database handle
 */
 authenticateUser	:: !String !String	!*TSt -> (!Maybe User, !*TSt)
+/**
+* Create a new user
+*
+* @param A user name
+* @param A password
+* @param A display name
+* @param A list of roles
+* @return A user
+* @return The database handle
+*/
+createUser :: !String !String !String ![String] !*TSt -> (User,!*TSt)

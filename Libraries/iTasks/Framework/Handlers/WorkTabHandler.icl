@@ -28,7 +28,7 @@ handleWorkTabRequest req tst
 				// Update the task timestamps 
 				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 				// Create the response
-				= let content = {TaskContent| properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
+				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
 		 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 			
 			| otherwise
@@ -46,14 +46,15 @@ where
 	error msg tst
 		= ({http_emptyResponse & rsp_data = "{ \"success\" : false, \"error\" : \"" +++ msg +++ "\"}"}, tst)
 	redundant tst
-		= let content = {TaskContent| properties = Nothing, subject = [], content = TaskRedundant, debug = Nothing} in
+		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskRedundant, debug = Nothing} in
 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 	finished tst
-		= let content = {TaskContent| properties = Nothing, subject = [], content = TaskDone, debug = Nothing} in
+		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskDone, debug = Nothing} in
 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 			
 :: TaskContent =
-	{ properties	:: Maybe TaskProperties
+	{ success		:: Bool
+	, properties	:: Maybe TaskProperties
 	, subject		:: [String]
 	, content		:: TaskPanel
 	, debug			:: Maybe DebugInfo
