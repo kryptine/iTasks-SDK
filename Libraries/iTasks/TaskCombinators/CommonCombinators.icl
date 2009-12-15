@@ -24,28 +24,28 @@ derive gParse Either
 //Task composition
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb  
-=	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (Left a) = a; (Right b) = b) undef
+=	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (Left a) = a; (Right b) = b) (abort "-||- both parts finished??")
 			[taska >>= \a -> return (Left a)
 			,taskb >>= \b -> return (Right b)
 			]
 			
 (-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb
-=	parallel "-&&-" (\_ -> False) undef (\[Left a, Right b] -> (a,b))
+=	parallel "-&&-" (\_ -> False) (abort "-&&- predicate became true??") (\[Left a, Right b] -> (a,b))
 			[taska >>= \a -> return (Left a)
 			,taskb >>= \b -> return (Right b)
 			]
 
 anyTask	:: ![Task a] -> Task a | iTask a
 anyTask []		= getDefaultValue
-anyTask tasks	= parallel "any" (\list -> length list >= 1) hd undef tasks
+anyTask tasks	= parallel "any" (\list -> length list >= 1) hd (abort "anyTask all parts finished??") tasks
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel "all" (\_ -> False) undef id tasks
+allTasks tasks = parallel "all" (\_ -> False) (abort "allTasks predicate became true") id tasks
 
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb 
-=	parallel "eitherTask" (\list -> length list > 0) hd undef
+=	parallel "eitherTask" (\list -> length list > 0) hd (abort "eitherTask all parts finished??")
 			[ (taska >>= \a -> return (Left a)) <<@ "Left"
 			, (taskb >>= \b -> return (Right b)) <<@ "Right"
 			]

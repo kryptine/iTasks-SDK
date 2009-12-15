@@ -12,9 +12,6 @@ import dynamic_string
 
 from JSON import JSONDecode, fromJSON
 
-import code from "copy_graph_to_string.obj";
-import code from "copy_graph_to_string_interface.obj";
-
 :: TaskState = TSNew | TSActive | TSDone
 
 :: RPCMessage =
@@ -225,20 +222,8 @@ where
 	executeTaskThread tst=:{taskNr}
 		# (thread, tst)		= loadTaskThread (taskNrFromString processId) tst		  
 		# (result, tst) 	= thread tst
-		#  result			= evalDynamicResult result
 		= (result,tst)
 
-
-/**
-* This forces evaluation of the dynamic to normal form before we encode it
-*/	
-evalDynamicResult :: !Dynamic -> Dynamic
-evalDynamicResult d = code {
-	push_a 0
-	.d 1 0
-	jsr	_eval_to_nf
-	.o 0 0
-}
 
 createTaskThread :: !(Task a) -> (*TSt -> *(!Dynamic,!*TSt)) | iTask a
 createTaskThread task = createTaskThread` task
@@ -246,7 +231,7 @@ where
 	createTaskThread` :: !(Task a) !*TSt -> *(!Dynamic, !*TSt) | iTask a
 	createTaskThread` task tst
 		# (a, tst)	= applyTask task tst
-		# dyn		= evalDynamicResult (dynamic a)
+		# dyn		= (dynamic a)
 		= (dyn,tst)
 
 
@@ -398,7 +383,7 @@ mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo undef []}
+		= taskfun {tst & tree = TTMainTask taskInfo (abort "Executed undefined maintask") []}
 
 applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
 applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}

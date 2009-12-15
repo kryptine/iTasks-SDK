@@ -64,6 +64,7 @@ where
 		| not adone						= (reverse accu, tst)
 		| otherwise						= doseqTasks ts [a:accu] tst
 
+
 // Parallel composition
 parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
 parallel label pred combinePred combineAll tasks 
@@ -75,8 +76,8 @@ where
 		| isJust exception
 			= accWorldTSt defaultValue {tst & activated = False}// stop, an exception occurred in one of the branches
 		| pred alist
-			= (combinePred alist,{tst & activated = True}) 	// stop, all work done so far satisfies predicate
-		| length alist == length tasks						// all tasks are done
+			= (combinePred alist,{tst & activated = True}) 		// stop, all work done so far satisfies predicate
+		| length alist == length tasks							// all tasks are done
 			= (combineAll alist,{tst & activated = True})
 		| otherwise
 			= accWorldTSt defaultValue {tst & activated = False}// show all subtasks using the displayOption function

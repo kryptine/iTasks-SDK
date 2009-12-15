@@ -78,7 +78,7 @@ gVisualize{|Task|} fx (VValue (Task desc _ _) _) _ vst = ([TextFragment desc.Tas
 gVisualize{|Task|} fx _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
-	# (a,ust) = fx undef ust
+	# (a,ust) = fx (abort "Task create with undef") ust
 	= (Task {TaskDescription|title = "return", description = Note ""} Nothing (\tst -> (a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
 

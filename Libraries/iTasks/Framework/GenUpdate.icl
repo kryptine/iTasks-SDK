@@ -6,7 +6,7 @@ import Text
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
-	# (a,ust=:{world}) = gUpdate{|*|} undef {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], world = world}
+	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], world = world}
 	= (a,world)
 	
 defaultMask :: a !*World -> (DataMask,*World) | gUpdate{|*|} a
@@ -35,8 +35,8 @@ gUpdate{|UNIT|} _ ust=:{mode=UDCreate} = (UNIT, ust)
 gUpdate{|UNIT|} u ust = (u, ust)
 
 gUpdate{|PAIR|} fx fy _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
-	# (ny,ust) = fy undef ust
+	# (nx,ust) = fx (abort "PAIR create with undef") ust
+	# (ny,ust) = fy (abort "PAIR create with undef") ust
 	= (PAIR nx ny, ust)
 	
 gUpdate{|PAIR|} fx fy p ust=:{mode=UDSearch}
@@ -58,13 +58,13 @@ gUpdate{|PAIR|} fx fy p ust = (p, ust)
 gUpdate{|EITHER|} fx fy _ ust=:{mode=UDCreate,consPath}
 	= case consPath of
 		[ConsLeft:cl]
-			# (nx,ust) = fx undef {ust & consPath = cl}
+			# (nx,ust) = fx (abort "EITHER create with undef") {ust & consPath = cl}
 			= (LEFT nx, ust)
 		[ConsRight:cl]
-			# (ny,ust) = fy undef {ust & consPath = cl}
+			# (ny,ust) = fy (abort "EITHER create with undef") {ust & consPath = cl}
 			= (RIGHT ny, ust)
 		[]
-			# (nx,ust) = fx undef ust
+			# (nx,ust) = fx (abort "EITHER create with undef") ust
 			= (LEFT nx, ust)
 
 gUpdate{|EITHER|} fx fy e ust=:{mode=UDSearch}
@@ -88,7 +88,7 @@ gUpdate{|EITHER|} fx fy e ust=:{mode=UDMask}
 gUpdate{|EITHER|} fx fy e ust = (e, ust)
 
 gUpdate{|CONS|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
+	# (nx,ust) = fx (abort "CONS create with undef") ust
 	= (CONS nx, ust)
 		
 gUpdate{|CONS|} fx c ust=:{mode=UDSearch}
@@ -106,12 +106,12 @@ where
 gUpdate{|CONS|} fx c ust = (c, ust)
 
 gUpdate{|OBJECT|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
+	# (nx,ust) = fx (abort "OBJECT create with undef") ust
 	= (OBJECT nx, ust)
 
 gUpdate{|OBJECT of d|} fx o ust=:{mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
-		# (nx,ust)	= fx undef {USt|ust & mode = UDCreate, consPath = path}
+		# (nx,ust)	= fx (abort "OBJECT create with undef") {USt|ust & mode = UDCreate, consPath = path}
 		= (OBJECT nx, toggleMask {USt|ust & mode = UDDone})			 
 	| otherwise
 		# (nx,ust) = fx x {USt|ust & currentPath = shiftDataPath currentPath}
@@ -132,7 +132,7 @@ where
 gUpdate{|OBJECT|} fx o ust = (o, ust)
 
 gUpdate{|FIELD|} fx _ ust=:{mode=UDCreate}
-	# (nx,ust) = fx undef ust
+	# (nx,ust) = fx (abort "FIELD create with undef") ust
 	= (FIELD nx, ust)
 
 gUpdate{|FIELD|} fx f ust=:{mode=UDSearch}
@@ -214,7 +214,7 @@ where
 	gUpdateList fx [] ust=:{USt|currentPath,searchPath,update}
 		| currentPath == searchPath
 			| update == "_Cons"
-				# (a,ust) = fx undef {ust& mode = UDCreate}
+				# (a,ust) = fx (abort "List create with undef") {ust& mode = UDCreate}
 				= ([a], toggleMask {USt|ust & mode = UDDone})
 			| otherwise
 				= ([], toggleMask {USt |ust & mode = UDDone})
@@ -251,7 +251,7 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 	| otherwise
 		= case m of
 			Nothing
-				# (x,ust) = fx undef {ust & mode = UDCreate} //Create an empty value to update
+				# (x,ust) = fx (abort "Maybe create with undef") {ust & mode = UDCreate} //Create an empty value to update
 				# (x,ust=:{mode,currentPath}) = fx x {ust & mode = UDSearch,currentPath = currentPath, searchPath = searchPath,update = update}
 				= case mode of
 					UDDone	= (Just x,ust) //Only switch keep newly created value if a field was updated
