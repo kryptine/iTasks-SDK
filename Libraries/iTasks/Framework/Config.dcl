@@ -6,6 +6,7 @@ definition module Config
 
 :: Config =
 	{ clientPath	:: !String	// Where is the client located.
+	, staticPath	:: !String	// Additional location where statically served content may be placed
 	, rootPassword	:: !String	// Password for the 'root' superuser.
 	, sessionTime	:: !Int		// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, serverPort	:: !Int		// The TCP port the server runs on. Default is 80.

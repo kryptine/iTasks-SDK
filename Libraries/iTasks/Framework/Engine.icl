@@ -67,7 +67,14 @@ handleStaticResourceRequest req world
 	|  ok 					= ({rsp_headers = [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))]
-							   	,rsp_data = content}, world)		 							   
+							   	,rsp_data = content}, world)
+	# filename				= config.staticPath +++ filePath path
+	# (type, world)			= http_staticFileMimeType filename world
+	# (ok, content, world)	= http_staticFileContent filename world
+	|  ok 					= ({rsp_headers = [("Status","200 OK"),
+											   ("Content-Type", type),
+											   ("Content-Length", toString (size content))]
+							   	,rsp_data = content}, world)						   								 	 							   
 	= http_notfoundResponse req world
 where
 	//Translate a URL path to a filesystem path
