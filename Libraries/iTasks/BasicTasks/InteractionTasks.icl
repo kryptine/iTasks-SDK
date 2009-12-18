@@ -55,7 +55,7 @@ makeInformationTask question initial context tst=:{taskNr}
 	# (updates,tst) = getUserUpdates tst	
 	| length updates == 0
 		# (form,valid) 	= visualizeAsEditor editorId omask oldval
-		# tst			= setTUIDef (taskPanel (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",valid)]) tst
+		# tst			= setTUIDef (taskPanel taskid (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",valid)]) tst
 		= (oldval,{tst & activated = False})
 	| otherwise
 		# (newval,nmask,tst) = applyUpdates updates oldval omask tst
@@ -68,6 +68,7 @@ makeInformationTask question initial context tst=:{taskNr}
 			# tst				= setTUIUpdates [TUISetEnabled doneId valid:updates] tst
 			= (newval, {tst & activated = False})
 where
+	taskid = taskNrToString taskNr
 	applyUpdates [] val mask tst = (val,mask,tst)
 	applyUpdates [(p,v):us] val mask tst=:{TSt|world}
 		# (val,mask,world) = updateValueAndMask p v val mask world
@@ -91,7 +92,8 @@ updateChoiceAbout question about options index  = mkInteractiveTask "updateChoic
 
 makeChoiceTask :: question [a] Int (Maybe [HtmlTag]) !*TSt -> (!a,!*TSt) | html question & iTask a
 makeChoiceTask question options index context tst=:{taskNr}
-	# editorid	= "tf-" +++ taskNrToString taskNr
+	# taskid	= taskNrToString taskNr
+	# editorid	= "tf-" +++ taskid
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0
@@ -101,7 +103,7 @@ makeChoiceTask question options index context tst=:{taskNr}
 											, disabled = False
 											, text = visualizeAsTextLabel option +++ if (i == index) " (current)" ""
 											, iconCls = ""} \\ option <- options & i <- [0..] ]
-		# tst = setTUIDef (taskPanel (html question) context (Just form) []) tst
+		# tst = setTUIDef (taskPanel taskid (html question) context (Just form) []) tst
 		= (hd options, {tst & activated = False})
 	| otherwise
 		= (options !! (toInt (snd (hd updates))), tst) 
@@ -120,7 +122,8 @@ updateMultipleChoiceAbout question about options indices = mkInteractiveTask "up
 
 makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) !*TSt -> (![a],!*TSt) | html question & iTask a
 makeMultipleChoiceTask question options inselection context tst=:{taskNr}
-	# editorId		= "tf-" +++ taskNrToString taskNr
+	# taskid		= taskNrToString taskNr
+	# editorId		= "tf-" +++ taskid
 	# doneId		= editorId +++ "-done"
 	# (mbSel,tst)	= getTaskStore "selection" tst
 	# selection		= case mbSel of Nothing = inselection; Just sel = sel
@@ -138,7 +141,7 @@ makeMultipleChoiceTask question options inselection context tst=:{taskNr}
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
 		# form = [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 3, items = cboxes}]
-		# tst = setTUIDef (taskPanel (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",True)]) tst
+		# tst = setTUIDef (taskPanel taskid (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",True)]) tst
 		= ([],{tst & activated = False})
 	| otherwise
 		# done = (http_getValue "done" updates "") == "done"
@@ -166,10 +169,11 @@ requestConfirmationAbout question about = mkInteractiveTask "requestConfirmation
 makeConfirmationTask :: question (Maybe [HtmlTag]) *TSt -> (Bool,*TSt) | html question
 makeConfirmationTask question context tst=:{taskNr}
 	//Check for user updates
-	# editorid	= "tf-" +++ taskNrToString taskNr
+	# taskid	= taskNrToString taskNr
+	# editorid	= "tf-" +++ taskid
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0
-		# tst = setTUIDef (taskPanel (html question) context Nothing [(editorid +++ "-no","answer-no","no","No","icon-no",True),(editorid +++ "-yes","answer-yes","yes","Yes","icon-yes",True)]) tst
+		# tst = setTUIDef (taskPanel taskid (html question) context Nothing [(editorid +++ "-no","answer-no","no","No","icon-no",True),(editorid +++ "-yes","answer-yes","yes","Yes","icon-yes",True)]) tst
 		= (False,{tst & activated = False})
 	| otherwise
 		= (snd (hd updates) == "yes", tst)
@@ -189,30 +193,31 @@ showStickyMessageAbout message about = mkInteractiveTask "showStickyMessageAbout
 
 makeMessageTask :: message (Maybe [HtmlTag]) Bool *TSt -> (Void, *TSt) | html message
 makeMessageTask message context sticky tst=:{taskNr}
-	# editorid	= "tf-" +++ taskNrToString taskNr
+	# taskid	= taskNrToString taskNr
+	# editorid	= "tf-" +++ taskid
 	# (updates,tst) = getUserUpdates tst
 	| length updates == 0 || sticky
-		# tst = setTUIDef (taskPanel (html message) context Nothing (if sticky [] [(editorid +++ "-done","done","done","Ok","icon-ok",True)])) tst
+		# tst = setTUIDef (taskPanel taskid (html message) context Nothing (if sticky [] [(editorid +++ "-done","done","done","Ok","icon-ok",True)])) tst
 		= (Void,{tst & activated = False})
 	| otherwise
 		= (Void, tst)
 
 
-taskPanel :: [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(String,String,String,String,String,Bool)] -> TUIDef
-taskPanel description mbContext mbForm buttons
+taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(String,String,String,String,String,Bool)] -> TUIDef
+taskPanel taskid description mbContext mbForm buttons
 	= TUIPanel {TUIPanel| layout = "", autoHeight = True, border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing}
 where
-	items = [taskDescriptionPanel description] ++
-			(case mbContext of Just context = [taskContextPanel context]; Nothing = []) ++
+	items = [taskDescriptionPanel ("description-"+++taskid) description] ++
+			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
 			(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
 			
-	taskDescriptionPanel :: [HtmlTag] -> TUIDef
+	taskDescriptionPanel :: !String ![HtmlTag] -> TUIDef
 	//taskDescriptionPanel description = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] description), border = False, bodyCssClass = "task-description"} 
-	taskDescriptionPanel description = TUIHtmlPanel {TUIHtmlPanel| html = toString (DivTag [] description), border = False, bodyCssClass = "task-description"} 
+	taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description"} 
 	
-	taskContextPanel :: [HtmlTag] -> TUIDef
+	taskContextPanel :: !String ![HtmlTag] -> TUIDef
 	//taskContextPanel context = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
-	taskContextPanel context = TUIHtmlPanel {TUIHtmlPanel| html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context"} 
+	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context"} 
 	
 	taskFormPanel :: [TUIDef] -> TUIDef
 	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}

@@ -153,7 +153,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	{ html			:: String
 	}
 :: TUIHtmlPanel =
-	{ html			:: String
+	{ id			:: String
+	, html			:: String
 	, border		:: Bool
 	, bodyCssClass	:: String
 	}

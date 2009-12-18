@@ -142,10 +142,13 @@ fireTaskEvent = function(taskid, field, value) {
 	var ct = Ext.getCmp("taskform-" + taskid);
 	if(!ct)
 		return;
+	
 	var wp = ct.findParentByType("itasks.work");
 	if(!wp)
 		return;
 	
-	wp.addEvent(field,value,ct.formState);
-	wp.sendEvents();
+	var updates = {}
+	updates[field] = value;
+	
+	wp.sendTaskUpdates(taskid, updates);	
 }
