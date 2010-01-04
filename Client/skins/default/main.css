@@ -389,3 +389,33 @@ div.taskForestLegend{
 .task-fin {
 	background-image:url('img/icons/flag.png') !important;
 }
+
+/* == ListPanel == */
+
+.listPanel {
+	padding: 2px;
+	background-color: #c0c0c0;
+}
+
+.listPanelItem {
+	padding: 1px 20px 1px 4px;
+	background-color: #DDD;
+	
+	background-image: url('img/drag_handle.png');
+	background-repeat: no-repeat;
+	background-position: right;
+	
+	cursor: pointer;
+	cursor: hand;
+}
+
+.listPanelItemSelected{
+	background-color: #8DB2E3
+}
+
+li.listDisplay {
+	padding: 2px;
+	margin: 2px;
+	border: 1px solid #8DB2E3;
+	background-color: #F0F0F0;
+}

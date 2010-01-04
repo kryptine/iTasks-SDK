@@ -5,10 +5,8 @@ import GenUpdate
 import Void, Either
 import Text, Html, JSON, TUIDefinition
 
-MAX_CONS_RADIO	:== 3	//When the number of constructors is upto this number, the choice is made
+MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
 						//with radio buttons. When it exceeds this, a combobox is used.
-RADIO_WIDTH		:== 200	//The width of radio buttons
-
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
 mkVSt :: *VSt
@@ -181,12 +179,12 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 			| not (isEmpty d.gcd_fields)	
 				# (vizBody,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, onlyBody = False, useLabels = True, optional = False}
 				//Add a containing fieldset on the first level
-				| dataPathLevel currentPath > 1						
+				| dataPathLevel currentPath	> 1				
 					= ([TUIFragment (TUIFieldSet {TUIFieldSet | id = (dp2id idPrefix currentPath) +++ "-fs"
 																	, layout = Just "form"
 																	, title = title label
 																	, items = coerceToTUIDefs vizBody
-																	, autoHeight = True, border = True
+																	, autoHeight = True, border = isJust label
 																	, fieldLabel = Nothing, hideLabel = True})]
 																	, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 				| otherwise
@@ -194,7 +192,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						
 			//ADT's with only one constructor
 			| d.gcd_type_def.gtd_num_conses == 1 
-				# (vizBody,vst=:{valid}) = fx ox nx {vst & /*label = Nothing,*/ currentPath = shiftDataPath currentPath, optional = False}
+				# (vizBody,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, optional = False}
 				= (vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 			//ADT's with multiple constructors
 			| otherwise
@@ -224,14 +222,14 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 		_ 	//Other visualizations
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
-					# labels = not (isEmpty d.gcd_fields) || useLabels
-					# (vizBody, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = labels, optional = False}
+					# useLabels = not (isEmpty d.gcd_fields) || useLabels
+					# (vizBody, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = useLabels, optional = False}
 					//No validity check is needed when there is only one constructor
 					| d.gcd_type_def.gtd_num_conses == 1
-						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
+						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					//A validity check is used
 					| otherwise
-						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional, useLabels = useLabels})
+						= (vizCons ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
 				_
 					= ([], {VSt|vst & currentPath = stepDataPath currentPath})		
 where
@@ -263,12 +261,13 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 			= case vizType of
 				VHtmlDisplay
 					# (vizBody,vst) 	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Nothing}
-					= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],vst)
+					= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
 				VTextDisplay
 					# (vizBody,vst) 	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
-					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody], vst)
+					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody], {VSt | vst & label = Nothing})
 				_
-					= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
+					# (vizBody,vst)		= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
+					= (vizBody, {VSt | vst & label = Nothing})
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
@@ -434,8 +433,63 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 					# (viz3,vst) = f3 VBlank VBlank vst
 					# (viz4,vst) = f4 VBlank VBlank vst
 					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3 ++ [TextFragment ", "] ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+
+gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional}
+	= case vizType of
+		VHtmlDisplay
+			= case old of
+				(VValue [] omask)
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+				(VValue ov omask)
+					# (viz,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
+					= ([HtmlFragment [UlTag [ClassAttr "listDisplay"] [(LiTag [ClassAttr "listDisplay"] (flatten (coerceToHtml x))) \\ x <- viz]]],{VSt | vst & currentPath = stepDataPath currentPath})
+				(VBlank)
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+		VTextDisplay
+			= case old of
+				(VValue [] omask)
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+				(VValue ov omask)
+					# (viz,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
+					# strings   = flatten [(coerceToStrings x) \\ x <-viz]
+					= ([TextFragment (toTextFrag strings)], {VSt | vst & currentPath = stepDataPath currentPath})
+				(VBlank)
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath})				
+		_  
+			= case new of
+				(VValue [] nmask)
+					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath}) 
+				(VValue nv nmask)
+					# (viz,vst) = vizEditor fx nv nmask ("element"+++dp2s currentPath) 0 {VSt | vst & currentPath = shiftDataPath currentPath, vizType=VEditorDefinition}
+					= ([TUIFragment (TUIList {TUIList | items = (flatten viz), name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
+				(VBlank)
+					= case old of
+						(VValue [] omask)
+							= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
+						(VValue ov omask)
+							# (viz,vst) = vizEditor fx ov omask ("element"+++dp2s currentPath) 0 {VSt | vst & currentPath = shiftDataPath currentPath}
+							= ([TUIFragment (TUIList {TUIList | items = (flatten viz), name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
+						(VBlank)
+							= ([],vst)
+
+where
+	vizEditor fx []     mask pfx index vst = ([],vst)
+	vizEditor fx [x:xs] mask pfx index vst
+	# (vx,vst) 	= fx (VValue x mask) (VValue x mask) vst
+	# tx		= [(TUIListItem {TUIListItem | items=coerceToTUIDefs vx, id=pfx+++"_"+++toString index})]
+	# (txs,vst) = vizEditor fx xs mask pfx (index+1) vst
+	= ([tx:txs],vst)
+	
+	vizStatic fx []     mask vst = ([],vst)
+	vizStatic fx [x:xs] mask vst
+	# (vx,vst) = fx (VValue x mask) (VValue x mask) vst
+	# (vxs,vst) = vizStatic fx xs mask vst
+	= ([vx:vxs],vst)
+	
+	toTextFrag [] = ""
+	toTextFrag [x] = x
+	toTextFrag [x:xs] = x+++","+++toTextFrag xs
 		
-derive gVisualize []
 derive gVisualize Either, Void
 
 instance toString (VisualizationValue a) | toString a
@@ -484,16 +538,15 @@ consSelector d idPrefix dp value label useLabels
 		= []
 	//Use radiogroup to choose a constructor
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just (formatLabel c.gcd_name), checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
+		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
 				   \\ c <- d.gcd_type_def.gtd_conses]
-		# cols	= repeatn (length items) RADIO_WIDTH
-		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels, columns = cols})]
+		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels})]
 	//Use combobox to choose a constructor
 	| otherwise
 		= [TUIFragment (TUIComboBox {TUIComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
 where
 	
-	store	= [("","Select...") : [(c.gcd_name,formatLabel c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
+	store	= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
 	name	= dp2s dp
 	id		= dp2id idPrefix dp
 	index	= d.gcd_index
@@ -520,7 +573,36 @@ coerceToTUIDefs :: [Visualization] -> [TUIDef]
 coerceToTUIDefs visualizations = [d \\ (TUIFragment d) <- visualizations]
 
 coerceToTUIUpdates :: [Visualization] -> [TUIUpdate]
-coerceToTUIUpdates visualizations = [u \\ (TUIUpdate u) <- visualizations]
+coerceToTUIUpdates []				  = []
+coerceToTUIUpdates [(TUIUpdate u):vs] = [u:coerceToTUIUpdates vs]
+coerceToTUIUpdates [(TUIFragment d):vs]
+= case getId d of
+	(Just id) 	= [(TUIReplace id d):coerceToTUIUpdates vs]
+	Nothing		= coerceToTUIUpdates vs
+where
+	getId (TUILabel)				= Nothing
+	getId (TUIButton d)				= Just d.TUIButton.id
+	getId (TUINumberField d)		= Just d.TUINumberField.id				
+	getId (TUITextField d)			= Just d.TUITextField.id
+	getId (TUITextArea d)			= Just d.TUITextArea.id
+	getId (TUIComboBox d)			= Just d.TUIComboBox.id
+	getId (TUICheckBox d)			= Just d.TUICheckBox.id
+	getId (TUICheckBoxGroup d)		= Just d.TUICheckBoxGroup.id
+	getId (TUIRadio d)				= Nothing
+	getId (TUIRadioGroup d)			= Just d.TUIRadioGroup.id
+	getId (TUITimeField d)			= Just d.TUITimeField.id
+	getId (TUIDateField d)			= Just d.TUIDateField.id
+	getId (TUIHtmlEditor)			= Nothing
+	getId (TUIFieldSet d)			= Just d.TUIFieldSet.id
+	getId (TUIPanel d)				= Nothing
+	getId (TUIBox d)				= Nothing
+	getId (TUIHtmlPanel d)			= Just d.TUIHtmlPanel.id
+	getId (TUIList d)				= Just d.TUIList.id
+	getId (TUIListItem d)			= Just d.TUIListItem.id
+	getId (TUICustom d)				= Nothing
+	getId _							= abort "unknown TUI Definition"
+coerceToTUIUpdates [v:vs]			= coerceToTUIUpdates vs
+
 
 coerceToStrings :: [Visualization] -> [String]
 coerceToStrings visualizations = [s \\ (TextFragment s) <- visualizations]

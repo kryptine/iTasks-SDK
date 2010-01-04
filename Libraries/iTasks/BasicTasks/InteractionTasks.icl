@@ -49,8 +49,11 @@ makeInformationTask question initial context tst=:{taskNr}
 	# (omask,tst)	= case mbmask of
 						Just m = (m,tst)
 						Nothing = case initial of
-							Just v	= accWorldTSt (defaultMask initial) tst
-							Nothing	= ([],tst)
+							Just v 
+								# (mask,tst)	= accWorldTSt (defaultMask v) tst
+								# tst			= setTaskStore "mask" mask tst // <- store the initial mask
+								= (mask,tst)
+							Nothing	= ([],tst) 
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst	
 	| length updates == 0

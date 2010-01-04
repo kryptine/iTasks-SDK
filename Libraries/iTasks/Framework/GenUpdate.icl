@@ -204,45 +204,96 @@ gUpdate{|String|} s ust = (s, ust)
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
 
-//Specialized instances for [] and Maybe that choose the non-recursive constructor 
-
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
-gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,currentPath}
-	# (l,ust) = gUpdateList fx l ust
-	= (l,{ust & currentPath = stepDataPath currentPath})
+
+gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
+	# (lx,ust=:{mask}) = applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath}
+	| currentPath == searchPath
+	= case update % (0,2) of	
+		"ord"
+			# indexes = split "," (update % ((indexOf "_" update)+1,(textSize update)))
+			# upd = changeListOrder lx [(toInt i) \\ i <- indexes]
+			# nm = changeMaskOrder currentPath mask [(toInt i) \\ i <- indexes] 0 []
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm})
+		"add"
+			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
+			= (lx++[nv], {USt | ust & currentPath = stepDataPath currentPath, mode = UDSearch});
+		"rem"
+			# indexes = split "," (update % ((indexOf "_" update)+1,(textSize update)))
+			# nm  = removeMaskItems currentPath mask [(toInt i) \\ i <- indexes]
+			# upd = removeListItems lx [(toInt i) \\ i <- indexes]
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm})
+		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath})
+	| otherwise
+		= (lx, {USt | ust & currentPath = stepDataPath currentPath})
 where
-	gUpdateList fx [] ust=:{USt|currentPath,searchPath,update}
-		| currentPath == searchPath
-			| update == "_Cons"
-				# (a,ust) = fx (abort "List create with undef") {ust& mode = UDCreate}
-				= ([a], toggleMask {USt|ust & mode = UDDone})
-			| otherwise
-				= ([], toggleMask {USt |ust & mode = UDDone})
-		| otherwise	
-			= ([],ust)
-	gUpdateList fx [x:xs] ust=:{USt|currentPath,searchPath,update}
-		| currentPath == searchPath
-			| update == "_Nil"
-				= ([], toggleMask {USt|ust & mode = UDDone})
-			| otherwise
-				= ([x:xs], toggleMask {USt|ust & mode = UDDone})
-		| otherwise
-			# (x,ust)	= fx x {ust & currentPath = shiftDataPath currentPath}
-			# (xs,ust)	= gUpdateList fx xs {ust & currentPath = stepDataPath (shiftDataPath currentPath)}
-			= ([x:xs],ust)
+	changeListOrder []   _   = []
+	changeListOrder list ord = changeListOrder` list [] ord
+	
+	changeListOrder` list acc [] 	 = reverse acc
+	changeListOrder` list acc [x:xs] = changeListOrder` list [(list !! x):acc] xs
+	
+	applyListUpdates fx []     ust = ([],ust)
+	applyListUpdates fx [l:ls] ust
+	# (lx,ust)  = fx l ust
+	# (lxs,ust) = applyListUpdates fx ls ust
+	= ([lx:lxs],ust)	
 		
+	changeMaskOrder path []	  ord	 idx acc = acc
+	changeMaskOrder path mask []     idx acc = acc++mask
+	changeMaskOrder path mask [i:ix] idx acc
+		# mEl 	= [e \\ e <- mask | tlEq e [i:path]]
+		# mask 	= remFromMask mEl mask	
+		# acc 	= changeElements mEl [idx:path] acc
+		= changeMaskOrder path mask ix (idx+1) acc
+	
+	tlEq e i = tlEq` (reverse e) (reverse i)
+	tlEq` _  	 []		= True
+	tlEq` [] 	 _ 		= False
+	tlEq` [e:ex] [i:ix] = (i == e) && (tlEq` ex ix)	
+			
+	changeElements [] ntl acc = acc
+	changeElements [e:ex] ntl acc
+		# ne = reverse (changeElement (reverse e) (reverse ntl))
+		= changeElements ex ntl [ne:acc]
+	
+	changeElement e		 []		= e
+	changeElement [e:ex] [t:tx] = [t]++changeElement ex tx
+	
+	remFromMask remEl mask = [i \\ i <- mask | not(isMember i remEl)]
+	
+	removeListItems [] _ 		= []
+	removeListItems l  []		= l
+	removeListItems l  [i:is]	= removeListItems (removeAt i l) is
+	
+	removeMaskItems p [] _		= []
+	removeMaskItems p m []		= m
+	removeMaskItems p m [i:is]
+		# gEl = [e \\ e <- m | tlGr e [i:p]]
+		# lEl = [e \\ e <- m | not (tlEq e [i:p] || tlGr e [i:p])]
+		# idx = length p
+		= lEl ++ [shiftUpAt e idx \\ e <- gEl]
+	
+	tlGr e i = tlGr` (reverse e) (reverse i)
+	tlGr` []	 _		= False
+	tlGr` [e:ex] [i]	= (e>i)
+	tlGr` [e:ex] [i:ix] = (i==e) && (tlGr` ex ix)
+
+	shiftUpAt [] _ 	   = abort "index out of bounds"
+	shiftUpAt [i:ix] 0 = [(i-1):ix]
+	shiftUpAt [i:ix] n = [i:shiftUpAt ix (n-1)] 
+	
 gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,mask}
-	= (l, gMarkList fx l {USt|ust & mask = [currentPath:mask]})
+	# ust = gMarkList fx l {USt|ust & mask = [currentPath:mask],currentPath = shiftDataPath currentPath}
+	= (l,{USt | ust & currentPath = stepDataPath currentPath})
 where
 	gMarkList fx [] ust
 		= ust
 	gMarkList fx [x:xs] ust=:{USt|currentPath,mask}
-		# stepPath	= shiftDataPath currentPath
-		# (_,ust)	= fx x {USt|ust & currentPath = stepPath, mask = [stepPath:mask]}
-		= gMarkList fx xs {USt|ust & currentPath = stepDataPath stepPath}
+		# (_,ust)	= fx x ust
+		= gMarkList fx xs ust
 		
 gUpdate{|[]|} fx l ust = (l,ust)
-			
 
 gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate} = (Nothing,ust)
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
@@ -259,6 +310,8 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 			Just x
 				# (x,ust) = fx x ust
 				= (Just x,ust)
+
+//Specialized instance Maybe that chooses the non-recursive constructor 
 
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 	= case m of
@@ -297,6 +350,12 @@ dataPathLevel l	= length l
 instance == DataPath
 where
 	(==) a b = (length a == length b) && and (map (\(x,y) -> x == y) (zip (a,b)))
+
+//Force a field to be masked
+setMask :: *USt -> *USt
+setMask ust=:{currentPath,mask}
+# mask = if (isMember currentPath mask) mask [currentPath:mask]
+= {ust & mask = mask}
 
 //Masking and unmasking of fields
 toggleMask :: *USt -> *USt

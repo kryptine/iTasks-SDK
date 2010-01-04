@@ -2,8 +2,8 @@ implementation module TUIDefinition
 
 import JSON
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUITextField, TUITextArea, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel
-derive JSONEncode TUIUpdate, TUIBox
+derive JSONEncode TUIButton, TUITextField, TUITextArea, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList
+derive JSONEncode TUIUpdate, TUIBox, TUIListItem
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextField r) c = addXType "textfield" (JSONEncode{|*|} r c)
@@ -20,6 +20,8 @@ JSONEncode{|TUIDef|} (TUIFieldSet r) c = addXType "fieldset" (JSONEncode{|*|} r 
 JSONEncode{|TUIDef|} (TUIPanel r) c = addXType "panel" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIBox r) c = addXType "box" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIHtmlPanel r) c = addXType "panel" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIList r) c = addXType "itasks.listpanel" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIListItem r) c = addXType "itasks.listitem" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUICustom r) c = JSONEncode{|*|} r c
 
 addXType :: String [String] -> [String]

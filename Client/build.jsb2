@@ -23,6 +23,7 @@
 		,{"text":"itasks.Application.js","path":"js/"}
 		,{"text":"itasks.GMapPanel.js","path":"js/"}
 		,{"text":"itasks.GStaticMapPanel.js","path":"js/"}
+		,{"text":"itasks.ListPanel.js","path":"js/"}
 		,{"text":"itasks.js","path":"js/"}]
 	,"pkgDeps" : []
 	,"includeDeps" : false

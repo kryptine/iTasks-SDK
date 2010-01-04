@@ -3,6 +3,6 @@
 , appTitle: "iTasks"
 , skin: "default"
 , debug: true
-, autoRefresh: true
+, autoRefresh: false
 , refreshRate: 60000
 }

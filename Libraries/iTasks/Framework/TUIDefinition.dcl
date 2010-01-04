@@ -36,6 +36,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIPanel TUIPanel
 	| TUIBox TUIBox
 	| TUIHtmlPanel TUIHtmlPanel
+	| TUIList TUIList
+	| TUIListItem TUIListItem
 	| TUICustom JSON
 
 :: TUIButton =
@@ -112,7 +114,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
 	, items			:: [TUIDef]
-	, columns		:: [Int]
 	}
 :: TUIDateField =
 	{ name			:: String
@@ -153,8 +154,20 @@ derive JSONEncode TUIDef, TUIUpdate
 	{ html			:: String
 	}
 :: TUIHtmlPanel =
-	{ id			:: String
-	, html			:: String
+	{ html			:: String
 	, border		:: Bool
 	, bodyCssClass	:: String
+	, id			:: String
+	}
+:: TUIList =
+	{ items			:: [TUIDef]
+	, editable		:: Bool
+	, name			:: String
+	, id			:: String
+	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
+	}
+:: TUIListItem =
+	{ items			:: [TUIDef]
+	, id			:: String
 	}

@@ -982,19 +982,33 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			}
 			switch(data.content) {
 				case "done":	
-					ct.add(new itasks.WorkMessagePanel({
+					ct.add(new Ext.Panel({
 						html: "This task is completed. Thank you."
 					}));
 					this.fireEvent("taskDone");
 					break;
 				case "redundant":
-					ct.add(new itasks.WorkMessagePanel({
+					ct.add(new Ext.Panel({
 						html: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
 					}));
 					this.fireEvent("taskRedundant");
 					break;	
 			}
 			ct.doLayout();			
+			
+			var tp = this.findParentByType("itasks.worktabs");
+			var tab = this;
+			this.getEl().fadeOut(
+				{ scope: this
+				, duration: .5
+				, useDisplay: true
+				, callback: function()
+					{ 
+						tp.remove(tab);
+					}
+				}
+			);
+						
 			return;
 		}
 		//Update properties
@@ -1119,64 +1133,6 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	}	
 });
 
-itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
-	
-	timeout: 5000,
-	interval: 10,
-	timepassed: 0,
-	runner: null,
-	
-	initComponent: function() {	
-		Ext.apply(this, {
-			cls: "worktab-content",
-			border: false,
-			items: [{
-				xtype: "panel",
-				border: false,
-				html: this.html
-			},{
-				xtype: "progress",
-				style: "margin: 10px 0px 0px 0px;",
-				value: 1.0,
-				text: "This window will automatically close in " + (this.timeout / 1000) + " seconds"
-			}],
-			html: null
-		});
-		itasks.WorkMessagePanel.superclass.initComponent.apply(this,arguments);
-		
-		this.runner = {
-			run: this.update,
-			scope: this,
-			interval: this.interval
-		};
-		
-		Ext.TaskMgr.start(this.runner);
-	},
-	update: function() {
-		if(this.timepassed >= this.timeout) {
-			//Close the parent work panel
-			var pt = this.findParentByType("itasks.work");
-			if(pt.ownerCt)
-				pt.ownerCt.remove(pt);
-		} else {
-			//Update progress
-			this.timepassed += this.interval;
-			
-			var pb = this.getComponent(1);
-		
-			pb.updateText("This window will automatically close in " + Math.ceil((this.timeout - this.timepassed) / 1000) + " seconds");
-			pb.updateProgress((this.timeout - this.timepassed) / this.timeout );
-		}
-	},
-	onDestroy: function() {
-		//Stop the taskrunner
-		if(this.runner) {
-			Ext.TaskMgr.stop(this.runner);
-		}
-		itasks.WorkMessagePanel.superclass.onDestroy.apply(this,arguments);
-	}
-});
-
 itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
@@ -1261,6 +1217,8 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 			ct.sendUpdates(true);
 		};
 		var clickTaskEvent = function () {
+			if(this.clickCB) this.clickCB(this);
+			
 			var ct = this.findParentByType("itasks.task-ext-form");
 			if(!ct)
 				return;
@@ -2095,7 +2053,149 @@ itasks.GStaticMapPanel = Ext.extend( Ext.Panel, {
 	}
 });
 
-Ext.reg('itasks.gstaticmappanel', itasks.GStaticMapPanel);Ext.BLANK_IMAGE_URL = "/ext3/resources/images/default/s.gif";
+Ext.reg('itasks.gstaticmappanel', itasks.GStaticMapPanel);Ext.ns("itasks");
+
+itasks.ListPanel = Ext.extend(Ext.Panel,
+{
+	
+	selectedItems : {},
+	
+	initComponent: function(){
+				
+		Ext.apply(this,
+		{ autoHeight: true
+		, border: false
+		, cls: 'listPanel'
+		, bodyCfg: {
+			id: 'sortable_'+this.id,
+			tag: 'ul'		
+		}
+		, buttons: [
+			{ text: 'Add'
+			, name: this.name
+			, value: 'add'
+			},
+			{ text: 'Remove'
+			, name: this.name
+			}
+		]	
+		});	
+
+		var workCt = this.findParentByType('itasks.work');
+		
+		itasks.ListPanel.superclass.initComponent.apply(this,arguments);
+	},
+	
+	afterRender: function(arguments){
+		itasks.ListPanel.superclass.afterRender.call(this,arguments);
+		this.doLayout();
+		this.delayedTask = new Ext.util.DelayedTask();	
+		
+		if(this.editable){
+			Sortable.create('sortable_'+this.id,{onUpdate: this.onUpdateCB});
+		}
+	
+		this.buttons[1].clickCB = this.remItemHandler;
+	},
+	
+	onUpdateCB: function(ct){
+		
+		var id = ct.id.substring(ct.id.lastIndexOf('_')+1);		
+		var lp = Ext.getCmp(id);
+		
+		var task = function(){
+			lp.disable();
+			var formCt = lp.findParentByType("itasks.task-ext-form");
+			formCt.addUpdate(lp.name,"ord_"+Sortable.sequence(ct.id));
+			formCt.sendUpdates(false);		
+		}
+		
+		lp.delayedTask.delay(1000,task,lp);
+	},
+	
+	deselectAll: function(){
+		var f = function(){
+			this.blur();
+			if(this.deselect){
+				this.deselect();			
+			}
+		}
+		
+		this.selectedItems = {};
+		this.cascade(f);
+	},
+
+	selectItem: function(index){
+		this.selectedItems[index] = true;
+	},
+	
+	deselectItem: function(index){
+		this.selectedItems[index] = false;
+	},
+
+	remItemHandler: function(b){
+		var ct = this.findParentByType('itasks.listpanel');
+		var val = 'rem_'
+	
+		for(x in ct.selectedItems){
+			if(ct.selectedItems[x]){
+				val += x+','
+			}
+		}
+		
+		b.value = val.substring(0,val.length-1);
+	}
+});
+
+itasks.ListItem = Ext.extend(Ext.Panel,
+{	
+	initComponent: function(arguments){
+		
+		Ext.apply(this,
+		{ border: false
+		, cls: 'listPanelItem'
+		, autoHeight: true
+		, autoEl : 'li'
+		, selected: 'False'
+		});
+		
+		itasks.ListItem.superclass.initComponent.apply(this,arguments);
+		
+		var index = this.id.lastIndexOf('_');
+		this.index = this.id.substring(index+1);
+	},
+	
+	afterRender: function(arguments){
+		itasks.ListItem.superclass.afterRender.call(this,arguments);
+		this.body.on("mousedown", this.clickHandler ,this);
+	},
+	
+	clickHandler : function(node,e){
+		var p = this.findParentByType('itasks.listpanel');
+	
+		if(this.selected){
+			this.deselect();
+			p.deselectItem(this.index);
+		}else{
+			p.deselectAll();
+			p.selectItem(this.index);
+			this.select();
+		}	
+	},
+	
+	select: function(){
+		this.selected = true;
+		this.addClass('listPanelItemSelected');
+	},
+	
+	deselect: function(){
+		this.selected = false;
+		this.removeClass('listPanelItemSelected');
+	}
+});
+
+Ext.reg("itasks.listitem",itasks.ListItem);
+Ext.reg("itasks.listpanel",itasks.ListPanel);Ext.BLANK_IMAGE_URL = "/ext3/resources/images/default/s.gif";
 
 Ext.ns("itasks");
 

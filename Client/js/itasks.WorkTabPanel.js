@@ -86,19 +86,33 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			}
 			switch(data.content) {
 				case "done":	
-					ct.add(new itasks.WorkMessagePanel({
+					ct.add(new Ext.Panel({
 						html: "This task is completed. Thank you."
 					}));
 					this.fireEvent("taskDone");
 					break;
 				case "redundant":
-					ct.add(new itasks.WorkMessagePanel({
+					ct.add(new Ext.Panel({
 						html: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
 					}));
 					this.fireEvent("taskRedundant");
 					break;	
 			}
 			ct.doLayout();			
+			
+			var tp = this.findParentByType("itasks.worktabs");
+			var tab = this;
+			this.getEl().fadeOut(
+				{ scope: this
+				, duration: .5
+				, useDisplay: true
+				, callback: function()
+					{ 
+						tp.remove(tab);
+					}
+				}
+			);
+						
 			return;
 		}
 		//Update properties
@@ -223,64 +237,6 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	}	
 });
 
-itasks.WorkMessagePanel = Ext.extend(Ext.Panel, {
-	
-	timeout: 5000,
-	interval: 10,
-	timepassed: 0,
-	runner: null,
-	
-	initComponent: function() {	
-		Ext.apply(this, {
-			cls: "worktab-content",
-			border: false,
-			items: [{
-				xtype: "panel",
-				border: false,
-				html: this.html
-			},{
-				xtype: "progress",
-				style: "margin: 10px 0px 0px 0px;",
-				value: 1.0,
-				text: "This window will automatically close in " + (this.timeout / 1000) + " seconds"
-			}],
-			html: null
-		});
-		itasks.WorkMessagePanel.superclass.initComponent.apply(this,arguments);
-		
-		this.runner = {
-			run: this.update,
-			scope: this,
-			interval: this.interval
-		};
-		
-		Ext.TaskMgr.start(this.runner);
-	},
-	update: function() {
-		if(this.timepassed >= this.timeout) {
-			//Close the parent work panel
-			var pt = this.findParentByType("itasks.work");
-			if(pt.ownerCt)
-				pt.ownerCt.remove(pt);
-		} else {
-			//Update progress
-			this.timepassed += this.interval;
-			
-			var pb = this.getComponent(1);
-		
-			pb.updateText("This window will automatically close in " + Math.ceil((this.timeout - this.timepassed) / 1000) + " seconds");
-			pb.updateProgress((this.timeout - this.timepassed) / this.timeout );
-		}
-	},
-	onDestroy: function() {
-		//Stop the taskrunner
-		if(this.runner) {
-			Ext.TaskMgr.stop(this.runner);
-		}
-		itasks.WorkMessagePanel.superclass.onDestroy.apply(this,arguments);
-	}
-});
-
 itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
@@ -365,6 +321,8 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 			ct.sendUpdates(true);
 		};
 		var clickTaskEvent = function () {
+			if(this.clickCB) this.clickCB(this);
+			
 			var ct = this.findParentByType("itasks.task-ext-form");
 			if(!ct)
 				return;

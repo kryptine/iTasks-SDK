@@ -102,8 +102,6 @@ where
 	                     | string == "" = (acc, file)
 	                     | otherwise    = rec file (acc +++ string)
 
-import StdDebug
-
 deleteValues :: !String !*Store !*World -> (!*Store, !*World)
 deleteValues prefix store=:{cache,location} world
 	//Delete items from cache
