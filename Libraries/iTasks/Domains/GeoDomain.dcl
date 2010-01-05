@@ -2,16 +2,17 @@ definition module GeoDomain
 
 import Html, InteractionTasks, CommonDomain
 
-derive gPrint 	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
-derive gParse 	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
-derive gVisualize   Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
-derive gUpdate	  	Map, MapMarker, MapInfoWindow, GoogleMapType, StaticMap
+derive gPrint 	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gParse 	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVisualize   GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gUpdate	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
+//API Key for http://localhost
 GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4lboFdTKu2o9gr_i8kRV0Pn1fNw"
 
-:: StaticMap = StaticMap Int Int String
+:: GoogleStaticMap = GoogleStaticMap Int Int String
 
-:: Map = 
+:: GoogleMap = 
 	{ center				:: Coordinate 				  // Coordinate of the center point (Required by maps)
 	, width					:: Int		 				  // Width &
 	, height				:: Int						  // Height of the map
@@ -20,17 +21,17 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, scaleControl			:: Bool		  				  // Show the control for zooming
 	, zoom					:: Int	      				  // The zoom level (Required by maps)
 	, mapType				:: GoogleMapType			  // The map type
-	, markers				:: [MapMarker]				  // Markers placed on the map
+	, markers				:: [GoogleMapMarker]		  // Markers placed on the map
 	}
 	
 :: Coordinate :== (Real, Real) // (Lattitude, Longitude)
 
-:: MapMarker =
-	{ position				:: Coordinate		// Coordinate of the marker point
-	, infoWindow			:: MapInfoWindow	// Information which is shown on click
+:: GoogleMapMarker =
+	{ position				:: Coordinate			// Coordinate of the marker point
+	, infoWindow			:: GoogleMapInfoWindow	// Information which is shown on click
 	}
 	
-:: MapInfoWindow =
+:: GoogleMapInfoWindow =
 	{ content				:: String			// Contents of the window
 	, width					:: Int				// Width of the window
 	}
@@ -52,8 +53,7 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 :: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
 :: ClickSource  = MAP | MARKER Coordinate
 
-convertToStaticMap :: Map -> StaticMap
-mkMap :: Map
+convertToStaticMap :: GoogleMap -> GoogleStaticMap
+mkMap :: GoogleMap
 
 instance toString GoogleMapType
-//instance html	  StaticMap
