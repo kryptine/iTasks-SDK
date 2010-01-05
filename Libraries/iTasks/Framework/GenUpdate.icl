@@ -272,7 +272,7 @@ where
 		# gEl = [e \\ e <- m | tlGr e [i:p]]
 		# lEl = [e \\ e <- m | not (tlEq e [i:p] || tlGr e [i:p])]
 		# idx = length p
-		= lEl ++ [shiftUpAt e idx \\ e <- gEl]
+		= lEl ++ [reverse(shiftUpAt (reverse e) idx) \\ e <- gEl]
 	
 	tlGr e i = tlGr` (reverse e) (reverse i)
 	tlGr` []	 _		= False

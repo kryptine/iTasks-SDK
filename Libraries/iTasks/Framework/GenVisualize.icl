@@ -474,11 +474,11 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 
 where
 	vizEditor fx []     mask pfx index vst = ([],vst)
-	vizEditor fx [x:xs] mask pfx index vst
-	# (vx,vst) 	= fx (VValue x mask) (VValue x mask) vst
+	vizEditor fx [x:xs] mask pfx index vst=:{label}
+	# (vx,vst) 	= fx (VValue x mask) (VValue x mask) {VSt | vst & label = Nothing} //Don't display any labels.
 	# tx		= [(TUIListItem {TUIListItem | items=coerceToTUIDefs vx, id=pfx+++"_"+++toString index})]
 	# (txs,vst) = vizEditor fx xs mask pfx (index+1) vst
-	= ([tx:txs],vst)
+	= ([tx:txs],{VSt | vst & label = label})
 	
 	vizStatic fx []     mask vst = ([],vst)
 	vizStatic fx [x:xs] mask vst
