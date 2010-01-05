@@ -350,7 +350,7 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUIPanel {TUIPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel |layout = "", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2}
@@ -377,7 +377,7 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
-			= ([TUIFragment (TUIPanel {TUIPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel |layout = "", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
@@ -409,7 +409,7 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			# (viz4,vst) = f4 v4 v4 vst
-			= ([TUIFragment (TUIPanel {TUIPanel |layout = "hbox", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel |layout = "", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
