@@ -29,7 +29,7 @@ instance Text String
 
     lastIndexOf :: !String !String -> Int
 	lastIndexOf "" haystack = -1
-	lastIndexOf needle haystack = `lastIndexOf needle haystack (size haystack)
+	lastIndexOf needle haystack = `lastIndexOf needle haystack (size haystack - 1)
 		where
 		`lastIndexOf needle haystack n
 			| n < 0																	= -1		
@@ -67,6 +67,14 @@ instance Text String
 	rtrim s
 		| isSpace s.[size s - 1]	= if (size s == 1) "" (rtrim (s % (0, size s - 2)))
 									= s
+
+	lpad :: !String !Int !Char -> String
+	lpad s w  c
+		= let boundary = w - size s in {if (i < boundary) c s.[i - boundary] \\ i <- [0.. w - 1]}
+	
+	rpad :: !String !Int !Char -> String
+    rpad s w c
+    	= let boundary = size s in {if (i < boundary) s.[i] c \\ i <- [0.. w - 1]}
 
     toLowerCase :: !String -> String
 	toLowerCase s = {toLower c \\ c <-: s}

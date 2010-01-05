@@ -99,6 +99,16 @@ class Text s
 	rtrim				:: !s -> s
 	
 	/**
+	* Pads a string to a fixed length by adding characters to the beginning of a string.
+	*/
+	lpad				:: !s !Int !Char -> s
+	
+	/**
+	* Pads a string to a fixed length by adding characters to the end of a string.
+	*/
+	rpad				:: !s !Int !Char -> s
+	
+	/**
 	* Converts all characters in a string to lower case.
 	*/
 	toLowerCase			:: !s -> s
