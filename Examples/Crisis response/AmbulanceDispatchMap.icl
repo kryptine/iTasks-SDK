@@ -19,11 +19,11 @@ where
 	flows = [ workflow "Examples/Crisis response/Report incident (Map)" reportIncident ]
 
 :: Incident =
-	{ address		:: Note
+	{ location		:: Coordinate
+	, address		:: Note
 	, type			:: IncidentType
 	, time			:: Time
 	, nrInjured		:: Int
-	, location		:: Coordinate
 	, description	:: Note
 	}
 	
@@ -35,14 +35,14 @@ reportIncident
 	\map -> specifiyIncidents map
 	>>| return Void
 	
-markLocations :: Task Map
+markLocations :: Task GoogleMap
 markLocations = 
 	enterInformation "Mark all locations where incidents have occurred"
 	
-specifiyIncidents :: Map -> Task [Incident]
-specifiyIncidents map = sequence "Specify individual incident details" [ (addressLookup m) >>= \addr -> (specifyIncident addr m) \\ m <- (reverse map.Map.markers) ]
+specifiyIncidents :: GoogleMap -> Task [Incident]
+specifiyIncidents map = sequence "Specify individual incident details" [ (addressLookup m) >>= \addr -> (specifyIncident addr m) \\ m <- (reverse map.GoogleMap.markers) ]
 
-addressLookup :: MapMarker -> Task String
+addressLookup :: GoogleMapMarker -> Task String
 addressLookup marker
 	# (lat,lng) = marker.position
 	= showStickyMessage ("Address is being retrieved for coordinates: ("+++toString lat+++", "+++toString lng+++")") 
@@ -56,9 +56,9 @@ where
 				_			= "Address Unknown"
 		_	= "Address Unknown"
 
-specifyIncident :: String MapMarker -> Task Incident
+specifyIncident :: String GoogleMapMarker -> Task Incident
 specifyIncident addr marker
-# smap = convertToStaticMap {Map | mkMap & center = marker.position, width = 200, height = 200, zoom = 15, markers = [marker]}
+# smap = convertToStaticMap {GoogleMap | mkMap & center = marker.position, width = 200, height = 200, zoom = 15, markers = [marker]}
 # incident = { Incident
 			 | location = marker.position
 			 , address = Note addr
