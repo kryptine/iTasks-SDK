@@ -307,11 +307,11 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 					values[values.length] = boxes[i].value;
 				}
 				return Ext.encode(values);
-				//console.log(Ext.encode(values));
 			}
 			
 			var value;
 			switch(this.xtype) {
+				
 				case "radiogroup": value = this.getValue().value; break;
 				case "checkboxgroup": value = checkboxValues(arguments[1]); break;
 				case "datefield": value = this.getRawValue(); break;
@@ -331,7 +331,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 			ct.sendUpdates();
 			
 		};		
-		switch(comp.getXType()) {
+		switch(comp.xtype) {
 				case "textfield":
 				case "textarea":
 				case "numberfield":
