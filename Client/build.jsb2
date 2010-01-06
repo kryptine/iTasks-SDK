@@ -6,27 +6,54 @@
 	,"file" : "itasks-all.js" 
 	,"isDebug" : false
 	,"fileIncludes" :
-		[{"text":"itasks.util.js","path":"js/"}
-		,{"text":"itasks.form.js","path":"js/"}
-		,{"text":"itasks.LoginWindow.js","path":"js/"}
-		,{"text":"itasks.LoaderWindow.js","path":"js/"}
-		,{"text":"itasks.RemoteDataPanel.js","path":"js/"}
-		,{"text":"itasks.NewWorkPanel.js","path":"js/"}
-		,{"text":"itasks.DebugPanel.js","path":"js/"}
-		,{"text":"itasks.WorkListPanel.js","path":"js/"}
-		,{"text":"itasks.HomeTabPanel.js","path":"js/"}
-		,{"text":"itasks.TaskForestTabPanel.js","path":"js/"}
-		,{"text":"itasks.ProcessTableTabPanel.js","path":"js/"}
-		,{"text":"itasks.WorkTabPanel.js","path":"js/"}
-		,{"text":"itasks.WorkTabsPanel.js","path":"js/"}
-		,{"text":"itasks.ApplicationPanel.js","path":"js/"}
-		,{"text":"itasks.Application.js","path":"js/"}
-		,{"text":"itasks.GMapPanel.js","path":"js/"}
-		,{"text":"itasks.GStaticMapPanel.js","path":"js/"}
-		,{"text":"itasks.ListPanel.js","path":"js/"}
-		,{"text":"itasks.js","path":"js/"}]
+		[{"text":"itasks.util.js","path":"src/js/"}
+		,{"text":"itasks.form.js","path":"src/js/"}
+		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
+		,{"text":"itasks.LoaderWindow.js","path":"src/js/"}
+		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
+		,{"text":"itasks.NewWorkPanel.js","path":"src/js/"}
+		,{"text":"itasks.DebugPanel.js","path":"src/js/"}
+		,{"text":"itasks.WorkListPanel.js","path":"src/js/"}
+		,{"text":"itasks.HomeTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.TaskForestTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.ProcessTableTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.WorkTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.WorkTabsPanel.js","path":"src/js/"}
+		,{"text":"itasks.ApplicationPanel.js","path":"src/js/"}
+		,{"text":"itasks.Application.js","path":"src/js/"}
+		,{"text":"itasks.GMapPanel.js","path":"src/js/"}
+		,{"text":"itasks.GStaticMapPanel.js","path":"src/js/"}
+		,{"text":"itasks.ListPanel.js","path":"src/js/"}
+		,{"text":"itasks.js","path":"src/js/"}]
+	,"pkgDeps" : ["ext-ux-all.js"]
+	,"includeDeps" : false
+	},{
+	 "name": "ext-ux-all"
+	,"file": "ext-ux-all.js"
+	,"isDebug": false
+	,"fileIncludes" : 
+		[{"text":"Ext.ux.AjaxRemoteRequest.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.ColumnNodeUI.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.ColumnTree.js","path":"src/js/"}]
 	,"pkgDeps" : []
 	,"includeDeps" : false
 	}]
-, "resources" :[]
+, "resources" :[
+	{ "src":"src/static/"
+	, "dest":"/"
+	, "filters":".*config\\.json|.*favicon\\.ico|.*index\\.html"
+	},
+	{ "src":"src/css/"
+	, "dest":"/css/"
+	, "filters":".*\\.css"
+	},
+	{ "src":"src/skins/"
+	, "dest":"/skins/"
+	, "filters":".*"
+	},
+	{ "src":"lib/"
+	, "dest":"/"
+	, "filters":".*"
+	}
+	]
 }
