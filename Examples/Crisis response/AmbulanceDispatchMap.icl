@@ -3,7 +3,7 @@ implementation module AmbulanceDispatchMap
 import iTasks
 import CommonDomain
 import GeoDomain
-import RPCStubs
+import google_maps_services
 import Base64
 import JSONTree
 
