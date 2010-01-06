@@ -3,6 +3,9 @@ implementation module BasicWorkflows
 import iTasks
 import CommonDomain
 
+Start :: *World -> *World
+Start world = startEngine basicWorkflows world
+
 basicWorkflows :: [Workflow]
 basicWorkflows =
 	[ {Workflow|name="Basic/Action task",label="New action task...",roles=[],mainTask=actionTask >>|return Void}

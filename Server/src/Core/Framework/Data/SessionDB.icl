@@ -5,7 +5,7 @@ import StdGeneric, GenBimap
 import TSt, Store
 
 import Time
-import MersenneTwister
+import Random
 
 createSession :: !User !*TSt -> (!Session,!*TSt)
 createSession user tst
