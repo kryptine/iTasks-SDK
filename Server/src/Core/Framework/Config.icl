@@ -8,7 +8,7 @@ derive JSONDecode Config
 defaultConfig :: Config
 defaultConfig =
 	{ clientPath	= "..\\..\\Client\\build"
-	, staticPath	= "Static"
+	, staticPath	= ".\\Static"
 	, rootPassword	= ""
 	, sessionTime	= 3600
 	, serverPort	= 80
