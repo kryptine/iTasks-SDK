@@ -57,10 +57,9 @@ where
 setProcessOwner :: !UserId !pid -> Task Bool | toProcessId pid
 setProcessOwner uid pid = mkInstantTask "setProcessOwner" setProcessOwner`
 where
-	setProcessOwner` tst
-		# (cur,tst)			= getCurrentUser tst //Current user is the new delegator of the process
+	setProcessOwner` tst=:{staticInfo}
 		# (user,tst)		= getUser uid tst
-		# (delegator,tst)	= getUser cur tst
+		# delegator			= staticInfo.currentSession.user //Current user is the new delegator of the process
 		= ProcessDB@setProcessOwner (user.User.userId,user.User.displayName) (delegator.User.userId,delegator.User.displayName) (toProcessId pid) tst
 
 

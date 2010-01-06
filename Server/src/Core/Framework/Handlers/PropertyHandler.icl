@@ -40,13 +40,12 @@ where
 	parsePrio _					= Nothing
 	
 	
-	updateUser proc userId tst
+	updateUser proc userId tst=:{staticInfo}
 		| userId < 0			
 			= (errorResponse "Invalid user id", tst)	//Only positive user ids are possible
 		| otherwise
-			# (delegatorId,tst)	= getCurrentUser tst
 			# (user,tst)		= getUser userId tst
-			# (delegator,tst)	= getUser delegatorId tst
+			# delegator			= staticInfo.currentSession.user
 		 	# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & systemProps = {p.systemProps & manager = (delegator.User.userId,delegator.User.displayName)},managerProps = {p.managerProps & worker = (user.User.userId,user.User.displayName)}, workerProps = {p.workerProps & progress = TPActive}}) tst
 		 	= (successResponse,tst)
 		 	

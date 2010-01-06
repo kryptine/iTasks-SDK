@@ -168,10 +168,6 @@ accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 
 /**
-* Extract the user id of the current session in the TSt
-*/
-getCurrentUser	:: !*TSt 	-> (!UserId, !*TSt)
-/**
 * Get the id of the current process in the TSt
 */
 

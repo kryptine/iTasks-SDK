@@ -29,8 +29,8 @@ derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
 JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-handleWorkListRequest request tst
-	# (uid, tst)			= getCurrentUser tst
+handleWorkListRequest request tst=:{staticInfo}
+	# uid					= staticInfo.currentSession.user.User.userId
 	# (processes,tst)		= getProcessesForUser uid [Active] tst
 	# workitems				= bldWorkItems processes
 	# worklist				= { success		= True

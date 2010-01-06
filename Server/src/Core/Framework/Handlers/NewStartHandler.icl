@@ -21,9 +21,8 @@ where
 	response taskid	= "{\"success\" : true, \"taskid\": \""  +++ taskid +++ "\"}"
 	
 	startWorkflow :: !Workflow !*TSt -> (!ProcessId,!*TSt)
-	startWorkflow workflow tst
-		# (uid,tst) 	= getCurrentUser tst
-		# (user,tst)	= getUser uid tst
+	startWorkflow workflow tst=:{staticInfo}
+		# user			= staticInfo.currentSession.user
 		# properties	= { worker = (user.User.userId, user.User.displayName)
 						  , subject = workflow.Workflow.label
 						  , priority	= NormalPriority

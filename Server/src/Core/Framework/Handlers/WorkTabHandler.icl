@@ -9,7 +9,7 @@ import UserDB, ProcessDB
 import GenVisualize, GenUpdate, TUIDefinition
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-handleWorkTabRequest req tst
+handleWorkTabRequest req tst=:{staticInfo}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
 		(TTMainTask ti properties tasks)
@@ -23,7 +23,7 @@ handleWorkTabRequest req tst
 			# (debuginfo,tst)
 						= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.
-			# (uid,tst)	= getCurrentUser tst
+			# uid = staticInfo.currentSession.Session.user.User.userId
 			| uid == fst properties.managerProps.TaskManagerProperties.worker
 				// Update the task timestamps 
 				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst

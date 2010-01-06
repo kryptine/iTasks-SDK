@@ -5,7 +5,6 @@ from TSt import mkInstantTask
 import StdList, StdMaybe
 
 from UserDB import :: User
-from UserDB import qualified getCurrentUser
 from UserDB import qualified getUser
 from UserDB import qualified getUserByName
 from UserDB import qualified getUsers

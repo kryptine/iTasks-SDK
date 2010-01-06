@@ -5,7 +5,6 @@ from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config
 from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Options, :: Workflow
 from TSt import mkInstantTask, mkMonitorTask
 from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString
-from TSt import qualified getCurrentUser
 from TSt import qualified createTaskInstance
 
 import Types
@@ -29,9 +28,8 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 getCurrentUser :: Task User
 getCurrentUser = mkInstantTask "getCurrentUserId" getCurrentUser`
 where
-	getCurrentUser` tst
-		# (cur,tst)	= TSt@getCurrentUser tst
-		= UserDB@getUser cur tst
+	getCurrentUser` tst=:{staticInfo}
+		= (staticInfo.currentSession.user,tst)
 		
 getCurrentProcessId :: Task ProcessId
 getCurrentProcessId = mkInstantTask "getCurrentProcessId" getCurrentProcessId`
@@ -48,10 +46,9 @@ where
 spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess uid activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
-	spawnProcess` tst=:{TSt|mainTask}
-		# (curUid,tst)		= TSt@getCurrentUser tst
-		# (user,tst)		= UserDB@getUser uid tst
-		# properties =
+	spawnProcess` tst=:{TSt|mainTask,staticInfo}
+		# user			= staticInfo.currentSession.user
+		# properties	=
 			{ TaskManagerProperties
 			| worker	= (user.User.userId,user.User.displayName)
 			, subject 	= taskLabel task
