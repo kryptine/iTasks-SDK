@@ -13,4 +13,6 @@ The repository is organized in the following folders:
 
 - Examples : Example workflow suites.
 
+- Tests    : Small test programs.
+
 - Tools    : Various build and code generation tools.
