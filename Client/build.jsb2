@@ -43,11 +43,11 @@
 	, "dest":"/"
 	, "filters":".*config\\.json|.*favicon\\.ico|.*index\\.html"
 	},
-	{ "src":"src/css/"
+	{ "src":"src/static/css/"
 	, "dest":"/css/"
 	, "filters":".*\\.css"
 	},
-	{ "src":"src/skins/"
+	{ "src":"src/static/skins/"
 	, "dest":"/skins/"
 	, "filters":".*"
 	},
