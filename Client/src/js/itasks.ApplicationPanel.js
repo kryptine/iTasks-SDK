@@ -132,11 +132,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					}
 				}
 			};
-			if(worklist.rendered) {
-				tb.add(button);
-			} else {
-				tb[tb.length] = button;
-			}
+			tb.add(button);
 		}
 	},
 	logout: function() {	
