@@ -10,134 +10,132 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 		Ext.apply(this,
 		{ autoHeight: true
 		, border: false
-		, cls: 'listPanel'
-		, bodyCfg: {
-			id: 'sortable_'+this.id,
-			tag: 'ul'		
-		}
-		, buttons: [
-			{ text: 'Add'
-			, name: this.name
-			, value: 'add'
-			},
-			{ text: 'Remove'
-			, name: this.name
-			}
-		]	
+		, cls: 'list'
 		});	
-
-		var workCt = this.findParentByType('itasks.work');
 		
 		itasks.ListPanel.superclass.initComponent.apply(this,arguments);
 	},
 	
-	afterRender: function(arguments){
+	afterRender: function(arguments){		
+		//in case of an empty list, add an 'add'-button.
+		if(!this.items || this.items.length == 0){
+		
+			var addButton = new Ext.Button({
+				text: 'Add Element',
+				iconCls: 'list-button-add',
+				renderTarget: 'span[name=button]'
+			});
+		
+			var addButtonPanel = new Ext.Panel({
+				layout: 'ux.html',
+				html: '<table><tr><td style="font-style: italic; padding-right: 5px;">The list is empty.</td><td><span name="button"></span></td></tr></table>',
+				items: [addButton],
+				baseCls: 'list-item'
+			});
+			
+			var addFunct = function(){
+				var formCt = this.findParentByType('itasks.task-ext-form');
+				formCt.addUpdate(this.name,"add_-1");
+				formCt.sendUpdates(false);	
+			}
+			
+			addButton.on('click',addFunct.createDelegate(this));
+		
+			this.add(addButtonPanel);
+		}
+		
 		itasks.ListPanel.superclass.afterRender.call(this,arguments);
-		this.doLayout();
-		this.delayedTask = new Ext.util.DelayedTask();	
-		
-		if(this.editable){
-			Sortable.create('sortable_'+this.id,{onUpdate: this.onUpdateCB});
-		}
-	
-		this.buttons[1].clickCB = this.remItemHandler;
-	},
-	
-	onUpdateCB: function(ct){
-		
-		var id = ct.id.substring(ct.id.lastIndexOf('_')+1);		
-		var lp = Ext.getCmp(id);
-		
-		var task = function(){
-			lp.disable();
-			var formCt = lp.findParentByType("itasks.task-ext-form");
-			formCt.addUpdate(lp.name,"ord_"+Sortable.sequence(ct.id));
-			formCt.sendUpdates(false);		
-		}
-		
-		lp.delayedTask.delay(1000,task,lp);
-	},
-	
-	deselectAll: function(){
-		var f = function(){
-			this.blur();
-			if(this.deselect){
-				this.deselect();			
-			}
-		}
-		
-		this.selectedItems = {};
-		this.cascade(f);
-	},
-
-	selectItem: function(index){
-		this.selectedItems[index] = true;
-	},
-	
-	deselectItem: function(index){
-		this.selectedItems[index] = false;
-	},
-
-	remItemHandler: function(b){
-		var ct = this.findParentByType('itasks.listpanel');
-		var val = 'rem_'
-	
-		for(x in ct.selectedItems){
-			if(ct.selectedItems[x]){
-				val += x+','
-			}
-		}
-		
-		b.value = val.substring(0,val.length-1);
 	}
 });
 
-itasks.ListItem = Ext.extend(Ext.Panel,
+Ext.ns("itasks.list");
+
+itasks.list.Button = Ext.extend(Ext.Button,
+{
+	onRender: function(ct,position){
+		
+        var t = new Ext.Template('<div id="{1}" class="list-toolbox-button {2}"><button type="{0}"></button></div>');
+        t.compile();
+
+        this.template = t;
+        var btn, targs = this.getTemplateArgs();
+
+        if(position){
+			btn = this.template.insertBefore(position, [this.type,this.id,this.btnCls], true);
+        }else{
+			btn = this.template.append(ct,[this.type,this.id,this.btnCls], true);
+        }
+
+        this.btnEl = btn.child(this.buttonSelector);
+        this.mon(this.btnEl, {
+            scope: this,
+            focus: this.onFocus,
+            blur: this.onBlur
+        });
+
+        this.initButtonEl(btn, this.btnEl);
+        Ext.ButtonToggleMgr.register(this);		
+	}
+});
+
+itasks.list.Toolbox = Ext.extend(Ext.Panel,
+{
+	initComponent: function(){
+		this.upButton   = new itasks.list.Button({btnCls: 'list-button-up'});
+		this.downButton = new itasks.list.Button({btnCls: 'list-button-down'});
+		this.addButton  = new itasks.list.Button({btnCls: 'list-button-add'});
+		this.remButton  = new itasks.list.Button({btnCls: 'list-button-rem'});
+		
+		Ext.apply(this,
+		{ width: 70
+		, layout: 'hbox'
+		, items: [this.upButton,this.downButton,this.addButton,this.remButton]
+		, cls: 'list-toolbox'
+		, unstyled: true
+		});
+		
+		itasks.list.Toolbox.superclass.initComponent.apply(this,arguments);
+	},
+	
+	handleClick: function(action,name,index){
+		var formCt = this.findParentByType('itasks.task-ext-form');
+		formCt.addUpdate(name,action+"_"+index);
+		formCt.sendUpdates(false);	
+	},
+	
+	afterRender: function(arguments){
+		this.upButton.on('click',this.handleClick.createDelegate(this,['mup',this.name,this.index]));
+		this.downButton.on('click',this.handleClick.createDelegate(this,['mdn',this.name,this.index]));
+		this.addButton.on('click',this.handleClick.createDelegate(this,['add',this.name,this.index]));
+		this.remButton.on('click',this.handleClick.createDelegate(this,['rem',this.name,this.index]));
+	
+		itasks.list.Toolbox.superclass.afterRender.call(this,arguments);
+	}
+});
+
+itasks.list.Item = Ext.extend(Ext.Panel,
 {	
-	initComponent: function(arguments){
+	initComponent: function(){
 		
 		Ext.apply(this,
 		{ border: false
-		, cls: 'listPanelItem'
+		, cls: 'list-item'
 		, autoHeight: true
-		, autoEl : 'li'
-		, selected: 'False'
+		, unstyled: true
 		});
 		
-		itasks.ListItem.superclass.initComponent.apply(this,arguments);
+		itasks.list.Item.superclass.initComponent.apply(this,arguments);
+	},
+
+	afterRender: function(arguments){		
+		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name})
+		this.add(this.toolbox);
 		
-		var index = this.id.lastIndexOf('_');
-		this.index = this.id.substring(index+1);
-	},
-	
-	afterRender: function(arguments){
-		itasks.ListItem.superclass.afterRender.call(this,arguments);
-		this.body.on("mousedown", this.clickHandler ,this);
-	},
-	
-	clickHandler : function(node,e){
-		var p = this.findParentByType('itasks.listpanel');
-	
-		if(this.selected){
-			this.deselect();
-			p.deselectItem(this.index);
-		}else{
-			p.deselectAll();
-			p.selectItem(this.index);
-			this.select();
-		}	
-	},
-	
-	select: function(){
-		this.selected = true;
-		this.addClass('listPanelItemSelected');
-	},
-	
-	deselect: function(){
-		this.selected = false;
-		this.removeClass('listPanelItemSelected');
+		itasks.list.Item.superclass.afterRender.call(this,arguments);	
 	}
 });
 
-Ext.reg("itasks.listitem",itasks.ListItem);
-Ext.reg("itasks.listpanel",itasks.ListPanel);
+Ext.reg("itasks.list",itasks.ListPanel);
+Ext.reg("itasks.list.item",itasks.list.Item);
+Ext.reg("itasks.list.tool",itasks.list.Toolbox);
+Ext.reg("itasks.list.button",itasks.list.Button);

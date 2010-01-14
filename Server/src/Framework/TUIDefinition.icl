@@ -20,8 +20,8 @@ JSONEncode{|TUIDef|} (TUIFieldSet r) c = addXType "fieldset" (JSONEncode{|*|} r 
 JSONEncode{|TUIDef|} (TUIPanel r) c = addXType "panel" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIBox r) c = addXType "box" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIHtmlPanel r) c = addXType "panel" (JSONEncode{|*|} r c)
-JSONEncode{|TUIDef|} (TUIList r) c = addXType "itasks.listpanel" (JSONEncode{|*|} r c)
-JSONEncode{|TUIDef|} (TUIListItem r) c = addXType "itasks.listitem" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIList r) c = addXType "itasks.list" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIListItem r) c = addXType "itasks.list.item" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUICustom r) c = JSONEncode{|*|} r c
 
 addXType :: String [String] -> [String]

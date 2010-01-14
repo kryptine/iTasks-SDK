@@ -458,26 +458,26 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 		_  
 			= case new of
 				(VValue [] nmask)
-					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath}) 
+					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath}) 
 				(VValue nv nmask)
-					# (viz,vst) = vizEditor fx nv nmask ("element"+++dp2s currentPath) 0 {VSt | vst & currentPath = shiftDataPath currentPath, vizType=VEditorDefinition}
-					= ([TUIFragment (TUIList {TUIList | items = (flatten viz), name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
+					# (viz,vst) = vizEditor fx nv nmask 0 (dp2s currentPath) {VSt | vst & currentPath = shiftDataPath currentPath, vizType=VEditorDefinition}
+					= ([TUIFragment (TUIList {TUIList | items = (flatten viz), name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
 				(VBlank)
 					= case old of
 						(VValue [] omask)
-							= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
+							= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
 						(VValue ov omask)
-							# (viz,vst) = vizEditor fx ov omask ("element"+++dp2s currentPath) 0 {VSt | vst & currentPath = shiftDataPath currentPath}
-							= ([TUIFragment (TUIList {TUIList | items = (flatten viz), name = dp2s currentPath, id = dp2id idPrefix currentPath, editable = True, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
+							# (viz,vst) = vizEditor fx ov omask 0 (dp2s currentPath) {VSt | vst & currentPath = shiftDataPath currentPath}
+							= ([TUIFragment (TUIList {TUIList | items = (flatten viz), name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
 						(VBlank)
 							= ([],vst)
 
 where
-	vizEditor fx []     mask pfx index vst = ([],vst)
-	vizEditor fx [x:xs] mask pfx index vst=:{label}
+	vizEditor fx []     mask index name vst = ([],vst)
+	vizEditor fx [x:xs] mask index name vst=:{label}
 	# (vx,vst) 	= fx (VValue x mask) (VValue x mask) {VSt | vst & label = Nothing} //Don't display any labels.
-	# tx		= [(TUIListItem {TUIListItem | items=coerceToTUIDefs vx, id=pfx+++"_"+++toString index})]
-	# (txs,vst) = vizEditor fx xs mask pfx (index+1) vst
+	# tx		= [(TUIListItem {TUIListItem | items=coerceToTUIDefs vx, index=index, name=name})]
+	# (txs,vst) = vizEditor fx xs mask (index+1) name vst
 	= ([tx:txs],{VSt | vst & label = label})
 	
 	vizStatic fx []     mask vst = ([],vst)
@@ -598,7 +598,7 @@ where
 	getId (TUIBox d)				= Nothing
 	getId (TUIHtmlPanel d)			= Just d.TUIHtmlPanel.id
 	getId (TUIList d)				= Just d.TUIList.id
-	getId (TUIListItem d)			= Just d.TUIListItem.id
+	getId (TUIListItem d)			= Nothing
 	getId (TUICustom d)				= Nothing
 	getId _							= abort "unknown TUI Definition"
 coerceToTUIUpdates [v:vs]			= coerceToTUIUpdates vs

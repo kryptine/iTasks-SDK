@@ -4,6 +4,8 @@ import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMay
 import Void, Either
 import Text
 
+from StdFunc import id
+
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
 	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], world = world}
@@ -199,6 +201,7 @@ gUpdate{|String|} s ust=:{USt|mode=UDMask,currentPath,mask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|String|} s ust = (s, ust)
 
+import StdDebug, GenPrint
 
 //Specialize instance for Dynamic
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
@@ -210,78 +213,79 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
 	# (lx,ust=:{mask}) = applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath}
 	| currentPath == searchPath
 	= case update % (0,2) of	
-		"ord"
-			# indexes = split "," (update % ((indexOf "_" update)+1,(textSize update)))
-			# upd = changeListOrder lx [(toInt i) \\ i <- indexes]
-			# nm = changeMaskOrder currentPath mask [(toInt i) \\ i <- indexes] 0 []
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm})
+		"mup"
+			# index = toInt (last (split "_" update))
+			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
+			| otherwise
+			# upd   = swapList lx index
+			# nm    = swapMask mask currentPath index
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm}) 
+		"mdn"
+			# index = toInt (last(split "_" update))
+			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
+			| otherwise
+			# upd	= swapList lx ((toInt index)+1) //down idx == up (idx+1)
+			# nm	= swapMask mask currentPath (index+1)
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm})
 		"add"
+			# index = toInt (last(split "_" update))
 			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
-			= (lx++[nv], {USt | ust & currentPath = stepDataPath currentPath, mode = UDSearch});
+			# upd	   = insertAt (index+1) nv lx
+			# nm	   = moveMaskDown mask currentPath (index+1)
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm})
 		"rem"
-			# indexes = split "," (update % ((indexOf "_" update)+1,(textSize update)))
-			# nm  = removeMaskItems currentPath mask [(toInt i) \\ i <- indexes]
-			# upd = removeListItems lx [(toInt i) \\ i <- indexes]
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm})
+			# index = toInt (last(split "_" update))
+			# upd   = removeAt index lx
+			# nm	= (maskRemove mask currentPath index (length lx == (index+1)))
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm})	
 		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath})
 	| otherwise
 		= (lx, {USt | ust & currentPath = stepDataPath currentPath})
 where
-	changeListOrder []   _   = []
-	changeListOrder list ord = changeListOrder` list [] ord
-	
-	changeListOrder` list acc [] 	 = reverse acc
-	changeListOrder` list acc [x:xs] = changeListOrder` list [(list !! x):acc] xs
-	
 	applyListUpdates fx []     ust = ([],ust)
 	applyListUpdates fx [l:ls] ust
 	# (lx,ust)  = fx l ust
 	# (lxs,ust) = applyListUpdates fx ls ust
-	= ([lx:lxs],ust)	
-		
-	changeMaskOrder path []	  ord	 idx acc = acc
-	changeMaskOrder path mask []     idx acc = acc++mask
-	changeMaskOrder path mask [i:ix] idx acc
-		# mEl 	= [e \\ e <- mask | tlEq e [i:path]]
-		# mask 	= remFromMask mEl mask	
-		# acc 	= changeElements mEl [idx:path] acc
-		= changeMaskOrder path mask ix (idx+1) acc
+	= ([lx:lxs],ust)
 	
-	tlEq e i = tlEq` (reverse e) (reverse i)
+	swapList []	  _		= []
+	swapList list index
+	| index == 0 			= list //prevent move first element up
+	| index >= length list 	= list //prevent move last element down
+	| otherwise				
+		# f = list !! (index-1)
+		# l = list !! (index)
+		= updateAt (index-1) l (updateAt index f list)
+	
+	swapMask mask path index = [ (swapMask` m path index) \\ m <- mask ]
+	
+	swapMask` m path index
+	| tlEq m [index:path] = changeMask [index:path] (-) m
+	| tlEq m [(index-1):path] = changeMask [(index-1):path] (+) m
+	| otherwise = m
+	
+	maskRemove mask path index True  = [m \\ m <- mask | not(tlEq m [index:path])] //last element, nothing to move up
+	maskRemove mask path index False = moveMaskUp [m \\ m <- mask | not(tlEq m [index:path])] path (index+1)
+	
+	moveMaskUp mask path index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (-) m) (id m)) mask
+	
+	moveMaskDown mask path index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (+) m) (id m)) mask
+	
+	changeMask prefix fx datapath
+	# (unchanged,changed) = splitAt((length datapath-length prefix)) datapath
+	# id = hd changed
+	# tl = tl prefix
+	= unchanged ++ [(fx id 1)] ++ tl	
+		
+	tlEq mask path = tlEq` (reverse mask) (reverse path)
 	tlEq` _  	 []		= True
 	tlEq` [] 	 _ 		= False
-	tlEq` [e:ex] [i:ix] = (i == e) && (tlEq` ex ix)	
-			
-	changeElements [] ntl acc = acc
-	changeElements [e:ex] ntl acc
-		# ne = reverse (changeElement (reverse e) (reverse ntl))
-		= changeElements ex ntl [ne:acc]
-	
-	changeElement e		 []		= e
-	changeElement [e:ex] [t:tx] = [t]++changeElement ex tx
-	
-	remFromMask remEl mask = [i \\ i <- mask | not(isMember i remEl)]
-	
-	removeListItems [] _ 		= []
-	removeListItems l  []		= l
-	removeListItems l  [i:is]	= removeListItems (removeAt i l) is
-	
-	removeMaskItems p [] _		= []
-	removeMaskItems p m []		= m
-	removeMaskItems p m [i:is]
-		# gEl = [e \\ e <- m | tlGr e [i:p]]
-		# lEl = [e \\ e <- m | not (tlEq e [i:p] || tlGr e [i:p])]
-		# idx = length p
-		= lEl ++ [reverse(shiftUpAt (reverse e) idx) \\ e <- gEl]
-	
-	tlGr e i = tlGr` (reverse e) (reverse i)
-	tlGr` []	 _		= False
-	tlGr` [e:ex] [i]	= (e>i)
-	tlGr` [e:ex] [i:ix] = (i==e) && (tlGr` ex ix)
+	tlEq` [e:ex] [i:ix] = (i == e) && (tlEq` ex ix)		
 
-	shiftUpAt [] _ 	   = abort "index out of bounds"
-	shiftUpAt [i:ix] 0 = [(i-1):ix]
-	shiftUpAt [i:ix] n = [i:shiftUpAt ix (n-1)] 
+	tlGrEq mask path = tlGrEq` (reverse mask) (reverse path)
+	tlGrEq` []	   _	  = False
+	tlGrEq` [e:ex] [i]	  = (e>=i)
+	tlGrEq` [e:ex] [i:ix] = (i==e) && (tlGrEq` ex ix)
 	
 gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,mask}
 	# ust = gMarkList fx l {USt|ust & mask = [currentPath:mask],currentPath = shiftDataPath currentPath}

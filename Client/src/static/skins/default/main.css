@@ -392,30 +392,52 @@ div.taskForestLegend{
 
 /* == ListPanel == */
 
-.listPanel {
+.list{
 	padding: 2px;
 	background-color: #c0c0c0;
 }
 
-.listPanelItem {
-	padding: 1px 20px 1px 4px;
+.list-toolbox {
+	padding: 3px;
+	float: right;
+	background-color: #c0c0c0;
+}
+
+.list-item {
+	padding: 2px 2px 2px 4px;
 	background-color: #DDD;
-	
-	background-image: url('img/drag_handle.png');
-	background-repeat: no-repeat;
-	background-position: right;
-	
-	cursor: pointer;
-	cursor: hand;
+	border: 1px solid #c0c0c0;
 }
 
-.listPanelItemSelected{
-	background-color: #8DB2E3
+.list-toolbox-button{
+	width: 16px;
+	height: 16px;
 }
 
-li.listDisplay {
-	padding: 2px;
-	margin: 2px;
-	border: 1px solid #8DB2E3;
-	background-color: #F0F0F0;
+.list-toolbox-button button{
+	color: transparent;
+	background: transparent none repeat scroll 0 0;
+	border: none;
+	width: 16px;
+	height: 16px;
+}
+
+.list-toolbox-button .x-button-click {
+	color: transparent;
+}
+
+.list-button-up{
+	background-image: url('img/icons/move-up.png') !important;
+}
+
+.list-button-down{
+	background-image: url('img/icons/move-down.png') !important;
+}
+
+.list-button-add{
+	background-image: url('img/icons/add.png') !important;
+}
+
+.list-button-rem{
+	background-image: url('img/icons/delete.png') !important;
 }

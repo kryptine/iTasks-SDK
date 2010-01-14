@@ -161,7 +161,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIList =
 	{ items			:: [TUIDef]
-	, editable		:: Bool
 	, name			:: String
 	, id			:: String
 	, fieldLabel	:: Maybe String
@@ -169,5 +168,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIListItem =
 	{ items			:: [TUIDef]
-	, id			:: String
+	, index			:: Int
+	, name			:: String
 	}

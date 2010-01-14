@@ -34,7 +34,8 @@
 	,"fileIncludes" : 
 		[{"text":"Ext.ux.AjaxRemoteRequest.js","path":"src/js/"}
 		,{"text":"Ext.ux.tree.ColumnNodeUI.js","path":"src/js/"}
-		,{"text":"Ext.ux.tree.ColumnTree.js","path":"src/js/"}]
+		,{"text":"Ext.ux.tree.ColumnTree.js","path":"src/js/"}
+		,{"text":"Ext.ux.layout.HtmlLayout.js","path":"src/js/"}]
 	,"pkgDeps" : []
 	,"includeDeps" : false
 	}]
