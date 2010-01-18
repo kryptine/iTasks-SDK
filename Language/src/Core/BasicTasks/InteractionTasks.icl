@@ -61,21 +61,21 @@ makeInformationTask question initial context tst=:{taskNr}
 		# tst			= setTUIDef (taskPanel taskid (html question) context (Just form) [(doneId,"done","done","Ok","icon-ok",valid)]) tst
 		= (oldval,{tst & activated = False})
 	| otherwise
-		# (newval,nmask,tst) = applyUpdates updates oldval omask tst
+		# (newval,nmask,lmask,tst) = applyUpdates updates oldval omask [] tst
 		# done = (http_getValue "done" updates "") == "done"
 		| done
 			= (newval,{tst & activated = True})
 		| otherwise
 			# tst				= setTaskStore "mask" nmask tst
-			# (updates,valid)	= determineEditorUpdates editorId omask nmask oldval newval
+			# (updates,valid)	= determineEditorUpdates editorId omask nmask lmask oldval newval
 			# tst				= setTUIUpdates [TUISetEnabled doneId valid:updates] tst
 			= (newval, {tst & activated = False})
 where
 	taskid = taskNrToString taskNr
-	applyUpdates [] val mask tst = (val,mask,tst)
-	applyUpdates [(p,v):us] val mask tst=:{TSt|world}
-		# (val,mask,world) = updateValueAndMask p v val mask world
-		= applyUpdates us val mask {TSt|tst & world = world}
+	applyUpdates [] val mask lmask tst = (val,mask,lmask,tst)
+	applyUpdates [(p,v):us] val mask lmask tst=:{TSt|world}
+		# (val,mask,lmask,world) = updateValueAndMask p v val mask lmask world
+		= applyUpdates us val mask lmask {TSt|tst & world = world}
 
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= abort "enterChoice: cannot choose from empty option list"

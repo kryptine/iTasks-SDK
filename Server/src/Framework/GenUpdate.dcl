@@ -6,6 +6,8 @@ import StdGeneric, StdMaybe, Void, Either
 :: DataPath :== [Int]
 :: DataMask :== [DataPath]
 
+:: ListMask :== [(DataPath,[Int])]
+
 :: *USt =
 	{ mode				:: UpdateMode
 	, searchPath		:: DataPath
@@ -13,6 +15,7 @@ import StdGeneric, StdMaybe, Void, Either
 	, update			:: String
 	, consPath			:: [ConsPos]
 	, mask				:: DataMask
+	, listMask			:: ListMask
 	, world				:: *World
 	}
 
@@ -29,11 +32,10 @@ derive gUpdate Int, Real, Char, Bool, String
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Wrapper functions for updating
-defaultValue		:: !*World -> (!a,!*World)									| gUpdate{|*|} a
-defaultMask			:: a !*World -> (DataMask,*World)							| gUpdate{|*|} a
-updateValue			:: String String a !*World -> (a,!*World)					| gUpdate{|*|} a 
-updateValueAndMask	:: String String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
-
+defaultValue		:: !*World -> (!a,!*World)														| gUpdate{|*|} a
+defaultMask			:: a !*World -> (DataMask,*World)												| gUpdate{|*|} a
+updateValue			:: String String a !*World -> (a,!*World)										| gUpdate{|*|} a 
+updateValueAndMask  :: String String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
 
 //Utility functions for dealing with DataPath values
 stepDataPath	:: DataPath			-> DataPath

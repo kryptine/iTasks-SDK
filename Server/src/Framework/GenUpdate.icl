@@ -1,6 +1,6 @@
 implementation module GenUpdate
 
-import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap
+import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap, StdEnum
 import Void, Either
 import Text
 
@@ -8,27 +8,27 @@ from StdFunc import id
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
-	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], world = world}
+	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = [], currentPath = [], consPath = [], update = "", mask = [], listMask = [], world = world}
 	= (a,world)
 	
 defaultMask :: a !*World -> (DataMask,*World) | gUpdate{|*|} a
 defaultMask a world
-	# (_,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = [], currentPath = [0], consPath = [], update = "", mask = [], world = world}
+	# (_,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = [], currentPath = [0], consPath = [], update = "", mask = [], listMask = [], world = world}
 	= (mask,world)
 	
 updateValue	:: String String a !*World -> (a,!*World)	| gUpdate{|*|} a  
 updateValue path update a world
-	# (a,_,world) = updateValueAndMask path update a [] world
+	# (a,_,_,world) = updateValueAndMask path update a [] [] world
 	= (a,world)
 
-updateValueAndMask :: String String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
-updateValueAndMask path update a mask world
+updateValueAndMask :: String String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
+updateValueAndMask path update a mask listMask world
 	//Only try to update when the 'path' string is a datapath formatted string
 	| isdps path	
-		# (a,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = s2dp path, currentPath = [0], consPath = [], update = update, mask = mask, world = world}
-		= (a,mask,world)
+		# (a,ust=:{world,mask,listMask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = s2dp path, currentPath = [0], consPath = [], update = update, mask = mask, listMask = listMask, world = world}
+		= (a,mask,listMask,world)
 	| otherwise	
-		= (a,mask,world)
+		= (a,mask,listMask,world)
 
 //Generic updater
 generic gUpdate a :: a *USt ->  (a, *USt)
@@ -201,43 +201,45 @@ gUpdate{|String|} s ust=:{USt|mode=UDMask,currentPath,mask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]}) 
 gUpdate{|String|} s ust = (s, ust)
 
-import StdDebug, GenPrint
-
 //Specialize instance for Dynamic
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
 
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
 
-gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
-	# (lx,ust=:{mask}) = applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath}
+gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+	# (lx,ust=:{mask,listMask}) = applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath}
 	| currentPath == searchPath
-	= case update % (0,2) of	
+	= case (update % (0,2)) of	
 		"mup"
 			# index = toInt (last (split "_" update))
 			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
 			| otherwise
 			# upd   = swapList lx index
 			# nm    = swapMask mask currentPath index
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm}) 
+			# lmask = [(currentPath,[index-1,index])]++listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm, listMask=lmask}) 
 		"mdn"
 			# index = toInt (last(split "_" update))
 			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
 			| otherwise
 			# upd	= swapList lx ((toInt index)+1) //down idx == up (idx+1)
 			# nm	= swapMask mask currentPath (index+1)
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm})
-		"add"
-			# index = toInt (last(split "_" update))
-			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
-			# upd	   = insertAt (index+1) nv lx
-			# nm	   = moveMaskDown mask currentPath (index+1)
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm})
+			# lmask = [(currentPath,[index,index+1])]++listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask})
 		"rem"
 			# index = toInt (last(split "_" update))
 			# upd   = removeAt index lx
 			# nm	= (maskRemove mask currentPath index (length lx == (index+1)))
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm})	
+			# lmask = [(currentPath,[index..length upd-1])]++listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask})	
+		"add"
+			# index    = toInt (last (split "_" update))
+			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
+			# upd	   = insertAt (index+1) nv lx
+			# nm	   = moveMaskDown mask currentPath (index+1)
+			# lmask    = [(currentPath,[index+1..length upd-1])]++listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDSearch})
 		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath})
 	| otherwise
 		= (lx, {USt | ust & currentPath = stepDataPath currentPath})

@@ -169,5 +169,6 @@ derive JSONEncode TUIDef, TUIUpdate
 :: TUIListItem =
 	{ items			:: [TUIDef]
 	, index			:: Int
+	, id			:: String
 	, name			:: String
 	}

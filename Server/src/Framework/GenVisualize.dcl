@@ -20,7 +20,7 @@ visualizeAsHtmlLabel	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates	:: String DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a
@@ -40,6 +40,7 @@ derive bimap VisualizationValue
 	, onlyBody			:: !Bool					// Only generate a constructor body for editors
 	, optional			:: !Bool					// Create optional form fields
 	, valid				:: !Bool					// Is the form valid
+	, listMask			:: ListMask					// Indicating which parts of a list have changed
 	}
 
 :: VisualizationType

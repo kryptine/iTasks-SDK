@@ -399,6 +399,7 @@ div.taskForestLegend{
 
 .list-toolbox {
 	padding: 3px;
+	margin: 1px;
 	float: right;
 	background-color: #c0c0c0;
 }
@@ -440,4 +441,22 @@ div.taskForestLegend{
 
 .list-button-rem{
 	background-image: url('img/icons/delete.png') !important;
+}
+
+ul.listDisplay{
+	padding: 1px 2px 1px 4px;
+}
+
+ul.listDisplay li:nth-child(even){
+	margin: 1px;
+	padding: 2px 2px 2px 5px;
+	border: 1px solid #c0c0c0;
+	background-color: #eee;
+}
+
+ul.listDisplay li:nth-child(odd){
+	margin: 1px;
+	padding: 2px 2px 2px 5px;
+	border: 1px solid #c0c0c0;
+	background-color: #ddd;
 }
