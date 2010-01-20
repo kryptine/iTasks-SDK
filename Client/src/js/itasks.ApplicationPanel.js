@@ -11,14 +11,8 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			layout: 'border',
 			hidden: true,
 			hideMode: 'offsets',
-			deferredRender: false,
+			unstyled: true,
 			items: [{
-					id: 'northpanel',
-					xtype: 'panel',
-					region: 'north',
-					height: 40,
-					html: '<div id="logo" ></div><div id="user">Welcome ' + itasks.app.displayName + ' | <a id="logout" href="javascript:void(0);">Log out &raquo;</a></div>'
-				},{
 					id: 'leftpanel',
 					xtype: 'itasks.nwpanel',
 					region: 'west',
@@ -54,10 +48,10 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 	
 		itasks.ApplicationPanel.superclass.initComponent.apply(this, arguments);
 	},
-	init: function () {	
-		//Initializing the gui...
-		var apppanel	= this;
+	afterRender: function () {
+		itasks.ApplicationPanel.superclass.afterRender.apply(this, arguments);
 		
+		//Initializing the gui...
 		var newpanel 	= this.getComponent('leftpanel');
 		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
 		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
@@ -66,10 +60,6 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		worklist.refresh();
 		
 		//Connect event handlers
-		Ext.get("logout").on("click",function() {
-			apppanel.logout();
-		});
-		
 		var attachTabHandlers = function(tab) {
 			if(tab[1]) { //The tab is new
 				tab[0].on("taskDone",function(taskid) {

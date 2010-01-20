@@ -17,7 +17,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 			}),
 			root: {text: "_ROOT_", nodeType: "async", id: "_ROOT_", expanded: true},
 			rootVisible: false,
-			bodyStyle: "padding-top: 2px;"
+			cls: "newtask-container"
 		});
 		itasks.NewWorkPanel.superclass.initComponent.apply(this,arguments);
 		

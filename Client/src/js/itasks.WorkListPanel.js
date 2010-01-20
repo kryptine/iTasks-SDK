@@ -102,6 +102,23 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 							this.refresh();
 						}
 					}
+				}	
+			},'->',{
+				id: 'userdisplay',
+				xtype: 'label',
+				text: 'Welcome ' + itasks.app.displayName
+			},{
+				id: 'logoutbutton',
+				xtype: 'tbbutton',
+				text: 'Logout',
+				iconCls: 'icon-logout',
+				listeners: {
+					click: {
+						scope: this,
+						fn: function() {
+							this.findParentByType(itasks.ApplicationPanel).logout();
+						}	
+					}
 				}
 			}]
 		});

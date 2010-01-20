@@ -192,7 +192,8 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			deferredRender: false,
-			html: "Loading..."
+			html: "Loading...",
+			baseCls: "worktab-header-normal-priority"
 		});
 		itasks.WorkHeaderPanel.superclass.initComponent.apply(this,arguments);
 		

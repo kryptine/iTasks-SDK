@@ -22,7 +22,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			//Fade out the window
 			this.getEl().fadeOut({
 				callback: function() {
-					this.continuation(action.result.displayName, action.result.sessionId);
+					this.continuation(action.result.displayName, action.result.sessionId);		
 				},
 				scope: this
 			});
@@ -48,6 +48,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			hidden: true,
 			closable: false,
 			resizable: false,
+			shadow: false,
 			items: {
 				xtype: 'form',
 				url: itasks.config.serverUrl + '/authenticate',

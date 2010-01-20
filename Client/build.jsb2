@@ -9,7 +9,6 @@
 		[{"text":"itasks.util.js","path":"src/js/"}
 		,{"text":"itasks.form.js","path":"src/js/"}
 		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
-		,{"text":"itasks.LoaderWindow.js","path":"src/js/"}
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
 		,{"text":"itasks.NewWorkPanel.js","path":"src/js/"}
 		,{"text":"itasks.DebugPanel.js","path":"src/js/"}

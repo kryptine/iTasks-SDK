@@ -14,6 +14,9 @@ body {
 	font-weight: bold;
 	color: red;
 }
+button.icon-logout {
+	background-image: url('img/icons/door_in.png');
+}
 button.icon-refresh {
 	background-image: url('img/icons/refresh.png');
 }
@@ -77,32 +80,10 @@ button.icon-collapse-tree{
 .icon-folder {
 	background-image: url('img/icons/folder.png');
 }
-#northpanel .x-panel-body {
-	background: #3a81ad url('img/body.png') top repeat-x;
-}
-#northpanel #logo {
-	position: absolute;
-	top: 0px;
-	left: 0px;
-	width: 300px;
-	height: 40px;
-	background: url('img/itasks.png');
-}
-#northpanel #user {
-	position: absolute;
-	top: 15px;
-	left: 100%;
-	margin-left: -410px;
-	width: 400px;
-	color: #fff;
-	text-align: right;
-}
-#northpanel #user a {
-	color: #fff;
-	text-decoration: none;
-}
-#northpanel #user a:hover {
-	text-decoration: underline;
+#userdisplay {
+	color: #3a81ad;
+	font-weight: bold;
+	padding-right: 10px;
 }
 
 /* WORK LIST PANEL STYLES */
@@ -131,7 +112,11 @@ div.treegrid-label {
 	height: 16px;
 	padding: 2px 0px 0px 5px;
 }
+/* NEW TASK PANEL STYLES */
 
+div.newtask-container .x-panel-body {
+	background: #fff url('img/itasks-logo.png') left bottom no-repeat;
+}
 
 /* WORK TAB PANEL STYLES */
 div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
@@ -142,17 +127,18 @@ div.worktab-container form {
 }
 div.worktab-header {
 	padding: 0px;
-	color: white;
 	width: 100%;
 	height: 100%;
 }
 
 div.worktab-header-normal-priority{
 	background: url('img/worktab-header-normal-back.png');
+	color: white;
 }
 
 div.worktab-header-high-priority{
 	background: url('img/worktab-header-high-back.png');
+	color: white;
 }
 
 div.worktab-header-text{
