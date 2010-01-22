@@ -158,9 +158,9 @@ JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 
 buildTaskPanel :: TaskTree -> TaskPanel
 buildTaskPanel (TTInteractiveTask ti (Left def))
-	= FormPanel {FormPanel | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
+	= FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
 buildTaskPanel (TTInteractiveTask ti (Right upd))
-	= FormUpdate {FormUpdate | xtype = "itasks.task-ext-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
+	= FormUpdate {FormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
 buildTaskPanel (TTMonitorTask ti html)
 	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}
 buildTaskPanel (TTRpcTask ti rpc)

@@ -147,6 +147,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, items			:: [TUIDef]
 	, buttons		:: [TUIDef]
 	, autoHeight	:: Bool
+	, autoWidth		:: Bool
 	, border		:: Bool
 	, bodyCssClass	:: String
 	, fieldLabel	:: Maybe String

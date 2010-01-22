@@ -46,9 +46,10 @@ instance DB Bug where
 bugReportExample :: [Workflow]
 bugReportExample
 	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBugSimple
+	  , {Workflow|name = "Examples/Miscellaneous/Bug report (simple 2)",label = "Bug report (simple 2)",roles = [], mainTask =  bugReport}
 	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBug
 	  ]
-	  
+	 
 reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
@@ -56,7 +57,17 @@ reportBugSimple
 		assignByName "bas" "Bug fix" NormalPriority Nothing
 			(showMessageAbout "The following bug has been reported, please fix it." report)
 	>>| return report
+
+//Different variant of simple reportBug
+bugReport :: Task Void
+bugReport = reportBug >>= fixBug
+where
+	reportBug :: Task BugReport
+	reportBug = enterInformation "Please describe the you found"
 	
+	fixBug :: BugReport -> Task Void
+	fixBug bug = "bas" @: ("Bugfix", showMessageAbout "Please fix the following bug" bug)
+
 //Main workflow	  
 reportBug :: Task Void
 reportBug

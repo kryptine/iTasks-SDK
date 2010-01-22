@@ -40,7 +40,7 @@ gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabel
 		_
 			= ([TextFragment (toString old)],{VSt|vst & valid= stillValid currentPath new optional valid})
 where
-	combinedPanel			= TUIPanel {TUIPanel| layout = "hbox", autoHeight = True, fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
+	combinedPanel			= TUIPanel {TUIPanel| layout = "hbox", autoHeight = True, autoWidth = True, fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
 	numberField				= TUINumberField {TUINumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath
 								, value = value currentPath old, fieldLabel = Nothing, hideLabel = True, allowDecimals = True, numDecimals = 2}
 	currencyLabel			= TUICustom (JSON ("{xtype : \"displayfield\", value : \"" +++ curLabel old +++ "\", style : \"padding: 3px 5px 2px 2px;\"}"))
