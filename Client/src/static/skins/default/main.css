@@ -446,3 +446,90 @@ ul.listDisplay li:nth-child(odd){
 	border: 1px solid #c0c0c0;
 	background-color: #ddd;
 }
+
+/* == Document Panel == */
+
+.x-form-file-wrap {
+	position: relative;
+	height: 22px;
+}
+.x-form-file-wrap .x-form-file {
+	position: absolute;
+	right: 0;
+	-moz-opacity: 0;
+	filter:alpha(opacity: 0);
+	opacity: 0;
+	z-index: 2;
+	height: 22px;
+}
+.x-form-file-wrap .x-form-file-btn {
+	position: absolute;
+	right: 0;
+	z-index: 1;
+}
+.x-form-file-wrap .x-form-file-text {
+	position: absolute;
+	left: 0;
+	z-index: 3;
+	color: #777;
+}
+
+.x-form-file-icon{
+	width: 22px;
+	height: 22px;
+	vertical-align: top;
+}
+
+td.x-form-file {
+	-x-system-font:none;
+	font-family:tahoma,arial,helvetica,sans-serif;
+	font-size:12px;
+}
+
+button.x-form-document-browse-icon {
+	background-image: url('img/icons/page_find.png') !important;
+}
+
+button.x-form-document-upload-icon {
+	background-image: url('img/icons/page_add.png') !important;
+}
+
+button.x-form-document-download-icon {
+	background-image: url('img/icons/page_white_put.png') !important;
+}
+
+button.x-form-document-edit-icon {
+	background-image: url('img/icons/pencil.png') !important;
+}
+
+button.x-form-document-cancel-icon {
+	background-image: url('img/icons/cancel.png') !important;
+}
+
+.file-type-image-icon{
+	background-image: url('img/icons/image.png') !important;
+}
+
+.file-type-plain-icon{
+	background-image: url('img/icons/page_white.png') !important;
+}
+
+.file-type-video-icon{
+	background-image: url('img/icons/film.png') !important;
+}
+
+.file-type-audio-icon{
+	background-image: url('img/icons/music.png') !important;
+}
+
+.file-type-text-icon{
+	background-image: url('img/icons/page.png') !important;
+}
+
+.file-type-application-icon{
+	background-image: url('img/icons/application_xp.png') !important;
+}
+
+.file-type-application-pdf-icon{
+	background-image: url('img/icons/page_white_acrobat.png') !important;
+}

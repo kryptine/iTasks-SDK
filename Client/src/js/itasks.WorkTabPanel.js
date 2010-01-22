@@ -278,20 +278,22 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 	}
 });
 
-itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
+itasks.TaskExtFormPanel = Ext.extend(Ext.Panel, {
 
 	initComponent: function() {
 		Ext.apply(this, {
 			taskUpdates: {},
 			border: false,
-			url: "/handlers/work/tab",
+			layout: "form",
+			url: itasks.config.serverUrl+"/work/tab",
 			bodyStyle: "margin: 10px"
 		});
 		itasks.TaskExtFormPanel.superclass.initComponent.apply(this,arguments);
 	},
-	onRender: function() {
-		itasks.TaskExtFormPanel.superclass.onRender.apply(this,arguments);
+	afterRender: function() {
+		itasks.TaskExtFormPanel.superclass.afterRender.apply(this,arguments);
 		this.attachTaskHandlers(this);
+		this.attachDocumentLinkInformation.defer(100,this);
 	},
 	attachTaskHandlers: function(comp) {
 	
@@ -364,6 +366,17 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.form.FormPanel, {
 		if(comp.items && comp.items.each)
 			comp.items.each(this.attachTaskHandlers, this);
 	},
+	
+	attachDocumentLinkInformation: function() {
+		var links = Ext.query("a[name=x-form-document-link]");
+		
+		for(var x=0; x < links.length; x++){
+			var link = links[x];
+			link.pathname = itasks.config.serverUrl+link.pathname;
+			link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
+		}
+	},
+	
 	addUpdate: function(name, value) {
 		this.taskUpdates[name] = value;
 	},

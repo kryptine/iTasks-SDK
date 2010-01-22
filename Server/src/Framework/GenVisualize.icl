@@ -5,6 +5,8 @@ import GenUpdate, GenEq
 import Void, Either
 import Text, Html, JSON, TUIDefinition
 
+from Types import ::Document{..}
+
 MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
 						//with radio buttons. When it exceeds this, a combobox is used.
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
@@ -490,16 +492,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 					# rplc 		 = determineReplacements nviz idx
 					# rem  		 = determineRemovals lo ln (dp2id idPrefix currentPath)
 					# add  		 = determineAdditions nviz lo ln (dp2id idPrefix currentPath)
-					= (nupd++rplc++rem++add,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})
-		/*VEditorUpdate
-			= case new of
-				(VValue [] nmask)
-					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath}) 
-				(VValue nv nmask)
-					# (viz, vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s currentPath) {VSt | vst & currentPath = shiftDataPath currentPath, vizType=VEditorDefinition}
-					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],{VSt | vst & currentPath = stepDataPath currentPath})
-				(VBlank)
-					= ([],vst)*/						
+					= (nupd++rplc++rem++add,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})						
 where
 	vizEditor fx []     mask index pfx name vst = ([],vst)
 	vizEditor fx [x:xs] mask index pfx name vst=:{label}
@@ -541,6 +534,45 @@ where
 		= [TUIUpdate (TUIAdd (pfx+++"_"+++toString(lo-1)) x) \\ x <- (reverse el)]
 	| otherwise = []
 		
+//Document Type
+gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
+= case vizType of
+	VHtmlDisplay
+		= case old of
+			(VBlank) = ([],vst)
+			(VValue ov omask) = ([HtmlFragment [ATag [(HrefAttr (buildLink ov)),(TargetAttr "_blank"),(NameAttr "x-form-document-link")] [(Text ov.fileName)], (Text (" ("+++printByteSize ov.size+++")"))]],{VSt | vst & currentPath = stepDataPath currentPath})
+	VTextDisplay
+		= case old of
+			(VBlank) = ([],vst)
+			(VValue ov omask) = ([TextFragment ov.fileName], {VSt | vst & currentPath = stepDataPath currentPath})
+	_ 
+		= case new of 
+			(VValue nval nmask)
+				= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = (toJSON nval), fieldLabel = label2s optional label, hideLabel = not useLabels})],
+				{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval optional valid})
+			(VBlank)
+				= case old of
+					(VValue oval omask)
+						= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = (toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels})],
+						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval optional valid})
+					(VBlank)
+						= ([],vst)	
+where
+	fixReal r = (toReal (toInt (r*100.0)))/100.0
+	
+	printByteSize size
+	| size >= 1048576 = toString (fixReal ((toReal size)/(toReal 1048576)))+++" Mbyte"
+	| size >= 1024    = toString (fixReal ((toReal size)/(toReal 1024)))+++" Kbyte"
+	| otherwise 	  = toString size +++ " byte"
+	
+	buildLink doc = "/document/download/link/"+++doc.taskId+++"/"+++toString doc.Document.index
+	
+	isValid :: Document Bool Bool -> Bool
+	isValid doc optional valid
+	| optional 				= valid
+	| doc.fileName <> "" 	= valid
+	| otherwise 			= False	
+		
 derive gVisualize Either, Void
 
 instance toString (VisualizationValue a) | toString a
@@ -569,8 +601,6 @@ stillValid dp val optional valid
 //	| optional				= trace_n (printToString dp +++ " OPT") valid 	//Nothing changes
 //	| not (isMasked dp dm)	= trace_n (printToString dp +++ " BAD") False
 //	| otherwise				= trace_n (printToString dp +++ " OK") valid	//A non-optional field must be masked to be valid
-
-//import StdDebug, GenPrint
 
 formatLabel :: String -> String
 formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
@@ -652,6 +682,7 @@ getId (TUIBox d)				= Nothing
 getId (TUIHtmlPanel d)			= Just d.TUIHtmlPanel.id
 getId (TUIList d)				= Just d.TUIList.id
 getId (TUIListItem d)			= Just d.TUIListItem.id
+getId (TUIDocument d)			= Just d.TUIDocument.id
 getId (TUICustom d)				= Nothing
 getId _							= abort "unknown TUI Definition"
 

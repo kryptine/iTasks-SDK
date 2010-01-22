@@ -3,7 +3,7 @@ implementation module TUIDefinition
 import JSON
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUITextField, TUITextArea, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList
-derive JSONEncode TUIUpdate, TUIBox, TUIListItem
+derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextField r) c = addXType "textfield" (JSONEncode{|*|} r c)
@@ -22,6 +22,7 @@ JSONEncode{|TUIDef|} (TUIBox r) c = addXType "box" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIHtmlPanel r) c = addXType "panel" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIList r) c = addXType "itasks.list" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIListItem r) c = addXType "itasks.list.item" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIDocument r) c = addXType "itasks.document" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUICustom r) c = JSONEncode{|*|} r c
 
 addXType :: String [String] -> [String]

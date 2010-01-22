@@ -17,7 +17,7 @@ import GenParse
 :: *Store
 
 // Storage format
-:: StoreFormat = SFPlain | SFDynamic
+:: StoreFormat = SFPlain | SFDynamic | SFBlob
 
 /**
 * Create a store
@@ -36,9 +36,19 @@ storeValue		:: !String !a !*Store	-> *Store | gPrint{|*|}, TC a
 storeValueAs	:: 	!StoreFormat !String !a !*Store	-> *Store	| gPrint{|*|}, TC a
 
 /**
+* Store raw value
+*/
+storeValueAsBlob :: !String !String !*Store -> *Store
+
+/**
 * Load a value from the store
 */
 loadValue		:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | gParse{|*|}, TC a
+
+/**
+* Load raw data from the store
+*/
+loadValueAsBlob :: !String !*Store !*World -> (!Maybe String, !*Store, !*World)
 
 /**
 * Loads a dynamic from the store without unwrapping it

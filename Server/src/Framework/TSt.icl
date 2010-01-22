@@ -2,7 +2,7 @@ implementation module TSt
 
 import StdEnv, StdMaybe
 import Http, Util
-import ProcessDB, DynamicDB, SessionDB, UserDB, TaskTree
+import ProcessDB, DynamicDB, SessionDB, DocumentDB, UserDB, TaskTree
 import CommonDomain
 
 import GenPrint, GenParse, GenEq, GenBimap
@@ -29,8 +29,8 @@ derive gEq			TaskState
 
 derive JSONDecode RPCMessage
 
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
-mkTSt appName config request session workflows systemStore dataStore world
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !*World -> *TSt
+mkTSt appName config request session workflows systemStore dataStore fileStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
@@ -49,6 +49,7 @@ mkTSt appName config request session workflows systemStore dataStore world
 		, request		= request
 		, systemStore	= systemStore
 		, dataStore		= dataStore
+		, documentStore	= fileStore
 		, world			= world
 		}
 
@@ -567,7 +568,7 @@ resetSequence tst=:{taskNr,tree}
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
 deleteTaskStates taskNr tst=:{TSt|dataStore,world}
 	# (dataStore,world) = deleteValues (iTaskId taskNr "") dataStore world
-	= {TSt|tst & dataStore = dataStore, world = world}
+	= {TSt|tst & world = world, dataStore = dataStore} 
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
 copyTaskStates fromtask totask tst=:{TSt|dataStore,world}
@@ -575,10 +576,11 @@ copyTaskStates fromtask totask tst=:{TSt|dataStore,world}
 	= {TSt|tst & dataStore = dstore, world = world}
 
 flushStore :: !*TSt -> *TSt
-flushStore tst=:{TSt|dataStore,systemStore,world}
+flushStore tst=:{TSt|dataStore,systemStore,documentStore,world}
 	# (dstore,world) = flushCache dataStore world
 	# (sstore,world) = flushCache systemStore world
-	= {TSt|tst & dataStore = dstore, systemStore = sstore, world = world}
+	# (fstore,world) = flushCache documentStore world
+	= {TSt|tst & dataStore = dstore, systemStore = sstore, documentStore = fstore, world = world}
 
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""

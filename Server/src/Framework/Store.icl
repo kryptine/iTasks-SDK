@@ -19,7 +19,7 @@ import dynamic_string //Static dynamic serialization
 	, content	:: String
 	}
 
-:: StoreFormat = SFPlain | SFDynamic
+:: StoreFormat = SFPlain | SFDynamic | SFBlob
 
 /**
 * Create a store
@@ -29,6 +29,10 @@ createStore location = {Store|cache = newMap, location = location}
 
 storeValue :: !String !a !*Store -> *Store | gPrint{|*|}, TC a
 storeValue key value store = storeValueAs SFPlain key value store
+
+storeValueAsBlob :: !String !String !*Store -> *Store
+storeValueAsBlob key value store=:{cache}
+	= {Store|store & cache = put key (True,{StoreItem|format=SFBlob,content=value}) cache}
 
 storeValueAs :: !StoreFormat !String !a !*Store	-> *Store | gPrint{|*|}, TC a
 storeValueAs format key value store=:{cache}
@@ -56,6 +60,22 @@ where
 	unpackItem {StoreItem | format=SFPlain, content} = Nothing
 	unpackItem {StoreItem | format=SFDynamic, content} = Just (string_to_dynamic { s \\ s <-: content})
 
+loadValueAsBlob :: !String !*Store !*World -> (!Maybe String, !*Store, !*World)
+loadValueAsBlob key store=:{cache,location} world
+	#(mbItem,cache) = getU key cache
+	= case mbItem of
+		Just (dirty,item )= (unpackValue item, {store & cache = cache}, world)
+		Nothing
+			# (mbItem, world) = loadFromDisk key location world
+			= case mbItem of
+				Just item
+					# cache	= put key (False,item) cache
+					= (unpackValue item, {store & cache = cache}, world)
+				Nothing
+					= (Nothing, {store & cache = cache}, world)
+where
+	unpackValue {StoreItem|content} = Just content
+
 loadValue :: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | gParse{|*|}, TC a
 loadValue key store=:{cache,location} world
 	#(mbItem,cache) = getU key cache
@@ -71,10 +91,12 @@ loadValue key store=:{cache,location} world
 					= (Nothing, {store & cache = cache}, world)
 where
 	unpackValue {StoreItem|format=SFPlain,content} = parseString content
+	unpackValue {StoreItem|format=SFBlob,content}  = Nothing //<- use loadValueAsBlob
 	unpackValue {StoreItem|format=SFDynamic,content}
 		= case string_to_dynamic {s` \\ s` <-: content} of
 			(value :: a^)	= Just value
 			_				= Nothing
+	 
 	
 loadFromDisk :: String String !*World -> (Maybe StoreItem, !*World)	
 loadFromDisk key location world			
@@ -86,7 +108,6 @@ loadFromDisk key location world
 			# (ok,world)	= fclose file world
 			= (Just {StoreItem|format = SFPlain, content = content}, world)
 		| otherwise
-			//Try dynamic format
 			# filename			= location +++ "/" +++ key +++ ".bin"
 			# (ok,file,world)	= fopen filename FReadData world
 			| ok
@@ -94,7 +115,14 @@ loadFromDisk key location world
 				#(ok,world)		= fclose file world
 				=(Just {StoreItem|format = SFDynamic, content = content}, world)
 			| otherwise
-				= (Nothing, world)
+				# filename 			= location +++ "/" +++ key +++ ".blb"
+				# (ok,file,world)	= fopen filename FReadData world
+				| ok
+					#(content,file)	= freadfile file
+					#(ok,world)		= fclose file world
+					=(Just {StoreItem|format = SFBlob, content = content}, world)				
+				| otherwise
+					= (Nothing, world)
 where
 	freadfile file = rec file ""
 	  where rec :: *File String -> (String, *File)
@@ -202,7 +230,7 @@ where
 		= ([(key,(False,item)):is], world)
 
 	writeToDisk key {StoreItem|format,content} location world
-		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin")
+		# filename 			= location +++ "/" +++ key +++ (case format of SFPlain = ".txt" ; SFDynamic = ".bin" ; SFBlob = ".blb")
 		# (ok,file,world)	= fopen filename FWriteData world
 		| not ok			= abort ("Failed to write value to store: " +++ filename)
 		# file				= fwrites content file

@@ -3,8 +3,10 @@ implementation module GenUpdate
 import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap, StdEnum
 import Void, Either
 import Text
+import JSON
 
 from StdFunc import id
+from Types import :: Document{..}
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
@@ -327,6 +329,30 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 			= (m, {USt|ust & currentPath = stepDataPath currentPath})
 
 gUpdate{|Maybe|} fx l ust = (l,ust)
+
+// Document
+
+gUpdate {|Document|} _ ust =: {USt | mode=UDCreate}
+	= ({ Document
+	   | fileName = ""
+	   , size = 0
+	   , mimeType = ""
+	   , taskId = ""
+	   , index = 0
+	   }, ust)
+
+gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
+	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
+	
+gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, mask}
+	| currentPath == searchPath
+		# upd = fromJSON update
+		| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath})
+		| otherwise  = (s,{USt | ust & currentPath = stepDataPath currentPath})
+	| otherwise 
+		= (s, {USt | ust & currentPath = stepDataPath currentPath})
+
+gUpdate {|Document|} s ust = (s,ust)
 
 derive gUpdate Either, (,), (,,), (,,,), Void
 

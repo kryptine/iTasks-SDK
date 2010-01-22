@@ -1,14 +1,17 @@
 implementation module Types
 
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
 import Html
 import Util
 import CommonDomain
 
-derive gPrint		Session
-derive gParse		Session
+derive gPrint		Session, Document
+derive gParse		Session, Document
 derive gVisualize	Session
 derive gUpdate		Session
+
+derive JSONEncode Document
+derive JSONDecode Document
 
 instance toString TaskPriority
 where

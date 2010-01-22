@@ -3,12 +3,23 @@ definition module Types
 * This module provides types for all the globally shared concepts within
 * the iTasks framework.
 */
+
 from TSt 			import :: TSt
 from Html 			import :: HtmlTag
 from CommonDomain	import :: Note
 from StdString		import class toString
 
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
+
+derive gPrint		Session, Document
+derive gParse		Session, Document
+derive gVisualize	Session
+derive gUpdate		Session
+
+derive JSONEncode Document
+derive JSONDecode Document
+
+instance toString TaskPriority
 
 :: UserId			:== Int					// A user id of an iTask user must be a unique integer value
 :: User 			=
@@ -50,10 +61,15 @@ import GenPrint, GenParse, GenVisualize, GenUpdate
 					
 :: EvaluationOption	= OnClient 				// Evaluate a task on the client whenever possible
 					| OnServer				// Always evaluate a task on the server
-					
-derive gPrint		Session
-derive gParse		Session
-derive gVisualize	Session
-derive gUpdate		Session			
 
-instance toString TaskPriority
+
+// Document
+:: DocumentData :== String
+
+:: Document = 
+	{ fileName 		:: String
+	, size	   		:: Int
+	, mimeType 		:: String
+	, taskId		:: String
+	, index			:: Int	
+	}

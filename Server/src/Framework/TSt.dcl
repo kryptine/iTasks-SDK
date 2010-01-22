@@ -43,6 +43,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 									
 					, systemStore	:: !Store											// UserDB
 					, dataStore		:: !Store											// Runtime data (Processes, Sessions, Tasks, Dynamics)
+					, documentStore	:: !Store											// Documents
 					, world			:: !*World											// The world
 					}
 
@@ -84,7 +85,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 *
 * @return a TSt iTask state
 */
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !*World -> *TSt
 
 /**
 * Creates an instance of a task definition

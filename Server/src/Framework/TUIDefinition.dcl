@@ -38,6 +38,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIHtmlPanel TUIHtmlPanel
 	| TUIList TUIList
 	| TUIListItem TUIListItem
+	| TUIDocument TUIDocument
 	| TUICustom JSON
 
 :: TUIButton =
@@ -171,4 +172,12 @@ derive JSONEncode TUIDef, TUIUpdate
 	, index			:: Int
 	, id			:: String
 	, name			:: String
+	}
+:: TUIDocument = 
+	{ id			:: String
+	, name			:: String
+	, docInfo		:: String
+	, allowUpload	:: Bool
+	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	}

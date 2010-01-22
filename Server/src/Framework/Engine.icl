@@ -16,7 +16,7 @@ import Http, HttpUtil
 import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
-import RPCHandlers
+import RPCHandlers, DocumentHandler
 
 import Config, TSt
 
@@ -37,8 +37,11 @@ engine config flows
 	  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
 	  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)
 	  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
+	  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
+	  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
 	  ,(\_ -> True, handleStaticResourceRequest)
-				 ]
+	  ]
+
 workflow :: String (Task a) -> Workflow | iTask a
 workflow path task =
 	{ Workflow
@@ -73,7 +76,8 @@ handleStaticResourceRequest req world
 	# (ok, content, world)	= http_staticFileContent filename world
 	|  ok 					= ({rsp_headers = [("Status","200 OK"),
 											   ("Content-Type", type),
-											   ("Content-Length", toString (size content))]
+											   ("Content-Length", toString (size content))											   
+											   ]
 							   	,rsp_data = content}, world)						   								 	 							   
 	= http_notfoundResponse req world
 where
@@ -107,7 +111,7 @@ where
  
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world
-	# (appName,world) = determineAppName world
+	# (appName,world) 			= determineAppName world
 	# (pathstr,world)			= determineAppPath world
 	# ((ok, path),world)		= pd_StringToPath (pathstr) world
 	| not ok					= abort "Cannot find the executable."
@@ -115,7 +119,7 @@ initTSt request config flows world
 	| err <> NoDirError			= abort "Cannot get executable info."
 	# (date,time)				= info.pi_fileInfo.lastModified
 	# datestr					= (toString date.Date.year)+++(addPrefixZero date.Date.month)+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++(addPrefixZero time.Time.minutes)+++(addPrefixZero time.Time.seconds)
-	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-systemStore")) (createStore (appName +++ "-dataStore-" +++ datestr)) world
+	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-systemStore")) (createStore (appName +++ "-dataStore-" +++ datestr)) (createStore (appName +++ "-documentStore-" +++ datestr)) world
 where 
 	addPrefixZero number
 	| number < 10 = "0"+++toString number
