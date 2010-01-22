@@ -18,20 +18,17 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			closable: true,
 			autoDestroy: true,
 			iconCls: "icon-task",
-			
 			url: itasks.config.serverUrl + "/work/tab",
 			params: {_maintask: this.taskId, _debug: itasks.app.debug ? 1 : 0},
-			
-			layout: "anchor",
-			deferredRender: false,
+			layout: "border",
 			items: [{
 				xtype: "itasks.work-header",
-				height: 25,
-				anchor: "r"
+				region: "north",
+				height: 25
 			},{
 				xtype: "tabpanel",
-				anchor: "r -25",
-				cls: "worktab-container",
+				region: "center",
+				ctCls: "worktab-container",
 				tabPosition: "bottom",
 				layoutOnTabChange: true,
 				activeTab: 0,
@@ -39,7 +36,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					title: "Task",
 					iconCls: "icon-task",
 					border: false,
-					bodyStyle: "padding: 10px;",
+					unstyled: true,
 					autoScroll: true	
 				},{
 					title: "Status",
@@ -250,7 +247,7 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 				fieldLabel: "Progress",
 				format: itasks.util.formatProgress,
 				listeners: {
-					"change" : function(ov,nv) {var wt = this.findParentByType("itasks.work"); wt.sendPropertyEvent(wt.properties.systemProps.processId,"progress",nv); }
+					"change" : function(ov,nv) {var wt = this.findParentByType(itasks.WorkPanel); wt.sendPropertyEvent(wt.properties.systemProps.processId,"progress",nv); }
 				}
 			},{
 				name: "priority",
@@ -278,27 +275,27 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 	}
 });
 
-itasks.TaskExtFormPanel = Ext.extend(Ext.Panel, {
 
+itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
 			taskUpdates: {},
-			border: false,
+			unstyled: true,
 			layout: "form",
 			url: itasks.config.serverUrl+"/work/tab",
-			bodyStyle: "margin: 10px"
+			bodyStyle: "padding: 10px"
 		});
-		itasks.TaskExtFormPanel.superclass.initComponent.apply(this,arguments);
+		itasks.TaskFormPanel.superclass.initComponent.apply(this,arguments);
 	},
 	afterRender: function() {
-		itasks.TaskExtFormPanel.superclass.afterRender.apply(this,arguments);
+		itasks.TaskFormPanel.superclass.afterRender.apply(this,arguments);
 		this.attachTaskHandlers(this);
 		this.attachDocumentLinkInformation.defer(100,this);
 	},
 	attachTaskHandlers: function(comp) {
 	
 		var changeTaskEvent = function () {
-			var ct = this.findParentByType("itasks.task-ext-form");
+			var ct = this.findParentByType(itasks.TaskFormPanel);
 			if(!ct)
 				return;
 
@@ -326,7 +323,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.Panel, {
 		var clickTaskEvent = function () {
 			if(this.clickCB) this.clickCB(this);
 			
-			var ct = this.findParentByType("itasks.task-ext-form");
+			var ct = this.findParentByType(itasks.TaskFormPanel);
 			if(!ct)
 				return;
 						
@@ -384,7 +381,7 @@ itasks.TaskExtFormPanel = Ext.extend(Ext.Panel, {
 		if(delay) {
 			new Ext.util.DelayedTask().delay(250,this.sendUpdates,this);
 		} else {
-			var wt = this.findParentByType("itasks.work");
+			var wt = this.findParentByType(itasks.WorkPanel);
 			if(!wt)
 				return;
 			
@@ -515,7 +512,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 						fieldLabel: "Assigned to",
 						value: this.properties.managerProps.worker[1],
 						listeners: {
-							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.systemProps.processId,"user",nv);}
+							"change" : { fn: function(ov,nv) {this.findParentByType(itasks.WorkPanel).sendPropertyEvent(this.properties.systemProps.processId,"user",nv);}
 									   , scope: this }
 						}
 					},{
@@ -523,7 +520,7 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 						fieldLabel: "Priority",
 						value: this.properties.managerProps.priority, 
 						listeners: {
-							"change" : { fn: function(ov,nv) {this.findParentByType("itasks.work").sendPropertyEvent(this.properties.systemProps.processId,"priority",nv);}
+							"change" : { fn: function(ov,nv) {this.findParentByType(itasks.WorkPanel).sendPropertyEvent(this.properties.systemProps.processId,"priority",nv);}
 									   , scope: this }
 						}
 					},{
@@ -615,7 +612,8 @@ Ext.reg("itasks.progress",itasks.form.ProgressField);
 itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
-			border: false
+			border: true,
+			bodyStyle: 'background: #f00;'			
 		});
 		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
 	},
@@ -655,7 +653,7 @@ itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 Ext.reg("itasks.work",itasks.WorkPanel);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
 Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
-Ext.reg("itasks.task-ext-form",itasks.TaskExtFormPanel);
+Ext.reg("itasks.task-form",itasks.TaskFormPanel);
 Ext.reg("itasks.task-monitor",itasks.TaskMonitorPanel);
 Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
 Ext.reg("itasks.task-combination",itasks.TaskCombinationPanel);

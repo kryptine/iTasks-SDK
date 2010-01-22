@@ -34,13 +34,11 @@ itasks.DocumentPanel = Ext.extend(Ext.Panel,
 	showUploadPanel: function(showCancel){
 		this.removeAll();
 		this.add(new itasks.document.UploadPanel({name:this.name,showCancel: showCancel}));
-		this.doLayout();
 	},
 	
 	showDownloadPanel: function(){
 		this.removeAll();
 		this.add(new itasks.document.DownloadPanel({docInfo: this.docInfo}));
-		this.doLayout();
 	}
 });
 
@@ -83,6 +81,7 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 			handler: function(src,evt){
 				var form = this.findParentByType('itasks.document');
 				form.showUploadPanel(true);
+				form.doLayout();
 			}
 		});
 	
@@ -164,7 +163,7 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 			renderTarget: 'td.x-form-document-upload-button',
             handler: function(src,evt){ 
 				var form = this.findParentByType("itasks.document.upload");
-				var tf = this.findParentByType("itasks.task-ext-form");
+				var tf = this.findParentByType("itasks.task-form");
 				var wt = this.findParentByType("itasks.work");
 				var dp = this.findParentByType("itasks.document");
 								
@@ -220,6 +219,7 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 			handler: function(src,evt){
 				var form = this.findParentByType('itasks.document');
 				form.showDownloadPanel();
+				form.doLayout();
 			}
 		})
 				
