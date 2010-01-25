@@ -498,6 +498,10 @@ button.x-form-document-cancel-icon {
 	background-image: url('img/icons/cancel.png') !important;
 }
 
+button.x-form-document-trash-icon {
+	background-image: url('img/icons/trash.png') !important;
+}
+
 .file-type-image-icon{
 	background-image: url('img/icons/image.png') !important;
 }

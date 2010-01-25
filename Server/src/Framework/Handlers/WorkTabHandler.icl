@@ -8,6 +8,8 @@ import Util, Trace, Text
 import UserDB, ProcessDB, DocumentDB
 import GenVisualize, GenUpdate, TUIDefinition
 
+import StdDebug
+
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst=:{staticInfo}
 	# (req, tst)  = (handleFileUpload req tst)

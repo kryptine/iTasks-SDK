@@ -18,3 +18,14 @@ where
 	toString LowPriority	= "LowPriority"
 	toString NormalPriority	= "NormalPriority"
 	toString HighPriority	= "HighPriority"
+	
+// Document
+emptyDoc :: Document
+emptyDoc = 
+		{ Document
+	   	| fileName = ""
+	    , size = 0
+	    , mimeType = ""
+	    , taskId = ""
+	    , index = 0
+	    }

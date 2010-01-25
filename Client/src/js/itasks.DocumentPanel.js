@@ -85,12 +85,69 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 			}
 		});
 	
+		this.trashButton = new Ext.Button({
+			text : '',
+			iconCls: 'x-form-document-trash-icon',
+			renderTarget: 'td.x-form-document-trash-button',
+			handler: function(src,evt){
+				var form = this.findParentByType("itasks.document.download");
+				var tf = this.findParentByType("itasks.task-form");
+				var wt = this.findParentByType("itasks.work");
+				var dp = this.findParentByType("itasks.document");
+				
+				var params = { _session : itasks.app.session
+					, _targettask : tf.taskId
+					, _maintask : wt.taskId
+					, _debug : itasks.app.debug ? 1 : 0
+					, _name : dp.name
+				};
+
+				var update = {};
+				update[dp.name] = 'clear';
+				
+				Ext.apply(params,update);
+					
+				form.getForm().submit({
+												
+					url: itasks.config.serverUrl+"/work/tab",
+												
+					params: params,
+												
+					success: function(form, o){							
+						try {
+							data = Ext.decode(o.response.responseText);
+						} catch(SyntaxError) {
+							data = response.responseText;
+						}
+						
+						if(typeof data == 'object'){
+							wt.update(data);
+							wt.refresh();
+						}else{
+							Ext.msg.alert('Error',data);
+						}														
+					},
+
+					failure: function(form, o){
+						try {
+							data = Ext.decode(o.response.responseText);
+						} catch(SyntaxError) {
+							data = response.responseText;
+						}
+					
+						itasks.app.restart(data.error);
+						return;
+					}
+				});
+			}
+		});
+		
 		Ext.apply(this,
 		{ layout: 'ux.html'
 		, unstyled: true
 		, fileUpload: true
 		, html:
-			'<div style="position: absolute; top: 0px;"><table><tr><td class="x-form-document-icon"></td><td class="x-form-document-fileinfo"></td><td class="x-form-document-edit-button"></td><td class="x-form-document-download-button"></td></tr></table></div>'
+			'<div style="position: absolute; top: 0px;"><table><tr><td class="x-form-document-icon"></td><td class="x-form-document-fileinfo"></td><td class="x-form-document-edit-button"></td><td class="x-form-document-trash-button"></td><td class="x-form-document-download-button"></td></tr></table></div>'
 		, items: [
 			{ xtype: 'displayfield'
 			, renderTarget: 'td.x-form-document-fileinfo'
@@ -103,6 +160,7 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 			, unstyled: true
 			},
 			this.editButton,
+			this.trashButton,
 			this.dlButton
 		]
 		});
@@ -221,8 +279,8 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 				form.showDownloadPanel();
 				form.doLayout();
 			}
-		})
-				
+		});		
+						
 		Ext.apply(this,
 		{ fileUpload: true
 		, unstyled: true
@@ -235,19 +293,19 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 		}
 		, html: 	
 			'<div style="position: absolute; top: 0px;"><table><tr><td class="x-form-document-uploadfield" style="width: 300px"></td><td class="x-form-document-cancel-button"></td><td class="x-form-document-upload-button"></td></tr></table></div>'
-		, items : [{
-			xtype: 'fileuploadfield',
-			width: 300,
-			id: 'form-file-'+this.id+'-'+this.name,
-			emptyText: 'Select a document',
-			name: 'document',
-			buttonText: '',
-			buttonCfg: {
-				iconCls: 'x-form-document-browse-icon'
+		, items : [
+			{	xtype: 'fileuploadfield',
+				width: 300,
+				id: 'form-file-'+this.id+'-'+this.name,
+				emptyText: 'Select a document',
+				name: 'document',
+				buttonText: '',
+				buttonCfg: {
+					iconCls: 'x-form-document-browse-icon'
+				},
+				renderTarget: 'td.x-form-document-uploadfield'
 			},
-			renderTarget: 'td.x-form-document-uploadfield'
-		},
-		this.uplButton
+			this.uplButton
 		]	
 		});
 		

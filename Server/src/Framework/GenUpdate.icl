@@ -6,7 +6,7 @@ import Text
 import JSON
 
 from StdFunc import id
-from Types import :: Document{..}
+from Types import emptyDoc, :: Document {..}
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
@@ -215,34 +215,34 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	= case (update % (0,2)) of	
 		"mup"
 			# index = toInt (last (split "_" update))
-			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
+			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 			| otherwise
 			# upd   = swapList lx index
 			# nm    = swapMask mask currentPath index
 			# lmask = [(currentPath,[index-1,index])]++listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm, listMask=lmask}) 
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm, listMask=lmask, mode=UDDone}) 
 		"mdn"
 			# index = toInt (last(split "_" update))
-			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
+			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 			| otherwise
 			# upd	= swapList lx ((toInt index)+1) //down idx == up (idx+1)
 			# nm	= swapMask mask currentPath (index+1)
 			# lmask = [(currentPath,[index,index+1])]++listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask})
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDDone})
 		"rem"
 			# index = toInt (last(split "_" update))
 			# upd   = removeAt index lx
 			# nm	= (maskRemove mask currentPath index (length lx == (index+1)))
 			# lmask = [(currentPath,[index..length upd-1])]++listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask})	
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDDone})	
 		"add"
 			# index    = toInt (last (split "_" update))
 			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
 			# upd	   = insertAt (index+1) nv lx
 			# nm	   = moveMaskDown mask currentPath (index+1)
 			# lmask    = [(currentPath,[index+1..length upd-1])]++listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDSearch})
-		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath})
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDDone})
+		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 	| otherwise
 		= (lx, {USt | ust & currentPath = stepDataPath currentPath})
 where
@@ -303,6 +303,8 @@ where
 		
 gUpdate{|[]|} fx l ust = (l,ust)
 
+//Specialized instance Maybe that chooses the non-recursive constructor 
+
 gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate} = (Nothing,ust)
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 	| currentPath == searchPath && update == ""	
@@ -319,8 +321,6 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 				# (x,ust) = fx x ust
 				= (Just x,ust)
 
-//Specialized instance Maybe that chooses the non-recursive constructor 
-
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 	= case m of
 		Nothing	= (m, {USt|ust & currentPath = stepDataPath currentPath})
@@ -331,6 +331,8 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 gUpdate{|Maybe|} fx l ust = (l,ust)
 
 // Document
+
+import StdDebug, GenPrint
 
 gUpdate {|Document|} _ ust =: {USt | mode=UDCreate}
 	= ({ Document
@@ -346,9 +348,14 @@ gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
 	
 gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, mask}
 	| currentPath == searchPath
-		# upd = fromJSON update
-		| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath})
-		| otherwise  = (s,{USt | ust & currentPath = stepDataPath currentPath})
+		= case update of
+		"clear"			
+			= (emptyDoc,{USt | ust & currentPath = stepDataPath currentPath})
+		_		
+			# upd = fromJSON update
+			| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
+			| otherwise = abort "[Upd Document] Cannot parse JSON"
+			//| otherwise  = ({ Document | fileName = "", size = 0, mimeType = "", taskId = "", index = 0},{USt | ust & currentPath = stepDataPath currentPath})
 	| otherwise 
 		= (s, {USt | ust & currentPath = stepDataPath currentPath})
 

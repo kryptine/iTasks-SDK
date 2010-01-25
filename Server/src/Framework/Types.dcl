@@ -73,3 +73,5 @@ instance toString TaskPriority
 	, taskId		:: String
 	, index			:: Int	
 	}
+
+emptyDoc :: Document

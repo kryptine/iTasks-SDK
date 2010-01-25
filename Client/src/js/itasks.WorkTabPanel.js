@@ -369,7 +369,11 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		
 		for(var x=0; x < links.length; x++){
 			var link = links[x];
-			link.pathname = itasks.config.serverUrl+link.pathname;
+			if(link.pathname.indexOf('/') != 0){
+				link.pathname = itasks.config.serverUrl+'/'+link.pathname;
+			}else{
+				link.pathname = itasks.config.serverUrl+link.pathname;
+			}
 			link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
 		}
 	},
