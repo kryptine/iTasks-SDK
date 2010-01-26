@@ -59,14 +59,17 @@ where
 	show :: [Basic] Dynamic -> Task Dynamic
 	show basics d=:(T v :: T a a)	
 		= 	(						updateInformation "Resulting form, fill in what you like" (Just v) 
-				>>= \(Just nv) ->	returnShow d nv
 			)
 			-||-				
 			(						updateInformation "Cancel, redo form construction" Void
-				>>|					test basics
+				>>|					return Nothing
 			)			
-								
+			>>= makeChoice			
 	where
+		makeChoice :: (Maybe a) -> Task Dynamic | iTask a
+		makeChoice Nothing 	 = test basics
+		makeChoice (Just nv) = returnShow d nv				
+
 		returnShow :: Dynamic a -> Task Dynamic | iTask a
 		returnShow d=:(T v :: T a^ b) nv = return (dynamic T nv :: T a^ a^)
 
