@@ -616,8 +616,9 @@ Ext.reg("itasks.progress",itasks.form.ProgressField);
 itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
-			border: true,
-			bodyStyle: 'background: #f00;'			
+			unstyled: true
+			//border: true,
+			//bodyStyle: 'background: #f00;'			
 		});
 		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
 	},
