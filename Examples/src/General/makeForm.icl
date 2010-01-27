@@ -3,10 +3,10 @@ module makeForm
 import 	iTasks, CommonDomain, GeoDomain
 from 	StdFunc import o
 				
-derive gPrint 		Basic, ViewWhat, DynFlow, EditorInfo
-derive gParse 		Basic, ViewWhat, DynFlow, EditorInfo
-derive gUpdate 		Basic, ViewWhat, DynFlow, EditorInfo
-derive gVisualize 	Basic, ViewWhat, DynFlow, EditorInfo
+derive gPrint 		Basic, ViewWhat, DynFlow, EditorInfo, AssignInfo
+derive gParse 		Basic, ViewWhat, DynFlow, EditorInfo, AssignInfo
+derive gUpdate 		Basic, ViewWhat, DynFlow, EditorInfo, AssignInfo
+derive gVisualize 	Basic, ViewWhat, DynFlow, EditorInfo, AssignInfo
 
 Start :: *World -> *World 
 Start world = startEngine dynFormEditor world
@@ -52,43 +52,73 @@ test = makeFlow
 // ------------
 
 :: DynFlow	= Editor EditorInfo
-			| DisplayIt Int
+			| DisplayIt EditorInfo
+			| Return
 			| First
 			| Second
-			| Or DynFlow DynFlow
-			| And DynFlow DynFlow
-
+			| Or  [DynFlow] [DynFlow]
+			| And [DynFlow] [DynFlow]
 
 :: EditorInfo 
-			= { defineIdOfUser :: Int
-			  , promptForUser :: String
+			= { prompt  	:: String
+			  ,	assignTo 	:: Maybe AssignInfo
 			  }
-					
+:: AssignInfo
+			= { idOfUser	:: Int
+			  ,	taskName 	:: String
+			  }
 
 makeFlow ::  Task Void
 makeFlow 	
 	=						makeForm []
-		>>= \(form,_) ->	updateInformation "Construct a flow:" []
-		>>= \flow ->		checkFlow form flow
+		>>= \(form,_) ->	makeFlow form []
+where
+	makeFlow form flow
+		=					updateInformation "Construct a flow:" flow
+			>>= \flow ->	checkFlow form flow
+			>>= \dyn ->		eval form flow dyn
 
-checkFlow ::  Dynamic [DynFlow] -> Task Void
-checkFlow (T t:: T (Task a) a) []
-	= t >>| return Void
-checkFlow (T v:: T a a) []
-	= showMessageAbout "Result is:" v
+	eval form flow (T t:: T (Task a) a)	= t >>| makeFlow form flow
+	eval form flow (T v:: T a a)		= showMessageAbout "Result is not a task" v >>| makeFlow form flow
+	eval form flow _					= showMessage "Type error !" >>| makeFlow form flow
+
+checkFlow :: Dynamic [DynFlow] -> Task Dynamic  
 checkFlow (T v:: T a a) [Editor info : flows]
-	=	checkFlow (dynamic T (assign info.defineIdOfUser NormalPriority Nothing (updateInformation info.promptForUser v)) :: T (Task a) a) flows
+	= checkFlow (dynamic T (assignTask info v) :: T (Task a) a) flows
 checkFlow (T t:: T (Task a) a) [Editor info : flows]
-	=	checkFlow (dynamic T (t >>= \a -> assign info.defineIdOfUser NormalPriority Nothing (updateInformation info.promptForUser a)) :: T (Task a) a) flows
+	= checkFlow (dynamic T (t >>= \a -> assignTask info a) :: T (Task a) a) flows
 
-		
+checkFlow (T v:: T a a) [DisplayIt info : flows]
+	= checkFlow (dynamic T (showMessageTask info v) :: T (Task Void) Void) flows
+checkFlow (T t:: T (Task a) a) [DisplayIt info : flows]
+	= checkFlow (dynamic T (t >>= \a -> showMessageTask info a) :: T (Task Void) Void) flows
+
+checkFlow dyn [Return : flows]
+	= checkFlow dyn flows
+
+checkFlow dyn [Or dfa dfb : flows]
+	= checkFlow dyn dfa >>= \da -> checkFlow dyn dfb >>= \db -> orTask da db flows
+checkFlow dyn _
+	= return dyn
+
+assignTask info=:{assignTo = Just some} v 		
+	= assign some.idOfUser NormalPriority Nothing (updateInformation info.prompt v <<@ some.taskName)
+assignTask info v 		
+	= updateInformation info.prompt v
+
+showMessageTask info=:{assignTo = Just some} v 		
+	= assign some.idOfUser NormalPriority Nothing (showMessageAbout info.prompt v <<@ some.taskName)
+showMessageTask info v 		
+	= showMessageAbout info.prompt v
 
 
-checkType (T v:: T a a) [] = showMessageAbout "Result is:" v
+orTask (T ta :: T (Task a) a) (T tb :: T (Task a) a) flows  
+	= checkFlow (dynamic T (ta -||- tb) :: T (Task a) a) flows	
+orTask _ _ flows  
+	= dynError "Type error in Or tasks"
 
 
-
-
+dynError s = return (dynamic T s :: T String String)
 
 // ------------
 
