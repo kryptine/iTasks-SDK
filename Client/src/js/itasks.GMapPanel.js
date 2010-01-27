@@ -7,7 +7,7 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		Ext.applyIf(this,
 			{ url: "/handlers/work/tab"
 			, zoom: 15
-			, center : [51.824118,5.868174]
+			, center : [51.824118, 5.868174]
 			, mapType : "ROADMAP"
             , border: false
 			, autoHeight: false
@@ -56,7 +56,7 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 				type   : parent.gmap.getMapTypeId().toUpperCase()
 			}
 			
-			var ct = parent.findParentByType("itasks.task-ext-form");
+			var ct = parent.findParentByType("itasks.task-form");
 			if(!ct) return;
 			
 			ct.addUpdate(parent.name, Ext.encode(value));
@@ -73,19 +73,19 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 				point	: [ll.lat(),ll.lng()]
 			}
 			
-			var ct = parent.findParentByType("itasks.task-ext-form");
+			var ct = parent.findParentByType("itasks.task-form");
 			if(!ct) return;
 			
 			ct.addUpdate(parent.name, Ext.encode(value));
 			ct.sendUpdates();			
 		}
 				
-		if(this.isEditor){
+		if(this.editor){
 			google.maps.event.addListener(this.gmap, 'maptypeid_changed', mvcEventHandler);
 			google.maps.event.addListener(this.gmap, 'idle', mvcEventHandler);
 			google.maps.event.addListener(this.gmap, 'click', lclickEventHandler);
 		}
-				
+	
 	},
 	
 	afterRender : function(){

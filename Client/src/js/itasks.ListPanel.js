@@ -11,6 +11,7 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 		{ autoHeight: true
 		, border: false
 		, cls: 'list'
+		, layout: 'anchor'
 		});	
 		
 		itasks.ListPanel.superclass.initComponent.apply(this,arguments);
@@ -42,6 +43,11 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 			addButton.on('click',addFunct.createDelegate(this));
 		
 			this.add(addButtonPanel);
+		
+		}else{
+			for(var i=0, len = this.items.length; i<len; i++){
+				Ext.apply(this.items[i], {anchor: '100%'});
+			}
 		}
 		
 		itasks.ListPanel.superclass.afterRender.call(this,arguments);
@@ -122,6 +128,7 @@ itasks.list.Item = Ext.extend(Ext.Panel,
 		, cls: 'list-item'
 		, autoHeight: true
 		, unstyled: true
+		, layout: 'form'
 		});
 		
 		itasks.list.Item.superclass.initComponent.apply(this,arguments);

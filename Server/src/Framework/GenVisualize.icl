@@ -353,7 +353,7 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUIPanel {TUIPanel |layout = "", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel | layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2}
@@ -380,7 +380,7 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
-			= ([TUIFragment (TUIPanel {TUIPanel |layout = "", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel | layout = "", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
@@ -412,7 +412,7 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			# (viz4,vst) = f4 v4 v4 vst
-			= ([TUIFragment (TUIPanel {TUIPanel |layout = "", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
+			= ([TUIFragment (TUIPanel {TUIPanel | layout="", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2},
@@ -447,17 +447,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 					# (viz,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
 					= ([HtmlFragment [UlTag [ClassAttr "listDisplay"] [(LiTag [ClassAttr "listDisplay"] (flatten (coerceToHtml x))) \\ x <- viz]]],{VSt | vst & currentPath = stepDataPath currentPath})
 				(VBlank)
-					= ([HtmlFragment [(Text "-")]],{VSt | vst & currentPath = stepDataPath currentPath})
-		VTextDisplay
-			= case old of
-				(VValue [] omask)
-					= ([TextFragment "Empty list"],{VSt | vst & currentPath = stepDataPath currentPath})
-				(VValue ov omask)
-					# (viz,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
-					# strings   = flatten [(coerceToStrings x) \\ x <-viz]
-					= ([TextFragment (toTextFrag strings)], {VSt | vst & currentPath = stepDataPath currentPath})
-				(VBlank)
-					= ([TextFragment "-"],{VSt | vst & currentPath = stepDataPath currentPath})				
+					= ([HtmlFragment [(Text "-")]],{VSt | vst & currentPath = stepDataPath currentPath})			
 		VEditorDefinition
 			= case old of
 				(VValue [] omask)
@@ -495,7 +485,17 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 					# rplc 		 = determineReplacements nviz idx
 					# rem  		 = determineRemovals lo ln (dp2id idPrefix currentPath)
 					# add  		 = determineAdditions nviz lo ln (dp2id idPrefix currentPath)
-					= (nupd++rplc++rem++add,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})						
+					= (nupd++rplc++add++rem,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})	
+		_
+			= case old of
+				(VValue [] omask)
+					= ([TextFragment "Empty list"],{VSt | vst & currentPath = stepDataPath currentPath})
+				(VValue ov omask)
+					# (viz,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
+					# strings   = flatten [(coerceToStrings x) \\ x <-viz]
+					= ([TextFragment (toTextFrag strings)], {VSt | vst & currentPath = stepDataPath currentPath})
+				(VBlank)
+					= ([TextFragment "-"],{VSt | vst & currentPath = stepDataPath currentPath})	 					
 where
 	vizEditor fx []     mask index pfx name vst = ([],vst)
 	vizEditor fx [x:xs] mask index pfx name vst=:{label}
