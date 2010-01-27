@@ -3,10 +3,10 @@ module makeForm
 import 	iTasks, CommonDomain, GeoDomain
 from 	StdFunc import o
 				
-derive gPrint 		Basic, ViewWhat
-derive gParse 		Basic, ViewWhat
-derive gUpdate 		Basic, ViewWhat
-derive gVisualize 	Basic, ViewWhat
+derive gPrint 		Basic, ViewWhat, DynFlow, EditorInfo
+derive gParse 		Basic, ViewWhat, DynFlow, EditorInfo
+derive gUpdate 		Basic, ViewWhat, DynFlow, EditorInfo
+derive gVisualize 	Basic, ViewWhat, DynFlow, EditorInfo
 
 Start :: *World -> *World 
 Start world = startEngine dynFormEditor world
@@ -17,7 +17,7 @@ dynFormEditor
 	| name		= "Basic/makeForm"
 	, label		= "Basic/makeForm"
 	, roles		= []
-	, mainTask	= test [] >>| return Void
+	, mainTask	= test >>| return Void
 	}
   ]
 
@@ -47,8 +47,53 @@ dynFormEditor
 
 // ------------
 
-test :: [Basic] -> Task Dynamic
-test basics 
+test = makeFlow 
+
+// ------------
+
+:: DynFlow	= Editor EditorInfo
+			| DisplayIt Int
+			| First
+			| Second
+			| Or DynFlow DynFlow
+			| And DynFlow DynFlow
+
+
+:: EditorInfo 
+			= { defineIdOfUser :: Int
+			  , promptForUser :: String
+			  }
+					
+
+makeFlow ::  Task Void
+makeFlow 	
+	=						makeForm []
+		>>= \(form,_) ->	updateInformation "Construct a flow:" []
+		>>= \flow ->		checkFlow form flow
+
+checkFlow ::  Dynamic [DynFlow] -> Task Void
+checkFlow (T t:: T (Task a) a) []
+	= t >>| return Void
+checkFlow (T v:: T a a) []
+	= showMessageAbout "Result is:" v
+checkFlow (T v:: T a a) [Editor info : flows]
+	=	checkFlow (dynamic T (assign info.defineIdOfUser NormalPriority Nothing (updateInformation info.promptForUser v)) :: T (Task a) a) flows
+checkFlow (T t:: T (Task a) a) [Editor info : flows]
+	=	checkFlow (dynamic T (t >>= \a -> assign info.defineIdOfUser NormalPriority Nothing (updateInformation info.promptForUser a)) :: T (Task a) a) flows
+
+		
+
+
+checkType (T v:: T a a) [] = showMessageAbout "Result is:" v
+
+
+
+
+
+// ------------
+
+makeForm :: [Basic] -> Task (Dynamic,[Basic])
+makeForm basics 
 	= 					editorB basics
 		>>= \basics ->	converter basics 
 		>>= \dyn ->		show basics dyn
@@ -56,22 +101,22 @@ where
 	editorB :: [Basic] -> Task [Basic]
 	editorB basics = updateInformation "Construct a form by chosing the types of the form fields:" basics
 
-	show :: [Basic] Dynamic -> Task Dynamic
+	show :: [Basic] Dynamic -> Task (Dynamic,[Basic])
 	show basics d=:(T v :: T a a)	
-		= 	(						updateInformation "Resulting form, fill in what you like" (Just v) 
+		= 	(						updateInformation "Resulting form, if OK, set default values:" (Just v) 
 			)
 			-||-				
 			(						updateInformation "Cancel, redo form construction" Void
 				>>|					return Nothing
 			)			
-			>>= makeChoice			
+			>>= makeChoice basics			
 	where
-		makeChoice :: (Maybe a) -> Task Dynamic | iTask a
-		makeChoice Nothing 	 = test basics
-		makeChoice (Just nv) = returnShow d nv				
+		makeChoice :: [Basic] (Maybe a) -> Task (Dynamic,[Basic]) | iTask a
+		makeChoice basics Nothing 	 = makeForm basics
+		makeChoice basics (Just nv)  = returnShow basics d nv				
 
-		returnShow :: Dynamic a -> Task Dynamic | iTask a
-		returnShow d=:(T v :: T a^ b) nv = return (dynamic T nv :: T a^ a^)
+		returnShow ::  [Basic] Dynamic a -> Task (Dynamic,[Basic]) | iTask a
+		returnShow basics d=:(T v :: T a^ b) nv = return (dynamic T nv :: T a^ a^,basics)
 
 	converter :: [Basic] -> Task Dynamic
 	converter bs = convertBasics bs >>= return o tupling
