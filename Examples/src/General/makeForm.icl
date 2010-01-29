@@ -2,6 +2,7 @@ module makeForm
  
 import 	iTasks, CommonDomain, GeoDomain
 from 	StdFunc import o
+from	EstherBackend import toStringDynamic
 				
 derive gPrint 		Basic, ViewWhat, DynFlow, EditorInfo, AssignInfo
 derive gParse 		Basic, ViewWhat, DynFlow, EditorInfo, AssignInfo
@@ -49,6 +50,23 @@ dynFormEditor
 
 test = makeFlow 
 
+showDyn :: Dynamic -> (String,String)
+showDyn dyn	
+# (v,t) =  toStringDynamic dyn 
+=	case dyn of
+		(fun :: a -> b) -> ("<function> ",t) 
+		_				-> (foldr (+++) "" v,t)
+
+showDynType  = snd o showDyn
+showDynVal   = fst o showDyn
+showDynValType s d = let (v,t) = showDyn d in s +++ ", " +++ v +++ "::" +++ t
+
+dynError  s d1    = return (dynamic T (dynErrorMess s d1):: T String String)
+dynErrorMess s d1 = s +++ ", Type Error: " +++ showDynType d1
+
+dynError2 s d1 d2 = return (dynamic T (dynErrorMess2 s d1 d2):: T String String)
+dynErrorMess2 s d1 d2 = s +++ ", Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
+
 // ------------
 
 :: DynFlow	= Editor EditorInfo
@@ -79,8 +97,8 @@ where
 			>>= \dyn ->		eval form flow dyn
 
 	eval form flow (T t:: T (Task a) a)	= t >>| makeFlow form flow
-	eval form flow (T v:: T a a)		= showMessageAbout "Result is not a task" v >>| makeFlow form flow
-	eval form flow _					= showMessage "Type error !" >>| makeFlow form flow
+	eval form flow d=:(T v:: T a a)		= showMessage (showDynValType "Result" (dynamic v :: a)) >>| makeFlow form flow
+	eval form flow d					= showMessage (dynErrorMess "Eval" d) >>| makeFlow form flow
 
 checkFlow :: Dynamic [DynFlow] -> Task Dynamic  
 checkFlow (T v:: T a a) [Editor info : flows]
@@ -98,6 +116,17 @@ checkFlow dyn [Return : flows]
 
 checkFlow dyn [Or dfa dfb : flows]
 	= checkFlow dyn dfa >>= \da -> checkFlow dyn dfb >>= \db -> orTask da db flows
+
+checkFlow dyn [And dfa dfb : flows]
+	= checkFlow dyn dfa >>= \da -> checkFlow dyn dfb >>= \db -> andTask da db flows
+
+checkFlow (T (x,y) :: T (a,b) c) [First : flows]			// (a,b) would make more sense
+	= checkFlow (dynamic T x :: T a c) flows
+//checkFlow (T t :: T (Task (a,b)) (a,b)) [First : flows]			// (a,b) would make more sense
+//	= checkFlow (dynamic T (t >>= \(x,y) -> return x) :: T (Task a) a) flows
+checkFlow d1 [First : flows]			
+	= dynError2 "First" d1 (dynamic fst :: A.a b : (a,b) -> a)
+	
 checkFlow dyn _
 	= return dyn
 
@@ -111,14 +140,17 @@ showMessageTask info=:{assignTo = Just some} v
 showMessageTask info v 		
 	= showMessageAbout info.prompt v
 
-
 orTask (T ta :: T (Task a) a) (T tb :: T (Task a) a) flows  
 	= checkFlow (dynamic T (ta -||- tb) :: T (Task a) a) flows	
-orTask _ _ flows  
-	= dynError "Type error in Or tasks"
+orTask d1 d2 flows  
+	= dynError2 "Or" d1 d2
+
+andTask (T ta :: T (Task a) a) (T tb :: T (Task b) b) flows  
+	= checkFlow (dynamic T (ta -&&- tb) :: T (Task (a,b)) (a,b)) flows	
+andTask d1 d2 flows  
+	= dynError2 "And" d1 d2
 
 
-dynError s = return (dynamic T s :: T String String)
 
 // ------------
 
