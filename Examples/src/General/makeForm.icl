@@ -25,7 +25,7 @@ dynFormEditor
 :: T a b	= T a & iTask b
 
 // String is used to prompt user
-// Maybe type used to ensure that the designer doe not need to fill in the form when designing it
+// Maybe type used to ensure that the designer does not need to fill in the form when designing it
 
 :: MyField a :== (String,Maybe a)			
 
@@ -47,6 +47,13 @@ dynFormEditor
 			| EnterDefaultValues
 
 // ------------
+/*
+:: T2 a b = T2 a & TC b
+
+f :: Dynamic -> Dynamic
+f (T2 (x,y) :: T2 (a,b) (a,b)) = dynamic x :: T2 a a
+
+*/
 
 test = makeFlow 
 
