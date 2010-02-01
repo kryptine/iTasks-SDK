@@ -31,15 +31,17 @@ gVisualize{|ImageDocument|} old new vst=:{vizType, currentPath, valid}
 		(VValue (ImageDocument ov) omask) = vizDocument (VValue ov omask) (VValue ov omask) "(image)" {VSt | vst & valid = isValid ov.Document.fileName ["jpg","jpeg","gif","png","bmp"] valid}
 
 // ---
-vizDocument :: !(VisualizationValue Document) !(VisualizationValue Document) String !*VSt -> ([Visualization], *VSt)
+vizDocument :: !(VisualizationValue Document) !(VisualizationValue Document) String !*VSt -> ([Visualization],RenderingHint,*VSt)
 vizDocument old new desc vst
 	# cp = vst.VSt.currentPath
-	#(viz,vst=:{label, optional}) = gVisualize{|*|} old new {VSt | vst & currentPath = shiftDataPath cp}
+	#(viz,rh,vst=:{label, optional}) = gVisualize{|*|} old new {VSt | vst & currentPath = shiftDataPath cp}
 	= case viz of
 		([(TUIFragment tuidef):vs])
-			= ([TUIFragment (TUIPanel {TUIPanel | layout = "", items = [tuidef,(TUIBox {TUIBox|html="<p style=\"margin-left: 3px\">"+++desc})], buttons=[], autoHeight = True, autoWidth = True, border=False, bodyCssClass="", fieldLabel = label2s optional label})]++vs,{VSt | vst & currentPath = stepDataPath cp})
+			= ([TUIFragment (TUIPanel {TUIPanel | layout = "", items = [tuidef,(TUIBox {TUIBox|html="<p style=\"margin-left: 3px\">"+++desc})], buttons=[], autoHeight = True, autoWidth = True, border=False, bodyCssClass="", fieldLabel = label2s optional label, renderingHint = rh, unstyled=True})]++vs,
+			  rh,
+			  {VSt | vst & currentPath = stepDataPath cp})
 		_	
-			= (viz,{VSt | vst & currentPath = stepDataPath cp})
+			= (viz,0,{VSt | vst & currentPath = stepDataPath cp})
 
 isValid :: String [String] Bool -> Bool
 isValid fn extList val

@@ -20,14 +20,23 @@ itasks.HorizontalGridLayout = Ext.extend(Ext.layout.ContainerLayout, {
 			this.table = target.createChild(Ext.apply({tag: 'table', cls: 'x-hgrid-layout-table', cellspacing: 2, cn: { tag: 'tbody'}}, this.tableAttrs),null,true);
 		}
 		this.renderAll(ct,target);
-				
-		var p = this.columns-this.column;
+		
 		var row = this.getRow(this.row);
 		
-		this.pad(p,row);
+		this.pad(row);
     },
 	
-	pad: function(n,row){
+	pad: function(row){
+		
+		var nc = row.childElementCount;
+		var col = 0;
+		
+		for(var i=0; i < nc; i++){
+			col += row.children[i].colSpan;
+		}
+		
+		var n = this.columns-col;
+		
 		for(var i=0; i<n;i++){		
 			var td = document.createElement('td');
 			td.width = this.getRenderWidth(1);
@@ -55,10 +64,9 @@ itasks.HorizontalGridLayout = Ext.extend(Ext.layout.ContainerLayout, {
 		var rh = c.renderingHint;
 		
 		if(this.column + rh > this.columns){	
-			var pad = (this.columns - this.column);
 			var row = this.getRow(this.row);
 			
-			this.pad(pad,row);
+			this.pad(row);
 		
 			this.row += 1;
 			this.column = 0;		
