@@ -5,7 +5,7 @@ import StdGeneric, StdMaybe, Void, Either
 import GenUpdate
 
 //Generic visualization function
-generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], *VSt)
+generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], RenderingHint, *VSt)
 
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
@@ -13,7 +13,7 @@ derive gVisualize Int, Real, Char, Bool, String, Document
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String DataMask a -> ([TUIDef],Bool)	| gVisualize{|*|} a
+visualizeAsEditor		:: String DataMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
 visualizeAsHtmlDisplay	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextDisplay	:: a -> String								| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: a -> [HtmlTag]							| gVisualize{|*|} a
@@ -21,6 +21,10 @@ visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
 determineEditorUpdates	:: String DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
+
+//Hint for the layout engine how to render the different panels in case of a
+//horizontal layout (tuples, checkbox groups and radio groups) (1 = inline, 2 = half page, 4 = full page width, >4 = multiple lines)
+:: RenderingHint :== Int
 
 //Type definitions for visualization
 :: VisualizationValue a

@@ -15,7 +15,7 @@ handleDocumentDownloadRequest req tst
 			({rsp_headers = [("Status", "200 OK"),
 							 ("Content-Type", docInfo.mimeType),
 							 ("Content-Length", toString docInfo.size),
-							 ("Content-Disposition","attachment; filename="+++docInfo.fileName)
+							 ("Content-Disposition","attachment; filename=\""+++docInfo.fileName+++"\"")
 							]
 			 ,rsp_data = fromJust mbDocData},tst)
 		| otherwise = ({http_emptyResponse & rsp_data =errorResponse "Cannot retrieve document data"},tst)
@@ -37,7 +37,7 @@ handleDocumentDownloadLinkRequest req tst
 			= ({rsp_headers = [("Status", "200 OK"),
 							   ("Content-Type", doc.Document.mimeType),
 							   ("Content-Length", toString doc.Document.size),
-							   ("Content-Disposition","attachment; filename="+++doc.Document.fileName)
+							   ("Content-Disposition","attachment; filename=\""+++doc.Document.fileName+++"\"")
 							  ]
 			 				  ,rsp_data = fromJust mbData},tst)
 		| otherwise

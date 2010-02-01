@@ -14,20 +14,25 @@ derive gLexOrd		Currency
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIDateField {TUIDateField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = not useLabels})]
+								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)],1,{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 
 gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUITimeField {TUITimeField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = not useLabels})]
+								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)],1,{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 
 gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUITextArea {TUITextArea|name = dp2s contentPath, id = dp2id idPrefix contentPath, value = value2s contentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels, width = 400, height = 150 })]
+							, 2
 							, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
-		_					= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+		_					= ([TextFragment (toString old)]
+							, 2
+							, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
@@ -36,11 +41,11 @@ where
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition
-			= ([TUIFragment combinedPanel], {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
+			= ([TUIFragment combinedPanel], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		_
-			= ([TextFragment (toString old)],{VSt|vst & valid= stillValid currentPath new optional valid})
+			= ([TextFragment (toString old)], 1, {VSt|vst & valid= stillValid currentPath new optional valid})
 where
-	combinedPanel			= TUIPanel {TUIPanel| layout = "hbox", autoHeight = True, autoWidth = True, fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = ""}
+	combinedPanel			= TUIPanel {TUIPanel| layout = "hbox", autoHeight = True, autoWidth = True, fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = [], border = False, bodyCssClass = "", renderingHint = 1, unstyled=True}
 	numberField				= TUINumberField {TUINumberField|name = dp2s currentPath, id = dp2id idPrefix currentPath
 								, value = value currentPath old, fieldLabel = Nothing, hideLabel = True, allowDecimals = True, numDecimals = 2}
 	currencyLabel			= TUICustom (JSON ("{xtype : \"displayfield\", value : \"" +++ curLabel old +++ "\", style : \"padding: 3px 5px 2px 2px;\"}"))

@@ -208,7 +208,7 @@ makeMessageTask message context sticky tst=:{taskNr}
 
 taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(String,String,String,String,String,Bool)] -> TUIDef
 taskPanel taskid description mbContext mbForm buttons
-	= TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing}
+	= TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = taskButtons buttons, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 4, unstyled=False}
 where
 	items = [taskDescriptionPanel ("description-"+++taskid) description] ++
 			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
@@ -223,7 +223,7 @@ where
 	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context"} 
 	
 	taskFormPanel :: [TUIDef] -> TUIDef
-	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing}
+	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = [], bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 4, unstyled=False}
 	
 	taskButtons	:: [(String,String,String,String,String,Bool)] -> [TUIDef]
 	taskButtons buttons = [TUIButton {TUIButton| name = name, id = id, value = value, disabled = not enabled, text = text, iconCls = icon} \\ (id,name,value,text,icon,enabled) <- buttons]

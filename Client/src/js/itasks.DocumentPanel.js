@@ -7,10 +7,11 @@ itasks.DocumentPanel = Ext.extend(Ext.Panel,
 		Ext.apply(this,
 		{ unstyled: true
 		, layout: 'anchor'
-		, height: 24
+		, height: 26
 		, bodyStyle: 'margin: 0px 0px 2px -2px'
+		, width: 500
 		, defaults: {
-			height: 24,
+			height: 26,
 			bodyStyle: 'padding: 0px 2px 0px 0px;',
 			anchor: '99%'
 		}
@@ -147,7 +148,7 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 		, unstyled: true
 		, fileUpload: true
 		, html:
-			'<div style="position: absolute; top: 0px;"><table><tr><td class="x-form-document-icon"></td><td class="x-form-document-fileinfo"></td><td class="x-form-document-edit-button"></td><td class="x-form-document-trash-button"></td><td class="x-form-document-download-button"></td></tr></table></div>'
+			'<div style="position: relative; top: 0px;"><table><tr><td class="x-form-document-icon"></td><td class="x-form-document-fileinfo"></td><td class="x-form-document-edit-button"></td><td class="x-form-document-trash-button"></td><td class="x-form-document-download-button"></td></tr></table></div>'
 		, items: [
 			{ xtype: 'displayfield'
 			, renderTarget: 'td.x-form-document-fileinfo'
@@ -292,7 +293,7 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 			height: 24
 		}
 		, html: 	
-			'<div style="position: absolute; top: 0px;"><table><tr><td class="x-form-document-uploadfield" style="width: 300px"></td><td class="x-form-document-cancel-button"></td><td class="x-form-document-upload-button"></td></tr></table></div>'
+			'<div style="position: relative; top: 0px;"><table><tr><td class="x-form-document-uploadfield" style="width: 300px"></td><td class="x-form-document-cancel-button"></td><td class="x-form-document-upload-button"></td></tr></table></div>'
 		, items : [
 			{	xtype: 'fileuploadfield',
 				width: 300,

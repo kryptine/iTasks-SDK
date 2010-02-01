@@ -529,3 +529,18 @@ button.x-form-document-trash-icon {
 .file-type-application-pdf-icon{
 	background-image: url('img/icons/page_white_acrobat.png') !important;
 }
+
+/* == Horizontal Grid Layout == */
+
+.x-hgrid-layout-table {
+	width: 100%;
+	height: auto;
+}
+
+.x-hgrid-layout-cell {
+	height: auto;
+	vertical-align: top;
+	padding: 0;
+	background-color: #DDD;
+	border: 1px solid transparent;
+}

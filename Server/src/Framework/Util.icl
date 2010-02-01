@@ -74,8 +74,8 @@ gParse{|Dynamic|} expr
 		parseString expr = gParse{|*|} expr
 
 
-gVisualize{|Task|} fx (VValue (Task desc _ _) _) _ vst = ([TextFragment desc.TaskDescription.title],vst)
-gVisualize{|Task|} fx _ _ vst = ([],vst)
+gVisualize{|Task|} fx (VValue (Task desc _ _) _) _ vst = ([TextFragment desc.TaskDescription.title],4,vst)
+gVisualize{|Task|} fx _ _ vst = ([],0,vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust

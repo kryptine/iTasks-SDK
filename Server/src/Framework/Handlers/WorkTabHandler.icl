@@ -66,7 +66,7 @@ where
 			# taskId = http_getValue "_targettask" req.arg_post ""
 			# name      = http_getValue "_name" req.arg_post ""
 			# mbDocInfo = fromJSON(http_getValue "docInfo" req.arg_post "")
-			# fname		= "\""+++(case split "\\" upl.upl_filename of [x] = x; [x:xs] = last [x:xs])+++"\""
+			# fname		= (case split "\\" upl.upl_filename of [x] = x; [x:xs] = last [x:xs])
 			| isJust mbDocInfo
 				# docInfo = fromJust mbDocInfo
 				= case docInfo.Document.taskId == taskId of

@@ -1,11 +1,11 @@
 module FileHandlingTest
 
-import iTasks, GeoDomain
+import iTasks, GeoDomain, DocumentDomain
 
 :: Rec =
 	{ naam :: String
 	, leeftijd :: Int
-	, cv :: Maybe Document
+	, foto :: ImageDocument
 	, opmerkingen :: Maybe Note
 	//, woonplaats :: Maybe GoogleMap
 	}

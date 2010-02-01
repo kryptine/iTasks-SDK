@@ -151,6 +151,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, border		:: Bool
 	, bodyCssClass	:: String
 	, fieldLabel	:: Maybe String
+	, renderingHint	:: Int
+	, unstyled		:: Bool
 	}
 :: TUIBox =
 	{ html			:: String

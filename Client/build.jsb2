@@ -24,6 +24,7 @@
 		,{"text":"itasks.GStaticMapPanel.js","path":"src/js/"}
 		,{"text":"itasks.ListPanel.js","path":"src/js/"} 
 		,{"text":"itasks.DocumentPanel.js","path":"src/js/"} 
+		,{"text":"itasks.HorizontalGridLayout.js","path":"src/js/"}
 		,{"text":"itasks.js","path":"src/js/"}]
 	,"pkgDeps" : ["ext-ux-all.js"]
 	,"includeDeps" : false
