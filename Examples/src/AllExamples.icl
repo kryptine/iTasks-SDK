@@ -27,7 +27,7 @@ import Coffeemachine
 import Newsgroups
 import ChangeHandling
 import WebShop
-import ideExample
+//import ideExample
 
 //Crisis response examples
 import AmbulanceDispatch
@@ -56,7 +56,7 @@ where
 						, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample
-						, ideExample
+						//, ideExample
 						, webShopExample
 						, ambulanceDispatchExamples
 						, ambulanceDispatchMapExamples

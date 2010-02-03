@@ -9,13 +9,15 @@ where
 		# taskid = taskNrToString tasknr
 		# (idx,store,world) = determineIndex taskid documentStore world
 		# store = storeValueAsBlob (documentName taskid idx) docdata store
-		= ({ Document
-	  		| fileName 		= filename
-	   		, size    		= size docdata
-	   		, mimeType		= mime
-	   		, taskId		= taskid
-	   		, index			= idx
-	   	   }, {TSt | tst & documentStore = store, world = world})
+		# doc = { Document
+	  			| fileName 		= filename
+	   			, size    		= size docdata
+	   			, mimeType		= mime
+	   			, taskId		= taskid
+	   			, index			= idx
+	   	   		}
+	   	# tst = updateDocumentInfo doc {TSt | tst & documentStore = store, world = world}
+	   	= (doc,tst)   	   
 		
 	updateDocument :: !Document !String !String !DocumentData !*TSt -> (Document, !*TSt)
 	updateDocument doc=:{Document | taskId, index} filename mime docdata tst=:{documentStore}

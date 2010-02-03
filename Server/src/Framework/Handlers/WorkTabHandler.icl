@@ -63,7 +63,7 @@ where
 			= (req,tst)
 		list
 			# upl = hd list
-			# taskId = http_getValue "_targettask" req.arg_post ""
+			# taskId 	= http_getValue "_targettask" req.arg_post ""
 			# name      = http_getValue "_name" req.arg_post ""
 			# mbDocInfo = fromJSON(http_getValue "docInfo" req.arg_post "")
 			# fname		= (case split "\\" upl.upl_filename of [x] = x; [x:xs] = last [x:xs])

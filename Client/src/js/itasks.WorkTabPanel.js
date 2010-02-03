@@ -290,10 +290,13 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	afterRender: function() {
 		itasks.TaskFormPanel.superclass.afterRender.apply(this,arguments);
 		this.attachTaskHandlers(this);
-		this.attachDocumentLinkInformation.defer(100,this);
 	},
 	attachTaskHandlers: function(comp) {
 	
+		// Scary hack! Don't look below!
+		new Ext.util.DelayedTask().delay(250,this.attachDocumentLinkInformation.defer(100,this),this);
+		// End of scary hack
+		
 		var changeTaskEvent = function () {
 			var ct = this.findParentByType(itasks.TaskFormPanel);
 			if(!ct)
@@ -365,16 +368,19 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	},
 	
 	attachDocumentLinkInformation: function() {
-		var links = Ext.query("a[name=x-form-document-link]");
 		
+		var links = Ext.query("a[name=x-form-document-link]");
+				
 		for(var x=0; x < links.length; x++){
 			var link = links[x];
+
 			if(link.pathname.indexOf('/') != 0){
 				link.pathname = itasks.config.serverUrl+'/'+link.pathname;
 			}else{
 				link.pathname = itasks.config.serverUrl+link.pathname;
 			}
 			link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
+			link.name = "";
 		}
 	},
 	

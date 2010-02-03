@@ -23,7 +23,7 @@ visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 determineEditorUpdates	:: String DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 
 //Hint for the layout engine how to render the different panels in case of a
-//horizontal layout (tuples, checkbox groups and radio groups) (1 = inline, 2 = half page, 4 = full page width, >4 = multiple lines)
+//horizontal layout (tuples) (0 = full width, 1 = inline, 2 = medium, 4 = large)
 :: RenderingHint :== Int
 
 //Type definitions for visualization

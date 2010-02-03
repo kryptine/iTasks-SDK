@@ -62,6 +62,17 @@ where
 	
 	takeRight l			= hd [ x \\ (Right x) <- l] 
 
+(-||) infixl 3		:: !(Task a) !(Task b)						-> Task a				| iTask a & iTask b
+(-||) taska taskb
+	= parallel "-||" leftDone takeLeft takeLeft
+		[ (taska >>= \a -> return (Left a)) <<@ "Left"
+		, (taskb >>= \b -> return (Right b)) <<@ "Right"
+		]
+where
+	leftDone [Left x] 	= True
+	leftDone _			= False
+	
+	takeLeft l			= hd [ x \\ (Left x) <- l] 
 
 (>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
 (>>?) t1 t2 

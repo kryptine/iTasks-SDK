@@ -63,6 +63,8 @@ itasks.HorizontalGridLayout = Ext.extend(Ext.layout.ContainerLayout, {
 		
 		var rh = c.renderingHint;
 		
+		if(rh == 0) rh = this.columns;
+		
 		if(this.column + rh > this.columns){	
 			var row = this.getRow(this.row);
 			

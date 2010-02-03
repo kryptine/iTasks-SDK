@@ -6,6 +6,7 @@ import GeoDomain
 import google_maps_services
 import Base64
 import JSONTree
+import DocumentDomain
 
 derive gPrint		Incident, IncidentType
 derive gParse		Incident, IncidentType
@@ -16,7 +17,7 @@ derive gUpdate		Incident, IncidentType
 ambulanceDispatchMapExamples :: [Workflow]
 ambulanceDispatchMapExamples = flows
 where
-	flows = [ workflow "Examples/Crisis response/Report incident (Map)" reportIncident ]
+	flows = [ workflow "Examples/Crisis response/Report incident (Map)" (reportIncident -|| showSources) ]
 
 :: Incident =
 	{ location		:: Coordinate
@@ -68,3 +69,11 @@ specifyIncident addr marker
 			 , description = Note ""
 			 }
 = showStickyMessageAbout "Incident location:" smap ||- updateInformation "Specify incident details" incident 
+
+
+//====
+showSources ::  Task Void
+showSources  
+	=       loadDocumentFromFile "AmbulanceDispatchMap.icl" "src/Crisis Response/" >>=
+	\icl -> loadDocumentFromFile "AmbulanceDispatchMap.dcl" "src/Crisis Response/" >>=
+	\dcl -> showStickyMessageAbout "Source Codes" [icl,dcl]
