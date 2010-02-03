@@ -4,7 +4,7 @@ itasks.HorizontalGridLayout = Ext.extend(Ext.layout.ContainerLayout, {
 
 	monitorResize: true,
 
-	columns: 4,
+	columns: 6,
 	row: 0,
 	column: 0,
 	
@@ -56,7 +56,7 @@ itasks.HorizontalGridLayout = Ext.extend(Ext.layout.ContainerLayout, {
 	},
 	
 	getRenderWidth: function(rh){
-		return Math.floor(100/this.columns)*rh+'%';
+		return Math.floor((100/this.columns)*rh)+'%';
 	},
 	
 	getCell : function(c){

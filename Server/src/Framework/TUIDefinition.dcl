@@ -114,6 +114,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, id			:: String
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
+	, columns		:: Int
 	, items			:: [TUIDef]
 	}
 :: TUIDateField =
@@ -145,7 +146,7 @@ derive JSONEncode TUIDef, TUIUpdate
 :: TUIPanel =
 	{ layout		:: String
 	, items			:: [TUIDef]
-	, buttons		:: [TUIDef]
+	, buttons		:: Maybe [TUIDef]
 	, autoHeight	:: Bool
 	, autoWidth		:: Bool
 	, border		:: Bool

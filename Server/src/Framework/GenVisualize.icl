@@ -190,10 +190,10 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 																	, items = coerceToTUIDefs vizBody
 																	, autoHeight = True, border = isJust label
 																	, fieldLabel = Nothing, hideLabel = True})]
-																	, 4 //fieldset is always full width (rh = 4)
+																	, 6 //fieldset is always full width (rh = 6)
 																	, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 				| otherwise
-					= (vizBody, 4, {VSt|vst & currentPath = stepDataPath currentPath}) //fieldset is always full width (rh = 4)
+					= (vizBody, 6, {VSt|vst & currentPath = stepDataPath currentPath}) //fieldset is always full width (rh = 6)
 						
 			//ADT's with only one constructor
 			| d.gcd_type_def.gtd_num_conses == 1 
@@ -371,12 +371,12 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,rh2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout="itasks.hgrid", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=4, //Tuple always full width
+			= ([TUIFragment (TUIPanel {TUIPanel | layout="itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=6, //Tuple always full width
 											 items = [ 
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True}
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True}
 											 ]})]			 
-			  , 4
+			  , 6
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
@@ -384,12 +384,12 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					= (viz1 ++ [TextFragment ", "] ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,rh2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})			
+					= (viz1 ++ [TextFragment ", "] ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})			
 
 gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
@@ -399,13 +399,13 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,rh2,vst) = f2 v2 v2 vst
 			# (viz3,rh3,vst) = f3 v3 v3 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout = "itasks.hgrid", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,renderingHint = 4, unstyled=True,
+			= ([TUIFragment (TUIPanel {TUIPanel | layout = "itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,renderingHint = 6, unstyled=True,
 											 items = [ 
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3, renderingHint = rh3, unstyled=True}
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3, renderingHint = rh3, unstyled=True}
 											 ]})]			 
-			  , 4
+			  , 6
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels=oldLabels})		
 		_
 			= case (old,new) of
@@ -432,14 +432,14 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,rh2,vst) = f2 v2 v2 vst
 			# (viz3,rh3,vst) = f3 v3 v3 vst
 			# (viz4,rh4,vst) = f4 v4 v4 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout="itasks.hgrid", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, renderingHint = 4, unstyled=True,
+			= ([TUIFragment (TUIPanel {TUIPanel | layout="itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, renderingHint = 6, unstyled=True,
 											 items = [ 
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3, renderingHint = rh3, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = [], autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz4, renderingHint = rh4, unstyled=True}
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz3, renderingHint = rh3, unstyled=True},
+											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz4, renderingHint = rh4, unstyled=True}
 											 ]})]			 
-			  , 4
+			  , 6
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
@@ -464,38 +464,38 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			= case old of
 				(VValue [] omask)
 					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					  4,
+					  6,
 					  {VSt | vst & currentPath = stepDataPath currentPath}) 
 				(VValue ov omask)
 					# (viz,rh,vst) = vizEditor fx ov omask 0 (dp2id idPrefix currentPath) (dp2s currentPath) {VSt | vst & currentPath = shiftDataPath currentPath, vizType=VEditorDefinition}
 					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					  4,
+					  6,
 					  {VSt | vst & currentPath = stepDataPath currentPath})
 				(VBlank)
 					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id= dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					  4,
+					  6,
 					  {VSt | vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
 			= case (old,new) of
 				(_, VBlank) 
 					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id= dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					4,
+					6,
 					{VSt | vst & currentPath = stepDataPath currentPath})
 				(VBlank,(VValue nv nmask)) 
 					# (viz, rh, vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s currentPath) {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, optional = False}
 					# vst = {VSt | vst & optional = optional}
 					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					  4,
+					  6,
 					  {VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue [] omask, VValue nv nmask)
 					# (viz, rh, vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s currentPath) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorDefinition, optional=False}
 					# vst = {VSt | vst & optional = optional}
 					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					  4,
+					  6,
 					  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})
 				(VValue ov omask, VValue [] nmask)
 					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s currentPath, id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
-					  4,
+					  6,
 					  {VSt | vst & currentPath = stepDataPath currentPath})  
 				(VValue ov omask, VValue nv nmask)						
 					# (nupd,rh,vst) = vizUpdate fx ov nv omask nmask {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorUpdate}
@@ -509,26 +509,26 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 					# rplc 		 = determineReplacements nviz idx
 					# rem  		 = determineRemovals lo ln (dp2id idPrefix currentPath)
 					# add  		 = determineAdditions nviz lo ln (dp2id idPrefix currentPath)
-					= (nupd++rplc++add++rem,4,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})	
+					= (nupd++rplc++add++rem,6,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})	
 		VHtmlDisplay
 			= case old of
 				(VValue [] omask)
-					= ([HtmlFragment [ITag [] [(Text "Empty list")]]],4,{VSt | vst & currentPath = stepDataPath currentPath})
+					= ([HtmlFragment [ITag [] [(Text "Empty list")]]],6,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue ov omask)
 					# (viz,rh,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
 					= ([HtmlFragment [UlTag [ClassAttr "listDisplay"] [(LiTag [ClassAttr "listDisplay"] (flatten (coerceToHtml x))) \\ x <- viz]]],4,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VBlank)
-					= ([HtmlFragment [(Text "-")]],4,{VSt | vst & currentPath = stepDataPath currentPath})	
+					= ([HtmlFragment [(Text "-")]],6,{VSt | vst & currentPath = stepDataPath currentPath})	
 		_
 			= case old of
 				(VValue [] omask)
-					= ([TextFragment "Empty list"],4,{VSt | vst & currentPath = stepDataPath currentPath})
+					= ([TextFragment "Empty list"],6,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue ov omask)
 					# (viz,rh,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
 					# strings      = flatten [(coerceToStrings x) \\ x <-viz]
-					= ([TextFragment (toTextFrag strings)],4,{VSt | vst & currentPath = stepDataPath currentPath})
+					= ([TextFragment (toTextFrag strings)],6,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VBlank)
-					= ([TextFragment "-"],4,{VSt | vst & currentPath = stepDataPath currentPath})	 					
+					= ([TextFragment "-"],6,{VSt | vst & currentPath = stepDataPath currentPath})	 					
 where
 	vizEditor fx []     mask index pfx name vst = ([],[],vst)
 	vizEditor fx [x:xs] mask index pfx name vst=:{label,useLabels}
@@ -667,7 +667,7 @@ consSelector d idPrefix dp value label useLabels
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
 		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
 				   \\ c <- d.gcd_type_def.gtd_conses]
-		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, hideLabel = not useLabels})]
+		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, columns = 4, hideLabel = not useLabels})]
 	//Use combobox to choose a constructor
 	| otherwise
 		= [TUIFragment (TUIComboBox {TUIComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
