@@ -79,6 +79,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		});
 		
 		worklist.on("workListRefreshed",function(worklist) {
+		
 			worklist.workStore.each(function(){
 				var tab = worktabs.getComponent("worktab-"+this.data.taskid);
 				var wlTStamp = this.data.latestExtEvent;
@@ -96,15 +97,13 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		newpanel.on("processStarted",function(taskid) {
 			//When new work is started, refresh the worklist
 			//and immediately open a tab for the work
-			worklist.refresh();	
 			attachTabHandlers(worktabs.openWorkTab(taskid));
+			worklist.refresh();
 		},this);
 		
-		//Fix for tabpanel resize event bug
-		worktabs.on("resize",function(c) {
-			c.doLayout();
-		});
-		
+		//Mark a task as read when it is opened
+		worktabs.on("taskOpened",worklist.markRead, worklist);
+	
 		//Add debug button
 		if(itasks.config.debug) {
 		

@@ -143,6 +143,18 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 		return this.store.getAt(index).data.taskid;
 	},
 	/*
+	* Mark a task in the list as read
+	*/
+	markRead: function (taskid) {
+		this.store.each(function(rec) {
+			if(Ext.isArray(taskid) && taskid.isMember(rec.data.taskid) || rec.data.taskid == taskid) {
+					
+				rec.set("tree_new",false);
+				rec.commit();
+			}
+		});
+	},
+	/*
 	* Refresh the list
 	*/
 	refresh: function () {

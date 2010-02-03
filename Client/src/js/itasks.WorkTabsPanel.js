@@ -13,6 +13,8 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 			items: {xtype: "itasks.hometab"}
 		});
 		
+		this.addEvents("taskOpened");
+		
 		itasks.WorkTabsPanel.superclass.initComponent.apply(this,arguments);
 	},
 	openWorkTab: function (taskid) {
@@ -35,6 +37,8 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 			this.doLayout();
 		}
 		this.activate(tab);
+		
+		this.fireEvent("taskOpened",taskid);
 				
 		//Return a reference to the new tab
 		return [tab,isnew];
