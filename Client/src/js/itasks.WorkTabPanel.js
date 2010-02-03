@@ -294,7 +294,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	attachTaskHandlers: function(comp) {
 	
 		// Scary hack! Don't look below!
-		new Ext.util.DelayedTask().delay(250,this.attachDocumentLinkInformation.defer(100,this),this);
+		new Ext.util.DelayedTask().delay(100,this.attachDocumentLinkInformation,this);
 		// End of scary hack
 		
 		var changeTaskEvent = function () {
