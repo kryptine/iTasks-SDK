@@ -4,74 +4,55 @@ import 	iTasks, CommonDomain, GeoDomain
 from 	StdFunc import o
 from	EstherBackend import toStringDynamic
 				
-derive gPrint 		FormType, ViewWhat, FlowType, EditorInfo, AssignInfo, Vert
-derive gParse 		FormType, ViewWhat, FlowType, EditorInfo, AssignInfo, Vert
-derive gUpdate 		FormType, ViewWhat, FlowType, EditorInfo, AssignInfo, Vert
-derive gVisualize 	FormType, ViewWhat, FlowType, EditorInfo, AssignInfo
+derive gPrint 		FormType, FlowType, EditorInfo, AssignInfo, FormStore, FlowStore, Elem
+derive gParse 		FormType, FlowType, EditorInfo, AssignInfo, FormStore, FlowStore, Elem
+derive gUpdate 		FormType, FlowType, EditorInfo, AssignInfo, FormStore, FlowStore, Elem
+derive gVisualize 	FormType, FlowType, EditorInfo, AssignInfo, FormStore, FlowStore
 
 Start :: *World -> *World 
-Start world = startEngine dynFormEditor world
+Start w = startEngine dynFormEditor w
 
 dynFormEditor :: [Workflow]
 dynFormEditor
 = [	{ Workflow 
-	| name		= "FormType/makeForm"
-	, label		= "FormType/makeForm"
+	| name		= "makeForm"
+	, label		= "makeForm"
 	, roles		= []
 	, mainTask	= test >>| return Void
 	}
   ]
 
-:: T a b	= T a & iTask b
-
-// String is used to prompt user
-// Maybe type used to ensure that the designer does not need to fill in the form when designing it
-
-:: MyField a :== (String,Maybe a)			
+:: T a b	= T !a & iTask b
 
 :: FormType = Integer 	
 			| Real 		
 			| String 	
 			| Bool 		
-			| Tuple  	(FormType, FormType)
-			| List 		FormType
-			| Option 	FormType
-			| Labeled 	(String, FormType)
+			| Tuple  	!(!FormType, !FormType)
+			| List 		!FormType
+			| Option 	!FormType
+			| Labeled 	!(!String, !FormType)
 			| Notes 	
 			| Date 		
 			| Time 		
 			| Document 	
 			| GoogleMap 
 
-:: ViewWhat	= ShowPreview
-			| EnterDefaultValues
-
-// ------------
-/*
-:: T2 a b = T2 a & TC b
-
-f :: Dynamic -> Dynamic
-f (T2 (x,y) :: T2 (a,b) (a,b)) = dynamic x :: T2 a a
-
-*/
-
-// ------------
-
-:: FlowType	= Editor EditorInfo
-			| DisplayIt EditorInfo
+:: FlowType	= Editor 	!EditorInfo
+			| DisplayIt !EditorInfo
 			| Return
 			| First
 			| Second
-			| Or  [FlowType] [FlowType]
-			| And [FlowType] [FlowType]
+			| Or  ![FlowType] ![FlowType]
+			| And ![FlowType] ![FlowType]
 
 :: EditorInfo 
-			= { prompt  	:: String
-			  ,	assignTo 	:: Maybe AssignInfo
+			= { prompt  	:: !String
+			  ,	assignTo 	:: !Maybe !AssignInfo
 			  }
 :: AssignInfo
-			= { idOfUser	:: Int
-			  ,	taskName 	:: String
+			= { idOfUser	:: !Int
+			  ,	taskName 	:: !String
 			  }
 
 // ------------
@@ -79,41 +60,160 @@ f (T2 (x,y) :: T2 (a,b) (a,b)) = dynamic x :: T2 a a
 test =  looping [] (dynamic (T "No form defined yet") :: T String String) [] (dynamic (T "No flow defined yet") :: T String String)
 
 looping :: [FormType] Dynamic [FlowType] Dynamic -> Task Void
-looping formType form flowtype flow
-	=					enterChoice "Kies maar" [newFormType, editFormType, initForm, editForm, newFlow, editFlow, evalFlow]
+looping formType form flowType flow
+	=					enterChoice "Kies maar" [ FormTypeNew, 	FormTypeEdit 
+												, FormNew, 		FormEdit
+												, FormStore, 	FormRead
+												, FlowNew, 		FlowEdit
+												, FlowStore, 	FlowRead
+												, FlowStart
+												, Exit
+												]
 		>>= \choice ->	case choice of
-							"Create a new form type" 	-> editFormTypes [] 		>>= \formType 	-> looping formType form flowtype flow
-							"Edit latest form type" 	-> editFormTypes formType	>>= \formType 	-> looping formType form flowtype flow
-							"Initialize form"			-> makeForm formType		>>= \form 		-> looping formType form flowtype flow
-							"Edit form"					-> editDynForm form			>>= \form 		-> looping formType form flowtype flow
-							"Create a new flow type"	-> makeFlow form []			>>= \flow 		-> looping formType form flowtype flow
-							"Edit latest flow type"		-> makeFlow form flowtype	>>= \flow 		-> looping formType form flowtype flow
-							"Execute flow"				-> eval flow				>>|				   looping formType form flowtype flow
+							FormTypeNew 	-> editFormTypes [] 		>>= \(formType,form) 	-> 	looping formType form flowType flow
+							FormTypeEdit 	-> editFormTypes formType	>>= \(formType,form) 	-> 	looping formType form flowType flow
+
+							FormNew			-> makeForm formType		>>= \form 				-> 	looping formType form flowType flow
+							FormEdit		-> editForm form			>>= \form 				-> 	looping formType form flowType flow
+
+							FormStore		-> storeForm formType form	>>| 			   			looping formType form flowType flow
+							FormRead		-> readForm formType form	>>= \(formType,form)	->	looping formType form flowType flow
+
+							FlowNew			-> makeFlow form []			>>= \flow 				-> 	looping formType form flowType flow
+							FlowEdit		-> makeFlow form flowType	>>= \flow 				-> 	looping formType form flowType flow
+							FlowStart		-> startFlow flow			>>|				   			looping formType form flowType flow
+
+							FlowStore		-> storeFlow flowType form	>>| 			   			looping formType form flowType flow
+							FlowRead		-> readFlow flowType form	>>= \(flowType,form)	->	looping formType form flowType flow
+							
+							Exit			-> return Void
+
+FormTypeNew 	:== "Form Type / Create New"
+FormTypeEdit	:== "Form Type / Edit"
+FormNew			:== "Form / Create New"
+FormEdit		:== "Form / Edit"
+FormRead		:== "Form / Read"
+FormStore		:== "Form / Store"
+
+FlowNew 		:== "Flow / New"
+FlowEdit 		:== "Flow / Edit"
+FlowStart 		:== "Flow / Start"
+FlowRead		:== "Flow / Read"
+FlowStore		:== "Flow / Store"
+
+Exit			:== "Exit"
+// ------------
+
+editFormTypes :: [FormType] -> Task ([FormType],Dynamic)
+editFormTypes formType 
+	= 						updateInformation "Construct a form by chosing the types of the form fields:" formType
+		>>= \formType -> 	createForm formType 
+		>>= \form ->		return (formType, form)
+
+createForm :: [FormType] -> Task Dynamic
+createForm bs = convertFormTypes bs >>= return o tupling
+where
+	tupling [] 		= dynamic T Void :: T Void Void
+	tupling [d]		= d
+	tupling [d:ds]	= case (d, tupling ds) of 
+							(T d1 :: T a a, T d2 :: T b b) -> dynamic T (Elem d1 d2) :: T (Elem a b) (Elem a b)	
+
+	convertFormTypes :: [FormType] -> Task [Dynamic]
+	convertFormTypes [] 		= return []
+	convertFormTypes [b:bs] 	= convert b >>= \d -> convertFormTypes bs >>= \ds -> return [d:ds] 
+	where
+		convert :: FormType -> Task Dynamic
+		convert	Integer				= getDefaultValue >>= \v -> return (dynamic T v :: T Int Int)	
+		convert	Real				= getDefaultValue >>= \v -> return (dynamic T v :: T Real Real)	
+		convert	String				= getDefaultValue >>= \v -> return (dynamic T v :: T String String)	
+		convert	Bool				= getDefaultValue >>= \v -> return (dynamic T v :: T Bool Bool)	
+		convert	(Tuple (b1, b2))	= 				convert b1 
+										>>= \db1 -> convert b2
+										>>= \db2 -> returnTuple db1 db2	
+		convert (List b)			=				convert b
+										>>= \dl ->	returnList dl
+		convert (Option b)			=				convert b
+										>>= \db ->	returnOption db
+		convert (Labeled (s, b))	=				convert b
+										>>= \db ->	returnLabel s db
+		convert	Notes				= getDefaultValue >>= \v -> return (dynamic T v :: T Note Note)	
+		convert	Date				= getDefaultValue >>= \v -> return (dynamic T v :: T Date Date)	
+		convert	Time				= getDefaultValue >>= \v -> return (dynamic T v :: T Time Time)	
+		convert	Document			= getDefaultValue >>= \v -> return (dynamic T v :: T Document Document)	
+		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic T v :: T GoogleMap GoogleMap)	
+
+		returnTuple (T t1 :: T a a) (T t2 :: T b b) = return (dynamic T (t1,t2) :: T (a,b) (a,b))
 		
+		returnList (T v :: T a a) = return (dynamic T [] :: T [a] [a])
+		
+		returnOption (T v :: T a a) = return (dynamic T Nothing :: T (Maybe a) (Maybe a))
 
-newFormType 	:== "Create a new form type"
-editFormType	:== "Edit latest form type"
-initForm		:== "Initialize form"
-editForm		:== "Edit form"
-newFlow 		:== "Create a new flow type"
-editFlow 		:== "Edit latest flow type"
-evalFlow 		:== "Execute flow"
-
-read			:== "Read"
-save			:== "Save"
+		returnLabel s (T v :: T a a) = return (dynamic T (s,v) :: T (String,a) (String,a))
 
 // ------------
 
-editFormTypes :: [FormType] -> Task [FormType]
-editFormTypes formType = updateInformation "Construct a form by chosing the types of the form fields:" formType
+makeForm :: [FormType] -> Task Dynamic
+makeForm formType 
+	= 					createForm formType 
+		>>= \dyn ->		editForm dyn
 
 // ------------
 
-eval (T t:: T (Task a) a)	= t >>| return Void
-eval d=:(T v:: T a a)		= showMessage (showDynValType "Result" (dynamic v :: a))
-eval d						= showMessage (dynErrorMess "Eval" d) 
+editForm ::  Dynamic -> Task Dynamic
+editForm d=:(T v :: T a a)	
+	= 			updateInformation "Initialize form where needed..." v
+		>>= 	returnShow d 		
+where
+	returnShow :: Dynamic a -> Task Dynamic | iTask a
+	returnShow d=:(T v :: T a^ b) nv = return (dynamic T nv :: T a^ a^)
 
 // ------------
+
+:: FormStore = {formName :: !String, formType :: ![FormType], form :: !Dynamic, formDBRef :: !DBRef !FormStore}
+
+instance DB FormStore where
+	databaseId	:: DBid [FormStore]
+	databaseId = mkDBid "FormStore"
+	
+	getItemId	:: FormStore -> DBRef FormStore
+	getItemId a = a.formDBRef
+
+	setItemId	:: (DBRef FormStore) FormStore -> FormStore
+	setItemId dbref a = {a & formDBRef = dbref}
+
+storeForm formType form 
+	=						enterInformation "Define name of form to store:"
+		>>= \name ->		return (extName name)
+		>>= \extname ->		dbReadAll
+		>>= \all ->			if	(isMember extname [this.formName \\ this <- all])
+								(			requestConfirmation ("Name " +++ extname +++ " already exists, do you want to overwrite?")
+								 >>= \ok -> if ok (updateItem all extname) (storeForm formType form)
+								)
+								(storeItem extname)
+								 
+	where
+		extName name = name +++ " :: " +++ showDynType2 form
+		showDynType2 (T x :: T a b) = showDynType (dynamic undef :: a) 
+
+		updateItem all name
+			=				return (hd [this \\ this <- all | this.formName == name])
+			>>= \oform ->	dbUpdateItem {oform & formName = name, formType = formType, form = form}
+
+		storeItem name
+			=				dbCreateItem
+			>>= \oform ->	dbUpdateItem {oform & formName = name, formType = formType, form = form}
+
+undef = undef
+readForm formType form  
+	=						dbReadAll
+		>>= \all ->			case all of
+							 [] ->					updateInformation "No stored forms can be found." Void
+							 		>>|				return (formType,form)
+							 all ->					enterChoice "Choose form you want to use:" [this.formName \\ this <- all]
+									>>= \name ->	return (hd [(this.formType,this.form) \\ this <- all | this.formName == name])
+
+// ------------
+
 makeFlow form flowtype
 	=						updateInformation "Construct a flow:" flowtype
 		>>= \flowtype ->	checkFlow form flowtype
@@ -170,70 +270,67 @@ andTask d1 d2 flows
 
 // ------------
 
-editDynForm ::  Dynamic -> Task Dynamic
-editDynForm d=:(T v :: T a a)	
-	= 			updateInformation "Initialize form where needed..." v
-		>>= 	returnShow d 		
-where
-	returnShow :: Dynamic a -> Task Dynamic | iTask a
-	returnShow d=:(T v :: T a^ b) nv = return (dynamic T nv :: T a^ a^)
+:: FlowStore = {flowName :: !String, flowType :: ![FlowType], flow :: !Dynamic, flowDBRef :: !DBRef !FlowStore}
 
+instance DB FlowStore where
+	databaseId	:: DBid [FlowStore]
+	databaseId = mkDBid "FlowStore"
+	
+	getItemId	:: FlowStore -> DBRef FlowStore
+	getItemId a = a.flowDBRef
+
+	setItemId	:: (DBRef FlowStore) FlowStore -> FlowStore
+	setItemId dbref a = {a & flowDBRef = dbref}
+
+storeFlow flowType flow 
+	=						enterInformation "Define name of flow to store:"
+		>>= \name ->		return (extName name)
+		>>= \extname ->		dbReadAll
+		>>= \all ->			if	(isMember extname [this.flowName \\ this <- all])
+								(			requestConfirmation ("Name " +++ extname +++ " already exists, do you want to overwrite?")
+								 >>= \ok -> if ok (updateItem all extname) (storeFlow flowType flow)
+								)
+								(storeItem extname)
+								 
+	where
+		extName name = name +++ " :: " +++ showDynType flow
+//		showDynType2 (T x :: T a b) = showDynType (dynamic undef :: a) 
+
+		updateItem all name
+			=				return (hd [this \\ this <- all | this.flowName == name])
+			>>= \oflow ->	dbUpdateItem {oflow & flowName = name, flowType = flowType, flow = flow}
+
+		storeItem name
+			=				dbCreateItem
+			>>= \oflow ->	dbUpdateItem {oflow & flowName = name, flowType = flowType, flow = flow}
+
+readFlow flowType flow  
+	=						dbReadAll
+		>>= \all ->			case all of
+							 [] ->					updateInformation "No stored flows can be found." Void
+							 		>>|				return (flowType,flow)
+							 all ->					enterChoice "Choose flow you want to use:" [this.flowName \\ this <- all]
+									>>= \name ->	return (hd [(this.flowType,this.flow) \\ this <- all | this.flowName == name])
 // ------------
 
-makeForm :: [FormType] -> Task Dynamic
-makeForm formType 
-	= 					converter formType 
-		>>= \dyn ->		editDynForm dyn
-
-converter :: [FormType] -> Task Dynamic
-converter bs = convertFormTypes bs >>= return o tupling
+startFlow dyn 
+	= 				getCurrentUser
+		>>= \me ->	spawnProcess me.userId True (evalFlow dyn)
+		>>|			return Void
 where
-	tupling [] 		= dynamic T Void :: T Void Void
-	tupling [d]		= d
-	tupling [d:ds]	= case (d, tupling ds) of 
-							(T d1 :: T a a, T d2 :: T b b) -> dynamic T (Vert d1 d2) :: T (Vert a b) (Vert a b)	
-
-	convertFormTypes :: [FormType] -> Task [Dynamic]
-	convertFormTypes [] 		= return []
-	convertFormTypes [b:bs] 	= convert b >>= \d -> convertFormTypes bs >>= \ds -> return [d:ds] 
-	where
-		convert :: FormType -> Task Dynamic
-		convert	Integer				= getDefaultValue >>= \v -> return (dynamic T v :: T Int Int)	
-		convert	Real				= getDefaultValue >>= \v -> return (dynamic T v :: T Real Real)	
-		convert	String				= getDefaultValue >>= \v -> return (dynamic T v :: T String String)	
-		convert	Bool				= getDefaultValue >>= \v -> return (dynamic T v :: T Bool Bool)	
-		convert	(Tuple (b1, b2))	= 				convert b1 
-										>>= \db1 -> convert b2
-										>>= \db2 -> returnTuple db1 db2	
-		convert (List b)			=				convert b
-										>>= \dl ->	returnList dl
-		convert (Option b)			=				convert b
-										>>= \db ->	returnOption db
-		convert (Labeled (s, b))	=				convert b
-										>>= \db ->	returnLabel s db
-		convert	Notes				= getDefaultValue >>= \v -> return (dynamic T v :: T Note Note)	
-		convert	Date				= getDefaultValue >>= \v -> return (dynamic T v :: T Date Date)	
-		convert	Time				= getDefaultValue >>= \v -> return (dynamic T v :: T Time Time)	
-		convert	Document			= getDefaultValue >>= \v -> return (dynamic T v :: T Document Document)	
-		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic T v :: T GoogleMap GoogleMap)	
-
-		returnTuple (T t1 :: T a a) (T t2 :: T b b) = return (dynamic T (t1,t2) :: T (a,b) (a,b))
-		
-		returnList (T v :: T a a) = return (dynamic T [] :: T [a] [a])
-		
-		returnOption (T v :: T a a) = return (dynamic T Nothing :: T (Maybe a) (Maybe a))
-
-		returnLabel s (T v :: T a a) = return (dynamic T (s,v) :: T (String,a) (String,a))
+	evalFlow (T t:: T (Task a) a)	= t >>| return Void
+	evalFlow d=:(T v:: T a a)		= showMessage (showDynValType "Result" (dynamic v :: a))
+	evalFlow d						= showMessage (dynErrorMess "Eval" d) 
 
 // ****************************
 
-:: Vert a b = Vert a b
+:: Elem a b = Elem a b
 
-gVisualize{|Vert|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
+gVisualize{|Elem|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
 		VEditorDefinition
 			# oldLabels = useLabels
-			# (v1,v2) = case old of (VValue (Vert o1 o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank, VBlank)
+			# (v1,v2) = case old of (VValue (Elem o1 o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank, VBlank)
 			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,rh2,vst) = f2 v2 v2 vst
 			= ([TUIFragment (TUIPanel {TUIPanel | layout="form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=0, //Tuple always full width
@@ -245,7 +342,7 @@ gVisualize{|Vert|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, l
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
-				(VValue (Vert o1 o2) omask, VValue(Vert n1 n2) nmask)
+				(VValue (Elem o1 o2) omask, VValue(Elem n1 n2) nmask)
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
@@ -279,3 +376,11 @@ dynError2 s d1 d2 = return (dynamic T (dynErrorMess2 s d1 d2):: T String String)
 dynErrorMess2 s d1 d2 = s +++ ", Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
 
 // ****************
+
+/*
+:: T2 a b = T2 a & TC b
+
+f :: Dynamic -> Dynamic
+f (T2 (x,y) :: T2 (a,b) (a,b)) = dynamic x :: T2 a a
+
+*/
