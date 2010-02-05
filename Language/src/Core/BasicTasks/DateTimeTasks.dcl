@@ -4,7 +4,7 @@ definition module DateTimeTasks
 */
 from TSt 			import :: Task
 from Void			import :: Void
-from CommonDomain	import :: Date, :: Time
+from CommonDomain	import :: Date, :: Time, :: DateTime
 
 /**
 * Returns the current time
@@ -14,6 +14,10 @@ getCurrentTime	:: Task Time
 * Returns the current date
 */
 getCurrentDate	:: Task Date
+/**
+* Returns the current datetime combination
+*/
+getCurrentDateTime :: Task DateTime
 /**
 * Task completes at specified time.
 */

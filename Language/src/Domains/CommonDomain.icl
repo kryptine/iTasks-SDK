@@ -5,10 +5,10 @@ import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
-derive gPrint		EmailAddress, Password, Note, Date, Time, Currency
-derive gParse		EmailAddress, Password, Note, Date, Time, Currency
-derive gVisualize	EmailAddress, Password
-derive gUpdate		EmailAddress, Password, Note
+derive gPrint		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gParse		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gVisualize	EmailAddress, Password, DateTime
+derive gUpdate		EmailAddress, Password, Note, DateTime
 derive gLexOrd		Currency
 
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
@@ -114,6 +114,13 @@ currentDate :: !*World -> (!Date,!*World)
 currentDate world
 	# (tm,world) = localTime world
 	= ({Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year},world)
+
+currentDateTime :: !*World -> (!DateTime,!*World)
+currentDateTime world
+	# (tm,world)	= localTime world
+	# date			= {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year}
+	# time			= {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec}
+	= (DateTime date time,world)
 
 instance html Note
 where

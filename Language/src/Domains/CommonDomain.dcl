@@ -4,10 +4,10 @@ definition module CommonDomain
 * functions for common data in workflows.
 */
 import GenPrint, GenParse, GenVisualize, GenUpdate
+
 import StdString
 from Html	import :: HtmlTag
 from InteractionTasks import class html
-
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
 :: URL			= URL String
@@ -28,10 +28,13 @@ from InteractionTasks import class html
 	, min	:: Int
 	, sec	:: Int
 	}
+:: DateTime = DateTime Date Time
 
-currentTime :: !*World -> (!Time,!*World)
-currentDate :: !*World -> (!Date,!*World)
-	
+// Functions for accessing dates and times
+currentTime 	:: !*World -> (!Time,!*World)
+currentDate 	:: !*World -> (!Date,!*World)
+currentDateTime :: !*World -> (!DateTime,!*World)
+
 // Money
 :: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
 	= EUR Int
@@ -39,10 +42,10 @@ currentDate :: !*World -> (!Date,!*World)
 	| USD Int
 	| JPY Int
 	
-derive gPrint		EmailAddress, Password, Note, Date, Time, Currency
-derive gParse		EmailAddress, Password, Note, Date, Time, Currency
-derive gVisualize	EmailAddress, Password, Note, Date, Time, Currency
-derive gUpdate		EmailAddress, Password, Note, Date, Time, Currency
+derive gPrint		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gParse		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gVisualize	EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gUpdate		EmailAddress, Password, Note, Date, Time, DateTime, Currency
 
 instance html Note
 

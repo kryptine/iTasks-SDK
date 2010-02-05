@@ -7,32 +7,21 @@ import Time
 import CommonDomain
 import CoreCombinators
 
-tm2time :: Tm -> Time
-tm2time tm = {Time|hour = tm.Tm.hour, min = tm.Tm.min, sec= tm.Tm.sec} 
-
-tm2date :: Tm -> Date
-tm2date tm = {Date| day = tm.Tm.mday, mon = 1 + tm.Tm.mon, year = 1900 + tm.Tm.year }
-
 getCurrentTime :: Task Time
-getCurrentTime = mkInstantTask "getCurrentTime" getCurrentTime`
-where
-	getCurrentTime` tst
-		# (tm,tst) = accWorldTSt localTime tst
-		= (tm2time tm ,tst)
+getCurrentTime = mkInstantTask "getCurrentTime" (accWorldTSt currentTime)
 	
 getCurrentDate :: Task Date
-getCurrentDate = mkInstantTask "getCurrentDate" getCurrentDate`
-where
-	getCurrentDate` tst
-		# (tm,tst) = accWorldTSt localTime tst
-		= (tm2date tm,tst)
+getCurrentDate = mkInstantTask "getCurrentDate" (accWorldTSt currentDate)
+
+getCurrentDateTime :: Task DateTime
+getCurrentDateTime = mkInstantTask "getCurrentDateTime" (accWorldTSt currentDateTime)
 
 waitForTime :: !Time -> Task Void
 waitForTime time = mkMonitorTask "waitForTime" waitForTime`
 where
 	waitForTime` tst
-		# (tm,tst) = accWorldTSt localTime tst
-		| tm2time tm < time
+		# (now,tst) = accWorldTSt currentTime tst
+		| now < time
 			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel time] tst
 			= (Void,{tst & activated = False})
 		| otherwise
@@ -42,8 +31,8 @@ waitForDate :: !Date -> Task Void
 waitForDate date = mkMonitorTask "waitForDate" waitForDate`
 where
 	waitForDate` tst
-		# (tm,tst) = accWorldTSt localTime tst
-		| tm2date tm < date
+		# (now,tst) = accWorldTSt currentDate tst
+		| now < date
 			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel date] tst
 			= (Void,{tst & activated = False})
 		| otherwise
