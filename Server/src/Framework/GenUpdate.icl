@@ -4,9 +4,10 @@ import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMay
 import Void, Either
 import Text
 import JSON
+import Types
 
 from StdFunc import id
-from Types import emptyDoc, :: Document {..}
+
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
@@ -361,7 +362,7 @@ gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, upd
 
 gUpdate {|Document|} s ust = (s,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), Void
+derive gUpdate Either, (,), (,,), (,,,), Void, Static, Hidden
 
 //Utility functions
 dp2s :: DataPath -> String

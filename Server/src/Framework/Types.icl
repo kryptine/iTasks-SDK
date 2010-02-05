@@ -5,8 +5,8 @@ import Html
 import Util
 import CommonDomain
 
-derive gPrint		Session, Document
-derive gParse		Session, Document
+derive gPrint		Session, Document, Hidden, Static
+derive gParse		Session, Document, Hidden, Static
 derive gVisualize	Session
 derive gUpdate		Session
 
@@ -29,3 +29,16 @@ emptyDoc =
 	    , taskId = ""
 	    , index = 0
 	    }
+	    
+// Hidden en Static
+fromStatic :: !(Static .a) -> .a
+fromStatic (Static x) = x
+
+toStatic :: !.a -> (Static .a)
+toStatic x = (Static x)
+
+fromHidden :: !(Hidden .a) -> .a
+fromHidden (Hidden x) = x
+
+toHidden :: !.a -> (Hidden .a)
+toHidden x = (Hidden x)

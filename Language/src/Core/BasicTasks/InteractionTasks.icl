@@ -216,11 +216,11 @@ where
 			
 	taskDescriptionPanel :: !String ![HtmlTag] -> TUIDef
 	//taskDescriptionPanel description = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] description), border = False, bodyCssClass = "task-description"} 
-	taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description"} 
+	taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description", fieldLabel = Nothing, hideLabel = True} 
 	
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
 	//taskContextPanel context = TUIHtmlPanel {TUIHtmlPanel| html = toString (SpanTag [] (html context)), border = False, bodyCssClass = "task-context"} 
-	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context"} 
+	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True} 
 	
 	taskFormPanel :: [TUIDef] -> TUIDef
 	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 0, unstyled=False}

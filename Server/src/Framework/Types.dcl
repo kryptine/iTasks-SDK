@@ -11,8 +11,8 @@ from StdString		import class toString
 
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
 
-derive gPrint		Session, Document
-derive gParse		Session, Document
+derive gPrint		Session, Document, Hidden, Static
+derive gParse		Session, Document, Hidden, Static
 derive gVisualize	Session
 derive gUpdate		Session
 
@@ -62,6 +62,16 @@ instance toString TaskPriority
 :: EvaluationOption	= OnClient 				// Evaluate a task on the client whenever possible
 					| OnServer				// Always evaluate a task on the server
 
+
+// Field behaviour extensions
+:: Static a = Static a						// Variable is always rendered as a HTML-fragment
+:: Hidden a = Hidden a						// Variable is never rendered
+
+fromStatic :: !(Static .a) -> .a
+toStatic :: !.a -> (Static .a)
+
+fromHidden :: !(Hidden .a) -> .a
+toHidden :: !.a -> (Hidden .a)
 
 // Document
 :: DocumentData :== String

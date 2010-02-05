@@ -618,7 +618,52 @@ where
 	| optional 				= valid
 	| doc.fileName <> "" 	= valid
 	| otherwise 			= False	
-			
+
+//Hidden type
+gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
+	= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})
+
+import StdDebug
+
+//Static type
+gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
+= case vizType of
+	VEditorDefinition
+		= case old of
+		(VValue (Static ov) omask)
+			# (vizBody,rh,vst) = fx (VValue ov omask) (VValue ov omask) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+			= case hd vizBody of
+				(HtmlFragment tags)
+					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
+		  			rh,
+		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+		  		(TextFragment html)
+					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = html, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
+		  			rh,
+		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+		  		_
+		  			= ([],0,{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+		(VBlank)
+			# (vizBody,rh,vst) = fx VBlank VBlank {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+			= case hd vizBody of
+				(HtmlFragment tags)
+					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
+		  			rh,
+		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+		  		_
+		  			= ([],0,{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+	_
+		= case old of
+		(VValue (Static ov) omask)
+			# (vizBody,rh,vst) = fx (VValue ov omask) (VValue ov omask) {VSt | vst & currentPath = shiftDataPath currentPath}
+			= (vizBody,rh,{VSt |vst & currentPath = stepDataPath currentPath})
+		(VBlank)
+			# (vizBody,rh,vst) = fx VBlank VBlank {VSt | vst & currentPath = shiftDataPath currentPath}
+			= (vizBody,rh,{VSt | vst &  currentPath = stepDataPath currentPath})
+where 
+	tags2s [] = ""
+	tags2s [t:tv] = (toString t)+++tags2s tv
+		
 derive gVisualize Either, Void
 
 instance toString (VisualizationValue a) | toString a

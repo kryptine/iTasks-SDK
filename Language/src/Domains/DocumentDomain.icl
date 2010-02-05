@@ -5,7 +5,7 @@ from Types import :: Document {..}, :: Task
 import GenVisualize, GenUpdate, GenParse, GenPrint
 import StdList, StdFile, StdArray, Text
 import StdMisc
-import Directory
+import Directory, ExtToMime
 import TSt, DocumentDB
 
 derive gUpdate PDFDocument, ImageDocument, TextDocument
@@ -100,7 +100,8 @@ where
 		# (ok,world) 		= fclose file world
 		| not ok 			= (Nothing,{TSt | tst & world = world})
 		//Find way to derive mime/type
-		# (doc,tst) 		= createDocument fname "unknown" tst.taskNr data {TSt | tst & world = world}
+		# mime				= extToMimeType ("."+++last(split "." fname))
+		# (doc,tst) 		= createDocument fname mime tst.taskNr data {TSt | tst & world = world}
 		= (Just doc,tst)
 
 	readFile :: !*File !String !Int -> (!String,!*File,!Int)

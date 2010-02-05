@@ -163,6 +163,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, border		:: Bool
 	, bodyCssClass	:: String
 	, id			:: String
+	, fieldLabel	:: Maybe String
+	, hideLabel		:: Bool
 	}
 :: TUIList =
 	{ items			:: [TUIDef]

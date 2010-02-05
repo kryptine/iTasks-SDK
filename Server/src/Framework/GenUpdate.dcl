@@ -1,7 +1,7 @@
 definition module GenUpdate
 
 import StdGeneric, StdMaybe, Void, Either
-from Types import :: Document{..}
+import Types
 
 //Datapath is used to point to substructures of data structures
 :: DataPath :== [Int]
@@ -30,7 +30,7 @@ generic gUpdate a		:: a 		*USt -> (a, *USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String, Document
-derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void
+derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
 
 //Wrapper functions for updating
 defaultValue		:: !*World -> (!a,!*World)														| gUpdate{|*|} a
