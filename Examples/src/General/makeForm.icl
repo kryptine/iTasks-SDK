@@ -47,6 +47,7 @@ dynFormEditor
 				| 	Document 	
 				| 	GoogleMap 
 :: FlowType		= 	FormFromStore 	!String
+				|	FlowFromStore 	!String
 				|	Editor 			!EditorInfo
 				| 	DisplayIt 		!EditorInfo
 				| 	Return
@@ -142,8 +143,11 @@ looping f=:(Flow flow)
 editFormTypes :: DynFormFlow -> Task DynFormFlow
 editFormTypes (Form form)
 	= 						updateInformation "Construct a form by chosing the types of the form fields:" form.formType
-		>>= \formType -> 	makeDynForm formType 
-		>>= \dynForm ->		editForm (Form {form & formType = formType, dynForm = dynForm})
+		>>= \formType -> 	if (isEmpty formType) 
+								(return NoDynFormFlow) 
+								(makeDynForm formType >>= \dynForm ->
+								 editForm (Form {form & formType = formType, dynForm = dynForm})
+								 )
 editFormTypes dynFormFlow	= return dynFormFlow
 
 makeDynForm :: [FormType] -> Task Dynamic
@@ -280,6 +284,7 @@ where
 
 	translate :: FlowType -> Task Dynamic
 	translate (FormFromStore name) 	= findValue name
+	translate (FlowFromStore name) 	= findFlow name
 	translate (Editor editorInfo) 	= return (dynamic (\v -> assignTask editorInfo v) :: A.a: a -> Task a | iTask a)
 	where
 		assignTask info=:{assignTo = Just some} v 		
@@ -308,6 +313,16 @@ where
 	examine [] 		= throw ("Cannot find form value with name " +++ name)
 	examine [f:fs] 	= case f.dynFormFlow of
 						(Form form) = return form.dynForm
+						_ 			= throw ("Type Error: Value expected, flow found named " +++ name)
+
+findFlow :: String -> Task Dynamic
+findFlow name
+	= 						dbReadAll
+		>>= \all ->			examine [this \\ this <- all | this.dynFormFlowName == name]
+where
+	examine [] 		= throw ("Cannot find form value with name " +++ name)
+	examine [f:fs] 	= case f.dynFormFlow of
+						(Flow form) = return form.dynFlow
 						_ 			= throw ("Type Error: Value expected, flow found named " +++ name)
 
 applyFlows :: Dynamic [Dynamic] -> Dynamic  
