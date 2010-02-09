@@ -9,6 +9,7 @@ derive gPrint		Session, Document, Hidden, Static
 derive gParse		Session, Document, Hidden, Static
 derive gVisualize	Session
 derive gUpdate		Session
+derive bimap		Maybe, (,)
 
 derive JSONEncode Document
 derive JSONDecode Document

@@ -9,6 +9,8 @@ import JSON
 derive JSONEncode TraceTree
 derive JSONDecode TraceTree
 
+derive bimap	Maybe, (,)
+
 traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where

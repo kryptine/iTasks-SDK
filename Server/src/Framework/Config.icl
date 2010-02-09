@@ -5,6 +5,8 @@ import Util, JSON, StdMisc
 derive JSONEncode Config
 derive JSONDecode Config
 
+derive bimap	Maybe, (,)
+
 defaultConfig :: Config
 defaultConfig =
 	{ clientPath	= "..\\..\\Client\\build"

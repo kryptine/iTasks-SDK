@@ -11,6 +11,8 @@ derive gVisualize	EmailAddress, Password, DateTime
 derive gUpdate		EmailAddress, Password, Note, DateTime
 derive gLexOrd		Currency
 
+derive bimap	Maybe, (,)
+
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIDateField {TUIDateField|name = dp2s currentPath, id = dp2id idPrefix currentPath, value = value2s currentPath old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = not useLabels})]

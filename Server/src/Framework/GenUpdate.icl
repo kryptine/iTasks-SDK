@@ -8,6 +8,7 @@ import Types
 
 from StdFunc import id
 
+derive bimap	(,)
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  

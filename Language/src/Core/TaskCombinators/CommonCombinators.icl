@@ -21,6 +21,8 @@ import GenVisualize, GenUpdate
 derive gPrint Either
 derive gParse Either
 
+derive bimap	Maybe
+
 //Task composition
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb  

@@ -13,6 +13,8 @@ derive gUpdate		DBRef
 derive gPrint		DBRef
 derive gParse		DBRef
 
+derive bimap	Maybe, (,)
+
 ::DBid a :== String
 
 // Core db access

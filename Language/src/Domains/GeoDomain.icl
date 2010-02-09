@@ -10,6 +10,8 @@ derive gParse 	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gVisualize   GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
+derive bimap	Maybe, (,)
+
 :: TUIGoogleMap = 
 	{ center 			:: Coordinate
 	, width				:: Int

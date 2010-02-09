@@ -10,6 +10,8 @@ derive gParse 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, A
 derive gUpdate 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, AssignInfo, DynFormFlowStore, Elem
 derive gVisualize 	DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, AssignInfo, DynFormFlowStore
 
+derive bimap Maybe, (,)
+
 Start :: *World -> *World 
 Start w = startEngine dynFormEditor w
 
@@ -368,8 +370,12 @@ where
 //	translate (Or left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkOr leftflow rightflow
 //	translate (And left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkAnd leftflow rightflow
 
-//	checkOr (T ta :: T (Task a) a) (T tb :: T (Task a) a)  
-//		= return (dynamic T (ta -||- tb) :: T (Task a) a)
+	checkOr (T ta :: T (Task a) a) (T tb :: T (Task a) a)  
+		= return (mkdyn (T (ta -||- tb))) //(dynamic T (ta -||- tb) :: T (Task a) a)
+	where
+		mkdyn :: (T (Task a) a) -> Dynamic
+		mkdyn (T t) = dynamic (T t) 
+
 //	checkOr (T ta :: T a b) (T tb :: T c d)  
 //		= throw "Or: Cannot unify "
 

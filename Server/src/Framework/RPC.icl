@@ -8,3 +8,4 @@ derive JSONDecode RPCDescription, RPCOperation, RPCInterface, RPCService, RPCCal
 derive JSONEncode RPCExecute, RPCParamValue, RPCDescription, RPCOperation, RPCInterface, RPCService, RPCCallType,
 			      RPCParam, RPCMessageType, RPCProtocol, RPCParameterType, RPCHttpMethod
 
+derive bimap	Maybe, (,)

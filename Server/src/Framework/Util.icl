@@ -11,6 +11,7 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 derive gPrint Maybe, Void, (,), (,,), (,,,), (,,,,), User
 derive gParse Maybe, Void, (,), (,,), (,,,), (,,,,), User
 
+derive bimap	Maybe, (,)
 
 iTaskId :: !TaskNr !String -> String
 iTaskId tasknr postfix 

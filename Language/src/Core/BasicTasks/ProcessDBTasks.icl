@@ -21,6 +21,8 @@ derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemPr
 derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
 derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
 
+derive bimap	Maybe, (,)
+
 class toProcessId a where toProcessId :: a -> ProcessId
 
 instance toProcessId ProcessId

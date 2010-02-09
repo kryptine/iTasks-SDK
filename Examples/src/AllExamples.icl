@@ -26,7 +26,7 @@ import BugReport
 import Coffeemachine
 import Newsgroups
 import ChangeHandling
-import WebShop
+//import WebShop
 //import ideExample
 
 //Crisis response examples
@@ -57,7 +57,7 @@ where
 						, exceptionHandlingExample
 						, changeHandlingExample
 						//, ideExample
-						, webShopExample
+//						, webShopExample
 						, ambulanceDispatchExamples
 						, ambulanceDispatchMapExamples
 						, changeExamples

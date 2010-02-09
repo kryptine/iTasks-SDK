@@ -26,7 +26,7 @@ from JSON import JSONDecode, fromJSON
 derive gPrint		TaskState
 derive gParse		TaskState
 derive gEq			TaskState
-
+derive bimap 		Maybe, (,)
 derive JSONDecode RPCMessage
 
 mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !*World -> *TSt

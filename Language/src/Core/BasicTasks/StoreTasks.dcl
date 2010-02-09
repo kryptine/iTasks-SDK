@@ -9,7 +9,7 @@ from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 //Database identifier for storing a single value of type a
-:: DBid a
+::DBid a :== String
 
 //Database identifier to a value of type a in a database with multiple values
 :: DBRef a = DBRef Int
@@ -18,6 +18,7 @@ derive gVisualize	DBRef
 derive gUpdate		DBRef
 derive gPrint		DBRef
 derive gParse		DBRef
+
 
 //Core database access functions
 
