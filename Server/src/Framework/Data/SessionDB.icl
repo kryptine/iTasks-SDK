@@ -1,7 +1,7 @@
 implementation module SessionDB
 
 import StdEnv, StdMaybe
-import StdGeneric, GenBimap
+import StdGeneric
 import TSt, Store
 
 import Time

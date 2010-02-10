@@ -1,6 +1,6 @@
 implementation module InteractionTasks
 
-import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, GenBimap
+import	StdList, StdOrdList, StdTuple, StdBool, StdMisc
 from	StdFunc import id, const
 import	TSt
 

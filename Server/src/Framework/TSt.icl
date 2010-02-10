@@ -5,7 +5,7 @@ import Http, Util
 import ProcessDB, DynamicDB, SessionDB, DocumentDB, UserDB, TaskTree
 import CommonDomain
 
-import GenPrint, GenParse, GenEq, GenBimap
+import GenPrint, GenParse, GenEq
 import GenVisualize, GenUpdate, Store, Config
 
 import dynamic_string

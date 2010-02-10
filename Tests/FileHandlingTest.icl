@@ -1,30 +1,20 @@
 module FileHandlingTest
 
 import iTasks, GeoDomain, DocumentDomain
+import GenParse,GenPrint,GenVisualize,GenUpdate
 
-:: Rec =
-	{ naam :: String
-	, leeftijd :: Int
-	, foto :: ImageDocument
-	, opmerkingen :: Maybe Note
-	//, woonplaats :: Maybe GoogleMap
-	}
-
-derive gParse Rec
-derive gPrint Rec
-derive gVisualize Rec
-derive gUpdate Rec
-
-docAction :: Task Rec
-docAction = enterInformation "Document Test"
-
-docTask :: Task Void
-docTask = docAction >>= updateInformation "Please review" >>= showMessageAbout "Result" >>| return Void
-
-intAction :: Task (Maybe [Int])
-intAction = enterInformation "Enter Number List" 
+docAction :: Task Void
+docAction = 
+	enterInformation "Upload Document to be stored" >>=
+	\doc -> storeDocumentToFile doc "doc" >>=
+	\ok = case ok of
+		True
+			= loadDocumentFromFile doc.Document.fileName "doc" >>= 
+			updateInformation "Document" >>= 
+			showMessageAbout "Document"
+		False 
+			= showMessage "Failed to store"
 
 Start :: *World -> *World
-Start world = startEngine [ workflow "Document Test" docTask,
-						    workflow "Int Test" (intAction >>= showMessageAbout "Result" >>| return Void)
+Start world = startEngine [ workflow "Document Test" (docAction >>| return Void)
 						  ] world

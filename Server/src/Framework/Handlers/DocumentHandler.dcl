@@ -5,3 +5,4 @@ from Http	import :: HTTPRequest, :: HTTPResponse
 
 handleDocumentDownloadRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentDownloadLinkRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleDocumentPreviewLinkRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)

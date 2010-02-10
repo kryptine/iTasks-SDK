@@ -1,6 +1,6 @@
 implementation module GenUpdate
 
-import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap, StdEnum
+import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum
 import Void, Either
 import Text
 import JSON

@@ -1,6 +1,6 @@
 implementation module ProcessDBTasks
 
-import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList, GenBimap
+import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList
 import TSt
 
 from ProcessDB import :: Process{..}, :: ProcessStatus(..)

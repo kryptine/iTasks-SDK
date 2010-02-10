@@ -1,7 +1,7 @@
 implementation module StoreTasks
 
 import TSt, Store
-import StdList, StdOrdList, GenBimap
+import StdList, StdOrdList
 from StdFunc import id, const
 
 from SystemTasks import getDefaultValue

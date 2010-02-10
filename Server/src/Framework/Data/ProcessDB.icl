@@ -1,6 +1,6 @@
 implementation module ProcessDB
 
-import StdEnv, StdGeneric, StdMaybe, GenBimap
+import StdEnv, StdGeneric, StdMaybe
 import TSt, Store, DynamicDB, Util
 
 instance == ProcessStatus

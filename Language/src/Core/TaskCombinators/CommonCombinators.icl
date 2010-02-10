@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdBool, StdList, StdTuple, StdGeneric, StdMisc, GenBimap
+import StdBool, StdList, StdTuple, StdGeneric, StdMisc
 
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime, :: Options, :: HTTPRequest, :: Config

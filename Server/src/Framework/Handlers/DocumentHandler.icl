@@ -47,3 +47,25 @@ handleDocumentDownloadLinkRequest req tst
 		# (resp,world) = http_notfoundResponse req tst.TSt.world
 		= (resp,{TSt | tst & world = world})
 	
+//URL FORMAT: http://<<server-path>>/document/preview/link/<<tasknr>>/<<index>>?_session=<<session>>
+handleDocumentPreviewLinkRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleDocumentPreviewLinkRequest req tst
+	# path 		= split "/" req.req_path 
+	# idx  		= toInt (last path)
+	# taskId	= last (init path)
+	# (mbDoc,tst) = retrieveDocumentInfo taskId idx tst
+	| isJust mbDoc 
+		# doc = fromJust mbDoc
+		# (mbData,tst) = retrieveDocument doc tst
+		| isJust mbData
+			= ({rsp_headers = [("Status", "200 OK"),
+							   ("Content-Type", doc.Document.mimeType),
+							   ("Content-Length", toString doc.Document.size)
+							  ]
+			 				  ,rsp_data = fromJust mbData},tst)
+		| otherwise
+			# (resp,world) = http_notfoundResponse req tst.TSt.world
+			= (resp,{TSt | tst & world = world})	
+	| otherwise
+		# (resp,world) = http_notfoundResponse req tst.TSt.world
+		= (resp,{TSt | tst & world = world})

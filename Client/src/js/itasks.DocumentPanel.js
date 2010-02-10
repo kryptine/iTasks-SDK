@@ -1,5 +1,29 @@
 Ext.ns("itasks");
 
+itasks.preview = function(link){
+	
+	var vport = Ext.getDoc().getViewSize();
+		
+	var prevWindow = new Ext.Window(
+		{ modal: true
+		, width: vport.width*.9
+		, height: vport.height*.9
+		, title: 'Document Preview'
+		, layout: 'fit'
+		, items: [
+			{ xtype: 'iframepanel'
+			, frameCfg: { name: 'preview_frame' } 
+			, defaultSrc: link
+			, header: false
+			}
+		]
+		}
+	);
+	
+	
+	prevWindow.show();
+}
+
 itasks.DocumentPanel = Ext.extend(Ext.Panel,
 {	
 	initComponent: function(){

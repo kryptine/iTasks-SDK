@@ -1,6 +1,6 @@
 implementation module GenVisualize
 
-import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, GenBimap, StdEnum
+import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum
 import GenUpdate, GenEq
 import Void, Either
 import Text, Html, JSON, TUIDefinition
@@ -577,7 +577,9 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 		= case old of
 			(VBlank) = ([HtmlFragment [(Text "No Document.")]],2,vst)
 			(VValue ov omask) 
-				= ([HtmlFragment [ATag [(HrefAttr (buildLink ov)),(TargetAttr "_blank"),(NameAttr "x-form-document-link")] [(Text ov.fileName)], (Text (" ("+++printByteSize ov.size+++")"))]],
+				# downLink = ATag [HrefAttr (buildLink ov),TargetAttr "_blank",IdAttr (dp2id idPrefix currentPath),NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
+				# prevLink = ATag [HrefAttr "#", IdAttr (dp2id idPrefix currentPath), NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
+				= ([HtmlFragment [(Text (ov.fileName+++" ("+++printByteSize ov.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
 				  2,
 				  {VSt | vst & currentPath = stepDataPath currentPath})
 	VTextDisplay
@@ -618,7 +620,7 @@ where
 	| optional 				= valid
 	| doc.fileName <> "" 	= valid
 	| otherwise 			= False	
-
+		
 //Hidden type
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
 	= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})

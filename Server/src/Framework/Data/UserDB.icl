@@ -1,7 +1,7 @@
 implementation module UserDB
 
 import StdEnv, StdMaybe
-import StdGeneric, GenBimap
+import StdGeneric
 import TSt, Store
 
 unknownUser :: User

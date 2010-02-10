@@ -1,6 +1,6 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdChar, StdFile, GenBimap
+import StdMisc, StdArray, StdList, StdChar, StdFile
 
 from StdFunc import o
 from StdLibMisc import ::Date{..}, ::Time{..}
@@ -39,6 +39,7 @@ engine config flows
 	  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
 	  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
 	  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
+	  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
 	  ,(\_ -> True, handleStaticResourceRequest)
 	  ]
 

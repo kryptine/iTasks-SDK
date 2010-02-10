@@ -275,7 +275,6 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 	}
 });
 
-
 itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 		Ext.apply(this, {
@@ -369,11 +368,12 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	
 	attachDocumentLinkInformation: function() {
 		
-		var links = Ext.query("a[name=x-form-document-link]");
-				
+		var links   = Ext.query("a[name=x-form-document-link]");
+		var plinks = Ext.query("a[name=x-form-document-preview-link]");
+		
 		for(var x=0; x < links.length; x++){
 			var link = links[x];
-
+			
 			if(link.pathname.indexOf('/') != 0){
 				link.pathname = itasks.config.serverUrl+'/'+link.pathname;
 			}else{
@@ -381,6 +381,15 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 			}
 			link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
 			link.name = "";
+			
+			for(var y=0; y < plinks.length; y++){				
+				if(plinks[y].id == link.id){
+					var plink = plinks[y];		
+
+					plink.href="javascript:itasks.preview('"+link.href.replace( 'download','preview')+"')";
+					plink.name = "";
+				}
+			}
 		}
 	},
 	

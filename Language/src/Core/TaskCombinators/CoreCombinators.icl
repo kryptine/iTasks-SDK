@@ -5,7 +5,7 @@ from	StdFunc import id, const
 
 import	TSt
 import	Util
-import	GenUpdate, GenBimap
+import	GenUpdate
 import	UserDB, ProcessDB, DynamicDB
 import	StdDynamic
 

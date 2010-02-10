@@ -24,7 +24,6 @@ import	Engine						// basic iTask system creator
 	,	TuningCombinators			// Fine tuning of tasks
 	
 	//	Miscellaneous machinery
-	,	GenBimap
 	,	Util
 	,	GenVisualize				// Functions for generating GUIs
 	,	GenUpdate					// Functions for updating arbitrary values
