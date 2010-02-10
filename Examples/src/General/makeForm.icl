@@ -43,7 +43,8 @@ dynFormEditor
 	}
   ]
 
-:: T a b	= T !a & iTask b
+:: T  a b	= T  !a & iTask b
+:: T2 a b c	= T2 !a & iTask b & iTask c
 
 
 :: DynFormFlow	=	Form DynForm
@@ -61,6 +62,7 @@ dynFormEditor
 				| 	Bool 		
 				| 	Tuple  	!(!FormType, !FormType)
 				| 	List 	!FormType
+				|	Hide	!FormType
 				| 	Option 	!FormType
 				| 	Labeled !(!String, !FormType)
 				| 	Notes 	
@@ -222,7 +224,7 @@ where
 		convert (Option b)			=				convert b
 										>>= \db ->	returnOption db
 		convert (Labeled (s, b))	=				convert b
-										>>= \db ->	returnLabel s db
+										>>= \nb ->	returnLabel s nb
 		convert	Notes				= getDefaultValue >>= \v -> return (dynamic T v :: T Note Note)	
 		convert	Date				= getDefaultValue >>= \v -> return (dynamic T v :: T Date Date)	
 		convert	Time				= getDefaultValue >>= \v -> return (dynamic T v :: T Time Time)	
@@ -230,7 +232,7 @@ where
 		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic T v :: T GoogleMap GoogleMap)	
 		convert _					= abort "Fatal Error in Convert !!!"
 
-		returnTuple (T t1 :: T a a) (T t2 :: T b b) = return (dynamic T (t1,t2) :: T (a,b) (a,b))
+		returnTuple (T t1 :: T a a) (T t2 :: T b b) = return (dynamic T2 (t1,t2) :: (T2 (a,b) a b))
 		
 		returnList (T v :: T a a) = return (dynamic T [] :: T [a] [a])
 		
@@ -349,10 +351,11 @@ checkFlows :: [FlowType] -> Task Dynamic
 checkFlows [] 		= throw "Cannot apply empty flow."
 checkFlows flows 	= mapMonad translate flows >>= \dyns -> return (applyFlows (hd dyns) (tl dyns))
 where
+	mapMonad :: (!FlowType -> Task Dynamic) [FlowType] -> Task [Dynamic]	// leaving out the type crahes the compiler !!!
 	mapMonad fun [] 	= return []
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
-	translate :: FlowType -> Task Dynamic
+	translate :: !FlowType -> Task Dynamic
 	translate (FormFromStore name) 	= findValue name
 	translate (FlowFromStore name) 	= findFlow name
 	translate (Editor editorInfo) 	= return (dynamic (\v -> assignTask editorInfo v) :: A.a: a -> Task a | iTask a)
@@ -367,20 +370,24 @@ where
 	translate Return			  	= return (dynamic (\v -> return v) :: A.a: a -> Task a | iTask a)
 	translate First				  	= return (dynamic fst :: A.a b: (a,b) -> a)
 	translate Second			  	= return (dynamic snd :: A.a b: (a,b) -> b)
-//	translate (Or left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkOr leftflow rightflow
-//	translate (And left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkAnd leftflow rightflow
+	translate (Or left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkOr leftflow rightflow
+	translate (And left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkAnd leftflow rightflow
 
-	checkOr (T ta :: T (Task a) a) (T tb :: T (Task a) a)  
-		= return (mkdyn (T (ta -||- tb))) //(dynamic T (ta -||- tb) :: T (Task a) a)
-	where
-		mkdyn :: (T (Task a) a) -> Dynamic
-		mkdyn (T t) = dynamic (T t) 
+checkOr :: Dynamic Dynamic -> Task Dynamic
+checkOr (T ta :: T (Task a) a) (T tb :: T (Task a) a)  
+	= return (dynamic T (ta -||- tb) :: T (Task a) a)
+checkOr (T ta :: T (a -> Task a) a) (T tb :: T (a -> Task a) a)  
+	= return (dynamic T (\a -> ta a -||- tb a) :: T (a -> Task a) a)
+checkOr (ta :: A.a: a -> Task a | iTask a) (tb :: A.a: a -> Task a | iTask a)  
+	= return (dynamic (\a -> ta a -||- tb a) :: A.a: a -> Task a | iTask a)
+checkOr d1 d2
+	= throw (dynErrorMess2 "Or" d1 d2)
 
-//	checkOr (T ta :: T a b) (T tb :: T c d)  
-//		= throw "Or: Cannot unify "
-
-//	checkAnd (T ta :: T (Task a) a) (T tb :: T (Task b) b)  
-//		= return (dynamic T (ta -&&- tb) :: T (Task (a,b)) (a,b))
+checkAnd :: Dynamic Dynamic -> Task Dynamic
+checkAnd (T ta :: T (Task a) a) (T tb :: T (Task b) b)  
+	= return (dynamic T (ta -&&- tb) :: T (Task (a,b)) (a,b))
+checkAnd d1 d2
+	= throw (dynErrorMess2 "Or" d1 d2)
 
 findValue :: String -> Task Dynamic
 findValue name
@@ -404,19 +411,29 @@ where
 
 applyFlows :: Dynamic [Dynamic] -> Dynamic  
 applyFlows dyn [] = dyn
-applyFlows (T v :: T a a)  [edit :: A.b: b -> Task b | iTask b : dyns]
+applyFlows (T v :: T a a)  [edit :: A.b: b -> Task b | iTask b : dyns]				// edit value
 	= applyFlows (dynamic T (edit v) :: T (Task a) a) dyns
-applyFlows (T t :: T (Task a) a)  [(btb :: A.b: b -> Task b | iTask b ): dyns]
-	= applyFlows (dynamic T (t >>= btb) :: T (Task a) a) dyns
-//applyFlows (T t :: T (Task a) a)  [(atb :: T (a -> Task b) b ): dyns]
-//	= applyFlows (dynamic T (t >>= atb) :: T (Task b) b) dyns
-applyFlows (T ta :: T (Task a) a)  [(T tb :: T (Task b) b): dyns]
-	= applyFlows (dynamic T (ta >>| tb) :: T (Task b) b) dyns
-applyFlows (x :: a)  [(f :: a -> b): dyns]
-	= applyFlows (dynamic f x :: b) dyns
 
-//applyFlows (T v :: T (c,d) (c,d))  [(fst ::  A.a b: (a,b) -> a) : dyns]
-//	= applyFlows (dynamic T (fst v) :: T c c) dyns
+
+applyFlows (T t :: T (Task a) a)  [(btb :: A.b: b -> Task b | iTask b ): dyns]		// >>=
+	= applyFlows (dynamic T (t >>= btb) :: T (Task a) a) dyns
+
+//applyFlows (T t :: T (Task a) a)  [(atb :: T (a -> Task b) b): dyns]
+//	= applyFlows (dynamic T (t >>= atb) :: T (Task b) b) dyns
+
+applyFlows (T ta :: T (Task a) a)  [(T tb :: T (Task b) b): dyns]					// >>|
+	= applyFlows (dynamic T (ta >>| tb) :: T (Task b) b) dyns
+
+
+applyFlows (T2 v :: T2 (c,d) c d )  [(fst ::  A.a b: (a,b) -> a) : dyns]			// first 
+	= applyFlows (dynamic T (fst v) :: T c c) dyns
+applyFlows (T2 v :: T2 (c,d) c d)  [(snd ::  A.a b: (a,b) -> b) : dyns]				// second
+	= applyFlows (dynamic T (snd v) :: T d d) dyns
+applyFlows (T2 v :: T2 (c,d) c d) dyns												// T2 -> T!
+	= applyFlows (dynamic T v :: T (c,d) (c,d)) dyns
+
+applyFlows (x :: a)  [(f :: a -> b): dyns]											// common dyn apply
+	= applyFlows (dynamic f x :: b) dyns
 
 applyFlows d ds
 	= dynamic "Could not parse defined dynamic flow."
@@ -429,7 +446,8 @@ startFlow
 		>>= \mkdynFlow ->	if (isNothing mkdynFlow) (return Void) (evalFlow me ((fromJust mkdynFlow).dynFlow)) 
 where
 	evalFlow me (T t:: T (Task a) a)	= spawnProcess me.userId True (t <<@ "dynamic flow")>>| return Void
-	evalFlow me d=:(T v:: T a a)		= showMessage (showDynValType "Result" (dynamic v :: a))
+	evalFlow me d=:(T v:: T a b)		= showMessage (showDynValType "Result" (dynamic v :: a))
+	evalFlow me d=:(T2 v:: T2 a b c)	= showMessage (showDynValType "Result" (dynamic v :: a))
 	evalFlow me d						= showMessage (dynErrorMess "Eval" d) 
 
 
@@ -482,10 +500,10 @@ showDynVal   = fst o showDyn
 showDynValType s d = let (v,t) = showDyn d in s +++ ", " +++ v +++ "::" +++ t
 
 dynError  s d1    = return (dynamic T (dynErrorMess s d1):: T String String)
-dynErrorMess s d1 = s +++ ", Type Error: " +++ showDynType d1
+dynErrorMess s d1 = s +++ ": Type Error: " +++ showDynType d1
 
 dynError2 s d1 d2 = return (dynamic T (dynErrorMess2 s d1 d2):: T String String)
-dynErrorMess2 s d1 d2 = s +++ ", Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
+dynErrorMess2 s d1 d2 = s +++ ": Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
 
 // ****************
 
