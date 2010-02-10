@@ -67,7 +67,7 @@ derive gParse		Incident, IncidentType, Location, Address, MapCoordinates, Provid
 derive gVisualize 	Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
 derive gUpdate		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
 
-
+derive bimap (,), Maybe
 
 derive gEq IncidentType
 

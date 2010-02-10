@@ -35,6 +35,8 @@ derive gParse		Purchase
 derive gVisualize	Purchase
 derive gUpdate		Purchase
 
+derive bimap (,), Maybe
+
 purchaseExample :: [Workflow]
 purchaseExample
 = [	{Workflow| name		= "Examples/Business/Purchase"

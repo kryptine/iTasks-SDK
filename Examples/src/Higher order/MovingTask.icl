@@ -8,6 +8,8 @@ derive gUpdate	 	QForm, Person, Gender
 derive gParse 		QForm, Person, Gender
 derive gPrint 		QForm, Person, Gender
 
+derive bimap (,), Maybe
+
 :: QForm = 	{ forCompany 		:: String
 			, startDate 		:: Date
 			, endDate 			:: Date

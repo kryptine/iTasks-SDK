@@ -10,6 +10,7 @@ derive gPrint 		Vote
 derive gParse		Vote
 derive gVisualize	Vote
 derive gUpdate		Vote
+derive bimap (,), Maybe
 
 :: Vote = { userId		:: Int
 		  , vote		:: Int

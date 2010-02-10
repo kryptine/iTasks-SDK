@@ -12,6 +12,8 @@ derive gUpdate		NegativeValueException, TooLargeValueException
 derive gPrint		NegativeValueException, TooLargeValueException
 derive gParse		NegativeValueException, TooLargeValueException
 
+derive bimap (,), Maybe
+
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
 =	[{ name		= "Examples/Higher order/Exception handling"

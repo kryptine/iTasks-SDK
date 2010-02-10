@@ -12,6 +12,8 @@ derive gUpdate PDFDocument, ImageDocument, TextDocument
 derive gParse  PDFDocument, ImageDocument, TextDocument
 derive gPrint  PDFDocument, ImageDocument, TextDocument
 
+derive bimap (,), Maybe
+
 gVisualize{|PDFDocument|} old new vst=:{vizType, currentPath, valid}
 = case VEditorUpdate of
 	VEditorUpdate 

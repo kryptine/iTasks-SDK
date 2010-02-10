@@ -17,6 +17,8 @@ derive gParse 		QForm, Review, Person, Gender
 derive gVisualize 	QForm, Review, Person, Gender
 derive gUpdate 		QForm, Review, Person, Gender
 
+derive bimap (,), Maybe
+
 :: PersonData	=	{ name		:: String
 					, e_mail	:: String
 					}

@@ -38,6 +38,8 @@ derive gParse	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysi
 derive gVisualize BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive gUpdate	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 	
+derive bimap (,), Maybe
+	
 instance DB Bug where
 	databaseId					= mkDBid "Bug"
 	getItemId bug=:{bugNr}		= DBRef bugNr

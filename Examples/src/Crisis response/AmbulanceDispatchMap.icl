@@ -13,6 +13,7 @@ derive gParse		Incident, IncidentType
 derive gVisualize 	Incident, IncidentType
 derive gUpdate		Incident, IncidentType
 
+derive bimap (,), Maybe
 
 ambulanceDispatchMapExamples :: [Workflow]
 ambulanceDispatchMapExamples = flows
@@ -74,6 +75,6 @@ specifyIncident addr marker
 //====
 showSources ::  Task Void
 showSources  
-	=       loadDocumentFromFile "AmbulanceDispatchMap.icl" "Crisis Response/" >>=
-	\icl -> loadDocumentFromFile "AmbulanceDispatchMap.dcl" "Crisis Response/" >>=
+	=       loadDocumentFromFile "AmbulanceDispatchMap.icl" "src/Crisis Response/" >>=
+	\icl -> loadDocumentFromFile "AmbulanceDispatchMap.dcl" "src/Crisis Response/" >>=
 	\dcl -> showStickyMessageAbout "Source Codes" [icl,dcl]

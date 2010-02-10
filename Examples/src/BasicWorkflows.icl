@@ -31,6 +31,7 @@ derive gPrint 		ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
 derive gParse		ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
 derive gVisualize	ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
 derive gUpdate		ActionTaskInfo, InitialTaskProperties, AssignTo, TaskDescription
+derive bimap		(,), Maybe
 
 actionTask :: Task (ProcessRef Void)
 actionTask = define >>= start

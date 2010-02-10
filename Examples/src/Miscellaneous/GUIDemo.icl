@@ -29,6 +29,8 @@ derive gParse		Person, Address
 derive gVisualize	Person, Address
 derive gUpdate		Person, Address
 
+derive bimap (,), Maybe
+
 address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ"}
 person	= {Person | name	= "John Doe"
 				  , cool	= True
