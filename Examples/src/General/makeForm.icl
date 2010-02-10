@@ -5,10 +5,10 @@ from 	StdFunc import o
 from	EstherBackend import toStringDynamic
 from	StdMisc import abort
 				
-derive gPrint 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, AssignInfo, DynFormFlowStore, Elem
-derive gParse 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, AssignInfo, DynFormFlowStore, Elem
-derive gUpdate 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, AssignInfo, DynFormFlowStore, Elem
-derive gVisualize 	DynFormFlow, DynForm, DynFlow, FormType, FlowType, EditorInfo, AssignInfo, DynFormFlowStore
+derive gPrint 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore, Elem
+derive gParse 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore, Elem
+derive gUpdate 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore, Elem
+derive gVisualize 	DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore
 
 derive bimap Maybe, (,)
 
@@ -70,18 +70,16 @@ dynFormEditor
 				| 	Time 		
 				| 	Document 	
 				| 	GoogleMap 
-:: FlowType		= 	FormFromStore 	!String
-				|	FlowFromStore 	!String
-				|	Editor 			!EditorInfo
-				| 	DisplayIt 		!EditorInfo
+:: FlowType		= 	Editor 			!String	
+				| 	DisplayIt		!String 		
 				| 	Return
+				|	Assign			!AssignInfo ![FlowType]
+				| 	Or  !([FlowType], ![FlowType])
+				| 	And !([FlowType], ![FlowType])
+				|	FormFromStore 	!String
+				|	FlowFromStore 	!String
 				| 	First
 				| 	Second
-				| 	Or  ![FlowType] ![FlowType]
-				| 	And ![FlowType] ![FlowType]
-:: EditorInfo	= 	{ prompt  	:: !String
-			  		, assignTo 	:: !Maybe !AssignInfo
-			  		}
 :: AssignInfo	= 	{ idOfUser	:: !Int
 			  		, taskName 	:: !String
 			  		}
@@ -356,38 +354,54 @@ where
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
 	translate :: !FlowType -> Task Dynamic
-	translate (FormFromStore name) 	= findValue name
-	translate (FlowFromStore name) 	= findFlow name
-	translate (Editor editorInfo) 	= return (dynamic (\v -> assignTask editorInfo v) :: A.a: a -> Task a | iTask a)
-	where
-		assignTask info=:{assignTo = Just some} v 		
-			= assign some.idOfUser NormalPriority Nothing (updateInformation info.prompt v <<@ some.taskName)
-		assignTask info v 		
-			= updateInformation info.prompt v
-//	translate (DisplayIt editorInfo)= return (dynamic (\v -> assignTask editorInfo v) :: A.a: a -> Task a | iTask a)
 
+	translate (Editor prompt)		= return (dynamic (edit prompt):: A.a: a -> Task a | iTask a)
+	where
+		edit ::  !String a -> Task a | iTask a
+		edit prompt v = updateInformation prompt v
+
+	translate (DisplayIt prompt)	= return (dynamic (display prompt):: A.a: a -> Task Void | iTask a)
+	where
+		display ::  !String a -> Task Void | iTask a
+		display prompt v = showMessageAbout prompt v
 
 	translate Return			  	= return (dynamic (\v -> return v) :: A.a: a -> Task a | iTask a)
+
+	translate (Or (left, right))	= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkOr leftflow rightflow
+	where
+		checkOr :: Dynamic Dynamic -> Task Dynamic
+		checkOr (T ta :: T (Task a) a) (T tb :: T (Task a) a)  
+			= return (dynamic T (ta -||- tb) :: T (Task a) a)
+		checkOr (T ta :: T (a -> Task a) a) (T tb :: T (a -> Task a) a)  
+			= return (dynamic T (\a -> ta a -||- tb a) :: T (a -> Task a) a)
+		checkOr (ta :: A.a: a -> Task a | iTask a) (tb :: A.a: a -> Task a | iTask a)  
+			= return (dynamic (\a -> ta a -||- tb a) :: A.a: a -> Task a | iTask a)
+		checkOr d1 d2
+			= throw (dynErrorMess2 "Or" d1 d2)
+
+	translate (And (left, right))	= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkAnd leftflow rightflow
+	where
+		checkAnd :: Dynamic Dynamic -> Task Dynamic
+		checkAnd (T ta :: T (Task a) a) (T tb :: T (Task b) b)  
+			= return (dynamic T (ta -&&- tb) :: T (Task (a,b)) (a,b))
+		checkAnd d1 d2
+			= throw (dynErrorMess2 "And" d1 d2)
+	
+	translate (Assign assignInfo flow)	= checkFlows flow >>= assignTask assignInfo
+	where
+		assignTask :: !AssignInfo !Dynamic -> Task Dynamic
+		assignTask info (e :: A.a: a -> Task a | iTask a) 		
+			= return (dynamic (apply info e) :: A.a: a -> Task a | iTask a)
+		where
+			apply :: !AssignInfo !(A.a: a -> Task a | iTask a) b -> Task b | iTask b
+			apply info e v = assign info.idOfUser NormalPriority Nothing (e v <<@ info.taskName)
+		assignTask info d 		
+			= throw (dynErrorMess "Assign" d)
+
 	translate First				  	= return (dynamic fst :: A.a b: (a,b) -> a)
 	translate Second			  	= return (dynamic snd :: A.a b: (a,b) -> b)
-	translate (Or left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkOr leftflow rightflow
-	translate (And left right)		= checkFlows left >>= \leftflow -> checkFlows right >>= \rightflow -> checkAnd leftflow rightflow
-
-checkOr :: Dynamic Dynamic -> Task Dynamic
-checkOr (T ta :: T (Task a) a) (T tb :: T (Task a) a)  
-	= return (dynamic T (ta -||- tb) :: T (Task a) a)
-checkOr (T ta :: T (a -> Task a) a) (T tb :: T (a -> Task a) a)  
-	= return (dynamic T (\a -> ta a -||- tb a) :: T (a -> Task a) a)
-checkOr (ta :: A.a: a -> Task a | iTask a) (tb :: A.a: a -> Task a | iTask a)  
-	= return (dynamic (\a -> ta a -||- tb a) :: A.a: a -> Task a | iTask a)
-checkOr d1 d2
-	= throw (dynErrorMess2 "Or" d1 d2)
-
-checkAnd :: Dynamic Dynamic -> Task Dynamic
-checkAnd (T ta :: T (Task a) a) (T tb :: T (Task b) b)  
-	= return (dynamic T (ta -&&- tb) :: T (Task (a,b)) (a,b))
-checkAnd d1 d2
-	= throw (dynErrorMess2 "Or" d1 d2)
+	translate (FormFromStore name) 	= findValue name
+	translate (FlowFromStore name) 	= findFlow name
 
 findValue :: String -> Task Dynamic
 findValue name
@@ -505,41 +519,3 @@ dynErrorMess s d1 = s +++ ": Type Error: " +++ showDynType d1
 dynError2 s d1 d2 = return (dynamic T (dynErrorMess2 s d1 d2):: T String String)
 dynErrorMess2 s d1 d2 = s +++ ": Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
 
-// ****************
-
-/*
-:: T2 a b = T2 a & TC b
-
-f :: Dynamic -> Dynamic
-f (T2 (x,y) :: T2 (a,b) (a,b)) = dynamic x :: T2 a a
-
-checkFlow :: Dynamic [FlowType] -> Task Dynamic  
-checkFlow (T v:: T a a) [Editor info : flows]
-	= checkFlow (dynamic T (assignTask info v) :: T (Task a) a) flows
-checkFlow (T t:: T (Task a) a) [Editor info : flows]
-	= checkFlow (dynamic T (t >>= \a -> assignTask info a) :: T (Task a) a) flows
-
-checkFlow (T v:: T a a) [DisplayIt info : flows]
-	= checkFlow (dynamic T (showMessageTask info v) :: T (Task Void) Void) flows
-checkFlow (T t:: T (Task a) a) [DisplayIt info : flows]
-	= checkFlow (dynamic T (t >>= \a -> showMessageTask info a) :: T (Task Void) Void) flows
-
-checkFlow dyn [Return : flows]
-	= checkFlow dyn flows
-
-checkFlow dyn [Or dfa dfb : flows]
-	= checkFlow dyn dfa >>= \da -> checkFlow dyn dfb >>= \db -> orTask da db flows
-
-checkFlow dyn [And dfa dfb : flows]
-	= checkFlow dyn dfa >>= \da -> checkFlow dyn dfb >>= \db -> andTask da db flows
-
-checkFlow (T (x,y) :: T (a,b) c) [First : flows]			// (a,b) would make more sense
-	= checkFlow (dynamic T x :: T a c) flows
-//checkFlow (T t :: T (Task (a,b)) (a,b)) [First : flows]			// (a,b) would make more sense
-//	= checkFlow (dynamic T (t >>= \(x,y) -> return x) :: T (Task a) a) flows
-checkFlow d1 [First : flows]			
-	= dynError2 "First" d1 (dynamic fst :: A.a b : (a,b) -> a)
-	
-checkFlow dyn _
-	= return dyn
-*/
