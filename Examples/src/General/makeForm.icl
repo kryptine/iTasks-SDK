@@ -210,34 +210,34 @@ where
 	convertFormTypes [b:bs] 	= convert b >>= \d -> convertFormTypes bs >>= \ds -> return [d:ds] 
 	where
 		convert :: FormType -> Task Dynamic
-		convert	Integer				= getDefaultValue >>= \v -> return (dynamic T v :: T Int Int)	
-		convert	Real				= getDefaultValue >>= \v -> return (dynamic T v :: T Real Real)	
-		convert	String				= getDefaultValue >>= \v -> return (dynamic T v :: T String String)	
-		convert	Bool				= getDefaultValue >>= \v -> return (dynamic T v :: T Bool Bool)	
-		convert	(Tuple (b1, b2))	= 				convert b1 
-										>>= \db1 -> convert b2
-										>>= \db2 -> returnTuple db1 db2	
-		convert (List b)			=				convert b
-										>>= \dl ->	returnList dl
-		convert (Option b)			=				convert b
-										>>= \db ->	returnOption db
-		convert (Labeled (s, b))	=				convert b
-										>>= \nb ->	returnLabel s nb
+		convert	Integer					= getDefaultValue >>= \v -> return (dynamic T v :: T Int Int)	
+		convert	Real					= getDefaultValue >>= \v -> return (dynamic T v :: T Real Real)	
+		convert	String					= getDefaultValue >>= \v -> return (dynamic T v :: T String String)	
+		convert	Bool					= getDefaultValue >>= \v -> return (dynamic T v :: T Bool Bool)	
+		convert	(Tuple (b1, b2))		= convert b1 >>= \db1 -> convert b2 >>= \db2 -> returnTuple db1 db2	
+		where
+			returnTuple (T t1 :: T a a) (T t2 :: T b b) 
+										= return (dynamic T2 (t1,t2) :: (T2 (a,b) a b))
+		convert (List b)				= convert b >>= \dl -> returnList dl
+		where
+			returnList (T v :: T a a)	= return (dynamic T [] :: T [a] [a])
+		convert (Hide b)				= convert b >>= returnHidden
+		where
+			returnHidden (T nb :: T a a)= return (dynamic T (Hidden nb) :: T (Hidden a) (Hidden a))
+		convert (Option b)				= convert b >>= \db -> returnOption db
+		where
+			returnOption (T v :: T a a) = return (dynamic T Nothing :: T (Maybe a) (Maybe a))
+		convert (Labeled (s, b))		= convert b >>= \nb ->	returnLabel s nb
+		where
+				returnLabel s (T v :: T a a) 
+									= return (dynamic T (Static s,v) :: T (Static String,a) (Static String,a))
 		convert	Notes				= getDefaultValue >>= \v -> return (dynamic T v :: T Note Note)	
 		convert	Date				= getDefaultValue >>= \v -> return (dynamic T v :: T Date Date)	
 		convert	Time				= getDefaultValue >>= \v -> return (dynamic T v :: T Time Time)	
 		convert	Document			= getDefaultValue >>= \v -> return (dynamic T v :: T Document Document)	
 		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic T v :: T GoogleMap GoogleMap)	
 		convert _					= abort "Fatal Error in Convert !!!"
-
-		returnTuple (T t1 :: T a a) (T t2 :: T b b) = return (dynamic T2 (t1,t2) :: (T2 (a,b) a b))
 		
-		returnList (T v :: T a a) = return (dynamic T [] :: T [a] [a])
-		
-		returnOption (T v :: T a a) = return (dynamic T Nothing :: T (Maybe a) (Maybe a))
-
-		returnLabel s (T v :: T a a) = return (dynamic T (Static s,v) :: T (Static String,a) (Static String,a))
-
 // ------------
 
 instance DB DynFormFlowStore where
@@ -265,7 +265,6 @@ storeFormFlow dynFormFlow
 								 >>= \ok -> if ok (updateItem all extname) (storeFormFlow dynFormFlow)
 								)
 								(storeItem extname)
-								 
 	where
 		showDynType2 (T x :: T a b) = showDynType (dynamic undef :: a) 
 		showDynType2 (x :: a) 		= showDynType (dynamic undef :: a) 
@@ -310,14 +309,13 @@ readstoreForm pred
 								case names of
 								 [] ->					updateInformation "No definitions stored !" Void
 								 		>>|				return NoDynFormFlow
-								 names ->					enterChoice "Choose definition you want to use:" names
+								 names ->				enterChoice "Choose definition you want to use:" names
 										>>= \choice ->	return (hd [this.dynFormFlow \\ this <- all | showName this == choice])
 where
 	showName this = this.dynFormFlowName +++ " :: " +++ this.dynFormFlowType
 
 	readAll :: Task [DynFormFlowStore]
 	readAll = dbReadAll
-
 
 showAll :: Task Void
 showAll
@@ -349,12 +347,11 @@ checkFlows :: [FlowType] -> Task Dynamic
 checkFlows [] 		= throw "Cannot apply empty flow."
 checkFlows flows 	= mapMonad translate flows >>= \dyns -> return (applyFlows (hd dyns) (tl dyns))
 where
-	mapMonad :: (!FlowType -> Task Dynamic) [FlowType] -> Task [Dynamic]	// leaving out the type crahes the compiler !!!
+	mapMonad :: (!FlowType -> Task Dynamic) [FlowType] -> Task [Dynamic]	// leaving out the type crashes the compiler !!!
 	mapMonad fun [] 	= return []
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
 	translate :: !FlowType -> Task Dynamic
-
 	translate (Editor prompt)		= return (dynamic (edit prompt):: A.a: a -> Task a | iTask a)
 	where
 		edit ::  !String a -> Task a | iTask a
@@ -460,11 +457,9 @@ startFlow
 		>>= \mkdynFlow ->	if (isNothing mkdynFlow) (return Void) (evalFlow me ((fromJust mkdynFlow).dynFlow)) 
 where
 	evalFlow me (T t:: T (Task a) a)	= spawnProcess me.userId True (t <<@ "dynamic flow")>>| return Void
-	evalFlow me d=:(T v:: T a b)		= showMessage (showDynValType "Result" (dynamic v :: a))
-	evalFlow me d=:(T2 v:: T2 a b c)	= showMessage (showDynValType "Result" (dynamic v :: a))
+	evalFlow me (T v:: T a b)			= showMessage (showDynValType "Result" (dynamic v :: a))
+	evalFlow me (T2 v:: T2 a b c)		= showMessage (showDynValType "Result" (dynamic v :: a))
 	evalFlow me d						= showMessage (dynErrorMess "Eval" d) 
-
-
 
 // ****************************
 
