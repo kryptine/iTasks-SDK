@@ -35,11 +35,17 @@ button.icon-states {
 button.icon-events {
 	background-image: url('img/icons/table_lightning.png');
 }
-button.icon-ok, button.icon-yes {
+button.icon-ok, button.icon-yes, button.icon-finish {
 	background-image: url('img/icons/tick.png');
 }
-button.icon-no {
+button.icon-no, button.icon-cancel {
 	background-image: url('img/icons/cancel.png');
+}
+button.icon-previous {
+	background-image: url('img/icons/arrow_left.png');
+}
+button.icon-next {
+	background-image: url('img/icons/arrow_right.png');
 }
 button.icon-edit {
 	background-image: url('img/icons/pencil.png');

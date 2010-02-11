@@ -75,6 +75,6 @@ specifyIncident addr marker
 //====
 showSources ::  Task Void
 showSources  
-	=       loadDocumentFromFile "AmbulanceDispatchMap.icl" "src/Crisis Response/" >>=
-	\icl -> loadDocumentFromFile "AmbulanceDispatchMap.dcl" "src/Crisis Response/" >>=
+	=       loadDocumentFromFile "AmbulanceDispatchMap.icl" "Crisis Response/" >>=
+	\icl -> loadDocumentFromFile "AmbulanceDispatchMap.dcl" "Crisis Response/" >>=
 	\dcl -> showStickyMessageAbout "Source Codes" [icl,dcl]
