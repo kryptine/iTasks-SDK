@@ -500,7 +500,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 				(VValue ov omask, VValue nv nmask)						
 					# (nupd,rh,vst) = vizUpdate fx ov nv omask nmask {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorUpdate}
 					# (nviz,rh,vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s currentPath) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorDefinition, optional=False}
-					# vst 		 = {VSt | vst & optional = optional}
+					# vst 		 = {VSt | vst & optional = optional, useLabels = useLabels, label = label}
 					# lo  		 = length ov
 					# ln  		 = length nv
 					# lmask      = [(dp,idx) \\ (dp,idx) <- listMask | dp == currentPath]
@@ -538,14 +538,14 @@ where
 	= ([tx:txs],[rh:rhs],{VSt | vst & label = label, useLabels = useLabels})
 	
 	vizUpdate fx [o:os] [n:ns] omask nmask vst
-		# (ux,rh,vst)   = fx (VValue o omask) (VValue n nmask) vst
+		# (ux,rh,vst)   = fx (VValue o omask) (VValue n nmask) {VSt | vst & label = Nothing, useLabels = False}
 		# (uxs,rhs,vst) = vizUpdate fx os ns omask nmask vst
 		= (ux ++ uxs,[rh:rhs],vst)
 	vizUpdate fx _      _      omask nmask vst = ([],[],vst)
 		
 	vizStatic fx []     mask vst = ([],[],vst)
 	vizStatic fx [x:xs] mask vst
-	# (vx,rh,vst)   = fx (VValue x mask) (VValue x mask) vst
+	# (vx,rh,vst)   = fx (VValue x mask) (VValue x mask) {VSt | vst & label = Nothing, useLabels = False}
 	# (vxs,rhs,vst) = vizStatic fx xs mask vst
 	= ([vx:vxs],[rh:rhs],vst)
 	

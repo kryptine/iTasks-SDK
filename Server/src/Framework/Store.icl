@@ -125,10 +125,12 @@ loadFromDisk key location world
 					= (Nothing, world)
 where
 	freadfile file = rec file ""
-	  where rec :: *File String -> (String, *File)
-	        rec file acc # (string, file) = freads file 100
-	                     | string == "" = (acc, file)
-	                     | otherwise    = rec file (acc +++ string)
+	  where 
+	  		rec :: *File String -> (String, *File)
+	        rec file acc 
+	        # (string, file) = freads file 102400
+	        | string == "" = (acc, file)
+	        | otherwise    = rec file (acc +++ string)
 
 deleteValues :: !String !*Store !*World -> (!*Store, !*World)
 deleteValues prefix store=:{cache,location} world

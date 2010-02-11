@@ -108,6 +108,6 @@ where
 
 	readFile :: !*File !String !Int -> (!String,!*File,!Int)
 	readFile f a s
-		# (d,f) = freads f 1024
-		| (size d) < 1024 = (a+++d,f,(size d)+s)
+		# (d,f) = freads f 102400
+		| (size d) < 102400 = (a+++d,f,(size d)+s)
 		| otherwise = readFile f (a+++d) ((size d)+s)
