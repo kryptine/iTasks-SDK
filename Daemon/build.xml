@@ -8,14 +8,19 @@
 	<description>
 		Apache Ant Buildfile for the RPC Daemon.
 	</description>
-	
+		
 	<path id="classpath">
-		<fileset dir="." includes="**/*.jar,**/*.zip" />
+		<fileset dir="lib" includes="**/*.jar,**/*.zip" />
 	</path>
-	
+		
 	<target name="rpcd-exec-jar">
+		
 		<mkdir dir="${build}" />
-		<javac srcdir="${src}" destdir="${bin}" />
+
+		<javac srcdir="${src}" destdir="${bin}" includeantruntime="false">
+			<classpath refid="classpath"/>
+		</javac>
+
 		<jar basedir="${bin}" destfile="${build}/rpcd.jar" compress="true">
 			<zipfileset src="${lib}/apache-mime4j-0.6.jar" includes="**/*.class" />
 			<zipfileset src="${lib}/commons-cli-1.2.jar" includes="**/*.class"/>
@@ -34,6 +39,6 @@
 			<manifest>
 				<attribute name="Main-Class" value="nl.ru.icis.mbsd.itasks.rpcd.Launcher"/>
 			</manifest>
-		</jar>		
+		</jar>	
 	</target>
 </project>
