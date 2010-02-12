@@ -60,7 +60,8 @@ handleDocumentPreviewLinkRequest req tst
 		| isJust mbData
 			= ({rsp_headers = [("Status", "200 OK"),
 							   ("Content-Type", doc.Document.mimeType),
-							   ("Content-Length", toString doc.Document.size)
+							   ("Content-Length", toString doc.Document.size),
+							   ("Content-Disposition","filename=\""+++doc.Document.fileName+++"\"")
 							  ]
 			 				  ,rsp_data = fromJust mbData},tst)
 		| otherwise
