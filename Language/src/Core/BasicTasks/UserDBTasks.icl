@@ -14,6 +14,8 @@ from UserDB import qualified getUserNames
 from UserDB import qualified getRoles
 from UserDB import qualified authenticateUser
 from UserDB	import qualified createUser
+from UserDB import qualified updateUser
+from UserDB import qualified deleteUser
 
 import InteractionTasks, CoreCombinators
 
@@ -41,9 +43,14 @@ getRoles uids = mkInstantTask "getRoles" (UserDB@getRoles uids)
 authenticateUser :: !String !String	-> Task (Maybe User)
 authenticateUser username password = mkInstantTask "authenticateUser" (UserDB@authenticateUser username password)
 
-createUser :: !String !String !String ![String] -> Task User
-createUser username password displayname roles
-	= mkInstantTask "createUser" (UserDB@createUser username password displayname roles)
+createUser :: !User -> Task User
+createUser user = mkInstantTask "createUser" (UserDB@createUser user)
+
+updateUser :: !User -> Task User
+updateUser user = mkInstantTask "updateUser" (UserDB@updateUser user)
+
+deleteUser :: !User -> Task User
+deleteUser user = mkInstantTask "deleteUser" (UserDB@deleteUser user)
 
 chooseUser :: !question -> Task User | html question
 chooseUser question

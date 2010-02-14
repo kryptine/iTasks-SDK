@@ -85,11 +85,32 @@ authenticateUser	:: !String !String	!*TSt -> (!Maybe User, !*TSt)
 /**
 * Create a new user
 *
-* @param A user name
-* @param A password
-* @param A display name
-* @param A list of roles
+* @param A new user
+* @param A unique database handle
+*
 * @return A user
 * @return The database handle
 */
-createUser :: !String !String !String ![String] !*TSt -> (User,!*TSt)
+createUser :: !User !*TSt -> (!User,!*TSt)
+
+/**
+* Update an existing user
+* 
+* @param An existing user
+* @param A unique database handle
+*
+* @return The existing user
+* @retrun The database handle 
+*/
+updateUser :: !User !*TSt -> (!User,!*TSt)
+
+/**
+* Delete an existing user
+*
+* @param An existing user
+* @param A unique database handle
+*
+* @return The existing user
+* @retrun The database handle 
+*/
+deleteUser :: !User !*TSt -> (!User,!*TSt)

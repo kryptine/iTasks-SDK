@@ -142,7 +142,6 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 	# (_,tst)			= calculateTaskTree processId tst
 	= (processId,tst)
 
-
 calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
@@ -154,7 +153,7 @@ calculateTaskTree processId tst
 			# (tree,tst=:{activated}) = buildProcessTree process Nothing tst
 			//When finished, also evaluate the parent tree (and it's parent when it is also finished etc...)
 			| activated && parent <> ""
-				# (_,tst)	= calculateTaskTree parent tst 
+				# (_,tst)	= calculateTaskTree parent {tst & activated = True} 
 				= (tree, tst)
 			| otherwise
 				= (tree, tst)
@@ -288,19 +287,19 @@ mkInteractiveTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given"), activated = True}
 
 mkInstantTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTFinishedTask taskInfo} //We use a FinishedTask node because the task is finished after one evaluation
+		= taskfun {tst & tree = TTFinishedTask taskInfo, activated = True} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTMonitorTask taskInfo []}
+		= taskfun {tst & tree = TTMonitorTask taskInfo [], activated = True}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkRpcTask`

@@ -89,6 +89,7 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !
 
 /**
 * Creates an instance of a task definition
+* As soon as an instance is created it is immediately evaluated once.
 *
 * @param The task
 * @param Start as toplevel, or as subtask of another task (parent information is read from the task state)

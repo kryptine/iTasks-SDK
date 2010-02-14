@@ -20,11 +20,13 @@ import RPCHandlers, DocumentHandler
 
 import Config, TSt
 
+from UserAdmin import userAdministration
+
 PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
-engine config flows 
+engine config userflows 
 	= [((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
 	  ,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
 	  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
@@ -42,6 +44,9 @@ engine config flows
 	  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
 	  ,(\_ -> True, handleStaticResourceRequest)
 	  ]
+where
+	//Always add the workflows for administering the itask system
+	flows = userflows ++ userAdministration
 
 workflow :: String (Task a) -> Workflow | iTask a
 workflow path task =

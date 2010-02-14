@@ -27,6 +27,14 @@ eitherTask			:: !(Task a) !(Task b) 						-> Task (Either a b)	| iTask a & iTask
 (>>?)	infixl 1	:: !(Task (Maybe a)) !(a -> Task (Maybe b))	-> Task (Maybe b) 		| iTask a & iTask b
 (-&?&-)	infixr 4	:: !(Task (Maybe a)) !(Task (Maybe b)) 		-> Task (Maybe (a,b)) 	| iTask a & iTask b
 
+//Post processing of results
+ignoreResult		:: !(Task a) 								-> Task Void			| iTask a
+transformResult 	:: !(a -> b) !(Task a)						-> Task b				| iTask a & iTask b
+
+//Synonym for (return Void)
+stop				:: Task Void
+
+
 //Task delegation
 class (@:) infix 3 u :: u !(LabeledTask a) -> Task a | iTask a
 

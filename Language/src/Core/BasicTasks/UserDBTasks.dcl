@@ -4,7 +4,7 @@ definition module UserDBTasks
 * of the iTask system. These tasks are useful when work is to be delegated to
 * other users.
 */
-import StdMaybe
+import StdMaybe, Void
 
 from TSt	import :: Task
 from Types	import :: UserId
@@ -48,9 +48,15 @@ authenticateUser	:: !String !String	-> Task (Maybe User)
 /**
 * Add a new user
 */
-createUser			:: !String !String !String ![String] -> Task User
-
-
+createUser			:: !User -> Task User
+/**
+* Update an existing user
+*/
+updateUser			:: !User -> Task User
+/**
+* Delete an existing user
+*/
+deleteUser			:: !User -> Task User
 
 //Interactively choose a user
 chooseUser			:: !question			-> Task User | html question

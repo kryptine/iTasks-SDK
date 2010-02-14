@@ -98,6 +98,16 @@ where
 	combineResult	[Left (Just r1),Right (Just r2)]	= Just (r1,r2)
 	combineResult	_									= Nothing
 
+//Post processing of results
+ignoreResult :: !(Task a) -> Task Void | iTask a
+ignoreResult task = "ignoreResult" @>> (task >>| return Void)
+
+transformResult :: !(a -> b) !(Task a) -> Task b | iTask a & iTask b
+transformResult fun task = "transformResult" @>> (task >>= \a -> return (fun a))
+
+stop :: Task Void
+stop = "stop" @>> return Void
+
 
 // ******************************************************************************************************
 // repetition
