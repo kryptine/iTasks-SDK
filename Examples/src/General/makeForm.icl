@@ -5,77 +5,53 @@ from 	StdFunc import o
 from	EstherBackend import toStringDynamic
 from	StdMisc import abort
 				
-derive gPrint 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore, Elem
-derive gParse 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore, Elem
-derive gUpdate 		DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore, Elem
-derive gVisualize 	DynFormFlow, DynForm, DynFlow, FormType, FlowType, AssignInfo, DynFormFlowStore
+derive gPrint 		Form, Flow, FormShape, FlowShape, AssignInfo, FormStore, FlowStore, Tup
+derive gParse 		Form, Flow, FormShape, FlowShape, AssignInfo, FormStore, FlowStore, Tup
+derive gUpdate 		Form, Flow, FormShape, FlowShape, AssignInfo, FormStore, FlowStore, Tup
+derive gVisualize 	Form, Flow, FormShape, FlowShape, AssignInfo, FormStore, FlowStore
 
 derive bimap Maybe, (,)
 
 Start :: *World -> *World 
-Start w = startEngine dynFormEditor w
+Start w = startEngine dynEditor w
 
-dynFormEditor :: [Workflow]
-dynFormEditor
-= [	{ Workflow 
-	| name		= "Interactive Workflows / 1. FORM Editor"
-	, label		= "FORM Editor"
-	, roles		= []
-	, mainTask	= loopFORM Nothing
-	}
-	,{ Workflow 
-	| name		= "Interactive Workflows / 2. FLOW Editor"
-	, label		= "FLOW Editor"
-	, roles		= []
-	, mainTask	= loopFLOW Nothing
-	}
-	,{ Workflow 
-	| name		= "Interactive Workflows / 3. Show Definitions"
-	, label		= "Show All Defintions"
-	, roles		= []
-	, mainTask	= showAll
-	}
-	,{ Workflow 
-	| name		= "Interactive Workflows / 4. Run FLOW"
-	, label		= "Run Flow"
-	, roles		= []
-	, mainTask	= loopStart
-	}
-  ]
+dynEditor :: [Workflow]
+dynEditor
+= 	[ workflow "Interactive Workflows/1. FORM Editor" 		noForm
+	, workflow "Interactive Workflows/2. FLOW Editor" 		noFlow
+	, workflow "Interactive Workflows/3. Show Definitions"	showAll
+	, workflow "Interactive Workflows/4. Run FLOW"			loopStart
+  	]
 
 :: T  a b	= T  !a & iTask b
-:: T2 a b c	= T2 !a & iTask b & iTask c
+//:: T2 a b c	= T2 !a & iTask b & iTask c
 
-
-:: DynFormFlow	=	Form DynForm
-				|	Flow DynFlow
-				|	NoDynFormFlow
-:: DynForm		= 	{ formType 	:: ![FormType]
-			  		, dynForm	:: !Dynamic
+:: Form			= 	{ formShape :: ![FormShape]
+			  		, formDyn	:: !Dynamic
 			  		}
-:: DynFlow		= 	{ flowType 	:: ![FlowType]
-			  		, dynFlow 	:: !Dynamic
+:: Flow			= 	{ flowShape :: ![FlowShape]
+			  		, flowDyn 	:: !Dynamic
 			  		}
-:: FormType 	= 	Integer 	
+:: FormShape 	= 	Integer 	
 				| 	Real 		
 				| 	String 	
 				| 	Bool 		
-				| 	Tuple  	!(!FormType, !FormType)
-				| 	List 	!FormType
-				|	Hide	!FormType
-				| 	Option 	!FormType
-				| 	Labeled !(!String, !FormType)
+				| 	Tuple  	!(!FormShape, !FormShape)
+				| 	List 	!FormShape
+				|	Hide	!FormShape
+				| 	Option 	!FormShape
+				| 	Labeled !(!String, !FormShape)
 				| 	Notes 	
 				| 	Date 		
 				| 	Time 		
 				| 	Document 	
 				| 	GoogleMap 
-:: FlowType		= 	Editor 			!String	
+:: FlowShape	= 	Editor 			!String	
 				| 	DisplayIt		!String 		
 				| 	Return
-				|	Assign			!AssignInfo ![FlowType]
-				| 	Or  !([FlowType], ![FlowType])
-				| 	And !([FlowType], ![FlowType])
+				|	Assign			!AssignInfo ![FlowShape]
+				| 	Or  !([FlowShape], ![FlowShape])
+				| 	And !([FlowShape], ![FlowShape])
 				|	FormFromStore 	!String
 				|	FlowFromStore 	!String
 				| 	First
@@ -83,133 +59,163 @@ dynFormEditor
 :: AssignInfo	= 	{ idOfUser	:: !Int
 			  		, taskName 	:: !String
 			  		}
-:: DynFormFlowStore
-				= 	{ dynFormFlowName 	:: !String
-					, dynFormFlowType	:: !String
-			  		, dynFormFlow 		:: !DynFormFlow
-			  		, formDBRef 		:: !DBRef !DynFormFlowStore
+:: FormStore	= 	{ formName 	:: !String
+					, formType	:: !String
+			  		, form 		:: !Form
+			  		, formDBRef :: !DBRef !FormStore
 			  		}
-
-emptyForm 		= 	{ formType = []
-					, dynForm = dynamic T "Dynamic Form not defined!" :: T String String
+:: FlowStore	= 	{ flowName 	:: !String
+					, flowType	:: !String
+			  		, flow 		:: !Flow
+			  		, flowDBRef :: !DBRef !FlowStore
+			  		}
+emptyForm 		= 	{ formShape = []
+					, formDyn = dynamic T Void :: T Void Void
 					}
-
-emptyFlow 		= 	{ flowType = []
-					, dynFlow = dynamic T "Dynamic Flow not defined!" :: T String String
+emptyFlow 		= 	{ flowShape = []
+					, flowDyn = dynamic T  Void :: T Void Void
 					}
 // ------------
 
 undef = undef 
 
-FormTypeNew 		:== "Form Type / New"
-FormTypeEdit		:== "Form Type / Edit"
-FormNew				:== "Form / New"
-FormEdit			:== "Form / Edit"
-
-DynFormFlowRead		:== "DynFormFlow / Read"
-DynFormFlowStore	:== "DynFormFlow / Store"
-
-FlowNew 			:== "Flow Type / New"
-FlowEdit 			:== "Flow Type / Edit"
-
-FlowStart 			:== "Flow / Start"
-
-Exit				:== "Exit"
+New 		:== ActionLabel "New"
+Exit 		:== ActionLabel "Exit"
+Read 		:== ActionLabel "Read"
+ReadForm	:== ActionLabel "Read Form"
+ReadShape	:== ActionLabel "Read Shape"
+Store 		:== ActionLabel "Store"
+StartFlow 	:== ActionLabel "Start Flow"
+Check 		:== ActionLabel "Type Check"
+Refresh		:== ActionLabel "Refresh"
 
 // 1. FORM Editor
 
-loopFORM :: (Maybe DynForm) -> Task Void
-loopFORM Nothing
-	=	enterChoice "Welcome to the FORM Editor, make a choice ..." [FormTypeNew, DynFormFlowRead, Exit]
-		>>= \choice ->	case choice of
-							FormTypeNew 	-> editFormTypes emptyForm 		>>=  	loopFORM 
-							DynFormFlowRead	-> readForm						>>=		loopFORM
+noForm :: Task !Void
+noForm 
+	=					showMessageA "FORM Editor, Welcome..." [New, ReadShape, ReadForm, Exit]
+		>>= \choice -> 	case choice of
+						 	New			-> newFormName emptyForm >>= editFormShape
+						 	ReadForm	-> readForm >>= editForm	
+						 	ReadShape	-> readForm >>= editFormShape	
+						 	Exit		-> return Void
 
-							_				-> return Void
-loopFORM (Just form)
-	=	enterChoice "FORM Editor, make a choice ..." [FormTypeNew, FormTypeEdit, FormNew, FormEdit
-													  ,DynFormFlowRead, DynFormFlowStore, Exit]
-		>>= \choice ->	case choice of
-							FormTypeNew 	-> editFormTypes emptyForm 		>>=  	loopFORM 
-							FormTypeEdit 	-> editFormTypes form 			>>=  	loopFORM 
+editFormShape :: !(!String, !Form) -> Task Void 
+editFormShape (name, form)
+	=					updateInformationA ("FORM SHAPE Editor of form *" +++ name +++ "* :") form.formShape [New, ReadShape, Exit] [ActionNext]
+	 >>= \(choice,formShape) -> 
+			case choice of
+				ActionNext	-> 					shapeToForm formShape 
+								>>= \formDyn -> editForm (name, {formShape = formShape, formDyn = formDyn})
+				New			-> newFormName emptyForm >>= editFormShape
+				ReadShape	-> readForm >>= editFormShape
+				_			-> return Void
 
-							FormNew			-> makeForm form				>>= 	loopFORM 
-							FormEdit		-> editForm form				>>= 	loopFORM
-
-							DynFormFlowRead	-> readForm						>>=		loopFORM
-							DynFormFlowStore-> storeForm form				>>|		loopFORM (Just form)
-
-							_				-> return Void
+editForm :: !(!String, !Form) -> Task Void 
+editForm (name,form=:{formDyn = (T v :: T a a)})
+	=		updateInformationA ("FORM Editor of form *" +++ name +++ "* :") v [ActionPrevious] [New, ReadForm, Store, Exit]
+	 	>>= editForm2 
+where
+	editForm2 :: (Action,a) -> Task Void | iTask a
+	editForm2 (choice,nv) 
+	# form2 = {form & formDyn = dynamic T nv :: T a^ a^} 
+	= case choice of
+			ActionPrevious	-> editFormShape (name, form)
+			New				-> newFormName emptyForm >>= editForm
+			ReadForm		-> readForm	>>= editForm
+			Store			-> storeForm (name,form2) >>= editForm
+			_				-> return Void
 
 // 2. FLOW Editor
 
-loopFLOW :: (Maybe DynFlow) -> Task Void
-loopFLOW Nothing
-	=	enterChoice "Welcome to the FLOW Editor, make a choice ..." [FlowNew, DynFormFlowRead, Exit]
-		>>= \choice ->	case choice of
-							FlowNew 		-> makeFlow emptyFlow 			>>=  	loopFLOW o Just 
-							DynFormFlowRead	-> readFlow						>>=		loopFLOW
+noFlow :: Task Void
+noFlow 
+	=					showMessageA "FLOW Editor, Welcome..." [New, Read, Exit]
+		>>= \choice -> 	case choice of
+						 	New		-> newFlowName emptyFlow >>= editFlowShape
+						 	Read	-> readFlow >>= editFlowShape	
+						 	_		-> return Void
 
-							_				-> return Void
-loopFLOW (Just flow)
-	=	enterChoice "FORM Editor, make a choice ..." [FlowNew, FlowEdit 
-													  ,DynFormFlowRead, DynFormFlowStore, Exit]
-		>>= \choice ->	case choice of
-							FlowNew 		-> makeFlow emptyFlow 			>>=  	loopFLOW o Just
-							FlowEdit 		-> makeFlow flow 				>>=  	loopFLOW o Just 
+editFlowShape :: !(!String, !Flow) -> Task Void 
+editFlowShape (name, flow)
+	=					updateInformationA ("FLOW Editor of flow *" +++ name +++ "* :") flow.flowShape [New, Exit, Read] [Check, ActionNext]
+	 >>= \(choice,flowShape) -> 
+			case choice of
+				New			-> newFlowName emptyFlow >>= editFlowShape
+				Read		-> readFlow >>= editFlowShape
+				Check		-> try (checkIt flowShape) (errorRaised flowShape) >>= \flow -> editFlowShape (name, flow)
+				ActionNext	-> try  (checkIt flowShape 		   >>= \flow -> finalizeFlow (name,flow)) 
+									(\s -> errorRaised flowShape s >>= \flow -> editFlowShape (name, flow))
+				_			-> return Void
 
-							DynFormFlowRead	-> readFlow						>>=		loopFLOW
-							DynFormFlowStore-> storeFlow flow				>>|		loopFLOW (Just flow)
-
-							_				-> return Void
-
-loopStart
-	=	enterChoice "Run a stored flow, make a choice ..." [FlowStart, Exit]
-		>>= \choice ->	case choice of
-							FlowStart		-> startFlow					>>|		loopStart 
-							Exit			-> return Void
-
-// ------------
-
-editFormTypes :: DynForm -> Task (Maybe DynForm)
-editFormTypes form
-	= 						updateInformation "Construct the shape of the form:" form.formType
-		>>= \formType ->	case formType of
-								[] -> 	return Nothing
-								_ ->					makeDynForm formType 
-										>>= \dynForm -> editForm {formType = formType, dynForm = dynForm}
-
-makeForm :: DynForm -> Task (Maybe DynForm)
-makeForm form 
-	= 						makeDynForm form.formType 
-		>>= \dynForm ->		editForm {form & dynForm = dynForm}
-
-editForm ::  DynForm -> Task (Maybe DynForm)
-editForm form=:{dynForm = (T v :: T a a)}	
-	= 			updateInformation "Set default values ..." v
-		>>= 	returnShow form.dynForm 		
 where
-	returnShow :: Dynamic a -> Task (Maybe DynForm) | iTask a
-	returnShow d=:(T v :: T a^ b) nv = return (Just {form & dynForm = dynamic T nv :: T a^ a^})
-	returnShow _ nv = return Nothing
-editForm form	= return Nothing
+	checkIt :: ![FlowShape] -> Task Flow
+	checkIt flowShape 
+		=					checkFlows flowShape
+			>>= \flowDyn ->	if (validType flowDyn) 
+								(return {flowShape = flowShape, flowDyn = flowDyn}) 
+								(throw (dynErrorMess "Type is not a task !, " flowDyn))
+			>>|				return {flowShape = flowShape, flowDyn = flowDyn}
+
+	validType :: Dynamic -> Bool
+	validType (T x :: T (Task a) a) 			= True
+	validType (T x :: T (a -> Task a) a) 		= True
+	validType (T x :: T (a -> Task b) (a,b)) 	= True
+	validType (f :: A.a: a -> Task a | iTask a) = True
+	validType d									= False
+	
+	errorRaised :: [FlowShape] String -> Task Flow
+	errorRaised flowShape s
+		=					showMessage ("Type Error: " +++ s) >>| return {flow & flowShape = flowShape}					
+
+finalizeFlow :: !(!String, !Flow) -> Task Void 
+finalizeFlow (name, flow)
+	=					showMessageA ("You may now store flow *" +++ name +++ "* :: " +++ showDynType flow.flowDyn) [ActionPrevious, Store, Exit]
+	 >>= \(choice) -> 
+			case choice of
+//				New				-> newFlowName emptyFlow >>= editFlowShape
+//				Read			-> readFlow >>= editFlowShape
+				ActionPrevious	-> editFlowShape (name, flow)
+				Store			-> storeFlow (name, flow) >>= editFlowShape
+				_				-> return Void
 
 // ------------
 
-makeDynForm :: [FormType] -> Task Dynamic
-makeDynForm bs = convertFormTypes bs >>= return o tupling
+loopStart :: Task Void
+loopStart
+	=	enterInformationA "Press start to run a stored workflow..." [] [StartFlow, Exit]
+		>>= \(choice,Void) ->	
+			case choice of
+				StartFlow	-> startFlow	>>| loopStart 
+				Exit		-> return Void
+
+startFlow :: Task Void
+startFlow
+	= 						getCurrentUser
+		>>= \me ->			readFlow 
+		>>= \(_,flowDyn) ->	evalFlow me flowDyn.flowDyn 
+where
+	evalFlow me (T t:: T (Task a) a)	= spawnProcess me.userId True (t <<@ "dynamic flow")>>| return Void
+	evalFlow me (T v:: T a b)			= showMessage (showDynValType "Result" (dynamic v :: a))
+//	evalFlow me (T2 v:: T2 a b c)		= showMessage (showDynValType "Result" (dynamic v :: a))
+	evalFlow me d						= showMessage (dynErrorMess "Eval" d) 
+
+// ------------
+
+shapeToForm :: [FormShape] -> Task Dynamic
+shapeToForm bs = convertFormShapes bs >>= return o tupling
 where
 	tupling [] 		= dynamic T Void :: T Void Void
 	tupling [d]		= d
 	tupling [d:ds]	= case (d, tupling ds) of 
-							(T d1 :: T a a, T d2 :: T b b) -> dynamic T (Elem d1 d2) :: T (Elem a b) (Elem a b)	
-							_ -> abort "Fatal Error in makeDynForm !!!"
+							(T d1 :: T a a, T d2 :: T b b) -> dynamic T (Tup d1 d2) :: T (Tup a b) (Tup a b)	
+							_ -> abort "Fatal Error in shapeToForm !!!"
 
-	convertFormTypes :: [FormType] -> Task [Dynamic]
-	convertFormTypes [] 		= return []
-	convertFormTypes [b:bs] 	= convert b >>= \d -> convertFormTypes bs >>= \ds -> return [d:ds] 
+	convertFormShapes :: [FormShape] -> Task [Dynamic]
+	convertFormShapes [] 		= return []
+	convertFormShapes [b:bs] 	= convert b >>= \d -> convertFormShapes bs >>= \ds -> return [d:ds] 
 	where
-		convert :: FormType -> Task Dynamic
+		convert :: FormShape -> Task Dynamic
 		convert	Integer					= getDefaultValue >>= \v -> return (dynamic T v :: T Int Int)	
 		convert	Real					= getDefaultValue >>= \v -> return (dynamic T v :: T Real Real)	
 		convert	String					= getDefaultValue >>= \v -> return (dynamic T v :: T String String)	
@@ -217,7 +223,8 @@ where
 		convert	(Tuple (b1, b2))		= convert b1 >>= \db1 -> convert b2 >>= \db2 -> returnTuple db1 db2	
 		where
 			returnTuple (T t1 :: T a a) (T t2 :: T b b) 
-										= return (dynamic T2 (t1,t2) :: (T2 (a,b) a b))
+										= return (dynamic T (t1,t2) :: (T (a,b)(a,b)))
+//										= return (dynamic T2 (t1,t2) :: (T2 (a,b) a b))
 		convert (List b)				= convert b >>= \dl -> returnList dl
 		where
 			returnList (T v :: T a a)	= return (dynamic T [] :: T [a] [a])
@@ -240,118 +247,30 @@ where
 		
 // ------------
 
-instance DB DynFormFlowStore where
-	databaseId	:: DBid [DynFormFlowStore]
-	databaseId = mkDBid "FormStore"
-	
-	getItemId	:: DynFormFlowStore -> DBRef DynFormFlowStore
-	getItemId a = a.formDBRef
-
-	setItemId	:: (DBRef DynFormFlowStore) DynFormFlowStore -> DynFormFlowStore
-	setItemId dbref a = {a & formDBRef = dbref}
-
-storeForm :: DynForm -> Task Void
-storeForm dynForm = storeFormFlow (Form dynForm)
-
-storeFlow :: DynFlow -> Task Void
-storeFlow dynFlow = storeFormFlow (Flow dynFlow)
-
-storeFormFlow :: DynFormFlow -> Task Void
-storeFormFlow dynFormFlow
-	=						enterInformation "Define name to store:"
-		>>= \extname ->		dbReadAll
-		>>= \all ->			if	(isMember extname [this.dynFormFlowName \\ this <- all])
-								(			requestConfirmation ("Name already exists, do you want to overwrite?")
-								 >>= \ok -> if ok (updateItem all extname) (storeFormFlow dynFormFlow)
-								)
-								(storeItem extname)
-	where
-		showDynType2 (T x :: T a b) = showDynType (dynamic undef :: a) 
-		showDynType2 (x :: a) 		= showDynType (dynamic undef :: a) 
-
-		type = case dynFormFlow of
-					(Form dynForm) = showDynType dynForm.dynForm
-					(Flow dynFlow) = showDynType dynFlow.dynFlow
-					_				= "Error, Unknown Type !"
-
-		updateItem all name
-			=				return (hd [this \\ this <- all | this.dynFormFlowName == name])
-			>>= \oform ->	dbUpdateItem {oform & dynFormFlowName = name, dynFormFlowType = type, dynFormFlow = dynFormFlow}
-			>>|				return Void
-
-		storeItem name
-			=				dbCreateItem
-			>>= \oform ->	dbUpdateItem {oform & dynFormFlowName = name, dynFormFlowType = type, dynFormFlow = dynFormFlow}
-			>>|				return Void
-
-readForm :: Task (Maybe DynForm)
-readForm 
-	= 						readstoreForm (\this -> case this.dynFormFlow of
-														(Form _) -> True
-														else -> False) 
-			>>= \found ->	case found of
-								(Form dynForm)	->	return (Just dynForm)	
-								_ 				-> 	return Nothing
-
-readFlow :: Task (Maybe DynFlow)
-readFlow 
-	= 						readstoreForm (\this -> case this.dynFormFlow of
-														(Flow _) -> True
-														else -> False) 
-			>>= \found ->	case found of
-								(Flow dynFlow)	->	return (Just dynFlow)	
-								_ 				-> 	return Nothing
-
-readstoreForm :: (DynFormFlowStore -> Bool) ->  Task DynFormFlow
-readstoreForm pred  
-	=						readAll
-		>>= \all ->			let names = [showName this \\ this <- all | pred this] in
-								case names of
-								 [] ->					updateInformation "No definitions stored !" Void
-								 		>>|				return NoDynFormFlow
-								 names ->				enterChoice "Choose definition you want to use:" names
-										>>= \choice ->	return (hd [this.dynFormFlow \\ this <- all | showName this == choice])
-where
-	showName this = this.dynFormFlowName +++ " :: " +++ this.dynFormFlowType
-
-	readAll :: Task [DynFormFlowStore]
-	readAll = dbReadAll
-
 showAll :: Task Void
 showAll
-	=						readAll
-		>>= \all ->			case all of
-							 [] ->	showMessage "There are no definitions stored yet." 
-							 all -> showMessageAbout "The following definitions have been stored:" all
+	=						readAllForms
+		>>= \allForms 	->	readAllFlows
+		>>= \allFlows	->	showMessageAboutA "Stored definitions:" (myForm allForms ++ myFlows allFlows) [Refresh, Exit]
+		>>= \choice		->	case choice of
+								Refresh	->	showAll
+								_		->	return Void
 where
-	readAll :: Task [DynFormFlowStore]
-	readAll = dbReadAll
+	myForm allForms 	= ["Stored Forms:", "" 		: [form.formName +++ " :: " +++ form.formType \\ form <- allForms]]
+	myFlows allFlows 	= ["Stored Workflows:", ""  : [flow.flowName +++ " :: " +++ flow.flowType \\ flow <- allFlows]]
 
 // ------------
 
-makeFlow :: DynFlow -> Task DynFlow
-makeFlow flow
-	=						updateInformation "Construct a flow:" flow.flowType
-		>>= \flowType ->	try (checkIt flowType) (errorRaised flowType)
-where
-	checkIt flowType 
-		=					checkFlows flowType
-			>>= \dynFlow ->	showMessage ("Deduced type: " +++ showDynType dynFlow)
-			>>|				return {flowType = flowType, dynFlow = dynFlow}
 
-	errorRaised :: [FlowType] String -> Task DynFlow
-	errorRaised flowType s
-		=					showMessage s >>| return {flow & flowType = flowType}					
-
-checkFlows :: [FlowType] -> Task Dynamic  
+checkFlows :: [FlowShape] -> Task Dynamic  
 checkFlows [] 		= throw "Cannot apply empty flow."
 checkFlows flows 	= mapMonad translate flows >>= \dyns -> return (applyFlows (hd dyns) (tl dyns))
 where
-	mapMonad :: (!FlowType -> Task Dynamic) [FlowType] -> Task [Dynamic]	// leaving out the type crashes the compiler !!!
+	mapMonad :: (!FlowShape -> Task Dynamic) [FlowShape] -> Task [Dynamic]	// leaving out the type crashes the compiler !!!
 	mapMonad fun [] 	= return []
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
-	translate :: !FlowType -> Task Dynamic
+	translate :: !FlowShape -> Task Dynamic
 	translate (Editor prompt)		= return (dynamic (edit prompt):: A.a: a -> Task a | iTask a)
 	where
 		edit ::  !String a -> Task a | iTask a
@@ -402,74 +321,147 @@ where
 
 findValue :: String -> Task Dynamic
 findValue name
-	= 						dbReadAll
-		>>= \all ->			examine [this \\ this <- all | this.dynFormFlowName == name]
+	= 					readAllForms
+		>>= \all ->		examine [this.form.formDyn \\ this <- all | this.formName == name]
 where
-	examine [] 		= throw ("Cannot find form value with name " +++ name)
-	examine [f:fs] 	= case f.dynFormFlow of
-						(Form form) = return form.dynForm
-						_ 			= throw ("Type Error: Value expected, flow found named " +++ name)
+	examine [] 							= throw ("Cannot find Form with name " +++ name)
+	examine [form =: (T v :: T a a) :_] = return (dynamic T (return v) :: T (Task a) a )		// turn value into task as well
+	examine [form:_]					= throw (dynErrorMess "Form has ilegal type:" form )
 
 findFlow :: String -> Task Dynamic
 findFlow name
-	= 						dbReadAll
-		>>= \all ->			examine [this \\ this <- all | this.dynFormFlowName == name]
+	= 					readAllFlows
+		>>= \all ->		examine [this.flow \\ this <- all | this.flowName == name]
 where
-	examine [] 		= throw ("Cannot find form value with name " +++ name)
-	examine [f:fs] 	= case f.dynFormFlow of
-						(Flow form) = return form.dynFlow
-						_ 			= throw ("Type Error: Value expected, flow found named " +++ name)
+	examine [] 			= throw ("Cannot find Flow with name " +++ name)
+	examine [flow:_] 	= return flow.flowDyn
 
 applyFlows :: Dynamic [Dynamic] -> Dynamic  
 applyFlows dyn [] = dyn
-applyFlows (T v :: T a a)  [edit :: A.b: b -> Task b | iTask b : dyns]				// edit value
-	= applyFlows (dynamic T (edit v) :: T (Task a) a) dyns
-
-
-applyFlows (T t :: T (Task a) a)  [(btb :: A.b: b -> Task b | iTask b ): dyns]		// >>=
+applyFlows (T t :: T (Task a) a)  [(btb :: A.b: b -> Task b | iTask b ): dyns]		// ta >>= edit
 	= applyFlows (dynamic T (t >>= btb) :: T (Task a) a) dyns
+applyFlows (T t :: T (Task a) a)  [(T btb :: T (a -> Task b) b ): dyns]				// ta >>= atb
+	= applyFlows (dynamic T (t >>= btb) :: T (Task b) b) dyns
+applyFlows (T t :: T (Task a) a)  [(btb :: A.b: b -> Task Void | iTask b ): dyns]	// ta >>= show
+	= applyFlows (dynamic T (t >>= btb) :: T (Task Void) Void) dyns
 
-//applyFlows (T t :: T (Task a) a)  [(atb :: T (a -> Task b) b): dyns]
-//	= applyFlows (dynamic T (t >>= atb) :: T (Task b) b) dyns
 
-applyFlows (T ta :: T (Task a) a)  [(T tb :: T (Task b) b): dyns]					// >>|
+applyFlows (T ta :: T (Task a) a)  [(T tb :: T (Task b) b): dyns]					// ta >>| tb
 	= applyFlows (dynamic T (ta >>| tb) :: T (Task b) b) dyns
-
-
-applyFlows (T2 v :: T2 (c,d) c d )  [(fst ::  A.a b: (a,b) -> a) : dyns]			// first 
-	= applyFlows (dynamic T (fst v) :: T c c) dyns
-applyFlows (T2 v :: T2 (c,d) c d)  [(snd ::  A.a b: (a,b) -> b) : dyns]				// second
-	= applyFlows (dynamic T (snd v) :: T d d) dyns
-applyFlows (T2 v :: T2 (c,d) c d) dyns												// T2 -> T!
-	= applyFlows (dynamic T v :: T (c,d) (c,d)) dyns
 
 applyFlows (x :: a)  [(f :: a -> b): dyns]											// common dyn apply
 	= applyFlows (dynamic f x :: b) dyns
 
 applyFlows d ds
 	= dynamic "Could not parse defined dynamic flow."
+/*
+applyFlows (T2 v :: T2 (c,d) c d )  [(fst ::  A.a b: (a,b) -> a) : dyns]			// first 
+	= applyFlows (dynamic T (fst v) :: T c c) dyns
+applyFlows (T2 v :: T2 (c,d) c d)  [(snd ::  A.a b: (a,b) -> b) : dyns]				// second
+	= applyFlows (dynamic T (snd v) :: T d d) dyns
+applyFlows (T2 v :: T2 (c,d) c d) dyns												// T2 -> T!
+	= applyFlows (dynamic T v :: T (c,d) (c,d)) dyns
+*/
 
 // ------------
 
-startFlow
-	= 						getCurrentUser
-		>>= \me ->			readFlow 
-		>>= \mkdynFlow ->	if (isNothing mkdynFlow) (return Void) (evalFlow me ((fromJust mkdynFlow).dynFlow)) 
+instance DB FormStore where
+	databaseId	:: DBid [FormStore]
+	databaseId = mkDBid "FormStore"
+	
+	getItemId	:: FormStore -> DBRef FormStore
+	getItemId a = a.formDBRef
+
+	setItemId	:: (DBRef FormStore) FormStore -> FormStore
+	setItemId dbref a = {a & formDBRef = dbref}
+
+instance DB FlowStore where
+	databaseId	:: DBid [FlowStore]
+	databaseId = mkDBid "FlowStore"
+	
+	getItemId	:: FlowStore -> DBRef FlowStore
+	getItemId a = a.flowDBRef
+
+	setItemId	:: (DBRef FlowStore) FlowStore -> FlowStore
+	setItemId dbref a = {a & flowDBRef = dbref}
+
+readAllForms :: Task [FormStore]
+readAllForms = dbReadAll
+
+readAllFlows :: Task [FlowStore]
+readAllFlows = dbReadAll
+
+newFormName :: !Form -> Task !(!String, !Form)
+newFormName form
+	=						enterInformation "Give name of new Form:" 
+		>>= \name ->		readAllForms
+		>>= \allForms ->	case [this \\ this <- allForms | this.formName == name] of
+								[] -> 					    dbCreateItem 
+											>>= \item -> 	dbUpdateItem {item & form = form, formType = showDynType form.formDyn, formName = name}
+											>>|				return (name,form) 
+								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).formType)
+								 			>>= \ok -> if ok (return (name,form)) (newFormName form)
+
+newFlowName :: !Flow -> Task !(!String, !Flow)
+newFlowName flow
+	=						enterInformation "Give name of new flow:" 
+		>>= \name ->		readAllFlows
+		>>= \allFlows ->	case [this \\ this <- allFlows | this.flowName == name] of
+								[] -> 						dbCreateItem 
+											>>= \item -> 	dbUpdateItem {item & flow = flow, flowType = showDynType flow.flowDyn, flowName = name} 
+											>>|				return (name,flow) 
+								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).flowType )
+								 			>>= \ok -> if ok (return (name,flow)) (newFlowName flow)
+readForm :: Task !(!String, !Form)
+readForm   
+	=						readAllForms
+		>>= \all ->			let names = [showName this \\ this <- all] in
+								case names of
+								 [] ->					updateInformation "No Forms stored !" Void
+								 		>>|				return ("Temp", emptyForm)
+								 names ->				enterChoice "Choose Form you want to use:" names
+										>>= \choice ->	return (hd [(this.formName, this.form) \\ this <- all | showName this == choice])
 where
-	evalFlow me (T t:: T (Task a) a)	= spawnProcess me.userId True (t <<@ "dynamic flow")>>| return Void
-	evalFlow me (T v:: T a b)			= showMessage (showDynValType "Result" (dynamic v :: a))
-	evalFlow me (T2 v:: T2 a b c)		= showMessage (showDynValType "Result" (dynamic v :: a))
-	evalFlow me d						= showMessage (dynErrorMess "Eval" d) 
+	showName this = this.formName +++ " :: " +++ this.formType
+
+readFlow ::  Task !(!String, !Flow)
+readFlow   
+	=						readAllFlows
+		>>= \all ->			let names = [showName this \\ this <- all] in
+								case names of
+								 [] ->					updateInformation "No Flows stored !" Void
+								 		>>|				return ("Temp", emptyFlow)
+								 names ->				enterChoice "Choose Flow you want to use:" names
+										>>= \choice ->	return (hd [(this.flowName, this.flow) \\ this <- all | showName this == choice])
+where
+	showName this = this.flowName +++ " :: " +++ this.flowType
+
+newName fun f 
+	=		enterInformation "Type in another name " >>= \name -> fun (name, f)
+
+storeForm :: !(String, !Form) -> Task !(!String, !Form) // item assumed to be in store
+storeForm (name, form)
+	=						readAllForms
+		>>= \all ->			return (hd [this \\ this <- all | this.formName == name])
+		>>= \formStore ->	dbUpdateItem {formStore & formType = showDynType form.formDyn, form = form}
+		>>|					return (name,form)
+
+storeFlow :: !(String, !Flow) -> Task !(!String, !Flow) // item assumed to be in store
+storeFlow (name, flow)
+	=						readAllFlows
+		>>= \all ->			return (hd [this \\ this <- all | this.flowName == name])
+		>>= \flowStore -> 	dbUpdateItem {flowStore & flowName = name, flowType = showDynType flow.flowDyn, flow = flow}
+		>>|					return (name,flow)
 
 // ****************************
 
-:: Elem a b = Elem a b
+:: Tup a b = Tup a b
 
-gVisualize{|Elem|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
+gVisualize{|Tup|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
 		VEditorDefinition
 			# oldLabels = useLabels
-			# (v1,v2) = case old of (VValue (Elem o1 o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank, VBlank)
+			# (v1,v2) = case old of (VValue (Tup o1 o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank, VBlank)
 			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,rh2,vst) = f2 v2 v2 vst
 			= ([TUIFragment (TUIPanel {TUIPanel | layout="form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=0, //Tuple always full width
@@ -481,7 +473,7 @@ gVisualize{|Elem|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, l
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
-				(VValue (Elem o1 o2) omask, VValue(Elem n1 n2) nmask)
+				(VValue (Tup o1 o2) omask, VValue(Tup n1 n2) nmask)
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
