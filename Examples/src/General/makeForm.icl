@@ -154,15 +154,22 @@ where
 		=					checkFlows flowShape
 			>>= \flowDyn ->	if (validType flowDyn) 
 								(return {flowShape = flowShape, flowDyn = flowDyn}) 
-								(throw (dynErrorMess "Type is not a task !, " flowDyn))
+								(throw (dynErrorMess "not a legal workflow, " flowDyn))
 			>>|				return {flowShape = flowShape, flowDyn = flowDyn}
 
 	validType :: Dynamic -> Bool
-	validType (T x :: T (Task a) a) 			= True
-	validType (T x :: T (a -> Task a) a) 		= True
-	validType (T x :: T (a -> Task b) (a,b)) 	= True
-	validType (f :: A.a: a -> Task a | iTask a) = True
-	validType d									= False
+	validType (T x :: T (Task a) a) 											= True
+	validType (T x :: T (a -> Task a) a) 										= True
+	validType (T x :: T (a -> Task b) b) 										= True
+	validType (T x :: T (a -> Task b) (a,b)) 									= True
+	validType (f :: A.a: a -> Task a | iTask a) 								= True
+	validType (f :: A.a: a -> Task (t a) 	 	| iTask a)						= True
+	validType (f :: A.a: a -> Task (t a a) 	 	| iTask a)						= True
+	validType (f :: A.a b: a -> Task (t a b) 	| iTask a & iTask b ) 			= True
+//	validType (f :: A.a b: a -> Task (t a b) 	| iTask (a,b) ) 				= True
+	validType (f :: A.a: a -> Task (t a a a) 	| iTask a)						= True
+	validType (f :: A.a b c: a -> Task (t a b c)| iTask a & iTask b & iTask c) 	= True
+	validType d																	= False
 	
 	errorRaised :: [FlowShape] String -> Task Flow
 	errorRaised flowShape s
@@ -173,8 +180,8 @@ finalizeFlow (name, flow)
 	=					showMessageA ("You may now store flow *" +++ name +++ "* :: " +++ showDynType flow.flowDyn) [ActionPrevious, Store, Exit]
 	 >>= \(choice) -> 
 			case choice of
-//				New				-> newFlowName emptyFlow >>= editFlowShape
-//				Read			-> readFlow >>= editFlowShape
+				New				-> newFlowName emptyFlow >>= editFlowShape
+				Read			-> readFlow >>= editFlowShape
 				ActionPrevious	-> editFlowShape (name, flow)
 				Store			-> storeFlow (name, flow) >>= editFlowShape
 				_				-> return Void
@@ -196,9 +203,28 @@ startFlow
 		>>= \(_,flowDyn) ->	evalFlow me flowDyn.flowDyn 
 where
 	evalFlow me (T t:: T (Task a) a)	= spawnProcess me.userId True (t <<@ "dynamic flow")>>| return Void
+	evalFlow me flow=:(t :: A.a: a -> Task a | iTask a)
+										= 						readForm
+											>>= \(name,_) -> findValue name
+											>>= \dyn -> 	 evalFlow me (applyFlows dyn [flow]) 	
 	evalFlow me (T v:: T a b)			= showMessage (showDynValType "Result" (dynamic v :: a))
-//	evalFlow me (T2 v:: T2 a b c)		= showMessage (showDynValType "Result" (dynamic v :: a))
 	evalFlow me d						= showMessage (dynErrorMess "Eval" d) 
+
+
+findFlow2 ::  Task !(!String, !Flow)
+findFlow2   
+	=						readAllFlows
+		>>= \all ->			let names = [showName this \\ this <- all] in
+								case names of
+								 [] ->					updateInformation "No Flows stored !" Void
+								 		>>|				return ("Temp", emptyFlow)
+								 names ->				enterChoice "Choose Flow you want to use:" names
+										>>= \choice ->	return (hd [(this.flowName, this.flow) \\ this <- all | showName this == choice])
+where
+	showName this = this.flowName +++ " :: " +++ this.flowType
+
+
+
 
 // ------------
 
@@ -264,7 +290,7 @@ where
 
 checkFlows :: [FlowShape] -> Task Dynamic  
 checkFlows [] 		= throw "Cannot apply empty flow."
-checkFlows flows 	= mapMonad translate flows >>= \dyns -> return (applyFlows (hd dyns) (tl dyns))
+checkFlows flows 	= mapMonad translate flows >>= \[d:ds] -> return (applyFlows d ds)
 where
 	mapMonad :: (!FlowShape -> Task Dynamic) [FlowShape] -> Task [Dynamic]	// leaving out the type crashes the compiler !!!
 	mapMonad fun [] 	= return []
@@ -300,6 +326,10 @@ where
 		checkAnd :: Dynamic Dynamic -> Task Dynamic
 		checkAnd (T ta :: T (Task a) a) (T tb :: T (Task b) b)  
 			= return (dynamic T (ta -&&- tb) :: T (Task (a,b)) (a,b))
+		checkAnd (T ta :: T (a -> Task b) b) (T tb :: T (a -> Task c) c)  
+			= return (dynamic T (\a -> ta a -&&- tb a) :: T (a -> Task (b,c)) (b,c))
+		checkAnd (ta :: A.a: a -> Task a | iTask a) (tb :: A.a: a -> Task a | iTask a)  
+			= return (dynamic (\a -> ta a -&&- tb a) :: A.a: a -> Task (a,a) | iTask a )
 		checkAnd d1 d2
 			= throw (dynErrorMess2 "And" d1 d2)
 	
@@ -344,7 +374,6 @@ applyFlows (T t :: T (Task a) a)  [(T btb :: T (a -> Task b) b ): dyns]				// ta
 	= applyFlows (dynamic T (t >>= btb) :: T (Task b) b) dyns
 applyFlows (T t :: T (Task a) a)  [(btb :: A.b: b -> Task Void | iTask b ): dyns]	// ta >>= show
 	= applyFlows (dynamic T (t >>= btb) :: T (Task Void) Void) dyns
-
 
 applyFlows (T ta :: T (Task a) a)  [(T tb :: T (Task b) b): dyns]					// ta >>| tb
 	= applyFlows (dynamic T (ta >>| tb) :: T (Task b) b) dyns
