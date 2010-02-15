@@ -102,7 +102,7 @@ noForm
 
 editFormShape :: !(!String, !Form) -> Task Void 
 editFormShape (name, form)
-	=					updateInformationA ("FORM SHAPE Editor of form *" +++ name +++ "* :") form.formShape [New, ReadShape, Exit] [ActionNext]
+	=					updateInformationA ("FORM SHAPE Editor of form *" +++ name +++ "* :") [New, ReadShape, Exit] [ActionNext] form.formShape 
 	 >>= \(choice,formShape) -> 
 			case choice of
 				ActionNext	-> 					shapeToForm formShape 
@@ -113,7 +113,7 @@ editFormShape (name, form)
 
 editForm :: !(!String, !Form) -> Task Void 
 editForm (name,form=:{formDyn = (T v :: T a a)})
-	=		updateInformationA ("FORM Editor of form *" +++ name +++ "* :") v [ActionPrevious] [New, ReadForm, Store, Exit]
+	=		updateInformationA ("FORM Editor of form *" +++ name +++ "* :") [ActionPrevious] [New, ReadForm, Store, Exit] v 
 	 	>>= editForm2 
 where
 	editForm2 :: (Action,a) -> Task Void | iTask a
@@ -138,7 +138,7 @@ noFlow
 
 editFlowShape :: !(!String, !Flow) -> Task Void 
 editFlowShape (name, flow)
-	=					updateInformationA ("FLOW Editor of flow *" +++ name +++ "* :") flow.flowShape [New, Exit, Read] [Check, ActionNext]
+	=					updateInformationA ("FLOW Editor of flow *" +++ name +++ "* :") [New, Exit, Read] [Check, ActionNext] flow.flowShape 
 	 >>= \(choice,flowShape) -> 
 			case choice of
 				New			-> newFlowName emptyFlow >>= editFlowShape
@@ -251,7 +251,7 @@ showAll :: Task Void
 showAll
 	=						readAllForms
 		>>= \allForms 	->	readAllFlows
-		>>= \allFlows	->	showMessageAboutA "Stored definitions:" (myForm allForms ++ myFlows allFlows) [Refresh, Exit]
+		>>= \allFlows	->	showMessageAboutA "Stored definitions:" [Refresh, Exit] (myForm allForms ++ myFlows allFlows) 
 		>>= \choice		->	case choice of
 								Refresh	->	showAll
 								_		->	return Void

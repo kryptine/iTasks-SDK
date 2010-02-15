@@ -12,7 +12,7 @@ import CommonDomain
 
 travelBookingExample :: [Workflow]
 travelBookingExample
-= [	{ name		= "Examples/Business/Travel booking/Book a trip"
+= [	{ name		= "Examples/Business/Book a trip"
 	, label		= "Book your journey"
 	, roles		= []
 	, mainTask	= travel

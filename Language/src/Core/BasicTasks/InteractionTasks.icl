@@ -37,20 +37,20 @@ enterInformationA question aAlways aValid = mkInteractiveTask "enterInformationA
 updateInformation :: question a -> Task a | html question & iTask a
 updateInformation question initial = mkInteractiveTask "updateInformation" (ignoreActionA (makeInformationTask question (Just initial) Nothing [] [ActionOk] False)) 
 
-updateInformationA :: question a [Action] [Action] -> Task (!Action,!a) | html question & iTask a
-updateInformationA question initial aAlways aValid = mkInteractiveTask "updateInformationA" (makeInformationTask question (Just initial) Nothing aAlways aValid True)
+updateInformationA :: question [Action] [Action] a -> Task (!Action,!a) | html question & iTask a
+updateInformationA question aAlways aValid initial = mkInteractiveTask "updateInformationA" (makeInformationTask question (Just initial) Nothing aAlways aValid True)
 
 enterInformationAbout :: question b -> Task a	| html question & iTask a & iTask b
 enterInformationAbout question about = mkInteractiveTask "enterInformationAbout" (ignoreActionA (makeInformationTask question Nothing (Just (visualizeAsHtmlDisplay about)) [] [ActionOk] False))
 
-enterInformationAboutA :: question b [Action] [Action] -> Task (!Action,!a) | html question & iTask a & iTask b
-enterInformationAboutA question about aAlways aValid = mkInteractiveTask "enterInformationAboutA" (makeInformationTask question Nothing (Just (visualizeAsHtmlDisplay about)) aAlways aValid True)
+enterInformationAboutA :: question [Action] [Action] b -> Task (!Action,!a) | html question & iTask a & iTask b
+enterInformationAboutA question aAlways aValid about = mkInteractiveTask "enterInformationAboutA" (makeInformationTask question Nothing (Just (visualizeAsHtmlDisplay about)) aAlways aValid True)
 	
 updateInformationAbout :: question b a -> Task a | html question & iTask a & iTask b 
 updateInformationAbout question about initial = mkInteractiveTask "updateInformationAbout" (ignoreActionA (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)) [] [ActionOk] False))
 
-updateInformationAboutA	:: question b a [Action] [Action] -> Task (!Action,!a) | html question & iTask a & iTask b
-updateInformationAboutA question about initial aAlways aValid = mkInteractiveTask "updateInformationAboutA" (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)) aAlways aValid True)
+updateInformationAboutA	:: question [Action] [Action] b a -> Task (!Action,!a) | html question & iTask a & iTask b
+updateInformationAboutA question aAlways aValid about initial = mkInteractiveTask "updateInformationAboutA" (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)) aAlways aValid True)
 
 makeInformationTask :: question (Maybe a) (Maybe [HtmlTag]) [Action] [Action] !Bool !*TSt -> (!(!Action,!a),!*TSt) | html question & iTask a
 makeInformationTask question initial context aAlways aValid actionStored tst=:{taskNr}
@@ -116,60 +116,115 @@ where
 	
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= abort "enterChoice: cannot choose from empty option list"
-enterChoice question options	= mkInteractiveTask "enterChoice" (makeChoiceTask question options -1 Nothing)
+enterChoice question options	= mkInteractiveTask "enterChoice" (ignoreActionA (makeChoiceTask question options -1 Nothing [] [ActionOk]))
+
+enterChoiceA :: question [Action] [Action] [a] -> Task (!Action,!a) | html question & iTask a
+enterChoiceA question aAlways aValid []			= abort "enterChoice: cannot choose from empty option list"
+enterChoiceA question aAlways aValid options	= mkInteractiveTask "enterChoice" (makeChoiceTask question options -1 Nothing aAlways aValid)
 
 updateChoice :: question [a] Int -> Task a | html question & iTask a 
 updateChoice question [] index		= abort "updateChoice: cannot choose from empty option list"
-updateChoice question options index = mkInteractiveTask "updateChoice" (makeChoiceTask question options index Nothing)
+updateChoice question options index = mkInteractiveTask "updateChoice" (ignoreActionA (makeChoiceTask question options index Nothing [] [ActionOk]))
+
+updateChoiceA :: question [Action] [Action] [a] Int -> Task (!Action,!a) | html question & iTask a 
+updateChoiceA question aAlways aValid [] index		= abort "updateChoice: cannot choose from empty option list"
+updateChoiceA question aAlways aValid options index	= mkInteractiveTask "updateChoice" (makeChoiceTask question options index Nothing aAlways aValid)
 
 enterChoiceAbout :: question b [a] -> Task a | html question & iTask a & iTask b
 enterChoiceAbout question about []		= abort "enterChoiceAbout: cannot choose from empty option list"
-enterChoiceAbout question about options = mkInteractiveTask "enterChoiceAbout" (makeChoiceTask question options -1 (Just (visualizeAsHtmlDisplay about)))
+enterChoiceAbout question about options = mkInteractiveTask "enterChoiceAbout" (ignoreActionA (makeChoiceTask question options -1 (Just (visualizeAsHtmlDisplay about)) [] [ActionOk]))
+
+enterChoiceAboutA :: question [Action] [Action] b [a] -> Task (!Action,!a) | html question & iTask a & iTask b
+enterChoiceAboutA question aAlways aValid about []		= abort "enterChoiceAbout: cannot choose from empty option list"
+enterChoiceAboutA question aAlways aValid about options	= mkInteractiveTask "enterChoiceAbout" (makeChoiceTask question options -1 (Just (visualizeAsHtmlDisplay about)) aAlways aValid)
 
 updateChoiceAbout :: question b [a] Int -> Task a | html question & iTask a & iTask b
 updateChoiceAbout question about [] index		= abort "updateChoiceAbout: cannot choose from empty option list"
-updateChoiceAbout question about options index  = mkInteractiveTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)))
+updateChoiceAbout question about options index  = mkInteractiveTask "updateChoiceAbout" (ignoreActionA (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)) [] [ActionOk]))
 
-makeChoiceTask :: question [a] Int (Maybe [HtmlTag]) !*TSt -> (!a,!*TSt) | html question & iTask a
-makeChoiceTask question options index context tst=:{taskNr}
-	# taskid	= taskNrToString taskNr
-	# editorid	= "tf-" +++ taskid
+updateChoiceAboutA :: question [Action] [Action] b [a] Int-> Task (!Action,!a) | html question & iTask a & iTask b
+updateChoiceAboutA question aAlways aValid about [] index		= abort "updateChoiceAbout: cannot choose from empty option list"
+updateChoiceAboutA question aAlways aValid about options index	= mkInteractiveTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)) aAlways aValid)
+
+makeChoiceTask :: !question ![a] !Int (Maybe [HtmlTag]) ![Action] ![Action] !*TSt -> (!(!Action,!a),!*TSt) | html question & iTask a
+makeChoiceTask question options initsel context aAlways aValid tst=:{taskNr}
+	# taskId		= taskNrToString taskNr
+	# editorId		= "tf-" +++ taskId
+	# selectionId	= editorId +++ "-sel"
+	# (mbSel,tst)	= getTaskStore "selection" tst
+	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
+	# valid			= selection >= 0 && selection < length options	//Do we have a valid index
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
-		# form = [TUIButton {TUIButton	| name = "button-" +++ toString i
-											, id	= editorid +++ "-" +++ toString i
-											, value = toString i
-											, disabled = False
-											, text = visualizeAsTextLabel option +++ if (i == index) " (current)" ""
-											, iconCls = ""} \\ option <- options & i <- [0..] ]
-		# tst = setTUIDef (taskPanel taskid (html question) context (Just form) []) tst
-		= (hd options, {tst & activated = False})
+		# radios = [TUIRadio {TUIRadio	| name = selectionId
+										, value = toString i
+										, boxLabel = Just (toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)))
+										, fieldLabel = Nothing
+										, hideLabel	= True
+										, checked = (i == selection)
+										} \\ option <- options & i <- [0..] ]
+	
+		# form 	= [TUIRadioGroup {TUIRadioGroup	| name = selectionId
+												, id = selectionId
+												, fieldLabel = Nothing
+												, hideLabel = True
+												, columns = 1
+												, items = radios
+												}]
+		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (buttons editorId aAlways aValid valid)) tst
+		= ((ActionCancel,hd options), {tst & activated = False})
 	| otherwise
-		= (options !! (toInt (snd (hd updates))), tst) 
+		// One of the buttons was pressed
+		# index = toInt (http_getValue "action" updates "-1")
+		| index <> -1
+			= ((selAction index aAlways aValid, if valid (options !! selection) (hd options)),{tst & activated = True})
+		// The selection was updated
+		# index = toInt (http_getValue selectionId updates "-1")
+		| index <> -1
+			# valid		= index >= 0 && index < length options	//Recompute validity
+			# tst		= setTaskStore "selection" index tst
+			# tst		= setTUIUpdates (enables editorId aAlways aValid valid) tst
+			= ((ActionCancel,hd options), {tst & activated = False})	
+		// Fallback case (shouldn't really happen)
+		| otherwise
+			# tst		= setTUIUpdates [] tst
+			= ((ActionCancel,hd options), {tst & activated = False})
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
-enterMultipleChoice question options = mkInteractiveTask "enterMultipleChoice" (makeMultipleChoiceTask question options [] Nothing)
+enterMultipleChoice question options = mkInteractiveTask "enterMultipleChoice" (ignoreActionA (makeMultipleChoiceTask question options [] Nothing [ActionOk]))
+
+enterMultipleChoiceA :: question [Action] [a] -> Task (!Action,![a]) | html question & iTask a
+enterMultipleChoiceA question aAlways options = mkInteractiveTask "enterMultipleChoiceA" (makeMultipleChoiceTask question options [] Nothing aAlways)
 
 updateMultipleChoice :: question [a] [Int] -> Task [a] | html question & iTask a
-updateMultipleChoice question options indices = mkInteractiveTask "updateMultipleChoice" (makeMultipleChoiceTask question options indices Nothing)
+updateMultipleChoice question options indices = mkInteractiveTask "updateMultipleChoice" (ignoreActionA (makeMultipleChoiceTask question options indices Nothing [ActionOk]))
+
+updateMultipleChoiceA :: question [Action] [a] [Int] -> Task (!Action,![a]) | html question & iTask a
+updateMultipleChoiceA question aAlways options indices = mkInteractiveTask "updateMultipleChoiceA" (makeMultipleChoiceTask question options indices Nothing aAlways)
 
 enterMultipleChoiceAbout :: question b [a] -> Task [a] | html question & iTask a & iTask b
-enterMultipleChoiceAbout question about options = mkInteractiveTask "enterMultipleChoiceAbout" (makeMultipleChoiceTask question options [] (Just (visualizeAsHtmlDisplay about)))
+enterMultipleChoiceAbout question about options = mkInteractiveTask "enterMultipleChoiceAbout" (ignoreActionA (makeMultipleChoiceTask question options [] (Just (visualizeAsHtmlDisplay about)) [ActionOk]))
+
+enterMultipleChoiceAboutA :: question [Action] b [a] -> Task (!Action,![a]) | html question & iTask a & iTask b
+enterMultipleChoiceAboutA question aAlways about options = mkInteractiveTask "enterMultipleChoiceAboutA" (makeMultipleChoiceTask question options [] (Just (visualizeAsHtmlDisplay about)) aAlways)
 
 updateMultipleChoiceAbout :: question b [a] [Int] -> Task [a] | html question & iTask a & iTask b
-updateMultipleChoiceAbout question about options indices = mkInteractiveTask "updateMultipleChoiceAbout" (makeMultipleChoiceTask question options indices (Just (visualizeAsHtmlDisplay about)))
+updateMultipleChoiceAbout question about options indices = mkInteractiveTask "updateMultipleChoiceAbout" (ignoreActionA (makeMultipleChoiceTask question options indices (Just (visualizeAsHtmlDisplay about)) [ActionOk]))
 
-makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) !*TSt -> (![a],!*TSt) | html question & iTask a
-makeMultipleChoiceTask question options inselection context tst=:{taskNr}
-	# taskid		= taskNrToString taskNr
-	# editorId		= "tf-" +++ taskid
-	# doneId		= editorId +++ "-done"
+updateMultipleChoiceAboutA :: question [Action] b [a] [Int] -> Task (!Action,![a]) | html question & iTask a & iTask b
+updateMultipleChoiceAboutA question aAlways about options indices = mkInteractiveTask "updateMultipleChoiceAboutA" (makeMultipleChoiceTask question options indices (Just (visualizeAsHtmlDisplay about)) aAlways)
+
+makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) [Action] !*TSt -> (!(!Action,![a]),!*TSt) | html question & iTask a
+makeMultipleChoiceTask question options initsel context aAlways tst=:{taskNr}
+	# taskId		= taskNrToString taskNr
+	# editorId		= "tf-" +++ taskId
+	# selectionId	= editorId +++ "-sel"
 	# (mbSel,tst)	= getTaskStore "selection" tst
-	# selection		= case mbSel of Nothing = inselection; Just sel = sel
+	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst
-	| length updates == 0
+	| isEmpty updates
 		# checks	= [isMember i selection \\ i <- [0..(length options) - 1]]
 		# cboxes	= [TUICheckBox 
 					  {TUICheckBox
@@ -180,19 +235,21 @@ makeMultipleChoiceTask question options inselection context tst=:{taskNr}
 					  , hideLabel = True
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
-		# form = [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 3, items = cboxes}]
-		# tst = setTUIDef (taskPanel taskid (html question) context (Just form) [(ActionOk, doneId,"done","done",True)]) tst
-		= ([],{tst & activated = False})
+		# form = [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
+		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (buttons editorId aAlways [] True)) tst
+		= ((ActionCancel,[]), {tst & activated = False})
 	| otherwise
-		# done = (http_getValue "done" updates "") == "done"
-		| done
-			= (select selection options,{tst & activated = True})
+		// One of the buttons was pressed
+		# index = toInt (http_getValue "action" updates "-1")
+		| index <> -1
+			= ((selAction index aAlways [], select selection options ),{tst & activated = True})
+		// Perhaps the selection was changed
 		| otherwise
 			# mbSel		= parseSelection updates 
 			# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 			# tst		= setTaskStore "selection" (sort selection) tst
 			# tst		= setTUIUpdates [] tst
-			= ([],{tst & activated = False})
+			= ((ActionCancel,[]),{tst & activated = False})
 where
 	parseSelection :: [(String,String)] -> Maybe [String]
 	parseSelection updates = fromJSON (http_getValue "selection" updates "[]")	
@@ -210,8 +267,8 @@ showMessageA message aAlways = mkInteractiveTask "showMessageA" (makeMessageTask
 showMessageAbout :: message a -> Task Void | html message & iTask a
 showMessageAbout message about = mkInteractiveTask "showMessageAbout" (ignoreActionV (makeMessageTask message (Just (visualizeAsHtmlDisplay about)) [ActionOk]))
 
-showMessageAboutA :: message a [Action] -> Task Action | html message & iTask a
-showMessageAboutA message about aAlways = mkInteractiveTask "showMessageAboutA" (makeMessageTask message (Just (visualizeAsHtmlDisplay about)) aAlways)
+showMessageAboutA :: message [Action] a -> Task Action | html message & iTask a
+showMessageAboutA message aAlways about = mkInteractiveTask "showMessageAboutA" (makeMessageTask message (Just (visualizeAsHtmlDisplay about)) aAlways)
 	
 showStickyMessage :: message -> Task Void | html message
 showStickyMessage message = mkInteractiveTask "showStickyMessage" (ignoreActionV (makeMessageTask message Nothing []))

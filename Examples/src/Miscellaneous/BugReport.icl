@@ -6,10 +6,12 @@ import CommonDomain
 :: BugReport =
 	{ application	:: String
 	, version		:: Maybe String
+	, yourName		:: String
 	, date			:: Date
 	, occursAt		:: BugOccurance
 	, severity		:: BugSeverity
 	, description	:: Note
+	, attachment	:: [Document]
 	}
 
 :: BugSeverity	= Low | Medium | High | Critical	
