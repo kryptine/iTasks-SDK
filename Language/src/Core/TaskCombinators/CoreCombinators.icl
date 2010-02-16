@@ -8,6 +8,7 @@ import	Util
 import	GenUpdate
 import	UserDB, ProcessDB, DynamicDB
 import	StdDynamic
+import  Store
 
 //Standard monadic operations:
 
@@ -50,6 +51,26 @@ where
 			# tst = resetSequence tst
 			= doTask tst
 		= (a,tst)
+		
+iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
+iterateUntil init cont pred = mkSequenceTask "Iterate Until" doTask
+where
+	doTask tst=:{taskNr,dataStore,world}
+		# key 					= "iu-temp_"+++taskNrToString taskNr
+		# (mbVal,dstore,world)	= loadValue key dataStore world
+		# (a,tst=:{activated,dataStore,world})  
+			= case mbVal of
+				Nothing = applyTask init 	 {tst & dataStore = dstore, world = world}
+				Just v  = applyTask (cont v) {tst & dataStore = dstore, world = world}
+		| not activated
+			= (a,tst)
+		| pred a
+			# (dstore,world) = deleteValues key dataStore world
+			= (a,{tst & dataStore = dstore, world = world})
+		# dstore = storeValue key a dataStore		
+		# tst = deleteTaskStates (tl taskNr) {tst & dataStore = dstore}
+		# tst = resetSequence tst
+		= doTask tst
 
 // Sequential composition
 sequence :: !String ![Task a] -> (Task [a])	| iTask a

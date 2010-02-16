@@ -72,7 +72,7 @@ makeInformationTask question initial context aAlways aValid actionStored tst=:{t
 	# (updates,tst) = getUserUpdates tst	
 	| isEmpty updates
 		# (form,valid) 	= visualizeAsEditor editorId omask oldval
-		# tst			= setTUIDef (taskPanel taskid (html question) context (Just form) (buttons editorId aAlways aValid valid)) tst
+		# tst			= setTUIDef (taskPanel taskid (html question) context (Just form) (makeButtons editorId aAlways aValid valid)) tst
 		= ((oldaction,oldval),{tst & activated = False})
 	| otherwise
 		# (newval,nmask,lmask,tst) = applyUpdates updates oldval omask [] tst
@@ -172,7 +172,7 @@ makeChoiceTask question options initsel context aAlways aValid tst=:{taskNr}
 												, columns = 1
 												, items = radios
 												}]
-		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (buttons editorId aAlways aValid valid)) tst
+		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId aAlways aValid valid)) tst
 		= ((ActionCancel,hd options), {tst & activated = False})
 	| otherwise
 		// One of the buttons was pressed
@@ -236,7 +236,7 @@ makeMultipleChoiceTask question options initsel context aAlways tst=:{taskNr}
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
 		# form = [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
-		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (buttons editorId aAlways [] True)) tst
+		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId aAlways [] True)) tst
 		= ((ActionCancel,[]), {tst & activated = False})
 	| otherwise
 		// One of the buttons was pressed
@@ -300,7 +300,7 @@ makeMessageTask message context aAlways tst=:{taskNr}
 	# editorId	= "tf-" +++ taskId
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
-		# tst = setTUIDef (taskPanel taskId (html message) context Nothing (buttons editorId aAlways [] True)) tst
+		# tst = setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId aAlways [] True)) tst
 		= (ActionCancel,{tst & activated = False})
 	| otherwise
 		= (selAction (toInt (http_getValue "action" updates "0")) aAlways [],{tst & activated = True})
@@ -337,8 +337,8 @@ where
 	toTUIButton (ActionFinish)			id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = "Finish", iconCls = "icon-finish"}
 
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
-buttons :: !String ![Action] ![Action] !Bool -> [(!Action,!String,!String,!String,!Bool)]	
-buttons editorId aAlways aValid valid
+makeButtons :: !String ![Action] ![Action] !Bool -> [(!Action,!String,!String,!String,!Bool)]	
+makeButtons editorId aAlways aValid valid
 	= [(b,editorId +++ "-action-" +++ toString i, "action",toString i, True) \\ b <- aAlways & i <- [0..] ]
 	  ++
 	  [(b,editorId +++ "-action-" +++ toString i, "action",toString i, valid) \\ b <- aValid & i <- [(length aAlways)..] ] //Continue counting

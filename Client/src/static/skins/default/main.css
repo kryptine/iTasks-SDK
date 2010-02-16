@@ -374,6 +374,10 @@ div.taskForestLegend{
 	background-image:url('img/icons/flag.png') !important;
 }
 
+.task-publish {
+   background-image:url('img/icons/monitor-go.png') !important;
+}
+
 /* == ListPanel == */
 
 .list{

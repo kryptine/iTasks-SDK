@@ -91,3 +91,8 @@ showStickyMessageAbout		:: message a -> Task Void										| html message & iTas
 //Notify a user through external media. For example via e-mail or sms.
 notifyUser					:: message UserName -> Task Void								| html message
 notifyGroup					:: message Role -> Task Void									| html message
+
+//*** Utility Functions ***//
+//Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
+makeButtons :: !String ![Action] ![Action] !Bool -> [(!Action,!String,!String,!String,!Bool)]	
+taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef
