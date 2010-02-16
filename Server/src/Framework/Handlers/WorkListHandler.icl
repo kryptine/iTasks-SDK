@@ -10,7 +10,7 @@ import Text, JSON, Time, Util
 						}
 						
 :: WorkListItem 	= 	{ taskid			:: String 					// Task id of the work item
-						, delegatorId		:: Int 						// Id of the user who issued the work
+						, delegatorId		:: String					// Id of the user who issued the work
 						, delegatorName		:: String					// Display name of the user who issued the work 
 				 		, subject			:: String 					// Name give to the task, which can be a short description of the work to do
 				 		, priority			:: TaskPriority				// Priority of the task
@@ -30,8 +30,8 @@ JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
-	# uid					= staticInfo.currentSession.user.User.userId
-	# (processes,tst)		= getProcessesForUser uid [Active] tst
+	# username				= staticInfo.currentSession.user.User.userName
+	# (processes,tst)		= getProcessesForUser username [Active] tst
 	# workitems				= bldWorkItems processes
 	# worklist				= { success		= True
 							  , total		= length workitems

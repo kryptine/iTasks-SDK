@@ -3,7 +3,7 @@ definition module SystemTasks
 * This module provides tasks for interacting with the iTasks engine
 */
 from TSt		import :: Task
-from Types		import :: UserId, :: User, :: ProcessId, :: ProcessRef
+from Types		import :: User, :: ProcessId, :: ProcessRef
 
 from	iTasks		import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
@@ -37,7 +37,7 @@ getDefaultValue 		:: Task a | iTask a
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !UserId !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+spawnProcess	:: !UserName !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
 
 /**
 * Wait (blocking) for a process to complete.

@@ -68,7 +68,7 @@ selectSuppliers
 collectBids :: Purchase [User] -> Task [(User,Currency)]
 collectBids purchase suppliers
 	= andTasksEnough
-		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ supplier.User.displayName, supplier.User.userId @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier <- suppliers]
+		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ supplier.User.displayName, supplier @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier <- suppliers]
 where
 	collectBid :: Purchase User -> Task (User,Currency)
 	collectBid purchase bid
@@ -92,7 +92,7 @@ where
 	
 confirmBid :: Purchase (User,Currency) -> Task Void
 confirmBid purchase bid =: (user, price)
-	= user.User.userId @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."])
+	= user @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."])
 			
 //Custom utility combinators 
 andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iTask a

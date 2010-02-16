@@ -40,11 +40,11 @@ where
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
 
-	getProcessForUser :: !UserId !ProcessId !*TSt -> (!Maybe Process,!*TSt)
-	getProcessForUser userId processId tst
+	getProcessForUser :: !UserName !ProcessId !*TSt -> (!Maybe Process,!*TSt)
+	getProcessForUser userName processId tst
 		# (procs,tst) 	= processStore id tst
-		#  uids			= [fst p.Process.properties.managerProps.worker \\ p <- procs | relevantProc processId p]
-		= case [p \\ p <- procs | p.Process.processId == processId && isMember userId uids] of
+		#  usernames	= [fst p.Process.properties.managerProps.worker \\ p <- procs | relevantProc processId p]
+		= case [p \\ p <- procs | p.Process.processId == processId && isMember userName usernames] of
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
 	where
@@ -61,18 +61,18 @@ where
 		# (procs,tst) 	= processStore id tst
 		= ([process \\ process <- procs | isMember process.Process.processId ids], tst)
 
-	getProcessesForUser	:: !UserId ![ProcessStatus] !*TSt -> (![Process], !*TSt)
-	getProcessesForUser userId statusses tst
+	getProcessesForUser	:: !UserName ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+	getProcessesForUser userName statusses tst
 		# (procs,tst) 	= processStore id tst
-		# rprocs	 	= map (relevantProc userId) procs
+		# rprocs	 	= map (relevantProc userName) procs
 		# procids		= [p \\ p <- rprocs | p <> ""]
 		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
 	where
-		relevantProc userId {processId, properties = {managerProps = {worker}}}
-			| fst worker == userId	= processId
-			| otherwise				= ""
+		relevantProc userName {processId, properties = {managerProps = {worker}}}
+			| fst worker == userName	= processId
+			| otherwise					= ""
 	
-	setProcessOwner	:: !(UserId, String) !(UserId,String) !ProcessId !*TSt	-> (!Bool, !*TSt)
+	setProcessOwner	:: !(UserName, DisplayName) !(UserName,DisplayName) !ProcessId !*TSt	-> (!Bool, !*TSt)
 	setProcessOwner worker manager processId tst
 		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & systemProps = {x.properties.systemProps & manager = manager}, managerProps = {x.properties.managerProps & worker = worker}}}) tst
 	

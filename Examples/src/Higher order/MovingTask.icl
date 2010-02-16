@@ -65,7 +65,7 @@ where
 	getStatus wid
 	=						getProcessStatus wid
 		>>= \st	->			getProcessOwner wid
-		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (getUserNames [(fromJust mbOwner)])
+		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [(fromJust mbOwner)])
 		>>= \names ->		case st of
 								Finished	-> showMessage "It is finished" >>| return True
 								Deleted		-> showMessage "It is deleted" >>| return True		
@@ -98,9 +98,9 @@ where
 		>>|					return False
 
 	
-selectUser :: !String -> Task UserId
+selectUser :: !String -> Task UserName
 selectUser question
 	= 						getUsers
 		>>= \users ->		enterChoice question users
-		>>= \user ->		return user.User.userId
+		>>= \user ->		return user.User.userName
 

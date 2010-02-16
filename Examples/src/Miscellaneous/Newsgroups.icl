@@ -13,7 +13,7 @@ import CommonDomain
 :: GroupName	:== String						// Name of the newsgroup
 :: NewsGroup	:== [NewsItem]					// News stored in a news group
 :: NewsItem		:== (Subscriber,Name,Message)	// id, name, and message of the publisher
-:: Subscriber	:== Int							// the id of the publisher
+:: Subscriber	:== UserName					// the id of the publisher
 :: Name			:== String						// the login name of the publisher
 :: Message		:== String						// the message
 :: Subscriptions:== [Subscription]				// newsgroup subscriptions of user
@@ -64,7 +64,7 @@ newsgroupsExample
 	]
 
 
-:: EMail2	=	{ to` 		:: !UserId
+:: EMail2	=	{ to` 		:: !UserName
 				, subject` 	:: !String
 				, message`	:: !Note
 				}
@@ -86,7 +86,7 @@ where
 									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) me.User.displayName "" "")
 		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
 										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
-										, MailAndReply msg (me.User.userId,me.User.displayName) (to,toname))
+										, MailAndReply msg (me.User.userName,me.User.displayName) (to,toname))
 										\\ (to,toname) <- tos
 										]  
 	where
@@ -135,7 +135,7 @@ subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
 =					getCurrentUser
 	>>= \user ->	readNewsGroups 
-	>>= 			subscribe user.User.userId user.User.displayName
+	>>= 			subscribe user.User.userName user.User.displayName
 where
 	subscribe me myname []
 	=						showMessage "No newsgroups in catalogue yet:"
@@ -147,7 +147,7 @@ where
 
 
 
-readNews :: Int String Int -> Task Void
+readNews :: UserName String Int -> Task Void
 readNews me group index	
 =			orTasks2 [Text ("Welcome to newsgroup " +++ group)]
 							 [("Read next news items from newsgroup " <+++ group, readMore)
@@ -193,7 +193,7 @@ where
 	commitItem :: String -> Task Void
 	commitItem  group
 	=								getCurrentUser
-		>>= \user ->      			commit user.User.userId user.User.displayName group
+		>>= \user ->      			commit user.User.userName user.User.displayName group
 	where
 		commit me name group
 		=							enterInformation [Text "Type your message ..."] 
@@ -217,11 +217,11 @@ where
 showCurrentNames :: [String] -> Task Void
 showCurrentNames names = showStickyMessageAbout "Current names:" names
 
-getToName ::  (Task (Int,String))
+getToName ::  (Task (UserName,String))
 getToName 
 = 						getUsers
 	>>= \users ->		enterChoice "Select user to mail a message to: " users
-	>>= \user ->		return (user.User.userId,user.User.displayName)
+	>>= \user ->		return (user.User.userName,user.User.displayName)
 
 
 cancel :: (Task a) -> Task a | iTask a
@@ -237,8 +237,8 @@ myAndTasks msg tasks =	parallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t
 newsGroupsId ::  (DBid NewsGroupNames)
 newsGroupsId		=	mkDBid "newsGroups"
 
-readerId :: Int -> (DBid Subscriptions)
-readerId i			= 	mkDBid ("reader" <+++ i)
+readerId :: UserName -> (DBid Subscriptions)
+readerId name		= 	mkDBid ("Reader-" <+++ name)
 
 groupNameId :: String -> (DBid NewsGroup)
 groupNameId name	=	mkDBid ("NewsGroup-" +++ name)

@@ -53,12 +53,12 @@ reviewTaskExample
   ]
 
 reviewtask :: Task (QForm,Review)
-reviewtask = getDefaultValue >>= \def -> taskToReview 1 (def, mytask)
+reviewtask = getDefaultValue >>= \def -> taskToReview "unknown" (def, mytask)
 
 mytask :: a -> (Task a) | iTask a
 mytask v =	updateInformation "Fill in Form:" v
 
-taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iTask a 
+taskToReview :: UserName (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
 		>>= \v ->		reviewer @: ("Review", review v) 

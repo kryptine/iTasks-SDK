@@ -358,8 +358,8 @@ ignoreActionA f = \tst -> let ((_,a),tst`) = f tst in (a,tst`)
 ignoreActionV :: (*TSt -> (!Action,!*TSt)) -> (*TSt -> (!Void,!*TSt))
 ignoreActionV f = \tst -> let (_,tst`) = f tst in (Void,tst`)
 
-notifyUser :: message UserId -> Task Void | html message
-notifyUser message uid = mkInstantTask "notifyUser" (\tst -> (Void,tst))
+notifyUser :: message UserName -> Task Void | html message
+notifyUser message username = mkInstantTask "notifyUser" (\tst -> (Void,tst))
 
 notifyGroup :: message Role -> Task Void | html message
 notifyGroup message role = mkInstantTask "notifyGroup" (\tst -> (Void,tst))

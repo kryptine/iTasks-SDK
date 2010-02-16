@@ -34,8 +34,8 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					}
 
 :: TaskSystemProperties =
-	{ processId		:: ProcessId		// Process table identification
-	, manager		:: (UserId,String)	// Who is managing this task
+	{ processId			:: ProcessId			// Process table identification
+	, manager			:: (UserName,String)	// Who is managing this task
 	
 	, issuedAt			:: Timestamp		// When was the task created
 	, firstEvent		:: Maybe Timestamp	// When was the first work done on this task
@@ -44,10 +44,10 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 	}
 
 :: TaskManagerProperties =
-	{ worker		:: (UserId, String)	// Who has to do the task? 
-	, subject		:: String 			// The subject of the task
-	, priority		:: TaskPriority		// What is the current priority of this task?
-	, deadline		:: Maybe Timestamp	// When is the task due?
+	{ worker		:: (UserName, String)	// Who has to do the task? 
+	, subject		:: String 				// The subject of the task
+	, priority		:: TaskPriority			// What is the current priority of this task?
+	, deadline		:: Maybe Timestamp		// When is the task due?
 	}
 					
 :: TaskWorkerProperties =

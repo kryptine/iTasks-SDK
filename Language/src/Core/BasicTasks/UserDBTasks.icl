@@ -6,11 +6,9 @@ import StdList, StdMaybe
 
 from UserDB import :: User
 from UserDB import qualified getUser
-from UserDB import qualified getUserByName
 from UserDB import qualified getUsers
 from UserDB import qualified getUsersWithRole
 from UserDB import qualified getDisplayNames
-from UserDB import qualified getUserNames
 from UserDB import qualified getRoles
 from UserDB import qualified authenticateUser
 from UserDB	import qualified createUser
@@ -19,26 +17,20 @@ from UserDB import qualified deleteUser
 
 import InteractionTasks, CoreCombinators
 
-getUser :: !UserId -> Task User
-getUser uid = mkInstantTask "getUser" (UserDB@getUser uid)
-
-getUserByName :: !String -> Task User
-getUserByName name = mkInstantTask "getUserByName" (UserDB@getUserByName name)
+getUser :: !UserName -> Task User
+getUser username = mkInstantTask "getUser" (UserDB@getUser username)
 
 getUsers :: Task [User]
 getUsers = mkInstantTask "getUsers" UserDB@getUsers
 
-getUsersWithRole :: !String	-> Task [User]
+getUsersWithRole :: !Role	-> Task [User]
 getUsersWithRole role = mkInstantTask "getUsersWithRole" (UserDB@getUsersWithRole role)
 	
-getDisplayNames :: ![UserId] -> Task [String]
-getDisplayNames uids = mkInstantTask "getDisplayNames" (UserDB@getDisplayNames uids)
+getDisplayNames :: ![UserName] -> Task [DisplayName]
+getDisplayNames usernames = mkInstantTask "getDisplayNames" (UserDB@getDisplayNames usernames)
 
-getUserNames :: ![UserId] -> Task [String]
-getUserNames uids = mkInstantTask "getUserNames" (UserDB@getUserNames uids)
-
-getRoles :: ![UserId]	-> Task [[String]]
-getRoles uids = mkInstantTask "getRoles" (UserDB@getRoles uids)
+getRoles :: ![UserName]	-> Task [[Role]]
+getRoles usernames = mkInstantTask "getRoles" (UserDB@getRoles usernames)
 
 authenticateUser :: !String !String	-> Task (Maybe User)
 authenticateUser username password = mkInstantTask "authenticateUser" (UserDB@authenticateUser username password)

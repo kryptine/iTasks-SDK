@@ -16,7 +16,7 @@ scheduleMeeting
 where
 	findDate :: User (Date,Time) -> Task (Date, Time)
 	findDate user datetime
-		= user.userId @: ("Meeting request", proposeMeeting datetime)
+		= user @: ("Meeting request", proposeMeeting datetime)
 		>>= \(ok,alternative) -> if ok
 			(return datetime)
 			(requestConfirmationAbout ("Your proposed date (" <+++ datetime <+++ ") was not possible, is this alternative ok?") alternative
@@ -34,5 +34,5 @@ where
 	
 	confirm  :: User User (Date,Time) -> Task Void 
 	confirm you me (date,time)
-		= 	you.userId @:
+		= 	you @:
 			("Meeting confirmation", showMessage ("You have a meeting with " <+++ me.displayName <+++ " on " <+++ date <+++ " at " <+++ time))

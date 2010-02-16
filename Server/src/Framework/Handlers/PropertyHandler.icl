@@ -22,7 +22,7 @@ handlePropertyRequest req tst
 		""		= (errorResponse "Invalid process id", tst)
 		proc	= case http_getValue "property" req.arg_get "" of		
 			"priority"	= updatePriority proc (http_getValue "value" req.arg_get "") tst
-			"user"		= updateUser proc (http_getValue "value" req.arg_get -1) tst
+			"user"		= updateUser proc (http_getValue "value" req.arg_get "") tst
 			"progress"	= updateProgress proc (http_getValue "value" req.arg_get "") tst
 			_			= (errorResponse "Invalid property", tst)
 where
@@ -40,14 +40,11 @@ where
 	parsePrio _					= Nothing
 	
 	
-	updateUser proc userId tst=:{staticInfo}
-		| userId < 0			
-			= (errorResponse "Invalid user id", tst)	//Only positive user ids are possible
-		| otherwise
-			# (user,tst)		= getUser userId tst
-			# delegator			= staticInfo.currentSession.user
-		 	# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & systemProps = {p.systemProps & manager = (delegator.User.userId,delegator.User.displayName)},managerProps = {p.managerProps & worker = (user.User.userId,user.User.displayName)}, workerProps = {p.workerProps & progress = TPActive}}) tst
-		 	= (successResponse,tst)
+	updateUser proc userName tst=:{staticInfo}
+		# (user,tst)		= getUser userName tst
+		# delegator			= staticInfo.currentSession.user
+		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & systemProps = {p.systemProps & manager = (delegator.User.userName,delegator.User.displayName)},managerProps = {p.managerProps & worker = (user.User.userName,user.User.displayName)}, workerProps = {p.workerProps & progress = TPActive}}) tst
+		= (successResponse,tst)
 		 	
 	updateProgress proc val tst
 		= case parseProgress val of

@@ -21,12 +21,12 @@ derive JSONDecode Document
 
 instance toString TaskPriority
 
-:: UserId			:== Int					// A user id of an iTask user must be a unique integer value
+:: UserName			:== String
+:: DisplayName		:== String			
 :: User 			=
-	{ userId		:: !Int
-	, userName		:: !String
+	{ userName		:: !UserName
 	, password		:: !String
-	, displayName	:: !String
+	, displayName	:: !DisplayName
 	, roles			:: ![Role]
 	}
 

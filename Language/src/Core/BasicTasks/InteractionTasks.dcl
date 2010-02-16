@@ -1,7 +1,7 @@
 definition module InteractionTasks
 
 from TSt	import :: Task
-from Types	import :: UserId, :: Role
+from Types	import :: Role
 from Html	import :: HtmlTag
 from iTasks	import class iTask(..)
 import GenPrint, GenParse, GenVisualize, GenUpdate
@@ -89,5 +89,5 @@ showStickyMessage			:: message -> Task Void											| html message
 showStickyMessageAbout		:: message a -> Task Void										| html message & iTask a
 
 //Notify a user through external media. For example via e-mail or sms.
-notifyUser					:: message UserId -> Task Void							| html message
-notifyGroup					:: message Role -> Task Void							| html message
+notifyUser					:: message UserName -> Task Void								| html message
+notifyGroup					:: message Role -> Task Void									| html message

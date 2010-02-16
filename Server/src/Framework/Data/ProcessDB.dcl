@@ -26,21 +26,21 @@ from Time		import :: Timestamp
 				 
 class ProcessDB st
 where
-	createProcess			:: !Process													!*st -> (!ProcessId,	!*st)
-	deleteProcess			:: !ProcessId												!*st -> (!Bool,			!*st)
-	getProcess				:: !ProcessId												!*st -> (!Maybe Process,!*st)
-	getProcessForUser		:: !UserId !ProcessId										!*st -> (!Maybe Process,!*st)
-	getProcesses 			:: ![ProcessStatus] 										!*st -> (![Process], 	!*st)
-	getProcessesById		:: ![ProcessId]												!*st -> (![Process],	!*st)
-	getProcessesForUser		:: !UserId ![ProcessStatus]									!*st -> (![Process],	!*st)
+	createProcess			:: !Process														!*st -> (!ProcessId,	!*st)
+	deleteProcess			:: !ProcessId													!*st -> (!Bool,			!*st)
+	getProcess				:: !ProcessId													!*st -> (!Maybe Process,!*st)
+	getProcessForUser		:: !UserName !ProcessId											!*st -> (!Maybe Process,!*st)
+	getProcesses 			:: ![ProcessStatus] 											!*st -> (![Process], 	!*st)
+	getProcessesById		:: ![ProcessId]													!*st -> (![Process],	!*st)
+	getProcessesForUser		:: !UserName ![ProcessStatus]									!*st -> (![Process],	!*st)
 
-	setProcessOwner			:: !(UserId,String) !(UserId,String) !ProcessId				!*st -> (!Bool,			!*st)
-	setProcessStatus		:: !ProcessStatus !ProcessId								!*st -> (!Bool,			!*st)
+	setProcessOwner			:: !(UserName,DisplayName) !(UserName,DisplayName) !ProcessId	!*st -> (!Bool,			!*st)
+	setProcessStatus		:: !ProcessStatus !ProcessId									!*st -> (!Bool,			!*st)
 
-	updateProcess			:: !ProcessId (Process -> Process)							!*st -> (!Bool,			!*st)
-	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)			!*st -> (!Bool,			!*st)
+	updateProcess			:: !ProcessId (Process -> Process)								!*st -> (!Bool,			!*st)
+	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)				!*st -> (!Bool,			!*st)
 
-	removeFinishedProcesses :: 															!*st -> (!Bool, 		!*st)
+	removeFinishedProcesses :: 																!*st -> (!Bool, 		!*st)
 
 instance ProcessDB TSt
 instance toString ProcessStatus

@@ -15,7 +15,7 @@ basicWorkflows =
 	]
 
 
-:: AssignTo = Yourself | OtherUser UserId
+:: AssignTo = Yourself | OtherUser UserName
 
 :: ActionTaskInfo =
 	{ taskDescription	:: TaskDescription
@@ -43,7 +43,7 @@ where
 	start info 
 		= case info.initialTaskProperties.assignTo of
 			(Yourself)
-				= getCurrentUser >>= \user -> spawnProcess user.userId True task
+				= getCurrentUser >>= \user -> spawnProcess user.userName True task
 			(OtherUser uid)
 				= spawnProcess uid True task
 	where

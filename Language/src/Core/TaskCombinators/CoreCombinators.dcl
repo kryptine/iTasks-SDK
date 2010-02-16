@@ -3,7 +3,7 @@ definition module CoreCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from Types 			import :: UserId, :: Task, :: TaskPriority
+from Types 			import :: Task, :: TaskPriority
 from Time			import :: Timestamp
 
 from	iTasks		import class iTask(..)
@@ -95,4 +95,4 @@ parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | 
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-assign 	:: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
+assign 	:: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a

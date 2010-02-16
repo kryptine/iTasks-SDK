@@ -27,8 +27,8 @@ handleWorkTabRequest req tst=:{staticInfo}
 			# (debuginfo,tst)
 						= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.
-			# uid = staticInfo.currentSession.Session.user.User.userId
-			| uid == fst properties.managerProps.TaskManagerProperties.worker			
+			# username = staticInfo.currentSession.Session.user.User.userName
+			| username == fst properties.managerProps.TaskManagerProperties.worker			
 				// Update the task timestamps 
 				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 				// Create the response

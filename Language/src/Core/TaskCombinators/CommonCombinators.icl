@@ -127,26 +127,14 @@ repeatTask task pred a =
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
-instance @: UserId
+instance @: UserName
 where
-	(@:) :: !UserId !(LabeledTask a) -> Task a | iTask a
-	(@:) nuserId (label,task) = assign nuserId NormalPriority Nothing (task <<@ label)
+	(@:) :: !UserName !(LabeledTask a) -> Task a | iTask a
+	(@:) username (label,task) = assign username NormalPriority Nothing (task <<@ label)
 
 instance @: User
 where
 	(@:) :: !User !(LabeledTask a) -> Task a | iTask a
-	(@:) user task = user.User.userId @: task
+	(@:) user task = user.User.userName @: task
 
-instance @: String
-where
-	(@:) :: String !(LabeledTask a) -> Task a | iTask a
-	(@:) name task
-		 = getUserByName name
-		 >>= \user -> user.User.userId @: task
-
-assignByName :: !String !String !TaskPriority !(Maybe Timestamp) (Task a) -> Task a | iTask a
-assignByName name subject priority deadline task
-	=	getUserByName name
-	>>= \user ->
-		assign user.User.userId priority deadline (task <<@ subject)
 // ******************************************************************************************************

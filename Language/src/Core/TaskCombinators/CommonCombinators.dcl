@@ -7,7 +7,7 @@ definition module CommonCombinators
 import CoreCombinators, TuningCombinators, InteractionTasks
 import Either
 
-from Types import :: User (..)
+from Types import :: User (..), :: UserName
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
@@ -38,11 +38,8 @@ stop				:: Task Void
 //Task delegation
 class (@:) infix 3 u :: u !(LabeledTask a) -> Task a | iTask a
 
-instance @: UserId
 instance @: User
-instance @: String
-
-assignByName		:: !String !String !TaskPriority !(Maybe Timestamp) (Task a) -> Task a	| iTask a
+instance @: UserName
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid

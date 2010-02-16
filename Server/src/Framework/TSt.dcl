@@ -23,8 +23,8 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, taskInfo		:: !TaskInfo										// task information available to tasks
 					, firstRun		:: !Bool											// Is this task evaluated for the first time
 					, curValue		:: !Maybe Dynamic									// Current task value
-					, userId		:: !UserId											// id of user to which task is assigned
-					, delegatorId	:: !UserId											// id of user who issued the task
+					, userId		:: !UserName										// id of user to which task is assigned
+					, delegatorId	:: !UserName										// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree			
 					, activated		:: !Bool   											// if true activate task, if set as result task completed
 

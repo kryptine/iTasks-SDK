@@ -42,15 +42,16 @@ getDefaultValue = mkInstantTask "getDefaultValue" getDefaultValue`
 where
 	getDefaultValue` tst
 		= accWorldTSt defaultValue tst
-		
-spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessRef a) | iTask a
-spawnProcess uid activate task = mkInstantTask "spawnProcess" spawnProcess`
+
+//BUG: username is not used what's happening here?		
+spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask,staticInfo}
 		# user			= staticInfo.currentSession.user
 		# properties	=
 			{ TaskManagerProperties
-			| worker	= (user.User.userId,user.User.displayName)
+			| worker	= (user.User.userName,user.User.displayName)
 			, subject 	= taskLabel task
 			, priority	= NormalPriority
 			, deadline	= Nothing

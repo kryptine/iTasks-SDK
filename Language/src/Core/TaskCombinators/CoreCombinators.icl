@@ -92,11 +92,11 @@ where
 			| otherwise
 				= checkAllTasks tasks (inc index) (if activated [a:accu] accu) {tst & activated = True}
 
-assign :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
-assign toUserId initPriority initDeadline task = mkMainTask "assign" (assign` toUserId initPriority initDeadline task) 
+assign :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
+assign userName initPriority initDeadline task = mkMainTask "assign" (assign` userName initPriority initDeadline task) 
 
-assign` :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) *TSt -> (a, *TSt) | iTask a
-assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
+assign` :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) *TSt -> (a, *TSt) | iTask a
+assign` toUserName initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
 													   , userId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world, activated}
 	# taskId  			   = taskNrToString taskNr
 	# (mbProc,tst) 		   = getProcess taskId tst
@@ -109,10 +109,10 @@ assign` toUserId initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, 
 				| otherwise
 					= (status, properties, fromJust curTask, changeNr, tst)		
 			Nothing
-				# (user,tst)		= getUser toUserId tst
+				# (user,tst)		= getUser toUserName tst
 				# initProperties
 					= {TaskManagerProperties
-					  | worker		= (user.User.userId, user.User.displayName)
+					  | worker		= (user.User.userName, user.User.displayName)
 					  , subject		= taskLabel task
 					  , priority	= initPriority
 					  , deadline	= initDeadline

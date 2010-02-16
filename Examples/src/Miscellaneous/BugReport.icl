@@ -21,12 +21,12 @@ import CommonDomain
 	{ bugNr			:: BugNr
 	, status		:: BugStatus
 	, reportedAt	:: (Date,Time)
-	, reportedBy	:: UserId
+	, reportedBy	:: UserName
 	, report		:: BugReport
 	, analysis		:: Maybe BugAnalysis
 	}
 
-:: BugStatus = Reported | Assigned UserId | Fixed
+:: BugStatus = Reported | Assigned UserName | Fixed
 
 :: BugAnalysis =
 	{ cause				:: Note
@@ -58,8 +58,8 @@ reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
-		assignByName "bas" "Bug fix" NormalPriority Nothing
-			(showMessageAbout "The following bug has been reported, please fix it." report)
+		assign "bas" NormalPriority Nothing
+			("Bug fix" @>> showMessageAbout "The following bug has been reported, please fix it." report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -126,7 +126,7 @@ fileBug :: BugReport -> Task Bug
 fileBug report
 	=	dbCreateItem -&&- getCurrentUser
 	>>= \(bug,user) ->
-		dbUpdateItem {bug & report = report, reportedBy = user.User.userId}
+		dbUpdateItem {bug & report = report, reportedBy = user.User.userName}
 
 updateBug :: (Bug -> Bug) Bug -> Task Bug
 updateBug f bug = dbUpdateItem (f bug)
@@ -141,29 +141,29 @@ confirmCritical report
 			  requestConfirmationAbout "Is this bug really critical?" report
 			)
 	
-selectDeveloper :: String -> Task UserId
+selectDeveloper :: String -> Task UserName
 selectDeveloper application
 	=	findAppDevelopers application
 	>>= \developers -> case developers of
-		[]	= getCurrentUser >>= \user -> return user.User.userId
+		[]	= getCurrentUser >>= \user -> return user.User.userName
 		_	= selectLeastBusy developers
 where
-	findAppDevelopers :: String -> Task [UserId]
-	findAppDevelopers "itasks"	= return [0]
+	findAppDevelopers :: String -> Task [UserName]
+	findAppDevelopers "itasks"	= return ["bas"]
 	findAppDevelopers _			= return []
 		
-	selectLeastBusy :: [UserId] -> Task UserId
+	selectLeastBusy :: [UserName] -> Task UserName
 	selectLeastBusy []
-		=	getCurrentUser >>= \user -> return user.User.userId
-	selectLeastBusy uids
-		= 	allTasks [getNumTasksForUser uid \\ uid <- uids]
+		=	getCurrentUser >>= \user -> return user.User.userName
+	selectLeastBusy names
+		= 	allTasks [getNumTasksForUser name \\ name <- names]
 		>>= \activity -> 
-			return (snd (minimum (zip (activity,uids))))
+			return (snd (minimum (zip (activity,names))))
 	where	
 		minimum l = foldl min (hd l) (tl l) 
 		
-	getNumTasksForUser :: UserId -> Task Int
-	getNumTasksForUser uid = return 42			//TODO: Use API function
+	getNumTasksForUser :: UserName -> Task Int
+	getNumTasksForUser name = return 42			//TODO: Use API function
 	 
 analyzeBug :: Bug -> Task Bug
 analyzeBug bug

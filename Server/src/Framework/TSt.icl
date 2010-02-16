@@ -35,8 +35,8 @@ mkTSt appName config request session workflows systemStore dataStore fileStore w
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
 		, curValue		= Nothing
-		, userId		= -1
-		, delegatorId	= -1
+		, userId		= ""
+		, delegatorId	= ""
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, activated 	= True
 		, mainTask		= ""
@@ -80,7 +80,7 @@ initTaskProperties
 	= { systemProps =
 		{TaskSystemProperties
 		| processId = ""
-		, manager = (-1,"")
+		, manager = ("","")
 		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing
@@ -88,7 +88,7 @@ initTaskProperties
 		}
 	  , managerProps =
 	    {TaskManagerProperties
-	    | worker = (-1,"")
+	    | worker = ("","")
 	    , subject = ""
 	    , priority = NormalPriority
 	    , deadline = Nothing
@@ -101,8 +101,7 @@ initTaskProperties
 	  
 createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!ProcessId, !*TSt) | iTask a
 createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
-	# (managerId, tst)		= getCurrentUser tst
-	# (manager,tst)			= getUser managerId tst
+	# (manager,tst)			= getCurrentUser tst
 	# (currentTime, tst)	= accWorldTSt time tst
 	# processId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel "" mainTask
@@ -111,7 +110,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		| systemProps =
 			{TaskSystemProperties
 			| processId	= ""
-			, manager		= (manager.User.userId, manager.User.displayName)
+			, manager		= (manager.User.userName, manager.User.displayName)
 			, issuedAt	= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
@@ -251,9 +250,9 @@ applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
 
-getCurrentUser :: !*TSt -> (!UserId, !*TSt)
+getCurrentUser :: !*TSt -> (!User, !*TSt)
 getCurrentUser tst =: {staticInfo}
-	= (staticInfo.currentSession.Session.user.User.userId, {tst & staticInfo = staticInfo})
+	= (staticInfo.currentSession.Session.user, {tst & staticInfo = staticInfo})
 
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 getCurrentProcess tst =: {staticInfo}

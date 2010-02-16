@@ -24,7 +24,7 @@ orderProcessingExample
 	,	mainTask	= orderPlacement customer >>| return Void
 	}
   ]
-orderPlacement :: UserId -> Task Void
+orderPlacement :: UserName -> Task Void
 orderPlacement user =
   customer @:  ( "Order items from shop"
                , orderItemsFromShop -&&- (getDefaultValue >>= fillInAndCheckCreditCard)
@@ -61,10 +61,10 @@ fillInAndCheckCreditCard cardInfo =
     )
 												
 // Low level definitions
-customer   :== 10
-bank       :== 11
-storage    :== 12
-creditcard :== 13 // not used at the moment (see validateCreditCard)
+customer   :== "customer"
+bank       :== "bank"
+storage    :== "storage"
+creditcard :== "creditcard" // not used at the moment (see validateCreditCard)
 
 :: CardInfo :== String
 :: Address  :== CardInfo

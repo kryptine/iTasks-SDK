@@ -58,7 +58,7 @@ where
 
 		timerStop time	= waitForTimerTask time #>> return True
 */
-determineSet :: [UserID] -> Task [UserID]
+determineSet :: [UserName] -> Task [UserName]
 determineSet people = determineSet`
 where
 	determineSet`	
@@ -71,7 +71,7 @@ where
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
-	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user.User.userId)
+	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user.User.userName)
 
 	cancelTask task = task -||- (showMessage "Cancel task?" >>| getDefaultValue )
 	
