@@ -93,8 +93,8 @@ newFlowName flow
 											>>|				return (name,flow) 
 								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).flowType )
 								 			>>= \ok -> if ok (return (name,flow)) (newFlowName flow)
-readForm :: Task !(!String, !Form)
-readForm   
+chooseForm :: Task !(!String, !Form)
+chooseForm   
 	=						readAllForms
 		>>= \all ->			let names = [showName this \\ this <- all] in
 								case names of
@@ -105,8 +105,8 @@ readForm
 where
 	showName this = this.formName +++ " :: " +++ this.formType
 
-readFlow ::  Task !(!String, !Flow)
-readFlow   
+chooseFlow ::  Task !(!String, !Flow)
+chooseFlow   
 	=						readAllFlows
 		>>= \all ->			let names = [showName this \\ this <- all] in
 								case names of
@@ -133,13 +133,6 @@ storeFlow (name, flow)
 		>>= \all ->			return (hd [this \\ this <- all | this.flowName == name])
 		>>= \flowStore -> 	dbUpdateItem {flowStore & flowName = name, flowType = showDynType flow.flowDyn, flow = flow}
 		>>|					return (name,flow)
-
-emptyForm 		= 	{ formShape = []
-					, formDyn = dynamic T Void :: T Void Void
-					}
-emptyFlow 		= 	{ flowShape = []
-					, flowDyn = dynamic T  Void :: T Void Void
-					}
 
 findValue :: String -> Task Dynamic
 findValue name

@@ -25,3 +25,6 @@ derive gVisualize 	Form, FormShape
 				| 	Time 		
 				| 	Document 	
 				| 	GoogleMap 
+
+emptyForm 			:: Form
+formShapeToFormDyn	:: [FormShape] -> Task Dynamic

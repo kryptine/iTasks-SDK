@@ -24,7 +24,8 @@ showDynValType :: !String !Dynamic -> String
 showDynValType s d 	= let (v,t) = showDyn d in s +++ ", " +++ v +++ "::" +++ t
 
 typeErrorMess :: !String !Dynamic -> String 
-typeErrorMess s d1 	= s +++ ": Type Error: " +++ showDynType d1
+typeErrorMess s (mes :: String) 	= s +++ ": Type Error Reported: " +++ mes
+typeErrorMess s d1 					= s +++ ": Type Error: " +++ showDynType d1
 
 typeErrorMess2 :: !String !Dynamic !Dynamic -> String 
 typeErrorMess2 s d1 d2 = s +++ ": Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
