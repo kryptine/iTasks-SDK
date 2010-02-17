@@ -400,10 +400,10 @@ applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world}
 					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskFinished a, tst)
 				(TaskBusy)
-					# tst					= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# tst					= addTaskNode (updateTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskBusy, tst)
 				(TaskException e)
-					# tst					= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# tst					= addTaskNode (updateTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskException e, tst)
 		
 where
@@ -419,12 +419,12 @@ where
 		_							= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode tv (TTInteractiveTask ti defs)	= TTInteractiveTask	{ti & traceValue = tv} defs
-	updateTaskNode tv (TTMonitorTask ti status)		= TTMonitorTask		{ti & traceValue = tv} status
-	updateTaskNode tv (TTSequenceTask ti tasks) 	= TTSequenceTask	{ti & traceValue = tv} (reverse tasks)
-	updateTaskNode tv (TTParallelTask ti tasks)		= TTParallelTask	{ti & traceValue = tv} (reverse tasks)
-	updateTaskNode tv (TTMainTask ti mti tasks)		= TTMainTask		{ti & traceValue = tv} mti (reverse tasks)		
-	updateTaskNode tv (TTRpcTask ti rpci)			= TTRpcTask			{ti & traceValue = tv} rpci
+	updateTaskNode (TTInteractiveTask ti defs)	= TTInteractiveTask	ti defs
+	updateTaskNode (TTMonitorTask ti status)	= TTMonitorTask		ti status
+	updateTaskNode (TTSequenceTask ti tasks) 	= TTSequenceTask	ti (reverse tasks)
+	updateTaskNode (TTParallelTask ti tasks)	= TTParallelTask	ti (reverse tasks)
+	updateTaskNode (TTMainTask ti mti tasks)	= TTMainTask		ti mti (reverse tasks)		
+	updateTaskNode (TTRpcTask ti rpci)			= TTRpcTask			ti rpci
 		
 setTUIDef	:: !TUIDef !*TSt -> *TSt
 setTUIDef def tst=:{tree}
