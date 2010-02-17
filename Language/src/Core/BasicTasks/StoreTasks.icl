@@ -26,17 +26,17 @@ where
 		# (mbVal,dstore,world) = loadValue key dataStore world
 		= case mbVal of
 			Just val
-				= (val,{TSt|tst & dataStore = dstore, world = world})
+				= (TaskFinished val,{TSt|tst & dataStore = dstore, world = world})
 			Nothing		
 				# (val,world) = defaultValue world
-				= (val,{TSt|tst & dataStore = dstore, world = world})
+				= (TaskFinished val,{TSt|tst & dataStore = dstore, world = world})
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkInstantTask "writeDB" writeDB`
 where
 	writeDB` tst=:{TSt|dataStore}
 		# dstore = storeValue key value dataStore
-		= (value, {TSt| tst & dataStore = dstore})
+		= (TaskFinished value, {TSt| tst & dataStore = dstore})
 		
 mkDBid :: !String -> (DBid a)
 mkDBid s = s

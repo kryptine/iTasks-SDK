@@ -17,7 +17,7 @@ import CommonDomain
 
 //Additional imports for custom combinator creation
 from TSt 		import applyTask, mkSequenceTask, mkParallelTask
-from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Options{..}, :: Store, :: Config
+from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Store, :: Config
 from SessionDB	import :: Session
 from Types		import :: ProcessId, :: TaskNr
 from TaskTree	import :: TaskTree
@@ -67,8 +67,8 @@ selectSuppliers
 	
 collectBids :: Purchase [User] -> Task [(User,Currency)]
 collectBids purchase suppliers
-	= andTasksEnough
-		[("Bid for " +++ purchase.Purchase.name +++ " from " +++ supplier.User.displayName, supplier @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier <- suppliers]
+	= allTasks
+		["Bid for " +++ purchase.Purchase.name +++ " from " +++ supplier.User.displayName @>> (supplier @: ("Bid request regarding " +++ purchase.Purchase.name, collectBid purchase supplier)) \\ supplier <- suppliers]
 where
 	collectBid :: Purchase User -> Task (User,Currency)
 	collectBid purchase bid
@@ -93,13 +93,3 @@ where
 confirmBid :: Purchase (User,Currency) -> Task Void
 confirmBid purchase bid =: (user, price)
 	= user @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text purchase.Purchase.name], Text " has been accepted."])
-			
-//Custom utility combinators 
-andTasksEnough:: ![LabeledTask a] -> (Task [a]) | iTask a
-andTasksEnough taskCollection = mkParallelTask "andTasksEnough" andTasksEnough`
-where
-	andTasksEnough` tst
-		# (_,tst =:{activated})		= applyTask (mkSequenceTask "enough" (applyTask (showMessage "Stop if enough results are returned..."))) tst
-		= applyTask (mkSequenceTask "tasks" (applyTask ((parallel "andTask" (\list -> length list >= 1 && activated) id id [t <<@ l \\(l,t) <- taskCollection])))) {tst & activated = True}
-
-	

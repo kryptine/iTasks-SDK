@@ -12,8 +12,6 @@ import dynamic_string
 
 from JSON import JSONDecode, fromJSON
 
-:: TaskState = TSNew | TSActive | TSDone
-
 :: RPCMessage =
 			{ success		:: Bool
 			, error			:: Bool
@@ -23,9 +21,9 @@ from JSON import JSONDecode, fromJSON
 			, errormsg		:: String
 			}
 
-derive gPrint		TaskState
-derive gParse		TaskState
-derive gEq			TaskState
+derive gPrint		TaskResult
+derive gParse		TaskResult
+
 derive bimap 		Maybe, (,)
 derive JSONDecode RPCMessage
 
@@ -34,15 +32,11 @@ mkTSt appName config request session workflows systemStore dataStore fileStore w
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, firstRun		= False
-		, curValue		= Nothing
 		, userId		= ""
 		, delegatorId	= ""
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
-		, activated 	= True
 		, mainTask		= ""
-		, options 		= initialOptions
 		, staticInfo	= initStaticInfo appName session workflows
-		, exception		= Nothing
 		, doChange		= False
 		, changes		= []
 		, config		= config
@@ -61,17 +55,11 @@ initStaticInfo appName session workflows
 		, staticWorkflows	= workflows
 		}
 
-initialOptions :: Options 
-initialOptions
-	=	{ trace			= False 
-		}
-
 initTaskInfo :: TaskInfo
 initTaskInfo
 	=	{ TaskInfo
 		| taskId = ""
 		, taskLabel = ""
-		, active = True
 		, traceValue = ""
 		}
 
@@ -145,19 +133,19 @@ calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	| isNothing mbProcess
-		= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", active = True, traceValue="Deleted"}, tst)
+		= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted"}, tst)
 	# process=:{status,parent,properties} = fromJust mbProcess
 	= case status of
 		Active
-			# (tree,tst=:{activated}) = buildProcessTree process Nothing tst
+			# (tree,finished,tst) = buildProcessTree process Nothing tst
 			//When finished, also evaluate the parent tree (and it's parent when it is also finished etc...)
-			| activated && parent <> ""
-				# (_,tst)	= calculateTaskTree parent {tst & activated = True} 
+			| finished && parent <> ""
+				# (_,tst)	= calculateTaskTree parent tst
 				= (tree, tst)
 			| otherwise
 				= (tree, tst)
 		_
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, traceValue = "Finished"}, tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished"}, tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -173,24 +161,25 @@ where
 		= ([tree:trees],tst)
 
 //If parent has to be evaluated, the Id is returned and accumulated into the list of proccesses still to be evaluated in buildtree.
-buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree, !*TSt)
+buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree,!Bool,!*TSt)
 buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeNr} mbChange tst =:{taskNr,staticInfo}
 
-	# tst									= {TSt|tst & taskNr = [changeNr:taskNrFromString processId], activated = True, userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
-												, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
-	# tst									= loadChanges mbChange changes tst
-	# (result, tst)							= executeTaskThread tst
-	# (TTMainTask ti mti tasks, tst=:{activated})	= getTaskTree tst
-	| activated
-		# tst 			= storeProcessResult (taskNrFromString processId) result tst
-		# (_,tst)		= updateProcess processId (\p -> {Process|p & status = Finished}) tst
-		= (TTFinishedTask ti, tst)
-	| otherwise
-		# tst			= storeChanges processId tst
-		= (TTMainTask ti mti tasks, tst)	
+	# tst								= {TSt|tst & taskNr = [changeNr:taskNrFromString processId], userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
+											, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
+	# tst								= loadChanges mbChange changes tst
+	# (result,tst)						= executeTaskThread tst
+	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
+	= case result of
+		TaskFinished dyn
+			# tst 			= storeProcessResult (taskNrFromString processId) dyn tst
+			# (_,tst)		= updateProcess processId (\p -> {Process|p & status = Finished}) tst
+			= (TTFinishedTask ti, True, tst)
+		_
+			# tst			= storeChanges processId tst
+			= (TTMainTask ti mti tasks, False, tst)	
 where	
 	initProcessNode {Process|processId, properties}
-		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, active = True, traceValue = "Process"} properties []
+		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Process"} properties []
 	
 	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
 
@@ -219,31 +208,30 @@ where
 		= storeChanges` cs accu pid tst
 
 	executeTaskThread tst=:{taskNr}
-		# (thread, tst)		= loadTaskThread (taskNrFromString processId) tst		  
-		# (result, tst) 	= thread tst
+		# (thread, tst)			= loadTaskThread (taskNrFromString processId) tst		  
+		# (result,tst)		= thread tst
 		= (result,tst)
 
-
-createTaskThread :: !(Task a) -> (*TSt -> *(!Dynamic,!*TSt)) | iTask a
+createTaskThread :: !(Task a) -> (*TSt -> *(!TaskResult Dynamic,!*TSt)) | iTask a
 createTaskThread task = createTaskThread` task
 where
-	createTaskThread` :: !(Task a) !*TSt -> *(!Dynamic, !*TSt) | iTask a
+	createTaskThread` :: !(Task a) !*TSt -> *(!TaskResult Dynamic,!*TSt) | iTask a
 	createTaskThread` task tst
-		# (a, tst)	= applyTask task tst
-		# dyn		= (dynamic a)
-		= (dyn,tst)
-
-
+		# (result, tst)	= applyTask task tst
+		= case result of
+			TaskBusy		= (TaskBusy, tst)
+			TaskFinished a	= (TaskFinished (dynamic a), tst)
+			TaskException e	= (TaskException e, tst)
+	
 
 applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
-applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,activated,mainTask,options,staticInfo,exception,doChange,changes}
+applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,mainTask,staticInfo,doChange,changes}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
-			# tst = snd (buildProcessTree proc (Just (change,lifetime)) tst)
+			# (_,_,tst) = buildProcessTree proc (Just (change,lifetime)) tst
 			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
-			  , tree = tree, activated = activated, mainTask = mainTask, options = options
-			  , staticInfo = staticInfo, exception = exception, doChange = doChange, changes = changes}
+			  , tree = tree, mainTask = mainTask, staticInfo = staticInfo, doChange = doChange, changes = changes}
 		Nothing		
 			= tst
 
@@ -281,24 +269,27 @@ accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
 accWorldTSt f tst=:{TSt|world}
 	# (a,world) = f world
 	= (a, {TSt|tst & world = world})
+
+mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
+mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
-mkInteractiveTask	:: !String !(*TSt -> *(!a,!*TSt)) -> Task a 
+mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
 mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given"), activated = True}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
-mkInstantTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTFinishedTask taskInfo, activated = True} //We use a FinishedTask node because the task is finished after one evaluation
+		= taskfun {tst & tree = TTFinishedTask taskInfo} //We use a FinishedTask node because the task is finished after one evaluation
 
-mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTMonitorTask taskInfo [], activated = True}
+		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkRpcTask`
@@ -308,7 +299,7 @@ where
 		# (updates, tst) 	= getRpcUpdates tst
 		# (rpce, tst) 		= checkRpcStatus rpce tst
 		| length updates == 0 
-			= applyRpcDefault {tst & activated = False, tree = TTRpcTask taskInfo rpce }					
+			= (TaskBusy, {tst & tree = TTRpcTask taskInfo rpce })				
 		| otherwise 
 			= applyRpcUpdates updates tst rpce parsefun
 	
@@ -332,104 +323,93 @@ where
 				= []
 
 /* Error handling needs to be implemented! */	
-applyRpcUpdates :: [(String,String)] !*TSt !RPCExecute !(String -> a) -> *(!a,!*TSt) | gUpdate{|*|} a	
-applyRpcUpdates [] tst rpce parsefun = applyRpcDefault tst
+applyRpcUpdates :: [(String,String)] !*TSt !RPCExecute !(String -> a) -> *(!TaskResult a,!*TSt) | gUpdate{|*|} a	
+applyRpcUpdates [] tst rpce parsefun = (TaskBusy,tst)
 applyRpcUpdates [(n,v):xs] tst rpce parsefun
 | n == "_rpcresult" 
-# (mbMsg) = fromJSON v
-= case mbMsg of
-	Just msg = applyRpcMessage msg tst rpce parsefun
-	Nothing  = applyRpcUpdates xs tst rpce parsefun //Ignore the message and go on..
-| otherwise  = applyRpcUpdates xs tst rpce parsefun
+	# (mbMsg) = fromJSON v
+	= case mbMsg of
+		Just msg = applyRpcMessage msg tst rpce parsefun
+		Nothing  = applyRpcUpdates xs tst rpce parsefun //Ignore the message and go on..
+| otherwise 
+	= applyRpcUpdates xs tst rpce parsefun
 where
 	applyRpcMessage msg tst rpci parsfun
-	# tst = setStatus msg.RPCMessage.status tst
-	= case msg.RPCMessage.success of
-		True
-			# tst = checkFinished msg.RPCMessage.finished tst
-			= (parsefun msg.RPCMessage.result, tst)
-		False
-			# tst = {TSt | tst & activated = True}
-			= applyRpcDefault tst
-	
-	checkFinished True 	tst = {TSt | tst & activated = True}
-	checkFinished False tst = {TSt | tst & activated = False}
-
-	setStatus status tst
-	| status <> "" =  (setTaskStore "status" status tst)
-	| otherwise = tst
-
-applyRpcDefault :: !*TSt -> *(!a,!*TSt) | gUpdate{|*|} a
-applyRpcDefault tst=:{TSt|world}
-	# (def,wrld) = defaultValue world
-	= (def,{TSt | tst & world=wrld})
-
-	
-mkSequenceTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+		# tst = setStatus msg.RPCMessage.status tst
+		| msg.RPCMessage.success
+			| msg.RPCMessage.finished 	= (TaskFinished (parsefun msg.RPCMessage.result),tst)
+			| otherwise					= (TaskBusy,tst)
+		| otherwise
+			# (def,tst) = accWorldTSt defaultValue tst
+			= (TaskFinished def, tst)
+			
+	setStatus "" tst		= tst
+	setStatus status tst	= setTaskStore "status" status tst
+		
+mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
-mkParallelTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkParallelTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkParallelTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo [], taskNr = [0:taskNr]}												
 		= taskfun tst
 			
-mkMainTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo (abort "Executed undefined maintask") []}
 
-applyTask :: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
-applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree=tree,options,activated,dataStore,world}
-	# taskId				= iTaskId taskNr ""
-	# (mbtv,dstore,world)	= loadValue taskId dataStore world
-	# (state,curval)		= case mbtv of
-								(Just (state, value))	= (state, Just value)
-								_						= (TSNew, Nothing)
+applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world}
+	# taskId					= iTaskId taskNr ""
+	# (taskVal,dataStore,world)	= loadValue taskId dataStore world
 	# taskInfo =	{ taskId		= taskNrToString taskNr
 					, taskLabel		= desc.TaskDescription.title
-					, active		= activated
 					, traceValue	= ""
 					}
-	# tst = {TSt|tst & dataStore = dstore, world = world}
-	| state === TSDone
-		# traceValue = if (isJust curval) (printToString (fromJust curval)) ""
-		# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = traceValue}) tst
-		= (fromJust curval, {tst & taskNr = incTaskNr taskNr, activated = True})
-	| otherwise
-		# tst	= {tst & taskInfo = taskInfo, firstRun = state === TSNew, curValue = case curval of Nothing = Nothing ; Just a = Just (dynamic a)}	
-		// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
-		# tst	= initializeState state taskNr mbCxt tst
-		// Execute task function
-		# (a, tst)	= taskfun tst
-		// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
-		# tst=:{tree=node,activated,dataStore}	= clearUserUpdates tst
-		// Update task state
-		| activated
-			//Garbage collect
-			# tst=:{TSt|dataStore}	= deleteTaskStates taskNr {TSt|tst & dataStore = dataStore}
-			// Store final value
-			# dataStore				= storeValue taskId (TSDone, a) dataStore
-			# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
-			= (a, tst)
-		| otherwise
-			# node				= updateTaskNode (printToString a) node
-			# dataStore			= storeValue taskId (TSActive, a) dataStore
-			# tst				= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, options = options, dataStore = dataStore}
-			= (a, tst)
-	
+	# tst = {TSt|tst & dataStore = dataStore, world = world}
+	= case taskVal of
+		(Just (TaskFinished a))	
+			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) tst
+			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
+
+		_
+			# tst	= {tst & taskInfo = taskInfo, firstRun = isNothing taskVal }	
+			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
+			# tst	= case (taskVal,mbCxt) of
+						(Nothing, Just oldTaskNr)	= copyTaskStates oldTaskNr taskNr tst
+						_							= tst
+			// Execute task function
+			# (result, tst)	= taskfun tst
+			// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
+			# tst=:{tree=node,dataStore}	= clearUserUpdates tst
+			// Update task state
+			= case result of
+				(TaskFinished a)
+					//Garbage collect
+					# tst=:{TSt|dataStore}	= deleteTaskStates taskNr {TSt|tst & dataStore = dataStore}
+					
+					// Store final value
+					# dataStore				= storeValue taskId result dataStore
+					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					= (TaskFinished a, tst)
+				(TaskBusy)
+					# tst					= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					= (TaskBusy, tst)
+				(TaskException e)
+					# tst					= addTaskNode node {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					= (TaskException e, tst)
+		
 where
 	//Increase the task nr
 	incTaskNr [] = [0]
 	incTaskNr [i:is] = [i+1:is]
-	
-	initializeState TSNew taskNr (Just oldTaskNr) tst	= copyTaskStates oldTaskNr taskNr tst
-	initializeState _ _ _ tst							= tst
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
@@ -439,12 +419,12 @@ where
 		_							= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode tv (TTInteractiveTask ti defs)		= TTInteractiveTask	{ti & traceValue = tv} defs
+	updateTaskNode tv (TTInteractiveTask ti defs)	= TTInteractiveTask	{ti & traceValue = tv} defs
 	updateTaskNode tv (TTMonitorTask ti status)		= TTMonitorTask		{ti & traceValue = tv} status
-	updateTaskNode tv (TTSequenceTask ti tasks) 		= TTSequenceTask	{ti & traceValue = tv} (reverse tasks)
+	updateTaskNode tv (TTSequenceTask ti tasks) 	= TTSequenceTask	{ti & traceValue = tv} (reverse tasks)
 	updateTaskNode tv (TTParallelTask ti tasks)		= TTParallelTask	{ti & traceValue = tv} (reverse tasks)
 	updateTaskNode tv (TTMainTask ti mti tasks)		= TTMainTask		{ti & traceValue = tv} mti (reverse tasks)		
-	updateTaskNode tv (TTRpcTask ti rpci)				= TTRpcTask			{ti & traceValue = tv} rpci
+	updateTaskNode tv (TTRpcTask ti rpci)			= TTRpcTask			{ti & traceValue = tv} rpci
 		
 setTUIDef	:: !TUIDef !*TSt -> *TSt
 setTUIDef def tst=:{tree}
@@ -463,10 +443,6 @@ setStatus msg tst=:{tree}
 	= case tree of
 		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info msg}
 		_									= tst
-
-getTaskValue :: !*TSt -> (Maybe a, !*TSt) | TC a
-getTaskValue tst=:{curValue = Just (a :: a^)} = (Just a, tst)
-getTaskValue tst = (Nothing, tst)
 
 loadTaskFunctionStatic :: !TaskNr !*TSt -> (!Maybe (Task a), !*TSt) | TC a
 loadTaskFunctionStatic taskNr tst =: {TSt | dataStore, world}
@@ -487,18 +463,18 @@ storeTaskFunction taskNr task key tst =: {TSt | dataStore}
 where
 	storekey taskNr key = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-"+++key 
 
-storeTaskThread :: !TaskNr !(*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
+storeTaskThread :: !TaskNr !(*TSt -> *(!TaskResult Dynamic,!*TSt)) !*TSt -> *TSt
 storeTaskThread taskNr thread tst =:{dataStore}
-	# dataStore = storeValueAs SFDynamic key (dynamic thread :: *TSt -> *(!Dynamic,!*TSt)) dataStore
+	# dataStore = storeValueAs SFDynamic key (dynamic thread :: *TSt -> *(!TaskResult Dynamic,!*TSt)) dataStore
 	= {TSt | tst & dataStore = dataStore}
 where
 	key = "iTask_" +++ (taskNrToString taskNr) +++ "-thread"
 
-loadTaskThread :: !TaskNr !*TSt -> (*TSt -> *(!Dynamic,!*TSt), !*TSt)
+loadTaskThread :: !TaskNr !*TSt -> (*TSt -> *(!TaskResult Dynamic,!*TSt), !*TSt)
 loadTaskThread taskNr tst =:{dataStore,world}
 	# (mbDyn, dataStore, world)	= loadValue key dataStore world
 	= case mbDyn of
-		(Just (f :: *TSt -> *(!Dynamic, !*TSt)))
+		(Just (f :: *TSt -> *(!TaskResult Dynamic,!*TSt)))
 			= (f, {TSt | tst & dataStore = dataStore, world = world})
 		(Just _)
 			= abort ("(loadTaskThread) Failed to match thread for " +++ taskNrToString taskNr)

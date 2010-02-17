@@ -18,7 +18,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 	= case tree of
 		(TTMainTask ti properties tasks)
 			# subject = [properties.managerProps.TaskManagerProperties.subject]
-			# panel = case [t \\ t <- tasks | isActive t] of
+			# panel = case [t \\ t <- tasks | not (isFinished t)] of
 				[]	= if (allFinished tasks) TaskDone TaskRedundant
 				[t]	= buildTaskPanel t
 				_	= abort  "Multiple simultaneously active tasks in a main task!"
@@ -170,23 +170,14 @@ buildTaskPanel (TTRpcTask ti rpc)
 buildTaskPanel (TTMainTask ti mti _)
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
 buildTaskPanel (TTSequenceTask ti tasks)
-	= case [t \\ t <- tasks | isActive t] of
+	= case [t \\ t <- tasks | not (isFinished t)] of
 		[]	= if (allFinished tasks) TaskDone TaskRedundant
 		[t]	= buildTaskPanel t
 		_	= (abort "Multiple simultaneously active tasks in a sequence!")
 buildTaskPanel (TTParallelTask ti tasks)
-	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, items = [buildTaskPanel t \\ t <- tasks | isActive t]}
+	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, items = [buildTaskPanel t \\ t <- tasks | not (isFinished t)]}
 buildTaskPanel (TTFinishedTask _)
 	= TaskDone
-
-isActive :: TaskTree -> Bool
-isActive (TTInteractiveTask	{TaskInfo|active} _ )	= active 
-isActive (TTMonitorTask		{TaskInfo|active} _ )	= active
-isActive (TTRpcTask			{TaskInfo|active} _ )	= active
-isActive (TTSequenceTask	{TaskInfo|active} _ )	= active
-isActive (TTParallelTask	{TaskInfo|active} _ )	= active
-isActive (TTMainTask 		{TaskInfo|active} _ _ )	= active
-isActive (TTFinishedTask	_ )						= False
 
 isFinished :: TaskTree -> Bool
 isFinished (TTFinishedTask	_ )	= True

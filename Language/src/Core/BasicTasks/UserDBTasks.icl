@@ -1,7 +1,7 @@
 implementation module UserDBTasks
 
 from TSt import :: Task, :: TSt
-from TSt import mkInstantTask
+from TSt import mkInstantTask, mkTaskFunction
 import StdList, StdMaybe
 
 from UserDB import :: User
@@ -18,31 +18,31 @@ from UserDB import qualified deleteUser
 import InteractionTasks, CoreCombinators
 
 getUser :: !UserName -> Task User
-getUser username = mkInstantTask "getUser" (UserDB@getUser username)
+getUser username = mkInstantTask "getUser" (mkTaskFunction (UserDB@getUser username))
 
 getUsers :: Task [User]
-getUsers = mkInstantTask "getUsers" UserDB@getUsers
+getUsers = mkInstantTask "getUsers" (mkTaskFunction UserDB@getUsers)
 
 getUsersWithRole :: !Role	-> Task [User]
-getUsersWithRole role = mkInstantTask "getUsersWithRole" (UserDB@getUsersWithRole role)
+getUsersWithRole role = mkInstantTask "getUsersWithRole" (mkTaskFunction (UserDB@getUsersWithRole role))
 	
 getDisplayNames :: ![UserName] -> Task [DisplayName]
-getDisplayNames usernames = mkInstantTask "getDisplayNames" (UserDB@getDisplayNames usernames)
+getDisplayNames usernames = mkInstantTask "getDisplayNames" (mkTaskFunction (UserDB@getDisplayNames usernames))
 
 getRoles :: ![UserName]	-> Task [[Role]]
-getRoles usernames = mkInstantTask "getRoles" (UserDB@getRoles usernames)
+getRoles usernames = mkInstantTask "getRoles" (mkTaskFunction (UserDB@getRoles usernames))
 
 authenticateUser :: !String !String	-> Task (Maybe User)
-authenticateUser username password = mkInstantTask "authenticateUser" (UserDB@authenticateUser username password)
+authenticateUser username password = mkInstantTask "authenticateUser" (mkTaskFunction (UserDB@authenticateUser username password))
 
 createUser :: !User -> Task User
-createUser user = mkInstantTask "createUser" (UserDB@createUser user)
+createUser user = mkInstantTask "createUser" (mkTaskFunction (UserDB@createUser user))
 
 updateUser :: !User -> Task User
-updateUser user = mkInstantTask "updateUser" (UserDB@updateUser user)
+updateUser user = mkInstantTask "updateUser" (mkTaskFunction (UserDB@updateUser user))
 
 deleteUser :: !User -> Task User
-deleteUser user = mkInstantTask "deleteUser" (UserDB@deleteUser user)
+deleteUser user = mkInstantTask "deleteUser" (mkTaskFunction (UserDB@deleteUser user))
 
 chooseUser :: !question -> Task User | html question
 chooseUser question

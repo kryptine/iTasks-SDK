@@ -41,7 +41,6 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "INT"
-		  , activeClass = activeClass info
 		  , children = []
 		  }
 	
@@ -55,7 +54,6 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "MON"
-		  , activeClass = activeClass info
 		  , children = []
 		  }
 	
@@ -69,7 +67,6 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "RPC"
-		  , activeClass = activeClass info
 		  , children = []
 		  }		  
 		  
@@ -83,7 +80,6 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "SEQ"
-		  , activeClass = activeClass info
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
@@ -97,7 +93,6 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "PAR"
-		  , activeClass = activeClass info
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
@@ -112,7 +107,6 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "MNT"
-		  , activeClass = activeClass info
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
@@ -126,13 +120,10 @@ where
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "FIN"
-		  , activeClass = activeClass info
 		  , children = []
 		  }
 	
-	activeClass info
-		| info.TaskInfo.active		= "active"
-									= "inactive"
+
 	
 	checkIfLeaf trees
 		| length trees > 0 			= False

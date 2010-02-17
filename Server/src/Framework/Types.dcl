@@ -23,14 +23,14 @@ instance toString TaskPriority
 
 :: UserName			:== String
 :: DisplayName		:== String			
+:: Role				:== String
+
 :: User 			=
 	{ userName		:: !UserName
 	, password		:: !String
 	, displayName	:: !DisplayName
 	, roles			:: ![Role]
 	}
-
-:: Role				:== String				// A role is identified by a string
 
 :: SessionId		:== String
 :: Session			=
@@ -42,14 +42,18 @@ instance toString TaskPriority
 :: ProcessId		:== String
 :: ProcessRef a		= ProcessRef !ProcessId
 
-
 :: DynamicId		:== Int
 :: TaskId			:== String	
 :: TaskNr			:== [Int]				// task nr i.j is administrated as [j,i]
 
 
 // The task monad
-:: Task a 			= Task !TaskDescription !(Maybe TaskNr) !(*TSt -> *(!a,!*TSt))
+:: Task a 			= Task !TaskDescription !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
+:: TaskResult a		= TaskBusy
+					| TaskFinished !a
+					| TaskException !Dynamic
+
+
 :: TaskDescription	=
 	{ title			:: !String
 	, description	:: !Note

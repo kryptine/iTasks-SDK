@@ -24,7 +24,6 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 							
 :: TaskInfo	=		{ taskId		:: TaskId									//Task number in string format
 					, taskLabel		:: String									//Descriptive label of the task
-					, active		:: Bool										//Is the task active?
 					, traceValue	:: String									//String representation of value for tracing
 					}
 

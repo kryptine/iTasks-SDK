@@ -2,7 +2,7 @@ implementation module SystemTasks
 
 
 from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config
-from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Options, :: Workflow
+from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Workflow
 from TSt import mkInstantTask, mkMonitorTask
 from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString
 from TSt import qualified createTaskInstance
@@ -29,20 +29,21 @@ getCurrentUser :: Task User
 getCurrentUser = mkInstantTask "getCurrentUserId" getCurrentUser`
 where
 	getCurrentUser` tst=:{staticInfo}
-		= (staticInfo.currentSession.user,tst)
+		= (TaskFinished staticInfo.currentSession.user,tst)
 		
 getCurrentProcessId :: Task ProcessId
 getCurrentProcessId = mkInstantTask "getCurrentProcessId" getCurrentProcessId`
 where
 	getCurrentProcessId` tst=:{staticInfo}
-		= (staticInfo.currentProcessId,tst)
+		= (TaskFinished staticInfo.currentProcessId,tst)
 		
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask "getDefaultValue" getDefaultValue`
 where
 	getDefaultValue` tst
-		= accWorldTSt defaultValue tst
-
+		# (d,tst) = accWorldTSt defaultValue tst
+		= (TaskFinished d,tst)
+		
 //BUG: username is not used what's happening here?		
 spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
@@ -57,7 +58,7 @@ where
 			, deadline	= Nothing
 			}
 		# (pid,tst)			= TSt@createTaskInstance task properties True tst
-		= (ProcessRef pid, {tst & activated = True})
+		= (TaskFinished (ProcessRef pid), tst)
 	
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcess (ProcessRef pid) = mkMonitorTask "waitForProcess" waitForProcess`
@@ -69,8 +70,8 @@ where
 				= case status of
 					Finished
 						# (mbResult,tst)			= loadProcessResult (taskNrFromString pid) tst
-						= (mbResult,{tst & activated = True})
+						= (TaskFinished mbResult,tst)
 					_	
-						= (Nothing, {tst & activated = False})	// We are not done yet...
+						= (TaskBusy, tst)		// We are not done yet...
 			_	
-				= (Nothing, {tst & activated = True})	//We could not find the process in our database, we are done
+				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done

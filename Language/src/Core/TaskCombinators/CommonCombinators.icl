@@ -6,7 +6,7 @@ implementation module CommonCombinators
 import StdBool, StdList, StdTuple, StdGeneric, StdMisc
 
 from StdFunc	import id, const
-from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime, :: Options, :: HTTPRequest, :: Config
+from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
 from TSt		import applyTask, mkSequenceTask, mkParallelTask
 from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store

@@ -6,7 +6,7 @@ smallExamples :: [Workflow]
 smallExamples = [workflow "Examples/Miscellaneous/Calculate sum" calculateSum
 				,workflow "Examples/Miscellaneous/Calculate sum (with stepback)" calculateSumSteps
 				]
-	
+
 calculateSum :: Task Int
 calculateSum
   =   enterInformation "Enter a number"

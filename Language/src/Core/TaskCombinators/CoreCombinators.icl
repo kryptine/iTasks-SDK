@@ -11,20 +11,25 @@ import	StdDynamic
 import  Store
 
 //Standard monadic operations:
-
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
 (>>=) taska taskb = mkSequenceTask ">>=" tbind
 where
 	tbind tst
-		# (a,tst=:{activated})	= applyTask taska tst
-		| activated				= applyTask (taskb a) tst
-								= accWorldTSt defaultValue tst
-
+		# (result,tst)		= applyTask taska tst
+		= case result of
+			TaskBusy
+				= (TaskBusy, tst)
+			TaskFinished a
+				//Pass the argument and do the second part
+				= applyTask (taskb a) tst
+			TaskException e
+				= (TaskException e,tst)
+				
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
 
 return :: !a -> (Task a) | iTask a
-return a  = mkInstantTask "return" (\tst -> (a,tst))
+return a  = mkInstantTask "return" (\tst -> (TaskFinished a,tst))
 
 //Repetition and loops:
 
@@ -32,25 +37,32 @@ forever :: !(Task a) -> Task a | iTask a
 forever task = mkSequenceTask "forever" forever`
 where
 	forever` tst=:{taskNr} 
-		# (val,tst=:{activated})= applyTask task tst					
-		| activated		
-			# tst = deleteTaskStates (tl taskNr) tst
-			# tst = resetSequence tst
-			= forever` tst				
-		= (val,tst)
+		# (result,tst)= applyTask task tst					
+		= case result of
+			TaskFinished _			
+				# tst = deleteTaskStates (tl taskNr) tst
+				# tst = resetSequence tst
+				= forever` tst				
+			_
+				= (result,tst)
 
 (<!) infixl 6 :: !(Task a) !(a -> .Bool) -> Task a | iTask a
 (<!) task pred = mkSequenceTask "<!" doTask
 where
-	doTask tst=:{activated, taskNr}
-		# (a,tst=:{activated}) 	= applyTask task tst
-		| not activated
-			= (a,tst)
-		| not (pred a)			
-			# tst = deleteTaskStates (tl taskNr) tst
-			# tst = resetSequence tst
-			= doTask tst
-		= (a,tst)
+	doTask tst=:{taskNr}
+		# (result,tst) 	= applyTask task tst
+		= case result of
+			TaskBusy
+				= (TaskBusy,tst)
+			TaskFinished a
+				| not (pred a)			
+					# tst = deleteTaskStates (tl taskNr) tst
+					# tst = resetSequence tst
+					= doTask tst
+				| otherwise
+					= (TaskFinished a,tst)
+			TaskException e
+				= (TaskException e,tst)
 		
 iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 iterateUntil init cont pred = mkSequenceTask "Iterate Until" doTask
@@ -58,67 +70,69 @@ where
 	doTask tst=:{taskNr,dataStore,world}
 		# key 					= "iu-temp_"+++taskNrToString taskNr
 		# (mbVal,dstore,world)	= loadValue key dataStore world
-		# (a,tst=:{activated,dataStore,world})  
+		# (result,tst=:{dataStore,world})  
 			= case mbVal of
 				Nothing = applyTask init 	 {tst & dataStore = dstore, world = world}
 				Just v  = applyTask (cont v) {tst & dataStore = dstore, world = world}
-		| not activated
-			= (a,tst)
-		| pred a
-			# (dstore,world) = deleteValues key dataStore world
-			= (a,{tst & dataStore = dstore, world = world})
-		# dstore = storeValue key a dataStore		
-		# tst = deleteTaskStates (tl taskNr) {tst & dataStore = dstore}
-		# tst = resetSequence tst
-		= doTask tst
-
+		= case result of
+			TaskFinished a
+				| pred a
+					# (dstore,world) = deleteValues key dataStore world
+					= (TaskFinished a,{tst & dataStore = dstore, world = world})
+				| otherwise
+					# dstore = storeValue key a dataStore		
+					# tst = deleteTaskStates (tl taskNr) {tst & dataStore = dstore}
+					# tst = resetSequence tst
+					= doTask tst
+			_
+					= (result, tst)
 // Sequential composition
 sequence :: !String ![Task a] -> (Task [a])	| iTask a
-sequence label tasks = mkSequenceTask label sequence`
+sequence label tasks = mkSequenceTask label (\tst -> doseqTasks tasks [] tst)
 where
-	sequence` tst
-		= doseqTasks tasks [] tst
-
-	doseqTasks [] accu tst				= (reverse accu,{tst & activated = True})
-	doseqTasks [task:ts] accu tst=:{TSt|options} 	
-		# (a,tst=:{activated=adone}) 	= applyTask task {tst & activated = True}
-		| not adone						= (reverse accu, tst)
-		| otherwise						= doseqTasks ts [a:accu] tst
-
-
+	doseqTasks [] accu tst				= (TaskFinished (reverse accu), tst)
+	doseqTasks [task:ts] accu tst 	
+		# (result,tst)					= applyTask task tst
+		= case result of
+			TaskBusy					= (TaskBusy,tst)
+			TaskFinished a				= doseqTasks ts [a:accu] tst
+			TaskException e				= (TaskException e,tst)
+			
 // Parallel composition
 parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
 parallel label pred combinePred combineAll tasks 
 	= mkParallelTask label (parallel` tasks)
 where
-	parallel` [] tst	=  (combineAll [], tst)
+	parallel` [] tst	=  (TaskFinished (combineAll []), tst)
 	parallel` tasks tst
-		# (alist,tst=:{exception})	= checkAllTasks tasks 0 [] tst
-		| isJust exception
-			= accWorldTSt defaultValue {tst & activated = False}// stop, an exception occurred in one of the branches
-		| pred alist
-			= (combinePred alist,{tst & activated = True}) 		// stop, all work done so far satisfies predicate
-		| length alist == length tasks							// all tasks are done
-			= (combineAll alist,{tst & activated = True})
-		| otherwise
-			= accWorldTSt defaultValue {tst & activated = False}// show all subtasks using the displayOption function
+		# (result,tst)	= checkAllTasks tasks 0 [] tst
+		= case result of
+			TaskException e
+				= (TaskException e,tst)
+			TaskFinished list
+				| pred list
+					= (TaskFinished (combinePred list), tst) 		// stop, all work done so far satisfies predicate
+				| length list == length tasks						
+					= (TaskFinished (combineAll list), tst)			// all tasks are done
+				| otherwise
+					= (TaskBusy, tst)								// still busy
 	where
 		checkAllTasks tasks index accu tst
 			| index == length tasks
-				= (reverse accu,tst)												// all tasks tested
-			# task								= tasks !! index
-			# (a,tst=:{activated,exception})	= applyTask (mkSequenceTask (taskLabel task) (applyTask task)) tst	// check tasks
-			| isJust exception
-				= ([],tst)						//Stop immediately if a branch has an exception
-			| otherwise
-				= checkAllTasks tasks (inc index) (if activated [a:accu] accu) {tst & activated = True}
-
+				= (TaskFinished (reverse accu),tst)														// all tasks tested
+			# task					= tasks !! index
+			# (result,tst)			= applyTask (mkSequenceTask (taskLabel task) (applyTask task)) tst	// check tasks	
+			= case result of
+				TaskBusy		= checkAllTasks tasks (inc index) accu tst 
+				TaskFinished a	= checkAllTasks tasks (inc index) [a:accu] tst
+				TaskException e	= (TaskException e,tst)
+				
 assign :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
 assign userName initPriority initDeadline task = mkMainTask "assign" (assign` userName initPriority initDeadline task) 
 
-assign` :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) *TSt -> (a, *TSt) | iTask a
+assign` :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) !*TSt -> (!TaskResult a, !*TSt) | iTask a
 assign` toUserName initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
-													   , userId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world, activated}
+													   , userId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world}
 	# taskId  			   = taskNrToString taskNr
 	# (mbProc,tst) 		   = getProcess taskId tst
 	# (taskStatus, taskProperties, curTask, changeNr, tst)
@@ -150,7 +164,7 @@ assign` toUserName initPriority initDeadline task tst =: { TSt| taskNr, taskInfo
 	| taskStatus == Finished
 		# (mbRes,tst) = loadProcessResult taskNr tst
 		= case mbRes of
-			Just a	= (a, {tst & activated = True})
+			Just a	= (a, tst)
 			Nothing	= abort "(assign) Could not unpack process result"
 	//Apply all active changes (oldest change first, hence the 'reverse changes')
 	| firstRun
@@ -166,7 +180,7 @@ assign` toUserName initPriority initDeadline task tst =: { TSt| taskNr, taskInfo
 		= do_task taskNr taskInfo taskProperties changeNr curTask tst
 
 //Just execute the task
-all_changes :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
+all_changes :: !TaskNr !TaskInfo !TaskProperties !Int !(Task a) !(Task a) ![Maybe (!ChangeLifeTime,!DynamicId,!Dynamic)] !*TSt -> (!TaskResult a,!*TSt) | iTask a
 all_changes taskNr taskInfo taskProperties changeNr origTask curTask [] tst
 	= do_task taskNr taskInfo taskProperties changeNr curTask tst
 	
@@ -203,7 +217,7 @@ all_changes taskNr taskInfo taskProperties changeNr origTask curTask [Just (clt,
 all_changes taskNr taskInfo taskProperties changeNr origTask curTask [c:cs] tst=:{TSt|changes}
 	= all_changes taskNr taskInfo taskProperties changeNr origTask curTask cs {TSt|tst & changes = [c:changes]}
 
-one_change :: TaskNr TaskInfo TaskProperties Int (Task a) (Task a) (ChangeLifeTime, DynamicId, Dynamic) [Maybe (ChangeLifeTime,DynamicId,Dynamic)] *TSt -> (a,*TSt) | iTask a
+one_change :: !TaskNr !TaskInfo !TaskProperties !Int !(Task a) !(Task a) !(!ChangeLifeTime, !DynamicId, !Dynamic) ![Maybe (!ChangeLifeTime,!DynamicId,!Dynamic)] !*TSt -> (!TaskResult a,!*TSt) | iTask a
 one_change taskNr taskInfo taskProperties changeNr origTask curTask (changeLifeTime, changeId, changeDyn) rest tst
  	# processId = taskNrToString taskNr
  	# (mbProperties, mbTask, mbChange) = appChange changeDyn taskProperties (setTaskContext [changeNr:taskNr] curTask) origTask
@@ -229,7 +243,7 @@ one_change taskNr taskInfo taskProperties changeNr origTask curTask (changeLifeT
 	| otherwise
 		= do_task taskNr taskInfo taskProperties changeNr curTask {TSt|tst & changes = changes}
 
-do_task :: TaskNr TaskInfo TaskProperties Int (Task a) *TSt -> (a,*TSt) | iTask a
+do_task :: !TaskNr !TaskInfo !TaskProperties !Int !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 do_task taskNr taskInfo taskProperties changeNr curTask tst=:{userId,delegatorId, mainTask}
 	# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
 					, taskNr		= [changeNr:taskNr]
@@ -237,8 +251,8 @@ do_task taskNr taskInfo taskProperties changeNr curTask tst=:{userId,delegatorId
 					, userId		= fst taskProperties.managerProps.worker
 					, delegatorId	= fst taskProperties.systemProps.manager
 					}
-	# (a, tst)		= applyTask curTask tst
-	= (a, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
+	# (result, tst)	= applyTask curTask tst
+	= (result, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
 
 //The tricky dynamic part of applying changes
 appChange :: !Dynamic !TaskProperties !(Task a) !(Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe Dynamic) | iTask a

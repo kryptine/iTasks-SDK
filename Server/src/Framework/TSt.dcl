@@ -22,19 +22,14 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
 					, firstRun		:: !Bool											// Is this task evaluated for the first time
-					, curValue		:: !Maybe Dynamic									// Current task value
 					, userId		:: !UserName										// id of user to which task is assigned
 					, delegatorId	:: !UserName										// id of user who issued the task
-					, tree			:: !TaskTree										// accumulator for constructing a task tree			
-					, activated		:: !Bool   											// if true activate task, if set as result task completed
+					, tree			:: !TaskTree										// accumulator for constructing a task tree
 
 					, mainTask		:: !ProcessId										// The id of the current main task 
 							
-					, options		:: !Options											// options
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
-					
-					, exception		:: !Maybe Dynamic									// Optional, used when raising exceptions
-					
+						
 					, doChange		:: !Bool											// Apply change
 					, changes		:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
 					
@@ -45,9 +40,6 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, dataStore		:: !Store											// Runtime data (Processes, Sessions, Tasks, Dynamics)
 					, documentStore	:: !Store											// Documents
 					, world			:: !*World											// The world
-					}
-
-:: Options		=	{ trace			:: !Bool									// default: False
 					}
 
 :: StaticInfo	=	{ appName			:: String								// the name of the server executable
@@ -182,6 +174,16 @@ getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 //// TASK CREATION
 
 /**
+* Lift a function that uses the TSt to a function that returns
+* a TaskResult value of TaskFinished with the value returned by the function.
+*
+* @param The function on the TSt
+*
+* @return The task function
+*/
+mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
+
+/**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
 * The given task function will add a single basic step to the current
@@ -192,7 +194,7 @@ getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkInteractiveTask			:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that also
@@ -205,7 +207,7 @@ mkInteractiveTask			:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 *
 * @return The newly constructed basic task
 */
-mkInstantTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkInstantTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that also
@@ -218,7 +220,7 @@ mkInstantTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 *
 * @return The newly constructed basic task
 */
-mkMonitorTask :: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 
 /**
@@ -244,7 +246,7 @@ mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 *
 * @return The newly constructed sequence task
 */
-mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that also
@@ -256,7 +258,7 @@ mkSequenceTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 *
 * @return The newly constructed parallel task
 */
-mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkParallelTask 		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 /**
 * Wrap a function of proper type to create a function that will make a
@@ -268,7 +270,7 @@ mkParallelTask 		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 *
 * @return The newly constructed sequence task
 */
-mkMainTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
+mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 //// TASK APPLICATION
 
@@ -281,7 +283,7 @@ mkMainTask		:: !String !(*TSt -> *(!a,!*TSt)) -> Task a
 * @return The value produced by the task
 * @return The modified task state
 */
-applyTask			:: !(Task a) !*TSt -> (!a,!*TSt) | iTask a
+applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 
 
 //// TASK CONTENT
@@ -290,8 +292,6 @@ setTUIDef			:: !TUIDef !*TSt				-> *TSt	//Only for interactive tasks
 setTUIUpdates		:: ![TUIUpdate] !*TSt			-> *TSt //Only for interactive tasks
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
-
-getTaskValue		:: !*TSt						-> (Maybe a, !*TSt) | TC a
 
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
 
@@ -379,8 +379,8 @@ taskNrToString		:: !TaskNr 					-> String
 taskLabel			:: !(Task a)				-> String
 
 //Should not be public!
-createTaskThread :: !(Task a) -> (*TSt -> *(!Dynamic,!*TSt)) | iTask a
-storeTaskThread :: !TaskNr !(*TSt -> *(!Dynamic,!*TSt)) !*TSt -> *TSt
-loadTaskThread :: !TaskNr !*TSt -> (*TSt -> *(!Dynamic,!*TSt), !*TSt)
-loadTaskFunctionStatic  :: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
-storeTaskFunctionStatic  :: !TaskNr !(Task a)       !*TSt -> *TSt | TC a
+createTaskThread			:: !(Task a) -> (*TSt -> *(!TaskResult Dynamic,!*TSt)) | iTask a
+storeTaskThread				:: !TaskNr !(*TSt -> *(!TaskResult Dynamic,!*TSt)) !*TSt -> *TSt
+loadTaskThread				:: !TaskNr !*TSt -> (*TSt -> *(!TaskResult Dynamic,!*TSt), !*TSt)
+loadTaskFunctionStatic 		:: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
+storeTaskFunctionStatic 	:: !TaskNr !(Task a)       !*TSt -> *TSt | TC a

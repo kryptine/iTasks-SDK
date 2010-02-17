@@ -77,19 +77,19 @@ where
 			# world	= tst.TSt.world
 			// check if the location exists and creat it otherwise
 			# ((ok,dir),world) 	= pd_StringToPath path world
-			| not ok		   	= (False,{TSt | tst & world = world})
+			| not ok		   	= (TaskFinished False,{TSt | tst & world = world})
 			# (err,world)		= case getFileInfo dir world of
 									((DoesntExist,fileinfo),world) = createDirectory dir world
 									(_,world)					   = (NoDirError,world)
 			# ok				= case err of NoDirError = True; _ = False
-			| not ok			= (False,{TSt | tst & world = world})
+			| not ok			= (TaskFinished False,{TSt | tst & world = world})
 			# (ok,file,world) 	= fopen (path+++"/"+++doc.Document.fileName) FWriteData world
-			| not ok 			= (False,{TSt | tst & world = world})
+			| not ok 			= (TaskFinished False,{TSt | tst & world = world})
 			# file 				= fwrites (fromJust mbData) file
 			# (ok,world) 		= fclose file world
-			| not ok 			= (False,{TSt | tst & world = world})
-			= (ok,{TSt | tst & world = world})
-		| otherwise = (False,tst)		
+			| not ok 			= (TaskFinished False,{TSt | tst & world = world})
+			= (TaskFinished ok,{TSt | tst & world = world})
+		| otherwise = (TaskFinished False,tst)		
 	
 loadDocumentFromFile :: String String -> Task (Maybe Document)
 loadDocumentFromFile fname path = mkInstantTask "Load Document from FS" loadDoc 
@@ -97,14 +97,14 @@ where
 	loadDoc tst
 		# world 			= tst.TSt.world
 		# (ok,file,world) 	= fopen (path+++"/"+++fname) FReadData world		
-		| not ok 			= (Nothing,{TSt | tst & world = world})
+		| not ok 			= (TaskFinished Nothing,{TSt | tst & world = world})
 		# (data,file,size) 	= readFile file "" 0
 		# (ok,world) 		= fclose file world
-		| not ok 			= (Nothing,{TSt | tst & world = world})
+		| not ok 			= (TaskFinished Nothing,{TSt | tst & world = world})
 		//Find way to derive mime/type
 		# mime				= extToMimeType ("."+++last(split "." fname))
 		# (doc,tst) 		= createDocument fname mime tst.taskNr data {TSt | tst & world = world}
-		= (Just doc,tst)
+		= (TaskFinished (Just doc),tst)
 
 	readFile :: !*File !String !Int -> (!String,!*File,!Int)
 	readFile f a s

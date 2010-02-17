@@ -52,67 +52,55 @@ updateInformationAbout question about initial = mkInteractiveTask "updateInforma
 updateInformationAboutA	:: question [Action] [Action] b a -> Task (!Action,!a) | html question & iTask a & iTask b
 updateInformationAboutA question aAlways aValid about initial = mkInteractiveTask "updateInformationAboutA" (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)) aAlways aValid True)
 
-makeInformationTask :: question (Maybe a) (Maybe [HtmlTag]) [Action] [Action] !Bool !*TSt -> (!(!Action,!a),!*TSt) | html question & iTask a
+makeInformationTask :: question (Maybe a) (Maybe [HtmlTag]) [Action] [Action] !Bool !*TSt -> (!TaskResult (!Action,!a),!*TSt) | html question & iTask a
 makeInformationTask question initial context aAlways aValid actionStored tst=:{taskNr}
-	# editorId		= "tf-" +++ taskNrToString taskNr
-	//Read current value
-	# (oldaction,oldval,tst)
-					= readTaskValue actionStored initial tst
-
-	# (mbmask,tst)	= getTaskStore "mask" tst
-	# (omask,tst)	= case mbmask of
-						Just m = (m,tst)
-						Nothing = case initial of
-							Just v 
-								# (mask,tst)	= accWorldTSt (defaultMask v) tst
-								# tst			= setTaskStore "mask" mask tst // <- store the initial mask
-								= (mask,tst)
-							Nothing	= ([],tst) 
+	# taskId			= taskNrToString taskNr
+	# editorId			= "tf-" +++ taskNrToString taskNr
+	# (ovalue,tst)		= readValue initial tst
+	# (omask,tst)		= readMask initial tst
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst	
 	| isEmpty updates
-		# (form,valid) 	= visualizeAsEditor editorId omask oldval
-		# tst			= setTUIDef (taskPanel taskid (html question) context (Just form) (makeButtons editorId aAlways aValid valid)) tst
-		= ((oldaction,oldval),{tst & activated = False})
+		# (form,valid) 	= visualizeAsEditor editorId omask ovalue
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId aAlways aValid valid)) tst
+		= (TaskBusy,tst)
 	| otherwise
-		# (newval,nmask,lmask,tst) = applyUpdates updates oldval omask [] tst
+		# (nvalue,nmask,lmask,tst) = applyUpdates updates ovalue omask [] tst
 		# index = toInt (http_getValue "action" updates "-1")
 		| index <> -1
-			= ((selAction index aAlways aValid,newval),{tst & activated = True})
+			= (TaskFinished (selAction index aAlways aValid,nvalue),tst)
 		| otherwise
+			# tst				= setTaskStore "value" nvalue tst
 			# tst				= setTaskStore "mask" nmask tst
-			# (updates,valid)	= determineEditorUpdates editorId omask nmask lmask oldval newval
+			# (updates,valid)	= determineEditorUpdates editorId omask nmask lmask ovalue nvalue
 			# tst				= setTUIUpdates (enables editorId aAlways aValid valid ++ updates) tst
-			= ((oldaction,newval), {tst & activated = False})
+			= (TaskBusy, tst)
 where
-	taskid = taskNrToString taskNr
+	readValue initial tst
+		# (mbvalue,tst)	= getTaskStore "value" tst
+		= case mbvalue of
+			Just v		= (v,tst)
+			Nothing		= case initial of
+						Just i	= (i,tst)
+						Nothing	= accWorldTSt defaultValue tst
+	readMask initial tst
+		# (mbmask,tst)	= getTaskStore "mask" tst
+		= case mbmask of
+			Just m = (m,tst)
+			Nothing = case initial of
+				Just v 
+					# (mask,tst)	= accWorldTSt (defaultMask v) tst
+					# tst			= setTaskStore "mask" mask tst // <- store the initial mask
+					= (mask,tst)
+				Nothing	= ([],tst) 
+
+
 	applyUpdates [] val mask lmask tst = (val,mask,lmask,tst)
 	applyUpdates [(p,v):us] val mask lmask tst=:{TSt|world}
 		# (val,mask,lmask,world) = updateValueAndMask p v val mask lmask world
 		= applyUpdates us val mask lmask {TSt|tst & world = world}
 	
-	//Because the current value of a task is stored by applyTask
-	//and loaded in this function, we need to differentiate between tasks
-	//in which this function is used directly (of type (Action,a)) and those in which
-	//the ignoreActionA is used to create a task of type a.
-	readTaskValue True initial tst	
-		# (mbtv,tst)	= getTaskValue tst
-		= case mbtv of
-			Just (a,v)	= (a,v,tst)
-			Nothing = case initial of
-				Just i	= (ActionCancel,i,tst)
-				Nothing	
-					# (v,tst)	= accWorldTSt defaultValue tst
-					= (ActionCancel,v,tst)
-	readTaskValue False initial tst
-		# (mbtv,tst)	= getTaskValue tst
-		= case mbtv of
-			Just v		= (ActionCancel,v,tst)
-			Nothing		= case initial of
-				Just i	= (ActionCancel,i,tst)
-				Nothing
-					# (v,tst)	= accWorldTSt defaultValue tst
-					= (ActionCancel,v,tst)
+	
 	
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= abort "enterChoice: cannot choose from empty option list"
@@ -146,7 +134,7 @@ updateChoiceAboutA :: question [Action] [Action] b [a] Int-> Task (!Action,!a) |
 updateChoiceAboutA question aAlways aValid about [] index		= abort "updateChoiceAbout: cannot choose from empty option list"
 updateChoiceAboutA question aAlways aValid about options index	= mkInteractiveTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)) aAlways aValid)
 
-makeChoiceTask :: !question ![a] !Int (Maybe [HtmlTag]) ![Action] ![Action] !*TSt -> (!(!Action,!a),!*TSt) | html question & iTask a
+makeChoiceTask :: !question ![a] !Int (Maybe [HtmlTag]) ![Action] ![Action] !*TSt -> (!TaskResult (!Action,!a),!*TSt) | html question & iTask a
 makeChoiceTask question options initsel context aAlways aValid tst=:{taskNr}
 	# taskId		= taskNrToString taskNr
 	# editorId		= "tf-" +++ taskId
@@ -173,23 +161,23 @@ makeChoiceTask question options initsel context aAlways aValid tst=:{taskNr}
 												, items = radios
 												}]
 		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId aAlways aValid valid)) tst
-		= ((ActionCancel,hd options), {tst & activated = False})
+		= (TaskBusy, tst)
 	| otherwise
 		// One of the buttons was pressed
 		# index = toInt (http_getValue "action" updates "-1")
 		| index <> -1
-			= ((selAction index aAlways aValid, if valid (options !! selection) (hd options)),{tst & activated = True})
+			= (TaskFinished (selAction index aAlways aValid, if valid (options !! selection) (hd options)),tst)
 		// The selection was updated
 		# index = toInt (http_getValue selectionId updates "-1")
 		| index <> -1
 			# valid		= index >= 0 && index < length options	//Recompute validity
 			# tst		= setTaskStore "selection" index tst
 			# tst		= setTUIUpdates (enables editorId aAlways aValid valid) tst
-			= ((ActionCancel,hd options), {tst & activated = False})	
+			= (TaskBusy, tst)	
 		// Fallback case (shouldn't really happen)
 		| otherwise
 			# tst		= setTUIUpdates [] tst
-			= ((ActionCancel,hd options), {tst & activated = False})
+			= (TaskBusy, tst)
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
 enterMultipleChoice question options = mkInteractiveTask "enterMultipleChoice" (ignoreActionA (makeMultipleChoiceTask question options [] Nothing [ActionOk]))
@@ -215,7 +203,7 @@ updateMultipleChoiceAbout question about options indices = mkInteractiveTask "up
 updateMultipleChoiceAboutA :: question [Action] b [a] [Int] -> Task (!Action,![a]) | html question & iTask a & iTask b
 updateMultipleChoiceAboutA question aAlways about options indices = mkInteractiveTask "updateMultipleChoiceAboutA" (makeMultipleChoiceTask question options indices (Just (visualizeAsHtmlDisplay about)) aAlways)
 
-makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) [Action] !*TSt -> (!(!Action,![a]),!*TSt) | html question & iTask a
+makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) [Action] !*TSt -> (!TaskResult (!Action,![a]),!*TSt) | html question & iTask a
 makeMultipleChoiceTask question options initsel context aAlways tst=:{taskNr}
 	# taskId		= taskNrToString taskNr
 	# editorId		= "tf-" +++ taskId
@@ -237,19 +225,19 @@ makeMultipleChoiceTask question options initsel context aAlways tst=:{taskNr}
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
 		# form = [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
 		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId aAlways [] True)) tst
-		= ((ActionCancel,[]), {tst & activated = False})
+		= (TaskBusy, tst)
 	| otherwise
 		// One of the buttons was pressed
 		# index = toInt (http_getValue "action" updates "-1")
 		| index <> -1
-			= ((selAction index aAlways [], select selection options ),{tst & activated = True})
+			= (TaskFinished (selAction index aAlways [], select selection options ),tst)
 		// Perhaps the selection was changed
 		| otherwise
 			# mbSel		= parseSelection updates 
 			# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 			# tst		= setTaskStore "selection" (sort selection) tst
 			# tst		= setTUIUpdates [] tst
-			= ((ActionCancel,[]),{tst & activated = False})
+			= (TaskBusy, tst)
 where
 	parseSelection :: [(String,String)] -> Maybe [String]
 	parseSelection updates = fromJSON (http_getValue "selection" updates "[]")	
@@ -280,30 +268,26 @@ requestConfirmation	:: question -> Task Bool | html question
 requestConfirmation question = mkInteractiveTask "requestConfirmation" requestConfirmation`
 where
 	requestConfirmation` tst 
-		# (action,tst) = (makeMessageTask question Nothing [ActionNo,ActionYes]) tst
-		= case action of
-			ActionYes	= (True,tst)
-			_			= (False,tst)
-	
+		# (result,tst) = (makeMessageTask question Nothing [ActionNo,ActionYes]) tst
+		= (mapTaskResult (\a -> case a of ActionYes = True; _ = False) result, tst)
+								
 requestConfirmationAbout :: question a -> Task Bool | html question & iTask a
 requestConfirmationAbout question about = mkInteractiveTask "requestConfirmationAbout" requestConfirmationAbout`
 where
 	requestConfirmationAbout` tst
-		# (action,tst) = (makeMessageTask question (Just (visualizeAsHtmlDisplay about)) [ActionNo,ActionYes]) tst
-		= case action of
-			ActionYes	= (True,tst)
-			_			= (False,tst)
+		# (result,tst) = (makeMessageTask question (Just (visualizeAsHtmlDisplay about)) [ActionNo,ActionYes]) tst
+		= (mapTaskResult (\a -> case a of ActionYes = True; _ = False) result, tst)
 
-makeMessageTask :: message (Maybe [HtmlTag]) [Action] *TSt -> (!Action,!*TSt) | html message
+makeMessageTask :: message (Maybe [HtmlTag]) [Action] *TSt -> (!TaskResult Action,!*TSt) | html message
 makeMessageTask message context aAlways tst=:{taskNr}
 	# taskId	= taskNrToString taskNr
 	# editorId	= "tf-" +++ taskId
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
 		# tst = setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId aAlways [] True)) tst
-		= (ActionCancel,{tst & activated = False})
+		= (TaskBusy, tst)
 	| otherwise
-		= (selAction (toInt (http_getValue "action" updates "0")) aAlways [],{tst & activated = True})
+		= (TaskFinished (selAction (toInt (http_getValue "action" updates "0")) aAlways []),tst)
 	
 taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef
 taskPanel taskid description mbContext mbForm buttons
@@ -352,14 +336,19 @@ selAction :: !Int ![Action] ![Action] -> Action
 selAction index aAlways aValid = (aAlways ++ aValid) !! index
 
 //Throw away the chosen action part of the result
-ignoreActionA :: (*TSt -> ((!Action,!a),*TSt)) -> (*TSt -> (!a,!*TSt))
-ignoreActionA f = \tst -> let ((_,a),tst`) = f tst in (a,tst`)
+ignoreActionA :: (*TSt -> (!TaskResult (!Action,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
+ignoreActionA f = \tst -> let (res,tst`) = f tst in (mapTaskResult snd res,tst`)
+			
+ignoreActionV :: (*TSt -> (!TaskResult Action,!*TSt)) -> (*TSt -> (!TaskResult Void,!*TSt))
+ignoreActionV f = \tst -> let (res,tst`) = f tst in (mapTaskResult (\_ -> Void) res,tst`)
 
-ignoreActionV :: (*TSt -> (!Action,!*TSt)) -> (*TSt -> (!Void,!*TSt))
-ignoreActionV f = \tst -> let (_,tst`) = f tst in (Void,tst`)
+mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b
+mapTaskResult f (TaskFinished x)	= TaskFinished (f x) 
+mapTaskResult f (TaskBusy)			= TaskBusy
+mapTaskResult f (TaskException e)	= TaskException e
 
 notifyUser :: message UserName -> Task Void | html message
-notifyUser message username = mkInstantTask "notifyUser" (\tst -> (Void,tst))
+notifyUser message username = mkInstantTask "notifyUser" (\tst -> (TaskFinished Void,tst))
 
 notifyGroup :: message Role -> Task Void | html message
-notifyGroup message role = mkInstantTask "notifyGroup" (\tst -> (Void,tst))
+notifyGroup message role = mkInstantTask "notifyGroup" (\tst -> (TaskFinished Void,tst))

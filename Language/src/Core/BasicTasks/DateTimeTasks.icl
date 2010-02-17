@@ -8,13 +8,13 @@ import CommonDomain
 import CoreCombinators
 
 getCurrentTime :: Task Time
-getCurrentTime = mkInstantTask "getCurrentTime" (accWorldTSt currentTime)
+getCurrentTime = mkInstantTask "getCurrentTime" (mkTaskFunction (accWorldTSt currentTime))
 	
 getCurrentDate :: Task Date
-getCurrentDate = mkInstantTask "getCurrentDate" (accWorldTSt currentDate)
+getCurrentDate = mkInstantTask "getCurrentDate" (mkTaskFunction (accWorldTSt currentDate))
 
 getCurrentDateTime :: Task DateTime
-getCurrentDateTime = mkInstantTask "getCurrentDateTime" (accWorldTSt currentDateTime)
+getCurrentDateTime = mkInstantTask "getCurrentDateTime" (mkTaskFunction (accWorldTSt currentDateTime))
 
 waitForTime :: !Time -> Task Void
 waitForTime time = mkMonitorTask "waitForTime" waitForTime`
@@ -23,9 +23,9 @@ where
 		# (now,tst) = accWorldTSt currentTime tst
 		| now < time
 			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel time] tst
-			= (Void,{tst & activated = False})
+			= (TaskBusy,tst)
 		| otherwise
-			= (Void,{tst & activated = True})
+			= (TaskFinished Void,tst)
 
 waitForDate :: !Date -> Task Void
 waitForDate date = mkMonitorTask "waitForDate" waitForDate`
@@ -34,11 +34,10 @@ where
 		# (now,tst) = accWorldTSt currentDate tst
 		| now < date
 			# tst = setStatus [Text "Waiting until ": visualizeAsHtmlLabel date] tst
-			= (Void,{tst & activated = False})
+			= (TaskBusy,tst)
 		| otherwise
-			= (Void,{tst & activated = True})
+			= (TaskBusy,tst)
 
 waitForTimer :: !Time -> Task Void
 waitForTimer time
 	= getCurrentTime >>= \now -> waitForTime (now + time)
-
