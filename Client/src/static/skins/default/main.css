@@ -55,7 +55,11 @@ button.icon-accept {
 }
 
 button.icon-collapse-tree{
-	background-image: url('img/icons/arrow_inout.png');
+	background-image: url('img/icons/collapse-all.gif') !important;
+}
+
+button.icon-expand-tree{
+	background-image: url('img/icons/expand-all.gif') !important;
 }
 
 .icon-task-tree {

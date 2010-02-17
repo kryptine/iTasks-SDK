@@ -7,8 +7,8 @@ Ext.ns("itasks");
 itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 	
 	initComponent: function () {
-		
-		this.tree = new Ext.ux.tree.ColumnTree({
+				
+		this.tree = new Ext.ux.tree.TreeGrid({
 			id : 'treepanel',
 			region : 'center',
 			
@@ -37,15 +37,13 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 						header:'Trace Value',
 						dataIndex: 'traceValue',
 						width: 200
-					},{
-						header: ''
 					}],	
 			
 			loader: new Ext.tree.TreeLoader({
 						dataUrl: itasks.config.serverUrl + "/debug/taskforest",
 						baseParams: {_session: itasks.app.session},
 						requestMethod: "POST",
-						uiProviders: { col : Ext.ux.tree.ColumnNodeUI }
+						uiProviders: { col : Ext.ux.tree.TreeGridNodeUI}
 					}),	
 			
 			root: new Ext.tree.AsyncTreeNode({
@@ -89,9 +87,13 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 					iconCls: "x-tbar-loading",
 					listeners: {click: {fn: function (btn) {this.refresh();},scope: this}}
 				  },{
-				    text: "(Un)fold tree",
+				    text: "Expand Tree",
+					iconCls: "icon-expand-tree",
+					listeners: {click: {fn: function (btn) {this.expandTree();},scope: this}}
+				  },{
+					text: "Collapse Tree",
 					iconCls: "icon-collapse-tree",
-					listeners: {click: {fn: function (btn) {this.toggleTree();},scope: this}}
+					listeners: {click: {fn: function (btn) {this.collapseTree();},scope: this}}
 				  }]			
 		});
 		
@@ -102,19 +104,16 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 		this.tree.getRootNode().reload();
 	},
 	
-	toggleTree: function(){
+	expandTree: function(){
 		var rootNode = this.tree.getRootNode();
-		
-		toggleChild = function(child){
-			if(child.isExpanded()){
-				child.collapse(true,false);
-			}else{
-				child.expand(true,true);
-			}
-		}
-		
+		var toggleChild = function(child){child.expand(true,true);};
 		rootNode.eachChild(toggleChild);
-		
+	},
+	
+	collapseTree: function(){
+		var rootNode = this.tree.getRootNode();
+		var toggleChild = function(child){child.collapse(true,false);};
+		rootNode.eachChild(toggleChild);
 	}
 });
 

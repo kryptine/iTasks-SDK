@@ -34,8 +34,12 @@
 	,"isDebug": false
 	,"fileIncludes" : 
 		[{"text":"Ext.ux.AjaxRemoteRequest.js","path":"src/js/"}
-		,{"text":"Ext.ux.tree.ColumnNodeUI.js","path":"src/js/"}
-		,{"text":"Ext.ux.tree.ColumnTree.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGrid.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridColumnResizer.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridColumns.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridLoader.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridNodeUI.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridSorter.js","path":"src/js/"}
 		,{"text":"Ext.ux.layout.HtmlLayout.js","path":"src/js/"}
 		,{"text":"Ext.ux.form.FileUploadField.js","path":"src/js/"}
 		,{"text":"Ext.ux.MIframe.js","path":"src/js/"}]
