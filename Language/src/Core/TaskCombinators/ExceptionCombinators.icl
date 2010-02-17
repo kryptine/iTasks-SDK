@@ -12,15 +12,15 @@ where
 		# key						= iTaskId (tl taskNr) "exception"
 		# (mbEx,dataStore,world)	= loadValue key dataStore world
 		= case mbEx of
-			Just ex
+			Just ex	
 				= applyTask (handlerTask ex) {TSt|tst & dataStore = dataStore, world = world}
-			Nothing				
+			Nothing			
 				# (result, tst)	= applyTask normalTask {TSt|tst & dataStore = dataStore, world = world}
 				= case result of
 					//Handle exception if it matches
 					TaskException (ex :: e^)
 						# tst=:{TSt|dataStore}	= deleteTaskStates (tl taskNr) tst 					//Garbage collect
-						# dstore				= storeValueAs SFDynamic key ex dataStore			//Store the exception
+						# dataStore				= storeValueAs SFDynamic key ex dataStore			//Store the exception
 						= applyTask (handlerTask ex) (resetSequence {tst & dataStore = dataStore})	//Run the handler
 					//Just pass through the result
 					_
