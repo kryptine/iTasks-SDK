@@ -67,22 +67,20 @@ where
 iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 iterateUntil init cont pred = mkSequenceTask "Iterate Until" doTask
 where
-	doTask tst=:{taskNr,dataStore,world}
-		# key 					= "iu-temp_"+++taskNrToString taskNr
-		# (mbVal,dstore,world)	= loadValue key dataStore world
-		# (result,tst=:{dataStore,world})  
-			= case mbVal of
-				Nothing = applyTask init 	 {tst & dataStore = dstore, world = world}
-				Just v  = applyTask (cont v) {tst & dataStore = dstore, world = world}
+	doTask tst=:{taskNr}
+		# key 			= "iu-temp"
+		# (mbVal,tst)	= getTaskStore key tst
+		# (result,tst)  = case mbVal of
+							Nothing = applyTask init 	 tst
+							Just v  = applyTask (cont v) tst
 		= case result of
 			TaskFinished a
 				| pred a
-					# (dstore,world) = deleteValues key dataStore world
-					= (TaskFinished a,{tst & dataStore = dstore, world = world})
-				| otherwise
-					# dstore = storeValue key a dataStore		
-					# tst = deleteTaskStates (tl taskNr) {tst & dataStore = dstore}
+					= (TaskFinished a,tst)
+				| otherwise	
+					# tst = deleteTaskStates (tl taskNr) tst
 					# tst = resetSequence tst
+					# tst = setTaskStore key a tst
 					= doTask tst
 			_
 					= (result, tst)
