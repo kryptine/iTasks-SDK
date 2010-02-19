@@ -1,7 +1,7 @@
 implementation module ProcessDB
 
 import StdEnv, StdGeneric, StdMaybe
-import TSt, Store, DynamicDB, Util
+import TSt, Store, Util
 
 instance == ProcessStatus
 where

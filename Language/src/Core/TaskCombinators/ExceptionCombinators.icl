@@ -19,7 +19,7 @@ where
 				= case result of
 					//Handle exception if it matches
 					TaskException (ex :: e^)
-						# tst=:{TSt|dataStore}	= deleteTaskStates (tl taskNr) tst 					//Garbage collect
+						# tst=:{TSt|dataStore}	= deleteTaskStates taskNr tst 						//Garbage collect
 						# dataStore				= storeValueAs SFDynamic key ex dataStore			//Store the exception
 						= applyTask (handlerTask ex) (resetSequence {tst & dataStore = dataStore})	//Run the handler
 					//Just pass through the result

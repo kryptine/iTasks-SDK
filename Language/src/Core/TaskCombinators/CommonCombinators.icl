@@ -8,7 +8,7 @@ import StdBool, StdList, StdTuple, StdGeneric, StdMisc
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
 from TSt		import applyTask, mkSequenceTask, mkParallelTask
-from Types		import :: ProcessId, :: DynamicId, :: TaskId, :: TaskPriority(..), :: User(..)
+from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree

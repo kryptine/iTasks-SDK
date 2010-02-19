@@ -10,6 +10,7 @@ import TaskTree
 import RPC
 
 from SessionDB	import :: Session
+from ProcessDB	import :: Process
 from Config		import :: Config(..)
 from Store		import :: Store(..)
 from Time		import :: Timestamp(..)
@@ -31,7 +32,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
 						
 					, doChange		:: !Bool											// Apply change
-					, changes		:: ![Maybe (!ChangeLifeTime, !DynamicId, !Dynamic)]	// Active changes
+					, changes		:: ![Maybe (!ChangeLifeTime,!ChangeId,!Dynamic)]	// Active changes
 					
 					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
@@ -42,28 +43,18 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, world			:: !*World											// The world
 					}
 
-:: StaticInfo	=	{ appName			:: String								// the name of the server executable
-					, currentProcessId	:: !ProcessId							// the id of the current process
-					, currentSession	:: Session								// the current session			
-					, staticWorkflows	:: ![Workflow]							// the list of workflows supported by the application				
+:: StaticInfo	=	{ appName			:: String										// the name of the server executable
+					, currentProcessId	:: !ProcessId									// the id of the current process
+					, currentSession	:: Session										// the current session			
+					, staticWorkflows	:: ![Workflow]									// the list of workflows supported by the application				
 					}
-
-
 
 // A workflow specification
-:: Workflow		=	{ name			:: !String									// a unique name of this workflow
-					, label			:: !String									// a label that will be used for displaying
-					, roles			:: ![String]								// the roles that are allowed to initate this workflow
-					, mainTask		:: Task Void								// the main task of the workflow
+:: Workflow		=	{ name			:: !String											// a unique name of this workflow
+					, label			:: !String											// a label that will be used for displaying
+					, roles			:: ![String]										// the roles that are allowed to initate this workflow
+					, mainTask		:: Task Void										// the main task of the workflow
 					}
-
-// A change function which may be used to change tasks at runtime
-:: Change a :== (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic))
-
-// Changes may be applied only once, or persist for future changes
-:: ChangeLifeTime	= CLTransient
-					| CLPersistent !String
-
 /**
 * Creates an initial task state.
 *
@@ -87,11 +78,23 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !
 * @param Start as toplevel, or as subtask of another task (parent information is read from the task state)
 * @param The task state
 *
-* @param The process id of the instance
-* @param The modified task state
+* @return The process id of the new instance
+* @return The result of the first run
+* @return The modified task state
 */
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!ProcessId, !*TSt) | iTask a
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!TaskResult a, !ProcessId, !*TSt) | iTask a
 
+/**
+* Evaluates an existing task instance
+*
+* @param Process information from the process database
+* @param Optionally a new Change that is to be applied to this task instance
+* @param Is the instance evaluated as top node, or as subnode while evaluating a parent process
+* @param The task state
+*
+* @return The modified task state
+*/
+evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
 /**
 * Calculates a single task tree for a given process id
 *
@@ -164,8 +167,8 @@ getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 /**
 * Get the id of the current process in the TSt
 */
-
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
+
 /**
 * Extract the calculated task forest data structure from the TSt
 */
@@ -310,8 +313,8 @@ getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
 /**
 * Store and load the result of a workflow instance
 */
-loadProcessResult		:: !TaskNr 					!*TSt -> (!Maybe a, !*TSt) | TC a
-storeProcessResult		:: !TaskNr !Dynamic			!*TSt -> *TSt
+loadProcessResult		:: !TaskNr 							!*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
+storeProcessResult		:: !TaskNr !(TaskResult Dynamic)	!*TSt -> *TSt
 
 /**
 * Removes all events for the current task. This is automatically called by applyTask
@@ -377,10 +380,3 @@ taskNrToString		:: !TaskNr 					-> String
 * @return The task's label
 */
 taskLabel			:: !(Task a)				-> String
-
-//Should not be public!
-createTaskThread			:: !(Task a) -> (*TSt -> *(!TaskResult Dynamic,!*TSt)) | iTask a
-storeTaskThread				:: !TaskNr !(*TSt -> *(!TaskResult Dynamic,!*TSt)) !*TSt -> *TSt
-loadTaskThread				:: !TaskNr !*TSt -> (*TSt -> *(!TaskResult Dynamic,!*TSt), !*TSt)
-loadTaskFunctionStatic 		:: !TaskNr !*TSt -> (!Maybe (Task a),       !*TSt) | TC a
-storeTaskFunctionStatic 	:: !TaskNr !(Task a)       !*TSt -> *TSt | TC a

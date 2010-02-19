@@ -5,7 +5,7 @@ definition module ProcessDBTasks
 import StdMaybe
 from TSt		import :: Task
 from ProcessDB	import :: ProcessStatus(..), :: Process(..)
-from Types		import :: ProcessId, :: ProcessRef, :: DynamicId, :: TaskId
+from Types		import :: ProcessId, :: ProcessRef, :: TaskId
 from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress
 from Time		import :: Timestamp 
 

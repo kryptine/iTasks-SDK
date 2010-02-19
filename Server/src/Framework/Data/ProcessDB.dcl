@@ -11,17 +11,18 @@ from Time		import :: Timestamp
 /**
 * Our local process type
 */
-:: Process 		= {	processId		:: !ProcessId				// The process identification				  
-				  , status			:: !ProcessStatus			// The status of the process (updated after each run)
-				  , parent			:: !ProcessId				// The (direct) parent process
-				  , properties		:: !TaskProperties			// The properties of the main task node of this process
-				  , changes			:: ![(String,DynamicId)]	// Optionally a list of labeled change functions
-				  , changeNr		:: !Int						// The number of task changes that have been applied
+:: Process 		= {	processId		:: !ProcessId					// The process identification				  
+				  , status			:: !ProcessStatus				// The status of the process (updated after each run)
+				  , parent			:: !ProcessId					// The (direct) parent process
+				  , properties		:: !TaskProperties				// The properties of the main task node of this process
+				  , changes			:: ![(!ChangeLabel,!ChangeId)]	// Optionally a list of labeled changes
+				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  }				
 
 :: ProcessStatus =	Active
 				 |	Suspended
 				 |	Finished
+				 |	Excepted
 				 |	Deleted
 				 
 class ProcessDB st

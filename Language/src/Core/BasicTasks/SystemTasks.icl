@@ -18,10 +18,6 @@ from ProcessDB import :: Process{..}, :: ProcessStatus(..)
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB TSt
 
-from DynamicDB import :: DynamicId
-from DynamicDB import qualified class DynamicDB(..)
-from DynamicDB import qualified instance DynamicDB TSt
-
 from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
@@ -44,12 +40,11 @@ where
 		# (d,tst) = accWorldTSt defaultValue tst
 		= (TaskFinished d,tst)
 		
-//BUG: username is not used what's happening here?		
 spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
-	spawnProcess` tst=:{TSt|mainTask,staticInfo}
-		# user			= staticInfo.currentSession.user
+	spawnProcess` tst=:{TSt|mainTask}
+		# (user,tst)	= UserDB@getUser username tst
 		# properties	=
 			{ TaskManagerProperties
 			| worker	= (user.User.userName,user.User.displayName)
@@ -57,7 +52,7 @@ where
 			, priority	= NormalPriority
 			, deadline	= Nothing
 			}
-		# (pid,tst)			= TSt@createTaskInstance task properties True tst
+		# (result,pid,tst)			= TSt@createTaskInstance task properties True tst
 		= (TaskFinished (ProcessRef pid), tst)
 	
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
@@ -69,8 +64,10 @@ where
 			Just {Process | processId, status}
 				= case status of
 					Finished
-						# (mbResult,tst)			= loadProcessResult (taskNrFromString pid) tst
-						= (TaskFinished mbResult,tst)
+						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst
+						= case mbResult of
+							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)
+							_								= (TaskFinished Nothing, tst) //Ignore all other cases
 					_	
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
