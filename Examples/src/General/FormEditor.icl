@@ -50,13 +50,17 @@ actions ((name,form),mode)
 	=	[ (ActionNew,					always)
 		, (ActionOpen,					always)
 		, (ActionOpenValue,				always)
-		, (ActionSave,					\_ _ -> name <> "")
-		, (ActionSaveAs,				\_ _ -> name <> "")
+		, (ActionSave,					\_ _ -> name <> "" && testType form.formDyn)
+		, (ActionSaveAs,				\_ _ -> name <> "" && testType form.formDyn)
 		, (ActionQuit,					always)
 		, (ActionShowAbout,				always)
 		, (ActionEditType,				\_ _ -> mode === EditValue)
 		, (ActionEditValue,				\_ _ -> mode === EditType && not (isEmpty form.formShape))
 		]
+where
+	testType (v :: T a a) = True
+	testType _ = False
+
 
 handleMenu :: Task Void
 handleMenu 
@@ -65,7 +69,7 @@ handleMenu
 doMenu state=:((name,form), mode)
 		=	case mode of
 				NoEdit 		->							updateInformationA title1 [] [] (actions state) Void 
-								>>= \(action,_) ->		return (action,((name,form),mode))
+								>>= \(action,_) ->		return (action,state)
 				EditType 	->							updateInformationA title2 [] [ActionOk] (actions state) form.formShape
 								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
 				EditValue 	->							editValue state

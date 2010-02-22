@@ -6,59 +6,69 @@ import	FlowData, FormFlowStorage, TaskContainer
 from 	StdFunc import o
 				
 flowEditor :: Workflow
-flowEditor = workflow "Interactive Workflows/Flow Editor" noFlow
+flowEditor = workflow "Interactive Workflows/Flow Editor" handleMenu
 
+emptyState = (("",emptyFlow),False)
 
 // ****************************
 
-New 		:== ActionLabel "New"
-Exit 		:== ActionLabel "Exit"
-Read 		:== ActionLabel "Read"
-Store 		:== ActionLabel "Store"
-StoreAs		:== ActionLabel "Store As..."
-Check 		:== ActionLabel "Type Check"
-Refresh		:== ActionLabel "Refresh"
+initMenu :: Task Void
+initMenu 
+	= setMenus
+		[ Menu "File"	[ MenuItem "New"			ActionNew
+						, MenuItem "Open..."		ActionOpen
+						, MenuSeparator
+						, MenuItem "Save"			ActionSave
+						, MenuItem "Save As..."		ActionSaveAs
+						, MenuSeparator
+						, MenuItem "Quit"			ActionQuit
+						]
+		, Menu "Help"	[ MenuItem "About"			ActionShowAbout 
+						]
+		]
 
-noFlow :: Task Void
-noFlow 
-	=					showMessageA "FLOW Editor, Welcome..." [New, Read, Exit] []
-		>>= \choice -> 	case choice of
-						 	New		-> newFlowName emptyFlow >>= editFlowShape
-						 	Read	-> chooseFlow >>= editFlowShape	
-						 	_		-> return Void
+actions ((name,flow), mode)
+	=	[ (ActionNew,					always)
+		, (ActionOpen,					always)
+		, (ActionSave,					\_ _ -> name <> "" && validType flow.flowDyn)
+		, (ActionSaveAs,				\_ _ -> name <> "" && validType flow.flowDyn)
+		, (ActionQuit,					always)
+		, (ActionShowAbout,				always)
+		]
 
-editFlowShape :: !(!String, !Flow) -> Task Void 
-editFlowShape (name, flow)
-	=					updateInformationA ("FLOW Editor of: " +++ name +++ "::" +++ showDynType flow.flowDyn) [New, Exit, Read] [Check, ActionNext] [] flow.flowShape 
-	 >>= \(choice,flowShape) -> 
-			case choice of
-				New			-> newFlowName emptyFlow >>= editFlowShape
-				Read		-> chooseFlow >>= editFlowShape
-				Check		-> try (flowShapeToFlow flowShape) (errorRaised flowShape) >>= \flow -> editFlowShape (name, flow)
-				ActionNext	-> try  (flowShapeToFlow flowShape 		   >>= \flow -> finalizeFlow (name,flow)) 
-									(\s -> errorRaised flowShape s >>= \flow -> editFlowShape (name, flow))
-				_			-> return Void
+handleMenu :: Task Void
+handleMenu 
+	=	initMenu >>| doMenu emptyState
 
+doMenu state=:((name,flow), mode)
+		=	case mode of
+				False 		->							updateInformationA title1 [] [] (actions state) Void 
+								>>= \(action,_) ->		return (action,state)
+				True 	->								updateInformationA title2 [] [ActionOk] (actions state) flow.flowShape
+								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))
+			>>= switchAction
+where
+	title1 = "No flow..."
+	title2 = "Define type of flow: \"" +++ name +++ "\" " +++ if (validType flow.flowDyn) (showDynType flow.flowDyn) (", Type is *not* ok")
+
+switchAction (action, (nameflow=:(name,flow),mode))
+	=	case action of
+			ActionNew		-> 	newFlowName emptyFlow 	>>= \nameflow -> doMenu (nameflow,True)	
+			ActionOpen		->	chooseFlow 				>>= \(name,flow) -> if (name == "")
+																				(doMenu (nameflow,False))
+																				(doMenu ((name,flow),True))
+			ActionSave		->	storeFlow nameflow 	>>= \nameflow -> doMenu (nameflow,mode)
+			ActionSaveAs	->	newFlowName flow 		>>= \nameflow -> doMenu (nameflow,mode)
+			ActionQuit		->	return Void
+			ActionShowAbout	->	showAbout 				>>| doMenu (nameflow,mode)
+			ActionOk		->	try (flowShapeToFlow flow.flowShape) (errorRaised flow.flowShape) >>= \flow -> doMenu ((name,flow), mode)
 where
 	errorRaised :: [FlowShape] String -> Task Flow
 	errorRaised flowShape s
 		=					showMessage ("Type Error: " +++ s) >>| return {flow & flowShape = flowShape}	
-				
-
-finalizeFlow :: !(!String, !Flow) -> Task Void 
-finalizeFlow (name, flow)
-	=					showMessageA ("You may now store flow *" +++ name +++ "* :: " +++ showDynType flow.flowDyn) [ActionPrevious, Store, StoreAs, Exit] []
-	 >>= \(choice) -> 
-			case choice of
-				New				-> newFlowName emptyFlow >>= editFlowShape
-				Read			-> chooseFlow >>= editFlowShape
-				ActionPrevious	-> editFlowShape (name, flow)
-				Store			-> storeFlow (name, flow) >>= editFlowShape
-				StoreAs			-> newFlowName flow >>= editFlowShape
-				_				-> return Void
 
 
-
-
+showAbout
+	= showMessage "Flow editor 0.1 - feb 2010"
 
 

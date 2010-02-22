@@ -32,7 +32,7 @@ derive bimap		Maybe, (,)
 
 emptyForm :: Form
 emptyForm 		= 	{ formShape = []
-					, formDyn = dynamic T Void :: T Void Void
+					, formDyn = dynamic "Form empty" :: String
 					}
 
 formShapeToFormDyn :: [FormShape] -> Task Dynamic

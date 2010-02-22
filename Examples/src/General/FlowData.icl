@@ -37,7 +37,7 @@ derive bimap	Maybe, (,)
 
 emptyFlow :: Flow
 emptyFlow 		= 	{ flowShape = []
-					, flowDyn = dynamic T  Void :: T Void Void
+					, flowDyn = dynamic "Flow not initialized" :: String
 					}
 
 flowShapeToFlow :: ![FlowShape] -> Task Flow
@@ -47,28 +47,29 @@ flowShapeToFlow flowShape
 							(return {flowShape = flowShape, flowDyn = flowDyn}) 
 							(throw (typeErrorMess "not a legal workflow, " flowDyn))
 		>>|				return {flowShape = flowShape, flowDyn = flowDyn}
-where
-	validType :: Dynamic -> Bool
-	validType (T x :: T (Task a) a) 												= True
-	validType (T x :: T (a -> Task a) a) 											= True
-	validType (T x :: T (a -> Task b) b) 											= True
 
-	validType (f :: A.a: 		a -> Task a 		| iTask a) 						= True
-	validType (f :: A.a: 		a -> Task (t a) 	| iTask a)						= True
-	validType (f :: A.a: 		a -> Task (t a a) 	| iTask a)						= True
-	validType (f :: A.a b: 		a -> Task (t a b) 	| iTask a & iTask b ) 			= True
-	validType (f :: A.a: 		a -> Task (t a a a) | iTask a)						= True
-	validType (f :: A.a b c: 	a -> Task (t a b c)	| iTask a & iTask b & iTask c) 	= True
 
-	validType (f :: A.a: 		a -> Task Void) 									= True
-	validType (f :: A.a: 		a -> Task Int) 										= True
-	validType (f :: A.a: 		a -> Task Real) 									= True
-	validType (f :: A.a: 		a -> Task Bool) 									= True
-	validType (f :: A.a: 		a -> Task String) 									= True
+validType :: Dynamic -> Bool
+validType (T x :: T (Task a) a) 												= True
+validType (T x :: T (a -> Task a) a) 											= True
+validType (T x :: T (a -> Task b) b) 											= True
 
-	validType (f :: A.a: (Task a) -> Task a | iTask a) 								= True
+validType (f :: A.a: 		a -> Task a 		| iTask a) 						= True
+validType (f :: A.a: 		a -> Task (t a) 	| iTask a)						= True
+validType (f :: A.a: 		a -> Task (t a a) 	| iTask a)						= True
+validType (f :: A.a b: 		a -> Task (t a b) 	| iTask a & iTask b ) 			= True
+validType (f :: A.a: 		a -> Task (t a a a) | iTask a)						= True
+validType (f :: A.a b c: 	a -> Task (t a b c)	| iTask a & iTask b & iTask c) 	= True
 
-	validType d																		= False
+validType (f :: A.a: 		a -> Task Void) 									= True
+validType (f :: A.a: 		a -> Task Int) 										= True
+validType (f :: A.a: 		a -> Task Real) 									= True
+validType (f :: A.a: 		a -> Task Bool) 									= True
+validType (f :: A.a: 		a -> Task String) 									= True
+
+validType (f :: A.a: (Task a) -> Task a | iTask a) 								= True
+
+validType d																		= False
 	
 		
 flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic  
