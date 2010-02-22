@@ -14,7 +14,7 @@ Exit 		:== ActionLabel "Exit"
 
 loopStart :: Task Void
 loopStart
-	=	enterInformationA "Press start to run a stored workflow..." [] [StartFlow, Exit]
+	=	enterInformationA "Press start to run a stored workflow..." [] [StartFlow, Exit] []
 		>>= \(choice,Void) ->	
 			case choice of
 				StartFlow	-> startFlow	>>| loopStart 

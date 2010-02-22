@@ -36,7 +36,7 @@ showAll :: Task Void
 showAll
 	=						readAllForms
 		>>= \allForms 	->	readAllFlows
-		>>= \allFlows	->	showMessageAboutA "Stored definitions:" [Refresh, Exit] (myForm allForms ++ myFlows allFlows) 
+		>>= \allFlows	->	showMessageAboutA "Stored definitions:" [Refresh, Exit] [] (myForm allForms ++ myFlows allFlows) 
 		>>= \choice		->	case choice of
 								Refresh	->	showAll
 								_		->	return Void
@@ -99,7 +99,7 @@ chooseForm
 		>>= \all ->			let names = [showName this \\ this <- all] in
 								case names of
 								 [] ->					updateInformation "No Forms stored !" Void
-								 		>>|				return ("Temp", emptyForm)
+								 		>>|				return ("", emptyForm)
 								 names ->				enterChoice "Choose Form you want to use:" names
 										>>= \choice ->	return (hd [(this.formName, this.form) \\ this <- all | showName this == choice])
 where

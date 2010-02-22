@@ -21,7 +21,7 @@ Refresh		:== ActionLabel "Refresh"
 
 noFlow :: Task Void
 noFlow 
-	=					showMessageA "FLOW Editor, Welcome..." [New, Read, Exit]
+	=					showMessageA "FLOW Editor, Welcome..." [New, Read, Exit] []
 		>>= \choice -> 	case choice of
 						 	New		-> newFlowName emptyFlow >>= editFlowShape
 						 	Read	-> chooseFlow >>= editFlowShape	
@@ -29,7 +29,7 @@ noFlow
 
 editFlowShape :: !(!String, !Flow) -> Task Void 
 editFlowShape (name, flow)
-	=					updateInformationA ("FLOW Editor of: " +++ name +++ "::" +++ showDynType flow.flowDyn) [New, Exit, Read] [Check, ActionNext] flow.flowShape 
+	=					updateInformationA ("FLOW Editor of: " +++ name +++ "::" +++ showDynType flow.flowDyn) [New, Exit, Read] [Check, ActionNext] [] flow.flowShape 
 	 >>= \(choice,flowShape) -> 
 			case choice of
 				New			-> newFlowName emptyFlow >>= editFlowShape
@@ -47,7 +47,7 @@ where
 
 finalizeFlow :: !(!String, !Flow) -> Task Void 
 finalizeFlow (name, flow)
-	=					showMessageA ("You may now store flow *" +++ name +++ "* :: " +++ showDynType flow.flowDyn) [ActionPrevious, Store, StoreAs, Exit]
+	=					showMessageA ("You may now store flow *" +++ name +++ "* :: " +++ showDynType flow.flowDyn) [ActionPrevious, Store, StoreAs, Exit] []
 	 >>= \(choice) -> 
 			case choice of
 				New				-> newFlowName emptyFlow >>= editFlowShape

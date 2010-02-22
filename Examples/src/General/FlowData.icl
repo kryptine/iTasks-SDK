@@ -35,7 +35,6 @@ derive bimap	Maybe, (,)
 				|	VoidVal
 				|	CE String
 
-
 emptyFlow :: Flow
 emptyFlow 		= 	{ flowShape = []
 					, flowDyn = dynamic T  Void :: T Void Void
@@ -140,7 +139,7 @@ translate (CleanExpr (CI i))		= return (dynamic T (return i) :: T (Task Int) Int
 translate (CleanExpr (CR r))		= return (dynamic T (return r) :: T (Task Real) Real) 
 translate (CleanExpr (CB b))		= return (dynamic T (return b) :: T (Task Bool) Bool) 
 translate (CleanExpr (CS s))		= return (dynamic T (return s) :: T (Task String) String) 
-translate (CleanExpr VoidVal )	= return (dynamic T (return Void) :: T (Task Void) Void) 
+translate (CleanExpr VoidVal )		= return (dynamic T (return Void) :: T (Task Void) Void) 
 translate (CleanExpr (CE s))		= interpret s
 
 applyDynFlows :: ![Dynamic] -> Dynamic 
@@ -165,8 +164,8 @@ applyFlows (T ta :: T (Task a) a)  [(T tb :: T (Task b) b): dyns]
 applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task b | iTask b): dyns]
 	= applyFlows (dynamic \a -> ta a >>= tb :: A.a: a -> Task a | iTask a) dyns
 
-//applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task Void): dyns]
-//	= applyFlows (dynamic \a -> ta a >>= tb :: A.c: c -> Task Void) dyns
+//applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task Void): dyns]		// gives crash in compiler ????
+//	= applyFlows (dynamic \a -> ta a >>= tb :: A.a: a -> Task Void | iTask a) dyns
 
 applyFlows (tt :: A.a: (Task a) -> Task a | iTask a)  [(T ta :: T (Task a) a): dyns] 
 	= applyFlows (dynamic T (tt ta) :: T (Task a) a) dyns

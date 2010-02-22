@@ -2,57 +2,103 @@ implementation module FormEditor
  
 import 	iTasks, CommonDomain
 from	EstherBackend import toStringDynamic
-				
-import FormData, FormFlowStorage, TaskContainer
+from	StdFunc	import o				
+import 	FormData, FormFlowStorage, TaskContainer, GenEq
 
 formEditor :: Workflow
-formEditor = workflow "Interactive Workflows/Form Editor" noForm
+formEditor = workflow "Interactive Workflows/Form Editor" handleMenu
 
 // ****************************
 
-Exit 		:== ActionLabel "Exit"
-New 		:== ActionLabel "New"
-Read 		:== ActionLabel "Read"
-ReadForm	:== ActionLabel "Read Form"
-ReadShape	:== ActionLabel "Read Shape"
-Refresh		:== ActionLabel "Refresh"
-Store 		:== ActionLabel "Store"
-StoreAs 	:== ActionLabel "Store As..."
+:: State 	:== (!(!String,!Form),!Mode)
+:: Mode		=	EditType | EditValue | NoEdit
 
-noForm :: Task !Void
-noForm 
-	=					showMessageA "FORM Editor, Welcome..." [New, ReadShape, ReadForm, Exit]
-		>>= \choice -> 	case choice of
-						 	New			-> newFormName emptyForm >>= editFormShape
-						 	ReadForm	-> chooseForm >>= editForm	
-						 	ReadShape	-> chooseForm >>= editFormShape	
-						 	Exit		-> return Void
+emptyState = (("",emptyForm),NoEdit)
+setShape  ((name,form),mode) shape = ((name,{form & formShape = shape}),mode)
 
-editFormShape :: !(!String, !Form) -> Task Void 
-editFormShape (name, form)
-	=					updateInformationA ("FORM SHAPE Editor of form *" +++ name +++ "* :") [New, ReadShape, Exit] [ActionNext] form.formShape 
-	 >>= \(choice,formShape) -> 
-			case choice of
-				ActionNext	-> 					formShapeToFormDyn formShape 
-								>>= \formDyn -> editForm (name, {formShape = formShape, formDyn = formDyn})
-				New			-> newFormName emptyForm >>= editFormShape
-				ReadShape	-> chooseForm >>= editFormShape
-				_			-> return Void
+derive	gEq 		Mode
+derive	gPrint		Mode
+derive	gParse		Mode
+derive	gUpdate		Mode
+derive	gVisualize	Mode
+derive	bimap		Maybe, (,)
 
-editForm :: !(!String, !Form) -> Task Void 
-editForm (name,form=:{formDyn = (T v :: T a a)})
-	=		updateInformationA ("FORM Editor of form *" +++ name +++ "* :") [ActionPrevious] [New, ReadForm, Store, StoreAs, Exit] v 
-	 	>>= editForm2 
+ActionEditType	:== ActionLabel "Edit Type"
+ActionEditValue	:== ActionLabel "Edit Value"
+ActionOpenValue	:== ActionLabel "Open Value"
+
+initMenu :: Task Void
+initMenu 
+	= setMenus
+		[ Menu "File"	[ MenuItem "New"			ActionNew
+						, MenuItem "Open..."		ActionOpen
+						, MenuItem "Open Value..."	ActionOpenValue
+						, MenuSeparator
+						, MenuItem "Save"			ActionSave
+						, MenuItem "Save As..."		ActionSaveAs
+						, MenuSeparator
+						, MenuItem "Quit"			ActionQuit
+						]
+		, Menu "Edit"	[ MenuItem "Edit Type"		ActionEditType
+						, MenuItem "Edit Value"		ActionEditValue
+						]
+		, Menu "Help"	[ MenuItem "About"			ActionShowAbout 
+						]
+		]
+
+actions ((name,form),mode)
+	=	[ (ActionNew,					always)
+		, (ActionOpen,					always)
+		, (ActionSave,					\_ _ -> name <> "")
+		, (ActionSaveAs,				\_ _ -> name <> "")
+		, (ActionQuit,					always)
+		, (ActionShowAbout,				always)
+		, (ActionEditType,				\_ _ -> mode === EditValue)
+		, (ActionEditValue,				\_ _ -> mode === EditType && not (isEmpty form.formShape))
+		]
+
+handleMenu :: Task Void
+handleMenu 
+	=	initMenu >>| doMenu emptyState
+
+doMenu state=:((name,form), mode)
+		=	case mode of
+				NoEdit 		->							updateInformationA title1 [] [] (actions state) Void 
+								>>= \(action,_) ->		return (action,((name,form),mode))
+				EditType 	->							updateInformationA title2 [] [ActionOk] (actions state) form.formShape
+								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
+				EditValue 	->							editValue state
+			>>= switchAction
 where
-	editForm2 :: (Action,a) -> Task Void | iTask a
-	editForm2 (choice,nv) 
-	# form2 = {form & formDyn = dynamic T nv :: T a^ a^} 
-	= case choice of
-			ActionPrevious	-> editFormShape (name, form)
-			New				-> newFormName emptyForm >>= editForm
-			ReadForm		-> chooseForm	>>= editForm
-			Store			-> storeForm (name,form2) >>= editForm
-			StoreAs			-> newFormName form2 >>= editForm
-			_				-> return Void
+	editValue state=:((name,form=:{formDyn = T v :: T a a}), mode)  
+		=							updateInformationA title3 [] [ActionOk] (actions state) v
+			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic T nv :: T a^ a^}),mode))
 
+	title1 = "No form..."
+	title2 = "Define type of form: \"" +++ name +++ "\""
+	title3 = "Define initial value of form: \"" +++ name +++ "\""
+	
+switchAction (action, (nameform=:(name,form),mode))
+	=	case action of
+			ActionNew		-> 	newFormName emptyForm 	>>= \nameform -> doMenu (nameform,EditType)	
+			ActionOpen		->	chooseForm 				>>= \(name,form) -> if (name == "")
+																				(doMenu (nameform,mode))
+																				(doMenu ((name,form),EditType))
+			ActionOpenValue	->	chooseForm 				>>= \(name,form) -> if (name == "")
+																				(doMenu (nameform,mode))
+																				(doMenu ((name,form),EditValue))
+			ActionSave		->	storeForm nameform 	>>= \nameform -> doMenu (nameform,mode)
+			ActionSaveAs	->	newFormName form 		>>= \nameform -> doMenu (nameform,mode)
+			ActionQuit		->	return Void
+			ActionShowAbout	->	showAbout 				>>| doMenu (nameform,mode)
+			ActionEditType	->	doMenu (nameform, EditType)
+			ActionEditValue	->							formShapeToFormDyn form.formShape 
+								>>= \formDyn ->			doMenu ((name,{form & formDyn = formDyn}), EditValue)
+			ActionOk		->	doMenu (nameform, mode)
 
+storeMyForm (name,form)
+	=					formShapeToFormDyn form.formShape 
+		>>= \formDyn -> storeForm (name,{form & formDyn = formDyn})
+
+showAbout
+	= showMessage "Form editor 0.1 - feb 2010"
