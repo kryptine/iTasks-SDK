@@ -1,6 +1,6 @@
 implementation module ProcessDB
 
-import StdEnv, StdGeneric, StdMaybe
+import StdEnv, StdGeneric, StdMaybe, GenEq
 import TSt, Store, Util
 
 instance == ProcessStatus
@@ -107,7 +107,7 @@ where
 		# (ok,tst)  = deleteProcess p.Process.processId tst
 		# tst		= deleteTaskStates (taskNrFromString p.Process.processId) tst
 		| ok 		= removeFinishedProcesses` ps tst
-		| otherwise = (False,tst) 
+		| otherwise = (False,tst)
 
 processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
 processStore fn tst=:{TSt|dataStore,world}
@@ -122,3 +122,17 @@ maxPid db = foldr max 0 (map (last o taskNrFromString) [processId \\ {Process|pr
 getNewPid :: ![Process] !Process -> ProcessId
 getNewPid db entry = (toString(inc(maxPid db)))
 
+derive gVisualize	Action
+derive gUpdate		Action
+derive gPrint		Action
+derive gParse		Action
+derive gEq			Action
+
+derive bimap Maybe, (,)
+
+instance == Action
+where
+	(==) :: !Action !Action -> Bool
+	(==) (ActionParam label0 param0) (ActionParam label1 param1)
+		= label0 == label1 && (param0 == param1 || param0 == "?")
+	(==) a b = gEq{|*|} a b

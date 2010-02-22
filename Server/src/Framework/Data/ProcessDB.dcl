@@ -17,6 +17,7 @@ from Time		import :: Timestamp
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
 				  , changes			:: ![(!ChangeLabel,!ChangeId)]	// Optionally a list of labeled changes
 				  , changeCount		:: !Int							// The number of task changes that have been applied
+				  , menus			:: !(Maybe [Menu])
 				  }				
 
 :: ProcessStatus =	Active
@@ -25,6 +26,27 @@ from Time		import :: Timestamp
 				 |	Excepted
 				 |	Deleted
 				 
+:: Action
+	= ActionLabel !String
+	| ActionParam !String !String
+	| ActionIcon !String !String
+	| ActionOk
+	| ActionCancel
+	| ActionYes
+	| ActionNo
+	| ActionNext
+	| ActionPrevious
+	| ActionFinish
+	| ActionNew
+	| ActionOpen
+	| ActionSaveAs
+	| ActionSave
+	| ActionQuit
+	| ActionShowAbout
+
+:: Menu = Menu !String ![MenuItem]
+:: MenuItem = SubMenu !String ![MenuItem] | MenuItem !String !Action | MenuSeparator | MenuName !String !MenuItem
+
 class ProcessDB st
 where
 	createProcess			:: !Process														!*st -> (!ProcessId,	!*st)
@@ -46,3 +68,8 @@ where
 instance ProcessDB TSt
 instance toString ProcessStatus
 instance == ProcessStatus
+instance == Action
+derive gPrint Action
+derive gVisualize Action
+derive gUpdate Action
+derive gParse Action

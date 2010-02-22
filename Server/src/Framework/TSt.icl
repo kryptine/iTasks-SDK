@@ -118,6 +118,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		, properties	= properties
 		, changes		= []
 		, changeCount	= 0
+		, menus			= Nothing
 		}
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
@@ -126,7 +127,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 	//Store the runnable theread
 	# tst					= storeTaskThread (taskNrFromString processId) (createTaskThread task) tst	
 	//Evaluate the process once to kickstart automated steps that can be set in motion immediately
-	# (result,tree,tst)		= evaluateTaskInstance {Process|process & processId = processId} Nothing toplevel tst
+	# (result,tree,tst)		= evaluateTaskInstance {Process|process & processId = processId} Nothing toplevel {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
 	= case result of
 		TaskBusy				= (TaskBusy, processId, tst)
 		TaskFinished (a :: a^)	= (TaskFinished a, processId, tst)
@@ -176,7 +177,7 @@ where
 	resetTSt processId properties tst
 		# taskNr	= taskNrFromString processId
 		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = ""} properties []
-		= {TSt| tst & taskNr = taskNr, tree = tree}
+		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}}
 
 calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree processId tst
@@ -472,7 +473,7 @@ mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given") []}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
@@ -614,23 +615,29 @@ where
 		_							= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode (TTInteractiveTask ti defs)	= TTInteractiveTask	ti defs
-	updateTaskNode (TTMonitorTask ti status)	= TTMonitorTask		ti status
-	updateTaskNode (TTSequenceTask ti tasks) 	= TTSequenceTask	ti (reverse tasks)
-	updateTaskNode (TTParallelTask ti tasks)	= TTParallelTask	ti (reverse tasks)
-	updateTaskNode (TTMainTask ti mti tasks)	= TTMainTask		ti mti (reverse tasks)		
-	updateTaskNode (TTRpcTask ti rpci)			= TTRpcTask			ti rpci
+	updateTaskNode (TTInteractiveTask ti defs accA)	= TTInteractiveTask	ti defs accA
+	updateTaskNode (TTMonitorTask ti status)		= TTMonitorTask		ti status
+	updateTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
+	updateTaskNode (TTParallelTask ti tasks)		= TTParallelTask	ti (reverse tasks)
+	updateTaskNode (TTMainTask ti mti tasks)		= TTMainTask		ti mti (reverse tasks)		
+	updateTaskNode (TTRpcTask ti rpci)				= TTRpcTask			ti rpci
 		
 setTUIDef	:: !TUIDef !*TSt -> *TSt
 setTUIDef def tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)			= {tst & tree = TTInteractiveTask info (Left def)}
+		(TTInteractiveTask info _ acts)		= {tst & tree = TTInteractiveTask info (Left def) acts}
 		_									= tst
 
 setTUIUpdates :: ![TUIUpdate] !*TSt -> *TSt
 setTUIUpdates upd tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)			= {tst & tree = TTInteractiveTask info (Right upd)}
+		(TTInteractiveTask info _ acts)		= {tst & tree = TTInteractiveTask info (Right upd) acts}
+		_									= tst
+		
+setAccActions :: ![(Action,Bool)] !*TSt -> *TSt
+setAccActions actions tst=:{tree}
+	= case tree of
+		(TTInteractiveTask info def _)		= {tst & tree = TTInteractiveTask info def actions}
 		_									= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt

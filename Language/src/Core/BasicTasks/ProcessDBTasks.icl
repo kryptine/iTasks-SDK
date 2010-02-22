@@ -3,7 +3,7 @@ implementation module ProcessDBTasks
 import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList
 import TSt
 
-from ProcessDB import :: Process{..}, :: ProcessStatus(..)
+from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: Menu
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB TSt
 

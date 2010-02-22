@@ -11,7 +11,7 @@ userAdministration
 
 createUserFlow :: Task Void
 createUserFlow
-	=	enterInformationA "Enter user information" [ActionCancel] [ActionOk]
+	=	enterInformationA "Enter user information" [ActionCancel] [ActionOk] []
 	>>=	\(action,user) -> case action of
 		ActionCancel	=	stop
 		ActionOk		=	createUser user
@@ -20,10 +20,10 @@ createUserFlow
 updateUserFlow :: Task Void
 updateUserFlow
 	=	getUsers
-	>>= enterChoiceA "Which user do you want to update?" [ActionCancel] [ActionNext]
+	>>= enterChoiceA "Which user do you want to update?" [ActionCancel] [ActionNext] []
 	>>= \(action1,user1) -> case action1 of
 		ActionCancel	=	stop
-		ActionNext		=	updateInformationA "Please make your changes" [ActionCancel] [ActionOk] user1
+		ActionNext		=	updateInformationA "Please make your changes" [ActionCancel] [ActionOk] [] user1
 						>>= \(action2,user2) -> case action2 of
 							ActionCancel	=	stop
 							ActionOk		=	updateUser user2
@@ -32,7 +32,7 @@ updateUserFlow
 deleteUserFlow :: Task Void
 deleteUserFlow
 	=	getUsers
-	>>=	enterMultipleChoiceA "Which users do you want to delete?" [ActionCancel,ActionOk]
+	>>=	enterMultipleChoiceA "Which users do you want to delete?" [ActionCancel,ActionOk] []
 	>>= \(action,users) -> case action of
 		ActionCancel	=	stop
 		ActionOk		=	allTasks [deleteUser user \\ user <- users]

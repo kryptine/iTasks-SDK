@@ -18,9 +18,10 @@ handleWorkTabRequest req tst=:{staticInfo}
 	= case tree of
 		(TTMainTask ti properties tasks)
 			# subject = [properties.managerProps.TaskManagerProperties.subject]
+			# (Just p=:{Process | menus}, tst) = getProcess taskId tst
 			# panel = case [t \\ t <- tasks | not (isFinished t)] of
 				[]	= if (allFinished tasks) TaskDone TaskRedundant
-				[t]	= buildTaskPanel t
+				[t] = buildTaskPanel t menus
 				_	= abort  "Multiple simultaneously active tasks in a main task!"
 			
 			// Collect debug information
@@ -120,6 +121,7 @@ where
 	, id			:: String
 	, taskId		:: String
 	, items			:: [TUIDef]
+	, tbar			:: Maybe [TUIDef]
 	}
 :: FormUpdate =
 	{ xtype			:: String
@@ -158,25 +160,76 @@ JSONEncode{|TaskPanel|} (TaskRedundant) c				= ["\"redundant\"" : c]
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 
-buildTaskPanel :: TaskTree -> TaskPanel
-buildTaskPanel (TTInteractiveTask ti (Left def))
-	= FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def]}
-buildTaskPanel (TTInteractiveTask ti (Right upd))
-	= FormUpdate {FormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = upd}	
-buildTaskPanel (TTMonitorTask ti html)
+buildTaskPanel :: TaskTree !(Maybe [Menu]) -> TaskPanel
+buildTaskPanel (TTInteractiveTask ti (Left def) acceptedA) menus
+	= FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], tbar = tbar}
+where
+	tbar = case menus of
+		Nothing		= Nothing
+		Just menus	= Just (fst (mkMenus [] menus 0))
+	mkMenus defs [Menu label items:menus] id
+		#(children,id) = mkMenuItems [] items id
+		= mkMenus [TUIMenuButton {TUIMenuButton | text = label, menu = {TUIMenu | items = children}, disabled = isEmpty children}:defs] menus id
+	mkMenus defs [] id = (reverse defs,id)
+	mkMenuItems _ _ id | isEmpty acceptedA = ([], id)
+	mkMenuItems defs [MenuItem label action:items] id
+		#accAction = filter (\(a,_) -> a == action) acceptedA
+		| isEmpty accAction	= mkMenuItems defs items (id + 1)
+		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id), text = label, name = Just "menu", value = Just (printToString action), disabled = not (snd (hd accAction)), menu = Nothing}:defs] items (id + 1)
+	mkMenuItems defs [SubMenu label sitems:items] id
+		#(children,id) = mkMenuItems [] sitems id
+		| isEmpty children	= mkMenuItems defs items id
+		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Nothing, text = label, menu = Just {TUIMenu | items = children}, disabled = False, name = Nothing, value = Nothing}:defs] items id
+	mkMenuItems defs [MenuSeparator:items] id = mkMenuItems ndefs items id
+	where
+		// add separators only where needed
+		ndefs = case defs of
+			[]						= defs
+			[TUIMenuSeparator:_]	= defs
+			_						= [TUIMenuSeparator:defs]
+	mkMenuItems defs [MenuName _ item:items] id = mkMenuItems defs [item:items] id
+	mkMenuItems	defs [] id = (reverse defs`,id)
+	where
+		// remove superfluous separator at end
+		defs` = case defs of
+			[TUIMenuSeparator:defs]	= defs
+			defs					= defs
+			
+buildTaskPanel (TTInteractiveTask ti (Right upd) acceptedA) menus
+	= FormUpdate {FormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = menuUpd}	
+where
+	menuUpd = case menus of
+		Nothing		= upd
+		Just menus	= fst (determineMenuUpd upd menus 0)
+	determineMenuUpd upd [Menu _ items:menus] id
+		#(upd,id) = determineItemUpd upd items id
+		= determineMenuUpd upd menus id
+	determineMenuUpd upd [] id = (upd,id)
+	determineItemUpd upd [SubMenu _ sitems:items] id
+		#(upd,id) = determineItemUpd upd sitems id
+		= determineItemUpd upd items id
+	determineItemUpd upd [MenuItem _ action:items] id
+		#accAction = filter (\(a,_) -> a == action) acceptedA
+		| isEmpty accAction	= determineItemUpd upd items (id + 1)
+		| otherwise			= determineItemUpd [TUISetEnabled (ti.TaskInfo.taskId +++ "-menu-" +++ toString id) (snd (hd accAction)):upd] items (id + 1)
+	determineItemUpd upd [MenuSeparator:items] id = determineItemUpd upd items id
+	determineItemUpd upd [MenuName _ item:items] id = determineItemUpd upd [item:items] id
+	determineItemUpd upd [] id = (upd,id)
+
+buildTaskPanel (TTMonitorTask ti html) _
 	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}
-buildTaskPanel (TTRpcTask ti rpc)
+buildTaskPanel (TTRpcTask ti rpc) _
 	= MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])}
-buildTaskPanel (TTMainTask ti mti _)
+buildTaskPanel (TTMainTask ti mti _) _
 	= MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}
-buildTaskPanel (TTSequenceTask ti tasks)
+buildTaskPanel (TTSequenceTask ti tasks) menus
 	= case [t \\ t <- tasks | not (isFinished t)] of
 		[]	= if (allFinished tasks) TaskDone TaskRedundant
-		[t]	= buildTaskPanel t
+		[t]	= buildTaskPanel t menus
 		_	= (abort "Multiple simultaneously active tasks in a sequence!")
-buildTaskPanel (TTParallelTask ti tasks)
-	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, items = [buildTaskPanel t \\ t <- tasks | not (isFinished t)]}
-buildTaskPanel (TTFinishedTask _)
+buildTaskPanel (TTParallelTask ti tasks) menus
+	= CombinationPanel {CombinationPanel| xtype = "itasks.task-combination", taskId = ti.TaskInfo.taskId, items = [buildTaskPanel t menus \\ t <- tasks | not (isFinished t)]}
+buildTaskPanel (TTFinishedTask _) _
 	= TaskDone
 
 isFinished :: TaskTree -> Bool

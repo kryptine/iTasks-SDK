@@ -46,6 +46,7 @@ instance toString TaskPriority
 // Tasks
 :: TaskNr			:== [Int]		// task nr i.j is administrated as [j,i]
 :: TaskId			:== String		// String serialization of TaskNr values
+:: MenuId			:== Int
 
 :: Task a 			= Task !TaskDescription !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
 :: TaskResult a		= TaskBusy

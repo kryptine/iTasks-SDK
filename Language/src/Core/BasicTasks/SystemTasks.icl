@@ -14,7 +14,7 @@ from Time	import :: Timestamp
 
 from UserDB	import qualified getUser
 
-from ProcessDB import :: Process{..}, :: ProcessStatus(..)
+from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: Menu
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB TSt
 

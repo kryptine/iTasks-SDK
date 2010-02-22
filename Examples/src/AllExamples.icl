@@ -28,6 +28,7 @@ import Newsgroups
 import ChangeHandling
 //import WebShop
 //import ideExample
+import textEditor
 
 //Crisis response examples
 import AmbulanceDispatch
@@ -53,6 +54,7 @@ where
 						, guiDemoExample
 						, bugReportExample
 						, coffeemachineExample
+						, textEditor
 						, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample

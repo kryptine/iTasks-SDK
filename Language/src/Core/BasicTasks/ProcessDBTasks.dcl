@@ -4,7 +4,7 @@ definition module ProcessDBTasks
 */
 import StdMaybe
 from TSt		import :: Task
-from ProcessDB	import :: ProcessStatus(..), :: Process(..)
+from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: Menu
 from Types		import :: ProcessId, :: ProcessRef, :: TaskId
 from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress
 from Time		import :: Timestamp 

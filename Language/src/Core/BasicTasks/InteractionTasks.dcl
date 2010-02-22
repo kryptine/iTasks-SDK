@@ -1,9 +1,10 @@
 definition module InteractionTasks
 
-from TSt	import :: Task
-from Types	import :: Role
-from Html	import :: HtmlTag
-from iTasks	import class iTask(..)
+from TSt		import :: Task
+from Types		import :: Role
+from Html		import :: HtmlTag
+from iTasks		import class iTask(..)
+from ProcessDB	import :: Action
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
 // This type class contains types that may be used as
@@ -18,71 +19,59 @@ where
 instance html String
 instance html [HtmlTag]
 
-//Action buttons, you can use those to specify interactions with multiple possible actions
-:: Action
-	= ActionLabel !String
-	| ActionIcon !String !String
-	| ActionOk
-	| ActionCancel
-	| ActionYes
-	| ActionNo
-	| ActionNext
-	| ActionPrevious
-	| ActionFinish
+:: ActionPredicate a :== a Bool -> Bool
 
-derive gVisualize	Action
-derive gUpdate		Action
-derive gPrint		Action
-derive gParse		Action
+always	:: ActionPredicate a | iTask a
+ifValid	:: ActionPredicate a | iTask a
 
 //*** Input tasks ***//
-enterInformation			:: question -> Task a											| html question & iTask a
-enterInformationA			:: question [Action] [Action] -> Task (!Action,!a)				| html question & iTask a
+enterInformation			:: question -> Task a																		| html question & iTask a
+enterInformationA			:: question [Action] [Action] [(Action,ActionPredicate a)] -> Task (!Action,!a)				| html question & iTask a
 
-updateInformation			:: question a -> Task a											| html question & iTask a
-updateInformationA			:: question [Action] [Action] a  -> Task (!Action,!a)			| html question & iTask a
+updateInformation			:: question a -> Task a																		| html question & iTask a
+updateInformationA			:: question [Action] [Action] [(Action,ActionPredicate a)] a  -> Task (!Action,!a)			| html question & iTask a
 
-enterInformationAbout		:: question b -> Task a											| html question & iTask a & iTask b
-enterInformationAboutA		:: question [Action] [Action] b -> Task (!Action,!a)			| html question & iTask a & iTask b
+enterInformationAbout		:: question b -> Task a																		| html question & iTask a & iTask b
+enterInformationAboutA		:: question [Action] [Action] [(Action,ActionPredicate a)] b -> Task (!Action,!a)			| html question & iTask a & iTask b
 
-updateInformationAbout		:: question b a -> Task a										| html question & iTask a & iTask b
-updateInformationAboutA		:: question [Action] [Action] b a  -> Task (!Action,!a)			| html question & iTask a & iTask b
+updateInformationAbout		:: question b a -> Task a																	| html question & iTask a & iTask b
+updateInformationAboutA		:: question [Action] [Action] [(Action,ActionPredicate a)] b a  -> Task (!Action,!a)		| html question & iTask a & iTask b
 
-requestConfirmation			:: question -> Task Bool										| html question
-requestConfirmationAbout	:: question a -> Task Bool										| html question & iTask a
+requestConfirmation			:: question -> Task Bool																	| html question
+requestConfirmationAbout	:: question a -> Task Bool																	| html question & iTask a
 
-enterChoice					:: question [a] -> Task a										| html question & iTask a
-enterChoiceA				:: question [Action] [Action] [a] -> Task (!Action,!a)			| html question & iTask a
+enterChoice					:: question [a] -> Task a																	| html question & iTask a
+enterChoiceA				:: question [Action] [Action] [(Action,ActionPredicate a)] [a] -> Task (!Action,!a)			| html question & iTask a
 
-updateChoice				:: question [a] Int -> Task a									| html question & iTask a
-updateChoiceA 				:: question [Action] [Action] [a] Int -> Task (!Action,!a)		| html question & iTask a 
+updateChoice				:: question [a] Int -> Task a																| html question & iTask a
+updateChoiceA 				:: question [Action] [Action] [(Action,ActionPredicate a)] [a] Int -> Task (!Action,!a)		| html question & iTask a 
 
-enterChoiceAbout			:: question b [a] -> Task a										| html question & iTask a & iTask b
-enterChoiceAboutA			:: question [Action] [Action] b [a] -> Task (!Action,!a)		| html question & iTask a & iTask b
+enterChoiceAbout			:: question b [a] -> Task a																	| html question & iTask a & iTask b
+enterChoiceAboutA			:: question [Action] [Action] [(Action,ActionPredicate a)] b [a] -> Task (!Action,!a)		| html question & iTask a & iTask b
 
-updateChoiceAbout			:: question b [a] Int -> Task a									| html question & iTask a & iTask b
-updateChoiceAboutA			:: question [Action] [Action] b [a] Int -> Task (!Action,!a)	| html question & iTask a & iTask b
+updateChoiceAbout			:: question b [a] Int -> Task a																| html question & iTask a & iTask b
+updateChoiceAboutA			:: question [Action] [Action] [(Action,ActionPredicate a)] b [a] Int -> Task (!Action,!a)	| html question & iTask a & iTask b
 
-enterMultipleChoice			:: question [a] -> Task [a]										| html question & iTask a
-enterMultipleChoiceA		:: question [Action] [a] -> Task (!Action,![a])					| html question & iTask a
+enterMultipleChoice			:: question [a] -> Task [a]																	| html question & iTask a
+enterMultipleChoiceA		:: question [Action] [(Action,ActionPredicate [a])] [a] -> Task (!Action,![a])				| html question & iTask a
 
-updateMultipleChoice		:: question [a] [Int] -> Task [a]								| html question & iTask a
-updateMultipleChoiceA		:: question [Action] [a] [Int] -> Task (!Action,![a])			| html question & iTask a
+updateMultipleChoice		:: question [a] [Int] -> Task [a]															| html question & iTask a
+updateMultipleChoiceA		:: question [Action] [(Action,ActionPredicate [a])] [a] [Int] -> Task (!Action,![a])		| html question & iTask a
 
-enterMultipleChoiceAbout	:: question b [a] -> Task [a]									| html question & iTask a & iTask b
-enterMultipleChoiceAboutA	:: question [Action] b [a] -> Task (!Action,![a])				| html question & iTask a & iTask b
+enterMultipleChoiceAbout	:: question b [a] -> Task [a]																| html question & iTask a & iTask b
+enterMultipleChoiceAboutA	:: question [Action] [(Action,ActionPredicate [a])] b [a] -> Task (!Action,![a])				| html question & iTask a & iTask b
 
-updateMultipleChoiceAbout	:: question b [a] [Int] -> Task [a]								| html question & iTask a & iTask b
-updateMultipleChoiceAboutA	:: question [Action] b [a] [Int] -> Task (!Action,![a])			| html question & iTask a & iTask b
+updateMultipleChoiceAbout	:: question b [a] [Int] -> Task [a]															| html question & iTask a & iTask b
+updateMultipleChoiceAboutA	:: question [Action] [(Action,ActionPredicate [a])] b [a] [Int] -> Task (!Action,![a])		| html question & iTask a & iTask b
 
 //*** Output tasks ***//
 
 //Show a basic message to the current user. The user can end the task after reading the message.
-showMessage					:: message -> Task Void											| html message
-showMessageA				:: message [Action] -> Task Action								| html message
+showMessage					:: message -> Task Void																		| html message
+showMessageA				:: message [Action ][(Action,ActionPredicate Void)] -> Task Action							| html message
 
-showMessageAbout			:: message a -> Task Void										| html message & iTask a
-showMessageAboutA			:: message [Action] a -> Task Action							| html message & iTask a
+showMessageAbout			:: message a -> Task Void																	| html message & iTask a
+showMessageAboutA			:: message [Action] [(Action,ActionPredicate Void)] a -> Task Action						| html message & iTask a
 
 //Show a message to the current user. The user can not finish this task. It has to be made obsolete by another parallel task. 
 showStickyMessage			:: message -> Task Void											| html message

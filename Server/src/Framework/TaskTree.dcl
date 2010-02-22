@@ -10,12 +10,12 @@ import Types
 import Html, Time
 import RPC
 
-from   ProcessDB		import :: ProcessStatus
+from   ProcessDB		import :: ProcessStatus, :: Action
 from   JSON 			import :: JSON
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
-:: TaskTree			= TTMainTask		TaskInfo TaskProperties	[TaskTree]		//A task that is treated as a main chunk of work
-					| TTInteractiveTask	TaskInfo (Either TUIDef [TUIUpdate])	//A task that can be worked on through a gui 
+:: TaskTree			= TTMainTask		TaskInfo TaskProperties [TaskTree]		//A task that is treated as a main chunk of work
+					| TTInteractiveTask	TaskInfo (Either TUIDef [TUIUpdate]) [(Action,Bool)]	//A task that can be worked on through a gui 
 					| TTMonitorTask		TaskInfo [HtmlTag]						//A task that upon evaluation monitors a condition and may give status output
 					| TTRpcTask			TaskInfo RPCExecute						//A task that represents an rpc invocation
 					| TTSequenceTask	TaskInfo [TaskTree]						//A task that is composed of a number of sequentially executed subtasks

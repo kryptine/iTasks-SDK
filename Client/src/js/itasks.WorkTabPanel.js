@@ -289,6 +289,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 	afterRender: function() {
 		itasks.TaskFormPanel.superclass.afterRender.apply(this,arguments);
 		this.attachTaskHandlers(this);
+		var tb = this.getTopToolbar();
+		if(tb)
+			this.attachTaskHandlers(tb);
 	},
 	attachTaskHandlers: function(comp) {
 	
@@ -332,8 +335,8 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 			ct.addUpdate(this.name, this.value);
 			ct.sendUpdates();
 			
-		};		
-		switch(comp.xtype) {
+		};
+		switch(comp.getXType()) {
 				case "textfield":
 				case "textarea":
 				case "numberfield":
@@ -351,7 +354,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 				case "combo":
 					comp.on("select",changeTaskEvent);
 				case "button":
-					comp.on("click",clickTaskEvent);
+				case "menuitem":
+					if(comp.name)
+						comp.on("click",clickTaskEvent);
 					break;
 		}
 		
@@ -364,6 +369,8 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		//attach recursively
 		if(comp.items && comp.items.each)
 			comp.items.each(this.attachTaskHandlers, this);
+		if(comp.menu)
+			this.attachTaskHandlers(comp.menu);
 	},
 	
 	attachDocumentLinkInformation: function() {

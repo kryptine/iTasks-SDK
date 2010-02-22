@@ -18,6 +18,7 @@ testUsers = [ {User | userName = "bas", displayName = "Bas", password = "", role
 			, {User | userName = "peter", displayName = "Peter", password = "", roles = []}
 			, {User | userName = "pieter", displayName = "Pieter", password = "", roles = []}
 			, {User | userName = "janmartin", displayName = "Jan Martin", password = "", roles = []}
+			, {User | userName = "steffen", displayName = "Steffen Michels", password = "", roles = []}
 
   			, {User | userName = "megastore", displayName = "Megastore", password = "", roles = ["supplier"]}
 			, {User | userName = "localshop", displayName = "Local shop", password = "", roles = ["supplier"]}

@@ -18,6 +18,8 @@ import	Engine						// basic iTask system creator
 	,	DateTimeTasks				// tasks triggered by date and time
 	,	ChangeTasks					// Tasks for changing existing workflows
 	
+	,	MenuTasks
+	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators
 	,	CommonCombinators			// Set of additional useful iTask combinators
@@ -52,6 +54,7 @@ from StdFunc import id, const
 //Types
 import Types
 from TSt		import :: Workflow{..}, :: Change(..), :: ChangeLifeTime(..)
+from ProcessDB	import :: Menu(..), :: MenuItem(..), :: Action(..)
 
 //iTask context restriction
 class iTask a

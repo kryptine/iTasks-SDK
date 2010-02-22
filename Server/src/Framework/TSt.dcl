@@ -15,6 +15,7 @@ from Config		import :: Config(..)
 from Store		import :: Store(..)
 from Time		import :: Timestamp(..)
 from Http		import :: HTTPRequest
+from ProcessDB	import :: Action
 
 from	iTasks import class iTask(..)
 import	GenPrint, GenParse, GenVisualize, GenUpdate
@@ -293,6 +294,8 @@ applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 setTUIDef			:: !TUIDef !*TSt				-> *TSt	//Only for interactive tasks
 
 setTUIUpdates		:: ![TUIUpdate] !*TSt			-> *TSt //Only for interactive tasks
+
+setAccActions		:: ![(Action,Bool)] !*TSt		-> *TSt //Only for interactive tasks
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
 

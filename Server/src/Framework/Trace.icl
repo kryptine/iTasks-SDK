@@ -31,7 +31,7 @@ where
 traceTaskTree :: TaskTree -> TraceTree
 traceTaskTree tree = mkTree tree
 where
-	mkTree (TTInteractiveTask info _ ) 
+	mkTree (TTInteractiveTask info _ _) 
 		= { cls = "master-task"
 		  , user = ""
 		  , uiProvider = "col"

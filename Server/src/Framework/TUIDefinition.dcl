@@ -39,6 +39,9 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIList TUIList
 	| TUIListItem TUIListItem
 	| TUIDocument TUIDocument
+	| TUIMenuButton TUIMenuButton
+	| TUIMenuItem TUIMenuItem
+	| TUIMenuSeparator
 	| TUICustom JSON
 
 :: TUIButton =
@@ -186,4 +189,20 @@ derive JSONEncode TUIDef, TUIUpdate
 	, allowUpload	:: Bool
 	, fieldLabel	:: Maybe String
 	, hideLabel		:: Bool
+	}
+:: TUIMenu =
+	{ items			:: [TUIDef]
+	}
+:: TUIMenuButton =
+	{ text			:: String
+	, menu			:: TUIMenu
+	, disabled		:: Bool
+	}
+:: TUIMenuItem =
+	{ id			:: Maybe String
+	, text			:: String
+	, name			:: Maybe String
+	, value			:: Maybe String
+	, menu			:: Maybe TUIMenu
+	, disabled		:: Bool
 	}
