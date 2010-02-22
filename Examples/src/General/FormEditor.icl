@@ -49,6 +49,7 @@ initMenu
 actions ((name,form),mode)
 	=	[ (ActionNew,					always)
 		, (ActionOpen,					always)
+		, (ActionOpenValue,				always)
 		, (ActionSave,					\_ _ -> name <> "")
 		, (ActionSaveAs,				\_ _ -> name <> "")
 		, (ActionQuit,					always)
