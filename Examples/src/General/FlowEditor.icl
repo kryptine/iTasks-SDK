@@ -2,8 +2,6 @@ implementation module FlowEditor
  
 import 	iTasks
 import	FlowData, FormFlowStorage, TaskContainer
-
-from 	StdFunc import o
 				
 flowEditor :: Workflow
 flowEditor = workflow "Interactive Workflows/Flow Editor" handleMenu
@@ -28,12 +26,12 @@ initMenu
 		]
 
 actions ((name,flow), mode)
-	=	[ (ActionNew,					always)
-		, (ActionOpen,					always)
-		, (ActionSave,					\_ _ -> name <> "" && validType flow.flowDyn)
-		, (ActionSaveAs,				\_ _ -> name <> "" && validType flow.flowDyn)
-		, (ActionQuit,					always)
-		, (ActionShowAbout,				always)
+	=	[ (ActionNew,		always)
+		, (ActionOpen,		always)
+		, (ActionSave,		\_ _ -> name <> "" && validType flow.flowDyn)
+		, (ActionSaveAs,	\_ _ -> name <> "" && validType flow.flowDyn)
+		, (ActionQuit,		always)
+		, (ActionShowAbout,	always)
 		]
 
 handleMenu :: Task Void
@@ -49,24 +47,33 @@ doMenu state=:((name,flow), mode)
 			>>= switchAction
 where
 	title1 = "No flow..."
-	title2 = "Define type of flow: \"" +++ name +++ "\" " +++ if (validType flow.flowDyn) (showDynType flow.flowDyn) (", Type is *not* ok")
+	title2 = "Define type of flow: \"" +++ name +++ "\" " +++ 
+				if (validType flow.flowDyn) 
+					(" :: " +++ showDynType flow.flowDyn) 
+					(" :: type is currently invalid !!")
 
 switchAction (action, (nameflow=:(name,flow),mode))
 	=	case action of
-			ActionNew		-> 	newFlowName emptyFlow 	>>= \nameflow -> doMenu (nameflow,True)	
-			ActionOpen		->	chooseFlow 				>>= \(name,flow) -> if (name == "")
-																				(doMenu (nameflow,False))
-																				(doMenu ((name,flow),True))
-			ActionSave		->	storeFlow nameflow 	>>= \nameflow -> doMenu (nameflow,mode)
-			ActionSaveAs	->	newFlowName flow 		>>= \nameflow -> doMenu (nameflow,mode)
-			ActionQuit		->	return Void
-			ActionShowAbout	->	showAbout 				>>| doMenu (nameflow,mode)
-			ActionOk		->	try (flowShapeToFlow flow.flowShape) (errorRaised flow.flowShape) >>= \flow -> doMenu ((name,flow), mode)
+			ActionNew		-> 						newFlowName emptyFlow 	
+								>>= \nameflow -> 	doMenu (nameflow,True)	
+			ActionOpen		->						chooseFlow 	
+								>>= \(name,flow) -> if (name == "")
+														(doMenu (nameflow,False))
+														(doMenu ((name,flow),True))
+			ActionSave		->						storeFlow nameflow 	
+								>>= \nameflow -> 	doMenu (nameflow,mode)
+			ActionSaveAs	->						newFlowName flow 
+								>>= \nameflow -> 	doMenu (nameflow,mode)
+			ActionQuit		->						return Void
+			ActionShowAbout	->						showAbout 
+								>>| 				doMenu (nameflow,mode)
+			ActionOk		->						try (flowShapeToFlow flow.flowShape) 
+														(errorRaised flow.flowShape) 
+								>>= \flow -> 		doMenu ((name,flow), mode)
 where
 	errorRaised :: [FlowShape] String -> Task Flow
 	errorRaised flowShape s
 		=					showMessage ("Type Error: " +++ s) >>| return {flow & flowShape = flowShape}	
-
 
 showAbout
 	= showMessage "Flow editor 0.1 - feb 2010"

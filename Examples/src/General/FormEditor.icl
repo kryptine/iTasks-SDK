@@ -47,20 +47,19 @@ initMenu
 		]
 
 actions ((name,form),mode)
-	=	[ (ActionNew,					always)
-		, (ActionOpen,					always)
-		, (ActionOpenValue,				always)
-		, (ActionSave,					\_ _ -> name <> "" && testType form.formDyn)
-		, (ActionSaveAs,				\_ _ -> name <> "" && testType form.formDyn)
-		, (ActionQuit,					always)
-		, (ActionShowAbout,				always)
-		, (ActionEditType,				\_ _ -> mode === EditValue)
-		, (ActionEditValue,				\_ _ -> mode === EditType && not (isEmpty form.formShape))
+	=	[ (ActionNew,		always)
+		, (ActionOpen,		always)
+		, (ActionOpenValue,	always)
+		, (ActionSave,		\_ _ -> name <> "" && testType form.formDyn)
+		, (ActionSaveAs,	\_ _ -> name <> "" && testType form.formDyn)
+		, (ActionQuit,		always)
+		, (ActionShowAbout,	always)
+		, (ActionEditType,	\_ _ -> mode === EditValue)
+		, (ActionEditValue,	\_ _ -> mode === EditType && not (isEmpty form.formShape))
 		]
 where
 	testType (v :: T a a) = True
 	testType _ = False
-
 
 handleMenu :: Task Void
 handleMenu 
@@ -81,29 +80,32 @@ where
 
 	title1 = "No form..."
 	title2 = "Define type of form: \"" +++ name +++ "\""
-	title3 = "Define initial value of form: \"" +++ name +++ "\""
+	title3 = "Define the initial value of form: \"" +++ name +++ "\""
 	
 switchAction (action, (nameform=:(name,form),mode))
 	=	case action of
-			ActionNew		-> 	newFormName emptyForm 	>>= \nameform -> doMenu (nameform,EditType)	
-			ActionOpen		->	chooseForm 				>>= \(name,form) -> if (name == "")
-																				(doMenu (nameform,mode))
-																				(doMenu ((name,form),EditType))
-			ActionOpenValue	->	chooseForm 				>>= \(name,form) -> if (name == "")
-																				(doMenu (nameform,mode))
-																				(doMenu ((name,form),EditValue))
-			ActionSave		->	storeForm nameform 	>>= \nameform -> doMenu (nameform,mode)
-			ActionSaveAs	->	newFormName form 		>>= \nameform -> doMenu (nameform,mode)
-			ActionQuit		->	return Void
-			ActionShowAbout	->	showAbout 				>>| doMenu (nameform,mode)
-			ActionEditType	->	doMenu (nameform, EditType)
+			ActionNew		-> 							newFormName emptyForm 	
+								>>= \nameform -> 		doMenu (nameform,EditType)	
+			ActionOpen		->							chooseForm 				
+								>>= \(name,form) -> 	if (name == "")
+															(doMenu (nameform,mode))
+															(doMenu ((name,form),EditType))
+			ActionOpenValue	->							chooseForm 				
+								>>= \(name,form) -> 	if (name == "")
+															(doMenu (nameform,mode))
+															(doMenu ((name,form),EditValue))
+			ActionSave		->							storeForm nameform 	
+								>>= \nameform -> 		doMenu (nameform,mode)
+			ActionSaveAs	->							newFormName form 		
+								>>= \nameform -> 		doMenu (nameform,mode)
+			ActionQuit		->							return Void
+			ActionShowAbout	->							showAbout 				
+								>>| 					doMenu (nameform,mode)
+			ActionEditType	->							doMenu (nameform, EditType)
 			ActionEditValue	->							formShapeToFormDyn form.formShape 
 								>>= \formDyn ->			doMenu ((name,{form & formDyn = formDyn}), EditValue)
-			ActionOk		->	doMenu (nameform, mode)
-
-storeMyForm (name,form)
-	=					formShapeToFormDyn form.formShape 
-		>>= \formDyn -> storeForm (name,{form & formDyn = formDyn})
+			ActionOk		->							doMenu (nameform, mode)
 
 showAbout
 	= showMessage "Form editor 0.1 - feb 2010"
+

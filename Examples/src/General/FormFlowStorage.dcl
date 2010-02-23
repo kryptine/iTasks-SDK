@@ -23,8 +23,6 @@ derive gVisualize 	FormStore, FlowStore
 instance DB FormStore 
 instance DB FlowStore 
 
-showStoredDefinitions :: Workflow
-
 readAllForms 	:: Task [FormStore]
 newFormName 	:: !Form -> Task !(!String, !Form)				// creates new entry in store
 storeForm 		:: !(String, !Form) -> Task !(!String, !Form) 	// item with name assumed to be in store

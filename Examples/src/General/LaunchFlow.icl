@@ -4,21 +4,39 @@ import 	iTasks
 import	FormFlowStorage, TaskContainer, FlowEditor
 
 launchFlow :: Workflow
-launchFlow = workflow "Interactive Workflows/Run a stored workflow" loopStart
+launchFlow = workflow "Interactive Workflows/Run a stored workflow" handleMenu
 
 // ****************************
 
-StartFlow 	:== ActionLabel "Start Flow"
-Exit 		:== ActionLabel "Exit"
+ActionStartFlow 	:== ActionLabel "Start Flow"
 
+showStoredDefinitions :: Workflow
+showStoredDefinitions = workflow "Interactive Workflows/Show Stored Definitions" handleMenu
 
-loopStart :: Task Void
-loopStart
-	=	enterInformationA "Press start to run a stored workflow..." [] [StartFlow, Exit] []
-		>>= \(choice,Void) ->	
-			case choice of
-				StartFlow	-> startFlow	>>| loopStart 
-				Exit		-> return Void
+initMenu :: Task Void
+initMenu 
+	= setMenus
+		[ Menu "File"	[ MenuItem "Start Workflow..."	ActionStartFlow
+						, MenuSeparator
+						, MenuItem "Quit"				ActionQuit
+						]
+		]
+
+actions 
+	=	[ (ActionStartFlow,		always)
+		, (ActionQuit,			always)
+		]
+
+handleMenu :: Task Void
+handleMenu 
+	=	initMenu >>| doMenu 
+where
+	doMenu
+		=							enterInformationA "Select \"File/Start Workflow... \" to run a stored workflow..." [] [] actions
+			>>= \(choice,Void) ->	
+				case choice of
+					ActionStartFlow		-> startFlow	>>| doMenu 
+					ActionQuit			-> return Void
 
 startFlow :: Task Void
 startFlow
@@ -29,12 +47,13 @@ where
 	showTypeError s = showMessage s
 
 	taskFound :: Dynamic -> Task Void
-	taskFound (T t:: T (Task a) a) 
+	taskFound d=:(T t:: T (Task a) a) 
 		= 					getCurrentUser
-		>>= \me ->			spawnProcess me.userName True (t <<@ "Launched flow")>>| return Void
-	taskFound (T t:: T (Task a) a) 
-		= 					getCurrentUser
-		>>= \me ->			spawnProcess me.userName True (t <<@ "Launched flow")>>| return Void
+		>>= \me ->			requestConfirmation ("Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
+		>>= \ok ->			if ok (					updateInformation "Name of this workflow: " "workflow"
+									>>= \name -> 	spawnProcess me.userName True (t <<@ name)
+									>>| 			return Void)
+								  (return Void)	
 
 	evalFlow :: Dynamic -> Task Dynamic
 	evalFlow dyn=:(T t:: T (Task a) a)	

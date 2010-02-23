@@ -26,26 +26,6 @@ derive bimap Maybe, (,)
 
 // *************************************************
 
-Exit 		:== ActionLabel "Exit"
-Refresh		:== ActionLabel "Refresh"
-
-showStoredDefinitions :: Workflow
-showStoredDefinitions = workflow "Interactive Workflows/Show Stored Definitions"	showAll
-
-showAll :: Task Void
-showAll
-	=						readAllForms
-		>>= \allForms 	->	readAllFlows
-		>>= \allFlows	->	showMessageAboutA "Stored definitions:" [Refresh, Exit] [] (myForm allForms ++ myFlows allFlows) 
-		>>= \choice		->	case choice of
-								Refresh	->	showAll
-								_		->	return Void
-where
-	myForm allForms 	= ["Stored Forms:", "" 		: [form.formName +++ " :: " +++ form.formType \\ form <- allForms]]
-	myFlows allFlows 	= ["Stored Workflows:", ""  : [flow.flowName +++ " :: " +++ flow.flowType \\ flow <- allFlows]]
-
-// *************************************************
-
 instance DB FormStore where
 	databaseId	:: DBid [FormStore]
 	databaseId = mkDBid "FormStore"
@@ -111,7 +91,7 @@ chooseFlow
 		>>= \all ->			let names = [showName this \\ this <- all] in
 								case names of
 								 [] ->					updateInformation "No Flows stored !" Void
-								 		>>|				return ("Temp", emptyFlow)
+								 		>>|				return ("", emptyFlow)
 								 names ->				enterChoice "Choose Flow you want to use:" names
 										>>= \choice ->	return (hd [(this.flowName, this.flow) \\ this <- all | showName this == choice])
 where
