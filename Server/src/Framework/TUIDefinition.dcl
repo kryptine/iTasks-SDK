@@ -205,4 +205,5 @@ derive JSONEncode TUIDef, TUIUpdate
 	, value			:: Maybe String
 	, menu			:: Maybe TUIMenu
 	, disabled		:: Bool
+	, iconCls		:: Maybe String
 	}

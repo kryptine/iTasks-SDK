@@ -3,6 +3,24 @@ implementation module ProcessDB
 import StdEnv, StdGeneric, StdMaybe, GenEq
 import TSt, Store, Util
 
+getActionIcon :: !Action -> String
+getActionIcon (ActionIcon _ icon)	= icon
+getActionIcon ActionOk				= "icon-ok"
+getActionIcon ActionCancel			= "icon-cancel"
+getActionIcon ActionYes				= "icon-yes"
+getActionIcon ActionNo				= "icon-no"
+getActionIcon ActionNext			= "icon-next"
+getActionIcon ActionPrevious		= "icon-previous"
+getActionIcon ActionFinish			= "icon-finish"
+getActionIcon ActionNew				= "icon-new"
+getActionIcon ActionOpen			= "icon-open"
+getActionIcon ActionSaveAs			= "icon-save-as"
+getActionIcon ActionSave			= "icon-save"
+getActionIcon ActionQuit			= "icon-exit"
+getActionIcon ActionHelp			= "icon-help"
+getActionIcon ActionShowAbout		= "icon-help"
+getActionIcon _						= ""
+
 instance == ProcessStatus
 where
 	(==) Active		Active		= True

@@ -175,11 +175,11 @@ where
 	mkMenuItems defs [MenuItem label action:items] id
 		#accAction = filter (\(a,_) -> a == action) acceptedA
 		| isEmpty accAction	= mkMenuItems defs items (id + 1)
-		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id), text = label, name = Just "menu", value = Just (printToString action), disabled = not (snd (hd accAction)), menu = Nothing}:defs] items (id + 1)
+		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id), text = label, name = Just "menu", value = Just (printToString action), disabled = not (snd (hd accAction)), menu = Nothing, iconCls = Just (getActionIcon action)}:defs] items (id + 1)
 	mkMenuItems defs [SubMenu label sitems:items] id
 		#(children,id) = mkMenuItems [] sitems id
 		| isEmpty children	= mkMenuItems defs items id
-		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Nothing, text = label, menu = Just {TUIMenu | items = children}, disabled = False, name = Nothing, value = Nothing}:defs] items id
+		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Nothing, text = label, menu = Just {TUIMenu | items = children}, disabled = False, name = Nothing, value = Nothing, iconCls = Nothing}:defs] items id
 	mkMenuItems defs [MenuSeparator:items] id = mkMenuItems ndefs items id
 	where
 		// add separators only where needed

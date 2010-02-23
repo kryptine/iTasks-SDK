@@ -31,8 +31,6 @@ derive gParse		EMail, EMail2
 derive gVisualize	EMail, EMail2	
 derive gUpdate		EMail, EMail2
 
-derive bimap		Maybe, (,)
-
 nmessage = 2
 
 newsgroupsExample :: [Workflow]

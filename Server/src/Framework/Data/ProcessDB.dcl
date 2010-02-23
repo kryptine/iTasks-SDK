@@ -42,7 +42,10 @@ from Time		import :: Timestamp
 	| ActionSaveAs
 	| ActionSave
 	| ActionQuit
+	| ActionHelp
 	| ActionShowAbout
+	
+getActionIcon :: !Action -> String
 
 :: Menu = Menu !String ![MenuItem]
 :: MenuItem = SubMenu !String ![MenuItem] | MenuItem !String !Action | MenuSeparator | MenuName !String !MenuItem

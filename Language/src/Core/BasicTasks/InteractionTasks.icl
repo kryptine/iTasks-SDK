@@ -318,7 +318,7 @@ where
 	taskButtons buttons = [TUIButton (toTUIButton button id name value enable) \\ (button,id,name,value,enable) <- buttons]
 
 	toTUIButton :: !Action !String !String !String !Bool -> TUIButton
-	toTUIButton action id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = actionText, iconCls = actionIcon}
+	toTUIButton action id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = actionText, iconCls = getActionIcon action}
 	where
 		actionText =	case action of
 							ActionLabel text	= text
@@ -327,16 +327,6 @@ where
 							action				#str = printToString action
 												| startsWith "Action" str	= subString 6 ((textSize str)-1) str
 												| otherwise					= str
-		actionIcon =	case action of
-							ActionIcon _ icon	= icon
-							ActionOk			= "icon-ok"
-							ActionCancel		= "icon-cancel"
-							ActionYes			= "icon-yes"
-							ActionNo			= "icon-no"
-							ActionNext			= "icon-next"
-							ActionPrevious		= "icon-previous"
-							ActionFinish		= "icon-finish"
-							_					= ""
 
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
 makeButtons :: !String ![Action] ![Action] !Bool -> [(!Action,!String,!String,!String,!Bool)]	

@@ -14,51 +14,75 @@ body {
 	font-weight: bold;
 	color: red;
 }
-button.icon-logout {
+button.icon-logout, .icon-logout {
 	background-image: url('img/icons/door_in.png');
 }
-button.icon-refresh {
+button.icon-refresh, .icon-refresh {
 	background-image: url('img/icons/refresh.png');
 }
-button.icon-thread-table {
+button.icon-thread-table, .icon-thread-table {
 	background-image: url('img/icons/table_lightning.png');
 }
-button.icon-process-table {
+button.icon-process-table, .icon-process-table {
 	background-image: url('img/icons/table_gear.png');
 }
-button.icon-task-tree {
+button.icon-task-tree, .icon-task-tree {
 	background-image: url('img/icons/chart_organisation.png');
 }
-button.icon-states {
+button.icon-states, .icon-states {
 	background-image: url('img/icons/table_gear.png');
 }
-button.icon-events {
+button.icon-events, .icon-events {
 	background-image: url('img/icons/table_lightning.png');
 }
-button.icon-ok, button.icon-yes, button.icon-finish {
+button.icon-ok, button.icon-yes, button.icon-finish, .icon-ok, .icon-yes, .icon-finish {
 	background-image: url('img/icons/tick.png');
 }
-button.icon-no, button.icon-cancel {
+button.icon-no, button.icon-cancel, .icon-no, .icon-cancel {
 	background-image: url('img/icons/cancel.png');
 }
-button.icon-previous {
+button.icon-previous, .icon-previous {
 	background-image: url('img/icons/arrow_left.png');
 }
-button.icon-next {
+button.icon-next, .icon-next {
 	background-image: url('img/icons/arrow_right.png');
 }
-button.icon-edit {
+button.icon-edit, .icon-edit {
 	background-image: url('img/icons/pencil.png');
 }
-button.icon-accept {
+button.icon-accept, .icon-accept {
 	background-image: url('img/icons/accept.png');
 }
 
-button.icon-collapse-tree{
+button.icon-new, .icon-new {
+	background-image: url('img/icons/document-new.png');
+}
+
+button.icon-open, .icon-open {
+	background-image: url('img/icons/document-open.png');
+}
+
+button.icon-save, .icon-save {
+	background-image: url('img/icons/document-save.png');
+}
+
+button.icon-save-as, .icon-save-as {
+	background-image: url('img/icons/document-save-as.png');
+}
+
+button.icon-exit, .icon-exit {
+	background-image: url('img/icons/exit.png');
+}
+
+button.icon-help, .icon-help {
+	background-image: url('img/icons/help.png');
+}
+
+button.icon-collapse-tree, .icon-collapse-tree {
 	background-image: url('img/icons/collapse-all.gif') !important;
 }
 
-button.icon-expand-tree{
+button.icon-expand-tree, .icon-expand-tree {
 	background-image: url('img/icons/expand-all.gif') !important;
 }
 
