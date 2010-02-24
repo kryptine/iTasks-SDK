@@ -23,16 +23,16 @@ initMenu
 		]
 
 actions 
-	=	[ (ActionStartFlow,		always)
-		, (ActionQuit,			always)
-		]
+	=	map MenuAction	[ (ActionStartFlow,		Always)
+						, (ActionQuit,			Always)
+						]
 
 handleMenu :: Task Void
 handleMenu 
 	=	initMenu >>| doMenu 
 where
 	doMenu
-		=							enterInformationA "Select \"File/Start Workflow... \" to run a stored workflow..." [] [] actions
+		=							enterInformationA "Select \"File/Start Workflow... \" to run a stored workflow..." actions
 			>>= \(choice,Void) ->	
 				case choice of
 					ActionStartFlow		-> startFlow	>>| doMenu 

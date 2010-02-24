@@ -22,11 +22,11 @@ initMenu
 		]
 
 actions 
-	=	[ (ShowForms,		always)
-		, (ShowFlows,		always)
-		, (ShowAll,			always)
-		, (ActionQuit,		always)
-		]
+	=	map MenuAction	[ (ShowForms,		Always)
+						, (ShowFlows,		Always)
+						, (ShowAll,			Always)
+						, (ActionQuit,		Always)
+						]
 
 handleMenu :: Task Void
 handleMenu 
@@ -34,7 +34,7 @@ handleMenu
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val
-		=						showMessageAboutA title [Refresh] actions val 
+		=						showMessageAboutA title [ButtonAction (Refresh, Always):actions] val 
 			>>= \choice ->		readAllForms
 			>>= \allForms 	->	readAllFlows
 			>>= \allFlows	->	case choice of

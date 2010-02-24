@@ -50,7 +50,7 @@ open st=:(AppState _ file) ntxt =
 					(		showMessage "No files to open!"
 					 >>|	return (AppState ntxt file)
 					)
-					(							enterChoiceA "Open File" [ActionCancel] [ActionOk] [] files
+					(							enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files
 					 >>= \(action,(id,name)).	case action of
 					 								ActionOk	=		addToRecentlyOpened name id
 					 												>>|	openFile id st ntxt
@@ -70,7 +70,7 @@ save st txt = saveAs st txt
 					
 saveAs :: AppState Note -> Task AppState
 saveAs (AppState otxt file) ntxt =
-						enterInformationA "Save As: enter name" [ActionCancel] [ActionOk] []
+						enterInformationA "Save As: enter name" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 	>>= \(action,name).	case action of
 							ActionOk	=				storeFile name ntxt
 											>>=	\file.	return (AppState file.content (Just file))
@@ -86,7 +86,7 @@ derive gUpdate Replace
 
 replaceT :: AppState Note -> Task AppState
 replaceT (AppState _ file) (Note txt) =
-						enterInformationA "Replace..." [ActionCancel] [ActionOk] []
+						enterInformationA "Replace..." [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 	>>= \(action, v).	case action of
 							ActionOk	= return (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
 							_			= return (AppState (Note txt) file)
@@ -108,7 +108,7 @@ textEditorApp :: Task Void
 textEditorApp = initState >>= textEditor` 
 where
 	textEditor` st=:(AppState txt file) =
-								updateInformationA title [] [] actions txt
+								updateInformationA title [MenuParamAction ("openFile", Always):(map MenuAction actions)] txt
 		>>= \(action, ntxt).	case action of
 									ActionNew					= initState										>>= textEditor`
 									ActionOpen					= open st ntxt									>>= textEditor`
@@ -122,14 +122,13 @@ where
 		title = case file of
 			Nothing		= "New Text Document"
 			(Just f)	= f.TextFile.name
-		actions =	[ (ActionNew,					always)
-					, (ActionOpen,					always)
-					, (ActionParam "openFile" "?",	always)
-					, (ActionSave,					(\_ _			-> isJust file))
-					, (ActionSaveAs,				always)
-					, (ActionQuit,					always)
-					, (ActionLabel "replace",		(\(Note val) _	-> val <> ""))
-					, (ActionShowAbout,				always)
+		actions =	[ (ActionNew,					Always)
+					, (ActionOpen,					Always)
+					, (ActionSave,					(Predicate (\_ -> isJust file)))
+					, (ActionSaveAs,				Always)
+					, (ActionQuit,					Always)
+					, (ActionLabel "replace",		(Predicate (\v -> case v of Invalid = False; Valid (Note v) = v <> "")))
+					, (ActionShowAbout,				Always)
 					]
 			
 initTextEditor :: Task Void

@@ -26,13 +26,13 @@ initMenu
 		]
 
 actions ((name,flow), mode)
-	=	[ (ActionNew,		always)
-		, (ActionOpen,		always)
-		, (ActionSave,		\_ _ -> name <> "" && validType flow.flowDyn)
-		, (ActionSaveAs,	\_ _ -> name <> "" && validType flow.flowDyn)
-		, (ActionQuit,		always)
-		, (ActionShowAbout,	always)
-		]
+	=	map MenuAction	[ (ActionNew,		Always)
+						, (ActionOpen,		Always)
+						, (ActionSave,		(Predicate (\_ -> name <> "" && validType flow.flowDyn)))
+						, (ActionSaveAs,	(Predicate (\_ -> name <> "" && validType flow.flowDyn)))
+						, (ActionQuit,		Always)
+						, (ActionShowAbout,	Always)
+						]
 
 handleMenu :: Task Void
 handleMenu 
@@ -40,9 +40,9 @@ handleMenu
 
 doMenu state=:((name,flow), mode)
 		=	case mode of
-				False 		->							updateInformationA title1 [] [] (actions state) Void 
+				False 		->							updateInformationA title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
-				True 	->								updateInformationA title2 [] [ActionOk] (actions state) flow.flowShape
+				True 	->								updateInformationA title2 [ButtonAction (ActionOk, IfValid):actions state] flow.flowShape
 								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))
 			>>= switchAction
 where

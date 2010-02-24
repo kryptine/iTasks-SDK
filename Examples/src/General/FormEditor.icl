@@ -47,16 +47,16 @@ initMenu
 		]
 
 actions ((name,form),mode)
-	=	[ (ActionNew,		always)
-		, (ActionOpen,		always)
-		, (ActionOpenValue,	always)
-		, (ActionSave,		\_ _ -> name <> "" && testType form.formDyn)
-		, (ActionSaveAs,	\_ _ -> name <> "" && testType form.formDyn)
-		, (ActionQuit,		always)
-		, (ActionShowAbout,	always)
-		, (ActionEditType,	\_ _ -> mode === EditValue)
-		, (ActionEditValue,	\_ _ -> mode === EditType && not (isEmpty form.formShape))
-		]
+	=	map MenuAction	[ (ActionNew,		Always)
+						, (ActionOpen,		Always)
+						, (ActionOpenValue,	Always)
+						, (ActionSave,		(Predicate (\_ -> name <> "" && testType form.formDyn)))
+						, (ActionSaveAs,	(Predicate (\_ -> name <> "" && testType form.formDyn)))
+						, (ActionQuit,		Always)
+						, (ActionShowAbout,	Always)
+						, (ActionEditType,	(Predicate (\_ -> mode === EditValue)))
+						, (ActionEditValue,	(Predicate (\_ -> mode === EditType && not (isEmpty form.formShape))))
+						]
 where
 	testType (v :: T a a) = True
 	testType _ = False
@@ -67,15 +67,15 @@ handleMenu
 
 doMenu state=:((name,form), mode)
 		=	case mode of
-				NoEdit 		->							updateInformationA title1 [] [] (actions state) Void 
+				NoEdit 		->							updateInformationA title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
-				EditType 	->							updateInformationA title2 [] [ActionOk] (actions state) form.formShape
+				EditType 	->							updateInformationA title2 [ButtonAction (ActionOk, IfValid):actions state] form.formShape
 								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
 				EditValue 	->							editValue state
 			>>= switchAction
 where
 	editValue state=:((name,form=:{formDyn = T v :: T a a}), mode)  
-		=							updateInformationA title3 [] [ActionOk] (actions state) v
+		=							updateInformationA title3 [ButtonAction (ActionOk, IfValid):actions state] v
 			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic T nv :: T a^ a^}),mode))
 
 	title1 = "No form..."
