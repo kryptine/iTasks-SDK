@@ -4,7 +4,7 @@ import iTasks
 
 enterFoo:: Task Int
 enterFoo = "42" @>>
-	enterInformation "Value 1"
+	(enterInformation "Value 1" >>= updateInformation "Hoi")
 
 test1 :: Task (Int,Int)
 test1 = (enterFoo -&&- enterInformation "Value 2")

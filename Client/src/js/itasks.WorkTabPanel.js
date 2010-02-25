@@ -10,7 +10,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	properties: null,
 	
 	debug: false,
-	activeTab: null,
+	activeSubtaskId: 0,
 	
 	initComponent: function() {
 		Ext.apply(this, {
@@ -52,8 +52,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	
 		//Attach tab change handler
 		this.getComponent(1).on("tabchange",function(ct,tab){
-			if(tab){
-				this.activeTab = tab;
+			if(tab && tab.subtaskId){
+				this.activeSubtaskId = tab.subtaskId;
 			}
 		},this);
 		
@@ -146,6 +146,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		}
 		
 		tab.taskId = content.taskId;
+		tab.subtaskId = content.subtaskId;
 		
 		if(content.xtype=="itasks.task-parallel"){
 				tab.setIconClass("icon-overview");
@@ -161,7 +162,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	},
 	updateContent: function(content) {
 		var tabpanel = this.getComponent(1);
-		var reset = false;
+		
 		//filter the content array
 		content = content.filter(function (val) {
 			if(val == "done" || val == "redundant") return false;
@@ -175,7 +176,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					
 			for(var k=0; k < (j-i); k++){
 				tabpanel.remove(i,true);
-				reset = true;
 			}
 			
 			if(i<tabpanel.items.length){
@@ -184,7 +184,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				var tab = new itasks.WorkPanelTab();
 				this.updateTabContent(tab,content[i]);
 				tabpanel.insert(j,tab);
-				reset = true;
 			}			
 		}
 		
@@ -192,19 +191,17 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		for(var i=0; i<trailing; i++){
 			tabpanel.remove(tabpanel.items.length-1,true);
-			reset = true;
 		}
 				
-		if(this.activeTab && !reset){
-			var t=0;
-			for(;i<tabpanel.items.length;i++){
-				if(tabpanel.items.get(i).taskId == this.activeTab.taskId){ t=i; break; }
-			}					
-			tabpanel.setActiveTab(t);
-		}else{
-			tabpanel.setActiveTab(0);
-		}
-
+		var t = 0;
+		for(var i=0; i<content.length; i++){
+			if(content[i].subtaskId == this.activeSubtaskId){
+				t=i;
+				break;
+			}
+		}			
+		tabpanel.setActiveTab(t);	
+		
 		this.fireEvent("afterUpdateContent");
 	},
 	updateStatus: function(properties) {
@@ -216,7 +213,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			
 		//Set target and state
 		this.params["_targettask"]	= target;
-			
 		this.refresh();
 	},
 	sendPropertyEvent: function(process,name,value) {
