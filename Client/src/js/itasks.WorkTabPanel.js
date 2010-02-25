@@ -10,7 +10,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	properties: null,
 	
 	debug: false,
-	initialized: false,
+	activeTab: null,
 	
 	initComponent: function() {
 		Ext.apply(this, {
@@ -31,20 +31,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				ctCls: "worktab-container",
 				tabPosition: "bottom",
 				layoutOnTabChange: true,
-				activeTab: 0,
-				items: [{
-					title: "Task",
-					iconCls: "icon-task",
-					border: false,
-					unstyled: true,
-					autoScroll: true	
-				},{
-					title: "Status",
-					xtype: "itasks.work-status",
-					iconCls: "icon-waiting",
-					border: false,
-					autoScroll: true
-				}],
 				tbar: [{
 						text: "Refresh task",
 						iconCls: "x-tbar-loading",
@@ -62,8 +48,20 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
 	
-		this.addEvents("taskRedundant","taskDone","propertyChanged");
+		this.addEvents("taskRedundant","taskDone","propertyChanged","afterUpdateContent");
 	
+		//Attach tab change handler
+		this.getComponent(1).on("tabchange",function(ct,tab){
+			if(tab){
+				this.activeTab = tab;
+			}
+		},this);
+		
+		this.on("afterUpdateContent",function(){
+			var me = this;
+			(function(){me.doLayout(false,true)}).defer(100);
+		});
+		
 		//Attach event handlers for the loading indicator
 		this.on("remoteCallStart",function() {
 			this.getComponent(0).setBusy(true);
@@ -75,13 +73,13 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	update: function(data) {
 
 		//Check if the task is finished or became redundant
-		if(data.content == "done" || data.content == "redundant") {
+		if(data.content[0] == "done" || data.content[0] == "redundant") {
 			var ct = this.getComponent(1).getComponent(0);
 			
 			if(ct.items && ct.items.length) {
 				ct.remove(0);
 			}
-			switch(data.content) {
+			switch(data.content[0]) {
 				case "done":	
 					ct.add(new Ext.Panel({
 						html: "This task is completed. Thank you."
@@ -109,7 +107,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					}
 				}
 			);
-						
+			
 			return;
 		}
 		//Update properties
@@ -121,37 +119,93 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		//Update content
 		this.updateContent(data.content);
 		//Update status
-		this.updateStatus(data.properties);
+		//this.updateStatus(data.properties);
 	
 		//Reset params, events and states
-		this.params = { _maintask : this.taskId
-					  , _debug: itasks.app.debug ? 1 : 0
-					  }
+		this.params = 
+		{ _maintask : this.taskId
+		, _debug: itasks.app.debug ? 1 : 0
+		}
 	},
 	updateTitle: function(subject) {
 		this.setTitle(Ext.util.Format.ellipsis(subject.join(" - "),10));
 	},
-	updateContent: function(content) {
-		
-		var ct = this.getComponent(1).getComponent(0);
+	updateTabContent: function(tab,content){
 
-		if(this.initialized) {
-			//Recursively update tab content
-			var cur = ct.getComponent(0);
-			
-			if(cur.taskId == content.taskId && cur.xtype == content.xtype) {
+		if(tab.initialized){
+			var cur = tab.getComponent(0);
+			if(cur.taskId == content.taskId && cur.xtype == content.xtype){
 				cur.update(content);
-			} else {
-				ct.remove(0,true);
-				ct.add(content);
-				ct.doLayout();
+			}else{
+				tab.remove(0,true);
+				tab.add(content);
 			}
-		} else {
-			//Build initial content
-			ct.add(content);
-			ct.doLayout();
-			this.initialized = true;
-		}	
+		}else{
+			tab.add(content);
+			tab.initialized = true;
+		}
+		
+		tab.taskId = content.taskId;
+		
+		if(content.xtype=="itasks.task-parallel"){
+				tab.setIconClass("icon-overview");
+		}else{
+			tab.setIconClass("icon-task");
+		}
+		
+		if(content.subtaskId){
+			tab.setTitle('Subtask '+content.subtaskId);
+		}else{
+			tab.setTitle('Task');
+		}
+	},
+	updateContent: function(content) {
+		var tabpanel = this.getComponent(1);
+		var reset = false;
+		//filter the content array
+		content = content.filter(function (val) {
+			if(val == "done" || val == "redundant") return false;
+			else return true;
+		});
+
+		for(var i=0; i<content.length; i++){
+			for(var j=i; j<tabpanel.items.length;j++){
+				if(content[i].taskId == tabpanel.items.get(j).taskId) break;
+			}
+					
+			for(var k=0; k < (j-i); k++){
+				tabpanel.remove(i,true);
+				reset = true;
+			}
+			
+			if(i<tabpanel.items.length){
+				this.updateTabContent(tabpanel.items.get(i),content[i]);
+			}else{
+				var tab = new itasks.WorkPanelTab();
+				this.updateTabContent(tab,content[i]);
+				tabpanel.insert(j,tab);
+				reset = true;
+			}			
+		}
+		
+		var trailing = tabpanel.items.length - content.length;
+		
+		for(var i=0; i<trailing; i++){
+			tabpanel.remove(tabpanel.items.length-1,true);
+			reset = true;
+		}
+				
+		if(this.activeTab && !reset){
+			var t=0;
+			for(;i<tabpanel.items.length;i++){
+				if(tabpanel.items.get(i).taskId == this.activeTab.taskId){ t=i; break; }
+			}					
+			tabpanel.setActiveTab(t);
+		}else{
+			tabpanel.setActiveTab(0);
+		}
+
+		this.fireEvent("afterUpdateContent");
 	},
 	updateStatus: function(properties) {
 		this.getComponent(1).getComponent(1).update(properties);
@@ -181,6 +235,20 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},
 			scope: this
 		});
+	},
+	switchToSubtask: function(taskId){
+		var t = 0;
+		var tabpanel = this.getComponent(1);
+		
+		for(var i=0; i<tabpanel.items.length; i++){
+			var c = tabpanel.items.get(i);
+			
+			if(c.taskId == taskId){
+				t=i;
+			}
+		}
+		
+		tabpanel.setActiveTab(t);
 	}
 });
 
@@ -280,7 +348,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		Ext.apply(this, {
 			taskUpdates: {},
 			unstyled: true,
-			layout: "form",
+			layout: "fit",
 			url: itasks.config.serverUrl+"/work/tab",
 			bodyStyle: "padding: 10px"
 		});
@@ -634,53 +702,118 @@ Ext.reg("itasks.user",itasks.form.UserField);
 Ext.reg("itasks.priority",itasks.form.PriorityField);
 Ext.reg("itasks.progress",itasks.form.ProgressField);
 
-//Combination of other tasks
-itasks.TaskCombinationPanel = Ext.extend(Ext.Panel, {
-	initComponent: function() {
-		Ext.apply(this, {
-			unstyled: true
-			//border: true,
-			//bodyStyle: 'background: #f00;'			
+itasks.ParallelPanel = Ext.extend(Ext.Panel,{
+
+	initComponent: function(){
+		var store = new Ext.data.JsonStore({
+			autoDestroy: true,
+			root: 'subtasks',
+			fields: [{name: 'finished', type: 'bool'},'taskId', 'subject', 'delegatedTo', 'progress','subtaskId','description']
 		});
-		itasks.TaskCombinationPanel.superclass.initComponent.apply(this,arguments);
-	},
-	update: function (data) {
-		//Check and update all child items
-		var items = data.items;
+
+		var col = new Ext.grid.ColumnModel({
+			defaults:{
+				menuDisabled: true,
+				sortable: true
+			},
+			columns: [
+				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
+				{header: 'Nr.',			  		dataIndex: 'subtaskId', width: 75, renderer: this.renderId},
+				{header: 'Subject',		    dataIndex: 'subject', width: 200},
+				{header: 'Task Id', 			dataIndex: 'taskId', hidden: itasks.app.debug, width: 120},
+				{header: 'Delegated To', dataIndex: 'delegatedTo', width: 120},
+				{header: 'Description',	dataIndex: 'description', width: 400}
+			]
+		});
+
+		var grid = new Ext.grid.GridPanel({
+			store : store,
+			disableSelection: true,
+			colModel: col,	
+			width: '100%',
+			height: 250,
+		});
 		
-		for(var i = 0; i < items.length; i++) {
-			//Check if the next item already exists
-			var j;
-			for(j = i; j < this.items.length; j++) {
-				if(this.items.get(j).taskId == items[i].taskId)
-					break; //Found!
-			}
-			if(j < this.items.length) { //When found...
-				//Remove the existing items between i and j
-				for(var k = 0; k < (j - i); k ++) {
-					this.remove(i);
+		Ext.apply(this,{
+			unstyled: true,
+			bodyStyle: 'padding: 10px',
+			items: [
+				{ xtype: 'panel'
+				, html: this.label
+				, bodyCssClass: 'task-description'
 				}
-				//Update the existing item
-				this.items.get(i).update(items[i]);
-			} else {
-				//Add the new item
-				this.insert(i,items[i]);
-			}
-		}
-		//Remove the trailing items
-		var trailing = (this.items.length - items.length);
-		for (var i = 0; i < trailing; i++) {
-			this.remove(items.length);
-		}
+				, grid			
+			]
+		});
 		
-		this.doLayout();
+		grid.on("rowdblclick",function(grid,row,e){
+			var store = grid.store;
+			var rec = grid.store.getAt(row);
+			var taskId = rec.data.taskId;
+			
+			var ct = grid.findParentByType(itasks.WorkPanel);
+			ct.switchToSubtask(taskId);			
+		});
+		
+		itasks.ParallelPanel.superclass.initComponent.apply(this,arguments);
+	},
+	
+	afterRender: function(arguments){
+		this.updateStore(this.subtaskInfo);
+		itasks.ParallelPanel.superclass.afterRender.call(this,arguments);
+	},
+	
+	update: function(content){
+		this.updateStore(content.subtaskInfo);
+	},
+	
+	updateStore: function(records){
+		var grid = this.getComponent(1);
+		var store = grid.store;
+		store.loadData({subtasks: records},false);
+	},
+	
+	renderFinished: function(val,metadata,rec,row,col,store){
+		if(val == false){
+			return '<div style="text-align: center"><img src="skins/default/img/icons/hourglass.png" /></div>'
+		}else{
+			return '<div style="text-align: center"><img src="skins/default/img/icons/tick.png" /></div>'
+		}
+	},
+	
+	renderId: function(val,metadata,rec,row,col,store){
+		var split = val.split(".");
+		render = '<img style="width: '+(split.length-1)*5+'px" src="'+Ext.BLANK_IMAGE_URL+'"></span>';		
+		render += val;
+		return render;
 	}
 });
 
+itasks.WorkPanelTab = Ext.extend(Ext.Panel,{
+	
+	initialized: false,
+	
+	initComponent: function(){
+		
+		Ext.apply(this,{
+			title: "Task",
+			iconCls: "icon-task",
+			unstyled: true,
+			autoScroll: true,
+			layout:'anchor',
+			defaults:{
+				anchor: 'r-'+itasks.app.scrollbarWidth
+			}
+		});
+
+		itasks.WorkPanelTab.superclass.initComponent.apply(this,arguments);
+	}
+});
 Ext.reg("itasks.work",itasks.WorkPanel);
+Ext.reg("itasks.work-tab",itasks.WorkPanelTab);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
 Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
 Ext.reg("itasks.task-form",itasks.TaskFormPanel);
 Ext.reg("itasks.task-monitor",itasks.TaskMonitorPanel);
 Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
-Ext.reg("itasks.task-combination",itasks.TaskCombinationPanel);
+Ext.reg("itasks.task-parallel",itasks.ParallelPanel);

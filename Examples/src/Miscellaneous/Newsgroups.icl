@@ -5,7 +5,7 @@ implementation module Newsgroups
 //	All other users can subscribe to such a newsgroup, commit a message or read news
 // (c) mjp 2007 
 
-import StdList, StdOrdList, StdTuple, StdMisc, GenBimap
+import StdList, StdOrdList, StdTuple, StdMisc
 import iTasks
 import CommonDomain
 

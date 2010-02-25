@@ -114,6 +114,9 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-folder {
 	background-image: url('img/icons/folder.png');
 }
+.icon-overview{
+	background-image: url('img/icons/application_view_list.png') !important;	
+}
 #userdisplay {
 	color: #3a81ad;
 	font-weight: bold;
@@ -391,7 +394,7 @@ div.taskForestLegend{
 }
 
 .task-par {
-   background-image:url('img/icons/parallel.png') !important;
+   background-image:url('img/icons/arrow_divide_right.png') !important;
 }
 
 .task-mnt {
