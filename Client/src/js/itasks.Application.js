@@ -9,6 +9,7 @@ itasks.Application = function () {
 		session: null,
 		displayName: null,
 		googleMapsLoaded: false,
+		scrollbarWidth: 0,
 		
 		viewport: new Ext.Viewport({
 			layout: 'card',
@@ -72,6 +73,7 @@ itasks.Application = function () {
 			//Update global state
 			this.session = session;
 			this.displayName = displayName;
+			this.scrollbarWidth = itasks.util.getScrollerWidth();
 			
 			//Remove the login window
 			this.loginWindow.hide();
