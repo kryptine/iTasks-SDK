@@ -1,0 +1,8 @@
+//iTask client configuration
+{ serverUrl: "/handlers"
+, appTitle: "iTasks"
+, skin: "default"
+, debug: true
+, autoRefresh: false
+, refreshRate: 60000
+}

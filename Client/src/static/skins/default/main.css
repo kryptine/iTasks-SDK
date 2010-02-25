@@ -1,0 +1,584 @@
+@import url('welcome.css');
+body {
+   font: normal 12px Verdana;
+   margin: 0;
+   padding: 0;
+   border: 0 none;
+   overflow: hidden;
+   height: 100%;
+}
+.bg {
+	background: #3a81ad url('img/body.png') top repeat-x;
+}
+.error {
+	font-weight: bold;
+	color: red;
+}
+button.icon-logout, .icon-logout {
+	background-image: url('img/icons/door_in.png');
+}
+button.icon-refresh, .icon-refresh {
+	background-image: url('img/icons/refresh.png');
+}
+button.icon-thread-table, .icon-thread-table {
+	background-image: url('img/icons/table_lightning.png');
+}
+button.icon-process-table, .icon-process-table {
+	background-image: url('img/icons/table_gear.png');
+}
+button.icon-task-tree, .icon-task-tree {
+	background-image: url('img/icons/chart_organisation.png');
+}
+button.icon-states, .icon-states {
+	background-image: url('img/icons/table_gear.png');
+}
+button.icon-events, .icon-events {
+	background-image: url('img/icons/table_lightning.png');
+}
+button.icon-ok, button.icon-yes, button.icon-finish, .icon-ok, .icon-yes, .icon-finish {
+	background-image: url('img/icons/tick.png');
+}
+button.icon-no, button.icon-cancel, .icon-no, .icon-cancel {
+	background-image: url('img/icons/cancel.png');
+}
+button.icon-previous, .icon-previous {
+	background-image: url('img/icons/arrow_left.png');
+}
+button.icon-next, .icon-next {
+	background-image: url('img/icons/arrow_right.png');
+}
+button.icon-edit, .icon-edit {
+	background-image: url('img/icons/pencil.png');
+}
+button.icon-accept, .icon-accept {
+	background-image: url('img/icons/accept.png');
+}
+
+button.icon-new, .icon-new {
+	background-image: url('img/icons/document-new.png');
+}
+
+button.icon-open, .icon-open {
+	background-image: url('img/icons/document-open.png');
+}
+
+button.icon-save, .icon-save {
+	background-image: url('img/icons/document-save.png');
+}
+
+button.icon-save-as, .icon-save-as {
+	background-image: url('img/icons/document-save-as.png');
+}
+
+button.icon-exit, .icon-exit {
+	background-image: url('img/icons/exit.png');
+}
+
+button.icon-help, .icon-help {
+	background-image: url('img/icons/help.png');
+}
+
+button.icon-collapse-tree, .icon-collapse-tree {
+	background-image: url('img/icons/collapse-all.gif') !important;
+}
+
+button.icon-expand-tree, .icon-expand-tree {
+	background-image: url('img/icons/expand-all.gif') !important;
+}
+
+.icon-task-tree {
+	background-image: url('img/icons/chart_organisation.png');
+}
+
+.icon-debug {
+	background-image: url('img/icons/bug.png') !important;
+}
+.icon-currentwork {
+	background-image: url('img/icons/report_edit.png');
+}
+.icon-newwork {
+	background-image: url('img/icons/report_add.png');
+}
+.icon-home {
+	background-image: url('img/icons/house.png');
+}
+.icon-task {
+	background-image: url('img/icons/page_edit.png');
+}
+.icon-waiting {
+	background-image: url('img/icons/hourglass.png');
+}
+.icon-workflow {
+	background-image: url('img/icons/page_edit.png');
+}
+.icon-folder {
+	background-image: url('img/icons/folder.png');
+}
+#userdisplay {
+	color: #3a81ad;
+	font-weight: bold;
+	padding-right: 10px;
+}
+
+/* WORK LIST PANEL STYLES */
+div.treegrid {
+	position: absolute;
+	width: 16px;
+	height: 18px;
+}
+div.treegrid-empty {
+}
+div.treegrid-line {
+	background: url('../../ext3/resources/images/default/tree/elbow-line.gif') no-repeat;
+}
+div.treegrid-middle {
+	background: url('../../ext3/resources/images/default/tree/elbow.gif') no-repeat;
+}
+div.treegrid-last {
+	background: url('../../ext3/resources/images/default/tree/elbow-end.gif') no-repeat;
+}
+div.treegrid-icon {
+	background-position: 0 2px;
+	background-repeat: no-repeat;
+}
+div.treegrid-label {
+	position: absolute;
+	height: 16px;
+	padding: 2px 0px 0px 5px;
+}
+/* NEW TASK PANEL STYLES */
+
+div.newtask-container .x-panel-body {
+	background: #fff url('img/itasks-logo.png') left bottom no-repeat;
+}
+
+/* WORK TAB PANEL STYLES */
+div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
+	background: #eee;
+}
+div.worktab-header {
+	padding: 0px;
+//	width: 100%;
+//	height: 100%;
+}
+div.worktab-header-normal-priority{
+	background: url('img/worktab-header-normal-back.png');
+	color: white;
+}
+
+div.worktab-header-high-priority{
+	background: url('img/worktab-header-high-back.png');
+	color: white;
+}
+
+div.worktab-header-text{
+	padding: 2px 0px 0px 35px;
+}
+
+div.worktab-header-indicator {
+	position: absolute;
+	top: 5px;
+	left: 100%;
+	margin-left: -22px;
+	width: 16px;
+	height: 16px;
+	
+	background: url('img/loading-small.gif') no-repeat;
+	display: none;
+}
+
+div.worktab-header th {
+	padding-right: 5px;
+	font-weight: bold;
+}
+
+div.worktab-header td{
+	padding-right: 10px;
+}
+div.worktab-header-status {
+	width: 25px;
+	height: 25px;
+	float: left;
+}
+
+div.worktab-header-separator{
+	width: 3px;
+	height: 25px;
+	float: left;
+	background: url('img/worktab-header-separator.png');
+}
+
+div.worktab-header-progress-active{
+	background: url('img/worktab-progress-active.png');
+}
+
+div.worktab-header-progress-stuck{
+	background: url('img/worktab-progress-stuck.png');
+}
+
+div.worktab-header-progress-waiting{
+	background: url('img/worktab-progress-waiting.png');
+}
+
+div.worktab-header-progress-reject{
+	background: url('img/worktab-progress-reject.png');
+}
+
+table.form-table th {
+	vertical-align: top;
+}
+.basic-task {
+	background: #ff0;
+	border: solid 2px #f00;
+}
+
+div.it-task-overview {
+	border: solid 1px #93b8d0;
+	background-color: #fff;
+}
+.it-task-overview table tr td {
+	padding: 5px;
+}
+div.it-task-overview-icon {
+	width: 16px;
+	height: 16px;
+}
+div.task-description {
+	padding: 0px 0px 5px 0px;
+	margin: 0px 0px 15px 0px;
+	border-width: 0px 0px 1px 0px !important;
+}
+div.task-context {
+	padding: 2px;
+	margin: 0px 0px 15px 0px;
+	background: #fff !important;
+	border-width: 1px !important;
+}
+div.task-context th {
+	font-weight: bold;
+	vertical-align: top;
+}
+
+/* DEBUG STYLES */
+.debug-button button.x-btn-text {
+	width: 150px;
+	overflow: visible;
+	text-align: left;
+	background-position: 0 2px;
+	background-repeat: no-repeat;
+	padding-left:20px;
+	padding-top:3px;
+	padding-bottom:2px;
+    padding-right:0;
+}
+
+/* TRACE STYLES */
+table.debug-table {
+	width: 100%;
+	background-color: #fff;
+}
+table.debug-table th {
+	padding: 2px;
+	color: #fff;
+	background-color: #2e72b6;
+	font-weight: bold;
+}
+table.debug-table td {
+	padding: 2px;
+	vertical-align: top;
+}
+
+div.trace-process {
+	padding: 10px;
+}
+div.trace-process h2 {
+	font-size: 14px;
+	border-bottom: 1px solid #ccc;
+}
+div.trace-process th {
+	background-color: #ccc;
+}
+
+table.trace-sequence {
+	border: 1px solid #ccc;
+	margin: 5px;
+	background-color: #fff;
+}
+table.trace-sequence th {
+	color: #fff;
+	font-size: smaller;
+	text-align: center;
+}
+table.trace-sequence th.trace-active {
+	background-color: #93b8d0;
+}
+table.trace-sequence th.trace-finished {
+	background-color: #3a81ad;
+}
+table.trace-sequence td {
+	vertical-align: top;
+}
+table.trace-parallel {
+	border: 1px solid #ccc;
+	margin: 5px;
+	background-color: #fff;
+}
+table.trace-parallel th {
+	color: #fff;
+	font-size: smaller;
+	text-align: center;
+}
+table.trace-parallel th.trace-active {
+	background-color: #93b8d0;
+}
+table.trace-parallel th.trace-finished {
+	background-color: #3a81ad;
+}
+div.trace-node {
+	width: 150px;
+	border: solid 1px #ccc;
+	color: #000;
+	font-size: smaller;
+	margin: 5px;
+	background-color: #fff;
+}
+div.trace-node-title {
+	color: #fff;
+	padding: 2px;
+	text-align: center;
+}
+div.trace-node th {
+	width: 75px;
+	color: #000;
+}
+
+.trace-active {
+	background-color: #93b8d0;
+}
+.trace-finished {
+	background-color: #3a81ad;
+}
+.trace-inactive {
+	background-color: #ccc;
+}
+
+/* == Taskforest icons == */
+
+div.taskForestLegend{
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	height: 20px;
+	margin: 2px;
+	font-size: 80%;
+	float: left;
+	vertical-align: middle;
+}
+
+.task-int {
+   background-image:url('img/icons/page_edit.png') !important;
+}
+
+.task-mon {
+   background-image:url('img/icons/zoom.png') !important;
+}
+
+.task-rpc {
+   background-image:url('img/icons/monitor-go.png') !important;
+}
+
+.task-seq {
+    background-image:url('img/icons/arrow_right.png') !important;
+}
+
+.task-par {
+   background-image:url('img/icons/parallel.png') !important;
+}
+
+.task-mnt {
+    background-image:url('img/icons/house.png') !important;
+}
+
+.task-fin {
+	background-image:url('img/icons/flag.png') !important;
+}
+
+.task-publish {
+   background-image:url('img/icons/monitor-go.png') !important;
+}
+
+/* == ListPanel == */
+
+.list{
+	padding: 2px;
+	background-color: #c0c0c0;
+}
+
+.list-toolbox {
+	padding: 3px;
+	margin: 0px;
+	float: right;
+	background-color: #c0c0c0;
+}
+
+.list-item {
+	padding: 2px 0px 0px 4px;
+	background-color: #DDD;
+	border: 1px solid #c0c0c0;
+}
+
+.list-toolbox-button{
+	width: 16px;
+	height: 16px;
+}
+
+.list-toolbox-button button{
+	color: transparent;
+	background: transparent none repeat scroll 0 0;
+	border: none;
+	width: 16px;
+	height: 16px;
+}
+
+.list-toolbox-button .x-button-click {
+	color: transparent;
+}
+
+.list-button-up{
+	background-image: url('img/icons/move-up.png') !important;
+}
+
+.list-button-down{
+	background-image: url('img/icons/move-down.png') !important;
+}
+
+.list-button-add{
+	background-image: url('img/icons/add.png') !important;
+}
+
+.list-button-rem{
+	background-image: url('img/icons/delete.png') !important;
+}
+
+ul.listDisplay{
+	padding: 1px 2px 1px 4px;
+}
+
+ul.listDisplay li:nth-child(even){
+	margin: 1px;
+	padding: 2px 2px 2px 5px;
+	border: 1px solid #c0c0c0;
+	background-color: #eee;
+}
+
+ul.listDisplay li:nth-child(odd){
+	margin: 1px;
+	padding: 2px 2px 2px 5px;
+	border: 1px solid #c0c0c0;
+	background-color: #ddd;
+}
+
+/* == Document Panel == */
+
+.x-form-file-wrap {
+	position: relative;
+	height: 22px;
+}
+.x-form-file-wrap .x-form-file {
+	position: absolute;
+	right: 0;
+	-moz-opacity: 0;
+	filter:alpha(opacity: 0);
+	opacity: 0;
+	z-index: 2;
+	height: 22px;
+}
+.x-form-file-wrap .x-form-file-btn {
+	position: absolute;
+	right: 0;
+	z-index: 1;
+}
+.x-form-file-wrap .x-form-file-text {
+	position: absolute;
+	left: 0;
+	z-index: 3;
+	color: #777;
+}
+
+.x-form-file-icon{
+	width: 22px;
+	height: 22px;
+	vertical-align: top;
+}
+
+td.x-form-file {
+	-x-system-font:none;
+	font-family:tahoma,arial,helvetica,sans-serif;
+	font-size:12px;
+}
+
+button.x-form-document-browse-icon {
+	background-image: url('img/icons/page_find.png') !important;
+}
+
+button.x-form-document-upload-icon {
+	background-image: url('img/icons/page_add.png') !important;
+}
+
+button.x-form-document-download-icon {
+	background-image: url('img/icons/page_white_put.png') !important;
+}
+
+button.x-form-document-edit-icon {
+	background-image: url('img/icons/pencil.png') !important;
+}
+
+button.x-form-document-cancel-icon {
+	background-image: url('img/icons/cancel.png') !important;
+}
+
+button.x-form-document-trash-icon {
+	background-image: url('img/icons/trash.png') !important;
+}
+
+.file-type-image-icon{
+	background-image: url('img/icons/image.png') !important;
+}
+
+.file-type-plain-icon{
+	background-image: url('img/icons/page_white.png') !important;
+}
+
+.file-type-video-icon{
+	background-image: url('img/icons/film.png') !important;
+}
+
+.file-type-audio-icon{
+	background-image: url('img/icons/music.png') !important;
+}
+
+.file-type-text-icon{
+	background-image: url('img/icons/page.png') !important;
+}
+
+.file-type-application-icon{
+	background-image: url('img/icons/application_xp.png') !important;
+}
+
+.file-type-application-pdf-icon{
+	background-image: url('img/icons/page_white_acrobat.png') !important;
+}
+
+/* == Horizontal Grid Layout == */
+
+.x-hgrid-layout-table {
+	width: 100%;
+	height: auto;
+}
+
+.x-hgrid-layout-cell {
+	height: auto;
+	vertical-align: top;
+	padding: 0;
+	background-color: #DDD;
+	border: 1px solid transparent;
+}

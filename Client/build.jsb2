@@ -1,0 +1,67 @@
+{ "projectName" : "iTasks Client"
+, "deployDir" : "build"
+, "licenseText" : ""
+, "pkgs" : [{
+	 "name" : "itasks-all"
+	,"file" : "itasks-all.js" 
+	,"isDebug" : false
+	,"fileIncludes" :
+		[{"text":"itasks.util.js","path":"src/js/"}
+		,{"text":"itasks.form.js","path":"src/js/"}
+		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
+		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
+		,{"text":"itasks.NewWorkPanel.js","path":"src/js/"}
+		,{"text":"itasks.DebugPanel.js","path":"src/js/"}
+		,{"text":"itasks.WorkListPanel.js","path":"src/js/"}
+		,{"text":"itasks.HomeTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.TaskForestTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.ProcessTableTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.WorkTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.WorkTabsPanel.js","path":"src/js/"}
+		,{"text":"itasks.ApplicationPanel.js","path":"src/js/"}
+		,{"text":"itasks.Application.js","path":"src/js/"}
+		,{"text":"itasks.GMapPanel.js","path":"src/js/"}
+		,{"text":"itasks.GStaticMapPanel.js","path":"src/js/"}
+		,{"text":"itasks.ListPanel.js","path":"src/js/"} 
+		,{"text":"itasks.DocumentPanel.js","path":"src/js/"} 
+		,{"text":"itasks.HorizontalGridLayout.js","path":"src/js/"}
+		,{"text":"itasks.js","path":"src/js/"}]
+	,"pkgDeps" : ["ext-ux-all.js"]
+	,"includeDeps" : false
+	},{
+	 "name": "ext-ux-all"
+	,"file": "ext-ux-all.js"
+	,"isDebug": false
+	,"fileIncludes" : 
+		[{"text":"Ext.ux.AjaxRemoteRequest.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGrid.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridColumnResizer.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridColumns.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridLoader.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridNodeUI.js","path":"src/js/"}
+		,{"text":"Ext.ux.tree.TreeGridSorter.js","path":"src/js/"}
+		,{"text":"Ext.ux.layout.HtmlLayout.js","path":"src/js/"}
+		,{"text":"Ext.ux.form.FileUploadField.js","path":"src/js/"}
+		,{"text":"Ext.ux.MIframe.js","path":"src/js/"}]
+	,"pkgDeps" : []
+	,"includeDeps" : false
+	}]
+, "resources" :[
+	{ "src":"src/static/"
+	, "dest":"/"
+	, "filters":".*config\\.json|.*favicon\\.ico|.*index\\.html"
+	},
+	{ "src":"src/static/css/"
+	, "dest":"/css/"
+	, "filters":".*\\.css"
+	},
+	{ "src":"src/static/skins/"
+	, "dest":"/skins/"
+	, "filters":".*"
+	},
+	{ "src":"lib/"
+	, "dest":"/"
+	, "filters":".*"
+	}
+	]
+}
