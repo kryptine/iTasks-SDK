@@ -1,13 +1,13 @@
 implementation module PublishSubscribeCombinators
 
-import StoreTasks, Store, InteractionTasks, CoreCombinators, TSt, StdList, TUIDefinition
+import StoreTasks, Store, InteractionTasks, CoreCombinators, TSt, StdList, TUIDefinition, ProcessDB
 
 publishInformation :: question !(DBid a) -> Task (Action,a) | html question & iTask a 
-publishInformation question dbid = iterateUntil (enterInformationA "Please enter an inital value. This will not yet be published." [] [ActionOk,ActionCancel]) (publishUpd question dbid) finished
+publishInformation question dbid = iterateUntil (enterInformationA "Please enter an inital value. This will not yet be published." [ButtonAction(ActionOk,IfValid),ButtonAction(ActionCancel,Always)]) (publishUpd question dbid) finished
 where
 	publishUpd :: question (DBid a) (Action,a) -> Task (Action,a) | html question & iTask a
 	publishUpd question dbid (act,val) = 
-		updateInformationA question [] [(ActionIcon "Publish" "task-publish"),ActionFinish] val 
+		updateInformationA question [ButtonAction((ActionIcon "Publish" "task-publish"),IfValid),ButtonAction(ActionFinish,IfValid)] val 
 		>>= \(act,val) -> writeDB dbid val
 		>>| return (act,val)
 		
@@ -38,7 +38,7 @@ makeSubscribeTask message context tst=:{taskNr}
 	# editorId	= "tf-" +++ taskId
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
-		# tst = setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId [ActionNext] [] True)) tst
+		# tst = setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId [(ActionNext,True)])) tst
 		= (ActionNext,tst)
 	| otherwise
 		= (ActionFinish,tst)
