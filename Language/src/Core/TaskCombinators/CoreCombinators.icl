@@ -150,7 +150,7 @@ where
 				= (result,tst)
 			//When found, evaluate
 			Just proc
-				# (result,_,tst)= evaluateTaskInstance proc Nothing False tst
+				# (result,_,tst)= evaluateTaskInstance proc Nothing False False tst
 				= case result of
 					TaskBusy				= (TaskBusy,tst)
 					TaskFinished (a :: a^) 	= (TaskFinished a,tst)

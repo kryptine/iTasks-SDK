@@ -10,6 +10,8 @@ from Html 			import :: HtmlTag
 from CommonDomain	import :: Note
 from StdString		import class toString
 
+from iTasks			import class iTask
+ 
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
 
 derive gPrint		Session, Document, Hidden, Static
@@ -21,6 +23,8 @@ derive JSONEncode Document
 derive JSONDecode Document
 
 instance toString TaskPriority
+
+
 
 :: UserName			:== String
 :: DisplayName		:== String			
@@ -53,15 +57,22 @@ instance toString TaskPriority
 					| TaskFinished !a
 					| TaskException !Dynamic
 
-
 :: TaskDescription	=
 	{ title			:: !String
 	, description	:: !Note
 	}
-	
-:: TaskPriority		= HighPriority			// tasks can have three levels of priority
+
+:: TaskThread a		=
+	{ originalTask	:: !Task a
+	, currentTask	:: !Task a
+	}	
+
+:: TaskPriority		= HighPriority				// tasks can have three levels of priority
 					| NormalPriority
 					| LowPriority
+
+
+:: Container a c	= Container a & iTask c		// container for context restrictions
 					
 // Changes
 
@@ -74,8 +85,6 @@ instance toString TaskPriority
 
 //A label for identifying changes externally
 :: ChangeLabel	:== String
-//A reference to a changefunction in the store 
-:: ChangeId		:== String
 //A labeled new change
 :: ChangeInjection :== (!ChangeLifeTime,!Dynamic)
 

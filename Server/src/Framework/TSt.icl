@@ -2,13 +2,14 @@ implementation module TSt
 
 import StdEnv, StdMaybe
 import Http, Util
-import ProcessDB, SessionDB, DocumentDB, UserDB, TaskTree
+import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import CommonDomain
 
 import GenPrint, GenParse, GenEq
 import GenVisualize, GenUpdate, Store, Config
 
 import dynamic_string
+import StdDebug
 
 from JSON import JSONDecode, fromJSON
 
@@ -31,14 +32,13 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !
 mkTSt appName config request session workflows systemStore dataStore fileStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
-		, firstRun		= False
 		, userId		= ""
 		, delegatorId	= ""
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, mainTask		= ""
 		, staticInfo	= initStaticInfo appName session workflows
-		, doChange		= False
-		, changes		= []
+		, currentChange	= Nothing
+		, pendingChanges= []
 		, config		= config
 		, request		= request
 		, systemStore	= systemStore
@@ -116,43 +116,81 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		, status		= Active
 		, parent		= parent
 		, properties	= properties
-		, changes		= []
 		, changeCount	= 0
 		, menus			= Nothing
 		}
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
-	//Store the task as dynamic
-	# tst					= storeTaskFunctionStatic (taskNrFromString processId) task tst
-	//Store the runnable theread
-	# tst					= storeTaskThread (taskNrFromString processId) (createTaskThread task) tst	
+	//Create a thread with task functions in the store
+	# tst					= storeThread processId (createThread task) tst
 	//Evaluate the process once to kickstart automated steps that can be set in motion immediately
-	# (result,tree,tst)		= evaluateTaskInstance {Process|process & processId = processId} Nothing toplevel {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
+	# (result,tree,tst)		= evaluateTaskInstance {Process|process & processId = processId} Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
 	= case result of
 		TaskBusy				= (TaskBusy, processId, tst)
 		TaskFinished (a :: a^)	= (TaskFinished a, processId, tst)
 		TaskException e			= (TaskException e, processId, tst)
+
+//NEW THREAD FUNCTIONS
+createThread :: !(Task a) -> Dynamic	| iTask a
+createThread task = (dynamic container :: Container (TaskThread a^) a^)
+where
+ 	container = Container {TaskThread|originalTask = task, currentTask = task}
+
+applyThread :: !Dynamic *TSt -> (!TaskResult Dynamic, !*TSt)
+applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst
+	# (result, tst) = applyTask currentTask tst
+	= case result of
+			TaskBusy		= (TaskBusy, tst)
+			TaskFinished a	= (TaskFinished (dynamic a), tst)
+			TaskException e	= (TaskException e, tst)
+
+storeThread :: !ProcessId !Dynamic !*TSt -> *TSt
+storeThread processId thread tst=:{TSt|dataStore}
+	# dataStore = storeValueAs SFDynamic ("iTask_" +++ processId +++ "-thread") thread dataStore
+	= {tst & dataStore = dataStore}
+
+loadThread :: !ProcessId !*TSt -> (!Dynamic,!*TSt)
+loadThread processId tst=:{TSt|dataStore,world}
+	# (mbThread, dataStore, world)	= loadValue ("iTask_" +++ processId +++ "-thread") dataStore world
+	= case mbThread of
+		Just thread	= (thread,{tst & dataStore = dataStore, world = world})
+		Nothing		= abort "Could not load task thread"
 		
+//END NEW THREAD FUNCTIONS
+
 //Computes a workflow (sub) process
-evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, changes, changeCount} mbChange isTop tst
-	//TODO: First apply change magic
-	//Reset the task state
-	# tst					= resetTSt processId properties tst
-	//Load the task instance 
-	# (thread,tst)			= loadTaskThread (taskNrFromString processId) tst
-	//Evaluate the task instance
-	# (result,tst)			= thread tst
-	# (tree,tst)			= getTaskTree tst
+evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+evaluateTaskInstance process=:{Process | processId, parent, properties, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges}
+	// Reset the task state
+	# tst								= resetTSt processId properties tst
+	// Queue all stored persistent changes (only when run as top node)
+	# tst								= if isTop (loadPersistentChanges processId tst) tst
+	// When a change is injected set it as active change
+	# tst								= if (isJust newChange) {tst & currentChange = newChange} tst
+	// Load the task instance
+	# (thread,tst)						= loadThread processId tst
+	// On the first run, apply all changes. Pending persistent ones as well as the currently active change
+	// On subsequent runs only apply the currently active change
+	// After each application of a change the thread is evaluated because the full evaluated tree must be the
+	// subject of later changes
+	# (changeCount,thread,properties,result,tst)
+										= if firstRun
+											(applyAllChanges processId changeCount pendingChanges thread properties tst)
+											(applyCurrentChange processId changeCount thread properties tst)
+	# (tree,tst)						= getTaskTree tst
+	// Store the adapted persistent changes
+	# tst								= if isTop (storePersistentChanges processId tst) tst
 	= case result of
 		TaskBusy
+			//Update process table (changeCount & properties)
+			# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, changeCount = changeCount }) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
 			| isTop
 				//Store result
 				# tst 		= storeProcessResult (taskNrFromString processId) result tst
-				//Update process table
-				# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished}) tst
+				//Update process table (status, changeCount & properties)
+				# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished, properties = properties, changeCount = changeCount }) tst
 				//Evaluate parent process
 				| parent <> ""
 					# (mbParentProcess,tst) = getProcess parent tst
@@ -160,12 +198,13 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, changes,
 						Nothing 
 							= (result,tree,tst)
 						Just parentProcess
-							# (_,_,tst)	= evaluateTaskInstance parentProcess Nothing True tst
+							# (_,_,tst)	= evaluateTaskInstance parentProcess Nothing True False tst
 							= (result,tree,tst)	
 				| otherwise
 					= (result,tree,tst)
 			| otherwise
-				//Just return the result and tree. No need to save it.
+				//Update process table (changeCount & properties)
+				# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, changeCount = changeCount }) tst
 				= (result,tree,tst)
 		TaskException e
 			//Store exception
@@ -174,10 +213,161 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, changes,
 			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Excepted}) tst
 			= (TaskException e, tree, tst)
 where
+	resetTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
 	resetTSt processId properties tst
 		# taskNr	= taskNrFromString processId
 		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = ""} properties []
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}}
+	/*
+	* Load all stored persistent changes that are applicable to the current (sub) process.
+	* In case of evaluating a subprocess, this also includes the changes that have been injected
+	* at parent nodes. Persistent changes are queued in the temporal order in which they were injected.
+	* The oldest change is at the head of the list.
+	*/
+	loadPersistentChanges :: !ProcessId *TSt -> *TSt 
+	loadPersistentChanges processId tst
+		# (changes,tst)	= getChangesForProcess processId tst
+		# (changes,tst) = loadChangeFunctions changes tst
+		= {tst & pendingChanges = changes}
+	where
+		loadChangeFunctions [] tst = ([],tst)
+		loadChangeFunctions [{PersistentChange|label}:cs] tst=:{TSt|dataStore,world}
+			# (mbDyn, dataStore, world)	= loadValue ("iTask_change-" +++ label) dataStore world
+			# (dyns,tst)	= loadChangeFunctions cs {TSt|tst & dataStore = dataStore, world = world}
+			= case mbDyn of
+				Nothing		= (dyns,tst)
+				Just dyn	= ([(CLPersistent label,dyn):dyns],tst)
+	/*
+	* When a (sub)process is evaluated for the first time, all existing persistent changes need to be applied.
+	* Because applying a change may result in the creation of new sub processes, changes must be carefully applied
+	* in the right order. 
+	*/
+	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !TaskProperties !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
+	applyAllChanges processId changeCount [] thread properties tst
+		//Only apply the current change
+		= applyCurrentChange processId changeCount thread properties tst
+	applyAllChanges processId changeCount changes thread properties tst=:{currentChange}
+		//Add the pending changes one after another (start empty)
+		= applyAllChanges` processId changeCount currentChange changes thread properties {tst & pendingChanges = []} 
+	where
+		applyAllChanges` processId changeCount currentChange [] thread properties tst
+			= applyCurrentChange processId changeCount thread properties {tst & currentChange = currentChange}
+		applyAllChanges` processId changeCount currentChange [c:cs] thread properties tst
+			# (changeCount,thread,properties,result,tst) = applyCurrentChange processId changeCount thread properties {tst & currentChange = Just c} 
+			//Update pending changes list
+			# tst	= {tst & pendingChanges = (case tst.currentChange of
+														Nothing = tst.pendingChanges
+														Just change = tst.pendingChanges ++ [change]) }	
+			= case result of
+				TaskBusy
+					//Continue applying changes
+					= applyAllChanges` processId changeCount currentChange cs thread properties tst
+				TaskFinished val
+					//A change caused the task to complete. Stop, but keep pending changes
+					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
+				TaskException e
+					//A change caused an exception. Stop, but keep pending changes
+					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
+
+	applyCurrentChange :: !ProcessId !Int !Dynamic !TaskProperties !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
+	applyCurrentChange processId changeCount thread properties tst=:{currentChange}
+		= case currentChange of
+			Just (lifetime,change)
+				// Apply the active change
+				# (mbChange,mbThread,properties)	= applyChange [changeCount: taskNrFromString processId] change thread properties
+				// Determine the thread to run (the original or the changed one)
+				# (changeCount,thread,tst)	= case mbThread of
+												Nothing
+													= (changeCount,thread,tst)
+												Just newThread
+													// Store the thread when changed
+													# tst = storeThread processId newThread tst
+													// IMPORTANT: change count is incremented if a change produces a new task
+													= (inc changeCount,newThread,tst)
+				// Update the current change in the task state or remove from the store
+				# tst = case mbChange of
+									Nothing
+										//When a persistent change does not return a new change it
+										//is removed from the store
+										= case lifetime of
+											CLPersistent label
+												# tst=:{dataStore,world}	= deleteChange label tst
+												# (dataStore,world)			= deleteValues ("iTask_change-" +++ label) dataStore world 
+												= {tst & dataStore = dataStore, world = world, currentChange = Nothing}
+											_
+												= {tst & currentChange = Nothing}
+									Just change
+										= {tst & currentChange = Just (lifetime,change)}
+				// Evaluate the thread
+				// IMPORTANT: The taskNr is reset with the latest change count
+				# (result,tst) 	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId]}
+				= (changeCount,thread,properties,result,tst)
+			Nothing
+				# (result,tst)	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId]}
+				= (changeCount,thread,properties,result,tst)
+	
+	applyChange :: !TaskNr !Dynamic !Dynamic !TaskProperties -> (!Maybe Dynamic, !Maybe Dynamic, !TaskProperties)
+	//Apply a change that matches a specific type
+	applyChange cxt (changeFun :: Change a) (Container (thread=:{TaskThread|originalTask,currentTask}) :: Container (TaskThread a) a) properties
+		# (mbProps,mbTask,mbChange) = changeFun properties (setTaskContext cxt currentTask) originalTask
+		# newThread		= case mbTask of
+								Just task	= Just (dynamic Container {thread & currentTask = task} :: Container (TaskThread a) a)
+								Nothing		= Nothing
+		# newProperties = case mbProps of
+								Just props	= props
+								Nothing		= properties
+		= (mbChange,newThread,newProperties)
+	//Apply a change that matches any type
+	applyChange cxt (changeFun :: A.c: Change c | iTask c) (Container (thread=:{TaskThread|originalTask,currentTask}) :: Container (TaskThread a) a) properties
+		# (mbProps,mbTask,mbChange) = changeFun properties (setTaskContext cxt currentTask) originalTask
+		# newThread		= case mbTask of
+								Just task	= Just (dynamic Container {thread & currentTask = task} :: Container (TaskThread a) a)
+								Nothing		= Nothing
+		# newProperties = case mbProps of
+								Just props	= props
+								Nothing		= properties
+		= (mbChange,newThread,newProperties)
+	//Change did not match, do nothing
+	applyChange cxt change thread properties
+		= (Just change, Nothing, properties)
+		
+	/*
+	* Adds the task number at which it has run before to a task
+	*/
+	setTaskContext :: !TaskNr !(Task a) -> (Task a)
+	setTaskContext cxt (Task name _ tf) = Task name (Just cxt) tf
+	
+	/*
+	* Store the changes that are still active after  a run.
+	* Transient changes are discarded.
+	*/
+	storePersistentChanges :: !ProcessId !*TSt -> *TSt
+	storePersistentChanges processId tst=:{currentChange,pendingChanges}
+		//Update pending changes
+		# tst = storeChanges [(label,dyn) \\ (CLPersistent label,dyn) <- pendingChanges] tst
+		//Add new persistent change
+		= case currentChange of
+					Just (CLPersistent label, dyn)
+						# tst = createChange {PersistentChange|label=label,scope=processId} tst
+						# tst = storeChanges [(label,dyn)]tst
+						= tst 
+					_
+						= tst 
+	where
+		storeChanges [] tst = tst
+		storeChanges [(label,dyn):cs] tst=:{dataStore} 
+			= storeChanges cs {tst & dataStore = (storeValueAs SFDynamic ("iTask_change-" +++ label) dyn dataStore)} 
+			
+applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
+applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,userId,delegatorId,tree,mainTask,staticInfo,currentChange,pendingChanges}
+	# (mbProcess,tst) = getProcess pid tst
+	= case mbProcess of
+		(Just proc) 
+			# (_,_,tst) = evaluateTaskInstance proc (Just (lifetime,change)) True False tst
+			= {tst & taskNr = taskNr, taskInfo = taskInfo, userId = userId, delegatorId = delegatorId
+			  , tree = tree, mainTask = mainTask, staticInfo = staticInfo, currentChange = currentChange, pendingChanges = pendingChanges}
+		Nothing		
+			= tst
 
 calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree processId tst
@@ -189,7 +379,7 @@ calculateTaskTree processId tst
 			= case status of
 				Active
 					//Evaluate the process
-					# (result,tree,tst) = evaluateTaskInstance process Nothing True tst
+					# (result,tree,tst) = evaluateTaskInstance process Nothing True False tst
 					= (tree,tst)
 				_		
 					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished"}, tst)
@@ -206,230 +396,6 @@ where
 		# (tree,tst)	= calculateTaskTree p tst
 		# (trees,tst)	= calculateTrees ps tst
 		= ([tree:trees],tst)
-
-/*
-//If parent has to be evaluated, the Id is returned and accumulated into the list of proccesses still to be evaluated in buildtree.
-buildProcessTree :: Process !(Maybe (Dynamic, ChangeLifeTime)) !*TSt -> (!TaskTree,!Bool,!*TSt)
-buildProcessTree p =: {Process | processId, parent, properties = {TaskProperties|systemProps,managerProps}, changes, changeCount} mbChange tst =:{taskNr,staticInfo}
-
-	# tst								= {TSt|tst & taskNr = [changeCount:taskNrFromString processId], userId = (fst managerProps.worker), delegatorId = (fst systemProps.manager)
-											, staticInfo = {StaticInfo|staticInfo & currentProcessId = processId}, tree = initProcessNode p, mainTask = processId}
-	# tst								= loadChanges mbChange changes tst
-	# (result,tst)						= executeTaskThread tst
-	# (TTMainTask ti mti tasks, tst)	= getTaskTree tst
-	= case result of
-		TaskFinished dyn
-			# tst 			= storeProcessResult (taskNrFromString processId) dyn tst
-			# (_,tst)		= updateProcess processId (\p -> {Process|p & status = Finished}) tst
-			= (TTFinishedTask ti, True, tst)
-		_
-			# tst			= storeChanges processId tst
-			= (TTMainTask ti mti tasks, False, tst)	
-where	
-	initProcessNode {Process|processId, properties}
-		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Process"} properties []
-	
-	loadChanges mbNew changes tst = loadChanges` mbNew changes [] tst
-
-	loadChanges` Nothing [] accu tst=:{TSt|changes}
-		= {TSt|tst& changes = reverse accu, doChange = False}
-	loadChanges` (Just (change,lifetime)) [] accu tst=:{TSt|changes}
-		= {TSt|tst & changes = [Just (lifetime, 0,change):changes], doChange = True}
-	loadChanges` mbNew [(l,c):cs] accu tst
-		# (dyn,tst) = (abort "getDynamic",tst)//TODO getDynamic c tst
-		= case dyn of
-			Just dyn	= loadChanges` mbNew cs [Just (CLPersistent l,c,dyn):accu] tst
-			Nothing		= loadChanges` mbNew cs accu tst
-	
-	storeChanges pid tst=:{TSt|changes} = storeChanges` changes [] pid tst
-	storeChanges` [] accu pid tst
-		# (_,tst)	= updateProcess pid (\p -> {Process|p & changes = [] /* TODO reverse accu */}) tst
-		= tst
-	storeChanges` [Just(CLPersistent l,cid):cs] accu pid tst
-	
-		//| c == 0
-		//	# (c,tst)	= (abort "createDynamic",tst) //TODO createDynamic d tst
-		//	= storeChanges` cs [(l,c):accu] pid tst
-		| otherwise
-			# (_,tst)	= (abort "updateDynamic", tst) //TODO updateDynamic d c tst
-			= storeChanges` cs [(l,cid):accu] pid tst
-		
-	storeChanges` [c:cs] accu pid tst
-		= storeChanges` cs accu pid tst
-
-	executeTaskThread tst=:{taskNr}
-		# (thread, tst)			= loadTaskThread (taskNrFromString processId) tst		  
-		# (result,tst)		= thread tst
-		= (result,tst)
-*/
-
-//OUDE IMPLEMENTATIE VAN ASSIGN
-/*
-assign` :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) !*TSt -> (!TaskResult a, !*TSt) | iTask a
-assign` toUserName initPriority initDeadline task tst =: { TSt| taskNr, taskInfo, firstRun, mainTask = currentMainTask, staticInfo = {currentProcessId}
-													   , userId, delegatorId = currentDelegatorId, doChange, changes, dataStore, world}
-	# taskId  			   = taskNrToString taskNr
-	# (mbProc,tst) 		   = getProcess taskId tst
-	# (taskStatus, taskProperties, curTask, changeCount, tst)
-		= case mbProc of
-			(Just {Process | status, properties, changeCount})
-				# (curTask,tst) = loadTaskFunctionStatic taskNr tst
-				| isNothing curTask
-					= abort ("(assign) No task function stored for process " +++ taskNrToString taskNr)
-				| otherwise
-					= (status, properties, fromJust curTask, changeCount, tst)		
-			Nothing
-				# (user,tst)		= getUser toUserName tst
-				# initProperties
-					= {TaskManagerProperties
-					  | worker		= (user.User.userName, user.User.displayName)
-					  , subject		= taskLabel task
-					  , priority	= initPriority
-					  , deadline	= initDeadline
-					}
-				# (processId,tst)	= createTaskInstance task initProperties False tst
-				# (mbProc,tst)		= getProcess processId tst
-				= case mbProc of
-					(Just {Process | status, properties, changeCount})
-						= (status, properties, task, changeCount, tst)
-					_
-						= abort "(assign) Could not load newly created process"
-				
-	//Process has finished, unpack the dynamic result
-	| taskStatus == Finished
-		# (mbRes,tst) = loadProcessResult taskNr tst
-		= case mbRes of
-			Just (TaskFinished a)	= (a, tst)
-			Nothing					= abort "(assign) No process result stored"
-			_						= abort "(assign) Could not unpack process result"
-	//Apply all active changes (oldest change first, hence the 'reverse changes')
-	| firstRun
-		= all_changes taskNr taskInfo taskProperties changeCount task curTask (reverse changes) {TSt|tst & changes = []}
-	//Apply the current change change
-	| doChange
-		= case changes of
-			[Just (clt,cid,cdyn):rest]
-				= one_change taskNr taskInfo taskProperties changeCount task curTask (clt,cid,cdyn) rest tst
-			other
-				= do_task taskNr taskInfo taskProperties changeCount curTask tst
-	| otherwise
-		= do_task taskNr taskInfo taskProperties changeCount curTask tst
-*/
-/*
-//Just execute the task
-all_changes :: !TaskNr !TaskInfo !TaskProperties !Int !(Task a) !(Task a) ![Maybe (!ChangeLifeTime,!DynamicId,!Dynamic)] !*TSt -> (!TaskResult a,!*TSt) | iTask a
-all_changes taskNr taskInfo taskProperties changeCount origTask curTask [] tst
-	= do_task taskNr taskInfo taskProperties changeCount curTask tst
-	
-all_changes taskNr taskInfo taskProperties changeCount origTask curTask [Just (clt,cid,cdyn):cs] tst=:{TSt|changes}
-	# processId = taskNrToString taskNr
-	# (mbProperties,mbTask,mbChange) = appChange cdyn taskProperties curTask origTask
-	# changes = case mbChange of
-		(Just change)	= [Just (clt,cid,change):changes]
-		Nothing			= [Nothing:changes]
-	//Update task (and properties when changed) 	
-	| isJust mbTask
-		# changeCount		= inc changeCount 
-		# taskProperties	= if (isJust mbProperties) (fromJust mbProperties) taskProperties
-		# curTask			= fromJust mbTask				
-		# tst				= storeTaskThread taskNr (createTaskThread curTask) tst
-		# tst				= storeTaskFunctionStatic taskNr curTask tst
-		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties, changeCount = changeCount}) tst
-		# (a,tst)			= do_task taskNr taskInfo taskProperties changeCount curTask {TSt|tst & changes = changes}
-		= case cs of
-			[]	-> (a,tst)
-			_	-> all_changes taskNr taskInfo taskProperties changeCount origTask curTask cs {TSt|tst & changes = changes}
-	//Only add properties
-	| isJust mbProperties
-		# taskProperties	= fromJust mbProperties
-		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties}) tst
-		# (a,tst) 			= do_task taskNr taskInfo taskProperties changeCount curTask {TSt|tst & changes = changes}
-		= case cs of
-			[]	= (a,tst)
-			_	= all_changes taskNr taskInfo taskProperties changeCount origTask curTask cs {TSt|tst & changes = changes}
-	// Task and properties unchanged
-	| otherwise
-		= all_changes taskNr taskInfo taskProperties changeCount origTask curTask cs {TSt|tst & changes = changes}	
-
-all_changes taskNr taskInfo taskProperties changeCount origTask curTask [c:cs] tst=:{TSt|changes}
-	= all_changes taskNr taskInfo taskProperties changeCount origTask curTask cs {TSt|tst & changes = [c:changes]}
-
-one_change :: !TaskNr !TaskInfo !TaskProperties !Int !(Task a) !(Task a) !(!ChangeLifeTime, !DynamicId, !Dynamic) ![Maybe (!ChangeLifeTime,!DynamicId,!Dynamic)] !*TSt -> (!TaskResult a,!*TSt) | iTask a
-one_change taskNr taskInfo taskProperties changeCount origTask curTask (changeLifeTime, changeId, changeDyn) rest tst
- 	# processId = taskNrToString taskNr
- 	# (mbProperties, mbTask, mbChange) = appChange changeDyn taskProperties (setTaskContext [changeCount:taskNr] curTask) origTask
-	//Determine new change list
-	# changes = case mbChange of
-			(Just change)	= [Just (changeLifeTime,changeId,change):rest]
-			Nothing			= [Nothing:rest]
-	//Update task (and properties when changed) 	
-	| isJust mbTask
-		# changeCount		= inc changeCount 
-		# taskProperties	= if (isJust mbProperties) (fromJust mbProperties) taskProperties
-		# curTask			= fromJust mbTask					
-		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties, changeCount = changeCount}) tst
-		# tst				= storeTaskFunctionStatic taskNr curTask tst				//Store the changed task with context
-		# tst				= storeTaskThread taskNr (createTaskThread curTask) tst
-		= do_task taskNr taskInfo taskProperties changeCount curTask {TSt|tst & changes = changes} //Execute
-	//Only add properties
-	| isJust mbProperties
-		# taskProperties	= fromJust mbProperties
-		# (_,tst) 			= updateProcess processId (\p -> {p & properties = taskProperties}) tst
-		= do_task taskNr taskInfo taskProperties changeCount curTask {TSt|tst & changes = changes}
-	// Task and properties unchanged
-	| otherwise
-		= do_task taskNr taskInfo taskProperties changeCount curTask {TSt|tst & changes = changes}
-
-do_task :: !TaskNr !TaskInfo !TaskProperties !Int !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-do_task taskNr taskInfo taskProperties changeCount curTask tst=:{userId,delegatorId, mainTask}
-	# tst		= {tst & tree = TTMainTask taskInfo taskProperties []
-					, taskNr		= [changeCount:taskNr]
-					, mainTask		= taskNrToString taskNr
-					, userId		= fst taskProperties.managerProps.worker
-					, delegatorId	= fst taskProperties.systemProps.manager
-					}
-	# (result, tst)	= applyTask curTask tst
-	= (result, {TSt | tst & userId = userId, delegatorId = delegatorId, mainTask = mainTask})
-
-//The tricky dynamic part of applying changes
-appChange :: !Dynamic !TaskProperties !(Task a) !(Task a) -> (Maybe TaskProperties,Maybe (Task a), Maybe Dynamic) | iTask a
-appChange (fun :: A.c: Change c | iTask c) properties curTask origTask
-	= fun properties curTask origTask
-appChange (fun :: Change a^) properties curTask origTask
-	= fun properties curTask origTask
-appChange dyn properties curTask origTask
-	= (Nothing, Nothing, Just dyn)
-
-setTaskContext :: TaskNr (Task a) -> (Task a)
-setTaskContext cxt (Task name _ tf) = Task name (Just cxt) tf
-
-*/
-
-
-//END OLD ASSIGN IMPLEMENTATION
-
-createTaskThread :: !(Task a) -> (*TSt -> *(!TaskResult Dynamic,!*TSt)) | iTask a
-createTaskThread task = createTaskThread` task
-where
-	createTaskThread` :: !(Task a) !*TSt -> *(!TaskResult Dynamic,!*TSt) | iTask a
-	createTaskThread` task tst
-		# (result, tst)	= applyTask task tst
-		= case result of
-			TaskBusy		= (TaskBusy, tst)
-			TaskFinished a	= (TaskFinished (dynamic a), tst)
-			TaskException e	= (TaskException e, tst)
-	
-
-applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
-applyChangeToTaskTree pid change lifetime tst=:{taskNr,taskInfo,firstRun,userId,delegatorId,tree,mainTask,staticInfo,doChange,changes}
-	# (mbProcess,tst) = getProcess pid tst
-	= case mbProcess of
-		(Just proc) 
-			# (_,_,tst) = evaluateTaskInstance proc (Just (lifetime,change)) True tst
-			= {tst & taskNr = taskNr, taskInfo = taskInfo, firstRun = firstRun, userId = userId, delegatorId = delegatorId
-			  , tree = tree, mainTask = mainTask, staticInfo = staticInfo, doChange = doChange, changes = changes}
-		Nothing		
-			= tst
 
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
@@ -569,14 +535,12 @@ applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world}
 					, taskLabel		= desc.TaskDescription.title
 					, traceValue	= ""
 					}
-	# tst = {TSt|tst & dataStore = dataStore, world = world}
+	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo}
 	= case taskVal of
 		(Just (TaskFinished a))	
 			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
-
 		_
-			# tst	= {tst & taskInfo = taskInfo, firstRun = isNothing taskVal }	
 			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
 			# tst	= case (taskVal,mbCxt) of
 						(Nothing, Just oldTaskNr)	= copyTaskStates oldTaskNr taskNr tst
@@ -596,9 +560,13 @@ applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world}
 					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskFinished a, tst)
 				(TaskBusy)
+					// Store intermediate value
+					# dataStore				= storeValue taskId result dataStore
 					# tst					= addTaskNode (updateTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskBusy, tst)
 				(TaskException e)
+					// Store exception
+					# dataStore				= storeValue taskId result dataStore
 					# tst					= addTaskNode (updateTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskException e, tst)
 		
@@ -645,46 +613,6 @@ setStatus msg tst=:{tree}
 	= case tree of
 		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info msg}
 		_									= tst
-
-loadTaskFunctionStatic :: !TaskNr !*TSt -> (!Maybe (Task a), !*TSt) | TC a
-loadTaskFunctionStatic taskNr tst =: {TSt | dataStore, world}
-# (mbDyn, dataStore, world) = loadValue (storekey taskNr) dataStore world
-= case mbDyn of 
-	(Just (t :: Task a^)) 	= ((Just t), {TSt | tst & dataStore = dataStore, world = world})
-	Nothing				  	= (Nothing , {TSt | tst & dataStore = dataStore, world = world})
-where
-	storekey taskNr  	 = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-static"
-
-storeTaskFunctionStatic :: !TaskNr !(Task a) !*TSt -> *TSt | TC a
-storeTaskFunctionStatic taskNr task tst = storeTaskFunction taskNr task "static" tst
-
-storeTaskFunction :: !TaskNr !(Task a) String !*TSt -> *TSt | TC a
-storeTaskFunction taskNr task key tst =: {TSt | dataStore}
-# dataStore = storeValueAs SFPlain (storekey taskNr key) (dynamic task) dataStore
-= {TSt | tst & dataStore = dataStore}
-where
-	storekey taskNr key = "iTask_"+++(taskNrToString taskNr)+++"-taskfun-"+++key 
-
-storeTaskThread :: !TaskNr !(*TSt -> *(!TaskResult Dynamic,!*TSt)) !*TSt -> *TSt
-storeTaskThread taskNr thread tst =:{dataStore}
-	# dataStore = storeValueAs SFDynamic key (dynamic thread :: *TSt -> *(!TaskResult Dynamic,!*TSt)) dataStore
-	= {TSt | tst & dataStore = dataStore}
-where
-	key = "iTask_" +++ (taskNrToString taskNr) +++ "-thread"
-
-loadTaskThread :: !TaskNr !*TSt -> (*TSt -> *(!TaskResult Dynamic,!*TSt), !*TSt)
-loadTaskThread taskNr tst =:{dataStore,world}
-	# (mbDyn, dataStore, world)	= loadValue key dataStore world
-	= case mbDyn of
-		(Just (f :: *TSt -> *(!TaskResult Dynamic,!*TSt)))
-			= (f, {TSt | tst & dataStore = dataStore, world = world})
-		(Just _)
-			= abort ("(loadTaskThread) Failed to match thread for " +++ taskNrToString taskNr)
-		Nothing
-			= abort ("(loadTaskThread) Failed to load thread for " +++ taskNrToString taskNr)	
-where
-	key = "iTask_" +++ (taskNrToString taskNr) +++ "-thread"
-
 
 /**
 * Store and load the result of a workflow instance

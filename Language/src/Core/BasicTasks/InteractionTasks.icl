@@ -53,7 +53,7 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr}
 	# (omask,tst)		= readMask initial tst
 	# buttonActions		= getButtonActions actions
 	//Check for user updates
-	# (updates,tst) = getUserUpdates tst	
+	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
 		# (form,valid) 	= visualizeAsEditor editorId omask ovalue
 		# tst			= setAccActions (evaluateConditions (getMenuActions actions) valid ovalue) tst

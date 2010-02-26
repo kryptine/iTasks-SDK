@@ -15,7 +15,7 @@ traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"], ThTag [] [Text "Active changes"] ]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
 							, TdTag [] [Text process.Process.properties.managerProps.subject]
 							, TdTag [] [Text (toString (fst process.Process.properties.managerProps.worker) +++ ": " +++ snd process.Process.properties.managerProps.worker)]
@@ -25,7 +25,6 @@ where
 											""	= [Text "N/A"]
 											x	= [Text (toString x)]
 										)
-							, TdTag [] [Text (join ", " (map fst process.Process.changes))]
 							]
 
 traceTaskTree :: TaskTree -> TraceTree

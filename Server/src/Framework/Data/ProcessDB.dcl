@@ -15,7 +15,6 @@ from Time		import :: Timestamp
 				  , status			:: !ProcessStatus				// The status of the process (updated after each run)
 				  , parent			:: !ProcessId					// The (direct) parent process
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
-				  , changes			:: ![(!ChangeLabel,!ChangeId)]	// Optionally a list of labeled changes
 				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  , menus			:: !(Maybe [Menu])
 				  }				

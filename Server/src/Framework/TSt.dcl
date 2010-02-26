@@ -23,7 +23,6 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
-					, firstRun		:: !Bool											// Is this task evaluated for the first time
 					, userId		:: !UserName										// id of user to which task is assigned
 					, delegatorId	:: !UserName										// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
@@ -32,8 +31,9 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 							
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
 						
-					, doChange		:: !Bool											// Apply change
-					, changes		:: ![Maybe (!ChangeLifeTime,!ChangeId,!Dynamic)]	// Active changes
+					
+					, currentChange	:: !Maybe (!ChangeLifeTime,!Dynamic)				// An active change
+					, pendingChanges:: ![(!ChangeLifeTime,!Dynamic)]					// Pending persistent changes
 					
 					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
@@ -70,7 +70,6 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @return a TSt iTask state
 */
 mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !*World -> *TSt
-
 /**
 * Creates an instance of a task definition
 * As soon as an instance is created it is immediately evaluated once.
@@ -84,18 +83,28 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !
 * @return The modified task state
 */
 createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!TaskResult a, !ProcessId, !*TSt) | iTask a
-
 /**
 * Evaluates an existing task instance
 *
 * @param Process information from the process database
 * @param Optionally a new Change that is to be applied to this task instance
 * @param Is the instance evaluated as top node, or as subnode while evaluating a parent process
+* @param Is the task evaluated for the first time
 * @param The task state
 *
 * @return The modified task state
 */
-evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+/**
+* Applies a change to a running task process task state.
+* 
+* @param The process id
+* @param The lifetime and change tuple
+* @param The task state
+*
+* @return The modified task state
+*/
+applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 /**
 * Calculates a single task tree for a given process id
 *
@@ -106,7 +115,6 @@ evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !*TSt-> (!TaskRe
 * @return The modified task state
 */
 calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
-
 /**
 * Calculates all task trees
 *
@@ -116,20 +124,6 @@ calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
 * @return The modified task state
 */
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
-
-
-/**
-* Applies a change to a running task process task state.
-* 
-* @param The process id
-* @param The change in a dynamic
-* @param The change lifetime
-* @param The task state
-*
-* @return The modified task state
-*/
-applyChangeToTaskTree :: !ProcessId !Dynamic !ChangeLifeTime !*TSt -> *TSt
-
 /**
 * Lists which workflows are available
 *
@@ -149,27 +143,22 @@ getWorkflows :: !*TSt -> (![Workflow],!*TSt)
 * @return The modified task state
 */
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
-
 /**
 * Apply a function on World on a TSt
 */ 
 appWorldTSt	:: !.(*World -> *World) !*TSt -> *TSt
-
 /**
 * Apply a function yielding a result on World on a TSt
 */
 accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
-
 /**
 * Get the current session from the TSt
 */
 getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
-
 /**
 * Get the id of the current process in the TSt
 */
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
-
 /**
 * Extract the calculated task forest data structure from the TSt
 */
@@ -186,7 +175,6 @@ getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 * @return The task function
 */
 mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
-
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -199,7 +187,6 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 * @return The newly constructed basic task
 */
 mkInteractiveTask			:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -212,7 +199,6 @@ mkInteractiveTask			:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The newly constructed basic task
 */
 mkInstantTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
@@ -225,8 +211,6 @@ mkInstantTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The newly constructed basic task
 */
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-
-
 /**
 * Creates an rpc task from an rpc call definition.
 * A parse function is used to parse the result of the rpc call
@@ -238,8 +222,6 @@ mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The constructed RPC task
 */
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-
-
 /**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
@@ -251,7 +233,6 @@ mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 * @return The newly constructed sequence task
 */
 mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for
@@ -263,7 +244,6 @@ mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The newly constructed parallel task
 */
 mkParallelTask 		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-
 /**
 * Wrap a function of proper type to create a function that will make a
 * main task. This is a sequence node that keeps track of additional information
@@ -288,20 +268,13 @@ mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The modified task state
 */
 applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-
-
 //// TASK CONTENT
 setTUIDef			:: !TUIDef !*TSt				-> *TSt	//Only for interactive tasks
-
 setTUIUpdates		:: ![TUIUpdate] !*TSt			-> *TSt //Only for interactive tasks
-
 setAccActions		:: ![(Action,Bool)] !*TSt		-> *TSt //Only for interactive tasks
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
-
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
-
-//loadTaskFunction	:: !TaskNr !*TSt				-> (Maybe (Task a), !*TSt)
 
 /**
 * Writes a 'task scoped' value to the store
@@ -312,24 +285,20 @@ setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
 * Reads a 'task scoped' value from the store
 */
 getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
-
 /**
 * Store and load the result of a workflow instance
 */
 loadProcessResult		:: !TaskNr 							!*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
 storeProcessResult		:: !TaskNr !(TaskResult Dynamic)	!*TSt -> *TSt
-
 /**
 * Removes all events for the current task. This is automatically called by applyTask
 * after task evaluation to prevent updates from being applied twice.
 */
 clearUserUpdates	:: !*TSt						-> *TSt
-
 /**
 * Resets a sequence
 */
 resetSequence		::	!*TSt					-> *TSt
-
 /**
 * Delete task state (for garbage collection) for a task and its subtasks
 * 
@@ -349,15 +318,12 @@ deleteTaskStates	:: !TaskNr !*TSt			-> *TSt
 * @return The updated task state
 */
 copyTaskStates		:: !TaskNr !TaskNr !*TSt	-> *TSt
-
 /**
 * Writes all cached values in the store
 */
 flushStore			:: !*TSt					-> *TSt
 
-
 //// UTILITY
-
 /**
 * Parses a formatted task number to its integer list representation
 *
@@ -374,7 +340,6 @@ taskNrFromString 	:: !String 					-> TaskNr
 * @return The formatted task number
 */
 taskNrToString		:: !TaskNr 					-> String
-
 /**
 * Extracts the task label of a task
 *

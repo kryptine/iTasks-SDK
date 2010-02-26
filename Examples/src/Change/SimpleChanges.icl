@@ -22,6 +22,7 @@ changeExamples =
 		, roles		= []
   		, mainTask	= duplicateTask
   		}
+  		
 	]
 
 //Simple change which will run once and change the priority of all tasks to high
@@ -30,7 +31,7 @@ allImportant =
 	dynamic change :: A.a: Change a | iTask a
 where
 	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change props t t0 = (Just {TaskProperties| props & managerProps = {props.managerProps & priority = HighPriority}},Just (enterInformation "Just edit the value"), Just allImportant)
+	change props t t0 = (Just {TaskProperties| props & managerProps = {props.managerProps & priority = HighPriority}},Nothing, Just allImportant)
 
 //Add a big red warning message prompt to the running task
 addWarning :: String -> Dynamic
@@ -40,7 +41,7 @@ where
 	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
 	change msg props t t0 = (Nothing, Just (((showStickyMessage (redText msg) >>| getDefaultValue) -||- t)), Just (addWarning msg))
 
-	redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
+redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
 //This will duplicate a running task n times
 duplicate :: Int -> Dynamic
@@ -61,6 +62,7 @@ changeWarningTask :: Task Void
 changeWarningTask
 	=				chooseProcess "What process do you want to change?"			
 	>>= \proc ->	applyChangeToProcess proc (addWarning "Warning you are working on a changed task") (CLPersistent "warning")
+	
 
 duplicateTask :: Task Void
 duplicateTask
