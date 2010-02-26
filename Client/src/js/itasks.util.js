@@ -5,19 +5,19 @@ itasks.util.formatDate = function(ts) {
 		return "";
 	else	
 		return Date.parseDate(ts, "U").format("d M Y H:i:s");
-}
+};
 itasks.util.formatStartDate = function (ts) {
 	if (ts == null)
 		return "Not started yet";
 	else
 		return Date.parseDate(ts, "U").format("d M Y H:i");
-}
+};
 itasks.util.formatDeadline = function(ts) {
 	if(ts == null)
 		return "No deadline";
 	else
 		return Date.parseDate(ts, "U").format("d M Y H:i");
-}
+};
 itasks.util.formatPriority = function(priority) {
 	switch(priority) {
 		case null : return "";
@@ -26,7 +26,7 @@ itasks.util.formatPriority = function(priority) {
 		case "HighPriority": return itasks.util.coloredLabel("red","High");
 	}
 	return priority;
-}
+};
 itasks.util.formatProgress = function(progress) {
 	switch(progress) {
 		case null: return "";
@@ -39,7 +39,7 @@ itasks.util.formatProgress = function(progress) {
 }
 itasks.util.coloredLabel = function (color, msg) {
 	return "<span style=\"color: " + color + "; font-weight: bold;\">" + msg + "</span>";
-}
+};
 
 //Filter method for arrays (IE does not natively support this method)
 if (!Array.prototype.filter)
@@ -64,7 +64,7 @@ if (!Array.prototype.filter)
 
     return res;
   };
-}
+};
   
 //Function to determine scrollbar width
 itasks.util.getScrollerWidth =  function() {
@@ -106,4 +106,5 @@ itasks.util.getScrollerWidth =  function() {
 
 	// Pixel width of the scroller
 	return (wNoScroll - wScroll);
-}
+};
+
