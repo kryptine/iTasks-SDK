@@ -6,7 +6,7 @@ from	StdFunc	import o
 import 	FormData, FormFlowStorage, TaskContainer, GenEq
 
 formEditor :: Workflow
-formEditor = workflow "Interactive Workflows/Form Editor" handleMenu
+formEditor = workflow "Examples/Interactive Workflows/Form Editor" handleMenu
 
 // ****************************
 

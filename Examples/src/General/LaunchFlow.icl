@@ -4,14 +4,11 @@ import 	iTasks
 import	FormFlowStorage, TaskContainer, FlowEditor
 
 launchFlow :: Workflow
-launchFlow = workflow "Interactive Workflows/Run a stored workflow" handleMenu
+launchFlow = workflow "Examples/Interactive Workflows/Run a stored workflow" handleMenu
 
 // ****************************
 
 ActionStartFlow 	:== ActionLabel "Start Flow"
-
-showStoredDefinitions :: Workflow
-showStoredDefinitions = workflow "Interactive Workflows/Show Stored Definitions" handleMenu
 
 initMenu :: Task Void
 initMenu 

@@ -37,6 +37,13 @@ import AmbulanceDispatchMap
 //Change examples
 import SimpleChanges
 
+//Dynamic Forms and Flows
+import ShowFormFlow
+import FormEditor
+import FlowEditor
+import LaunchFlow
+
+
 Start :: *World -> *World
 Start world = startEngine workflows world
 where
@@ -63,4 +70,9 @@ where
 						, ambulanceDispatchExamples
 						, ambulanceDispatchMapExamples
 						, changeExamples
+						,	[ formEditor
+							, flowEditor
+							, showStoredDefinitions
+							, launchFlow
+							]
 						]
