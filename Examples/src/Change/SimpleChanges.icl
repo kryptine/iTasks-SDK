@@ -21,8 +21,12 @@ changeExamples =
 		, label		= "Duplicate task"
 		, roles		= []
   		, mainTask	= duplicateTask
+  		},
+ 		{ name		= "Examples/Changes/Inform about task"
+		, label		= "Inform about task"
+		, roles		= []
+  		, mainTask	= informTask
   		}
-  		
 	]
 
 //Simple change which will run once and change the priority of all tasks to high
@@ -51,6 +55,13 @@ where
 	change :: Int TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
 	change howMany p t t0 = (Nothing, Just (anyTask [t \\ i <- [1 .. howMany]]), Just (duplicate howMany) )
 
+//inform wil infor a user that some process has ended.
+inform :: User String -> Dynamic
+inform user procName =
+	dynamic change :: A.a: Change a | iTask a
+where
+	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change props t t0 = (Nothing, Just (t >>= \res -> spawnProcess user.userName True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
 
 changePrio :: Task Void
 changePrio
@@ -60,8 +71,9 @@ changePrio
 
 changeWarningTask :: Task Void
 changeWarningTask
-	=				chooseProcess "What process do you want to change?"			
-	>>= \proc ->	applyChangeToProcess proc (addWarning "Warning you are working on a changed task") (CLPersistent "warning")
+	=				enterInformation "Type in warning you want to show to all:"
+	>>= \warning ->	chooseProcess "What process do you want to change?"			
+	>>= \proc ->	applyChangeToProcess proc (addWarning warning) (CLPersistent "warning")
 	
 
 duplicateTask :: Task Void
@@ -69,6 +81,16 @@ duplicateTask
 	=				chooseProcess "What process do you want to duplicate?"
 	>>= \proc ->	updateInformation "How many times?" 2		
 	>>= \times ->	applyChangeToProcess proc (duplicate times) CLTransient
+
+informTask :: Task Void
+informTask
+	=				chooseUser "Select user you want to inform:"
+	>>= \user ->	chooseProcess "The result of which process do you want to pass?"
+	>>= \procId ->	getProcess procId
+	>>= \process ->	applyChangeToProcess procId (inform user (fromJust process).properties.managerProps.subject) CLTransient
+	
+	
+
 
 //Utility
 chooseProcess :: String -> Task ProcessId

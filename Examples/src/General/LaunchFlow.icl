@@ -29,14 +29,14 @@ actions
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu >>| doMenu 
+	=	initMenu >>| doMenu
 where
 	doMenu
 		=							enterInformationA "Select \"File/Start Workflow... \" to run a stored workflow..." actions
-			>>= \(choice,Void) ->	
-				case choice of
-					ActionStartFlow		-> startFlow	>>| doMenu 
-					ActionQuit			-> return Void
+			>>= \(actions,Void) ->	doActions actions
+
+	doActions ActionStartFlow	= startFlow	>>| doMenu 
+	doActions ActionQuit		= return Void
 
 startFlow :: Task Void
 startFlow
