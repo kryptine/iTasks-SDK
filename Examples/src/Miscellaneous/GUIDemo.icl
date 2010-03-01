@@ -11,6 +11,7 @@ guiDemoExample
 	{ street		:: String
 	, number		:: Int
 	, postalCode	:: String
+	, city			:: String
 	}
 
 :: Person =
@@ -31,7 +32,7 @@ derive gUpdate		Person, Address
 
 derive bimap (,), Maybe
 
-address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ"}
+address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ", city = "Nijmegen"}
 person	= {Person | name	= "John Doe"
 				  , cool	= True
 				  , dob		= {year = 1978, mon = 4, day = 1}
