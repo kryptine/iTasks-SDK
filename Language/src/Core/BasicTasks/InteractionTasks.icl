@@ -3,6 +3,7 @@ implementation module InteractionTasks
 import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, Text
 from	StdFunc import id, const
 import	TSt, ProcessDB
+from	ExceptionCombinators import throw
 
 import	GenVisualize, GenUpdate, Util, Http	
 
@@ -98,35 +99,35 @@ where
 		= applyUpdates us val mask lmask {TSt|tst & world = world}
 
 enterChoice :: question [a] -> Task a | html question & iTask a
-enterChoice question []			= abort "enterChoice: cannot choose from empty option list"
+enterChoice question []			= throw "enterChoice: cannot choose from empty option list"
 enterChoice question options	= mkInteractiveTask "enterChoice" (ignoreActionA (makeChoiceTask question options -1 Nothing [ButtonAction (ActionOk, IfValid)]))
 
 enterChoiceA :: question ![TaskAction a] [a] -> Task (!Action,!a) | html question & iTask a
-enterChoiceA question actions []		= abort "enterChoice: cannot choose from empty option list"
+enterChoiceA question actions []		= throw "enterChoice: cannot choose from empty option list"
 enterChoiceA question actions options	= mkInteractiveTask "enterChoice" (makeChoiceTask question options -1 Nothing actions)
 
 updateChoice :: question [a] Int -> Task a | html question & iTask a 
-updateChoice question [] index		= abort "updateChoice: cannot choose from empty option list"
+updateChoice question [] index		= throw "updateChoice: cannot choose from empty option list"
 updateChoice question options index = mkInteractiveTask "updateChoice" (ignoreActionA (makeChoiceTask question options index Nothing [ButtonAction (ActionOk, IfValid)]))
 
 updateChoiceA :: question ![TaskAction a] [a] Int -> Task (!Action,!a) | html question & iTask a 
-updateChoiceA question actions [] index		= abort "updateChoice: cannot choose from empty option list"
+updateChoiceA question actions [] index		= throw "updateChoice: cannot choose from empty option list"
 updateChoiceA question actions options index	= mkInteractiveTask "updateChoice" (makeChoiceTask question options index Nothing actions)
 
 enterChoiceAbout :: question b [a] -> Task a | html question & iTask a & iTask b
-enterChoiceAbout question about []		= abort "enterChoiceAbout: cannot choose from empty option list"
+enterChoiceAbout question about []		= throw "enterChoiceAbout: cannot choose from empty option list"
 enterChoiceAbout question about options = mkInteractiveTask "enterChoiceAbout" (ignoreActionA (makeChoiceTask question options -1 (Just (visualizeAsHtmlDisplay about)) [ButtonAction (ActionOk, IfValid)]))
 
 enterChoiceAboutA :: question ![TaskAction a] b [a] -> Task (!Action,!a) | html question & iTask a & iTask b
-enterChoiceAboutA question actions about []		= abort "enterChoiceAbout: cannot choose from empty option list"
+enterChoiceAboutA question actions about []		= throw "enterChoiceAbout: cannot choose from empty option list"
 enterChoiceAboutA question actions about options	= mkInteractiveTask "enterChoiceAbout" (makeChoiceTask question options -1 (Just (visualizeAsHtmlDisplay about)) actions)
 
 updateChoiceAbout :: question b [a] Int -> Task a | html question & iTask a & iTask b
-updateChoiceAbout question about [] index		= abort "updateChoiceAbout: cannot choose from empty option list"
+updateChoiceAbout question about [] index		= throw "updateChoiceAbout: cannot choose from empty option list"
 updateChoiceAbout question about options index  = mkInteractiveTask "updateChoiceAbout" (ignoreActionA (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)) [ButtonAction (ActionOk, IfValid)]))
 
 updateChoiceAboutA :: question ![TaskAction a] b [a] Int-> Task (!Action,!a) | html question & iTask a & iTask b
-updateChoiceAboutA question actions about [] index			= abort "updateChoiceAbout: cannot choose from empty option list"
+updateChoiceAboutA question actions about [] index			= throw "updateChoiceAbout: cannot choose from empty option list"
 updateChoiceAboutA question actions about options index		= mkInteractiveTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)) actions)
 
 makeChoiceTask :: !question ![a] !Int (Maybe [HtmlTag]) ![TaskAction a] !*TSt -> (!TaskResult (!Action,!a),!*TSt) | html question & iTask a

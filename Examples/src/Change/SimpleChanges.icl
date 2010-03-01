@@ -7,37 +7,50 @@ from TaskTree import :: TaskProperties(..),::TaskWorkerProperties(..),::TaskMana
 
 changeExamples :: [Workflow]
 changeExamples =
-	[ 	{ name		= "Examples/Changes/Change priorities of all"
-		, label		= "Change priorities of all"
+	[ 	{ name		= "Examples/Changes/Change priority"
+		, label		= "Change priority"
 		, roles		= []
-		, mainTask	= changePrio
+		, mainTask	= try changePrio catch
 		},
-		{ name		= "Examples/Changes/Add warning to all"
-		, label		= "Add warning to all"
+		{ name		= "Examples/Changes/Add warning"
+		, label		= "Add warning"
 		, roles		= []
-		, mainTask	= changeWarningTask
+		, mainTask	= try changeWarningTask catch
 		},
 		{ name		= "Examples/Changes/Duplicate task"
 		, label		= "Duplicate task"
 		, roles		= []
-  		, mainTask	= duplicateTask
+  		, mainTask	= try duplicateTask catch
   		},
  		{ name		= "Examples/Changes/Show result when task finishes"
 		, label		= "Show result when task finishes"
 		, roles		= []
-  		, mainTask	= informTask
+  		, mainTask	= try informTask catch
   		},
  		{ name		= "Examples/Changes/Check task when finished"
-		, label		= "Check task when finsihed"
+		, label		= "Check task when finished"
 		, roles		= []
-  		, mainTask	= checkTask
+  		, mainTask	= try checkTask catch
   		},
  		{ name		= "Examples/Changes/Cancel task"
 		, label		= "Cancel task"
 		, roles		= []
-  		, mainTask	= cancelTask
+  		, mainTask	= try cancelTask catch
+  		},
+ 		{ name		= "Examples/Changes/Reassign task"
+		, label		= "Reassign task"
+		, roles		= []
+  		, mainTask	= try reassignTask catch
+  		},
+ 		{ name		= "Examples/Changes/restart task"
+		, label		= "Restart task"
+		, roles		= []
+  		, mainTask	= try restartTask catch
   		}
-	]
+  	]
+where
+	catch :: String -> Task Void
+	catch message  = showMessage message
 
 //Simple change which will run once and change the priority of all tasks to high
 changePriority :: TaskPriority -> Dynamic
@@ -79,7 +92,7 @@ check user procName =
 	dynamic change :: A.a: Change a | iTask a
 where
 	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change props t t0 = (Nothing, Just (t >>= \res -> assign user.userName HighPriority Nothing (updateInformation ("Please verify result of " +++ procName) res) >>| return res), Nothing)
+	change props t t0 = (Nothing, Just (t >>= \res -> assign user.userName HighPriority Nothing (updateInformation ("Please verify result of " +++ procName) res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel :: User String ProcessId -> Dynamic
@@ -90,10 +103,25 @@ where
 	change props t t0 = (Nothing, Just (			deleteProcess pid 
 										>>| 		mkDefault t
 										>>= \def -> assign user.userName HighPriority Nothing (updateInformation ("Please define the result of " +++ procName) def) 
-										>>| 		return def), Nothing)
+										), Nothing)
 	mkDefault :: (Task a) -> (Task a) | iTask a
 	mkDefault _ = getDefaultValue
 
+//reassign the work to someone else
+reassign :: User String ProcessId -> Dynamic
+reassign user procName pid  =
+	dynamic change :: A.b: Change b | iTask b
+where
+	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change props t t0 = (Just {TaskProperties| props & managerProps = {props.managerProps & worker = (user.userName,user.displayName)}},Nothing, Nothing)
+
+//restart starts the task from scratch and assigns it to the indicated user
+restart :: User String -> Dynamic
+restart user procName =
+	dynamic change procName :: A.a: Change a | iTask a
+where
+	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change procName props t t0 = (Nothing, Just (assign user.userName HighPriority Nothing (t0 <<@ procName)), Nothing)
 
 changePrio :: Task Void
 changePrio
@@ -106,41 +134,72 @@ changeWarningTask
 	=				enterInformation "Type in warning you want to show to all:"
 	>>= \warning ->	chooseProcess "What process do you want to change?"			
 	>>= \proc ->	applyChangeToProcess proc (addWarning warning) (CLPersistent "warning")
-	
 
 duplicateTask :: Task Void
 duplicateTask
 	=				chooseProcess "What process do you want to duplicate?"
 	>>= \procId ->	getProcess procId
-	>>= \process ->	chooseUser "Select the user you want to work on it as well:"
+	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	applyChangeToProcess procId (duplicate user (fromJust process).properties.managerProps.subject) CLTransient
 
 informTask :: Task Void
 informTask
-	=				chooseUser "Select the user you want to show the result of a process:"
-	>>= \user ->	chooseProcess "The result of which process do you want to show?"
-	>>= \procId ->	getProcess procId
-	>>= \process ->	applyChangeToProcess procId (inform user (fromJust process).properties.managerProps.subject) CLTransient
+	=				chooseProcess "The result of which process do you want to show?"
+	>>= \procId ->	chooseUserA "Select the user you want this result to see:"
+	>>= \user ->	getProcess procId
+	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).properties.managerProps.subject) CLTransient
 	
 checkTask :: Task Void
 checkTask
-	=				chooseUser "Select the user you want to check the result of a process:"
-	>>= \user ->	chooseProcess "The result of which process do you want to check?"
+	=				chooseProcess "The result of which process do you want to be checked?"
 	>>= \procId ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (check user (fromJust process).properties.managerProps.subject) CLTransient
-	
+	>>= \process -> chooseUserA "Select the user which has to check it:"
+	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).properties.managerProps.subject) CLTransient
 	
 cancelTask :: Task Void
 cancelTask
-	=				chooseProcess "Select task you want to cancel"
-	>>= \procId ->	chooseUser "Select the user who will define the result:"
+	=				chooseProcess "Select task you want to cancel:"
+	>>= \procId ->	chooseUserA "Select the user who will define the result instead:"
 	>>= \user ->	getProcess procId
 	>>= \process -> applyChangeToProcess procId (cancel user (fromJust process).properties.managerProps.subject procId) CLTransient
 
+reassignTask :: Task Void
+reassignTask
+	=				chooseProcess "Select task you want to reassign to someone else:"
+	>>= \procId ->	chooseUserA "Who should continue with this work?"
+	>>= \user ->	getProcess procId
+	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).properties.managerProps.subject procId) CLTransient
+
+restartTask :: Task Void
+restartTask
+	=				chooseProcess "Select task you want to restart from scratch:"
+	>>= \procId ->	chooseUserA "Who should start with this work?"
+	>>= \user ->	getProcess procId
+	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).properties.managerProps.subject) CLTransient
 
 //Utility
+chooseUserA :: !question -> Task User | html question
+chooseUserA question
+	= 						getUsers
+	>>= \users ->			enterChoiceA question buttons users
+	>>= \(action,user) ->	case action of
+										ActionCancel -> throw "choosing a user has been cancelled"
+										_ ->			return user
+
 chooseProcess :: String -> Task ProcessId
 chooseProcess question
-	=				getProcessesWithStatus [Active]
-	>>= \procs ->	enterChoice question procs
-	>>= \proc ->	return proc.Process.processId
+	=								getCurrentProcessId
+	>>= \mypid ->					getProcessesWithStatus [Active]
+	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.processId
+																	, proc.properties.managerProps.subject
+																	, proc.properties.managerProps.priority
+																	, snd proc.properties.managerProps.worker)
+																	\\ proc <- procs | proc.Process.processId <> mypid]
+	>>= \(action,(pid,_,_,_)) ->	case action of
+										ActionCancel -> throw "choosing a process has been cancelled"
+										_ ->			return pid
+
+buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]	
+	
+	
+	
