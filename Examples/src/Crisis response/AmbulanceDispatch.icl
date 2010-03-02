@@ -172,7 +172,7 @@ where
 resourceRequestTimeOut :: [(b,UserName,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
                              Task (a,[(b,Maybe a)]) | iTask a & iTask b
 resourceRequestTimeOut resources time_out check predf allf task
-	= parallel "Resource_requests" check predf allf 
+	= oldParallel "Resource_requests" check predf allf 
              [(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba)) 
              \\ (resource,uid,amount) <- resources]
 

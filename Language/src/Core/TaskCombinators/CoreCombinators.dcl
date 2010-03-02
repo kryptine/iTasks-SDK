@@ -95,7 +95,21 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+oldParallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+
+/**
+* Execute a list of tasks in parallel. The parameters define how the tasks are combined in the
+* user interface and when the combined task is finished. The combinator keeps an internal state of type 'b'
+* and uses the accumulator function to alter this state using the result of a subtask as soon as it is finished.
+*
+* @param Label
+* @param An accumulator function which alters the internal state
+* @param A function which transforms the internal state to the desired output
+* @param Initial value of the internal state
+* @param List of initial tasks and the users to which these tasks are assigned
+*/
+:: PAction a = Stop | Continue | Extend [(Maybe User,Task a)]
+parallel :: !String !((a,Int) b -> (b,PAction a)) (b -> c) !b ![(Maybe User,Task a)] -> Task c | iTask a & iTask b & iTask c
 
 // Multi-user workflows
 

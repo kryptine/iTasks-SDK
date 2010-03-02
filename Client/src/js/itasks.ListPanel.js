@@ -128,19 +128,16 @@ itasks.list.Item = Ext.extend(Ext.Panel,
 		, cls: 'list-item'
 		, autoHeight: true
 		, unstyled: true
-		, layout: 'ux.html'
-		, html:'<table style="width: 100%"><tr><td></td><td><td></tr></table>'
+		, layout: 'column'
+		, bodyStyle: 'padding: 0 2px 0 2px'
 		});
 		
-		itasks.list.Item.superclass.initComponent.apply(this,arguments);
-		this.items.get(0).renderTarget='td:nth(1)';
-	},
-
-	afterRender: function(arguments){		
-		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name, renderTarget: 'td:nth(2)'})
-		this.add(this.toolbox);
+		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name}); 
 		
-		itasks.list.Item.superclass.afterRender.call(this,arguments);	
+		this.items[0].columnWidth = "1";
+		this.items[1] = this.toolbox;
+		
+		itasks.list.Item.superclass.initComponent.apply(this,arguments);
 	}
 });
 

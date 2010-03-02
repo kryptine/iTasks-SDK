@@ -25,78 +25,103 @@ derive bimap	Maybe
 
 //Task composition
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb  
-=	parallel "-||-" (\list -> length list >= 1) (\[x:_] -> case x of (Left a) = a; (Right b) = b) (abort "-||- both parts finished??")
-			[taska >>= \a -> return (Left a)
-			,taskb >>= \b -> return (Right b)
-			]
-			
-(-&&-) infixr 4 ::  !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb
-=	parallel "-&&-" (\_ -> False) (abort "-&&- predicate became true??") (\[Left a, Right b] -> (a,b))
-			[taska >>= \a -> return (Left a)
-			,taskb >>= \b -> return (Right b)
-			]
+(-||-) taska taskb
+=
+	parallel "-||-" orfunc hd [] [(Nothing,taska),(Nothing,taskb)] 
+where
+	orfunc (val,_) [] = ([val],Stop)
+	orfunc (val,_) _  = abort "Multiple results in OR"
 
-anyTask	:: ![Task a] -> Task a | iTask a
-anyTask []		= getDefaultValue
-anyTask tasks	= parallel "any" (\list -> length list >= 1) hd (abort "anyTask all parts finished??") tasks
+(-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
+(-&&-) taska taskb =
+	parallel "-&&-" andfunc parseresult (Nothing,Nothing) [(Nothing,(taska >>= \a -> return (Left a))),(Nothing,(taskb >>= \b -> return (Right b)))]
+where
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Either a b))
+	andfunc (val,_) (left,right)
+	= case val of
+		(Left a)
+			# state = (Just a,right)
+			= case state of
+				(Just l, Just r) = (state,Stop)
+				_				 = (state,Continue)
+		(Right b)
+			# state = (left,Just b)
+			= case state of
+				(Just l, Just r) = (state,Stop)
+				_				 = (state,Continue)		
+	
+	parseresult (Just a,Just b) = (a,b)
+	parseresult _							   = abort "AND not finished"
+
+anyTask :: ![Task a] -> Task a | iTask a
+anyTask [] 		= getDefaultValue
+anyTask tasks 	= parallel "any" anyfunc hd [] [(Nothing,task) \\ task <- tasks]
+where
+	anyfunc (val,_) [] = ([val],Stop)
+	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel "all" (\_ -> False) (abort "allTasks predicate became true") id tasks
+allTasks tasks = parallel "all" (allfunc (length tasks)) parsefunc [] [(Nothing,task) \\ task <-tasks]
+where
+	allfunc :: Int (a,Int) [(Int,a)] -> ([(Int,a)],PAction a)
+	allfunc tlen (val,idx) st 
+		# st = st ++ [(idx,val)]
+		| length st == tlen = (st,Stop)
+		| otherwise = (st,Continue)
+		
+	parsefunc :: [(Int,a)] -> [a]
+	parsefunc [] = []
+	parsefunc [(i,v):ps] = parsefunc [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ parsefunc [(is,vs) \\ (is,vs) <- ps | is > i]
 
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb 
-=	parallel "eitherTask" (\list -> length list > 0) hd (abort "eitherTask all parts finished??")
-			[ (taska >>= \a -> return (Left a)) <<@ "Left"
-			, (taskb >>= \b -> return (Right b)) <<@ "Right"
-			]
+eitherTask taska taskb
+	= parallel "either" eitherfunc hd [] [(Nothing,(taska >>= \a -> return (Left a))),(Nothing,(taskb >>= \b -> return (Right b)))]
+where
+	eitherfunc :: ((Either a b),Int) [(Either a b)] -> ([(Either a b)],PAction (Either a b))
+	eitherfunc (val,idx) [] = ([val],Stop)
+	eitherfunc (val,idx) _  = abort "Multiple results in Either"
 
-(||-) infixr 3		:: !(Task a) !(Task b)						-> Task b				| iTask a & iTask b
+(||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= parallel "||-" rightDone takeRight takeRight
-		[ (taska >>= \a -> return (Left a)) <<@ "Left"
-		, (taskb >>= \b -> return (Right b)) <<@ "Right"
-		]
+	= parallel "||-" rorfunc hd [] [(Nothing,(taska >>= \a -> return (Left a))),(Nothing,(taskb >>= \b -> return (Right b)))]
 where
-	rightDone [Right x] = True
-	rightDone _			= False
-	
-	takeRight l			= hd [ x \\ (Right x) <- l] 
+	rorfunt (Right val,_) [] = ([val],Stop)
+	rorfunc (Left val, _) [] = ([],Continue)
+	rorfunc _ _				 = abort "Illegal result in ||-"
 
-(-||) infixl 3		:: !(Task a) !(Task b)						-> Task a				| iTask a & iTask b
+(-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= parallel "-||" leftDone takeLeft takeLeft
-		[ (taska >>= \a -> return (Left a)) <<@ "Left"
-		, (taskb >>= \b -> return (Right b)) <<@ "Right"
-		]
+	= parallel "||-" lorfunc hd [] [(Nothing,(taska >>= \a -> return (Left a))),(Nothing,(taskb >>= \b -> return (Right b)))]
 where
-	leftDone [Left x] 	= True
-	leftDone _			= False
-	
-	takeLeft l			= hd [ x \\ (Left x) <- l] 
+	lorfunt (Right val,_) [] = ([],Continue)
+	lorfunc (Left val, _) [] = ([val],Stop)
+	lorfunc _ _				 = abort "Illegal result in -||"
 
 (>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
 (>>?) t1 t2 
-= 				t1 
+= 	t1 
 	>>= \r1 -> 	case r1 of 
 					Nothing 	-> return Nothing
 					Just r`1 	-> t2 r`1
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
-(-&?&-) t1 t2 
-= 	parallel "maybeTask" noNothing combineResult combineResult
-			[(t1 >>= \tres -> return (Left tres)) <<@ "Left"
-			,(t2 >>= \tres -> return (Right tres)) <<@ "Right"
-			]
+(-&?&-) taska taskb 
+= parallel "-&?&-" mbandfunc parsefunc (Nothing,Nothing) [(Nothing,(taska >>= \a -> return (Left a))),(Nothing,(taskb >>= \b -> return (Right b)))]
 where
-	noNothing []					= False
-	noNothing [Left  Nothing:xs]	= True
-	noNothing [Right Nothing:xs]	= True
-	noNothing [x:xs]				= noNothing xs	
-
-	combineResult	[Left (Just r1),Right (Just r2)]	= Just (r1,r2)
-	combineResult	_									= Nothing
+	mbandfunc (val,_) (left,right)
+		= case val of
+			Left v
+				# state = (Just v,right)
+				= case state of
+					(Just a, Just b) = (state,Stop)
+					_				 = (state,Continue)				
+			Right v
+				# state = (left,Just v)
+				= case state of
+					(Just a, Just b) = (state,Stop)
+					_				 = (state,Continue)
+	parsefunc (Just (Just a), Just (Just b)) = Just (a,b)
+	parsefunc _								 = Nothing
 
 //Post processing of results
 ignoreResult :: !(Task a) -> Task Void | iTask a
@@ -107,7 +132,6 @@ transformResult fun task = "transformResult" @>> (task >>= \a -> return (fun a))
 
 stop :: Task Void
 stop = "stop" @>> return Void
-
 
 // ******************************************************************************************************
 // repetition

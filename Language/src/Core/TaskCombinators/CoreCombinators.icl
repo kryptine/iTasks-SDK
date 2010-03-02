@@ -96,6 +96,96 @@ where
 			TaskException e				= (TaskException e,tst)
 			
 // Parallel composition
+:: OPResult a = AllDone [(Int,a)] | PredDone [(Int,a)] | NotDone [(Int,a)]
+:: PSt a b =
+	{ state :: b
+	, tasks :: [(Maybe User,Task a,Bool)]
+	}
+
+derive gPrint 		PSt,OPResult
+derive gParse 		PSt,OPResult
+derive gVisualize 	PSt,OPResult
+derive gUpdate 		PSt,OPResult
+
+derive bimap Maybe, (,)
+
+oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+oldParallel label pred predDone allDone tasks =
+	parallel label (pfunc pred) (ffunc allDone predDone) (NotDone []) [(Nothing,t) \\ t <- tasks]
+where
+	pfunc :: ([a]->Bool) (a,Int) (OPResult a) -> ((OPResult a),PAction a) 
+	pfunc pred (val,i) (NotDone st)
+		# st = st++[(i,val)]
+		| length st == length tasks = (AllDone st,Stop)
+		| pred (stToList st) 		= (PredDone st,Stop)
+		| otherwise	   		 		= (NotDone st,Continue)
+	
+	stToList :: [(Int,a)] -> [a]
+	stToList st = [v \\ (i,v) <- st]
+		
+	ffunc :: ([a]->b) ([a]->b) (OPResult a) -> b
+	ffunc adone pdone (AllDone v)  = adone (sortList v)
+	ffunc adone pdone (PredDone v) = pdone (sortList v)
+	ffunc adone pdone _			   = abort "(Old Parallel) Finish function, while not done"	
+
+	sortList :: [(Int,a)] -> [a]
+	sortList [] = []
+	sortList [(i,v):ps] = sortList [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortList [(is,vs) \\ (is,vs) <- ps | is > i]
+
+parallel :: !String !((a,Int) b -> (b,PAction a)) (b -> c) !b ![(Maybe User,Task a)] -> Task c | iTask a & iTask b & iTask c
+parallel label procFun finFun initState initTasks = mkParallelTask label (parallel`)
+where
+	parallel` tst
+		# (pst,tst) 	   	= loadPSt tst
+		# (result,pst,tst) 	= processAllTasks pst 0 tst
+		# tst				= setTaskStore "pst" pst tst
+		= case result of
+			TaskException e = (TaskException e, tst)
+			TaskFinished  b = (TaskFinished (finFun b), tst)
+			TaskBusy		= (TaskBusy, tst)
+				
+	processAllTasks pst idx tst
+		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
+		# task	  = pst.tasks !! idx
+		# (r,tst) = applyTask (snd3 task) tst
+		= case r of
+			TaskException e = (TaskException e,pst,tst)
+			TaskBusy		= processAllTasks pst (inc idx) tst
+			TaskFinished a	
+				| thd3 task == True   = processAllTasks pst (inc idx) tst //This task had already been accumelated in the state
+				| otherwise
+					# (st,act) 		  = procFun (a,idx) pst.state //apply the task result and its index to the state
+					# pst			  = {pst & state = st}
+					# pst			  = markProcessed pst idx //mark the task as applied in the PState
+					= case act of
+						Stop		  = (TaskFinished pst.state,pst,tst) //stop the execution of the parallel and return the state
+						Continue	  = processAllTasks pst (inc idx) tst //continue
+						Extend etasks
+							# tasks = pst.tasks ++ [(u,t,False) \\ (u,t) <- etasks] //extend the parallel with additional tasks
+							# pst	= {pst & tasks = tasks}
+							= processAllTasks pst (inc idx) tst
+												
+	loadPSt tst
+		# (mbPSt,tst) = getTaskStore "pst" tst
+		= case mbPSt of
+			(Just p) = (p,tst)
+			Nothing  = initPSt initState initTasks tst
+						
+	initPSt initState initTasks tst
+		# pst ={ PSt 
+	  	   	   | state = initState
+	  	   	   , tasks = [(u,t,False) \\ (u,t) <- initTasks]
+	  	   	   }
+		# tst = setTaskStore "pst" pst tst
+		= (pst,tst)
+	  	   
+	markProcessed pst idx
+		# (u,t,b) 	= pst.tasks !! idx
+		# tasks 	= updateAt idx (u,t,True) pst.tasks
+		# pst	    = {pst & tasks = tasks}
+		= pst
+
+/****
 parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
 parallel label pred combinePred combineAll tasks 
 	= mkParallelTask label (parallel` tasks)
@@ -123,7 +213,7 @@ where
 				TaskBusy		= checkAllTasks tasks (inc index) accu tst 
 				TaskFinished a	= checkAllTasks tasks (inc index) [a:accu] tst
 				TaskException e	= (TaskException e,tst)
-
+****/
 
 /*
 * When a task is assigned to a user a synchronous task instance process is created.

@@ -19,8 +19,7 @@ itasks.preview = function(link){
 		]
 		}
 	);
-	
-	
+		
 	prevWindow.show();
 }
 
@@ -32,7 +31,7 @@ itasks.DocumentPanel = Ext.extend(Ext.Panel,
 		{ unstyled: true
 		, layout: 'anchor'
 		, height: 26
-		, bodyStyle: 'margin: 0px 0px 2px -2px'
+		, bodyStyle: 'margin: 0px 0px 2px 0px'
 		, width: 500
 		, defaults: {
 			height: 26,
@@ -295,6 +294,7 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 				}		
 			}
 		});
+		
 		this.cancelButton = new Ext.Button({
 			text : '',
 			iconCls : 'x-form-document-cancel-icon',
@@ -309,15 +309,15 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 		Ext.apply(this,
 		{ fileUpload: true
 		, unstyled: true
-		, layout: 'ux.html'
+		, layout: 'hbox'
 		, defaults: {
 			allowBlank: false,
 			msgTarget: 'qtip',
 			border: false,
 			height: 24
 		}
-		, html: 	
-			'<div style="position: relative; top: 0px;"><table><tr><td class="x-form-document-uploadfield" style="width: 300px"></td><td class="x-form-document-cancel-button"></td><td class="x-form-document-upload-button"></td></tr></table></div>'
+		//, html: 	
+		//	'<div style="position: relative; top: 0px;"><table><tr><td class="x-form-document-uploadfield" style="width: 300px"></td><td class="x-form-document-cancel-button"></td><td class="x-form-document-upload-button"></td></tr></table></div>'
 		, items : [
 			{	xtype: 'fileuploadfield',
 				width: 300,
