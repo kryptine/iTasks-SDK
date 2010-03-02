@@ -53,19 +53,15 @@ where
 								  (return Void)	
 
 	evalFlow :: Dynamic -> Task Dynamic
-	evalFlow dyn=:(T t:: T (Task a) a)	
-		= return dyn
-	evalFlow flow=:(t :: A.a: a -> Task a | iTask a)
-		= 					 		chooseForm
-			>>= \(name,_) -> 		findValue name
-			>>= \dynVal -> 	 		evalFlow (applyDynFlows [dynVal,flow]) 	
-	evalFlow flow=:(t :: A.a: (Task a) -> Task a | iTask a)
-		=					 		chooseFlow
-			>>= \(name,flow2) -> 					evalFlow flow2.flowDyn
-								  >>= \dyntask -> 	return (applyDynFlows [dyntask, flow])
+	evalFlow dyn=:(T t:: T (Task a) a)					= return dyn
+	evalFlow flow=:(t :: A.a: a -> Task a | iTask a )	= continue flow	
+	evalFlow flow=:(t :: A.a: a -> Task Void)			= continue flow	
+	evalFlow flow=:(t :: A.a: a -> Task Void | iTask a) = continue flow
+	evalFlow (T v:: T a b)								= throw (showDynValType "result = " (dynamic v :: a))
+	evalFlow d											= throw (typeErrorMess  "evalFlow" d) 
 
-	evalFlow (T v:: T a b)	= 	throw (showDynValType "result = " (dynamic v :: a))
-	evalFlow d				= 	throw (typeErrorMess  "evalFlow" d) 
-
-
+	continue flow
+		=						chooseForm
+			>>= \(name,_) ->	findValue name
+			>>= \dynVal ->		evalFlow (applyDynFlows [dynVal,flow]) 	
 

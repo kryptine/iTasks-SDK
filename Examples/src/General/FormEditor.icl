@@ -50,16 +50,20 @@ actions ((name,form),mode)
 	=	map MenuAction	[ (ActionNew,		Always)
 						, (ActionOpen,		Always)
 						, (ActionOpenValue,	Always)
-						, (ActionSave,		(Predicate (\_ -> name <> "" && testType form.formDyn)))
-						, (ActionSaveAs,	(Predicate (\_ -> name <> "" && testType form.formDyn)))
+						, (ActionSave,		(Predicate (ifValid (name <> "" && testType form.formDyn))))
+						, (ActionSaveAs,	(Predicate (ifValid (name <> "" && testType form.formDyn))))
 						, (ActionQuit,		Always)
 						, (ActionShowAbout,	Always)
 						, (ActionEditType,	(Predicate (\_ -> mode === EditValue)))
 						, (ActionEditValue,	(Predicate (\_ -> mode === EditType && not (isEmpty form.formShape))))
-						]
+						] 
+		
 where
 	testType (v :: T a a) = True
 	testType _ = False
+
+	ifValid expr Invalid = False
+	ifValid expr _		= expr
 
 handleMenu :: Task Void
 handleMenu 
