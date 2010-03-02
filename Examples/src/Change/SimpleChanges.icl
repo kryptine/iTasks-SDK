@@ -42,7 +42,7 @@ changeExamples =
 		, roles		= []
   		, mainTask	= try reassignTask catch
   		},
- 		{ name		= "Examples/Changes/restart task"
+ 		{ name		= "Examples/Changes/Restart task"
 		, label		= "Restart task"
 		, roles		= []
   		, mainTask	= try restartTask catch
