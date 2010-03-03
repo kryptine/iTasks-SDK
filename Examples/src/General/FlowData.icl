@@ -43,39 +43,46 @@ emptyFlow 		= 	{ flowShape = []
 flowShapeToFlow :: ![FlowShape] -> Task Flow
 flowShapeToFlow flowShape 
 	=					flowShapeToFlowDyn flowShape
-		>>= \flowDyn ->	if (validType flowDyn) 
+		>>= \flowDyn ->	if (validTask flowDyn || validTaskFun flowDyn) 
 							(return {flowShape = flowShape, flowDyn = flowDyn}) 
 							(throw (typeErrorMess "not a legal workflow, " flowDyn))
 		>>|				return {flowShape = flowShape, flowDyn = flowDyn}
 
 
-validType :: Dynamic -> Bool
-validType (T x :: T (Task a) a) 												= True
-validType (T x :: T (a -> Task a) a) 											= True
-validType (T x :: T (a -> Task b) b) 											= True
+validTaskVal :: Dynamic -> Bool
+validTaskVal (T v:: T a b) 			= True
+validTaskVal _						= False
 
-validType (f :: A.a: 		a -> Task a 		| iTask a) 						= True
-validType (f :: A.a: 		a -> Task (t a) 	| iTask a)						= True
-validType (f :: A.a: 		a -> Task (t a a) 	| iTask a)						= True
-validType (f :: A.a b: 		a -> Task (t a b) 	| iTask a & iTask b ) 			= True
-validType (f :: A.a: 		a -> Task (t a a a) | iTask a)						= True
-validType (f :: A.a b c: 	a -> Task (t a b c)	| iTask a & iTask b & iTask c) 	= True
+validTask :: Dynamic -> Bool
+validTask (T x :: T (Task a) a)		= True
+validTask _							= False
 
-validType (f :: A.a: 		a -> Task Void) 									= True
-validType (f :: A.a: 		a -> Task Int) 										= True
-validType (f :: A.a: 		a -> Task Real) 									= True
-validType (f :: A.a: 		a -> Task Bool) 									= True
-validType (f :: A.a: 		a -> Task String) 									= True
+validTaskFun :: Dynamic -> Bool
+validTaskFun (T x :: T (a -> Task a) a) 											= True
+validTaskFun (T x :: T (a -> Task b) b) 											= True
 
-validType (f :: A.a: 		a -> Task Void		| iTask a) 						= True
-validType (f :: A.a: 		a -> Task Int		| iTask a) 						= True
-validType (f :: A.a: 		a -> Task Real		| iTask a) 						= True
-validType (f :: A.a: 		a -> Task Bool		| iTask a) 						= True
-validType (f :: A.a: 		a -> Task String	| iTask a) 						= True
+validTaskFun (f :: A.a: 		a -> Task a 		| iTask a) 						= True
+validTaskFun (f :: A.a: 		a -> Task (t a) 	| iTask a)						= True
+validTaskFun (f :: A.a: 		a -> Task (t a a) 	| iTask a)						= True
+validTaskFun (f :: A.a b: 		a -> Task (t a b) 	| iTask a & iTask b ) 			= True
+validTaskFun (f :: A.a: 		a -> Task (t a a a) | iTask a)						= True
+validTaskFun (f :: A.a b c: 	a -> Task (t a b c)	| iTask a & iTask b & iTask c) 	= True
 
-validType (f :: A.a: (Task a) -> Task a | iTask a) 								= True
+validTaskFun (f :: A.a: 		a -> Task Void) 									= True
+validTaskFun (f :: A.a: 		a -> Task Int) 										= True
+validTaskFun (f :: A.a: 		a -> Task Real) 									= True
+validTaskFun (f :: A.a: 		a -> Task Bool) 									= True
+validTaskFun (f :: A.a: 		a -> Task String) 									= True
 
-validType d																		= False
+validTaskFun (f :: A.a: 		a -> Task Void		| iTask a) 						= True
+validTaskFun (f :: A.a: 		a -> Task Int		| iTask a) 						= True
+validTaskFun (f :: A.a: 		a -> Task Real		| iTask a) 						= True
+validTaskFun (f :: A.a: 		a -> Task Bool		| iTask a) 						= True
+validTaskFun (f :: A.a: 		a -> Task String	| iTask a) 						= True
+
+validTaskFun (f :: A.a: (Task a) -> Task a | iTask a) 								= True
+
+validTaskFun d																		= False
 	
 		
 flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic  
@@ -133,6 +140,9 @@ applyFlows :: Dynamic [Dynamic] -> Dynamic
 applyFlows dyn [] = dyn
 
 applyFlows (T ta :: T (Task a) a)  [(btb :: A.b: b -> Task b | iTask b): dyns]				= applyFlows (dynamic T (ta >>= btb) :: T (Task a) a) dyns
+// applyFlows (T ta :: T (Task a) a)  [(btb :: A.b: b -> Task (t b b) | iTask b): dyns]		= applyFlows (dynamic T (ta >>= btb) :: T (Task (t a a)) a) dyns
+
+//JOHN: dit geeft een overloading error, stand alone werkt het wel..
 
 applyFlows (T t :: T (Task a) a)   [(btb :: A.b: b -> Task Void  | iTask b): dyns]			= applyFlows (dynamic T (t >>= btb) :: T (Task Void)   Void) dyns
 applyFlows (T t :: T (Task a) a)   [(btb :: A.b: b -> Task Int   | iTask b): dyns]			= applyFlows (dynamic T (t >>= btb) :: T (Task Int)    Int) dyns
@@ -147,6 +157,8 @@ applyFlows (T t :: T (Task a) a)   [(btb :: A.b: b -> Task Bool  ): dyns]					= 
 applyFlows (T t :: T (Task a) a)   [(btb :: A.b: b -> Task String): dyns]					= applyFlows (dynamic T (t >>= btb) :: T (Task String) String) dyns
 
 applyFlows (T t :: T (Task a) a)  [(T btb :: T (a -> Task b) b ): dyns]						= applyFlows (dynamic T (t >>= btb) :: T (Task b) b) dyns
+//applyFlows (T t :: T (Task a) a)  [(T btb :: T (a -> Task (t b b)) b ): dyns]				= applyFlows (dynamic T (t >>= btb) :: T (Task (t b b)) b) dyns
+//applyFlows (T t :: T (Task a) a)  [(T btb :: T (T (a -> Task (t b c)) b) c ): dyns]		= applyFlows (dynamic T (t >>= btb) :: T (T (Task (t b c)) b) c) dyns
 
 applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task b | iTask b): dyns]	= applyFlows (dynamic \a -> ta a >>= tb :: A.a: a -> Task a | iTask a) dyns
 applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task Void | iTask b): dyns]	= applyFlows (dynamic \a -> ta a >>= tb :: A.a: a -> Task Void | iTask a) dyns

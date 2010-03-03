@@ -46,24 +46,27 @@ initMenu
 						]
 		]
 
-actions ((name,form),mode)
+actions state=:((name,form),mode)
 	=	map MenuAction	[ (ActionNew,		Always)
 						, (ActionOpen,		Always)
 						, (ActionOpenValue,	Always)
-						, (ActionSave,		(Predicate (ifValid (name <> "" && testType form.formDyn))))
-						, (ActionSaveAs,	(Predicate (ifValid (name <> "" && testType form.formDyn))))
+						, (ActionSave,		ifTypeOk state)
+						, (ActionSaveAs,	ifTypeOk state)
 						, (ActionQuit,		Always)
 						, (ActionShowAbout,	Always)
 						, (ActionEditType,	(Predicate (\_ -> mode === EditValue)))
 						, (ActionEditValue,	(Predicate (\_ -> mode === EditType && not (isEmpty form.formShape))))
 						] 
-		
+
+ifValid expr = Predicate (\val -> case val of
+									Invalid -> False
+									_ -> expr)
+
+ifTypeOk ((name,form),mode) = ifValid (name <> "" && testType form.formDyn)
 where
 	testType (v :: T a a) = True
 	testType _ = False
 
-	ifValid expr Invalid = False
-	ifValid expr _		= expr
 
 handleMenu :: Task Void
 handleMenu 
@@ -73,13 +76,18 @@ doMenu state=:((name,form), mode)
 		=	case mode of
 				NoEdit 		->							updateInformationA title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
-				EditType 	->							updateInformationA title2 [ButtonAction (ActionOk, IfValid):actions state] form.formShape
+				EditType 	->							updateInformationA title2   [ ButtonAction (ActionEditValue, ifValid (not (isEmpty form.formShape)))
+																					, ButtonAction (ActionOk, IfValid)
+																					: actions state] form.formShape
 								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
 				EditValue 	->							editValue state
 			>>= switchAction
 where
 	editValue state=:((name,form=:{formDyn = T v :: T a a}), mode)  
-		=							updateInformationA title3 [ButtonAction (ActionOk, IfValid):actions state] v
+		=							updateInformationA title3	[ ButtonAction (ActionSave, ifTypeOk state )
+																, ButtonAction (ActionOk, IfValid)
+																: actions state
+																] v
 			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic T nv :: T a^ a^}),mode))
 
 	title1 = "No form..."

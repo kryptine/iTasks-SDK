@@ -36,4 +36,7 @@ emptyFlow 			:: Flow
 flowShapeToFlowDyn	:: ![FlowShape] -> Task Dynamic  
 flowShapeToFlow		:: ![FlowShape] -> Task Flow
 applyDynFlows 		:: ![Dynamic] -> Dynamic 
-validType 			:: Dynamic -> Bool
+
+validTask 			:: Dynamic -> Bool
+validTaskFun 		:: Dynamic -> Bool
+validTaskVal 		:: Dynamic -> Bool

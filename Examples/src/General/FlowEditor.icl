@@ -10,6 +10,9 @@ emptyState = (("",emptyFlow),False)
 
 // ****************************
 
+ifValid expr = Predicate (\val -> case val of
+									Invalid -> False
+									_ -> expr)
 initMenu :: Task Void
 initMenu 
 	= setMenus
@@ -28,8 +31,8 @@ initMenu
 actions ((name,flow), mode)
 	=	map MenuAction	[ (ActionNew,		Always)
 						, (ActionOpen,		Always)
-						, (ActionSave,		(Predicate (\_ -> name <> "" && validType flow.flowDyn)))
-						, (ActionSaveAs,	(Predicate (\_ -> name <> "" && validType flow.flowDyn)))
+						, (ActionSave,		ifValid (name <> "" && validTaskFun flow.flowDyn))
+						, (ActionSaveAs,	ifValid (name <> "" && validTaskFun flow.flowDyn))
 						, (ActionQuit,		Always)
 						, (ActionShowAbout,	Always)
 						]
@@ -42,13 +45,16 @@ doMenu state=:((name,flow), mode)
 		=	case mode of
 				False 		->							updateInformationA title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
-				True 	->								updateInformationA title2 [ButtonAction (ActionOk, IfValid):actions state] flow.flowShape
+				True 	->								updateInformationA title2 	[ ButtonAction (ActionSave, ifValid (name <> "" && validTaskFun flow.flowDyn))
+																					, ButtonAction (ActionOk, IfValid)
+																					: actions state
+																					] flow.flowShape
 								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))
 			>>= switchAction
 where
 	title1 = "No flow..."
 	title2 = "Define type of flow: \"" +++ name +++ "\" " +++ 
-				if (validType flow.flowDyn) 
+				if (validTaskFun flow.flowDyn) 
 					(" :: " +++ showDynType flow.flowDyn) 
 					(" :: type is currently invalid !!")
 
