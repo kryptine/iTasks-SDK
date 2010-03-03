@@ -56,8 +56,7 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 
 Ext.ns("itasks.list");
 
-itasks.list.Button = Ext.extend(Ext.Button,
-{
+itasks.list.Button = Ext.extend(Ext.Button,{
 	onRender: function(ct,position){
 		
         var t = new Ext.Template('<div id="{1}" class="list-toolbox-button {2}"><button type="{0}"></button></div>');
@@ -84,8 +83,7 @@ itasks.list.Button = Ext.extend(Ext.Button,
 	}
 });
 
-itasks.list.Toolbox = Ext.extend(Ext.Panel,
-{
+itasks.list.Toolbox = Ext.extend(Ext.Panel,{
 	initComponent: function(){
 		this.upButton   = new itasks.list.Button({btnCls: 'list-button-up'});
 		this.downButton = new itasks.list.Button({btnCls: 'list-button-down'});
@@ -119,8 +117,7 @@ itasks.list.Toolbox = Ext.extend(Ext.Panel,
 	}
 });
 
-itasks.list.Item = Ext.extend(Ext.Panel,
-{	
+itasks.list.Item = Ext.extend(Ext.Panel,{	
 	initComponent: function(){
 		
 		Ext.apply(this,
@@ -129,18 +126,15 @@ itasks.list.Item = Ext.extend(Ext.Panel,
 		, autoHeight: true
 		, unstyled: true
 		, layout: 'ux.html'
-		, html:'<table style="width: 100%"><tr><td></td><td><td></tr></table>'
+		, html: '<div id="liform" style="float:left"></div><div id="litbox" style="float: right"></div>'
 		});
 		
-		itasks.list.Item.superclass.initComponent.apply(this,arguments);
-		this.items.get(0).renderTarget='td:nth(1)';
-	},
-
-	afterRender: function(arguments){		
-		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name, renderTarget: 'td:nth(2)'})
-		this.add(this.toolbox);
+		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name, renderTarget: "div[id=litbox]"}); 
 		
-		itasks.list.Item.superclass.afterRender.call(this,arguments);	
+		this.items[0].renderTarget="div[id=liform]"
+		this.items[1] = this.toolbox;
+		
+		itasks.list.Item.superclass.initComponent.apply(this,arguments);
 	}
 });
 
