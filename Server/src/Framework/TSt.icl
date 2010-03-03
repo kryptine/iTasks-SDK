@@ -121,10 +121,13 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		}
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
+	//Load process as it is in the store
+	# (mbProcess,tst)		= getProcess processId tst
+	# process				= fromJust mbProcess
 	//Create a thread with task functions in the store
 	# tst					= storeThread processId (createThread task) tst
 	//Evaluate the process once to kickstart automated steps that can be set in motion immediately
-	# (result,tree,tst)		= evaluateTaskInstance {Process|process & processId = processId} Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
+	# (result,tree,tst)		= evaluateTaskInstance process Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
 	= case result of
 		TaskBusy				= (TaskBusy, processId, tst)
 		TaskFinished (a :: a^)	= (TaskFinished a, processId, tst)
