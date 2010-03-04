@@ -50,8 +50,8 @@ actions state=:((name,form),mode)
 	=	map MenuAction	[ (ActionNew,		Always)
 						, (ActionOpen,		Always)
 						, (ActionOpenValue,	Always)
-						, (ActionSave,		ifTypeOk state)
-						, (ActionSaveAs,	ifTypeOk state)
+						, (ActionSave,		ifValid (name <> ""))
+						, (ActionSaveAs,	ifValid (name <> ""))
 						, (ActionQuit,		Always)
 						, (ActionShowAbout,	Always)
 						, (ActionEditType,	(Predicate (\_ -> mode === EditValue)))
@@ -61,11 +61,6 @@ actions state=:((name,form),mode)
 ifValid expr = Predicate (\val -> case val of
 									Invalid -> False
 									_ -> expr)
-
-ifTypeOk ((name,form),mode) = ifValid (name <> "" && testType form.formDyn)
-where
-	testType (v :: T a a) = True
-	testType _ = False
 
 
 handleMenu :: Task Void
@@ -83,12 +78,12 @@ doMenu state=:((name,form), mode)
 				EditValue 	->							editValue state
 			>>= switchAction
 where
-	editValue state=:((name,form=:{formDyn = T v :: T a a}), mode)  
-		=							updateInformationA title3	[ ButtonAction (ActionSave, ifTypeOk state )
+	editValue state=:((name,form=:{formDyn = DynTaskVal v :: DynTaskVal a}), mode)  
+		=							updateInformationA title3	[ ButtonAction (ActionSave, ifValid (name <> ""))
 																, ButtonAction (ActionOk, IfValid)
 																: actions state
 																] v
-			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic T nv :: T a^ a^}),mode))
+			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic DynTaskVal nv :: DynTaskVal a^}),mode))
 
 	title1 = "No form..."
 	title2 = "Define type of form: \"" +++ name +++ "\""

@@ -35,6 +35,21 @@ derive bimap	Maybe, (,)
 				|	VoidVal
 				|	CE String
 
+
+undef = undef
+
+emptyFlow 			:: Flow
+emptyFlow = undef
+
+flowShapeToFlowDyn	:: ![FlowShape] -> Task Dynamic  
+flowShapeToFlowDyn _ = undef
+
+flowShapeToFlow		:: ![FlowShape] -> Task Flow
+flowShapeToFlow _ = undef
+
+applyDynFlows 		:: ![Dynamic] -> Dynamic 
+applyDynFlows _ = undef
+/*
 emptyFlow :: Flow
 emptyFlow 		= 	{ flowShape = []
 					, flowDyn = dynamic "Flow not initialized" :: String
@@ -49,41 +64,6 @@ flowShapeToFlow flowShape
 		>>|				return {flowShape = flowShape, flowDyn = flowDyn}
 
 
-validTaskVal :: Dynamic -> Bool
-validTaskVal (T v:: T a b) 			= True
-validTaskVal _						= False
-
-validTask :: Dynamic -> Bool
-validTask (T x :: T (Task a) a)		= True
-validTask _							= False
-
-validTaskFun :: Dynamic -> Bool
-validTaskFun (T x :: T (a -> Task a) a) 											= True
-validTaskFun (T x :: T (a -> Task b) b) 											= True
-
-validTaskFun (f :: A.a: 		a -> Task a 		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task (t a) 	| iTask a)						= True
-validTaskFun (f :: A.a: 		a -> Task (t a a) 	| iTask a)						= True
-validTaskFun (f :: A.a b: 		a -> Task (t a b) 	| iTask a & iTask b ) 			= True
-validTaskFun (f :: A.a: 		a -> Task (t a a a) | iTask a)						= True
-validTaskFun (f :: A.a b c: 	a -> Task (t a b c)	| iTask a & iTask b & iTask c) 	= True
-
-validTaskFun (f :: A.a: 		a -> Task Void) 									= True
-validTaskFun (f :: A.a: 		a -> Task Int) 										= True
-validTaskFun (f :: A.a: 		a -> Task Real) 									= True
-validTaskFun (f :: A.a: 		a -> Task Bool) 									= True
-validTaskFun (f :: A.a: 		a -> Task String) 									= True
-
-validTaskFun (f :: A.a: 		a -> Task Void		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task Int		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task Real		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task Bool		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task String	| iTask a) 						= True
-
-validTaskFun (f :: A.a: (Task a) -> Task a | iTask a) 								= True
-
-validTaskFun d																		= False
-	
 		
 flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic  
 flowShapeToFlowDyn [] 		= throw "A list in a flow has to be non empty."
@@ -164,7 +144,7 @@ applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task b | iTask b
 applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task Void | iTask b): dyns]	= applyFlows (dynamic \a -> ta a >>= tb :: A.a: a -> Task Void | iTask a) dyns
 
 applyFlows d [d1:_]																			= dynamic  (typeErrorMess2 "Cannot apply" d d1)
-
+*/
 				
 
 

@@ -38,10 +38,10 @@ emptyForm 		= 	{ formShape = []
 formShapeToFormDyn :: [FormShape] -> Task Dynamic
 formShapeToFormDyn bs = convertFormShapes bs >>= return o tupling
 where
-	tupling [] 		= dynamic T Void :: T Void Void
+	tupling [] 		= dynamic DynTaskVal Void 
 	tupling [d]		= d
 	tupling [d:ds]	= case (d, tupling ds) of 
-							(T d1 :: T a a, T d2 :: T b b) -> dynamic T (Tup d1 d2) :: T (Tup a b) (Tup a b)	
+							(DynTaskVal d1 :: DynTaskVal a, DynTaskVal d2 :: DynTaskVal b) -> dynamic DynTaskVal (Tup d1 d2) 
 							_ -> abort "Fatal Error in shapeToForm !!!"
 
 	convertFormShapes :: [FormShape] -> Task [Dynamic]
@@ -49,34 +49,34 @@ where
 	convertFormShapes [b:bs] 	= convert b >>= \d -> convertFormShapes bs >>= \ds -> return [d:ds] 
 	where
 		convert :: FormShape -> Task Dynamic
-		convert	Integer					= getDefaultValue >>= \v -> return (dynamic T v :: T Int Int)	
-		convert	Real					= getDefaultValue >>= \v -> return (dynamic T v :: T Real Real)	
-		convert	String					= getDefaultValue >>= \v -> return (dynamic T v :: T String String)	
-		convert	Bool					= getDefaultValue >>= \v -> return (dynamic T v :: T Bool Bool)	
+		convert	Integer					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Int)	
+		convert	Real					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Real)	
+		convert	String					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal String)	
+		convert	Bool					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Bool)	
 		convert	(Tuple (b1, b2))		= convert b1 >>= \db1 -> convert b2 >>= \db2 -> returnTuple db1 db2	
 		where
-			returnTuple (T t1 :: T a a) (T t2 :: T b b) 
-										= return (dynamic T (t1,t2) :: (T (a,b)(a,b)))
-//										= return (dynamic T2 (t1,t2) :: (T2 (a,b) a b))
+			returnTuple (DynTaskVal t1 :: DynTaskVal a) (DynTaskVal t2 :: DynTaskVal b) 
+										= return (dynamic DynTaskVal (t1,t2) :: (DynTaskVal (a,b)))
 		convert (List b)				= convert b >>= \dl -> returnList dl
 		where
-			returnList (T v :: T a a)	= return (dynamic T [] :: T [a] [a])
+			returnList (DynTaskVal v :: DynTaskVal a)	= return (dynamic DynTaskVal [] :: DynTaskVal [a])
 		convert (Hide b)				= convert b >>= returnHidden
 		where
-			returnHidden (T nb :: T a a)= return (dynamic T (Hidden nb) :: T (Hidden a) (Hidden a))
+			returnHidden (DynTaskVal nb :: DynTaskVal a)= return (dynamic DynTaskVal (Hidden nb) :: DynTaskVal (Hidden a))
 		convert (Option b)				= convert b >>= \db -> returnOption db
 		where
-			returnOption (T v :: T a a) = return (dynamic T Nothing :: T (Maybe a) (Maybe a))
+			returnOption (DynTaskVal v :: DynTaskVal a) = return (dynamic DynTaskVal Nothing :: DynTaskVal (Maybe a))
 		convert (Labeled (s, b))		= convert b >>= \nb ->	returnLabel s nb
 		where
-				returnLabel s (T v :: T a a) 
-									= return (dynamic T (Static s,v) :: T (Static String,a) (Static String,a))
-		convert	Notes				= getDefaultValue >>= \v -> return (dynamic T v :: T Note Note)	
-		convert	Date				= getDefaultValue >>= \v -> return (dynamic T v :: T Date Date)	
-		convert	Time				= getDefaultValue >>= \v -> return (dynamic T v :: T Time Time)	
-		convert	Document			= getDefaultValue >>= \v -> return (dynamic T v :: T Document Document)	
-		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic T v :: T GoogleMap GoogleMap)	
+				returnLabel s (DynTaskVal v :: DynTaskVal a) 
+									= return (dynamic DynTaskVal (Static s,v) :: DynTaskVal (Static String,a))
+		convert	Notes				= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Note)	
+		convert	Date				= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Date)	
+		convert	Time				= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Time)	
+		convert	Document			= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Document)	
+		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal GoogleMap)	
 		convert _					= abort "Fatal Error in Convert !!!"
+
 
 // ****************************
 
