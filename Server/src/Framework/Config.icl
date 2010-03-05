@@ -5,31 +5,28 @@ import Util, JSON, StdMisc
 derive JSONEncode Config
 derive JSONDecode Config
 
-derive bimap	Maybe, (,)
+derive bimap Maybe, (,)
 
 defaultConfig :: Config
 defaultConfig =
-	{ clientPath	= "..\\..\\Client\\build"
+	{ clientPath	= "Client"
 	, staticPath	= ".\\Static"
-	, rootPassword	= ""
+	, rootPassword	= "root"
 	, sessionTime	= 3600
 	, serverPort	= 80
 	, serverPath	= "/handlers"
 	, debug			= False
 	}
 
-loadConfig :: !String !*World -> (!Config, !*World)
+loadConfig :: !String !*World -> (!Maybe Config, !*World)
 loadConfig appName world
-	# (content,world)	= readfile configfile world
+	# (content,world)	= readfile (appName +++ "-config.json") world
 	| content == ""
-		# world		= writefile configfile (toJSON defaultConfig) world
-		= (defaultConfig, world)
+		= (Nothing,world)
 	| otherwise
-		= case fromJSON content of
-			Just config
-				= (config, world)
-			Nothing
-				= abort ("iTasks: Failed to read configfile: " +++ configfile)
-where	
-	configfile = appName +++ "-config.json"
+		= (fromJSON content,world)
+	
+storeConfig :: !String !Config !*World -> *World
+storeConfig appName config world
+	= writefile (appName +++ "-config.json") (toJSON config) world
 	

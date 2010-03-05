@@ -13,6 +13,7 @@ import Directory
 
 import Http, HttpUtil
 
+import Setup
 import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
@@ -25,25 +26,29 @@ from UserAdmin import userAdministration
 PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
-engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
-engine config userflows 
-	= [((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
-	  ,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
-	  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
-	  ,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
-	  ,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
-	  ,((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
-	  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
-	  ,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
-	  ,((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
-	  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
-	  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)
-	  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
-	  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
-	  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
-	  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
-	  ,(\_ -> True, handleStaticResourceRequest)
-	  ]
+engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))] 
+engine mbConfig userflows
+	= case mbConfig of
+		Just config
+			= [((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
+			  ,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
+			  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
+			  ,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
+			  ,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
+			  ,((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
+			  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
+			  ,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
+			  ,((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
+			  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
+			  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)
+			  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
+			  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
+			  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
+			  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
+			  ,(\_ -> True, handleStaticResourceRequest config)
+			  ]
+		Nothing
+			= [(\_ -> True, setupHandler)]
 where
 	//Always add the workflows for administering the itask system
 	flows = userflows ++ userAdministration
@@ -57,7 +62,7 @@ workflow path task =
 	, mainTask = task >>| return Void
 	}
 
-config :: !*World -> (!Config,!*World)
+config :: !*World -> (!Maybe Config,!*World)
 config world
 	# (appName,world) = determineAppName world
 	= loadConfig appName world
@@ -65,10 +70,8 @@ config world
 // Request handler which serves static resources from the application directory,
 // or a system wide default directory if it is not found locally.
 // This request handler is used for serving system wide javascript, css, images, etc...
-handleStaticResourceRequest :: !HTTPRequest *World -> (!HTTPResponse, !*World)
-handleStaticResourceRequest req world
-	# (appName,world)		= determineAppName world
-	# (config,world)		= loadConfig appName world
+handleStaticResourceRequest :: !Config !HTTPRequest *World -> (!HTTPResponse, !*World)
+handleStaticResourceRequest config req world
 	# path					= if (req.req_path == "/") "/index.html" req.req_path
 	# filename				= config.clientPath +++ filePath path
 	# (type, world)			= http_staticFileMimeType filename world

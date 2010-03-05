@@ -18,7 +18,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @return A list of predicate/handler pairs that can be plugged into a server
 *         or CGI wrapper
 */
-engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
+engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
 
 /**
 * Loads the itasks specific config
@@ -28,7 +28,7 @@ engine :: Config [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPRe
 * @return The configuration options
 * @return The updated world
 */
-config :: !*World -> (!Config,!*World)
+config :: !*World -> (!Maybe Config,!*World)
 
 /**
 * Wraps any task and a label as a workflow with no access restrictions
@@ -37,3 +37,8 @@ config :: !*World -> (!Config,!*World)
 * @param The task
 */
 workflow :: String (Task a) -> Workflow | iTask a
+
+/**
+* Determine the name of the application based on the executable's name
+*/
+determineAppName :: !*World -> (!String,!*World)
