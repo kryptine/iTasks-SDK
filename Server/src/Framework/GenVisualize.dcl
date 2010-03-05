@@ -13,14 +13,14 @@ derive gVisualize Int, Real, Char, Bool, String, Document
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String DataMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
+visualizeAsEditor		:: String String DataMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
 visualizeAsHtmlDisplay	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextDisplay	:: a -> String								| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: a -> [HtmlTag]							| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String								| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates	:: String String DataMask DataMask ListMask a a Bool -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 
 //Hint for the layout engine how to render the different panels in case of a
 //horizontal layout (tuples) (0 = full width, 1 = inline, 2 = medium, 4 = large)
@@ -45,6 +45,8 @@ derive bimap VisualizationValue
 	, optional			:: !Bool					// Create optional form fields
 	, valid				:: !Bool					// Is the form valid
 	, listMask			:: ListMask					// Indicating which parts of a list have changed
+	, updateValues		:: !Bool					// Generate updates for basic values
+	, namePrefix		:: !String					// Prefix for names of generated elements
 	}
 
 :: VisualizationType

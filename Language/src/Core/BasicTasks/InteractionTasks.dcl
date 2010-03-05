@@ -1,11 +1,11 @@
 definition module InteractionTasks
 
-from TSt		import :: Task
+from TSt		import :: Task, :: SharedID
 from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
 from ProcessDB	import :: Action
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
 
 // This type class contains types that may be used as
 // messages and questions: plain strings and html.
@@ -80,6 +80,23 @@ showStickyMessageAbout		:: message a -> Task Void											| html message & iTa
 //Notify a user through external media. For example via e-mail or sms.
 notifyUser					:: message UserName -> Task Void									| html message
 notifyGroup					:: message Role -> Task Void										| html message
+
+//*** Shared value tasks ***//
+:: Editor s a	= {editorFrom :: s -> a, editorTo :: a s -> s}
+:: Listener s a	= {listenerFrom :: s -> a}
+:: View s
+
+listener	:: !(Listener s a)	-> View s | iTask a & iTask s & gMerge{|*|} s
+editor		:: !(Editor s a)	-> View s | iTask a & iTask s & gMerge{|*|} s
+
+idEditor	:: View s	| iTask s & gMerge{|*|} s
+idListener	:: View s	| iTask s & gMerge{|*|} s
+
+createShared				:: a -> Task (SharedID a)													| iTask a
+getShared					:: (SharedID a) -> Task a													| iTask a
+setShared					:: (SharedID a) a -> Task Void												| iTask a
+updateShared				:: question ![TaskAction s] !(SharedID s) ![View s] -> Task (!Action, !s)	| html question & iTask s & gMerge{|*|} s
+updateSharedLocal			:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s)				| html question & iTask s & gMerge{|*|} s
 
 //*** Utility Functions ***//
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid

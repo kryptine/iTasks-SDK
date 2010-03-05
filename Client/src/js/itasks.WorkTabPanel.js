@@ -556,7 +556,10 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 					case "TUISetValue":
 						var ct = Ext.getCmp(update[1]);
 						if(ct && ct.setValue) {
+							// suspend events to prevent check-event for checkbox
+							ct.suspendEvents();
 							ct.setValue(update[2]);
+							ct.resumeEvents();
 						}				
 						break;
 				}

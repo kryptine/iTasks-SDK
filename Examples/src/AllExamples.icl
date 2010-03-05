@@ -43,6 +43,8 @@ import FormEditor
 import FlowEditor
 import LaunchFlow
 
+//Shared Value Examples
+import SharedValues
 
 Start :: *World -> *World
 Start world = startEngine workflows world
@@ -75,4 +77,5 @@ where
 							, showStoredDefinitions
 							, launchFlow
 							]
+						, sharedValueExamples
 						]

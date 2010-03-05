@@ -3,7 +3,7 @@ definition module CommonDomain
 * This module provides a series of data types, their iTask generics obligations and utility
 * functions for common data in workflows.
 */
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
 
 import StdString
 from Html	import :: HtmlTag
@@ -46,6 +46,7 @@ derive gPrint		EmailAddress, Password, Note, Date, Time, DateTime, Currency
 derive gParse		EmailAddress, Password, Note, Date, Time, DateTime, Currency
 derive gVisualize	EmailAddress, Password, Note, Date, Time, DateTime, Currency
 derive gUpdate		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gMerge		EmailAddress, Password, Note, Date, Time, DateTime, Currency
 
 instance html Note
 

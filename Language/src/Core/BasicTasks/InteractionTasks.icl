@@ -1,9 +1,11 @@
 implementation module InteractionTasks
 
-import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, Text
+import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, Text, GenMerge
 from	StdFunc import id, const
 import	TSt, ProcessDB
+from 	CoreCombinators import >>=, >>|, return
 from	ExceptionCombinators import throw
+from	TaskTree import :: InteractiveTask(..)
 
 import	GenVisualize, GenUpdate, Util, Http	
 
@@ -56,10 +58,10 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr}
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
-		# (form,valid) 	= visualizeAsEditor editorId omask ovalue
-		# tst			= setAccActions (evaluateConditions (getMenuActions actions) valid ovalue) tst
+		# (form,valid) 	= visualizeAsEditor editorId "" omask ovalue
+		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
 		# buttonActions	= evaluateConditions buttonActions valid ovalue
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) tst
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
 		= (TaskBusy,tst)
 	| otherwise
 		# (nvalue,nmask,lmask,tst) = applyUpdates updates ovalue omask [] tst
@@ -68,10 +70,10 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr}
 		| otherwise
 			# tst				= setTaskStore "value" nvalue tst
 			# tst				= setTaskStore "mask" nmask tst
-			# (updates,valid)	= determineEditorUpdates editorId omask nmask lmask ovalue nvalue
-			# tst				= setAccActions (evaluateConditions (getMenuActions actions) valid nvalue) tst
+			# (updates,valid)	= determineEditorUpdates editorId "" omask nmask lmask ovalue nvalue False
+			# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 			# buttonActions		= evaluateConditions buttonActions valid nvalue
-			# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) tst
+			# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
 			= (TaskBusy, tst)
 where
 	readValue initial tst
@@ -157,9 +159,9 @@ makeChoiceTask question options initsel context actions tst=:{taskNr}
 												, columns = 1
 												, items = radios
 												}]
-		# tst = setAccActions (evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))) tst
-		# buttonActions = evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) tst
+		# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
+		# buttonActions	= evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (action,tst) = getAction updates (map fst buttonActions) tst
@@ -173,13 +175,13 @@ makeChoiceTask question options initsel context actions tst=:{taskNr}
 				| index <> -1
 					# valid			= index >= 0 && index < length options	//Recompute validity
 					# tst			= setTaskStore "selection" index tst
-					# tst			= setAccActions (evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))) tst
+					# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
 					# buttonActions = evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-					# tst			= setTUIUpdates (enables editorId buttonActions) tst
+					# tst			= setTUIUpdates (enables editorId buttonActions) menuActions tst
 					= (TaskBusy, tst)	
 				// Fallback case (shouldn't really happen)
 				| otherwise
-					# tst		= setTUIUpdates [] tst
+					# tst		= setTUIUpdates [] [] tst
 					= (TaskBusy, tst)
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
@@ -227,9 +229,9 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr}
 					  , hideLabel = True
 					  , boxLabel = Just (visualizeAsTextLabel o)
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
-		# form = [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
-		# tst = setAccActions (evaluateConditions (getMenuActions actions) True (select selection options)) tst
-		# tst = setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) tst
+		# form			= [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
+		# menuActions	= evaluateConditions (getMenuActions actions) True (select selection options)
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		// One of the buttons was pressed
@@ -241,8 +243,7 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr}
 				# mbSel		= parseSelection updates 
 				# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 				# tst		= setTaskStore "selection" (sort selection) tst
-				# tst 		= setAccActions (evaluateConditions (getMenuActions actions) True (select selection options)) tst
-				# tst		= setTUIUpdates [] tst
+				# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
 				= (TaskBusy, tst)
 where
 	parseSelection :: [(String,String)] -> Maybe [String]
@@ -291,16 +292,178 @@ makeMessageTask message context actions tst=:{taskNr}
 	# buttonActions	= getButtonActions actions
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
-		# tst = setAccActions (evaluateConditions (getMenuActions actions) True Void) tst
-		# buttonActions = evaluateConditions buttonActions True Void
-		# tst = setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) tst
+		# menuActions	= evaluateConditions (getMenuActions actions) True Void
+		# buttonActions	= evaluateConditions buttonActions True Void
+		# tst			= setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (action,tst) = getAction updates (map fst buttonActions) tst
 		= case action of
 			Just action	=	(TaskFinished action, tst)
 			Nothing =		(TaskBusy, tst)
+			
+//Shared value tasks
+createShared :: a -> Task (SharedID a) | iTask a
+createShared v = mkInstantTask "createShared" createShared`
+where
+	createShared` tst
+		#(id, tst) = createSharedStore v tst
+		= (TaskFinished id, tst)
+		
+getShared :: (SharedID a) -> Task a | iTask a
+getShared id = mkInstantTask "getShared" getShared`
+where
+	getShared` tst
+		#(v, tst) = getSharedStore id tst
+		= (TaskFinished v, tst)
+		
+setShared :: (SharedID a) a -> Task Void | iTask a
+setShared id v = mkInstantTask "setShared" setShared`
+where
+	setShared` tst
+		#tst = setSharedStore id v tst
+		= (TaskFinished Void, tst)
+
+:: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
+:: Listener` s a =	{ visualize :: s -> [HtmlTag] }
+:: Editor` s a =	{ getNewValue :: Int [(!String,!String)] s s *TSt -> *(!s,!*TSt)
+					, determineUpdates :: Int s s *TSt -> *((![TUIUpdate],!Bool),!*TSt)
+					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
+					}
+
+editor :: !(Editor s a) -> View s | iTask a & iTask s & gMerge{|*|} s
+editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
+where
+	getNewValue n updates old cur tst
+		# oEditV				= editorFrom old
+		# (omask,tst)			= readMask n (Just oEditV) tst
+		# myUpdates				= [(subString namePrefixLen ((textSize key) - namePrefixLen) key,value) \\ (key,value) <- updates | startsWith (namePrefix n) key]
+		| isEmpty myUpdates		= (cur, tst)
+		| otherwise
+			# (nEditV,_,_,tst)	= applyUpdates myUpdates oEditV omask [] tst
+			= (mergeValues old cur (editorTo nEditV old), tst)
+	where
+		namePrefixLen	= textSize (namePrefix n)
+		
+	determineUpdates n old new tst=:{taskNr}
+		# oEditV			= editorFrom old
+		# nEditV			= editorFrom new
+		# (omask,tst)		= readMask n (Just oEditV) tst
+		# (nmask,tst)		= accWorldTSt (defaultMask nEditV) tst
+		# tst				= setTaskStore (addStorePrefix n "mask") nmask tst
+		= (determineEditorUpdates (editorId taskNr n) (namePrefix n) omask nmask [] oEditV nEditV True,tst)
 	
+	visualize taskNr n stateV tst
+		# editV			= editorFrom stateV
+		# (mask,tst)	= accWorldTSt (defaultMask editV) tst
+		# tst			= setTaskStoreFor taskNr (addStorePrefix n "mask") mask tst
+		= (visualizeAsEditor (editorId taskNr n) (namePrefix n) mask editV,tst)
+		
+	readMask n initial tst
+		# (mbmask,tst)	= getTaskStore(addStorePrefix n "mask") tst
+		= case mbmask of
+			Just m = (m,tst)
+			Nothing = case initial of
+				Just v 
+					# (mask,tst)	= accWorldTSt (defaultMask v) tst
+					# tst			= setTaskStore (addStorePrefix n "mask") mask tst // <- store the initial mask
+					= (mask,tst)
+				Nothing	= ([],tst)
+				
+	namePrefix n			= (toString n) +++ "_"
+				
+	applyUpdates [] val mask lmask tst = (val,mask,lmask,tst)
+	applyUpdates [(p,v):us] val mask lmask tst=:{TSt|world}
+		# (val,mask,lmask,world) = updateValueAndMask p v val mask lmask world
+		= applyUpdates us val mask lmask {TSt|tst & world = world}
+		
+listener :: !(Listener s a) -> View s | iTask a & iTask s & gMerge{|*|} s
+listener {listenerFrom} = Listener {Listener`|visualize = visualize}
+where
+	visualize v = visualizeAsHtmlDisplay (listenerFrom v)
+
+idEditor	:: View s	| iTask s & gMerge{|*|} s
+idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
+
+idListener	:: View s	| iTask s & gMerge{|*|} s
+idListener = listener {listenerFrom = id}
+
+updateShared :: question ![TaskAction s] !(SharedID s) ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
+updateShared question actions sharedId views = mkInteractiveTask "updateShared" (makeSharedTask question actions sharedId views False)
+
+updateSharedLocal :: question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
+updateSharedLocal question actions initial views =
+				createShared initial
+	>>= \sid.	mkInteractiveTask "updateShared" (makeSharedTask question actions sid views False)
+	>>= \res.	mkInstantTask "removeShared" (removeShared sid)
+	>>|			return res
+where
+	removeShared id tst
+		#tst = removeSharedStore id tst
+		= (TaskFinished Void, tst)
+
+makeSharedTask :: question ![TaskAction s] !(SharedID s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & gMerge{|*|} s
+makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
+	# (updates,tst)	= getUserUpdates tst
+	| isEmpty updates
+		# tst = setTUIFunc createDefs tst
+		= (TaskBusy, tst)
+	| otherwise
+		# (cvalue,tst)		= getSharedStore sharedId tst
+		# (action,tst)		= getAction updates (map fst buttonActions) tst
+		| isJust action		= (TaskFinished (fromJust action,cvalue),tst)
+		| otherwise
+			# (nvalue,_,tst)	= foldl (updateV updates) (cvalue,0,tst) views
+			# tst				= setSharedStore sharedId nvalue tst
+			# (upd,valid,_,tst)	= foldl (detUpd nvalue) ([],True,0,tst) views
+			# menuActions		= evaluateConditions menuActions valid nvalue
+			# buttonActions		= evaluateConditions buttonActions valid nvalue
+			# tst				= setTUIUpdates (enables baseEditorId buttonActions ++ upd) menuActions tst
+		= (TaskBusy, tst)
+where
+	createDefs tst
+		# (svalue,tst)			= getSharedStore sharedId tst
+		# (form,valid,_,tst)	= foldl (createDef svalue) ([],True,0,tst) views
+		# menuActions			= evaluateConditions menuActions valid svalue
+		# buttonActions			= evaluateConditions buttonActions valid svalue
+		= (Definition (taskPanel taskId (html question) Nothing (Just form) (makeButtons baseEditorId buttonActions)) menuActions,tst)
+	
+	createDef svalue (def,valid,n,tst) (Editor editor)
+		# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") svalue tst
+		# ((ndef,nvalid),tst)	= editor.Editor`.visualize taskNr n svalue tst
+		= (def ++ ndef,valid && nvalid,n + 1,tst)
+		
+	createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
+		
+	updateV updates (cvalue,n,tst) (Editor editor)
+		# (ovalue,tst)			= readValue n tst
+		# (nvalue,tst)			= editor.getNewValue n updates ovalue cvalue tst
+		= (nvalue,n + 1,tst)
+	updateV _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
+	
+	detUpd nvalue (upd,valid,n,tst) (Editor editor)
+		# (ovalue,tst)			= readValue n tst
+		# tst					= setTaskStore (addStorePrefix n "value") nvalue tst
+		# ((nupd,nvalid),tst)	= editor.determineUpdates n ovalue nvalue tst
+		= (upd ++ nupd,	valid && nvalid, n + 1, tst)
+	detUpd nvalue (upd,valid,n,tst) (Listener listener) = ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
+	
+	listenerPanel value listener n = TUIHtmlPanel {TUIHtmlPanel| id = (editorId taskNr n), html = toString (DivTag [] (html (listener.Listener`.visualize value))), border = True, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True}
+	
+	taskId			= taskNrToString taskNr
+	baseEditorId	= "tf-" +++ taskId
+	menuActions		= getMenuActions actions
+	buttonActions	= getButtonActions actions
+		
+	readValue n tst
+		# (mbvalue,tst)	= getTaskStore (addStorePrefix n "value") tst
+		= case mbvalue of
+			Just v		= (v,tst)
+			Nothing		= abort "cannot get local value!"
+			
+addStorePrefix n key	= (toString n) +++ "_" +++ key
+editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
+					
 taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef
 taskPanel taskid description mbContext mbForm buttons
 	= TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Just (taskButtons buttons), bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=False}

@@ -19,9 +19,9 @@ handleWorkTabRequest req tst=:{staticInfo}
 		(TTMainTask ti properties tasks)
 			# subject = [properties.managerProps.TaskManagerProperties.subject]
 			# (Just p=:{Process | menus}, tst) = getProcess taskId tst
-			# panels = case [t \\ t <- tasks | not (isFinished t)] of
-				[]	= if (allFinished tasks) [TaskDone] [TaskRedundant]
-				[t] = buildTaskPanels t menus
+			# (panels,tst) = case [t \\ t <- tasks | not (isFinished t)] of
+				[]	= if (allFinished tasks) ([TaskDone],tst) ([TaskRedundant],tst)
+				[t] = buildTaskPanels t menus tst
 				_	= abort  "Multiple simultaneously active tasks in a main task!"
 			
 			// Collect debug information
@@ -215,53 +215,71 @@ JSONEncode{|TaskPanel|} (TaskRedundant) c				= ["\"redundant\"" : c]
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 
-buildTaskPanels :: TaskTree !(Maybe [Menu]) -> [TaskPanel]
-buildTaskPanels (TTInteractiveTask ti (Left def) acceptedA) menus
-	= [FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], tbar = (makeMenuBar menus acceptedA ti)}]
-buildTaskPanels (TTInteractiveTask ti (Right upd) acceptedA) menus
-	= [FormUpdate {FormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti)}]	
-buildTaskPanels (TTMonitorTask ti html) _
-	= [MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}]
-buildTaskPanels (TTRpcTask ti rpc) _
-	= [MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])}]
-buildTaskPanels (TTMainTask ti mti _) _
-	= [MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}]
-buildTaskPanels (TTSequenceTask ti tasks) menus
+buildTaskPanels :: TaskTree !(Maybe [Menu]) !*TSt -> *([TaskPanel],!*TSt)
+buildTaskPanels (TTInteractiveTask ti (Definition def acceptedA)) menus tst
+	= ([FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], tbar = (makeMenuBar menus acceptedA ti)}],tst)
+buildTaskPanels (TTInteractiveTask ti (Updates upd acceptedA)) menus tst
+	= ([FormUpdate {FormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti)}]	,tst)
+buildTaskPanels (TTInteractiveTask ti (Func f)) menus tst
+	# (fres,tst) = f tst
+	= buildTaskPanels (TTInteractiveTask ti fres) menus tst
+buildTaskPanels (TTMonitorTask ti html) _ tst
+	= ([MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}],tst)
+buildTaskPanels (TTRpcTask ti rpc) _ tst
+	= ([MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])}],tst)
+buildTaskPanels (TTMainTask ti mti _) _ tst
+	= ([MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}],tst)
+buildTaskPanels (TTSequenceTask ti tasks) menus tst
 	= case [t \\ t <- tasks | not (isFinished t)] of
-		[]	= if (allFinished tasks) [TaskDone][TaskRedundant]
-		[t]	= buildTaskPanels t menus
+		[]	= if (allFinished tasks) ([TaskDone],tst) ([TaskRedundant],tst)
+		[t]	= buildTaskPanels t menus tst
 		_	= (abort "Multiple simultaneously active tasks in a sequence!")
-buildTaskPanels (TTParallelTask ti tasks) menus
-	# cpanels = flatten [buildSubtaskPanels child [i] menus \\ child <- tasks & i <- [1..]]
+buildTaskPanels (TTParallelTask ti tasks) menus tst
+	#(cpanels,tst) = createPanels tasks [] 1 menus tst
+	# cpanels = reverse (flatten cpanels)
 	# ipanel  = (ParallelInfoPanel {ParallelInfoPanel | xtype = "itasks.task-parallel", taskId = ti.TaskInfo.taskId, label = "This is a parallel", subtaskInfo = flatten [getSubtaskInfo t [i] \\ t <- tasks & i <- [1..]]})
-	= [ipanel:cpanels]
-buildTaskPanels (TTFinishedTask _) _
-	= [TaskDone]	
+	= ([ipanel:cpanels],tst)
+where
+	createPanels [] acc i menus tst = (acc,tst)
+	createPanels [task:tasks] acc i menus tst
+		#(panels,tst) = buildSubtaskPanels task [i] menus tst
+		= createPanels tasks [panels:acc] (i+1) menus tst
+buildTaskPanels (TTFinishedTask _) _ tst
+	= ([TaskDone],tst)
 		
 //Incorperate Open / Closed Behaviour.. etc
-buildSubtaskPanels :: TaskTree SubtaskNr !(Maybe [Menu]) -> [TaskPanel]
-buildSubtaskPanels (TTInteractiveTask ti (Left def) acceptedA)  stnr menus
-	= [STFormPanel {STFormPanel | xtype="itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], subtaskId = subtaskNrToString stnr, tbar = (makeMenuBar menus acceptedA ti)}]
-buildSubtaskPanels (TTInteractiveTask ti (Right upd) acceptedA) stnr menus
-	= [STFormUpdate {STFormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti), subtaskId = subtaskNrToString stnr}]
-buildSubtaskPanels (TTMonitorTask ti html) 			  stnr _
-	= [STMonitorPanel {STMonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html), subtaskId = subtaskNrToString stnr}]
-buildSubtaskPanels (TTRpcTask ti rpc) 				  stnr _
-	= [STMonitorPanel {STMonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status]), subtaskId = subtaskNrToString stnr}]
-buildSubtaskPanels (TTMainTask ti mti tasks) 		  stnr _
-	= [STMainTaskPanel {STMainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti, subtaskId = subtaskNrToString stnr}]
-buildSubtaskPanels (TTSequenceTask ti tasks) 		  stnr menus
+buildSubtaskPanels :: TaskTree SubtaskNr !(Maybe [Menu]) !*TSt -> *([TaskPanel], !*TSt)
+buildSubtaskPanels (TTInteractiveTask ti (Definition def acceptedA))  stnr menus tst
+	= ([STFormPanel {STFormPanel | xtype="itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], subtaskId = subtaskNrToString stnr, tbar = (makeMenuBar menus acceptedA ti)}],tst)
+buildSubtaskPanels (TTInteractiveTask ti (Updates upd acceptedA)) stnr menus tst
+	= ([STFormUpdate {STFormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti), subtaskId = subtaskNrToString stnr}],tst)
+buildSubtaskPanels (TTInteractiveTask ti (Func f)) stnr menus tst
+	#(fres, tst) = f tst
+	= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus tst
+buildSubtaskPanels (TTMonitorTask ti html) 			  stnr _ tst
+	= ([STMonitorPanel {STMonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html), subtaskId = subtaskNrToString stnr}],tst)
+buildSubtaskPanels (TTRpcTask ti rpc) 				  stnr _ tst
+	= ([STMonitorPanel {STMonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status]), subtaskId = subtaskNrToString stnr}],tst)
+buildSubtaskPanels (TTMainTask ti mti tasks) 		  stnr _ tst
+	= ([STMainTaskPanel {STMainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti, subtaskId = subtaskNrToString stnr}],tst)
+buildSubtaskPanels (TTSequenceTask ti tasks) 		  stnr menus tst
 	= case [t \\ t <- tasks | not (isFinished t)] of
-		[]  = if (allFinished tasks) [TaskDone][TaskRedundant]
-		[t] = buildSubtaskPanels t stnr menus
+		[]  = if (allFinished tasks) ([TaskDone],tst) ([TaskRedundant],tst)
+		[t] = buildSubtaskPanels t stnr menus tst
 		_	= (abort "Multiple simultaneously active tasks in a sequence!")
-buildSubtaskPanels (TTParallelTask ti tasks) 		  stnr menus
-	= flatten [buildSubtaskPanels t [i:stnr] menus\\ t <- tasks & i <- [1..]]
-buildSubtaskPanels (TTFinishedTask _) 				  stnr _
-	= [TaskDone]
+buildSubtaskPanels (TTParallelTask ti tasks) 		  stnr menus tst
+	#(panels, tst) = createPanels tasks [] stnr 1 menus tst
+	= (reverse (flatten panels), tst)
+where
+	createPanels [] acc stnr i menus tst = (acc,tst)
+	createPanels [task:tasks] acc stnr i menus tst
+		#(panels,tst) = buildSubtaskPanels task [i:stnr] menus tst
+		= createPanels tasks [panels:acc] stnr (i+1) menus tst
+buildSubtaskPanels (TTFinishedTask _) 				  stnr _ tst
+	= ([TaskDone],tst)
 
 getSubtaskInfo :: TaskTree SubtaskNr  -> [SubtaskInfo]
-getSubtaskInfo (TTInteractiveTask ti _ _)  stnr = [{SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString stnr}]
+getSubtaskInfo (TTInteractiveTask ti _)  stnr = [{SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString stnr}]
 getSubtaskInfo (TTMonitorTask ti _)      stnr = [{SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString stnr}]
 getSubtaskInfo (TTRpcTask ti _) 		 stnr = [{SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString stnr}]
 getSubtaskInfo (TTFinishedTask ti) 		 stnr = [{SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString stnr}]

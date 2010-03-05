@@ -447,7 +447,7 @@ mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given") []}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
@@ -591,29 +591,29 @@ where
 		_							= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode (TTInteractiveTask ti defs accA)	= TTInteractiveTask	ti defs accA
+	updateTaskNode (TTInteractiveTask ti defs)		= TTInteractiveTask	ti defs
 	updateTaskNode (TTMonitorTask ti status)		= TTMonitorTask		ti status
 	updateTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
 	updateTaskNode (TTParallelTask ti tasks)		= TTParallelTask	ti (reverse tasks)
 	updateTaskNode (TTMainTask ti mti tasks)		= TTMainTask		ti mti (reverse tasks)		
 	updateTaskNode (TTRpcTask ti rpci)				= TTRpcTask			ti rpci
 		
-setTUIDef	:: !TUIDef !*TSt -> *TSt
-setTUIDef def tst=:{tree}
+setTUIDef	:: !TUIDef ![(Action,Bool)] !*TSt -> *TSt
+setTUIDef def accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _ acts)		= {tst & tree = TTInteractiveTask info (Left def) acts}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Definition def accActions)}
 		_									= tst
 
-setTUIUpdates :: ![TUIUpdate] !*TSt -> *TSt
-setTUIUpdates upd tst=:{tree}
+setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
+setTUIUpdates upd accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _ acts)		= {tst & tree = TTInteractiveTask info (Right upd) acts}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Updates upd accActions)}
 		_									= tst
 		
-setAccActions :: ![(Action,Bool)] !*TSt -> *TSt
-setAccActions actions tst=:{tree}
+setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt -> *TSt
+setTUIFunc func tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info def _)		= {tst & tree = TTInteractiveTask info def actions}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Func func)}
 		_									= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt
@@ -642,18 +642,67 @@ where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
 setTaskStore :: !String !a !*TSt -> *TSt | iTask a
-setTaskStore key value tst=:{taskNr,dataStore}
+setTaskStore key value tst=:{taskNr}
+	= setTaskStoreFor taskNr key value tst
+	
+setTaskStoreFor :: !TaskNr !String !a !*TSt -> *TSt | iTask a
+setTaskStoreFor taskNr key value tst=:{dataStore}
 	# dataStore = storeValue storekey value dataStore
 	= {TSt|tst & dataStore = dataStore}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
 getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | iTask a
-getTaskStore key tst=:{taskNr,dataStore,world}
+getTaskStore key tst=:{taskNr}
+	= getTaskStoreFor taskNr key tst
+
+getTaskStoreFor	:: !TaskNr !String !*TSt -> (Maybe a, !*TSt) | iTask a
+getTaskStoreFor taskNr key tst=:{dataStore,world}
 	# (mbValue,dataStore,world) = loadValue storekey dataStore world
 	= (mbValue,{TSt|tst&dataStore = dataStore, world = world})
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
+
+derive gPrint SharedID
+derive gParse SharedID
+derive gVisualize SharedID
+derive gUpdate SharedID
+
+sharedKey id = "SharedValue_" +++ (toString id)
+sValuesKey = "SharedValues"
+	
+createSharedStore :: !a !*TSt -> (!SharedID a, !*TSt) | iTask a
+createSharedStore value tst=:{dataStore,world}
+	# (sharedValues,dataStore,world) = loadValue sValuesKey dataStore world
+	# sharedValues = case sharedValues of
+		Just sv	= sv
+		Nothing	= []
+	# id = hd [i \\ i <- [0..] | not (isMember i sharedValues)]
+	# dataStore = storeValue sValuesKey [id:sharedValues] dataStore
+	# dataStore = storeValue (sharedKey id) value dataStore
+	= (SharedID id, {TSt|tst & dataStore = dataStore, world = world})
+	
+removeSharedStore :: !(SharedID a) !*TSt -> *TSt | iTask a
+removeSharedStore (SharedID remId) tst=:{dataStore,world}
+	# (mbSharedValues,dataStore,world) = loadValue sValuesKey dataStore world
+	= case mbSharedValues of
+		Nothing = {TSt|tst & dataStore = dataStore, world = world}
+		Just sharedValues
+			# dataStore = storeValue sValuesKey (filter (\id -> id <> remId) sharedValues) dataStore
+			= {TSt|tst & dataStore = dataStore, world = world}
+	
+setSharedStore :: !(SharedID a) !a !*TSt -> *TSt | iTask a
+setSharedStore (SharedID id) value tst=:{dataStore}
+	# dataStore = storeValue (sharedKey id) value dataStore
+	= {TSt|tst & dataStore = dataStore}
+
+	
+getSharedStore :: !(SharedID a) !*TSt -> (!a, !*TSt) | iTask a
+getSharedStore (SharedID id) tst=:{dataStore,world}
+	# (mbValue,dataStore,world) = loadValue (sharedKey id) dataStore world
+	= case mbValue of
+		Just v	= (v,{TSt|tst&dataStore = dataStore, world = world})
+		Nothing	= abort "cannot get shared store!"
 
 getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
 getUserUpdates tst=:{taskNr,request} = (updates request, tst);

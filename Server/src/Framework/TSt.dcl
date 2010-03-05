@@ -269,9 +269,9 @@ mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 */
 applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 //// TASK CONTENT
-setTUIDef			:: !TUIDef !*TSt				-> *TSt	//Only for interactive tasks
-setTUIUpdates		:: ![TUIUpdate] !*TSt			-> *TSt //Only for interactive tasks
-setAccActions		:: ![(Action,Bool)] !*TSt		-> *TSt //Only for interactive tasks
+setTUIDef			:: !TUIDef ![(Action,Bool)] !*TSt				-> *TSt //Only for interactive tasks
+setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt			-> *TSt //Only for interactive tasks
+setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt	-> *TSt //Only for interactive tasks
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
@@ -281,10 +281,24 @@ getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
 * These values are copied and garbage collected along with a task
 */
 setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
+setTaskStoreFor 	:: !TaskNr !String !a !*TSt		-> *TSt | iTask a
 /**
 * Reads a 'task scoped' value from the store
 */
 getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
+getTaskStoreFor		:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) | iTask a
+
+:: SharedID a = SharedID !Int
+derive gPrint SharedID
+derive gParse SharedID
+derive gVisualize SharedID
+derive gUpdate SharedID
+
+createSharedStore :: !a !*TSt -> (!SharedID a, !*TSt)	| iTask a
+removeSharedStore :: !(SharedID a) !*TSt -> *TSt		| iTask a
+setSharedStore :: !(SharedID a) !a !*TSt -> *TSt		| iTask a
+getSharedStore :: !(SharedID a) !*TSt -> (!a, !*TSt)	| iTask a
+
 /**
 * Store and load the result of a workflow instance
 */

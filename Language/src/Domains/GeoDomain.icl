@@ -9,6 +9,7 @@ derive gPrint 	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gParse 	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gVisualize   GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gMerge	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
 derive bimap	Maybe, (,)
 
