@@ -163,7 +163,7 @@ loadThread processId tst=:{TSt|dataStore,world}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges}
+evaluateTaskInstance process=:{Process | processId, parent, properties, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges,mainTask}
 	// Reset the task state
 	# tst								= resetTSt processId properties tst
 	// Queue all stored persistent changes (only when run as top node)
@@ -183,6 +183,7 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, changeCo
 	# (tree,tst)						= getTaskTree tst
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges processId tst) tst
+	# tst								= restoreTSt mainTask tst
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
@@ -221,6 +222,10 @@ where
 		# taskNr	= taskNrFromString processId
 		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = ""} properties []
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
+		
+	restoreTSt :: !ProcessId !*TSt -> !*TSt
+	restoreTSt mainTask tst = {TSt|tst & mainTask = mainTask}
+	
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
 	* In case of evaluating a subprocess, this also includes the changes that have been injected
