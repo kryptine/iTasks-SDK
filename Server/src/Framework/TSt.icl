@@ -220,7 +220,7 @@ where
 	resetTSt processId properties tst
 		# taskNr	= taskNrFromString processId
 		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = ""} properties []
-		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}}
+		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
 	* In case of evaluating a subprocess, this also includes the changes that have been injected
