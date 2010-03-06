@@ -12,27 +12,14 @@ validTaskVal (v :: DynTaskVal a)	= True
 validTaskVal _						= False
 
 validTask :: Dynamic -> Bool
-validTask 	(t :: DynTask a)		= True
+validTask 	(_ :: DynTask a)		= True
 validTask _							= False
 
 validTaskFun :: Dynamic -> Bool
-validTaskFun (f :: DynTaskFun a b) 	= True
-
-validTaskFun (f :: A.a: 		a -> Task a 		| iTask a) 						= True
-
-validTaskFun (f :: A.a: 		a -> Task Void) 									= True
-validTaskFun (f :: A.a: 		a -> Task Int) 										= True
-validTaskFun (f :: A.a: 		a -> Task Real) 									= True
-validTaskFun (f :: A.a: 		a -> Task Bool) 									= True
-validTaskFun (f :: A.a: 		a -> Task String) 									= True
-
-validTaskFun (f :: A.a: 		a -> Task Void		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task Int		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task Real		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task Bool		| iTask a) 						= True
-validTaskFun (f :: A.a: 		a -> Task String	| iTask a) 						= True
-
-validTaskFun _ 						= False
+validTaskFun (_ :: DynTaskFun a b) 					= True
+validTaskFun (_ :: A.a: DynTaskFun a b | iTask a) 	= True
+validTaskFun (_ :: A.a: DynTaskFun a a | iTask a) 	= True
+validTaskFun _ 										= False
 
 showDyn :: Dynamic -> (String,String)
 showDyn dyn	

@@ -35,24 +35,11 @@ derive bimap	Maybe, (,)
 				|	VoidVal
 				|	CE String
 
-
-undef = undef
-
-flowShapeToFlow		:: ![FlowShape] -> Task Flow
-flowShapeToFlow _ = undef
-
-applyDynFlows 		:: ![Dynamic] -> Dynamic 
-applyDynFlows _ = undef
-
 emptyFlow :: Flow
 emptyFlow 		= 	{ flowShape = []
 					, flowDyn = dynamic "Flow not initialized" :: String
 					}
 
-flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic  
-flowShapeToFlowDyn _ = undef
-
-/*
 flowShapeToFlow :: ![FlowShape] -> Task Flow
 flowShapeToFlow flowShape 
 	=					flowShapeToFlowDyn flowShape
@@ -70,6 +57,74 @@ where
 	mapMonad fun [] 	= return []
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
+translate :: !FlowShape -> Task Dynamic
+translate (Editor prompt)		= return (dynamic DynTaskFun (updateInformation prompt):: A.a: DynTaskFun a a | iTask a)
+translate (DisplayIt prompt)	= return (dynamic DynTaskFun (showMessageAbout prompt):: A.a: DynTaskFun a Void | iTask a)
+translate Return			  	= return (dynamic DynTaskFun (\v -> return v) :: A.a: DynTaskFun a a | iTask a)
+
+translate (Or (left, right))	= flowShapeToFlowDyn left >>= \leftflow -> flowShapeToFlowDyn right >>= \rightflow -> checkOr leftflow rightflow
+where
+	checkOr :: Dynamic Dynamic -> Task Dynamic
+	checkOr (DynTaskFun ta1 :: DynTaskFun a b) 	(DynTaskFun ta2 :: DynTaskFun a b)  = return (dynamic DynTaskFun (\a -> ta1 a -||- ta2 a) :: DynTaskFun a b)
+	checkOr d1 d2																	= throw (typeErrorMess2 "Or" d1 d2)
+
+translate (And (left, right))	= flowShapeToFlowDyn left >>= \leftflow -> flowShapeToFlowDyn right >>= \rightflow -> checkAnd leftflow rightflow
+where
+	checkAnd :: Dynamic Dynamic -> Task Dynamic					
+	checkAnd (DynTaskFun tab :: DynTaskFun a b) (DynTaskFun tac :: DynTaskFun a c)  = return (dynamic DynTaskFun (\a -> tab a -&&- tac a) :: DynTaskFun a (b,c)) 
+	checkAnd (DynTaskFun tab :: A.a: DynTaskFun a a) (DynTaskFun tac :: A.b: DynTaskFun b b)  = return (dynamic DynTaskFun (\a -> tab a -&&- tac a) :: A.a: DynTaskFun a (a,a)) 
+	checkAnd (DynTaskFun tab :: A.a: DynTaskFun a c) (DynTaskFun tac :: A.b: DynTaskFun b d)  = return (dynamic DynTaskFun (\a -> tab a -&&- tac a) :: A.a: DynTaskFun a (c,d)) 
+	checkAnd d1 d2																	= throw (typeErrorMess2 "And" d1 d2)
+
+translate (Assign info flow)	= flowShapeToFlowDyn flow >>= assignTask info
+where
+	assignTask :: !AssignInfo !Dynamic -> Task Dynamic
+	assignTask info (e :: A.a: a -> Task a | iTask a) 	= return (dynamic (\v -> assign info.nameOfUser NormalPriority Nothing (e v <<@ info.taskName)) :: A.a: a -> Task a | iTask a)
+	assignTask info d 									= throw (typeErrorMess "Assign" d)
+
+translate First				  	= return (dynamic DynTaskFun (\(a,b) -> return a) :: A.a b: DynTaskFun (a,b) a |iTask a)
+translate Second			  	= return (dynamic DynTaskFun (\(a,b) -> return b) :: A.a b: DynTaskFun (a,b) b |iTask b)
+translate (FormFromStore name) 	= findValue name
+translate (FlowFromStore name) 	= findFlow name
+
+translate (CleanExpr VoidVal )		= return (dynamic DynTask (return Void) 	:: DynTask Void) 
+translate (CleanExpr (CI i))		= return (dynamic DynTask (return i) 		:: DynTask Int) 
+translate (CleanExpr (CR r))		= return (dynamic DynTask (return r) 		:: DynTask Real) 
+translate (CleanExpr (CB b))		= return (dynamic DynTask (return b) 		:: DynTask Bool) 
+translate (CleanExpr (CS s))		= return (dynamic DynTask (return s) 		:: DynTask String) 
+translate (CleanExpr (CE s))		= return (dynamic "Not implemented")
+
+applyDynFlows :: ![Dynamic] -> Dynamic 
+applyDynFlows [] 		= dynamic "Cannot apply empty list of flows"
+applyDynFlows [h:tl] 	= applyFlows h tl
+
+undef = undef
+
+applyFlows :: Dynamic [Dynamic] -> Dynamic 
+applyFlows dyn [] = dyn
+
+applyFlows (DynTaskVal a::DynTaskVal a)	[(DynTaskFun tab :: DynTaskFun a b): dyns]					= applyFlows (dynamic DynTask (tab a) :: DynTask b) dyns
+applyFlows (DynTaskVal a::DynTaskVal a)	[(DynTaskFun tab :: A.c: DynTaskFun c b | iTask c): dyns] 	= applyFlows (dynamic DynTask (tab a) :: DynTask b) dyns
+applyFlows (DynTaskVal a::DynTaskVal a)	[(DynTaskFun tab :: A.c: DynTaskFun c c | iTask c): dyns] 	= applyFlows (dynamic DynTask (tab a) :: DynTask a) dyns
+
+applyFlows (DynTask ta::DynTask a)  	[(DynTaskFun tab :: DynTaskFun a b): dyns]					= applyFlows (dynamic DynTask (ta >>= tab) :: DynTask b) dyns
+applyFlows (DynTask ta::DynTask a)  	[(DynTaskFun tab :: A.c: DynTaskFun c b | iTask c): dyns]	= applyFlows (dynamic DynTask (ta >>= tab) :: DynTask b) dyns
+applyFlows (DynTask ta::DynTask a)  	[(DynTaskFun tab :: A.c: DynTaskFun c c | iTask c): dyns]	= applyFlows (dynamic DynTask (ta >>= tab) :: DynTask a) dyns
+
+applyFlows (DynTaskFun tab::DynTaskFun a b)	[(DynTaskFun tbc :: DynTaskFun b c): dyns]					= applyFlows (dynamic DynTaskFun (\a -> tab a >>= tbc) :: DynTaskFun a c) dyns
+applyFlows (DynTaskFun tab::DynTaskFun a b)	[(DynTaskFun tbc :: A.c: DynTaskFun c d | iTask c): dyns]	= applyFlows (dynamic DynTaskFun (\a -> tab a >>= tbc) :: DynTaskFun a d) dyns
+applyFlows (DynTaskFun tab::DynTaskFun a b)	[(DynTaskFun tbc :: A.c: DynTaskFun c c | iTask c): dyns]	= applyFlows (dynamic DynTaskFun (\a -> tab a >>= tbc) :: DynTaskFun a b) dyns
+
+//applyFlows (DynTaskFun tab :: A.a: DynTaskFun a b | iTask a) [(DynTaskFun tbc :: A.c: DynTaskFun c d | iTask c): dyns]	= undef
+//																									= applyFlows (dynamic DynTaskFun (\a -> tab a >>= tbc) :: A.b: DynTaskFun b d | iTask b) dyns
+
+//applyFlows (DynTaskFun tab :: A.a: DynTaskFun a a | iTask a) [(DynTaskFun tbc :: A.c: DynTaskFun c c | iTask c): dyns]	= applyFlows (dynamic DynTaskFun (\a -> tab a >>= tbc) :: A.a: DynTaskFun a a | iTask a) dyns
+//applyFlows (DynTaskFun tab :: A.a: DynTaskFun a b | iTask a) [(DynTaskFun tbc :: DynTaskFun b c): dyns]	= applyFlows (dynamic DynTaskFun (\a -> tab a >>= tbc) ::  DynTaskFun b c) dyns
+
+applyFlows d [d1:_]																		= dynamic  (typeErrorMess2 "Cannot apply" d d1)
+
+				
+/*
 translate :: !FlowShape -> Task Dynamic
 translate (Editor prompt)		= return (dynamic (updateInformation prompt):: A.a: a -> Task a | iTask a)
 translate (DisplayIt prompt)	= return (dynamic (showMessageAbout prompt)::  A.a: a -> Task Void | iTask a)
@@ -141,13 +196,5 @@ applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task b | iTask b
 applyFlows (ta :: A.a: a -> Task a | iTask a)  [(tb:: A.b: b -> Task Void | iTask b): dyns]	= applyFlows (dynamic \a -> ta a >>= tb :: A.a: a -> Task Void | iTask a) dyns
 
 applyFlows d [d1:_]																			= dynamic  (typeErrorMess2 "Cannot apply" d d1)
+
 */
-				
-
-
-
-
-
-
-
-
