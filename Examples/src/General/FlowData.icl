@@ -38,23 +38,21 @@ derive bimap	Maybe, (,)
 
 undef = undef
 
-emptyFlow 			:: Flow
-emptyFlow = undef
-
-flowShapeToFlowDyn	:: ![FlowShape] -> Task Dynamic  
-flowShapeToFlowDyn _ = undef
-
 flowShapeToFlow		:: ![FlowShape] -> Task Flow
 flowShapeToFlow _ = undef
 
 applyDynFlows 		:: ![Dynamic] -> Dynamic 
 applyDynFlows _ = undef
-/*
+
 emptyFlow :: Flow
 emptyFlow 		= 	{ flowShape = []
 					, flowDyn = dynamic "Flow not initialized" :: String
 					}
 
+flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic  
+flowShapeToFlowDyn _ = undef
+
+/*
 flowShapeToFlow :: ![FlowShape] -> Task Flow
 flowShapeToFlow flowShape 
 	=					flowShapeToFlowDyn flowShape
@@ -62,7 +60,6 @@ flowShapeToFlow flowShape
 							(return {flowShape = flowShape, flowDyn = flowDyn}) 
 							(throw (typeErrorMess "not a legal workflow, " flowDyn))
 		>>|				return {flowShape = flowShape, flowDyn = flowDyn}
-
 
 		
 flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic  
