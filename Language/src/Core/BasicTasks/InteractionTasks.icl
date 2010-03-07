@@ -145,6 +145,7 @@ makeChoiceTask question options initsel context actions tst=:{taskNr}
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
 		# radios = [TUIRadio {TUIRadio	| name = selectionId
+										, id = ""
 										, value = toString i
 										, boxLabel = Just (toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)))
 										, fieldLabel = Nothing

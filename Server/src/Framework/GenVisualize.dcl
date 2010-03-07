@@ -52,6 +52,7 @@ derive bimap VisualizationValue
 :: VisualizationType
 	= VEditorDefinition
 	| VEditorUpdate
+	| VConsSelectorUpdate
 	| VHtmlDisplay
 	| VTextDisplay
 	| VHtmlLabel

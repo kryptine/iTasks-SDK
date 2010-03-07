@@ -1,6 +1,6 @@
 implementation module SharedValues
 
-import iTasks, CommonDomain, Text
+import iTasks, CommonDomain, GeoDomain, Text
 
 derive bimap Maybe, (,)
 
@@ -10,7 +10,7 @@ quitButton = ButtonAction (ActionQuit, Always)
 noteEditor = editor {editorFrom = (\txt -> Note txt),		editorTo = (\(Note txt) _ -> txt)}
 listEditor = editor {editorFrom = (\txt -> split "\n" txt),	editorTo = (\l _ -> join "\n" l)}
 
-trimAction = ActionLabel "Trim"
+TrimAction :== ActionLabel "Trim"
 
 linesPar :: Task Void
 linesPar =
@@ -18,9 +18,9 @@ linesPar =
 	>>= \sid.	ignoreResult (noteE sid -||- ignoreResult (updateShared "Lines" [quitButton] sid [listEditor]))
 where
 	noteE sid = 
-							updateShared "Text" [ButtonAction (trimAction, Always), quitButton] sid [noteEditor]
+							updateShared "Text" [ButtonAction (TrimAction, Always), quitButton] sid [noteEditor]
 		>>= \(action,txt).	case action of
-								trimAction	=			setShared sid (trim txt)
+								TrimAction	=			setShared sid (trim txt)
 												>>|		noteE sid
 								_			= 			stop
 
@@ -73,12 +73,47 @@ where
 	emptyL :: [String]
 	emptyL = []
 
-import StdMaybe, GeoDomain
+//Google Map Example
+:: MarkerInfo =	{ position	:: Coordinate
+				, map		:: GoogleMap
+				}
+:: MapSize = Normal | Large
+:: MapOptions =	{ type					:: GoogleMapType
+				, showMapTypeControl	:: Bool
+				, showNavigationControl	:: Bool
+				, showScaleControl		:: Bool
+				, size					:: MapSize
+				}
+derive gPrint		MarkerInfo, MapSize, MapOptions
+derive gParse		MarkerInfo, MapSize, MapOptions
+derive gVisualize	MarkerInfo, MapSize, MapOptions
+derive gUpdate		MarkerInfo, MapSize, MapOptions
 
+RemoveMarkersAction :== ActionLabel "Remove Markers"
+
+googleMaps :: Task Void
+googleMaps = googleMaps` mkMap
+where
+	googleMaps` map =
+							updateSharedLocal "Google Map, Overview & Markers" [ButtonAction (RemoveMarkersAction, Always), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
+		>>= \(action,map).	case action of
+								RemoveMarkersAction	= googleMaps` {GoogleMap| map & markers = []}
+								_					= stop
+
+	optionsEditor	= editor	{ editorFrom	= (\map			-> {type = map.mapType, showMapTypeControl = map.mapTypeControl, showNavigationControl = map.navigationControl, showScaleControl = map.scaleControl, size = if (map.GoogleMap.width == 400) Normal Large})
+								, editorTo		= (\opts map	-> {map & mapType = opts.MapOptions.type, mapTypeControl = opts.showMapTypeControl, navigationControl = opts.showNavigationControl, scaleControl = opts.showScaleControl, width = case opts.MapOptions.size of Large = 800; Normal = 400})
+								}
+	overviewEditor	= editor	{ editorFrom	= (\map			-> {GoogleMap| map & mapTypeControl = False, navigationControl = False, scaleControl = False, scrollwheel = False, zoom = 7})
+								, editorTo		= (\nmap map	-> {GoogleMap| map & center = nmap.GoogleMap.center})
+								}
+	markersListener	= listener	{ listenerFrom	= (\map			-> [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers])
+								}
+								
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Values/Text-Lines (parallel tasks)" linesPar
 						, workflow "Examples/Shared Values/Text-Lines (single editor)" linesSingle
 						, workflow "Examples/Shared Values/Calculate Sum" calculateSum
 						, workflow "Examples/Shared Values/Balanced Binary Tree" tree
 						, workflow "Examples/Shared Values/Merge Test" mergeTest
+						, workflow "Examples/Shared Values/Google Maps Example" googleMaps
 						]

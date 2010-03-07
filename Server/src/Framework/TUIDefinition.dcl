@@ -106,6 +106,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	}
 :: TUIRadio =
 	{ name			:: String
+	, id			:: String
 	, value			:: String
 	, boxLabel		:: Maybe String
 	, fieldLabel	:: Maybe String

@@ -79,11 +79,13 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,onlyBody,v
 			= case vizType of
 				VEditorUpdate
 					| maskChanged currentPath omask nmask
-						# (old,rho,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-						# (new,rhn,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-						= (determineRemovals old ++ determineAdditions pathid new, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})			
+						# (consSelUpd,_,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
+						# (old,rho,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						# (new,rhn,vst)			= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						= (determineRemovals old ++ determineAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})			
 					| otherwise
-						= fx oval nval vst
+						# (upd,rh,vst) = fx oval nval {vst & vizType = VEditorUpdate}
+						= (upd,rh,vst)
 				_
 					= fx oval nval vst
 		(VValue (RIGHT oy) omask, VValue (RIGHT ny) nmask)
@@ -92,11 +94,13 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,onlyBody,v
 			= case vizType of
 				VEditorUpdate
 					| maskChanged currentPath omask nmask
-						# (old,rho,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-						# (new,rhn,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-						= (determineRemovals old ++ determineAdditions pathid new, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
+						# (consSelUpd,_,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
+						# (old,rho,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						# (new,rhn,vst)			= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+						= (determineRemovals old ++ determineAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 					| otherwise
-						= fy oval nval vst
+						# (upd,rh,vst) = fy oval nval {vst & vizType = VEditorUpdate}
+						= (upd,rh,vst)
 				_
 					= fy oval nval vst
 		//Different structure:
@@ -105,9 +109,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,onlyBody,v
 			# nval = VValue ny nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-					# (new,rhn,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
+					# (consSelUpd,_,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,rho,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,rhn,vst) 		= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VValue (RIGHT oy) omask, VValue (LEFT nx) nmask)
@@ -115,9 +120,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,onlyBody,v
 			# nval = VValue nx nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-					# (new,rhn,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
-					= (determineRemovals old ++ determineAdditions pathid new, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
+					# (consSelUpd,_,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,rho,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					# (new,rhn,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, onlyBody = True, valid = valid}
+					= (determineRemovals old ++ determineAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate, onlyBody = onlyBody})
 				_
 					= fy oval oval vst //Default case: ignore the new value
 		
@@ -172,7 +178,7 @@ where
 	pathid					= dp2id idPrefix currentPath		
 
 
-gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,onlyBody,optional,valid, namePrefix}
+gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,onlyBody,optional,valid, namePrefix, updateValues}
 	= case vizType of
 		//Editor definition
 		VEditorDefinition
@@ -211,7 +217,6 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 					= ((consSelector d idPrefix currentPath old (label2s optional label) useLabels namePrefix) ++ vizBody, 
 					    0, //full width
 					   {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
-					
 		//Html display vizualization
 		VHtmlDisplay
 			= case (old,new) of
@@ -225,7 +230,12 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						= (vizCons ++ vizBody,rh,{VSt|vst & currentPath = stepDataPath currentPath})
 				_
 					= ([],0, {VSt|vst & currentPath = stepDataPath currentPath})
-		_ 	//Other visualizations
+		//update constructor selector
+		VConsSelectorUpdate = (consSelectorUpdate, undef, vst)
+		//Other visualizations
+		_	#consSelUpd = case vizType of
+					VEditorUpdate	= consSelectorUpdate
+					_				= []
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
 					# useLabels = not (isEmpty d.gcd_fields) || useLabels
@@ -235,9 +245,9 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						= (vizCons ++ vizBody, 0, {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					//A validity check is used
 					| otherwise
-						= (vizCons ++ vizBody, 0, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
+						= (vizCons ++ vizBody ++ consSelUpd, 0, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
 				_
-					= ([], 0, {VSt|vst & currentPath = stepDataPath currentPath})		
+					= (consSelUpd, 0, {VSt|vst & currentPath = stepDataPath currentPath})		
 where
 	//When we have no title there is nothing to display :)
 	title (Just t)	= t
@@ -248,7 +258,17 @@ where
 
 	//Only show a body when you have a value and it is masked
 	showBody dp VBlank			= False
-	showBody dp (VValue _ dm)	= isMasked dp dm 
+	showBody dp (VValue _ dm)	= isMasked dp dm
+	
+	consSelectorUpdate
+		| updateValues && isEmpty d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1 && (not onlyBody)
+			| d.gcd_type_def.gtd_num_conses > MAX_CONS_RADIO
+				= [TUIUpdate (TUISetValue (dp2id idPrefix currentPath) d.gcd_name)]
+			| otherwise
+				= [TUIUpdate (TUISetValue (dp2id idPrefix (radioDps (shiftDataPath currentPath) !! d.gcd_index)) "true")]
+		| otherwise
+			= []
+	radioDps dp	= [dp:radioDps (stepDataPath dp)]
 
 gVisualize{|OBJECT of d|} fx old new vst
 	= case (old,new) of
@@ -743,19 +763,18 @@ consSelector d idPrefix dp value label useLabels namePrefix
 		= []
 	//Use radiogroup to choose a constructor
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-		# items	= [TUIRadio {TUIRadio|name = name, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
-				   \\ c <- d.gcd_type_def.gtd_conses]
+		# items	= [TUIRadio {TUIRadio|name = name, id = dp2id idPrefix rdp, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
+				   \\ c <- d.gcd_type_def.gtd_conses & rdp <- radioDps (shiftDataPath dp)]
 		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, columns = 4, hideLabel = not useLabels})]
 	//Use combobox to choose a constructor
 	| otherwise
 		= [TUIFragment (TUIComboBox {TUIComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
 where
-	
-	store	= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
-	name	= namePrefix +++ (dp2s dp)
-	id		= dp2id idPrefix dp
-	index	= d.gcd_index
-	
+	store		= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
+	name		= namePrefix +++ (dp2s dp)
+	id			= dp2id idPrefix dp
+	index		= d.gcd_index
+	radioDps dp	= [dp:radioDps (stepDataPath dp)]
 	
 determineRemovals :: [Visualization] -> [Visualization]
 determineRemovals editor = [TUIUpdate (TUIRemove consid) \\ consid <- collectIds (coerceToTUIDefs editor)]

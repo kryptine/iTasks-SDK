@@ -6,24 +6,24 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		
 		Ext.applyIf(this,
 			{ url: "/handlers/work/tab"
-			, zoom: 15
-			, center : [51.824118, 5.868174]
-			, mapType : "ROADMAP"
-            , border: false
+			, border: false
 			, autoHeight: false
-			, height: 400
-			, width: 500
 			, scope: this
 			, displayedMarkers : new Array()
 			});
 
 		itasks.GMapPanel.superclass.initComponent.apply(this,arguments);
-		
 		this.show();
 	},
 	
 	setValue : function(_data){
 		var data = Ext.decode(_data);
+		
+		if(this.getWidth() != data.width || this.getHeight() != data.height) {
+			this.setSize(data.width, data.height);
+			this.buildMap();
+		}
+		this.gmap.setOptions(this.getOptions(data));
 		this.markers = data.markers;
 		this.addMarkers();
 	},
@@ -32,21 +32,21 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		return eval("google.maps.MapTypeId."+mapType);
 	},
 	
+	getOptions : function(data) {
+		var options = data.options;
+		options.center = new google.maps.LatLng(data.center[0],data.center[1]);
+		options.mapTypeId = this.getMapType(data.mapType);
+		return options;
+	},
+	
 	buildMap : function(){
-		var options = 
-			{ center : new google.maps.LatLng(this.center[0],this.center[1])
-			, zoom: this.zoom
-			, mapTypeId : this.getMapType(this.mapType)
-		}
-		
-		this.gmap = new google.maps.Map(this.body.dom, options);
+		this.gmap = new google.maps.Map(this.body.dom, this.getOptions(this));
 
-		this.addMarkers()
+		this.addMarkers();
 		
 		var parent = this;
 		
 		var mvcEventHandler = function(){
-			
 			var ll = parent.gmap.getCenter();
 			var zm = parent.gmap.getZoom();
 			
@@ -64,7 +64,6 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 		}
 		
 		var lclickEventHandler = function(event){
-			
 			var ll = event.latLng
 			
 			var value = {
@@ -82,35 +81,39 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 				
 		if(this.editor){
 			google.maps.event.addListener(this.gmap, 'maptypeid_changed', mvcEventHandler);
-			google.maps.event.addListener(this.gmap, 'idle', mvcEventHandler);
+			google.maps.event.addListener(this.gmap, 'dragend', mvcEventHandler);
+			google.maps.event.addListener(this.gmap, 'zoom_changed', mvcEventHandler);
 			google.maps.event.addListener(this.gmap, 'click', lclickEventHandler);
 		}
-	
 	},
 	
 	afterRender : function(){
-		itasks.GMapPanel.superclass.afterRender.call(this);  
+		itasks.GMapPanel.superclass.afterRender.call(this);
 		
-		var parent = this;
-		
-		if(itasks.app.googleMapsLoaded){
-			parent.buildMap();
-		}else{
-			Ext.Ajax.remoteRequest({
-				url : 'http://maps.google.com/maps/api/js',
-				method : 'GET',
-				scriptTag: true,
-				params : {
-					sensor : false
-				},
-				success : function(response){
-					parent.buildMap();
-					itasks.app.googleMapsLoaded = true
-				},
-				failure : function(response){
-					Ext.Msg.alert('Failed to load Google maps API');
-				},
-			});
+		switch(itasks.app.googleMapsState) {
+			case 'loaded':
+				this.buildMap();
+				break;
+			case 'unloaded':
+				itasks.app.googleMapsState = 'loading';
+				Ext.Ajax.remoteRequest({
+					url : 'http://maps.google.com/maps/api/js',
+					method : 'GET',
+					scriptTag: true,
+					params : {
+						sensor : false
+					},
+					success : function(response){
+						itasks.app.googleMapsState = 'loaded';
+						itasks.app.waitingForGoogleMaps.each(function(build){build();});
+					},
+					failure : function(response){
+						itasks.app.googleMapsState = 'unloaded';
+						Ext.Msg.alert('Failed to load Google maps API');
+					}
+				});
+			case 'loading':
+				itasks.app.waitingForGoogleMaps.addAll([this.buildMap.createDelegate(this)]);
 		}
 	},
 	

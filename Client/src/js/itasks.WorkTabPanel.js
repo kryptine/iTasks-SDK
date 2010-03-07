@@ -556,9 +556,21 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 					case "TUISetValue":
 						var ct = Ext.getCmp(update[1]);
 						if(ct && ct.setValue) {
-							// suspend events to prevent check-event for checkbox
+							//suspend events to prevent check-event for checkbox
 							ct.suspendEvents();
-							ct.setValue(update[2]);
+							if (ct.xtype == "radio") {
+								if(update[2] == "true") {
+									//first unset current element...
+									var group = ct.findParentByType("radiogroup");
+									var cur = group.getValue();
+									if(cur.setValue)
+										cur.setValue(false);
+									//...then set new one
+									ct.setValue(true);
+								}
+							} else {
+								ct.setValue(update[2]);
+							}
 							ct.resumeEvents();
 						}				
 						break;

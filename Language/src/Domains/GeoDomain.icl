@@ -2,7 +2,7 @@ implementation module GeoDomain
 
 import Html, InteractionTasks, StdEnv, JSON, CommonDomain
 
-derive JSONEncode TUIGoogleMap, TUIGoogleStaticMap,GoogleMapMarker, GoogleMapType, GoogleMapInfoWindow
+derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap,GoogleMapMarker, GoogleMapType, GoogleMapInfoWindow
 derive JSONDecode MVCUpdate, ClickUpdate, GoogleMapType, ClickSource, ClickEvent
 
 derive gPrint 	  	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
@@ -17,10 +17,6 @@ derive bimap	Maybe, (,)
 	{ center 			:: Coordinate
 	, width				:: Int
 	, height			:: Int
-	, mapTypeControl 	:: Bool
-	, navigationControl :: Bool
-	, scaleControl		:: Bool
-	, zoom				:: Int
 	, mapType			:: GoogleMapType
 	, markers			:: [GoogleMapMarker]
 	, xtype				:: String
@@ -29,6 +25,16 @@ derive bimap	Maybe, (,)
 	, fieldLabel		:: Maybe String
 	, hideLabel			:: Bool
 	, editor			:: Bool
+	, options			:: TUIGoogleMapOptions
+	}
+	
+:: TUIGoogleMapOptions =
+	{ mapTypeControl 	:: Bool
+	, navigationControl :: Bool
+	, scaleControl		:: Bool
+	, scrollwheel		:: Bool
+	, draggable			:: Bool
+	, zoom				:: Int
 	}
 	
 ::TUIGoogleStaticMap =
@@ -47,44 +53,49 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
+gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels, namePrefix}
 	= case vizType of
 		VEditorDefinition = ([TUIFragment (TUICustom   (JSON ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath True))))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
 		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (mapPanel new (label2s optional label) (not useLabels) idPrefix currentPath True))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
 		//_				  = ([TUIFragment (TUICustom   (JSON ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath False))))], {VSt | vst & currentPath = stepDataPath currentPath })
 		_				  = (staticMapPanel old, 4,{VSt | vst & currentPath = stepDataPath currentPath})
+where
+	mapPanel VBlank fl hl 		  idp cp ed = toJSON (tuidef mkMap fl hl idp cp ed)
+	mapPanel (VValue map _) fl hl idp cp ed = toJSON (tuidef map   fl hl idp cp ed)
 
-mapPanel VBlank fl hl 		  idp cp ed = toJSON (tuidef mkMap fl hl idp cp ed)
-mapPanel (VValue map _) fl hl idp cp ed = toJSON (tuidef map   fl hl idp cp ed)
+	staticMapPanel VBlank
+		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
+		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
+	staticMapPanel (VValue map _)
+		# (GoogleStaticMap w h u) = convertToStaticMap map
+		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
 
-staticMapPanel VBlank
-	# (GoogleStaticMap w h u) = convertToStaticMap mkMap
-	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
-staticMapPanel (VValue map _)
-	# (GoogleStaticMap w h u) = convertToStaticMap map
-	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
-
-tuidef map fl hl idp cp ed =
+	tuidef map fl hl idp cp ed =
 		{ TUIGoogleMap
 		| center = map.GoogleMap.center
 		, width = map.GoogleMap.width
 		, height = map.GoogleMap.height
-		, mapTypeControl = map.GoogleMap.mapTypeControl
-		, navigationControl = map.GoogleMap.navigationControl
-		, scaleControl = map.GoogleMap.scaleControl
-		, zoom = map.GoogleMap.zoom
 		, mapType = map.GoogleMap.mapType
 		, markers = map.GoogleMap.markers
 		, xtype = "itasks.gmappanel"
-		, name = dp2s cp
+		, name = namePrefix +++ (dp2s cp)
 		, id = dp2id idp cp
 		, fieldLabel = fl
 		, hideLabel = hl
 		, editor = ed
+		, options =
+			{ TUIGoogleMapOptions
+			| mapTypeControl = map.GoogleMap.mapTypeControl
+			, navigationControl = map.GoogleMap.navigationControl
+			, scaleControl = map.GoogleMap.scaleControl
+			, scrollwheel = map.GoogleMap.scrollwheel
+			, draggable = map.GoogleMap.draggable
+			, zoom = map.GoogleMap.zoom
+			}
 		}
 
 gVisualize {|GoogleStaticMap|} VBlank _ vst = ([TextFragment "-"],1,vst)
-gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u) _ ) _ vst=:{vizType,idPrefix,currentPath}
+gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u) _ ) _ vst=:{vizType,idPrefix,currentPath,namePrefix}
 	= case vizType of
 		VHtmlDisplay	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]],4,{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],4,{VSt | vst & currentPath = stepDataPath currentPath})
@@ -97,7 +108,7 @@ where
 		| width 	= w
 		, height 	= h	
 		, xtype		= "itasks.gstaticmappanel"
-		, name		= dp2s currentPath
+		, name		= namePrefix +++ (dp2s currentPath)
 		, id		= dp2id idPrefix currentPath
 		, url		= u
 		}	
@@ -110,6 +121,8 @@ gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate} = (
 	, mapTypeControl 	= True
 	, navigationControl = True
 	, scaleControl 		= True
+	, scrollwheel		= True
+	, draggable			= True
 	, zoom				= 10
 	, mapType			= ROADMAP
 	, markers			= []
@@ -148,6 +161,8 @@ mkMap = { GoogleMap
 		, mapTypeControl	= True
 		, navigationControl = True
 		, scaleControl		= True
+		, scrollwheel		= True
+		, draggable			= True
 		, zoom				= 10
 		, mapType			= ROADMAP
 		, markers			= []

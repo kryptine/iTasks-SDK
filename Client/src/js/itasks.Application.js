@@ -8,7 +8,8 @@ itasks.Application = function () {
 		//Application-wide state
 		session: null,
 		displayName: null,
-		googleMapsLoaded: false,
+		googleMapsState: 'unloaded',
+		waitingForGoogleMaps: new Ext.util.MixedCollection(true),
 		scrollbarWidth: 0,
 		
 		viewport: new Ext.Viewport({
