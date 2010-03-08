@@ -115,7 +115,7 @@ where
 saveConfigPage :: !String !Config ![(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 saveConfigPage appName config handlers world
 	# world 		= storeConfig appName config world
-	# options 		= (if (config.serverPort <> 80) [HTTPServerOptPort config.serverPort] [] ) ++ (if (config.debug) [HTTPServerOptDebug True] []) 
+	# options 		= [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 	# redirectUrl	= if (config.serverPort == 80) "http://localhost/" ("http://localhost:" +++ toString config.serverPort +++ "/")
 	= ({http_emptyResponse & rsp_headers = [("Status","302"),("Location",redirectUrl)]}, HTTPServerRestart options handlers, world)
 

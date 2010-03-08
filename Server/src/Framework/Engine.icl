@@ -27,8 +27,8 @@ from UserAdmin import userAdministration
 PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
-serverEngine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))] 
-serverEngine mbConfig userflows	
+engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))] 
+engine mbConfig userflows	
 	= case mbConfig of
 		Just config
 			= handlers config
@@ -51,6 +51,7 @@ where
 		  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
 		  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
 		  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
+		  ,((==) "/stop", handleStopRequest)
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]	
 	//Always add the workflows for administering the itask system
@@ -95,6 +96,9 @@ handleStaticResourceRequest config req world
 where
 	//Translate a URL path to a filesystem path
 	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
+
+handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!HTTPServerControl,!*World)
+handleStopRequest req world = ({http_emptyResponse & rsp_data = "Server stopped..."},HTTPServerStop, world)
 	
 handleAnonRequest :: Config [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World)
 handleAnonRequest config flows handler request world

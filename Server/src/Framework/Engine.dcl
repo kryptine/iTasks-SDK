@@ -19,7 +19,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @param  A list of workflow definitions
 * @return A list of predicate/handler pairs that can be plugged into a server
 */
-serverEngine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))]
+engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))]
 
 /**
 * Loads the itasks specific config
