@@ -1,13 +1,14 @@
 implementation module Setup
 
 import StdList,StdBool, StdInt
-import Http
+import Http, HttpServer
 import Html
 import Config
 import Engine, Util
 
-setupHandler :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-setupHandler req world	
+
+setupHandler :: !(Config -> [(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))]) !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+setupHandler handlers req world	
 	# (appName,world)	= determineAppName world
 	# (finished,world)	= configFileAvailable appName world
 	| finished
@@ -17,7 +18,7 @@ setupHandler req world
 	= case req.req_path of
 		"/edit"	= editConfigPage appName config errors world
 		"/save"
-			| noErrors errors	= saveConfigPage appName config world
+			| noErrors errors	= saveConfigPage appName config (handlers config) world
 			| otherwise			= editConfigPage appName config errors world
 		_		= choicePage appName config errors world
 
@@ -72,8 +73,8 @@ configFileAvailable appName world
 noErrors :: [(Maybe String)] -> Bool
 noErrors errors = not (or (map isJust errors))
 	
-page :: !String ![HtmlTag] !*World -> (!HTTPResponse,!*World)
-page appName content world = ({http_emptyResponse & rsp_data = toString (HtmlTag [] [head,body])},world)
+page :: !String ![HtmlTag] !*World -> (!HTTPResponse,!HTTPServerControl, !*World)
+page appName content world = ({http_emptyResponse & rsp_data = toString (HtmlTag [] [head,body])}, HTTPServerContinue, world)
 where
 	head = HeadTag [] [TitleTag [] [Text appName], StyleTag [TypeAttr "text/css"] [RawText css]]
 	body = BodyTag [] [DivTag [IdAttr "main"] [header:content]]
@@ -89,7 +90,7 @@ css = 	"body { background: #d1dded; font-family: Verdana, Arial, sans-serif; fon
 	+++ "h1 { margin: 10px; font-weight: normal; font-size: 24px;} "
 	+++ "p { margin: 0px 0px 10px 0px; } "
 
-choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!*World)
+choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 choicePage appName config errors world = page appName [DivTag [IdAttr "content"] [instructions,showConfig config errors],buttons] world
 where
 	instructions
@@ -102,21 +103,23 @@ where
 			  ,ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/edit';"] [Text "Edit the configuration first"]
 			  ]
 		
-editConfigPage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!*World)
+editConfigPage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 editConfigPage appName config errors world = page appName [form] world
 where
 	form = FormTag [MethodAttr "post",ActionAttr "/save"] [DivTag [IdAttr "content"] [editConfig config errors],submit]
-	submit = DivTag [IdAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration"]]
+	submit = DivTag [IdAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration and restart"]]
 
 	instructions
 		= PTag [] [Text "Please confirm the configuration settings below and save them."]
 
-saveConfigPage :: !String !Config !*World -> (!HTTPResponse,!*World)
-saveConfigPage appName config world
-	# world = storeConfig appName config world
-	= ({http_emptyResponse & rsp_headers = [("Status","302"),("Location","/")]},world)
+saveConfigPage :: !String !Config ![(String -> Bool, (HTTPRequest *World -> *(!HTTPResponse,!HTTPServerControl,!*World)))] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
+saveConfigPage appName config handlers world
+	# world 		= storeConfig appName config world
+	# options 		= (if (config.serverPort <> 80) [HTTPServerOptPort config.serverPort] [] ) ++ (if (config.debug) [HTTPServerOptDebug True] []) 
+	# redirectUrl	= if (config.serverPort == 80) "http://localhost/" ("http://localhost:" +++ toString config.serverPort +++ "/")
+	= ({http_emptyResponse & rsp_headers = [("Status","302"),("Location",redirectUrl)]}, HTTPServerRestart options handlers, world)
 
-finishPage :: !String !*World -> (!HTTPResponse, !*World)
+finishPage :: !String !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
 finishPage appName world = page appName [instructions] world
 where
 	instructions

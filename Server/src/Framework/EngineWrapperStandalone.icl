@@ -12,7 +12,7 @@ startEngine flows world
 	# options			= case mbConfig of
 							Just config = [HTTPServerOptPort config.serverPort, HTTPServerOptDebug config.debug]
 							Nothing		= []
-	= http_startServer options (engine mbConfig flows) world
+	= http_startServer options (serverEngine mbConfig flows) world
 where
 	instructions :: !(Maybe Config) *World -> *World
 	instructions (Just config=:{serverPort,serverPath,staticPath,clientPath}) world

@@ -1,6 +1,6 @@
 implementation module HttpUtil
 
-import Http, HttpTextUtil
+import Http, HttpServer, HttpTextUtil
 import StdArray, StdOverloaded, StdString, StdFile, StdBool, StdInt, StdArray, StdList
 import Time
 
@@ -183,7 +183,7 @@ where
 		= s % (start, end) 
 
 //Construction of HTTP Response messages
-http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
+http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, HTTPServerControl, *World)))] !Bool !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 http_makeResponse request [] fallback world 										//None of the request handlers matched
 	= if fallback
 		(http_staticResponse request world)											//Use the static response handler
@@ -238,14 +238,14 @@ where
 	
 
 //Error responses
-http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-http_notfoundResponse req world = ({rsp_headers = [("Status","404 Not Found")], rsp_data = "404 - Not found"},world)
+http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+http_notfoundResponse req world = ({rsp_headers = [("Status","404 Not Found")], rsp_data = "404 - Not found"}, HTTPServerContinue, world)
 
-http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-http_forbiddenResponse req world = ({rsp_headers = [("Status","403 Forbidden")], rsp_data = "403 - Forbidden"},world)
+http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+http_forbiddenResponse req world = ({rsp_headers = [("Status","403 Forbidden")], rsp_data = "403 - Forbidden"}, HTTPServerContinue, world)
 
 //Static content
-http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
 http_staticResponse req world
 	# filename				= req.req_path % (1, size req.req_path)		//Remove first slash
 	# (type, world)			= http_staticFileMimeType filename world
@@ -254,7 +254,7 @@ http_staticResponse req world
 							= ({rsp_headers = [("Status","200 OK"),
 											   ("Content-Type", type),
 											   ("Content-Length", toString (size content))]
-							   ,rsp_data = content}, world)						
+							   ,rsp_data = content}, HTTPServerContinue, world)						
 							
 http_staticFileContent :: !String !*World -> (!Bool, !String, !*World)
 http_staticFileContent filename world

@@ -6,6 +6,7 @@ definition module Engine
 */
 from TSt			import :: Workflow, :: Task
 from Http			import :: HTTPRequest, :: HTTPResponse
+from HttpServer		import :: HTTPServerControl
 from Config			import :: Config
 
 from	iTasks import class iTask
@@ -14,11 +15,11 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 /**
 * Creates the iTasks system from a set of workflow definitions
 *
+* @param  An optional config record
 * @param  A list of workflow definitions
 * @return A list of predicate/handler pairs that can be plugged into a server
-*         or CGI wrapper
 */
-engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !*World))]
+serverEngine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))]
 
 /**
 * Loads the itasks specific config

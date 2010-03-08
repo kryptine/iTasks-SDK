@@ -5,13 +5,13 @@ import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc
 import StdTCP
 
 //Start the HTTP server
-http_startServer :: [HTTPServerOption] [((String -> Bool),(HTTPRequest *World-> (HTTPResponse,*World)))] *World -> *World
+http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!HTTPServerControl,!*World)))] *World -> *World
 http_startServer options handlers world
 	//Start the listener
 	# (listener,world)	= startListener (getPortOption options) world
-	//Enter the endless loop
+	//Enter the listen loop
 	= loop options handlers listener [] [] [] world
-
+	
 // Try to open a listener on the given port
 startListener :: Int !*World -> (TCP_Listener,!*World)
 startListener port world
@@ -23,7 +23,7 @@ startListener port world
 
 //Main event loop, it is called each time a client connects or data arrives
 loop ::	[HTTPServerOption]
-		[((String -> Bool),(HTTPRequest *World-> (HTTPResponse,*World)))]
+		[(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse, !HTTPServerControl, !*World)))]
 		TCP_Listener [TCP_RChannel] [TCP_SChannel]
 		[(HTTPRequest,Bool,Bool,Bool)]
 		*World -> *World
@@ -73,7 +73,8 @@ loop options handlers listener rchannels schannels requests world
 				# world				= debug "Processing request:" options world
 				# world				= debug request	options world
 				// Create a response
-				# (response,world)	= http_makeResponse request handlers (getStaticOption options)world
+				# (response,control,world)
+									= http_makeResponse request handlers (getStaticOption options) world
 				# world				= debug "Generated response:" options world
 				# world				= debug response options world
 				// Encode the response to the HTTP protocol format
@@ -85,9 +86,17 @@ loop options handlers listener rchannels schannels requests world
 				// Close the connection
 				# world = closeChannel currentschannel world
 				# world = closeRChannel currentrchannel world
-				# world				= debug "Closed connection" options world			
-				= loop options handlers listener rchannels schannels requests world		
-		
+				# world				= debug "Closed connection" options world	
+				= case control of
+					HTTPServerContinue									
+						= loop options handlers listener rchannels schannels requests world		
+					HTTPServerStop
+						= closeRChannel listener world
+					(HTTPServerRestart newOptions newHandlers)
+						# world				= closeRChannel listener world
+						# (listener,world)	= startListener (getPortOption newOptions) world
+						= loop newOptions newHandlers listener [] [] [] world
+			
 			//We do not have everything we need yet, so continue
 			| otherwise = loop options handlers listener [currentrchannel:rchannels] [currentschannel:schannels] [(request,method_done, headers_done, data_done):requests] world
 			

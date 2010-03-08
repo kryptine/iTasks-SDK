@@ -1,6 +1,6 @@
 definition module HttpUtil
 
-import Http
+import Http, HttpServer
 
 //General utility functions
 http_urlencode :: !String -> String
@@ -23,15 +23,15 @@ http_parseUrlEncodedArguments :: !String -> [HTTPArgument]
 http_parseMultiPartPostArguments :: !HTTPRequest -> ([HTTPArgument],[HTTPUpload]) 
 
 //Construction of HTTP Response messages
-http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, *World)))] !Bool !*World -> (!HTTPResponse,!*World)
+http_makeResponse :: !HTTPRequest [((String -> Bool),(HTTPRequest *World -> (HTTPResponse, HTTPServerControl, *World)))] !Bool !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 http_encodeResponse :: !HTTPResponse !Bool !*World -> (!String,!*World)
 
 //Error responses
-http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
-http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+http_notfoundResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
+http_forbiddenResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
 
 //Static content
-http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !*World)
+http_staticResponse :: !HTTPRequest !*World -> (!HTTPResponse, !HTTPServerControl, !*World)
 http_staticFileContent :: !String !*World -> (!Bool, !String, !*World)
 http_staticFileMimeType :: !String !*World -> (!String, !*World)
 
