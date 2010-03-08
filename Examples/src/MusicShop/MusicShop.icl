@@ -1,4 +1,4 @@
-implementation module WebShop
+module MusicShop
 
 import StdClass, StdList
 from   StdFunc import o, flip
