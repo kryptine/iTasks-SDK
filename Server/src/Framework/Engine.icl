@@ -128,7 +128,7 @@ initTSt request config flows world
 	| err <> NoDirError			= abort "Cannot get executable info."
 	# (date,time)				= info.pi_fileInfo.lastModified
 	# datestr					= (toString date.Date.year)+++(addPrefixZero date.Date.month)+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++(addPrefixZero time.Time.minutes)+++(addPrefixZero time.Time.seconds)
-	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-systemStore")) (createStore (appName +++ "-dataStore-" +++ datestr)) (createStore (appName +++ "-documentStore-" +++ datestr)) world
+	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-dataStore-" +++ datestr)) (createStore (appName +++ "-documentStore-" +++ datestr)) world
 where 
 	addPrefixZero number
 	| number < 10 = "0"+++toString number

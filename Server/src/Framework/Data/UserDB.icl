@@ -2,78 +2,17 @@ implementation module UserDB
 
 import StdEnv, StdMaybe
 import StdGeneric
-import TSt, Store
+import TSt, Util
+
+derive JSONEncode User
+derive JSONDecode User
+derive bimap (,), Maybe
 
 unknownUser :: User
 unknownUser = {User | userName = "", displayName = "Unknown user", password = "", roles = []}
 
 rootUser :: User
 rootUser = {User | userName = "root", displayName = "Root", password = "", roles = []}
-
-//TEMPORARY ALTERNATIVE HARDCODED USER SET
-testUsers :: [User]
-testUsers = [ {User | userName = "bas", displayName = "Bas", password = "", roles = []}
-			, {User | userName = "rinus", displayName = "Rinus", password = "", roles = []}
-			, {User | userName = "thomas", displayName = "Thomas", password = "", roles = []}
-			, {User | userName = "peter", displayName = "Peter", password = "", roles = []}
-			, {User | userName = "pieter", displayName = "Pieter", password = "", roles = []}
-			, {User | userName = "janmartin", displayName = "Jan Martin", password = "", roles = []}
-			, {User | userName = "steffen", displayName = "Steffen Michels", password = "", roles = []}
-
-  			, {User | userName = "megastore", displayName = "Megastore", password = "", roles = ["supplier"]}
-			, {User | userName = "localshop", displayName = "Local shop", password = "", roles = ["supplier"]}
-			, {User | userName = "webshop", displayName = "Webshop.com", password = "", roles = ["supplier"]}   
-			
-			, {User | userName = "ambupost0", displayName = "Ambulance Post 0", password = "", roles = ["ambulances"]}
-			, {User | userName = "ambupost1", displayName = "Ambulance Post 1", password = "", roles = ["ambulances"]}
-			, {User | userName = "ambupost2", displayName = "Ambulance Post 2", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost3", displayName = "Ambulance Post 3", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost4", displayName = "Ambulance Post 4", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost5", displayName = "Ambulance Post 5", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost6", displayName = "Ambulance Post 6", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost7", displayName = "Ambulance Post 7", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost8", displayName = "Ambulance Post 8", password = "", roles = ["ambulances"]}   
-			, {User | userName = "ambupost9", displayName = "Ambulance Post 9", password = "", roles = ["ambulances"]}  
-			
-			]
-/*
-testUsers :: [User] 
-testUsers	= [ {User | userName = "president", displayName = "President", password = "", roles = ["president"]}
-			  , {User | userName = "manager", displayName = "Middle manager", password = "", roles = ["manager"]}
-			  , {User | userName = "worker1", displayName = "Office worker 1", password = "", roles = ["worker"]}
-			  
-			  , {User | userName = "customer", displayName = "Customer", password = "", roles = ["customer"]}
-			  , {User | userName = "bank", displayName = "Bank authorization", password = "", roles = ["bank"]}
-			  , {User | userName = "storage", displayName = "Webshop storage", password = "", roles = ["storage"]}
-			  , {User | userName = "creditcard", displayName = "Creditcard authorization", password = "", roles = ["creditcard"]}    
-			  
-			  , {User | userName = "megastore", displayName = "Megastore", password = "", roles = ["supplier"]}
-			  , {User | userName = "localshop", displayName = "Local shop", password = "", roles = ["supplier"]}
-			  , {User | userName = "webshop", displayName = "Webshop.com", password = "", roles = ["supplier"]}   
-
-			  , {User | userName = "ambupost0", displayName = "Ambulance Post 0", password = "", roles = ["ambulances"]}
-			  , {User | userName = "ambupost1", displayName = "Ambulance Post 1", password = "", roles = ["ambulances"]}
-			  , {User | userName = "ambupost2", displayName = "Ambulance Post 2", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost3", displayName = "Ambulance Post 3", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost4", displayName = "Ambulance Post 4", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost5", displayName = "Ambulance Post 5", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost6", displayName = "Ambulance Post 6", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost7", displayName = "Ambulance Post 7", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost8", displayName = "Ambulance Post 8", password = "", roles = ["ambulances"]}   
-			  , {User | userName = "ambupost9", displayName = "Ambulance Post 9", password = "", roles = ["ambulances"]}   
-
-			  , {User | userName = "expert0", displayName = "Expert 0", password = "", roles = ["experts"]}
-			  , {User | userName = "expert1", displayName = "Expert 1", password = "", roles = ["experts"]}
-			  , {User | userName = "expert2", displayName = "Expert 2", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert3", displayName = "Expert 3", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert4", displayName = "Expert 4", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert5", displayName = "Expert 5", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert6", displayName = "Expert 6", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert7", displayName = "Expert 7", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert8", displayName = "Expert 8", password = "", roles = ["experts"]}   
-			  , {User | userName = "expert9", displayName = "Expert 9", password = "", roles = ["experts"]}   
-			  ]	
-*/
 
 getUser :: !UserName !*TSt -> (!User,!*TSt)
 getUser "root" tst
@@ -116,6 +55,7 @@ getRoles usernames tst
 	# (users, tst)		= userStore id tst
 	= (map (lookupUserProperty users (\u -> u.User.roles) []) usernames, tst)
 
+
 authenticateUser :: !String !String	!*TSt -> (!Maybe User, !*TSt)
 authenticateUser username password tst
 	| username == "root"
@@ -157,8 +97,22 @@ lookupUserProperty users selectFunction defaultValue userName
 			_	= defaultValue
 
 userStore ::  !([User] -> [User]) !*TSt -> (![User],!*TSt) 	
-userStore fn tst=:{TSt|systemStore,world}
-	# (mbList,sstore,world)	= loadValue "UserDB" systemStore world
-	# list 					= fn (case mbList of Nothing = testUsers; Just list = list)
-	# sstore				= storeValue "UserDB" list sstore 
-	= (list, {TSt|tst & systemStore = sstore, world = world})
+userStore fn tst=:{TSt|staticInfo,world}
+	# (users,world)			= readUserFile staticInfo.appName world 
+	# users					= fn users
+	# world					= writeUserFile users staticInfo.appName world
+	= (users,{TSt|tst & world = world})
+where
+	readUserFile appName world
+		# (content,world) = readfile (appName +++ "-users.json") world
+		| content == ""
+			= ([],world)
+		| otherwise
+			= case (fromJSON content) of
+				Just users	= (users,world)
+				Nothing		= ([],world)
+				
+	writeUserFile users appName world
+		= writefile (appName +++ "-users.json") (toJSON users) world
+		
+			

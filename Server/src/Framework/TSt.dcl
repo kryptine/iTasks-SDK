@@ -38,7 +38,6 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
 									
-					, systemStore	:: !Store											// UserDB
 					, dataStore		:: !Store											// Runtime data (Processes, Sessions, Tasks, Dynamics)
 					, documentStore	:: !Store											// Documents
 					, world			:: !*World											// The world
@@ -65,11 +64,12 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @param The session data
 * @param The workflows available in the application
 * @param The generic data store
+* @param The document store
 * @param The world
 *
 * @return a TSt iTask state
 */
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !*World -> *TSt
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
 /**
 * Creates an instance of a task definition
 * As soon as an instance is created it is immediately evaluated once.

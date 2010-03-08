@@ -28,8 +28,8 @@ derive gParse		TaskResult
 derive bimap 		Maybe, (,)
 derive JSONDecode RPCMessage
 
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*Store !*World -> *TSt
-mkTSt appName config request session workflows systemStore dataStore fileStore world
+mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
+mkTSt appName config request session workflows dataStore documentStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, userId		= ""
@@ -41,9 +41,8 @@ mkTSt appName config request session workflows systemStore dataStore fileStore w
 		, pendingChanges= []
 		, config		= config
 		, request		= request
-		, systemStore	= systemStore
 		, dataStore		= dataStore
-		, documentStore	= fileStore
+		, documentStore	= documentStore
 		, world			= world
 		}
 
@@ -223,7 +222,7 @@ where
 		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = ""} properties []
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 		
-	restoreTSt :: !ProcessId !*TSt -> !*TSt
+	restoreTSt :: !ProcessId !*TSt -> *TSt
 	restoreTSt mainTask tst = {TSt|tst & mainTask = mainTask}
 	
 	/*
@@ -737,11 +736,10 @@ copyTaskStates fromtask totask tst=:{TSt|dataStore,world}
 	= {TSt|tst & dataStore = dstore, world = world}
 
 flushStore :: !*TSt -> *TSt
-flushStore tst=:{TSt|dataStore,systemStore,documentStore,world}
-	# (dstore,world) = flushCache dataStore world
-	# (sstore,world) = flushCache systemStore world
-	# (fstore,world) = flushCache documentStore world
-	= {TSt|tst & dataStore = dstore, systemStore = sstore, documentStore = fstore, world = world}
+flushStore tst=:{TSt|dataStore,documentStore,world}
+	# (dataStore,world) = flushCache dataStore world
+	# (documentStore,world) = flushCache documentStore world
+	= {TSt|tst & dataStore = dataStore, documentStore = documentStore, world = world}
 
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""

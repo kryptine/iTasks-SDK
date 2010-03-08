@@ -29,8 +29,6 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 		};
 		var failureHandler = function(form, action) {
 			//Show the error and draw attention to the window
-			console.log(action);
-			
 			
 			if(action.failureType == "connect") {
 				this.getComponent(0).getComponent(1).setText("Could not connect to server");
