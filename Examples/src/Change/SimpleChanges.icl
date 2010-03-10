@@ -71,12 +71,19 @@ where
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
 //This will duplicate a running task n times
-duplicate :: User String -> Dynamic
-duplicate user topics =
+duplicate :: User User String -> Dynamic
+duplicate me user topics =
 	dynamic change topics :: A.a: Change a | iTask a
 where
 	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change topics p t t0 = (Nothing, Just (t -||- assign user.userName HighPriority Nothing (t <<@ topics)), Nothing )
+	change topics p t t0 = (Nothing
+							, Just (assign me.userName NormalPriority Nothing 
+											(assign (fst p.managerProps.worker) HighPriority Nothing (t <<@ topics) 
+											-||- 
+											assign user.userName HighPriority Nothing (t <<@ topics)
+											)
+											<<@ ("Duplicated " +++ topics))
+							, Nothing )
 
 //inform will inform a user that some process has ended.
 inform :: User String -> Dynamic
@@ -140,7 +147,8 @@ duplicateTask
 	=				chooseProcess "What process do you want to duplicate?"
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
-	>>= \user ->	applyChangeToProcess procId (duplicate user (fromJust process).properties.managerProps.subject) CLTransient
+	>>= \user ->	getCurrentUser
+	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).properties.managerProps.subject) CLTransient
 
 informTask :: Task Void
 informTask
