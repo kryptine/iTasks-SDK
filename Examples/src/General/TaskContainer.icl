@@ -8,7 +8,7 @@ from	EstherBackend import toStringDynamic
 :: DynTaskFun a b	= DynTaskFun !(a -> Task b) & iTask b
 
 validTaskVal :: Dynamic -> Bool
-validTaskVal (v :: DynTaskVal a)	= True
+validTaskVal (_ :: DynTaskVal a)	= True
 validTaskVal _						= False
 
 validTask :: Dynamic -> Bool
@@ -17,8 +17,9 @@ validTask _							= False
 
 validTaskFun :: Dynamic -> Bool
 validTaskFun (_ :: DynTaskFun a b) 					= True
-validTaskFun (_ :: A.a: DynTaskFun a b | iTask a) 	= True
-validTaskFun (_ :: A.a: DynTaskFun a a | iTask a) 	= True
+validTaskFun (_ :: DynTaskFun a b | iTask a) 		= True
+validTaskFun (_ :: DynTaskFun (a,b) b | iTask a) 	= True
+validTaskFun (_ :: DynTaskFun (a,b) b | iTask b) 	= True
 validTaskFun _ 										= False
 
 showDyn :: Dynamic -> (String,String)
