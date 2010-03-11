@@ -71,11 +71,14 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree
 		   , taskpanel = STFormPanel {STFormPanel | xtype="itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId
 		   , taskId = ti.TaskInfo.taskId, items = [def], subtaskId = subtaskNrToString stnr, tbar = (makeMenuBar menus acceptedA ti)}}], tst)
-//	(TTInteractiveTask ti (Updates upd acceptedA))
-//		= ([STFormUpdate {STFormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti), subtaskId = subtaskNrToString stnr}],tst)
-//	(TTInteractiveTask ti (Func f))
-//		# (fres,tst)	= f tst
-//		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed tst
+	(TTInteractiveTask ti (Updates upd acceptedA))
+		= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree
+			, taskpanel = STFormUpdate {STFormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId
+			, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti), subtaskId = subtaskNrToString stnr
+			}}],tst)
+	(TTInteractiveTask ti (Func f))
+		# (fres,tst)	= f tst
+		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed tst
 	(TTMonitorTask ti html)
 		= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree
 		   , taskpanel = STMonitorPanel {STMonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId
