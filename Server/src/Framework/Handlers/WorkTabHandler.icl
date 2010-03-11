@@ -21,9 +21,9 @@ handleWorkTabRequest req tst=:{staticInfo}
 			# subject = [properties.managerProps.TaskManagerProperties.subject]
 			# (Just p=:{Process | menus}, tst) = getProcess taskId tst
 			# username = staticInfo.currentSession.Session.user.User.userName
-			# panels = case [t \\ t <- tasks | not (isFinished t)] of
-				[]	= if (allFinished tasks) [TaskDone] [TaskRedundant]
-				[t] = buildTaskPanels t menus username
+			# (panels,tst) = case [t \\ t <- tasks | not (isFinished t)] of
+				[]	= (if (allFinished tasks) [TaskDone] [TaskRedundant],tst)
+				[t] = buildTaskPanels t menus username tst
 				_	= abort  "Multiple simultaneously active tasks in a main task!"
 			
 			// Collect debug information

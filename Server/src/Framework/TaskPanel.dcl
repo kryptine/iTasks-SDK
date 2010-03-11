@@ -99,4 +99,4 @@ derive JSONEncode TaskPanel
 	, description	:: String
 	}
 
-buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName -> [TaskPanel]
+buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (![TaskPanel],!*TSt)

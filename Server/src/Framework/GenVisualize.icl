@@ -203,7 +203,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						
 			//ADT's with only one constructor
 			| d.gcd_type_def.gtd_num_conses == 1 
-				# (vizBody,rh,vst=:{valid}) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, optional = False}
+				# (vizBody,rh,vst=:{valid}) = fx ox nx {vst & /* label = Nothing,*/ currentPath = shiftDataPath currentPath, optional = False}
 				= (vizBody,rh,{VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 			//ADT's with multiple constructors
 			| otherwise
@@ -752,6 +752,7 @@ where
 	[lname:lnames]		= [c \\ c <-: label]
 	addspace []			= []
 	addspace [c:cs]
+		| c == '_'			= [' ':addspace cs]
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
