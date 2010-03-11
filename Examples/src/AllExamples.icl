@@ -2,9 +2,6 @@ module AllExamples
 
 import iTasks
 
-//Basic workflows
-import BasicWorkflows
-
 //Business examples
 import Vote
 import TravelBooking
@@ -45,8 +42,7 @@ import SharedValues
 Start :: *World -> *World
 Start world = startEngine workflows world
 where
-	workflows = flatten [ basicWorkflows
-						, voteExample
+	workflows = flatten [ voteExample
 						, travelBookingExample
 						, scheduleMeetingExample
 						, movingTaskExample
