@@ -5,7 +5,6 @@ import iTasks
 //Business examples
 import Vote
 import TravelBooking
-import ScheduleMeeting
 
 //Higher order examples
 import MovingTask
@@ -44,7 +43,6 @@ Start world = startEngine workflows world
 where
 	workflows = flatten [ voteExample
 						, travelBookingExample
-						, scheduleMeetingExample
 						, movingTaskExample
 						, deadlineTaskExample
 						, delegateTaskExample
