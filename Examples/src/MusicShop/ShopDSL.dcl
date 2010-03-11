@@ -7,7 +7,7 @@ import CommonDomain
 class Product a | nameOf, priceOf, id_Of, inStockOf a
 class InCart  a | nameOf, priceOf, amountOrderedOf  a
 
-:: Book				=	{ id_				:: !DBRef Book
+:: Book				=	{ id				:: !Hidden (DBRef Book)
 						, title				:: !String
 						, author            :: !String
 						, price				:: !Currency
@@ -22,7 +22,7 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						}
 :: CartAmount		=	{ orderAmount		:: !Int
 						}
-:: Order item		=	{ id_				:: !DBRef (Order item)
+:: Order item		=	{ id				:: !DBRef (Order item)
 						, name				:: !String
 						, itemsOrdered		:: !Cart item
 						, billingAddress	:: !Address
@@ -52,4 +52,4 @@ instance DB (Order a)
 
 eqItemNr			:: !(CartItem item) !(CartItem item) -> Bool
 totalCost			:: [a] -> Currency | priceOf, amountOrderedOf a
-shopOwner			:: UserId
+shopOwner			:: UserName

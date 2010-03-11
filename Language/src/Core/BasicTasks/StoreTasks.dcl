@@ -61,7 +61,7 @@ dbReadAll		::                 Task [a]       | iTask, DB a
 dbWriteAll		:: ![a]         -> Task Void      | iTask, DB a
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem	::                 Task a         | iTask, DB a
+dbCreateItem	:: a            -> Task a         | iTask, DB a
 dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iTask, DB a
 dbUpdateItem	:: a			-> Task a         | iTask, DB a
 dbDeleteItem	:: !(DBRef a)	-> Task Void      | iTask, DB a

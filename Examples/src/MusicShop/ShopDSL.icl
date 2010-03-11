@@ -40,5 +40,5 @@ eqItemNr x y			= x.itemNr == y.itemNr
 totalCost :: [a] -> Currency | priceOf, amountOrderedOf a
 totalCost set			= EUR (sum [amountOrderedOf item * toInt (priceOf item) \\ item <- set])
 
-shopOwner :: UserId
-shopOwner				= 0
+shopOwner :: UserName
+shopOwner				= "root"

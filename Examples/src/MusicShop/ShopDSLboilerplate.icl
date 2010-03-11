@@ -15,9 +15,9 @@ instance shippingAddressOf  (Order    a) where shippingAddressOf  r		= r.Order.s
 instance amountOrderedOf    (CartItem a) where amountOrderedOf    r		= r.CartItem.amountOrdered
 instance nameOf             (Order    a) where nameOf             r		= r.Order.name
 instance nameOf             Book         where nameOf             r		= r.Book.title
-instance id_Of              Book         where id_Of              r		= r.Book.id_
+instance id_Of              Book         where id_Of              r		= fromHidden r.Book.id
 instance priceOf            Book         where priceOf            r		= r.Book.price
-instance id_Of              (Order    a) where id_Of              r		= r.Order.id_
+instance id_Of              (Order    a) where id_Of              r		= r.Order.id
 instance priceOf            (CartItem a) where priceOf            r		= r.CartItem.price
 instance priceOf            InCart       where priceOf            r		= r.InCart.price
 instance inStockOf          Book         where inStockOf          r		= r.Book.inStock
@@ -31,9 +31,9 @@ instance shippingAddressUpd (Order    a) where shippingAddressUpd r new	= {r & O
 instance amountOrderedUpd   (CartItem a) where amountOrderedUpd   r new	= {r & CartItem.amountOrdered = new}
 instance nameUpd            Book         where nameUpd            r new	= {r & Book.title             = new}
 instance nameUpd            (Order    a) where nameUpd            r new	= {r & Order.name             = new}
-instance id_Upd             Book         where id_Upd             r new	= {r & Book.id_               = new}
+instance id_Upd             Book         where id_Upd             r new	= {r & Book.id                = toHidden new}
 instance priceUpd           Book         where priceUpd           r new = {r & Book.price             = new}
-instance id_Upd             (Order    a) where id_Upd             r new	= {r & Order.id_              = new}
+instance id_Upd             (Order    a) where id_Upd             r new	= {r & Order.id               = new}
 instance priceUpd           (CartItem a) where priceUpd           r new = {r & CartItem.price         = new}
 instance priceUpd           InCart       where priceUpd           r new = {r & InCart.price           = new}
 instance inStockUpd         Book         where inStockUpd         r new = {r & Book.inStock           = new}

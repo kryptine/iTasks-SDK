@@ -60,11 +60,11 @@ dbModify :: ([a] -> [a]) -> Task Void | iTask, DB a
 dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem :: Task a | iTask, DB a
-dbCreateItem
-	= readDB databaseId >>= \items ->
-	  let newid = newDBRef items
-	   in getDefaultValue >>= \newval -> return (setItemId newid newval)
+dbCreateItem :: a -> Task a | iTask, DB a
+dbCreateItem new
+	= readDB databaseId >>= \items -> 
+	let newitem = (setItemId (newDBRef items) new) in
+		dbWriteAll (items ++ [newitem]) >>| return newitem
 where
 	newDBRef :: [a] -> DBRef a | DB a
 	newDBRef []		= DBRef 1

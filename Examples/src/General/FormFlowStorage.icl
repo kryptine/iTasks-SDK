@@ -57,8 +57,8 @@ newFormName form
 	=						enterInformation "Give name of new Form:" 
 		>>= \name ->		readAllForms
 		>>= \allForms ->	case [this \\ this <- allForms | this.formName == name] of
-								[] -> 					    dbCreateItem 
-											>>= \item -> 	dbUpdateItem {item & form = form, formType = showDynType form.formDyn, formName = name}
+								[] -> 					    getDefaultValue
+											>>= \item -> 	dbCreateItem {item & form = form, formType = showDynType form.formDyn, formName = name}
 											>>|				return (name,form) 
 								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).formType)
 								 			>>= \ok -> if ok (return (name,form)) (newFormName form)
@@ -68,8 +68,8 @@ newFlowName flow
 	=						enterInformation "Give name of new flow:" 
 		>>= \name ->		readAllFlows
 		>>= \allFlows ->	case [this \\ this <- allFlows | this.flowName == name] of
-								[] -> 						dbCreateItem 
-											>>= \item -> 	dbUpdateItem {item & flow = flow, flowType = showDynType flow.flowDyn, flowName = name} 
+								[] -> 						getDefaultValue 
+											>>= \item -> 	dbCreateItem {item & flow = flow, flowType = showDynType flow.flowDyn, flowName = name} 
 											>>|				return (name,flow) 
 								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).flowType )
 								 			>>= \ok -> if ok (return (name,flow)) (newFlowName flow)

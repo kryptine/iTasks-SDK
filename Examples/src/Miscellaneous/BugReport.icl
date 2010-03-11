@@ -133,9 +133,9 @@ enterBugReport
 	
 fileBug :: BugReport -> Task Bug
 fileBug report
-	=	dbCreateItem -&&- getCurrentUser
+	=	getDefaultValue -&&- getCurrentUser
 	>>= \(bug,user) ->
-		dbUpdateItem {bug & report = report, reportedBy = user.User.userName}
+		dbCreateItem {bug & report = report, reportedBy = user.User.userName}
 
 updateBug :: (Bug -> Bug) Bug -> Task Bug
 updateBug f bug = dbUpdateItem (f bug)

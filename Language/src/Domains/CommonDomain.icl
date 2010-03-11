@@ -60,22 +60,22 @@ where
 
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,namePrefix,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment combinedPanel], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
+		VEditorDefinition	= ([TUIFragment numberField], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
 			| updateValues 	= ([TUIUpdate (TUISetValue id (value currentPath new))]
 								, 1
-								, {VSt|vst & valid= stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)], 1, {VSt|vst & valid= stillValid currentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
-	combinedPanel			= TUIPanel {TUIPanel| layout = "hbox", autoHeight = True, autoWidth = True, fieldLabel = label2s optional label, items = [currencyLabel,numberField], buttons = Nothing, border = False, bodyCssClass = "", renderingHint = 1, unstyled=True}
 	numberField				= TUINumberField {TUINumberField|name = namePrefix +++ (dp2s currentPath), id = id
-								, value = value currentPath old, fieldLabel = Nothing, hideLabel = True, allowDecimals = True, numDecimals = 2}
-	currencyLabel			= TUICustom (JSON ("{xtype : \"displayfield\", value : \"" +++ curLabel old +++ "\", style : \"padding: 3px 5px 2px 2px;\"}"))
-	curLabel (VValue (EUR _) _)	= "&euro;"
-	curLabel (VValue (GBP _) _)	= "&pound;"
-	curLabel (VValue (USD _) _)	= "$"
-	curLabel (VValue (JPY _) _)	= "&yen;"
-	curLabel _					= ""
+								, value = value currentPath old, fieldLabel = label2s optional (curLabel old label), hideLabel = not useLabels, allowDecimals = True, numDecimals = 2}
+
+	curLabel _ Nothing			= Nothing
+	curLabel (VValue (EUR _) _)	(Just l) = Just (l +++ " (&euro;)")
+	curLabel (VValue (GBP _) _)	(Just l) = Just (l +++ " (&pound;)")
+	curLabel (VValue (USD _) _)	(Just l) = Just (l +++ " ($)")
+	curLabel (VValue (JPY _) _)	(Just l) = Just (l +++ " (&yen;)")
+	curLabel _	_				= Nothing
 
 	value dp VBlank			= ""
 	value dp (VValue v dm)	= if (isMasked dp dm) (decFormat (toInt v)) ""

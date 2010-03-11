@@ -21,8 +21,8 @@ instance DB TextFile where
 	
 storeFile :: FileName Note -> Task TextFile
 storeFile name txt =
-				dbCreateItem
-	>>= \file.	dbUpdateItem {file & name = name, content = txt}
+				getDefaultValue
+	>>= \file.	dbCreateItem {file & name = name, content = txt}
 	>>= \file.	return file
 	
 getFile :: (DBRef TextFile) -> Task TextFile
