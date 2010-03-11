@@ -2,6 +2,7 @@ implementation module CoreCombinators
 
 import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
+from	TaskTree import :: TaskParallelType
 
 import	TSt
 import	Util
@@ -96,43 +97,142 @@ where
 			TaskException e				= (TaskException e,tst)
 			
 // Parallel composition
-parallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
-parallel label pred combinePred combineAll tasks 
-	= mkParallelTask label (parallel` tasks)
+derive gPrint 		PSt,OPResult
+derive gParse 		PSt,OPResult
+derive gVisualize 	PSt,OPResult
+derive gUpdate 		PSt,OPResult
+
+derive bimap Maybe, (,)
+
+:: PSt a b =
+	{ state :: b
+	, tasks :: [(Task a,Bool)]
+	}
+
+import StdDebug
+
+parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+parallel label description procFun finFun initState initTasks 
+	= parallelWrap label description Closed False procFun finFun initState [(Nothing,t) \\ t <- initTasks]
+
+parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(User,Task a)] -> Task c | iTask a & iTask b & iTask c
+parallelU label description partype procFun finFun initState initTasks 
+	= parallelWrap label description partype True procFun finFun initState [(Just u,t) \\ (u,t) <- initTasks]
+	
+parallelWrap :: !String !String !TaskParallelType Bool !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(Maybe User,Task a)] -> Task c | iTask a & iTask b & iTask c
+parallelWrap label description partype addusers procFun finFun initState initTasks = mkParallelTask label mkTpi (parallel`)
 where
-	parallel` [] tst	=  (TaskFinished (combineAll []), tst)
-	parallel` tasks tst
-		# (result,tst)	= checkAllTasks tasks 0 [] tst
+	parallel` tst
+		# (pst,tst)   		= loadPSt tst
+		# (result,pst,tst) 	= processAllTasks pst 0 tst
+		# tst				= setTaskStore "pst" pst tst
 		= case result of
-			TaskException e
-				= (TaskException e,tst)
-			TaskFinished list
-				| pred list
-					= (TaskFinished (combinePred list), tst) 		// stop, all work done so far satisfies predicate
-				| length list == length tasks						
-					= (TaskFinished (combineAll list), tst)			// all tasks are done
+			TaskException e = (TaskException e, tst)
+			TaskFinished  b = (TaskFinished (finFun b), tst)
+			TaskBusy		= (TaskBusy, tst)
+				
+	processAllTasks pst idx tst
+		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
+		# task	   = pst.tasks !! idx
+		# (r,tst=:{staticInfo}) = applyTask (fst task) tst			
+		= case r of
+			TaskException e = (TaskException e,pst,{TSt | tst & staticInfo = staticInfo})
+			TaskBusy		= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
+			TaskFinished a	
+				| snd task == True   = processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo} //This task had already been accumulated in the state
 				| otherwise
-					= (TaskBusy, tst)								// still busy
-	where
-		checkAllTasks tasks index accu tst
-			| index == length tasks
-				= (TaskFinished (reverse accu),tst)														// all tasks tested
-			# task					= tasks !! index
-			# (result,tst)			= applyTask (mkSequenceTask (taskLabel task) (applyTask task)) tst	// check tasks	
-			= case result of
-				TaskBusy		= checkAllTasks tasks (inc index) accu tst 
-				TaskFinished a	= checkAllTasks tasks (inc index) [a:accu] tst
-				TaskException e	= (TaskException e,tst)
+					# (st,act) 		  = procFun (a,idx) pst.state //apply the task result and its index to the state
+					# pst			  = {pst & state = st}
+					# pst			  = markProcessed pst idx //mark the task as applied in the PState
+					= case act of
+						Stop		  
+							= (TaskFinished pst.state,pst,tst)  //stop the execution of the parallel and return the state
+						Continue	  = processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo} //continue
+						Extend etasks
+							# tasks = case addusers of 
+								False 
+									= pst.tasks ++ [(t,False) \\ t <- etasks]
+								True
+									= pst.tasks ++ [(assignTask (Just staticInfo.currentSession.user) t,False) \\ t <- etasks]
+							# pst	= {pst & tasks = tasks}
+							= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
+						ExtendU etasks
+							# tasks = case addusers of
+								False = pst.tasks ++ [(t,False) \\ (u,t) <- etasks]
+								True  = pst.tasks ++ [(assignTask (Just u) t,False) \\ (u,t) <- etasks] //extend the parallel with additional tasks
+							# pst	= {pst & tasks = tasks}
+							= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
+																			
+	loadPSt tst
+		# (mbPSt,tst) = getTaskStore "pst" tst
+		= case mbPSt of
+			(Just p) = (p,tst)
+			Nothing  = initPSt initState initTasks tst
+						
+	initPSt initState initTasks tst
+		# pst ={ PSt 
+	  	   	   | state = initState
+	  	   	   , tasks = [(assignTask u t, False) \\ (u,t) <- initTasks]
+	  	   	   }
+		# tst = setTaskStore "pst" pst tst
+		= (pst,tst)
+	
+	assignTask user task
+		= case user of
+			Nothing  = task
+			(Just u) = createOrEvaluateTaskInstance u.userName NormalPriority Nothing (Just partype) task //deadline??
+	  	   
+	markProcessed pst idx
+		# (t,b) 	= pst.tasks !! idx
+		# tasks 	= updateAt idx (t,True) pst.tasks
+		# pst	    = {pst & tasks = tasks}
+		= pst
+	
+	mkTpi =
+		{ TaskParallelInfo
+		| type = partype
+		, description = description
+		}
+			
+/**
+* The behaviour of the 'old' parallel combinator expressed in terms of the 'new' parallel combinator*
+**/
+:: OPResult a = AllDone [(Int,a)] | PredDone [(Int,a)] | NotDone [(Int,a)]
 
+oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+oldParallel label pred predDone allDone tasks =
+	parallel label "The old parallel combinator" (pfunc pred) (ffunc allDone predDone) (NotDone []) tasks
+where
+	pfunc :: ([a]->Bool) (a,Int) (OPResult a) -> ((OPResult a),ParallelAction a) 
+	pfunc pred (val,i) (NotDone st)
+		# st = st++[(i,val)]
+		| length st == length tasks = (AllDone st,Stop)
+		| pred (stToList st) 		= (PredDone st,Stop)
+		| otherwise	   		 		= (NotDone st,Continue)
+	
+	stToList :: [(Int,a)] -> [a]
+	stToList st = [v \\ (i,v) <- st]
+		
+	ffunc :: ([a]->b) ([a]->b) (OPResult a) -> b
+	ffunc adone pdone (AllDone v)  = adone (sortList v)
+	ffunc adone pdone (PredDone v) = pdone (sortList v)
+	ffunc adone pdone _			   = abort "(Old Parallel) Finish function, while not done"	
 
+	sortList :: [(Int,a)] -> [a]
+	sortList [] = []
+	sortList [(i,v):ps] = sortList [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortList [(is,vs) \\ (is,vs) <- ps | is > i]
+		
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
 assign :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
-assign userName initPriority initDeadline task = mkMainTask "assign" assign`
+assign userName initPriority initDeadline task = createOrEvaluateTaskInstance userName initPriority initDeadline Nothing task
+						 
+createOrEvaluateTaskInstance :: !UserName !TaskPriority !(Maybe Timestamp) !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
+createOrEvaluateTaskInstance userName initPriority initDeadline mbpartype task = mkMainTask "assign" createOrEvaluateTaskInstance`
 where
-	assign` tst=:{TSt|taskNr}
+	createOrEvaluateTaskInstance` tst=:{TSt|taskNr}
 		//Try to load the stored process for this subtask
 		# taskId		= taskNrToString taskNr
 		# (mbProc,tst)	= getProcess taskId tst	
@@ -140,20 +240,57 @@ where
 			//Nothing found, create a task instance
 			Nothing	
 				# (user,tst)	= getUser userName tst
-				# props 		=	{TaskManagerProperties
-					  				| worker	= (user.User.userName, user.User.displayName)
-					  				, subject	= taskLabel task
-					  				, priority	= initPriority
-					  				, deadline	= initDeadline
+				# props 		= {TaskManagerProperties
+					  				| worker		 = (user.User.userName, user.User.displayName)
+					  				, subject		 = taskLabel task
+					  				, priority		 = initPriority
+					  				, deadline		 = initDeadline
+					  				, tempWorkers	 = []
 									}
-				# (result,_,tst)= createTaskInstance task props False tst
+				# tst				  = addTemporaryUser taskId user.User.userName mbpartype tst
+				# (result,procId,tst) = createTaskInstance task props False tst
+				# (ok,tst) = updateProcess procId (\x -> {Process | x & inParallelType = mbpartype}) tst
 				= (result,tst)
 			//When found, evaluate
 			Just proc
-				# (result,_,tst)= evaluateTaskInstance proc Nothing False False tst
+				# (user,tst)		= getUser userName tst
+				//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info
+				# tst				= addTemporaryUser taskId user.User.userName mbpartype tst
+				// -> TSt in subprocess
+				# (result,_,tst)	= evaluateTaskInstance proc Nothing False False tst
+				// <- TSt back to current process				
+				//Add parallel type after the new proc is evaluated
+				# (ok,tst) 			= updateProcess proc.Process.processId (\x -> {Process | x & inParallelType = mbpartype}) tst 
 				= case result of
-					TaskBusy				= (TaskBusy,tst)
-					TaskFinished (a :: a^) 	= (TaskFinished a,tst)
-					TaskFinished _			= (TaskException (dynamic "assign: result of wrong type returned"),tst)
-					TaskException e			= (TaskException e, tst)
-						 
+					TaskBusy				
+						= (TaskBusy,tst)
+					TaskFinished (a :: a^) 
+						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst	 
+						= (TaskFinished a,tst)
+					TaskFinished _			
+						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst
+						= (TaskException (dynamic "assign: result of wrong type returned"),tst)
+					TaskException e			
+						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst
+						= (TaskException e, tst)
+
+addTemporaryUser :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt
+addTemporaryUser procId uname mbpartype tst
+		= case mbpartype of
+			Nothing 		= tst
+			(Just Closed) 	= tst
+			(Just Open)		
+				# twlist = tst.TSt.properties.managerProps.tempWorkers
+				# ntwlist = [(procId,uname):[(p,u) \\ (p,u) <- twlist | not (p == procId && u == uname)]]				
+				= {TSt | tst & properties = {tst.TSt.properties & managerProps = {tst.TSt.properties.managerProps & tempWorkers = ntwlist}}} 
+
+removeTemporaryUser :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt			
+removeTemporaryUser procId uname mbpartype tst
+		= case mbpartype of
+			Nothing 		= tst
+			(Just Closed) 	= tst
+			(Just Open)		
+				# twlist = tst.TSt.properties.managerProps.tempWorkers
+				# ntwlist = [(p,u) \\ (p,u) <- twlist | not (p == procId && u == uname)]				
+				= {TSt | tst & properties = {tst.TSt.properties & managerProps = {tst.TSt.properties.managerProps & tempWorkers = ntwlist}}} 
+						

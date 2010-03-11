@@ -6,16 +6,16 @@ import StdMaybe
 from TSt		import :: Task
 from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: Menu
 from Types		import :: ProcessId, :: ProcessRef, :: TaskId
-from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress
+from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress, :: TaskParallelType
 from Time		import :: Timestamp 
 
 from iTasks		import class iTask
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
-derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
-derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp
+derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId

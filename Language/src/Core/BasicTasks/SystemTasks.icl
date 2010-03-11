@@ -8,7 +8,7 @@ from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString
 from TSt import qualified createTaskInstance
 
 import Types
-from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties, :: TaskManagerProperties(..), :: TaskPriority(..)
+from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties, :: TaskManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
 
 from Time	import :: Timestamp
 
@@ -47,10 +47,11 @@ where
 		# (user,tst)	= UserDB@getUser username tst
 		# properties	=
 			{ TaskManagerProperties
-			| worker	= (user.User.userName,user.User.displayName)
-			, subject 	= taskLabel task
-			, priority	= NormalPriority
-			, deadline	= Nothing
+			| worker		 = (user.User.userName,user.User.displayName)
+			, subject 		 = taskLabel task
+			, priority		 = NormalPriority
+			, deadline		 = Nothing
+			, tempWorkers	 = []
 			}
 		# (result,pid,tst)			= TSt@createTaskInstance task properties True tst
 		= (TaskFinished (ProcessRef pid), tst)

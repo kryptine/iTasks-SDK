@@ -26,7 +26,7 @@ derive gPrint		TaskResult
 derive gParse		TaskResult
 
 derive bimap 		Maybe, (,)
-derive JSONDecode RPCMessage
+derive JSONDecode 	RPCMessage
 
 mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
 mkTSt appName config request session workflows dataStore documentStore world
@@ -36,6 +36,7 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, delegatorId	= ""
 		, tree			= TTMainTask initTaskInfo initTaskProperties []
 		, mainTask		= ""
+		, properties	= initTaskProperties
 		, staticInfo	= initStaticInfo appName session workflows
 		, currentChange	= Nothing
 		, pendingChanges= []
@@ -60,6 +61,7 @@ initTaskInfo
 		| taskId = ""
 		, taskLabel = ""
 		, traceValue = ""
+		, worker = ("","")
 		}
 
 initTaskProperties :: TaskProperties
@@ -79,16 +81,19 @@ initTaskProperties
 	    , subject = ""
 	    , priority = NormalPriority
 	    , deadline = Nothing
+	    , tempWorkers = []
 	    }
 	  , workerProps =
 	    {TaskWorkerProperties
 	    | progress = TPActive
 	    }
 	 }
-	  
+		  
 createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
 createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
-	# (manager,tst)			= getCurrentUser tst
+	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
+	# (worker,tst)			= getCurrentWorker tst
+	# (manager,tst) 		= if (worker.userName <> unknownUser.userName) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
 	# processId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel "" mainTask
@@ -111,12 +116,13 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		}
 	# process =
 		{ Process
-		| processId		= processId
-		, status		= Active
-		, parent		= parent
-		, properties	= properties
-		, changeCount	= 0
-		, menus			= Nothing
+		| processId		 = processId
+		, status		 = Active
+		, parent		 = parent
+		, properties	 = properties
+		, changeCount	 = 0
+		, menus			 = Nothing
+		, inParallelType = Nothing
 		}
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
@@ -162,7 +168,7 @@ loadThread processId tst=:{TSt|dataStore,world}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges,mainTask}
+evaluateTaskInstance process=:{Process | processId, parent, properties, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges,mainTask,properties=parentProperties}
 	// Reset the task state
 	# tst								= resetTSt processId properties tst
 	// Queue all stored persistent changes (only when run as top node)
@@ -179,21 +185,23 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, changeCo
 										= if firstRun
 											(applyAllChanges processId changeCount pendingChanges thread properties tst)
 											(applyCurrentChange processId changeCount thread properties tst)
-	# (tree,tst)						= getTaskTree tst
+	// The tasktree of this process is the tree as it has been constructed, but with updated properties
+	# (TTMainTask ti _ tasks,tst)		= getTaskTree tst
+	# tree								= TTMainTask ti properties tasks
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges processId tst) tst
-	# tst								= restoreTSt mainTask tst
+	# tst								= restoreTSt mainTask parentProperties tst
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
 			# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, changeCount = changeCount }) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
+			//Store result
+			# tst 		= storeProcessResult (taskNrFromString processId) result tst
+			//Update process table (status, changeCount & properties)
+			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished, properties = properties, changeCount = changeCount }) tst
 			| isTop
-				//Store result
-				# tst 		= storeProcessResult (taskNrFromString processId) result tst
-				//Update process table (status, changeCount & properties)
-				# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished, properties = properties, changeCount = changeCount }) tst
 				//Evaluate parent process
 				| parent <> ""
 					# (mbParentProcess,tst) = getProcess parent tst
@@ -219,19 +227,19 @@ where
 	resetTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
 	resetTSt processId properties tst
 		# taskNr	= taskNrFromString processId
-		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = ""} properties []
+		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker} properties []
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
-		
-	restoreTSt :: !ProcessId !*TSt -> *TSt
-	restoreTSt mainTask tst = {TSt|tst & mainTask = mainTask}
 	
+	
+	restoreTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
+	restoreTSt mainTask properties tst = {TSt|tst & mainTask = mainTask, properties = properties}
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
 	* In case of evaluating a subprocess, this also includes the changes that have been injected
 	* at parent nodes. Persistent changes are queued in the temporal order in which they were injected.
 	* The oldest change is at the head of the list.
 	*/
-	loadPersistentChanges :: !ProcessId *TSt -> *TSt 
+	loadPersistentChanges :: !ProcessId !*TSt -> *TSt 
 	loadPersistentChanges processId tst
 		# (changes,tst)	= getChangesForProcess processId tst
 		# (changes,tst) = loadChangeFunctions changes tst
@@ -307,11 +315,11 @@ where
 										= {tst & currentChange = Just (lifetime,change)}
 				// Evaluate the thread
 				// IMPORTANT: The taskNr is reset with the latest change count
-				# (result,tst) 	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId]}
-				= (changeCount,thread,properties,result,tst)
+				# (result,tst=:{TSt|properties}) 	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
+				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 			Nothing
-				# (result,tst)	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId]}
-				= (changeCount,thread,properties,result,tst)
+				# (result,tst=:{TSt|properties})	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
+				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
 	
 	applyChange :: !TaskNr !Dynamic !Dynamic !TaskProperties -> (!Maybe Dynamic, !Maybe Dynamic, !TaskProperties)
 	//Apply a change that matches a specific type
@@ -381,7 +389,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted"}, tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = ("","")} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -389,7 +397,8 @@ calculateTaskTree processId tst
 					# (result,tree,tst) = evaluateTaskInstance process Nothing True False tst
 					= (tree,tst)
 				_		
-					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished"}, tst)
+					//retrieve process result from store and show it??
+					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker} [], tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -408,12 +417,16 @@ getCurrentSession :: !*TSt 	-> (!Session, !*TSt)
 getCurrentSession tst =:{staticInfo} = (staticInfo.currentSession, tst)
 
 getCurrentUser :: !*TSt -> (!User, !*TSt)
-getCurrentUser tst =: {staticInfo}
-	= (staticInfo.currentSession.Session.user, {tst & staticInfo = staticInfo})
+getCurrentUser tst =:{staticInfo}
+	= (staticInfo.currentSession.user, {TSt | tst & staticInfo = staticInfo})
 
 getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 getCurrentProcess tst =: {staticInfo}
 	= (staticInfo.currentProcessId, {tst & staticInfo = staticInfo})
+
+getCurrentWorker :: !*TSt -> (!User, !*TSt)
+getCurrentWorker tst =: {TSt | properties}
+	= getUser (fst properties.managerProps.TaskManagerProperties.worker) {TSt | tst & properties = properties}
 
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
@@ -452,7 +465,7 @@ mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTFinishedTask taskInfo} //We use a FinishedTask node because the task is finished after one evaluation
+		= taskfun {tst & tree = TTFinishedTask taskInfo []} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMonitorTask`
@@ -521,11 +534,11 @@ where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
-mkParallelTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkParallelTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkParallelTask`
+mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkParallelTask taskname tpi taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
-		# tst = {tst & tree = TTParallelTask taskInfo [], taskNr = [0:taskNr]}												
+		# tst = {tst & tree = TTParallelTask taskInfo tpi [], taskNr = [0:taskNr]}												
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
@@ -535,17 +548,18 @@ where
 		= taskfun {tst & tree = TTMainTask taskInfo (abort "Executed undefined maintask") []}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world}
+applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties}
 	# taskId					= iTaskId taskNr ""
 	# (taskVal,dataStore,world)	= loadValue taskId dataStore world
 	# taskInfo =	{ taskId		= taskNrToString taskNr
 					, taskLabel		= desc.TaskDescription.title
 					, traceValue	= ""
+					, worker		= properties.managerProps.TaskManagerProperties.worker
 					}
 	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo}
 	= case taskVal of
 		(Just (TaskFinished a))	
-			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) tst
+			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a)) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
@@ -564,7 +578,7 @@ applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world}
 					
 					// Store final value
 					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a}) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a)) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskFinished a, tst)
 				(TaskBusy)
 					// Store intermediate value
@@ -584,16 +598,16 @@ where
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti tasks)	= {tst & tree = TTMainTask ti mti [node:tasks]}
-		(TTSequenceTask ti tasks)	= {tst & tree = TTSequenceTask ti [node:tasks]}
-		(TTParallelTask ti tasks)	= {tst & tree = TTParallelTask ti [node:tasks]}
-		_							= {tst & tree = tree}
+		(TTMainTask ti mti tasks)		= {tst & tree = TTMainTask ti mti [node:tasks]}
+		(TTSequenceTask ti tasks)		= {tst & tree = TTSequenceTask ti [node:tasks]}
+		(TTParallelTask ti tpi tasks)	= {tst & tree = TTParallelTask ti tpi [node:tasks]}
+		_								= {tst & tree = tree}
 	
 	//update the finished, tasks and traceValue fields of a task tree node
 	updateTaskNode (TTInteractiveTask ti defs)		= TTInteractiveTask	ti defs
 	updateTaskNode (TTMonitorTask ti status)		= TTMonitorTask		ti status
 	updateTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
-	updateTaskNode (TTParallelTask ti tasks)		= TTParallelTask	ti (reverse tasks)
+	updateTaskNode (TTParallelTask ti tpi tasks)	= TTParallelTask	ti tpi (reverse tasks)
 	updateTaskNode (TTMainTask ti mti tasks)		= TTMainTask		ti mti (reverse tasks)		
 	updateTaskNode (TTRpcTask ti rpci)				= TTRpcTask			ti rpci
 		

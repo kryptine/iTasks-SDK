@@ -28,10 +28,9 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 
 					, mainTask		:: !ProcessId										// The id of the current main task 
-							
+					, properties	:: !TaskProperties									// Properties of the current evaluated process		
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
-						
-					
+										
 					, currentChange	:: !Maybe (!ChangeLifeTime,!Dynamic)				// An active change
 					, pendingChanges:: ![(!ChangeLifeTime,!Dynamic)]					// Pending persistent changes
 					
@@ -239,11 +238,12 @@ mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * combining a set of parallel subtasks
 *
 * @param A name used as the task label
+* @param Some info about the behavior of the parallel task
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed parallel task
 */
-mkParallelTask 		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of proper type to create a function that will make a
 * main task. This is a sequence node that keeps track of additional information

@@ -17,7 +17,7 @@ determineRPCItems forest tst = (flatten [determineTreeRPCItems tree \\ tree <- f
 determineTreeRPCItems :: !TaskTree -> [RPCExecute]
 determineTreeRPCItems (TTMainTask ti mti children)
 	= flatten [(determineTreeRPCItems child) \\ child <- children]
-determineTreeRPCItems (TTParallelTask ti children)
+determineTreeRPCItems (TTParallelTask ti tpi children)
 	= flatten [(determineTreeRPCItems child) \\ child <- children]
 determineTreeRPCItems (TTSequenceTask ti children)
 	= flatten [(determineTreeRPCItems child) \\ child <- children]
@@ -29,7 +29,7 @@ handleRPCUpdates request tst
 	# (tree, tst) = calculateTaskTree procId tst
 	# tst		  = updateTimeStamps procId tst
 	= case tree of
-		(TTFinishedTask ti)				= finished tst
+		(TTFinishedTask ti _)			= finished tst
 		_								= success tst
 where
 	taskId	= http_getValue "_rpctaskid" request.arg_post "0"

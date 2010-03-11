@@ -36,13 +36,15 @@ where
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
 
+import StdDebug
+
 instance ProcessDB TSt
 where
 	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
 	createProcess entry tst
 		#(procs,tst)	= processStore id tst
 		# pid = if (entry.Process.processId <> "") entry.Process.processId (getNewPid procs entry)
-		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = pid, properties = {TaskProperties| entry.properties & systemProps = {TaskSystemProperties|entry.properties.systemProps & processId = pid}} }]) tst
+		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {TaskSystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) tst
 		= (pid, tst)
 		
 	deleteProcess :: !ProcessId !*TSt	-> (!Bool, !*TSt)
@@ -61,7 +63,7 @@ where
 	getProcessForUser :: !UserName !ProcessId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForUser userName processId tst
 		# (procs,tst) 	= processStore id tst
-		#  usernames	= [fst p.Process.properties.managerProps.worker \\ p <- procs | relevantProc processId p]
+		#  usernames	= [fst p.Process.properties.managerProps.TaskManagerProperties.worker \\ p <- procs | relevantProc processId p]
 		= case [p \\ p <- procs | p.Process.processId == processId && isMember userName usernames] of
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
@@ -86,13 +88,25 @@ where
 		# procids		= [p \\ p <- rprocs | p <> ""]
 		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
 	where
-		relevantProc userName {processId, properties = {managerProps = {worker}}}
+		relevantProc userName {Process | processId, properties}
+			# worker = properties.managerProps.TaskManagerProperties.worker
 			| fst worker == userName	= processId
 			| otherwise					= ""
 	
+	getTempProcessesForUser :: !UserName ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+	getTempProcessesForUser userName statusses tst
+		# (procs,tst) 	= processStore id tst
+		# rprocs		= map (relevantProc userName) procs
+		# procids		= [p \\ p <- rprocs | p <> ""]
+		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
+	where
+		relevantProc userName {Process | processId, properties = {managerProps = {worker,tempWorkers}}}
+			| isMember userName [u \\ (p,u) <- tempWorkers] && userName <> fst worker = processId
+			| otherwise 															  = ""
+	
 	setProcessOwner	:: !(UserName, DisplayName) !(UserName,DisplayName) !ProcessId !*TSt	-> (!Bool, !*TSt)
 	setProcessOwner worker manager processId tst
-		= updateProcess processId (\x -> {Process| x & properties = {TaskProperties|x.properties & systemProps = {x.properties.systemProps & manager = manager}, managerProps = {x.properties.managerProps & worker = worker}}}) tst
+		= updateProcess processId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & systemProps = {x.Process.properties.systemProps & manager = manager}, managerProps = {TaskManagerProperties | x.Process.properties.managerProps & worker = worker}}}) tst
 	
 	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
 	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst
@@ -112,7 +126,7 @@ where
 			| otherwise							= (x, False)
 
 	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*TSt -> (!Bool, !*TSt)
-	updateProcessProperties processId f tst = updateProcess processId (\p -> {Process |p & properties = f p.properties}) tst
+	updateProcessProperties processId f tst = updateProcess processId (\p -> {Process |p & properties = f p.Process.properties}) tst
 
 	removeFinishedProcesses :: !*TSt -> (!Bool, !*TSt)
 	removeFinishedProcesses tst

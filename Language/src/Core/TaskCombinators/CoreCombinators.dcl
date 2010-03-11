@@ -5,8 +5,10 @@ definition module CoreCombinators
 */
 from Types 			import :: Task, :: TaskPriority
 from Time			import :: Timestamp
+from TaskTree		import :: TaskParallelType
 
 from	iTasks		import class iTask(..)
+
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 //Standard monadic operations:
@@ -95,7 +97,22 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param The list of tasks to be executed in parallel
 * @return The combined task
 */
-parallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+oldParallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+
+/**
+* Execute a list of tasks in parallel. The parameters define how the tasks are combined in the
+* user interface and when the combined task is finished. The combinator keeps an internal state of type 'b'
+* and uses the accumulator function to alter this state using the result of a subtask as soon as it is finished.
+*
+* @param Label
+* @param An accumulator function which alters the internal state
+* @param A function which transforms the internal state to the desired output
+* @param Initial value of the internal state
+* @param List of initial tasks
+*/
+:: ParallelAction  a = Stop | Continue | Extend [Task a] | ExtendU [(User,Task a)]
+parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(User,Task a)] -> Task c | iTask a & iTask b & iTask c
 
 // Multi-user workflows
 

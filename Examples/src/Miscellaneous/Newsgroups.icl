@@ -230,9 +230,9 @@ cancel :: (Task a) -> Task a | iTask a
 cancel task = task -||- (showMessage "Cancel this task" >>| getDefaultValue)
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iTask a
-orTasks2 msg tasks = parallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] 
+orTasks2 msg tasks = oldParallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] 
 
-myAndTasks msg tasks =	parallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks]
+myAndTasks msg tasks =	oldParallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks]
 
 // reading and writing of storages
 

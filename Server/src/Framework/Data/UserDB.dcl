@@ -93,3 +93,8 @@ updateUser :: !User !*TSt -> (!User,!*TSt)
 * @retrun The database handle 
 */
 deleteUser :: !User !*TSt -> (!User,!*TSt)
+
+/**
+* Returns the default/unknown user
+**/
+unknownUser :: User

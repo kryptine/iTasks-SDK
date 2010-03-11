@@ -32,12 +32,26 @@ handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
 	# username				= staticInfo.currentSession.user.User.userName
 	# (processes,tst)		= getProcessesForUser username [Active] tst
-	# workitems				= bldWorkItems processes
+	# (tmpprocs ,tst)		= getTempProcessesForUser username [Active] tst
+	# proclist				= processes++tmpprocs
+	# fproclist				= filter proclist
+	# workitems				= bldWorkItems fproclist
 	# worklist				= { success		= True
 							  , total		= length workitems
 							  , worklist	= workitems
 							  }
 	= ({http_emptyResponse & rsp_data = toJSON worklist}, tst)
+where
+	filter plist = [p \\ p <- plist | filter` p]
+	where
+		filter` p 
+			= case p.inParallelType of
+				Nothing 		= True
+				(Just Open)
+					= not (isMember p.parent [p.Process.processId \\ p <- plist])
+				(Just Closed)
+					| staticInfo.currentSession.user.User.userName <> fst p.Process.properties.systemProps.manager = True
+					| otherwise = False	
 
 bldWorkItems :: [Process] -> [WorkListItem]
 bldWorkItems processes

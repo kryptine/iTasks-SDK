@@ -23,10 +23,11 @@ where
 	startWorkflow :: !Workflow !*TSt -> (!ProcessId,!*TSt)
 	startWorkflow workflow tst=:{staticInfo}
 		# user			= staticInfo.currentSession.user
-		# properties	= { worker		= (user.User.userName, user.User.displayName)
-						  , subject 	= workflow.Workflow.label
-						  , priority	= NormalPriority
-						  , deadline	= Nothing
+		# properties	= { worker			= (user.User.userName, user.User.displayName)
+						  , subject 		= workflow.Workflow.label
+						  , priority		= NormalPriority
+						  , deadline		= Nothing
+						  , tempWorkers		= []
 						  }
 		# (_,pid,tst) = createTaskInstance workflow.Workflow.mainTask properties True tst
 		= (pid,tst)

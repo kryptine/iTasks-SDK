@@ -16,10 +16,10 @@ import CommonCombinators
 
 import Store
 
-derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
-derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
-derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
-derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp
+derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 derive bimap	Maybe, (,)
 
@@ -53,7 +53,7 @@ getProcessOwner pid = mkInstantTask "getProcess" getProcessStatus`
 where
 	getProcessStatus` tst 
 	# (process,tst)	= ProcessDB@getProcess (toProcessId pid) tst
-	# owner 		= if (isNothing process) Nothing (Just (fst (fromJust process).properties.managerProps.worker))
+	# owner 		= if (isNothing process) Nothing (Just (fst (fromJust process).Process.properties.managerProps.TaskManagerProperties.worker))
 	= (TaskFinished owner,tst)
 	
 setProcessOwner :: !UserName !pid -> Task Bool | toProcessId pid

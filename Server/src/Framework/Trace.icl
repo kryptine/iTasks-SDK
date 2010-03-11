@@ -15,24 +15,27 @@ traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"] ]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Temp. Access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "In Open Parallel?" ] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
 							, TdTag [] [Text process.Process.properties.managerProps.subject]
-							, TdTag [] [Text (toString (fst process.Process.properties.managerProps.worker) +++ ": " +++ snd process.Process.properties.managerProps.worker)]
+							, TdTag [] [Text (toString (fst process.Process.properties.managerProps.TaskManagerProperties.worker) +++ ": " +++ snd process.Process.properties.managerProps.TaskManagerProperties.worker)]
+							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.managerProps.tempWorkers])]
 							, TdTag [] [Text (toString (fst process.Process.properties.systemProps.manager) +++ ": " +++ snd process.Process.properties.systemProps.manager)]
 							, TdTag [] [Text (toString process.Process.status)]
 							, TdTag [] (case process.Process.parent of
 											""	= [Text "N/A"]
 											x	= [Text (toString x)]
 										)
+							, TdTag [] [Text (printToString process.inParallelType)]
 							]
 
 traceTaskTree :: TaskTree -> TraceTree
 traceTaskTree tree = mkTree tree
 where
 	mkTree (TTInteractiveTask info _) 
+		# (userId, userName) =  info.TaskInfo.worker
 		= { cls = "master-task"
-		  , user = ""
+		  , user = userName+++" ("+++toString userId+++")"
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-int"
@@ -44,8 +47,9 @@ where
 		  }
 	
 	mkTree (TTMonitorTask info _ )
+		# (userId, userName) =  info.TaskInfo.worker
 		= { cls = "master-task"
-		  , user = ""
+		  , user = userName+++" ("+++toString userId+++")"
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-mon"
@@ -57,8 +61,9 @@ where
 		  }
 	
 	mkTree (TTRpcTask info _ )
+		# (userId, userName) =  info.TaskInfo.worker
 		= { cls = "master-task"
-		  , user = ""
+		  , user = userName+++" ("+++toString userId+++")"
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-rpc"
@@ -70,8 +75,9 @@ where
 		  }		  
 		  
 	mkTree (TTSequenceTask info trees)
+		# (userId, userName) =  info.TaskInfo.worker
 		= { cls = "master-task"
-		  , user = ""
+		  , user = userName+++" ("+++toString userId+++")"
 		  , uiProvider = "col"
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-seq"
@@ -82,15 +88,16 @@ where
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
-	mkTree (TTParallelTask info trees)
+	mkTree (TTParallelTask info tpi trees)
+		# (userId, userName) =  info.TaskInfo.worker
 		= { cls = "master-task"
-		  , user = ""
+		  , user = userName+++" ("+++toString userId+++")"
 		  , uiProvider = "col"
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-par"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
+		  , traceValue = tpi.TaskParallelInfo.description
 		  , taskClass = "PAR"
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
@@ -109,9 +116,10 @@ where
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
-	mkTree (TTFinishedTask info)
+	mkTree (TTFinishedTask info _)
+		# (userId, userName) =  info.TaskInfo.worker
 		= { cls = "master-task"
-		  , user = ""
+		  , user = userName+++" ("+++toString userId+++")"
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-fin"

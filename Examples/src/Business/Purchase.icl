@@ -20,7 +20,7 @@ from TSt 		import applyTask, mkSequenceTask, mkParallelTask
 from TSt 		import :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Store, :: Config
 from SessionDB	import :: Session
 from Types		import :: ProcessId, :: TaskNr
-from TaskTree	import :: TaskTree
+from TaskTree	import :: TaskTree, :: TaskParallelInfo{..}
 
 //Main types
 :: Purchase	=	{	name	:: !String

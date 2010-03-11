@@ -5,7 +5,7 @@ definition module ProcessDB
 */
 import StdMaybe
 import Types, TSt
-from TaskTree	import :: TaskProperties
+from TaskTree	import :: TaskProperties, :: TaskParallelType
 from Time		import :: Timestamp
 
 /**
@@ -17,6 +17,7 @@ from Time		import :: Timestamp
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
 				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  , menus			:: !(Maybe [Menu])
+				  , inParallelType	:: !(Maybe TaskParallelType)		// The type of parallel, if the process is part of one
 				  }				
 
 :: ProcessStatus =	Active
@@ -58,7 +59,8 @@ where
 	getProcesses 			:: ![ProcessStatus] 											!*st -> (![Process], 	!*st)
 	getProcessesById		:: ![ProcessId]													!*st -> (![Process],	!*st)
 	getProcessesForUser		:: !UserName ![ProcessStatus]									!*st -> (![Process],	!*st)
-
+	getTempProcessesForUser :: !UserName ![ProcessStatus]									!*st -> (![Process],	!*st)
+	
 	setProcessOwner			:: !(UserName,DisplayName) !(UserName,DisplayName) !ProcessId	!*st -> (!Bool,			!*st)
 	setProcessStatus		:: !ProcessStatus !ProcessId									!*st -> (!Bool,			!*st)
 
