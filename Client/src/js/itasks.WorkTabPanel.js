@@ -600,7 +600,11 @@ itasks.TaskMonitorPanel = Ext.extend(Ext.Panel, {
 		itasks.TaskMonitorPanel.superclass.initComponent.apply(this,arguments);
 	},
 	update: function(data) {
-		this.el.update(data.html);
+		if (this.rendered) {
+			this.el.update(data.html);
+		} else {
+			this.html = data.html;
+		}
 	}
 });
 
