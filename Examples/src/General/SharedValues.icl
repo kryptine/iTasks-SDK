@@ -7,8 +7,8 @@ derive bimap Maybe, (,)
 quitButton = ButtonAction (ActionQuit, Always)
 
 //Text-Lines Examples
-noteEditor = editor {editorFrom = (\txt -> Note txt),		editorTo = (\(Note txt) _ -> txt)}
-listEditor = editor {editorFrom = (\txt -> split "\n" txt),	editorTo = (\l _ -> join "\n" l)}
+noteEditor = editor {editorFrom = \txt -> Note txt,			editorTo = \(Note txt) _ -> txt}
+listEditor = editor {editorFrom = \txt -> split "\n" txt,	editorTo = \l _ -> join "\n" l}
 
 TrimAction :== ActionLabel "Trim"
 
@@ -29,7 +29,7 @@ linesSingle = ignoreResult (updateSharedLocal "Text & Lines" [quitButton] "" [no
 
 //Calculate Sum Example
 calculateSum :: Task Void
-calculateSum = ignoreResult (updateSharedLocal "Sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = (\(x,y) -> x + y)}])
+calculateSum = ignoreResult (updateSharedLocal "Sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = \(x,y) -> x + y}])
 
 //Tree Example
 :: Tree a = Leaf | Node (Node a)
@@ -100,14 +100,21 @@ where
 								RemoveMarkersAction	= googleMaps` {GoogleMap| map & markers = []}
 								_					= stop
 
-	optionsEditor	= editor	{ editorFrom	= (\map			-> {type = map.mapType, showMapTypeControl = map.mapTypeControl, showNavigationControl = map.navigationControl, showScaleControl = map.scaleControl, size = if (map.GoogleMap.width == 400) Normal Large})
-								, editorTo		= (\opts map	-> {map & mapType = opts.MapOptions.type, mapTypeControl = opts.showMapTypeControl, navigationControl = opts.showNavigationControl, scaleControl = opts.showScaleControl, width = case opts.MapOptions.size of Large = 800; Normal = 400})
+	optionsEditor	= editor	{ editorFrom	= \map			-> {type = map.mapType, showMapTypeControl = map.mapTypeControl, showNavigationControl = map.navigationControl, showScaleControl = map.scaleControl, size = if (map.GoogleMap.width == 400) Normal Large}
+								, editorTo		= \opts map	-> {map & mapType = opts.MapOptions.type, mapTypeControl = opts.showMapTypeControl, navigationControl = opts.showNavigationControl, scaleControl = opts.showScaleControl, width = case opts.MapOptions.size of Large = 800; Normal = 400}
 								}
-	overviewEditor	= editor	{ editorFrom	= (\map			-> {GoogleMap| map & mapTypeControl = False, navigationControl = False, scaleControl = False, scrollwheel = False, zoom = 7})
-								, editorTo		= (\nmap map	-> {GoogleMap| map & center = nmap.GoogleMap.center})
+	overviewEditor	= editor	{ editorFrom	= \map			-> {GoogleMap| map & mapTypeControl = False, navigationControl = False, scaleControl = False, scrollwheel = False, zoom = 7}
+								, editorTo		= \nmap map	-> {GoogleMap| map & center = nmap.GoogleMap.center}
 								}
-	markersListener	= listener	{ listenerFrom	= (\map			-> [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers])
+	markersListener	= listener	{ listenerFrom	= \map			-> [{position = position, map = {GoogleMap| mkMap & center = position, width = 150, height = 150, zoom = 15, markers = [marker]}} \\ marker=:{GoogleMapMarker| position} <-map.markers]
 								}
+
+//Auto sorted list
+autoSortedList :: Task Void
+autoSortedList = ignoreResult (updateSharedLocal "Automatically Sorted List" [quitButton] emptyL [editor {editorFrom = \list -> sort list, editorTo = \list _ -> list}])
+where
+	emptyL :: [String]
+	emptyL = []
 								
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Values/Text-Lines (parallel tasks)" linesPar
@@ -116,4 +123,5 @@ sharedValueExamples =	[ workflow "Examples/Shared Values/Text-Lines (parallel ta
 						, workflow "Examples/Shared Values/Balanced Binary Tree" tree
 						, workflow "Examples/Shared Values/Merge Test" mergeTest
 						, workflow "Examples/Shared Values/Google Maps Example" googleMaps
+						, workflow "Examples/Shared Values/Sorted List" autoSortedList
 						]
