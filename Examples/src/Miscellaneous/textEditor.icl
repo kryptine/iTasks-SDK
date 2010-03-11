@@ -38,43 +38,48 @@ getAllFileNames =
 	>>= \files.	return (map (\f -> (f.fileId, f.TextFile.name)) files)
 			
 :: AppState = AppState Note (Maybe TextFile)
-derive gPrint AppState
-derive gParse AppState
-derive gVisualize AppState
-derive gUpdate AppState
+:: AppAction = AppAction (ParallelAction AppAction)
+derive gPrint AppState, AppAction, ParallelAction
+derive gParse AppState, AppAction, ParallelAction
+derive gVisualize AppState, AppAction, ParallelAction
+derive gUpdate AppState, AppAction, ParallelAction
+derive gMerge AppState, TextFile, DBRef
 
-open :: AppState Note -> Task AppState
-open st=:(AppState _ file) ntxt =
+openFile :: (DBRef TextFile) (SharedID AppState) -> Task Void
+openFile id sid =
+				getFile id
+	>>= \file.	setShared sid (AppState file.content (Just file))
+	
+open :: (SharedID AppState) -> Task AppAction
+open sid =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
 					(		showMessage "No files to open!"
-					 >>|	return (AppState ntxt file)
+					 >>|	return (AppAction Continue)
 					)
 					(							enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files
-					 >>= \(action,(id,name)).	case action of
-					 								ActionOk	=		addToRecentlyOpened name id
-					 												>>|	openFile id st ntxt
-					 								_			=		return (AppState ntxt file)
+					 >>= \(action,(fid,name)).	case action of
+					 								ActionOk	=				addToRecentlyOpened name fid
+					 												>>|			openFile fid sid
+					 												>>|			return (AppAction Continue)
+					 								_			=				return (AppAction Continue)
 					)
 
-openFile :: (DBRef TextFile) AppState Note -> Task AppState
-openFile id _ _ =
-				getFile id
-	>>= \file.	return (AppState file.content (Just file))
-
-save :: AppState Note -> Task AppState
-save (AppState otxt (Just file)) ntxt =
-				dbUpdateItem {file & content = ntxt}
-	>>= \file.	return (AppState ntxt (Just file))
-save st txt = saveAs st txt
+save :: (SharedID AppState) -> Task Void
+save sid =
+										getShared sid
+	>>= \(AppState ntxt (Just file)).	dbUpdateItem {file & content = ntxt}
+	>>= \file.							setShared sid (AppState ntxt (Just file))
 					
-saveAs :: AppState Note -> Task AppState
-saveAs (AppState otxt file) ntxt =
+saveAs :: (SharedID AppState) -> Task AppAction
+saveAs sid =
 						enterInformationA "Save As: enter name" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 	>>= \(action,name).	case action of
-							ActionOk	=				storeFile name ntxt
-											>>=	\file.	return (AppState file.content (Just file))
-							_			=				return (AppState ntxt file)
+							ActionOk	=							getShared sid
+											>>= \(AppState txt _).	storeFile name txt
+											>>=	\file.				setShared sid (AppState file.content (Just file))
+											>>|						return (AppAction Continue)
+							_			=							return (AppAction Continue)
 
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
@@ -84,18 +89,41 @@ derive gParse Replace
 derive gVisualize Replace
 derive gUpdate Replace
 
-replaceT :: AppState Note -> Task AppState
-replaceT (AppState _ file) (Note txt) =
-						enterInformationA "Replace..." [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
+ActionReplaceAll	:== ActionLabel "Replace All"
+ActionClose			:== ActionLabel "Close"
+
+replaceT :: (SharedID AppState) -> Task AppAction
+replaceT sid =
+						enterInformationA "Replace..." [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)]
 	>>= \(action, v).	case action of
-							ActionOk	= return (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
-							_			= return (AppState (Note txt) file)
+							ActionReplaceAll	=										getShared sid
+													>>= \(AppState (Note txt) file).	setShared sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
+													>>|									return (AppAction (Extend [replaceT sid]))
+							_					= 										return (AppAction Continue)
 
-about :: Task Void
-about = showMessage "iTextEditor V0.01"
+:: TextStatistics =	{ lines			:: Int
+					, words			:: Int
+					, characters	:: Int
+					}
+derive gPrint TextStatistics
+derive gParse TextStatistics
+derive gVisualize TextStatistics
+derive gUpdate TextStatistics
 
-initState :: Task AppState
-initState = return (AppState (Note "") Nothing)
+statistics :: (SharedID AppState)  -> Task AppAction
+statistics sid =
+		updateShared "Statistics" [ButtonAction (ActionOk, Always)] sid [statsListener]
+	>>| return (AppAction Continue)
+where
+	statsListener = listener {listenerFrom = \(AppState (Note txt) _) -> {lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}}
+
+about :: Task AppAction
+about =
+		showMessage "iTextEditor V0.01"
+	>>|	return (AppAction Continue)
+
+initState :: AppState
+initState = AppState (Note "") Nothing
 
 addToRecentlyOpened :: String (DBRef TextFile) -> Task Void
 addToRecentlyOpened name (DBRef id) =
@@ -104,32 +132,44 @@ addToRecentlyOpened name (DBRef id) =
 					Just (SubMenu label entries)	= setMenuItem "recOpened" (SubMenu label (take 5[MenuItem name (ActionParam "openFile" (toString id)):entries]))
 					_								= return Void
 
-textEditorApp :: Task Void
-textEditorApp = initState >>= textEditor` 
+ActionReplace	:== ActionLabel "replace"
+ActionStats		:== ActionLabel "stats"
+
+textEditorMain :: (SharedID AppState) -> Task AppAction
+textEditorMain sid  =
+						updateShared "Text Editor" [MenuParamAction ("openFile", Always):(map MenuAction actions)] sid [titleListener,mainEditor]
+	>>= \(action, _).	case action of
+							ActionNew					= setShared sid initState >>|			return (AppAction (Extend [textEditorMain sid]))
+							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid]))
+							ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) sid >>|	return (AppAction (Extend [textEditorMain sid]))
+							ActionSave					= save sid >>|							return (AppAction (Extend [textEditorMain sid]))
+							ActionSaveAs				=										return (AppAction (Extend [textEditorMain sid, saveAs sid]))
+							ActionReplace				= 										return (AppAction (Extend [textEditorMain sid, replaceT sid]))
+							ActionStats					=										return (AppAction (Extend [textEditorMain sid, statistics sid]))
+							ActionShowAbout				= 										return (AppAction (Extend [textEditorMain sid, about]))
+							_							=										return (AppAction Stop)
 where
-	textEditor` st=:(AppState txt file) =
-								updateInformationA title [MenuParamAction ("openFile", Always):(map MenuAction actions)] txt
-		>>= \(action, ntxt).	case action of
-									ActionNew					= initState										>>= textEditor`
-									ActionOpen					= open st ntxt									>>= textEditor`
-									ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) st ntxt			>>= textEditor`
-									ActionSave					= save st ntxt									>>= textEditor`
-									ActionSaveAs				= saveAs st ntxt								>>= textEditor`
-									ActionLabel "replace"		= replaceT st ntxt								>>= textEditor`
-									ActionShowAbout				= about >>| return (AppState ntxt file)			>>= textEditor`
-									_							= return Void
-	where
-		title = case file of
-			Nothing		= "New Text Document"
-			(Just f)	= f.TextFile.name
-		actions =	[ (ActionNew,					Always)
-					, (ActionOpen,					Always)
-					, (ActionSave,					(Predicate (\_ -> isJust file)))
-					, (ActionSaveAs,				Always)
-					, (ActionQuit,					Always)
-					, (ActionLabel "replace",		(Predicate (\v -> case v of Invalid = False; Valid (Note v) = v <> "")))
-					, (ActionShowAbout,				Always)
-					]
+	actions =	[ (ActionNew,		Always)
+				, (ActionOpen,		Always)
+				, (ActionSave,		(Predicate (\(Valid (AppState _ file)) -> isJust file)))
+				, (ActionSaveAs,	Always)
+				, (ActionQuit,		Always)
+				, (ActionReplace,	(Predicate (\(Valid (AppState (Note txt) _)) -> txt <> "")))
+				, (ActionStats,		Always)
+				, (ActionShowAbout,	Always)
+				]
+	titleListener = listener {listenerFrom = \(AppState _ file) -> mkTitle file}
+	mainEditor = editor	{ editorFrom	= \(AppState txt _) -> txt
+						, editorTo		= \ntxt (AppState _ file) -> AppState ntxt file
+						}
+	mkTitle file = case file of
+		Nothing		= "New Text Document"
+		(Just f)	= f.TextFile.name
+
+textEditorApp :: Task Void
+textEditorApp =
+				createShared initState
+	>>= \sid.	parallel "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
 			
 initTextEditor :: Task Void
 initTextEditor = setMenus
@@ -142,13 +182,10 @@ initTextEditor = setMenus
 					, MenuSeparator
 					, MenuItem "Quit"			ActionQuit
 					]
-	, Menu "Edit"	[ MenuItem "Replace..."		(ActionLabel "replace") ]
+	, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace ]
+	, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats ]
 	, Menu "Help"	[ MenuItem "About"			ActionShowAbout ]
 	]
 
 textEditor :: [Workflow]
-textEditor = [{ name = "Examples/Miscellaneous/Text Editor"
-		, label = "Text Editor"
-		, roles = []
-		, mainTask = initTextEditor >>| textEditorApp
-		}]
+textEditor = [workflow "Examples/Miscellaneous/Text Editor" (initTextEditor >>| textEditorApp)]
