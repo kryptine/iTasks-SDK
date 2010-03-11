@@ -39,6 +39,12 @@ class InCart  a | nameOf, priceOf, amountOrderedOf  a
 						}
 :: ShopAction		=	LeaveShop | ToCart | ToPay | ToShop
 
+:: ProductSearch	=	{ name		:: !String
+						, amount	:: !Int
+						, note		:: !Note
+						}
+
+
 defaultProduct		:: Task Book
 defaultCart			:: Task (Cart Book)
 

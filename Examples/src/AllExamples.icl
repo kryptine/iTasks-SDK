@@ -7,9 +7,7 @@ import BasicWorkflows
 
 //Business examples
 import Vote
-import Purchase
 import TravelBooking
-import OrderProcessing
 import ScheduleMeeting
 
 //Higher order examples
@@ -26,8 +24,6 @@ import BugReport
 import Coffeemachine
 import Newsgroups
 import ChangeHandling
-//import WebShop
-//import ideExample
 import textEditor
 
 //Crisis response examples
@@ -51,9 +47,7 @@ Start world = startEngine workflows world
 where
 	workflows = flatten [ basicWorkflows
 						, voteExample
-						, purchaseExample
 						, travelBookingExample
-						, orderProcessingExample
 						, scheduleMeetingExample
 						, movingTaskExample
 						, deadlineTaskExample
@@ -67,8 +61,6 @@ where
 						, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample
-						//, ideExample
-//						, webShopExample
 						, ambulanceDispatchExamples
 						, ambulanceDispatchMapExamples
 						, changeExamples

@@ -4,10 +4,10 @@ import GenBimap, GenVisualize, GenUpdate
 import ShopDSL
 
 //	Generic boilerplate code:
-derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
+derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
+derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
+derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
 
 //	Manual boilerplate code:
 instance billingAddressOf   (Order    a) where billingAddressOf   r		= r.Order.billingAddress

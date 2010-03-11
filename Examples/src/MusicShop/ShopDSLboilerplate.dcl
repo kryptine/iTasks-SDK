@@ -4,10 +4,10 @@ import ShopDSL
 import GenVisualize, GenUpdate
 
 //	Generic boilerplate code:
-derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
-derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart
+derive gPrint		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
+derive gParse		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
+derive gVisualize	Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
+derive gUpdate		Book, Order, Address, CartItem, CartAmount, ShopAction, InCart, ProductSearch
 
 //	Manual boilerplate code:
 class billingAddressOf   a :: a -> Address

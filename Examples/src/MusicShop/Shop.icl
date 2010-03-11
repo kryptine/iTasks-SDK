@@ -28,7 +28,7 @@ shopFlows
   ,	{ name		= "Suppliers/Special order"
   	, label		= "Special order"
   	, roles		= []
-  	, mainTask	= return Void
+  	, mainTask	= specialProductSearch
   	}
   ]
 
@@ -186,9 +186,58 @@ where
 				  section "ordered items:"    (flatten (map (visualizeAsHtmlDisplay o toInCart) order.itemsOrdered) ++ [DivTag [] (visualizeAsHtmlDisplay (costOrder order))]) ++
 				  section "Confirm:"          [normalText "Is the data above correct?"]
 
+// Special order from suppliers
+specialProductSearch :: Task Void 
+specialProductSearch =
+	defineSearch					>>=	\search		->
+	selectSuppliers 				>>=	\suppliers	->
+	collectBids	search suppliers	>>= \bids		->
+	selectBid bids	 				>>= \bid		->
+	confirmBid search bid
+	
+defineSearch :: Task ProductSearch
+defineSearch = enterInformation "Please describe the item you are looking for"
+	
+selectSuppliers :: Task [User]
+selectSuppliers
+	=	getUsersWithRole "supplier"
+	>>= enterMultipleChoice "Select the suppliers you want to ask"
+		
+collectBids :: ProductSearch [User] -> Task [(User,Currency)]
+collectBids search suppliers
+	= allTasks
+		["Bid for " +++ search.ProductSearch.name +++ " from " +++ supplier.User.displayName
+		 @>> (supplier @: ("Bid request regarding " +++ search.ProductSearch.name, collectBid search supplier))
+		 \\ supplier <- suppliers]
+where
+	collectBid :: ProductSearch User -> Task (User,Currency)
+	collectBid search bid
+		=	enterInformationAbout
+				"Please make a bid to supply the following product"
+				search
+				>>= \price -> return (bid,price)  	
+	
+selectBid :: [(User,Currency)] -> Task (User,Currency)
+selectBid bids
+	=	determineCheapest bids	>>= \cheapestBid=:(supplier,price) ->	
+		requestConfirmation
+			[ Text "The cheapest bid is ", Text (toString price), Text " by ", Text supplier.User.displayName, BrTag [],
+	  		  Text "Do you want to accept this bid?"
+	  		] >>= \acceptCheapest ->
+		if acceptCheapest
+			( return cheapestBid )
+			( enterChoice "Please select one of the following bids" bids )
+where
+	determineCheapest bids = return (hd (sortBy (\(_,x) (_,y) -> x < y) bids))
+	
+confirmBid :: ProductSearch (User,Currency) -> Task Void
+confirmBid search bid =: (user, price)
+	= user @: ("Bid confirmation", showMessage [Text "Your bid of ", Text (toString price),Text " for the product ",ITag [] [Text search.ProductSearch.name], Text " has been accepted."])
+
+
 // little markup functions:
 
 boldText   text				= BTag    [] [Text text, BrTag [], BrTag []]
-normalText text				= BodyTag [] [Text text, BrTag [], BrTag []]
+normalText text				= DivTag [] [Text text, BrTag [], BrTag []]
 ruleText   text				= section text [HrTag []]
 section    label content	= [HrTag  [], boldText label : content]
