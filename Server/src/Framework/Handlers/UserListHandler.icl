@@ -6,18 +6,19 @@ import UserDB
 import JSON
 
 :: UserResponse =
-	{ total	:: Int
-	, users	:: [UserRecord]
+	{ total	:: !Int
+	, users	:: ![UserRecord]
 	}
 :: UserRecord =
-	{ userId 		:: String
-	, displayName	:: String
+	{ user	:: !String
 	}
-	
-derive JSONEncode UserResponse, UserRecord
+
+derive JSONEncode UserResponse,UserRecord
 
 handleUserListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleUserListRequest req tst
 	# (users,tst) = getUsers tst
 	= ({http_emptyResponse & rsp_data = toJSON
-		{UserResponse| users = [{UserRecord|userId = user.User.userName, displayName = user.User.displayName} \\ user <- users], total = length users}}, tst)
+		{UserResponse| users = [{UserRecord
+								|user = user.User.displayName +++ " <" +++ user.User.userName +++ ">"
+								} \\ user <- users], total = length users}}, tst)

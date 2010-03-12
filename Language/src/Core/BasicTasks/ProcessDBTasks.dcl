@@ -39,7 +39,7 @@ getProcess				:: !pid 					-> Task (Maybe Process) | toProcessId pid
 *
 * @return When found, the Process record. Nothing when the process can not be found.
 */
-getProcessForUser		:: !UserName !pid			-> Task (Maybe Process)	| toProcessId pid
+getProcessForUser		:: !UserId !pid			-> Task (Maybe Process)	| toProcessId pid
 /**
 * Retrieves the processes with indicated process ids
 *
@@ -66,7 +66,7 @@ getProcessesWithStatus	:: ![ProcessStatus]			-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !UserName ![ProcessStatus]	-> Task [Process]
+getProcessesForUser		:: !UserId ![ProcessStatus]	-> Task [Process]
 /**
 * Poll who is the owner of a process.
 *
@@ -74,7 +74,7 @@ getProcessesForUser		:: !UserName ![ProcessStatus]	-> Task [Process]
 *
 * @return A task that yields the owner if the referenced process is not deleted
 */
-getProcessOwner 		:: !pid 					-> Task (Maybe UserName) | toProcessId pid
+getProcessOwner 		:: !pid 					-> Task (Maybe UserId) | toProcessId pid
 /**
 * Changes the owner of the indicated process. The current user is automatically set
 * as delegator of the process.
@@ -84,7 +84,7 @@ getProcessOwner 		:: !pid 					-> Task (Maybe UserName) | toProcessId pid
 *
 * @return True when the process is updated, False if the process was not found.
 */
-setProcessOwner			:: !UserName !pid			-> Task Bool 			| toProcessId pid
+setProcessOwner			:: !UserId !pid			-> Task Bool 			| toProcessId pid
 /**
 * Poll the status of a process.
 *

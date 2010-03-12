@@ -7,14 +7,14 @@ definition module UserDBTasks
 import StdMaybe, Void
 
 from TSt	import :: Task
-from Types	import :: User, :: UserName, :: DisplayName, :: Role
+from Types	import :: User, :: UserId, :: DisplayName, :: Role
 
 from InteractionTasks 	import class html
 
 /**
 * Finds a specific user
 */
-getUser 			:: !UserName	-> Task User
+getUser 			:: !UserId	-> Task User
 /**
 * Finds all users
 */
@@ -26,11 +26,11 @@ getUsersWithRole	:: !Role	-> Task [User]
 /**
 * Looks up the corresponding display names for a list of user ids
 */
-getDisplayNames 	:: ![UserName] 	-> Task [DisplayName]
+getDisplayNames 	:: ![UserId] 	-> Task [DisplayName]
 /**
 * Looks up the corresponding roles for a list of user ids
 */
-getRoles			:: ![UserName]	-> Task [[Role]]
+getRoles			:: ![UserId]	-> Task [[Role]]
 /**
 * Authenticates a user by username and password
 */

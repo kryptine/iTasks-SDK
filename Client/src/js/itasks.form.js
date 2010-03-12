@@ -132,8 +132,29 @@ itasks.form.InlineField = Ext.extend(Ext.Panel, {
 	}
 });
 
+itasks.form.UserField = Ext.extend(Ext.form.ComboBox,{
+	store: new Ext.data.JsonStore({
+			root: "users",
+			totalProperty: "total",
+			fields: ["user","label"],
+			//url: itasks.config.serverUrl + "/data/users" //FIX
+			url: "/handlers/data/users"
+	}),
+	valueField: "user",
+	displayField: "user",
+	tpl: new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{user:htmlEncode}</div></tpl>'),
+	triggerAction: "all",
+	editable: false,
+	forceSelection: true,
+	initComponent: function () {
+		itasks.form.UserField.superclass.initComponent.apply(this,arguments);
+		this.addListener("beforequery",function(e) {e.combo.store.baseParams["_session"] = itasks.app.session;});
+	}
+});
+
 Ext.reg("staticfield", itasks.form.StaticField);
 Ext.reg("inlinefield", itasks.form.InlineField);
+Ext.reg("itasks.userfield", itasks.form.UserField);
 
 //Global event firing. This may be used by plugins like
 //Java applets, Flash or Silverlight components

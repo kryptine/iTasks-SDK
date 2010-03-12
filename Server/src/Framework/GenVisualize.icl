@@ -11,6 +11,7 @@ MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the 
 						//with radio buttons. When it exceeds this, a combobox is used.
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
+
 mkVSt :: *VSt
 mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = [0], label = Nothing, useLabels = False, onlyBody = False, optional = False, valid = True, listMask = [], updateValues = False, namePrefix = ""}
 
@@ -620,7 +621,26 @@ where
 		# el = [x \\ x <- nviz & i <- [0..] | i >= lo]
 		= [TUIUpdate (TUIAdd (pfx+++"_"+++toString(lo-1)) x) \\ x <- (reverse el)]
 	| otherwise = []
-		
+
+//UserName type
+gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,namePrefix,updateValues}
+	= case vizType of
+		VEditorDefinition	= ([TUIFragment (TUIUserField {TUIUserField|name = namePrefix +++ (dp2s contentPath), id = id, value = value2s contentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels })]
+								, 2
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+		VEditorUpdate
+			| updateValues 	= ([TUIUpdate (TUISetValue id (value2s currentPath new))]
+								, 2
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)]
+								, 2
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+where
+	// Use the path to the inner constructor instead of the current path.
+	// This way the generic gUpdate will work for this type
+	contentPath				= shiftDataPath currentPath
+	id = dp2id idPrefix contentPath		
+	
 //Document Type
 gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels, namePrefix}
 = case vizType of

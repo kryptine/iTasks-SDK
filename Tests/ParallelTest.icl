@@ -41,46 +41,36 @@ where
 
 parOpenTest :: Task [Int]
 parOpenTest = 
- 	getUser "erik" 	>>= \erik->
- 	getUser "rinus" >>= \rinus-> 
- 			allTasksExt [
-				(erik,  enterInformation "Please enter a number"),
-				(rinus, enterInformation "Please enter a number")] Open
+ 	allTasksExt [
+				("erik",  enterInformation "Please enter a number"),
+				("rinus", enterInformation "Please enter a number")] Open
 
 parClosedTest :: Task [Int]
 parClosedTest =
-	getUser "erik"  >>= \erik ->
-	getUser "rinus" >>= \rinus ->
 		allTasksExt [
-				(erik,  enterInformation "Please enter a number"),
-				(rinus, enterInformation "Please enter a number")] Closed
+				("erik",  enterInformation "Please enter a number"),
+				("rinus", enterInformation "Please enter a number")] Closed
 
 parNestedTest1 :: Task [[Int]]
 parNestedTest1 =
-	getUser "erik"  >>= \erik ->
-	getUser "rinus" >>= \rinus ->
 	allTasksExt [
-		(erik,parOpenTest),
-		(rinus,parOpenTest)
+		("erik",parOpenTest),
+		("rinus",parOpenTest)
 	] Open
 
 parNestedTest2 :: Task [[Int]]
 parNestedTest2 =
-	getUser "erik"  >>= \erik ->
-	getUser "rinus" >>= \rinus ->
 	allTasksExt [
-		(erik,parClosedTest),
-		(rinus,parClosedTest)
+		("erik",parClosedTest),
+		("rinus",parClosedTest)
 	] Open
 
 parNestedTest3 :: Task [[String]]
 parNestedTest3 =
-	getUser "erik"  >>= \erik ->
-	getUser "rinus" >>= \rinus ->
 	allTasksExt [
-		(erik, subtask1),
-		(rinus, subtask2),
-		(erik, subtask3)
+		("erik", subtask1),
+		("rinus", subtask2),
+		("erik", subtask3)
 	] Open
 where
 	subtask1 :: Task [String]
@@ -97,15 +87,15 @@ where
 	subtask3 :: Task [String]
 	subtask3 =
 		getUsers >>= \ulist ->
-		enterMultipleChoice "Please select round-robin users" ulist >>= \users ->
-		parallelU "Weird string function" "Keeps extending until user types '.'" Open (func users) parse (0,[]) [(hd users,task)]
+		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> let usernames = map toUserId users in 
+		parallelU "Weird string function" "Keeps extending until user types '.'" Open (func usernames) parse (0,[]) [(hd usernames,task)]
 		where
-			func :: ![User] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),ParallelAction String)
-			func users (result,pos) (idx,acc)
+			func :: ![UserId] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),ParallelAction String)
+			func usernames (result,pos) (idx,acc)
 			| result == "." = ((idx,acc),Stop)
 			# acc = [(pos,result):acc]
-			# idx = ((idx+1) rem (length users))
-			# usr = users !! idx
+			# idx = ((idx+1) rem (length usernames))
+			# usr = usernames !! idx
 			= ((idx,acc),ExtendU [(usr,task)])
 	
 			task :: Task String

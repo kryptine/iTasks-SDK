@@ -2,12 +2,13 @@ implementation module TUIDefinition
 
 import JSON
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUITextField, TUITextArea, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
+derive JSONEncode TUIButton, TUITextField, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
 derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextField r) c = addXType "textfield" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextArea r) c = addXType "textarea" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIUserField r) c = addXType "itasks.userfield" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUINumberField r) c = addXType "numberfield" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIComboBox r) c = addXType "combo" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUICheckBox r) c = addXType "checkbox" (JSONEncode{|*|} r c)

@@ -400,6 +400,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 			ct.sendUpdates();
 			
 		};
+		
 		switch(comp.getXType()) {
 				case "textfield":
 				case "textarea":
@@ -416,7 +417,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 					comp.on("change",changeTaskEvent);
 					break;
 				case "combo":
+				case "itasks.userfield":
 					comp.on("select",changeTaskEvent);
+					break;
 				case "button":
 				case "menuitem":
 					if(comp.name)
@@ -624,9 +627,9 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 					layout: "form",
 					defaultType: "staticfield",
 					items: [{
-						xtype: "itasks.user",
+						xtype: "itasks.userfield",
 						fieldLabel: "Assigned to",
-						value: this.properties.managerProps.worker[1],
+						value: this.properties.managerProps.worker,
 						listeners: {
 							"change" : { fn: function(ov,nv) {this.findParentByType(itasks.WorkPanel).sendPropertyEvent(this.properties.systemProps.processId,"user",nv);}
 									   , scope: this }
@@ -664,35 +667,10 @@ itasks.TaskWaitingPanel = Ext.extend(Ext.Panel, {
 		this.properties = data.properties;
 
 		var p = data.properties;
-		var props = [p.managerProps.worker[1],p.managerProps.priority,p.workerProps.progress,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
+		var props = [p.managerProps.worker,p.managerProps.priority,p.workerProps.progress,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
 				
 		if(this.getComponent(0).body) this.getComponent(0).body.update("Waiting for <i>" + Ext.util.Format.htmlEncode(data.properties.managerProps.subject) + "</i>");
 		this.getComponent(1).items.each(function(cmt,i){ cmt.setValue(props[i]); });
-	}
-});
-
-
-itasks.form.UserField = Ext.extend(itasks.form.InlineField, {
-	format: function(value, field) { return (field.label != "") ? field.label : value;},
-	field: {
-		xtype: "combo",
-		value: this.value,
-		label: "",
-		store: new Ext.data.JsonStore({
-			root: "users",
-			totalProperty: "total",
-			fields: ["userId","displayName"],
-			url: "/handlers/data/users"
-		}),
-		displayField: "displayName",
-		valueField: "userId",
-		triggerAction: "all",
-		editable: false,
-		forceSelection: true,
-		listeners: {
-			"select" : function(cmt,rec,ind) {cmt.label = rec.get("displayName");},
-			"beforequery" : function(e) {e.combo.store.baseParams["_session"] = itasks.app.session;}
-		}
 	}
 });
 
@@ -720,7 +698,6 @@ itasks.form.ProgressField = Ext.extend(itasks.form.InlineField, {
 	}
 });
 
-Ext.reg("itasks.user",itasks.form.UserField);
 Ext.reg("itasks.priority",itasks.form.PriorityField);
 Ext.reg("itasks.progress",itasks.form.ProgressField);
 

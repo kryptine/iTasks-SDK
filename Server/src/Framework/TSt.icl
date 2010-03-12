@@ -60,7 +60,7 @@ initTaskInfo
 		| taskId = ""
 		, taskLabel = ""
 		, traceValue = ""
-		, worker = ("","")
+		, worker = ""
 		}
 
 initTaskProperties :: TaskProperties
@@ -68,7 +68,7 @@ initTaskProperties
 	= { systemProps =
 		{TaskSystemProperties
 		| processId = ""
-		, manager = ("","")
+		, manager = ""
 		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing
@@ -76,7 +76,7 @@ initTaskProperties
 		}
 	  , managerProps =
 	    {TaskManagerProperties
-	    | worker = ("","")
+	    | worker = ""
 	    , subject = ""
 	    , priority = NormalPriority
 	    , deadline = Nothing
@@ -101,8 +101,8 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		| systemProps =
 			{TaskSystemProperties
 			| processId	= ""
-			, manager		= (manager.User.userName, manager.User.displayName)
-			, issuedAt	= currentTime
+			, manager		= manager.User.displayName +++ " <" +++ manager.User.userName +++ ">"
+			, issuedAt		= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
 			, latestExtEvent = Nothing
@@ -388,7 +388,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = ("","")} [], tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = ""} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -425,7 +425,7 @@ getCurrentProcess tst =: {staticInfo}
 
 getCurrentWorker :: !*TSt -> (!User, !*TSt)
 getCurrentWorker tst =: {TSt | properties}
-	= getUser (fst properties.managerProps.TaskManagerProperties.worker) {TSt | tst & properties = properties}
+	= getUser (properties.managerProps.TaskManagerProperties.worker) {TSt | tst & properties = properties}
 
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}

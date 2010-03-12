@@ -58,7 +58,7 @@ anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue
 anyTask tasks 	= parallel "any" "Done if any subtask is finished." anyfunc hd [] tasks
 
-anyTaskExt :: ![(User,Task a)] !TaskParallelType -> Task a | iTask a
+anyTaskExt :: ![(UserId,Task a)] !TaskParallelType -> Task a | iTask a
 anyTaskExt tasks type = parallelU "any" "Done if any subtask is finished." type anyfunc hd [] tasks
 
 anyfunc (val,_) [] = ([val],Stop)
@@ -67,7 +67,7 @@ anyfunc (val,_) _  = abort "Multiple results in ANY"
 allTasks :: ![Task a] -> Task [a] | iTask a
 allTasks tasks = parallel "all" "Done if all subtasks are finished" (allfunc(length tasks)) sortByIndex [] tasks
 
-allTasksExt :: ![(User,Task a)] !TaskParallelType -> Task [a] | iTask a 
+allTasksExt :: ![(UserId,Task a)] !TaskParallelType -> Task [a] | iTask a 
 allTasksExt tasks type = parallelU "all" "Done if all subtasks are finished." type (allfunc (length tasks)) sortByIndex [] tasks 
 
 allfunc :: !Int !(a,Int) ![(Int,a)] -> ([(Int,a)],ParallelAction a)
@@ -83,7 +83,7 @@ sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] 
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
 eitherTask taska taskb = parallel "either" "Done if either subtask is finished. The next step depends on which subtask is finished." eitherfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 
-eitherTaskExt :: !(User,Task a) !(User,Task b) !TaskParallelType -> Task (Either a b) | iTask a & iTask b
+eitherTaskExt :: !(UserId,Task a) !(UserId,Task b) !TaskParallelType -> Task (Either a b) | iTask a & iTask b
 eitherTaskExt (usera,taska) (userb,taskb) type = parallelU "either" "Done if either subtask is finished. The next step depends on which subtask is finished." type eitherfunc hd [] [(usera,(taska >>= \a -> return (Left a))),(userb,(taskb >>= \b -> return (Right b)))]
 
 eitherfunc :: !((Either a b),Int) ![(Either a b)] -> ([(Either a b)],ParallelAction (Either a b))
@@ -160,10 +160,15 @@ repeatTask task pred a =
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
+instance @: UserId
+where
+	(@:) :: !UserId !(LabeledTask a) -> Task a | iTask a
+	(@:) username (label,task) = assign username NormalPriority Nothing (task <<@ label)
+	
 instance @: UserName
 where
 	(@:) :: !UserName !(LabeledTask a) -> Task a | iTask a
-	(@:) username (label,task) = assign username NormalPriority Nothing (task <<@ label)
+	(@:) (UserName username) (label,task) = assign username NormalPriority Nothing (task <<@ label)
 
 instance @: User
 where

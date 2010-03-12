@@ -78,7 +78,7 @@ showStickyMessage			:: message -> Task Void												| html message
 showStickyMessageAbout		:: message a -> Task Void											| html message & iTask a
 
 //Notify a user through external media. For example via e-mail or sms.
-notifyUser					:: message UserName -> Task Void									| html message
+notifyUser					:: message UserId -> Task Void									| html message
 notifyGroup					:: message Role -> Task Void										| html message
 
 //*** Shared value tasks ***//

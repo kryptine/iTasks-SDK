@@ -17,7 +17,7 @@ from UserDB import qualified deleteUser
 
 import InteractionTasks, CoreCombinators
 
-getUser :: !UserName -> Task User
+getUser :: !UserId -> Task User
 getUser username = mkInstantTask "getUser" (mkTaskFunction (UserDB@getUser username))
 
 getUsers :: Task [User]
@@ -26,10 +26,10 @@ getUsers = mkInstantTask "getUsers" (mkTaskFunction UserDB@getUsers)
 getUsersWithRole :: !Role	-> Task [User]
 getUsersWithRole role = mkInstantTask "getUsersWithRole" (mkTaskFunction (UserDB@getUsersWithRole role))
 	
-getDisplayNames :: ![UserName] -> Task [DisplayName]
+getDisplayNames :: ![UserId] -> Task [DisplayName]
 getDisplayNames usernames = mkInstantTask "getDisplayNames" (mkTaskFunction (UserDB@getDisplayNames usernames))
 
-getRoles :: ![UserName]	-> Task [[Role]]
+getRoles :: ![UserId]	-> Task [[Role]]
 getRoles usernames = mkInstantTask "getRoles" (mkTaskFunction (UserDB@getRoles usernames))
 
 authenticateUser :: !String !String	-> Task (Maybe User)

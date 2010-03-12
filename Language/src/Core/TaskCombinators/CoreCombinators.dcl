@@ -110,9 +110,9 @@ oldParallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-:: ParallelAction  a = Stop | Continue | Extend [Task a] | ExtendU [(User,Task a)]
+:: ParallelAction  a = Stop | Continue | Extend [Task a] | ExtendU [(UserId,Task a)]
 parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(User,Task a)] -> Task c | iTask a & iTask b & iTask c
+parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(UserId,Task a)] -> Task c | iTask a & iTask b & iTask c
 
 // Multi-user workflows
 
@@ -125,4 +125,4 @@ parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction 
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-assign 	:: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
+assign 	:: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a

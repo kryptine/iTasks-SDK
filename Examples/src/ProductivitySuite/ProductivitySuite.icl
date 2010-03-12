@@ -7,6 +7,25 @@ module ProductivitySuite
 import iTasks
 import CommonDomain
 
+:: Message =
+	{ subject	:: !String
+	, to		:: !UserName
+	, message	:: !Note
+	}
+	
+derive gVisualize	Message
+derive gUpdate		Message
+derive gPrint		Message
+derive gParse		Message
+
+derive bimap Maybe, (,)
+
+//Send a message
+sendMessage :: Task Void
+sendMessage
+	=	enterInformation "Write message"
+	>>=	\{Message|to,subject,message = Note body} ->
+		to @: (subject, showMessage body) 
 
 //Scheduling a meeting
 scheduleMeeting :: Task (Date,Time)
@@ -42,4 +61,4 @@ where
 			
 
 Start :: *World -> *World
-Start world = startEngine [workflow "Schedule meeting" scheduleMeeting] world
+Start world = startEngine [workflow "Schedule meeting" scheduleMeeting,workflow "Send message" sendMessage] world

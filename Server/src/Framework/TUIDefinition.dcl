@@ -24,6 +24,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUINumberField TUINumberField
 	| TUITextField TUITextField
 	| TUITextArea TUITextArea
+	| TUIUserField TUIUserField
 	| TUIComboBox TUIComboBox
 	| TUICheckBox TUICheckBox
 	| TUICheckBoxGroup TUICheckBoxGroup
@@ -45,166 +46,173 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUICustom JSON
 
 :: TUIButton =
-	{ name			:: String
-	, id			:: String
-	, text			:: String
-	, value			:: String
-	, disabled		:: Bool
-	, iconCls		:: String
+	{ name			:: !String
+	, id			:: !String
+	, text			:: !String
+	, value			:: !String
+	, disabled		:: !Bool
+	, iconCls		:: !String
 	}
 :: TUINumberField =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, allowDecimals	:: Bool
-	, numDecimals	:: Int
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, allowDecimals	:: !Bool
+	, numDecimals	:: !Int
 	}
 :: TUITextField =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUITextArea =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, width			:: Int
-	, height		:: Int
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, width			:: !Int
+	, height		:: !Int
+	}
+:: TUIUserField =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUIComboBox =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, store			:: [(String,String)]
-	, triggerAction	:: String
-	, editable		:: Bool
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, store			:: ![(String,String)]
+	, triggerAction	:: !String
+	, editable		:: !Bool
 	}
 :: TUICheckBox =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, boxLabel		:: Maybe String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, checked		:: Bool
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, boxLabel		:: !Maybe String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, checked		:: !Bool
 	}
 :: TUICheckBoxGroup =
-	{ name			:: String
-	, id			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, columns		:: Int
-	, items			:: [TUIDef]
+	{ name			:: !String
+	, id			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, columns		:: !Int
+	, items			:: ![TUIDef]
 	}
 :: TUIRadio =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, boxLabel		:: Maybe String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, checked		:: Bool
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, boxLabel		:: !Maybe String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, checked		:: !Bool
 	}
 :: TUIRadioGroup =
-	{ name			:: String
-	, id			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
-	, columns		:: Int
-	, items			:: [TUIDef]
+	{ name			:: !String
+	, id			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, columns		:: !Int
+	, items			:: ![TUIDef]
 	}
 :: TUIDateField =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, format		:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, format		:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUITimeField =
-	{ name			:: String
-	, id			:: String
-	, value			:: String
-	, format		:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, format		:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUIFieldSet =
-	{ title			:: String
-	, id			:: String
-	, layout		:: Maybe String
-	, items			:: [TUIDef]
-	, autoHeight	:: Bool
-	, border		:: Bool
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ title			:: !String
+	, id			:: !String
+	, layout		:: !Maybe String
+	, items			:: ![TUIDef]
+	, autoHeight	:: !Bool
+	, border		:: !Bool
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUIPanel =
-	{ layout		:: String
-	, items			:: [TUIDef]
-	, buttons		:: Maybe [TUIDef]
-	, autoHeight	:: Bool
-	, autoWidth		:: Bool
-	, border		:: Bool
-	, bodyCssClass	:: String
-	, fieldLabel	:: Maybe String
-	, renderingHint	:: Int
-	, unstyled		:: Bool
+	{ layout		:: !String
+	, items			:: ![TUIDef]
+	, buttons		:: !Maybe [TUIDef]
+	, autoHeight	:: !Bool
+	, autoWidth		:: !Bool
+	, border		:: !Bool
+	, bodyCssClass	:: !String
+	, fieldLabel	:: !Maybe String
+	, renderingHint	:: !Int
+	, unstyled		:: !Bool
 	}
 :: TUIBox =
-	{ html			:: String
+	{ html			:: !String
 	}
 :: TUIHtmlPanel =
-	{ html			:: String
-	, border		:: Bool
-	, bodyCssClass	:: String
-	, id			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ html			:: !String
+	, border		:: !Bool
+	, bodyCssClass	:: !String
+	, id			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUIList =
-	{ items			:: [TUIDef]
-	, name			:: String
-	, id			:: String
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ items			:: ![TUIDef]
+	, name			:: !String
+	, id			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUIListItem =
-	{ items			:: [TUIDef]
-	, index			:: Int
-	, id			:: String
-	, name			:: String
+	{ items			:: ![TUIDef]
+	, index			:: !Int
+	, id			:: !String
+	, name			:: !String
 	}
 :: TUIDocument = 
-	{ id			:: String
-	, name			:: String
-	, docInfo		:: String
-	, allowUpload	:: Bool
-	, fieldLabel	:: Maybe String
-	, hideLabel		:: Bool
+	{ id			:: !String
+	, name			:: !String
+	, docInfo		:: !String
+	, allowUpload	:: !Bool
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
 	}
 :: TUIMenu =
-	{ items			:: [TUIDef]
+	{ items			:: ![TUIDef]
 	}
 :: TUIMenuButton =
-	{ text			:: String
-	, menu			:: TUIMenu
-	, disabled		:: Bool
+	{ text			:: !String
+	, menu			:: !TUIMenu
+	, disabled		:: !Bool
 	}
 :: TUIMenuItem =
-	{ id			:: Maybe String
-	, text			:: String
-	, name			:: Maybe String
-	, value			:: Maybe String
-	, menu			:: Maybe TUIMenu
-	, disabled		:: Bool
-	, iconCls		:: Maybe String
+	{ id			:: !Maybe String
+	, text			:: !String
+	, name			:: !Maybe String
+	, value			:: !Maybe String
+	, menu			:: !Maybe TUIMenu
+	, disabled		:: !Bool
+	, iconCls		:: !Maybe String
 	}

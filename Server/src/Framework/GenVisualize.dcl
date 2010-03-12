@@ -9,7 +9,7 @@ generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([
 
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
-derive gVisualize Int, Real, Char, Bool, String, Document
+derive gVisualize Int, Real, Char, Bool, String, Document, UserName
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
 
 //Wrapper functions for visualization

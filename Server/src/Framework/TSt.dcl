@@ -23,8 +23,8 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
-					, userId		:: !UserName										// id of user to which task is assigned
-					, delegatorId	:: !UserName										// id of user who issued the task
+					, userId		:: !UserId											// id of user to which task is assigned
+					, delegatorId	:: !UserId											// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 
 					, mainTask		:: !ProcessId										// The id of the current main task 

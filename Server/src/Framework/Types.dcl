@@ -14,8 +14,8 @@ from iTasks			import class iTask
  
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
 
-derive gPrint		Session, Document, Hidden, Static
-derive gParse		Session, Document, Hidden, Static
+derive gPrint		Session, Document, Hidden, Static, UserName
+derive gParse		Session, Document, Hidden, Static, UserName
 derive gVisualize	Session
 derive gUpdate		Session
 
@@ -23,15 +23,21 @@ derive JSONEncode Document
 derive JSONDecode Document
 
 instance toString TaskPriority
+instance toString UserName
+
+class toUserId a :: a -> String
+instance toUserId String
+instance toUserId UserName
+instance toUserId User
 
 
-
-:: UserName			:== String
+:: UserId			:== String
 :: DisplayName		:== String			
 :: Role				:== String
 
+:: UserName			= UserName !String
 :: User 			=
-	{ userName		:: !UserName
+	{ userName		:: !UserId
 	, password		:: !String
 	, displayName	:: !DisplayName
 	, roles			:: ![Role]

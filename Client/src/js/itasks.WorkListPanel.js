@@ -53,7 +53,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 						{name: 'subject'},
 						{name: 'priority'},
 						{name: 'progress'},
-						{name: 'delegatorName'},
+						{name: 'manager'},
 						{name: 'timestamp'},
 						{name: 'latestExtEvent'},
 						{name: 'deadline'},
@@ -81,7 +81,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200},		
 				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
 				{id: 'progress', header: 'Progress', dataindex: 'progress', renderer: itasks.util.formatProgress, width: 100},
-				{id: 'delegatorName', header: 'Managed by', dataIndex: 'delegatorName', width: 100},
+				{id: 'manager', header: 'Managed by', dataIndex: 'manager', renderer: Ext.util.Format.htmlEncode, width: 100},
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 120},
 				{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
 				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', renderer: itasks.util.formatDeadline, width: 100}

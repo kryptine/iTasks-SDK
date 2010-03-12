@@ -40,20 +40,19 @@ where
 		# (d,tst) = accWorldTSt defaultValue tst
 		= (TaskFinished d,tst)
 		
-spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
-		# (user,tst)	= UserDB@getUser username tst
 		# properties	=
 			{ TaskManagerProperties
-			| worker		 = (user.User.userName,user.User.displayName)
+			| worker		 = username
 			, subject 		 = taskLabel task
 			, priority		 = NormalPriority
 			, deadline		 = Nothing
 			, tempWorkers	 = []
 			}
-		# (result,pid,tst)			= TSt@createTaskInstance task properties True tst
+		# (result,pid,tst)	= TSt@createTaskInstance task properties True tst
 		= (TaskFinished (ProcessRef pid), tst)
 	
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a

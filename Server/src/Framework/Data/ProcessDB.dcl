@@ -17,7 +17,7 @@ from Time		import :: Timestamp
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
 				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  , menus			:: !(Maybe [Menu])
-				  , inParallelType	:: !(Maybe TaskParallelType)		// The type of parallel, if the process is part of one
+				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
 				  }				
 
 :: ProcessStatus =	Active
@@ -52,27 +52,28 @@ getActionIcon :: !Action -> String
 
 class ProcessDB st
 where
-	createProcess			:: !Process														!*st -> (!ProcessId,	!*st)
-	deleteProcess			:: !ProcessId													!*st -> (!Bool,			!*st)
-	getProcess				:: !ProcessId													!*st -> (!Maybe Process,!*st)
-	getProcessForUser		:: !UserName !ProcessId											!*st -> (!Maybe Process,!*st)
-	getProcesses 			:: ![ProcessStatus] 											!*st -> (![Process], 	!*st)
-	getProcessesById		:: ![ProcessId]													!*st -> (![Process],	!*st)
-	getProcessesForUser		:: !UserName ![ProcessStatus]									!*st -> (![Process],	!*st)
-	getTempProcessesForUser :: !UserName ![ProcessStatus]									!*st -> (![Process],	!*st)
+	createProcess			:: !Process												!*st -> (!ProcessId,	!*st)
+	deleteProcess			:: !ProcessId											!*st -> (!Bool,			!*st)
+	getProcess				:: !ProcessId											!*st -> (!Maybe Process,!*st)
+	getProcessForUser		:: !UserId !ProcessId									!*st -> (!Maybe Process,!*st)
+	getProcesses 			:: ![ProcessStatus] 									!*st -> (![Process], 	!*st)
+	getProcessesById		:: ![ProcessId]											!*st -> (![Process],	!*st)
+	getProcessesForUser		:: !UserId ![ProcessStatus]								!*st -> (![Process],	!*st)
+	getTempProcessesForUser :: !UserId ![ProcessStatus]								!*st -> (![Process],	!*st)
 	
-	setProcessOwner			:: !(UserName,DisplayName) !(UserName,DisplayName) !ProcessId	!*st -> (!Bool,			!*st)
-	setProcessStatus		:: !ProcessStatus !ProcessId									!*st -> (!Bool,			!*st)
+	setProcessOwner			:: !UserId !ProcessId									!*st -> (!Bool,			!*st)
+	setProcessStatus		:: !ProcessStatus !ProcessId							!*st -> (!Bool,			!*st)
 
-	updateProcess			:: !ProcessId (Process -> Process)								!*st -> (!Bool,			!*st)
-	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)				!*st -> (!Bool,			!*st)
+	updateProcess			:: !ProcessId (Process -> Process)						!*st -> (!Bool,			!*st)
+	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)		!*st -> (!Bool,			!*st)
 
-	removeFinishedProcesses :: 																!*st -> (!Bool, 		!*st)
+	removeFinishedProcesses :: 														!*st -> (!Bool, 		!*st)
 
 instance ProcessDB TSt
 instance toString ProcessStatus
 instance == ProcessStatus
 instance == Action
+
 derive gPrint Action
 derive gVisualize Action
 derive gUpdate Action

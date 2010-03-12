@@ -23,7 +23,7 @@ where
 	startWorkflow :: !Workflow !*TSt -> (!ProcessId,!*TSt)
 	startWorkflow workflow tst=:{staticInfo}
 		# user			= staticInfo.currentSession.user
-		# properties	= { worker			= (user.User.userName, user.User.displayName)
+		# properties	= { worker			= user.User.displayName +++ " <" +++ user.User.userName +++ ">"
 						  , subject 		= workflow.Workflow.label
 						  , priority		= NormalPriority
 						  , deadline		= Nothing

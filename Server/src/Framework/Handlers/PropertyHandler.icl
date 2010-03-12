@@ -41,9 +41,7 @@ where
 	
 	
 	updateUser proc userName tst=:{staticInfo}
-		# (user,tst)		= getUser userName tst
-		# delegator			= staticInfo.currentSession.user
-		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & systemProps = {p.systemProps & manager = (delegator.User.userName,delegator.User.displayName)},managerProps = {TaskManagerProperties | p.managerProps & worker = (user.User.userName,user.User.displayName)}, workerProps = {p.workerProps & progress = TPActive}}) tst
+		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & managerProps = {TaskManagerProperties | p.managerProps & worker = userName}, workerProps = {p.workerProps & progress = TPActive}}) tst
 		= (successResponse,tst)
 		 	
 	updateProgress proc val tst

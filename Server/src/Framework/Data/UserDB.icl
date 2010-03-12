@@ -9,29 +9,33 @@ derive JSONDecode User
 derive bimap (,), Maybe
 
 unknownUser :: User
-unknownUser = {User | userName = "", displayName = "Unknown user", password = "", roles = []}
+unknownUser = {User | userName = "unknown", displayName = "Unknown user", password = "", roles = []}
 
 rootUser :: User
 rootUser = {User | userName = "root", displayName = "Root", password = "", roles = []}
 
-getUser :: !UserName !*TSt -> (!User,!*TSt)
+getUser :: !UserId !*TSt -> (!User,!*TSt)
 getUser "root" tst
 	= (rootUser,tst)
 getUser userName tst
 	# (users, tst)		= userStore id tst
-	= case filter (\u -> u.User.userName == userName) users of
+	= case filter (\u -> u.User.userName == userId) users of
 		[x] = (x,tst)
 		_	= (unknownUser,tst)
+where
+	userId = toUserId userName
 
 getUserByName :: !String !*TSt -> (!User, !*TSt)
 getUserByName "root" tst
 	= (rootUser,tst)
-getUserByName name tst
+getUserByName userName tst
 	# (users, tst)		= userStore id tst
-	= case filter (\u -> u.User.userName == name) users of
+	= case filter (\u -> u.User.userName == userId) users of
 		[x] = (x,tst)
 		_	= (unknownUser,tst)
-
+where
+	userId = toUserId userName
+	
 getUsers :: !*TSt -> (![User], !*TSt)
 getUsers tst
 	# (users, tst) = userStore id tst
@@ -42,7 +46,7 @@ getUsersWithRole role tst
 	# (users, tst)		= userStore id tst
 	= (filter (\u -> isMember role u.User.roles) users, tst) //Do not include the "root" user"
 
-getDisplayNames	:: ![UserName] !*TSt -> (![DisplayName], !*TSt)
+getDisplayNames	:: ![UserId] !*TSt -> (![DisplayName], !*TSt)
 getDisplayNames	usernames tst
 	# (users, tst)		= userStore id tst
 	= (map (displayName users) usernames, tst)
@@ -50,7 +54,7 @@ where
 	displayName users "root" = "Root"
 	displayName users name = lookupUserProperty users (\u -> u.displayName) "Unknown user" name
 	
-getRoles :: ![UserName] !*TSt -> (![[Role]], !*TSt)
+getRoles :: ![UserId] !*TSt -> (![[Role]], !*TSt)
 getRoles usernames tst
 	# (users, tst)		= userStore id tst
 	= (map (lookupUserProperty users (\u -> u.User.roles) []) usernames, tst)
@@ -90,7 +94,7 @@ where
 	delete users	= [u \\ u <- users | u.User.userName <> user.User.userName]
 	
 //Helper function which finds a property of a certain user
-lookupUserProperty :: ![User] !(User -> a) !a !UserName -> a
+lookupUserProperty :: ![User] !(User -> a) !a !UserId -> a
 lookupUserProperty users selectFunction defaultValue userName
 		= case [selectFunction user \\ user <- users | user.User.userName == userName] of
 			[x] = x
