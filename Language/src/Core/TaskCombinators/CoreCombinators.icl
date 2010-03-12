@@ -108,9 +108,7 @@ derive bimap Maybe, (,)
 	{ state :: b
 	, tasks :: [(Task a,Bool)]
 	}
-
-import StdDebug
-
+	
 parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel label description procFun finFun initState initTasks 
 	= parallelWrap label description Closed False procFun finFun initState [(Nothing,t) \\ t <- initTasks]

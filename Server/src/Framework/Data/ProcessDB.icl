@@ -36,8 +36,6 @@ where
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
 
-import StdDebug
-
 instance ProcessDB TSt
 where
 	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)

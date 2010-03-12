@@ -333,9 +333,6 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 gUpdate{|Maybe|} fx l ust = (l,ust)
 
 // Document
-
-import StdDebug, GenPrint
-
 gUpdate {|Document|} _ ust =: {USt | mode=UDCreate}
 	= ({ Document
 	   | fileName = ""

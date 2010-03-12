@@ -73,8 +73,6 @@ parNestedTest2 =
 		(rinus,parClosedTest)
 	] Open
 
-import StdDebug, GenPrint
-
 parNestedTest3 :: Task [[String]]
 parNestedTest3 =
 	getUser "erik"  >>= \erik ->
@@ -108,7 +106,7 @@ where
 			# acc = [(pos,result):acc]
 			# idx = ((idx+1) rem (length users))
 			# usr = users !! idx
-			= trace_n(printToString usr) ((idx,acc),ExtendU [(usr,task)])
+			= ((idx,acc),ExtendU [(usr,task)])
 	
 			task :: Task String
 			task = enterInformation "Type String, '.' to stop"

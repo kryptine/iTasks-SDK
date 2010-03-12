@@ -1,6 +1,6 @@
 implementation module Engine
 
-import StdMisc, StdArray, StdList, StdChar, StdFile
+import StdMisc, StdArray, StdList, StdChar, StdFile, StdBool
 
 from StdFunc import o
 from StdLibMisc import ::Date{..}, ::Time{..}
@@ -134,8 +134,16 @@ initTSt request config flows world
 	# ((err,info),world)		= getFileInfo path world
 	| err <> NoDirError			= abort "Cannot get executable info."
 	# (date,time)				= info.pi_fileInfo.lastModified
-	# datestr					= (toString date.Date.year)+++(addPrefixZero date.Date.month)+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++(addPrefixZero time.Time.minutes)+++(addPrefixZero time.Time.seconds)
-	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-dataStore-" +++ datestr)) (createStore (appName +++ "-documentStore-" +++ datestr)) world
+	# datestr					= (toString date.Date.year)+++"."+++(addPrefixZero date.Date.month)+++"."+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++"."+++(addPrefixZero time.Time.minutes)+++"."+++(addPrefixZero time.Time.seconds)
+	# ((ok,datapath),world)		= pd_StringToPath (appName +++ "-data") world
+	# ((ok,docupath),world)		= pd_StringToPath (appName +++ "-document") world
+	# (err,world)				= createDirectory datapath world
+	| err <> NoDirError 
+		&& err <> AlreadyExists	= abort "Cannot create data directory"
+	# (err,world)				= createDirectory docupath world
+	| err <> NoDirError
+		&& err <> AlreadyExists	= abort "Cannot create document directory"
+	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-data\\" +++ datestr)) (createStore (appName +++ "-document\\" +++ datestr)) world
 where 
 	addPrefixZero number
 	| number < 10 = "0"+++toString number

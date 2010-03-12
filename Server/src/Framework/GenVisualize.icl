@@ -676,8 +676,6 @@ where
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
 	= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})
 
-import StdDebug
-
 //Static type
 gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
 = case vizType of
