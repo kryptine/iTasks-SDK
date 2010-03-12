@@ -41,7 +41,7 @@ derive JSONEncode TaskPanel
 	, id			:: String
 	, taskId		:: String
 	, items			:: [TUIDef]
-	, tbar			:: Maybe [TUIDef]
+	, tbar			:: [TUIDef]
 	}
 :: FormUpdate =
 	{ xtype			:: String
@@ -67,7 +67,7 @@ derive JSONEncode TaskPanel
 	, taskId		:: String
 	, items			:: [TUIDef]
 	, subtaskId		:: String
-	, tbar			:: Maybe [TUIDef]
+	, tbar			:: [TUIDef]
 	}
 :: STFormUpdate =
 	{ xtype			:: String

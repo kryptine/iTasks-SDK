@@ -146,11 +146,11 @@ filterClosedSubtasks container manager
 	| otherwise = True
 
 // === Menu Functions
-makeMenuBar :: !(Maybe [Menu]) [(Action,Bool)] TaskInfo -> Maybe [TUIDef]
+makeMenuBar :: !(Maybe [Menu]) [(Action,Bool)] TaskInfo -> [TUIDef]
 makeMenuBar menus acceptedA ti
 	= case menus of
-		Nothing		= Nothing
-		Just menus	= Just (fst (mkMenus [] menus 0))
+		Nothing		= []
+		Just menus	= (fst (mkMenus [] menus 0))
 where
 	mkMenus defs [Menu label items:menus] id
 		#(children,id) = mkMenuItems [] items id

@@ -354,8 +354,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		itasks.TaskFormPanel.superclass.afterRender.apply(this,arguments);
 		this.attachTaskHandlers(this);
 		var tb = this.getTopToolbar();
-		if(tb)
-			this.attachTaskHandlers(tb);
+		tb.setVisible(tb.items.length > 0);
 	},
 	attachTaskHandlers: function(comp) {
 	
@@ -438,6 +437,8 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 			comp.items.each(this.attachTaskHandlers, this);
 		if(comp.menu)
 			this.attachTaskHandlers(comp.menu);
+		if(comp.topToolbar)
+			this.attachTaskHandlers(comp.topToolbar);
 	},
 	
 	attachDocumentLinkInformation: function() {
@@ -585,6 +586,13 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 			this.removeAll();
 			this.add(data.items[0]);
 			this.doLayout();
+			
+			//Replace toolbar
+			var tb = this.getTopToolbar();
+			tb.removeAll();
+			tb.add(data.tbar);
+			tb.setVisible(tb.items.length > 0);
+			
 			//Attach eventhandlers
 			this.attachTaskHandlers(this);
 		}
