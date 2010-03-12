@@ -20,7 +20,7 @@ createUserFlow
 updateUserFlow :: Task Void
 updateUserFlow
 	=	getUsers
-	>>= enterChoiceA "Which user do you want to update?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
+	>>= enterChoiceA "Which user do you want to update?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionNext, IfValid)]
 	>>= \(action1,user1) -> case action1 of
 		ActionCancel	=	stop
 		ActionNext		=	updateInformationA "Please make your changes" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] user1
