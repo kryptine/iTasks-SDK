@@ -78,12 +78,12 @@ doMenu state=:((name,form), mode)
 				EditValue 	->							editValue state
 			>>= switchAction
 where
-	editValue state=:((name,form=:{formDyn = DynTaskVal v :: DynTaskVal a}), mode)  
+	editValue state=:((name,form=:{formDyn = DV0 v :: DV0 a}), mode)  
 		=							updateInformationA title3	[ ButtonAction (ActionSave, ifValid (name <> ""))
 																, ButtonAction (ActionOk, IfValid)
 																: actions state
 																] v
-			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic DynTaskVal nv :: DynTaskVal a^}),mode))
+			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic DV0 nv :: DV0 a^}),mode))
 
 	title1 = "No form..."
 	title2 = "Define type of form: \"" +++ name +++ "\""

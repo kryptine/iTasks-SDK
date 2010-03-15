@@ -2,9 +2,14 @@ definition module TaskContainer
  
 import iTasks
 
-:: DynTaskVal a		= DynTaskVal !a				& iTask a
-:: DynTask a 		= DynTask    !(Task a) 		& iTask a
-:: DynTaskFun a b	= DynTaskFun !(a -> Task b) & iTask b
+:: DT a			= DT !(Task a)	& iTask a
+
+:: DV0 a		= DV0 !a		& iTask a
+:: DV1 t a		= DV1 !(t a)	& iTask a
+:: DV2 t a b	= DV2 !(t a b)	& iTask a & iTask b
+
+
+:: DF0 a b		= DF0 (a		-> Task b)	& iTask b	// comp crashed als ik cr weglaat
 
 validTaskVal 	:: Dynamic -> Bool
 validTask 		:: Dynamic -> Bool

@@ -119,9 +119,9 @@ findValue name
 	= 					readAllForms
 		>>= \all ->		examine [this.form.formDyn \\ this <- all | this.formName == name]
 where
-	examine [] 											= throw ("Cannot find Form with name " +++ name)
-	examine [form =: (DynTaskVal v :: DynTaskVal a) :_]	= return (dynamic DynTask (return v) :: DynTask a)		// turn value into task as well
-	examine [form:_]									= throw (typeErrorMess "Form has ilegal type:" form )
+	examine [] 								= throw ("Cannot find Form with name " +++ name)
+	examine [form =: (DV0 v :: DV0 a) :_]	= return (dynamic DT (return v) :: DT a)		// turn value into task as well
+	examine [form:_]						= throw (typeErrorMess "Form has ilegal type:" form )
 
 findFlow :: String -> Task Dynamic
 findFlow name

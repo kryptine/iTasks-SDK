@@ -3,24 +3,25 @@ implementation module TaskContainer
 import iTasks
 from	EstherBackend import toStringDynamic
 
-:: DynTaskVal a		= DynTaskVal !a				& iTask a
-:: DynTask a 		= DynTask    !(Task a) 		& iTask a
-:: DynTaskFun a b	= DynTaskFun !(a -> Task b) & iTask b
 
 validTaskVal :: Dynamic -> Bool
-validTaskVal (_ :: DynTaskVal a)	= True
-validTaskVal _						= False
+validTaskVal (_ :: DV0 a)		= True
+validTaskVal (_ :: DV1 t a)		= True
+validTaskVal (_ :: DV2 t a b)	= True
+validTaskVal _					= False
 
 validTask :: Dynamic -> Bool
-validTask 	(_ :: DynTask a)		= True
-validTask _							= False
+validTask 	(_ :: DT a)			= True
+validTask _						= False
 
 validTaskFun :: Dynamic -> Bool
-validTaskFun (_ :: DynTaskFun a b) 					= True
-validTaskFun (_ :: DynTaskFun a b | iTask a) 		= True
-validTaskFun (_ :: DynTaskFun (a,b) b | iTask a) 	= True
-validTaskFun (_ :: DynTaskFun (a,b) b | iTask b) 	= True
-validTaskFun _ 										= False
+validTaskFun (_ :: DF0 a b) 							= True
+validTaskFun (_ :: DF0 a b | iTask a) 					= True
+validTaskFun (_ :: DF0 a b | iTask a & iTask b) 		= True
+validTaskFun (_ :: DF0 (t a) b | iTask a) 				= True
+validTaskFun (_ :: DF0 (t a b) c| iTask a & iTask b) 	= True
+
+validTaskFun _ 								= False
 
 showDyn :: Dynamic -> (String,String)
 showDyn dyn	

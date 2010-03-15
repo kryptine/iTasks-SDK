@@ -44,7 +44,7 @@ where
 	showTypeError s = showMessage s
 
 	taskFound :: Dynamic -> Task Void
-	taskFound d=:(DynTask t:: DynTask a) 
+	taskFound d=:(DT t:: DT a) 
 		= 					getCurrentUser
 		>>= \me ->			requestConfirmation ("Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
 		>>= \ok ->			if ok (					updateInformation "Name of this workflow: " "workflow"

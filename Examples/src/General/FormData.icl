@@ -38,10 +38,10 @@ emptyForm 		= 	{ formShape = []
 formShapeToFormDyn :: [FormShape] -> Task Dynamic
 formShapeToFormDyn bs = convertFormShapes bs >>= return o tupling
 where
-	tupling [] 		= dynamic DynTaskVal Void 
+	tupling [] 		= dynamic DV0 Void 
 	tupling [d]		= d
 	tupling [d:ds]	= case (d, tupling ds) of 
-							(DynTaskVal d1 :: DynTaskVal a, DynTaskVal d2 :: DynTaskVal b) -> dynamic DynTaskVal (Tup d1 d2) 
+							(DV0 d1 :: DV0 a, DV0 d2 :: DV0 b) -> dynamic DV0 (Tup d1 d2) 
 							_ -> abort "Fatal Error in shapeToForm !!!"
 
 	convertFormShapes :: [FormShape] -> Task [Dynamic]
@@ -49,32 +49,32 @@ where
 	convertFormShapes [b:bs] 	= convert b >>= \d -> convertFormShapes bs >>= \ds -> return [d:ds] 
 	where
 		convert :: FormShape -> Task Dynamic
-		convert	Integer					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Int)	
-		convert	Real					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Real)	
-		convert	String					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal String)	
-		convert	Bool					= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Bool)	
+		convert	Integer					= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Int)	
+		convert	Real					= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Real)	
+		convert	String					= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 String)	
+		convert	Bool					= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Bool)	
 		convert	(Tuple (b1, b2))		= convert b1 >>= \db1 -> convert b2 >>= \db2 -> returnTuple db1 db2	
 		where
-			returnTuple (DynTaskVal t1 :: DynTaskVal a) (DynTaskVal t2 :: DynTaskVal b) 
-										= return (dynamic DynTaskVal (t1,t2) :: (DynTaskVal (a,b)))
+			returnTuple (DV0 t1 :: DV0 a) (DV0 t2 :: DV0 b) 
+										= return (dynamic DV0 (t1,t2) :: (DV0 (a,b)))
 		convert (List b)				= convert b >>= \dl -> returnList dl
 		where
-			returnList (DynTaskVal v :: DynTaskVal a)	= return (dynamic DynTaskVal [] :: DynTaskVal [a])
+			returnList (DV0 v :: DV0 a)	= return (dynamic DV0 [] :: DV0 [a])
 		convert (Hide b)				= convert b >>= returnHidden
 		where
-			returnHidden (DynTaskVal nb :: DynTaskVal a)= return (dynamic DynTaskVal (Hidden nb) :: DynTaskVal (Hidden a))
+			returnHidden (DV0 nb :: DV0 a)= return (dynamic DV0 (Hidden nb) :: DV0 (Hidden a))
 		convert (Option b)				= convert b >>= \db -> returnOption db
 		where
-			returnOption (DynTaskVal v :: DynTaskVal a) = return (dynamic DynTaskVal Nothing :: DynTaskVal (Maybe a))
+			returnOption (DV0 v :: DV0 a) = return (dynamic DV0 Nothing :: DV0 (Maybe a))
 		convert (Labeled (s, b))		= convert b >>= \nb ->	returnLabel s nb
 		where
-				returnLabel s (DynTaskVal v :: DynTaskVal a) 
-									= return (dynamic DynTaskVal (Static s,v) :: DynTaskVal (Static String,a))
-		convert	Notes				= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Note)	
-		convert	Date				= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Date)	
-		convert	Time				= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Time)	
-		convert	Document			= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal Document)	
-		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic DynTaskVal v :: DynTaskVal GoogleMap)	
+				returnLabel s (DV0 v :: DV0 a) 
+									= return (dynamic DV0 (Static s,v) :: DV0 (Static String,a))
+		convert	Notes				= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Note)	
+		convert	Date				= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Date)	
+		convert	Time				= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Time)	
+		convert	Document			= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Document)	
+		convert	GoogleMap			= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 GoogleMap)	
 		convert _					= abort "Fatal Error in Convert !!!"
 
 
