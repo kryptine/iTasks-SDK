@@ -1,7 +1,7 @@
 implementation module ProcessDB
 
 import StdEnv, StdGeneric, StdMaybe, GenEq
-import TSt, Store, Util
+import TSt, Store, Util, Text
 
 getActionIcon :: !Action -> String
 getActionIcon (ActionIcon _ icon)	= icon
@@ -85,7 +85,7 @@ where
 		# (procs,tst) 	= processStore id tst
 		# rprocs	 	= map (relevantProc userId) procs
 		# procids		= [p \\ p <- rprocs | p <> ""]
-		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses], tst)
+		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses ], tst)
 	where
 		userId	= toUserId userName
 		relevantProc userId {Process | processId, properties}
@@ -97,7 +97,7 @@ where
 		# (procs,tst) 	= processStore id tst
 		# rprocs		= map (relevantProc userId) procs
 		# procids		= [p \\ p <- rprocs | p <> ""]
-		= ([p \\ p <- procs | isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
+		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
 	where
 		userId = toUserId userName
 		relevantProc userId {Process | processId, properties = {managerProps = {worker,tempWorkers}}}
@@ -140,6 +140,37 @@ where
 		# tst		= deleteTaskStates (taskNrFromString p.Process.processId) tst
 		| ok 		= removeFinishedProcesses` ps tst
 		| otherwise = (False,tst)
+
+	setImmutable :: !ProcessId !*TSt -> *TSt
+	setImmutable prefix tst
+		# (nprocs,tst)	= processStore (\procs -> [if (startsWith prefix proc.Process.processId) {Process|proc & mutable = False} proc \\ proc <- procs]) tst
+		= tst
+		
+	copySubProcesses :: !ProcessId !ProcessId !*TSt -> *TSt
+	copySubProcesses fromprefix toprefix tst
+		# (nprocs,tst)	= processStore (\procs -> flatten [copy fromprefix toprefix proc \\ proc <- procs]) tst
+		= tst
+	where
+		copy fromprefix toprefix proc
+			| startsWith fromprefix proc.Process.processId
+				= [proc
+				  ,{Process| proc
+				   //Prefixes of process id's are updated
+				   & processId = toprefix +++ (proc.Process.processId % (size fromprefix, size proc.Process.processId))
+				   //Prefixes of parent fields are also updated
+				   , parent = if (startsWith fromprefix proc.Process.parent)
+				   		(toprefix +++ (proc.Process.parent % (size fromprefix, size proc.Process.parent)))
+				   		proc.Process.parent
+				   //The new copy is mutable again
+				   , mutable = True
+				   }
+				  ]
+			| otherwise	= [proc]
+	
+	deleteSubProcesses :: !ProcessId !*TSt -> *TSt
+	deleteSubProcesses prefix tst 
+		# (nprocs,tst)	= processStore (\procs -> [process \\ process <- procs | not (startsWith prefix process.Process.processId)]) tst
+		= tst
 
 processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
 processStore fn tst=:{TSt|dataStore,world}

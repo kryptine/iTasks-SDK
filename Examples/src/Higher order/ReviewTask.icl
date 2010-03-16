@@ -58,7 +58,7 @@ reviewtask = getDefaultValue >>= \def -> taskToReview "unknown" (def, mytask)
 mytask :: a -> (Task a) | iTask a
 mytask v =	updateInformation "Fill in Form:" v
 
-taskToReview :: UserName (a,a -> Task a) -> Task (a,Review) | iTask a 
+taskToReview :: UserId (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
 		>>= \v ->		reviewer @: ("Review", review v) 

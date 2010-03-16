@@ -78,7 +78,7 @@ where
 	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
 	change topics p t t0 = (Nothing
 							, Just (assign me.userName NormalPriority Nothing 
-											(assign (fst p.managerProps.worker) HighPriority Nothing (t <<@ topics) 
+											(assign p.managerProps.worker HighPriority Nothing (t <<@ topics) 
 											-||- 
 											assign user.userName HighPriority Nothing (t <<@ topics)
 											)
@@ -120,7 +120,7 @@ reassign user procName pid  =
 	dynamic change :: A.b: Change b | iTask b
 where
 	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change props t t0 = (Just {TaskProperties| props & managerProps = {props.managerProps & worker = (user.userName,user.displayName)}},Nothing, Nothing)
+	change props t t0 = (Just {TaskProperties| props & managerProps = {props.managerProps & worker = user.userName}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -201,7 +201,7 @@ chooseProcess question
 	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.processId
 																	, proc.properties.managerProps.subject
 																	, proc.properties.managerProps.priority
-																	, snd proc.properties.managerProps.worker)
+																	, proc.properties.managerProps.worker)
 																	\\ proc <- procs | proc.Process.processId <> mypid]
 	>>= \(action,(pid,_,_,_)) ->	case action of
 										ActionCancel -> throw "choosing a process has been cancelled"

@@ -21,12 +21,12 @@ import CommonDomain
 	{ bugNr			:: BugNr
 	, status		:: BugStatus
 	, reportedAt	:: (Date,Time)
-	, reportedBy	:: UserName
+	, reportedBy	:: UserId
 	, report		:: BugReport
 	, analysis		:: Maybe BugAnalysis
 	}
 
-:: BugStatus = Reported | Assigned UserName | Fixed
+:: BugStatus = Reported | Assigned UserId | Fixed
 
 :: BugAnalysis =
 	{ cause				:: Note
@@ -150,18 +150,18 @@ confirmCritical report
 			  requestConfirmationAbout "Is this bug really critical?" report
 			)
 	
-selectDeveloper :: String -> Task UserName
+selectDeveloper :: String -> Task UserId
 selectDeveloper application
 	=	findAppDevelopers application
 	>>= \developers -> case developers of
 		[]	= getCurrentUser >>= \user -> return user.User.userName
 		_	= selectLeastBusy developers
 where
-	findAppDevelopers :: String -> Task [UserName]
+	findAppDevelopers :: String -> Task [UserId]
 	findAppDevelopers "itasks"	= return ["bas"]
 	findAppDevelopers _			= return []
 		
-	selectLeastBusy :: [UserName] -> Task UserName
+	selectLeastBusy :: [UserId] -> Task UserId
 	selectLeastBusy []
 		=	getCurrentUser >>= \user -> return user.User.userName
 	selectLeastBusy names
@@ -171,7 +171,7 @@ where
 	where	
 		minimum l = foldl min (hd l) (tl l) 
 		
-	getNumTasksForUser :: UserName -> Task Int
+	getNumTasksForUser :: UserId -> Task Int
 	getNumTasksForUser name = return 42			//TODO: Use API function
 	 
 analyzeBug :: Bug -> Task Bug

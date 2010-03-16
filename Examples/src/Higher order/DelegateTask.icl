@@ -58,7 +58,7 @@ where
 
 		timerStop time	= waitForTimerTask time #>> return True
 */
-determineSet :: [UserName] -> Task [UserName]
+determineSet :: [UserId] -> Task [UserId]
 determineSet people = determineSet`
 where
 	determineSet`	

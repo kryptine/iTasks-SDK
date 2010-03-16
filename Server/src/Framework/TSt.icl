@@ -120,6 +120,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		, parent		 = parent
 		, properties	 = properties
 		, changeCount	 = 0
+		, mutable		 = True
 		, menus			 = Nothing
 		, inParallelType = Nothing
 		}
@@ -296,6 +297,9 @@ where
 												Just newThread
 													// Store the thread when changed
 													# tst = storeThread processId newThread tst
+													// Mark all subprocesses of the current thread as immutable
+													// They are only kept for the purpose of being copied when the new thread executes
+													# tst = setImmutable (taskNrToString [changeCount: taskNrFromString processId]) tst
 													// IMPORTANT: change count is incremented if a change produces a new task
 													= (inc changeCount,newThread,tst)
 				// Update the current change in the task state or remove from the store
@@ -740,14 +744,20 @@ resetSequence tst=:{taskNr,tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
 deleteTaskStates taskNr tst=:{TSt|dataStore,world}
+	// Delete values in the data store
 	# (dataStore,world) = deleteValues (iTaskId taskNr "") dataStore world
-	= {TSt|tst & world = world, dataStore = dataStore} 
+	// Delete subprocesses in the process table
+	# tst				= deleteSubProcesses (taskNrToString taskNr) {TSt|tst & world = world, dataStore = dataStore} 
+	= tst
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
 copyTaskStates fromtask totask tst=:{TSt|dataStore,world}
-	# (dstore,world) = copyValues (iTaskId fromtask "") (iTaskId totask "") dataStore world
-	= {TSt|tst & dataStore = dstore, world = world}
-
+	// Copy values in the data store
+	# (dstore,world) 	= copyValues (iTaskId fromtask "") (iTaskId totask "") dataStore world
+	// Copy subprocess in the process table
+	# tst				= copySubProcesses (taskNrToString fromtask) (taskNrToString totask) {TSt|tst & dataStore = dstore, world = world}
+	= tst
+	
 flushStore :: !*TSt -> *TSt
 flushStore tst=:{TSt|dataStore,documentStore,world}
 	# (dataStore,world) = flushCache dataStore world

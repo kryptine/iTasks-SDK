@@ -16,6 +16,7 @@ from Time		import :: Timestamp
 				  , parent			:: !ProcessId					// The (direct) parent process
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
 				  , changeCount		:: !Int							// The number of task changes that have been applied
+				  , mutable			:: !Bool						// May the process be evaluated further (required for duplication of processes by changes)
 				  , menus			:: !(Maybe [Menu])
 				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
 				  }				
@@ -68,6 +69,12 @@ where
 	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)		!*st -> (!Bool,			!*st)
 
 	removeFinishedProcesses :: 														!*st -> (!Bool, 		!*st)
+
+	setImmutable			:: !ProcessId											!*st -> *st
+	copySubProcesses		:: !ProcessId !ProcessId								!*st -> *st
+	deleteSubProcesses		:: !ProcessId											!*st -> *st
+
+
 
 instance ProcessDB TSt
 instance toString ProcessStatus

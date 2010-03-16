@@ -13,7 +13,7 @@ import CommonDomain
 :: GroupName	:== String						// Name of the newsgroup
 :: NewsGroup	:== [NewsItem]					// News stored in a news group
 :: NewsItem		:== (Subscriber,Name,Message)	// id, name, and message of the publisher
-:: Subscriber	:== UserName					// the id of the publisher
+:: Subscriber	:== UserId					// the id of the publisher
 :: Name			:== String						// the login name of the publisher
 :: Message		:== String						// the message
 :: Subscriptions:== [Subscription]				// newsgroup subscriptions of user
@@ -66,7 +66,7 @@ newsgroupsExample
 	]
 
 
-:: EMail2	=	{ to` 		:: !UserName
+:: EMail2	=	{ to` 		:: !UserId
 				, subject` 	:: !String
 				, message`	:: !Note
 				}
@@ -149,7 +149,7 @@ where
 
 
 
-readNews :: UserName String Int -> Task Void
+readNews :: UserId String Int -> Task Void
 readNews me group index	
 =			orTasks2 [Text ("Welcome to newsgroup " +++ group)]
 							 [("Read next news items from newsgroup " <+++ group, readMore)
@@ -219,7 +219,7 @@ where
 showCurrentNames :: [String] -> Task Void
 showCurrentNames names = showStickyMessageAbout "Current names:" names
 
-getToName ::  (Task (UserName,String))
+getToName ::  (Task (UserId,String))
 getToName 
 = 						getUsers
 	>>= \users ->		enterChoice "Select user to mail a message to: " users
@@ -239,7 +239,7 @@ myAndTasks msg tasks =	oldParallel "andTask" (\_ -> False) undef hd [t <<@ l \\(
 newsGroupsId ::  (DBid NewsGroupNames)
 newsGroupsId		=	mkDBid "newsGroups"
 
-readerId :: UserName -> (DBid Subscriptions)
+readerId :: UserId -> (DBid Subscriptions)
 readerId name		= 	mkDBid ("Reader-" <+++ name)
 
 groupNameId :: String -> (DBid NewsGroup)

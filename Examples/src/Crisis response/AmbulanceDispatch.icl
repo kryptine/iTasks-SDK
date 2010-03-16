@@ -41,12 +41,12 @@ where
 	
 ::Provider =
 	{ name			:: String
-	, id			:: UserName
+	, id			:: UserId
 	, location		:: Location
 	, capacity		:: Int
 	}
 
-::Opinion = Opinion (UserName,String) Note
+::Opinion = Opinion (UserId,String) Note
 
 //Static population
 
@@ -169,14 +169,14 @@ where
 	preCombine as				= (0,as)
 	allCombine as				= (needed - sum (map numAmbulances as),as)
 	
-resourceRequestTimeOut :: [(b,UserName,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
+resourceRequestTimeOut :: [(b,UserId,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
                              Task (a,[(b,Maybe a)]) | iTask a & iTask b
 resourceRequestTimeOut resources time_out check predf allf task
 	= oldParallel "Resource_requests" check predf allf 
              [(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba)) 
              \\ (resource,uid,amount) <- resources]
 
-delegateTaskTimeOut :: UserName String a (a -> Task a) Time -> Task (Maybe a) | iTask a
+delegateTaskTimeOut :: UserId String a (a -> Task a) Time -> Task (Maybe a) | iTask a
 delegateTaskTimeOut who description value task time_out 
 	= timeOutTask (who @: (description, task value)) time_out 
    			  
