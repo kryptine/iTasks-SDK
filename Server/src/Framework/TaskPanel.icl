@@ -117,7 +117,12 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
 						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskRedundant}], tst)
 			[t] 
-				= buildSubtaskPanels t stnr menus manager partype inClosed tst
+				# (mbproc,tst) = getProcess ti.TaskInfo.taskId tst
+				= case mbproc of
+					(Just proc) = case proc.inParallelType of
+						Nothing	 = ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
+						_		 = buildSubtaskPanels t stnr menus manager partype inClosed tst
+					Nothing = abort "(BuildTaskPanel) Cannot retrieve process!"				
 			_   = abort "Multiple simultaneously active tasks in a maintask!"
 
 buildSubtaskInfo :: ![SubtaskContainer] !UserId -> [SubtaskInfo]
@@ -135,6 +140,8 @@ where
 			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
+		(TTMainTask ti _ _)
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
 		
 	mkSti :: SubtaskInfo
 	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", subtaskId = "", description = ""}
@@ -156,22 +163,25 @@ where
 		#(children,id) = mkMenuItems [] items id
 		= mkMenus [TUIMenuButton {TUIMenuButton | text = label, menu = {TUIMenu | items = children}, disabled = isEmpty children}:defs] menus id
 	mkMenus defs [] id = (reverse defs,id)
-	mkMenuItems _ _ id | isEmpty acceptedA = ([], id)
+	
+	mkMenuItems _    _ 							   id 
+		| isEmpty acceptedA = ([], id)
 	mkMenuItems defs [MenuItem label action:items] id
 		#accAction = filter (\(a,_) -> a == action) acceptedA
 		| isEmpty accAction	= mkMenuItems defs items (id + 1)
 		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id), text = label, name = Just "menu", value = Just (printToString action), disabled = not (snd (hd accAction)), menu = Nothing, iconCls = Just (getActionIcon action)}:defs] items (id + 1)
-	mkMenuItems defs [SubMenu label sitems:items] id
+	mkMenuItems defs [SubMenu label sitems:items]  id
 		#(children,id) = mkMenuItems [] sitems id
 		| isEmpty children	= mkMenuItems defs items id
 		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Nothing, text = label, menu = Just {TUIMenu | items = children}, disabled = False, name = Nothing, value = Nothing, iconCls = Nothing}:defs] items id
-	mkMenuItems defs [MenuSeparator:items] id = mkMenuItems ndefs items id
+	mkMenuItems defs [MenuSeparator:items]         id = mkMenuItems ndefs items id
 	where
 		// add separators only where needed
 		ndefs = case defs of
 			[]						= defs
 			[TUIMenuSeparator:_]	= defs
 			_						= [TUIMenuSeparator:defs]
+			_						= defs
 	mkMenuItems defs [MenuName _ item:items] id = mkMenuItems defs [item:items] id
 	mkMenuItems	defs [] id = (reverse defs`,id)
 	where

@@ -43,6 +43,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIMenuButton TUIMenuButton
 	| TUIMenuItem TUIMenuItem
 	| TUIMenuSeparator
+	| TUITuple TUITuple
 	| TUICustom JSON
 
 :: TUIButton =
@@ -215,4 +216,17 @@ derive JSONEncode TUIDef, TUIUpdate
 	, menu			:: !Maybe TUIMenu
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String
+	}
+:: TUITuple =
+	{ layout		:: !String
+	, id			:: !String
+	, items			:: ![TUIDef]
+	, buttons		:: !Maybe [TUIDef]
+	, autoHeight	:: !Bool
+	, autoWidth		:: !Bool
+	, border		:: !Bool
+	, bodyCssClass	:: !String
+	, fieldLabel	:: !Maybe String
+	, renderingHint	:: !Int
+	, unstyled		:: !Bool
 	}

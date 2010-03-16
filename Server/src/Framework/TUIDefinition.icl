@@ -1,9 +1,9 @@
 implementation module TUIDefinition
 
-import JSON
+import JSON,StdList
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUITextField, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
-derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument
+derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument, TUITuple
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextField r) c = addXType "textfield" (JSONEncode{|*|} r c)
@@ -26,7 +26,8 @@ JSONEncode{|TUIDef|} (TUIListItem r) c = addXType "itasks.list.item" (JSONEncode
 JSONEncode{|TUIDef|} (TUIDocument r) c = addXType "itasks.document" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIMenuButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIMenuItem r) c = addXType "menuitem" (JSONEncode{|*|} r c)
-JSONEncode{|TUIDef|} (TUIMenuSeparator) c = addXType "menuseparator" ["{","}":c]
+JSONEncode{|TUIDef|} (TUIMenuSeparator) c = ["{\"xtype\":\"menuseparator\"}"]++c
+JSONEncode{|TUIDef|} (TUITuple r) c = addXType "panel" (JSONEncode {|*|} r c)
 JSONEncode{|TUIDef|} (TUICustom r) c = JSONEncode{|*|} r c
 
 addXType :: String [String] -> [String]

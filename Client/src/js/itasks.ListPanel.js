@@ -125,16 +125,22 @@ itasks.list.Item = Ext.extend(Ext.Panel,{
 		, cls: 'list-item'
 		, autoHeight: true
 		, unstyled: true
-		, layout: 'ux.html'
-		, html: '<div id="liform" style="float:left"></div><div id="litbox" style="float: right"></div>'
+		, layout: 'form'
+		//, layout: 'ux.html'
+		//, html: '<div id="liform" style="float:left"></div><div id="litbox" style="float: right"></div>'
 		});
 		
-		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name, renderTarget: "div[id=litbox]"}); 
+		this.toolbox = new itasks.list.Toolbox({index: this.index, name: this.name}); //, renderTarget: "div[id=litbox]"}); 
 		
-		this.items[0].renderTarget="div[id=liform]"
-		this.items[1] = this.toolbox;
-		
+		//this.items[0].renderTarget="div[id=liform]"
+		//this.items[1] = this.toolbox;
+				
 		itasks.list.Item.superclass.initComponent.apply(this,arguments);
+	},
+	
+	afterRender: function(){
+		this.add(this.toolbox);
+		itasks.list.Item.superclass.afterRender.call(this,arguments);
 	}
 });
 

@@ -210,7 +210,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 			| otherwise
 				# (vizBody,rh,vst=:{valid})
 					= if (showBody currentPath old)
-						(fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, onlyBody = False, optional = False})
+						(fx ox nx {vst & label = Nothing, currentPath = shiftDataPath (currentPath), onlyBody = False, optional = False})
 						([],0,vst)	 	
 				| onlyBody  //Normal ADT's without constructor selector
 					= (vizBody, rh, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid, optional = optional})
@@ -228,7 +228,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]],rh,{VSt|vst & currentPath = stepDataPath currentPath})
 					//Normal ADT's
 					| otherwise
-						= (vizCons ++ vizBody,rh,{VSt|vst & currentPath = stepDataPath currentPath})
+						= (vizCons ++ [TextFragment " "] ++ vizBody,rh,{VSt|vst & currentPath = stepDataPath currentPath})
 				_
 					= ([],0, {VSt|vst & currentPath = stepDataPath currentPath})
 		//update constructor selector
@@ -423,7 +423,7 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,rh2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout="itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=0, //Tuple always full width
+			= ([TUIFragment (TUITuple {TUITuple | id=dp2id idPrefix currentPath, layout="itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=0, //Tuple always full width
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True}
@@ -451,7 +451,7 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,rh2,vst) = f2 v2 v2 vst
 			# (viz3,rh3,vst) = f3 v3 v3 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout = "itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,renderingHint = 0, unstyled=True,
+			= ([TUIFragment (TUITuple {TUITuple | id=dp2id idPrefix currentPath, layout = "itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label,renderingHint = 0, unstyled=True,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True},
@@ -484,7 +484,7 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,rh2,vst) = f2 v2 v2 vst
 			# (viz3,rh3,vst) = f3 v3 v3 vst
 			# (viz4,rh4,vst) = f4 v4 v4 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout="itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, renderingHint = 0, unstyled=True,
+			= ([TUIFragment (TUITuple {TUITuple | id=dp2id idPrefix currentPath, layout="itasks.hgrid", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, renderingHint = 0, unstyled=True,
 											 items = [ 
 											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
 											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True},
@@ -638,8 +638,8 @@ gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabel
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
-	contentPath				= shiftDataPath currentPath
-	id = dp2id idPrefix contentPath		
+	contentPath	= shiftDataPath currentPath
+	id 			= dp2id idPrefix contentPath		
 	
 //Document Type
 gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels, namePrefix}
@@ -782,7 +782,7 @@ consSelector d idPrefix dp value label useLabels namePrefix
 		= []
 	//Use radiogroup to choose a constructor
 	| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-		# items	= [TUIRadio {TUIRadio|name = name, id = dp2id idPrefix rdp, value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
+		# items	= [TUIRadio {TUIRadio|name = name, id = (dp2id idPrefix rdp)+++"-radio", value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
 				   \\ c <- d.gcd_type_def.gtd_conses & rdp <- radioDps (shiftDataPath dp)]
 		= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, columns = 4, hideLabel = not useLabels})]
 	//Use combobox to choose a constructor
@@ -794,19 +794,9 @@ where
 	id			= dp2id idPrefix dp
 	index		= d.gcd_index
 	radioDps dp	= [dp:radioDps (stepDataPath dp)]
-	
+
 determineRemovals :: [Visualization] -> [Visualization]
-determineRemovals editor = [TUIUpdate (TUIRemove consid) \\ consid <- collectIds (coerceToTUIDefs editor)]
-where
-	collectIds [] = []
-	collectIds [TUINumberField {TUINumberField|id}:is] = [id:collectIds is]
-	collectIds [TUITextField {TUITextField|id}:is] = [id:collectIds is]
-	collectIds [TUITextArea {TUITextArea|id}:is] = [id:collectIds is]
-	collectIds [TUICheckBox {TUICheckBox|id}:is] = [id:collectIds is]
-	collectIds [TUIRadioGroup {TUIRadioGroup|id}:is] = [id:collectIds is]
-	collectIds [TUIComboBox {TUIComboBox|id}:is] = [id:collectIds is]
-	collectIds [TUIFieldSet {TUIFieldSet|id}:is] = [id:collectIds is]
-	collectIds [_:is] = collectIds is
+determineRemovals editor = ([TUIUpdate (TUIRemove (fromJust (getId consid))) \\ consid <- (coerceToTUIDefs editor) | isJust (getId consid)])
 	
 determineAdditions :: String [Visualization] -> [Visualization]
 determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def <- coerceToTUIDefs editor]
@@ -846,6 +836,7 @@ getId (TUIList d)				= Just d.TUIList.id
 getId (TUIListItem d)			= Just d.TUIListItem.id
 getId (TUIDocument d)			= Just d.TUIDocument.id
 getId (TUICustom d)				= Nothing
+getId (TUITuple d)				= Just d.TUITuple.id
 getId _							= abort "unknown TUI Definition"
 
 coerceToStrings :: [Visualization] -> [String]
