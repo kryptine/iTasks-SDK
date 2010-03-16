@@ -4,10 +4,10 @@ import StdGeneric, StdMaybe, Void, Either
 import Types
 
 //Datapath is used to point to substructures of data structures
-:: DataPath :== [Int]
-:: DataMask :== [DataPath]
-
-:: ListMask :== [(DataPath,[Int])]
+:: DataPath
+:: SubEditorIndex :== Int
+:: DataMask :== [[Int]]
+:: ListMask :== [([Int],[Int])]
 
 :: *USt =
 	{ mode				:: UpdateMode
@@ -35,13 +35,18 @@ derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidde
 //Wrapper functions for updating
 defaultValue		:: !*World -> (!a,!*World)														| gUpdate{|*|} a
 defaultMask			:: a !*World -> (DataMask,*World)												| gUpdate{|*|} a
-updateValue			:: String String a !*World -> (a,!*World)										| gUpdate{|*|} a 
-updateValueAndMask  :: String String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
+updateValue			:: DataPath String a !*World -> (a,!*World)										| gUpdate{|*|} a 
+updateValueAndMask  :: DataPath String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
 
 //Utility functions for dealing with DataPath values
-stepDataPath	:: DataPath			-> DataPath
-shiftDataPath	:: DataPath			-> DataPath
-dataPathLevel	:: DataPath			-> Int
+initialDataPath			:: DataPath
+stepDataPath			:: DataPath			-> DataPath
+shiftDataPath			:: DataPath			-> DataPath
+dataPathLevel			:: DataPath			-> Int
+dataPathHasSubEditorIdx	:: DataPath Int		-> Bool
+dataPathSetSubEditorIdx	:: DataPath Int		-> DataPath
+dataPathHasConsFlag		:: DataPath			-> Bool
+dataPathSetConsFlag		:: DataPath			-> DataPath
 
 dp2s			:: DataPath			-> String
 dp2id			:: String DataPath	-> String
@@ -51,5 +56,10 @@ isdps			:: String			-> Bool
 instance == DataPath
 
 //Masking and unmasking of fields
-toggleMask	:: *USt -> *USt
-isMasked	:: DataPath DataMask -> Bool
+toggleMask			:: *USt -> *USt
+initialDataMask		:: DataMask
+initialListMask		:: ListMask
+updateListMask		:: ListMask DataPath -> (ListMask,[Int])
+isMasked			:: DataPath DataMask -> Bool
+appendToMask		:: DataPath DataMask -> DataMask
+appendToListMask	:: DataPath [Int] ListMask -> ListMask

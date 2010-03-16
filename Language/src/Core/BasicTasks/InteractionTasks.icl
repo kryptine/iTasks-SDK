@@ -58,19 +58,19 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr}
 	//Check for user updates
 	# (updates,tst) = getUserUpdates tst
 	| isEmpty updates
-		# (form,valid) 	= visualizeAsEditor editorId "" omask ovalue
+		# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
 		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
 		# buttonActions	= evaluateConditions buttonActions valid ovalue
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
 		= (TaskBusy,tst)
 	| otherwise
-		# (nvalue,nmask,lmask,tst) = applyUpdates updates ovalue omask [] tst
+		# (nvalue,nmask,lmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask [] tst
 		# (action,tst) = getAction updates (map fst buttonActions) tst
 		| isJust action = (TaskFinished (fromJust action,nvalue),tst)
 		| otherwise
 			# tst				= setTaskStore "value" nvalue tst
 			# tst				= setTaskStore "mask" nmask tst
-			# (updates,valid)	= determineEditorUpdates editorId "" omask nmask lmask ovalue nvalue False
+			# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue False
 			# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 			# buttonActions		= evaluateConditions buttonActions valid nvalue
 			# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
@@ -327,8 +327,8 @@ where
 
 :: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
 :: Listener` s a =	{ visualize :: s -> [HtmlTag] }
-:: Editor` s a =	{ getNewValue :: Int [(!String,!String)] s s *TSt -> *(!s,!*TSt)
-					, determineUpdates :: Int s s *TSt -> *((![TUIUpdate],!Bool),!*TSt)
+:: Editor` s a =	{ getNewValue :: Int [(!DataPath,!String)] s s *TSt -> *(!s,!*TSt)
+					, determineUpdates :: Int s *TSt -> *((![TUIUpdate],!Bool),!*TSt)
 					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
 					}
 
@@ -336,29 +336,36 @@ editor :: !(Editor s a) -> View s | iTask a & iTask s & gMerge{|*|} s
 editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
 where
 	getNewValue n updates old cur tst
-		# oEditV				= editorFrom old
-		# (omask,tst)			= readMask n (Just oEditV) tst
-		# myUpdates				= [(subString namePrefixLen ((textSize key) - namePrefixLen) key,value) \\ (key,value) <- updates | startsWith (namePrefix n) key]
-		| isEmpty myUpdates		= (cur, tst)
+		# oEditV					= editorFrom old
+		# (omask,tst)				= readMask n (Just oEditV) tst
+		# myUpdates					= filter (\upd -> dataPathHasSubEditorIdx (fst upd) n) updates
+		| isEmpty myUpdates
+			# tst					= setTaskStore (addStorePrefix n "value") oEditV tst
+			= (cur,tst)
 		| otherwise
-			# (nEditV,_,_,tst)	= applyUpdates myUpdates oEditV omask [] tst
+			//first apply basic value updates to get value represented by user interface on client
+			# basicValueUpdates			= filter (\upd -> not (dataPathHasConsFlag (fst upd))) myUpdates
+			# (oEditV,omask,lmask,tst)	= applyUpdates basicValueUpdates oEditV omask [] tst
+			# tst						= setTaskStore (addStorePrefix n "value") oEditV tst
+			//then apply constructor updates
+			# consUpdates				= filter (\upd -> dataPathHasConsFlag (fst upd)) myUpdates
+			# (nEditV,_,_,tst)			= applyUpdates consUpdates oEditV omask lmask tst
 			= (mergeValues old cur (editorTo nEditV old), tst)
-	where
-		namePrefixLen	= textSize (namePrefix n)
 		
-	determineUpdates n old new tst=:{taskNr}
-		# oEditV			= editorFrom old
+	determineUpdates n new tst=:{taskNr}
+		# (mbOEditV,tst)	= getTaskStore (addStorePrefix n "value") tst
+		# oEditV			= fromJust mbOEditV
 		# nEditV			= editorFrom new
 		# (omask,tst)		= readMask n (Just oEditV) tst
 		# (nmask,tst)		= accWorldTSt (defaultMask nEditV) tst
 		# tst				= setTaskStore (addStorePrefix n "mask") nmask tst
-		= (determineEditorUpdates (editorId taskNr n) (namePrefix n) omask nmask [] oEditV nEditV True,tst)
+		= (determineEditorUpdates (editorId taskNr n) (Just n) omask nmask [] oEditV nEditV True,tst)
 	
 	visualize taskNr n stateV tst
 		# editV			= editorFrom stateV
 		# (mask,tst)	= accWorldTSt (defaultMask editV) tst
 		# tst			= setTaskStoreFor taskNr (addStorePrefix n "mask") mask tst
-		= (visualizeAsEditor (editorId taskNr n) (namePrefix n) mask editV,tst)
+		= (visualizeAsEditor (editorId taskNr n) (Just n) mask editV,tst)
 		
 	readMask n initial tst
 		# (mbmask,tst)	= getTaskStore(addStorePrefix n "mask") tst
@@ -370,8 +377,6 @@ where
 					# tst			= setTaskStore (addStorePrefix n "mask") mask tst // <- store the initial mask
 					= (mask,tst)
 				Nothing	= ([],tst)
-				
-	namePrefix n			= (toString n) +++ "_"
 				
 	applyUpdates [] val mask lmask tst = (val,mask,lmask,tst)
 	applyUpdates [(p,v):us] val mask lmask tst=:{TSt|world}
@@ -414,7 +419,8 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 		# (action,tst)		= getAction updates (map fst buttonActions) tst
 		| isJust action		= (TaskFinished (fromJust action,cvalue),tst)
 		| otherwise
-			# (nvalue,_,tst)	= foldl (updateV updates) (cvalue,0,tst) views
+			# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
+			# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
 			# tst				= setSharedStore sharedId nvalue tst
 			# (upd,valid,_,tst)	= foldl (detUpd nvalue) ([],True,0,tst) views
 			# menuActions		= evaluateConditions menuActions valid nvalue
@@ -443,9 +449,8 @@ where
 	updateV _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
 	
 	detUpd nvalue (upd,valid,n,tst) (Editor editor)
-		# (ovalue,tst)			= readValue n tst
+		# ((nupd,nvalid),tst)	= editor.determineUpdates n nvalue tst
 		# tst					= setTaskStore (addStorePrefix n "value") nvalue tst
-		# ((nupd,nvalid),tst)	= editor.determineUpdates n ovalue nvalue tst
 		= (upd ++ nupd,	valid && nvalid, n + 1, tst)
 	detUpd nvalue (upd,valid,n,tst) (Listener listener) = ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
 	

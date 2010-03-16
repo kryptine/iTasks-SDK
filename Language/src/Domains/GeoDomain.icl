@@ -53,7 +53,7 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels, namePrefix}
+gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
 	= case vizType of
 		VEditorDefinition = ([TUIFragment (TUICustom   (JSON ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath True))))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
 		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (mapPanel new (label2s optional label) (not useLabels) idPrefix currentPath True))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
@@ -78,7 +78,7 @@ where
 		, mapType = map.GoogleMap.mapType
 		, markers = map.GoogleMap.markers
 		, xtype = "itasks.gmappanel"
-		, name = namePrefix +++ (dp2s cp)
+		, name = dp2s cp
 		, id = dp2id idp cp
 		, fieldLabel = fl
 		, hideLabel = hl
@@ -95,7 +95,7 @@ where
 		}
 
 gVisualize {|GoogleStaticMap|} VBlank _ vst = ([TextFragment "-"],1,vst)
-gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u) _ ) _ vst=:{vizType,idPrefix,currentPath,namePrefix}
+gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u) _ ) _ vst=:{vizType,idPrefix,currentPath}
 	= case vizType of
 		VHtmlDisplay	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]],4,{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],4,{VSt | vst & currentPath = stepDataPath currentPath})
@@ -108,7 +108,7 @@ where
 		| width 	= w
 		, height 	= h	
 		, xtype		= "itasks.gstaticmappanel"
-		, name		= namePrefix +++ (dp2s currentPath)
+		, name		= dp2s currentPath
 		, id		= dp2id idPrefix currentPath
 		, url		= u
 		}	
@@ -147,7 +147,7 @@ where
 	| otherwise = orig
 
 gUpdate {|GoogleMap|} s ust =: {USt | mode = UDMask, currentPath, mask}
-	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
+	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
 
 gUpdate {|GoogleMap|} s ust = (s,ust)
 

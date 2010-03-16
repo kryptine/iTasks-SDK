@@ -14,61 +14,67 @@ derive gLexOrd		Currency
 
 derive bimap	Maybe, (,)
 
-gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,namePrefix,updateValues}
+gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIDateField {TUIDateField|name = namePrefix +++ (dp2s currentPath), id = id, value = value2s currentPath old, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUIDateField {TUIDateField|name = dp2s currentPath, id = id, value = oldV, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = not useLabels})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues 	= ([TUIUpdate (TUISetValue id (value2s currentPath new))]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)],1,{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+												, 1
+												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_									= ([TextFragment (toString old)],1,{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 where
-	id = dp2id idPrefix currentPath
+	id		= dp2id idPrefix currentPath
+	oldV	= value2s currentPath old
+	newV	= value2s currentPath new
 	
-gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,namePrefix,updateValues}
+gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUITimeField {TUITimeField|name = namePrefix +++ (dp2s currentPath), id = id, value = value2s currentPath old, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUITimeField {TUITimeField|name = dp2s currentPath, id = id, value = oldV, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = not useLabels})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues 	= ([TUIUpdate (TUISetValue id (value2s currentPath new))]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)],1,{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+												, 1
+												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_									= ([TextFragment (toString old)],1,{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 where
-	id = dp2id idPrefix currentPath
+	id		= dp2id idPrefix currentPath
+	oldV	= value2s currentPath old
+	newV	= value2s currentPath new
 	
-gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,namePrefix,updateValues}
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUITextArea {TUITextArea|name = namePrefix +++ (dp2s contentPath), id = id, value = value2s contentPath old, fieldLabel = label2s optional label, hideLabel = not useLabels, width = 400, height = 150 })]
+		VEditorDefinition	= ([TUIFragment (TUITextArea {TUITextArea|name = dp2s contentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels, width = 400, height = 150 })]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
 		VEditorUpdate
-			| updateValues 	= ([TUIUpdate (TUISetValue id (value2s currentPath new))]
-								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)]
-								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+												, 2
+												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_									= ([TextFragment (toString old)]
+												, 2
+												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
 	contentPath				= shiftDataPath currentPath
-	id = dp2id idPrefix contentPath			
+	id		= dp2id idPrefix currentPath
+	oldV	= value2s currentPath old
+	newV	= value2s currentPath new			
 
-gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,namePrefix,updateValues}
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment numberField], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues 	= ([TUIUpdate (TUISetValue id (value currentPath new))]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+												, 1
+												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_									= ([TextFragment (toString old)], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
-	numberField				= TUINumberField {TUINumberField|name = namePrefix +++ (dp2s currentPath), id = id
-								, value = value currentPath old, fieldLabel = label2s optional (curLabel old label), hideLabel = not useLabels, allowDecimals = True, numDecimals = 2}
+	numberField				= TUINumberField {TUINumberField|name = dp2s currentPath, id = id
+								, value = oldV, fieldLabel = label2s optional (curLabel old label), hideLabel = not useLabels, allowDecimals = True, numDecimals = 2}
 
 	curLabel _ Nothing			= Nothing
 	curLabel (VValue (EUR _) _)	(Just l) = Just (l +++ " (&euro;)")
@@ -76,7 +82,9 @@ where
 	curLabel (VValue (USD _) _)	(Just l) = Just (l +++ " ($)")
 	curLabel (VValue (JPY _) _)	(Just l) = Just (l +++ " (&yen;)")
 	curLabel _	_				= Nothing
-
+	
+	oldV	= value currentPath old
+	newV	= value currentPath new
 	value dp VBlank			= ""
 	value dp (VValue v dm)	= if (isMasked dp dm) (decFormat (toInt v)) ""
 	
@@ -91,7 +99,7 @@ gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
 
 gUpdate{|Date|} s ust = (s, ust)
 
@@ -104,7 +112,7 @@ gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath})
 gUpdate{|Time|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
 gUpdate{|Time|} s ust = (s, ust)
 
 gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate} = (EUR 0, ust)
@@ -126,7 +134,7 @@ where
 	replaceVal (JPY _) x = (JPY x)
 
 gUpdate{|Currency|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = [currentPath:mask]})	
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
 gUpdate{|Currency|} s ust = (s,ust)
 
 currentTime :: !*World -> (!Time,!*World)
