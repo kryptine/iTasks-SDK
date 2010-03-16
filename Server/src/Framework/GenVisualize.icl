@@ -184,7 +184,7 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,onlyBody,v
 			= fx VBlank VBlank vst		
 where
 	maskChanged dp m1 m2	= (isMasked dp m1 && not (isMasked dp m2)) || (not (isMasked dp m1) && isMasked dp m2)
-	pathid					= dp2id idPrefix currentPath		
+	pathid					= dp2id idPrefix (dataPathSetConsFlag currentPath)
 
 
 gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,onlyBody,optional,valid,updateValues}
