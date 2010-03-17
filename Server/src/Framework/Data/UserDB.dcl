@@ -14,7 +14,7 @@ import TSt
 * @return The user
 * @return The database handle
 */
-getUser				::	!UserId			!*TSt -> (!User						, !*TSt)
+getUser				::	!UserName			!*TSt -> (!User						, !*TSt)
 /**
 * Fetches the id and display name of all users from the from the user database.
 *
@@ -41,7 +41,7 @@ getUsersWithRole	:: !String			!*TSt -> (![User]				, !*TSt)
 * @return A list of display names
 * @return The database handle
 */
-getDisplayNames		:: ![UserId]			!*TSt -> (![DisplayName]			, !*TSt)
+getDisplayNames		:: ![UserName]			!*TSt -> (![DisplayName]			, !*TSt)
 /**
 * Maps a list of usernames to a list of a list of roles. Roles are strings that identify a certain
 * role a user may play in a workflow scenario and can be used to determine what a user is allowed
@@ -52,7 +52,7 @@ getDisplayNames		:: ![UserId]			!*TSt -> (![DisplayName]			, !*TSt)
 * @return A list of a list of roles (a list of roles for each user)
 * @return The database handle 
 */
-getRoles			:: ![UserId]			!*TSt -> (![[Role]]					, !*TSt)
+getRoles			:: ![UserName]			!*TSt -> (![[Role]]					, !*TSt)
 /**
 * Authenticate a user based on a user name or password
 *
@@ -93,6 +93,14 @@ updateUser :: !User !*TSt -> (!User,!*TSt)
 * @retrun The database handle 
 */
 deleteUser :: !User !*TSt -> (!User,!*TSt)
+
+/**
+* Makes sure the correct display name is retrieved for the given username
+*
+* @param The username
+* @return The tidied username
+*/
+tidyUserName :: !UserName !*TSt -> (!UserName,!*TSt)
 
 /**
 * Returns the default/unknown user

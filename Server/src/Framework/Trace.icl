@@ -18,9 +18,9 @@ where
 	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Temp. Access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "Mutable"],ThTag [] [Text "In Open Parallel?" ] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
 							, TdTag [] [Text process.Process.properties.managerProps.subject]
-							, TdTag [] [Text process.Process.properties.managerProps.TaskManagerProperties.worker]
+							, TdTag [] [Text (toString process.Process.properties.managerProps.TaskManagerProperties.worker)]
 							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.managerProps.tempWorkers])]
-							, TdTag [] [Text (process.Process.properties.systemProps.manager)]
+							, TdTag [] [Text (toString process.Process.properties.systemProps.manager)]
 							, TdTag [] [Text (toString process.Process.status)]
 							, TdTag [] (case process.Process.parent of
 											""	= [Text "N/A"]
@@ -35,7 +35,7 @@ traceTaskTree tree = mkTree tree
 where
 	mkTree (TTInteractiveTask info _) 
 		= { cls = "master-task"
-		  , user = info.TaskInfo.worker
+		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-int"
@@ -48,7 +48,7 @@ where
 	
 	mkTree (TTMonitorTask info _ )
 		= { cls = "master-task"
-		  , user = info.TaskInfo.worker
+		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-mon"
@@ -61,7 +61,7 @@ where
 	
 	mkTree (TTRpcTask info _ )
 		= { cls = "master-task"
-		  , user = info.TaskInfo.worker
+		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-rpc"
@@ -74,7 +74,7 @@ where
 		  
 	mkTree (TTSequenceTask info trees)
 		= { cls = "master-task"
-		  , user = info.TaskInfo.worker
+		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-seq"
@@ -87,7 +87,7 @@ where
 	
 	mkTree (TTParallelTask info tpi trees)
 		= { cls = "master-task"
-		  , user = info.TaskInfo.worker
+		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-par"
@@ -101,7 +101,7 @@ where
 	mkTree (TTMainTask info mti menus tree)
 		= { cls = "master-task"
 		  , uiProvider = "col"
-		  , user = mti.TaskProperties.managerProps.TaskManagerProperties.worker
+		  , user = toString mti.TaskProperties.managerProps.TaskManagerProperties.worker
 		  , leaf = False
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
@@ -113,7 +113,7 @@ where
 	
 	mkTree (TTFinishedTask info _)
 		= { cls = "master-task"
-		  , user = info.TaskInfo.worker
+		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-fin"

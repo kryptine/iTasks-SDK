@@ -41,7 +41,7 @@ where
 	
 	
 	updateUser proc userName tst=:{staticInfo}
-		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & managerProps = {TaskManagerProperties | p.managerProps & worker = userName}, workerProps = {p.workerProps & progress = TPActive}}) tst
+		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & managerProps = {TaskManagerProperties | p.managerProps & worker = toUserName userName}, workerProps = {p.workerProps & progress = TPActive}}) tst
 		= (successResponse,tst)
 		 	
 	updateProgress proc val tst

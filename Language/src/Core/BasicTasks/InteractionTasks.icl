@@ -562,7 +562,7 @@ mapTaskResult f (TaskFinished x)	= TaskFinished (f x)
 mapTaskResult f (TaskBusy)			= TaskBusy
 mapTaskResult f (TaskException e)	= TaskException e
 
-notifyUser :: message UserId -> Task Void | html message
+notifyUser :: message UserName -> Task Void | html message
 notifyUser message username = mkInstantTask "notifyUser" (\tst -> (TaskFinished Void,tst))
 
 notifyGroup :: message Role -> Task Void | html message

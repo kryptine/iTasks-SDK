@@ -31,8 +31,8 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -
 mkTSt appName config request session workflows dataStore documentStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
-		, userId		= ""
-		, delegatorId	= ""
+		, userId		= UserName "" ""
+		, delegatorId	= UserName "" ""
 		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo [])
 		, mainTask		= ""
 		, properties	= initTaskProperties
@@ -60,7 +60,7 @@ initTaskInfo
 		| taskId = ""
 		, taskLabel = ""
 		, traceValue = ""
-		, worker = ""
+		, worker = UserName "" ""
 		}
 
 initTaskProperties :: TaskProperties
@@ -68,7 +68,7 @@ initTaskProperties
 	= { systemProps =
 		{TaskSystemProperties
 		| processId = ""
-		, manager = ""
+		, manager = UserName "" ""
 		, issuedAt = Timestamp 0
 		, firstEvent = Nothing
 		, latestEvent = Nothing
@@ -76,7 +76,7 @@ initTaskProperties
 		}
 	  , managerProps =
 	    {TaskManagerProperties
-	    | worker = ""
+	    | worker = UserName "" ""
 	    , subject = ""
 	    , priority = NormalPriority
 	    , deadline = Nothing
@@ -92,7 +92,7 @@ createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!TaskResu
 createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
-	# (manager,tst) 		= if (worker.userName <> unknownUser.userName) (worker,tst) (getCurrentUser tst)	
+	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
 	# processId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel "" mainTask
@@ -101,7 +101,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		| systemProps =
 			{TaskSystemProperties
 			| processId	= ""
-			, manager		= manager.User.displayName +++ " <" +++ manager.User.userName +++ ">"
+			, manager		= toUserName manager
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
@@ -393,7 +393,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = ""} [], tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" ""} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active

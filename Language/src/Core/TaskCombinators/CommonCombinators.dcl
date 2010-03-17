@@ -7,7 +7,7 @@ definition module CommonCombinators
 import CoreCombinators, TuningCombinators, InteractionTasks
 import Either
 
-from Types import :: User (..), :: UserId
+from Types import :: User (..), :: UserName
 
 // A task with a label used for labeling buttons, pulldown menus, and the like
 :: LabeledTask a	:== (!String,!Task a)		
@@ -17,11 +17,11 @@ from Types import :: User (..), :: UserId
 (-&&-) infixr 4 	:: !(Task a) !(Task b) 						-> Task (a,b) 			| iTask a & iTask b
 
 anyTask				:: ![Task a]											 -> Task a				| iTask a
-anyTaskExt 			:: ![(UserId,Task a)] !TaskParallelType 				 -> Task a 				| iTask a
+anyTaskExt 			:: ![(UserName,Task a)] !TaskParallelType 				 -> Task a 				| iTask a
 allTasks			:: ![Task a]											 -> Task [a]			| iTask a
-allTasksExt 		:: ![(UserId,Task a)] !TaskParallelType 				 -> Task [a] 			| iTask a 
+allTasksExt 		:: ![(UserName,Task a)] !TaskParallelType 				 -> Task [a] 			| iTask a 
 eitherTask			:: !(Task a) !(Task b) 									 -> Task (Either a b)	| iTask a & iTask b	
-eitherTaskExt 		:: !(UserId,Task a) !(UserId,Task b) !TaskParallelType 	 -> Task (Either a b) 	| iTask a & iTask b
+eitherTaskExt 		:: !(UserName,Task a) !(UserName,Task b) !TaskParallelType 	 -> Task (Either a b) 	| iTask a & iTask b
 
 (||-) infixr 3		:: !(Task a) !(Task b)						-> Task b				| iTask a & iTask b
 (-||) infixl 3		:: !(Task a) !(Task b)						-> Task a				| iTask a & iTask b
@@ -42,8 +42,8 @@ stop				:: Task Void
 class (@:) infix 3 u :: u !(LabeledTask a) -> Task a | iTask a
 
 instance @: User
-instance @: UserId
 instance @: UserName
+instance @: String
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid

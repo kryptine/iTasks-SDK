@@ -725,11 +725,11 @@ itasks.ParallelPanel = Ext.extend(Ext.Panel,{
 			},
 			columns: [
 				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
-				{header: 'Nr.',			  		dataIndex: 'subtaskId', width: 75, renderer: this.renderId},
-				{header: 'Subject',		    dataIndex: 'subject', width: 200},
-				{header: 'Task Id', 			dataIndex: 'taskId', hidden: itasks.app.debug, width: 120},
-				{header: 'Delegated To', dataIndex: 'delegatedTo', width: 120},
-				{header: 'Description',	dataIndex: 'description', width: 400}
+				{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 75, renderer: this.renderId},
+				{header: 'Subject',		   		dataIndex: 'subject', width: 200},
+				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 120},
+				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 120},
+				{header: 'Description',			dataIndex: 'description', width: 400}
 			]
 		});
 

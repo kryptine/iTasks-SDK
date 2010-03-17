@@ -2,7 +2,7 @@ implementation module UserDB
 
 import StdEnv, StdMaybe
 import StdGeneric
-import TSt, Util
+import TSt, Util, StdDebug
 
 derive JSONEncode User
 derive JSONDecode User
@@ -14,27 +14,23 @@ unknownUser = {User | userName = "unknown", displayName = "Unknown user", passwo
 rootUser :: User
 rootUser = {User | userName = "root", displayName = "Root", password = "", roles = []}
 
-getUser :: !UserId !*TSt -> (!User,!*TSt)
-getUser "root" tst
+getUser :: !UserName !*TSt -> (!User,!*TSt)
+getUser (UserName "root" _) tst
 	= (rootUser,tst)
 getUser userName tst
-	# (users, tst)		= userStore id tst
-	= case filter (\u -> u.User.userName == userId) users of
+	# (users, tst) = userStore id tst
+	= case filter (\u -> (toUserName u) == userName) users of
 		[x] = (x,tst)
 		_	= (unknownUser,tst)
-where
-	userId = toUserId userName
 
 getUserByName :: !String !*TSt -> (!User, !*TSt)
 getUserByName "root" tst
 	= (rootUser,tst)
 getUserByName userName tst
 	# (users, tst)		= userStore id tst
-	= case filter (\u -> u.User.userName == userId) users of
+	= case filter (\u -> u.User.userName == userName) users of
 		[x] = (x,tst)
 		_	= (unknownUser,tst)
-where
-	userId = toUserId userName
 	
 getUsers :: !*TSt -> (![User], !*TSt)
 getUsers tst
@@ -46,15 +42,15 @@ getUsersWithRole role tst
 	# (users, tst)		= userStore id tst
 	= (filter (\u -> isMember role u.User.roles) users, tst) //Do not include the "root" user"
 
-getDisplayNames	:: ![UserId] !*TSt -> (![DisplayName], !*TSt)
+getDisplayNames	:: ![UserName] !*TSt -> (![DisplayName], !*TSt)
 getDisplayNames	usernames tst
 	# (users, tst)		= userStore id tst
 	= (map (displayName users) usernames, tst)
 where
-	displayName users "root" = "Root"
+	displayName users (UserName "root" _) = "Root"
 	displayName users name = lookupUserProperty users (\u -> u.displayName) "Unknown user" name
 	
-getRoles :: ![UserId] !*TSt -> (![[Role]], !*TSt)
+getRoles :: ![UserName] !*TSt -> (![[Role]], !*TSt)
 getRoles usernames tst
 	# (users, tst)		= userStore id tst
 	= (map (lookupUserProperty users (\u -> u.User.roles) []) usernames, tst)
@@ -93,10 +89,16 @@ deleteUser user tst
 where
 	delete users	= [u \\ u <- users | u.User.userName <> user.User.userName]
 	
+tidyUserName :: !UserName !*TSt -> (!UserName, !*TSt)
+tidyUserName (UserName uid disp) tst
+	# (user,tst) = getUser (UserName uid disp) tst
+	| user == unknownUser 	= (UserName uid "unregistered",tst)
+	| otherwise 			= (UserName uid user.displayName,tst)
+	
 //Helper function which finds a property of a certain user
-lookupUserProperty :: ![User] !(User -> a) !a !UserId -> a
+lookupUserProperty :: ![User] !(User -> a) !a !UserName -> a
 lookupUserProperty users selectFunction defaultValue userName
-		= case [selectFunction user \\ user <- users | user.User.userName == userName] of
+		= case [selectFunction user \\ user <- users | toUserName user == userName] of
 			[x] = x
 			_	= defaultValue
 

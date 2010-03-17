@@ -23,7 +23,7 @@ JSONEncode{|TaskPanel|} (TaskRedundant) c				= ["\"redundant\"" : c]
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 
-buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserId !*TSt -> (![TaskPanel],!*TSt)
+buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (![TaskPanel],!*TSt)
 buildTaskPanels tree menus currentUser tst = case tree of
 	(TTInteractiveTask ti (Definition def acceptedA))
 		= ([FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], tbar = (makeMenuBar menus acceptedA ti)}], tst)
@@ -57,15 +57,15 @@ buildTaskPanels tree menus currentUser tst = case tree of
 where
 	filterPanel t =
 		case t of
-			(TTInteractiveTask ti _ ) 	= toUserId ti.TaskInfo.worker == currentUser
-			(TTMonitorTask ti _)		= toUserId ti.TaskInfo.worker == currentUser 
-			(TTRpcTask ti _)			= toUserId ti.TaskInfo.worker == currentUser
+			(TTInteractiveTask ti _ ) 	= ti.TaskInfo.worker == currentUser
+			(TTMonitorTask ti _)		= ti.TaskInfo.worker == currentUser 
+			(TTRpcTask ti _)			= ti.TaskInfo.worker == currentUser
 			(TTFinishedTask _ _)		= True										// always show finished tasks
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
 			(TTMainTask _ _ _ _)		= False 									// a main-subtask should not become visible
 			_ 							= abort "Unknown panel type in parallel"
 
-buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserId !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
+buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 	(TTInteractiveTask ti (Definition def acceptedA))
 		= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree
@@ -102,7 +102,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
 	(TTParallelTask ti tpi tasks)
 		# children = zip2 [1..] tasks
-		# nmanager = toUserId ti.TaskInfo.worker
+		# nmanager = ti.TaskInfo.worker
 		# node	   = [{SubtaskContainer | subtaskNr = stnr, manager = nmanager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskRedundant}]
 		= case tpi.TaskParallelInfo.type of
 			Open 	
@@ -122,29 +122,29 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 					_		 = buildSubtaskPanels task stnr menus manager partype inClosed tst
 				Nothing = abort "(BuildTaskPanel) Cannot retrieve process!"
 
-buildSubtaskInfo :: ![SubtaskContainer] !UserId -> [SubtaskInfo]
+buildSubtaskInfo :: ![SubtaskContainer] !UserName -> [SubtaskInfo]
 buildSubtaskInfo containers manager = [buildSubtaskInfo` c \\ c <- containers | filterClosedSubtasks c manager]
 where
 	buildSubtaskInfo` :: !SubtaskContainer -> SubtaskInfo
 	buildSubtaskInfo` container = case container.tasktree of
 		(TTInteractiveTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTMonitorTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTRpcTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTFinishedTask ti _)
-			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
 		(TTMainTask ti _ _ _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		
 	mkSti :: SubtaskInfo
 	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", subtaskId = "", description = ""}
 	
 	//Only show subtasks of closed parallels if you are the manager of that task
-filterClosedSubtasks :: !SubtaskContainer !UserId -> Bool
+filterClosedSubtasks :: !SubtaskContainer !UserName -> Bool
 filterClosedSubtasks container manager
 	| container.inClosedPar	= container.SubtaskContainer.manager == manager
 	| otherwise = True

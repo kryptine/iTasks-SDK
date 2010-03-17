@@ -21,7 +21,7 @@ derive gVisualize 	Flow, FlowShape, AssignInfo, CleanExpr
 				|	CleanExpr		!CleanExpr
 				| 	First
 				| 	Second
-:: AssignInfo	= 	{ nameOfUser:: !String
+:: AssignInfo	= 	{ nameOfUser:: !UserName
 			  		, taskName 	:: !String
 			  		}
 :: CleanExpr	=	CI Int

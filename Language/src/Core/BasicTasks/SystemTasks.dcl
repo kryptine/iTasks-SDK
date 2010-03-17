@@ -37,7 +37,7 @@ getDefaultValue 		:: Task a | iTask a
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !UserId !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+spawnProcess	:: !UserName !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
 
 /**
 * Wait (blocking) for a process to complete.

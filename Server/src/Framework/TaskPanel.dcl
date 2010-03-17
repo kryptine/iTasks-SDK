@@ -27,7 +27,7 @@ derive JSONEncode TaskPanel
 	, inClosedPar	:: Bool
 	, tasktree		:: TaskTree
 	, taskpanel		:: TaskPanel
-	, manager		:: UserId
+	, manager		:: UserName
 	}
 	
 :: MonitorPanel =
@@ -99,4 +99,4 @@ derive JSONEncode TaskPanel
 	, description	:: String
 	}
 
-buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserId !*TSt -> (![TaskPanel],!*TSt)
+buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (![TaskPanel],!*TSt)

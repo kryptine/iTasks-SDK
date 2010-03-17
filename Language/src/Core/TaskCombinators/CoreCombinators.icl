@@ -113,11 +113,11 @@ parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![
 parallel label description procFun finFun initState initTasks 
 	= parallelWrap label description Closed False procFun finFun initState [(Nothing,t) \\ t <- initTasks]
 
-parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(UserId,Task a)] -> Task c | iTask a & iTask b & iTask c
+parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(UserName,Task a)] -> Task c | iTask a & iTask b & iTask c
 parallelU label description partype procFun finFun initState initTasks 
 	= parallelWrap label description partype True procFun finFun initState [(Just u,t) \\ (u,t) <- initTasks]
 	
-parallelWrap :: !String !String !TaskParallelType Bool !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(Maybe UserId,Task a)] -> Task c | iTask a & iTask b & iTask c
+parallelWrap :: !String !String !TaskParallelType Bool !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(Maybe UserName,Task a)] -> Task c | iTask a & iTask b & iTask c
 parallelWrap label description partype addusers procFun finFun initState initTasks = mkParallelTask label mkTpi (parallel`)
 where
 	parallel` tst
@@ -151,7 +151,7 @@ where
 								False 
 									= pst.tasks ++ [(t,False) \\ t <- etasks]
 								True
-									= pst.tasks ++ [(assignTask (Just (toUserId staticInfo.currentSession.user)) t,False) \\ t <- etasks]
+									= pst.tasks ++ [(assignTask (Just (toUserName staticInfo.currentSession.user)) t,False) \\ t <- etasks]
 							# pst	= {pst & tasks = tasks}
 							= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
 						ExtendU etasks
@@ -224,19 +224,31 @@ where
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-assign :: !UserId !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
-assign userName initPriority initDeadline task = createOrEvaluateTaskInstance userName initPriority initDeadline Nothing task
+import StdDebug
+
+class assign u :: u !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
+
+instance assign UserName
+where
+	assign :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
+	assign userName initPriority initDeadline task = createOrEvaluateTaskInstance userName initPriority initDeadline Nothing task
+
+instance assign User
+where
+	assign :: !User !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
+	assign user initPriority initDeadline task = createOrEvaluateTaskInstance (toUserName user) initPriority initDeadline Nothing task
 						 
-createOrEvaluateTaskInstance :: !UserId !TaskPriority !(Maybe Timestamp) !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
+createOrEvaluateTaskInstance :: !UserName !TaskPriority !(Maybe Timestamp) !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
 createOrEvaluateTaskInstance userName initPriority initDeadline mbpartype task = mkMainTask "assign" createOrEvaluateTaskInstance`
 where
 	createOrEvaluateTaskInstance` tst=:{TSt|taskNr}
 		//Try to load the stored process for this subtask
-		# taskId		= taskNrToString taskNr
-		# (mbProc,tst)	= getProcess taskId tst	
+		# taskId		 = taskNrToString taskNr
+		# (mbProc,tst)	 = getProcess taskId tst	
 		= case mbProc of
 			//Nothing found, create a task instance
 			Nothing	
+				# (userName,tst)= tidyUserName userName tst
 				# props 		= {TaskManagerProperties
 					  				| worker		 = userName
 					  				, subject		 = taskLabel task
@@ -270,7 +282,7 @@ where
 						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst
 						= (TaskException e, tst)
 
-addTemporaryUser :: !ProcessId !UserId !(Maybe TaskParallelType) !*TSt -> *TSt
+addTemporaryUser :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt
 addTemporaryUser procId uname mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
@@ -280,7 +292,7 @@ addTemporaryUser procId uname mbpartype tst
 				# ntwlist = [(procId,uname):[(p,u) \\ (p,u) <- twlist | not (p == procId && u == uname)]]				
 				= {TSt | tst & properties = {tst.TSt.properties & managerProps = {tst.TSt.properties.managerProps & tempWorkers = ntwlist}}} 
 
-removeTemporaryUser :: !ProcessId !UserId !(Maybe TaskParallelType) !*TSt -> *TSt			
+removeTemporaryUser :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt			
 removeTemporaryUser procId uname mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst

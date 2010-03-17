@@ -30,7 +30,7 @@ JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
 import StdDebug
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
-	# username				= staticInfo.currentSession.user.User.userName
+	# username				= toUserName staticInfo.currentSession.user
 	# (processes,tst)		= getProcessesForUser username [Active] tst
 	# (tmpprocs ,tst)		= getTempProcessesForUser username [Active] tst
 	# proclist				= processes ++ tmpprocs
@@ -50,14 +50,13 @@ where
 				(Just Open)
 					= not (isMember p.parent [p.Process.processId \\ p <- plist])
 				(Just Closed)
-					| staticInfo.currentSession.user.User.userName <> toUserId p.Process.properties.systemProps.TaskSystemProperties.manager = True
-					| otherwise = False	
+					= toUserName staticInfo.currentSession.user <> p.Process.properties.systemProps.TaskSystemProperties.manager
 
 bldWorkItems :: [Process] -> [WorkListItem]
 bldWorkItems processes
 	= markLast [
 		{ taskid		= processId
-		, manager		= p.systemProps.TaskSystemProperties.manager
+		, manager		= toString p.systemProps.TaskSystemProperties.manager
 		, subject		= p.managerProps.TaskManagerProperties.subject
 		, priority		= p.managerProps.TaskManagerProperties.priority
 		, progress		= p.workerProps.TaskWorkerProperties.progress

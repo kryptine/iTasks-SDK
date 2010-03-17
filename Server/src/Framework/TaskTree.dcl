@@ -30,7 +30,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskInfo	=		{ taskId		:: TaskId											//Task number in string format
 					, taskLabel		:: String											//Descriptive label of the task
 					, traceValue	:: String											//String representation of value for tracing
-					, worker		:: UserId
+					, worker		:: UserName
 					}
 
 :: TaskProperties = { systemProps	:: TaskSystemProperties
@@ -40,7 +40,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: TaskSystemProperties =
 	{ processId			:: ProcessId		// Process table identification
-	, manager			:: UserId			// Who is managing this task
+	, manager			:: UserName			// Who is managing this task
 	, issuedAt			:: Timestamp		// When was the task created
 	, firstEvent		:: Maybe Timestamp	// When was the first work done on this task
 	, latestEvent		:: Maybe Timestamp	// When was the latest event on this task	
@@ -48,11 +48,11 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 	}
 
 :: TaskManagerProperties =
-	{ worker			:: UserId					// Who has to do the task? 
+	{ worker			:: UserName					// Who has to do the task? 
 	, subject			:: String 					// The subject of the task
 	, priority			:: TaskPriority				// What is the current priority of this task?
 	, deadline			:: Maybe Timestamp			// When is the task due?
-	, tempWorkers		:: [(ProcessId, UserId)] 	// Users who have temporary access to the process. (In case of an open parallel)
+	, tempWorkers		:: [(ProcessId, UserName)] 	// Users who have temporary access to the process. (In case of an open parallel)
 	}
 					
 :: TaskWorkerProperties =

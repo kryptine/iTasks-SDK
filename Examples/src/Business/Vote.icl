@@ -12,7 +12,7 @@ derive gVisualize	Vote
 derive gUpdate		Vote
 derive bimap (,), Maybe
 
-:: Vote = { userName	:: String
+:: Vote = { userName	:: UserName
 		  , vote		:: Int
 		  , comment		:: String
 		  }
@@ -59,27 +59,27 @@ where
 giveVote :: Task Void
 giveVote 
 =							getCurrentUser
-	>>= \currentUser ->		readMyVoteDB currentUser.User.userName
+	>>= \currentUser ->		readMyVoteDB (toUserName currentUser)
 	>>= \(vote,comment) ->	enterChoice
 								[ Text ("Previous vote given:" +++ if (vote == -1) "No vote given" (toString vote)), BrTag [], BrTag []
 								, Text "Give your new vote (0 = lowest, 10 = highest)"
 								] [0..10]
-	>>= \vote -> 			readMyVoteDB currentUser.User.userName
-	>>= \(_,comment) ->		writeVotesDB {userName = currentUser.User.userName, vote = vote, comment = comment}
+	>>= \vote -> 			readMyVoteDB (toUserName currentUser)
+	>>= \(_,comment) ->		writeVotesDB {userName = toUserName currentUser, vote = vote, comment = comment}
 	>>|						showMessage [Text ("Your vote " +++ toString vote +++ " has been stored!")]
 
 giveComment :: Task Void
 giveComment
 =							getCurrentUser
- 	>>= \currentUser ->		readMyVoteDB currentUser.User.userName
+ 	>>= \currentUser ->		readMyVoteDB (toUserName currentUser)
 	>>= \(vote,comment) ->	enterInformation
 								[ Text "Previous comment given:", BrTag [], BrTag []
 								, Text (if (comment == "" ) "None" comment), BrTag [], BrTag []
 								, Text "Submit a new comment:", BrTag [], BrTag []
 								] 
-	>>= \(Note comment) -> readMyVoteDB currentUser.User.userName
+	>>= \(Note comment) -> readMyVoteDB (toUserName currentUser)
 	>>= \(vote,_) ->		
-							writeVotesDB {userName = currentUser.User.userName, vote = vote, comment = comment}
+							writeVotesDB {userName = toUserName currentUser, vote = vote, comment = comment}
 	>>|						showMessage
 								[ Text "Your comment:", BrTag [], BrTag []
 								, Text comment, BrTag [], BrTag []
@@ -94,7 +94,7 @@ votesId	= mkDBid "votes"
 readVotesDB :: Task [Vote]
 readVotesDB = readDB votesId
 
-readMyVoteDB :: String -> Task (Int,String)
+readMyVoteDB :: UserName -> Task (Int,String)
 readMyVoteDB name
 =					readVotesDB
 	>>=	\votes ->	return 	(case (filter (\vote -> vote.Vote.userName == name) votes) of 

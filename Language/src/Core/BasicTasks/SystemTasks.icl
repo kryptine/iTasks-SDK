@@ -40,7 +40,7 @@ where
 		# (d,tst) = accWorldTSt defaultValue tst
 		= (TaskFinished d,tst)
 		
-spawnProcess :: !UserId !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}

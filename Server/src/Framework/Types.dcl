@@ -25,17 +25,24 @@ derive JSONDecode Document
 instance toString TaskPriority
 instance toString UserName
 
-class toUserId a :: a -> String
-instance toUserId String
-instance toUserId UserName
-instance toUserId User
+class toUserName a :: a -> UserName
+instance toUserName String
+instance toUserName (String,String)
+instance toUserName User
 
+class fromUserName a :: UserName -> a
+instance fromUserName String
+instance fromUserName (String,String)
 
-:: UserId			:== String
-:: DisplayName		:== String			
+instance == UserName
+instance == User
+		
 :: Role				:== String
 
-:: UserName			= UserName !String
+:: UserId			:== String
+:: DisplayName		:== String
+
+:: UserName			= UserName !UserId !DisplayName
 :: User 			=
 	{ userName		:: !UserId
 	, password		:: !String
@@ -115,4 +122,4 @@ toHidden :: !.a -> (Hidden .a)
 	, index			:: Int	
 	}
 
-emptyDoc :: Document
+emptyDoc 	 		:: Document

@@ -9,7 +9,7 @@ from ProcessDB import qualified instance ProcessDB TSt
 
 from UserDB import getUser
 
-from Types	import :: ProcessId, :: ProcessRef, :: UserId
+from Types	import :: ProcessId, :: ProcessRef, :: UserName
 
 import Time
 import CommonCombinators
@@ -36,7 +36,7 @@ where
 getProcess :: !pid -> Task (Maybe Process) | toProcessId pid
 getProcess pid = mkInstantTask "getProcess" (mkTaskFunction (\tst -> ProcessDB@getProcess (toProcessId pid) tst))
 
-getProcessForUser :: !UserId !pid -> Task (Maybe Process) | toProcessId pid
+getProcessForUser :: !UserName !pid -> Task (Maybe Process) | toProcessId pid
 getProcessForUser username pid = mkInstantTask "getProcessForUser" (mkTaskFunction (\tst -> ProcessDB@getProcessForUser username (toProcessId pid) tst))
 
 getProcesses :: ![pid] -> Task [Process] | toProcessId pid
@@ -45,10 +45,10 @@ getProcesses ids = mkInstantTask "getProcessesById" (mkTaskFunction (\tst -> Pro
 getProcessesWithStatus :: ![ProcessStatus] -> Task [Process]
 getProcessesWithStatus statuses = mkInstantTask "getProcesses" (mkTaskFunction (\tst -> ProcessDB@getProcesses statuses tst))
 
-getProcessesForUser	:: !UserId ![ProcessStatus] -> Task [Process]
+getProcessesForUser	:: !UserName ![ProcessStatus] -> Task [Process]
 getProcessesForUser username statuses = mkInstantTask "getProcessesForUser" (mkTaskFunction (\tst -> ProcessDB@getProcessesForUser username statuses tst))
 
-getProcessOwner :: !pid -> Task (Maybe UserId) | toProcessId pid
+getProcessOwner :: !pid -> Task (Maybe UserName) | toProcessId pid
 getProcessOwner pid = mkInstantTask "getProcess" getProcessStatus`
 where
 	getProcessStatus` tst 
@@ -56,7 +56,7 @@ where
 	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProps.TaskManagerProperties.worker)
 	= (TaskFinished owner,tst)
 	
-setProcessOwner :: !UserId !pid -> Task Bool | toProcessId pid
+setProcessOwner :: !UserName !pid -> Task Bool | toProcessId pid
 setProcessOwner username pid = mkInstantTask "setProcessOwner" setProcessOwner`
 where
 	setProcessOwner` tst=:{staticInfo}

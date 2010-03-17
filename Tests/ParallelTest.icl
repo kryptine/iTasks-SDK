@@ -42,35 +42,35 @@ where
 parOpenTest :: Task [Int]
 parOpenTest = 
  	allTasksExt [
-				("erik",  enterInformation "Please enter a number"),
-				("rinus", enterInformation "Please enter a number")] Open
+				(toUserName "erik",  enterInformation "Please enter a number"),
+				(toUserName "rinus", enterInformation "Please enter a number")] Open
 
 parClosedTest :: Task [Int]
 parClosedTest =
 		allTasksExt [
-				("erik",  enterInformation "Please enter a number"),
-				("rinus", enterInformation "Please enter a number")] Closed
+				(toUserName "erik",  enterInformation "Please enter a number"),
+				(toUserName "rinus", enterInformation "Please enter a number")] Closed
 
 parNestedTest1 :: Task [[Int]]
 parNestedTest1 =
 	allTasksExt [
-		("erik",parOpenTest),
-		("rinus",parOpenTest)
+		(toUserName "erik",parOpenTest),
+		(toUserName "rinus",parOpenTest)
 	] Open
 
 parNestedTest2 :: Task [[Int]]
 parNestedTest2 =
 	allTasksExt [
-		("erik",parClosedTest),
-		("rinus",parClosedTest)
+		(toUserName "erik",parClosedTest),
+		(toUserName "rinus",parClosedTest)
 	] Open
 
 parNestedTest3 :: Task [[String]]
 parNestedTest3 =
 	allTasksExt [
-		("erik", subtask1),
-		("rinus", subtask2),
-		("erik", subtask3)
+		(toUserName "erik", subtask1),
+		(toUserName "rinus", subtask2),
+		(toUserName "erik", subtask3)
 	] Open
 where
 	subtask1 :: Task [String]
@@ -87,10 +87,10 @@ where
 	subtask3 :: Task [String]
 	subtask3 =
 		getUsers >>= \ulist ->
-		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> let usernames = map toUserId users in 
+		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> let usernames = map toUserName users in 
 		parallelU "Weird string function" "Keeps extending until user types '.'" Open (func usernames) parse (0,[]) [(hd usernames,task)]
 		where
-			func :: ![UserId] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),ParallelAction String)
+			func :: ![UserName] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),ParallelAction String)
 			func usernames (result,pos) (idx,acc)
 			| result == "." = ((idx,acc),Stop)
 			# acc = [(pos,result):acc]

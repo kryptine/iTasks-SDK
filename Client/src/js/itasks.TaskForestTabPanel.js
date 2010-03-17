@@ -28,6 +28,7 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 					},{
 						header:'Assigned to..',
 						dataIndex:'user',
+						renderer: Ext.util.Format.htmlEncode,
 						width: 100
 					},{
 						header:'Task Label',

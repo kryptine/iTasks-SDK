@@ -25,7 +25,7 @@ derive bimap	Maybe, (,)
 				|	CleanExpr		!CleanExpr
 				| 	First
 				| 	Second
-:: AssignInfo	= 	{ nameOfUser:: !String
+:: AssignInfo	= 	{ nameOfUser:: !UserName
 			  		, taskName 	:: !String
 			  		}
 :: CleanExpr	=	CI Int

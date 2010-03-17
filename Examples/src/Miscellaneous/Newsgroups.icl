@@ -1,3 +1,6 @@
+/*
+	== BROKEN == DOES NOT COMPILE ANYMORE ==
+
 implementation module Newsgroups
 
 //	In this example newsgroups are created and maintained
@@ -12,8 +15,8 @@ import CommonDomain
 :: NewsGroupNames:== [GroupName]				// list of newsgroup names
 :: GroupName	:== String						// Name of the newsgroup
 :: NewsGroup	:== [NewsItem]					// News stored in a news group
-:: NewsItem		:== (Subscriber,Name,Message)	// id, name, and message of the publisher
-:: Subscriber	:== UserId					// the id of the publisher
+:: NewsItem		:== (Subscriber,Message)		// id, name, and message of the publisher
+:: Subscriber	:== UserName					// the id of the publisher
 :: Name			:== String						// the login name of the publisher
 :: Message		:== String						// the message
 :: Subscriptions:== [Subscription]				// newsgroup subscriptions of user
@@ -66,7 +69,7 @@ newsgroupsExample
 	]
 
 
-:: EMail2	=	{ to` 		:: !UserId
+:: EMail2	=	{ to` 		:: !UserName
 				, subject` 	:: !String
 				, message`	:: !Note
 				}
@@ -137,11 +140,11 @@ subscribeNewsGroup :: (Task Void)
 subscribeNewsGroup
 =					getCurrentUser
 	>>= \user ->	readNewsGroups 
-	>>= 			subscribe user.User.userName user.User.displayName
+	>>= 			subscribe (toUserName user)
 where
-	subscribe me myname []
+	subscribe me []
 	=						showMessage "No newsgroups in catalogue yet:"
-	subscribe me myname groups
+	subscribe me groups
 	=						enterChoice "Choose a group:" groups
 		>>= \group ->		addSubscription me (group,0)
 		>>|					spawnProcess me True (readNews me group 0 <<@ group <+++ " news group subscription")
@@ -149,7 +152,7 @@ where
 
 
 
-readNews :: UserId String Int -> Task Void
+readNews :: UserName String Int -> Task Void
 readNews me group index	
 =			orTasks2 [Text ("Welcome to newsgroup " +++ group)]
 							 [("Read next news items from newsgroup " <+++ group, readMore)
@@ -188,42 +191,42 @@ where
 		>>|					showMessage "Refresh list"
 
 	show :: Int NewsItem -> Task Void
-	show i (who, name, message) 
-	= 	showMessageAbout [Text ("Message: " <+++ i), BrTag [], Text ("From: " <+++ name)] message
+	show i (who, message) 
+	= 	showMessageAbout [Text ("Message: " <+++ i), BrTag [], Text ("From: " <+++ toString who)] message
 		
 
 	commitItem :: String -> Task Void
 	commitItem  group
 	=								getCurrentUser
-		>>= \user ->      			commit user.User.userName user.User.displayName group
+		>>= \user ->      			commit user group
 	where
-		commit me name group
+		commit me group
 		=							enterInformation [Text "Type your message ..."] 
 		 >>= \(Note val) -> 		readNewsGroup  group 
-		 >>= \news ->				writeNewsGroup group (news ++ [(me,name,val)]) 
+		 >>= \news ->				writeNewsGroup group (news ++ [(toUserName me,val)]) 
 		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 
 			
 getToNames = getToNames` []
 where
 	getToNames` names 	
-	=						showCurrentNames (map snd names)
-							||- getToName
-		>>= \(id,name) ->	let newnames = [(id,name):names] in
-								showCurrentNames (map snd newnames)
+	=						showCurrentNames names
+								||- getToName
+		>>= \name	 ->		let newnames = [name:names] in
+								showCurrentNames newnames
 								||- requestConfirmation "Add more names?"
 								>>= \yn ->
 									if yn (getToNames` newnames) (return newnames)
 
 
-showCurrentNames :: [String] -> Task Void
+showCurrentNames :: [UserName] -> Task Void
 showCurrentNames names = showStickyMessageAbout "Current names:" names
 
-getToName ::  (Task (UserId,String))
+getToName ::  (Task UserName)
 getToName 
 = 						getUsers
 	>>= \users ->		enterChoice "Select user to mail a message to: " users
-	>>= \user ->		return (user.User.userName,user.User.displayName)
+	>>= \user ->		return (toUserName user)
 
 
 cancel :: (Task a) -> Task a | iTask a
@@ -239,7 +242,7 @@ myAndTasks msg tasks =	oldParallel "andTask" (\_ -> False) undef hd [t <<@ l \\(
 newsGroupsId ::  (DBid NewsGroupNames)
 newsGroupsId		=	mkDBid "newsGroups"
 
-readerId :: UserId -> (DBid Subscriptions)
+readerId :: UserName -> (DBid Subscriptions)
 readerId name		= 	mkDBid ("Reader-" <+++ name)
 
 groupNameId :: String -> (DBid NewsGroup)
@@ -276,5 +279,5 @@ readNewsGroup groupname = readDB (groupNameId groupname)
 
 writeNewsGroup :: GroupName NewsGroup -> Task NewsGroup
 writeNewsGroup groupname news = writeDB (groupNameId groupname) news
-
+*/
 

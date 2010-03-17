@@ -21,12 +21,12 @@ import CommonDomain
 	{ bugNr			:: BugNr
 	, status		:: BugStatus
 	, reportedAt	:: (Date,Time)
-	, reportedBy	:: UserId
+	, reportedBy	:: UserName
 	, report		:: BugReport
 	, analysis		:: Maybe BugAnalysis
 	}
 
-:: BugStatus = Reported | Assigned UserId | Fixed
+:: BugStatus = Reported | Assigned UserName | Fixed
 
 :: BugAnalysis =
 	{ cause				:: Note
@@ -59,7 +59,7 @@ reportBugVerySimple :: Task Note
 reportBugVerySimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
-		assign "bas" NormalPriority Nothing
+		assign (toUserName "bas") NormalPriority Nothing
 			("Bug Report" @>> showMessageAbout "The following bug has been reported, please fix it." report)
 	>>| return report
 
@@ -67,7 +67,7 @@ reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
-		assign "bas" NormalPriority Nothing
+		assign (toUserName "bas") NormalPriority Nothing
 			("Bug Report" @>> showMessageAbout "The following bug has been reported, please fix it." report)
 	>>| return report
 
@@ -135,7 +135,7 @@ fileBug :: BugReport -> Task Bug
 fileBug report
 	=	getDefaultValue -&&- getCurrentUser
 	>>= \(bug,user) ->
-		dbCreateItem {bug & report = report, reportedBy = user.User.userName}
+		dbCreateItem {bug & report = report, reportedBy = (toUserName user)}
 
 updateBug :: (Bug -> Bug) Bug -> Task Bug
 updateBug f bug = dbUpdateItem (f bug)
@@ -149,21 +149,25 @@ confirmCritical report
 			  @>>
 			  requestConfirmationAbout "Is this bug really critical?" report
 			)
-	
-selectDeveloper :: String -> Task UserId
+
+instance < UserName
+where
+	(<) (UserName ida dispa) (UserName idb dispb) = ida < idb
+
+selectDeveloper :: String -> Task UserName
 selectDeveloper application
 	=	findAppDevelopers application
 	>>= \developers -> case developers of
-		[]	= getCurrentUser >>= \user -> return user.User.userName
+		[]	= getCurrentUser >>= \user -> return (toUserName user)
 		_	= selectLeastBusy developers
 where
-	findAppDevelopers :: String -> Task [UserId]
-	findAppDevelopers "itasks"	= return ["bas"]
+	findAppDevelopers :: String -> Task [UserName]
+	findAppDevelopers "itasks"	= return [toUserName "bas"]
 	findAppDevelopers _			= return []
 		
-	selectLeastBusy :: [UserId] -> Task UserId
+	selectLeastBusy :: [UserName] -> Task UserName
 	selectLeastBusy []
-		=	getCurrentUser >>= \user -> return user.User.userName
+		=	getCurrentUser >>= \user -> return (toUserName user)
 	selectLeastBusy names
 		= 	allTasks [getNumTasksForUser name \\ name <- names]
 		>>= \activity -> 
@@ -171,7 +175,7 @@ where
 	where	
 		minimum l = foldl min (hd l) (tl l) 
 		
-	getNumTasksForUser :: UserId -> Task Int
+	getNumTasksForUser :: UserName -> Task Int
 	getNumTasksForUser name = return 42			//TODO: Use API function
 	 
 analyzeBug :: Bug -> Task Bug
