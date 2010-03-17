@@ -111,19 +111,16 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			Closed
 				# (subpanels,tst) = mapSt (\(nr,t) tst -> buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type True tst) children tst
 				= (flatten [node:subpanels],tst)
-	(TTMainTask ti mti tasks) 		 
-		= case [t \\ t <- tasks | not (isFinished t)] of
-			[]  = if (allFinished tasks) 
-						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
-						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskRedundant}], tst)
-			[t] 
-				# (mbproc,tst) = getProcess ti.TaskInfo.taskId tst
-				= case mbproc of
-					(Just proc) = case proc.inParallelType of
-						Nothing	 = ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
-						_		 = buildSubtaskPanels t stnr menus manager partype inClosed tst
-					Nothing = abort "(BuildTaskPanel) Cannot retrieve process!"				
-			_   = abort "Multiple simultaneously active tasks in a maintask!"
+	(TTMainTask ti mti task)
+		| isFinished task
+			= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)	 
+		| otherwise
+			# (mbproc,tst) = getProcess ti.TaskInfo.taskId tst
+			= case mbproc of
+				(Just proc) = case proc.inParallelType of
+					Nothing	 = ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
+					_		 = buildSubtaskPanels task stnr menus manager partype inClosed tst
+				Nothing = abort "(BuildTaskPanel) Cannot retrieve process!"
 
 buildSubtaskInfo :: ![SubtaskContainer] !UserId -> [SubtaskInfo]
 buildSubtaskInfo containers manager = [buildSubtaskInfo` c \\ c <- containers | filterClosedSubtasks c manager]

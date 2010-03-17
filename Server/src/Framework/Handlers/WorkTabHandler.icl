@@ -17,18 +17,16 @@ handleWorkTabRequest req tst=:{staticInfo}
 	# tst		  = {TSt | tst & request = req}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
-		(TTMainTask ti properties tasks)
-			# subject = [properties.managerProps.TaskManagerProperties.subject]
-			# (Just p=:{Process | menus}, tst) = getProcess taskId tst
-			# username = staticInfo.currentSession.Session.user.User.userName
-			# (panels,tst) = case [t \\ t <- tasks | not (isFinished t)] of
-				[]	= (if (allFinished tasks) [TaskDone] [TaskRedundant],tst)
-				[t] = buildTaskPanels t menus username tst
-				_	= abort  "Multiple simultaneously active tasks in a main task!"
-			
+		(TTMainTask ti properties task)
+			# subject			= [properties.managerProps.TaskManagerProperties.subject]
+			# (mbProc,tst)		= getProcess taskId tst //Fetch process meta information (REFACTOR: SHOULD NOT BE NECESSARY AT THIS POINT)
+			#  menus			= case mbProc of 
+				Just {Process | menus}	= menus
+				_						= Nothing
+			# username			= staticInfo.currentSession.Session.user.User.userName
+			# (panels,tst)		= buildTaskPanels task menus username tst
 			// Collect debug information
-			# (debuginfo,tst)
-						= if debug (collectDebugInfo tree tst) (Nothing, tst)
+			# (debuginfo,tst)	= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.
 			| username == (toUserId properties.managerProps.TaskManagerProperties.worker) || isMember username [u \\ (p,u) <- properties.managerProps.tempWorkers]	
 				// Update the task timestamps 

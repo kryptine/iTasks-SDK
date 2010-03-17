@@ -98,17 +98,17 @@ where
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
-	mkTree (TTMainTask info mti trees)
+	mkTree (TTMainTask info mti tree)
 		= { cls = "master-task"
 		  , uiProvider = "col"
 		  , user = mti.TaskProperties.managerProps.TaskManagerProperties.worker
-		  , leaf = checkIfLeaf trees
+		  , leaf = False
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "MNT"
-		  , children = [traceTaskTree tree \\ tree <- trees]
+		  , children = [traceTaskTree tree]
 		  }
 	
 	mkTree (TTFinishedTask info _)

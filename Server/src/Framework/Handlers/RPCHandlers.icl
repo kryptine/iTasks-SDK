@@ -15,8 +15,8 @@ determineRPCItems :: ![TaskTree] !*TSt -> ([RPCExecute],!*TSt)
 determineRPCItems forest tst = (flatten [determineTreeRPCItems tree \\ tree <- forest],tst)
 		
 determineTreeRPCItems :: !TaskTree -> [RPCExecute]
-determineTreeRPCItems (TTMainTask ti mti children)
-	= flatten [(determineTreeRPCItems child) \\ child <- children]
+determineTreeRPCItems (TTMainTask ti mti child)
+	= determineTreeRPCItems child
 determineTreeRPCItems (TTParallelTask ti tpi children)
 	= flatten [(determineTreeRPCItems child) \\ child <- children]
 determineTreeRPCItems (TTSequenceTask ti children)

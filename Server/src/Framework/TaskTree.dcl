@@ -19,7 +19,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| Updates [TUIUpdate] [(Action,Bool)]
 					| Func (*TSt -> *(!InteractiveTask, !*TSt))
 
-:: TaskTree			= TTMainTask		TaskInfo TaskProperties [TaskTree]		//A task that is treated as a main chunk of work
+:: TaskTree			= TTMainTask		TaskInfo TaskProperties TaskTree		//A task that is treated as a main chunk of work
 					| TTInteractiveTask	TaskInfo InteractiveTask				//A task that can be worked on through a gui 
 					| TTMonitorTask		TaskInfo [HtmlTag]						//A task that upon evaluation monitors a condition and may give status output
 					| TTRpcTask			TaskInfo RPCExecute						//A task that represents an rpc invocation

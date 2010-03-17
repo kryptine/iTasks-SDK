@@ -33,7 +33,7 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, taskInfo		= initTaskInfo
 		, userId		= ""
 		, delegatorId	= ""
-		, tree			= TTMainTask initTaskInfo initTaskProperties []
+		, tree			= TTMainTask initTaskInfo initTaskProperties (TTFinishedTask initTaskInfo [])
 		, mainTask		= ""
 		, properties	= initTaskProperties
 		, staticInfo	= initStaticInfo appName session workflows
@@ -227,7 +227,8 @@ where
 	resetTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
 	resetTSt processId properties tst
 		# taskNr	= taskNrFromString processId
-		# tree		= TTMainTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker} properties []
+		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker}
+		# tree		= TTMainTask info properties (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
 	
@@ -548,7 +549,7 @@ mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo (abort "Executed undefined maintask") []}
+		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties (TTFinishedTask taskInfo [])}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties}
@@ -586,12 +587,12 @@ applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties
 				(TaskBusy)
 					// Store intermediate value
 					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (updateTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# tst					= addTaskNode (finalizeTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskBusy, tst)
 				(TaskException e)
 					// Store exception
 					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (updateTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# tst					= addTaskNode (finalizeTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskException e, tst)
 		
 where
@@ -601,18 +602,16 @@ where
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti tasks)		= {tst & tree = TTMainTask ti mti [node:tasks]}
-		(TTSequenceTask ti tasks)		= {tst & tree = TTSequenceTask ti [node:tasks]}
-		(TTParallelTask ti tpi tasks)	= {tst & tree = TTParallelTask ti tpi [node:tasks]}
+		(TTMainTask ti mti task)		= {tst & tree = TTMainTask ti mti node} 			//Just replace the subtree 
+		(TTSequenceTask ti tasks)		= {tst & tree = TTSequenceTask ti [node:tasks]}		//Add the node to the sequence
+		(TTParallelTask ti tpi tasks)	= {tst & tree = TTParallelTask ti tpi [node:tasks]}	//Add the node to the parallel set
 		_								= {tst & tree = tree}
 	
-	//update the finished, tasks and traceValue fields of a task tree node
-	updateTaskNode (TTInteractiveTask ti defs)		= TTInteractiveTask	ti defs
-	updateTaskNode (TTMonitorTask ti status)		= TTMonitorTask		ti status
-	updateTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
-	updateTaskNode (TTParallelTask ti tpi tasks)	= TTParallelTask	ti tpi (reverse tasks)
-	updateTaskNode (TTMainTask ti mti tasks)		= TTMainTask		ti mti (reverse tasks)		
-	updateTaskNode (TTRpcTask ti rpci)				= TTRpcTask			ti rpci
+	//Perform reversal of lists that have been accumulated in reversed order
+	finalizeTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
+	finalizeTaskNode (TTParallelTask ti tpi tasks)	= TTParallelTask	ti tpi (reverse tasks)
+	finalizeTaskNode node							= node
+	
 		
 setTUIDef	:: !TUIDef ![(Action,Bool)] !*TSt -> *TSt
 setTUIDef def accActions tst=:{tree}
