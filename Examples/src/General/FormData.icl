@@ -7,7 +7,7 @@ from	StdMisc import abort
 derive gPrint 		Form, FormShape, Tup
 derive gParse 		Form, FormShape, Tup
 derive gUpdate 		Form, FormShape, Tup
-derive gVisualize 	Form, FormShape
+derive gVisualize 	Form, FormShape, Tup
 
 derive bimap		Maybe, (,)
 
@@ -29,6 +29,7 @@ derive bimap		Maybe, (,)
 				| 	Document 	
 				| 	GoogleMap
 
+:: Tup a b = Tup a b
 
 emptyForm :: Form
 emptyForm 		= 	{ formShape = []
@@ -80,36 +81,4 @@ where
 
 // ****************************
 
-:: Tup a b = Tup a b
 
-gVisualize{|Tup|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
-	= case vizType of
-		VEditorDefinition
-			# oldLabels = useLabels
-			# (v1,v2) = case old of (VValue (Tup o1 o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank, VBlank)
-			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			# (viz2,rh2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUIPanel {TUIPanel | layout="form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = label2s optional label, unstyled=True, renderingHint=0, //Tuple always full width
-											 items = [ 
-											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz1, renderingHint = rh1, unstyled=True},
-											 	TUIPanel {TUIPanel| layout = "form", buttons = Nothing, autoHeight = True, autoWidth = True, border = False, bodyCssClass = "", fieldLabel = Nothing, items = coerceToTUIDefs viz2, renderingHint = rh2, unstyled=True}
-											 ]})]			 
-			  , 0
-			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
-		_
-			= case (old,new) of
-				(VValue (Tup o1 o2) omask, VValue(Tup n1 n2) nmask)
-					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
-				_
-					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
-					# (viz2,rh2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})			
-	
-coerceToTUIDefs :: [Visualization] -> [TUIDef]
-coerceToTUIDefs visualizations = [d \\ (TUIFragment d) <- visualizations]
-
- 

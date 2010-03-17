@@ -2,7 +2,7 @@ implementation module SimpleChanges
 
 import iTasks
 from TSt import :: Change(..)
-from TaskTree import :: TaskProperties(..),::TaskWorkerProperties(..),::TaskManagerProperties(..), :: TaskSystemProperties(..), :: TaskProgress
+from TaskTree import :: TaskProperties(..),::TaskWorkerProperties(..),::TaskManagerProperties(..), :: TaskSystemProperties(..), :: TaskProgress, :: TaskParallelType(..)
 
 
 changeExamples :: [Workflow]
@@ -78,9 +78,9 @@ where
 	change :: String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
 	change topics p t t0 = (Nothing
 							, Just (assign me.userName NormalPriority Nothing 
-											(assign p.managerProps.worker HighPriority Nothing (t <<@ topics) 
-											-||- 
-											assign user.userName HighPriority Nothing (t <<@ topics)
+											(anyTaskExt [(p.managerProps.worker , t <<@ topics) 
+														,(user.userName, t <<@ topics)
+														] Open
 											)
 											<<@ ("Duplicated " +++ topics))
 							, Nothing )
