@@ -59,10 +59,10 @@ gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
-	contentPath				= shiftDataPath currentPath
-	id		= dp2id idPrefix currentPath
-	oldV	= value2s currentPath old
-	newV	= value2s currentPath new			
+	contentPath	= shiftDataPath currentPath
+	id			= dp2id idPrefix contentPath
+	oldV		= value2s contentPath old
+	newV		= value2s contentPath new
 
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
