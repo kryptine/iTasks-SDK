@@ -33,7 +33,7 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, taskInfo		= initTaskInfo
 		, userId		= ""
 		, delegatorId	= ""
-		, tree			= TTMainTask initTaskInfo initTaskProperties (TTFinishedTask initTaskInfo [])
+		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo [])
 		, mainTask		= ""
 		, properties	= initTaskProperties
 		, staticInfo	= initStaticInfo appName session workflows
@@ -168,9 +168,9 @@ loadThread processId tst=:{TSt|dataStore,world}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges,mainTask,properties=parentProperties}
+evaluateTaskInstance process=:{Process | processId, parent, properties, menus, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges,mainTask,properties=parentProperties}
 	// Reset the task state
-	# tst								= resetTSt processId properties tst
+	# tst								= resetTSt processId properties menus tst
 	// Queue all stored persistent changes (only when run as top node)
 	# tst								= if isTop (loadPersistentChanges processId tst) tst
 	// When a change is injected set it as active change
@@ -186,8 +186,8 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, changeCo
 											(applyAllChanges processId changeCount pendingChanges thread properties tst)
 											(applyCurrentChange processId changeCount thread properties tst)
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
-	# (TTMainTask ti _ tasks,tst)		= getTaskTree tst
-	# tree								= TTMainTask ti properties tasks
+	# (TTMainTask ti _ menus tasks,tst)	= getTaskTree tst
+	# tree								= TTMainTask ti properties menus tasks
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges processId tst) tst
 	# tst								= restoreTSt mainTask parentProperties tst
@@ -224,11 +224,11 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, changeCo
 			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Excepted}) tst
 			= (TaskException e, tree, tst)
 where
-	resetTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
-	resetTSt processId properties tst
+	resetTSt :: !ProcessId !TaskProperties !(Maybe [Menu]) !*TSt -> *TSt
+	resetTSt processId properties menus tst
 		# taskNr	= taskNrFromString processId
 		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker}
-		# tree		= TTMainTask info properties (TTFinishedTask info [])
+		# tree		= TTMainTask info properties menus (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
 	
@@ -549,7 +549,7 @@ mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties (TTFinishedTask taskInfo [])}
+		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo [])}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties}
@@ -602,7 +602,7 @@ where
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti task)		= {tst & tree = TTMainTask ti mti node} 			//Just replace the subtree 
+		(TTMainTask ti mti menus task)	= {tst & tree = TTMainTask ti mti menus node} 		//Just replace the subtree 
 		(TTSequenceTask ti tasks)		= {tst & tree = TTSequenceTask ti [node:tasks]}		//Add the node to the sequence
 		(TTParallelTask ti tpi tasks)	= {tst & tree = TTParallelTask ti tpi [node:tasks]}	//Add the node to the parallel set
 		_								= {tst & tree = tree}

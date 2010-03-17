@@ -98,7 +98,7 @@ where
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
-	mkTree (TTMainTask info mti tree)
+	mkTree (TTMainTask info mti menus tree)
 		= { cls = "master-task"
 		  , uiProvider = "col"
 		  , user = mti.TaskProperties.managerProps.TaskManagerProperties.worker

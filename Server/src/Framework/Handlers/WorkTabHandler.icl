@@ -17,12 +17,8 @@ handleWorkTabRequest req tst=:{staticInfo}
 	# tst		  = {TSt | tst & request = req}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
-		(TTMainTask ti properties task)
+		(TTMainTask ti properties menus task)
 			# subject			= [properties.managerProps.TaskManagerProperties.subject]
-			# (mbProc,tst)		= getProcess taskId tst //Fetch process meta information (REFACTOR: SHOULD NOT BE NECESSARY AT THIS POINT)
-			#  menus			= case mbProc of 
-				Just {Process | menus}	= menus
-				_						= Nothing
 			# username			= staticInfo.currentSession.Session.user.User.userName
 			# (panels,tst)		= buildTaskPanels task menus username tst
 			// Collect debug information

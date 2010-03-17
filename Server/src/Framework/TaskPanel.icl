@@ -36,7 +36,7 @@ buildTaskPanels tree menus currentUser tst = case tree of
 		= ([MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}],tst)
 	(TTRpcTask ti rpc) 
 		= ([MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])}],tst)
-	(TTMainTask ti mti _)
+	(TTMainTask ti mti menus _)
 		= ([MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}],tst)
 	(TTFinishedTask _ _)
 		= ([TaskDone],tst)
@@ -62,7 +62,7 @@ where
 			(TTRpcTask ti _)			= toUserId ti.TaskInfo.worker == currentUser
 			(TTFinishedTask _ _)		= True										// always show finished tasks
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
-			(TTMainTask _ _ _)			= False 									// a main-subtask should not become visible
+			(TTMainTask _ _ _ _)		= False 									// a main-subtask should not become visible
 			_ 							= abort "Unknown panel type in parallel"
 
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserId !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
@@ -111,11 +111,11 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			Closed
 				# (subpanels,tst) = mapSt (\(nr,t) tst -> buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type True tst) children tst
 				= (flatten [node:subpanels],tst)
-	(TTMainTask ti mti task)
+	(TTMainTask ti mti menus task)
 		| isFinished task
 			= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)	 
 		| otherwise
-			# (mbproc,tst) = getProcess ti.TaskInfo.taskId tst
+			# (mbproc,tst) = getProcess ti.TaskInfo.taskId tst //TODO: Check if this is really necessary
 			= case mbproc of
 				(Just proc) = case proc.inParallelType of
 					Nothing	 = ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
@@ -137,7 +137,7 @@ where
 			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
-		(TTMainTask ti _ _)
+		(TTMainTask ti _ _ _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = ti.TaskInfo.worker}
 		
 	mkSti :: SubtaskInfo
