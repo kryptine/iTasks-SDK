@@ -16,12 +16,12 @@ derive bimap Maybe, (,)
 :: FormStore	= 	{ formName 	:: !String
 					, formType	:: !String
 			  		, form 		:: !Form
-			  		, formDBRef :: !DBRef !FormStore
+			  		, formDBRef :: !DBRef FormStore
 			  		}
 :: FlowStore	= 	{ flowName 	:: !String
 					, flowType	:: !String
 			  		, flow 		:: !Flow
-			  		, flowDBRef :: !DBRef !FlowStore
+			  		, flowDBRef :: !DBRef FlowStore
 			  		}
 
 // *************************************************
@@ -52,7 +52,7 @@ readAllForms = dbReadAll
 readAllFlows :: Task [FlowStore]
 readAllFlows = dbReadAll
 
-newFormName :: !Form -> Task !(!String, !Form)
+newFormName :: !Form -> Task (!String, !Form)
 newFormName form
 	=						enterInformation "Give name of new Form:" 
 		>>= \name ->		readAllForms
@@ -63,7 +63,7 @@ newFormName form
 								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).formType)
 								 			>>= \ok -> if ok (return (name,form)) (newFormName form)
 
-newFlowName :: !Flow -> Task !(!String, !Flow)
+newFlowName :: !Flow -> Task (!String, !Flow)
 newFlowName flow
 	=						enterInformation "Give name of new flow:" 
 		>>= \name ->		readAllFlows
@@ -73,7 +73,7 @@ newFlowName flow
 											>>|				return (name,flow) 
 								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).flowType )
 								 			>>= \ok -> if ok (return (name,flow)) (newFlowName flow)
-chooseForm :: Task !(!String, !Form)
+chooseForm :: Task (!String, !Form)
 chooseForm   
 	=						readAllForms
 		>>= \all ->			let names = [showName this \\ this <- all] in
@@ -85,7 +85,7 @@ chooseForm
 where
 	showName this = this.formName +++ " :: " +++ this.formType
 
-chooseFlow ::  Task !(!String, !Flow)
+chooseFlow ::  Task (!String, !Flow)
 chooseFlow   
 	=						readAllFlows
 		>>= \all ->			let names = [showName this \\ this <- all] in
@@ -100,14 +100,14 @@ where
 newName fun f 
 	=		enterInformation "Type in another name " >>= \name -> fun (name, f)
 
-storeForm :: !(String, !Form) -> Task !(!String, !Form) // item assumed to be in store
+storeForm :: !(String, !Form) -> Task (!String, !Form) // item assumed to be in store
 storeForm (name, form)
 	=						readAllForms
 		>>= \all ->			return (hd [this \\ this <- all | this.formName == name])
 		>>= \formStore ->	dbUpdateItem {formStore & formType = showDynType form.formDyn, form = form}
 		>>|					return (name,form)
 
-storeFlow :: !(String, !Flow) -> Task !(!String, !Flow) // item assumed to be in store
+storeFlow :: !(String, !Flow) -> Task (!String, !Flow) // item assumed to be in store
 storeFlow (name, flow)
 	=						readAllFlows
 		>>= \all ->			return (hd [this \\ this <- all | this.flowName == name])

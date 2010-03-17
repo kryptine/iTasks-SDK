@@ -53,7 +53,7 @@ flowShapeToFlowDyn :: ![FlowShape] -> Task Dynamic
 flowShapeToFlowDyn [] 		= throw "A list in a flow has to be non empty."
 flowShapeToFlowDyn flows 	= mapMonad translate flows >>= \[d:ds] -> return (applyFlows d ds)
 where
-	mapMonad :: (!FlowShape -> Task Dynamic) [FlowShape] -> Task [Dynamic]	
+	mapMonad :: (FlowShape -> Task Dynamic) [FlowShape] -> Task [Dynamic]	
 	mapMonad fun [] 	= return []
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
