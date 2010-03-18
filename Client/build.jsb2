@@ -8,6 +8,22 @@
 	,"fileIncludes" :
 		[{"text":"itasks.util.js","path":"src/js/"}
 		,{"text":"itasks.form.js","path":"src/js/"}
+		,{"text":"BoolControl.js","path":"src/js/tui/"}
+		,{"text":"ConstructorControl.js","path":"src/js/tui/"}
+		,{"text":"CurrencyControl.js","path":"src/js/tui/"}
+		,{"text":"DateControl.js","path":"src/js/tui/"}
+		,{"text":"DocumentControl.js","path":"src/js/tui/"}
+		,{"text":"GMapControl.js","path":"src/js/tui/"}
+		,{"text":"IntControl.js","path":"src/js/tui/"}
+		,{"text":"NoteControl.js","path":"src/js/tui/"}
+		,{"text":"PasswordControl.js","path":"src/js/tui/"}
+		,{"text":"RealControl.js","path":"src/js/tui/"}
+		,{"text":"StringControl.js","path":"src/js/tui/"}
+		,{"text":"TimeControl.js","path":"src/js/tui/"}
+		,{"text":"UsernameControl.js","path":"src/js/tui/"}
+		,{"text":"ListContainer.js","path":"src/js/tui/"}
+		,{"text":"RecordContainer.js","path":"src/js/tui/"}
+		,{"text":"TupleContainer.js","path":"src/js/tui/"}
 		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
 		,{"text":"itasks.NewWorkPanel.js","path":"src/js/"}
