@@ -133,33 +133,16 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 					
 				form.getForm().submit({
 												
-					url: itasks.config.serverUrl+"/work/tab",
+					url: itasks.config.serverUrl+"/document/upload",
 												
 					params: params,
 												
-					success: function(form, o){							
-						try {
-							data = Ext.decode(o.response.responseText);
-						} catch(SyntaxError) {
-							data = response.responseText;
-						}
-						
-						if(typeof data == 'object'){
-							wt.update(data);
-							wt.refresh();
-						}else{
-							Ext.msg.alert('Error',data);
-						}														
+					success: function(form, response){							
+						wt.refresh();														
 					},
 
-					failure: function(form, o){
-						try {
-							data = Ext.decode(o.response.responseText);
-						} catch(SyntaxError) {
-							data = response.responseText;
-						}
-					
-						itasks.app.restart(data.error);
+					failure: function(form, response){
+						itasks.app.restart("Document transaction failed");
 						return;
 					}
 				});
@@ -250,46 +233,27 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 				var dp = this.findParentByType("itasks.document");
 								
 				if(form.getForm().isValid()){				
-										
 					form.getForm().submit({
-												
-						url: itasks.config.serverUrl+"/work/tab",
-												
-						params: { _session : itasks.app.session
-								, _targettask : tf.taskId
-								, _maintask : wt.taskId
-								, _debug : itasks.app.debug ? 1 : 0
-								, _name : dp.name
-								, docInfo: Ext.encode(dp.docInfo)
-								},
+						url: itasks.config.serverUrl+"/document/upload",
 						
-						waitMsg: 'Uploading document..',
-						
-						success: function(form, o){							
-							try {
-								data = Ext.decode(o.response.responseText);
-							} catch(SyntaxError) {
-								data = response.responseText;
-							}
-							
-							if(typeof data == 'object'){
-								wt.update(data);
+						params: 
+							{ _session : itasks.app.session
+							, _targettask : tf.taskId
+							, _maintask : wt.taskId
+							, _debug : itasks.app.debug ? 1 : 0
+							, _name : dp.name
+							, docInfo: Ext.encode(dp.docInfo)
+							},
+						waitMsg: 'Uploading document. Please wait..',
+						success: function(form,response)
+							{
 								wt.refresh();
-							}else{
-								Ext.msg.alert('Error',data);
-							}														
-						},
-
-						failure: function(form, o){
-							try {
-								data = Ext.decode(o.response.responseText);
-							} catch(SyntaxError) {
-								data = response.responseText;
-							}
-						
-							itasks.app.restart(data.error);
-							return;
-						}
+							},
+						failure: function(form,response)
+							{
+								itasks.app.restart("Document transaction failed");
+								return;
+							}					
 					});
 				}		
 			}
@@ -316,8 +280,6 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 			border: false,
 			height: 24
 		}
-		//, html: 	
-		//	'<div style="position: relative; top: 0px;"><table><tr><td class="x-form-document-uploadfield" style="width: 300px"></td><td class="x-form-document-cancel-button"></td><td class="x-form-document-upload-button"></td></tr></table></div>'
 		, items : [
 			{	xtype: 'fileuploadfield',
 				width: 300,

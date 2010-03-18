@@ -37,12 +37,10 @@ JSONEncode{|{}|} fx x c = JSONEncodeList fx [e \\ e <-: x] c
 JSONEncode{|{!}|} fx x c = JSONEncodeList fx [e \\ e <-: x] c
 JSONEncode{|Maybe|} fx (Just x) c = fx x c
 JSONEncode{|Maybe|} fx (Nothing) c = ["null":c]
-//JSONEncode{|UserName|} x c = ["\"",JSONEncodeUserName (toString x),"\"":c]
 JSONEncode{|JSON|} (JSON s) c = [s:c]
 
 //List generation for lists and arrays
 JSONEncodeList fx x c = ["[": ( flatten ( intersperse [","] (map (flip fx []) x)) ) ++ ["]": c]]
-JSONEncodeUserName x = replaceSubString "<" "&lt;" (replaceSubString ">" "&gt;" x)
 
 //Escape a string
 jsonEscape :: String -> String
@@ -333,10 +331,3 @@ JSONDecode{|Maybe|} fx [TokenNull:xs]	= (Just Nothing, xs)
 JSONDecode{|Maybe|} fx l = case fx l of
 	(Just x,xs)							= (Just (Just x), xs)
 	_									= (Nothing,l)
-
-/*
-JSONDecode{|UserName|} [TokenString s:xs] = (Just (toUserName (decodeUserName s)),xs)
-JSONDecode{|UserName|} l				  = (Nothing, l)
-
-decodeUserName s = replaceSubString "&lt;" "<" (replaceSubString "&gt;" ">" s)
-*/

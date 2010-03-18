@@ -13,7 +13,7 @@ from TaskTree import :: TaskParallelType{..}
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst=:{staticInfo}
-	# (req, tst)  = (handleFileUpload req tst)
+	//# (req, tst)  = (handleFileUpload req tst)
 	# tst		  = {TSt | tst & request = req}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
@@ -29,7 +29,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 				// Create the response
 				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panels, debug = debuginfo} in
-		 			({http_emptyResponse & rsp_data = toJSON content, rsp_headers = [("Content-Type","text/javascript")]}, tst)
+		 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 			
 			| otherwise
 				= redundant tst
@@ -80,7 +80,7 @@ where
 					# (doc,tst) = createDocument fname upl.upl_mimetype (taskNrFromString taskId) upl.upl_content tst
 					# tst		= updateDocumentInfo doc tst
 					# new_post  = [(name,toJSON doc):req.arg_post]
-					= ({req & arg_post = new_post},tst)		
+					= ({req & arg_post = new_post},tst)	
 			
 :: TaskContent =
 	{ success		:: Bool

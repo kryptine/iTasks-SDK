@@ -63,11 +63,11 @@ lex :: String Int [Token] -> (Int, [Token])
 * for each type you want to encode in JSON format.
 */
 generic JSONEncode t :: t [String] -> [String]
-derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe, JSON//, UserName
+derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe, JSON
 /**
 * Generic decoding function. This function should not be used
 * directly, but always through the fromJSON function. It must be derived
 * for each type you want to parse from JSON format.
 */
 generic JSONDecode t :: [Token] -> (Maybe t,[Token])
-derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe//, UserName
+derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe
