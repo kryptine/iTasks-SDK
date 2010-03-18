@@ -10,7 +10,7 @@ import TaskTree
 import RPC
 
 from SessionDB	import :: Session
-from ProcessDB	import :: Process
+from ProcessDB	import :: Process, :: Menu
 from Config		import :: Config(..)
 from Store		import :: Store(..)
 from Time		import :: Timestamp(..)
@@ -29,6 +29,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 					, mainTask		:: !ProcessId										// The id of the current main task 
 					, properties	:: !TaskProperties									// Properties of the current evaluated process		
+					, menus			:: !Maybe [Menu]									// Menu structure of the current task
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
 										
 					, currentChange	:: !Maybe (!ChangeLifeTime,!Dynamic)				// An active change

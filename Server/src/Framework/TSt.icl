@@ -36,6 +36,7 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo [])
 		, mainTask		= ""
 		, properties	= initTaskProperties
+		, menus			= Nothing
 		, staticInfo	= initStaticInfo appName session workflows
 		, currentChange	= Nothing
 		, pendingChanges= []
@@ -168,9 +169,9 @@ loadThread processId tst=:{TSt|dataStore,world}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, menus, changeCount} newChange isTop firstRun tst=:{currentChange,pendingChanges,mainTask,properties=parentProperties}
+evaluateTaskInstance process=:{Process | processId, parent, properties, menus, changeCount} newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,mainTask,properties=parentProperties,menus=parentMenus}
 	// Reset the task state
-	# tst								= resetTSt processId properties menus tst
+	# tst								= resetTSt processId properties tst
 	// Queue all stored persistent changes (only when run as top node)
 	# tst								= if isTop (loadPersistentChanges processId tst) tst
 	// When a change is injected set it as active change
@@ -181,26 +182,26 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, menus, c
 	// On subsequent runs only apply the currently active change
 	// After each application of a change the thread is evaluated because the full evaluated tree must be the
 	// subject of later changes
-	# (changeCount,thread,properties,result,tst)
+	# (changeCount,thread,properties,menus,result,tst)
 										= if firstRun
-											(applyAllChanges processId changeCount pendingChanges thread properties tst)
-											(applyCurrentChange processId changeCount thread properties tst)
+											(applyAllChanges processId changeCount pendingChanges thread properties menus tst)
+											(applyCurrentChange processId changeCount thread properties menus tst)
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
-	# (TTMainTask ti _ menus tasks,tst)	= getTaskTree tst
+	# (TTMainTask ti _ _ tasks,tst)		= getTaskTree tst
 	# tree								= TTMainTask ti properties menus tasks
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges processId tst) tst
-	# tst								= restoreTSt mainTask parentProperties tst
+	# tst								= restoreTSt mainTask parentProperties parentMenus tst
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
-			# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, changeCount = changeCount }) tst
+			# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
 			//Store result
 			# tst 		= storeProcessResult (taskNrFromString processId) result tst
 			//Update process table (status, changeCount & properties)
-			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished, properties = properties, changeCount = changeCount }) tst
+			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished, properties = properties, menus = menus, changeCount = changeCount }) tst
 			| isTop
 				//Evaluate parent process
 				| parent <> ""
@@ -215,7 +216,7 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, menus, c
 					= (result,tree,tst)
 			| otherwise
 				//Update process table (changeCount & properties)
-				# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, changeCount = changeCount }) tst
+				# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 				= (result,tree,tst)
 		TaskException e
 			//Store exception
@@ -224,16 +225,16 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, menus, c
 			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Excepted}) tst
 			= (TaskException e, tree, tst)
 where
-	resetTSt :: !ProcessId !TaskProperties !(Maybe [Menu]) !*TSt -> *TSt
-	resetTSt processId properties menus tst
+	resetTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
+	resetTSt processId properties tst
 		# taskNr	= taskNrFromString processId
 		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker}
 		# tree		= TTMainTask info properties menus (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
 	
-	restoreTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
-	restoreTSt mainTask properties tst = {TSt|tst & mainTask = mainTask, properties = properties}
+	restoreTSt :: !ProcessId !TaskProperties !(Maybe [Menu]) !*TSt -> *TSt
+	restoreTSt mainTask properties menus tst = {TSt|tst & mainTask = mainTask, properties = properties, menus = menus}
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
 	* In case of evaluating a subprocess, this also includes the changes that have been injected
@@ -258,18 +259,18 @@ where
 	* Because applying a change may result in the creation of new sub processes, changes must be carefully applied
 	* in the right order. 
 	*/
-	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !TaskProperties !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
-	applyAllChanges processId changeCount [] thread properties tst
+	applyAllChanges :: !ProcessId !Int [(!ChangeLifeTime,!Dynamic)] !Dynamic !TaskProperties !(Maybe [Menu]) !*TSt -> (!Int, !Dynamic, !TaskProperties, !Maybe [Menu], !TaskResult Dynamic, !*TSt)
+	applyAllChanges processId changeCount [] thread properties menus tst
 		//Only apply the current change
-		= applyCurrentChange processId changeCount thread properties tst
-	applyAllChanges processId changeCount changes thread properties tst=:{currentChange}
+		= applyCurrentChange processId changeCount thread properties menus tst
+	applyAllChanges processId changeCount changes thread properties menus tst=:{currentChange}
 		//Add the pending changes one after another (start empty)
-		= applyAllChanges` processId changeCount currentChange changes thread properties {tst & pendingChanges = []} 
+		= applyAllChanges` processId changeCount currentChange changes thread properties menus {tst & pendingChanges = []} 
 	where
-		applyAllChanges` processId changeCount currentChange [] thread properties tst
-			= applyCurrentChange processId changeCount thread properties {tst & currentChange = currentChange}
-		applyAllChanges` processId changeCount currentChange [c:cs] thread properties tst
-			# (changeCount,thread,properties,result,tst) = applyCurrentChange processId changeCount thread properties {tst & currentChange = Just c} 
+		applyAllChanges` processId changeCount currentChange [] thread properties menus tst
+			= applyCurrentChange processId changeCount thread properties menus {tst & currentChange = currentChange}
+		applyAllChanges` processId changeCount currentChange [c:cs] thread properties menus tst
+			# (changeCount,thread,properties,menus,result,tst) = applyCurrentChange processId changeCount thread properties menus {tst & currentChange = Just c} 
 			//Update pending changes list
 			# tst	= {tst & pendingChanges = (case tst.currentChange of
 														Nothing = tst.pendingChanges
@@ -277,16 +278,16 @@ where
 			= case result of
 				TaskBusy
 					//Continue applying changes
-					= applyAllChanges` processId changeCount currentChange cs thread properties tst
+					= applyAllChanges` processId changeCount currentChange cs thread properties menus tst
 				TaskFinished val
 					//A change caused the task to complete. Stop, but keep pending changes
-					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
+					= (changeCount,thread,properties,menus,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
 				TaskException e
 					//A change caused an exception. Stop, but keep pending changes
-					= (changeCount,thread,properties,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
+					= (changeCount,thread,properties,menus,result,{tst & pendingChanges = tst.pendingChanges ++ cs, currentChange = currentChange})
 
-	applyCurrentChange :: !ProcessId !Int !Dynamic !TaskProperties !*TSt -> (!Int, !Dynamic, !TaskProperties, !TaskResult Dynamic, !*TSt)
-	applyCurrentChange processId changeCount thread properties tst=:{currentChange}
+	applyCurrentChange :: !ProcessId !Int !Dynamic !TaskProperties !(Maybe [Menu]) !*TSt -> (!Int, !Dynamic, !TaskProperties, !(Maybe [Menu]), !TaskResult Dynamic, !*TSt)
+	applyCurrentChange processId changeCount thread properties menus tst=:{currentChange}
 		= case currentChange of
 			Just (lifetime,change)
 				// Apply the active change
@@ -319,11 +320,13 @@ where
 										= {tst & currentChange = Just (lifetime,change)}
 				// Evaluate the thread
 				// IMPORTANT: The taskNr is reset with the latest change count
-				# (result,tst=:{TSt|properties}) 	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
-				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
+				# (result,tst=:{TSt|properties,menus})
+					= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties, menus = menus}
+				= (changeCount,thread,properties,menus,result,{TSt|tst & properties = properties, menus = menus})
 			Nothing
-				# (result,tst=:{TSt|properties})	= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties}
-				= (changeCount,thread,properties,result,{TSt|tst & properties = properties})
+				# (result,tst=:{TSt|properties,menus})
+					= applyThread thread {TSt|tst & taskNr = [changeCount: taskNrFromString processId], properties = properties, menus = menus}
+				= (changeCount,thread,properties,menus,result,{TSt|tst & properties = properties, menus = menus})
 	
 	applyChange :: !TaskNr !Dynamic !Dynamic !TaskProperties -> (!Maybe Dynamic, !Maybe Dynamic, !TaskProperties)
 	//Apply a change that matches a specific type

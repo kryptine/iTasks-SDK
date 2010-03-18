@@ -22,6 +22,7 @@ JSONEncode{|TaskPanel|} (TaskRedundant) c				= ["\"redundant\"" : c]
 
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
+JSONEncode{|UserName|} (UserName name disp)	c			= ["\"" +++ disp +++ " <" +++ name +++ ">\"" : c]
 
 buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (![TaskPanel],!*TSt)
 buildTaskPanels tree menus currentUser tst = case tree of

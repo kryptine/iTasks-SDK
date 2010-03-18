@@ -19,26 +19,19 @@ getMenus :: Task (Maybe [Menu])
 getMenus
 	= mkInstantTask "getMenus" getMenus`
 where
-	getMenus` tst
-		#(pid, tst) = getCurrentProcess tst
-		#(p, tst) = ProcessDB@getProcess pid tst
-		= case p of
-			Just p	= (TaskFinished p.menus, tst)
-			Nothing	= abort "Cannot get current process!"
-
+	getMenus` tst=:{TSt|menus}
+		= (TaskFinished menus, tst)
+		
 setMenus :: ![Menu] -> Task Void
 setMenus menus
 	= mkInstantTask "setMenus" (setMenus` (Just menus))
-	
-		
-removeMenus :: Task Void
-removeMenus = mkInstantTask "removeMenus" (setMenus` Nothing)
 
 setMenus` :: !(Maybe [Menu]) !*TSt -> (!TaskResult Void,!*TSt) 		
 setMenus` menus tst
-		#(pid, tst) = getCurrentProcess tst
-		#(_, tst) = ProcessDB@updateProcess pid (\p -> {p & menus = menus}) tst
-		= (TaskFinished Void, tst)
+	= (TaskFinished Void, {TSt|tst & menus = menus})
+		
+removeMenus :: Task Void
+removeMenus = mkInstantTask "removeMenus" (setMenus` Nothing)
 
 setMenuItem :: !String !MenuItem -> Task Void
 setMenuItem updName newItem =

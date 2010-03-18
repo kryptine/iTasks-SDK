@@ -29,7 +29,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 				// Create the response
 				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panels, debug = debuginfo} in
-		 			({http_emptyResponse & rsp_data = toJSON content}, tst)
+		 			({http_emptyResponse & rsp_data = toJSON content, rsp_headers = [("Content-Type","text/javascript")]}, tst)
 			
 			| otherwise
 				= redundant tst
