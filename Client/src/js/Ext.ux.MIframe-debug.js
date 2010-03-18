@@ -4,10 +4,48 @@
  * licensing@theactivegroup.com
  * http://licensing.theactivegroup.com
  */
-     
+ /**
+  * @class Ext.ux.plugin.VisibilityMode
+  * @version 1.3.1
+  * @author Doug Hendricks. doug[always-At]theactivegroup.com
+  * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
+  * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
+  * Commercial Developer License (CDL) is available at http://licensing.theactivegroup.com.
+  * @singleton
+  * @static
+  * @desc This plugin provides an alternate mechanism for hiding Ext.Elements and a new hideMode for Ext.Components.<br />
+  * <p>It is generally designed for use with all browsers <b>except</b> Internet Explorer, but may used on that Browser as well.
+  * <p>If included in a Component as a plugin, it sets it's hideMode to 'nosize' and provides a new supported
+  * CSS rule that sets the height and width of an element and all child elements to 0px (rather than
+  * 'display:none', which causes DOM reflow to occur and re-initializes nested OBJECT, EMBED, and IFRAMES elements)
+  * @example
+   var div = Ext.get('container');
+   new Ext.ux.plugin.VisibilityMode().extend(div);
+   //You can override the Element (instance) visibilityCls to any className you wish at any time
+   div.visibilityCls = 'my-hide-class';
+   div.hide() //or div.setDisplayed(false);
+
+   // In Ext Layouts:
+   someContainer.add({
+     xtype:'flashpanel',
+     plugins: [new Ext.ux.plugin.VisibilityMode() ],
+     ...
+    });
+
+   // or, Fix a specific Container only and all of it's child items:
+   // Note: An upstream Container may still cause Reflow issues when hidden/collapsed
+
+    var V = new Ext.ux.plugin.VisibilityMode({ bubble : false }) ;
+    new Ext.TabPanel({
+     plugins     : V,
+     defaults    :{ plugins: V },
+     items       :[....]
+    });
+  */
+
  Ext.namespace('Ext.ux.plugin');
  Ext.onReady(function(){
-    
+
    /* This important rule solves many of the <object/iframe>.reInit issues encountered
     * when setting display:none on an upstream(parent) element (on all Browsers except IE).
     * This default rule enables the new Panel:hideMode 'nosize'. The rule is designed to
@@ -16,133 +54,95 @@
     * container and <object, img, iframe> bleed-thru.
     */
     var CSS = Ext.util.CSS;
-    if(CSS){ 
+    if(CSS){
         CSS.getRule('.x-hide-nosize') || //already defined?
             CSS.createStyleSheet('.x-hide-nosize{height:0px!important;width:0px!important;border:none!important;zoom:1;}.x-hide-nosize * {height:0px!important;width:0px!important;border:none!important;zoom:1;}');
         CSS.refreshCache();
     }
-    
+
 });
 
 (function(){
 
-      var El = Ext.Element, A = Ext.lib.Anim, supr = El.prototype; 
+      var El = Ext.Element, A = Ext.lib.Anim, supr = El.prototype;
       var VISIBILITY = "visibility",
         DISPLAY = "display",
         HIDDEN = "hidden",
         NONE = "none";
-        
+
       var fx = {};
-    
+
       fx.El = {
-	      	     
+
             /**
-	         * Sets the CSS display property. Uses originalDisplay if the specified value is a boolean true.
-	         * @param {Mixed} value Boolean value to display the element using its default display, or a string to set the display directly.
-	         * @return {Ext.Element} this
-	         */
-	       setDisplayed : function(value) {
+             * Sets the CSS display property. Uses originalDisplay if the specified value is a boolean true.
+             * @param {Mixed} value Boolean value to display the element using its default display, or a string to set the display directly.
+             * @return {Ext.Element} this
+             */
+           setDisplayed : function(value) {
                 var me=this;
                 me.visibilityCls ? (me[value !== false ?'removeClass':'addClass'](me.visibilityCls)) :
-	                supr.setDisplayed.call(me, value);
+                    supr.setDisplayed.call(me, value);
                 return me;
-	        },
-            
+            },
+
             /**
-	         * Returns true if display is not "none" or the visibilityCls has not been applied
-	         * @return {Boolean}
-	         */
-	        isDisplayed : function() {
-	            return !(this.hasClass(this.visibilityCls) || this.isStyle(DISPLAY, NONE));
-	        },
-	        // private
-	        fixDisplay : function(){
-	            var me = this;
-	            supr.fixDisplay.call(me);
-                me.visibilityCls && me.removeClass(me.visibilityCls); 
-	        },
-	
-	        /**
-	         * Checks whether the element is currently visible using both visibility, display, and nosize class properties.
+             * Returns true if display is not "none" or the visibilityCls has not been applied
+             * @return {Boolean}
+             */
+            isDisplayed : function() {
+                return !(this.hasClass(this.visibilityCls) || this.isStyle(DISPLAY, NONE));
+            },
+            // private
+            fixDisplay : function(){
+                var me = this;
+                supr.fixDisplay.call(me);
+                me.visibilityCls && me.removeClass(me.visibilityCls);
+            },
+
+            /**
+             * Checks whether the element is currently visible using both visibility, display, and nosize class properties.
              * @param {Boolean} deep (optional) True to walk the dom and see if parent elements are hidden (defaults to false)
              * @return {Boolean} True if the element is currently visible, else false
-	         */
-	        isVisible : function(deep) {
-	            var vis = this.visible ||
-				    (!this.isStyle(VISIBILITY, HIDDEN) && 
-                        (this.visibilityCls ? 
-                            !this.hasClass(this.visibilityCls) : 
+             */
+            isVisible : function(deep) {
+                var vis = this.visible ||
+                    (!this.isStyle(VISIBILITY, HIDDEN) &&
+                        (this.visibilityCls ?
+                            !this.hasClass(this.visibilityCls) :
                                 !this.isStyle(DISPLAY, NONE))
                       );
-				  
-				  if (deep !== true || !vis) {
-				    return vis;
-				  }
-				
-				  var p = this.dom.parentNode,
-                      bodyRE = /body/i;
-				
-				  while (p && !bodyRE.test(p.tagName)) {
-				    if (!Ext.fly(p, '_isVisible').isVisible()) {
-				      return false;
-				    }
-				    p = p.parentNode;
-				  }
-				  return true;
 
-	        },
+                  if (deep !== true || !vis) {
+                    return vis;
+                  }
+
+                  var p = this.dom.parentNode,
+                      bodyRE = /^body/i;
+
+                  while (p && !bodyRE.test(p.tagName)) {
+                    if (!Ext.fly(p, '_isVisible').isVisible()) {
+                      return false;
+                    }
+                    p = p.parentNode;
+                  }
+                  return true;
+
+            },
             //Assert isStyle method for Ext 2.x
             isStyle: supr.isStyle || function(style, val) {
-			    return this.getStyle(style) == val;
-			}
+                return this.getStyle(style) == val;
+            }
 
-	    };
-        
-        //Add basic capabilities to the Ext.Element.Flyweight class
-        Ext.override(El.Flyweight, fx.El);
+        };
 
-     /**
-      * @class Ext.ux.plugin.VisibilityMode
-      * @version 1.3.1
-      * @author Doug Hendricks. doug[always-At]theactivegroup.com
-      * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
-      * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
-      * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-      * @singleton
-      * @static
-      * @desc This plugin provides an alternate mechanism for hiding Ext.Elements and a new hideMode for Ext.Components.<br />
-      * <p>It is generally designed for use with all browsers <b>except</b> Internet Explorer, but may used on that Browser as well.
-      * <p>If included in a Component as a plugin, it sets it's hideMode to 'nosize' and provides a new supported
-      * CSS rule that sets the height and width of an element and all child elements to 0px (rather than
-      * 'display:none', which causes DOM reflow to occur and re-initializes nested OBJECT, EMBED, and IFRAMES elements)
-      * @example 
-       var div = Ext.get('container');
-       new Ext.ux.plugin.VisibilityMode().extend(div);
-       //You can override the Element (instance) visibilityCls to any className you wish at any time
-       div.visibilityCls = 'my-hide-class';
-       div.hide() //or div.setDisplayed(false);
-      
-       // In Ext Layouts:      
-       someContainer.add({
-         xtype:'flashpanel',
-         plugins: [new Ext.ux.plugin.VisibilityMode() ],
-         ...
-        });
-    
-       // or, Fix a specific Container only and all of it's child items:
-       // Note: An upstream Container may still cause Reflow issues when hidden/collapsed
-    
-        var V = new Ext.ux.plugin.VisibilityMode({ bubble : false }) ;
-        new Ext.TabPanel({
-         plugins     : V,
-         defaults    :{ plugins: V },
-         items       :[....]
-        });
-     */
+ //Add basic capabilities to the Ext.Element.Flyweight class
+ Ext.override(El.Flyweight, fx.El);
+
  Ext.ux.plugin.VisibilityMode = function(opt) {
 
     Ext.apply(this, opt||{});
-    
+
     var CSS = Ext.util.CSS;
 
     if(CSS && !Ext.isIE && this.fixMaximizedWindow !== false && !Ext.ux.plugin.VisibilityMode.MaxWinFixed){
@@ -150,7 +150,7 @@
         CSS.updateRule ( '.x-window-maximized-ct', 'overflow', '');
         Ext.ux.plugin.VisibilityMode.MaxWinFixed = true;  //only updates the CSS Rule once.
     }
-    
+
    };
 
 
@@ -168,7 +168,7 @@
       * @default true
       */
       fixMaximizedWindow  :  true,
-     
+
       /**
        *
        * @cfg {array} elements (optional) A list of additional named component members to also adjust visibility for.
@@ -192,7 +192,7 @@
        */
       hideMode  :   'nosize' ,
 
-      ptype     :  'uxvismode', 
+      ptype     :  'uxvismode',
       /**
       * Component plugin initialization method.
       * @param {Ext.Component} c The Ext.Component (or subclass) for which to apply visibilityMode treatment
@@ -204,25 +204,25 @@
             bubble = Ext.Container.prototype.bubble,
             changeVis = function(){
 
-	            var els = [this.collapseEl, this.actionMode].concat(plugin.elements||[]);
-	
-	            Ext.each(els, function(el){
-		            plugin.extend( this[el] || el );
-	            },this);
-	
-	            var cfg = {
+                var els = [this.collapseEl, this.actionMode].concat(plugin.elements||[]);
+
+                Ext.each(els, function(el){
+                    plugin.extend( this[el] || el );
+                },this);
+
+                var cfg = {
                     visFixed  : true,
                     animCollapse : false,
                     animFloat   : false,
-		            hideMode  : hideMode,
-		            defaults  : this.defaults || {}
-	            };
-	
-	            cfg.defaults.hideMode = hideMode;
-	            
-	            Ext.apply(this, cfg);
-	            Ext.apply(this.initialConfig || {}, cfg);
-            
+                    hideMode  : hideMode,
+                    defaults  : this.defaults || {}
+                };
+
+                cfg.defaults.hideMode = hideMode;
+
+                Ext.apply(this, cfg);
+                Ext.apply(this.initialConfig || {}, cfg);
+
             };
 
          c.on('render', function(){
@@ -250,18 +250,18 @@
       */
      extend : function(el, visibilityCls){
         el && Ext.each([].concat(el), function(e){
-            
-	        if(e && e.dom){
+
+            if(e && e.dom){
                  if('visibilityCls' in e)return;  //already applied or defined?
-	             Ext.apply(e, fx.El);
-	             e.visibilityCls = visibilityCls || this.visibilityCls;
-	        }
+                 Ext.apply(e, fx.El);
+                 e.visibilityCls = visibilityCls || this.visibilityCls;
+            }
         },this);
         return this;
      }
 
   });
-  
+
   Ext.preg && Ext.preg('uxvismode', Ext.ux.plugin.VisibilityMode );
   /** @sourceURL=<uxvismode.js> */
   Ext.provide && Ext.provide('uxvismode');
@@ -277,11 +277,11 @@
 
  /**
   * @class multidom
-  * @version 2.0
+  * @version 2.11
   * @license MIT
   * @author Doug Hendricks. Forum ID: <a href="http://extjs.com/forum/member.php?u=8730">hendricd</a>
   * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-  * @copyright 2007-2009, Active Group, Inc. All rights reserved.
+  * @copyright 2007-2010, Active Group, Inc. All rights reserved.
   * @description [Designed For Ext Core and ExtJs Frameworks (using ext-base adapter only) 3.0 or higher ONLY]
   * The multidom library extends (overloads) Ext Core DOM methods and functions to
   * provide document-targeted access to the documents loaded in external (FRAME/IFRAME)
@@ -292,7 +292,7 @@
   * into any child document without having to load the Core library into the frame's global context.
   * <h3>Custom Element classes.</h3>
   * The Ext.get method is enhanced to support resolution of the custom Ext.Element implementations.
-  * (The ux.ManagedIFrame 2.0 Element class is an example of such a class.)
+  * (The ux.ManagedIFrame 2 Element class is an example of such a class.)
   * <p>For example: If you were retrieving the Ext.Element instance for an IFRAME and the class
   * Ext.Element.IFRAME were defined:
   * <pre><code>Ext.get('myFrame')</pre></code>
@@ -331,7 +331,9 @@
        OPString = OP.toString,
        HTMLDoc = '[object HTMLDocument]';
        
-   if(!Ext.elCache) throw 'Ext Release is not supported';
+   if(!Ext.elCache || parseInt( Ext.version.replace(/\./g,''),10) < 311 ) {
+    alert ('Ext Release '+Ext.version+' is not supported');
+   }
 
    /**
     * @private
@@ -548,7 +550,7 @@
         if (!libFlyweight) {
             libFlyweight = new Ext.Element.Flyweight();
         }
-        libFlyweight.dom = Ext.getDom(el, doc);
+        libFlyweight.dom = Ext.getDom(el, null, doc);
         return libFlyweight;
     }
 
@@ -566,7 +568,7 @@
             Ext.isDocument(doc) || (doc = DOC);
             var ex, elm, id, cache = resolveCache(doc);
             if(typeof el == "string"){ // element id
-                elm = Ext.getDom(el,doc);
+                elm = Ext.getDom(el, null, doc);
                 if(!elm) return null;
                 if(cache[el] && cache[el].el){
                     ex = cache[el].el;
@@ -575,17 +577,7 @@
                     ex = El.addToCache(new (assertClass(elm))(elm, null, doc));
                 }
                 return ex;
-             }else if(el.tagName || Ext.isWindow(el)){ // dom element
-
-                cache = resolveCache(el);
-                id = el.id || (id = Ext.id(el));
-                if(cache[id] && (ex = cache[id].el)){
-                    ex.dom = el;
-                }else{
-                    ex = El.addToCache(new (assertClass(el))(el, null, doc), null, cache); 
-                    el.navigator && (cache[id].skipGC = true);
-                }
-                return ex;
+            
             }else if( el instanceof El ){ 
 
                 cache = resolveCache(el);
@@ -597,6 +589,17 @@
                        )).el = el; // in case it was created directly with Element(), let's cache it
                 }
                 return el;
+                
+            }else if(el.tagName || Ext.isWindow(el)){ // dom element
+                cache = resolveCache(el);
+                id = Ext.id(el);
+                if(cache[id] && (ex = cache[id].el)){
+                    ex.dom = el;
+                }else{
+                    ex = El.addToCache(new (assertClass(el))(el, null, doc), null, cache); 
+                    el.navigator && (cache[id].skipGC = true);
+                }
+                return ex;
 
             }else if(Ext.isDocument(el)){
 
@@ -631,11 +634,32 @@
      /**
       * Ext.getDom to support targeted document contexts
       */
-     getDom : function(el, doc){
-            if(!el){ return null;}
-            var D = doc || DOC;
-            return el.dom ? el.dom : (typeof el == 'string'  && D.getElementById ? D.getElementById(el) : el);
-        },
+     getDom : function(el, strict, doc){
+        var D = doc || DOC;
+        if(!el || !D){
+            return null;
+        }
+        if (el.dom){
+            return el.dom;
+        } else {
+            if (Ext.isString(el)) {
+                var e = D.getElementById(el);
+                // IE returns elements with the 'name' and 'id' attribute.
+                // we do a strict check to return the element with only the id attribute
+                if (e && Ext.isIE && strict) {
+                    if (el == e.getAttribute('id')) {
+                        return e;
+                    } else {
+                        return null;
+                    }
+                }
+                return e;
+            } else {
+                return el;
+            }
+        }
+            
+     },
      /**
      * Returns the current/specified document body as an {@link Ext.Element}.
      * @param {HTMLDocument} doc (optional)
@@ -754,39 +778,16 @@
       */
 
         remove : function(cleanse, deep){
+            
           var dom = this.dom;
           this.isMasked() && this.unmask();
           if(dom){
-            cleanse && this.cleanse(true, deep);
+            
             Ext.removeNode(dom);
             delete this._context;
             delete this.dom;
           }
         },
-
-        /**
-         * Deep cleansing childNode Removal
-         * @param {Boolean} forceReclean (optional) By default the element
-         * keeps track if it has been cleansed already so
-         * you can call this over and over. However, if you update the element and
-         * need to force a reclean, you can pass true.
-         * @param {Boolean} deep (optional) Perform a deep cleanse of all childNodes as well.
-         */
-        cleanse : function(forceReclean, deep){
-            if(this.isCleansed && forceReclean !== true){
-                return this;
-            }
-            var d = this.dom, n = d.firstChild, nx;
-            while(d && n){
-                 nx = n.nextSibling;
-                 deep && Ext.fly(n, '_cleanser').cleanse(forceReclean, deep);
-                 Ext.removeNode(n);
-                 n = nx;
-             }
-             delete El._flyweights['_cleanser']; //orphan reference cleanup
-             this.isCleansed = true;
-             return this;
-         },
 
          /**
          * Appends the passed element(s) to this element
@@ -805,7 +806,7 @@
          * @return {Ext.Element} this
          */
         appendTo: function(el, doc){
-            GETDOM(el, doc || this.getDocument()).appendChild(this.dom);
+            GETDOM(el, false, doc || this.getDocument()).appendChild(this.dom);
             return this;
         },
 
@@ -816,7 +817,7 @@
          * @return {Ext.Element} this
          */
         insertBefore: function(el, doc){
-            (el = GETDOM(el, doc || this.getDocument())).parentNode.insertBefore(this.dom, el);
+            (el = GETDOM(el, false, doc || this.getDocument())).parentNode.insertBefore(this.dom, el);
             return this;
         },
 
@@ -827,7 +828,7 @@
          * @return {Ext.Element} this
          */
         insertAfter: function(el, doc){
-            (el = GETDOM(el, doc || this.getDocument())).parentNode.insertBefore(this.dom, el.nextSibling);
+            (el = GETDOM(el, false, doc || this.getDocument())).parentNode.insertBefore(this.dom, el.nextSibling);
             return this;
         },
 
@@ -870,7 +871,7 @@
         replaceWith: function(el, doc){
             var me = this;
             if(el.nodeType || el.dom || typeof el == 'string'){
-                el = GETDOM(el, doc || me.getDocument());
+                el = GETDOM(el, false, doc || me.getDocument());
                 me.dom.parentNode.insertBefore(el, me.dom);
             }else{
                 el = DH.insertBefore(me.dom, el);
@@ -986,7 +987,7 @@
         
         scrollIntoView : function(container, hscroll){
                 var d = this.getDocument();
-                var c = Ext.getDom(container, d) || Ext.getBody(d).dom;
+                var c = Ext.getDom(container, null, d) || Ext.getBody(d).dom;
                 var el = this.dom;
                 var o = this.getOffsetsTo(c),
                     s = this.getScroll(),
@@ -1514,7 +1515,7 @@
             }
             maxDepth = maxDepth || 50;
             if (isNaN(maxDepth)) {
-                stopEl = Ext.getDom(maxDepth, D);
+                stopEl = Ext.getDom(maxDepth, null, D);
                 maxDepth = Number.MAX_VALUE;
             }
             while(p && p.nodeType == 1 && depth < maxDepth && p != b && p != stopEl){
@@ -1570,6 +1571,70 @@
                 }
             }
             return me;
+        },
+        
+        getViewSize : function(){
+            var doc = this.getDocument(),
+                d = this.dom,
+                isDoc = (d == doc || d == doc.body);
+
+            // If the body, use Ext.lib.Dom
+            if (isDoc) {
+                var extdom = Ext.lib.Dom;
+                return {
+                    width : extdom.getViewWidth(),
+                    height : extdom.getViewHeight()
+                }
+
+            // Else use clientHeight/clientWidth
+            } else {
+                return {
+                    width : d.clientWidth,
+                    height : d.clientHeight
+                }
+            }
+        },
+        /**
+        * <p>Returns the dimensions of the element available to lay content out in.<p>
+        *
+        * getStyleSize utilizes prefers style sizing if present, otherwise it chooses the larger of offsetHeight/clientHeight and offsetWidth/clientWidth.
+        * To obtain the size excluding scrollbars, use getViewSize
+        *
+        * Sizing of the document body is handled at the adapter level which handles special cases for IE and strict modes, etc.
+        */
+
+        getStyleSize : function(){
+            var me = this,
+                w, h,
+                doc = this.getDocument(),
+                d = this.dom,
+                isDoc = (d == doc || d == doc.body),
+                s = d.style;
+
+            // If the body, use Ext.lib.Dom
+            if (isDoc) {
+                var extdom = Ext.lib.Dom;
+                return {
+                    width : extdom.getViewWidth(),
+                    height : extdom.getViewHeight()
+                }
+            }
+            // Use Styles if they are set
+            if(s.width && s.width != 'auto'){
+                w = parseFloat(s.width);
+                if(me.isBorderBox()){
+                   w -= me.getFrameWidth('lr');
+                }
+            }
+            // Use Styles if they are set
+            if(s.height && s.height != 'auto'){
+                h = parseFloat(s.height);
+                if(me.isBorderBox()){
+                   h -= me.getFrameWidth('tb');
+                }
+            }
+            // Use getWidth/getHeight if style not set.
+            return {width: w || me.getWidth(true), height: h || me.getHeight(true)};
         }
     });
     
@@ -1620,17 +1685,16 @@
 	                delete EC[eid];
 	            }
 	        
-            
-		        // Cleanup IE COM Object Hash reference leaks 
-		        if (Ext.isIE) {
-		            var t = {};
-		            for (eid in EC) {
-		                t[eid] = EC[eid];
-		            }
-		            Ext.elCache = Ext._documents[Ext.id(document)] = t;
-	                t = null;
-		        }
             }
+	        // Cleanup IE COM Object Hash reference leaks 
+	        if (Ext.isIE) {
+	            var t = {};
+	            for (eid in EC) {
+	                t[eid] = EC[eid];
+	            }
+	            Ext.elCache = Ext._documents[Ext.id(document)] = t;
+                t = null;
+	        }
 	    }
 	}
     //Restart if enabled
@@ -1645,7 +1709,7 @@
         getDocument : function(el, accessTest){
           var dom= null;
           try{
-            dom = Ext.getDom(el, null); //will fail if El.dom is non "same-origin" document
+            dom = Ext.getDom(el, null, null); //will fail if El.dom is non "same-origin" document
           }catch(ex){}
 
           var isDoc = Ext.isDocument(dom);
@@ -1738,7 +1802,7 @@
             ELD.getXY || emptyFn,
             function(el, doc) {
 
-                el = Ext.getDom(el, doc);
+                el = Ext.getDom(el, null, doc);
                 var D= this.getDocument(el),
                     bd = D ? (D.body || D.documentElement): null;
 
@@ -1762,7 +1826,7 @@
         var ret = null;
         named = named || '_global';
 
-        if (el = Ext.getDom(el, doc)) {
+        if (el = Ext.getDom(el, null, doc)) {
             (ret = flies[named] = (flies[named] || new El.Flyweight())).dom = el;
             Ext.isDocument(el) && (ret._isDoc = true);
         }
@@ -1794,10 +1858,10 @@
 
         // this is a workaround for jQuery and should somehow be removed from Ext Core in the future
         // without breaking ExtJS.
-        if(ename == "mousewheel" && el.addEventListener){ // workaround for jQuery
+        if(el.addEventListener && ename == "mousewheel" ){ 
             var args = ["DOMMouseScroll", wrap, false];
             el.addEventListener.apply(el, args);
-            Ext.EventManager.addListener(window, 'unload', function(){
+            Ext.EventManager.addListener(window, 'beforeunload', function(){
                 el.removeEventListener.apply(el, args);
             });
         }
@@ -1927,7 +1991,7 @@
             el && Ext.get(el);
             var elCache = el ? resolveCache(el) : {},
                 f = el && ((elCache[el.id]||{events:{}}).events)[eventName] || [],
-                wrap, i, l, k, wf, len, fnc;
+                wrap, i, l, k, len, fnc;
 
             for (i = 0, len = f.length; i < len; i++) {
                 /* 0 = Original Function,
@@ -1945,15 +2009,23 @@
                         }
                         delete fn.tasks;
                     }
-                    wf = wrap = fnc[1];
-                    if (E.extAdapter) {
-                        wf = fnc[3];
+                    wrap = fnc[1];
+                    E.un(el, eventName, E.extAdapter ? fnc[3] : wrap);
+                    
+                    // jQuery workaround that should be removed from Ext Core
+                    if(wrap && eventName == "mousewheel" && el.addEventListener ){
+                        el.removeEventListener("DOMMouseScroll", wrap, false);
                     }
-                    E.un(el, eventName, wf);
+        
+                    if(wrap && eventName == "mousedown" && el == DOC){ // fix stopped mousedowns on the document
+                        Ext.EventManager.stoppedMouseDownEvent.removeListener(wrap);
+                    }
+                    
                     f.splice(i,1);
                     if (f.length === 0) {
                         delete elCache[el.id].events[eventName];
                     }
+                    
                     for (k in elCache[el.id].events) {
                         return false;
                     }
@@ -1962,14 +2034,7 @@
                 }
             }
 
-            // jQuery workaround that should be removed from Ext Core
-            if(eventName == "mousewheel" && el.addEventListener && wrap){
-                el.removeEventListener("DOMMouseScroll", wrap, false);
-            }
-
-            if(eventName == "mousedown" && el == DOC && wrap){ // fix stopped mousedowns on the document
-                Ext.EventManager.stoppedMouseDownEvent.removeListener(wrap);
-            }
+            
         },
 
         /**
@@ -1985,7 +2050,7 @@
                 elCache = resolveCache(el)||{},
                 es = elCache[id] || {},
                 ev = es.events || {},
-                f, i, len, ename, fn, k;
+                f, i, len, ename, fn, k, wrap;
 
             for(ename in ev){
                 if(ev.hasOwnProperty(ename)){
@@ -2005,7 +2070,19 @@
                             }
                             delete fn.tasks;
                         }
-                        E.un(el, ename, E.extAdapter ? fn[3] : fn[1]);
+                        
+                        wrap =  fn[1];
+                        E.un(el, ename, E.extAdapter ? fn[3] : wrap);
+
+                        // jQuery workaround that should be removed from Ext Core
+                        if(wrap && el.addEventListener && ename == "mousewheel"){
+                            el.removeEventListener("DOMMouseScroll", wrap, false);
+                        }
+
+                        // fix stopped mousedowns on the document
+                        if(wrap && el == DOC &&  ename == "mousedown"){
+                            Ext.EventManager.stoppedMouseDownEvent.removeListener(wrap);
+                        }
                     }
                 }
             }
@@ -2057,13 +2134,13 @@
     Ext.provide && Ext.provide('multidom');
  })();/* global Ext */
 /*
- * Copyright 2007-2009, Active Group, Inc.  All rights reserved.
+ * Copyright 2007-2010, Active Group, Inc.  All rights reserved.
  * ******************************************************************************
  * This file is distributed on an AS IS BASIS WITHOUT ANY WARRANTY; without even
  * the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * ***********************************************************************************
- * @version 2.1
- * [For Ext 3.1 or higher only]
+ * @version 2.11
+ * [For Ext 3.1.1 or higher only]
  *
  * License: ux.ManagedIFrame, ux.ManagedIFrame.Panel, ux.ManagedIFrame.Portlet, ux.ManagedIFrame.Window  
  * are licensed under the terms of the Open Source GPL 3.0 license:
@@ -2118,12 +2195,12 @@
  
   //assert multidom support: REQUIRED for Ext 3 or higher!
   if(typeof ELD.getDocument != 'function'){
-     throw "MIF 2.1 requires multidom support" ;
+     alert("MIF 2.1.1 requires multidom support" );
   }
-  //assert Ext 3.0.3 + , SVN
-  if(!Ext.isDefined(Ext.elCache)){
-     throw "MIF 2.1 requires Ext 3.1 or higher." ;
-  }
+  //assert Ext 3.1.1+ 
+  if(!Ext.elCache || parseInt( Ext.version.replace(/\./g,''),10) < 311 ) {
+    alert ('Ext Release '+Ext.version+' is not supported');
+   }
   
   Ext.ns('Ext.ux.ManagedIFrame', 'Ext.ux.plugin');
   
@@ -2145,11 +2222,11 @@
     /**
      * @class Ext.ux.ManagedIFrame.Element
      * @extends Ext.Element
-     * @version 2.1 
+     * @version 2.1.1 
      * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a> 
      * @author Doug Hendricks. Forum ID: <a href="http://extjs.com/forum/member.php?u=8730">hendricd</a> 
      * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-     * @copyright 2007-2009, Active Group, Inc. All rights reserved.
+     * @copyright 2007-2010, Active Group, Inc. All rights reserved.
      * @constructor Create a new Ext.ux.ManagedIFrame.Element directly. 
      * @param {String/HTMLElement} element
      * @param {Boolean} forceNew (optional) By default the constructor checks to see if there is already an instance of this element in the cache and if there is it returns the same instance. This will skip that check (useful for extending this class).
@@ -2161,7 +2238,7 @@
             constructor : function(element, forceNew, doc ){
                 var d = doc || document;
                 var elCache  = ELD.resolveDocumentCache(d);
-                var dom = Ext.getDom(element, d);
+                var dom = Ext.getDom(element, false, d);
                 if(!dom || !(/^(iframe|frame)/i).test(dom.tagName)) { // invalid id/element
                     return null;
                 }
@@ -2313,9 +2390,10 @@
 	                    //  Private internal document state events.
 	                 this._observable.addEvents('_docready','_docload');
                  } 
+                 var H = Ext.isIE?'onreadystatechange':'onload';
                  // Hook the Iframes loaded and error state handlers
-                 this.dom[Ext.isIE?'onreadystatechange':'onload'] =
-                    this.dom['onerror'] = this.loadHandler.createDelegate(this);
+                 this.dom[H] = this.loadHandler.createDelegate(this);
+                 this.dom['onerror'] = this.loadHandler.createDelegate(this);
                 
             },
 
@@ -2416,9 +2494,7 @@
               *
               */
             eventsFollowFrameLinks   : true,
-
-            /** @private */
-            _domCache      : null,
+           
 
             /**
              * Removes the FRAME from the DOM and deletes it from the cache
@@ -2461,8 +2537,8 @@
                 var opt = submitCfg || {}, 
                 D = this.getDocument(),
   	            form = Ext.getDom(
-                       opt.form ? opt.form.form || opt.form: null, 
-                    D) || Ext.DomHelper.append(D.body, { 
+                       opt.form ? opt.form.form || opt.form: null, false, D) || 
+                  Ext.DomHelper.append(D.body, { 
                     tag: 'form', 
                     cls : 'x-hidden x-mif-form',
                     encoding : 'multipart/form-data'
@@ -2793,7 +2869,7 @@
              */
             fly : function(el, named) {
                 var doc = this.getFrameDocument();
-                return doc ? Ext.fly(el,named, doc) : null;
+                return doc ? Ext.fly(el, named, doc) : null;
             },
 
             /**
@@ -2877,16 +2953,6 @@
              /** @private : clear all event listeners and Element cache */
             _unHook : function() {
                 if (this._hooked) {
-                    var id, el, c = this._domCache;
-                    if(c){
-                      for ( id in c ) {
-                        el = c[id].el;
-                        el && el.removeAllListeners && el.removeAllListeners();
-                        el && (c[id].el = el = null);
-                        delete c[id].data;
-                        delete c[id];
-                      }
-                    }
                     
                     this._windowContext && (this._windowContext.hostMIF = null);
                     this._windowContext = null;
@@ -2900,8 +2966,7 @@
                         removeListener(Ext.isIE ? w : this.getFrameDocument(), 'scroll', p);
                     }
                 }
-                MIM._flyweights = {};
-                this._domCache = null;
+                
                 ELD.clearDocumentCache && ELD.clearDocumentCache(this.id);
                 this.CSS = this.CSS ? this.CSS.destroy() : null;
                 this.domFired = this._frameAction = this.domReady = this._hooked = false;
@@ -2923,16 +2988,11 @@
                             || this.dom.contentDocument
                             || window.frames[this.dom.name].document || null;
                 } catch (gdEx) {
-                    this._domCache = null;
                     
                     ELD.clearDocumentCache && ELD.clearDocumentCache(this.id);
                     return false; // signifies probable access restriction
                 }
                 doc = (doc && Ext.isFunction(ELD.getDocument)) ? ELD.getDocument(doc,true) : doc;
-                
-                if(doc){
-                  this._domCache || (this._domCache = ELD.resolveDocumentCache(doc, this.id));
-                }
                 
                 return doc;
             },
@@ -3137,10 +3197,11 @@
              * applicable.
              */
             loadHandler : function(e, target) {
-                var rstatus = (e && typeof e.type !== 'undefined' ? e.type: this.dom.readyState);
+                
+                var rstatus = (this.dom||{}).readyState || (e || {}).type ;
                 
                 if (this.eventsFollowFrameLinks || this._frameAction || this.isReset ) {
-                                    
+                                       
 	                switch (rstatus) {
 	                    case 'domready' : // MIF
                         case 'DOMFrameContentLoaded' :
@@ -3156,8 +3217,9 @@
 	                        break;
 	                    default :
 	                }
+                    this.frameState = rstatus;
                 }
-                this.frameState = rstatus;
+                
             },
 
             /**
@@ -3205,7 +3267,7 @@
              * state, and raise the 'domready' event when applicable.
              */
             checkDOM : function( win) {
-                if ( Ext.isGecko ) { return; }  //Ext.isOpera ||
+                if ( Ext.isGecko ) { return; } 
                 // initialise the counter
                 var n = 0, frame = this, domReady = false,
                     b, l, d, 
@@ -3532,10 +3594,10 @@
 
   /**
    * @class Ext.ux.ManagedIFrame.ComponentAdapter
-   * @version 2.1 
+   * @version 2.1.1 
    * @author Doug Hendricks. doug[always-At]theactivegroup.com
    * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-   * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
+   * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
    * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
    * @constructor
    * @desc
@@ -4030,10 +4092,10 @@
   /**
    * @class Ext.ux.ManagedIFrame.Component
    * @extends Ext.BoxComponent
-   * @version 2.1 
+   * @version 2.1.1 
    * @author Doug Hendricks. doug[always-At]theactivegroup.com
    * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-   * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
+   * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
    * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
    * @constructor
    * @base Ext.ux.ManagedIFrame.ComponentAdapter
@@ -4236,10 +4298,10 @@
   /**
    * @class Ext.ux.ManagedIFrame.Panel
    * @extends Ext.Panel
-   * @version 2.1 
+   * @version 2.1.1 
    * @author Doug Hendricks. doug[always-At]theactivegroup.com
    * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-   * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
+   * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
    * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
    * @constructor
    * @base Ext.ux.ManagedIFrame.ComponentAdapter
@@ -4263,11 +4325,11 @@
     /**
      * @class Ext.ux.ManagedIFrame.Portlet
      * @extends Ext.ux.ManagedIFrame.Panel
-     * @version 2.1 
+     * @version 2.1.1 
      * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
      * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a> 
      * @author Doug Hendricks. Forum ID: <a href="http://extjs.com/forum/member.php?u=8730">hendricd</a> 
-     * @copyright 2007-2009, Active Group, Inc. All rights reserved.
+     * @copyright 2007-2010, Active Group, Inc. All rights reserved.
      * @constructor Create a new Ext.ux.ManagedIFramePortlet 
      * @param {Object} config The config object
      */
@@ -4291,10 +4353,10 @@
   /**
    * @class Ext.ux.ManagedIFrame.Window
    * @extends Ext.Window
-   * @version 2.1 
+   * @version 2.1.1 
    * @author Doug Hendricks. 
    * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-   * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
+   * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
    * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
    * @constructor
    * @base Ext.ux.ManagedIFrame.ComponentAdapter
@@ -4319,11 +4381,11 @@
     /**
      * @class Ext.ux.ManagedIFrame.Updater
      * @extends Ext.Updater
-     * @version 2.1 
+     * @version 2.1.1 
      * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
      * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a> 
      * @author Doug Hendricks. Forum ID: <a href="http://extjs.com/forum/member.php?u=8730">hendricd</a> 
-     * @copyright 2007-2009, Active Group, Inc. All rights reserved.
+     * @copyright 2007-2010, Active Group, Inc. All rights reserved.
      * @constructor Creates a new Ext.ux.ManagedIFrame.Updater instance.
      * @param {String/Object} el The element to bind the Updater instance to.
      */
@@ -4368,10 +4430,10 @@
     /**
      * @class Ext.ux.ManagedIFrame.CSS
      * Stylesheet interface object
-     * @version 2.1 
+     * @version 2.1.1 
      * @author Doug Hendricks. doug[always-At]theactivegroup.com
      * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-     * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
+     * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
      * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
      */
     Ext.ux.ManagedIFrame.CSS = function(hostDocument) {
@@ -4607,10 +4669,10 @@
 
     /**
      * @class Ext.ux.ManagedIFrame.Manager
-     * @version 2.1 
+     * @version 2.1.1 
 	 * @author Doug Hendricks. doug[always-At]theactivegroup.com
 	 * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
-	 * @copyright 2007-2009, Active Group, Inc.  All rights reserved.
+	 * @copyright 2007-2010, Active Group, Inc.  All rights reserved.
 	 * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a>
 	 * @singleton
      */
@@ -4692,14 +4754,10 @@
             },
 
             /** @private */
-            _flyweights : {},
-
-            /** @private */
             destroy : function() {
                 if (document.addEventListener && !Ext.isOpera) {
                       window.removeEventListener("DOMFrameContentLoaded", this._DOMFrameReadyHandler , false);
                 }
-                delete this._flyweights;
             }
         };
         // for Gecko and any who might support it later 
@@ -4782,11 +4840,11 @@
      * Internal Error class for ManagedIFrame Components
 	 * @class Ext.ux.ManagedIFrame.Error
      * @extends Ext.Error
-     * @version 2.1 
+     * @version 2.1.1 
      * @donate <a target="tag_donate" href="http://donate.theactivegroup.com"><img border="0" src="http://www.paypal.com/en_US/i/btn/x-click-butcc-donate.gif" border="0" alt="Make a donation to support ongoing development"></a>
      * @license <a href="http://www.gnu.org/licenses/gpl.html">GPL 3.0</a> 
      * @author Doug Hendricks. Forum ID: <a href="http://extjs.com/forum/member.php?u=8730">hendricd</a> 
-     * @copyright 2007-2009, Active Group, Inc. All rights reserved.
+     * @copyright 2007-2010, Active Group, Inc. All rights reserved.
 	 * @constructor 
      * @param {String} message
      * @param {Mixed} arg optional argument to include in Error object.
