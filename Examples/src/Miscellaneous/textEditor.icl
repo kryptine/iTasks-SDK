@@ -45,12 +45,13 @@ derive gVisualize AppState, AppAction, ParallelAction
 derive gUpdate AppState, AppAction, ParallelAction
 derive gMerge AppState, TextFile, DBRef
 
-openFile :: (DBRef TextFile) (SharedID AppState) -> Task Void
+openFile :: (DBRef TextFile) (DBid AppState) -> Task Void
 openFile id sid =
 				getFile id
-	>>= \file.	setShared sid (AppState file.content (Just file))
+	>>= \file.	writeDB sid (AppState file.content (Just file))
+	>>|			stop
 	
-open :: (SharedID AppState) -> Task AppAction
+open :: (DBid AppState) -> Task AppAction
 open sid =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
@@ -65,19 +66,20 @@ open sid =
 					 								_			=				return (AppAction Continue)
 					)
 
-save :: (SharedID AppState) -> Task Void
+save :: (DBid AppState) -> Task Void
 save sid =
-										getShared sid
+										readDB sid
 	>>= \(AppState ntxt (Just file)).	dbUpdateItem {file & content = ntxt}
-	>>= \file.							setShared sid (AppState ntxt (Just file))
+	>>= \file.							writeDB sid (AppState ntxt (Just file))
+	>>|									stop
 					
-saveAs :: (SharedID AppState) -> Task AppAction
+saveAs :: (DBid AppState) -> Task AppAction
 saveAs sid =
 						enterInformationA "Save As: enter name" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 	>>= \(action,name).	case action of
-							ActionOk	=							getShared sid
+							ActionOk	=							readDB sid
 											>>= \(AppState txt _).	storeFile name txt
-											>>=	\file.				setShared sid (AppState file.content (Just file))
+											>>=	\file.				writeDB sid (AppState file.content (Just file))
 											>>|						return (AppAction Continue)
 							_			=							return (AppAction Continue)
 
@@ -92,12 +94,12 @@ derive gUpdate Replace
 ActionReplaceAll	:== ActionLabel "Replace All"
 ActionClose			:== ActionLabel "Close"
 
-replaceT :: (SharedID AppState) -> Task AppAction
+replaceT :: (DBid AppState) -> Task AppAction
 replaceT sid =
 						enterInformationA "Replace..." [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)]
 	>>= \(action, v).	case action of
-							ActionReplaceAll	=										getShared sid
-													>>= \(AppState (Note txt) file).	setShared sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
+							ActionReplaceAll	=										readDB sid
+													>>= \(AppState (Note txt) file).	writeDB sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
 													>>|									return (AppAction (Extend [replaceT sid]))
 							_					= 										return (AppAction Continue)
 
@@ -110,7 +112,7 @@ derive gParse TextStatistics
 derive gVisualize TextStatistics
 derive gUpdate TextStatistics
 
-statistics :: (SharedID AppState)  -> Task AppAction
+statistics :: (DBid AppState)  -> Task AppAction
 statistics sid =
 		updateShared "Statistics" [ButtonAction (ActionOk, Always)] sid [statsListener]
 	>>| return (AppAction Continue)
@@ -135,11 +137,11 @@ addToRecentlyOpened name (DBRef id) =
 ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
 
-textEditorMain :: (SharedID AppState) -> Task AppAction
+textEditorMain :: (DBid AppState) -> Task AppAction
 textEditorMain sid  =
 						updateShared "Text Editor" [MenuParamAction ("openFile", Always):(map MenuAction actions)] sid [titleListener,mainEditor]
 	>>= \(action, _).	case action of
-							ActionNew					= setShared sid initState >>|			return (AppAction (Extend [textEditorMain sid]))
+							ActionNew					= writeDB sid initState >>|			return (AppAction (Extend [textEditorMain sid]))
 							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid]))
 							ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) sid >>|	return (AppAction (Extend [textEditorMain sid]))
 							ActionSave					= save sid >>|							return (AppAction (Extend [textEditorMain sid]))
@@ -168,8 +170,10 @@ where
 
 textEditorApp :: Task Void
 textEditorApp =
-				createShared initState
-	>>= \sid.	parallel "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
+		writeDB sid initState
+	>>|	parallel "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
+where
+	sid = mkDBid "shared_textEditorApp"
 			
 initTextEditor :: Task Void
 initTextEditor = setMenus

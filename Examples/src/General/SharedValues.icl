@@ -14,13 +14,14 @@ TrimAction :== ActionLabel "Trim"
 
 linesPar :: Task Void
 linesPar =
-				createShared ""
-	>>= \sid.	ignoreResult (noteE sid -||- ignoreResult (updateShared "Lines" [quitButton] sid [listEditor]))
+				return (mkDBid "shared_linesPar")
+	>>= \sid.	writeDB sid ""
+	>>|			ignoreResult (noteE sid -||- ignoreResult (updateShared "Lines" [quitButton] sid [listEditor]))
 where
 	noteE sid = 
 							updateShared "Text" [ButtonAction (TrimAction, Always), quitButton] sid [noteEditor]
 		>>= \(action,txt).	case action of
-								TrimAction	=			setShared sid (trim txt)
+								TrimAction	=			writeDB sid (trim txt)
 												>>|		noteE sid
 								_			= 			stop
 
@@ -65,9 +66,11 @@ where
 mergeTest :: Task Void
 mergeTest =
 				getCurrentUser
-	>>= \user.	createShared emptyL			
-	>>= \sid.	ignoreResult ((user @: ("1st View", view sid)) -||- (user @: ("2nd View", view sid)))
+	>>= \user.	return (mkDBid "shared_mergeTest")
+	>>= \sid.	writeDB sid emptyL
+	>>|			ignoreResult ((user @: ("1st View", view sid)) -||- (user @: ("2nd View", view sid)))
 where
+	view :: (DBid [String]) -> Task (Action,[String])
 	view sid = updateShared "List" [quitButton] sid [idEditor]
 	
 	emptyL :: [String]

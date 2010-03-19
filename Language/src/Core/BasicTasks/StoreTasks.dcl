@@ -26,7 +26,6 @@ derive gParse		DBRef
 * Create a database reference
 *
 * @param A unique name to identify the database with
-* @param The storage type of the database. Either LSTxtFile or LSDataFile.
 * @return A database reference
 */
 mkDBid 	:: !String -> (DBid a)
@@ -45,6 +44,12 @@ readDB	:: !(DBid a) 		-> Task a | iTask a
 * @return The new value of the database
 */
 writeDB	:: !(DBid a) !a 	-> Task a | iTask a
+/**
+* Delete the database.
+*
+* @param The database reference
+*/
+deleteDB :: !(DBid a)		-> Task Void
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where

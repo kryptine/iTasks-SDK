@@ -2,7 +2,7 @@ implementation module InteractionTasks
 
 import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, Text, GenMerge
 from	StdFunc import id, const
-import	TSt, ProcessDB
+import	TSt, ProcessDB, StoreTasks, Store
 from 	CoreCombinators import >>=, >>|, return
 from	ExceptionCombinators import throw
 from	TaskTree import :: InteractiveTask(..)
@@ -304,27 +304,6 @@ makeMessageTask message context actions tst=:{taskNr}
 			Nothing =		(TaskBusy, tst)
 			
 //Shared value tasks
-createShared :: a -> Task (SharedID a) | iTask a
-createShared v = mkInstantTask "createShared" createShared`
-where
-	createShared` tst
-		#(id, tst) = createSharedStore v tst
-		= (TaskFinished id, tst)
-		
-getShared :: (SharedID a) -> Task a | iTask a
-getShared id = mkInstantTask "getShared" getShared`
-where
-	getShared` tst
-		#(v, tst) = getSharedStore id tst
-		= (TaskFinished v, tst)
-		
-setShared :: (SharedID a) a -> Task Void | iTask a
-setShared id v = mkInstantTask "setShared" setShared`
-where
-	setShared` tst
-		#tst = setSharedStore id v tst
-		= (TaskFinished Void, tst)
-
 :: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
 :: Listener` s a =	{ visualize :: s -> [HtmlTag] }
 :: Editor` s a =	{ getNewValue :: Int [(!DataPath,!String)] s s *TSt -> *(!s,!*TSt)
@@ -394,34 +373,33 @@ idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
 idListener	:: View s	| iTask s & gMerge{|*|} s
 idListener = listener {listenerFrom = id}
 
-updateShared :: question ![TaskAction s] !(SharedID s) ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
+updateShared :: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
 updateShared question actions sharedId views = mkInteractiveTask "updateShared" (makeSharedTask question actions sharedId views False)
 
 updateSharedLocal :: question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
 updateSharedLocal question actions initial views =
-				createShared initial
-	>>= \sid.	mkInteractiveTask "updateShared" (makeSharedTask question actions sid views False)
-	>>= \res.	mkInstantTask "removeShared" (removeShared sid)
+				mkInstantTask "createShared" createLocalShared
+	>>= \sid.	writeDB sid initial
+	>>|			mkInteractiveTask "updateShared" (makeSharedTask question actions sid views False)
+	>>= \res.	deleteDB sid
 	>>|			return res
 where
-	removeShared id tst
-		#tst = removeSharedStore id tst
-		= (TaskFinished Void, tst)
+	createLocalShared tst=:{taskNr} = (TaskFinished (mkDBid "localShared_" +++ taskNrToString taskNr), tst)
 
-makeSharedTask :: question ![TaskAction s] !(SharedID s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & gMerge{|*|} s
+makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & gMerge{|*|} s
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 	# (updates,tst)	= getUserUpdates tst
 	| isEmpty updates
 		# tst = setTUIFunc createDefs tst
 		= (TaskBusy, tst)
 	| otherwise
-		# (cvalue,tst)		= getSharedStore sharedId tst
+		# (cvalue,tst)		= readShared sharedId tst
 		# (action,tst)		= getAction updates (map fst buttonActions) tst
 		| isJust action		= (TaskFinished (fromJust action,cvalue),tst)
 		| otherwise
 			# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
 			# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
-			# tst				= setSharedStore sharedId nvalue tst
+			# tst				= {tst & dataStore = storeValue sharedId nvalue tst.dataStore}
 			# (upd,valid,_,tst)	= foldl (detUpd nvalue) ([],True,0,tst) views
 			# menuActions		= evaluateConditions menuActions valid nvalue
 			# buttonActions		= evaluateConditions buttonActions valid nvalue
@@ -429,7 +407,7 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 		= (TaskBusy, tst)
 where
 	createDefs tst
-		# (svalue,tst)			= getSharedStore sharedId tst
+		# (svalue,tst)			= readShared sharedId tst
 		# (form,valid,_,tst)	= foldl (createDef svalue) ([],True,0,tst) views
 		# menuActions			= evaluateConditions menuActions valid svalue
 		# buttonActions			= evaluateConditions buttonActions valid svalue
@@ -466,6 +444,13 @@ where
 		= case mbvalue of
 			Just v		= (v,tst)
 			Nothing		= abort "cannot get local value!"
+			
+	readShared sid tst=:{dataStore,world}
+		# (mbvalue,dstore,world) = loadValue sid dataStore world
+		# tst = {tst & dataStore = dstore, world = world}
+		= case mbvalue of
+			Just v		= (v,tst)
+			Nothing		= abort "shared was deleted"
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)

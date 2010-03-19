@@ -681,47 +681,6 @@ getTaskStoreFor taskNr key tst=:{dataStore,world}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
-derive gPrint SharedID
-derive gParse SharedID
-derive gVisualize SharedID
-derive gUpdate SharedID
-
-sharedKey id = "SharedValue_" +++ (toString id)
-sValuesKey = "SharedValues"
-	
-createSharedStore :: !a !*TSt -> (!SharedID a, !*TSt) | iTask a
-createSharedStore value tst=:{dataStore,world}
-	# (sharedValues,dataStore,world) = loadValue sValuesKey dataStore world
-	# sharedValues = case sharedValues of
-		Just sv	= sv
-		Nothing	= []
-	# id = hd [i \\ i <- [0..] | not (isMember i sharedValues)]
-	# dataStore = storeValue sValuesKey [id:sharedValues] dataStore
-	# dataStore = storeValue (sharedKey id) value dataStore
-	= (SharedID id, {TSt|tst & dataStore = dataStore, world = world})
-	
-removeSharedStore :: !(SharedID a) !*TSt -> *TSt | iTask a
-removeSharedStore (SharedID remId) tst=:{dataStore,world}
-	# (mbSharedValues,dataStore,world) = loadValue sValuesKey dataStore world
-	= case mbSharedValues of
-		Nothing = {TSt|tst & dataStore = dataStore, world = world}
-		Just sharedValues
-			# dataStore = storeValue sValuesKey (filter (\id -> id <> remId) sharedValues) dataStore
-			= {TSt|tst & dataStore = dataStore, world = world}
-	
-setSharedStore :: !(SharedID a) !a !*TSt -> *TSt | iTask a
-setSharedStore (SharedID id) value tst=:{dataStore}
-	# dataStore = storeValue (sharedKey id) value dataStore
-	= {TSt|tst & dataStore = dataStore}
-
-	
-getSharedStore :: !(SharedID a) !*TSt -> (!a, !*TSt) | iTask a
-getSharedStore (SharedID id) tst=:{dataStore,world}
-	# (mbValue,dataStore,world) = loadValue (sharedKey id) dataStore world
-	= case mbValue of
-		Just v	= (v,{TSt|tst&dataStore = dataStore, world = world})
-		Nothing	= abort "cannot get shared store!"
-
 getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
 getUserUpdates tst=:{taskNr,request} = (updates request, tst);
 where

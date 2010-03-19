@@ -38,6 +38,13 @@ where
 		# dstore = storeValue key value dataStore
 		= (TaskFinished value, {TSt| tst & dataStore = dstore})
 		
+deleteDB :: !(DBid a) -> Task Void
+deleteDB key = mkInstantTask "deleteDB" deleteDB`
+where
+	deleteDB` tst=:{TSt|dataStore,world}
+		# (dstore,world) = deleteValues key dataStore world
+		= (TaskFinished Void, {TSt|tst & dataStore = dstore, world = world})
+		
 mkDBid :: !String -> (DBid a)
 mkDBid s = s
 

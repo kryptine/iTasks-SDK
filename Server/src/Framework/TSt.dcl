@@ -289,17 +289,6 @@ setTaskStoreFor 	:: !TaskNr !String !a !*TSt		-> *TSt | iTask a
 getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
 getTaskStoreFor		:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) | iTask a
 
-:: SharedID a = SharedID !Int
-derive gPrint SharedID
-derive gParse SharedID
-derive gVisualize SharedID
-derive gUpdate SharedID
-
-createSharedStore :: !a !*TSt -> (!SharedID a, !*TSt)	| iTask a
-removeSharedStore :: !(SharedID a) !*TSt -> *TSt		| iTask a
-setSharedStore :: !(SharedID a) !a !*TSt -> *TSt		| iTask a
-getSharedStore :: !(SharedID a) !*TSt -> (!a, !*TSt)	| iTask a
-
 /**
 * Store and load the result of a workflow instance
 */

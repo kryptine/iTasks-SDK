@@ -1,11 +1,11 @@
 definition module InteractionTasks
 
-from TSt		import :: Task, :: SharedID
+from TSt		import :: Task
 from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
 from ProcessDB	import :: Action
-import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
+import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, StoreTasks
 
 // This type class contains types that may be used as
 // messages and questions: plain strings and html.
@@ -92,11 +92,8 @@ editor		:: !(Editor s a)	-> View s | iTask a & iTask s & gMerge{|*|} s
 idEditor	:: View s	| iTask s & gMerge{|*|} s
 idListener	:: View s	| iTask s & gMerge{|*|} s
 
-createShared				:: a -> Task (SharedID a)													| iTask a
-getShared					:: (SharedID a) -> Task a													| iTask a
-setShared					:: (SharedID a) a -> Task Void												| iTask a
-updateShared				:: question ![TaskAction s] !(SharedID s) ![View s] -> Task (!Action, !s)	| html question & iTask s & gMerge{|*|} s
-updateSharedLocal			:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s)				| html question & iTask s & gMerge{|*|} s
+updateShared				:: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s)	| html question & iTask s & gMerge{|*|} s
+updateSharedLocal			:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html question & iTask s & gMerge{|*|} s
 
 //*** Utility Functions ***//
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
