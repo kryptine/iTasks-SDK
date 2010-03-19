@@ -9,6 +9,7 @@
 		[{"text":"itasks.util.js","path":"src/js/"}
 		,{"text":"itasks.form.js","path":"src/js/"}
 		,{"text":"BoolControl.js","path":"src/js/tui/"}
+		,{"text":"CharControl.js","path":"src/js/tui/"}
 		,{"text":"ConstructorControl.js","path":"src/js/tui/"}
 		,{"text":"CurrencyControl.js","path":"src/js/tui/"}
 		,{"text":"DateControl.js","path":"src/js/tui/"}

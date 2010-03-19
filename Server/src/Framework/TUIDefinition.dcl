@@ -20,9 +20,12 @@ derive JSONEncode TUIDef, TUIUpdate
 
 :: TUIDef
 	= TUILabel
+	| TUIStringControl TUIStringControl
+	| TUICharControl TUICharControl
+	| TUIIntControl TUIIntControl
+	| TUIBoolControl TUIBoolControl
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
-	| TUITextField TUITextField
 	| TUITextArea TUITextArea
 	| TUIUserField TUIUserField
 	| TUIComboBox TUIComboBox
@@ -63,13 +66,35 @@ derive JSONEncode TUIDef, TUIUpdate
 	, allowDecimals	:: !Bool
 	, numDecimals	:: !Int
 	}
-:: TUITextField =
+:: TUIStringControl =
 	{ name			:: !String
 	, id			:: !String
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
+	, optional		:: !Bool
 	}
+:: TUICharControl =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, optional		:: !Bool
+	}
+:: TUIIntControl =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, optional		:: !Bool
+	}
+:: TUIBoolControl =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, optional		:: !Bool
+	}	
+
 :: TUITextArea =
 	{ name			:: !String
 	, id			:: !String

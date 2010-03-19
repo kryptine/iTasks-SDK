@@ -1,7 +1,8 @@
 Ext.ns("itasks.tui");
 
-itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
-	width: 400,
+itasks.tui.CharControl = Ext.extend(Ext.form.TextField,{
+	width: 40,
+	maxLength: 1,
 	initComponent: function() {
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
@@ -11,4 +12,4 @@ itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
 	}
 });
 
-Ext.reg("itasks.tui.String",itasks.tui.StringControl);
+Ext.reg("itasks.tui.Char",itasks.tui.CharControl);

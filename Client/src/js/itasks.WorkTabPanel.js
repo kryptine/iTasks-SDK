@@ -288,7 +288,7 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.workerProps.progress),worktabBackground(properties.managerProps.priority),subject, properties.systemProps.manager[1]
+				, worktabStatus(properties.workerProps.progress),worktabBackground(properties.managerProps.priority),subject, properties.systemProps.manager
 				, itasks.util.formatDeadline(properties.managerProps.deadline)
 				));
 	},
@@ -402,6 +402,9 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 		
 		switch(comp.getXType()) {
 				case "textfield":
+				case "itasks.tui.String":
+				case "itasks.tui.Char":
+				case "itasks.tui.Int":
 				case "textarea":
 				case "numberfield":
 				case "datefield":
@@ -410,6 +413,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 					comp.on("change",changeTaskEvent);
 					break;
 				case "checkbox":
+				case "itasks.tui.Bool":
 					comp.on("check",changeTaskEvent);
 					break;
 				case "checkboxgroup":

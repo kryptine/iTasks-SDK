@@ -41,6 +41,14 @@ itasks.util.coloredLabel = function (color, msg) {
 	return "<span style=\"color: " + color + "; font-weight: bold;\">" + msg + "</span>";
 };
 
+itasks.util.fieldLabel = function(optional, label) {
+	if(optional) {
+		return label
+	} else {
+		return label + "*"
+	}
+}
+
 //Filter method for arrays (IE does not natively support this method)
 if (!Array.prototype.filter)
 {

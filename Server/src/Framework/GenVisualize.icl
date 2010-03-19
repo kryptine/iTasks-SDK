@@ -212,7 +212,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						
 			//ADT's with only one constructor
 			| d.gcd_type_def.gtd_num_conses == 1 
-				# (vizBody,rh,vst=:{valid}) = fx ox nx {vst & /* label = Nothing,*/ currentPath = shiftDataPath currentPath, optional = False}
+				# (vizBody,rh,vst=:{valid}) = fx ox nx {VSt|vst & currentPath = shiftDataPath currentPath, optional = False}
 				= (vizBody,rh,{VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 			//ADT's with multiple constructors
 			| otherwise
@@ -308,7 +308,7 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 
 gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition						=	([TUIFragment (TUINumberField {TUINumberField|name = dp2s currentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = False, numDecimals = 0})]
+		VEditorDefinition						=	([TUIFragment (TUIIntControl {TUIIntControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 													, 1
 													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -342,7 +342,7 @@ where
 		
 gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUITextField {TUITextField|name = dp2s currentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUICharControl {TUICharControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -360,28 +360,27 @@ where
 gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
 		VEditorDefinition
-			= ([TUIFragment (TUICheckBox {TUICheckBox|name = dp2s currentPath, id = id, value = value checkedOld, boxLabel = Nothing, fieldLabel = label2s optional label, hideLabel = not useLabels, checked = checkedOld })]
+			= ([TUIFragment (TUIBoolControl {TUIBoolControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional })]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
-			| updateValues && checkedOld <> checkedNew 	= ([TUIUpdate (TUISetValue id (value checkedNew))]
+			| updateValues && checkedOld <> checkedNew 	= ([TUIUpdate (TUISetValue id (toString checkedNew))]
 															, 1
 															, {VSt|vst & currentPath = stepDataPath currentPath})
 		_												= ([TextFragment (toString old)]
 															, 1
 															, {VSt|vst & currentPath = stepDataPath currentPath})		
 where
+	id			= dp2id idPrefix currentPath
 	checkedOld	= checked old
 	checkedNew	= checked new
 	checked b	= case b of
 		VBlank			= False
 		(VValue v mask) = if (isMasked currentPath mask) v False
-	value b	= if b "true" "false"
-	id		= dp2id idPrefix currentPath
-
+	
 gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition						=	([TUIFragment (TUITextField {TUITextField|name = dp2s currentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition						=	([TUIFragment (TUIStringControl {TUIStringControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 													, 1
 													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -402,25 +401,25 @@ gVisualize{|Maybe|} fx old new vst=:{vizType,idPrefix,currentPath,optional,valid
 			= case (old,new) of
 				(VValue (Just ox) omask, _)
 					# oval = VValue ox omask
-					# (viz, rh, vst) = fx oval oval {vst & optional = True}
-					= (viz, rh, {vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, rh, vst) = fx oval oval {VSt|vst & optional = True}
+					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				_
-					# (viz, rh, vst) = fx VBlank VBlank {vst & optional = True}
-					= (viz, rh, {vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, rh, vst) = fx VBlank VBlank {VSt|vst & optional = True}
+					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 		VEditorUpdate
 			= case (old,new) of
 				(VValue (Just ox) omask, VValue (Just nx) nmask)
-					# (viz, rh, vst) = fx (VValue ox omask) (VValue nx nmask) {vst & optional = True}
-					= (viz, rh, {vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, rh, vst) = fx (VValue ox omask) (VValue nx nmask) {VSt|vst & optional = True}
+					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				(VValue (Just ox) omask, VValue Nothing nmask)
-					# (viz, rh, vst) = fx (VValue ox omask) VBlank {vst & optional = True}
-					= (viz, rh, {vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, rh, vst) = fx (VValue ox omask) VBlank {VSt|vst & optional = True}
+					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				(VValue Nothing omask, VValue (Just nx) nmask)
-					# (viz, rh, vst) = fx VBlank (VValue nx nmask) {vst & optional = True}
-					= (viz, rh, {vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, rh, vst) = fx VBlank (VValue nx nmask) {VSt|vst & optional = True}
+					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				_
-					# (viz, rh, vst) = fx VBlank VBlank {vst & optional = True}
-					= (viz, rh, {vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, rh, vst) = fx VBlank VBlank {VSt|vst & optional = True}
+					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 		_			
 			= case old of
 				(VValue Nothing m)	= ([TextFragment "-"],0,vst)
@@ -765,6 +764,12 @@ value2s dp (VValue a dm)
 	| isMasked dp dm	= toString a
 	| otherwise			= ""
 
+labelAttr :: !Bool (Maybe String) -> Maybe String
+labelAttr False	_		= Nothing
+labelAttr True	Nothing	= Just ""
+labelAttr True	l		= l 
+
+//OBSOLETE
 label2s :: Bool (Maybe String) -> Maybe String
 label2s _		Nothing		= Nothing
 label2s True	(Just l)	= Just (l +++ " (optional)")
@@ -835,7 +840,7 @@ getId :: TUIDef -> Maybe TUIId
 getId (TUILabel)				= Nothing
 getId (TUIButton d)				= Just d.TUIButton.id
 getId (TUINumberField d)		= Just d.TUINumberField.id				
-getId (TUITextField d)			= Just d.TUITextField.id
+getId (TUIStringControl d)		= Just d.TUIStringControl.id
 getId (TUITextArea d)			= Just d.TUITextArea.id
 getId (TUIComboBox d)			= Just d.TUIComboBox.id
 getId (TUICheckBox d)			= Just d.TUICheckBox.id

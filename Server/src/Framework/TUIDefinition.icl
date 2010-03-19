@@ -2,11 +2,11 @@ implementation module TUIDefinition
 
 import JSON,StdList
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUITextField, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
+derive JSONEncode TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
 derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument, TUITuple
+derive JSONEncode TUIStringControl, TUICharControl, TUIIntControl, TUIBoolControl
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
-JSONEncode{|TUIDef|} (TUITextField r) c = addXType "textfield" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextArea r) c = addXType "textarea" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIUserField r) c = addXType "itasks.userfield" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUINumberField r) c = addXType "numberfield" (JSONEncode{|*|} r c)
@@ -29,6 +29,13 @@ JSONEncode{|TUIDef|} (TUIMenuItem r) c = addXType "menuitem" (JSONEncode{|*|} r 
 JSONEncode{|TUIDef|} (TUIMenuSeparator) c = ["{\"xtype\":\"menuseparator\"}"]++c
 JSONEncode{|TUIDef|} (TUITuple r) c = addXType "panel" (JSONEncode {|*|} r c)
 JSONEncode{|TUIDef|} (TUICustom r) c = JSONEncode{|*|} r c
+
+
+JSONEncode{|TUIDef|} (TUIStringControl r) c = addXType "itasks.tui.String" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUICharControl r) c = addXType "itasks.tui.Char" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIIntControl r) c = addXType "itasks.tui.Int" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIBoolControl r) c = addXType "itasks.tui.Bool" (JSONEncode{|*|} r c)
+
 
 addXType :: String [String] -> [String]
 addXType xtype [x:xs] = [x,"\"xtype\" : \"",xtype,"\", ":xs]
