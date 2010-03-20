@@ -13,7 +13,6 @@ from TaskTree import :: TaskParallelType{..}
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst=:{staticInfo}
-	//# (req, tst)  = (handleFileUpload req tst)
 	# tst		  = {TSt | tst & request = req}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
@@ -51,36 +50,6 @@ where
 	finished tst
 		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = [TaskDone], debug = Nothing} in
 			({http_emptyResponse & rsp_data = toJSON content}, tst)
-	
-	handleFileUpload :: !HTTPRequest !*TSt -> (!HTTPRequest, !*TSt)
-	handleFileUpload req tst
-		= case req.arg_uploads of
-		[] 
-			= (req,tst)
-		list
-			# upl = hd list
-			# taskId 	= http_getValue "_targettask" req.arg_post ""
-			# name      = http_getValue "_name" req.arg_post ""
-			# mbDocInfo = fromJSON(http_getValue "docInfo" req.arg_post "")
-			# fname		= (case split "\\" upl.upl_filename of [x] = x; [x:xs] = last [x:xs])
-			| isJust mbDocInfo
-				# docInfo = fromJust mbDocInfo
-				= case docInfo.Document.taskId == taskId of
-				False
-					# (doc,tst) = createDocument fname upl.upl_mimetype (taskNrFromString taskId) upl.upl_content tst
-					# tst		= updateDocumentInfo doc tst
-					# new_post  = [(name,toJSON doc):req.arg_post]
-					= ({req & arg_post = new_post},tst)
-				True
-					# (doc,tst) = updateDocument (fromJust mbDocInfo) fname upl.upl_mimetype upl.upl_content tst
-			   		# tst		= updateDocumentInfo doc tst
-			   		# new_post  = [(name,toJSON doc):req.arg_post]
-					= ({req & arg_post = new_post},tst)			  	 			
-			| otherwise
-					# (doc,tst) = createDocument fname upl.upl_mimetype (taskNrFromString taskId) upl.upl_content tst
-					# tst		= updateDocumentInfo doc tst
-					# new_post  = [(name,toJSON doc):req.arg_post]
-					= ({req & arg_post = new_post},tst)	
 			
 :: TaskContent =
 	{ success		:: Bool

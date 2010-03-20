@@ -332,14 +332,7 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 gUpdate{|Maybe|} fx l ust = (l,ust)
 
 // Document
-gUpdate {|Document|} _ ust =: {USt | mode=UDCreate}
-	= ({ Document
-	   | fileName = ""
-	   , size = 0
-	   , mimeType = ""
-	   , taskId = ""
-	   , index = 0
-	   }, ust)
+gUpdate {|Document|} _ ust =: {USt | mode=UDCreate} = (emptyDoc,ust)
 
 gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
 	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})

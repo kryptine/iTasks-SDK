@@ -22,7 +22,7 @@ instance DB TextFile where
 storeFile :: FileName Note -> Task TextFile
 storeFile name txt =
 				getDefaultValue
-	>>= \file.	dbCreateItem {file & name = name, content = txt}
+	>>= \file.	dbCreateItem {TextFile| file & name = name, content = txt}
 	>>= \file.	return file
 	
 getFile :: (DBRef TextFile) -> Task TextFile
@@ -48,7 +48,7 @@ derive gMerge AppState, TextFile, DBRef
 openFile :: (DBRef TextFile) (DBid AppState) -> Task Void
 openFile id sid =
 				getFile id
-	>>= \file.	writeDB sid (AppState file.content (Just file))
+	>>= \file.	writeDB sid (AppState file.TextFile.content (Just file))
 	>>|			stop
 	
 open :: (DBid AppState) -> Task AppAction
@@ -69,7 +69,7 @@ open sid =
 save :: (DBid AppState) -> Task Void
 save sid =
 										readDB sid
-	>>= \(AppState ntxt (Just file)).	dbUpdateItem {file & content = ntxt}
+	>>= \(AppState ntxt (Just file)).	dbUpdateItem {TextFile| file & content = ntxt}
 	>>= \file.							writeDB sid (AppState ntxt (Just file))
 	>>|									stop
 					
@@ -79,7 +79,7 @@ saveAs sid =
 	>>= \(action,name).	case action of
 							ActionOk	=							readDB sid
 											>>= \(AppState txt _).	storeFile name txt
-											>>=	\file.				writeDB sid (AppState file.content (Just file))
+											>>=	\file.				writeDB sid (AppState file.TextFile.content (Just file))
 											>>|						return (AppAction Continue)
 							_			=							return (AppAction Continue)
 

@@ -6,14 +6,14 @@ import Html
 import Text, Util
 import CommonDomain
 
-derive gPrint		Session, Document, Hidden, Static, UserName
-derive gParse		Session, Document, Hidden, Static, UserName
+derive gPrint		Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, Static, UserName
+derive gParse		Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation,Hidden, Static, UserName
 derive gVisualize	Session
 derive gUpdate		Session
 derive bimap		Maybe, (,)
 
-derive JSONEncode Document
-derive JSONDecode Document
+derive JSONEncode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation
+derive JSONDecode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation
 
 instance toString TaskPriority
 where
@@ -69,14 +69,11 @@ where
 	
 // Document
 emptyDoc :: Document
-emptyDoc = 
-		{ Document
-	   	| fileName = ""
-	    , size = 0
-	    , mimeType = ""
-	    , taskId = ""
-	    , index = 0
-	    }
+emptyDoc = {type = Local, content = EmptyDocument}
+
+isEmptyDoc :: !Document -> Bool
+isEmptyDoc {type,content=EmptyDocument}	= True
+isEmptyDoc _							= False
 	    
 // Hidden en Static
 fromStatic :: !(Static .a) -> .a

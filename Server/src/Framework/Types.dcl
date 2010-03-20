@@ -9,10 +9,9 @@ from TaskTree		import :: TaskProperties
 from Html 			import :: HtmlTag
 from CommonDomain	import :: Note
 from StdString		import class toString
-
 from iTasks			import class iTask
  
-import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
+import GenPrint, GenParse, GenVisualize, GenUpdate, JSON, StoreTasks
 
 derive gPrint		Session, Document, Hidden, Static, UserName
 derive gParse		Session, Document, Hidden, Static, UserName
@@ -112,14 +111,20 @@ fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
 
 // Documents
+:: Document =	{ type		:: !DocumentType
+				, content	:: !DocumentContent
+				}
+:: DocumentType		= Local | Shared !(DBid Document)
+:: DocumentContent	= EmptyDocument | DocumentContent !DocumentInfo
+:: DocumentInfo = 
+	{ fileName 		:: !String
+	, size	   		:: !Int
+	, mimeType 		:: !String
+	, dataLocation	:: !DocumentDataLocation
+	, index			:: !Int	
+	}
+:: DocumentDataLocation = LocalLocation !TaskId | SharedLocation !(DBid Document)
 :: DocumentData :== String
 
-:: Document = 
-	{ fileName 		:: String
-	, size	   		:: Int
-	, mimeType 		:: String
-	, taskId		:: String
-	, index			:: Int	
-	}
-
 emptyDoc 	 		:: Document
+isEmptyDoc 			:: !Document -> Bool

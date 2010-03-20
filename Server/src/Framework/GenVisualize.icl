@@ -4,7 +4,6 @@ import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGene
 import GenUpdate, GenEq
 import Void, Either
 import Text, Html, JSON, TUIDefinition
-
 from Types import emptyDoc
 
 MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
@@ -662,34 +661,37 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 = case vizType of
 	VHtmlDisplay
 		= case old of
-			(VBlank) = ([HtmlFragment [(Text "No Document.")]],2,vst)
-			(VValue ov omask) 
-				# downLink = ATag [HrefAttr (buildLink ov),TargetAttr "_blank",IdAttr (dp2id idPrefix currentPath),NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
-				# prevLink = ATag [HrefAttr "#", IdAttr (dp2id idPrefix currentPath), NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
-				= ([HtmlFragment [(Text (ov.fileName+++" ("+++printByteSize ov.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
-				  2,
-				  {VSt | vst & currentPath = stepDataPath currentPath})
+			(VBlank) = noDocument vst
+			(VValue ov=:{content} omask) = case content of
+				EmptyDocument = noDocument vst
+				(DocumentContent info)
+					# downLink = ATag [HrefAttr (buildLink info),TargetAttr "_blank",IdAttr (dp2id idPrefix currentPath),NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
+					# prevLink = ATag [HrefAttr "#", IdAttr (dp2id idPrefix currentPath), NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
+					= ([HtmlFragment [(Text (info.fileName+++" ("+++printByteSize info.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
+				  		2,
+				  		{VSt | vst & currentPath = stepDataPath currentPath})
 	VTextDisplay
 		= case old of
-			(VBlank) = ([TextFragment "No Document."],2,vst)
-			(VValue ov omask) 
-				= ([TextFragment ov.fileName],
-				  2,
-			 	  {VSt | vst & currentPath = stepDataPath currentPath})
+			(VBlank) = noDocument vst
+			(VValue {content} omask) = case content of
+				EmptyDocument			= noDocument vst
+				(DocumentContent info)	= ([TextFragment info.fileName],
+				  							2,
+			 	  							{VSt | vst & currentPath = stepDataPath currentPath})
 	_ 
 		= case new of 
 			(VValue nval nmask)
-				= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = (toJSON nval), fieldLabel = label2s optional label, hideLabel = not useLabels})],
+				= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON nval, fieldLabel = label2s optional label, hideLabel = not useLabels})],
 				  2,
 				  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval optional valid})
 			(VBlank)
 				= case old of
 					(VValue oval omask)
-						= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = (toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels})],
+						= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON oval, fieldLabel = label2s optional label, hideLabel = not useLabels})],
 						2,
 						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval optional valid})
 					(VBlank)
-						= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = (toJSON emptyDoc), fieldLabel = label2s optional label, hideLabel = not useLabels})],
+						= ([TUIFragment (TUIDocument {TUIDocument | allowUpload = True, id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON emptyDoc, fieldLabel = label2s optional label, hideLabel = not useLabels})],
 						2,
 						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid emptyDoc optional valid})	
 where
@@ -700,13 +702,17 @@ where
 	| size >= 1024    = toString (fixReal ((toReal size)/(toReal 1024)))+++" Kbyte"
 	| otherwise 	  = toString size +++ " byte"
 	
-	buildLink doc = "/document/download/link/"+++doc.taskId+++"/"+++toString doc.Document.index
+	noDocument vst = ([TextFragment "No Document."],2,vst)
+	buildLink info
+		# location = case info.dataLocation of
+			LocalLocation taskId	= taskId
+			SharedLocation sid		= "shared_" +++ sid
+		= "/document/download/link/" +++ location +++ "/" +++ toString info.DocumentInfo.index
 	
 	isValid :: Document Bool Bool -> Bool
 	isValid doc optional valid
-	| optional 				= valid
-	| doc.fileName <> "" 	= valid
-	| otherwise 			= False	
+	| optional || not (isEmptyDoc doc)	= valid
+	| otherwise							= False
 		
 //Hidden type
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}

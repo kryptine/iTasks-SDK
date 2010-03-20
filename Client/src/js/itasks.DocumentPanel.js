@@ -48,7 +48,7 @@ itasks.DocumentPanel = Ext.extend(Ext.Panel,
 	afterRender: function(arguments){
 		itasks.DocumentPanel.superclass.afterRender.call(this,arguments);
 		
-		if(this.docInfo.fileName.length > 0){
+		if(this.docInfo.content != "EmptyDocument"){
 			this.showDownloadPanel();
 		}else{
 			this.showUploadPanel(false);
@@ -174,11 +174,11 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 		
 		itasks.document.DownloadPanel.superclass.initComponent.apply(this,arguments);
 		
-		var filename = this.docInfo.fileName;
-		var filesize = this.printFileSize(this.docInfo.size);
+		var filename = this.docInfo.content[1].fileName;
+		var filesize = this.printFileSize(this.docInfo.content[1].size);
 	
 		this.items.items[0].value = filename+" ("+filesize+")"
-		this.items.items[1].addClass(this.iconMimeType(this.docInfo.mimeType));
+		this.items.items[1].addClass(this.iconMimeType(this.docInfo.content[1].mimeType));
 		
 	},
 	

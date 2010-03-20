@@ -1,13 +1,14 @@
 implementation module GenMerge
 
-import StdGeneric, StdInt, StdReal, StdChar, StdBool, StdString, StdMisc, StdMaybe, Void, Either, Types
+import StdGeneric, StdInt, StdReal, StdChar, StdBool, StdString, StdMisc, StdMaybe, Void, Either, Types, GenEq
 
 mergeValues :: a a a -> a | gMerge{|*|} a
 mergeValues old cur new = getValue (gMerge{|*|} Merge old cur new)
 	
 :: MergeMode = Merge | Compare
 :: MergeResult a = IsEqual Bool | Value a
-derive gMerge Document, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gMerge [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gEq Document, DocumentContent, DocumentType, DocumentInfo, DocumentDataLocation
 derive bimap MergeResult
 
 generic gMerge a :: MergeMode a a a -> MergeResult a
@@ -48,6 +49,11 @@ gMerge{|EITHER|}	fl fr Compare _ _ _  											= IsEqual False
 
 gMerge{|UNIT|} Merge UNIT UNIT UNIT	= Value UNIT
 gMerge{|UNIT|} Compare UNIT UNIT _	= IsEqual True
+
+gMerge{|Document|} Merge old cur new
+	| gEq{|*|} old cur	= Value new
+	| otherwise			= Value cur
+gMerge{|Document|} Compare x y _ = IsEqual (gEq{|*|} x y)
 
 mergeBasic :: a a a -> MergeResult a | == a
 mergeBasic old cur new

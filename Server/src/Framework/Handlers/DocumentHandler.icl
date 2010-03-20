@@ -10,14 +10,13 @@ handleDocumentUploadRequest req tst
 	# (nreq,tst) = case req.arg_uploads of
 		[upl]
 			# name		= http_getValue "_name" req.arg_post ""
-			# mbDocInfo = fromJSON (http_getValue "docInfo" req.arg_post "")
+			# mbDoc		= fromJSON (http_getValue "docInfo" req.arg_post "")
 			# fname		= last (split "\\" upl.upl_filename)
-			# (doc,tst)	= case mbDocInfo of
-				(Just docInfo) | docInfo.Document.taskId == taskId
-					= updateDocument docInfo fname upl.upl_mimetype upl.upl_content tst
+			# (doc,tst)	= case mbDoc of
+				(Just doc)
+					= updateDocument doc fname upl.upl_mimetype taskId upl.upl_content tst
 				_
-					= createDocument fname upl.upl_mimetype (taskNrFromString taskId) upl.upl_content tst
-			# tst		= (updateDocumentInfo doc tst)
+					= abort "no valid docInfo"//createDocument fname upl.upl_mimetype (taskNrFromString taskId) upl.upl_content tst
 			# new_post  = [(name,toJSON doc):req.arg_post]
 			= ({req & arg_post = new_post},tst)
 		_ = (req,tst)
@@ -36,24 +35,24 @@ handleDocumentUploadRequest req tst
 //used to download documents through the download button
 handleDocumentDownloadRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentDownloadRequest req tst
-	# mbDocInfo = fromJSON (http_getValue "docInfo" req.arg_post "")
-	= case mbDocInfo of
-		Just docInfo
-			# (mbDocData,tst) = retrieveDocument (docInfo) tst
+	# mbDoc = fromJSON (http_getValue "docInfo" req.arg_post "")
+	= case mbDoc of
+		Just doc
+			# (mbDocData,tst) = retrieveDocument doc tst
 			= case mbDocData of
-				Just docData	= (docFoundResponse docInfo docData True,tst)
+				Just docData	= (docFoundResponse doc.content docData True,tst)
 				Nothing			= (errorResponse "Cannot retrieve document data",tst)
 		Nothing					= (errorResponse "Cannot parse document information",tst)
 where
 	errorResponse error = {http_emptyResponse & rsp_data = "{\"success\": false, \"errors\": \""+++error+++"\"}"}
 
 //used to download documents through an external link
-//URL FORMAT: http://<<server-path>>/document/download/link/<<tasknr>>/<<index>>?_session=<<session>>
+//URL FORMAT: http://<<server-path>>/document/download/link/<<tasknr>> OR shared_<<DBid>>/<<index>>?_session=<<session>>
 handleDocumentDownloadLinkRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentDownloadLinkRequest req tst = handleDocumentLinkRequest req True tst
 
 //used by the previewer (documents are not downloaded but used inline in an iframe)	
-//URL FORMAT: http://<<server-path>>/document/preview/link/<<tasknr>>/<<index>>?_session=<<session>>
+//URL FORMAT: http://<<server-path>>/document/preview/link/<<tasknr>> OR shared_<<DBid>>/<<index>>?_session=<<session>>
 handleDocumentPreviewLinkRequest :: !HTTPRequest !*TSt -> (!HTTPResponse,!*TSt)
 handleDocumentPreviewLinkRequest req tst = handleDocumentLinkRequest req False tst
 
@@ -61,13 +60,16 @@ handleDocumentLinkRequest :: !HTTPRequest !Bool !*TSt -> (!HTTPResponse,!*TSt)
 handleDocumentLinkRequest req asAttachment tst
 	# path 		= split "/" req.req_path 
 	# idx  		= toInt (last path)
-	# taskId	= last (init path)
-	# (mbDoc,tst) = retrieveDocumentInfo taskId idx tst
+	# locstr	= last (init path)
+	# location	= if (startsWith "shared_" locstr)
+		(SharedLocation (mkDBid (subString 7 (textSize locstr - 7) locstr)))
+		(LocalLocation locstr)
+	# (mbDoc,tst) = retrieveDocumentInfo location idx tst
 	= case mbDoc of
 		Just doc
 			# (mbData,tst) = retrieveDocument doc tst
 			= case mbData of
-				Just data	= (docFoundResponse doc data asAttachment,tst)
+				Just data	= (docFoundResponse doc.content data asAttachment,tst)
 				Nothing		= notFoundResponse req tst
 		Nothing				= notFoundResponse req tst
 		
@@ -85,8 +87,11 @@ where
 		Just disp	= [("Content-Disposition", disp)]
 		Nothing		= []
 	   		
-docFoundResponse docInfo=:{mimeType,size,fileName} data attachment
-	= okResponse mimeType size (Just ((if attachment "attachment; " "") +++ "filename=\"" +++ docInfo.fileName +++ "\"")) data
+docFoundResponse content data attachment
+	= case content of
+		DocumentContent {mimeType,fileName,size}
+			= okResponse mimeType size (Just ((if attachment "attachment; " "") +++ "filename=\"" +++ fileName +++ "\"")) data
+		_ = abort "trying to create found response for empty doc"
 			 							
 notFoundResponse req tst
 	# (resp,_,world) = http_notfoundResponse req tst.TSt.world

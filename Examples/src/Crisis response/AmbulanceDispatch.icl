@@ -80,7 +80,7 @@ where
 
   chooseResponse :: Incident -> Task [Task Void]
   chooseResponse incident
-    = updateMultipleChoice "Choose response" options (suggestion incident.type)
+    = updateMultipleChoice "Choose response" options (suggestion incident.Incident.type)
 
   where
     //Generate the list of possible tasks to choose from
