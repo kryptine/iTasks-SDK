@@ -41,6 +41,7 @@ where
 			EmptyDocument			= create
 			DocumentContent	info	= case info.dataLocation of
 				LocalLocation lid | lid == taskId	= update info
+				SharedLocation sid					= update info
 				_									= create
 	where
 		create = createDocument filename mime type taskId docdata tst
