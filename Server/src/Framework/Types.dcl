@@ -114,7 +114,7 @@ toHidden :: !.a -> (Hidden .a)
 :: Document =	{ type		:: !DocumentType
 				, content	:: !DocumentContent
 				}
-:: DocumentType		= Local | Shared !(DBid Document)
+:: DocumentType		= Local | Shared !String
 :: DocumentContent	= EmptyDocument | DocumentContent !DocumentInfo
 :: DocumentInfo = 
 	{ fileName 		:: !String

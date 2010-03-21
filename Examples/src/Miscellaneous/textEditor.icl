@@ -43,7 +43,9 @@ derive gPrint AppState, AppAction, ParallelAction
 derive gParse AppState, AppAction, ParallelAction
 derive gVisualize AppState, AppAction, ParallelAction
 derive gUpdate AppState, AppAction, ParallelAction
-derive gMerge AppState, TextFile, DBRef
+derive gMerge AppState, TextFile
+derive gMakeSharedCopy AppState, TextFile
+derive gMakeLocalCopy AppState, TextFile
 
 openFile :: (DBRef TextFile) (DBid AppState) -> Task Void
 openFile id sid =

@@ -16,7 +16,7 @@ handleDocumentUploadRequest req tst
 				(Just doc)
 					= updateDocument doc fname upl.upl_mimetype taskId upl.upl_content tst
 				_
-					= abort "no valid docInfo"//createDocument fname upl.upl_mimetype (taskNrFromString taskId) upl.upl_content tst
+					= abort "no valid docinfo"
 			# new_post  = [(name,toJSON doc):req.arg_post]
 			= ({req & arg_post = new_post},tst)
 		_ = (req,tst)
@@ -37,12 +37,14 @@ handleDocumentDownloadRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentDownloadRequest req tst
 	# mbDoc = fromJSON (http_getValue "docInfo" req.arg_post "")
 	= case mbDoc of
-		Just doc
-			# (mbDocData,tst) = retrieveDocument doc tst
-			= case mbDocData of
-				Just docData	= (docFoundResponse doc.content docData True,tst)
-				Nothing			= (errorResponse "Cannot retrieve document data",tst)
-		Nothing					= (errorResponse "Cannot parse document information",tst)
+		Just doc = case doc.content of
+			DocumentContent info
+				# (mbDocData,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
+				= case mbDocData of
+					Just docData	= (docFoundResponse doc.content docData True,tst)
+					Nothing			= (errorResponse "Cannot retrieve document data",tst)
+			EmptyDocument			= (errorResponse "Empty document",tst)
+		Nothing						= (errorResponse "Cannot parse document information",tst)
 where
 	errorResponse error = {http_emptyResponse & rsp_data = "{\"success\": false, \"errors\": \""+++error+++"\"}"}
 
@@ -66,12 +68,14 @@ handleDocumentLinkRequest req asAttachment tst
 		(LocalLocation locstr)
 	# (mbDoc,tst) = retrieveDocumentInfo location idx tst
 	= case mbDoc of
-		Just doc
-			# (mbData,tst) = retrieveDocument doc tst
-			= case mbData of
-				Just data	= (docFoundResponse doc.content data asAttachment,tst)
-				Nothing		= notFoundResponse req tst
-		Nothing				= notFoundResponse req tst
+		Just doc = case doc.content of
+			DocumentContent info
+				# (mbData,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
+				= case mbData of
+					Just data	= (docFoundResponse doc.content data asAttachment,tst)
+					Nothing		= notFoundResponse req tst
+			EmptyDocument		= let res = "No Document." in (okResponse "text/html" (size res) Nothing res,tst)
+		Nothing					= notFoundResponse req tst
 		
 // === UTILITY ===
 okResponse mimeType length disposition data =

@@ -8,10 +8,13 @@ from SystemTasks import getDefaultValue
 import CoreCombinators
 import GenPrint, GenParse, GenVisualize, GenUpdate
 
-derive gVisualize	DBRef
-derive gUpdate		DBRef
-derive gPrint		DBRef
-derive gParse		DBRef
+derive gVisualize		DBRef
+derive gUpdate			DBRef
+derive gPrint			DBRef
+derive gParse			DBRef
+derive gMerge			DBRef
+derive gMakeSharedCopy	DBRef
+derive gMakeLocalCopy	DBRef
 
 derive bimap	Maybe, (,)
 

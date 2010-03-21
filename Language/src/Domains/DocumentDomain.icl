@@ -78,7 +78,7 @@ where
 		= case content of
 			EmptyDocument = (TaskFinished False, tst)
 			DocumentContent info
-				# (mbData,tst) = retrieveDocument doc tst
+				# (mbData,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
 				| isJust mbData
 					# world	= tst.TSt.world
 					// check if the location exists and creat it otherwise

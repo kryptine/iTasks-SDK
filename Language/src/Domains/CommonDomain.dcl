@@ -7,7 +7,7 @@ import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
 
 import StdString
 from Html	import :: HtmlTag
-from InteractionTasks import class html
+from InteractionTasks import class html, generic gMakeSharedCopy, generic gMakeLocalCopy
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
 :: URL			= URL String
@@ -42,11 +42,13 @@ currentDateTime :: !*World -> (!DateTime,!*World)
 	| USD Int
 	| JPY Int
 	
-derive gPrint		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gParse		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gVisualize	EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gUpdate		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gMerge		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gVisualize		EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
 
 instance html Note
 

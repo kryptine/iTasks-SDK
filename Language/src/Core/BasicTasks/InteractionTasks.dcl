@@ -81,19 +81,31 @@ showStickyMessageAbout		:: message a -> Task Void											| html message & iTa
 notifyUser					:: message UserName -> Task Void									| html message
 notifyGroup					:: message Role -> Task Void										| html message
 
-//*** Shared value tasks ***//
+//*** Shared variable tasks ***//
+generic gMakeSharedCopy a :: !a !String -> a
+derive gMakeSharedCopy OBJECT, CONS, PAIR, FIELD, EITHER, UNIT
+derive gMakeSharedCopy Int, Real, Char, Bool, String
+derive gMakeSharedCopy Document, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+
+generic gMakeLocalCopy a :: !a !*TSt -> (a,!*TSt)
+derive gMakeLocalCopy OBJECT, CONS, PAIR, FIELD, EITHER, UNIT
+derive gMakeLocalCopy Int, Real, Char, Bool, String
+derive gMakeLocalCopy Document, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+
+class SharedVariable a | gMerge{|*|}, gMakeSharedCopy{|*|}, gMakeLocalCopy{|*|} a
+
 :: Editor s a	= {editorFrom :: s -> a, editorTo :: a s -> s}
 :: Listener s a	= {listenerFrom :: s -> a}
 :: View s
 
-listener	:: !(Listener s a)	-> View s | iTask a & iTask s & gMerge{|*|} s
-editor		:: !(Editor s a)	-> View s | iTask a & iTask s & gMerge{|*|} s
+listener	:: !(Listener s a)	-> View s | iTask a & iTask s & SharedVariable s
+editor		:: !(Editor s a)	-> View s | iTask a & iTask s & SharedVariable s
 
-idEditor	:: View s	| iTask s & gMerge{|*|} s
-idListener	:: View s	| iTask s & gMerge{|*|} s
+idEditor	:: View s	| iTask s & SharedVariable s
+idListener	:: View s	| iTask s & SharedVariable s
 
-updateShared				:: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s)	| html question & iTask s & gMerge{|*|} s
-updateSharedLocal			:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html question & iTask s & gMerge{|*|} s
+updateShared				:: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s)	| html question & iTask s & SharedVariable s
+updateSharedLocal			:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html question & iTask s & SharedVariable s
 
 //*** Utility Functions ***//
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid

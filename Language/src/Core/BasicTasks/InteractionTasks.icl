@@ -1,15 +1,12 @@
 implementation module InteractionTasks
 
-import	StdList, StdOrdList, StdTuple, StdBool, StdMisc, Text, GenMerge
-from	StdFunc import id, const
-import	TSt, ProcessDB, StoreTasks, Store
-from 	CoreCombinators import >>=, >>|, return
-from	ExceptionCombinators import throw
-from	TaskTree import :: InteractiveTask(..)
+import StdTuple, StdList, StdOrdList, StdBool, StdMisc
+import Types, Html, Text, Http, TSt, Store, DocumentDB, ExceptionCombinators
+from StdFunc import id
+from ProcessDB import :: Action(..), getActionIcon
+from CoreCombinators import >>=, >>|, return
 
-import	GenVisualize, GenUpdate, Util, Http	
-
-from iTasks import class iTask(..)
+derive bimap (,)
 
 class html a 
 where
@@ -311,7 +308,7 @@ makeMessageTask message context actions tst=:{taskNr}
 					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
 					}
 
-editor :: !(Editor s a) -> View s | iTask a & iTask s & gMerge{|*|} s
+editor :: !(Editor s a) -> View s | iTask a & iTask s & SharedVariable s
 editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
 where
 	getNewValue n updates old cur tst
@@ -362,21 +359,21 @@ where
 		# (val,mask,lmask,world) = updateValueAndMask p v val mask lmask world
 		= applyUpdates us val mask lmask {TSt|tst & world = world}
 		
-listener :: !(Listener s a) -> View s | iTask a & iTask s & gMerge{|*|} s
+listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}
 where
 	visualize v = visualizeAsHtmlDisplay (listenerFrom v)
 
-idEditor	:: View s	| iTask s & gMerge{|*|} s
+idEditor	:: View s	| iTask s & SharedVariable s
 idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
 
-idListener	:: View s	| iTask s & gMerge{|*|} s
+idListener	:: View s	| iTask s & SharedVariable s
 idListener = listener {listenerFrom = id}
 
-updateShared :: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
+updateShared :: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
 updateShared question actions sharedId views = mkInteractiveTask "updateShared" (makeSharedTask question actions sharedId views False)
 
-updateSharedLocal :: question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & gMerge{|*|} s
+updateSharedLocal :: question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
 updateSharedLocal question actions initial views =
 				mkInstantTask "createShared" createLocalShared
 	>>= \sid.	writeDB sid initial
@@ -386,7 +383,7 @@ updateSharedLocal question actions initial views =
 where
 	createLocalShared tst=:{taskNr} = (TaskFinished (mkDBid "localShared_" +++ taskNrToString taskNr), tst)
 
-makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & gMerge{|*|} s
+makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 	# (updates,tst)	= getUserUpdates tst
 	| isEmpty updates
@@ -395,10 +392,13 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 	| otherwise
 		# (cvalue,tst)		= readShared sharedId tst
 		# (action,tst)		= getAction updates (map fst buttonActions) tst
-		| isJust action		= (TaskFinished (fromJust action,cvalue),tst)
+		| isJust action
+			# (result,tst) = gMakeLocalCopy{|*|} cvalue tst
+			= (TaskFinished (fromJust action,result),tst)
 		| otherwise
 			# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
 			# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
+			# nvalue			= gMakeSharedCopy{|*|} nvalue sharedId
 			# tst				= {tst & dataStore = storeValue sharedId nvalue tst.dataStore}
 			# (upd,valid,_,tst)	= foldl (detUpd nvalue) ([],True,0,tst) views
 			# menuActions		= evaluateConditions menuActions valid nvalue
@@ -443,17 +443,61 @@ where
 		# (mbvalue,tst)	= getTaskStore (addStorePrefix n "value") tst
 		= case mbvalue of
 			Just v		= (v,tst)
-			Nothing		= abort "cannot get local value!"
+			Nothing		= abort "cannot get local value"
 			
 	readShared sid tst=:{dataStore,world}
 		# (mbvalue,dstore,world) = loadValue sid dataStore world
 		# tst = {tst & dataStore = dstore, world = world}
 		= case mbvalue of
-			Just v		= (v,tst)
+			Just v		= (gMakeSharedCopy{|*|} v sid,tst)
 			Nothing		= abort "shared was deleted"
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
+
+generic gMakeSharedCopy a :: !a !String -> a
+gMakeSharedCopy{|Int|}		x _ = x
+gMakeSharedCopy{|Real|}		x _ = x
+gMakeSharedCopy{|Char|}		x _ = x
+gMakeSharedCopy{|Bool|}		x _ = x
+gMakeSharedCopy{|String|}	x _ = x
+gMakeSharedCopy{|OBJECT|}	f (OBJECT x) sid		= OBJECT (f x sid)
+gMakeSharedCopy{|CONS|}		f (CONS x) sid			= CONS (f x sid)
+gMakeSharedCopy{|FIELD|}	f (FIELD x) sid			= FIELD (f x sid)
+gMakeSharedCopy{|PAIR|}		fx fy (PAIR x y) sid	= PAIR (fx x sid) (fy y sid)
+gMakeSharedCopy{|EITHER|}	fx fy (LEFT x) sid		= LEFT (fx x sid)
+gMakeSharedCopy{|EITHER|}	fx fy (RIGHT y) sid		= RIGHT (fy y sid)
+gMakeSharedCopy{|UNIT|}		UNIT _					= UNIT
+gMakeSharedCopy{|Document|}	doc sid = {Document|doc & type = Shared sid}
+
+derive gMakeSharedCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+
+generic gMakeLocalCopy a :: !a !*TSt -> (a,!*TSt)
+gMakeLocalCopy{|Int|}		x tst = (x,tst)
+gMakeLocalCopy{|Real|}		x tst = (x,tst)
+gMakeLocalCopy{|Char|}		x tst = (x,tst)
+gMakeLocalCopy{|Bool|}		x tst = (x,tst)
+gMakeLocalCopy{|String|}	x tst = (x,tst)
+gMakeLocalCopy{|OBJECT|}	f (OBJECT x) tst		= app2 (OBJECT,id) (f x tst)
+gMakeLocalCopy{|CONS|}		f (CONS x) tst			= app2 (CONS,id) (f x tst)
+gMakeLocalCopy{|FIELD|}		f (FIELD x) tst			= app2 (FIELD,id) (f x tst)
+gMakeLocalCopy{|PAIR|}		fx fy (PAIR x y) tst	# (rx,tst) = fx x tst
+													= app2 ((PAIR rx),id) (fy y tst)
+gMakeLocalCopy{|EITHER|}	fx fy (LEFT x) tst		= app2 (LEFT,id) (fx x tst)
+gMakeLocalCopy{|EITHER|}	fx fy (RIGHT y) tst		= app2 (RIGHT,id) (fy y tst)
+gMakeLocalCopy{|UNIT|}		UNIT tst				= (UNIT,tst)
+gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
+	= case content of
+		DocumentContent info = case info.dataLocation of
+			SharedLocation _
+				# (mbDocdata,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
+				= case mbDocdata of
+					Just docdata	= createDocument info.fileName info.mimeType Local (taskNrToString taskNr) docdata tst
+					Nothing			= abort "non-empty doc without data"
+			LocalLocation _	= ({Document|doc & type = Local},tst)
+		EmptyDocument		= ({Document|doc & type = Local},tst)
+
+derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
 					
 taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef
 taskPanel taskid description mbContext mbForm buttons

@@ -5,12 +5,14 @@ import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
-derive gPrint		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gParse		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gVisualize	EmailAddress, Password, DateTime
-derive gUpdate		EmailAddress, Password, Note, DateTime
-derive gMerge		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gLexOrd		Currency
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gVisualize		EmailAddress, Password, DateTime
+derive gUpdate			EmailAddress, Password, Note, DateTime
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gLexOrd			Currency
 
 derive bimap	Maybe, (,)
 

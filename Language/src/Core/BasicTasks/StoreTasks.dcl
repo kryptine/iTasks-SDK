@@ -6,7 +6,8 @@ from TSt 			import :: Task
 from StdOverloaded	import class ==, class <
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GenVisualize, GenUpdate
+import	GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
+from InteractionTasks import generic gMakeSharedCopy, generic gMakeLocalCopy
 
 //Database identifier for storing a single value of type a
 ::DBid a :== String
@@ -14,11 +15,13 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 //Database identifier to a value of type a in a database with multiple values
 :: DBRef a = DBRef Int
 
-derive gVisualize	DBRef
-derive gUpdate		DBRef
-derive gPrint		DBRef
-derive gParse		DBRef
-
+derive gVisualize		DBRef
+derive gUpdate			DBRef
+derive gPrint			DBRef
+derive gParse			DBRef
+derive gMerge			DBRef
+derive gMakeSharedCopy	DBRef
+derive gMakeLocalCopy	DBRef
 
 //Core database access functions
 

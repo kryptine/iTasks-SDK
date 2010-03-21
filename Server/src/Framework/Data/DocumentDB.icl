@@ -49,23 +49,20 @@ where
 			# doc	= {type = type, content = DocumentContent {info & fileName = filename, mimeType = mime, size = size docdata}}
 			= (doc, {tst & documentStore = store})
 	
-	retrieveDocument :: !Document !*TSt -> (Maybe DocumentData, !*TSt)
-	retrieveDocument doc=:{content} tst=:{documentStore,world}
-		= case content of
-			EmptyDocument = (Nothing,tst)
-			DocumentContent {dataLocation,index}
-				# (mbdata,store,world) = loadValueAsBlob (documentName dataLocation index) documentStore world
-				= (mbdata, {TSt | tst & documentStore = store, world = world})
+	retrieveDocumentData :: !DocumentDataLocation !Int !*TSt -> (Maybe DocumentData, !*TSt)
+	retrieveDocumentData location idx tst=:{documentStore,world}
+		# (mbdata,store,world) = loadValueAsBlob (documentName location idx) documentStore world
+		= (mbdata, {TSt | tst & documentStore = store, world = world})
+				
+	retrieveDocumentInfo :: !DocumentDataLocation !Int !*TSt -> (Maybe Document, !TSt)
+	retrieveDocumentInfo location idx tst=:{documentStore,world}
+		# (mbDoc,store,world) = loadValue (documentInfoName location idx) documentStore world
+		= (mbDoc,{TSt | tst & documentStore = store, world = world})
 	
 	/*deleteDocument :: !Document !*TSt -> *TSt
 	deleteDocument doc=:{Document | taskId, index} tst=:{documentStore, world}
 		# (store,world) =  deleteValues (documentName taskId index) documentStore world
 		= {TSt | tst & documentStore = store, world = world}*/
-		
-	retrieveDocumentInfo :: !DocumentDataLocation !Int !*TSt -> (Maybe Document, !TSt)
-	retrieveDocumentInfo location idx tst=:{documentStore,world}
-		# (mbDoc,store,world) = loadValue (documentInfoName location idx) documentStore world
-		= (mbDoc,{TSt | tst & documentStore = store, world = world})
 
 	/*deleteDocuments :: !String !*TSt -> *TSt
 	deleteDocuments tn tst=:{documentStore,world}
