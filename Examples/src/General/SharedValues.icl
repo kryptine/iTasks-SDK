@@ -62,11 +62,11 @@ where
 	emptyL :: [Int]
 	emptyL = []
 
-//Merge Test
-mergeTest :: Task Void
-mergeTest =
+//Merge Tests
+mergeTestList :: Task Void
+mergeTestList =
 				getCurrentUser
-	>>= \user.	return (mkDBid "shared_mergeTest")
+	>>= \user.	return (mkDBid "shared_mergeTestList")
 	>>= \sid.	writeDB sid emptyL
 	>>|			ignoreResult ((user @: ("1st View", view sid)) -||- (user @: ("2nd View", view sid)))
 where
@@ -74,6 +74,19 @@ where
 	view sid = updateShared "List" [quitButton] sid [idEditor]
 	
 	emptyL :: [String]
+	emptyL = []
+	
+mergeTestDocuments :: Task Void
+mergeTestDocuments =
+				getCurrentUser
+	>>= \user.	return (mkDBid "shared_mergeTestDocuments")
+	>>= \sid.	writeDB sid emptyL
+	>>|			ignoreResult ((user @: ("1st View", view sid idEditor)) -||- (user @: ("2nd View", view sid idEditor)) -||- (user @: ("3rd View", view sid idListener)))
+where
+	view :: (DBid [Document]) (View [Document]) -> Task (Action,[Document])
+	view sid v = updateShared "List" [quitButton] sid [v]
+	
+	emptyL :: [Document]
 	emptyL = []
 
 //Google Map Example
@@ -120,11 +133,12 @@ where
 	emptyL = []
 								
 sharedValueExamples :: [Workflow]
-sharedValueExamples =	[ workflow "Examples/Shared Values/Text-Lines (parallel tasks)" linesPar
-						, workflow "Examples/Shared Values/Text-Lines (single editor)" linesSingle
-						, workflow "Examples/Shared Values/Calculate Sum" calculateSum
-						, workflow "Examples/Shared Values/Balanced Binary Tree" tree
-						, workflow "Examples/Shared Values/Merge Test" mergeTest
-						, workflow "Examples/Shared Values/Google Maps Example" googleMaps
-						, workflow "Examples/Shared Values/Sorted List" autoSortedList
+sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (parallel tasks)" linesPar
+						, workflow "Examples/Shared Variables/Text-Lines (single editor)" linesSingle
+						, workflow "Examples/Shared Variables/Calculate Sum" calculateSum
+						, workflow "Examples/Shared Variables/Balanced Binary Tree" tree
+						, workflow "Examples/Shared Variables/Merge Test (List)" mergeTestList
+						, workflow "Examples/Shared Variables/Merge Test (Documents)" mergeTestDocuments
+						, workflow "Examples/Shared Variables/Google Maps Example" googleMaps
+						, workflow "Examples/Shared Variables/Sorted List" autoSortedList
 						]
