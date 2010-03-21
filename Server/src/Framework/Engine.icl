@@ -50,6 +50,7 @@ where
 		  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
 		  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
 		  ,((==) (config.serverPath +++ "/document/upload"), handleSessionRequest config flows handleDocumentUploadRequest)
+		  ,((==) (config.serverPath +++ "/document/clear"), handleSessionRequest config flows handleDocumentClearRequest)
 		  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
 		  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
 		  ,((==) "/stop", handleStopRequest)

@@ -2,10 +2,9 @@ implementation module DocumentHandler
 
 import TSt, DocumentDB, ProcessDB, Http, HttpUtil, Text, StdEnv
 
-//used to upload and clear documents
+//used to upload
 handleDocumentUploadRequest	:: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentUploadRequest req tst
-	# procId	= http_getValue "_maintask" req.arg_post "0"
 	# taskId	= http_getValue "_targettask" req.arg_post ""
 	# (nreq,tst) = case req.arg_uploads of
 		[upl]
@@ -16,22 +15,32 @@ handleDocumentUploadRequest req tst
 				(Just doc)
 					= updateDocument doc fname upl.upl_mimetype taskId upl.upl_content tst
 				_
-					= abort "no valid docinfo"
+					= abort "can't decode docinfo"
 			# new_post  = [(name,toJSON doc):req.arg_post]
 			= ({req & arg_post = new_post},tst)
-		_ = (req,tst)
-	# tst			= {TSt | tst & request = nreq}
-	# (tree, tst)	= calculateTaskTree procId tst	
-	# tst = case tree of
-		(TTMainTask ti properties menus task)
-			# username = toUserName tst.staticInfo.currentSession.Session.user
-			| username == properties.managerProps.TaskManagerProperties.worker || isMember username [u \\ (p,u) <- properties.managerProps.tempWorkers]
-				= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
-			| otherwise = tst
-		_ = tst
-	# successResponse = "{\"success\": true}"
-	= (okResponse "text/html" (size successResponse) Nothing successResponse,tst)
-	
+		_ = abort "invalid upload"
+	# tst				= {TSt | tst & request = nreq}
+	// update timestamps
+	# procId			= http_getValue "_maintask" req.arg_post "0"
+	# tst				= updateTimeStamps procId tst
+	= (successResponse,tst)
+
+//used to clear a document after trash button is clicked
+handleDocumentClearRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
+handleDocumentClearRequest req tst
+	# mbDoc		= fromJSON (http_getValue "docInfo" req.arg_post "")
+	# (res,tst)	= case mbDoc of
+		(Just doc)
+			# (doc,tst) = clearDocument doc tst
+			# name		= http_getValue "_name" req.arg_post ""
+			# new_post  = [(name,toJSON doc):req.arg_post]
+			= (successResponse,{tst & request = {req & arg_post = new_post}})
+		_ = (errorResponse "Cannot parse document information",tst)
+	// update timestamps
+	# procId			= http_getValue "_maintask" req.arg_post "0"
+	# tst				= updateTimeStamps procId tst
+	= (res,tst)
+
 //used to download documents through the download button
 handleDocumentDownloadRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentDownloadRequest req tst
@@ -39,14 +48,12 @@ handleDocumentDownloadRequest req tst
 	= case mbDoc of
 		Just doc = case doc.content of
 			DocumentContent info
-				# (mbDocData,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
-				= case mbDocData of
-					Just docData	= (docFoundResponse doc.content docData True,tst)
-					Nothing			= (errorResponse "Cannot retrieve document data",tst)
-			EmptyDocument			= (errorResponse "Empty document",tst)
-		Nothing						= (errorResponse "Cannot parse document information",tst)
-where
-	errorResponse error = {http_emptyResponse & rsp_data = "{\"success\": false, \"errors\": \""+++error+++"\"}"}
+				# (mbDoc,tst) = retrieveDocument info.dataLocation info.DocumentInfo.index tst
+				= case mbDoc of
+					Just (doc,docData) | not (isEmptyDoc doc)	= (docFoundResponse doc.content docData True,tst)
+					_											= (errorResponse "Document has been deleted.",tst)
+			EmptyDocument			= (errorResponse "Empty document.",tst)
+		Nothing						= (errorResponse "Cannot parse document information.",tst)
 
 //used to download documents through an external link
 //URL FORMAT: http://<<server-path>>/document/download/link/<<tasknr>> OR shared_<<DBid>>/<<index>>?_session=<<session>>
@@ -66,16 +73,12 @@ handleDocumentLinkRequest req asAttachment tst
 	# location	= if (startsWith "shared_" locstr)
 		(SharedLocation (mkDBid (subString 7 (textSize locstr - 7) locstr)))
 		(LocalLocation locstr)
-	# (mbDoc,tst) = retrieveDocumentInfo location idx tst
+	# (mbDoc,tst) = retrieveDocument location idx tst
 	= case mbDoc of
-		Just doc = case doc.content of
-			DocumentContent info
-				# (mbData,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
-				= case mbData of
-					Just data	= (docFoundResponse doc.content data asAttachment,tst)
-					Nothing		= notFoundResponse req tst
-			EmptyDocument		= let res = "No Document." in (okResponse "text/html" (size res) Nothing res,tst)
-		Nothing					= notFoundResponse req tst
+		Just (doc,data) = case doc.content of
+			DocumentContent info	= (docFoundResponse doc.content data asAttachment,tst)
+			EmptyDocument			= let res = "Document has been deleted." in (okResponse "text/html" (size res) Nothing res,tst)
+		Nothing						= notFoundResponse req tst
 		
 // === UTILITY ===
 okResponse mimeType length disposition data =
@@ -100,10 +103,27 @@ docFoundResponse content data attachment
 notFoundResponse req tst
 	# (resp,_,world) = http_notfoundResponse req tst.TSt.world
 	= (resp,{TSt | tst & world = world})
+	
+successResponse	= okResponse "text/html" (size res) Nothing res
+where
+	res = "{\"success\": true}"
+	
+errorResponse error = {http_emptyResponse & rsp_data = "{\"success\": false, \"errors\": \""+++error+++"\"}"}
 
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
-updateTimeStamps pid tst
-	# (now,tst)	= accWorldTSt time tst
-	= snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
-												 , latestEvent = Just now
-												}}) tst)
+updateTimeStamps procId tst
+	# (tree, tst) = calculateTaskTree procId tst	
+	= case tree of
+		(TTMainTask ti properties menus task)
+			# username = toUserName tst.staticInfo.currentSession.Session.user
+			| username == properties.managerProps.TaskManagerProperties.worker || isMember username [u \\ (p,u) <- properties.managerProps.tempWorkers]
+				= updateTimeStamps` properties.systemProps.TaskSystemProperties.processId tst
+			| otherwise = tst
+		_ = tst
+where
+	updateTimeStamps` :: !ProcessId !*TSt -> *TSt
+	updateTimeStamps` pid tst
+		# (now,tst)	= accWorldTSt time tst
+		= snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
+												, latestEvent = Just now
+											}}) tst)

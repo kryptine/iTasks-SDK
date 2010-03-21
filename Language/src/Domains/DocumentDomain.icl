@@ -78,24 +78,25 @@ where
 		= case content of
 			EmptyDocument = (TaskFinished False, tst)
 			DocumentContent info
-				# (mbData,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
-				| isJust mbData
-					# world	= tst.TSt.world
-					// check if the location exists and creat it otherwise
-					# ((ok,dir),world) 	= pd_StringToPath path world
-					| not ok		   	= (TaskFinished False,{TSt | tst & world = world})
-					# (err,world)		= case getFileInfo dir world of
-											((DoesntExist,fileinfo),world) = createDirectory dir world
-											(_,world)					   = (NoDirError,world)
-					# ok				= case err of NoDirError = True; _ = False
-					| not ok			= (TaskFinished False,{TSt | tst & world = world})
-					# (ok,file,world) 	= fopen (path+++"/"+++info.DocumentInfo.fileName) FWriteData world
-					| not ok 			= (TaskFinished False,{TSt | tst & world = world})
-					# file 				= fwrites (fromJust mbData) file
-					# (ok,world) 		= fclose file world
-					| not ok 			= (TaskFinished False,{TSt | tst & world = world})
-					= (TaskFinished ok,{TSt | tst & world = world})
-				| otherwise = (TaskFinished False,tst)		
+				# (mbDoc,tst) = retrieveDocument info.dataLocation info.DocumentInfo.index tst
+				= case mbDoc of
+					Just(_,data)
+						# world	= tst.TSt.world
+						// check if the location exists and creat it otherwise
+						# ((ok,dir),world) 	= pd_StringToPath path world
+						| not ok		   	= (TaskFinished False,{TSt | tst & world = world})
+						# (err,world)		= case getFileInfo dir world of
+												((DoesntExist,fileinfo),world) = createDirectory dir world
+												(_,world)					   = (NoDirError,world)
+						# ok				= case err of NoDirError = True; _ = False
+						| not ok			= (TaskFinished False,{TSt | tst & world = world})
+						# (ok,file,world) 	= fopen (path+++"/"+++info.DocumentInfo.fileName) FWriteData world
+						| not ok 			= (TaskFinished False,{TSt | tst & world = world})
+						# file 				= fwrites data file
+						# (ok,world) 		= fclose file world
+						| not ok 			= (TaskFinished False,{TSt | tst & world = world})
+						= (TaskFinished ok,{TSt | tst & world = world})
+					Nothing = (TaskFinished False,tst)		
 	
 loadDocumentFromFile :: String String -> Task (Maybe Document)
 loadDocumentFromFile fname path = mkInstantTask "Load Document from FS" loadDoc 

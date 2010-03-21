@@ -4,7 +4,7 @@ import TSt, Store, Text, StdList, StdArray, Types
 
 instance DocumentDB TSt
 where
-	createDocument :: !String !String !DocumentType !TaskId !DocumentData !*TSt -> (Document, !*TSt)
+	createDocument :: !String !String !DocumentType !TaskId !DocumentData !*TSt -> (!Document, !*TSt)
 	createDocument filename mime type taskId docdata tst=:{documentStore,world}
 		# location = case type of
 			Local			= LocalLocation taskId
@@ -35,7 +35,7 @@ where
 					# store = storeValue cname (idx+1) store
 					= (idx+1,store,world)
 	   		
-	updateDocument :: !Document !String !String !TaskId !DocumentData !*TSt -> (Document, !*TSt)
+	updateDocument :: !Document !String !String !TaskId !DocumentData !*TSt -> (!Document, !*TSt)
 	updateDocument doc=:{type,content} filename mime taskId docdata tst
 		= case content of
 			EmptyDocument			= create
@@ -48,17 +48,30 @@ where
 		update info=:{dataLocation,index}
 			# store	= storeValueAsBlob (documentName dataLocation index) docdata tst.documentStore
 			# doc	= {type = type, content = DocumentContent {info & fileName = filename, mimeType = mime, size = size docdata}}
+			# store = storeValue (documentInfoName dataLocation index) doc store
 			= (doc, {tst & documentStore = store})
-	
-	retrieveDocumentData :: !DocumentDataLocation !Int !*TSt -> (Maybe DocumentData, !*TSt)
-	retrieveDocumentData location idx tst=:{documentStore,world}
-		# (mbdata,store,world) = loadValueAsBlob (documentName location idx) documentStore world
-		= (mbdata, {TSt | tst & documentStore = store, world = world})
-				
-	retrieveDocumentInfo :: !DocumentDataLocation !Int !*TSt -> (Maybe Document, !TSt)
-	retrieveDocumentInfo location idx tst=:{documentStore,world}
+			
+	retrieveDocument :: !DocumentDataLocation !Int !*TSt -> (!Maybe (Document,DocumentData), !*TSt)
+	retrieveDocument location idx tst=:{documentStore,world}
 		# (mbDoc,store,world) = loadValue (documentInfoName location idx) documentStore world
-		= (mbDoc,{TSt | tst & documentStore = store, world = world})
+		# (res,store,world) = case mbDoc of
+			Just doc
+				# (mbdata,store,world) = loadValueAsBlob (documentName location idx) store world
+				= case mbdata of
+					Just data	= (Just (doc,data),store,world)
+					Nothing		= (Just (doc,""),store,world)
+			Nothing = (Nothing,store,world)
+		= (res,{TSt | tst & documentStore = store, world = world})
+	
+	clearDocument :: !Document !*TSt -> (!Document, !*TSt)
+	clearDocument doc=:{content} tst=:{documentStore,world}
+		# doc = {doc & content = EmptyDocument}
+		# (store,world) = case content of
+			EmptyDocument = (documentStore,world)
+			DocumentContent info=:{dataLocation,index}
+				# store = storeValue (documentInfoName dataLocation index) doc documentStore
+				= deleteValues (documentName dataLocation index) store world
+		= (doc,{tst & documentStore = store, world = world})
 	
 	/*deleteDocument :: !Document !*TSt -> *TSt
 	deleteDocument doc=:{Document | taskId, index} tst=:{documentStore, world}
@@ -70,7 +83,7 @@ where
 		# (store,world) = deleteValues ("doc_"+++tn) documentStore world
 		= {TSt | tst & documentStore = store, world = world}*/			
 
-documentName loc idx		= storePrefix loc +++ toString idx 
+documentName loc idx		= storePrefix loc +++ toString idx +++ "-data"
 counterName loc				= storePrefix loc +++ "counter"
 documentInfoName loc idx	= storePrefix loc +++ toString idx +++ "-info"
 

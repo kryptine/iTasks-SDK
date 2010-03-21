@@ -490,10 +490,10 @@ gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 	= case content of
 		DocumentContent info = case info.dataLocation of
 			SharedLocation _
-				# (mbDocdata,tst) = retrieveDocumentData info.dataLocation info.DocumentInfo.index tst
-				= case mbDocdata of
-					Just docdata	= createDocument info.fileName info.mimeType Local (taskNrToString taskNr) docdata tst
-					Nothing			= abort "non-empty doc without data"
+				# (mbDoc,tst) = retrieveDocument info.dataLocation info.DocumentInfo.index tst
+				= case mbDoc of
+					Just (doc,docdata) | not (isEmptyDoc doc)	= createDocument info.fileName info.mimeType Local (taskNrToString taskNr) docdata tst
+					_											= abort "non-empty doc without data"
 			LocalLocation _	= ({Document|doc & type = Local},tst)
 		EmptyDocument		= ({Document|doc & type = Local},tst)
 

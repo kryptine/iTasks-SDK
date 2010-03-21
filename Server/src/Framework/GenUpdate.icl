@@ -339,14 +339,10 @@ gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
 	
 gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, mask}
 	| currentPath == searchPath
-		= case update of
-		"clear"			
-			= (emptyDoc,{USt | ust & currentPath = stepDataPath currentPath})
-		_		
-			# upd = fromJSON update
-			| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
-			| otherwise = abort "[Upd Document] Cannot parse JSON"
-			//| otherwise  = ({ Document | fileName = "", size = 0, mimeType = "", taskId = "", index = 0},{USt | ust & currentPath = stepDataPath currentPath})
+		# upd = fromJSON update
+		| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
+		| otherwise = abort "[Upd Document] Cannot parse JSON"
+		//| otherwise  = ({ Document | fileName = "", size = 0, mimeType = "", taskId = "", index = 0},{USt | ust & currentPath = stepDataPath currentPath})
 	| otherwise 
 		= (s, {USt | ust & currentPath = stepDataPath currentPath})
 

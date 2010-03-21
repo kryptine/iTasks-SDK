@@ -124,16 +124,12 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 					, _maintask : wt.taskId
 					, _debug : itasks.app.debug ? 1 : 0
 					, _name : dp.name
+					, docInfo: Ext.encode(dp.docInfo)
 				};
-
-				var update = {};
-				update[dp.name] = 'clear';
-				
-				Ext.apply(params,update);
 					
 				form.getForm().submit({
 												
-					url: itasks.config.serverUrl+"/document/upload",
+					url: itasks.config.serverUrl+"/document/clear",
 												
 					params: params,
 												
