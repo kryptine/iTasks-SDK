@@ -68,4 +68,5 @@ instance toString (VisualizationValue a) | toString a
 
 value2s 	:: DataPath (VisualizationValue a)				-> String | toString a
 label2s 	:: Bool (Maybe String)							-> Maybe String
+labelAttr 	:: !Bool !(Maybe String)						-> Maybe String
 stillValid	:: DataPath (VisualizationValue a) Bool Bool	-> Bool

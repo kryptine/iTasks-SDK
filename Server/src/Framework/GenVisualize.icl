@@ -307,7 +307,7 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 
 gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition						=	([TUIFragment (TUIIntControl {TUIIntControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+		VEditorDefinition						=	([TUIFragment (TUIIntControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 													, 1
 													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -324,7 +324,7 @@ where
 	
 gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUINumberField {TUINumberField|name = dp2s currentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels, allowDecimals = True, numDecimals = 1000})]
+		VEditorDefinition	= ([TUIFragment (TUIRealControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -341,7 +341,7 @@ where
 		
 gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUICharControl {TUICharControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+		VEditorDefinition	= ([TUIFragment (TUICharControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -359,7 +359,7 @@ where
 gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
 		VEditorDefinition
-			= ([TUIFragment (TUIBoolControl {TUIBoolControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional })]
+			= ([TUIFragment (TUIBoolControl {TUIBasicControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional })]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
@@ -379,7 +379,7 @@ where
 	
 gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition						=	([TUIFragment (TUIStringControl {TUIStringControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+		VEditorDefinition						=	([TUIFragment (TUIStringControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 													, 1
 													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -770,7 +770,7 @@ value2s dp (VValue a dm)
 	| isMasked dp dm	= toString a
 	| otherwise			= ""
 
-labelAttr :: !Bool (Maybe String) -> Maybe String
+labelAttr :: !Bool !(Maybe String) -> Maybe String
 labelAttr False	_		= Nothing
 labelAttr True	Nothing	= Just ""
 labelAttr True	l		= l 
@@ -843,10 +843,18 @@ coerceToTUIUpdates [(TUIFragment d):vs]
 coerceToTUIUpdates [v:vs]			= coerceToTUIUpdates vs
 
 getId :: TUIDef -> Maybe TUIId
+getId (TUIStringControl d)		= Just d.TUIBasicControl.id
+getId (TUICharControl d)		= Just d.TUIBasicControl.id
+getId (TUIIntControl d)			= Just d.TUIBasicControl.id
+getId (TUIRealControl d)		= Just d.TUIBasicControl.id
+getId (TUIBoolControl d)		= Just d.TUIBasicControl.id
+getId (TUINoteControl d)		= Just d.TUIBasicControl.id
+getId (TUIDateControl d)		= Just d.TUIBasicControl.id
+getId (TUITimeControl d)		= Just d.TUIBasicControl.id
+
 getId (TUILabel)				= Nothing
 getId (TUIButton d)				= Just d.TUIButton.id
 getId (TUINumberField d)		= Just d.TUINumberField.id				
-getId (TUIStringControl d)		= Just d.TUIStringControl.id
 getId (TUITextArea d)			= Just d.TUITextArea.id
 getId (TUIComboBox d)			= Just d.TUIComboBox.id
 getId (TUICheckBox d)			= Just d.TUICheckBox.id

@@ -18,7 +18,7 @@ derive bimap	Maybe, (,)
 
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIDateField {TUIDateField|name = dp2s currentPath, id = id, value = oldV, format = "d-m-Y", fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUIDateControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -33,7 +33,7 @@ where
 	
 gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUITimeField {TUITimeField|name = dp2s currentPath, id = id, value = oldV, format = "H:i:s", fieldLabel = label2s optional label, hideLabel = not useLabels})]
+		VEditorDefinition	= ([TUIFragment (TUITimeControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -48,7 +48,7 @@ where
 	
 gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUITextArea {TUITextArea|name = dp2s contentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels, width = 400, height = 150 })]
+		VEditorDefinition	= ([TUIFragment (TUINoteControl {TUIBasicControl|name = dp2s contentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
 		VEditorUpdate

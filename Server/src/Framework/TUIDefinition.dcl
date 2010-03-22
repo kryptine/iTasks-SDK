@@ -20,10 +20,14 @@ derive JSONEncode TUIDef, TUIUpdate
 
 :: TUIDef
 	= TUILabel
-	| TUIStringControl TUIStringControl
-	| TUICharControl TUICharControl
-	| TUIIntControl TUIIntControl
-	| TUIBoolControl TUIBoolControl
+	| TUIStringControl TUIBasicControl
+	| TUICharControl TUIBasicControl
+	| TUIIntControl TUIBasicControl
+	| TUIRealControl TUIBasicControl
+	| TUIBoolControl TUIBasicControl
+	| TUINoteControl TUIBasicControl
+	| TUIDateControl TUIBasicControl
+	| TUITimeControl TUIBasicControl
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
 	| TUITextArea TUITextArea
@@ -49,6 +53,14 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUITuple TUITuple
 	| TUICustom JSON
 
+:: TUIBasicControl =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, optional		:: !Bool
+	}
+	
 :: TUIButton =
 	{ name			:: !String
 	, id			:: !String
@@ -66,35 +78,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, allowDecimals	:: !Bool
 	, numDecimals	:: !Int
 	}
-:: TUIStringControl =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	}
-:: TUICharControl =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	}
-:: TUIIntControl =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	}
-:: TUIBoolControl =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	}	
-
+	
 :: TUITextArea =
 	{ name			:: !String
 	, id			:: !String
