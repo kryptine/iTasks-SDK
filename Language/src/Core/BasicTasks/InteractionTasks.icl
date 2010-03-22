@@ -489,7 +489,7 @@ gMakeLocalCopy{|UNIT|}		UNIT tst				= (UNIT,tst)
 gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 	= case content of
 		DocumentContent info = case info.dataLocation of
-			SharedLocation _
+			SharedLocation _ _
 				# (mbDoc,tst) = retrieveDocument info.dataLocation info.DocumentInfo.index tst
 				= case mbDoc of
 					Just (doc,docdata) | not (isEmptyDoc doc)	= createDocument info.fileName info.mimeType Local (taskNrToString taskNr) docdata tst

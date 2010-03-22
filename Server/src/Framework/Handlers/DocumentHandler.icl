@@ -20,9 +20,9 @@ handleDocumentUploadRequest req tst
 			= ({req & arg_post = new_post},tst)
 		_ = abort "invalid upload"
 	# tst				= {TSt | tst & request = nreq}
-	// update timestamps
+	// update tasks
 	# procId			= http_getValue "_maintask" req.arg_post "0"
-	# tst				= updateTimeStamps procId tst
+	# tst				= updateTasks procId tst
 	= (successResponse,tst)
 
 //used to clear a document after trash button is clicked
@@ -36,9 +36,9 @@ handleDocumentClearRequest req tst
 			# new_post  = [(name,toJSON doc):req.arg_post]
 			= (successResponse,{tst & request = {req & arg_post = new_post}})
 		_ = (errorResponse "Cannot parse document information",tst)
-	// update timestamps
+	// update tasks
 	# procId			= http_getValue "_maintask" req.arg_post "0"
-	# tst				= updateTimeStamps procId tst
+	# tst				= updateTasks procId tst
 	= (res,tst)
 
 //used to download documents through the download button
@@ -71,7 +71,7 @@ handleDocumentLinkRequest req asAttachment tst
 	# idx  		= toInt (last path)
 	# locstr	= last (init path)
 	# location	= if (startsWith "shared_" locstr)
-		(SharedLocation (mkDBid (subString 7 (textSize locstr - 7) locstr)))
+		(SharedLocation (mkDBid (subString 7 (textSize locstr - 7) locstr)) -1)
 		(LocalLocation locstr)
 	# (mbDoc,tst) = retrieveDocument location idx tst
 	= case mbDoc of
@@ -110,19 +110,19 @@ where
 	
 errorResponse error = {http_emptyResponse & rsp_data = "{\"success\": false, \"errors\": \""+++error+++"\"}"}
 
-updateTimeStamps :: !ProcessId !*TSt -> *TSt
-updateTimeStamps procId tst
+updateTasks :: !ProcessId !*TSt -> *TSt
+updateTasks procId tst
 	# (tree, tst) = calculateTaskTree procId tst	
 	= case tree of
 		(TTMainTask ti properties menus task)
 			# username = toUserName tst.staticInfo.currentSession.Session.user
 			| username == properties.managerProps.TaskManagerProperties.worker || isMember username [u \\ (p,u) <- properties.managerProps.tempWorkers]
-				= updateTimeStamps` properties.systemProps.TaskSystemProperties.processId tst
+				= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 			| otherwise = tst
 		_ = tst
 where
-	updateTimeStamps` :: !ProcessId !*TSt -> *TSt
-	updateTimeStamps` pid tst
+	updateTimeStamps :: !ProcessId !*TSt -> *TSt
+	updateTimeStamps pid tst
 		# (now,tst)	= accWorldTSt time tst
 		= snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
 												, latestEvent = Just now

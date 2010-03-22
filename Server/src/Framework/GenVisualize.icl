@@ -706,7 +706,7 @@ where
 	buildLink info
 		# location = case info.dataLocation of
 			LocalLocation taskId	= taskId
-			SharedLocation sid		= "shared_" +++ sid
+			SharedLocation sid _	= "shared_" +++ sid
 		= "/document/download/link/" +++ location +++ "/" +++ toString info.DocumentInfo.index
 	
 	isValid :: Document Bool Bool -> Bool
