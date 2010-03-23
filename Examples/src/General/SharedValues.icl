@@ -66,9 +66,12 @@ where
 mergeTestList :: Task Void
 mergeTestList =
 				getCurrentUser
-	>>= \user.	return (mkDBid "shared_mergeTestList")
+	>>= \user.	return (toUserName user)
+	>>= \uname. return (mkDBid "shared_mergeTestList")
 	>>= \sid.	writeDB sid emptyL
-	>>|			ignoreResult ((user @: ("1st View", view sid)) -||- (user @: ("2nd View", view sid)))
+	>>|			ignoreResult (anyProc [{user = uname, task = ("1st View" @>> view sid)},
+									   {user = uname, task = ("2nd View" @>> view sid)}] Closed)
+	//>>|		ignoreResult ((user @: ("1st View", view sid)) -||- (user @: ("2nd View", view sid)))
 where
 	view :: (DBid [String]) -> Task (Action,[String])
 	view sid = updateShared "List" [quitButton] sid [idEditor]
@@ -82,10 +85,10 @@ mergeTestDocuments =
 	>>= \user.	return (toUserName user)
 	>>= \uname.	return (mkDBid "shared_mergeTestDocuments")
 	>>= \sid.	writeDB sid emptyL
-	//>>|			ignoreResult ((user @: ("1st View", view sid idEditor)) -||- (user @: ("2nd View", view sid idEditor)) -||- (user @: ("3rd View", view sid idListener)))
+	//>>|		ignoreResult ((user @: ("1st View", view sid idEditor)) -||- (user @: ("2nd View", view sid idEditor)) -||- (user @: ("3rd View", view sid idListener)))
 	>>|			ignoreResult (anyProc [{user = uname, task = (view sid idEditor   <<@ "1st View")},
 									   {user = uname, task = (view sid idEditor   <<@ "2nd View")},
-									   {user = uname, task = (view sid idListener <<@ "3rd View")}] Open)
+									   {user = uname, task = (view sid idListener <<@ "3rd View")}] Closed)
 where
 	view :: (DBid [Document]) (View [Document]) -> Task (Action,[Document])
 	view sid v = updateShared "List" [quitButton] sid [v]
