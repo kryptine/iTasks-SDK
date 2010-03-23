@@ -9,9 +9,13 @@ instance <<@ String
 where	(<<@) (Task desc mbCxt tf) s	= Task {TaskDescription| desc & title = s} mbCxt tf
 instance <<@ TaskDescription
 where	(<<@) (Task _ mbCxt tf) td		= Task td mbCxt tf	
+instance <<@ GroupedBehaviour
+where	(<<@) (Task td mbCxt tf) g		= Task {TaskDescription| td & groupedBehaviour = g} mbCxt tf
 
 class 	(@>>) infixr 2 b ::  !b !(Task a)   -> Task a
 instance @>> String
 where	(@>>) s (Task desc mbCxt tf)	= Task {TaskDescription| desc & title = s} mbCxt tf
 instance @>> TaskDescription
 where	(@>>) td (Task _ mbCxt tf)		= Task td mbCxt tf
+instance @>> GroupedBehaviour
+where	(@>>) g (Task td mbCxt tf) 		= Task {TaskDescription| td & groupedBehaviour = g} mbCxt tf

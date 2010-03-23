@@ -27,10 +27,10 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, delegatorId	:: !UserName										// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 
-					, mainTask		:: !ProcessId										// The id of the current main task 
-					, properties	:: !TaskProperties									// Properties of the current evaluated process		
-					, menus			:: !Maybe [Menu]									// Menu structure of the current task
-					, staticInfo	:: !StaticInfo										// info which does not change during a run
+					, mainTask		   :: !ProcessId										// The id of the current main task 
+					, properties	   :: !TaskProperties									// Properties of the current evaluated process		
+					, menus			   :: !Maybe [Menu]									// Menu structure of the current task
+					, staticInfo	   :: !StaticInfo										// info which does not change during a run
 										
 					, currentChange	:: !Maybe (!ChangeLifeTime,!Dynamic)				// An active change
 					, pendingChanges:: ![(!ChangeLifeTime,!Dynamic)]					// Pending persistent changes
@@ -236,7 +236,8 @@ mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for
-* combining a set of parallel subtasks
+* combining a set of parallel subtasks. Each of the subtasks is wrapped in a 
+* separate process. 
 *
 * @param A name used as the task label
 * @param Some info about the behavior of the parallel task
@@ -245,6 +246,20 @@ mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The newly constructed parallel task
 */
 mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+/**
+* Wrap a function of proper type to create a function that groups a number of 
+* tasks together. None of the subtasks is created in a separate process and no
+* overview window is shown. It is not considdered good practice to assign any of
+* the subtasks to other users. For that purpose the parallel-task has been introduced
+*
+* @param A name used as the task label
+* @param Some info about the behavior of the grouped task
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed grouped task
+*/
+
+mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of proper type to create a function that will make a
 * main task. This is a sequence node that keeps track of additional information

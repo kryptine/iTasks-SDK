@@ -5,7 +5,7 @@ definition module Types
 */
 
 from TSt 			import :: TSt
-from TaskTree		import :: TaskProperties
+from TaskTree		import :: TaskProperties, :: GroupedBehaviour
 from Html 			import :: HtmlTag
 from CommonDomain	import :: Note
 from StdString		import class toString
@@ -70,8 +70,9 @@ instance == User
 					| TaskException !Dynamic
 
 :: TaskDescription	=
-	{ title			:: !String
-	, description	:: !Note
+	{ title				:: !String
+	, description		:: !Note
+	, groupedBehaviour  :: !GroupedBehaviour
 	}
 
 :: TaskThread a		=

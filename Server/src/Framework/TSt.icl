@@ -33,7 +33,7 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, taskInfo		= initTaskInfo
 		, userId		= UserName "" ""
 		, delegatorId	= UserName "" ""
-		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing (TTFinishedTask initTaskInfo [])
+		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo [])
 		, mainTask		= ""
 		, properties	= initTaskProperties
 		, menus			= Nothing
@@ -62,6 +62,7 @@ initTaskInfo
 		, taskLabel = ""
 		, traceValue = ""
 		, worker = UserName "" ""
+		, groupedBehaviour = Fixed
 		}
 
 initTaskProperties :: TaskProperties
@@ -169,9 +170,9 @@ loadThread processId tst=:{TSt|dataStore,world}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, menus, changeCount} newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,mainTask,properties=parentProperties,menus=parentMenus}
+evaluateTaskInstance process=:{Process | processId, parent, properties, menus, changeCount, inParallelType} newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,mainTask,properties=parentProperties,menus=parentMenus}
 	// Reset the task state
-	# tst								= resetTSt processId properties tst
+	# tst								= resetTSt processId properties inParallelType tst
 	// Queue all stored persistent changes (only when run as top node)
 	# tst								= if isTop (loadPersistentChanges processId tst) tst
 	// When a change is injected set it as active change
@@ -187,8 +188,8 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, menus, c
 											(applyAllChanges processId changeCount pendingChanges thread properties menus tst)
 											(applyCurrentChange processId changeCount thread properties menus tst)
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
-	# (TTMainTask ti _ _ tasks,tst)		= getTaskTree tst
-	# tree								= TTMainTask ti properties menus tasks
+	# (TTMainTask ti _ _ _ tasks,tst)	= getTaskTree tst
+	# tree								= TTMainTask ti properties menus inParallelType tasks
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges processId tst) tst
 	# tst								= restoreTSt mainTask parentProperties parentMenus tst
@@ -225,11 +226,11 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, menus, c
 			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Excepted}) tst
 			= (TaskException e, tree, tst)
 where
-	resetTSt :: !ProcessId !TaskProperties !*TSt -> *TSt
-	resetTSt processId properties tst
+	resetTSt :: !ProcessId !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
+	resetTSt processId properties inptype tst
 		# taskNr	= taskNrFromString processId
-		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker}
-		# tree		= TTMainTask info properties menus (TTFinishedTask info [])
+		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed}
+		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
 	
@@ -396,7 +397,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" ""} [], tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" "", groupedBehaviour = Fixed} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -405,7 +406,7 @@ calculateTaskTree processId tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
-					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker} [], tst)
+					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed} [], tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -463,25 +464,25 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
 mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
-mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInteractiveTask`	
+mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkInstantTask`
+mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo []} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMonitorTask`
+mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -536,32 +537,40 @@ where
 	setStatus status tst	= setTaskStore "status" status tst
 		
 mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkSequenceTask`
+mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkParallelTask taskname tpi taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkParallelTask`
+mkParallelTask taskname tpi taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo tpi [], taskNr = [0:taskNr]}												
 		= taskfun tst
+
+mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkGroupedTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkGroupedTask`
+where
+	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
+		# tst = {tst & tree = TTGroupedTask taskInfo [], taskNr = [0:taskNr]}
+		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note ""} Nothing mkMainTask`
+mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo [])}
+		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo [])}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask (Task desc mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties}
+applyTask (Task desc=:{TaskDescription | groupedBehaviour} mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties}
 	# taskId					= iTaskId taskNr ""
 	# (taskVal,dataStore,world)	= loadValue taskId dataStore world
-	# taskInfo =	{ taskId		= taskNrToString taskNr
-					, taskLabel		= desc.TaskDescription.title
-					, traceValue	= ""
-					, worker		= properties.managerProps.TaskManagerProperties.worker
+	# taskInfo =	{ taskId			= taskNrToString taskNr
+					, taskLabel			= desc.TaskDescription.title
+					, traceValue		= ""
+					, worker			= properties.managerProps.TaskManagerProperties.worker
+					, groupedBehaviour 	= groupedBehaviour
 					}
 	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo}
 	= case taskVal of
@@ -605,14 +614,16 @@ where
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti menus task)	= {tst & tree = TTMainTask ti mti menus node} 		//Just replace the subtree 
-		(TTSequenceTask ti tasks)		= {tst & tree = TTSequenceTask ti [node:tasks]}		//Add the node to the sequence
-		(TTParallelTask ti tpi tasks)	= {tst & tree = TTParallelTask ti tpi [node:tasks]}	//Add the node to the parallel set
-		_								= {tst & tree = tree}
+		(TTMainTask ti mti menus inptype task)	= {tst & tree = TTMainTask ti mti menus inptype node} 	//Just replace the subtree 
+		(TTSequenceTask ti tasks)				= {tst & tree = TTSequenceTask ti [node:tasks]}			//Add the node to the sequence
+		(TTParallelTask ti tpi tasks)			= {tst & tree = TTParallelTask ti tpi [node:tasks]}		//Add the node to the parallel set
+		(TTGroupedTask ti tasks)				= {tst & tree = TTGroupedTask ti [node:tasks]}			//Add the node to the grouped set
+		_										= {tst & tree = tree}
 	
 	//Perform reversal of lists that have been accumulated in reversed order
 	finalizeTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
 	finalizeTaskNode (TTParallelTask ti tpi tasks)	= TTParallelTask	ti tpi (reverse tasks)
+	finalizeTaskNode (TTGroupedTask ti tasks)		= TTGroupedTask		ti (reverse tasks)
 	finalizeTaskNode node							= node
 	
 		

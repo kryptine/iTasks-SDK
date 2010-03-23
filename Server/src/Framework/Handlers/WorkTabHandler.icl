@@ -16,7 +16,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 	# tst		  = {TSt | tst & request = req}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
-		(TTMainTask ti properties menus task)
+		(TTMainTask ti properties menus _ task)
 			# subject			= [properties.managerProps.TaskManagerProperties.subject]
 			# username			= toUserName staticInfo.currentSession.Session.user
 			# (panels,tst)		= buildTaskPanels task menus username tst

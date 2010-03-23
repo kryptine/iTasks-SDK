@@ -24,20 +24,33 @@ derive gParse Either
 
 derive bimap	Maybe
 
-//Task composition
+//Grouping combinators
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb
-=
-	parallel "-||-" "Done if either subtask is finished." orfunc hd [] [taska,taskb] 
+(-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] 
 where
 	orfunc (val,_) [] = ([val],Stop)
 	orfunc (val,_) _  = abort "Multiple results in OR"
 
-(-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb =
-	parallel "-&&-" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))]
+(||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
+(||-) taska taskb
+	= group "||-" "Done when the second subtask is finished." rorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),ParallelAction (Either a b))
+	rorfunt (Right val,_) [] = ([val],Stop)
+	rorfunc (Left val, _) [] = ([],Continue)
+	rorfunc _ _				 = abort "Illegal result in ||-"
+
+(-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
+(-||) taska taskb
+	= group "||-" "Done when the first subtask is finished" lorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+where
+	lorfunt (Right val,_) [] = ([],Continue)
+	lorfunc (Left val, _) [] = ([val],Stop)
+	lorfunc _ _				 = abort "Illegal result in -||"
+
+(-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
+(-&&-) taska taskb = group "-&&-" "Done when both subtasks are finished" andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))]
+where
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)
@@ -56,56 +69,105 @@ where
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue
-anyTask tasks 	= parallel "any" "Done if any subtask is finished." anyfunc hd [] tasks
-
-anyTaskExt :: ![(UserName,Task a)] !TaskParallelType -> Task a | iTask a
-anyTaskExt tasks type = parallelU "any" "Done if any subtask is finished." type anyfunc hd [] tasks
-
-anyfunc (val,_) [] = ([val],Stop)
-anyfunc (val,_) _  = abort "Multiple results in ANY"
+anyTask tasks 	= group "any" "Done when any subtask is finished" anyfunc hd [] tasks
+where
+	anyfunc (val,_) [] = ([val],Stop)
+	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = parallel "all" "Done if all subtasks are finished" (allfunc(length tasks)) sortByIndex [] tasks
-
-allTasksExt :: ![(UserName,Task a)] !TaskParallelType -> Task [a] | iTask a 
-allTasksExt tasks type = parallelU "all" "Done if all subtasks are finished." type (allfunc (length tasks)) sortByIndex [] tasks 
-
-allfunc :: !Int !(a,Int) ![(Int,a)] -> ([(Int,a)],ParallelAction a)
-allfunc tlen (val,idx) st 
+allTasks tasks = group "all" "Done when all subtasks are finished" (allfunc(length tasks)) sortByIndex [] tasks
+where
+	allfunc tlen (val,idx) st 
 		# st = st ++ [(idx,val)]
 		| length st == tlen = (st,Stop)
 		| otherwise = (st,Continue)
 		
-sortByIndex :: ![(Int,a)] -> [a]
-sortByIndex [] = []
-sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]
-
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb = parallel "either" "Done if either subtask is finished. The next step depends on which subtask is finished." eitherfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
-
-eitherTaskExt :: !(UserName,Task a) !(UserName,Task b) !TaskParallelType -> Task (Either a b) | iTask a & iTask b
-eitherTaskExt (usera,taska) (userb,taskb) type = parallelU "either" "Done if either subtask is finished. The next step depends on which subtask is finished." type eitherfunc hd [] [(usera,(taska >>= \a -> return (Left a))),(userb,(taskb >>= \b -> return (Right b)))]
-
-eitherfunc :: !((Either a b),Int) ![(Either a b)] -> ([(Either a b)],ParallelAction (Either a b))
-eitherfunc (val,idx) [] = ([val],Stop)
-eitherfunc (val,idx) _  = abort "Multiple results in Either"
-
-(||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
-(||-) taska taskb
-	= parallel "||-" "Done if the second subtask is finished. Only the result of this task is used." rorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+eitherTask taska taskb = group "either" "Done when either subtask is finished" eitherfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
-	rorfunt (Right val,_) [] = ([val],Stop)
-	rorfunc (Left val, _) [] = ([],Continue)
-	rorfunc _ _				 = abort "Illegal result in ||-"
+	eitherfunc (val,idx) [] = ([val],Stop)
+	eitherfunc (val,idx) _  = abort "Multiple results in Either"
 
-(-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
-(-||) taska taskb
-	= parallel "||-" "Done if the first subtask is finished. Only the result of this task is used." lorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+//Parallel composition
+orProc :: !(AssignedTask a) !(AssignedTask a) !TaskParallelType -> Task a | iTask a
+orProc taska taskb type = parallel type "-|@|-" "Done if either subtask is finished." orfunc hd [] [taska,taskb] 
 where
-	lorfunt (Right val,_) [] = ([],Continue)
-	lorfunc (Left val, _) [] = ([val],Stop)
-	lorfunc _ _				 = abort "Illegal result in -||"
+	orfunc (val,_) [] = ([val],Stop)
+	orfunc (val,_) _  = abort "Multiple results in -|@|-"
 
+andProc :: !(AssignedTask a) !(AssignedTask b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
+andProc taska taskb type = parallel type "AndProc" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [{AssignedTask | taska & task = taska.task >>= \a -> return (Left a)},{AssignedTask | taskb & task = taskb.task >>= \b -> return (Right b)}]
+where
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (AssignedTask (Either a b)))
+	andfunc (val,_) (left,right)
+	= case val of
+		(Left a)
+			# state = (Just a,right)
+			= case state of
+				(Just l, Just r) = (state,Stop)
+				_				 = (state,Continue)
+		(Right b)
+			# state = (left,Just b)
+			= case state of
+				(Just l, Just r) = (state,Stop)
+				_				 = (state,Continue)		
+	
+	parseresult (Just a,Just b) = (a,b)
+	parseresult _	 			= abort "AND not finished"
+
+anyProc :: ![AssignedTask a] !TaskParallelType -> Task a | iTask a
+anyProc [] 	  type = getDefaultValue
+anyProc tasks type = parallel type "any" "Done if any subtask is finished." anyfunc hd [] tasks
+where
+	anyfunc (val,_) [] = ([val],Stop)
+	anyfunc (val,_) _  = abort "Multiple results in ANY"
+
+allProc :: ![AssignedTask a] !TaskParallelType -> Task [a] | iTask a
+allProc tasks type = parallel type "all" "Done if all subtasks are finished." (allfunc (length tasks)) sortByIndex [] tasks 
+where
+	allfunc tlen (val,idx) st 
+		# st = st ++ [(idx,val)]
+		| length st == tlen = (st,Stop)
+		| otherwise = (st,Continue)
+
+//===== LEGACY ====
+/**
+* The behaviour of the 'old' parallel combinator expressed in terms of the 'new' parallel combinator*
+**/
+:: OPResult a = AllDone [(Int,a)] | PredDone [(Int,a)] | NotDone [(Int,a)]
+
+derive bimap (,)
+
+derive gPrint OPResult
+derive gParse OPResult
+derive gVisualize OPResult
+derive gUpdate OPResult
+
+oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
+oldParallel label pred predDone allDone tasks =
+	group label "The old parallel combinator" (pfunc pred) (ffunc allDone predDone) (NotDone []) tasks
+where
+	pfunc :: ([a]->Bool) (a,Int) (OPResult a) -> ((OPResult a),PAction(Task a)) 
+	pfunc pred (val,i) (NotDone st)
+		# st = st++[(i,val)]
+		| length st == length tasks = (AllDone st,Stop)
+		| pred (stToList st) 		= (PredDone st,Stop)
+		| otherwise	   		 		= (NotDone st,Continue)
+	
+	stToList :: [(Int,a)] -> [a]
+	stToList st = [v \\ (i,v) <- st]
+		
+	ffunc :: ([a]->b) ([a]->b) (OPResult a) -> b
+	ffunc adone pdone (AllDone v)  = adone (sortList v)
+	ffunc adone pdone (PredDone v) = pdone (sortList v)
+	ffunc adone pdone _			   = abort "(Old Parallel) Finish function, while not done"	
+
+	sortList :: [(Int,a)] -> [a]
+	sortList [] = []
+	sortList [(i,v):ps] = sortList [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortList [(is,vs) \\ (is,vs) <- ps | is > i]
+//===================
+
+//Task composition for optional values
 (>>?) infixl 1 	:: !(Task (Maybe a)) !(a -> Task (Maybe b)) -> Task (Maybe b) | iTask a & iTask b
 (>>?) t1 t2 
 = 	t1 
@@ -115,7 +177,7 @@ where
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
 (-&?&-) taska taskb 
-= parallel "-&?&-" "Done if the both subtasks are finished. There is only a result if neither subtask has been left blank." mbandfunc parsefunc (Nothing,Nothing) [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+= group "-&?&-" "Done when both subtasks are finished. Yields only a result of both subtasks have a result" mbandfunc parsefunc (Nothing,Nothing) [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
 	mbandfunc (val,_) (left,right)
 		= case val of
@@ -142,6 +204,9 @@ transformResult fun task = "transformResult" @>> (task >>= \a -> return (fun a))
 stop :: Task Void
 stop = "stop" @>> return Void
 
+sortByIndex :: ![(Int,a)] -> [a]
+sortByIndex [] = []
+sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]
 // ******************************************************************************************************
 // repetition
 

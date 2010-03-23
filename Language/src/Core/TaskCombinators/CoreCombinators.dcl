@@ -5,7 +5,7 @@ definition module CoreCombinators
 */
 from Types 			import :: Task, :: TaskPriority
 from Time			import :: Timestamp
-from TaskTree		import :: TaskParallelType
+from TaskTree		import :: TaskParallelType, :: GroupedBehaviour
 
 from	iTasks		import class iTask(..)
 
@@ -87,20 +87,6 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
 /**
 * Execute a list of tasks in parallel. The parameters define how the tasks are combined in the
-* user interface and when the combined task is finished.
-*
-* @param A label for tracing
-* @param A predicate on the list of results of the currently finished tasks which determines if the
-*        task may finish before all results are in.
-* @param A transformation function used to combine the list of results when the predicate succeeds
-* @param A transformation function used to combine the list of results all tasks are done
-* @param The list of tasks to be executed in parallel
-* @return The combined task
-*/
-oldParallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
-
-/**
-* Execute a list of tasks in parallel. The parameters define how the tasks are combined in the
 * user interface and when the combined task is finished. The combinator keeps an internal state of type 'b'
 * and uses the accumulator function to alter this state using the result of a subtask as soon as it is finished.
 *
@@ -110,9 +96,25 @@ oldParallel 	:: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-:: ParallelAction  a = Stop | Continue | Extend [Task a] | ExtendU [(UserName,Task a)]
-parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(UserName,Task a)] -> Task c | iTask a & iTask b & iTask c
+:: AssignedTask a =
+	{ user :: UserName
+	, task :: Task a
+	}
+	
+:: PAction x = Stop | Continue | Extend .[x]
+//:: PAction t a = Stop | Continue | Extend .[t a]
+
+class PActionClass t where
+	getName :: (t a) -> Maybe UserName
+	getTask :: (t a) -> Task a
+
+instance PActionClass AssignedTask
+instance PActionClass Task
+
+//parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction AssignedTask a)) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a))) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
+//group 	 :: 				  !String !String !((a,Int) b -> (b,PAction Task a)) 		 (b -> c) !b ![Task a] 		   -> Task c | iTask a & iTask b & iTask c
+group 	 :: 				  !String !String !((a,Int) b -> (b,PAction (Task a))) 		 (b -> c) !b ![Task a] 		   -> Task c | iTask a & iTask b & iTask c
 
 // Multi-user workflows
 

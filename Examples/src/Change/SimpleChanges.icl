@@ -77,8 +77,8 @@ where
 	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
 	change me user topics p t t0 = (Nothing
 							, Just (assign (toUserName me) NormalPriority Nothing 
-											(anyTaskExt [(p.managerProps.worker , t <<@ topics) 
-														,(toUserName user, t <<@ topics)
+											(anyProc [{user = p.managerProps.worker , task = t <<@ topics} 
+														,{user = toUserName user, task = t <<@ topics}
 														] Open
 											)
 											<<@ ("Duplicated " +++ topics))

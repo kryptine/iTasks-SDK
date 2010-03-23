@@ -19,18 +19,20 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| Updates [TUIUpdate] [(Action,Bool)]
 					| Func (*TSt -> *(!InteractiveTask, !*TSt))
 
-:: TaskTree			= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) TaskTree	//A task that is treated as a main chunk of work
-					| TTInteractiveTask	TaskInfo InteractiveTask						//A task that can be worked on through a gui 
-					| TTMonitorTask		TaskInfo [HtmlTag]								//A task that upon evaluation monitors a condition and may give status output
-					| TTRpcTask			TaskInfo RPCExecute								//A task that represents an rpc invocation
-					| TTSequenceTask	TaskInfo [TaskTree]								//A task that is composed of a number of sequentially executed subtasks
-					| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]			//A task that is composed of a number of parallel executed subtasks  
-					| TTFinishedTask	TaskInfo [HtmlTag]								//A completed task
+:: TaskTree			= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) !(Maybe TaskParallelType) TaskTree	//A task that is treated as a main chunk of work
+					| TTInteractiveTask	TaskInfo InteractiveTask													//A task that can be worked on through a gui 
+					| TTMonitorTask		TaskInfo [HtmlTag]															//A task that upon evaluation monitors a condition and may give status output
+					| TTRpcTask			TaskInfo RPCExecute															//A task that represents an rpc invocation
+					| TTSequenceTask	TaskInfo [TaskTree]															//A task that is composed of a number of sequentially executed subtasks
+					| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]										//A task that is composed of a number of parallel executed subprocesses  
+					| TTGroupedTask		TaskInfo [TaskTree]															//A task that is composed of a number of grouped subtasks
+					| TTFinishedTask	TaskInfo [HtmlTag]															//A completed task
 							
-:: TaskInfo	=		{ taskId		:: TaskId											//Task number in string format
-					, taskLabel		:: String											//Descriptive label of the task
-					, traceValue	:: String											//String representation of value for tracing
-					, worker		:: UserName
+:: TaskInfo	=		{ taskId			:: TaskId											//Task number in string format
+					, taskLabel			:: String											//Descriptive label of the task
+					, traceValue		:: String											//String representation of value for tracing
+					, worker			:: UserName				
+					, groupedBehaviour	:: GroupedBehaviour
 					}
 
 :: TaskProperties = { systemProps	:: TaskSystemProperties
@@ -71,4 +73,6 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: TaskParallelType = Open 				//Everybody to whom a subtask is assigned can see the full status of this parallel, including the results of others
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.
-					
+	
+:: GroupedBehaviour = Fixed 			//The editor is fixed in the window
+					| Floating			//The editor can be undocked and made floating

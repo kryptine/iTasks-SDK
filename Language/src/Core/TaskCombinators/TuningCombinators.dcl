@@ -3,6 +3,7 @@ definition module TuningCombinators
 * This module provides combinators for fine-tuning of workflows.
 */
 from Types	import :: Task, :: TaskDescription
+from TaskTree import :: GroupedBehaviour
 
 //Annotation combinator
 class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 
@@ -15,3 +16,6 @@ instance @>>	String
 
 instance <<@	TaskDescription
 instance @>>	TaskDescription
+
+instance <<@	GroupedBehaviour
+instance @>>	GroupedBehaviour

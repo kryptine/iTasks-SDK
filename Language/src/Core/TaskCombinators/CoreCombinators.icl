@@ -96,136 +96,122 @@ where
 			TaskFinished a				= doseqTasks ts [a:accu] tst
 			TaskException e				= (TaskException e,tst)
 			
-// Parallel composition
-derive gPrint 		PSt,OPResult
-derive gParse 		PSt,OPResult
-derive gVisualize 	PSt,OPResult
-derive gUpdate 		PSt,OPResult
+// Parallel / Grouped composition
+derive gPrint 		PSt
+derive gParse 		PSt
+derive gVisualize 	PSt
+derive gUpdate 		PSt
 
 derive bimap Maybe, (,)
+
+class PActionClass t where
+	getName :: (t a) -> Maybe UserName
+	getTask :: (t a) -> Task a
+	
+instance PActionClass AssignedTask where
+	getName :: (AssignedTask a) -> Maybe UserName
+	getName at = (Just at.AssignedTask.user)
+	
+	getTask :: (AssignedTask a) -> Task a
+	getTask at = at.task
+	
+instance PActionClass Task where
+	getName :: (Task a) -> Maybe UserName
+	getName ta = Nothing
+	
+	getTask :: (Task a) -> Task a
+	getTask ta = ta
 
 :: PSt a b =
 	{ state :: b
 	, tasks :: [(Task a,Bool)]
 	}
-	
-parallel  :: !String !String !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallel label description procFun finFun initState initTasks 
-	= parallelWrap label description Closed False procFun finFun initState [(Nothing,t) \\ t <- initTasks]
 
-parallelU :: !String !String !TaskParallelType !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(UserName,Task a)] -> Task c | iTask a & iTask b & iTask c
-parallelU label description partype procFun finFun initState initTasks 
-	= parallelWrap label description partype True procFun finFun initState [(Just u,t) \\ (u,t) <- initTasks]
-	
-parallelWrap :: !String !String !TaskParallelType Bool !((a,Int) b -> (b,ParallelAction a)) (b -> c) !b ![(Maybe UserName,Task a)] -> Task c | iTask a & iTask b & iTask c
-parallelWrap label description partype addusers procFun finFun initState initTasks = mkParallelTask label mkTpi (parallel`)
+import GenPrint
+//:: PAction t a = Stop | Continue | Extend .[t a]
+derive gPrint PAction
+
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a))) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
+//parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction AssignedTask a)) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
+parallel type label description procFun parseFun initState initTask = execInParallel (Just type) label description procFun parseFun initState initTask
+
+group :: !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+//group :: !String !String !((a,Int) b -> (b,PAction Task a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+group label description procFun parseFun initState initTasks = execInParallel Nothing label description procFun parseFun initState initTasks
+
+execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (t a))) (b->c) !b ![t a] -> Task c | iTask a & iTask b & iTask c & PActionClass t
+//execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction t a)) (b->c) !b ![t a] -> Task c | iTask a & iTask b & iTask c & PActionClass t
+execInParallel mbParType label description procFun parseFun initState initTasks =
+	case mbParType of
+		(Nothing) = makeTaskNode label Nothing execInParallel`
+		(Just pt) = makeTaskNode label (Just (mkTpi pt)) execInParallel`
 where
-	parallel` tst
+	execInParallel` tst
 		# (pst,tst)   		= loadPSt tst
 		# (result,pst,tst) 	= processAllTasks pst 0 tst
 		# tst				= setTaskStore "pst" pst tst
 		= case result of
 			TaskException e = (TaskException e, tst)
-			TaskFinished  b = (TaskFinished (finFun b), tst)
+			TaskFinished  r = (TaskFinished (parseFun r), tst)
 			TaskBusy		= (TaskBusy, tst)
-				
+	
 	processAllTasks pst idx tst
 		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
-		# task	   = pst.tasks !! idx
-		# (r,tst=:{staticInfo}) = applyTask (fst task) tst			
-		= case r of
-			TaskException e = (TaskException e,pst,{TSt | tst & staticInfo = staticInfo})
-			TaskBusy		= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
+		# (task,done)				= pst.tasks !! idx
+		# (res,tst)					= applyTask task tst
+		= case res of
+			TaskException e = (TaskException e,pst,tst)
+			TaskBusy		= processAllTasks pst (inc idx) tst
 			TaskFinished a	
-				| snd task == True   = processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo} //This task had already been accumulated in the state
-				| otherwise
-					# (st,act) 		  = procFun (a,idx) pst.state //apply the task result and its index to the state
-					# pst			  = {pst & state = st}
-					# pst			  = markProcessed pst idx //mark the task as applied in the PState
-					= case act of
-						Stop		  
-							= (TaskFinished pst.state,pst,tst)  //stop the execution of the parallel and return the state
-						Continue	  = processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo} //continue
-						Extend etasks
-							# tasks = case addusers of 
-								False 
-									= pst.tasks ++ [(t,False) \\ t <- etasks]
-								True
-									= pst.tasks ++ [(assignTask (Just (toUserName staticInfo.currentSession.user)) t,False) \\ t <- etasks]
-							# pst	= {pst & tasks = tasks}
-							= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
-						ExtendU etasks
-							# tasks = case addusers of
-								False = pst.tasks ++ [(t,False) \\ (u,t) <- etasks]
-								True  = pst.tasks ++ [(assignTask (Just u) t,False) \\ (u,t) <- etasks] //extend the parallel with additional tasks
-							# pst	= {pst & tasks = tasks}
-							= processAllTasks pst (inc idx) {TSt | tst & staticInfo = staticInfo}
-																			
+				| done			= processAllTasks pst (inc idx) tst
+				# (nSt,act)	= procFun (a,idx) pst.state
+				# pst		= markProcessed {PSt | pst & state = nSt} idx
+				= case act of
+					Stop 		= (TaskFinished pst.state,pst,tst)
+					Continue	= processAllTasks pst (inc idx) tst
+					Extend tlist
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]}
+						= processAllTasks pst (inc idx) tst
+
 	loadPSt tst
 		# (mbPSt,tst) = getTaskStore "pst" tst
 		= case mbPSt of
 			(Just p) = (p,tst)
-			Nothing  = initPSt initState initTasks tst
-						
-	initPSt initState initTasks tst
-		# pst ={ PSt 
-	  	   	   | state = initState
-	  	   	   , tasks = [(assignTask u t, False) \\ (u,t) <- initTasks]
-	  	   	   }
+			Nothing  = initPSt tst
+	
+	initPSt tst
+		# pst = { PSt
+				| state = initState
+				, tasks = [(assignTask task, False) \\ task <- initTasks]
+				}
 		# tst = setTaskStore "pst" pst tst
 		= (pst,tst)
+
+	assignTask atask
+		# mbUser = getName atask
+		# task	 = getTask atask
+		= case mbUser of
+			(Nothing)  = task
+			(Just usr) = createOrEvaluateTaskInstance usr NormalPriority Nothing mbParType task
 	
-	assignTask mbUserName task
-		= case mbUserName of
-			Nothing			= task
-			(Just userName)	= createOrEvaluateTaskInstance userName NormalPriority Nothing (Just partype) task //deadline??
-	  	   
+	mkTpi parType =
+		{ TaskParallelInfo
+		| type = parType
+		, description = description
+		}
+
+	makeTaskNode label Nothing 	f = mkGroupedTask label f
+	makeTaskNode label (Just p)	f = mkParallelTask label p f
+	
 	markProcessed pst idx
 		# (t,b) 	= pst.tasks !! idx
 		# tasks 	= updateAt idx (t,True) pst.tasks
-		# pst	    = {pst & tasks = tasks}
-		= pst
+		= {PSt | pst & tasks = tasks}
 	
-	mkTpi =
-		{ TaskParallelInfo
-		| type = partype
-		, description = description
-		}
-			
-/**
-* The behaviour of the 'old' parallel combinator expressed in terms of the 'new' parallel combinator*
-**/
-:: OPResult a = AllDone [(Int,a)] | PredDone [(Int,a)] | NotDone [(Int,a)]
-
-oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
-oldParallel label pred predDone allDone tasks =
-	parallel label "The old parallel combinator" (pfunc pred) (ffunc allDone predDone) (NotDone []) tasks
-where
-	pfunc :: ([a]->Bool) (a,Int) (OPResult a) -> ((OPResult a),ParallelAction a) 
-	pfunc pred (val,i) (NotDone st)
-		# st = st++[(i,val)]
-		| length st == length tasks = (AllDone st,Stop)
-		| pred (stToList st) 		= (PredDone st,Stop)
-		| otherwise	   		 		= (NotDone st,Continue)
-	
-	stToList :: [(Int,a)] -> [a]
-	stToList st = [v \\ (i,v) <- st]
-		
-	ffunc :: ([a]->b) ([a]->b) (OPResult a) -> b
-	ffunc adone pdone (AllDone v)  = adone (sortList v)
-	ffunc adone pdone (PredDone v) = pdone (sortList v)
-	ffunc adone pdone _			   = abort "(Old Parallel) Finish function, while not done"	
-
-	sortList :: [(Int,a)] -> [a]
-	sortList [] = []
-	sortList [(i,v):ps] = sortList [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortList [(is,vs) \\ (is,vs) <- ps | is > i]
-		
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-import StdDebug
-
 class assign u :: u !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
 
 instance assign UserName

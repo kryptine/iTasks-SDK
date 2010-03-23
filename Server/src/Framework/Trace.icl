@@ -97,8 +97,21 @@ where
 		  , taskClass = "PAR"
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
+		  
+	mkTree (TTGroupedTask info trees)
+		= { cls = "master-task"
+		  , user = toString info.TaskInfo.worker
+		  , uiProvider = "col"
+		  , leaf = checkIfLeaf trees
+		  , iconCls = "task-grp"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "GRP"
+		  , children = [traceTaskTree tree \\ tree <- trees]
+		  }
 	
-	mkTree (TTMainTask info mti menus tree)
+	mkTree (TTMainTask info mti menus inptype tree)
 		= { cls = "master-task"
 		  , uiProvider = "col"
 		  , user = toString mti.TaskProperties.managerProps.TaskManagerProperties.worker
@@ -106,7 +119,7 @@ where
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
+		  , traceValue = printToString inptype
 		  , taskClass = "MNT"
 		  , children = [traceTaskTree tree]
 		  }

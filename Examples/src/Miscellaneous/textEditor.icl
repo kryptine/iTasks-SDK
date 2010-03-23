@@ -38,11 +38,12 @@ getAllFileNames =
 	>>= \files.	return (map (\f -> (f.fileId, f.TextFile.name)) files)
 			
 :: AppState = AppState Note (Maybe TextFile)
-:: AppAction = AppAction (ParallelAction AppAction)
-derive gPrint AppState, AppAction, ParallelAction
-derive gParse AppState, AppAction, ParallelAction
-derive gVisualize AppState, AppAction, ParallelAction
-derive gUpdate AppState, AppAction, ParallelAction
+:: AppAction = AppAction (PAction (Task AppAction)) // AppAction (ParallelAction AppAction)
+
+derive gPrint AppState, AppAction, PAction
+derive gParse AppState, AppAction, PAction
+derive gVisualize AppState, AppAction, PAction
+derive gUpdate AppState, AppAction, PAction
 derive gMerge AppState, TextFile
 derive gMakeSharedCopy AppState, TextFile
 derive gMakeLocalCopy AppState, TextFile
@@ -173,7 +174,7 @@ where
 textEditorApp :: Task Void
 textEditorApp =
 		writeDB sid initState
-	>>|	parallel "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
+	>>|	group "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
 where
 	sid = mkDBid "shared_textEditorApp"
 			

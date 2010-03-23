@@ -27,11 +27,12 @@ eitherTest = eitherTask (enterInformation "Value 1") (enterInformation "Value 2"
 maybeTest :: Task (Maybe (Int,Note))
 maybeTest = (enterInformation "Value 1" -&?&- enterInformation "Value 2")
 
+
 parExtendTest :: Task Int
 parExtendTest =
-	parallel  "Extender" "Keeps adding tasks until user enters 0" extfunc id 0 [task]
+	group  "Extender" "" extfunc id 0 [task]
 where
-	extfunc :: (Int,Int) Int -> (Int,ParallelAction Int)
+	extfunc :: (Int,Int) Int -> (Int,PAction Task Int)
 	extfunc (val,idx) cnt
 		| val == 0 = (cnt,Stop)
 		# addTasks = repeatn val task
@@ -39,38 +40,39 @@ where
 
 	task = enterInformation "How many new tasks do you want? (0 is stop)"
 
+
 parOpenTest :: Task [Int]
 parOpenTest = 
- 	allTasksExt [
-				(toUserName "erik",  enterInformation "Please enter a number"),
-				(toUserName "rinus", enterInformation "Please enter a number")] Open
+ 	allProc [
+				{user = toUserName "erik",  task = enterInformation "Please enter a number"},
+				{user = toUserName "rinus", task = enterInformation "Please enter a number"}] Open
 
 parClosedTest :: Task [Int]
 parClosedTest =
-		allTasksExt [
-				(toUserName "erik",  enterInformation "Please enter a number"),
-				(toUserName "rinus", enterInformation "Please enter a number")] Closed
+		allProc [
+				{user = toUserName "erik",  task = enterInformation "Please enter a number"},
+				{user = toUserName "rinus", task = enterInformation "Please enter a number"}] Closed
 
 parNestedTest1 :: Task [[Int]]
 parNestedTest1 =
-	allTasksExt [
-		(toUserName "erik",parOpenTest),
-		(toUserName "rinus",parOpenTest)
+	allProc [
+		{user = toUserName "erik",  task = parOpenTest},
+		{user = toUserName "rinus", task = parOpenTest}
 	] Open
 
 parNestedTest2 :: Task [[Int]]
 parNestedTest2 =
-	allTasksExt [
-		(toUserName "erik",parClosedTest),
-		(toUserName "rinus",parClosedTest)
+	allProc [
+		{user = toUserName "erik",  task = parClosedTest},
+		{user = toUserName "rinus", task = parClosedTest}
 	] Open
 
 parNestedTest3 :: Task [[String]]
 parNestedTest3 =
-	allTasksExt [
-		(toUserName "erik", subtask1),
-		(toUserName "rinus", subtask2),
-		(toUserName "erik", subtask3)
+	allProc [
+		{user = toUserName "erik",  task = subtask1},
+		{user = toUserName "rinus", task = subtask2},
+		{user = toUserName "erik",  task = subtask3}
 	] Open
 where
 	subtask1 :: Task [String]
@@ -88,15 +90,15 @@ where
 	subtask3 =
 		getUsers >>= \ulist ->
 		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> let usernames = map toUserName users in 
-		parallelU "Weird string function" "Keeps extending until user types '.'" Open (func usernames) parse (0,[]) [(hd usernames,task)]
-		where
-			func :: ![UserName] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),ParallelAction String)
+		parallel Open "Weird string function" "Keeps extending until user types '.'" (func usernames) parse (0,[]) [{AssignedTask | user = (hd usernames), task = task}]
+		where	
+			func :: ![UserName] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),PAction AssignedTask String)
 			func usernames (result,pos) (idx,acc)
 			| result == "." = ((idx,acc),Stop)
 			# acc = [(pos,result):acc]
 			# idx = ((idx+1) rem (length usernames))
 			# usr = usernames !! idx
-			= ((idx,acc),ExtendU [(usr,task)])
+			= ((idx,acc),Extend [{AssignedTask | user = usr ,task=task}])
 	
 			task :: Task String
 			task = enterInformation "Type String, '.' to stop"
