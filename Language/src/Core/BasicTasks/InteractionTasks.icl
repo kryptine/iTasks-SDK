@@ -312,52 +312,37 @@ editor :: !(Editor s a) -> View s | iTask a & iTask s & SharedVariable s
 editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
 where
 	getNewValue n updates old cur tst
-		# oEditV					= editorFrom old
-		# (omask,tst)				= readMask n (Just oEditV) tst
-		# myUpdates					= filter (\upd -> dataPathHasSubEditorIdx (fst upd) n) updates
+		# oEditV				= editorFrom old
+		# myUpdates				= filter (\upd -> dataPathHasSubEditorIdx (fst upd) n) updates
 		| isEmpty myUpdates
-			# tst					= setTaskStore (addStorePrefix n "value") oEditV tst
+			# tst				= setTaskStore (addStorePrefix n "value") oEditV tst
 			= (cur,tst)
 		| otherwise
 			//first apply basic value updates to get value represented by user interface on client
-			# basicValueUpdates			= filter (\upd -> not (dataPathHasConsFlag (fst upd))) myUpdates
-			# (oEditV,omask,lmask,tst)	= applyUpdates basicValueUpdates oEditV omask [] tst
-			# tst						= setTaskStore (addStorePrefix n "value") oEditV tst
+			# basicValueUpdates	= filter (\upd -> not (dataPathHasConsFlag (fst upd))) myUpdates
+			# (oEditV,tst)		= applyUpdates basicValueUpdates oEditV tst
+			# tst				= setTaskStore (addStorePrefix n "value") oEditV tst
 			//then apply constructor updates
-			# consUpdates				= filter (\upd -> dataPathHasConsFlag (fst upd)) myUpdates
-			# (nEditV,_,_,tst)			= applyUpdates consUpdates oEditV omask lmask tst
+			# consUpdates		= filter (\upd -> dataPathHasConsFlag (fst upd)) myUpdates
+			# (nEditV,tst)		= applyUpdates consUpdates oEditV tst
 			= (mergeValues old cur (editorTo nEditV old), tst)
 		
 	determineUpdates n new tst=:{taskNr}
 		# (mbOEditV,tst)	= getTaskStore (addStorePrefix n "value") tst
 		# oEditV			= fromJust mbOEditV
 		# nEditV			= editorFrom new
-		# (omask,tst)		= readMask n (Just oEditV) tst
-		# (nmask,tst)		= accWorldTSt (defaultMask nEditV) tst
-		# tst				= setTaskStore (addStorePrefix n "mask") nmask tst
-		= (determineEditorUpdates (editorId taskNr n) (Just n) omask nmask [] oEditV nEditV,tst)
+		# (mask,tst)		= accWorldTSt (defaultMask nEditV) tst
+		= (determineEditorUpdates (editorId taskNr n) (Just n) mask mask [] oEditV nEditV,tst)
 	
 	visualize taskNr n stateV tst
 		# editV			= editorFrom stateV
 		# (mask,tst)	= accWorldTSt (defaultMask editV) tst
-		# tst			= setTaskStoreFor taskNr (addStorePrefix n "mask") mask tst
 		= (visualizeAsEditor (editorId taskNr n) (Just n) mask editV,tst)
-		
-	readMask n initial tst
-		# (mbmask,tst)	= getTaskStore(addStorePrefix n "mask") tst
-		= case mbmask of
-			Just m = (m,tst)
-			Nothing = case initial of
-				Just v 
-					# (mask,tst)	= accWorldTSt (defaultMask v) tst
-					# tst			= setTaskStore (addStorePrefix n "mask") mask tst // <- store the initial mask
-					= (mask,tst)
-				Nothing	= ([],tst)
 				
-	applyUpdates [] val mask lmask tst = (val,mask,lmask,tst)
-	applyUpdates [(p,v):us] val mask lmask tst=:{TSt|world}
-		# (val,mask,lmask,world) = updateValueAndMask p v val mask lmask world
-		= applyUpdates us val mask lmask {TSt|tst & world = world}
+	applyUpdates [] val tst = (val,tst)
+	applyUpdates [(p,v):us] val tst=:{TSt|world}
+		# (val,world) = updateValue p v val world
+		= applyUpdates us val {TSt|tst & world = world}
 		
 listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}
