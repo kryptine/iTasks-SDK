@@ -23,8 +23,9 @@ where
 
 instance toString UserName
 where
-	toString (UserName id disp)	= disp+++" <"+++id+++">"
-
+	toString (UserName id disp)
+		| disp == ""	= id
+		| otherwise		= disp+++" <"+++id+++">"
 
 class toUserName a :: a -> UserName
 
@@ -34,7 +35,7 @@ where
 		| start > 0 && end > 0 && end > start
 			# uid  = s % (start + 1, end - 1)
 			# disp = s % (0,start-1)
-			= UserName uid disp
+			= UserName uid (trim disp)
 		| otherwise
 			= UserName s ""
 	where

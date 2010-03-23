@@ -38,6 +38,8 @@ JSONEncode{|TUIDef|} (TUIBoolControl r) c	= addXType "itasks.tui.Bool" (JSONEnco
 JSONEncode{|TUIDef|} (TUINoteControl r) c	= addXType "itasks.tui.Note" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIDateControl r) c	= addXType "itasks.tui.Date" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITimeControl r) c	= addXType "itasks.tui.Time" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIUsernameControl r) c	= addXType "itasks.tui.Username" (JSONEncode{|*|} r c)
+
 
 addXType :: String [String] -> [String]
 addXType xtype [x:xs] = [x,"\"xtype\" : \"",xtype,"\", ":xs]

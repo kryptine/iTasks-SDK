@@ -638,22 +638,21 @@ where
 //UserName type
 gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIUserField {TUIUserField|name = dp2s contentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels })]
+		VEditorDefinition	= ([TUIFragment (TUIUsernameControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional })]
 								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
 			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 		_					= ([TextFragment (toString old)]
 								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
-	contentPath	= shiftDataPath currentPath
-	id			= dp2id idPrefix contentPath
-	oldV		= value2s contentPath old
+	id			= dp2id idPrefix currentPath
+	oldV		= value2s currentPath old
 	newV		= value2s currentPath new
 	
 //Document Type
@@ -851,6 +850,8 @@ getId (TUIBoolControl d)		= Just d.TUIBasicControl.id
 getId (TUINoteControl d)		= Just d.TUIBasicControl.id
 getId (TUIDateControl d)		= Just d.TUIBasicControl.id
 getId (TUITimeControl d)		= Just d.TUIBasicControl.id
+getId (TUIUsernameControl d)	= Just d.TUIBasicControl.id
+
 
 getId (TUILabel)				= Nothing
 getId (TUIButton d)				= Just d.TUIButton.id

@@ -28,6 +28,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUINoteControl TUIBasicControl
 	| TUIDateControl TUIBasicControl
 	| TUITimeControl TUIBasicControl
+	| TUIUsernameControl TUIBasicControl
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
 	| TUITextArea TUITextArea
