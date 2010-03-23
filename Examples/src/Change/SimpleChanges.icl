@@ -75,14 +75,15 @@ duplicate me user topics =
 	dynamic change me user topics :: A.a: Change a | iTask a
 where
 	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change me user topics p t t0 = (Nothing
-							, Just (assign (toUserName me) NormalPriority Nothing 
-											(anyProc [{user = p.managerProps.worker , task = t <<@ topics} 
-														,{user = toUserName user, task = t <<@ topics}
-														] Open
-											)
-											<<@ ("Duplicated " +++ topics))
-							, Nothing )
+	change me user topics props t t0 
+		= 	( Just {TaskProperties | props & managerProps = {props.managerProps & worker = toUserName me}}
+			, Just (assign (toUserName me) NormalPriority Nothing 
+							(anyProc 	[ {user = props.managerProps.worker , task = t <<@ topics} 
+										, {user = toUserName user, task = t <<@ topics}
+										] Open
+							)
+							<<@ ("Duplicated " +++ topics))
+			, Nothing )
 
 //inform will inform a user that some process has ended.
 inform :: User String -> Dynamic

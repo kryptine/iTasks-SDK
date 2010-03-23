@@ -10,13 +10,38 @@ import CommonDomain
 // One by one the chosen bookings will be handled
 // The bill is made up in the end
 
+derive gParse	PlaceToGo, FlightHotel
+derive gPrint	PlaceToGo, FlightHotel
+derive gUpdate	PlaceToGo, FlightHotel
+derive gVisualize	PlaceToGo, FlightHotel
+derive bimap	(,), Maybe
+
+BookTrip :: Task FlightHotel
+BookTrip
+	=						enterInformation "Please fill in trip information to make booking"
+		>>= \info ->		assign info.delegateTo NormalPriority Nothing (enterInformationAbout "Please book the following trip" info)
+		>>= \booking ->		showMessageAbout "The following trip has been booked" booking
+		>>|					return booking
+	
+
+:: PlaceToGo
+	=	{ destination 	:: String
+		, leaving		:: Date
+		, returning		:: Date
+		, delegateTo	:: UserName
+		}
+:: FlightHotel
+	=	{ carrier		:: String
+		, priceOfFlight	:: Currency
+		, nameOfHotel	:: String
+		, priceAllIn	:: Currency
+		}
+
+
 travelBookingExample :: [Workflow]
 travelBookingExample
-= [	{ name		= "Examples/Business/Book a trip"
-	, label		= "Book your journey"
-	, roles		= []
-	, mainTask	= travel
-	}
+= [	// workflow "Examples/Business/Book a trip" travel  , 
+  	workflow "Examples/Business/Delegate book a trip" BookTrip
   ]
 
 :: Booking :== (String,String,String,Currency)
