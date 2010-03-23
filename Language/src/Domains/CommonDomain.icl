@@ -54,7 +54,7 @@ gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 		VEditorUpdate
 			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
 								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 		_					= ([TextFragment (toString old)]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})

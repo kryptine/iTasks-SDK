@@ -239,10 +239,10 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 				_
 					= ([],0, {VSt|vst & currentPath = stepDataPath currentPath})
 		//update constructor selector
-		VConsSelectorUpdate = (consSelectorUpdate, undef, vst)
+		VConsSelectorUpdate = (consSelectorUpdate old, undef, vst)
 		//Other visualizations
 		_	#consSelUpd = case vizType of
-					VEditorUpdate	= consSelectorUpdate
+					VEditorUpdate	= consSelectorUpdate new
 					_				= []
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
@@ -268,8 +268,9 @@ where
 	showBody dp VBlank			= False
 	showBody dp (VValue _ dm)	= isMasked dp dm
 	
-	consSelectorUpdate
-		| isEmpty d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1 && (not onlyBody)
+	consSelectorUpdate VBlank = []
+	consSelectorUpdate (VValue _ dm)
+		| isMasked currentPath dm && isEmpty d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1 && (not onlyBody)
 			| d.gcd_type_def.gtd_num_conses > MAX_CONS_RADIO
 				= [TUIUpdate (TUISetValue (dp2id idPrefix (dataPathSetConsFlag currentPath)) d.gcd_name)]
 			| otherwise
