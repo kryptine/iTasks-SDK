@@ -12,7 +12,7 @@ NEWLINE	:== "\n"		//The character sequence to use for new lines in text display 
 
 
 mkVSt :: *VSt
-mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, useLabels = False, onlyBody = False, optional = False, valid = True, listMask = initialListMask, updateValues = False}
+mkVSt = {VSt| vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, useLabels = False, onlyBody = False, optional = False, valid = True, listMask = initialListMask}
 
 //Wrapper functions
 visualizeAsEditor :: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool) | gVisualize{|*|} a
@@ -46,12 +46,12 @@ visualizeAsTextLabel x = join " " (coerceToStrings (fst3 (gVisualize{|*|} val va
 where
 	val = VValue x initialDataMask
 	
-determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a Bool -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
-determineEditorUpdates name mbSubIdx omask nmask lmask old new updateValues
+determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates name mbSubIdx omask nmask lmask old new
 	//# omask = trace_n ("OLD MASK: " +++ printToString omask) omask
 	//# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask
 	//# lmask = trace_n ("LST MASK: " +++ printToString lmask) lmask
-	# vst = {mkVSt & vizType = VEditorUpdate, idPrefix = name, listMask = lmask, updateValues = updateValues}
+	# vst = {mkVSt & vizType = VEditorUpdate, idPrefix = name, listMask = lmask}
 	# vst = case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
@@ -186,7 +186,7 @@ where
 	pathid					= dp2id idPrefix (dataPathSetConsFlag currentPath)
 
 
-gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,onlyBody,optional,valid,updateValues}
+gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,onlyBody,optional,valid}
 	= case vizType of
 		//Editor definition
 		VEditorDefinition
@@ -269,7 +269,7 @@ where
 	showBody dp (VValue _ dm)	= isMasked dp dm
 	
 	consSelectorUpdate
-		| updateValues && isEmpty d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1 && (not onlyBody)
+		| isEmpty d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1 && (not onlyBody)
 			| d.gcd_type_def.gtd_num_conses > MAX_CONS_RADIO
 				= [TUIUpdate (TUISetValue (dp2id idPrefix (dataPathSetConsFlag currentPath)) d.gcd_name)]
 			| otherwise
@@ -305,70 +305,70 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
-gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
+gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition						=	([TUIFragment (TUIIntControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 													, 1
 													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues && oldV <> newV		=	([TUIUpdate (TUISetValue id newV)]
-													, 1
-													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_										=	([TextFragment (toString old)]
-													, 1
-													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			| oldV <> newV	=	([TUIUpdate (TUISetValue id newV)]
+									, 1
+									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+		_					=	([TextFragment (toString old)]
+									, 1
+									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
 	oldV	= value2s currentPath old
 	
-gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
+gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIRealControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-												, 1
-												, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_									= ([TextFragment (toString old)]
-												, 1
-												, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
 	oldV	= value2s currentPath old
 		
-gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
+gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUICharControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-												, 1
-												, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_									= ([TextFragment (toString old)]
-												, 1
-												, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
 	oldV	= value2s currentPath old
 
-gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
+gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition
 			= ([TUIFragment (TUIBoolControl {TUIBasicControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional })]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
-			| updateValues && checkedOld <> checkedNew 	= ([TUIUpdate (TUISetValue id (toString checkedNew))]
-															, 1
-															, {VSt|vst & currentPath = stepDataPath currentPath})
-		_												= ([TextFragment (toString old)]
-															, 1
-															, {VSt|vst & currentPath = stepDataPath currentPath})		
+			| checkedOld <> checkedNew 	= ([TUIUpdate (TUISetValue id (toString checkedNew))]
+											, 1
+											, {VSt|vst & currentPath = stepDataPath currentPath})
+		_								= ([TextFragment (toString old)]
+											, 1
+											, {VSt|vst & currentPath = stepDataPath currentPath})		
 where
 	id			= dp2id idPrefix currentPath
 	checkedOld	= checked old
@@ -377,18 +377,18 @@ where
 		VBlank			= False
 		(VValue v mask) = if (isMasked currentPath mask) v False
 	
-gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,updateValues}
+gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition						=	([TUIFragment (TUIStringControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
 													, 1
 													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
-			| updateValues && oldV <> newV		=	([TUIUpdate (TUISetValue id newV)]
-													, 1
-													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_										=	([TextFragment (toString old)]
-													, 1
-													, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			| oldV <> newV	=	([TUIUpdate (TUISetValue id newV)]
+									, 1
+									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+		_					=	([TextFragment (toString old)]
+									, 1
+									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
@@ -636,18 +636,18 @@ where
 	| otherwise = []
 
 //UserName type
-gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateValues}
+gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIUserField {TUIUserField|name = dp2s contentPath, id = id, value = oldV, fieldLabel = label2s optional label, hideLabel = not useLabels })]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
 		VEditorUpdate
-			| updateValues && oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-												, 2
-												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
-		_									= ([TextFragment (toString old)]
-												, 2
-												, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+								, 2
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+		_					= ([TextFragment (toString old)]
+								, 2
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type

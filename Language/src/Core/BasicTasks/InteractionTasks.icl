@@ -67,7 +67,7 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr}
 		| otherwise
 			# tst				= setTaskStore "value" nvalue tst
 			# tst				= setTaskStore "mask" nmask tst
-			# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue False
+			# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue
 			# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 			# buttonActions		= evaluateConditions buttonActions valid nvalue
 			# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
@@ -335,7 +335,7 @@ where
 		# (omask,tst)		= readMask n (Just oEditV) tst
 		# (nmask,tst)		= accWorldTSt (defaultMask nEditV) tst
 		# tst				= setTaskStore (addStorePrefix n "mask") nmask tst
-		= (determineEditorUpdates (editorId taskNr n) (Just n) omask nmask [] oEditV nEditV True,tst)
+		= (determineEditorUpdates (editorId taskNr n) (Just n) omask nmask [] oEditV nEditV,tst)
 	
 	visualize taskNr n stateV tst
 		# editV			= editorFrom stateV
