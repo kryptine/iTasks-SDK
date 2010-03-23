@@ -5,21 +5,18 @@ import TSt, DocumentDB, ProcessDB, Http, HttpUtil, Text, StdEnv
 //used to upload
 handleDocumentUploadRequest	:: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentUploadRequest req tst
+	| length req.arg_uploads <> 1
+		= (errorResponse "Invalid upload.",tst)
+	# upl	= hd req.arg_uploads
+	# mbDoc	= fromJSON (http_getValue "docInfo" req.arg_post "")
+	| isNothing mbDoc
+		= (errorResponse "Cannot parse document information.",tst)
 	# taskId	= http_getValue "_targettask" req.arg_post ""
-	# (nreq,tst) = case req.arg_uploads of
-		[upl]
-			# name		= http_getValue "_name" req.arg_post ""
-			# mbDoc		= fromJSON (http_getValue "docInfo" req.arg_post "")
-			# fname		= last (split "\\" upl.upl_filename)
-			# (doc,tst)	= case mbDoc of
-				(Just doc)
-					= updateDocument doc fname upl.upl_mimetype taskId upl.upl_content tst
-				_
-					= abort "can't decode docinfo"
-			# new_post  = [(name,toJSON doc):req.arg_post]
-			= ({req & arg_post = new_post},tst)
-		_ = abort "invalid upload"
-	# tst				= {TSt | tst & request = nreq}
+	# name		= http_getValue "_name" req.arg_post ""
+	# fname		= last (split "\\" upl.upl_filename)
+	# (doc,tst)	= updateDocument (fromJust mbDoc) fname upl.upl_mimetype taskId upl.upl_content tst
+	# new_post  = [(name,toJSON doc):req.arg_post]
+	# tst		= {TSt | tst & request = {req & arg_post = new_post}}
 	// update tasks
 	# procId			= http_getValue "_maintask" req.arg_post "0"
 	# tst				= updateTasks procId tst
@@ -35,7 +32,7 @@ handleDocumentClearRequest req tst
 			# name		= http_getValue "_name" req.arg_post ""
 			# new_post  = [(name,toJSON doc):req.arg_post]
 			= (successResponse,{tst & request = {req & arg_post = new_post}})
-		_ = (errorResponse "Cannot parse document information",tst)
+		_ = (errorResponse "Cannot parse document information.",tst)
 	// update tasks
 	# procId			= http_getValue "_maintask" req.arg_post "0"
 	# tst				= updateTasks procId tst
