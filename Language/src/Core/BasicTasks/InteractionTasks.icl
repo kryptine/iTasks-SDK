@@ -360,13 +360,10 @@ updateShared question actions sharedId views = mkInteractiveTask "updateShared" 
 
 updateSharedLocal :: question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
 updateSharedLocal question actions initial views =
-				mkInstantTask "createShared" createLocalShared
-	>>= \sid.	writeDB sid initial
-	>>|			mkInteractiveTask "updateShared" (makeSharedTask question actions sid views False)
+				createDB initial
+	>>= \sid.	mkInteractiveTask "updateShared" (makeSharedTask question actions sid views False)
 	>>= \res.	deleteDB sid
 	>>|			return res
-where
-	createLocalShared tst=:{taskNr} = (TaskFinished (mkDBid "localShared_" +++ taskNrToString taskNr), tst)
 
 makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr}

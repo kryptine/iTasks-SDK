@@ -33,12 +33,32 @@ derive gMakeLocalCopy	DBRef
 */
 mkDBid 	:: !String -> (DBid a)
 /**
+* Create a database reference with automatically generated unique name
+*
+* @return A database reference
+*/
+createDBid :: Task (DBid a)
+/**
+* Create a database with automatically generated reference and given initial value
+*
+* @param Inital value
+* @return A database reference
+*/
+createDB :: !a 				-> Task (DBid a) | iTask a
+/**
 * Read the database.
 *
 * @param The database reference
-* @return The value in the database
+* @return The value in the database or a default value if no value is stored.
 */
-readDB	:: !(DBid a) 		-> Task a | iTask a
+readDB :: !(DBid a) 		-> Task a | iTask a
+/**
+* Read the database.
+*
+* @param The database reference
+* @return The value in the database if a value is stored.
+*/
+readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
 /**
 * Write the database.
 *

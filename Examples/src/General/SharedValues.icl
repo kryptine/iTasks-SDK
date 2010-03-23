@@ -14,9 +14,9 @@ TrimAction :== ActionLabel "Trim"
 
 linesPar :: Task Void
 linesPar =
-				return (mkDBid "shared_linesPar")
-	>>= \sid.	writeDB sid ""
-	>>|			ignoreResult (noteE sid -||- ignoreResult (updateShared "Lines" [quitButton] sid [listEditor]))
+				createDB ""
+	>>= \sid.	noteE sid -||- ignoreResult (updateShared "Lines" [quitButton] sid [listEditor])
+	>>|			deleteDB sid
 where
 	noteE sid = 
 							updateShared "Text" [ButtonAction (TrimAction, Always), quitButton] sid [noteEditor]
@@ -67,11 +67,10 @@ mergeTestList :: Task Void
 mergeTestList =
 				getCurrentUser
 	>>= \user.	return (toUserName user)
-	>>= \uname. return (mkDBid "shared_mergeTestList")
-	>>= \sid.	writeDB sid emptyL
-	>>|			ignoreResult (anyProc [{user = uname, task = ("1st View" @>> view sid)},
-									   {user = uname, task = ("2nd View" @>> view sid)}] Closed)
-	//>>|		ignoreResult ((user @: ("1st View", view sid)) -||- (user @: ("2nd View", view sid)))
+	>>= \uname. createDB emptyL
+	>>= \sid.	spawnProcess uname True ("1st View" @>> view sid)
+	>>|			spawnProcess uname True ("2nd View" @>> view sid)
+	>>|			deleteDB sid//stop
 where
 	view :: (DBid [String]) -> Task (Action,[String])
 	view sid = updateShared "List" [quitButton] sid [idEditor]
@@ -83,12 +82,11 @@ mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				getCurrentUser
 	>>= \user.	return (toUserName user)
-	>>= \uname.	return (mkDBid "shared_mergeTestDocuments")
-	>>= \sid.	writeDB sid emptyL
-	//>>|		ignoreResult ((user @: ("1st View", view sid idEditor)) -||- (user @: ("2nd View", view sid idEditor)) -||- (user @: ("3rd View", view sid idListener)))
-	>>|			ignoreResult (anyProc [{user = uname, task = (view sid idEditor   <<@ "1st View")},
-									   {user = uname, task = (view sid idEditor   <<@ "2nd View")},
-									   {user = uname, task = (view sid idListener <<@ "3rd View")}] Closed)
+	>>= \uname.	createDB emptyL
+	>>= \sid.	spawnProcess uname True ("1st View" @>> view sid idEditor)
+	>>|			spawnProcess uname True ("2nd View" @>> view sid idEditor)
+	>>|			spawnProcess uname True ("3rd View" @>> view sid idListener)
+	>>|			stop
 where
 	view :: (DBid [Document]) (View [Document]) -> Task (Action,[Document])
 	view sid v = updateShared "List" [quitButton] sid [v]

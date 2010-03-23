@@ -21,6 +21,16 @@ derive bimap	Maybe, (,)
 ::DBid a :== String
 
 // Core db access
+createDBid :: Task (DBid a)
+createDBid = mkInstantTask "createDBid" createDBid`
+where
+	createDBid` tst=:{taskNr} = (TaskFinished (mkDBid "DB_" +++ taskNrToString taskNr), tst)
+	
+createDB :: !a -> Task (DBid a) | iTask a
+createDB init =
+				createDBid
+	>>= \id.	writeDB id init
+	>>|			return id
 
 readDB :: !(DBid a) -> Task a | iTask a
 readDB key = mkInstantTask "readDB" readDB`
@@ -33,6 +43,13 @@ where
 			Nothing		
 				# (val,world) = defaultValue world
 				= (TaskFinished val,{TSt|tst & dataStore = dstore, world = world})
+				
+readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
+readDBIfStored key = mkInstantTask "readDBIfStored" readDBIfStored`
+where
+	readDBIfStored` tst=:{dataStore,world}
+		# (mbVal,dstore,world) = loadValue key dataStore world
+		= (TaskFinished mbVal,{TSt|tst & dataStore = dstore, world = world})
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkInstantTask "writeDB" writeDB`
