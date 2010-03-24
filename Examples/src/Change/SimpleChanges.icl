@@ -52,29 +52,29 @@ where
 	catch message  = showMessage message
 
 //Simple change which will run once and change the priority of all tasks to high
-changePriority :: TaskPriority -> Dynamic
+changePriority :: TaskPriority -> ChangeDyn
 changePriority priority =
 	dynamic change :: A.a: Change a | iTask a
 where
-	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change props t t0 = (Just {TaskProperties| props & managerProps = {props.managerProps & priority = priority}},Nothing, Just (changePriority priority))
 
 //Add a big red warning message prompt to the running task
-addWarning :: String -> Dynamic
+addWarning :: String -> ChangeDyn
 addWarning msg = 
 	dynamic change  :: A.a: Change a | iTask a
 where
-	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change props t t0 = (Nothing, Just (((showStickyMessage (redText msg) >>| getDefaultValue) -||- t)), Just (addWarning msg))
 
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
 //This will duplicate a running task n times
-duplicate :: User User String -> Dynamic
+duplicate :: User User String -> ChangeDyn
 duplicate me user topics =
 	dynamic change me user topics :: A.a: Change a | iTask a
 where
-	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
 		= 	( Just {TaskProperties | props & managerProps = {props.managerProps & worker = toUserName me}}
 			, Just (assign (toUserName me) NormalPriority Nothing 
@@ -86,23 +86,23 @@ where
 			, Nothing )
 
 //inform will inform a user that some process has ended.
-inform :: User String -> Dynamic
+inform :: User String -> ChangeDyn
 inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
-	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess (toUserName user) True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
-check :: User String -> Dynamic
+check :: User String -> ChangeDyn
 check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
-	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 = (Nothing, Just (t >>= \res -> assign user HighPriority Nothing (updateInformation ("Please verify result of " +++ procName) res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
-cancel :: User String ProcessId -> Dynamic
+cancel :: User String ProcessId -> ChangeDyn
 cancel user procName pid  =
 	dynamic change user :: A.b: Change b | iTask b
 where
@@ -115,11 +115,11 @@ where
 	mkDefault _ = getDefaultValue
 
 //reassign the work to someone else
-reassign :: User String ProcessId -> Dynamic
+reassign :: User String ProcessId -> ChangeDyn
 reassign user procName pid  =
 	dynamic change user :: A.b: Change b | iTask b
 where
-	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
 		# username = (toUserName user)
 		= (Just {TaskProperties | props & managerProps = {props.managerProps & worker = username}},Nothing, Nothing)
@@ -129,7 +129,7 @@ restart :: User String -> Dynamic
 restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
-	change :: User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
+	change :: User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user procName props t t0 = (Nothing, Just (assign (toUserName user) HighPriority Nothing (t0 <<@ procName)), Nothing)
 
 changePrio :: Task Void

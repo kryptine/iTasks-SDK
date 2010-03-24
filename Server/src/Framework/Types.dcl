@@ -89,8 +89,11 @@ instance == User
 					
 // Changes
 
+// A dynamic that contains a change
+:: ChangeDyn	:== Dynamic
+
 // A change function which may be used to change tasks at runtime
-:: Change a :== (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic))
+:: Change a :== (TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn))
 
 // Changes may be applied only once, or persist for future changes
 :: ChangeLifeTime	= CLTransient
@@ -98,8 +101,10 @@ instance == User
 
 //A label for identifying changes externally
 :: ChangeLabel	:== String
+
 //A labeled new change
-:: ChangeInjection :== (!ChangeLifeTime,!Dynamic)
+:: ChangeInjection :== (!ChangeLifeTime,!ChangeDyn)
+
 
 // Field behaviour extensions
 :: Static a = Static a						// Variable is always rendered as a HTML-fragment

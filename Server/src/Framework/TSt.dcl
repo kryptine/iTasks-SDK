@@ -27,13 +27,13 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, delegatorId	:: !UserName										// id of user who issued the task
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 
-					, mainTask		   :: !ProcessId										// The id of the current main task 
-					, properties	   :: !TaskProperties									// Properties of the current evaluated process		
+					, mainTask		   :: !ProcessId									// The id of the current main task 
+					, properties	   :: !TaskProperties								// Properties of the current evaluated process		
 					, menus			   :: !Maybe [Menu]									// Menu structure of the current task
-					, staticInfo	   :: !StaticInfo										// info which does not change during a run
+					, staticInfo	   :: !StaticInfo									// info which does not change during a run
 										
-					, currentChange	:: !Maybe (!ChangeLifeTime,!Dynamic)				// An active change
-					, pendingChanges:: ![(!ChangeLifeTime,!Dynamic)]					// Pending persistent changes
+					, currentChange	:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
+					, pendingChanges:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
 					
 					, config		:: !Config											// The server configuration
 					, request		:: !HTTPRequest										// The current http request
