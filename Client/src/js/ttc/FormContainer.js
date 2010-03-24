@@ -74,6 +74,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel,{
 				case "itasks.tui.Date":
 				case "itasks.tui.Time":
 				case "itasks.tui.Username":
+				case "itasks.tui.Currency":
 				case "textarea":
 				case "numberfield":
 				case "datefield":
