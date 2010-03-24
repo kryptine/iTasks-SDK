@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdBool, StdList, StdTuple, StdGeneric, StdMisc
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc
 
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
@@ -134,37 +134,20 @@ where
 /**
 * The behaviour of the 'old' parallel combinator expressed in terms of the 'new' parallel combinator*
 **/
-:: OPResult a = AllDone [(Int,a)] | PredDone [(Int,a)] | NotDone [(Int,a)]
 
-derive bimap (,)
+//derive bimap (,)
 
-derive gPrint OPResult
-derive gParse OPResult
-derive gVisualize OPResult
-derive gUpdate OPResult
-
-oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
-oldParallel label pred predDone allDone tasks =
-	group label "The old parallel combinator" (pfunc pred) (ffunc allDone predDone) (NotDone []) tasks
+oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
+oldParallel label pred f_pred f_all tasks = group label label aggregate finalize (False,[]) tasks
 where
-	pfunc :: ([a]->Bool) (a,Int) (OPResult a) -> ((OPResult a),PAction(Task a)) 
-	pfunc pred (val,i) (NotDone st)
-		# st = st++[(i,val)]
-		| length st == length tasks = (AllDone st,Stop)
-		| pred (stToList st) 		= (PredDone st,Stop)
-		| otherwise	   		 		= (NotDone st,Continue)
-	
-	stToList :: [(Int,a)] -> [a]
-	stToList st = [v \\ (i,v) <- st]
-		
-	ffunc :: ([a]->b) ([a]->b) (OPResult a) -> b
-	ffunc adone pdone (AllDone v)  = adone (sortList v)
-	ffunc adone pdone (PredDone v) = pdone (sortList v)
-	ffunc adone pdone _			   = abort "(Old Parallel) Finish function, while not done"	
-
-	sortList :: [(Int,a)] -> [a]
-	sortList [] = []
-	sortList [(i,v):ps] = sortList [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortList [(is,vs) \\ (is,vs) <- ps | is > i]
+	aggregate x (match,xs) = let xs` = [x:xs] in
+		if (length xs` == length tasks)
+			((False,xs`),Stop)			//All tasks are finished, let's stop :)
+			(if (pred (map fst xs`))
+				((True,xs`),Stop)		//The predicate matched, let's stop
+				((False,xs`),Continue)	//Keep on working
+			)
+	finalize (match,xs) = (if match f_pred f_all) (map fst (sortBy (\a b -> snd a < snd b) xs))
 //===================
 
 //Task composition for optional values
