@@ -50,14 +50,19 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 	},
 	
 	updateTabs : function(content){
-		
-		
+			
 		content = content.filter(function (val) { 
 			if(val == "done" || val == "redundant") return false;
 			else return true;
 		});
 		
 		for(var i=0; i < content.length; i++){
+			
+			Ext.apply(content[i],{
+					title : 'Subtask '+content[i].subtaskId,
+					iconCls: 'icon-task'
+			});
+			
 			for(var j=i; j<(this.items.length-1); j++){
 				if(content[i].taskId == this.items.get(j+1).taskId) break;
 			}
@@ -67,14 +72,14 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 			}
 			
 			if(i<(this.items.length-1)){
-				this.items.get(i+1).update(content[i]);
-			}else{
-				
-				Ext.apply(content[i],{
-					title : 'Subtask '+content[i].subtaskId,
-					iconCls: 'icon-task'
-				});
-				
+				if (this.items.get(i+1).getXType() == content[i].xtype){
+					this.items.get(i+1).update(content[i]);
+				}else{
+					//if not same xtype - completely replace tab contents
+					this.remove(i+1);
+					this.insert(i+1,content[i]);
+				}
+			}else{			
 				this.insert(j+1,content[i]);
 			}
 		}
