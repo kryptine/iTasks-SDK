@@ -18,12 +18,14 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 					region: 'west',
 					layoutConfig: {animate: true},
 					collapsible: true,
+					collapseMode: 'mini',
 					split: true,
 					border: false,
 					deferredRender: false,
 					width: 200,
 					minWidth: 200,
-					maxWidth: 400
+					maxWidth: 400,
+					autoScroll: true
 				},{
 					id: 'centerpanel',
 					region: 'center',
@@ -35,6 +37,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 						id: 'worklist',
 						xtype: 'itasks.worklist',
 						region: 'north',
+						collapsible: true,
+						collapseMode: 'mini',
+						header: false,
 						split: true,
 						height: 150
 					},{
