@@ -68,22 +68,22 @@ where
 
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment numberField], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
+		VEditorDefinition	= ([TUIFragment (TUICurrencyControl {TUICurrencyControl|id = id, name = dp2s currentPath
+												, value = oldV, fieldLabel = labelAttr useLabels label
+												, currencyLabel = curLabel old, optional = optional})]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
 			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
 		_					= ([TextFragment (toString old)], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
-	numberField				= TUINumberField {TUINumberField|name = dp2s currentPath, id = id
-								, value = oldV, fieldLabel = label2s optional (curLabel old label), hideLabel = not useLabels, allowDecimals = True, numDecimals = 2}
-
-	curLabel _ Nothing			= Nothing
-	curLabel (VValue (EUR _) _)	(Just l) = Just (l +++ " (&euro;)")
-	curLabel (VValue (GBP _) _)	(Just l) = Just (l +++ " (&pound;)")
-	curLabel (VValue (USD _) _)	(Just l) = Just (l +++ " ($)")
-	curLabel (VValue (JPY _) _)	(Just l) = Just (l +++ " (&yen;)")
-	curLabel _	_				= Nothing
+	curLabel (VValue (EUR _) _)	= "&euro;"
+	curLabel (VValue (GBP _) _)	= "&pound;"
+	curLabel (VValue (USD _) _)	= "$"
+	curLabel (VValue (JPY _) _) = "&yen;"
+	curLabel _					= "&euro;" //Use the default currency
 	
 	oldV	= value currentPath old
 	newV	= value currentPath new

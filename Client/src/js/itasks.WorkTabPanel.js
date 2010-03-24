@@ -409,6 +409,7 @@ itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
 				case "itasks.tui.Note":
 				case "itasks.tui.Date":
 				case "itasks.tui.Time":
+				case "itasks.tui.Currency":
 				case "itasks.tui.Username":
 				case "textarea":
 				case "numberfield":

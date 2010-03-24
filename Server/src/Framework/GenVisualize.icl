@@ -851,6 +851,7 @@ getId (TUIBoolControl d)		= Just d.TUIBasicControl.id
 getId (TUINoteControl d)		= Just d.TUIBasicControl.id
 getId (TUIDateControl d)		= Just d.TUIBasicControl.id
 getId (TUITimeControl d)		= Just d.TUIBasicControl.id
+getId (TUICurrencyControl d)	= Just d.TUICurrencyControl.id
 getId (TUIUsernameControl d)	= Just d.TUIBasicControl.id
 
 

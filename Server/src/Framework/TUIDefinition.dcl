@@ -28,6 +28,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUINoteControl TUIBasicControl
 	| TUIDateControl TUIBasicControl
 	| TUITimeControl TUIBasicControl
+	| TUICurrencyControl TUICurrencyControl
 	| TUIUsernameControl TUIBasicControl
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
@@ -61,7 +62,14 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, optional		:: !Bool
 	}
-	
+:: TUICurrencyControl =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, currencyLabel	:: !String
+	, optional		:: !Bool
+	}
 :: TUIButton =
 	{ name			:: !String
 	, id			:: !String
