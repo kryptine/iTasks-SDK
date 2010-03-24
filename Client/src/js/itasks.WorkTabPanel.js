@@ -10,7 +10,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	properties: null,
 	
 	debug: false,
-	activeSubtaskId: 0,
+	initialized: false,
 	
 	initComponent: function() {
 		Ext.apply(this, {
@@ -26,11 +26,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				region: "north",
 				height: 25
 			},{
-				xtype: "tabpanel",
+				xtype: "panel",
 				region: "center",
+				layout: "fit",
 				ctCls: "worktab-container",
-				tabPosition: "bottom",
-				layoutOnTabChange: true,
 				tbar: [{
 						text: "Refresh task",
 						iconCls: "x-tbar-loading",
@@ -73,13 +72,13 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	update: function(data) {
 
 		//Check if the task is finished or became redundant
-		if(data.content[0] == "done" || data.content[0] == "redundant") {
+		if(data.content == "done" || data.content == "redundant") {
 			var ct = this.getComponent(1).getComponent(0);
 			
 			if(ct.items && ct.items.length) {
 				ct.remove(0);
 			}
-			switch(data.content[0]) {
+			switch(data.content) {
 				case "done":	
 					ct.add(new Ext.Panel({
 						html: "This task is completed. Thank you."
@@ -130,79 +129,26 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	updateTitle: function(subject) {
 		this.setTitle(Ext.util.Format.ellipsis(subject.join(" - "),10));
 	},
-	updateTabContent: function(tab,content){
-
-		if(tab.initialized){
-			var cur = tab.getComponent(0);
-			if(cur.taskId == content.taskId && cur.xtype == content.xtype){
-				cur.update(content);
-			}else{
-				tab.remove(0,true);
-				tab.add(content);
-			}
-		}else{
-			tab.add(content);
-			tab.initialized = true;
-		}
-		
-		tab.taskId = content.taskId;
-		tab.subtaskId = content.subtaskId;
-		
-		if(content.xtype=="itasks.task-parallel"){
-			tab.setIconClass("icon-overview");
-		}else{
-			tab.setIconClass("icon-task");
-		}
-		
-		if(content.subtaskId){
-			tab.setTitle('Subtask '+content.subtaskId);
-		}else{
-			tab.setTitle('Task');
-		}
-	},
 	updateContent: function(content) {
-		var tabpanel = this.getComponent(1);
-		
-		//filter the content array
-		content = content.filter(function (val) {
-			if(val == "done" || val == "redundant") return false;
-			else return true;
-		});
+		var ct = this.getComponent(1);
 
-		for(var i=0; i<content.length; i++){
-			for(var j=i; j<tabpanel.items.length;j++){
-				if(content[i].taskId == tabpanel.items.get(j).taskId) break;
-			}
-					
-			for(var k=0; k < (j-i); k++){
-				tabpanel.remove(i,true);
-			}
+		if(this.initialized) {
+			//Recursively update tab content
+			var cur = ct.getComponent(0);
 			
-			if(i<tabpanel.items.length){
-				this.updateTabContent(tabpanel.items.get(i),content[i]);
-			}else{
-				var tab = new itasks.WorkPanelTab();
-				this.updateTabContent(tab,content[i]);
-				tabpanel.insert(j,tab);
-			}			
-		}
-		
-		var trailing = tabpanel.items.length - content.length;
-		
-		for(var i=0; i<trailing; i++){
-			tabpanel.remove(tabpanel.items.length-1,true);
-		}
-				
-		var t = 0;
-		for(var i=0; i<content.length; i++){
-			if(content[i].subtaskId == this.activeSubtaskId){
-				t=i;
-				break;
+			if(cur.taskId == content.taskId && cur.xtype == content.xtype) {
+				cur.update(content);
+			} else {
+				ct.remove(0,true);
+				ct.add(content);
+				ct.doLayout();
 			}
+		} else {
+			//Build initial content
+			ct.add(content);
+			ct.doLayout();
+			this.initialized = true;
 		}			
-		tabpanel.setActiveTab(t);	
-		
-		this.fireEvent("afterUpdateContent");
 	},
 	updateStatus: function(properties) {
 		this.getComponent(1).getComponent(1).update(properties);
@@ -231,20 +177,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},
 			scope: this
 		});
-	},
-	switchToSubtask: function(taskId){
-		var t = 0;
-		var tabpanel = this.getComponent(1);
-		
-		for(var i=0; i<tabpanel.items.length; i++){
-			var c = tabpanel.items.get(i);
-			
-			if(c.taskId == taskId){
-				t=i;
-			}
-		}
-		
-		tabpanel.setActiveTab(t);
 	}
 });
 
@@ -336,276 +268,6 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 	update: function (p) {
 		var props = [p.workerProps.progress,p.managerProps.priority,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
 		this.items.each(function(cmt,i){ cmt.setValue(props[i]); });
-	}
-});
-
-itasks.TaskFormPanel = Ext.extend(Ext.Panel, {
-	initComponent: function() {
-		Ext.apply(this, {
-			taskUpdates: {},
-			unstyled: true,
-			layout: "fit",
-			url: itasks.config.serverUrl+"/work/tab",
-			bodyStyle: "padding: 10px"
-		});
-		itasks.TaskFormPanel.superclass.initComponent.apply(this,arguments);
-	},
-	afterRender: function() {
-		itasks.TaskFormPanel.superclass.afterRender.apply(this,arguments);
-		this.attachTaskHandlers(this);
-		var tb = this.getTopToolbar();
-		tb.setVisible(tb.items.length > 0);
-	},
-	attachTaskHandlers: function(comp) {
-	
-		// Scary hack! Don't look below!
-		new Ext.util.DelayedTask().delay(100,this.attachDocumentLinkInformation,this);
-		// End of scary hack
-		
-		var changeTaskEvent = function () {
-			var ct = this.findParentByType(itasks.TaskFormPanel);
-			if(!ct)
-				return;
-
-			//Helper function to get the value of a checkbox group
-			function checkboxValues(boxes) {
-				var values = [];
-				var num = boxes.length;
-				for(var i = 0; i < num; i++) {
-					values[values.length] = boxes[i].value;
-				}
-				return Ext.encode(values);
-			}
-			
-			var value;
-			switch(this.xtype) {
-				
-				case "radiogroup": value = this.getValue().value; break;
-				case "checkboxgroup": value = checkboxValues(arguments[1]); break;
-				case "datefield": value = this.getRawValue(); break;
-				default: value = this.getValue();
-			}
-			ct.addUpdate(this.name, value);
-			ct.sendUpdates(true);
-		};
-		var clickTaskEvent = function () {
-			if(this.clickCB) this.clickCB(this);
-			
-			var ct = this.findParentByType(itasks.TaskFormPanel);
-			if(!ct)
-				return;
-						
-			ct.addUpdate(this.name, this.value);
-			ct.sendUpdates();
-			
-		};
-		
-		switch(comp.getXType()) {
-				case "textfield":
-				case "itasks.tui.String":
-				case "itasks.tui.Char":
-				case "itasks.tui.Int":
-				case "itasks.tui.Real":
-				case "itasks.tui.Note":
-				case "itasks.tui.Date":
-				case "itasks.tui.Time":
-				case "itasks.tui.Currency":
-				case "itasks.tui.Username":
-				case "textarea":
-				case "numberfield":
-				case "datefield":
-				case "timefield":
-				case "radiogroup":
-					comp.on("change",changeTaskEvent);
-					break;
-				case "checkbox":
-				case "itasks.tui.Bool":
-					comp.on("check",changeTaskEvent);
-					break;
-				case "checkboxgroup":
-					comp.on("change",changeTaskEvent);
-					break;
-				case "combo":
-				case "itasks.userfield":
-					comp.on("select",changeTaskEvent);
-					break;
-				case "button":
-				case "menuitem":
-					if(comp.name)
-						comp.on("click",clickTaskEvent);
-					break;
-		}
-		
-		if(comp.buttons) {
-			var num = comp.buttons.length;
-			for(var i = 0; i < num; i++) {
-				comp.buttons[i].on("click",clickTaskEvent);
-			}
-		}
-		//attach recursively
-		if(comp.items && comp.items.each)
-			comp.items.each(this.attachTaskHandlers, this);
-		if(comp.menu)
-			this.attachTaskHandlers(comp.menu);
-		if(comp.topToolbar)
-			this.attachTaskHandlers(comp.topToolbar);
-	},
-	
-	attachDocumentLinkInformation: function() {
-		
-		var links   = Ext.query("a[name=x-form-document-link]");
-		var plinks = Ext.query("a[name=x-form-document-preview-link]");
-		
-		for(var x=0; x < links.length; x++){
-			var link = links[x];
-			
-			if(link.pathname.indexOf('/') != 0){
-				link.pathname = itasks.config.serverUrl+'/'+link.pathname;
-			}else{
-				link.pathname = itasks.config.serverUrl+link.pathname;
-			}
-			link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
-			link.name = "";
-			
-			for(var y=0; y < plinks.length; y++){				
-				if(plinks[y].id == link.id){
-					var plink = plinks[y];		
-
-					plink.href="javascript:itasks.preview('"+link.href.replace( 'download','preview')+"')";
-					plink.name = "";
-				}
-			}
-		}
-	},
-	
-	addUpdate: function(name, value) {
-		this.taskUpdates[name] = value;
-	},
-	sendUpdates: function(delay) {
-		if(delay) {
-			new Ext.util.DelayedTask().delay(250,this.sendUpdates,this);
-		} else {
-			var wt = this.findParentByType(itasks.WorkPanel);
-			if(!wt)
-				return;
-			
-			wt.sendTaskUpdates(this.taskId,this.taskUpdates);
-		
-			this.taskUpdates = {};
-		}
-	},
-	update: function(data) {
-		if(data.updates) {
-			
-			var num = data.updates.length;
-			for (i = 0; i < num; i++) {
-				var update = data.updates[i];
-				switch(update[0]) {
-					case "TUIAdd":
-						var ct = Ext.getCmp(update[1]); 
-						if(ct) {
-							//Find the index of the reference component
-							var find = function(cmt,cnt,ind) {
-								if(cnt.items.get(ind) == undefined)
-									return ind;
-								if(cnt.items.get(ind) == cmt)
-									return ind;
-								else
-									return find(cmt,cnt,ind + 1);
-							}
-							
-							var index = find(ct, ct.ownerCt, 0) + 1;
-							var newct = ct.ownerCt.insert(index, update[2]);
-							
-							ct.ownerCt.doLayout();
-							ct.ownerCt.syncSize();
-							ct.ownerCt.ownerCt.doLayout();
-							
-							this.attachTaskHandlers(newct);
-						}
-						break;
-					case "TUIRemove":
-						var ct = Ext.getCmp(update[1]);
-						
-						if(ct) {
-							var oct = ct.ownerCt;
-							oct.remove(update[1]);
-							
-							oct.ownerCt.doLayout();
-							oct.ownerCt.syncSize();
-						}
-						break;
-					case "TUIReplace":
-						var ct = Ext.getCmp(update[1]);
-						if(ct) {
-							var oct = ct.ownerCt;
-							//Find the index of the reference component
-							var find = function(cmt,cnt,ind) {
-								if(cnt.items.get(ind) == undefined)
-									return ind;
-								if(cnt.items.get(ind) == cmt)
-									return ind;
-								else
-									return find(cmt,cnt,ind + 1);
-							}
-							
-							var index = find(ct, ct.ownerCt, 0);
-							
-							oct.remove(index);
-							var newct = oct.insert(index, update[2]);
-							
-							oct.doLayout();
-							oct.syncSize();
-							oct.ownerCt.doLayout();
-							
-							this.attachTaskHandlers(newct);
-						}
-						break;
-					case "TUISetEnabled":
-						var ct = Ext.getCmp(update[1]);
-						if(ct && ct.setDisabled) {
-							ct.setDisabled(!update[2]);
-						}
-						break;
-					case "TUISetValue":
-						var ct = Ext.getCmp(update[1]);
-						if(ct && ct.setValue) {
-							//suspend events to prevent check-event for checkbox
-							ct.suspendEvents();
-							if (ct.xtype == "radio") {
-								if(update[2] == "true") {
-									//first unset current element...
-									var group = ct.findParentByType("radiogroup");
-									var cur = group.getValue();
-									if(cur.setValue)
-										cur.setValue(false);
-									//...then set new one
-									ct.setValue(true);
-								}
-							} else {
-								ct.setValue(update[2]);
-							}
-							ct.resumeEvents();
-						}				
-						break;
-				}
-			}
-			
-		} else {
-			//Completely replace form
-			this.removeAll();
-			this.add(data.items[0]);
-			this.doLayout();
-			
-			//Replace toolbar
-			var tb = this.getTopToolbar();
-			tb.removeAll();
-			tb.add(data.tbar);
-			tb.setVisible(tb.items.length > 0);
-			
-			//Attach eventhandlers
-			this.attachTaskHandlers(this);
-		}
 	}
 });
 
@@ -719,118 +381,9 @@ itasks.form.ProgressField = Ext.extend(itasks.form.InlineField, {
 Ext.reg("itasks.priority",itasks.form.PriorityField);
 Ext.reg("itasks.progress",itasks.form.ProgressField);
 
-itasks.ParallelPanel = Ext.extend(Ext.Panel,{
-
-	initComponent: function(){
-		var store = new Ext.data.JsonStore({
-			autoDestroy: true,
-			root: 'subtasks',
-			fields: [{name: 'finished', type: 'bool'},'taskId', 'subject', 'delegatedTo', 'progress','subtaskId','description']
-		});
-
-		var col = new Ext.grid.ColumnModel({
-			defaults:{
-				menuDisabled: true,
-				sortable: true
-			},
-			columns: [
-				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
-				{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 75, renderer: this.renderId},
-				{header: 'Subject',		   		dataIndex: 'subject', width: 200},
-				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 120},
-				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 120},
-				{header: 'Description',			dataIndex: 'description', width: 400}
-			]
-		});
-
-		var grid = new Ext.grid.GridPanel({
-			store : store,
-			disableSelection: true,
-			colModel: col,	
-			width: '100%',
-			height: 250,
-		});
-		
-		Ext.apply(this,{
-			unstyled: true,
-			bodyStyle: 'padding: 10px',
-			items: [
-				{ xtype: 'panel'
-				, html: this.label
-				, bodyCssClass: 'task-description'
-				}
-				, grid			
-			]
-		});
-		
-		grid.on("rowdblclick",function(grid,row,e){
-			var store = grid.store;
-			var rec = grid.store.getAt(row);
-			var taskId = rec.data.taskId;
-			
-			var ct = grid.findParentByType(itasks.WorkPanel);
-			ct.switchToSubtask(taskId);			
-		});
-		
-		itasks.ParallelPanel.superclass.initComponent.apply(this,arguments);
-	},
-	
-	afterRender: function(arguments){
-		this.updateStore(this.subtaskInfo);
-		itasks.ParallelPanel.superclass.afterRender.call(this,arguments);
-	},
-	
-	update: function(content){
-		this.updateStore(content.subtaskInfo);
-	},
-	
-	updateStore: function(records){
-		var grid = this.getComponent(1);
-		var store = grid.store;
-		store.loadData({subtasks: records},false);
-	},
-	
-	renderFinished: function(val,metadata,rec,row,col,store){
-		if(val == false){
-			return '<div style="text-align: center"><img src="skins/default/img/icons/hourglass.png" /></div>'
-		}else{
-			return '<div style="text-align: center"><img src="skins/default/img/icons/tick.png" /></div>'
-		}
-	},
-	
-	renderId: function(val,metadata,rec,row,col,store){
-		var split = val.split(".");
-		render = '<img style="width: '+(split.length-1)*5+'px" src="'+Ext.BLANK_IMAGE_URL+'"></span>';		
-		render += val;
-		return render;
-	}
-});
-
-itasks.WorkPanelTab = Ext.extend(Ext.Panel,{
-	
-	initialized: false,
-	
-	initComponent: function(){
-		
-		Ext.apply(this,{
-			title: "Task",
-			iconCls: "icon-task",
-			unstyled: true,
-			autoScroll: true,
-			layout:'anchor',
-			defaults:{
-				anchor: 'r-'+itasks.app.scrollbarWidth
-			}
-		});
-
-		itasks.WorkPanelTab.superclass.initComponent.apply(this,arguments);
-	}
-});
 Ext.reg("itasks.work",itasks.WorkPanel);
-Ext.reg("itasks.work-tab",itasks.WorkPanelTab);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
 Ext.reg("itasks.work-status",itasks.WorkStatusPanel);
-Ext.reg("itasks.task-form",itasks.TaskFormPanel);
+//Ext.reg("itasks.task-form",itasks.TaskFormPanel);
 Ext.reg("itasks.task-monitor",itasks.TaskMonitorPanel);
 Ext.reg("itasks.task-waiting",itasks.TaskWaitingPanel);
-Ext.reg("itasks.task-parallel",itasks.ParallelPanel);

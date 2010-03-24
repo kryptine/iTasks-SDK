@@ -3,53 +3,70 @@ implementation module TaskPanel
 import JSON, TUIDefinition, TSt, ProcessDB
 import StdList, StdMisc, StdTuple, StdEnum, StdBool
 
-derive JSONEncode FormPanel, FormUpdate, MonitorPanel, MainTaskPanel, ParallelInfoPanel
+derive JSONEncode MonitorPanel, MainTaskPanel
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
-derive JSONEncode STFormPanel, STFormUpdate, STMonitorPanel, STMainTaskPanel
+derive JSONEncode STMonitorPanel, STMainTaskPanel
+
+derive JSONEncode TTCFormContainer, TTCParallelContainer, TTCGroupContainer
 
 //JSON specialization for TaskPanel: Ignore the union constructor
-JSONEncode{|TaskPanel|} (FormPanel x) c					= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (FormUpdate x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (MonitorPanel x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (MainTaskPanel x) c				= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (ParallelInfoPanel x) c			= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (STFormPanel x) c				= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (STFormUpdate x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (STMonitorPanel x) c			= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (STMainTaskPanel x) c			= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TaskDone) c					= ["\"done\"" : c]
 JSONEncode{|TaskPanel|} (TaskRedundant) c				= ["\"redundant\"" : c]
 
+JSONEncode{|TaskPanel|} (TTCParallelContainer x) c		= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (TTCFormContainer x) c			= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (TTCGroupContainer x) c			= JSONEncode{|*|} x c
+
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 JSONEncode{|UserName|} (UserName name disp)	c			= ["\"" +++ disp +++ " <" +++ name +++ ">\"" : c]
 
-buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (![TaskPanel],!*TSt)
-buildTaskPanels tree menus currentUser tst = case tree of
+buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)
+buildTaskPanel tree menus currentUser tst = case tree of
 	(TTInteractiveTask ti (Definition def acceptedA))
-		= ([FormPanel {FormPanel | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, items = [def], tbar = (makeMenuBar menus acceptedA ti)}], tst)
+		= (TTCFormContainer {TTCFormContainer 
+			| xtype 	= "itasks.ttc.form"
+			, id 		= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 	= ti.TaskInfo.taskId
+			, items 	= Just [def]
+			, updates 	= Nothing
+			, tbar 		= (makeMenuBar menus acceptedA ti)
+			, subtaskId = Nothing
+			}, tst)
 	(TTInteractiveTask ti (Updates upd acceptedA))
-		= ([FormUpdate {FormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti)}], tst)
+		= (TTCFormContainer {TTCFormContainer 
+			| xtype 	= "itasks.ttc.form"
+			, id 		= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 	= ti.TaskInfo.taskId
+			, items 	= Nothing
+			, updates 	= Just (determineUpdates upd menus acceptedA ti)
+			, tbar 		= (makeMenuBar menus acceptedA ti)
+			, subtaskId = Nothing
+			}, tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst) = f tst
-		= buildTaskPanels (TTInteractiveTask ti fres) menus currentUser tst
+		= buildTaskPanel (TTInteractiveTask ti fres) menus currentUser tst
 	(TTMonitorTask ti html)
-		= ([MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)}],tst)
+		= (MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] html)},tst)
 	(TTRpcTask ti rpc) 
-		= ([MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])}],tst)
+		= (MonitorPanel {MonitorPanel | xtype = "itasks.task-monitor", id = "taskform-" +++ ti.TaskInfo.taskId, taskId = ti.TaskInfo.taskId, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])},tst)
 	(TTMainTask ti mti menus _ _)
-		= ([MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti}],tst)
+		= (MainTaskPanel {MainTaskPanel | xtype = "itasks.task-waiting", taskId = ti.TaskInfo.taskId, properties = mti},tst)
 	(TTFinishedTask _ _)
-		= ([TaskDone],tst)
+		= (TaskDone,tst)
 	(TTSequenceTask ti tasks)
 		= case [t \\ t <- tasks | not (isFinished t)] of
-			[]	= (if (allFinished tasks) [TaskDone][TaskRedundant],tst)
-			[t]	= buildTaskPanels t menus currentUser tst
+			[]	= (if (allFinished tasks) TaskDone TaskRedundant,tst)
+			[t]	= buildTaskPanel t menus currentUser tst
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks)
-		# ipanel  			= (ParallelInfoPanel {ParallelInfoPanel | xtype = "itasks.task-parallel", taskId = ti.TaskInfo.taskId, label = "", subtaskInfo = []})
 		# (containers,tst)	= build tasks 0 tst
-		= ([ipanel:[c.taskpanel \\ c <- containers]],tst)
+		# container			= (TTCGroupContainer {TTCGroupContainer | xtype = "itasks.ttc.parallel", taskId = ti.TaskInfo.taskId, label = "", subtaskInfo = [], content = [c.taskpanel \\ c <-containers]})
+		= (container,tst)
 		where
 			build []	 idx tst = ([],tst)
 			build [t:ts] idx tst
@@ -63,8 +80,8 @@ buildTaskPanels tree menus currentUser tst = case tree of
 		# sttree			= [c \\ c <- sttree | filterClosedSubtasks c currentUser]	// filter out all tasks below a closed parallel, unless you are the manager of the parallel
 		# sttree			= [c \\ c <- sttree | filterPanel c.tasktree]				// filter out all tasks not belonging to the current user and all main/parallel task nodes		
 		# cpanels			= [c.taskpanel \\ c <- sttree]								// extract the panels
-		# ipanel  			= (ParallelInfoPanel {ParallelInfoPanel | xtype = "itasks.task-parallel", taskId = ti.TaskInfo.taskId, label = tpi.TaskParallelInfo.description, subtaskInfo = subtaskinfo})
-		= ([ipanel:cpanels],tst)
+		# container			= (TTCParallelContainer {TTCParallelContainer | xtype = "itasks.ttc.parallel", taskId = ti.TaskInfo.taskId, label = tpi.TaskParallelInfo.description, subtaskInfo = subtaskinfo, content = cpanels})
+		= (container,tst)
 where
 	filterPanel t =
 		case t of
@@ -80,14 +97,37 @@ where
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 	(TTInteractiveTask ti (Definition def acceptedA))
-		= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree
-		   , taskpanel = STFormPanel {STFormPanel | xtype="itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId
-		   , taskId = ti.TaskInfo.taskId, items = [def], subtaskId = subtaskNrToString stnr, tbar = (makeMenuBar menus acceptedA ti)}}], tst)
+		= ([{SubtaskContainer 
+			| subtaskNr = stnr
+			, manager = manager
+			, inClosedPar = inClosed
+			, tasktree = tree
+		    , taskpanel = TTCFormContainer {TTCFormContainer 
+		    								| xtype		= "itasks.ttc.form"
+		    								, id 		= "taskform-" +++ ti.TaskInfo.taskId
+		   									, taskId 	= ti.TaskInfo.taskId
+		   									, items 	= Just [def]
+		   									, updates	= Nothing
+		   									, subtaskId = Just (subtaskNrToString stnr)
+		   									, tbar 		= (makeMenuBar menus acceptedA ti)
+		   									}
+		   	}], tst)
 	(TTInteractiveTask ti (Updates upd acceptedA))
-		= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree
-			, taskpanel = STFormUpdate {STFormUpdate | xtype = "itasks.task-form", id = "taskform-" +++ ti.TaskInfo.taskId
-			, taskId = ti.TaskInfo.taskId, updates = (determineUpdates upd menus acceptedA ti), subtaskId = subtaskNrToString stnr
-			}}],tst)
+		= ([{SubtaskContainer 
+			| subtaskNr = stnr
+			, manager = manager
+			, inClosedPar = inClosed
+			, tasktree = tree
+			, taskpanel = TTCFormContainer {TTCFormContainer 
+											| xtype 	= "itasks.ttc.form"
+											, id 		= "taskform-" +++ ti.TaskInfo.taskId
+											, taskId 	= ti.TaskInfo.taskId
+											, items		= Nothing 
+											, updates 	= Just (determineUpdates upd menus acceptedA ti)
+											, subtaskId = Just (subtaskNrToString stnr)
+											, tbar 		= (makeMenuBar menus acceptedA ti)
+											}
+			}],tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst)	= f tst
 		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed tst

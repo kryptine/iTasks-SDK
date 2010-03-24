@@ -56,7 +56,7 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 				type   : parent.gmap.getMapTypeId().toUpperCase()
 			}
 			
-			var ct = parent.findParentByType("itasks.task-form");
+			var ct = parent.findParentByType(itasks.ttc.FormContainer);
 			if(!ct) return;
 			
 			ct.addUpdate(parent.name, Ext.encode(value));
@@ -72,7 +72,7 @@ itasks.GMapPanel = Ext.extend( Ext.Panel, {
 				point	: [ll.lat(),ll.lng()]
 			}
 			
-			var ct = parent.findParentByType("itasks.task-form");
+			var ct = parent.findParentByType(itasks.ttc.FormContainer);
 			if(!ct) return;
 			
 			ct.addUpdate(parent.name, Ext.encode(value));

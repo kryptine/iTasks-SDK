@@ -25,6 +25,13 @@
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
 		,{"text":"TupleContainer.js","path":"src/js/tui/"}
+		
+		,{"text":"FormContainer.js","path":"src/js/ttc/"}
+		,{"text":"MonitorContainer.js","path":"src/js/ttc/"}
+		,{"text":"ProcessControlContainer.js","path":"src/js/ttc/"}
+		,{"text":"ParallelContainer.js","path":"src/js/ttc/"}
+		,{"text":"GroupContainer.js","path":"src/js/ttc/"}
+		
 		,{"text":"itasks.LoginWindow.js","path":"src/js/"}
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
 		,{"text":"itasks.NewWorkPanel.js","path":"src/js/"}

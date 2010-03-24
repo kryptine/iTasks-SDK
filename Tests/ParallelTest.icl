@@ -32,7 +32,7 @@ parExtendTest :: Task Int
 parExtendTest =
 	group  "Extender" "" extfunc id 0 [task]
 where
-	extfunc :: (Int,Int) Int -> (Int,PAction Task Int)
+	extfunc :: (Int,Int) Int -> (Int,PAction (Task Int))
 	extfunc (val,idx) cnt
 		| val == 0 = (cnt,Stop)
 		# addTasks = repeatn val task
@@ -92,7 +92,7 @@ where
 		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> let usernames = map toUserName users in 
 		parallel Open "Weird string function" "Keeps extending until user types '.'" (func usernames) parse (0,[]) [{AssignedTask | user = (hd usernames), task = task}]
 		where	
-			func :: ![UserName] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),PAction AssignedTask String)
+			func :: ![UserName] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),PAction (AssignedTask String))
 			func usernames (result,pos) (idx,acc)
 			| result == "." = ((idx,acc),Stop)
 			# acc = [(pos,result):acc]

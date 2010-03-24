@@ -115,7 +115,7 @@ itasks.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,
 			renderTarget: 'td.x-form-document-trash-button',
 			handler: function(src,evt){
 				var form = this.findParentByType("itasks.document.download");
-				var tf = this.findParentByType("itasks.task-form");
+				var tf = this.findParentByType(itasks.ttc.FormContainer);
 				var wt = this.findParentByType("itasks.work");
 				var dp = this.findParentByType("itasks.document");
 				
@@ -224,7 +224,7 @@ itasks.document.UploadPanel = Ext.extend(Ext.form.FormPanel,
 			renderTarget: 'td.x-form-document-upload-button',
             handler: function(src,evt){ 
 				var form = this.findParentByType("itasks.document.upload");
-				var tf = this.findParentByType("itasks.task-form");
+				var tf = this.findParentByType(itasks.ttc.FormContainer);
 				var wt = this.findParentByType("itasks.work");
 				var dp = this.findParentByType("itasks.document");
 								

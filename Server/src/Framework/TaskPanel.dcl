@@ -2,23 +2,28 @@ definition module TaskPanel
 
 import JSON, TUIDefinition, TSt, ProcessDB
 
-derive JSONEncode FormPanel, FormUpdate, MonitorPanel, MainTaskPanel, ParallelInfoPanel
+derive JSONEncode MonitorPanel, MainTaskPanel
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
-derive JSONEncode STFormPanel, STFormUpdate, STMonitorPanel, STMainTaskPanel
-derive JSONEncode TaskPanel
+derive JSONEncode STMonitorPanel, STMainTaskPanel
+
+derive JSONEncode TaskPanel,TTCParallelContainer, TTCFormContainer
 
 :: TaskPanel
-	= FormPanel FormPanel
-	| FormUpdate FormUpdate
-	| MonitorPanel MonitorPanel
+	//OLD STUFF
+	=
+	MonitorPanel MonitorPanel
 	| MainTaskPanel MainTaskPanel
-	| ParallelInfoPanel ParallelInfoPanel
-	| STFormPanel STFormPanel
-	| STFormUpdate STFormUpdate
 	| STMonitorPanel STMonitorPanel
 	| STMainTaskPanel STMainTaskPanel
 	| TaskDone
 	| TaskRedundant
+	//NEW STUFF	
+	| TTCFormContainer TTCFormContainer
+	//| TTCMonitorContainer
+	//| TTCProcessControlContainer
+	| TTCParallelContainer TTCParallelContainer
+	| TTCGroupContainer TTCGroupContainer
+	
 
 :: SubtaskNr :== [Int]
 
@@ -29,7 +34,35 @@ derive JSONEncode TaskPanel
 	, taskpanel		:: TaskPanel
 	, manager		:: UserName
 	}
+
+//==== NEW ======
+:: TTCFormContainer = 
+	{ xtype			:: !String
+	, id			:: !String
+	, taskId		:: !String
+	, items			:: !(Maybe [TUIDef])
+	, updates		:: !(Maybe [TUIUpdate])
+	, tbar			:: ![TUIDef]
+	, subtaskId		:: !(Maybe String)
+	}
 	
+:: TTCParallelContainer =
+	{ xtype			:: !String
+	, taskId		:: !String
+	, label			:: !String
+	, subtaskInfo	:: ![SubtaskInfo]
+	, content		:: ![TaskPanel]
+	}
+	
+:: TTCGroupContainer =
+	{ xtype			:: !String
+	, taskId		:: !String
+	, label			:: !String
+	, subtaskInfo	:: ![SubtaskInfo] //todo: remove
+	, content		:: ![TaskPanel]
+	}
+
+//==== OLD ======	
 :: MonitorPanel =
 	{ xtype			:: String
 	, id			:: String
@@ -83,13 +116,6 @@ derive JSONEncode TaskPanel
 	, subtaskId		:: String
 	} 
 
-:: ParallelInfoPanel =
-	{ xtype			:: String
-	, taskId		:: String
-	, label			:: String
-	, subtaskInfo	:: [SubtaskInfo]
-	}
-
 :: SubtaskInfo =
 	{ finished		:: Bool
 	, taskId		:: String
@@ -99,4 +125,4 @@ derive JSONEncode TaskPanel
 	, description	:: String
 	}
 
-buildTaskPanels :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (![TaskPanel],!*TSt)
+buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)

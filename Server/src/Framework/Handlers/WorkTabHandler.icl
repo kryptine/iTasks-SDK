@@ -19,7 +19,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 		(TTMainTask ti properties menus _ task)
 			# subject			= [properties.managerProps.TaskManagerProperties.subject]
 			# username			= toUserName staticInfo.currentSession.Session.user
-			# (panels,tst)		= buildTaskPanels task menus username tst
+			# (panel,tst)		= buildTaskPanel task menus username tst
 			// Collect debug information
 			# (debuginfo,tst)	= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.
@@ -27,7 +27,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 				// Update the task timestamps 
 				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
 				// Create the response
-				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panels, debug = debuginfo} in
+				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
 		 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 			
 			| otherwise
@@ -45,17 +45,17 @@ where
 	error msg tst
 		= ({http_emptyResponse & rsp_data = "{ \"success\" : false, \"error\" : \"" +++ msg +++ "\"}"}, tst)
 	redundant tst
-		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = [TaskRedundant], debug = Nothing} in
+		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskRedundant, debug = Nothing} in
 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 	finished tst
-		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = [TaskDone], debug = Nothing} in
+		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskDone, debug = Nothing} in
 			({http_emptyResponse & rsp_data = toJSON content}, tst)
 			
 :: TaskContent =
 	{ success		:: Bool
 	, properties	:: Maybe TaskProperties
 	, subject		:: [String]
-	, content		:: [TaskPanel]
+	, content		:: TaskPanel
 	, debug			:: Maybe DebugInfo
 	}
 		

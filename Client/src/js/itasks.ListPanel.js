@@ -35,7 +35,7 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 			});
 			
 			var addFunct = function(){
-				var formCt = this.findParentByType('itasks.task-form');
+				var formCt = this.findParentByType(itasks.ttc.FormContainer);
 				formCt.addUpdate(this.name,"add_-1");
 				formCt.sendUpdates(false);	
 			}
@@ -102,7 +102,7 @@ itasks.list.Toolbox = Ext.extend(Ext.Panel,{
 	},
 	
 	handleClick: function(action,name,index){
-		var formCt = this.findParentByType('itasks.task-form');
+		var formCt = this.findParentByType(itasks.ttc.FormContainer);
 		formCt.addUpdate(name,action+"_"+index);
 		formCt.sendUpdates(false);	
 	},
