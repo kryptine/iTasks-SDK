@@ -2,29 +2,22 @@ definition module TaskPanel
 
 import JSON, TUIDefinition, TSt, ProcessDB
 
-derive JSONEncode MonitorPanel, MainTaskPanel
-derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
-derive JSONEncode STMonitorPanel, STMainTaskPanel
 
-derive JSONEncode TaskPanel,TTCParallelContainer, TTCFormContainer
+derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
+
+derive JSONEncode TaskPanel, TTCParallelContainer, TTCGroupContainer
+derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer	
 
 :: TaskPanel
-	//OLD STUFF
-	=
-	MonitorPanel MonitorPanel
-	| MainTaskPanel MainTaskPanel
-	| STMonitorPanel STMonitorPanel
-	| STMainTaskPanel STMainTaskPanel
-	| TaskDone
+	= TaskDone
 	| TaskRedundant
-	//NEW STUFF	
 	| TTCFormContainer TTCFormContainer
-	//| TTCMonitorContainer
-	//| TTCProcessControlContainer
+	| TTCMonitorContainer TTCMonitorContainer
+	| TTCResultContainer TTCResultContainer
+	| TTCProcessControlContainer TTCProcessControlContainer
 	| TTCParallelContainer TTCParallelContainer
 	| TTCGroupContainer TTCGroupContainer
 	
-
 :: SubtaskNr :== [Int]
 
 :: SubtaskContainer =
@@ -46,6 +39,30 @@ derive JSONEncode TaskPanel,TTCParallelContainer, TTCFormContainer
 	, subtaskId		:: !(Maybe String)
 	}
 	
+:: TTCMonitorContainer =
+	{ xtype			:: String
+	, id			:: String
+	, taskId		:: String
+	, html			:: String
+	, subtaskId		:: !(Maybe String)
+	}
+	
+:: TTCResultContainer =
+	{ xtype			:: String
+	, id			:: String
+	, taskId		:: String
+	, html			:: String
+	, subtaskId		:: !(Maybe String)
+	}
+
+	
+:: TTCProcessControlContainer =
+	{ xtype			:: String
+	, taskId		:: String
+	, properties	:: TaskProperties
+	, subtaskId		:: !(Maybe String)
+	}
+	
 :: TTCParallelContainer =
 	{ xtype			:: !String
 	, taskId		:: !String
@@ -63,12 +80,7 @@ derive JSONEncode TaskPanel,TTCParallelContainer, TTCFormContainer
 	}
 
 //==== OLD ======	
-:: MonitorPanel =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, html			:: String
-	}	
+
 :: FormPanel =
 	{ xtype			:: String
 	, id			:: String
@@ -82,33 +94,7 @@ derive JSONEncode TaskPanel,TTCParallelContainer, TTCFormContainer
 	, taskId		:: String
 	, updates		:: [TUIUpdate]
 	}
-:: MainTaskPanel =
-	{ xtype			:: String
-	, taskId		:: String
-	, properties	:: TaskProperties
-	}
-:: STMonitorPanel =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, html			:: String
-	, subtaskId		:: String
-	}	
-:: STFormPanel =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, items			:: [TUIDef]
-	, subtaskId		:: String
-	, tbar			:: [TUIDef]
-	}
-:: STFormUpdate =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, updates		:: [TUIUpdate]
-	, subtaskId		:: String
-	}
+
 :: STMainTaskPanel =
 	{ xtype			:: String
 	, taskId		:: String

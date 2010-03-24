@@ -1,6 +1,6 @@
 Ext.ns('itasks.ttc');
 
-itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
+itasks.ttc.ResultContainer = Ext.extend(Ext.Panel,{
 	initComponent: function() {
 		Ext.apply(this,{
 			defaults: {
@@ -10,7 +10,7 @@ itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
 			unstyled: true
 		});
 		
-		itasks.ttc.MonitorContainer.superclass.initComponent.apply(this,arguments);
+		itasks.ttc.ResultContainer.superclass.initComponent.apply(this,arguments);
 	},
 	
 	update: function(data){		
@@ -22,4 +22,4 @@ itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
 	}
 });
 
-Ext.reg('itasks.ttc.monitor',itasks.ttc.MonitorContainer);
+Ext.reg('itasks.ttc.result',itasks.ttc.ResultContainer);

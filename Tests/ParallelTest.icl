@@ -9,6 +9,12 @@ derive gParse Either
 
 derive bimap Maybe
 
+simpleTest :: Task Int
+simpleTest =
+	getCurrentUser >>=
+	\user  -> return (toUserName user) >>=
+	\uname -> uname @: ("Assigned Task",enterInformation "Value 1")
+
 orTest :: Task Int
 orTest = (enterInformation "Value 1" -||- enterInformation "Value 2")
 
@@ -109,6 +115,7 @@ where
 
 Start :: *World -> *World
 Start world = startEngine [
+			workflow "Simple Test" (simpleTest >>= showMessageAbout "Result"),
 			workflow "Or Test" (orTest  >>= showMessageAbout "Result"),
 			workflow "And Test" (andTest  >>= showMessageAbout "Result"),
 			workflow "Any Test" (anyTest  >>= showMessageAbout "Result"),
