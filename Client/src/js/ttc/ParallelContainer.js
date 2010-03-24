@@ -12,6 +12,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 		
 		Ext.apply(this,
 		{ activeTab: 0
+		, items: []
 		});		
 		
 		itasks.ttc.ParallelContainer.superclass.initComponent.apply(this,arguments);	

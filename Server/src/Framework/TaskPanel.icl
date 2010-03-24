@@ -230,7 +230,18 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)	 
 		| otherwise
 			= case inptype of
-				Nothing	 = ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)
+				Nothing	 = ([{SubtaskContainer 
+							| subtaskNr = stnr
+							, manager = manager
+							, inClosedPar = inClosed
+							, tasktree = tree
+							, taskpanel = TTCProcessControlContainer {TTCProcessControlContainer
+																		| xtype 		= "itasks.ttc.proc-control"
+																		, taskId		= ti.TaskInfo.taskId
+																		, properties 	= mti
+																		, subtaskId		= Just (subtaskNrToString stnr)
+																		}
+							}], tst)
 				_		 = buildSubtaskPanels task stnr menus manager partype inClosed tst
 
 buildSubtaskInfo :: ![SubtaskContainer] !UserName -> [SubtaskInfo]
