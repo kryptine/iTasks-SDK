@@ -141,12 +141,12 @@ changePrio
 changeWarningTask :: Task Void
 changeWarningTask
 	=				enterInformation "Type in warning you want to show to all:"
-	>>= \warning ->	chooseProcess "What process do you want to change?"			
+	>>= \warning ->	chooseProcess "Which process do you want to change?"			
 	>>= \proc ->	applyChangeToProcess proc (addWarning warning) (CLPersistent "warning")
 
 duplicateTask :: Task Void
 duplicateTask
-	=				chooseProcess "What process do you want to duplicate?"
+	=				chooseProcess "Which process do you want to duplicate?"
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	getCurrentUser
@@ -168,21 +168,21 @@ checkTask
 	
 cancelTask :: Task Void
 cancelTask
-	=				chooseProcess "Select task you want to cancel:"
+	=				chooseProcess "Select the task you want to cancel:"
 	>>= \procId ->	chooseUserA "Select the user who will define the result instead:"
 	>>= \user ->	getProcess procId
 	>>= \process -> applyChangeToProcess procId (cancel user (fromJust process).properties.managerProps.subject procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask
-	=				chooseProcess "Select task you want to reassign to someone else:"
+	=				chooseProcess "Select the task you want to reassign to someone else:"
 	>>= \procId ->	chooseUserA "Who should continue with this work?"
 	>>= \user ->	getProcess procId
 	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).properties.managerProps.subject procId) CLTransient
 
 restartTask :: Task Void
 restartTask
-	=				chooseProcess "Select task you want to restart from scratch:"
+	=				chooseProcess "Select the task you want to restart from scratch:"
 	>>= \procId ->	chooseUserA "Who should start with this work?"
 	>>= \user ->	getProcess procId
 	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).properties.managerProps.subject) CLTransient

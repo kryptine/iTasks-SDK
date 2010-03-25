@@ -19,10 +19,16 @@ where
 instance html String
 instance html [HtmlTag]
 
-:: TaskAction a = ButtonAction (ActionWithCond a) | MenuAction (ActionWithCond a) | ButtonAndMenuAction (ActionWithCond a) | MenuParamAction (String, ActionCondition a)
-:: ActionWithCond a :== (Action, ActionCondition a)
-:: ActionCondition a = Always | IfValid | Predicate ((EditorValue a) -> Bool)
-:: EditorValue a = Invalid | Valid a
+:: TaskAction a 		= 	ButtonAction (ActionWithCond a) 
+						| 	MenuAction (ActionWithCond a) 
+						| 	ButtonAndMenuAction (ActionWithCond a) 
+						| 	MenuParamAction (String, ActionCondition a)
+:: ActionWithCond a 	:== (Action, ActionCondition a)
+:: ActionCondition a 	= 	Always 
+						| 	IfValid 
+						| 	Predicate ((EditorValue a) -> Bool)
+:: EditorValue a 		= 	Invalid 
+						| 	Valid a
 
 //*** Input tasks ***//
 enterInformation			:: question -> Task a												| html question & iTask a
