@@ -32,9 +32,9 @@ nmessage = 2
 
 newsgroupsExample :: [Workflow]
 newsgroupsExample
-=	[	/*workflow	 "Examples/Miscellaneous/Newsgroups" newsGroup
-	,	*/workflow	 "Examples/Mail/Internal/With receive confirmation" internalEmail
-	,	workflow	 "Examples/Mail/Internal/With forced reply" internalEmailReply
+=	[	workflow	 "Examples/Communication/Newsgroups" handleMenu
+	,	workflow	 "Examples/Communication/Mail with receive confirmation" internalEmail
+	,	workflow	 "Examples/Communication/Mail with forced reply" internalEmailReply
 	]
 
 // mail handling, to be put in sepparate icl file
@@ -50,7 +50,8 @@ newsgroupsExample
 internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
-	>>= \msg ->						msg.to @: (msg.EMail.subject, showMessageAbout "You have received the following message:" msg)
+	>>= \msg ->						getCurrentUser
+	>>= \me ->						msg.to @: (msg.EMail.subject, showMessageAbout ("You have received the following message from " <+++ me.displayName) msg)
 	>>|								showMessage ("Your mail has been read by " <+++ getUserName msg.to)
 	>>|								return msg
 
@@ -59,37 +60,30 @@ getUserName (UserName id name) = name
 internalEmailReply :: (Task (EMail,Reply)) // crashes ?? group
 internalEmailReply
 =									enterInformation "Type your email message ..."
-	>>= \msg ->						msg.to @: (msg.EMail.subject, (showMessageAbout "You have received the following message:" msg
+	>>= \msg ->						getCurrentUser
+	>>= \me ->						msg.to @: (msg.EMail.subject, (showStickyMessageAbout ("You have received the following message from " <+++ me.displayName) msg
 																  ||- 
 																   enterInformation "The sender requested a reply..."))
 	>>= \reply->					showMessageAbout ("Your mail has been read by " <+++ getUserName msg.to) reply
 	>>|								return (msg,reply)
 
-
-myAndTasks msg tasks =	oldParallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks]
-
-showCurrentNames :: [UserName] -> Task Void
-showCurrentNames names = showStickyMessageAbout "Current names:" names
-
-cancel :: (Task a) -> Task a | iTask a
-cancel task = task -||- (showMessage "Cancel this task" >>| getDefaultValue)
-
 // newsgroup handling
-
-/*
-
 
 ifValid expr = Predicate (\val -> case val of
 									Invalid -> False
 									_ -> expr)
+
+ActionShowGroups	:== ActionLabel "ShowGroups"
+
 initMenu :: Task Void
 initMenu 
 	= setMenus
-		[ Menu "File"	[ MenuItem "New"			ActionNew
-						, MenuItem "Open..."		ActionOpen
+		[ Menu "File"	[ MenuItem "New Group..."		ActionNew
+						, MenuItem "Show News Groups..."	ActionShowGroups
+						, MenuItem "Subscribe..."	ActionOpen
 						, MenuSeparator
-						, MenuItem "Save"			ActionSave
-						, MenuItem "Save As..."		ActionSaveAs
+//						, MenuItem "Save"			ActionSave
+//						, MenuItem "Save As..."		ActionSaveAs
 						, MenuSeparator
 						, MenuItem "Quit"			ActionQuit
 						]
@@ -97,17 +91,127 @@ initMenu
 						]
 		]
 
-actions ((name,flow), mode)
-	=	map MenuAction	[ (ActionNew,		Always)
-						, (ActionOpen,		Always)
-						, (ActionSave,		ifValid (validFlow name flow.flowDyn))
-						, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn))
+actions 
+	=	map MenuAction	[ (ActionNew,		 Always)
+						, (ActionShowGroups, Always)
+//						, (ActionSave,		ifValid (validFlow name flow.flowDyn))
+//						, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn))
 						, (ActionQuit,		Always)
-						, (ActionShowAbout,	Always)
-						]
+//						, (ActionShowAbout,	Always)
+						] 
 
-validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDyn)
+okCancel
+	=	[ ButtonAction	(ActionCancel,	Always)
+		, ButtonAction	(ActionOk,	Always)
+		]
+		
 
+handleMenu :: Task Void
+handleMenu 
+	=	initMenu >>| doMenu
+
+doMenu 
+	=						showMessageA "Newsgroup reader..." actions
+		>>= switch
+where
+	switch ActionCancel 	= doMenu
+	switch ActionNew 		= addNewsGroup >>| doMenu
+	switch ActionShowGroups = showNewsGroups >>| doMenu
+	switch 	_ 				= return Void
+
+addNewsGroup :: (Task Void)
+addNewsGroup	
+	=						readNewsGroups
+		>>= \groups ->		enterInformationAboutA "Enter new news group name to add:"  okCancel groups 
+		>>= switch
+where
+	switch 	(ActionCancel,_) = doMenu
+	switch 	(_,newName) 	
+		= 					readNewsGroups
+		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
+		>>= \groups ->		requestConfirmationAbout "Do you want to add more?" groups 
+		>>= \yn ->			if yn addNewsGroup (return Void)
+	
+showNewsGroups :: (Task Void)
+showNewsGroups
+	=						readNewsGroups
+		>>= \groups ->		showMessageAbout "The following newsgroups have been defined:" groups
+/*
+subscribeNewsGroup :: (Task Void)
+subscribeNewsGroup
+=					getCurrentUser
+	>>= \user ->	readNewsGroups 
+	>>= 			subscribe (toUserName user)
+where
+	subscribe me []
+	=						showMessage "No newsgroups in catalogue yet:"
+	subscribe me groups
+	=						enterChoice "Choose a group:" groups
+		>>= \group ->		addSubscription me (group,0)
+		>>|					spawnProcess me True (readNews me group 0 <<@ group <+++ " news group subscription")
+		>>|					return Void
+
+readNews :: UserName String Int -> Task Void
+readNews me group index	
+=			orTasks2 [Text ("Welcome to newsgroup " +++ group)]
+							 [("Read next news items from newsgroup " <+++ group, readMore)
+							 ,("Commit new message to newsgroup " <+++ group,	  commitItem group >>| return index)
+							 ,("Unsubscribe from newsgroup " <+++ group,		  unsubscribe) 
+							 ,("Message list of newsgroup " <+++ group, 		  messageList index >>| return index)  
+							 ]
+		>>= \index -> if (index >= 0)
+						(spawnProcess me True (readNews me group index <<@ group <+++ " news group subscription" ) >>| return Void) // CODE GENERATION BUG WHEN REPLACE BY >>| 
+						(return Void)
+where
+	unsubscribe
+	=						requestConfirmation "Do you realy want to unsubscribe ?"
+								>>= \yn -> return (if yn -1 index) 
+
+	readMore 
+	=						(enterChoice "Browse through messagelist..."
+								[ readMoreNews (~nmessage) <<@ ("Previous " <+++ nmessage)
+								, readMoreNews nmessage <<@ ("Next " <+++ nmessage)
+								]
+							>>= \task -> task)
+	where
+		readMoreNews offset
+		=					readIndex me group
+			>>= \index ->	readNewsGroup group
+			>>= \news ->	readNextNewsItems index offset (length news)
+		where
+			readNextNewsItems  index offset length
+			# nix = index + offset
+			# nix = if (nix < 0) 0 (if (length <= nix) index nix)
+			= addSubscription me (group,nix) >>| return nix				 
+
+	messageList index
+	= 						readNewsGroup group 
+		>>= \newsItems  ->	allTasks [show i newsItem <<@ ("Message " <+++ i) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
+		>>|					showMessage "Refresh list"
+
+	show :: Int NewsItem -> Task Void
+	show i (who, message) 
+	= 	showMessageAbout [Text ("Message: " <+++ i), BrTag [], Text ("From: " <+++ toString who)] message
+		
+
+	commitItem :: String -> Task Void
+	commitItem  group
+	=								getCurrentUser
+		>>= \user ->      			commit user group
+	where
+		commit me group
+		=							enterInformation [Text "Type your message ..."] 
+		 >>= \(Note val) -> 		readNewsGroup  group 
+		 >>= \news ->				writeNewsGroup group (news ++ [(toUserName me,val)]) 
+		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
+
+			
+*/
+
+
+
+
+/*
 
 handleMenu :: Task Void
 handleMenu 
@@ -189,67 +293,11 @@ where
 
 
 
-readNews :: UserName String Int -> Task Void
-readNews me group index	
-=			orTasks2 [Text ("Welcome to newsgroup " +++ group)]
-							 [("Read next news items from newsgroup " <+++ group, readMore)
-							 ,("Commit new message to newsgroup " <+++ group,	  commitItem group >>| return index)
-							 ,("Unsubscribe from newsgroup " <+++ group,		  unsubscribe) 
-							 ,("Message list of newsgroup " <+++ group, 		  messageList index >>| return index)  
-							 ]
-		>>= \index -> if (index >= 0)
-						(spawnProcess me True (readNews me group index <<@ group <+++ " news group subscription" ) >>| return Void) // CODE GENERATION BUG WHEN REPLACE BY >>| 
-						(return Void)
-where
-	unsubscribe
-	=						requestConfirmation "Do you realy want to unsubscribe ?"
-								>>= \yn -> return (if yn -1 index) 
-
-	readMore 
-	=						(enterChoice "Browse through messagelist..."
-								[ readMoreNews (~nmessage) <<@ ("Previous " <+++ nmessage)
-								, readMoreNews nmessage <<@ ("Next " <+++ nmessage)
-								]
-							>>= \task -> task)
-	where
-		readMoreNews offset
-		=					readIndex me group
-			>>= \index ->	readNewsGroup group
-			>>= \news ->	readNextNewsItems index offset (length news)
-		where
-			readNextNewsItems  index offset length
-			# nix = index + offset
-			# nix = if (nix < 0) 0 (if (length <= nix) index nix)
-			= addSubscription me (group,nix) >>| return nix				 
-
-	messageList index
-	= 						readNewsGroup group 
-		>>= \newsItems  ->	allTasks [show i newsItem <<@ ("Message " <+++ i) \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
-		>>|					showMessage "Refresh list"
-
-	show :: Int NewsItem -> Task Void
-	show i (who, message) 
-	= 	showMessageAbout [Text ("Message: " <+++ i), BrTag [], Text ("From: " <+++ toString who)] message
-		
-
-	commitItem :: String -> Task Void
-	commitItem  group
-	=								getCurrentUser
-		>>= \user ->      			commit user group
-	where
-		commit me group
-		=							enterInformation [Text "Type your message ..."] 
-		 >>= \(Note val) -> 		readNewsGroup  group 
-		 >>= \news ->				writeNewsGroup group (news ++ [(toUserName me,val)]) 
-		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
-
-			
-
-
-
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iTask a
 orTasks2 msg tasks = oldParallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] 
 
+
+*/
 
 // reading and writing of storages
 
@@ -294,8 +342,10 @@ readNewsGroup groupname = readDB (groupNameId groupname)
 writeNewsGroup :: GroupName NewsGroup -> Task NewsGroup
 writeNewsGroup groupname news = writeDB (groupNameId groupname) news
 
-*/
 /*
+showCurrentNames :: [UserName] -> Task Void
+showCurrentNames names = showStickyMessageAbout "Current names:" names
+
 internalEmailResponse :: (Task Void)
 internalEmailResponse = cancel internalEmailResponse`
 where
