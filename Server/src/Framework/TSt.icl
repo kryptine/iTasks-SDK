@@ -627,23 +627,23 @@ where
 	finalizeTaskNode node							= node
 	
 		
-setTUIDef	:: !TUIDef ![(Action,Bool)] !*TSt -> *TSt
+setTUIDef	:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt
 setTUIDef def accActions tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Definition def accActions)}
-		_									= tst
+		_								= tst
 
 setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
 setTUIUpdates upd accActions tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Updates upd accActions)}
-		_									= tst
+		_								= tst
 		
 setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt -> *TSt
 setTUIFunc func tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Func func)}
-		_									= tst
+		_								= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt
 setStatus msg tst=:{tree}

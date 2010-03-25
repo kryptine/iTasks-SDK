@@ -26,14 +26,15 @@ buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt
 buildTaskPanel tree menus currentUser tst = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
-	(TTInteractiveTask ti (Definition def acceptedA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= (TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
-			, items 	= Just [def]
+			, content 	= Just def
 			, updates 	= Nothing
-			, tbar 		= (makeMenuBar menus acceptedA ti)
+			, tbar 		= makeMenuBar menus acceptedA ti
+			, buttons	= Just (map TUIButton buttons)
 			, subtaskId = Nothing
 			}, tst)
 	(TTInteractiveTask ti (Updates upd acceptedA))
@@ -41,9 +42,10 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
-			, items 	= Nothing
+			, content 	= Nothing
 			, updates 	= Just (determineUpdates upd menus acceptedA ti)
-			, tbar 		= (makeMenuBar menus acceptedA ti)
+			, tbar 		= makeMenuBar menus acceptedA ti
+			, buttons	= Nothing
 			, subtaskId = Nothing
 			}, tst)
 	(TTInteractiveTask ti (Func f))
@@ -78,12 +80,11 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			[t]	= buildTaskPanel t menus currentUser tst
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks)
+		# tasks				= filter filterFinished tasks
 		# (containers,tst)	= build tasks 0 tst
 		# container			= (TTCGroupContainer {TTCGroupContainer 
-								| xtype = "itasks.ttc.parallel"
+								| xtype = "itasks.ttc.group"
 								, taskId = ti.TaskInfo.taskId
-								, label = ""
-								, subtaskInfo = []
 								, content = [c.taskpanel \\ c <-containers]
 								})
 		= (container,tst)
@@ -119,10 +120,15 @@ where
 			(TTMainTask _ _ _ _ _)		= False 									// a main-subtask should not become visible
 			(TTGroupedTask _ _)			= False	
 			_ 							= abort "Unknown panel type in parallel"
+			
+	filterFinished t =
+		case t of
+			(TTFinishedTask _ _)	= False
+			_						= True
 
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
-	(TTInteractiveTask ti (Definition def acceptedA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
 			, manager = manager
@@ -132,10 +138,11 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		    								| xtype		= "itasks.ttc.form"
 		    								, id 		= "taskform-" +++ ti.TaskInfo.taskId
 		   									, taskId 	= ti.TaskInfo.taskId
-		   									, items 	= Just [def]
+		   									, content 	= Just def
 		   									, updates	= Nothing
 		   									, subtaskId = Just (subtaskNrToString stnr)
-		   									, tbar 		= (makeMenuBar menus acceptedA ti)
+		   									, tbar 		= makeMenuBar menus acceptedA ti
+		   									, buttons	= Just (map TUIButton buttons)
 		   									}
 		   	}], tst)
 	(TTInteractiveTask ti (Updates upd acceptedA))
@@ -148,10 +155,11 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 											| xtype 	= "itasks.ttc.form"
 											, id 		= "taskform-" +++ ti.TaskInfo.taskId
 											, taskId 	= ti.TaskInfo.taskId
-											, items		= Nothing 
+											, content	= Nothing 
 											, updates 	= Just (determineUpdates upd menus acceptedA ti)
 											, subtaskId = Just (subtaskNrToString stnr)
-											, tbar 		= (makeMenuBar menus acceptedA ti)
+											, tbar 		= makeMenuBar menus acceptedA ti
+											, buttons	= Nothing
 											}
 			}],tst)
 	(TTInteractiveTask ti (Func f))

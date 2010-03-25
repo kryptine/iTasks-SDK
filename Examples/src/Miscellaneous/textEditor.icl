@@ -144,7 +144,7 @@ textEditorMain :: (DBid AppState) -> Task AppAction
 textEditorMain sid  =
 						updateShared "Text Editor" [MenuParamAction ("openFile", Always):(map MenuAction actions)] sid [titleListener,mainEditor]
 	>>= \(action, _).	case action of
-							ActionNew					= writeDB sid initState >>|			return (AppAction (Extend [textEditorMain sid]))
+							ActionNew					= writeDB sid initState >>|				return (AppAction (Extend [textEditorMain sid]))
 							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid]))
 							ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) sid >>|	return (AppAction (Extend [textEditorMain sid]))
 							ActionSave					= save sid >>|							return (AppAction (Extend [textEditorMain sid]))
@@ -173,10 +173,8 @@ where
 
 textEditorApp :: Task Void
 textEditorApp =
-		writeDB sid initState
-	>>|	group "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
-where
-	sid = mkDBid "shared_textEditorApp"
+				createDB initState
+	>>= \sid.	group "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
 			
 initTextEditor :: Task Void
 initTextEditor = setMenus

@@ -481,9 +481,9 @@ gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 
 derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
 					
-taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef
+taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> (TUIDef,[TUIButton])
 taskPanel taskid description mbContext mbForm buttons
-	= TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Just (taskButtons buttons), bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=False}
+	= (TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=False}, taskButtons buttons)
 where
 	items = [taskDescriptionPanel ("description-"+++taskid) description] ++
 			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
@@ -498,8 +498,8 @@ where
 	taskFormPanel :: [TUIDef] -> TUIDef
 	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 0, unstyled=False}
 	
-	taskButtons	:: [(Action,String,String,String,Bool)] -> [TUIDef]
-	taskButtons buttons = [TUIButton (toTUIButton button id name value enable) \\ (button,id,name,value,enable) <- buttons]
+	taskButtons	:: [(Action,String,String,String,Bool)] -> [TUIButton]
+	taskButtons buttons = [toTUIButton button id name value enable \\ (button,id,name,value,enable) <- buttons]
 
 	toTUIButton :: !Action !String !String !String !Bool -> TUIButton
 	toTUIButton action id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = actionText, iconCls = getActionIcon action}

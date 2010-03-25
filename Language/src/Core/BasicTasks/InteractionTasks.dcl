@@ -115,5 +115,5 @@ updateSharedLocal			:: question ![TaskAction s] !s ![View s] -> Task (!Action, !
 
 //*** Utility Functions ***//
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
-makeButtons :: !String ![(Action, Bool)] -> [(!Action,!String,!String,!String,!Bool)]
-taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef
+//makeButtons :: !String ![(Action, Bool)] -> [(!Action,!String,!String,!String,!Bool)]
+//taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> TUIDef

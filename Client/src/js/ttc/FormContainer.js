@@ -3,12 +3,18 @@ Ext.ns('itasks.ttc')
 itasks.ttc.FormContainer = Ext.extend(Ext.Panel,{
 
 	initComponent: function(){
+		if(this.buttons) {
+			this.content.buttons = this.buttons;
+			delete this.buttons;
+		}
+		
 		Ext.apply(this, 
 		{ layout: 'fit'
 		, taskUpdates: {}
 		, url: itasks.config.serverUrl + '/work/tab'
 		, bodyStyle: 'padding: 10px'
 		, autoScroll: true
+		, items: [this.content]
 		});
 		
 		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
@@ -260,7 +266,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel,{
 			//Completely replace form
 		
 			this.removeAll();
-			this.add(data.items);
+			data.content.buttons = data.buttons;
+			this.add(data.content);
 			this.doLayout();
 			
 			//Replace toolbar

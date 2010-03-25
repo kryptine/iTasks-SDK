@@ -33,9 +33,10 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !String
-	, items			:: !(Maybe [TUIDef])
+	, content		:: !(Maybe TUIDef)
 	, updates		:: !(Maybe [TUIUpdate])
 	, tbar			:: ![TUIDef]
+	, buttons		:: !Maybe [TUIDef]
 	, subtaskId		:: !(Maybe String)
 	}
 	
@@ -74,8 +75,6 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 :: TTCGroupContainer =
 	{ xtype			:: !String
 	, taskId		:: !String
-	, label			:: !String
-	, subtaskInfo	:: ![SubtaskInfo] //todo: remove
 	, content		:: ![TaskPanel]
 	}
 
