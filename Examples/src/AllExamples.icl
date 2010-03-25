@@ -18,7 +18,7 @@ import SmallExamples
 import GUIDemo
 import BugReport
 import Coffeemachine
-//import Newsgroups -> broken
+import Newsgroups
 import ChangeHandling
 import textEditor
 
@@ -52,7 +52,7 @@ where
 						, bugReportExample
 						, coffeemachineExample
 						, textEditor
-						//, newsgroupsExample
+						, newsgroupsExample
 						, exceptionHandlingExample
 						, changeHandlingExample
 						, ambulanceDispatchExamples

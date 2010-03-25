@@ -1,6 +1,3 @@
-/*
-	== BROKEN == DOES NOT COMPILE ANYMORE ==
-
 implementation module Newsgroups
 
 //	In this example newsgroups are created and maintained
@@ -23,16 +20,11 @@ import CommonDomain
 :: Subscription	:== (GroupName,Index)			// last message read in corresponding group
 :: Index		:== Int							// 0 <= index < length newsgroup 
 
-:: EMail	=	{ to 		:: !String
-				, mailFrom 	:: !String
-				, subject 	:: !String
-				, message	:: !Note
-				}
 
-derive gPrint		EMail, EMail2
-derive gParse		EMail, EMail2	
-derive gVisualize	EMail, EMail2	
-derive gUpdate		EMail, EMail2
+derive gPrint		EMail, Reply
+derive gParse		EMail, Reply
+derive gVisualize	EMail, Reply	
+derive gUpdate		EMail, Reply
 
 derive bimap		Maybe, (,)
 
@@ -40,80 +32,125 @@ nmessage = 2
 
 newsgroupsExample :: [Workflow]
 newsgroupsExample
-=	[
-	{	name		= "Examples/Miscellaneous/Newsgroups/Groups/Add"
-	,	label		= "Add news group"
-	,	roles		= []
-	,	mainTask	= addNewsGroup
-	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Groups/Show"
-	,	label		= "Show news groups"
-	,	roles		= []
-	,	mainTask	= showNewsGroups
-	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Groups/Subscribe"
-	,	label		= "Subscribe to news group"
-	,	roles		= []
-	,	mainTask	= subscribeNewsGroup
-	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Mail/Simple"
-	,	label		= "internal email"
-	,	roles		= []
-	,	mainTask	= internalEmail2
-	},
-	{	name		= "Examples/Miscellaneous/Newsgroups/Mail/With answers"
-	,	label		= "internal emails with answers"
-	,	roles		= []
-	,	mainTask	= internalEmailResponse
-	}
+=	[	/*workflow	 "Examples/Miscellaneous/Newsgroups" newsGroup
+	,	*/workflow	 "Examples/Mail/Internal/With receive confirmation" internalEmail
+	,	workflow	 "Examples/Mail/Internal/With forced reply" internalEmailReply
 	]
 
+// mail handling, to be put in sepparate icl file
 
-:: EMail2	=	{ to` 		:: !UserName
-				, subject` 	:: !String
-				, message`	:: !Note
+:: EMail	=	{ to 			:: !UserName
+				, subject 		:: !String
+				, message		:: !Note
+				, attachements	:: ![Document]
+				}
+:: Reply	=	{ reply			:: !Note
 				}
 
-internalEmail2 :: (Task Void)
-internalEmail2
-=							enterInformation "Type your email message ..."
-	>>= \msg ->				msg.to` @: (msg.EMail2.subject`, showMessageAbout "You have received the following message:" msg)
-	>>|						showMessage "Mail has been read."
-
-
-internalEmailResponse :: (Task Void)
-internalEmailResponse = cancel internalEmailResponse`
-where
-	internalEmailResponse`
-	=							getCurrentUser
-		>>= \me ->				getToNames
-		>>= \tos ->				updateInformation "Type your message ..."
-									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) me.User.displayName "" "")
-		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
-										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
-										, MailAndReply msg (me.User.userName,me.User.displayName) (to,toname))
-										\\ (to,toname) <- tos
-										]  
-	where
-		MailAndReply msg (me,myname) (to,toname)
-		=						to @: 	( msg.subject
-										, enterInformationAbout "Please draft a reply to the following message:" msg
-										)
-			>>= \(Note reply)
-						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
-									  , showMessageAbout "" (initMsg myname toname ("RE: " <+++ msg.subject) reply)
-									  )
-
-	
-internalEmail :: (Task Void)
+internalEmail :: (Task EMail)
 internalEmail
-=							getCurrentUser
-	>>= \me ->				getToName
-	>>= \(to,toname) ->		updateInformation "Type your message ..." (initMsg toname me.User.displayName "" "")
-	>>= \msg ->				(showMessageAbout "" msg) -&&- (to @: (msg.subject, showMessageAbout "" msg)) >>| return Void
+=									enterInformation "Type your email message ..."
+	>>= \msg ->						msg.to @: (msg.EMail.subject, showMessageAbout "You have received the following message:" msg)
+	>>|								showMessage ("Your mail has been read by " <+++ getUserName msg.to)
+	>>|								return msg
 
-initMsg to for subject msg 
-= {to = to, mailFrom = for, subject = subject , message = Note msg}
+getUserName (UserName id name) = name
+	
+internalEmailReply :: (Task (EMail,Reply)) // crashes ?? group
+internalEmailReply
+=									enterInformation "Type your email message ..."
+	>>= \msg ->						msg.to @: (msg.EMail.subject, (showMessageAbout "You have received the following message:" msg
+																  ||- 
+																   enterInformation "The sender requested a reply..."))
+	>>= \reply->					showMessageAbout ("Your mail has been read by " <+++ getUserName msg.to) reply
+	>>|								return (msg,reply)
+
+
+myAndTasks msg tasks =	oldParallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks]
+
+showCurrentNames :: [UserName] -> Task Void
+showCurrentNames names = showStickyMessageAbout "Current names:" names
+
+cancel :: (Task a) -> Task a | iTask a
+cancel task = task -||- (showMessage "Cancel this task" >>| getDefaultValue)
+
+// newsgroup handling
+
+/*
+
+
+ifValid expr = Predicate (\val -> case val of
+									Invalid -> False
+									_ -> expr)
+initMenu :: Task Void
+initMenu 
+	= setMenus
+		[ Menu "File"	[ MenuItem "New"			ActionNew
+						, MenuItem "Open..."		ActionOpen
+						, MenuSeparator
+						, MenuItem "Save"			ActionSave
+						, MenuItem "Save As..."		ActionSaveAs
+						, MenuSeparator
+						, MenuItem "Quit"			ActionQuit
+						]
+		, Menu "Help"	[ MenuItem "About"			ActionShowAbout 
+						]
+		]
+
+actions ((name,flow), mode)
+	=	map MenuAction	[ (ActionNew,		Always)
+						, (ActionOpen,		Always)
+						, (ActionSave,		ifValid (validFlow name flow.flowDyn))
+						, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn))
+						, (ActionQuit,		Always)
+						, (ActionShowAbout,	Always)
+						]
+
+validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDyn)
+
+
+handleMenu :: Task Void
+handleMenu 
+	=	initMenu >>| doMenu emptyState
+
+doMenu state=:((name,flow), mode)
+		=	case mode of
+				False 		->							updateInformationA title1 (actions state) Void 
+								>>= \(action,_) ->		return (action,state)
+				True 	->								updateInformationA title2 	[ ButtonAction (ActionSave, ifValid (validFlow name flow.flowDyn))
+																					, ButtonAction (ActionOk, IfValid)
+																					: actions state
+																					] flow.flowShape
+								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))
+			>>= switchAction
+where
+	title1 = "No flow..."
+	title2 = "Flow: \"" +++ name +++ "\" " +++ 
+				if (validTaskFun flow.flowDyn || validTask flow.flowDyn) 
+					(" :: " +++ showDynType flow.flowDyn) 
+					(" :: " +++ typeErrorMess "Invalid Type, " flow.flowDyn)
+
+switchAction (action, (nameflow=:(name,flow),mode))
+	=	case action of
+			ActionNew		-> 						newFlowName emptyFlow 	
+								>>= \nameflow -> 	doMenu (nameflow,True)	
+			ActionOpen		->						chooseFlow 	
+								>>= \(name,flow) -> if (name == "")
+														(doMenu (nameflow,False))
+														(doMenu ((name,flow),True))
+			ActionSave		->						storeFlow nameflow 	
+								>>= \nameflow -> 	doMenu (nameflow,mode)
+			ActionSaveAs	->						newFlowName flow 
+								>>= \nameflow -> 	doMenu (nameflow,mode)
+			ActionQuit		->						return Void
+			ActionShowAbout	->						showAbout 
+								>>| 				doMenu (nameflow,mode)
+			ActionOk		->						try (flowShapeToFlow flow.flowShape) 
+														(errorRaised flow.flowShape) 
+								>>= \flow -> 		doMenu ((name,flow), mode)
+
+
+
 
 showCurrentGroups :: NewsGroupNames -> Task Void
 showCurrentGroups groups = showStickyMessageAbout "Current groups:" groups
@@ -207,35 +244,12 @@ where
 		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
 
 			
-getToNames = getToNames` []
-where
-	getToNames` names 	
-	=						showCurrentNames names
-								||- getToName
-		>>= \name	 ->		let newnames = [name:names] in
-								showCurrentNames newnames
-								||- requestConfirmation "Add more names?"
-								>>= \yn ->
-									if yn (getToNames` newnames) (return newnames)
 
 
-showCurrentNames :: [UserName] -> Task Void
-showCurrentNames names = showStickyMessageAbout "Current names:" names
-
-getToName ::  (Task UserName)
-getToName 
-= 						getUsers
-	>>= \users ->		enterChoice "Select user to mail a message to: " users
-	>>= \user ->		return (toUserName user)
-
-
-cancel :: (Task a) -> Task a | iTask a
-cancel task = task -||- (showMessage "Cancel this task" >>| getDefaultValue)
 
 orTasks2 :: [HtmlTag] [LabeledTask a] -> Task a | iTask a
 orTasks2 msg tasks = oldParallel "orTasks2"  (\list -> length list >= 1) hd undef [t <<@ l \\(l,t) <- tasks] 
 
-myAndTasks msg tasks =	oldParallel "andTask" (\_ -> False) undef hd [t <<@ l \\(l,t) <- tasks]
 
 // reading and writing of storages
 
@@ -279,5 +293,58 @@ readNewsGroup groupname = readDB (groupNameId groupname)
 
 writeNewsGroup :: GroupName NewsGroup -> Task NewsGroup
 writeNewsGroup groupname news = writeDB (groupNameId groupname) news
-*/
 
+*/
+/*
+internalEmailResponse :: (Task Void)
+internalEmailResponse = cancel internalEmailResponse`
+where
+	internalEmailResponse`
+	=							getCurrentUser
+		>>= \me ->				getToNames
+		>>= \tos ->				updateInformation "Type your message ..."
+									(initMsg (foldl (\s1 s2 -> s1 +++ "; " +++ s2) "" (map snd tos)) me.User.displayName "" "")
+		>>= \msg ->				myAndTasks [Text "Mail send to:"] 
+										[ ("For: " <+++ toname <+++ "; Subject: " <+++ msg.subject
+										, MailAndReply msg (me.User.userName,me.User.displayName) (to,toname))
+										\\ (to,toname) <- tos
+										]  
+	where
+		MailAndReply msg (me,myname) (to,toname)
+		=						to @: 	( msg.subject
+										, enterInformationAbout "Please draft a reply to the following message:" msg
+										)
+			>>= \(Note reply)
+						->		me @: ( "Reply from: " <+++ toname <+++ "; Subject: " <+++ msg.subject
+									  , showMessageAbout "" (initMsg myname toname ("RE: " <+++ msg.subject) reply)
+									  )
+
+	
+internalEmail :: (Task Void)
+internalEmail
+=							getCurrentUser
+	>>= \me ->				getToName
+	>>= \(to,toname) ->		updateInformation "Type your message ..." (initMsg toname me.User.displayName "" "")
+	>>= \msg ->				(showMessageAbout "" msg) -&&- (to @: (msg.subject, showMessageAbout "" msg)) >>| return Void
+
+initMsg to for subject msg 
+= {to = to, mailFrom = for, subject = subject , message = Note msg}
+
+
+getToNames = getToNames` []
+where
+	getToNames` names 	
+	=						showCurrentNames names
+								||- getToName
+		>>= \name	 ->		let newnames = [name:names] in
+								showCurrentNames newnames
+								||- requestConfirmation "Add more names?"
+								>>= \yn ->
+									if yn (getToNames` newnames) (return newnames)
+getToName ::  (Task UserName)
+getToName 
+= 						getUsers
+	>>= \users ->		enterChoice "Select user to mail a message to: " users
+	>>= \user ->		return (toUserName user)
+
+*/
