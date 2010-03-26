@@ -26,3 +26,8 @@
 	border: 1px solid #99BBE8;
 	margin: 10px 0px 0px 10px;
 }
+
+/* Group Container */
+.GroupContainer {
+	background-color: #eee;
+}

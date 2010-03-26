@@ -4,10 +4,12 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 
 	initComponent: function(){
 		Ext.apply(this, 
-		{ layout:'vbox'
-		, layoutConfig: {align:'stretch'}
+		{ layout:'auto'
+		//, layoutConfig: {align:'stretch'}
 		, autoScroll: true
 		, items: this.content
+		, cls: 'GroupContainer'
+		, unstyled: true
 		});
 		
 		itasks.ttc.GroupContainer.superclass.initComponent.apply(this,arguments);
