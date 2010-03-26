@@ -94,25 +94,25 @@ button.icon-expand-tree, .icon-expand-tree {
 	background-image: url('img/icons/bug.png') !important;
 }
 .icon-currentwork {
-	background-image: url('img/icons/report_edit.png');
+	background-image: url('img/icons/report_edit.png') !important;	
 }
 .icon-newwork {
-	background-image: url('img/icons/report_add.png');
+	background-image: url('img/icons/report_add.png') !important;	
 }
 .icon-home {
-	background-image: url('img/icons/house.png');
+	background-image: url('img/icons/house.png') !important;	
 }
 .icon-task {
-	background-image: url('img/icons/page_edit.png');
+	background-image: url('img/icons/page_edit.png') !important;	
 }
 .icon-waiting {
-	background-image: url('img/icons/hourglass.png');
+	background-image: url('img/icons/hourglass.png') !important;	
 }
 .icon-workflow {
-	background-image: url('img/icons/page_edit.png');
+	background-image: url('img/icons/page_edit.png') !important;	
 }
 .icon-folder {
-	background-image: url('img/icons/folder.png');
+	background-image: url('img/icons/folder.png') !important;	
 }
 .icon-overview{
 	background-image: url('img/icons/application_view_list.png') !important;	
@@ -156,9 +156,10 @@ div.newtask-container .x-panel-body {
 }
 
 /* WORK TAB PANEL STYLES */
-div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
+/*div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {
 	background: #eee;
-}
+}*/
+
 div.worktab-header {
 	padding: 0px;
 //	width: 100%;
@@ -230,10 +231,11 @@ div.worktab-header-progress-reject{
 table.form-table th {
 	vertical-align: top;
 }
+/*
 .basic-task {
 	background: #ff0;
 	border: solid 2px #f00;
-}
+}*/
 
 div.it-task-overview {
 	border: solid 1px #93b8d0;
@@ -246,10 +248,16 @@ div.it-task-overview-icon {
 	width: 16px;
 	height: 16px;
 }
-div.task-description {
+/*div.task-description {
 	padding: 0px 0px 5px 0px;
 	margin: 0px 0px 15px 0px;
 	border-width: 0px 0px 1px 0px !important;
+}*/
+div.task-description {
+	padding: 3px 4px 3px 4px;
+	/*margin: 0px 0px 10px 0px;*/
+	font-weight: bold;
+	color: #1e3356;
 }
 div.task-context {
 	padding: 2px;

@@ -414,7 +414,7 @@ where
 		= (upd ++ nupd,	valid && nvalid, n + 1, tst)
 	detUpd nvalue (upd,valid,n,tst) (Listener listener) = ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
 	
-	listenerPanel value listener n = TUIHtmlPanel {TUIHtmlPanel| id = (editorId taskNr n), html = toString (DivTag [] (html (listener.Listener`.visualize value))), border = True, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True}
+	listenerPanel value listener n = TUIHtmlPanel {TUIHtmlPanel| id = (editorId taskNr n), html = toString (DivTag [] (html (listener.Listener`.visualize value))), border = True, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True}
 	
 	taskId			= taskNrToString taskNr
 	baseEditorId	= "tf-" +++ taskId
@@ -480,23 +480,24 @@ gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 		EmptyDocument		= ({Document|doc & type = Local},tst)
 
 derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
-					
-taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> (TUIDef,[TUIButton])
+
+//TODO remove encapsulating TUIPanel -> Form elements should be placed directly in their containers				
+taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> (TUIDef,[HtmlTag],[TUIButton])
 taskPanel taskid description mbContext mbForm buttons
-	= (TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=False}, taskButtons buttons)
+	= (TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=True}, description, taskButtons buttons)
 where
-	items = [taskDescriptionPanel ("description-"+++taskid) description] ++
+	items = //[taskDescriptionPanel ("description-"+++taskid) description] ++ //extracted from form
 			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
 			(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
 			
 	taskDescriptionPanel :: !String ![HtmlTag] -> TUIDef
-	taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description", fieldLabel = Nothing, hideLabel = True} 
+	taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
 	
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
-	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True} 
+	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
 	
 	taskFormPanel :: [TUIDef] -> TUIDef
-	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 0, unstyled=False}
+	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 0, unstyled=True}
 	
 	taskButtons	:: [(Action,String,String,String,Bool)] -> [TUIButton]
 	taskButtons buttons = [toTUIButton button id name value enable \\ (button,id,name,value,enable) <- buttons]

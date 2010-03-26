@@ -727,11 +727,11 @@ gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, val
 			# (vizBody,rh,vst) = fx (VValue ov omask) (VValue ov omask) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
 			= case hd vizBody of
 				(HtmlFragment tags)
-					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
+					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True})],
 		  			rh,
 		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
 		  		(TextFragment html)
-					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = html, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
+					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = html, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True})],
 		  			rh,
 		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
 		  		_
@@ -740,7 +740,7 @@ gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, val
 			# (vizBody,rh,vst) = fx VBlank VBlank {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
 			= case hd vizBody of
 				(HtmlFragment tags)
-					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels})],
+					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True})],
 		  			rh,
 		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
 		  		_

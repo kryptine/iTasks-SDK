@@ -38,6 +38,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, tbar			:: ![TUIDef]
 	, buttons		:: !Maybe [TUIDef]
 	, subtaskId		:: !(Maybe String)
+	, description	:: !String
 	}
 	
 :: TTCMonitorContainer =

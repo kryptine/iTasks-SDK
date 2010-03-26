@@ -196,6 +196,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, id			:: !String
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
+	, unstyled		:: !Bool
 	}
 :: TUIList =
 	{ items			:: ![TUIDef]

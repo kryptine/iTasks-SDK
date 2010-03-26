@@ -626,8 +626,8 @@ where
 	finalizeTaskNode (TTGroupedTask ti tasks)		= TTGroupedTask		ti (reverse tasks)
 	finalizeTaskNode node							= node
 	
-		
-setTUIDef	:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt
+setTUIDef			:: !(TUIDef,[HtmlTag],[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt 	
+/*setTUIDef	:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt*/
 setTUIDef def accActions tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Definition def accActions)}

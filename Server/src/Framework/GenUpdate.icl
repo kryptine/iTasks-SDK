@@ -226,7 +226,6 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		"mup"
 			# index = toInt (last (split "_" update))
 			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
-			| otherwise
 			# upd   = swapList lx index
 			# nm    = swapMask mask currentPath index
 			# lmask = appendToListMask currentPath [index-1,index] listMask
@@ -234,7 +233,6 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 		"mdn"
 			# index = toInt (last(split "_" update))
 			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
-			| otherwise
 			# upd	= swapList lx ((toInt index)+1) //down idx == up (idx+1)
 			# nm	= swapMask mask currentPath (index+1)
 			# lmask = appendToListMask currentPath [index,index+1] listMask

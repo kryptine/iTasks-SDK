@@ -1,0 +1,28 @@
+/*
+	Layout Styles of TaskTree Components
+*/
+
+/* Form Container */
+.FormContainer {
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCFormContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
+
+.FormPanel {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	margin: 0px 0px 0px 10px;
+}
+
+.FormDescription {
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 0px 0px 10px;
+}
