@@ -5,9 +5,9 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 	initComponent : function() {
 		
 		this.buildComponents(this);
+		this.tbar = this.content.tbar;
 		
 		delete this.content;
-		delete this.buttons;
 		delete this.description;
 		
 		Ext.apply(this,
@@ -25,10 +25,11 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 	},
 	
 	buildComponents: function(data){
+		data.content.form.buttons = data.content.buttons;
+		
 		this.panel = {
 			xtype: 'itasks.ttc.form.panel',
-			content: data.content,
-			buttons: data.buttons
+			items: data.content.form
 		}
 		
 		this.descpanel = {
@@ -281,12 +282,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			
 		} else {			
 			//Completely replace form
-		
 			this.removeAll();
-			
 			this.buildComponents(data);
-			
-			//data.content.buttons = data.buttons;
 			
 			this.add(this.descpanel);
 			this.add(this.panel);
@@ -296,7 +293,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			//Replace toolbar
 			var tb = this.getTopToolbar();
 			tb.removeAll();
-			tb.add(data.tbar);
+			if(data.content.tbar)
+				tb.add(data.content.tbar);
 			tb.setVisible(tb.items.length > 0);
 			
 			//Attach eventhandlers
@@ -322,16 +320,9 @@ itasks.ttc.form.FormDescription = Ext.extend(Ext.Panel,{
 itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 
 	initComponent : function(){
-	
-		if(this.buttons){
-			this.content.buttons = this.buttons;
-			delete this.buttons;
-		}
-		
 		Ext.apply(this,
 		{ layout: 'fit'
 		, width: 700
-		, items: [this.content]
 		, unstyled: true
 		, cls: 'FormPanel'
 		});

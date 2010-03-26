@@ -29,14 +29,18 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	}
 
 //==== NEW ======
+:: FormContent =
+	{ form		:: !TUIDef
+	, tbar		:: ![TUIDef]
+	, buttons	:: ![TUIDef]
+	}
+
 :: TTCFormContainer = 
 	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !String
-	, content		:: !(Maybe TUIDef)
+	, content		:: !(Maybe FormContent)
 	, updates		:: !(Maybe [TUIUpdate])
-	, tbar			:: ![TUIDef]
-	, buttons		:: !Maybe [TUIDef]
 	, subtaskId		:: !(Maybe String)
 	, description	:: !String
 	}

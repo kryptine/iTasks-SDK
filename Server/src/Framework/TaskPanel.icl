@@ -6,7 +6,7 @@ import Html
 
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
 
-derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer
+derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer
 
 //JSON specialization for TaskPanel: Ignore the union constructor
@@ -32,10 +32,8 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
-			, content 	= Just def
+			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
 			, updates 	= Nothing
-			, tbar 		= makeMenuBar menus acceptedA ti
-			, buttons	= Just (map TUIButton buttons)
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
@@ -46,8 +44,6 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Nothing
 			, updates 	= Just (determineUpdates upd menus acceptedA ti)
-			, tbar 		= makeMenuBar menus acceptedA ti
-			, buttons	= Nothing
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
@@ -141,11 +137,9 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		    								| xtype		= "itasks.ttc.form"
 		    								, id 		= "taskform-" +++ ti.TaskInfo.taskId
 		   									, taskId 	= ti.TaskInfo.taskId
-		   									, content 	= Just def
+		   									, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
 		   									, updates	= Nothing
 		   									, subtaskId = Just (subtaskNrToString stnr)
-		   									, tbar 		= makeMenuBar menus acceptedA ti
-		   									, buttons	= Just (map TUIButton buttons)
 		   									, description = ti.TaskInfo.taskDescription
 		   									}
 		   	}], tst)
@@ -162,8 +156,6 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 											, content	= Nothing 
 											, updates 	= Just (determineUpdates upd menus acceptedA ti)
 											, subtaskId = Just (subtaskNrToString stnr)
-											, tbar 		= makeMenuBar menus acceptedA ti
-											, buttons	= Nothing
 											, description = ti.TaskInfo.taskDescription
 											}
 			}],tst)
