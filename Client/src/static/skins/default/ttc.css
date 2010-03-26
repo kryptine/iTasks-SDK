@@ -31,3 +31,22 @@
 .GroupContainer {
 	background-color: #eee;
 }
+
+/* Finished Container */
+.FinishedContainer{
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCFinishedContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
+
+.FinishedContainer-Text {
+	background-color: transparent;
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border: 1px solid #99BBE8;
+	width: 700px;
+	margin: 10px 0px 0px 10px;
+}
+

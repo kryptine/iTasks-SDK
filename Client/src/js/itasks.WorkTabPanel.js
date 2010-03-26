@@ -28,8 +28,12 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},{
 				xtype: "panel",
 				region: "center",
-				layout: "fit",
+				layout: "anchor",
 				ctCls: "worktab-container",
+				bodyStyle: 'background-color: #eee',
+				defaults: {
+					anchor: 'bottom 0'
+				},
 				tbar: [{
 						text: "Refresh task",
 						iconCls: "x-tbar-loading",
@@ -73,22 +77,25 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 
 		//Check if the task is finished or became redundant
 		if(data.content == "done" || data.content == "redundant") {
-			var ct = this.getComponent(1).getComponent(0);
+			
+			var ct = this.getComponent(1);
 			
 			if(ct.items && ct.items.length) {
 				ct.remove(0);
 			}
 			switch(data.content) {
 				case "done":	
-					ct.add(new Ext.Panel({
-						html: "This task is completed. Thank you."
-					}));
+					ct.add({
+						xtype: 'itasks.ttc.finished',
+						msg: "This task is completed. Thank you."
+					});
 					this.fireEvent("taskDone");
 					break;
 				case "redundant":
-					ct.add(new Ext.Panel({
-						html: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
-					}));
+					ct.add({
+						xtype: 'itasks.ttc.finished',
+						msg: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
+					});
 					this.fireEvent("taskRedundant");
 					break;	
 			}
@@ -98,7 +105,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			var tab = this;
 			this.getEl().fadeOut(
 				{ scope: this
-				, duration: .5
+				, duration: .75
 				, useDisplay: true
 				, callback: function()
 					{ 
