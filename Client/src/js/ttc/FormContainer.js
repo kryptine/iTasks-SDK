@@ -4,17 +4,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 
 	initComponent : function() {
 		
-		this.panel = {
-			xtype: 'itasks.ttc.form.panel',
-			content: this.content,
-			buttons: this.buttons
-		}
-		
-		this.descpanel = {
-			xtype: 'itasks.ttc.form.description',
-			html: this.description
-			//html: 'Description text should be here!'
-		}
+		this.buildComponents(this);
 		
 		delete this.content;
 		delete this.buttons;
@@ -32,6 +22,19 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		
 		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
 		
+	},
+	
+	buildComponents: function(data){
+		this.panel = {
+			xtype: 'itasks.ttc.form.panel',
+			content: data.content,
+			buttons: data.buttons
+		}
+		
+		this.descpanel = {
+			xtype: 'itasks.ttc.form.description',
+			html: data.description
+		}
 	},
 	
 	afterRender: function(){
@@ -281,15 +284,13 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		
 			this.removeAll();
 			
-			this.panel = {
-				xtype: 'itasks.ttc.form.panel',
-				content: data.content,
-				buttons: data.buttons
-			}
+			this.buildComponents(data);
 			
 			//data.content.buttons = data.buttons;
 			
+			this.add(this.descpanel);
 			this.add(this.panel);
+			
 			this.doLayout();
 			
 			//Replace toolbar

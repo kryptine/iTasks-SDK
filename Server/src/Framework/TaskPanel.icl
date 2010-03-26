@@ -27,7 +27,7 @@ buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt
 buildTaskPanel tree menus currentUser tst = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
-	(TTInteractiveTask ti (Definition (def,description,buttons) acceptedA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= (TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -37,7 +37,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			, tbar 		= makeMenuBar menus acceptedA ti
 			, buttons	= Just (map TUIButton buttons)
 			, subtaskId = Nothing
-			, description = foldl (+++) "" (map toString description)
+			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTInteractiveTask ti (Updates upd acceptedA))
 		= (TTCFormContainer {TTCFormContainer 
@@ -49,7 +49,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			, tbar 		= makeMenuBar menus acceptedA ti
 			, buttons	= Nothing
 			, subtaskId = Nothing
-			, description = ""
+			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst) = f tst
@@ -131,7 +131,7 @@ where
 
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
-	(TTInteractiveTask ti (Definition (def,description,buttons) acceptedA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
 			, manager = manager
@@ -146,7 +146,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		   									, subtaskId = Just (subtaskNrToString stnr)
 		   									, tbar 		= makeMenuBar menus acceptedA ti
 		   									, buttons	= Just (map TUIButton buttons)
-		   									, description = foldl (+++) "" (map toString description)
+		   									, description = ti.TaskInfo.taskDescription
 		   									}
 		   	}], tst)
 	(TTInteractiveTask ti (Updates upd acceptedA))
@@ -164,7 +164,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 											, subtaskId = Just (subtaskNrToString stnr)
 											, tbar 		= makeMenuBar menus acceptedA ti
 											, buttons	= Nothing
-											, description = ""
+											, description = ti.TaskInfo.taskDescription
 											}
 			}],tst)
 	(TTInteractiveTask ti (Func f))

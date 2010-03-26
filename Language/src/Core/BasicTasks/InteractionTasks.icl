@@ -58,7 +58,7 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr}
 		# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
 		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
 		# buttonActions	= evaluateConditions buttonActions valid ovalue
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy,tst)
 	| otherwise
 		# (nvalue,nmask,lmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask [] tst
@@ -159,7 +159,7 @@ makeChoiceTask question options initsel context actions tst=:{taskNr}
 												}]
 		# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
 		# buttonActions	= evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (action,tst) = getAction updates (map fst buttonActions) tst
@@ -229,7 +229,7 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr}
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
 		# form			= [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
 		# menuActions	= evaluateConditions (getMenuActions actions) True (select selection options)
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) menuActions tst
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		// One of the buttons was pressed
@@ -292,7 +292,7 @@ makeMessageTask message context actions tst=:{taskNr}
 	| isEmpty updates
 		# menuActions	= evaluateConditions (getMenuActions actions) True Void
 		# buttonActions	= evaluateConditions buttonActions True Void
-		# tst			= setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) menuActions tst
+		# tst			= setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) (html message) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (action,tst) = getAction updates (map fst buttonActions) tst
@@ -482,9 +482,9 @@ gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
 
 //TODO remove encapsulating TUIPanel -> Form elements should be placed directly in their containers				
-taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> (TUIDef,[HtmlTag],[TUIButton])
+taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> (TUIDef,[TUIButton])
 taskPanel taskid description mbContext mbForm buttons
-	= (TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=True}, description, taskButtons buttons)
+	= (TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=True}, taskButtons buttons)
 where
 	items = //[taskDescriptionPanel ("description-"+++taskid) description] ++ //extracted from form
 			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++

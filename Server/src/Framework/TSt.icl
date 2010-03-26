@@ -63,6 +63,7 @@ initTaskInfo
 		, traceValue = ""
 		, worker = UserName "" ""
 		, groupedBehaviour = Fixed
+		, taskDescription = ""
 		}
 
 initTaskProperties :: TaskProperties
@@ -229,7 +230,7 @@ where
 	resetTSt :: !ProcessId !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
 	resetTSt processId properties inptype tst
 		# taskNr	= taskNrFromString processId
-		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed}
+		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed, taskDescription = ""}
 		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
@@ -397,7 +398,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" "", groupedBehaviour = Fixed} [], tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" "", groupedBehaviour = Fixed, taskDescription="Task Result"} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -406,7 +407,7 @@ calculateTaskTree processId tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
-					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed} [], tst)
+					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed, taskDescription="Task Result"} [], tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -571,6 +572,7 @@ applyTask (Task desc=:{TaskDescription | groupedBehaviour} mbCxt taskfun) tst=:{
 					, traceValue		= ""
 					, worker			= properties.managerProps.TaskManagerProperties.worker
 					, groupedBehaviour 	= groupedBehaviour
+					, taskDescription	= ""
 					}
 	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo}
 	= case taskVal of
@@ -626,11 +628,11 @@ where
 	finalizeTaskNode (TTGroupedTask ti tasks)		= TTGroupedTask		ti (reverse tasks)
 	finalizeTaskNode node							= node
 	
-setTUIDef			:: !(TUIDef,[HtmlTag],[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt 	
-/*setTUIDef	:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt*/
-setTUIDef def accActions tst=:{tree}
+/*setTUIDef			:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt */	
+setTUIDef	:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
+setTUIDef def taskDescription accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Definition def accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Definition def accActions)}
 		_								= tst
 
 setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt

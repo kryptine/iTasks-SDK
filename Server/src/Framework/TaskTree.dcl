@@ -15,7 +15,7 @@ from   JSON 			import :: JSON
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition (TUIDef,[HtmlTag],[TUIButton]) [(Action,Bool)]
+:: InteractiveTask	= Definition (TUIDef,[TUIButton]) [(Action,Bool)]
 					| Updates [TUIUpdate] [(Action,Bool)]
 					| Func (*TSt -> *(!InteractiveTask, !*TSt))
 
@@ -33,6 +33,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					, traceValue		:: String											//String representation of value for tracing
 					, worker			:: UserName				
 					, groupedBehaviour	:: GroupedBehaviour
+					, taskDescription	:: String
 					}
 
 :: TaskProperties = { systemProps	:: TaskSystemProperties

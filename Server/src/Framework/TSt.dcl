@@ -285,7 +285,8 @@ mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 */
 applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 //// TASK CONTENT
-setTUIDef			:: !(TUIDef,[HtmlTag],[TUIButton]) ![(Action,Bool)] !*TSt	-> *TSt //Only for interactive tasks
+//setTUIDef			:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt				-> *TSt //Only for interactive tasks
+setTUIDef			:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt						-> *TSt //Only for interactive tasks
 setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt				-> *TSt //Only for interactive tasks
 
