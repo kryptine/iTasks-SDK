@@ -35,7 +35,7 @@ where
 (||-) taska taskb
 	= group "||-" "Done when the second subtask is finished." rorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
-	rorfunt (Right val,_) [] = ([val],Stop)
+	rorfunc (Right val,_) [] = ([val],Stop)
 	rorfunc (Left val, _) [] = ([],Continue)
 	rorfunc _ _				 = abort "Illegal result in ||-"
 
@@ -43,7 +43,7 @@ where
 (-||) taska taskb
 	= group "||-" "Done when the first subtask is finished" lorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
-	lorfunt (Right val,_) [] = ([],Continue)
+	lorfunc (Right val,_) [] = ([],Continue)
 	lorfunc (Left val, _) [] = ([val],Stop)
 	lorfunc _ _				 = abort "Illegal result in -||"
 
