@@ -60,67 +60,70 @@ internalEmailReply
 
 // newsgroup handling
 
-nmessage = 2
-
-:: NewsGroupNames	:== [GroupName]				// list of newsgroup names
+:: NewsGroupNames	:== [GroupName]					// list of newsgroup names
 :: GroupName		:== String						// Name of the newsgroup
 :: NewsGroup		:== [NewsItem]					// News stored in a news group
 :: NewsItem			:== (Subscriber,Message)		// id, name, and message of the publisher
 :: Subscriber		:== UserName					// the id of the publisher
 :: Name				:== String						// the login name of the publisher
-:: Message		:== String						// the message
-:: Subscriptions:== [Subscription]				// newsgroup subscriptions of user
-:: Subscription	:== (GroupName,Index)			// last message read in corresponding group
-:: Index		:== Int							// 0 <= index < length newsgroup 
+:: Message			:== Note						// the message
+:: Subscriptions	:== [Subscription]				// newsgroup subscriptions of user
+:: Subscription		:== (GroupName,Index)			// last message read in corresponding group
+:: Index			:== Int							// 0 <= index < length newsgroup 
 :: DisplayNews	=	{ messageNr :: Int
 					, postedBy	:: UserName
 					, message	:: Message
 					}
 
+// news group manager
+
 ActionShowGroups	:== ActionLabel "ShowGroups"
 ActionSubscribe		:== ActionLabel "Subscribe"
+ActionSubscribeTo	:== ActionLabel "SubscribeTo"
 ActionCommit		:== ActionLabel "Commit"
 
-initMenu :: Task Void
-initMenu 
+initMenu :: NewsGroupNames -> Task Void
+initMenu groups
 	= setMenus
-		[ Menu "File"	[ MenuItem "Add New Newsgroup..."		ActionNew
-						, MenuItem "Show Newsgroups..."	ActionShowGroups
-						, MenuItem "Subscribe..."	ActionSubscribe
+		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew
+						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "SubscribeTo" group) \\ group <- groups]
 						, MenuSeparator
-						, MenuItem "Quit"			ActionQuit
+						, MenuItem "Quit"					ActionQuit
 						]
-		, Menu "Help"	[ MenuItem "About"			ActionShowAbout 
+		, Menu "Help"	[ MenuItem "About"					ActionShowAbout 
 						]
 		]
 
-actions 
+actions groups
 	=	map MenuAction	[ (ActionNew,		 Always)
-						, (ActionShowGroups, Always)
-						, (ActionSubscribe,	 Always)
 						, (ActionQuit,		 Always)
 						, (ActionShowAbout,	 Always)
+						: [(ActionParam "SubscribeTo" group ,valid) \\ group <- groups]
 						] 
+where
+	valid 			= Predicate (\_ -> lengthGroups > 0)
+	lengthGroups 	= length groups
 
 okCancel
 	=	[ ButtonAction	(ActionCancel,	Always)
-		, ButtonAction	(ActionOk,	Always)
+		, ButtonAction	(ActionOk,	IfValid)
 		]
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu >>| doMenu
-
-doMenu 
-	=						showMessageA "Newsgroup reader, select from menu..." actions
-		>>= switch
+	=					readNewsGroups
+		>>= \groups -> 	getCurrentUser
+		>>= \me ->		initMenu groups >>| doMenu (toUserName me) groups
 where
-	switch ActionCancel 	= 							doMenu
-	switch ActionNew 		= addNewsGroup 			>>| doMenu
-	switch ActionShowGroups = showNewsGroups 		>>| doMenu
-	switch ActionSubscribe 	= subscribeNewsGroup 	>>| doMenu
-	switch ActionShowAbout 	= showMessage "Newsgroup Reader vrs. 2.0" 	>>| doMenu
-	switch 	_ 				= return Void
+	doMenu me groups
+		=						showMessageA "Newsgroup reader, select from menu..." (actions groups)
+			>>= switch
+	where
+		switch ActionCancel 					= 												doMenu me groups
+		switch ActionNew 						= addNewsGroup 								>>| handleMenu
+		switch (ActionParam "SubscribeTo" group)= subscribeProcess me group					>>| doMenu me groups
+		switch ActionShowAbout 					= showMessage "Newsgroup Reader vrs. 2.0" 	>>| doMenu me groups
+		switch 	_ 								= return Void
 
 addNewsGroup :: (Task Void)
 addNewsGroup	
@@ -135,74 +138,76 @@ where
 		>>= \groups ->		requestConfirmationAbout "Do you want to add more?" groups 
 		>>= \yn ->			if yn addNewsGroup (return Void)
 	
-showNewsGroups :: (Task Void)
-showNewsGroups
-	=						readNewsGroups
-		>>= \groups ->		showMessageAbout "The following newsgroups have been defined:" groups
+subscribeProcess me group = spawnProcess me True (readNews 1 me group 0 <<@ group <+++ " newsgroup reader")
 
-subscribeNewsGroup :: (Task Void)
-subscribeNewsGroup
-=					getCurrentUser
-	>>= \user ->	readNewsGroups 
-	>>= 			subscribe (toUserName user)
-where
-	subscribe me []
-	=						showMessage "No newsgroups in catalogue yet !"
-	subscribe me groups
-	=						enterChoice "Choose a group:" groups
-		>>= \group ->		addSubscription me (group,0)
-		>>|					spawnProcess me True (readNews me group 0 <<@ group <+++ " news group subscription")
-		>>|					return Void
+// news group reader
 
 ActionRefresh :== ActionLabel "Refresh"
 
-readactions index nmsg
+readMenu :: Task Void
+readMenu 
+	= setMenus
+		[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (toString i)) \\ i <- [1,5,10,30,50]]
+						, MenuItem "Quit"	ActionQuit
+						]
+		]
+
+readactions nmessage index nmsg
 	= map ButtonAction
 		[ (ActionPrevious, 	Predicate (\_ -> (index - nmessage >= 0)))
 		, (ActionRefresh, 	Always)
 		, (ActionNext, 		Predicate (\_ -> (index + nmessage < nmsg)))
 		, (ActionCommit, 	Always)
 		, (ActionQuit, 		Always)
-		]
+		] ++
+		[MenuAction (ActionParam "nmessage" (toString i), Always) \\ i <- [1,5,10,30,50]]
 
-readNews :: UserName String Int -> Task Void
-readNews me group index	
-=						readNewsGroup group 
-	>>= \newsItems ->	showMessageAboutA "News:" (readactions index (length newsItems)) (messageList newsItems)
-	>>= switch
+readNews :: Int UserName String Int -> Task Void
+readNews nmessage me group index
+	= 	readMenu >>| readNews` nmessage me group index
 where
-	switch ActionPrevious 	= readMoreNews (~nmessage) 	>>= readNews me group
-	switch ActionRefresh 	= 								readNews me group index
-	switch ActionNext 		= readMoreNews nmessage 	>>= readNews me group
-	switch ActionCommit 	= commitItem group 			>>| readNews me group index
-	switch _ 				= return Void
-
-	readMoreNews offset
-	=					readIndex me group
-		>>= \index ->	readNewsGroup group
-		>>= \news ->	readNextNewsItems index offset (length news)
+	readNews` nmessage me group index	
+	=						readNewsGroup group 
+		>>= \newsItems ->	showMessageAboutA ("Newsgroup " <+++ group) (readactions nmessage index (length newsItems)) (messageList nmessage newsItems)
+		>>= switch
 	where
-		readNextNewsItems index offset length
-		# nix = index + offset
-		# nix = if (nix < 0) 0 (if (length <= nix) index nix)
-		= addSubscription me (group,nix) >>| return nix				 
+		switch ActionPrevious 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
+		switch ActionRefresh 	= 								readNews` nmessage me group index
+		switch ActionNext 		= readMoreNews nmessage 	>>= readNews` nmessage me group
+		switch ActionCommit 	= commitItem group 			>>| readNews` nmessage me group index
+		switch (ActionParam _ n)= 								readNews (toInt n) me group index
+		switch _ 				= return Void
 
-	commitItem :: String -> Task Void
-	commitItem  group
-	=								getCurrentUser
-		>>= \user ->      			commit user group
-	where
-		commit me group
-		=							enterInformation [Text "Type your message ..."] 
-		 >>= \(Note val) -> 		readNewsGroup  group 
-		 >>= \news ->				writeNewsGroup group (news ++ [(toUserName me,val)]) 
-		 >>|						showMessage [Text "Message commited to news group ",BTag [] [Text group], BrTag [],BrTag []] 
-
-	messageList newsItems
-	= 	[show i newsItem \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
-
-	show i (who, message) 
-	= 	{messageNr = i, postedBy = who, message = message} 
+		readMoreNews offset
+		=					readIndex me group
+			>>= \index ->	readNewsGroup group
+			>>= \news ->	readNextNewsItems index offset (length news)
+		where
+			readNextNewsItems index offset length
+			# nix = index + offset
+			# nix = if (nix < 0) 0 (if (length <= nix) index nix)
+			= addSubscription me (group,nix) >>| return nix				 
+	
+		commitItem :: String -> Task Void
+		commitItem  group
+		=								getCurrentUser
+			>>= \user ->      			commit user group
+		where
+			commit me group
+			=							enterInformationA "Type your message ..." okCancel
+			 	>>= switch
+			where
+				switch (ActionCancel,_) = return Void
+				switch (_,note)
+					=					readNewsGroup  group 
+						>>= \news ->	writeNewsGroup group (news ++ [(toUserName me,note)]) 
+			 			>>|				showMessage ("Message commited to newsgroup " <+++ group) 
+	
+		messageList nmessage newsItems
+		= 	[show i newsItem \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]
+	
+		show i (who, message) 
+		= 	{messageNr = i, postedBy = who, message = message} 
 	
 // reading and writing of storages
 
