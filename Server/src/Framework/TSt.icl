@@ -641,10 +641,10 @@ setTUIUpdates upd accActions tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Updates upd accActions)}
 		_								= tst
 		
-setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt -> *TSt
-setTUIFunc func tst=:{tree}
+setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt -> *TSt
+setTUIFunc func taskDescription tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Func func)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Func func)}
 		_								= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt

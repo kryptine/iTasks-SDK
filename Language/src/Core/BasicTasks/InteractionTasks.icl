@@ -369,7 +369,7 @@ makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 	# (updates,tst)	= getUserUpdates tst
 	| isEmpty updates
-		# tst = setTUIFunc createDefs tst
+		# tst = setTUIFunc createDefs (html question) tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (cvalue,tst)		= readShared sharedId tst
