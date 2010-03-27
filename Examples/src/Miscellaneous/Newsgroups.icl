@@ -9,22 +9,20 @@ import StdList, StdOrdList, StdTuple, StdMisc
 import iTasks
 import CommonDomain
 
-derive gPrint		EMail, Reply, DisplayNews
-derive gParse		EMail, Reply, DisplayNews
-derive gVisualize	EMail, Reply, DisplayNews	
-derive gUpdate		EMail, Reply, DisplayNews
+derive gPrint		EMail, Reply, DisplayNews, Broadcast
+derive gParse		EMail, Reply, DisplayNews, Broadcast
+derive gVisualize	EMail, Reply, DisplayNews, Broadcast	
+derive gUpdate		EMail, Reply, DisplayNews, Broadcast
 
 derive bimap		Maybe, (,)
-
-ifValid expr = Predicate (\val -> case val of
-									Invalid -> False
-									_ -> expr)
 
 newsgroupsExample :: [Workflow]
 newsgroupsExample
 =	[	workflow	 "Examples/Communication/Newsgroups" handleMenu
-	,	workflow	 "Examples/Communication/Mail with receive confirmation" internalEmail
-	,	workflow	 "Examples/Communication/Mail with forced reply" internalEmailReply
+	,	workflow	 "Examples/Communication/mail" internalEmail
+	,	workflow	 "Examples/Communication/broadcast" internalBroadcast
+	,	workflow	 "Examples/Communication/mail with confirmation" internalEmailConf
+	,	workflow	 "Examples/Communication/mail with forced reply" internalEmailReply
 	]
 
 // mail handling, to be put in sepparate icl file
@@ -36,9 +34,38 @@ newsgroupsExample
 				}
 :: Reply	=	{ reply			:: !Note
 				}
+:: Broadcast =	{ subject 		:: !String
+				, message		:: !Note
+				, attachements	:: ![Document]
+				} 
+
+internalBroadcast :: (Task Broadcast)
+internalBroadcast
+=									enterInformation "Type your broadcast message ..."
+	>>= \msg ->						getCurrentUser
+	>>= \me ->						getUsers
+	>>= \users ->					broadcast me msg users
+	>>|								return msg
+where
+	broadcast :: User Broadcast [User] -> Task Broadcast
+	broadcast me msg [] 
+		=			return msg
+	broadcast me msg [u:us] 
+		=			spawnProcess (UserName u.userName u.displayName)True
+						(showMessageAbout ("You have received the following broadcast message from " <+++ me.displayName) msg <<@ msg.Broadcast.subject)
+			>>|			broadcast me msg us 
+				
 
 internalEmail :: (Task EMail)
 internalEmail
+=									enterInformation "Type your email message ..."
+	>>= \msg ->						getCurrentUser
+	>>= \me ->						spawnProcess msg.to True 
+										(showMessageAbout ("You have received the following message from " <+++ me.displayName) msg <<@ msg.EMail.subject)
+	>>|								return msg
+
+internalEmailConf :: (Task EMail)
+internalEmailConf
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
 	>>= \me ->						msg.to @: (msg.EMail.subject, showMessageAbout ("You have received the following message from " <+++ me.displayName) msg)
