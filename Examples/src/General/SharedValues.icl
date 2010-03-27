@@ -70,7 +70,7 @@ mergeTestList =
 	>>= \uname. createDB emptyL
 	>>= \sid.	spawnProcess uname True ("1st View" @>> view sid)
 	>>|			spawnProcess uname True ("2nd View" @>> view sid)
-	>>|			deleteDB sid//stop
+	>>|			stop
 where
 	view :: (DBid [String]) -> Task (Action,[String])
 	view sid = updateShared "List" [quitButton] sid [idEditor]
