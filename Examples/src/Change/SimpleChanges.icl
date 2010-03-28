@@ -102,14 +102,12 @@ where
 	change user props t t0 = (Nothing, Just (t >>= \res -> assign user HighPriority Nothing (updateInformation ("Please verify result of " +++ procName) res)), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
-cancel :: User String ProcessId -> ChangeDyn
-cancel user procName pid  =
-	dynamic change user :: A.b: Change b | iTask b
+cancel ::  String ProcessId -> ChangeDyn
+cancel  procName pid  =
+	dynamic change  :: A.b: Change b | iTask b
 where
-//	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe Dynamic) | iTask a
-	change user props t t0 = (Nothing, Just (		deleteProcess pid 
+	change p  t t0 = (Nothing, Just (		deleteProcess pid 
 										>>| 		mkDefault t
-										>>= \def -> assign user HighPriority Nothing (updateInformation ("Please define the result of " +++ procName) def) 
 										), Nothing)
 	mkDefault :: (Task a) -> (Task a) | iTask a
 	mkDefault _ = getDefaultValue
@@ -169,9 +167,8 @@ checkTask
 cancelTask :: Task Void
 cancelTask
 	=				chooseProcess "Select the task you want to cancel:"
-	>>= \procId ->	chooseUserA "Select the user who will define the result instead:"
-	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (cancel user (fromJust process).properties.managerProps.subject procId) CLTransient
+	>>= \procId ->	getProcess procId
+	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).properties.managerProps.subject procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask

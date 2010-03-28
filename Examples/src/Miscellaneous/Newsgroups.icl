@@ -181,7 +181,7 @@ readMenu
 
 readactions nmessage index nmsg
 	= map ButtonAction
-		[ (ActionPrevious, 	Predicate (\_ -> (index - nmessage >= 0)))
+		[ (ActionPrevious, 	Predicate (\_ -> (index > 0)))
 		, (ActionRefresh, 	Always)
 		, (ActionNext, 		Predicate (\_ -> (index + nmessage < nmsg)))
 		, (ActionCommit, 	Always)
