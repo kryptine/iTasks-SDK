@@ -54,6 +54,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		
 		var changeTaskEvent = function () {
 			var ct = this.findParentByType(itasks.ttc.FormContainer);
+			if (!ct)
+				ct = this.findParentByType(itasks.ttc.GroupContainer);
 			if(!ct) return;
 			
 			//Helper function to get the value of a checkbox group
@@ -81,6 +83,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			if(this.clickCB) this.clickCB(this);
 			
 			var ct = this.findParentByType(itasks.ttc.FormContainer);
+			if (!ct)
+				ct = this.findParentByType(itasks.ttc.GroupContainer);
 			if(!ct) return;
 						
 			ct.addUpdate(this.name, this.value);
@@ -123,7 +127,6 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 						comp.on("click",clickTaskEvent);
 					break;
 		}
-		
 		if(comp.buttons) {
 			var num = comp.buttons.length;
 			for(var i = 0; i < num; i++) {
