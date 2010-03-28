@@ -367,12 +367,14 @@ updateSharedLocal question actions initial views =
 
 makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
-	# (updates,tst)	= getUserUpdates tst
+	# (mbcvalue,tst)		= readShared sharedId tst
+	| isNothing mbcvalue	= applyTask (throw "updateShared: shared variable is deleted") tst
+	# (updates,tst)			= getUserUpdates tst
 	| isEmpty updates
 		# tst = setTUIFunc createDefs (html question) tst
 		= (TaskBusy, tst)
 	| otherwise
-		# (cvalue,tst)		= readShared sharedId tst
+		# cvalue			= fromJust mbcvalue
 		# (action,tst)		= getAction updates (map fst buttonActions) tst
 		| isJust action
 			# (result,tst) = gMakeLocalCopy{|*|} cvalue tst
@@ -389,7 +391,7 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
 		= (TaskBusy, tst)
 where
 	createDefs tst
-		# (svalue,tst)			= readShared sharedId tst
+		# (Just svalue,tst)		= readShared sharedId tst
 		# (form,valid,_,tst)	= foldl (createDef svalue) ([],True,0,tst) views
 		# menuActions			= evaluateConditions menuActions valid svalue
 		# buttonActions			= evaluateConditions buttonActions valid svalue
@@ -431,8 +433,8 @@ where
 		# (mbvalue,dstore,world) = loadValue sid dataStore world
 		# tst = {tst & dataStore = dstore, world = world}
 		= case mbvalue of
-			Just v		= (gMakeSharedCopy{|*|} v sid,tst)
-			Nothing		= abort "shared was deleted"
+			Just v		= (Just (gMakeSharedCopy{|*|} v sid),tst)
+			Nothing		= (Nothing,tst)
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
