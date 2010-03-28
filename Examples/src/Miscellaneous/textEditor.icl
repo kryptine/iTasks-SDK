@@ -175,6 +175,7 @@ textEditorApp :: Task Void
 textEditorApp =
 				createDB initState
 	>>= \sid.	group "TextEditor" "" (\(AppAction action,_) _ -> (Void,action)) id Void [textEditorMain sid]
+	>>|			deleteDB sid
 			
 initTextEditor :: Task Void
 initTextEditor = setMenus

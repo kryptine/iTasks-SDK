@@ -1,7 +1,7 @@
 implementation module TaskPanel
 
 import JSON, TUIDefinition, TSt, ProcessDB
-import StdList, StdMisc, StdTuple, StdEnum, StdBool
+import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import Html
 
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
@@ -79,22 +79,15 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			[t]	= buildTaskPanel t menus currentUser tst
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks)
-		# tasks				= filter filterFinished tasks
-		# (containers,tst)	= build tasks 0 tst
+		# (containers,tst)	= seqList [buildTaskPanel t menus currentUser \\ t <- tasks] tst
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
 								, taskId = ti.TaskInfo.taskId
-								, content = [c.taskpanel \\ c <-containers]
+								, content = containers
 								})
 		= (container,tst)
-		where
-			build []	 idx tst = ([],tst)
-			build [t:ts] idx tst
-				# (p,tst) = buildSubtaskPanels t [idx] menus currentUser Closed True tst
-				# (ps,tst)= build ts (idx+1) tst
-				= (p++ps,tst)
 	(TTParallelTask ti tpi tasks)
-		# (subpanels,tst)	= mapSt (\(nr,t) tst -> buildSubtaskPanels t [nr] menus currentUser tpi.TaskParallelInfo.type False tst) (zip ([1..],tasks)) tst
+		# (subpanels,tst)	= seqList [buildSubtaskPanels t [nr] menus currentUser tpi.TaskParallelInfo.type False \\ nr <- [1..] & t <- tasks] tst
 		# sttree			= flatten subpanels
 		# subtaskinfo		= buildSubtaskInfo sttree currentUser						// build subtask info using the full tree
 		# sttree			= [c \\ c <- sttree | filterClosedSubtasks c currentUser]	// filter out all tasks below a closed parallel, unless you are the manager of the parallel
@@ -225,10 +218,10 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		# node	   = [{SubtaskContainer | subtaskNr = stnr, manager = nmanager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskRedundant}]
 		= case tpi.TaskParallelInfo.type of
 			Open 	
-				# (subpanels,tst) = mapSt (\(nr,t) tst -> buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type inClosed tst) children tst
+				# (subpanels,tst) = seqList [buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type inClosed \\ (nr,t) <- children] tst
 				= (flatten [node:subpanels],tst)
 			Closed
-				# (subpanels,tst) = mapSt (\(nr,t) tst -> buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type True tst) children tst
+				# (subpanels,tst) = seqList [buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type True \\ (nr,t) <- children] tst
 				= (flatten [node:subpanels],tst)
 	(TTMainTask ti mti menus inptype task)
 		| isFinished task
@@ -346,9 +339,3 @@ isFinished _						= False
 
 allFinished :: [TaskTree] -> Bool
 allFinished ts = and (map isFinished ts)
-
-mapSt f [] st = ([], st)
-mapSt f [x:xs] st
-	# (y, st) = f x st
-	# (ys, st) = mapSt f xs st
-	= ([y:ys], st)

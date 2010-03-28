@@ -146,10 +146,10 @@ execInParallel mbParType label description procFun parseFun initState initTasks 
 		(Nothing) = makeTaskNode label Nothing execInParallel`
 		(Just pt) = makeTaskNode label (Just (mkTpi pt)) execInParallel`
 where
-	execInParallel` tst
-		# (pst,tst)   		= loadPSt tst
+	execInParallel` tst=:{taskNr}
+		# (pst,tst)   		= loadPSt taskNr tst
 		# (result,pst,tst) 	= processAllTasks pst 0 tst
-		# tst				= setTaskStore "pst" pst tst
+		# tst				= setTaskStoreFor taskNr "pst" pst tst
 		= case result of
 			TaskException e = (TaskException e, tst)
 			TaskFinished  r = (TaskFinished (parseFun r), tst)
@@ -173,18 +173,18 @@ where
 						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]}
 						= processAllTasks pst (inc idx) tst
 
-	loadPSt tst
-		# (mbPSt,tst) = getTaskStore "pst" tst
+	loadPSt taskNr tst
+		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
 		= case mbPSt of
 			(Just p) = (p,tst)
-			Nothing  = initPSt tst
+			Nothing  = initPSt taskNr tst
 	
-	initPSt tst
+	initPSt taskNr tst
 		# pst = { PSt
 				| state = initState
 				, tasks = [(assignTask task, False) \\ task <- initTasks]
 				}
-		# tst = setTaskStore "pst" pst tst
+		# tst = setTaskStoreFor taskNr "pst" pst tst
 		= (pst,tst)
 
 	assignTask atask
