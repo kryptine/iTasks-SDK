@@ -25,13 +25,13 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 	
 	initContent: function(content){
 		
-		this.control = new itasks.ttc.parallel.Control({subtaskInfo: this.subtaskInfo});
+		this.control = new itasks.ttc.parallel.Control({subtaskInfo: this.subtaskInfo, description: this.description, label: this.label});
 		this.add(this.control);
 		
 		for(var i=0, len = content.length; i<len;i++){
 
 			Ext.apply(content[i],{
-				title : 'Subtask '+content[i].subtaskId,
+				title : 'Sub task '+content[i].subtaskId,
 				iconCls: 'icon-task'
 			});
 			
@@ -50,7 +50,9 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 	},
 	
 	updateTabs : function(content){
-			
+		
+		var astid = this.activeSubtaskId;
+		
 		content = content.filter(function (val) { 
 			if(val == "done" || val == "redundant") return false;
 			else return true;
@@ -91,7 +93,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 		}
 
 		this.doLayout();
-		this.setActiveSubtask(this.activeSubtaskId);
+		this.setActiveSubtask(astid);
 	},
 	
 	setActiveSubtask : function(id){				
@@ -100,8 +102,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 		for(var i=0; i<this.items.length; i++){
 			if(this.items.get(i).subtaskId == id){ t=i; break; }
 		}		
-		
-		this.activeSubtaskId = id;
+
 		this.setActiveTab(t);
 	}
 });
@@ -115,6 +116,45 @@ Ext.ns('itasks.ttc.parallel');
 itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 
 	initComponent : function(){
+		
+		this.initGrid();
+		
+		Ext.apply(this,{
+			subtaskId: 0,
+			unstyled: true,
+			bodyStyle: 'padding: 10px',
+			iconCls : 'icon-overview',
+			title: 'Overview',	
+			cls: 'ParallelControlContainer',
+			layout: 'anchor',
+			items: [
+				{ xtype: 'panel'
+				, cls: 'task-description ParallelControlDescription'
+				, width: 700
+				, unstyled: true
+				, html: this.label
+				},
+				{ xtype: 'panel'
+				, items: [
+					{ xtype: 'panel'
+					, unstyled: true
+					, html: this.description
+					, bodyStyle: 'padding: 4px'
+					},
+					this.grid
+				]
+				, cls: 'ParallelControlPanel'
+				, width: 700
+				, unstyled: true
+				}	
+			]
+		});
+				
+		itasks.ttc.parallel.Control.superclass.initComponent.apply(this,arguments);
+		this.updateStore(this.subtaskInfo);
+	},
+	
+	initGrid : function() {
 		var store = new Ext.data.JsonStore({
 			autoDestroy: true,
 			root: 'subtasks',
@@ -135,38 +175,24 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 			},
 			columns: [
 				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
-				{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 75, renderer: this.renderId},
-				{header: 'Subject',		   		dataIndex: 'subject', width: 200},
-				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 120},
-				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 120},
-				{header: 'Description',			dataIndex: 'description', width: 400}
+				{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 34, renderer: this.renderId},
+				{header: 'Subject',		   		dataIndex: 'subject', width: 150},
+				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 100},
+				{header: 'Description',			dataIndex: 'description', width: 294},
+				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 80},
 			]
 		});
-		var grid = new Ext.grid.GridPanel({
+		this.grid = new Ext.grid.GridPanel({
 			store : store,
 			disableSelection: true,
 			colModel: col,	
 			width: '100%',
 			height: 250,
-		});
-		
-		Ext.apply(this,{
-			subtaskId: 0,
 			unstyled: true,
-			bodyStyle: 'padding: 10px',
-			iconCls : 'icon-overview',
-			title: 'Overview',	
-			layout: 'form',
-			items: [
-				{ xtype: 'panel'
-				, html: this.label
-				, bodyCssClass: 'task-description'
-				}
-				, grid			
-			]
+			bodyStyle: 'border-top: 1px solid  #99BBE8'
 		});
 		
-		grid.on("rowdblclick",function(grid,row,e){
+		this.grid.on("rowdblclick",function(grid,row,e){
 			var store = grid.store;
 			var rec = grid.store.getAt(row);
 			var staskId = rec.data.subtaskId;
@@ -174,9 +200,6 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 	
 			ct.setActiveSubtask(staskId);
 		},this);
-		
-		itasks.ttc.parallel.Control.superclass.initComponent.apply(this,arguments);
-		this.updateStore(this.subtaskInfo);
 	},
 	
 	update: function(subtaskinfo){
@@ -184,8 +207,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 	},
 	
 	updateStore: function(records){
-		var grid = this.getComponent(1);
-		var store = grid.store;
+		var store = this.grid.store;
 		store.loadData({subtasks: records},false);
 	},
 	

@@ -96,7 +96,8 @@ buildTaskPanel tree menus currentUser tst = case tree of
 		# container			= (TTCParallelContainer {TTCParallelContainer 
 								| xtype = "itasks.ttc.parallel"
 								, taskId = ti.TaskInfo.taskId
-								, label = tpi.TaskParallelInfo.description
+								, label = ti.TaskInfo.taskLabel
+								, description = tpi.TaskParallelInfo.description
 								, subtaskInfo = subtaskinfo
 								, content = cpanels
 								})
@@ -193,7 +194,8 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		    									| xtype = "itasks.ttc.result"
 		    									, id = "taskform-" +++ ti.TaskInfo.taskId
 		   										, taskId = ti.TaskInfo.taskId
-		   										, html = (foldr (+++) "" [toString h \\ h <- html])
+		   										, result = (foldr (+++) "" [toString h \\ h <- html])
+		   										, label = "Result of sub task "+++(subtaskNrToString stnr)
 		   										, subtaskId = Just (subtaskNrToString stnr)
 		   										}
 		   	}], tst)
@@ -205,13 +207,13 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			[t] = buildSubtaskPanels t stnr menus manager partype inClosed tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
 	(TTGroupedTask ti tasks)
-		= build tasks 0 tst
+		= build tasks 1 tst
 		where
 			build []	 idx tst = ([],tst)
 			build [t:ts] idx tst
 				# (p,tst) = buildSubtaskPanels t [idx:stnr] menus manager partype inClosed tst
 				# (ps,tst)= build ts (idx+1) tst
-				= (p++ps,tst)	
+				= (p++ps,tst)
 	(TTParallelTask ti tpi tasks)
 		# children = zip2 [1..] tasks
 		# nmanager = ti.TaskInfo.worker

@@ -12,6 +12,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	= TaskDone
 	| TaskRedundant
 	| TTCFormContainer TTCFormContainer
+	| TTCMessageContainer TTCMessageContainer
 	| TTCMonitorContainer TTCMonitorContainer
 	| TTCResultContainer TTCResultContainer
 	| TTCProcessControlContainer TTCProcessControlContainer
@@ -28,7 +29,6 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, manager		:: UserName
 	}
 
-//==== NEW ======
 :: FormContent =
 	{ form		:: !TUIDef
 	, tbar		:: ![TUIDef]
@@ -45,27 +45,35 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, description	:: !String
 	}
 	
+:: TTCMessageContainer = 
+	{ xtype			:: !String
+	, id			:: !String
+	, taskId		:: !String
+	, message		:: !String
+	, subtaskId		:: !(Maybe String)
+	}
+	
 :: TTCMonitorContainer =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, html			:: String
+	{ xtype			:: !String
+	, id			:: !String
+	, taskId		:: !String
+	, html			:: !String
 	, subtaskId		:: !(Maybe String)
 	}
 	
 :: TTCResultContainer =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, html			:: String
+	{ xtype			:: !String
+	, id			:: !String
+	, taskId		:: !String
+	, label			:: !String
+	, result		:: !String
 	, subtaskId		:: !(Maybe String)
 	}
-
 	
 :: TTCProcessControlContainer =
-	{ xtype			:: String
-	, taskId		:: String
-	, properties	:: TaskProperties
+	{ xtype			:: !String
+	, taskId		:: !String
+	, properties	:: !TaskProperties
 	, subtaskId		:: !(Maybe String)
 	}
 	
@@ -73,6 +81,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	{ xtype			:: !String
 	, taskId		:: !String
 	, label			:: !String
+	, description	:: !String
 	, subtaskInfo	:: ![SubtaskInfo]
 	, content		:: ![TaskPanel]
 	}
@@ -83,36 +92,13 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, content		:: ![TaskPanel]
 	}
 
-//==== OLD ======	
-
-:: FormPanel =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, items			:: [TUIDef]
-	, tbar			:: [TUIDef]
-	}
-:: FormUpdate =
-	{ xtype			:: String
-	, id			:: String
-	, taskId		:: String
-	, updates		:: [TUIUpdate]
-	}
-
-:: STMainTaskPanel =
-	{ xtype			:: String
-	, taskId		:: String
-	, properties	:: TaskProperties
-	, subtaskId		:: String
-	} 
-
 :: SubtaskInfo =
-	{ finished		:: Bool
-	, taskId		:: String
-	, subject		:: String
-	, delegatedTo	:: String
-	, subtaskId		:: String
-	, description	:: String
+	{ finished		:: !Bool
+	, taskId		:: !String
+	, subject		:: !String
+	, delegatedTo	:: !String
+	, subtaskId		:: !String
+	, description	:: !String
 	}
 
 buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)

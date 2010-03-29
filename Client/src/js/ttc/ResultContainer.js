@@ -2,22 +2,21 @@ Ext.ns('itasks.ttc');
 
 itasks.ttc.ResultContainer = Ext.extend(Ext.Panel,{
 	initComponent: function() {
-		Ext.apply(this,{
-			defaults: {
-				unstyled: true
-			},
-			bodyStyle: 'padding: 10px',
-			unstyled: true
+		Ext.apply(this,
+		{ unstyled: true
+		, cls: 'ResultContainer'
+		, width: 720
+		, html: '<div class="ResultContainer-Description task-description">'+this.label+'</div><div class="ResultContainer-Text">'+this.result+'</div>'
 		});
 		
 		itasks.ttc.ResultContainer.superclass.initComponent.apply(this,arguments);
 	},
 	
-	update: function(data){		
+	update: function(data){
 		if(this.rendered){
-			this.el.update(data.html);
+			this.body.html = '<div class="ResultContainer-Description task-description">'+data.label+'</div><div class="ResultContainer-Text">'+data.result+'</div>'
 		}else{
-			this.html = data.html;
+			this.html = '<div class="ResultContainer-Description task-description">'+data.label+'</div><div class="ResultContainer-Text">'+data.result+'</div>'
 		}
 	}
 });

@@ -66,3 +66,56 @@
 	margin: 10px 0px 0px 10px;
 }
 
+/* Result Container */
+.ResultContainer{
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCResultContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
+
+.ResultContainer-Description {
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 0px 0px 10px;
+	clear: both;
+	width: 700px;
+}
+
+.ResultContainer-Text {
+	background-color: transparent;
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	width: 700px;
+	margin: 0px 0px 0px 10px;
+}
+
+/* Parallel Container */
+
+.ParallelControlContainer{
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCParallelContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
+
+.ParallelControlDescription{
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 0px 0px 10px;
+}
+
+.ParallelControlPanel{
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	margin: 0px 0px 0px 10px;
+}
