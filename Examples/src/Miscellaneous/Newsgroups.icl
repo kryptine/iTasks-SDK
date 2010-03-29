@@ -23,7 +23,64 @@ newsgroupsExample
 	,	workflow	 "Examples/Communication/broadcast" internalBroadcast
 	,	workflow	 "Examples/Communication/mail with confirmation" internalEmailConf
 	,	workflow	 "Examples/Communication/mail with forced reply" internalEmailReply
+	,	workflow	 "Examples/Communication/make appointment" mkAppointment
 	]
+
+// date fixing
+
+derive gPrint		Appointment, Meeting, Attending
+derive gParse		Appointment, Meeting, Attending
+derive gVisualize	Appointment, Meeting, Attending	
+derive gUpdate		Appointment, Meeting, Attending
+
+derive gMerge				Meeting, Appointment, UserName, Attending
+derive gMakeSharedCopy		Meeting, Appointment, UserName, Attending
+derive gMakeLocalCopy		Meeting, Appointment, UserName, Attending
+
+:: Appointment		=	{ goal :: Note
+						}
+:: Meeting 			=	{ date		:: Date
+						, from`		:: Time
+						, till		:: Time
+						}
+:: Attending		=	Yes | No | Remark Note
+
+//mkAppointment :: Task (Appointment,Meeting,[UserName])
+mkAppointment 
+	= 					meetingGoal 
+		>>= \goal -> 	defineParticipants 
+		>>= \users ->	defineOptions
+		>>= \dates ->	let 	sharedData :: (Appointment,[( Meeting,[(Maybe Attending,UserName)])])
+								sharedData = (goal,[(date,[(Nothing, user)\\ user <- users])\\ date <- dates])
+							in (createDB sharedData
+								>>= \dbid -> startup 0 dbid users sharedData)
+where
+	startup n dbid [] _
+		= return Void
+	startup n dbid [u:us] data
+		= spawnProcess u True ("Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
+	where
+		task :: Int -> Task (Action, (Appointment,[( Meeting,[(Maybe Attending,UserName)])]))
+		task n = updateShared "Meeting requested" [] dbid [appointEditor]
+		where
+			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
+			
+			editorFrom (goal, props) = 	(Static goal, 	[let (att,user) = attlist!!n in (Static meeting, Static attlist,(Static (user +++> "  can you attend ?"),att)) 
+														\\ (meeting,attlist) <- props])
+
+			editorTo (Static goal, props) _ = (goal, [(meeting,let (att,user) = attlist!!n in updateAt n (yn,user) attlist) \\ (Static meeting, Static attlist,(_,yn)) <- props])
+
+			adjust n conf yn = conf // let (att,user) = conf!!n in updateAt n (yn,user) conf
+
+	meetingGoal	:: Task Appointment
+	meetingGoal = enterInformation "Describe goal of the meeting:"	
+
+	defineParticipants :: Task [UserName]
+	defineParticipants = enterInformation "Select participants:"
+
+	defineOptions :: Task [Meeting]
+	defineOptions = enterInformation "Define date and time options:"
+
 
 // mail handling, to be put in sepparate icl file
 
