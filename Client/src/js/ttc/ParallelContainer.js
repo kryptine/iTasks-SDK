@@ -179,7 +179,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 				{header: 'Subject',		   		dataIndex: 'subject', width: 150},
 				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 100},
 				{header: 'Description',			dataIndex: 'description', width: 294},
-				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 80},
+				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 80}
 			]
 		});
 		this.grid = new Ext.grid.GridPanel({
