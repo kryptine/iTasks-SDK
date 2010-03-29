@@ -451,12 +451,16 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					= (viz1 ++ separator ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,rh2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})			
+					= (viz1 ++ separator ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+where
+	separator = case vizType of
+		VHtmlDisplay	= []
+		_				= [TextFragment ", "]
 
 gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
@@ -481,13 +485,17 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
 					# (viz3,rh3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,rh2,vst) = f2 VBlank VBlank vst
 					# (viz3,rh3,vst) = f3 VBlank VBlank vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})	
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+where
+	separator = case vizType of
+		VHtmlDisplay	= []
+		_				= [TextFragment ", "]
 
 gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	# oldLabel = useLabels
@@ -516,15 +524,19 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
 					# (viz3,rh3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
 					# (viz4,rh4,vst) = f4 (VValue o4 omask) (VValue n4 nmask) vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3 ++ [TextFragment ", "] ++ viz4,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3 ++ separator ++ viz4,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
 					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
 					# (viz2,rh2,vst) = f2 VBlank VBlank vst
 					# (viz3,rh3,vst) = f3 VBlank VBlank vst
 					# (viz4,rh4,vst) = f4 VBlank VBlank vst
-					= (viz1 ++ [TextFragment ", "] ++ viz2 ++ [TextFragment ", "] ++ viz3 ++ [TextFragment ", "] ++ viz4,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
-
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3 ++ separator ++ viz4,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+where
+	separator = case vizType of
+		VHtmlDisplay	= []
+		_				= [TextFragment ", "]
+	
 gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,listMask}
 	= case vizType of		
 		VEditorDefinition
@@ -722,29 +734,11 @@ gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
 gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
 = case vizType of
 	VEditorDefinition
-		= case old of
-		(VValue (Static ov) omask)
-			# (vizBody,rh,vst) = fx (VValue ov omask) (VValue ov omask) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
-			= case hd vizBody of
-				(HtmlFragment tags)
-					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True})],
-		  			rh,
-		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
-		  		(TextFragment html)
-					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = html, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True})],
-		  			rh,
-		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
-		  		_
-		  			= ([],0,{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
-		(VBlank)
-			# (vizBody,rh,vst) = fx VBlank VBlank {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
-			= case hd vizBody of
-				(HtmlFragment tags)
-					= ([TUIFragment (TUIHtmlPanel {TUIHtmlPanel | html = tags2s tags, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True})],
-		  			rh,
-		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
-		  		_
-		  			= ([],0,{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+		# (def,rh,vst) = editorDef old
+		= (map TUIFragment def, rh, vst)
+	VEditorUpdate
+		# (def,rh,vst) = editorDef new
+		= (map (\d -> TUIUpdate (TUIReplace (dp2id idPrefix currentPath) d)) def, rh, vst)
 	_
 		= case old of
 		(VValue (Static ov) omask)
@@ -753,9 +747,31 @@ gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, val
 		(VBlank)
 			# (vizBody,rh,vst) = fx VBlank VBlank {VSt | vst & currentPath = shiftDataPath currentPath}
 			= (vizBody,rh,{VSt | vst &  currentPath = stepDataPath currentPath})
-where 
+where
+	editorDef v = case v of
+		(VValue (Static ov) omask)
+			# (vizBody,rh,vst)	= fx (VValue ov omask) (VValue ov omask) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+			| isEmpty vizBody
+				= ([],0,{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+			| otherwise
+				= ([TUIHtmlPanel {TUIHtmlPanel | html = mkHtml vizBody, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True}],
+					rh,
+		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+		(VBlank)
+			# (vizBody,rh,vst) = fx VBlank VBlank {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+			| isEmpty vizBody
+				= ([],0,{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+			| otherwise
+				= ([TUIHtmlPanel {TUIHtmlPanel | html = mkHtml vizBody, border = False, bodyCssClass = "", id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, unstyled=True}],
+		  			rh,
+		  			{VSt | vst & currentPath = stepDataPath currentPath, vizType = vizType})
+
 	tags2s [] = ""
 	tags2s [t:tv] = (toString t)+++tags2s tv
+	
+	mkHtml vizBody
+		# htmlList = [(case v of HtmlFragment tags = tags2s tags; TextFragment html = html; _ = "") \\ v <- vizBody]
+		= join "" htmlList
 		
 derive gVisualize Either, Void
 
