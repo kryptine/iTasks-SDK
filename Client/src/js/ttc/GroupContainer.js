@@ -18,69 +18,87 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 
 		itasks.ttc.GroupContainer.superclass.initComponent.apply(this,arguments);
 		
+		this.content = this.filterContent(this.content);
+		
 		for(var i=0; i < this.content.length; i++) {
-			this.addContainer(this.content[i]);
+			this.addContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index);
 		}
 	},
 	
 	afterRender: function() {
 		itasks.ttc.GroupContainer.superclass.afterRender.call(this,arguments);
-		this.focusContainer(0);
+		this.focusFirstContainer();
 	},
 	
-	addContainer: function(cont,pos) {
+	addContainer: function(cont,behaviour,idx,pos) {
 		var group = this;
-		this.storeButtonsAndMenus(cont);
-		var panel = new Ext.Panel({
-			xtype: 'panel',
-			items: [cont],
-			unstyled: true,
-			cls: 'ttc-no-focus',
-			focused: false,
-			listeners: {
-				afterrender: function(p) {
-					p.el.on('mousedown', function() {
-						group.focusContainer(group.items.findIndex('id', this.id));
-					});
-				}
-			},
-			focus: function() {this.focused = true; this.removeClass('ttc-no-focus');},
-			unfocus: function() {this.focused = false; this.removeClass('ttc-no-focus');this.addClass('ttc-no-focus');}
-		});
-		
+		var id = this.mkElementId(idx);
+		switch(behaviour) {
+			case 'AlwaysFixed':
+				this.storeButtonsAndMenus(cont);
+				var panel = {
+					xtype: 'panel',
+					id: id,
+					items: [cont],
+					unstyled: true,
+					cls: 'ttc-no-focus',
+					focused: false,
+					listeners: {
+						afterrender: function(p) {
+							p.el.on('mousedown', function() {
+								group.focusContainer(p);
+							});
+						}
+					},
+					focusFixed: function() {this.focused = true; this.removeClass('ttc-no-focus');},
+					unfocusFixed: function() {this.focused = false; this.removeClass('ttc-no-focus');this.addClass('ttc-no-focus');}
+				};
+				break;
+			case 'AlwaysFloating':
+				this.configWindowContent(cont);
+				var panel = {
+					xtype: 'window',
+					id: id,
+					initHidden: false,
+					closable: false,
+					shadow: false,
+					shadow: false,
+					items: [cont],
+					title: cont.description || "No Description"
+				};
+				break;
+			}
+			
 		if (pos)
 			this.insert(pos,panel);
 		else
 			this.add(panel);
 	},
 	
-	focusContainer: function(i) {
-		if (this.items.length == 0)
-			return;
+	focusContainer: function(cont) {
+		if(Ext.isDefined(this.focusedContainer))
+			this.focusedContainer.unfocusFixed();
 	
-		if(this.items.length <= i){
-			this.focusContainer(this.items.length-1);
-		} else {
-			var focusedCont = this.get(i);
-			
-			if(focusedCont.focused)
-				return; // container already focused
-
-			// unfocus previous container
-			if (Ext.isDefined(this.focusedContainer)) {
-				var cont = this.get(this.focusedContainer);
-				if(cont) {
-					cont.unfocus();
-					delete this.focusedContainer;
-				}
+		cont.focusFixed();
+		this.focusedContainer = cont;
+		
+		this.refreshToolbar(this.getTopToolbar(), this.containerMenus, cont);
+		this.refreshToolbar(this.getBottomToolbar(), this.containerButtons, cont);
+	},
+	
+	focusFirstContainer: function() {
+		var fixedExisting = false;
+		for(var i=0; i < this.items.length; i++){
+			if(this.get(i).getXType() != "window") {
+				this.focusContainer(this.get(i));
+				fixedExisting = true;
+				break;
 			}
-			
-			// focus new container
-			focusedCont.focus();
-			this.focusedContainer = i;
-			
-			this.refreshToolbar(this.getTopToolbar(), this.containerMenus, focusedCont);
-			this.refreshToolbar(this.getBottomToolbar(), this.containerButtons, focusedCont);
+		}
+		
+		if(!fixedExisting) {
+			this.getTopToolbar().hide();
+			this.getBottomToolbar().hide();
 		}
 	},
 	
@@ -96,8 +114,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 	
 	removeContainer: function(i) {
 		var cont = this.get(i);
-		if(cont.focused) {
-			this.prevFocusedContainer = this.focusedContainer;
+		if(cont.focused && cont.getXType() != 'Window') {
 			delete this.focusedContainer;
 		}
 		this.containerButtons.remove(cont.taskId);
@@ -115,30 +132,34 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		}
 	},
 	
-	update: function(data) {
-		var content = data.content;
-	
-		content = content.filter(function (val) { 
-			if(val == "done" || val == "redundant") return false;
+	filterContent: function(content) {
+		return content.filter(function (val) {
+			if(val.panel == "done" || val.panel == "redundant") return false;
 			else return true;
 		});
+	},
+	
+	update: function(data) {
+		var content = this.filterContent(data.content);
 
 		for(var i=0; i < content.length; i++){
-			for(var j=i; j < this.items.length; j++){
-				if(content[i].taskId == this.get(j).get(0).taskId) break;
+			var data = content[i].panel;
+		
+			for(var j=i; j < this.items.length; j++) {
+				if(this.mkElementId(content[i].index) == this.get(j).id) break;
 			}
 
-			for(var k=0; k < (j-i); k++){
+			for(var k=0; k < (j-i); k++) {
 				this.removeContainer(i);
 			}
 			
-			var data = content[i];
-			
 			if(i < this.items.length){
 				var cont = this.get(i).get(0);
+				var isWindow = this.get(i).getXType() == "window";
+				if(isWindow) this.configWindowContent(data);
 				
-				if (cont.getXType() == data.xtype){
-					this.storeButtonsAndMenus(data);
+				if(cont.getXType() == data.xtype){
+					if (!isWindow) this.storeButtonsAndMenus(data);
 					cont.update(data);
 					if (data.updates) {
 						// update disabled-flag in stored buttons/menus
@@ -177,11 +198,11 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 				}else{
 					//if not same xtype - completely replace container contents
 					this.get(i).removeAll();
-					this.storeButtonsAndMenus(data);
+					if (!isWindow) this.storeButtonsAndMenus(data);
 					this.get(i).add(data);
 				}
-			}else{
-				this.addContainer(data,j);
+			} else {
+				this.addContainer(data,content[i].behaviour,content[i].index,j);
 			}
 		}
 		
@@ -190,18 +211,39 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			this.removeContainer(this.items.length-1);
 		}
 		
-		// focus new container if focused one is deleted
+		// focus first fixed container if focused one is deleted
 		if(!Ext.isDefined(this.focusedContainer))
-			this.focusContainer(this.prevFocusedContainer);
+			this.focusFirstContainer();
+		
 		this.doLayout();
 	},
 	
 	addUpdate: function(name, value) {
-		this.get(this.focusedContainer).get(0).addUpdate(name, value);
+		this.focusedContainer.get(0).addUpdate(name, value);
 	},
 	
 	sendUpdates: function(delay) {
-		this.get(this.focusedContainer).get(0).sendUpdates(delay);
+		this.focusedContainer.get(0).sendUpdates(delay);
+	},
+	
+	configWindowContent: function(cont) {
+		if(cont.content) {
+			var noTbar = true;
+			for(var i=0; i < cont.content.tbar.length; i++){
+				if(!cont.content.tbar[i].disabled) {
+					noTbar = false;
+					break;
+				}
+			}
+			if (noTbar)
+				cont.content.tbar = [];
+		}
+			
+		cont.hideDescription = true;
+	},
+	
+	mkElementId: function(idx) {
+		return 'groupEl-' + this.taskId + '-' + idx;
 	}
 });
 

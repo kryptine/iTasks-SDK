@@ -7,7 +7,7 @@ import Html
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
 
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer
-derive JSONEncode TTCParallelContainer, TTCGroupContainer
+derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
@@ -79,7 +79,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			[t]	= buildTaskPanel t menus currentUser tst
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks)
-		# (containers,tst)	= seqList [buildTaskPanel t menus currentUser \\ t <- tasks] tst
+		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel t menus currentUser \\ t <- tasks & idx <- [0..]] tst
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
 								, taskId = ti.TaskInfo.taskId
@@ -114,11 +114,19 @@ where
 			(TTGroupedTask _ _)			= False	
 			_ 							= abort "Unknown panel type in parallel"
 			
-	filterFinished t =
-		case t of
-			(TTFinishedTask _ _)	= False
-			_						= True
-
+	getGroupedBehaviour task
+		# info = case task of
+			(TTInteractiveTask ti _ ) 	= ti
+			(TTMonitorTask ti _)		= ti
+			(TTRpcTask ti _)			= ti
+			(TTFinishedTask ti _)		= ti
+			(TTParallelTask ti _ _)		= ti
+			(TTSequenceTask ti _)		= ti
+			(TTMainTask ti _ _ _ _)		= ti
+			(TTGroupedTask ti _)		= ti	
+			_ 							= abort "Unknown panel type in group"
+		= info.TaskInfo.groupedBehaviour
+			
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))

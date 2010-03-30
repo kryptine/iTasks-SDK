@@ -75,5 +75,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskParallelType = Open 				//Everybody to whom a subtask is assigned can see the full status of this parallel, including the results of others
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.
 	
-:: GroupedBehaviour = Fixed 			//The editor is fixed in the window
-					| Floating			//The editor can be undocked and made floating
+:: GroupedBehaviour = //Fixed 			//The editor is fixed in the window, user can undock editor (making it floating)
+					//| Floating			//The editor is shown in a floating window, user can dock editor (making it fixed)
+					 AlwaysFixed		//Same as Fixed, but user cannot undock
+					| AlwaysFloating	//Same as Floating, but user cannot dock

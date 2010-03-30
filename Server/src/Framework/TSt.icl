@@ -62,7 +62,7 @@ initTaskInfo
 		, taskLabel = ""
 		, traceValue = ""
 		, worker = UserName "" ""
-		, groupedBehaviour = Fixed
+		, groupedBehaviour = AlwaysFixed
 		, taskDescription = ""
 		}
 
@@ -230,7 +230,7 @@ where
 	resetTSt :: !ProcessId !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
 	resetTSt processId properties inptype tst
 		# taskNr	= taskNrFromString processId
-		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed, taskDescription = ""}
+		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = AlwaysFixed, taskDescription = ""}
 		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
@@ -398,7 +398,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" "", groupedBehaviour = Fixed, taskDescription="Task Result"} [], tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" "", groupedBehaviour = AlwaysFixed, taskDescription="Task Result"} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -407,7 +407,7 @@ calculateTaskTree processId tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
-					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = Fixed, taskDescription="Task Result"} [], tst)
+					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = AlwaysFixed, taskDescription="Task Result"} [], tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -465,25 +465,25 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
 mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
-mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkInteractiveTask`	
+mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkInstantTask`
+mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo []} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkMonitorTask`
+mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -538,27 +538,27 @@ where
 	setStatus status tst	= setTaskStore "status" status tst
 		
 mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkSequenceTask`
+mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkParallelTask taskname tpi taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkParallelTask`
+mkParallelTask taskname tpi taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo tpi [], taskNr = [0:taskNr]}												
 		= taskfun tst
 
 mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkGroupedTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkGroupedTask`
+mkGroupedTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkGroupedTask`
 where
 	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTGroupedTask taskInfo [], taskNr = [0:taskNr]}
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = Fixed} Nothing mkMainTask`
+mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo [])}

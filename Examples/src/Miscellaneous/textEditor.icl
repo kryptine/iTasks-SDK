@@ -38,7 +38,7 @@ getAllFileNames =
 	>>= \files.	return (map (\f -> (f.fileId, f.TextFile.name)) files)
 			
 :: AppState = AppState Note (Maybe TextFile)
-:: AppAction = AppAction (PAction (Task AppAction)) // AppAction (ParallelAction AppAction)
+:: AppAction = AppAction (PAction (Task AppAction))
 
 derive gPrint AppState, AppAction, PAction
 derive gParse AppState, AppAction, PAction
@@ -47,6 +47,8 @@ derive gUpdate AppState, AppAction, PAction
 derive gMerge AppState, TextFile
 derive gMakeSharedCopy AppState, TextFile
 derive gMakeLocalCopy AppState, TextFile
+
+subtaskBehaviour = AlwaysFloating
 
 openFile :: (DBRef TextFile) (DBid AppState) -> Task Void
 openFile id sid =
@@ -103,7 +105,7 @@ replaceT sid =
 	>>= \(action, v).	case action of
 							ActionReplaceAll	=										readDB sid
 													>>= \(AppState (Note txt) file).	writeDB sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
-													>>|									return (AppAction (Extend [replaceT sid]))
+													>>|									replaceT sid <<@ subtaskBehaviour
 							_					= 										return (AppAction Continue)
 
 :: TextStatistics =	{ lines			:: Int
@@ -141,18 +143,18 @@ ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
 
 textEditorMain :: (DBid AppState) -> Task AppAction
-textEditorMain sid  =
+textEditorMain sid  =	AlwaysFixed @>> (
 						updateShared "Text Editor" [MenuParamAction ("openFile", Always):(map MenuAction actions)] sid [titleListener,mainEditor]
 	>>= \(action, _).	case action of
 							ActionNew					= writeDB sid initState >>|				return (AppAction (Extend [textEditorMain sid]))
-							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid]))
+							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid <<@ subtaskBehaviour]))
 							ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) sid >>|	return (AppAction (Extend [textEditorMain sid]))
 							ActionSave					= save sid >>|							return (AppAction (Extend [textEditorMain sid]))
-							ActionSaveAs				=										return (AppAction (Extend [textEditorMain sid, saveAs sid]))
-							ActionReplace				= 										return (AppAction (Extend [textEditorMain sid, replaceT sid]))
-							ActionStats					=										return (AppAction (Extend [textEditorMain sid, statistics sid]))
-							ActionShowAbout				= 										return (AppAction (Extend [textEditorMain sid, about]))
-							_							=										return (AppAction Stop)
+							ActionSaveAs				=										return (AppAction (Extend [textEditorMain sid, saveAs sid <<@ subtaskBehaviour]))
+							ActionReplace				= 										return (AppAction (Extend [textEditorMain sid, replaceT sid <<@ subtaskBehaviour]))
+							ActionStats					=										return (AppAction (Extend [textEditorMain sid, statistics sid <<@ subtaskBehaviour]))
+							ActionShowAbout				= 										return (AppAction (Extend [textEditorMain sid, about <<@ subtaskBehaviour]))
+							_							=										return (AppAction Stop))
 where
 	actions =	[ (ActionNew,		Always)
 				, (ActionOpen,		Always)
