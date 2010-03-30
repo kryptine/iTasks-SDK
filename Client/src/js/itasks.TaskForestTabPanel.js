@@ -61,6 +61,7 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 			html: '<div class="taskForestLegend task-mnt">Main Task</div>'+
 			      '<div class="taskForestLegend task-int">Edit Task</div>'+
 				  '<div class="taskForestLegend task-mon">Monitor Task</div>'+
+				  '<div class="taskForestLegend task-ins">Instruction Task</div>'+
 				  '<div class="taskForestLegend task-fin">Finished Task</div>'+
 				  '<div class="taskForestLegend task-seq">Sequential Combinator</div>'+
 				  '<div class="taskForestLegend task-grp">Grouping Combinator</div>'+

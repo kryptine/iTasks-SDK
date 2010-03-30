@@ -393,6 +393,10 @@ div.taskForestLegend{
    background-image:url('img/icons/zoom.png') !important;
 }
 
+.task-ins {
+   background-image:url('img/icons/paste_plain.png') !important;
+}
+
 .task-rpc {
    background-image:url('img/icons/monitor-go.png') !important;
 }

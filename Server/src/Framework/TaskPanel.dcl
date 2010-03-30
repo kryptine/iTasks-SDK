@@ -12,8 +12,8 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	= TaskDone
 	| TaskRedundant
 	| TTCFormContainer TTCFormContainer
-	| TTCMessageContainer TTCMessageContainer
 	| TTCMonitorContainer TTCMonitorContainer
+	| TTCInstructionContainer TTCInstructionContainer
 	| TTCResultContainer TTCResultContainer
 	| TTCProcessControlContainer TTCProcessControlContainer
 	| TTCParallelContainer TTCParallelContainer
@@ -44,20 +44,22 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, subtaskId		:: !(Maybe String)
 	, description	:: !String
 	}
-	
-:: TTCMessageContainer = 
-	{ xtype			:: !String
-	, id			:: !String
-	, taskId		:: !String
-	, message		:: !String
-	, subtaskId		:: !(Maybe String)
-	}
-	
+
 :: TTCMonitorContainer =
 	{ xtype			:: !String
+	, id 			:: !String 
+	, taskId		:: !String 
+	, html 			:: !String 
+	, subtaskId 	:: !(Maybe String)
+	}
+	
+:: TTCInstructionContainer =
+	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !String
-	, html			:: !String
+	, label			:: !String
+	, instruction	:: !String
+	, context		:: !(Maybe String)
 	, subtaskId		:: !(Maybe String)
 	}
 	

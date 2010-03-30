@@ -212,6 +212,17 @@ mkInstantTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 */
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
+* Wrap a function of the proper type to create a function that 
+* displays an (offline) instruction to the user. The user can only
+* dismiss the instruction. No result is returned.
+*
+* @param A name used as the task label
+* @param The function on the TSt that is the task
+*
+* @return Void
+*/
+mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
+/**
 * Creates an rpc task from an rpc call definition.
 * A parse function is used to parse the result of the rpc call
 *

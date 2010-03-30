@@ -482,6 +482,12 @@ where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
+mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
+mkInstructionTask taskname taskfun = Task {TaskDescription | title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkInstructionTask`
+where
+	mkInstructionTask` tst =:{TSt | taskInfo}
+		= taskfun {tst & tree = TTInstructionTask taskInfo [] Nothing}
+
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = AlwaysFixed} Nothing mkRpcTask`
 where

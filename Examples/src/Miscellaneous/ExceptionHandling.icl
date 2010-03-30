@@ -16,7 +16,8 @@ derive bimap (,), Maybe
 
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
-=	[{ name		= "Examples/Higher order/Exception handling"
+=	[{ Workflow 
+	 | name		= "Examples/Higher order/Exception handling"
 	 , label	= "Exception example"
 	 , roles	= []
 	 , mainTask	= exceptionTask

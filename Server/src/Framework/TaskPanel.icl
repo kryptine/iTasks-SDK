@@ -6,7 +6,7 @@ import Html
 
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
 
-derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer
+derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
 
 //JSON specialization for TaskPanel: Ignore the union constructor
@@ -14,6 +14,7 @@ JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
 JSONEncode{|TaskPanel|} (TaskRedundant) c					= ["\"redundant\"" : c]
 JSONEncode{|TaskPanel|} (TTCFormContainer x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCMonitorContainer x) c			= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (TTCInstructionContainer x) c		= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCResultContainer x) c			= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCProcessControlContainer x) c 	= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCParallelContainer x) c			= JSONEncode{|*|} x c
@@ -57,6 +58,16 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			, taskId 	= ti.TaskInfo.taskId
 			, html 		= toString (DivTag [] html)
 			, subtaskId = Nothing
+			},tst)
+	(TTInstructionTask ti instruction context)
+		= (TTCInstructionContainer {TTCInstructionContainer 
+			| xtype 		= "itasks.ttc.instruction"
+			, id 			= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 		= ti.TaskInfo.taskId
+			, label			= ti.TaskInfo.taskLabel
+			, instruction 	= toString (DivTag [] instruction)
+			, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
+			, subtaskId 	= Nothing
 			},tst)
 	(TTRpcTask ti rpc) 
 		= (TTCMonitorContainer {TTCMonitorContainer 
@@ -178,6 +189,22 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 		   										, subtaskId = Just (subtaskNrToString stnr)
 		   										}
 		   	}], tst)
+	(TTInstructionTask ti instruction context)
+		= ([{SubtaskContainer 
+			| subtaskNr = stnr
+			, manager = manager
+			, inClosedPar = inClosed
+			, tasktree = tree
+		    , taskpanel = TTCInstructionContainer {TTCInstructionContainer 
+													| xtype 		= "itasks.ttc.instruction"
+													, id 			= "taskform-" +++ ti.TaskInfo.taskId
+													, taskId 		= ti.TaskInfo.taskId
+													, label			= ti.TaskInfo.taskLabel
+													, instruction 	= toString (DivTag [] instruction)
+													, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
+													, subtaskId 	= Just (subtaskNrToString stnr)
+													}
+			}], tst)
 	(TTRpcTask ti rpc)
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr

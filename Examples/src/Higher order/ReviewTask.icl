@@ -45,7 +45,8 @@ derive bimap (,), Maybe
 
 reviewTaskExample :: [Workflow]
 reviewTaskExample
-= [	{	name		= "Examples/Higher order/Review task"
+= [	{	Workflow
+	|	name		= "Examples/Higher order/Review task"
 	,	label		= "Review the results of a task"
 	,	roles		= []
 	,	mainTask	= reviewtask >>| return Void

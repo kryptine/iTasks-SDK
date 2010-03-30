@@ -58,6 +58,19 @@ where
 		  , taskClass = "MON"
 		  , children = []
 		  }
+  
+	mkTree (TTInstructionTask info _ _)
+		= { cls = "master-task"
+		  , user = toString info.TaskInfo.worker
+		  , uiProvider = "col"
+		  , leaf = True
+		  , iconCls = "task-ins"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "INS"
+		  , children = []
+		  }
 	
 	mkTree (TTRpcTask info _ )
 		= { cls = "master-task"

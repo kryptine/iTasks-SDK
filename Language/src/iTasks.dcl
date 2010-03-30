@@ -8,6 +8,7 @@ import	Engine						// basic iTask system creator
 
 	//	Basic tasks
 	,	InteractionTasks			// tasks for interaction with users
+	,	MessageTasks				// tasks for displaying static messages
 	,	SystemTasks					// tasks for interaction with the iTasks system itself
 	,	StoreTasks					// tasks for accessing the generic store
 	

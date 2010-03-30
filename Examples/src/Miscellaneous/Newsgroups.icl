@@ -24,10 +24,32 @@ newsgroupsExample
 	,	workflow	 "Examples/Communication/mail with confirmation" internalEmailConf
 	,	workflow	 "Examples/Communication/mail with forced reply" internalEmailReply
 	,	workflow	 "Examples/Communication/make appointment" mkAppointment
+	,	workflow	 "Examples/Communication/Delegate Instruction" mkInstruction
 	]
 
-// date fixing
+derive gPrint		InstructionMsg
+derive gParse		InstructionMsg
+derive gVisualize	InstructionMsg
+derive gUpdate		InstructionMsg
 
+:: InstructionMsg	=	{ worker		:: !UserName
+						, title			:: !String
+						, instruction	:: !Note
+						, attachments	:: !(Maybe [Document])
+						}
+
+mkInstruction :: Task Void
+mkInstruction
+	= 			mkMsg 
+	>>= \msg -> msg.InstructionMsg.worker @: ("Instructions regarding: "+++msg.InstructionMsg.title, displayInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
+	
+	where
+		mkMsg :: Task InstructionMsg
+		mkMsg = enterInformation "Please write down your instructions"
+
+// --- Appointment Example ---
+
+// date fixing
 derive gPrint		Appointment, Meeting, Attending
 derive gParse		Appointment, Meeting, Attending
 derive gVisualize	Appointment, Meeting, Attending	
@@ -40,7 +62,7 @@ derive gMakeLocalCopy		Meeting, Appointment, UserName, Attending
 :: Appointment		=	{ goal :: Note
 						}
 :: Meeting 			=	{ date		:: Date
-						, from`		:: Time
+						, from_		:: Time
 						, till		:: Time
 						}
 :: Attending		=	Yes | No | Remark Note

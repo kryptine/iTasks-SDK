@@ -43,135 +43,13 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 	
 	afterRender: function(){
 		itasks.ttc.FormContainer.superclass.afterRender.call(this,arguments);
-		this.attachTaskHandlers(this);
+		//attachTaskHandlers is moved to file 'TTCCommon.js'		
+		itasks.ttc.common.attachTaskHandlers(this);
 		
 		var tb = this.getTopToolbar();
 		if(tb) tb.setVisible(tb.items.length > 0);
 	},
-	
-	attachTaskHandlers: function(comp) {
-	
-		// Scary hack! Don't look below!
-		new Ext.util.DelayedTask().delay(100,this.attachDocumentLinkInformation,this);
-		// End of scary hack
 		
-		var changeTaskEvent = function () {
-			var ct = this.findParentByType(itasks.ttc.FormContainer);
-			if (!ct)
-				ct = this.findParentByType(itasks.ttc.GroupContainer);
-			if(!ct) return;
-			
-			//Helper function to get the value of a checkbox group
-			function checkboxValues(boxes) {
-				var values = [];
-				var num = boxes.length;
-				for(var i = 0; i < num; i++) {
-					values[values.length] = boxes[i].value;
-				}
-				return Ext.encode(values);
-			}
-			
-			var value;
-			switch(this.xtype) {
-				
-				case "radiogroup": value = this.getValue().value; break;
-				case "checkboxgroup": value = checkboxValues(arguments[1]); break;
-				case "datefield": value = this.getRawValue(); break;
-				default: value = this.getValue();
-			}
-			ct.addUpdate(this.name, value);
-			ct.sendUpdates(true);
-		};
-		var clickTaskEvent = function () {
-			if(this.clickCB) this.clickCB(this);
-			
-			var ct = this.findParentByType(itasks.ttc.FormContainer);
-			if (!ct)
-				ct = this.findParentByType(itasks.ttc.GroupContainer);
-			if(!ct) return;
-						
-			ct.addUpdate(this.name, this.value);
-			ct.sendUpdates();
-			
-		};
-		
-		switch(comp.getXType()) {
-				case "textfield":
-				case "itasks.tui.String":
-				case "itasks.tui.Char":
-				case "itasks.tui.Int":
-				case "itasks.tui.Real":
-				case "itasks.tui.Note":
-				case "itasks.tui.Date":
-				case "itasks.tui.Time":
-				case "itasks.tui.Username":
-				case "itasks.tui.Currency":
-				case "textarea":
-				case "numberfield":
-				case "datefield":
-				case "timefield":
-				case "radiogroup":
-					comp.on("change",changeTaskEvent);
-					break;
-				case "checkbox":
-				case "itasks.tui.Bool":
-					comp.on("check",changeTaskEvent);
-					break;
-				case "checkboxgroup":
-					comp.on("change",changeTaskEvent);
-					break;
-				case "combo":
-				case "itasks.userfield":
-					comp.on("select",changeTaskEvent);
-					break;
-				case "button":
-				case "menuitem":
-					if(comp.name)
-						comp.on("click",clickTaskEvent);
-					break;
-		}
-		if(comp.buttons) {
-			var num = comp.buttons.length;
-			for(var i = 0; i < num; i++) {
-				comp.buttons[i].on("click",clickTaskEvent);
-			}
-		}
-		//attach recursively
-		if(comp.items && comp.items.each)
-			comp.items.each(this.attachTaskHandlers, this);
-		if(comp.menu)
-			this.attachTaskHandlers(comp.menu);
-		if(comp.topToolbar)
-			this.attachTaskHandlers(comp.topToolbar);
-	},
-	
-	attachDocumentLinkInformation: function() {
-		
-		var links   = Ext.query("a[name=x-form-document-link]");
-		var plinks = Ext.query("a[name=x-form-document-preview-link]");
-		
-		for(var x=0; x < links.length; x++){
-			var link = links[x];
-			
-			if(link.pathname.indexOf('/') != 0){
-				link.pathname = itasks.config.serverUrl+'/'+link.pathname;
-			}else{
-				link.pathname = itasks.config.serverUrl+link.pathname;
-			}
-			link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
-			link.name = "";
-			
-			for(var y=0; y < plinks.length; y++){				
-				if(plinks[y].id == link.id){
-					var plink = plinks[y];		
-
-					plink.href="javascript:itasks.preview('"+link.href.replace( 'download','preview')+"')";
-					plink.name = "";
-				}
-			}
-		}
-	},
-	
 	addUpdate: function(name, value) {
 		this.taskUpdates[name] = value;
 	},
@@ -216,7 +94,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 							ct.ownerCt.syncSize();
 							ct.ownerCt.ownerCt.doLayout();
 							
-							this.attachTaskHandlers(newct);
+							itasks.ttc.common.attachTaskHandlers(newct);
 						}
 						break;
 					case "TUIRemove":
@@ -253,7 +131,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 							oct.syncSize();
 							oct.ownerCt.doLayout();
 							
-							this.attachTaskHandlers(newct);
+							//this.attachTaskHandlers(newct);
+							itasks.ttc.common.attachTaskHandlers(newct);
 						}
 						break;
 					case "TUISetEnabled":
@@ -306,7 +185,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			tb.setVisible(tb.items.length > 0);
 			
 			//Attach eventhandlers
-			this.attachTaskHandlers(this);
+			//this.attachTaskHandlers(this);
+			itasks.ttc.common.attachTaskHandlers(this);
 		}
 	}	
 });

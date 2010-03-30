@@ -109,7 +109,17 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			tb.add(newTb);
 		tb.setVisible(tb.items.length > 0);
 		tb.doLayout();
-		itasks.ttc.FormContainer.prototype.attachTaskHandlers(tb);
+		//itasks.ttc.FormContainer.prototype.attachTaskHandlers(tb);
+		
+		//apply the taskId to the new TB, so that attachTaskHandlers nows on which subtask the actions should
+		//be applied
+		tb.cascade(function(){
+			Ext.apply(this,{
+				taskId : focusedCont.get(0).taskId
+			});
+		});
+		
+		itasks.ttc.common.attachTaskHandlers(tb,focusedCont.get(0).taskId);
 	},
 	
 	removeContainer: function(i) {

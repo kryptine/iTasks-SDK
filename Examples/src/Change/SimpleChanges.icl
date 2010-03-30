@@ -6,42 +6,50 @@ from TaskTree import :: TaskProperties(..),::TaskWorkerProperties(..),::TaskMana
 
 changeExamples :: [Workflow]
 changeExamples =
-	[ 	{ name		= "Examples/Changes/Change priority"
+	[ 	{ Workflow
+		| name		= "Examples/Changes/Change priority"
 		, label		= "Change priority"
 		, roles		= []
 		, mainTask	= try changePrio catch
 		},
-		{ name		= "Examples/Changes/Add warning"
+		{ Workflow
+		| name		= "Examples/Changes/Add warning"
 		, label		= "Add warning"
 		, roles		= []
 		, mainTask	= try changeWarningTask catch
 		},
-		{ name		= "Examples/Changes/Duplicate task"
+		{ Workflow
+		| name		= "Examples/Changes/Duplicate task"
 		, label		= "Duplicate task"
 		, roles		= []
   		, mainTask	= try duplicateTask catch
   		},
- 		{ name		= "Examples/Changes/Show result when task finishes"
+ 		{ Workflow
+		| name		= "Examples/Changes/Show result when task finishes"
 		, label		= "Show result when task finishes"
 		, roles		= []
   		, mainTask	= try informTask catch
   		},
- 		{ name		= "Examples/Changes/Check task when finished"
+ 		{ Workflow
+		| name		= "Examples/Changes/Check task when finished"
 		, label		= "Check task when finished"
 		, roles		= []
   		, mainTask	= try checkTask catch
   		},
- 		{ name		= "Examples/Changes/Cancel task"
+ 		{ Workflow
+		| name		= "Examples/Changes/Cancel task"
 		, label		= "Cancel task"
 		, roles		= []
   		, mainTask	= try cancelTask catch
   		},
- 		{ name		= "Examples/Changes/Reassign task"
+ 		{ Workflow
+		| name		= "Examples/Changes/Reassign task"
 		, label		= "Reassign task"
 		, roles		= []
   		, mainTask	= try reassignTask catch
   		},
- 		{ name		= "Examples/Changes/Restart task"
+ 		{ Workflow
+		| name		= "Examples/Changes/Restart task"
 		, label		= "Restart task"
 		, roles		= []
   		, mainTask	= try restartTask catch
@@ -76,9 +84,9 @@ duplicate me user topics =
 where
 	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
-		= 	( Just {TaskProperties | props & managerProps = {props.managerProps & worker = toUserName me}}
+		= 	( Just {TaskProperties | props & managerProps = {TaskManagerProperties | props.managerProps & worker = toUserName me}}
 			, Just (assign (toUserName me) NormalPriority Nothing 
-							(anyProc 	[ {user = props.managerProps.worker , task = t <<@ topics} 
+							(anyProc 	[ {user = props.managerProps.TaskManagerProperties.worker , task = t <<@ topics} 
 										, {user = toUserName user, task = t <<@ topics}
 										] Open
 							)
@@ -120,7 +128,7 @@ where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
 		# username = (toUserName user)
-		= (Just {TaskProperties | props & managerProps = {props.managerProps & worker = username}},Nothing, Nothing)
+		= (Just {TaskProperties | props & managerProps = {TaskManagerProperties | props.managerProps & worker = username}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -148,41 +156,41 @@ duplicateTask
 	>>= \procId ->	getProcess procId
 	>>= \process ->	chooseUserA "Select the user you want to work on it as well:"
 	>>= \user ->	getCurrentUser
-	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).properties.managerProps.subject) CLTransient
+	>>= \me ->		applyChangeToProcess procId (duplicate me user (fromJust process).Process.properties.managerProps.subject) CLTransient
 
 informTask :: Task Void
 informTask
 	=				chooseProcess "The result of which process do you want to show?"
 	>>= \procId ->	chooseUserA "Select the user you want this result to see:"
 	>>= \user ->	getProcess procId
-	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).properties.managerProps.subject) CLTransient
+	>>= \process ->applyChangeToProcess procId (inform user (fromJust process).Process.properties.managerProps.subject) CLTransient
 	
 checkTask :: Task Void
 checkTask
 	=				chooseProcess "The result of which process do you want to be checked?"
 	>>= \procId ->	getProcess procId
 	>>= \process -> chooseUserA "Select the user which has to check it:"
-	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).properties.managerProps.subject) CLTransient
+	>>= \user ->	applyChangeToProcess procId (check user (fromJust process).Process.properties.managerProps.subject) CLTransient
 	
 cancelTask :: Task Void
 cancelTask
 	=				chooseProcess "Select the task you want to cancel:"
 	>>= \procId ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).properties.managerProps.subject procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (cancel (fromJust process).Process.properties.managerProps.subject procId) CLTransient
 
 reassignTask :: Task Void
 reassignTask
 	=				chooseProcess "Select the task you want to reassign to someone else:"
 	>>= \procId ->	chooseUserA "Who should continue with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).properties.managerProps.subject procId) CLTransient
+	>>= \process -> applyChangeToProcess procId (reassign user (fromJust process).Process.properties.managerProps.subject procId) CLTransient
 
 restartTask :: Task Void
 restartTask
 	=				chooseProcess "Select the task you want to restart from scratch:"
 	>>= \procId ->	chooseUserA "Who should start with this work?"
 	>>= \user ->	getProcess procId
-	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).properties.managerProps.subject) CLTransient
+	>>= \process -> applyChangeToProcess procId (restart user (fromJust process).Process.properties.managerProps.subject) CLTransient
 
 //Utility
 chooseUserA :: !question -> Task User | html question
@@ -198,9 +206,9 @@ chooseProcess question
 	=								getCurrentProcessId
 	>>= \mypid ->					getProcessesWithStatus [Active]
 	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.processId
-																	, proc.properties.managerProps.subject
-																	, proc.properties.managerProps.priority
-																	, proc.properties.managerProps.worker)
+																	, proc.Process.properties.managerProps.subject
+																	, proc.Process.properties.managerProps.priority
+																	, proc.Process.properties.managerProps.TaskManagerProperties.worker)
 																	\\ proc <- procs | proc.Process.processId <> mypid]
 	>>= \(action,(pid,_,_,_)) ->	case action of
 										ActionCancel -> throw "choosing a process has been cancelled"

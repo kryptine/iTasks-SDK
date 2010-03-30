@@ -26,7 +26,7 @@ import CommonDomain
 	, analysis		:: Maybe BugAnalysis
 	}
 
-:: BugStatus = Reported | Assigned UserName | Fixed
+:: BugStatus = Reported | Assigned UserName | Repaired
 
 :: BugAnalysis =
 	{ cause				:: Note
@@ -121,7 +121,7 @@ resolveBug bug critical
 
 wrapUp :: Bug -> Task Void
 wrapUp bug
-	=	updateBug (\b -> {Bug| b & status = Fixed}) bug
+	=	updateBug (\b -> {Bug| b & status = Repaired}) bug
 	>>= \bug ->
 		notifyReporter bug
 

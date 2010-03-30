@@ -35,8 +35,8 @@ derive bimap (,), Maybe
 address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ", city = "Nijmegen"}
 person	= {Person | name	= "John Doe"
 				  , cool	= True
-				  , dob		= {year = 1978, mon = 4, day = 1}
-				  , tob		= {hour = 13, min = 42, sec = 0}
+				  , dob		= {Date | year = 1978, mon = 4, day = 1}
+				  , tob		= {Time | hour = 13, min = 42, sec = 0}
 				  , age		= Just 23
 				  , address	= address
 				  , grades	= []

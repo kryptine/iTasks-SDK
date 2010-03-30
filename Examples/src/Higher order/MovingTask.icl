@@ -26,7 +26,8 @@ derive bimap (,), Maybe
 
 movingTaskExample :: [Workflow]
 movingTaskExample
-= [ {	name		= "Examples/Higher order/Moving task"
+= [ {Workflow
+	|	name		= "Examples/Higher order/Moving task"
 	,	label		= "Suspend,Activate or move a task"
 	,	roles		= []
 	,	mainTask	= movingTask ("Task which can be moved", trivialTask )
