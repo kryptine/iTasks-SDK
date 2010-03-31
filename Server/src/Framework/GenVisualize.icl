@@ -735,10 +735,10 @@ gVisualize{|Static|} fx old new vst=:{vizType, label, idPrefix, currentPath, val
 = case vizType of
 	VEditorDefinition
 		# (def,rh,vst) = editorDef old
-		= (map TUIFragment def, rh, vst)
+		= (map TUIFragment def, rh, {vst & valid = valid})
 	VEditorUpdate
 		# (def,rh,vst) = editorDef new
-		= (map (\d -> TUIUpdate (TUIReplace (dp2id idPrefix currentPath) d)) def, rh, vst)
+		= (map (\d -> TUIUpdate (TUIReplace (dp2id idPrefix currentPath) d)) def, rh, {vst & valid = valid})
 	_
 		= case old of
 		(VValue (Static ov) omask)
