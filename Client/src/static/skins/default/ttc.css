@@ -164,6 +164,31 @@
 	margin: 0px 0px 0px 10px;
 }
 
+/* Process Control Container */
+
+.ProcessControlContainer{
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCProcessControlContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
+
+.ProcessControlDescription {
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 0px 0px 10px;
+}
+
+.ProcessControlPanel {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	margin: 0px 0px 0px 10px;
+}
 
 
 
