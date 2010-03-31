@@ -59,7 +59,7 @@ derive gMerge				Meeting, Appointment, UserName, Attending
 derive gMakeSharedCopy		Meeting, Appointment, UserName, Attending
 derive gMakeLocalCopy		Meeting, Appointment, UserName, Attending
 
-:: Appointment		=	{ goal :: Note
+:: Appointment		=	{ topic :: Note
 						}
 :: Meeting 			=	{ date		:: Date
 						, from_		:: Time
@@ -80,22 +80,32 @@ where
 	startup n dbid [] _
 		= return Void
 	startup n dbid [u:us] data
-		= spawnProcess u True ("Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
+		= spawnProcess u True ("Meeting Request" @>> task True n) >>| 	startup (n+1) dbid us data
 	where
-		task :: Int -> Task (Action, (Appointment,[( Meeting,[(Maybe Attending,UserName)])]))
-		task n = updateShared "Meeting requested" [] dbid [appointEditor]
+		task :: Bool Int -> Task (Appointment,[( Meeting,[(Maybe Attending,UserName)])])
+		task notDone n 
+			= 							if notDone
+											(updateShared "Meeting requested" [ButtonAction (ActionOk,Predicate pred)] dbid [appointEditor])
+											(updateShared "Meeting requested" [ButtonAction (ActionOk,Always)] dbid [idListener])
+				>>= switch notDone
 		where
+			switch True  (ActionOk,_) = task False n
+			switch False (_,result)	  = return result
+
 			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
 			
-			editorFrom (goal, props) = 	(Static goal, 	[let (att,user) = attlist!!n in (Static meeting, Static attlist,(Static (user +++> "  can you attend ?"),att)) 
-														\\ (meeting,attlist) <- props])
+			editorFrom (goal, props) 
+				= (Static goal, [let (att,user) = attlist!!n in (Static (meeting, attlist),(Static (user +++> "  can you attend ?"),att)) 
+									\\ (meeting,attlist) <- props])
 
-			editorTo (Static goal, props) _ = (goal, [(meeting,let (att,user) = attlist!!n in updateAt n (yn,user) attlist) \\ (Static meeting, Static attlist,(_,yn)) <- props])
+			editorTo (Static goal, props) _ 
+				= (goal, [(meeting,let (att,user) = attlist!!n in updateAt n (yn,user) attlist) \\ (Static (meeting, attlist),(_,yn)) <- props])
 
-			adjust n conf yn = conf // let (att,user) = conf!!n in updateAt n (yn,user) conf
+			pred (Valid (_,props))	= and [let (att,user) = attlist!!n in isJust att \\ (_,attlist) <- props] // Lijkt deze niet te testen...
+			pred _					= False 
 
 	meetingGoal	:: Task Appointment
-	meetingGoal = enterInformation "Describe goal of the meeting:"	
+	meetingGoal = enterInformation "Describe the topic of the meeting:"	
 
 	defineParticipants :: Task [UserName]
 	defineParticipants = enterInformation "Select participants:"
