@@ -8,16 +8,12 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		this.tbar = this.content.tbar;
 		
 		delete this.content;
-		delete this.description;
-		
-		if(this.hideDescription)
-			this.panel.cls = 'FormPanelWindow';
 		
 		Ext.apply(this,
 		{ layout: 'anchor'
 		, taskUpdates : {}
 		, url: itasks.config.serverUrl + '/work/tab'
-		, items: this.hideDescription ? [this.panel] : [this.descpanel,this.panel]		
+		, items: [this.descpanel,this.panel]
 		, unstyled: true
 		, autoScroll: true
 		, cls: 'FormContainer'
@@ -171,8 +167,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			this.removeAll();
 			this.buildComponents(data);
 			
-			if(this.hideDescription) this.panel.cls = 'FormPanelWindow';
-			if(!this.hideDescription) this.add(this.descpanel);
+			this.add(this.descpanel);
 			this.add(this.panel);
 			
 			this.doLayout();
@@ -198,7 +193,6 @@ itasks.ttc.form.FormDescription = Ext.extend(Ext.Panel,{
 		Ext.apply(this,{		
 			cls: 'task-description FormDescription',
 			unstyled: true,
-			width:700
 		});
 		
 		itasks.ttc.form.FormDescription.superclass.initComponent.apply(this,arguments);
@@ -208,9 +202,8 @@ itasks.ttc.form.FormDescription = Ext.extend(Ext.Panel,{
 itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 
 	initComponent : function(){
-		Ext.applyIf(this,
+		Ext.apply(this,
 		{ layout: 'fit'
-		, width: 700
 		, unstyled: true
 		, cls: 'FormPanel'
 		});

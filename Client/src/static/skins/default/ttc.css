@@ -18,11 +18,7 @@
 	border-bottom: 1px solid #99BBE8;
 	border-right: 1px solid #99BBE8;
 	margin: 0px 0px 0px 10px;
-}
-
-.FormPanelWindow {
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	padding: 4px;
+	width: 700px;
 }
 
 .FormDescription {
@@ -30,6 +26,7 @@
 	background-repeat: repeat-x;
 	border: 1px solid #99BBE8;
 	margin: 10px 0px 0px 10px;
+	width: 700px;
 }
 
 /* Group Container */
@@ -37,20 +34,49 @@
 	background-color: #eee;
 }
 
-.ttc-no-focus  .FormPanel {
+.GroupFixedNoFocus  .x-panel-fbar {
+	display: none;
+}
+
+.GroupFixed .x-plain-tbar {
+	display: none;
+}
+
+.GroupFixedNoFocus  .FormPanel {
 	background-image : url('img/ttc-icons/TTCBackgroundNoFocus.png') !important;
 	border-bottom:1px solid #ddd;
 	border-left:1px solid #ddd;
 	border-right:1px solid #ddd;
 }
 
-.ttc-no-focus  .FormDescription {
+.GroupFixedNoFocus  .FormDescription {
 	background-image: url("img/ttc-icons/TTCDescriptionBackgroundNoFocus.png") !important;
 	border:1px solid #ddd;
 }
 
-.ttc-no-focus div.task-description {
+.GroupFixedNoFocus div.task-description {
 	color:#888899;
+}
+
+.GroupFloating .FormPanel {
+	margin: 0px;
+	border: none;
+}
+
+.GroupFloating .FormDescription {
+	display: none;
+}
+
+/*.GroupFloating .FormPanel {
+	width: auto;
+}*/
+
+.GroupFloating .GroupToolbarUndockControls {
+	display: none;
+}
+
+.GroupFloating .GroupToolbarNoEnabledItems {
+	display: none;
 }
 
 /* Finished Container */

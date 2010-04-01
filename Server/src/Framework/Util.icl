@@ -80,7 +80,7 @@ gVisualize{|Task|} fx _ _ vst = ([],0,vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
-	= (Task {TaskDescription|title = "return", description = Note "", groupedBehaviour=AlwaysFixed} Nothing (\tst -> (TaskFinished a,tst)), ust)
+	= (Task {TaskDescription|title = "return", description = Note "", groupedBehaviour=GBFixed} Nothing (\tst -> (TaskFinished a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
 
 derive gUpdate User

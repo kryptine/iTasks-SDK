@@ -48,7 +48,7 @@ derive gMerge AppState, TextFile
 derive gMakeSharedCopy AppState, TextFile
 derive gMakeLocalCopy AppState, TextFile
 
-subtaskBehaviour = AlwaysFloating
+subtaskBehaviour = GBFloating
 
 openFile :: (DBRef TextFile) (DBid AppState) -> Task Void
 openFile id sid =
@@ -143,7 +143,7 @@ ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
 
 textEditorMain :: (DBid AppState) -> Task AppAction
-textEditorMain sid  =	AlwaysFixed @>> (
+textEditorMain sid  =	GBFixed @>> (
 						updateShared "Text Editor" [MenuParamAction ("openFile", Always):(map MenuAction actions)] sid [titleListener,mainEditor]
 	>>= \(action, _).	case action of
 							ActionNew					= writeDB sid initState >>|				return (AppAction (Extend [textEditorMain sid]))

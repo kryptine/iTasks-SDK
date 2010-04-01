@@ -3,17 +3,12 @@ Ext.ns('itasks.ttc')
 itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 
 	initComponent: function(){
-		this.containerMenus = new Ext.util.MixedCollection();
-		this.containerButtons = new Ext.util.MixedCollection();
-		
 		Ext.apply(this, 
 		{ layout:'auto'
 		, autoScroll: true
 		, cls: 'GroupContainer'
 		, unstyled: true
 		, tbar: []
-		, bbar: []
-		, taskUpdates: {}
 		});
 
 		itasks.ttc.GroupContainer.superclass.initComponent.apply(this,arguments);
@@ -21,69 +16,151 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		this.content = this.filterContent(this.content);
 		
 		for(var i=0; i < this.content.length; i++) {
-			this.addContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index);
+			this.addContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index,false);
 		}
 	},
 	
-	afterRender: function() {
-		itasks.ttc.GroupContainer.superclass.afterRender.call(this,arguments);
-		this.focusFirstContainer();
+	onLayout: function() {
+		itasks.ttc.GroupContainer.superclass.onLayout.call(this,arguments);
+		if(!Ext.isDefined(this.focusedContainer))
+			this.focusFirstContainer();
 	},
 	
-	addContainer: function(cont,behaviour,idx,pos) {
+	addContainer: function(cont,behaviour,id,focus,pos) {
 		var group = this;
-		var id = this.mkElementId(idx);
+		if(Ext.isNumber(id))
+			id = this.mkElementId(id);
+		
+		// add undock button to toolbar for (un)dockable tasks
+		if((behaviour == 'GBFixed' || behaviour == 'GBFloating') && cont.content) {
+			var undockButton = {
+				iconCls: 'icon-unpin',
+				cls: 'GroupToolbarUndockControls',
+				handler: function() {
+					var panel = group.focusedContainer;
+					var pos = group.items.indexOf(panel);
+					delete group.focusedContainer;
+					var cont = panel.get(0);
+					panel.removeAll(false);
+					panel.destroy();
+					// copy toolbar back from shared one
+					group.copyTbar(group.getTopToolbar(), cont.getTopToolbar());
+					group.addContainer(cont, 'GBFloating', panel.id, false, pos);
+					group.doLayout();
+					group.focusFirstContainer();
+				}
+			};
+			var tbar = cont.content.tbar;
+			tbar[tbar.length] = {xtype: 'tbseparator', cls: 'GroupToolbarUndockControls'};
+			tbar[tbar.length] = undockButton;
+		}
+
 		switch(behaviour) {
-			case 'AlwaysFixed':
-				this.storeButtonsAndMenus(cont);
+			case 'GBFixed':
+			case 'GBAlwaysFixed':
 				var panel = {
 					xtype: 'panel',
+					cls: 'GroupFixed GroupFixedNoFocus',
 					id: id,
 					items: [cont],
 					unstyled: true,
-					cls: 'ttc-no-focus',
-					focused: false,
 					listeners: {
 						afterrender: function(p) {
 							p.el.on('mousedown', function() {
 								group.focusContainer(p);
 							});
+							
+							if(focus)
+								group.focusContainer(p);
 						}
 					},
-					focusFixed: function() {this.focused = true; this.removeClass('ttc-no-focus');},
-					unfocusFixed: function() {this.focused = false; this.removeClass('ttc-no-focus');this.addClass('ttc-no-focus');}
+					focusFixed: function() {
+						this.removeClass('GroupFixedNoFocus');
+						this.doLayout();
+					},
+					unfocusFixed: function() {
+						this.removeClass('GroupFixedNoFocus');
+						this.addClass('GroupFixedNoFocus');
+						this.doLayout();
+					}
 				};
 				break;
-			case 'AlwaysFloating':
-				this.configWindowContent(cont);
+			case 'GBFloating':
+				var tools = [{
+					id: 'pin',
+					handler: function(ev,el,window) {
+						var pos = group.items.indexOf(window);
+						var cont = window.get(0);
+						window.removeAll(false);
+						window.destroy();
+						group.addContainer(cont, 'GBFixed', window.id, true, pos);
+						group.doLayout();
+						cont.getTopToolbar().doLayout();
+					}
+				}];
+			case 'GBAlwaysFloating':
 				var panel = {
 					xtype: 'window',
+					cls: 'GroupFloating',
 					id: id,
 					initHidden: false,
 					closable: false,
 					shadow: false,
-					shadow: false,
 					items: [cont],
-					title: cont.description || "No Description"
+					title: cont.description || "No Description",
+					tools: tools
 				};
 				break;
 			}
 			
-		if (pos)
+		if (Ext.isDefined(pos))
 			this.insert(pos,panel);
 		else
 			this.add(panel);
 	},
 	
 	focusContainer: function(cont) {
-		if(Ext.isDefined(this.focusedContainer))
-			this.focusedContainer.unfocusFixed();
+		if(cont == this.focusedContainer)
+			return;
 	
+		var groupTbar = this.getTopToolbar();
+
+		if(Ext.isDefined(this.focusedContainer)) {
+			// copy top toolbar back to container
+			var prevTbar = this.focusedContainer.get(0).getTopToolbar();
+			this.copyTbar(groupTbar, prevTbar);
+			this.focusedContainer.unfocusFixed();
+		} else {
+			groupTbar.removeAll();
+		}
+
+		// copy top toolbar to shared group toolbar
+		var taskTbar = cont.get(0).getTopToolbar();
+		if(taskTbar)
+			this.copyTbar(taskTbar, groupTbar);
+		groupTbar.setVisible(groupTbar.items.length > 0);
+
+		//apply the taskId to the new TB, so that attachTaskHandlers nows on which subtask the actions should
+		//be applied
+		groupTbar.cascade(function(){
+			Ext.apply(this,{
+				taskId : cont.get(0).taskId
+			});
+		});
+		itasks.ttc.common.attachTaskHandlers(groupTbar,cont.get(0).taskId);
+
+		// focus container
 		cont.focusFixed();
 		this.focusedContainer = cont;
-		
-		this.refreshToolbar(this.getTopToolbar(), this.containerMenus, cont);
-		this.refreshToolbar(this.getBottomToolbar(), this.containerButtons, cont);
+	},
+	
+	copyTbar: function(src,dst) {
+		var items = src.items.getRange();
+		src.removeAll(false);
+		dst.removeAll();
+		dst.add(items);
+		src.doLayout();
+		dst.doLayout();
 	},
 	
 	focusFirstContainer: function() {
@@ -97,49 +174,17 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		}
 		
 		if(!fixedExisting) {
+			delete this.focusedContainer;
 			this.getTopToolbar().hide();
-			this.getBottomToolbar().hide();
 		}
-	},
-	
-	refreshToolbar: function(tb, contentCollection, focusedCont) {
-		tb.removeAll();
-		var newTb = contentCollection.get(focusedCont.get(0).taskId);
-		if(newTb)
-			tb.add(newTb);
-		tb.setVisible(tb.items.length > 0);
-		tb.doLayout();
-		//itasks.ttc.FormContainer.prototype.attachTaskHandlers(tb);
-		
-		//apply the taskId to the new TB, so that attachTaskHandlers nows on which subtask the actions should
-		//be applied
-		tb.cascade(function(){
-			Ext.apply(this,{
-				taskId : focusedCont.get(0).taskId
-			});
-		});
-		
-		itasks.ttc.common.attachTaskHandlers(tb,focusedCont.get(0).taskId);
 	},
 	
 	removeContainer: function(i) {
 		var cont = this.get(i);
-		if(cont.focused && cont.getXType() != 'Window') {
+		if(cont == this.focusedContainer && cont.getXType() != 'Window') {
 			delete this.focusedContainer;
 		}
-		this.containerButtons.remove(cont.taskId);
-		this.containerMenus.remove(cont.taskId);
 		this.remove(i,true);
-	},
-	
-	storeButtonsAndMenus: function(cont) {
-		if(cont.content) {
-			// store buttons/menus and remove them from container
-			this.containerButtons.add(cont.taskId, cont.content.buttons);
-			delete cont.content.buttons;
-			this.containerMenus.add(cont.taskId, cont.content.tbar);
-			cont.content.tbar = [];
-		}
 	},
 	
 	filterContent: function(content) {
@@ -165,54 +210,16 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			
 			if(i < this.items.length){
 				var cont = this.get(i).get(0);
-				var isWindow = this.get(i).getXType() == "window";
-				if(isWindow) this.configWindowContent(data);
 				
-				if(cont.getXType() == data.xtype){
-					if (!isWindow) this.storeButtonsAndMenus(data);
+				if(cont.getXType() == data.xtype && cont.taskId == data.taskId) {
 					cont.update(data);
-					if (data.updates) {
-						// update disabled-flag in stored buttons/menus
-						function updateToolbar(tb) {
-							if(!tb)
-								return;
-						
-							if(Ext.isArray(tb)) {
-								for(var i=0; i < tb.length; i++){
-									updateToolbar(tb[i]);
-								}
-							} else {
-								if(Ext.isDefined(tb.id) && Ext.isDefined(tb.disabled)) {
-									function findSetEnabledUpdate(id, def) {
-										var num = data.updates.length;
-										for (i = 0; i < num; i++) {
-											var update = data.updates[i];
-											
-											if(update[0] == "TUISetEnabled" && update[1] == id)
-												return !update[2];
-										}
-										
-										return def;
-									}
-									tb.disabled = findSetEnabledUpdate(tb.id, tb.disabled);
-								}
-								if(tb.menu)
-									updateToolbar(tb.menu);
-								if(tb.items)
-									updateToolbar(tb.items);
-							}
-						}
-						updateToolbar(this.containerButtons.get(cont.taskId));
-						updateToolbar(this.containerMenus.get(cont.taskId));
-					}
-				}else{
-					//if not same xtype - completely replace container contents
+				} else {
+					//if not same xtype or taskId - completely replace container contents
 					this.get(i).removeAll();
-					if (!isWindow) this.storeButtonsAndMenus(data);
 					this.get(i).add(data);
 				}
 			} else {
-				this.addContainer(data,content[i].behaviour,content[i].index,j);
+				this.addContainer(data,content[i].behaviour,content[i].index,false,j);
 			}
 		}
 		
@@ -220,10 +227,6 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		for(var i=0; i<trailing; i++){
 			this.removeContainer(this.items.length-1);
 		}
-		
-		// focus first fixed container if focused one is deleted
-		if(!Ext.isDefined(this.focusedContainer))
-			this.focusFirstContainer();
 		
 		this.doLayout();
 	},
@@ -234,22 +237,6 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 	
 	sendUpdates: function(delay) {
 		this.focusedContainer.get(0).sendUpdates(delay);
-	},
-	
-	configWindowContent: function(cont) {
-		if(cont.content) {
-			var noTbar = true;
-			for(var i=0; i < cont.content.tbar.length; i++){
-				if(!cont.content.tbar[i].disabled) {
-					noTbar = false;
-					break;
-				}
-			}
-			if (noTbar)
-				cont.content.tbar = [];
-		}
-			
-		cont.hideDescription = true;
 	},
 	
 	mkElementId: function(idx) {
