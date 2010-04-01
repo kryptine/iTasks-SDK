@@ -12,6 +12,7 @@ import dynamic_string
 
 from JSON import JSONDecode, fromJSON
 
+
 :: RPCMessage =
 			{ success		:: Bool
 			, error			:: Bool
@@ -31,8 +32,6 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -
 mkTSt appName config request session workflows dataStore documentStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
-		, userId		= UserName "" ""
-		, delegatorId	= UserName "" ""
 		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo [])
 		, mainTask		= ""
 		, properties	= initTaskProperties
@@ -383,12 +382,12 @@ where
 			= storeChanges cs {tst & dataStore = (storeValueAs SFDynamic ("iTask_change-" +++ label) dyn dataStore)} 
 			
 applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
-applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,userId,delegatorId,tree,mainTask,staticInfo,currentChange,pendingChanges}
+applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,mainTask,staticInfo,currentChange,pendingChanges, properties, menus}
 	# (mbProcess,tst) = getProcess pid tst
 	= case mbProcess of
 		(Just proc) 
 			# (_,_,tst) = evaluateTaskInstance proc (Just (lifetime,change)) True False tst
-			= {tst & taskNr = taskNr, taskInfo = taskInfo, userId = userId, delegatorId = delegatorId
+			= {tst & taskNr = taskNr, taskInfo = taskInfo,properties = properties, menus = menus
 			  , tree = tree, mainTask = mainTask, staticInfo = staticInfo, currentChange = currentChange, pendingChanges = pendingChanges}
 		Nothing		
 			= tst

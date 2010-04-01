@@ -8,7 +8,7 @@ from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString
 from TSt import qualified createTaskInstance
 
 import Types
-from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties, :: TaskManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
+from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties(..), :: TaskSystemProperties(..), :: TaskWorkerProperties, :: TaskManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
 
 from Time	import :: Timestamp
 
@@ -22,23 +22,38 @@ from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 getCurrentUser :: Task User
-getCurrentUser = mkInstantTask "getCurrentUserId" getCurrentUser`
+getCurrentUser = mkInstantTask "getCurrentUser" getCurrentUser`
 where
 	getCurrentUser` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentSession.user,tst)
-		
+
 getCurrentProcessId :: Task ProcessId
 getCurrentProcessId = mkInstantTask "getCurrentProcessId" getCurrentProcessId`
 where
 	getCurrentProcessId` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentProcessId,tst)
-		
+
+import StdDebug
+
+getContextWorker :: Task UserName
+getContextWorker = mkInstantTask "getContextWorker" getContextWorker`
+where
+	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProps.worker,tst)
+
+getContextManager :: Task UserName
+getContextManager = mkInstantTask "getContextManager" getContextManager`
+where
+	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProps.manager, tst)
+
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask "getDefaultValue" getDefaultValue`
 where
 	getDefaultValue` tst
 		# (d,tst) = accWorldTSt defaultValue tst
 		= (TaskFinished d,tst)
+
+
+
 		
 spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`

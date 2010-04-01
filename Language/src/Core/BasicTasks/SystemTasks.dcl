@@ -14,14 +14,24 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @return The current user
 */
 getCurrentUser 			::  Task User
-
 /**
 * Retrieves the process id of the current process
 *
 * @return The process id of the current process
 */
 getCurrentProcessId		:: 	Task ProcessId
-
+/**
+* Gets the user that the current task is assigned to
+*
+* @return The username of the user that currently works on a task
+*/
+getContextWorker :: Task UserName
+/**
+* Gets the user that the current task is managed by
+*
+* @return the username of the user that manages the current task
+*/
+getContextManager :: Task UserName
 /**
 * Compute a default value 
 *
