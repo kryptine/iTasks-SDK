@@ -153,6 +153,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 					{ xtype: 'button'
 					, text: 'Manage selected subtask'
 					, iconCls: 'icon-manage-process'
+					, disabled: true
 					, handler: function(){					
 						var selected = ct.grid.getSelectionModel().getSelected();
 						
@@ -168,17 +169,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 						}
 						
 						var properties = selected.get('properties');
-						
-						if(properties == null){
-							Ext.Msg.show(
-								{ title: 'Cannot manage'
-								, msg: 'Cannot manage selected subtask. This task is either finished or not in a separate process.'
-								, buttons: Ext.Msg.OK
-								, icon: Ext.MessageBox.ERROR
-								}
-							);
-							return;
-						}
+						if(properties == null){	return;	}
 								
 						var closeCB = function(){
 							this.findParentByType(itasks.WorkPanel).refresh();
@@ -246,6 +237,16 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 	
 			ct.setActiveSubtask(staskId);
 		},this);
+		
+		this.grid.on('rowclick',function(grid,row,e){
+			var selected = grid.getSelectionModel().getSelected();
+			
+			if(selected.get('properties')){
+				grid.ownerCt.buttons[0].setDisabled(false);
+			}else{
+				grid.ownerCt.buttons[0].setDisabled(true);
+			}
+		},this);
 	},
 	
 	update: function(subtaskinfo){
@@ -305,7 +306,7 @@ itasks.ttc.parallel.ManageWindow = Ext.extend(Ext.Window,{
 			, properties: this.properties
 			}
 		]
-		, title: 'Manage Process Properties'
+		//, title: 'Manage Process Properties'
 		});
 	
 		//hack: make sure the ownerCt is set to reference the parent, so that findParentByType works.
