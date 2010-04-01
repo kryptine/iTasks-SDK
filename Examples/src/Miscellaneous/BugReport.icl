@@ -60,7 +60,7 @@ reportBugVerySimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
 		assign (toUserName "bas") NormalPriority Nothing
-			("Bug Report" @>> showMessageAbout "The following bug has been reported, please fix it." report)
+			("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
 reportBugSimple :: Task BugReport
@@ -68,7 +68,7 @@ reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
 		assign (toUserName "bas") NormalPriority Nothing
-			("Bug Report" @>> showMessageAbout "The following bug has been reported, please fix it." report)
+			("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -79,7 +79,7 @@ where
 	reportBug = enterInformation "Please describe the bug you found"
 	
 	fixBug :: BugReport -> Task Void
-	fixBug bug = "bas" @: ("Bug Report", showMessageAbout "Please fix the following bug" bug)
+	fixBug bug = "bas" @: ("Bug Report", showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
 
 //Main workflow	  
 reportBug :: Task Void
@@ -188,10 +188,10 @@ where
 		= enterInformationAbout "What is the cause of the following bug?" bug
 		
 developBugFix :: Bug -> Task Void
-developBugFix bug = showMessageAbout "Please implement a fix for the following bug:" bug
+developBugFix bug = showInstructionAbout "Bug fix" "Please implement a fix for the following bug:" bug
 
 mergeFixInMainLine :: Bug -> Task Void
-mergeFixInMainLine bug = showMessageAbout "Please merge the bugfix in the main line of version control" bug
+mergeFixInMainLine bug = showInstructionAbout "Merge" "Please merge the bugfix in the main line of version control" bug
 
 makePatches :: Bug -> Task Void
 makePatches bug =
@@ -201,7 +201,7 @@ makePatches bug =
 		Just {affectedVersions = []}
 			= return Void
 		Just {affectedVersions = versions}
-			= allTasks [showMessageAbout ("Please make a patch of bugfix " <+++ bug.bugNr <+++
+			= allTasks [showInstructionAbout "Patch" ("Please make a patch of bugfix " <+++ bug.bugNr <+++
 								" for the following version of " <+++ bug.Bug.report.application)
 								version
 						\\ version <- versions
