@@ -76,7 +76,7 @@ if (!Array.prototype.filter)
   
 //Function to determine scrollbar width
 itasks.util.getScrollerWidth =  function() {
-	var scr = null;
+/*	var scr = null;
 	var inn = null;
 	var wNoScroll = 0;
 	var wScroll = 0;
@@ -113,6 +113,6 @@ itasks.util.getScrollerWidth =  function() {
 		document.body.lastChild);
 
 	// Pixel width of the scroller
-	return (wNoScroll - wScroll);
+	return (wNoScroll - wScroll);*/
 };
 

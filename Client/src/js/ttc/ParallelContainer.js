@@ -31,7 +31,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 		for(var i=0, len = content.length; i<len;i++){
 
 			Ext.apply(content[i],{
-				title : 'Sub task '+content[i].subtaskId,
+				title : 'Subtask '+content[i].subtaskId,
 				iconCls: 'icon-task'
 			});
 			
@@ -119,10 +119,12 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 		
 		this.initGrid();
 		
+		var ct = this;
+		
 		Ext.apply(this,{
 			subtaskId: 0,
 			unstyled: true,
-			bodyStyle: 'padding: 10px',
+			autoScroll: true,
 			iconCls : 'icon-overview',
 			title: 'Overview',	
 			cls: 'ParallelControlContainer',
@@ -135,17 +137,60 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 				, html: this.label
 				},
 				{ xtype: 'panel'
+				, bodyStyle: 'padding: 4px'
 				, items: [
 					{ xtype: 'panel'
 					, unstyled: true
 					, html: this.description
-					, bodyStyle: 'padding: 4px'
+					, bodyStyle: 'padding-bottom: 4px'
 					},
 					this.grid
 				]
 				, cls: 'ParallelControlPanel'
 				, width: 700
 				, unstyled: true
+				, buttons: [
+					{ xtype: 'button'
+					, text: 'Manage selected subtask'
+					, iconCls: 'icon-manage-process'
+					, handler: function(){					
+						var selected = ct.grid.getSelectionModel().getSelected();
+						
+						if(!selected){
+							Ext.Msg.show(
+								{ title: 'No selection'
+								, msg: 'Please select the process you want to manage in the grid'
+								, buttons: Ext.Msg.OK
+								, icon: Ext.MessageBox.ERROR
+								}
+							);
+							return;
+						}
+						
+						var properties = selected.get('properties');
+						
+						if(properties == null){
+							Ext.Msg.show(
+								{ title: 'Cannot manage'
+								, msg: 'Cannot manage selected subtask. This task is either finished or not in a separate process.'
+								, buttons: Ext.Msg.OK
+								, icon: Ext.MessageBox.ERROR
+								}
+							);
+							return;
+						}
+								
+						var closeCB = function(){
+							this.findParentByType(itasks.WorkPanel).refresh();
+						}
+								
+						var window = new itasks.ttc.parallel.ManageWindow({properties: properties, parent: ct});
+						
+						window.on('close',closeCB);						
+						window.show();
+					  }
+					}
+				]
 				}	
 			]
 		});
@@ -160,6 +205,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 			root: 'subtasks',
 			fields: [
 				{name: 'finished', type: 'bool'},
+				'properties',
 				'taskId',
 				'subject',
 				'delegatedTo',
@@ -168,6 +214,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 				'description'
 			]
 		});
+		
 		var col = new Ext.grid.ColumnModel({
 			defaults: {
 				menuDisabled: true,
@@ -176,20 +223,19 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 			columns: [
 				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
 				{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 34, renderer: this.renderId},
-				{header: 'Subject',		   		dataIndex: 'subject', width: 150},
-				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 100},
-				{header: 'Description',			dataIndex: 'description', width: 294},
-				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 80}
+				{header: 'Priority',				dataIndex: 'properties', width: 70, renderer: this.renderPriority},
+				{header: 'Subject',		   		dataIndex: 'subject', width: 130},
+				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 150},
+				{header: 'Description',			dataIndex: 'description', width: 180},
+				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 85}				
 			]
 		});
+		
 		this.grid = new Ext.grid.GridPanel({
 			store : store,
-			disableSelection: true,
 			colModel: col,	
 			width: '100%',
-			height: 250,
-			unstyled: true,
-			bodyStyle: 'border-top: 1px solid  #99BBE8'
+			height: 250
 		});
 		
 		this.grid.on("rowdblclick",function(grid,row,e){
@@ -224,7 +270,50 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 		render = '<img style="width: '+(split.length-1)*5+'px" src="'+Ext.BLANK_IMAGE_URL+'"></span>';		
 		render += val;
 		return render;
+	},
+	
+	renderPriority: function(val,metadata,rec,row,col,store){
+		if(val != null){
+			return itasks.util.formatPriority(val.managerProps.priority);
+		}
 	}
+
+});
+
+
+itasks.ttc.parallel.ManageWindow = Ext.extend(Ext.Window,{
+
+	initComponent : function(){
+		
+		var vsize = Ext.getDoc().getViewSize();
+		
+		var x = (vsize.width-735)/2;
+		var y = (vsize.height-300)/2;
+		
+		Ext.apply(this,
+		{ width: 735
+		, height: 300
+		, layout: 'fit'
+		, modal: true
+		, closable: true
+		, resizable: false
+		, x: x
+		, y: y
+		, items: [			
+			{ xtype: 'itasks.ttc.proc-control'
+			, taskId: this.properties.systemProps.processId
+			, properties: this.properties
+			}
+		]
+		, title: 'Manage Process Properties'
+		});
+	
+		//hack: make sure the ownerCt is set to reference the parent, so that findParentByType works.
+		this.ownerCt = this.parent;
+		
+		itasks.ttc.parallel.ManageWindow.superclass.initComponent.apply(this,arguments);
+	}
+
 });
 
 Ext.reg('itasks.ttc.parallel',itasks.ttc.ParallelContainer);

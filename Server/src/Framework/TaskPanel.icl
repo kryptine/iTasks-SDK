@@ -98,7 +98,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 								})
 		= (container,tst)
 	(TTParallelTask ti tpi tasks)
-		# (subpanels,tst)	= seqList [buildSubtaskPanels t [nr] menus currentUser tpi.TaskParallelInfo.type False \\ nr <- [1..] & t <- tasks] tst
+		# (subpanels,tst)	= seqList [buildSubtaskPanels t [nr] menus currentUser tpi.TaskParallelInfo.type False Nothing \\ nr <- [1..] & t <- tasks] tst
 		# sttree			= flatten subpanels
 		# subtaskinfo		= buildSubtaskInfo sttree currentUser						// build subtask info using the full tree
 		# sttree			= [c \\ c <- sttree | filterClosedSubtasks c currentUser]	// filter out all tasks below a closed parallel, unless you are the manager of the parallel
@@ -138,14 +138,15 @@ where
 			_ 							= abort "Unknown panel type in group"
 		= info.TaskInfo.groupedBehaviour
 			
-buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !*TSt -> (![SubtaskContainer],!*TSt)
-buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
+buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
+buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst = case tree of
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
 			, manager = manager
 			, inClosedPar = inClosed
 			, tasktree = tree
+			, processProperties = procProps
 		    , taskpanel = TTCFormContainer {TTCFormContainer 
 		    								| xtype		= "itasks.ttc.form"
 		    								, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -162,6 +163,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			, manager = manager
 			, inClosedPar = inClosed
 			, tasktree = tree
+			, processProperties = procProps
 			, taskpanel = TTCFormContainer {TTCFormContainer 
 											| xtype 	= "itasks.ttc.form"
 											, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -174,13 +176,14 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			}],tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst)	= f tst
-		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed tst
+		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed procProps tst
 	(TTMonitorTask ti html)
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
 			, manager = manager
 			, inClosedPar = inClosed
 			, tasktree = tree
+			, processProperties = procProps
 		    , taskpanel = TTCMonitorContainer {TTCMonitorContainer 
 		    									| xtype = "itasks.ttc.monitor"
 		    									, id = "taskform-" +++ ti.TaskInfo.taskId
@@ -195,6 +198,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			, manager = manager
 			, inClosedPar = inClosed
 			, tasktree = tree
+			, processProperties = procProps
 		    , taskpanel = TTCInstructionContainer {TTCInstructionContainer 
 													| xtype 		= "itasks.ttc.instruction"
 													, id 			= "taskform-" +++ ti.TaskInfo.taskId
@@ -211,6 +215,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			, manager = manager
 			, inClosedPar = inClosed
 			, tasktree = tree
+			, processProperties = procProps
 		    , taskpanel = TTCMonitorContainer {TTCMonitorContainer 
 		    									| xtype = "itasks.ttc.monitor"
 		    									, id = "taskform-" +++ ti.TaskInfo.taskId
@@ -225,6 +230,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 			, manager = manager
 			, inClosedPar = inClosed
 			, tasktree = tree
+			, processProperties = procProps
 		    , taskpanel = TTCResultContainer {TTCResultContainer 
 		    									| xtype = "itasks.ttc.result"
 		    									, id = "taskform-" +++ ti.TaskInfo.taskId
@@ -237,32 +243,32 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 	(TTSequenceTask ti tasks)
 		= case [t \\ t <- tasks | not (isFinished t)] of
 			[]  = if (allFinished tasks) 
-						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}],tst)
-						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskRedundant}],tst)
-			[t] = buildSubtaskPanels t stnr menus manager partype inClosed tst
+						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, processProperties = procProps, taskpanel = TaskDone}],tst)
+						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, processProperties = procProps, taskpanel = TaskRedundant}],tst)
+			[t] = buildSubtaskPanels t stnr menus manager partype inClosed procProps tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
 	(TTGroupedTask ti tasks)
 		= build tasks 1 tst
 		where
 			build []	 idx tst = ([],tst)
 			build [t:ts] idx tst
-				# (p,tst) = buildSubtaskPanels t [idx:stnr] menus manager partype inClosed tst
+				# (p,tst) = buildSubtaskPanels t [idx:stnr] menus manager partype inClosed procProps tst
 				# (ps,tst)= build ts (idx+1) tst
 				= (p++ps,tst)
 	(TTParallelTask ti tpi tasks)
 		# children = zip2 [1..] tasks
 		# nmanager = ti.TaskInfo.worker
-		# node	   = [{SubtaskContainer | subtaskNr = stnr, manager = nmanager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskRedundant}]
+		# node	   = [{SubtaskContainer | subtaskNr = stnr, manager = nmanager, inClosedPar = inClosed, tasktree = tree, processProperties = procProps, taskpanel = TaskRedundant}]
 		= case tpi.TaskParallelInfo.type of
 			Open 	
-				# (subpanels,tst) = seqList [buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type inClosed \\ (nr,t) <- children] tst
+				# (subpanels,tst) = seqList [buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type inClosed procProps \\ (nr,t) <- children] tst
 				= (flatten [node:subpanels],tst)
 			Closed
-				# (subpanels,tst) = seqList [buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type True \\ (nr,t) <- children] tst
+				# (subpanels,tst) = seqList [buildSubtaskPanels t [nr:stnr] menus nmanager tpi.TaskParallelInfo.type True procProps \\ (nr,t) <- children] tst
 				= (flatten [node:subpanels],tst)
 	(TTMainTask ti mti menus inptype task)
 		| isFinished task
-			= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, taskpanel = TaskDone}], tst)	 
+			= ([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, processProperties = (Just mti), taskpanel = TaskDone}], tst)	 
 		| otherwise
 			= case inptype of
 				Nothing	 = ([{SubtaskContainer 
@@ -270,6 +276,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 							, manager = manager
 							, inClosedPar = inClosed
 							, tasktree = tree
+							, processProperties = (Just mti)
 							, taskpanel = TTCProcessControlContainer {TTCProcessControlContainer
 																		| xtype 		= "itasks.ttc.proc-control"
 																		, taskId		= ti.TaskInfo.taskId
@@ -277,7 +284,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed tst = case tree of
 																		, subtaskId		= Just (subtaskNrToString stnr)
 																		}
 							}], tst)
-				_		 = buildSubtaskPanels task stnr menus manager partype inClosed tst
+				_		 = buildSubtaskPanels task stnr menus manager partype inClosed (Just mti) tst
 
 buildSubtaskInfo :: ![SubtaskContainer] !UserName -> [SubtaskInfo]
 buildSubtaskInfo containers manager = [buildSubtaskInfo` c \\ c <- containers | filterClosedSubtasks c manager]
@@ -285,20 +292,22 @@ where
 	buildSubtaskInfo` :: !SubtaskContainer -> SubtaskInfo
 	buildSubtaskInfo` container = case container.tasktree of
 		(TTInteractiveTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTMonitorTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+		(TTInstructionTask ti _ _)
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTRpcTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTFinishedTask ti _)
-			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
-		(TTMainTask ti _ _ _ _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
+		(TTMainTask ti mti _ _ _)
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		
 	mkSti :: SubtaskInfo
-	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", subtaskId = "", description = ""}
+	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", subtaskId = "", description = "", properties = Nothing}
 	
 	//Only show subtasks of closed parallels if you are the manager of that task
 filterClosedSubtasks :: !SubtaskContainer !UserName -> Bool

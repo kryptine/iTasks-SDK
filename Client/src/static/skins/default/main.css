@@ -32,6 +32,9 @@ button.icon-task-tree, .icon-task-tree {
 button.icon-states, .icon-states {
 	background-image: url('img/icons/table_gear.png');
 }
+button.icon-manage-process, .icon-manage-process {
+	background-image: url('img/icons/table_gear.png');
+}
 button.icon-events, .icon-events {
 	background-image: url('img/icons/table_lightning.png');
 }
@@ -149,6 +152,10 @@ div.treegrid-label {
 	height: 16px;
 	padding: 2px 0px 0px 5px;
 }
+div.work-list-high-priority {
+	background-color: #e49696;
+}
+
 /* NEW TASK PANEL STYLES */
 
 div.newtask-container .x-panel-body {

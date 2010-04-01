@@ -22,11 +22,12 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 :: SubtaskNr :== [Int]
 
 :: SubtaskContainer =
-	{ subtaskNr		:: SubtaskNr
-	, inClosedPar	:: Bool
-	, tasktree		:: TaskTree
-	, taskpanel		:: TaskPanel
-	, manager		:: UserName
+	{ subtaskNr				:: !SubtaskNr
+	, inClosedPar			:: !Bool
+	, tasktree				:: !TaskTree
+	, taskpanel				:: !TaskPanel
+	, manager				:: !UserName
+	, processProperties		:: !(Maybe TaskProperties)
 	}
 
 :: FormContent =
@@ -102,6 +103,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 
 :: SubtaskInfo =
 	{ finished		:: !Bool
+	, properties	:: !(Maybe TaskProperties)
 	, taskId		:: !String
 	, subject		:: !String
 	, delegatedTo	:: !String
