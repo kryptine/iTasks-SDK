@@ -25,6 +25,7 @@ newsgroupsExample
 	,	workflow	 "Examples/Communication/mail with forced reply" internalEmailReply
 	,	workflow	 "Examples/Communication/make appointment" mkAppointment
 	,	workflow	 "Examples/Communication/Delegate Instruction" mkInstruction
+	,	workflow	 "Examples/Communication/Chat with someone" chat
 	]
 
 derive gPrint		InstructionMsg
@@ -113,6 +114,29 @@ where
 	defineOptions :: Task [Meeting]
 	defineOptions = enterInformation "Define date and time options:"
 
+// chat
+
+chat 
+	= 					getCurrentUser
+		>>= \me ->		createChatBox
+		>>= \chatBox ->	enterInformation "With whom do you want to Chat ?" 
+		>>= \friend ->	friend @: ("Chat Request", chatSession chatBox friend) 
+		>>= \yes ->		if yes (chatTask chatBox) (return Void)
+where		
+	createChatBox :: (Task (DBid [Note]))
+	createChatBox = createDB []
+
+	chatSession :: (DBid [Note]) UserName -> Task Bool
+	chatSession chatBox friend 
+		= 				requestConfirmation "Do you want to Chat with me ?"
+			>>= \yes -> if yes 
+							(spawnProcess friend True (chatTask chatBox) >>| return True)
+							(return False)
+
+	chatTask chatBox = updateShared "Chat" [] chatBox [chatEditor] >>| return Void
+
+	chatEditor :: (View [Note])
+	chatEditor = idEditor
 
 // mail handling, to be put in sepparate icl file
 
