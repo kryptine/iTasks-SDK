@@ -117,13 +117,13 @@ where
 
 anyProc :: ![AssignedTask a] !TaskParallelType -> Task a | iTask a
 anyProc [] 	  type = getDefaultValue
-anyProc tasks type = parallel type "any" "Done if any subtask is finished." anyfunc hd [] tasks
+anyProc tasks type = parallel type "any" "Done when any subtask is finished." anyfunc hd [] tasks
 where
 	anyfunc (val,_) [] = ([val],Stop)
 	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
 allProc :: ![AssignedTask a] !TaskParallelType -> Task [a] | iTask a
-allProc tasks type = parallel type "all" "Done if all subtasks are finished." (allfunc (length tasks)) sortByIndex [] tasks 
+allProc tasks type = parallel type "all" "Done when all subtasks are finished." (allfunc (length tasks)) sortByIndex [] tasks 
 where
 	allfunc tlen (val,idx) st 
 		# st = st ++ [(idx,val)]

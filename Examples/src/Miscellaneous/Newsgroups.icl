@@ -117,6 +117,7 @@ where
 // mail handling, to be put in sepparate icl file
 
 :: EMail	=	{ to 			:: !UserName
+				, cc			:: ![UserName]
 				, subject 		:: !String
 				, message		:: !Note
 				, attachements	:: ![Document]
@@ -149,30 +150,34 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						spawnProcess msg.to True 
-										(showMessageAbout ("You have received the following message from " <+++ me.displayName) msg <<@ msg.EMail.subject)
+	>>= \me ->						allProc [{user = who, task = spawnProcess msg.to True (mailMess me msg) <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
+
+mailMess :: User EMail -> Task Void
+mailMess me msg = showMessageAbout ("Mail from " <+++ me.displayName <+++ ":") msg 
 
 internalEmailConf :: (Task EMail)
 internalEmailConf
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						msg.to @: (msg.EMail.subject, showMessageAbout ("You have received the following message from " <+++ me.displayName) msg)
-	>>|								showMessage ("Your mail has been read by " <+++ getUserName msg.to)
+	>>= \me ->						allProc [{user = who, task = mailMess me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
 
 getUserName (UserName id name) = name
 getUserId   (UserName id name) = id
 	
-internalEmailReply :: (Task (EMail,Reply)) // crashes ?? group
+internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						msg.to @: (msg.EMail.subject, (showStickyMessageAbout ("You have received the following message from " <+++ me.displayName) msg
-																  ||- 
-																   enterInformation "The sender requested a reply..."))
-	>>= \reply->					showMessageAbout ("Your mail has been read by " <+++ getUserName msg.to) reply
-	>>|								return (msg,reply)
+	>>= \me ->						allProc [{user = who, task = mailMess2 me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \reply ->					return (msg,reply)
+
+mailMess2 :: User EMail -> Task Reply
+mailMess2 me msg = 	(showStickyMessageAbout ("Mail from " <+++ me.displayName <+++ ":") msg 
+				  	||- 
+			   		enterInformation "The sender requested a reply...")
+					<<@ msg.EMail.subject
 
 // newsgroup handling
 
