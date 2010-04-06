@@ -99,6 +99,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	{ xtype			:: !String
 	, taskId		:: !String
 	, content		:: ![GroupContainerElement]
+	, subtaskId		:: !(Maybe String)
 	}
 
 :: SubtaskInfo =

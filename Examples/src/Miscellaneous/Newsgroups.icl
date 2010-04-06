@@ -42,7 +42,7 @@ derive gUpdate		InstructionMsg
 mkInstruction :: Task Void
 mkInstruction
 	= 			mkMsg 
-	>>= \msg -> msg.InstructionMsg.worker @: ("Instructions regarding: "+++msg.InstructionMsg.title, displayInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
+	>>= \msg -> msg.InstructionMsg.worker @: ("Instructions regarding: "+++msg.InstructionMsg.title, showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
 	
 	where
 		mkMsg :: Task InstructionMsg
@@ -68,7 +68,61 @@ derive gMakeLocalCopy		Meeting, Appointment, UserName, Attending
 						}
 :: Attending		=	Yes | No | Remark Note
 
+:: MeetingDB		:== (Appointment,[(Meeting,[(Maybe Attending,UserName)])]) 
+
+import StdDebug, GenPrint
+
 //mkAppointment :: Task (Appointment,Meeting,[UserName])
+mkAppointment 
+	= 					meetingGoal 
+		>>= \goal -> 	defineParticipants 
+		>>= \users ->	defineOptions
+		>>= \dates ->	let 	sharedData :: MeetingDB
+								sharedData = (goal,[(date,[(Nothing, user)\\ user <- users])\\ date <- dates])
+						in (createDB sharedData
+								>>= \dbid -> startup dbid users sharedData)
+		>>= showMessageAbout "Result"
+where
+	startup :: (DBid MeetingDB) [UserName] MeetingDB -> Task MeetingDB
+	startup dbid [] data = return data
+	startup dbid users data		
+		= let d = (length (snd data)-1)
+		  in 
+			allProc [{user = u, task = ("Meeting Request" @>> task n d)} \\ u <- users & n <- [0..]] Open
+			>>| readDB dbid
+	where			
+		task :: Int Int -> Task [MeetingDB]
+		task uid len
+			= allTasks [updateShared "Meeting request" [ButtonAction (ActionOk,IfValid)] dbid [appointEditor idx] \\ idx <- [0..len]]
+				>>= \list -> return (map snd list)
+		where
+			
+			appointEditor idx = editor {editorFrom = editorFrom idx, editorTo = editorTo idx}
+
+			editorFrom :: Int MeetingDB -> (Static (Meeting,[(Maybe Attending,UserName)]),(Static String,(Maybe Attending)))
+			editorFrom idx (goal, dates)
+				# (date,attlist) = dates !! idx
+				= let (att,user) = attlist !! uid in (Static (date,attlist),(Static(user +++> " can you attend?"),att))
+			
+			editorTo :: Int (Static (Meeting,[(Maybe Attending,UserName)]),(Static String,(Maybe Attending))) MeetingDB -> MeetingDB 				
+			editorTo idx (info,(question,att)) (goal, dates)
+				= let (meeting,attlist) = dates !! idx 
+				  in (goal,updateAt idx (meeting, let (_,user) = attlist !! uid 
+				  								  in updateAt uid (att,user) attlist) dates)
+
+			//pred (Valid (_,props))	= and [let (att,user) = attlist!!n in isJust att \\ (_,attlist) <- props] // Lijkt deze niet te testen...
+			//pred _					= False 
+
+	meetingGoal	:: Task Appointment
+	meetingGoal = enterInformation "Describe the topic of the meeting:"	
+
+	defineParticipants :: Task [UserName]
+	defineParticipants = enterInformation "Select participants:"
+
+	defineOptions :: Task [Meeting]
+	defineOptions = enterInformation "Define date and time options:"
+
+/*
 mkAppointment 
 	= 					meetingGoal 
 		>>= \goal -> 	defineParticipants 
@@ -113,6 +167,7 @@ where
 
 	defineOptions :: Task [Meeting]
 	defineOptions = enterInformation "Define date and time options:"
+*/
 
 // chat
 

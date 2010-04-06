@@ -95,6 +95,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 								| xtype = "itasks.ttc.group"
 								, taskId = ti.TaskInfo.taskId
 								, content = reverse containers
+								, subtaskId = Nothing
 								})
 		= (container,tst)
 	(TTParallelTask ti tpi tasks)
@@ -119,24 +120,12 @@ where
 			(TTInteractiveTask ti _ ) 	= ti.TaskInfo.worker == currentUser
 			(TTMonitorTask ti _)		= ti.TaskInfo.worker == currentUser 
 			(TTRpcTask ti _)			= ti.TaskInfo.worker == currentUser
+			(TTGroupedTask ti _)		= ti.TaskInfo.worker == currentUser	
+			(TTInstructionTask ti _ _)	= ti.TaskInfo.worker == currentUser
 			(TTFinishedTask _ _)		= True										// always show finished tasks
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
 			(TTMainTask _ _ _ _ _)		= False 									// a main-subtask should not become visible
-			(TTGroupedTask _ _)			= False	
 			_ 							= abort "Unknown panel type in parallel"
-			
-	getGroupedBehaviour task
-		# info = case task of
-			(TTInteractiveTask ti _ ) 	= ti
-			(TTMonitorTask ti _)		= ti
-			(TTRpcTask ti _)			= ti
-			(TTFinishedTask ti _)		= ti
-			(TTParallelTask ti _ _)		= ti
-			(TTSequenceTask ti _)		= ti
-			(TTMainTask ti _ _ _ _)		= ti
-			(TTGroupedTask ti _)		= ti	
-			_ 							= abort "Unknown panel type in group"
-		= info.TaskInfo.groupedBehaviour
 			
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst = case tree of
@@ -248,13 +237,28 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst = case
 			[t] = buildSubtaskPanels t stnr menus manager partype inClosed procProps tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
 	(TTGroupedTask ti tasks)
+		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel t menus manager \\ t <- tasks & idx <- [0..]] tst
+		= ([{SubtaskContainer
+			| subtaskNr = stnr
+			, manager = manager
+			, inClosedPar = inClosed
+			, tasktree = tree
+			, processProperties = procProps
+			, taskpanel = TTCGroupContainer {TTCGroupContainer
+											| xtype = "itasks.ttc.group"
+											, taskId = ti.TaskInfo.taskId
+											, content = reverse containers
+											, subtaskId = Just (subtaskNrToString stnr)
+											}
+			}], tst)
+	/*(TTGroupedTask ti tasks)
 		= build tasks 1 tst
 		where
 			build []	 idx tst = ([],tst)
 			build [t:ts] idx tst
 				# (p,tst) = buildSubtaskPanels t [idx:stnr] menus manager partype inClosed procProps tst
 				# (ps,tst)= build ts (idx+1) tst
-				= (p++ps,tst)
+				= (p++ps,tst)*/
 	(TTParallelTask ti tpi tasks)
 		# children = zip2 [1..] tasks
 		# nmanager = ti.TaskInfo.worker
@@ -303,13 +307,15 @@ where
 			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
+		(TTGroupedTask ti _)
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTMainTask ti mti _ _ _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		
 	mkSti :: SubtaskInfo
 	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", subtaskId = "", description = "", properties = Nothing}
 	
-	//Only show subtasks of closed parallels if you are the manager of that task
+//Only show subtasks of closed parallels if you are the manager of that task
 filterClosedSubtasks :: !SubtaskContainer !UserName -> Bool
 filterClosedSubtasks container manager
 	| container.inClosedPar	= container.SubtaskContainer.manager == manager
@@ -385,3 +391,18 @@ isFinished _						= False
 
 allFinished :: [TaskTree] -> Bool
 allFinished ts = and (map isFinished ts)
+
+getGroupedBehaviour :: !TaskTree -> GroupedBehaviour		
+getGroupedBehaviour task
+	# info = case task of
+		(TTInteractiveTask ti _ ) 	= ti
+		(TTMonitorTask ti _)		= ti
+		(TTRpcTask ti _)			= ti
+		(TTFinishedTask ti _)		= ti
+		(TTParallelTask ti _ _)		= ti
+		(TTSequenceTask ti _)		= ti
+		(TTMainTask ti _ _ _ _)		= ti
+		(TTGroupedTask ti _)		= ti
+		(TTInstructionTask ti _ _)	= ti
+		_ 							= abort "Unknown panel type in group"
+	= info.TaskInfo.groupedBehaviour

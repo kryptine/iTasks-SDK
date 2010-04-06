@@ -7,12 +7,12 @@ from InteractionTasks import class html(..)
 
 //mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
 //showInstruction
-displayInstruction :: !String !instruction -> Task Void | html instruction
-displayInstruction title instruction = mkInstructionTask title (makeInstructionTask instruction Nothing)
+showInstruction :: !String !instruction -> Task Void | html instruction
+showInstruction title instruction = mkInstructionTask title (makeInstructionTask instruction Nothing)
 
 //showInstructionAbout
-displayInstructionAbout :: !String !instruction b -> Task Void | html instruction & iTask b
-displayInstructionAbout title instruction context = mkInstructionTask title (makeInstructionTask instruction (Just (visualizeAsHtmlDisplay context)))
+showInstructionAbout :: !String !instruction b -> Task Void | html instruction & iTask b
+showInstructionAbout title instruction context = mkInstructionTask title (makeInstructionTask instruction (Just (visualizeAsHtmlDisplay context)))
 
 makeInstructionTask :: !instruction (Maybe [HtmlTag]) *TSt -> *(!TaskResult Void,!*TSt) | html instruction
 makeInstructionTask instruction context tst
