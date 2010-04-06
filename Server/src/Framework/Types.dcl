@@ -7,7 +7,7 @@ definition module Types
 from TSt 			import :: TSt
 from TaskTree		import :: TaskProperties, :: GroupedBehaviour
 from Html 			import :: HtmlTag
-from CommonDomain	import :: Note
+from CommonDomain	import :: Note, :: Password
 from StdString		import class toString
 from iTasks			import class iTask
  
@@ -23,6 +23,7 @@ derive JSONDecode Document
 
 instance toString TaskPriority
 instance toString UserName
+instance toString Password
 
 class toUserName a :: a -> UserName
 instance toUserName String
@@ -35,16 +36,19 @@ instance fromUserName (String,String)
 
 instance == UserName
 instance == User
+instance == Password
 		
 :: Role				:== String
 
 :: UserId			:== String
 :: DisplayName		:== String
 
+:: Password			= Password String
+
 :: UserName			= UserName !UserId !DisplayName
 :: User 			=
 	{ userName		:: !UserId
-	, password		:: !String
+	, password		:: !Password
 	, displayName	:: !DisplayName
 	, roles			:: ![Role]
 	}

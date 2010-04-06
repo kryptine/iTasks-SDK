@@ -7,8 +7,8 @@ import Text, Time
 
 derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency
 derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gVisualize		EmailAddress, Password, DateTime
-derive gUpdate			EmailAddress, Password, Note, DateTime
+derive gVisualize		EmailAddress, DateTime
+derive gUpdate			EmailAddress, Note, DateTime
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency
 derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
 derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
@@ -16,6 +16,22 @@ derive gLexOrd			Currency
 
 derive bimap	Maybe, (,)
 
+//VValue a DataMask
+gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+	= case vizType of
+		VEditorDefinition	= ([TUIFragment (TUIPasswordControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+								, 1
+								, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		VEditorUpdate
+			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
+								, 1
+								, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+		_					= ([TextFragment (foldr (+++) "" (repeatn (size oldV) "*"))],1,{VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+where
+	id		= dp2id idPrefix currentPath
+	oldV	= value2s currentPath old
+	newV	= value2s currentPath new
+		
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIDateControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
@@ -91,7 +107,17 @@ where
 	value dp (VValue v dm)	= if (isMasked dp dm) (decFormat (toInt v)) ""
 	
 	id = dp2id idPrefix currentPath
-	 
+
+gUpdate{|Password|} _ ust=:{USt|mode=UDCreate} 
+	= (Password "", ust)
+gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+	| currentPath == searchPath
+		= (Password update, toggleMask {USt | ust & mode = UDDone})
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath})
+gUpdate{|Password|} s ust=:{USt|mode=UDMask,currentPath,mask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
+	
 gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,world}
 	# (date,world) = currentDate world
 	= (date, {USt|ust & world = world})

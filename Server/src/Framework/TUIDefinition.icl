@@ -40,7 +40,7 @@ JSONEncode{|TUIDef|} (TUIDateControl r) c	= addXType "itasks.tui.Date" (JSONEnco
 JSONEncode{|TUIDef|} (TUITimeControl r) c	= addXType "itasks.tui.Time" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUICurrencyControl r) c	= addXType "itasks.tui.Currency" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIUsernameControl r) c	= addXType "itasks.tui.Username" (JSONEncode{|*|} r c)
-
+JSONEncode{|TUIDef|} (TUIPasswordControl r) c	= addXType "itasks.tui.Password" (JSONEncode{|*|} r c)
 
 addXType :: String [String] -> [String]
 addXType xtype [x:xs] = [x,"\"xtype\" : \"",xtype,"\", ":xs]

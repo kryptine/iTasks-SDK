@@ -11,7 +11,6 @@ from InteractionTasks import class html, generic gMakeSharedCopy, generic gMakeL
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
 :: URL			= URL String
-:: Password		= Password String
 :: PhoneNr		= PhoneNr String
 
 // Plain text notes

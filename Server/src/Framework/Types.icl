@@ -27,6 +27,10 @@ where
 		| disp == ""	= id
 		| otherwise		= disp+++" <"+++id+++">"
 
+instance toString Password
+where
+	toString (Password p) = p
+
 class toUserName a :: a -> UserName
 
 instance toUserName String
@@ -68,6 +72,10 @@ instance == User
 where
 	(==) a b = a.userName == b.userName
 	
+instance == Password
+where
+	(==) (Password a) (Password b) = a == b	
+
 // Document
 emptyDoc :: Document
 emptyDoc = {type = Local, content = EmptyDocument}

@@ -4,15 +4,17 @@ import StdEnv, StdMaybe
 import StdGeneric
 import TSt, Util, StdDebug
 
-derive JSONEncode User
-derive JSONDecode User
+from Types import :: Password(..)
+
+derive JSONEncode User, Password
+derive JSONDecode User, Password
 derive bimap (,), Maybe
 
 unknownUser :: User
-unknownUser = {User | userName = "unknown", displayName = "Unknown user", password = "", roles = []}
+unknownUser = {User | userName = "unknown", displayName = "Unknown user", password = Password "", roles = []}
 
 rootUser :: User
-rootUser = {User | userName = "root", displayName = "Root", password = "", roles = []}
+rootUser = {User | userName = "root", displayName = "Root", password = Password "", roles = []}
 
 getUser :: !UserName !*TSt -> (!User,!*TSt)
 getUser (UserName "root" _) tst
@@ -65,7 +67,7 @@ authenticateUser username password tst
 			= (Nothing, tst)
 	| otherwise
 		# (users, tst)		= userStore id tst
-		= case [u \\ u <- users | u.userName == username && u.password == password] of
+		= case [u \\ u <- users | u.userName == username && u.password == (Password password)] of
 			[user]	= (Just user, tst)		
 			_		= (Nothing, tst)
 

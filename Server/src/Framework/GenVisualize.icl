@@ -869,7 +869,7 @@ getId (TUIDateControl d)		= Just d.TUIBasicControl.id
 getId (TUITimeControl d)		= Just d.TUIBasicControl.id
 getId (TUICurrencyControl d)	= Just d.TUICurrencyControl.id
 getId (TUIUsernameControl d)	= Just d.TUIBasicControl.id
-
+getId (TUIPasswordControl d)	= Just d.TUIBasicControl.id
 
 getId (TUILabel)				= Nothing
 getId (TUIButton d)				= Just d.TUIButton.id

@@ -68,6 +68,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			case "itasks.tui.Time":
 			case "itasks.tui.Username":
 			case "itasks.tui.Currency":
+			case "itasks.tui.Password":
 			case "textarea":
 			case "numberfield":
 			case "datefield":
