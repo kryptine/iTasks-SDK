@@ -80,3 +80,4 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| GBFloating		//The editor is shown in a floating window, user can dock editor (making it fixed)
 					| GBAlwaysFixed		//Same as Fixed, but user cannot undock
 					| GBAlwaysFloating	//Same as Floating, but user cannot dock
+					| GBModal			//The editor is shown in a modal dialog

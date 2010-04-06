@@ -10,13 +10,11 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 		, items: [
 			{ xtype: 'panel'
 			, unstyled: true
-			, html: this.label
-			, width: 700	
+			, html: this.label	
 			, cls: 'InstructionContainer-Description task-description'
 			},
 			{ xtype: 'panel'
 			, unstyled: true
-			, width: 700
 			, html: this.instruction
 			, cls: 'InstructionContainer-Text'
 			, buttons: [
@@ -37,7 +35,6 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 		if(this.context != null){
 			this.insert(1,{
 				xtype: 'panel',
-				width: 700,
 				//html: '<div class="task-description">Context Information:</div>'+this.context,
 				html: this.context,
 				unstyled: true,

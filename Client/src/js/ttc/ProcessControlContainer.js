@@ -5,19 +5,18 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 		
 		Ext.apply(this,
 		{ unstyled: true
-		, cls: 'ProcessControlContainer'	
+		, cls: 'ProcessControlContainer'
+		, description: 'Control process properties'
 		, items: [
 			{ xtype: 'panel'
 			, cls: 'ProcessControlDescription task-description'
 			, unstyled: true
 			, html: 'Control process properties'
-			, width: 700
 			},
 			{ xtype: 'panel'
 			, unstyled: true
 			, layout: "form"
 			, defaultType: "staticfield"
-			, width: 700
 			, cls: 'ProcessControlPanel'
 			, items: [
 				{ html: "Waiting for <i>" +  this.properties.managerProps.subject + "</i>"

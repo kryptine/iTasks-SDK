@@ -43,7 +43,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		itasks.ttc.common.attachTaskHandlers(this);
 		
 		var tb = this.getTopToolbar();
-		if(tb) tb.setVisible(tb.items.length > 0);
+		this.setupToolbar(tb);
 	},
 		
 	addUpdate: function(name, value) {
@@ -177,13 +177,32 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			tb.removeAll();
 			if(data.content.tbar)
 				tb.add(data.content.tbar);
-			tb.setVisible(tb.items.length > 0);
+			this.setupToolbar(tb);
 			
 			//Attach eventhandlers
 			//this.attachTaskHandlers(this);
 			itasks.ttc.common.attachTaskHandlers(this);
 		}
-	}	
+	},
+	
+	setupToolbar: function(tb) {
+		tb.setVisible(tb.items.length > 0);
+		
+		var enabledPresent = false;
+		for(var i = 0; i < tb.items.length; i++)
+			if(!tb.get(i).disabled) {
+				enabledPresent = true;
+				break;
+			}
+			
+		var cls = 'GroupToolbarNoEnabledItems';
+		if(enabledPresent)
+			tb.removeClass(cls);
+		else {
+			tb.removeClass(cls);
+			tb.addClass(cls);
+		}
+	}
 });
 
 Ext.ns('itasks.ttc.form');

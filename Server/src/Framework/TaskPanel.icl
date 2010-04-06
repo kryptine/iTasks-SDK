@@ -94,7 +94,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
 								, taskId = ti.TaskInfo.taskId
-								, content = containers
+								, content = reverse containers
 								})
 		= (container,tst)
 	(TTParallelTask ti tpi tasks)

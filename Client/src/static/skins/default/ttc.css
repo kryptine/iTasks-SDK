@@ -42,38 +42,40 @@
 	display: none;
 }
 
-.GroupFixedNoFocus  .FormPanel {
+.GroupFixedNoFocus  .FormPanel,
+.GroupFixedNoFocus .ProcessControlPanel,
+.GroupFixedNoFocus .InstructionContainer-Text,
+.GroupFixedNoFocus .InstructionContainer-Context {
 	background-image : url('img/ttc-icons/TTCBackgroundNoFocus.png') !important;
 	border-bottom:1px solid #ddd;
 	border-left:1px solid #ddd;
 	border-right:1px solid #ddd;
 }
 
-.GroupFixedNoFocus  .FormDescription {
+.GroupFixedNoFocus  .task-description {
 	background-image: url("img/ttc-icons/TTCDescriptionBackgroundNoFocus.png") !important;
 	border:1px solid #ddd;
 }
 
-.GroupFixedNoFocus div.task-description {
+.GroupFixedNoFocus .task-description {
 	color:#888899;
 }
 
-.GroupFloating .FormPanel {
+.GroupFloating .FormPanel,
+.GroupFloating .ProcessControlPanel,
+.GroupFloating .InstructionContainer-Text,
+.GroupFloating .InstructionContainer-Context {
 	margin: 0px;
 	border: none;
 }
 
-.GroupFloating .FormDescription {
+.GroupFloating .task-description {
 	display: none;
 }
 
 /*.GroupFloating .FormPanel {
 	width: auto;
 }*/
-
-.GroupFloating .GroupToolbarUndockControls {
-	display: none;
-}
 
 .GroupFloating .GroupToolbarNoEnabledItems {
 	display: none;
@@ -205,6 +207,7 @@
 	background-repeat: repeat-x;
 	border: 1px solid #99BBE8;
 	margin: 10px 0px 0px 10px;
+	width: 700px;
 }
 
 .ProcessControlPanel {
@@ -214,6 +217,7 @@
 	border-bottom: 1px solid #99BBE8;
 	border-right: 1px solid #99BBE8;
 	margin: 0px 0px 0px 10px;
+	width: 700px;
 }
 
 

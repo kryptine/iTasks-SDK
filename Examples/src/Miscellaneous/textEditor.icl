@@ -147,10 +147,10 @@ textEditorMain sid  =	GBFixed @>> (
 						updateShared "Text Editor" [MenuParamAction ("openFile", Always):(map MenuAction actions)] sid [titleListener,mainEditor]
 	>>= \(action, _).	case action of
 							ActionNew					= writeDB sid initState >>|				return (AppAction (Extend [textEditorMain sid]))
-							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid <<@ subtaskBehaviour]))
+							ActionOpen					=										return (AppAction (Extend [textEditorMain sid, open sid <<@ GBModal]))
 							ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) sid >>|	return (AppAction (Extend [textEditorMain sid]))
 							ActionSave					= save sid >>|							return (AppAction (Extend [textEditorMain sid]))
-							ActionSaveAs				=										return (AppAction (Extend [textEditorMain sid, saveAs sid <<@ subtaskBehaviour]))
+							ActionSaveAs				=										return (AppAction (Extend [textEditorMain sid, saveAs sid <<@ GBModal]))
 							ActionReplace				= 										return (AppAction (Extend [textEditorMain sid, replaceT sid <<@ subtaskBehaviour]))
 							ActionStats					=										return (AppAction (Extend [textEditorMain sid, statistics sid <<@ subtaskBehaviour]))
 							ActionShowAbout				= 										return (AppAction (Extend [textEditorMain sid, about <<@ subtaskBehaviour]))
