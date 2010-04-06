@@ -273,8 +273,8 @@ div.task-description {
 div.task-context {
 	padding: 2px;
 	margin: 0px 0px 15px 0px;
-	background: #fff !important;
-	border-width: 1px !important;
+	/*background: #fff !important;
+	border-width: 1px !important;*/
 }
 div.task-context th {
 	font-weight: bold;

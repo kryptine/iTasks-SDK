@@ -298,6 +298,7 @@ applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 setTUIDef			:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt						-> *TSt //Only for interactive tasks
 setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt		-> *TSt //Only for interactive tasks
+setTUIMessage 		:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt //Only for interactive tasks
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)

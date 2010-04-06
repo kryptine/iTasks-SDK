@@ -12,6 +12,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	= TaskDone
 	| TaskRedundant
 	| TTCFormContainer TTCFormContainer
+	| TTCMessageContainer TTCMessageContainer
 	| TTCMonitorContainer TTCMonitorContainer
 	| TTCInstructionContainer TTCInstructionContainer
 	| TTCResultContainer TTCResultContainer
@@ -42,6 +43,15 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, taskId		:: !String
 	, content		:: !(Maybe FormContent)
 	, updates		:: !(Maybe [TUIUpdate])
+	, subtaskId		:: !(Maybe String)
+	, description	:: !String
+	}
+	
+:: TTCMessageContainer =
+	{ xtype			:: !String
+	, id			:: !String
+	, taskId		:: !String
+	, content		:: !FormContent
 	, subtaskId		:: !(Maybe String)
 	, description	:: !String
 	}
@@ -89,17 +99,17 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, content		:: ![TaskPanel]
 	}
 
-:: GroupContainerElement =
-	{ panel		:: TaskPanel
-	, behaviour	:: GroupedBehaviour
-	, index		:: Int
-	}
-
 :: TTCGroupContainer =
 	{ xtype			:: !String
 	, taskId		:: !String
 	, content		:: ![GroupContainerElement]
 	, subtaskId		:: !(Maybe String)
+	}
+
+:: GroupContainerElement =
+	{ panel		:: TaskPanel
+	, behaviour	:: GroupedBehaviour
+	, index		:: Int
 	}
 
 :: SubtaskInfo =

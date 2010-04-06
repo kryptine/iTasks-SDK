@@ -292,7 +292,7 @@ makeMessageTask message context actions tst=:{taskNr}
 	| isEmpty updates
 		# menuActions	= evaluateConditions (getMenuActions actions) True Void
 		# buttonActions	= evaluateConditions buttonActions True Void
-		# tst			= setTUIDef (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) (html message) menuActions tst
+		# tst			= setTUIMessage (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) (html message) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (action,tst) = getAction updates (map fst buttonActions) tst
@@ -492,8 +492,8 @@ where
 			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
 			(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
 			
-	taskDescriptionPanel :: !String ![HtmlTag] -> TUIDef
-	taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
+	//taskDescriptionPanel :: !String ![HtmlTag] -> TUIDef
+	//taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
 	
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
 	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True} 

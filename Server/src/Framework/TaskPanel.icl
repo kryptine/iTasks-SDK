@@ -6,7 +6,7 @@ import Html
 
 derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
 
-derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
+derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
 
 //JSON specialization for TaskPanel: Ignore the union constructor
@@ -14,6 +14,7 @@ JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
 JSONEncode{|TaskPanel|} (TaskRedundant) c					= ["\"redundant\"" : c]
 JSONEncode{|TaskPanel|} (TTCFormContainer x) c				= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCMonitorContainer x) c			= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (TTCMessageContainer x) c			= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCInstructionContainer x) c		= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCResultContainer x) c			= JSONEncode{|*|} x c
 JSONEncode{|TaskPanel|} (TTCProcessControlContainer x) c 	= JSONEncode{|*|} x c
@@ -51,6 +52,15 @@ buildTaskPanel tree menus currentUser tst = case tree of
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst) = f tst
 		= buildTaskPanel (TTInteractiveTask ti fres) menus currentUser tst
+	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
+		= (TTCMessageContainer {TTCMessageContainer
+			| xtype		= "itasks.ttc.message"
+			, id		= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId	= ti.TaskInfo.taskId
+			, content	= {form = msg, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
+			, subtaskId = Nothing
+			, description = ti.TaskInfo.taskDescription
+			}, tst)
 	(TTMonitorTask ti html)
 		= (TTCMonitorContainer {TTCMonitorContainer 
 			| xtype 	= "itasks.ttc.monitor"
@@ -166,6 +176,23 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst = case
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst)	= f tst
 		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed procProps tst
+	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
+		= ([{SubtaskContainer
+			| subtaskNr = stnr
+			, manager = manager
+			, inClosedPar = inClosed
+			, tasktree = tree
+			, processProperties = procProps
+			, taskpanel = TTCMessageContainer {TTCMessageContainer
+							| xtype		= "itasks.ttc.message"
+							, id		= "taskform-" +++ ti.TaskInfo.taskId
+							, taskId	= ti.TaskInfo.taskId
+							, content	= {form = msg, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
+							, subtaskId = Just (subtaskNrToString stnr)
+							, description = ti.TaskInfo.taskDescription
+							}
+			}], tst)
+	
 	(TTMonitorTask ti html)
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr

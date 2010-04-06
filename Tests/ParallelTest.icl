@@ -33,7 +33,6 @@ eitherTest = eitherTask (enterInformation "Value 1") (enterInformation "Value 2"
 maybeTest :: Task (Maybe (Int,Note))
 maybeTest = (enterInformation "Value 1" -&?&- enterInformation "Value 2")
 
-
 parExtendTest :: Task Int
 parExtendTest =
 	group  "Extender" "" extfunc id 0 [task]
@@ -113,6 +112,17 @@ where
 			parse b = snd (unzip (sortBy (\l -> \r -> (fst l) < (fst r))  (snd b)))
 			
 
+parNestedTest4 :: Task[[Note]]
+parNestedTest4 =
+	allProc [
+		{ user = toUserName "erik", task = allTest },
+		{ user = toUserName "erik", task = allTest }
+	] Open
+	
+parNestedTest5 :: Task ([Int],[Int])
+parNestedTest5 = 
+	parOpenTest -&&- parOpenTest
+
 Start :: *World -> *World
 Start world = startEngine [
 			workflow "Simple Test" (simpleTest >>= showMessageAbout "Result"),
@@ -127,5 +137,7 @@ Start world = startEngine [
 			workflow "Closed Test" (parClosedTest >>= showMessageAbout "Result"),
 			workflow "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result"),
 			workflow "Nested Test 2" (parNestedTest2 >>= showMessageAbout "Result"),
-			workflow "Nested Test 3" (parNestedTest3 >>= showMessageAbout "Result")
+			workflow "Nested Test 3" (parNestedTest3 >>= showMessageAbout "Result"),
+			workflow "Nested Test 4" (parNestedTest4 >>= showMessageAbout "Result"),
+			workflow "Nested Test 5" (parNestedTest5 >>= showMessageAbout "Result")
 		] world 

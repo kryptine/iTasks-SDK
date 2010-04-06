@@ -13,6 +13,8 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			ct = this.findParentByType(itasks.ttc.GroupContainer);
 		if (!ct)
 			ct = this.findParentByType(itasks.ttc.InstructionContainer);
+		if(!ct)
+			ct = this.findParentByType(itasks.ttc.MessageContainer);
 		if(!ct) return;
 		
 		//Helper function to get the value of a checkbox group
@@ -45,6 +47,8 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			ct = this.findParentByType(itasks.ttc.GroupContainer);
 		if (!ct)
 			ct = this.findParentByType(itasks.ttc.InstructionContainer);
+		if(!ct)
+			ct = this.findParentByType(itasks.ttc.MessageContainer);
 		if(!ct) return;
 			
 		var taskId = (comp.taskId)? comp.taskId : ct.taskId

@@ -19,6 +19,7 @@
 	border-right: 1px solid #99BBE8;
 	margin: 0px 0px 0px 10px;
 	width: 700px;
+	background-repeat: repeat;
 }
 
 .FormDescription {
@@ -50,6 +51,7 @@
 	border-bottom:1px solid #ddd;
 	border-left:1px solid #ddd;
 	border-right:1px solid #ddd;
+	background-repeat: repeat;
 }
 
 .GroupFixedNoFocus  .task-description {
@@ -97,6 +99,7 @@
 	border: 1px solid #99BBE8;
 	width: 700px;
 	margin: 10px 0px 0px 10px;
+	background-repeat: repeat;
 }
 
 /* Result Container */
@@ -126,6 +129,7 @@
 	border-right: 1px solid #99BBE8;
 	width: 700px;
 	margin: 0px 0px 0px 10px;
+	background-repeat: repeat;
 }
 
 /* Parallel Container */
@@ -151,6 +155,7 @@
 	border-bottom: 1px solid #99BBE8;
 	border-right: 1px solid #99BBE8;
 	margin: 0px 0px 0px 10px;
+	background-repeat: repeat;
 }
 
 /* Instruction Container */
@@ -179,6 +184,7 @@
 	border-right: 1px solid #99BBE8;
 	width: 700px;
 	margin: 0px 0px 0px 10px;
+	background-repeat: repeat;
 }
 
 .InstructionContainer-Context {
@@ -190,6 +196,7 @@
 	border-right: 1px solid #99BBE8;
 	width: 700px;
 	margin: 0px 0px 0px 10px;
+	background-repeat: repeat;
 }
 
 /* Process Control Container */
@@ -217,6 +224,35 @@
 	border-bottom: 1px solid #99BBE8;
 	border-right: 1px solid #99BBE8;
 	margin: 0px 0px 0px 10px;
+	width: 700px;
+	background-repeat: repeat;
+}
+
+/* Message Container */
+.MessageContainer {
+	background-color: #eee;
+	
+	background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
+
+.MessagePanel {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	margin: 0px 0px 0px 10px;
+	width: 700px;
+	background-repeat: repeat;
+}
+
+.MessageDescription {
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 0px 0px 10px;
 	width: 700px;
 }
 

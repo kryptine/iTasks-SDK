@@ -29,6 +29,7 @@
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}
 		,{"text":"FormContainer.js","path":"src/js/ttc/"}
 		,{"text":"FinishedContainer.js","path":"src/js/ttc/"}
+		,{"text":"MessageContainer.js","path":"src/js/ttc/"}
 		,{"text":"MonitorContainer.js","path":"src/js/ttc/"}
 		,{"text":"InstructionContainer.js","path":"src/js/ttc/"}
 		,{"text":"ResultContainer.js","path":"src/js/ttc/"}

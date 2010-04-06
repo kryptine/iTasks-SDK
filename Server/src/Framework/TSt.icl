@@ -652,6 +652,12 @@ setTUIFunc func taskDescription tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Func func)}
 		_								= tst
 
+setTUIMessage :: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
+setTUIMessage msg taskDescription accActions tst=:{tree}
+	= case tree of
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Message msg accActions)}
+		_								= tst
+
 setStatus :: ![HtmlTag] !*TSt -> *TSt
 setStatus msg tst=:{tree}
 	= case tree of
