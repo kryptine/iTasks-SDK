@@ -10,11 +10,12 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			
 		var ct = this.findParentByType(itasks.ttc.FormContainer);
 		if (!ct)
-			ct = this.findParentByType(itasks.ttc.GroupContainer);
-		if (!ct)
 			ct = this.findParentByType(itasks.ttc.InstructionContainer);
 		if(!ct)
 			ct = this.findParentByType(itasks.ttc.MessageContainer);
+		if (!ct)
+			// if element is not inside form/instr/message it's a group's toolbar
+			ct = this.findParentByType(itasks.ttc.GroupContainer);
 		if(!ct) return;
 		
 		//Helper function to get the value of a checkbox group
@@ -44,11 +45,12 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 		
 		var ct = this.findParentByType(itasks.ttc.FormContainer);
 		if (!ct)
-			ct = this.findParentByType(itasks.ttc.GroupContainer);
-		if (!ct)
 			ct = this.findParentByType(itasks.ttc.InstructionContainer);
 		if(!ct)
 			ct = this.findParentByType(itasks.ttc.MessageContainer);
+		// if element is not inside form/instr/message it's a group's toolbar
+		if (!ct)
+			ct = this.findParentByType(itasks.ttc.GroupContainer);
 		if(!ct) return;
 			
 		var taskId = (comp.taskId)? comp.taskId : ct.taskId

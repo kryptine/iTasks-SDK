@@ -43,10 +43,11 @@
 	display: none;
 }
 
-.GroupFixedNoFocus  .FormPanel,
+.GroupFixedNoFocus .FormPanel,
 .GroupFixedNoFocus .ProcessControlPanel,
 .GroupFixedNoFocus .InstructionContainer-Text,
-.GroupFixedNoFocus .InstructionContainer-Context {
+.GroupFixedNoFocus .InstructionContainer-Context,
+.GroupFixedNoFocus .MessagePanel {
 	background-image : url('img/ttc-icons/TTCBackgroundNoFocus.png') !important;
 	border-bottom:1px solid #ddd;
 	border-left:1px solid #ddd;
@@ -66,7 +67,8 @@
 .GroupFloating .FormPanel,
 .GroupFloating .ProcessControlPanel,
 .GroupFloating .InstructionContainer-Text,
-.GroupFloating .InstructionContainer-Context {
+.GroupFloating .InstructionContainer-Context,
+.GroupFloating .MessagePanel {
 	margin: 0px;
 	border: none;
 }
