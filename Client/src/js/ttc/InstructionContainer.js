@@ -17,6 +17,7 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 			, unstyled: true
 			, html: this.instruction
 			, cls: 'InstructionContainer-Text'
+			/*
 			, buttons: [
 				{ xtype: 'button'
 				, name: 'action'
@@ -27,20 +28,29 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 				, iconCls: 'icon-ok'
 				}	
 			]
+			*/
 			}
 		]});
-		
-		itasks.ttc.InstructionContainer.superclass.initComponent.apply(this,arguments);
-		
 		if(this.context != null){
-			this.insert(1,{
+			this.items[2] = {
 				xtype: 'panel',
-				//html: '<div class="task-description">Context Information:</div>'+this.context,
 				html: this.context,
 				unstyled: true,
 				cls: 'InstructionContainer-Context'
-			});
+			};
 		}
+		Ext.apply(this.items[this.items.length - 1],{
+			buttons: [{ xtype: 'button'
+				, name: 'action'
+				, id: 'tf-'+this.taskId+'-action-0'
+				, text: 'Done'
+				, value: 1
+				, disabled: false
+				, iconCls: 'icon-ok'
+				}]
+		});
+		
+		itasks.ttc.InstructionContainer.superclass.initComponent.apply(this,arguments);
 	},
 	
 	afterRender: function(){
