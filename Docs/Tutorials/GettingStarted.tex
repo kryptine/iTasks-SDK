@@ -1,0 +1,89 @@
+\documentclass[a4paper,11pt]{article}
+\title{Getting started with iTasks}
+\author{Bas Lijnse}
+
+\usepackage{clean}
+\begin{document}
+\maketitle
+\section{Introduction}
+So you have heard something about the iTask system and want to know how you can use to build a workflow support system? Then this tutorial is the right place to start. This document will walk you step-by-step through the specification of a simple example system. Because iTasks is built on top of the Clean programming language, it helps if you have some prior experience with Clean, or with related functional languages like Haskell, but it is not necessary for this tutorial. So let's just dive right in, shall we?
+\section{Setting up}
+- first module + project
+\begin{CleanCodeN}
+module CoffeeTime
+import iTasks
+
+Start :: *World -> *World
+Start world = startEngine [] world
+\end{CleanCodeN}
+- use iTasks environment
+- compile and run
+- do setup process
+- make 3 users
+\section{It's Coffeetime!}
+- very simple: showMessage "it's coffeetime!"
+- what would the workflow be? let's sketch it out: "ask everyone their orders", "argue who should get it", "actually get the drinks"
+- code sketch "showMessage" >>| showInstruction "ask" >>| showInstruction "who needs to get it" >>| showInstruction "get drinks"
+\section{Who wants what?}
+- define a task for asking someone what he wants (Task String)  enterChoice
+- add possibility for not wanting anything: requestConfirmation and Task (Maybe String)
+- we need users, add a step to the main workflow with a lambda getUserNames
+- we want to assign the task to everyone 
+\section{Merging the orders}
+- make a function that uses
+- show those orders to the
+\section{A fair assignment}
+- define a task that randomly selects a user from the orders
+- assign the "get drinks task" to that user
+\section{Conclusions}
+
+\appendix
+\newpage
+\section{The complete source code}
+This is it. A complete workflow support system for co\"ordinating a core process of many organizations in just over forty lines of code.
+\begin{CleanCodeN}
+module CoffeeTime
+import iTasks
+
+Start :: *World -> *World
+Start world = startEngine [workflow "Coffee time" coffeeTime] world
+
+coffeeTime :: Task Void
+coffeeTime
+    =   getUserNames
+    >>= \users ->
+        collectOrders users 
+    >>= \orders ->
+        determineWhoGoes (orderlist users orders)
+    >>= \victim ->
+        goGetCoffee victim (orderlist users orders)
+where
+  orderlist users orders
+    = [(user, fromJust order) \\ user <- users & order <- orders | isJust order]
+
+collectOrders :: [UserName] -> Task [Maybe String] 
+collectOrders users = allTasks [u @: ("Coffee time!",getOrder) \\ u <- users]
+
+getOrder :: Task (Maybe String)
+getOrder
+    =   requestConfirmation "It is coffee time, do you want something?"
+    >>= \yes -> if yes
+        (enterChoice "What do you want" ["Coffee","Tea","Chocolate"]
+         >>= \choice -> return (Just choice)
+        )
+        (return Nothing)
+
+determineWhoGoes :: [(UserName,String)] -> Task UserName
+determineWhoGoes orders = randomChoice [user \\ (user,_) <- orders]
+
+goGetCoffee :: UserName [(UserName,String)] -> Task Void
+goGetCoffee user orders
+    = user @:
+     ("Get coffee", showInstructionAbout
+                        "Coffee orders" 
+                        "You have been chosen to get the following drinks" 
+                        orders
+     )
+
+\end{CleanCodeN}
+\end{document}
