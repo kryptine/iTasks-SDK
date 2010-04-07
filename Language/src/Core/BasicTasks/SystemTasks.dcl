@@ -38,6 +38,12 @@ getContextManager :: Task UserName
 * @return The default value
 */
 getDefaultValue 		:: Task a | iTask a
+/**
+* Gets a random integer
+*
+* @return The random number
+*/ 
+getRandomInt 			:: Task Int
 
 /**
 * Create a new process.

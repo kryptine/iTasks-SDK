@@ -3,7 +3,7 @@ implementation module CommonCombinators
 * This module contains a collection of handy iTasks combinators defined in terms of the basic iTask combinators
 * with Thanks to Erik Zuurbier for suggesting some of the advanced combinators
 */
-import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc
+import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
 
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
@@ -15,7 +15,7 @@ from TaskTree	import :: TaskTree, :: TaskParallelInfo{..}, :: TaskParallelType{.
 from CommonDomain	import :: Note
 
 import TaskTree
-import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators
+import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators, ExceptionCombinators
 import Util, Either
 import GenVisualize, GenUpdate
 
@@ -186,6 +186,10 @@ transformResult fun task = "transformResult" @>> (task >>= \a -> return (fun a))
 
 stop :: Task Void
 stop = "stop" @>> return Void
+
+randomChoice :: ![a] -> Task a | iTask a
+randomChoice [] = throw "Cannot make a choice from an empty list"
+randomChoice list = getRandomInt >>= \i -> return (list !! (i rem (length list)))
 
 sortByIndex :: ![(Int,a)] -> [a]
 sortByIndex [] = []

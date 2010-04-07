@@ -23,6 +23,10 @@ getUsers			:: Task [User]
 * Finds all users (user id + display name) who have the given role
 */
 getUsersWithRole	:: !Role	-> Task [User]
+/*
+* Lists all usernames
+*/
+getUserNames		:: Task [UserName]
 /**
 * Looks up the corresponding display names for a list of user ids
 */

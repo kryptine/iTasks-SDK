@@ -1,5 +1,6 @@
 implementation module SystemTasks
 
+import StdList
 
 from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config
 from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Workflow
@@ -10,7 +11,8 @@ from TSt import qualified createTaskInstance
 import Types
 from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties(..), :: TaskSystemProperties(..), :: TaskWorkerProperties, :: TaskManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
 
-from Time	import :: Timestamp
+from Time	import :: Timestamp, :: Clock(..), clock
+from Random	import genRandInt
 
 from UserDB	import qualified getUser
 
@@ -53,7 +55,12 @@ where
 		= (TaskFinished d,tst)
 
 
-
+getRandomInt :: Task Int
+getRandomInt = mkInstantTask "getRandomInt" getRandomInt`
+where
+	getRandomInt` tst
+		# (Clock seed, tst)	= accWorldTSt clock tst
+		= (TaskFinished (hd (genRandInt seed)), tst)
 		
 spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`

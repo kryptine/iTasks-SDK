@@ -43,6 +43,8 @@ transformResult 	:: !(a -> b) !(Task a)						-> Task b				| iTask a & iTask b
 //Synonym for (return Void)
 stop				:: Task Void
 
+//Random choice
+randomChoice		:: ![a]										-> Task a				| iTask a
 
 //Task delegation
 class (@:) infix 3 u :: u !(LabeledTask a) -> Task a | iTask a

@@ -25,7 +25,14 @@ getUsers = mkInstantTask "getUsers" (mkTaskFunction UserDB@getUsers)
 
 getUsersWithRole :: !Role	-> Task [User]
 getUsersWithRole role = mkInstantTask "getUsersWithRole" (mkTaskFunction (UserDB@getUsersWithRole role))
-	
+
+getUserNames :: Task [UserName]
+getUserNames = mkInstantTask "getUserNames" getUserNames`
+where
+	getUserNames` tst
+		# (users,tst) = UserDB@getUsers tst
+		= (TaskFinished (map toUserName users), tst)
+		
 getDisplayNames :: ![UserName] -> Task [DisplayName]
 getDisplayNames usernames = mkInstantTask "getDisplayNames" (mkTaskFunction (UserDB@getDisplayNames usernames))
 
