@@ -21,10 +21,22 @@ import GenVisualize, GenUpdate
 
 derive gPrint Either
 derive gParse Either
+derive gParse GAction
+derive gPrint GAction
+derive gVisualize GAction
+derive gUpdate GAction
 
-derive bimap	Maybe
+derive bimap Maybe, (,)
 
 //Grouping combinators
+dynamicGroup :: ![Task GAction] -> Task Void
+dynamicGroup initTasks = group "dynamicGroup" "A simple group with dynamically added tasks" procfun id Void initTasks
+where
+	procfun (action,_) _ = case action of
+		GStop			= (Void, Stop)
+		GContinue		= (Void, Continue)
+		GExtend tasks	= (Void, Extend tasks)
+
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] 
 where

@@ -13,6 +13,13 @@ from Types import :: User (..), :: UserName
 :: LabeledTask a	:== (!String,!Task a)		
 
 //Grouping composition
+:: GAction = GStop | GContinue | GExtend [Task GAction]
+derive gParse GAction
+derive gPrint GAction
+derive gVisualize GAction
+derive gUpdate GAction
+dynamicGroup :: ![Task GAction] -> Task Void
+
 (-||-) infixr 3 	:: !(Task a) !(Task a) 	-> Task a 				| iTask a
 (||-)  infixr 3		:: !(Task a) !(Task b)	-> Task b				| iTask a & iTask b
 (-||)  infixl 3		:: !(Task a) !(Task b)	-> Task a				| iTask a & iTask b
