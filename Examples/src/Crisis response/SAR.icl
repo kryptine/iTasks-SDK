@@ -8,6 +8,20 @@ derive bimap (,), Maybe
 Start :: *World -> *World
 Start world = startEngine searchAndRescueExample world
 
+:: IncidentEntry =
+	{ type        :: IncidentType
+	, description :: Note
+//	, location    :: MapCoordinates
+	}
+
+:: IncidentType = MedicRequest | MalFunction Note | Other String
+	
+
+:: MapCoordinates =
+	{ lat			:: Real
+	, lon			:: Real
+	}
+
 searchAndRescueExample :: [Workflow]
 searchAndRescueExample
 	= [workflow "New Incident" manageIncident
@@ -28,14 +42,20 @@ searchAndRescueExample
 	, message	:: Note
 	}
 
-derive gPrint 		Incident, LogEntry
-derive gParse		Incident, LogEntry
-derive gVisualize	Incident, LogEntry
-derive gUpdate		Incident, LogEntry
+derive gPrint 		Incident, LogEntry, IncidentEntry, IncidentType
+derive gParse		Incident, LogEntry, IncidentEntry, IncidentType
+derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType
+derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType
 
 // Incident management
 manageIncident :: Task Void
-manageIncident = return Void
+manageIncident 
+= 		enterInformation "Enter Information about the Incident"
+	>>= \incident -> createIncident
+	>>= \icNR     -> addLogEntry icNR incident.IncidentEntry.description
+	>>| showMessageAbout "Incident Data" incident
+	>>| viewLog icNR
+	>>| return Void
 
 // Response decision
 
