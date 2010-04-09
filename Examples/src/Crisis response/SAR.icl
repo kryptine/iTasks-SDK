@@ -42,10 +42,15 @@ searchAndRescueExample
 	, message	:: Note
 	}
 
-derive gPrint 		Incident, LogEntry, IncidentEntry, IncidentType
-derive gParse		Incident, LogEntry, IncidentEntry, IncidentType
-derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType
-derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType
+:: HeliFlightDetails =
+	{ targetLocation	:: MapCoordinates
+	, purpose			:: Note
+	}
+
+derive gPrint 		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
+derive gParse		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
+derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
+derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
 
 // Incident management
 manageIncident :: Task Void
@@ -78,7 +83,42 @@ where
 
 // SAR Heli deployment
 deploySARHeli :: IncidentNR -> Task Void
-deploySARHeli incident = "Deploy Search and Rescue Helicopter (SAR-XZ)" @>> return Void
+deploySARHeli incident
+	= "Deploy Search and Rescue Helicopter (SAR-XZ)"
+	@>> (
+			//Request flight
+				enterFlightDetails
+			>>= \details ->
+				showInstructionAbout "Flight request" "Request the following flight of SAR-XZ at airbase" details
+			>>|
+				addLogEntry incident (Note ("Requested flight of SAR-XZ with details: " +++ visualizeAsTextDisplay details))
+			//Take-off
+			>>|
+				showInstruction "Take-off (out)" "Report when SAR-XZ has taken off"
+			>>|
+				addLogEntry incident (Note ("SAR-XZ has taken off"))
+			//Arrival at scene
+			>>|
+				showInstruction "Arrival (out)" "Report when SAR-XZ has arrived at the scene"
+			>>|
+				addLogEntry incident (Note ("SAR-XZ arrived at scene"))
+			//Take-off at scene
+			>>|
+				showInstruction "Take-off (in)" "Report when SAR-XZ has left the scene"
+			>>|
+				addLogEntry incident (Note ("SAR-XZ left the scene"))
+			//Arrival at base
+			>>|
+				showInstruction "Arrival (in)" "Report when SAR-XZ has arrived at base"
+			>>|
+				addLogEntry incident (Note ("SAR-XZ arrived at base"))
+			>>|
+				addLogEntry incident (Note ("SAR-XZ deployment completed"))
+		)
+where
+	enterFlightDetails :: Task HeliFlightDetails
+	enterFlightDetails = enterInformation "Enter flight details for (SAR XZ)"
+	
 
 // Dummy deployment options
 deploySalvageVessel :: IncidentNR -> Task Void
