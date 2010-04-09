@@ -43,6 +43,11 @@ manageIncident = return Void
 deploySARHeli :: Task Void
 deploySARHeli = return Void
 
+
+// Incident database
+createIncident :: Task IncidentNR
+createIncident = getDefaultValue >>= dbCreateItem >>= \i -> return i.incidentNr
+
 // Logging
 addLogEntry :: IncidentNR Note -> Task Void
 addLogEntry incident message
@@ -53,7 +58,7 @@ addLogEntry incident message
 
 viewLog :: IncidentNR -> Task Void
 viewLog incident
-	= readDB databaseId
+	= 	readDB databaseId
 	>>= \logs ->
 		showMessageAbout ("Log for incident " +++ toString incident) [l \\ l <- logs | l.LogEntry.incident == incident]
 
