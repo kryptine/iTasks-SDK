@@ -23,7 +23,7 @@ Start world = startEngine searchAndRescueExample world
 
 searchAndRescueExample :: [Workflow]
 searchAndRescueExample
-	= [workflow "New Incident" manageIncident
+	= [workflow "New Incident" (manageIncident Nothing)
 	  ,workflow "Logs/View log" viewLogWF
 	  ]
 
@@ -53,9 +53,11 @@ derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDet
 derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
 
 // Incident management
-manageIncident :: Task Void
-manageIncident 
-= 		enterInformation "Enter Information about the Incident"
+manageIncident :: (Maybe Note) -> Task Void
+manageIncident mbDesc
+= 	(if (isNothing mbDesc)
+		(enterInformation "Enter Information about the Incident")
+		(updateInformation "Enter Information about the Incident" {IncidentEntry|type = MedicRequest,description = (fromJust mbDesc)}) )
 	>>= \incident -> createIncident
 	>>= \icNR     -> addLogEntry icNR incident.IncidentEntry.description
 	>>|              chooseResponse icNR incident
@@ -111,8 +113,19 @@ where
 					>>| enterInformation "What happened?"
 					>>= \reason ->
 						addLogEntry incident reason
+					>>| requestConfirmation "Do you want to report this as a new incident?"
+					>>= \newinc ->
+						if newinc
+							(newIncident reason)
+							stop
 				  )
-			
+
+	newIncident reason
+		=	getContextWorker
+		>>= \user ->
+			spawnProcess user True ( "New Incident" @>> manageIncident (Just reason))
+		>>| stop
+		
 EVT_OK :== "This happened, continue"
 EVT_OTHER :== "Something else happened, abort normal plan"
 
