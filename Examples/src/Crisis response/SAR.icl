@@ -47,10 +47,10 @@ searchAndRescueExample
 	, purpose			:: Note
 	}
 
-derive gPrint 		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
-derive gParse		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
-derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
-derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates
+derive gPrint 		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
+derive gParse		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
+derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
+derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
 
 // Incident management
 manageIncident :: (Maybe Note) -> Task Void
@@ -60,15 +60,15 @@ manageIncident mbDesc
 		(updateInformation "Enter Information about the Incident" {IncidentEntry|type = MedicRequest,description = (fromJust mbDesc)}) )
 	>>= \incident -> createIncident
 	>>= \icNR     -> addLogEntry icNR incident.IncidentEntry.description
-	>>|              chooseResponse icNR incident
-	>>=              allTasks
+	>>|              chooseInitialResponse icNR incident
+	>>=              allTasks //parallelDeployment icNR
 	>>| stop
 where
   enterIncident :: Task Incident
   enterIncident = enterInformation "Describe the incident"
 
-  chooseResponse :: IncidentNR IncidentEntry -> Task [Task Void]
-  chooseResponse icNR incident 
+  chooseInitialResponse :: IncidentNR IncidentEntry -> Task [Task Void]
+  chooseInitialResponse icNR incident 
   	= updateMultipleChoice "Choose response actions" options (suggestion incident.IncidentEntry.type)
   where
       options = [f icNR \\ f <- [deploySARHeli
@@ -82,6 +82,28 @@ where
       suggestion MedicEvacuation  = [0]
       suggestion Evacuation       = [0,2]
       suggestion _                = []
+
+  parallelDeployment :: IncidentNR [Task Void] -> Task Void
+  parallelDeployment icNR tasks
+  	= 	getContextWorker
+  	>>= \user ->
+  		parallel Closed "Label1" "Label2" afun id Void [{AssignedTask| user = user, task = control user}:[{AssignedTask|user = user, task = t>>| return 0} \\ t <- tasks]]
+  
+  where
+  	afun :: (Int,Int) Void -> (Void,PAction (AssignedTask Int))
+  	afun (0,_) _ = (Void,Continue)
+  	afun (1,_) _ = (Void,Stop)
+  	
+  	control :: UserName -> Task Int
+  	control user	=	enterChoice "Additional options" [additionalDeployment,stopResponse]
+  					>>= \t -> t
+  	
+  	additionalDeployment :: Task Int
+ 	additionalDeployment
+ 		= "Deploy additional resources" @>> return 2
+ 	stopResponse :: Task Int
+ 	stopResponse
+ 		= "Stop the complete response operation" @>> (requestConfirmation "Are you sure?" >>= \stop -> if stop (return 1) (return 0))
 
 // SAR Heli deployment
 deploySARHeli :: IncidentNR -> Task Void
