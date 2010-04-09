@@ -56,9 +56,9 @@ derive gParse		Appointment, Meeting, Attending
 derive gVisualize	Appointment, Meeting, Attending	
 derive gUpdate		Appointment, Meeting, Attending
 
-derive gMerge				Meeting, Appointment, UserName, Attending
-derive gMakeSharedCopy		Meeting, Appointment, UserName, Attending
-derive gMakeLocalCopy		Meeting, Appointment, UserName, Attending
+derive gMerge				Meeting, Appointment, Attending
+derive gMakeSharedCopy		Meeting, Appointment, Attending
+derive gMakeLocalCopy		Meeting, Appointment, Attending
 
 :: Appointment		=	{ topic :: Note
 						}

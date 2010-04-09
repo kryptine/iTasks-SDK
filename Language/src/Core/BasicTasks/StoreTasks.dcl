@@ -6,8 +6,7 @@ from TSt 			import :: Task
 from StdOverloaded	import class ==, class <
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
-from InteractionTasks import generic gMakeSharedCopy, generic gMakeLocalCopy
+import	GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, GenCopy
 
 //Database identifier for storing a single value of type a
 ::DBid a :== String
@@ -51,14 +50,14 @@ createDB :: !a 				-> Task (DBid a) | iTask a
 * @param The database reference
 * @return The value in the database or a default value if no value is stored.
 */
-readDB :: !(DBid a) 		-> Task a | iTask a
+readDB :: !(DBid a) 		-> Task a | iTask, gMakeLocalCopy{|*|} a
 /**
 * Read the database.
 *
 * @param The database reference
 * @return The value in the database if a value is stored.
 */
-readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
+readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask, gMakeLocalCopy{|*|} a
 /**
 * Write the database.
 *
@@ -85,11 +84,11 @@ instance <  (DBRef a)
 
 eqItemId 		:: a a -> Bool | DB a
 
-dbReadAll		::                 Task [a]       | iTask, DB a
+dbReadAll		::                 Task [a]       | iTask, gMakeLocalCopy{|*|}, DB a
 dbWriteAll		:: ![a]         -> Task Void      | iTask, DB a
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem	:: a            -> Task a         | iTask, DB a
-dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iTask, DB a
-dbUpdateItem	:: a			-> Task a         | iTask, DB a
-dbDeleteItem	:: !(DBRef a)	-> Task Void      | iTask, DB a
+dbCreateItem	:: a            -> Task a         | iTask, gMakeLocalCopy{|*|}, DB a
+dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iTask, gMakeLocalCopy{|*|}, DB a
+dbUpdateItem	:: a			-> Task a         | iTask, gMakeLocalCopy{|*|}, DB a
+dbDeleteItem	:: !(DBRef a)	-> Task Void      | iTask, gMakeLocalCopy{|*|}, DB a

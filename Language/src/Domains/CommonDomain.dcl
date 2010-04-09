@@ -7,7 +7,9 @@ import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
 
 import StdString
 from Html	import :: HtmlTag
-from InteractionTasks import class html, generic gMakeSharedCopy, generic gMakeLocalCopy
+from InteractionTasks import class html 
+import GenCopy
+
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
 :: URL			= URL String

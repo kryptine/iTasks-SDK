@@ -16,7 +16,7 @@ derive gMerge			DBRef
 derive gMakeSharedCopy	DBRef
 derive gMakeLocalCopy	DBRef
 
-derive bimap	Maybe, (,)
+derive bimap Maybe, (,)
 
 ::DBid a :== String
 
@@ -32,24 +32,26 @@ createDB init =
 	>>= \id.	writeDB id init
 	>>|			return id
 
-readDB :: !(DBid a) -> Task a | iTask a
+readDB :: !(DBid a) -> Task a | iTask, gMakeLocalCopy{|*|} a
 readDB key = mkInstantTask "readDB" readDB`
 where
 	readDB` tst=:{TSt|dataStore,world}
 		# (mbVal,dstore,world) = loadValue key dataStore world
 		= case mbVal of
 			Just val
-				= (TaskFinished val,{TSt|tst & dataStore = dstore, world = world})
+				#(val,tst) = gMakeLocalCopy{|*|} val {TSt|tst & dataStore = dstore, world = world}
+				= (TaskFinished val,tst)
 			Nothing		
 				# (val,world) = defaultValue world
 				= (TaskFinished val,{TSt|tst & dataStore = dstore, world = world})
-				
-readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
+		
+readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask, gMakeLocalCopy{|*|} a
 readDBIfStored key = mkInstantTask "readDBIfStored" readDBIfStored`
 where
 	readDBIfStored` tst=:{dataStore,world}
-		# (mbVal,dstore,world) = loadValue key dataStore world
-		= (TaskFinished mbVal,{TSt|tst & dataStore = dstore, world = world})
+		# (mbVal,dstore,world)	= loadValue key dataStore world
+		# (mbVal,tst)			= gMakeLocalCopy{|*|} mbVal {TSt|tst & dataStore = dstore, world = world}
+		= (TaskFinished mbVal,tst)
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
 writeDB key value = mkInstantTask "writeDB" writeDB`
@@ -77,17 +79,17 @@ instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
 eqItemId :: a a -> Bool | DB a
 eqItemId a b	= getItemId a == getItemId b
 
-dbReadAll :: Task [a] | iTask, DB a
+dbReadAll :: Task [a] | iTask, gMakeLocalCopy{|*|}, DB a
 dbReadAll		= readDB databaseId
 
 dbWriteAll :: ![a] -> Task Void | iTask, DB a
 dbWriteAll all	= writeDB databaseId all >>| return Void
 
-dbModify :: ([a] -> [a]) -> Task Void | iTask, DB a
+dbModify :: ([a] -> [a]) -> Task Void | iTask, gMakeLocalCopy{|*|}, DB a
 dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem :: a -> Task a | iTask, DB a
+dbCreateItem :: a -> Task a | iTask, gMakeLocalCopy{|*|}, DB a
 dbCreateItem new
 	= readDB databaseId >>= \items -> 
 	let newitem = (setItemId (newDBRef items) new) in
@@ -97,18 +99,18 @@ where
 	newDBRef []		= DBRef 1
 	newDBRef items	= let (DBRef i) = maxList (map getItemId items) in DBRef (i+1)
 
-dbReadItem :: !(DBRef a) -> Task (Maybe a) | iTask, DB a
+dbReadItem :: !(DBRef a) -> Task (Maybe a) | iTask, gMakeLocalCopy{|*|}, DB a
 dbReadItem itemid
 	= readDB databaseId >>= \items -> 
 	  case filter (\item -> itemid == getItemId item) items of
 	  	[found:_]	= return (Just found)
 	  	nothing		= return Nothing
 
-dbUpdateItem :: a -> Task a | iTask, DB a
+dbUpdateItem :: a -> Task a | iTask, gMakeLocalCopy{|*|}, DB a
 dbUpdateItem new
 	= dbModify (replace eqItemId new) >>| return new
 
-dbDeleteItem :: !(DBRef a) -> Task Void | iTask, DB a
+dbDeleteItem :: !(DBRef a) -> Task Void | iTask, gMakeLocalCopy{|*|}, DB a
 dbDeleteItem itemid
 	= dbModify (filter (\item -> itemid <> getItemId item))
  
