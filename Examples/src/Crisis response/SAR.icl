@@ -14,7 +14,7 @@ Start world = startEngine searchAndRescueExample world
 //	, location    :: MapCoordinates
 	}
 
-:: IncidentType = MedicRequest | MalFunction Note | Other String
+:: IncidentType = MedicRequest | MedicEvacuation | Evacuation | FireOnboard | Other String
 	
 
 :: MapCoordinates =
@@ -53,15 +53,32 @@ manageIncident
 = 		enterInformation "Enter Information about the Incident"
 	>>= \incident -> createIncident
 	>>= \icNR     -> addLogEntry icNR incident.IncidentEntry.description
+	>>|              chooseResponse icNR incident
+	>>=              allTasks
 	>>| showMessageAbout "Incident Data" incident
 	>>| viewLog icNR
 	>>| return Void
+where
+  enterIncident :: Task Incident
+  enterIncident = enterInformation "Describe the incident"
+
+  chooseResponse :: IncidentNR IncidentEntry -> Task [Task Void]
+  chooseResponse icNR incident 
+  = updateMultipleChoice "Choose response actions" options (suggestion incident.IncidentEntry.type)
+  where
+      options = [f icNR \\ f <- [deploySARHeli]]//,deploySalvageVessel]]
+
+      //Compute the indexes in the options list that are initially selected
+      suggestion MedicRequest 	  = [0]
+      suggestion MedicEvacuation  = [0]
+      suggestion Evacuation       = [0]
+      suggestion _                = []
 
 // Response decision
 
 // SAR Heli deployment
-deploySARHeli :: Task Void
-deploySARHeli = return Void
+deploySARHeli :: IncidentNR -> Task Void
+deploySARHeli icNR = return Void
 
 
 // Incident database
