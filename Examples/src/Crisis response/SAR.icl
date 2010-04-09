@@ -91,34 +91,30 @@ deploySARHeli incident
 			>>= \details ->
 				showInstructionAbout "Flight request" "Request the following flight of SAR-XZ at airbase" details
 			>>|
-				addLogEntry incident (Note ("Requested flight of SAR-XZ with details: " +++ visualizeAsTextDisplay details))
-			//Take-off
-			>>|
-				showInstruction "Take-off (out)" "Report when SAR-XZ has taken off"
-			>>|
-				addLogEntry incident (Note ("SAR-XZ has taken off"))
-			//Arrival at scene
-			>>|
-				showInstruction "Arrival (out)" "Report when SAR-XZ has arrived at the scene"
-			>>|
-				addLogEntry incident (Note ("SAR-XZ arrived at scene"))
-			//Take-off at scene
-			>>|
-				showInstruction "Take-off (in)" "Report when SAR-XZ has left the scene"
-			>>|
-				addLogEntry incident (Note ("SAR-XZ left the scene"))
-			//Arrival at base
-			>>|
-				showInstruction "Arrival (in)" "Report when SAR-XZ has arrived at base"
-			>>|
-				addLogEntry incident (Note ("SAR-XZ arrived at base"))
-			>>|
-				addLogEntry incident (Note ("SAR-XZ deployment completed"))
+				addLogEntry incident (Note ("SAR-XZ: Flight requested with details: " +++ visualizeAsTextDisplay details))
+			>>| waitForEvents ["Take-off at base","Arrival at scene","Take-off at scene","Arrival at base"]
+			>>| addLogEntry incident (Note ("SAR-XZ: deployment completed"))
 		)
 where
 	enterFlightDetails :: Task HeliFlightDetails
 	enterFlightDetails = enterInformation "Enter flight details for (SAR XZ)"
 	
+	waitForEvents [] = return Void
+	waitForEvents [e:es]
+		= 	enterChoiceAbout "The next expected event of SAR-XZ is: " e [EVT_OK,EVT_OTHER]
+		>>= \choice -> case choice of
+			EVT_OK
+				= (addLogEntry incident (Note ("SAR-XZ: " +++ e)) >>| waitForEvents es)
+			EVT_OTHER
+				= (
+						addLogEntry incident (Note "SAR-XZ deviated from expected plan.")
+					>>| enterInformation "What happened?"
+					>>= \reason ->
+						addLogEntry incident reason
+				  )
+			
+EVT_OK :== "This happened, continue"
+EVT_OTHER :== "Something else happened, abort normal plan"
 
 // Dummy deployment options
 deploySalvageVessel :: IncidentNR -> Task Void
