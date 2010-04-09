@@ -16,7 +16,6 @@ Start world = startEngine searchAndRescueExample world
 
 :: IncidentType = MedicRequest | MedicEvacuation | Evacuation | FireOnboard | Other String
 	
-
 :: MapCoordinates =
 	{ lat			:: Real
 	, lon			:: Real
@@ -25,6 +24,7 @@ Start world = startEngine searchAndRescueExample world
 searchAndRescueExample :: [Workflow]
 searchAndRescueExample
 	= [workflow "New Incident" manageIncident
+	  ,workflow "Logs/View log" viewLogWF
 	  ]
 
 :: IncidentNR :== Int
@@ -55,31 +55,51 @@ manageIncident
 	>>= \icNR     -> addLogEntry icNR incident.IncidentEntry.description
 	>>|              chooseResponse icNR incident
 	>>=              allTasks
-	>>| showMessageAbout "Incident Data" incident
-	>>| viewLog icNR
-	>>| return Void
+	>>| stop
 where
   enterIncident :: Task Incident
   enterIncident = enterInformation "Describe the incident"
 
   chooseResponse :: IncidentNR IncidentEntry -> Task [Task Void]
   chooseResponse icNR incident 
-  = updateMultipleChoice "Choose response actions" options (suggestion incident.IncidentEntry.type)
+  	= updateMultipleChoice "Choose response actions" options (suggestion incident.IncidentEntry.type)
   where
-      options = [f icNR \\ f <- [deploySARHeli]]//,deploySalvageVessel]]
+      options = [f icNR \\ f <- [deploySARHeli
+      							,deploySalvageVessel
+      							,deployMultiFunctionVessel
+      							,deployPolicePatrolVessel
+      							,deploySurveillancePlane] ]
 
       //Compute the indexes in the options list that are initially selected
       suggestion MedicRequest 	  = [0]
       suggestion MedicEvacuation  = [0]
-      suggestion Evacuation       = [0]
+      suggestion Evacuation       = [0,2]
       suggestion _                = []
-
-// Response decision
 
 // SAR Heli deployment
 deploySARHeli :: IncidentNR -> Task Void
-deploySARHeli icNR = return Void
+deploySARHeli incident = "Deploy Search and Rescue Helicopter (SAR-XZ)" @>> return Void
 
+// Dummy deployment options
+deploySalvageVessel :: IncidentNR -> Task Void
+deploySalvageVessel incident = deployUnit "Salvage vessel (Seagull)" "Seagull" incident
+
+deployMultiFunctionVessel :: IncidentNR -> Task Void
+deployMultiFunctionVessel incident = deployUnit "Multi-function vessel (Orca)" "Orca" incident
+
+deployPolicePatrolVessel :: IncidentNR -> Task Void
+deployPolicePatrolVessel incident = deployUnit "Police patrol vessel (P-23)" "P-23" incident
+
+deploySurveillancePlane :: IncidentNR -> Task Void
+deploySurveillancePlane incident = deployUnit "Surveillance plane (PH-234)" "PH-234" incident
+
+deployUnit :: String String IncidentNR -> Task Void
+deployUnit longName shortName incident
+	=	("Deploy " +++ longName)
+	@>> (	addLogEntry incident (Note (shortName +++ " deployed"))
+	    >>| showInstruction (shortName +++ " deployment") ("Deploy the " +++ longName +++ ". This task is done when the " +++ shortName +++ " has returned.")
+	    >>| addLogEntry incident (Note (shortName +++ " returned"))
+		)
 
 // Incident database
 createIncident :: Task IncidentNR
@@ -99,6 +119,13 @@ viewLog incident
 	>>= \logs ->
 		showMessageAbout ("Log for incident " +++ toString incident) [l \\ l <- logs | l.LogEntry.incident == incident]
 
+viewLogWF :: Task Void
+viewLogWF
+	=	readDB databaseId
+	>>=	enterChoice "Of which incident do you want to view the log?"
+	>>= \incident ->
+		viewLog incident.Incident.incidentNr
+
 // Databases
 instance DB Incident
 where
@@ -111,7 +138,3 @@ where
 	databaseId				= mkDBid "Log"
 	getItemId l				= DBRef l.LogEntry.logNr
 	setItemId (DBRef r) l	= {LogEntry| l & logNr = r}
-
-
-
-
