@@ -170,7 +170,7 @@ where
 					Stop 		= (TaskFinished pst.state,pst,tst)
 					Continue	= processAllTasks pst (inc idx) tst
 					Extend tlist
-						# pst = {PSt | pst & tasks = pst.tasks ++ (if (isJust mbParType) id reverse) [(assignTask task,False) \\ task <- tlist]}
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]}
 						= processAllTasks pst (inc idx) tst
 
 	loadPSt taskNr tst

@@ -117,7 +117,7 @@ statistics sid =
 		updateShared "Statistics" [ButtonAction (ActionOk, Always)] sid [statsListener]
 	>>| return GContinue
 where
-	statsListener = listener {listenerFrom = \(AppState (Note txt) _) -> {lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}}
+	statsListener = listener {listenerFrom = \(AppState (Note txt) _) -> let txt = trim txt in {lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}}
 
 about :: Task GAction
 about =
