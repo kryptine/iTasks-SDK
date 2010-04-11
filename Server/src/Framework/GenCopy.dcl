@@ -3,7 +3,7 @@ definition module GenCopy
 from TSt import :: TSt
 import Types
 
-generic gMakeSharedCopy a :: !a !String -> a
+generic gMakeSharedCopy a :: !a !(DBid b) -> a
 generic gMakeLocalCopy a :: !a !*TSt -> (a,!*TSt)
 
 derive gMakeSharedCopy OBJECT, CONS, PAIR, FIELD, EITHER, UNIT

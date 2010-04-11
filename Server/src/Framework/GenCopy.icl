@@ -3,7 +3,7 @@ implementation module GenCopy
 import TSt, StdFunc, StdTuple, DocumentDB, StdMisc
 derive bimap (,)
 
-generic gMakeSharedCopy a :: !a !String -> a
+generic gMakeSharedCopy a :: !a !(DBid b) -> a
 gMakeSharedCopy{|Int|}		x _ = x
 gMakeSharedCopy{|Real|}		x _ = x
 gMakeSharedCopy{|Char|}		x _ = x
