@@ -28,7 +28,7 @@ setMenus menus
 
 setMenus` :: !(Maybe [Menu]) !*TSt -> (!TaskResult Void,!*TSt) 		
 setMenus` menus tst
-	= (TaskFinished Void, {TSt|tst & menus = menus})
+	= (TaskFinished Void, {TSt|tst & menus = menus, menusChanged = True})
 		
 removeMenus :: Task Void
 removeMenus = mkInstantTask "removeMenus" (setMenus` Nothing)

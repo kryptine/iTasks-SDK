@@ -26,7 +26,7 @@ JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 JSONEncode{|UserName|} (UserName name disp)	c			= ["\"" +++ disp +++ " <" +++ name +++ ">\"" : c]
 
 buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)
-buildTaskPanel tree menus currentUser tst = case tree of
+buildTaskPanel tree menus currentUser tst=:{menusChanged} = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
@@ -45,7 +45,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Nothing
-			, updates 	= Just (determineUpdates upd menus acceptedA ti)
+			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA ti)
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
@@ -101,6 +101,7 @@ buildTaskPanel tree menus currentUser tst = case tree of
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks)
 		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel t menus currentUser \\ t <- tasks & idx <- [0..]] tst
+		# containers		= filter filterFinished containers
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
 								, taskId = ti.TaskInfo.taskId
@@ -136,9 +137,13 @@ where
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
 			(TTMainTask _ _ _ _ _)		= False 									// a main-subtask should not become visible
 			_ 							= abort "Unknown panel type in parallel"
+	filterFinished container =
+		case container.panel of
+			TaskDone	= False
+			_			= True
 			
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
-buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst = case tree of
+buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menusChanged} = case tree of
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
@@ -168,7 +173,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst = case
 											, id 		= "taskform-" +++ ti.TaskInfo.taskId
 											, taskId 	= ti.TaskInfo.taskId
 											, content	= Nothing 
-											, updates 	= Just (determineUpdates upd menus acceptedA ti)
+											, updates 	= Just (determineUpdates upd menus menusChanged acceptedA ti)
 											, subtaskId = Just (subtaskNrToString stnr)
 											, description = ti.TaskInfo.taskDescription
 											}
@@ -386,11 +391,13 @@ where
 			[TUIMenuSeparator:defs]	= defs
 			defs					= defs
 
-determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) [(Action,Bool)] TaskInfo -> [TUIUpdate]
-determineUpdates upd menus acceptedA ti
-	= case menus of
+determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) !Bool [(Action,Bool)] TaskInfo -> [TUIUpdate]
+determineUpdates upd mbMenus menusChanged acceptedA ti
+	= case mbMenus of
 		Nothing		= upd
-		Just menus	= fst (determineMenuUpd upd menus 0)
+		Just menus
+			| menusChanged	= [TUIReplaceMenu (makeMenuBar mbMenus acceptedA ti):upd]
+			| otherwise		= fst (determineMenuUpd upd menus 0)
 where
 	determineMenuUpd upd [Menu _ items:menus] id
 		#(upd,id) = determineItemUpd upd items id

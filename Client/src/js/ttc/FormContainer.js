@@ -158,6 +158,9 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 							ct.resumeEvents();
 						}				
 						break;
+					case "TUIReplaceMenu":
+						this.replaceToolbar(update[1]);
+						break;
 				}
 			}
 			
@@ -172,17 +175,20 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			
 			this.doLayout();
 			
-			//Replace toolbar
-			var tb = this.getTopToolbar();
-			tb.removeAll();
-			if(data.content.tbar)
-				tb.add(data.content.tbar);
-			this.setupToolbar(tb);
+			this.replaceToolbar(data.content.tbar);
 			
 			//Attach eventhandlers
 			//this.attachTaskHandlers(this);
 			itasks.ttc.common.attachTaskHandlers(this);
 		}
+	},
+	
+	replaceToolbar: function(newTb) {
+		var tb = this.getTopToolbar();
+		tb.removeAll();
+		if(newTb)
+			tb.add(newTb);
+		this.setupToolbar(tb);
 	},
 	
 	setupToolbar: function(tb) {

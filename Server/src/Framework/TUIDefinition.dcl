@@ -17,6 +17,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIReplace TUIId TUIDef	// Replace a component
 	| TUISetValue TUIId String	// Call setValue on the component with indicated id
 	| TUISetEnabled TUIId Bool	// Enable/disable form elements
+	| TUIReplaceMenu [TUIDef]
 
 :: TUIDef
 	= TUILabel

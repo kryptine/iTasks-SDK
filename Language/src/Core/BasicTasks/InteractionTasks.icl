@@ -46,32 +46,39 @@ updateInformationAboutA	:: question ![TaskAction a] b a -> Task (!Action,!a) | h
 updateInformationAboutA question actions about initial = mkInteractiveTask "updateInformationAboutA" (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)) actions True)
 
 makeInformationTask :: question (Maybe a) (Maybe [HtmlTag]) ![TaskAction a] !Bool !*TSt -> (!TaskResult (!Action,!a),!*TSt) | html question & iTask a
-makeInformationTask question initial context actions actionStored tst=:{taskNr}
+makeInformationTask question initial context actions actionStored tst=:{taskNr, newTask}
 	# taskId			= taskNrToString taskNr
 	# editorId			= "tf-" +++ taskNrToString taskNr
 	# (ovalue,tst)		= readValue initial tst
 	# (omask,tst)		= readMask initial tst
 	# buttonActions		= getButtonActions actions
-	//Check for user updates
-	# (updates,tst) = getUserUpdates tst
-	| isEmpty updates
+	# (anyUpd,tst)		= anyUpdates tst
+	| newTask || not anyUpd
+		// generate TUI definition
 		# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
 		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
 		# buttonActions	= evaluateConditions buttonActions valid ovalue
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy,tst)
 	| otherwise
-		# (nvalue,nmask,lmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask [] tst
-		# (action,tst) = getAction updates (map fst buttonActions) tst
-		| isJust action = (TaskFinished (fromJust action,nvalue),tst)
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst
+		| isEmpty updates
+			// no change for this task
+			# tst = setTUIUpdates [] [] tst
+			= (TaskBusy,tst)
 		| otherwise
-			# tst				= setTaskStore "value" nvalue tst
-			# tst				= setTaskStore "mask" nmask tst
-			# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue
-			# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
-			# buttonActions		= evaluateConditions buttonActions valid nvalue
-			# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
-			= (TaskBusy, tst)
+			# (nvalue,nmask,lmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask [] tst
+			# (action,tst) = getAction updates (map fst buttonActions) tst
+			| isJust action = (TaskFinished (fromJust action,nvalue),tst)
+			| otherwise
+				# tst				= setTaskStore "value" nvalue tst
+				# tst				= setTaskStore "mask" nmask tst
+				# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue
+				# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
+				# buttonActions		= evaluateConditions buttonActions valid nvalue
+				# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
+				= (TaskBusy, tst)
 where
 	readValue initial tst
 		# (mbvalue,tst)	= getTaskStore "value" tst
@@ -130,7 +137,7 @@ updateChoiceAboutA question actions about [] index			= throw "updateChoiceAbout:
 updateChoiceAboutA question actions about options index		= mkInteractiveTask "updateChoiceAbout" (makeChoiceTask question options index (Just (visualizeAsHtmlDisplay about)) actions)
 
 makeChoiceTask :: !question ![a] !Int (Maybe [HtmlTag]) ![TaskAction a] !*TSt -> (!TaskResult (!Action,!a),!*TSt) | html question & iTask a
-makeChoiceTask question options initsel context actions tst=:{taskNr}
+makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 	# taskId		= taskNrToString taskNr
 	# editorId		= "tf-" +++ taskId
 	# selectionId	= editorId +++ "-sel"
@@ -138,9 +145,9 @@ makeChoiceTask question options initsel context actions tst=:{taskNr}
 	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
 	# valid			= selection >= 0 && selection < length options	//Do we have a valid index
 	# buttonActions = getButtonActions actions
-	//Check for user updates
-	# (updates,tst) = getUserUpdates tst
-	| isEmpty updates
+	# (anyUpd,tst)	= anyUpdates tst
+	| newTask || not anyUpd
+		// generate TUI definition
 		# radios = [TUIRadio {TUIRadio	| name = selectionId
 										, id = ""
 										, value = toString i
@@ -162,25 +169,32 @@ makeChoiceTask question options initsel context actions tst=:{taskNr}
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
-		# (action,tst) = getAction updates (map fst buttonActions) tst
-		= case action of
-			// One of the buttons was pressed
-			Just action	= (TaskFinished (action, if valid (options !! selection) (hd options)),tst)
-			// The selection was updated
-			Nothing
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst
+		| isEmpty updates
+			// no change for this task
+			# tst = setTUIUpdates [] [] tst
+			= (TaskBusy,tst)
+		| otherwise
+			# (action,tst) = getAction updates (map fst buttonActions) tst
+			= case action of
+				// One of the buttons was pressed
+				Just action	= (TaskFinished (action, if valid (options !! selection) (hd options)),tst)
 				// The selection was updated
-				# index = toInt (http_getValue selectionId updates "-1")
-				| index <> -1
-					# valid			= index >= 0 && index < length options	//Recompute validity
-					# tst			= setTaskStore "selection" index tst
-					# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
-					# buttonActions = evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-					# tst			= setTUIUpdates (enables editorId buttonActions) menuActions tst
-					= (TaskBusy, tst)	
-				// Fallback case (shouldn't really happen)
-				| otherwise
-					# tst		= setTUIUpdates [] [] tst
-					= (TaskBusy, tst)
+				Nothing
+					// The selection was updated
+					# index = toInt (http_getValue selectionId updates "-1")
+					| index <> -1
+						# valid			= index >= 0 && index < length options	//Recompute validity
+						# tst			= setTaskStore "selection" index tst
+						# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
+						# buttonActions = evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
+						# tst			= setTUIUpdates (enables editorId buttonActions) menuActions tst
+						= (TaskBusy, tst)	
+					// Fallback case (shouldn't really happen)
+					| otherwise
+						# tst = setTUIUpdates [] [] tst
+						= (TaskBusy, tst)
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
 enterMultipleChoice question options = mkInteractiveTask "enterMultipleChoice" (ignoreActionA (makeMultipleChoiceTask question options [] Nothing [ButtonAction (ActionOk, IfValid)]))
@@ -207,16 +221,16 @@ updateMultipleChoiceAboutA :: question ![TaskAction [a]] b [a] [Int] -> Task (!A
 updateMultipleChoiceAboutA question actions about options indices = mkInteractiveTask "updateMultipleChoiceAboutA" (makeMultipleChoiceTask question options indices (Just (visualizeAsHtmlDisplay about)) actions)
 
 makeMultipleChoiceTask :: question [a] [Int] (Maybe [HtmlTag]) ![TaskAction [a]] !*TSt -> (!TaskResult (!Action,![a]),!*TSt) | html question & iTask a
-makeMultipleChoiceTask question options initsel context actions tst=:{taskNr}
+makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 	# taskId		= taskNrToString taskNr
 	# editorId		= "tf-" +++ taskId
 	# selectionId	= editorId +++ "-sel"
 	# (mbSel,tst)	= getTaskStore "selection" tst
 	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
 	# buttonActions	= evaluateConditions (getButtonActions actions) True (select selection options)
-	//Check for user updates
-	# (updates,tst) = getUserUpdates tst
-	| isEmpty updates
+	# (anyUpd,tst)	= anyUpdates tst
+	| newTask || not anyUpd
+		// generate TUI definition
 		# checks	= [isMember i selection \\ i <- [0..(length options) - 1]]
 		# cboxes	= [TUICheckBox 
 					  {TUICheckBox
@@ -232,17 +246,24 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr}
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
-		// One of the buttons was pressed
-		# (action,tst) = getAction updates (map fst buttonActions) tst
-		= case action of
-			Just action	= (TaskFinished (action, select selection options),tst)
-			Nothing
-				// Perhaps the selection was changed
-				# mbSel		= parseSelection updates 
-				# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
-				# tst		= setTaskStore "selection" (sort selection) tst
-				# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
-				= (TaskBusy, tst)
+		//Check for user updates
+		# (updates,tst) = getUserUpdates tst
+		| isEmpty updates
+			// no change for this task
+			# tst = setTUIUpdates [] [] tst
+			= (TaskBusy,tst)
+		| otherwise
+			// One of the buttons was pressed
+			# (action,tst) = getAction updates (map fst buttonActions) tst
+			= case action of
+				Just action	= (TaskFinished (action, select selection options),tst)
+				Nothing
+					// Perhaps the selection was changed
+					# mbSel		= parseSelection updates 
+					# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
+					# tst		= setTaskStore "selection" (sort selection) tst
+					# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
+					= (TaskBusy, tst)
 where
 	parseSelection :: [(String,String)] -> Maybe [String]
 	parseSelection updates = fromJSON (http_getValue "selection" updates "[]")	
@@ -320,7 +341,7 @@ makeInstructionTask instruction context tst
 :: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
 :: Listener` s a =	{ visualize :: s -> [HtmlTag] }
 :: Editor` s a =	{ getNewValue :: Int [(!DataPath,!String)] s s *TSt -> *(!s,!*TSt)
-					, determineUpdates :: Int s *TSt -> *((![TUIUpdate],!Bool),!*TSt)
+					, determineUpdates :: !TaskNr Int s *TSt -> *((![TUIUpdate],!Bool),!*TSt)
 					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
 					}
 
@@ -343,8 +364,8 @@ where
 			# (nEditV,tst)		= applyUpdates consUpdates oEditV tst
 			= (mergeValues old cur (editorTo nEditV old), tst)
 		
-	determineUpdates n new tst=:{taskNr}
-		# (mbOEditV,tst)	= getTaskStore (addStorePrefix n "value") tst
+	determineUpdates taskNr n new tst
+		# (mbOEditV,tst)	= getTaskStoreFor taskNr (addStorePrefix n "value") tst
 		# oEditV			= fromJust mbOEditV
 		# nEditV			= editorFrom new
 		# (mask,tst)		= accWorldTSt (defaultMask nEditV) tst
@@ -382,29 +403,30 @@ updateSharedLocal question actions initial views =
 	>>|			return res
 
 makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
-makeSharedTask question actions sharedId views actionStored tst=:{taskNr}
+makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTask}
 	# (mbcvalue,tst)		= readShared sharedId tst
-	| isNothing mbcvalue	= applyTask (throw "updateShared: shared variable is deleted") tst
-	# (updates,tst)			= getUserUpdates tst
-	| isEmpty updates
-		# tst = setTUIFunc createDefs (html question) tst
-		= (TaskBusy, tst)
-	| otherwise
-		# cvalue			= fromJust mbcvalue
-		# (action,tst)		= getAction updates (map fst buttonActions) tst
-		| isJust action
-			# (result,tst) = gMakeLocalCopy{|*|} cvalue tst
-			= (TaskFinished (fromJust action,result),tst)
-		| otherwise
-			# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
-			# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
-			# nvalue			= gMakeSharedCopy{|*|} nvalue sharedId
-			# tst				= {tst & dataStore = storeValue sharedId nvalue tst.dataStore}
-			# (upd,valid,_,tst)	= foldl (detUpd nvalue) ([],True,0,tst) views
-			# menuActions		= evaluateConditions menuActions valid nvalue
-			# buttonActions		= evaluateConditions buttonActions valid nvalue
-			# tst				= setTUIUpdates (enables baseEditorId buttonActions ++ upd) menuActions tst
-		= (TaskBusy, tst)
+	= case mbcvalue of
+		Nothing = applyTask (throw "updateShared: shared variable is deleted") tst
+		Just cvalue
+			# (anyUpd,tst)			= anyUpdates tst
+			| newTask || not anyUpd
+				// generate TUI definition
+				# tst = setTUIFunc createDefs (html question) tst
+				= (TaskBusy, tst)
+			| otherwise
+				# (updates,tst)		= getUserUpdates tst
+				# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
+				# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
+				# nvalue			= gMakeSharedCopy{|*|} nvalue sharedId
+				# tst				= {tst & dataStore = storeValue sharedId nvalue tst.dataStore}
+				# (mbAction,tst)	= getAction updates (map fst buttonActions) tst
+				= case mbAction of
+					Just action
+						# (result,tst)	= gMakeLocalCopy{|*|} (fromJust mbcvalue) tst
+						= (TaskFinished (action,result),tst)
+					Nothing
+						# tst = setTUIFunc createUpdates (html question) tst
+						= (TaskBusy, tst)
 where
 	createDefs tst
 		# (Just svalue,tst)		= readShared sharedId tst
@@ -419,6 +441,14 @@ where
 		= (def ++ ndef,valid && nvalid,n + 1,tst)
 		
 	createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
+	
+	createUpdates tst
+		# (mbcvalue,tst)	= readShared sharedId tst
+		# cvalue			= fromJust mbcvalue
+		# (upd,valid,_,tst)	= foldl (detUpd cvalue) ([],True,0,tst) views
+		# menuActions		= evaluateConditions menuActions valid cvalue
+		# buttonActions		= evaluateConditions buttonActions valid cvalue
+		= (Updates (enables baseEditorId buttonActions ++ upd) menuActions,tst)
 		
 	updateV updates (cvalue,n,tst) (Editor editor)
 		# (ovalue,tst)			= readValue n tst
@@ -427,8 +457,8 @@ where
 	updateV _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
 	
 	detUpd nvalue (upd,valid,n,tst) (Editor editor)
-		# ((nupd,nvalid),tst)	= editor.determineUpdates n nvalue tst
-		# tst					= setTaskStore (addStorePrefix n "value") nvalue tst
+		# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue tst
+		# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
 		= (upd ++ nupd,	valid && nvalid, n + 1, tst)
 	detUpd nvalue (upd,valid,n,tst) (Listener listener) = ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
 	

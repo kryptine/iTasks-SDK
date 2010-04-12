@@ -24,11 +24,13 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
+					, newTask		:: !Bool											// does the task run for the first time
 
-					, mainTask		   :: !ProcessId									// The id of the current main task 
-					, properties	   :: !TaskProperties								// Properties of the current evaluated process		
-					, menus			   :: !Maybe [Menu]									// Menu structure of the current task
-					, staticInfo	   :: !StaticInfo									// info which does not change during a run
+					, mainTask		:: !ProcessId									// The id of the current main task 
+					, properties	:: !TaskProperties								// Properties of the current evaluated process		
+					, menus			:: !Maybe [Menu]								// Menu structure of the current task
+					, menusChanged	:: !Bool										// Has the menu structure been changed
+					, staticInfo	:: !StaticInfo									// info which does not change during a run
 										
 					, currentChange	:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
 					, pendingChanges:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
@@ -302,6 +304,7 @@ setTUIMessage 		:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *T
 
 setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
 getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
+anyUpdates			:: !*TSt						-> (Bool,!*TSt)
 
 /**
 * Writes a 'task scoped' value to the store

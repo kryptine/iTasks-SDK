@@ -33,9 +33,11 @@ mkTSt appName config request session workflows dataStore documentStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo [])
+		, newTask		= True
 		, mainTask		= ""
 		, properties	= initTaskProperties
 		, menus			= Nothing
+		, menusChanged	= False
 		, staticInfo	= initStaticInfo appName session workflows
 		, currentChange	= Nothing
 		, pendingChanges= []
@@ -579,7 +581,7 @@ applyTask (Task desc=:{TaskDescription | groupedBehaviour} mbCxt taskfun) tst=:{
 					, groupedBehaviour 	= groupedBehaviour
 					, taskDescription	= ""
 					}
-	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo}
+	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo, newTask = isNothing taskVal}
 	= case taskVal of
 		(Just (TaskFinished a))	
 			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a)) tst
@@ -713,6 +715,9 @@ where
 			= [u \\ u =:(k,v) <- request.arg_post | k.[0] <> '_']
 		| otherwise
 			= []
+			
+anyUpdates :: !*TSt -> (Bool,!*TSt)
+anyUpdates tst=:{request} = (http_getValue "_targettask" request.arg_post "" <> "",tst)
 			
 clearUserUpdates	:: !*TSt						-> *TSt
 clearUserUpdates tst=:{taskNr, request}

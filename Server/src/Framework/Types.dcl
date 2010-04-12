@@ -137,7 +137,7 @@ toHidden :: !.a -> (Hidden .a)
 	, index			:: !Int	
 	}
 :: SharedDocumentVersion :== Int
-:: DocumentDataLocation = LocalLocation !TaskId | SharedLocation !(DBid Document) !SharedDocumentVersion
+:: DocumentDataLocation = LocalLocation !TaskId | SharedLocation !String !SharedDocumentVersion
 :: DocumentData :== String
 
 emptyDoc 	 		:: Document

@@ -122,7 +122,7 @@ where
 								_					= stop
 
 	optionsEditor	= editor	{ editorFrom	= \map			-> {type = map.mapType, showMapTypeControl = map.mapTypeControl, showNavigationControl = map.navigationControl, showScaleControl = map.scaleControl, size = if (map.GoogleMap.width == 400) Normal Large}
-								, editorTo		= \opts map	-> {map & mapType = opts.MapOptions.type, mapTypeControl = opts.showMapTypeControl, navigationControl = opts.showNavigationControl, scaleControl = opts.showScaleControl, width = case opts.MapOptions.size of Large = 800; Normal = 400}
+								, editorTo		= \opts map	-> {map & mapType = opts.MapOptions.type, mapTypeControl = opts.showMapTypeControl, navigationControl = opts.showNavigationControl, scaleControl = opts.showScaleControl, width = case opts.MapOptions.size of Large = 650; Normal = 400}
 								}
 	overviewEditor	= editor	{ editorFrom	= \map			-> {GoogleMap| map & mapTypeControl = False, navigationControl = False, scaleControl = False, scrollwheel = False, zoom = 7}
 								, editorTo		= \nmap map	-> {GoogleMap| map & center = nmap.GoogleMap.center}
