@@ -2,7 +2,7 @@ implementation module UserDB
 
 import StdEnv, StdMaybe
 import StdGeneric
-import TSt, Util, StdDebug
+import TSt, Util
 
 from Types import :: Password(..)
 

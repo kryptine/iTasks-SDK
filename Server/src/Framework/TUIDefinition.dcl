@@ -10,6 +10,7 @@ import JSON
 derive JSONEncode TUIDef, TUIUpdate
 
 :: TUIId :== String
+:: PlaceholderId :== String
 
 :: TUIUpdate
 	= TUIAdd TUIId TUIDef		// Add the additional component *after* the component with indicated id
@@ -32,6 +33,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIPasswordControl TUIBasicControl	
 	| TUICurrencyControl TUICurrencyControl
 	| TUIUsernameControl TUIBasicControl
+	| TUIDisplayControl TUIDisplayControl
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
 	| TUITextArea TUITextArea
@@ -72,6 +74,14 @@ derive JSONEncode TUIDef, TUIUpdate
 	, currencyLabel	:: !String
 	, optional		:: !Bool
 	}
+:: TUIDisplayControl =
+	{ id			:: !String
+	, fieldLabel	:: !Maybe String
+	, optional		:: !Bool
+	, html			:: !String
+	, formItems		:: ![(PlaceholderId,[TUIDef])]
+	}
+	
 :: TUIButton =
 	{ name			:: !String
 	, id			:: !String

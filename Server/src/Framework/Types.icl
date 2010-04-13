@@ -6,8 +6,8 @@ import Html
 import Text, Util
 import CommonDomain
 
-derive gPrint			Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, Static, UserName
-derive gParse			Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation,Hidden, Static, UserName
+derive gPrint			Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, UserName
+derive gParse			Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, UserName
 derive gVisualize		Session
 derive gUpdate			Session
 derive gMerge			Session, UserName, User
@@ -86,13 +86,27 @@ emptyDoc = {type = Local, content = EmptyDocument}
 isEmptyDoc :: !Document -> Bool
 isEmptyDoc {type,content=EmptyDocument}	= True
 isEmptyDoc _							= False
-	    
-// Hidden en Static
-fromStatic :: !(Static .a) -> .a
-fromStatic (Static x) = x
 
-toStatic :: !.a -> (Static .a)
-toStatic x = (Static x)
+// VisualizationHints etc..
+fromVisualizationHint :: !(VisualizationHint .a) -> .a
+fromVisualizationHint (VHEditable a) = a
+fromVisualizationHint (VHHtmlDisplay a) = a
+fromVisualizationHint (VHHidden a) = a
+
+toVisualizationHint :: !.a -> (VisualizationHint .a)
+toVisualizationHint a = (VHEditable a)
+
+fromEditable :: !(Editable .a) -> .a
+fromEditable (Editable a) = a
+
+toEditable :: !.a -> (Editable .a)
+toEditable a = (Editable a)
+
+fromHtmlDisplay :: !(HtmlDisplay .a) -> .a
+fromHtmlDisplay (HtmlDisplay a) = a
+
+toHtmlDisplay :: !.a -> (HtmlDisplay .a)
+toHtmlDisplay a = (HtmlDisplay a)
 
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x

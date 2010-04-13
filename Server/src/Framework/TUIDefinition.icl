@@ -4,7 +4,7 @@ import JSON,StdList
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
 derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument, TUITuple
-derive JSONEncode TUIBasicControl, TUICurrencyControl
+derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDisplayControl
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextArea r) c = addXType "textarea" (JSONEncode{|*|} r c)
@@ -41,6 +41,7 @@ JSONEncode{|TUIDef|} (TUITimeControl r) c	= addXType "itasks.tui.Time" (JSONEnco
 JSONEncode{|TUIDef|} (TUICurrencyControl r) c	= addXType "itasks.tui.Currency" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIUsernameControl r) c	= addXType "itasks.tui.Username" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIPasswordControl r) c	= addXType "itasks.tui.Password" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIDisplayControl r) c	= addXType "itasks.tui.Display" (JSONEncode{|*|} r c)
 
 addXType :: String [String] -> [String]
 addXType xtype [x:xs] = [x,"\"xtype\" : \"",xtype,"\", ":xs]

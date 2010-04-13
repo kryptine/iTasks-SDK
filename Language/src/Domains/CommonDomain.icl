@@ -92,7 +92,7 @@ gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabel
 		VEditorUpdate
 			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 		_					= ([TextFragment (toString old)], 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
 where
 	curLabel (VValue (EUR _) _)	= "&euro;"

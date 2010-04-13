@@ -10,7 +10,7 @@ generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String, Document, UserName
-derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
@@ -35,16 +35,19 @@ determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMa
 derive bimap VisualizationValue
 
 :: *VSt =
-	{ vizType			:: !VisualizationType		// Type of preferred visualization
-	, idPrefix			:: !String					// Prefix for all identity strings of editor fields 
-	, label				:: !Maybe String			// Optional label to attach to editor fields
+	{ vizType			:: !VisualizationType			// Type of preferred visualization
+	, origVizType		:: !VisualizationType			// Type of the preferred visualization at initialization, this should not be edited.
+	, idPrefix			:: !String						// Prefix for all identity strings of editor fields 
+	, label				:: !Maybe String				// Optional label to attach to editor fields
 	// Additional information for form generation
-	, currentPath		:: !DataPath				// Accumulated path through the data structure, used to identify sub-structures
-	, useLabels			:: !Bool					// Indent for labels, whether there is a label or not
-	, onlyBody			:: !Bool					// Only generate a constructor body for editors
-	, optional			:: !Bool					// Create optional form fields
-	, valid				:: !Bool					// Is the form valid
-	, listMask			:: ListMask					// Indicating which parts of a list have changed
+	, currentPath		:: !DataPath					// Accumulated path through the data structure, used to identify sub-structures
+	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
+	, onlyBody			:: !Bool						// Only generate a constructor body for editors
+	, optional			:: !Bool						// Create optional form fields
+	, valid				:: !Bool						// Is the form valid
+	, listMask			:: !ListMask					// Indicating which parts of a list have changed
+	, defAcc			:: ![(!String,[TUIDef])]		// An accumulator for definitions which cannot be directly placed in their HTML context
+	, phId				:: Int							// Counter for placeholder id's
 	}
 
 :: VisualizationType

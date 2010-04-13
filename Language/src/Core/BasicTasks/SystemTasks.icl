@@ -35,8 +35,6 @@ where
 	getCurrentProcessId` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentProcessId,tst)
 
-import StdDebug
-
 getContextWorker :: Task UserName
 getContextWorker = mkInstantTask "getContextWorker" getContextWorker`
 where

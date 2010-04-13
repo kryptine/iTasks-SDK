@@ -30,7 +30,7 @@ generic gUpdate a		:: a 		*USt -> (a, *USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String, Document, UserName
-derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
 
 //Wrapper functions for updating
 defaultValue		:: !*World -> (!a,!*World)														| gUpdate{|*|} a

@@ -355,7 +355,7 @@ gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, upd
 
 gUpdate {|Document|} s ust = (s,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gUpdate Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
 
 //Utility functions
 dp2s :: DataPath -> String

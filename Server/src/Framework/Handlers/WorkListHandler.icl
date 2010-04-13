@@ -27,7 +27,6 @@ derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
 
-import StdDebug
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
 	# username				= toUserName staticInfo.currentSession.user

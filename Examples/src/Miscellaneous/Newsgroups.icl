@@ -99,12 +99,12 @@ where
 			
 			appointEditor idx = editor {editorFrom = editorFrom idx, editorTo = editorTo idx}
 
-			editorFrom :: Int MeetingDB -> (Static (Meeting,[(Maybe Attending,UserName)]),(Static String,(Maybe Attending)))
+			editorFrom :: Int MeetingDB -> (HtmlDisplay (Meeting,[(Maybe Attending,UserName)]),(HtmlDisplay String,(Maybe Attending)))
 			editorFrom idx (goal, dates)
 				# (date,attlist) = dates !! idx
-				= let (att,user) = attlist !! uid in (Static (date,attlist),(Static(user +++> " can you attend?"),att))
+				= let (att,user) = attlist !! uid in (HtmlDisplay (date,attlist),(HtmlDisplay(user +++> " can you attend?"),att))
 			
-			editorTo :: Int (Static (Meeting,[(Maybe Attending,UserName)]),(Static String,(Maybe Attending))) MeetingDB -> MeetingDB 				
+			editorTo :: Int (HtmlDisplay (Meeting,[(Maybe Attending,UserName)]),(HtmlDisplay String,(Maybe Attending))) MeetingDB -> MeetingDB 				
 			editorTo idx (info,(question,att)) (goal, dates)
 				= let (meeting,attlist) = dates !! idx 
 				  in (goal,updateAt idx (meeting, let (_,user) = attlist !! uid 

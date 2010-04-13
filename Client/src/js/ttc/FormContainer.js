@@ -6,6 +6,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		
 		this.buildComponents(this);
 		this.tbar = this.content.tbar;
+		this.replaceItems = [];
 		
 		delete this.content;
 		
@@ -82,7 +83,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 								else
 									return find(cmt,cnt,ind + 1);
 							}
-							
+														
 							var index = find(ct, ct.ownerCt, 0) + 1;
 							var newct = ct.ownerCt.insert(index, update[2]);
 							
@@ -130,6 +131,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 							//this.attachTaskHandlers(newct);
 							itasks.ttc.common.attachTaskHandlers(newct);
 						}
+						
 						break;
 					case "TUISetEnabled":
 						var ct = Ext.getCmp(update[1]);
@@ -208,7 +210,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			tb.removeClass(cls);
 			tb.addClass(cls);
 		}
-	}
+	},
+
 });
 
 Ext.ns('itasks.ttc.form');
@@ -227,6 +230,7 @@ itasks.ttc.form.FormDescription = Ext.extend(Ext.Panel,{
 itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 
 	initComponent : function(){
+	
 		Ext.apply(this,
 		{ layout: 'fit'
 		, unstyled: true
@@ -235,7 +239,6 @@ itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 		
 		itasks.ttc.form.FormPanel.superclass.initComponent.apply(this,arguments);
 	}
-
 });
 
 Ext.reg('itasks.ttc.form',itasks.ttc.FormContainer);

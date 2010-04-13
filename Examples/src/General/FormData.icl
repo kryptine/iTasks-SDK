@@ -70,7 +70,7 @@ where
 		convert (Labeled (s, b))		= convert b >>= \nb ->	returnLabel s nb
 		where
 				returnLabel s (DV0 v :: DV0 a) 
-									= return (dynamic DV0 (Static s,v) :: DV0 (Static String,a))
+									= return (dynamic DV0 (HtmlDisplay s,v) :: DV0 (HtmlDisplay String,a))
 		convert	Notes				= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Note)	
 		convert	Date				= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Date)	
 		convert	Time				= getDefaultValue >>= \v -> return (dynamic DV0 v :: DV0 Time)	

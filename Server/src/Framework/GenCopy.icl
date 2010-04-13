@@ -19,7 +19,7 @@ gMakeSharedCopy{|UNIT|}		UNIT _					= UNIT
 gMakeSharedCopy{|Dynamic|}	dyn _	= dyn
 gMakeSharedCopy{|Document|}	doc sid	= {Document|doc & type = Shared sid}
 
-derive gMakeSharedCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gMakeSharedCopy [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
 
 generic gMakeLocalCopy a :: !a !*TSt -> (a,!*TSt)
 gMakeLocalCopy{|Int|}		x tst = (x,tst)
@@ -47,4 +47,4 @@ gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 			LocalLocation _	= ({Document|doc & type = Local},tst)
 		EmptyDocument		= ({Document|doc & type = Local},tst)
 
-derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, Static, Hidden
+derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden

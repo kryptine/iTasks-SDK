@@ -13,8 +13,8 @@ from iTasks			import class iTask
  
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON, StoreTasks
 
-derive gPrint			Session, Document, Hidden, Static, UserName
-derive gParse			Session, Document, Hidden, Static, UserName
+derive gPrint			Session, Document, Hidden, HtmlDisplay, Editable, UserName
+derive gParse			Session, Document, Hidden, HtmlDisplay, Editable, UserName
 derive gVisualize		Session
 derive gUpdate			Session
 derive gMerge			Session, UserName, User
@@ -114,11 +114,21 @@ instance == Password
 
 
 // Field behaviour extensions
-:: Static a = Static a						// Variable is always rendered as a HTML-fragment
+:: VisualizationHint a = VHEditable a
+					   | VHHtmlDisplay a
+					   | VHHidden a
+:: Editable a = Editable a					// Variable is always rendered within a form as editor field
+:: HtmlDisplay a = HtmlDisplay a			// Variable is always rendered within a form as a HTML-fragment
 :: Hidden a = Hidden a						// Variable is never rendered
 
-fromStatic :: !(Static .a) -> .a
-toStatic :: !.a -> (Static .a)
+fromVisualizationHint :: !(VisualizationHint .a) -> .a
+toVisualizationHint :: !.a -> (VisualizationHint .a)
+
+fromEditable :: !(Editable .a) -> .a
+toEditable :: !.a -> (Editable .a)
+
+fromHtmlDisplay :: !(HtmlDisplay .a) -> .a
+toHtmlDisplay :: !.a -> (HtmlDisplay .a)
 
 fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
