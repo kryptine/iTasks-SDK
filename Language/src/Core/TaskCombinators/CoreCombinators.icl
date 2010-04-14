@@ -5,7 +5,7 @@ from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
 
 import	TSt
-import	Util
+import	Util, Http
 import	GenUpdate
 import	UserDB, ProcessDB
 import  Store
@@ -132,29 +132,55 @@ import GenPrint
 derive gPrint PAction
 
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a))) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
-//parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction AssignedTask a)) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
-parallel type label description procFun parseFun initState initTask = execInParallel (Just type) label description procFun parseFun initState initTask
+parallel type label description procFun parseFun initState initTask = execInParallel (Just type) label description procFun parseFun initState initTask nothing
+where
+	nothing :: Maybe [GroupAction a b Void]
+	nothing = Nothing
 
-group :: !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-//group :: !String !String !((a,Int) b -> (b,PAction Task a)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-group label description procFun parseFun initState initTasks = execInParallel Nothing label description procFun parseFun initState initTasks
+group :: !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
+group label description procFun parseFun initState initTasks groupActions = execInParallel Nothing label description procFun parseFun initState initTasks (Just groupActions)
 
-execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (t a))) (b->c) !b ![t a] -> Task c | iTask a & iTask b & iTask c & PActionClass t
-//execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction t a)) (b->c) !b ![t a] -> Task c | iTask a & iTask b & iTask c & PActionClass t
-execInParallel mbParType label description procFun parseFun initState initTasks =
+execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (t a))) (b->c) !b ![t a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & PActionClass t & iTask s
+execInParallel mbParType label description procFun parseFun initState initTasks mbGroupActions =
 	case mbParType of
 		(Nothing) = makeTaskNode label Nothing execInParallel`
 		(Just pt) = makeTaskNode label (Just (mkTpi pt)) execInParallel`
 where
-	execInParallel` tst=:{taskNr}
+	execInParallel` tst=:{taskNr,request}
+		# taskNr			= drop 1 taskNr // get taskNr of group-task
+		# (updates,tst)		= getChildrenUpdatesFor taskNr tst
 		# (pst,tst)   		= loadPSt taskNr tst
+		// check for group actions
+		# (gActionStop,pst) = case mbGroupActions of
+			Just gActions
+				# gAction = case parseString (http_getValue "_group" updates "") of
+					Nothing	= parseString (http_getValue "menuAndGroup" updates "")
+					res		= res
+				= case gAction of
+					Just action	= case filter (\act -> (getAction act) == action) gActions of
+						[gAction:_]
+							# (nSt,act) = procFun (getResult action gAction,-1) pst.state
+							# pst = {pst & state = nSt}
+							= case act of
+								Stop			= (True,pst)
+								Continue		= (False,pst)
+								Extend tlist	= (False,{PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]})
+						_ = (False,pst)
+					Nothing = (False,pst)
+			Nothing = (False,pst)
 		# (result,pst,tst) 	= processAllTasks pst 0 tst
 		# tst				= setTaskStoreFor taskNr "pst" pst tst
 		= case result of
-			TaskException e = (TaskException e, tst)
-			TaskFinished  r = (TaskFinished (parseFun r), tst)
-			TaskBusy		= (TaskBusy, tst)
-	
+			TaskException e = (TaskException e,tst)
+			TaskFinished  r = (TaskFinished (parseFun r),tst)
+			TaskBusy
+				| gActionStop	= (TaskFinished (parseFun pst.state),tst)
+				| otherwise
+					# tst = case mbGroupActions of
+						Just gActions	= setGroupActions (evaluateConditions gActions pst.state) tst
+						Nothing			= tst
+					= (TaskBusy,tst)
+
 	processAllTasks pst idx tst
 		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
 		# (task,done)				= pst.tasks !! idx
@@ -207,7 +233,30 @@ where
 		# (t,b) 	= pst.tasks !! idx
 		# tasks 	= updateAt idx (t,True) pst.tasks
 		= {PSt | pst & tasks = tasks}
+		
+	evaluateConditions actions state = [(getAction a,evaluateCondition (getCond a)) \\ a <-  actions]
+	where
+		evaluateCondition GroupAlways				= Left	True
+		evaluateCondition (StatePredicate p)		= Left	(p state)
+		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
+		
+		checkSharedPred id p tst=:{TSt|dataStore,world}
+			# (mbVal,dstore,world)	= loadValue id dataStore world
+			# tst					= {TSt|tst & dataStore = dstore, world = world}
+			= case mbVal of
+				Just val	= (p (SharedValue val), tst)
+				Nothing		= (p SharedDeleted, tst)
+				
+	getAction	(GroupAction a _ _)			= a
+	getAction	(GroupActionParam name _ _)	= ActionParam name "?"
 	
+	getCond		(GroupAction _ _ cond)		= cond
+	getCond		(GroupActionParam _ _ cond)	= cond
+	
+	getResult	(ActionParam _ param)	(GroupActionParam _ f _)	= f param
+	getResult	_						(GroupAction _ res _)		= res
+	
+				
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.

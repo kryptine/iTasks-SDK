@@ -28,10 +28,10 @@ getFile id =
 					Nothing		= undef
 					(Just file)	= return file
 					
-getAllFileNames :: Task [((DBRef TextFile), FileName)]
+getAllFileNames :: Task [(FileName, Hidden (DBRef TextFile))]
 getAllFileNames =
 				dbReadAll
-	>>= \files.	return (map (\f -> (f.fileId, f.TextFile.name)) files)
+	>>= \files.	return (map (\f -> (f.TextFile.name, Hidden f.fileId)) files)
 			
 :: AppState = AppState Note (Maybe TextFile)
 
@@ -51,19 +51,16 @@ openFile id sid =
 	>>= \file.	writeDB sid (AppState file.TextFile.content (Just file))
 	>>|			stop
 	
-open :: (DBid AppState) -> Task GAction
+open :: (DBid AppState) -> Task Void
 open sid =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
-					(		showMessage "No files to open!"
-					 >>|	return GContinue
-					)
-					(							enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files
-					 >>= \(action,(fid,name)).	case action of
-					 								ActionOk	=				addToRecentlyOpened name fid
-					 												>>|			openFile fid sid
-					 												>>|			return GContinue
-					 								_			=				return GContinue
+					(showMessage "No files to open!")
+					(										enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files
+						>>= \(action,(name, Hidden fid)).	case action of
+					 										ActionOk	=				addToRecentlyOpened name fid
+					 														>>|			openFile fid sid
+					 										_			=				stop
 					)
 
 save :: (DBid AppState) -> Task Void
@@ -73,15 +70,15 @@ save sid =
 	>>= \file.							writeDB sid (AppState ntxt (Just file))
 	>>|									stop
 					
-saveAs :: (DBid AppState) -> Task GAction
+saveAs :: (DBid AppState) -> Task Void
 saveAs sid =
 						enterInformationA "Save As: enter name" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 	>>= \(action,name).	case action of
 							ActionOk	=							readDB sid
 											>>= \(AppState txt _).	storeFile name txt
 											>>=	\file.				writeDB sid (AppState file.TextFile.content (Just file))
-											>>|						return GContinue
-							_			=							return GContinue
+											>>|						stop
+							_			=							stop
 
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
@@ -94,14 +91,16 @@ derive gUpdate Replace
 ActionReplaceAll	:== ActionLabel "Replace All"
 ActionClose			:== ActionLabel "Close"
 
-replaceT :: (DBid AppState) -> Task GAction
-replaceT sid =
-						enterInformationA "Replace..." [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)]
-	>>= \(action, v).	case action of
-							ActionReplaceAll	=										readDB sid
-													>>= \(AppState (Note txt) file).	writeDB sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
-													>>|									replaceT sid <<@ subtaskBehaviour
-							_					= 										return GContinue
+replaceT :: (DBid AppState) -> Task Void
+replaceT sid = replaceT` {searchFor = "", replaceWith = ""}
+where
+	replaceT` repl =
+							updateInformationA "Replace..." [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)] repl
+		>>= \(action, v).	case action of
+								ActionReplaceAll	=										readDB sid
+														>>= \(AppState (Note txt) file).	writeDB sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
+														>>|									replaceT` v <<@ subtaskBehaviour
+								_					= 										stop
 
 :: TextStatistics =	{ lines			:: Int
 					, words			:: Int
@@ -112,73 +111,60 @@ derive gParse TextStatistics
 derive gVisualize TextStatistics
 derive gUpdate TextStatistics
 
-statistics :: (DBid AppState)  -> Task GAction
-statistics sid =
-		updateShared "Statistics" [ButtonAction (ActionOk, Always)] sid [statsListener]
-	>>| return GContinue
+statistics :: (DBid AppState)  -> Task Void
+statistics sid = ignoreResult (updateShared "Statistics" [ButtonAction (ActionOk, Always)] sid [statsListener])
 where
 	statsListener = listener {listenerFrom = \(AppState (Note text) _) -> let txt = trim text in {lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}}
-
-about :: Task GAction
-about =
-		showMessage "iTextEditor V0.01"
-	>>|	return GContinue
 
 initState :: AppState
 initState = AppState (Note "") Nothing
 
+actionOpenFile = "openFile"
+recOpenedMenu = "recOpened"
+
 addToRecentlyOpened :: String (DBRef TextFile) -> Task Void
 addToRecentlyOpened name (DBRef id) =
-				getMenuItem "recOpened"
+				getMenuItem recOpenedMenu
 	>>= \item.	case item of
-					Just (SubMenu label entries)	= setMenuItem "recOpened" (SubMenu label (take 5[MenuItem name (ActionParam "openFile" (toString id)):entries]))
+					Just (SubMenu label entries)	= setMenuItem recOpenedMenu (SubMenu label (take 5[MenuItem name (ActionParam actionOpenFile (toString id)):entries]))
 					_								= return Void
 
 ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
 
-textEditorMain :: (DBid AppState) -> Task GAction
-textEditorMain sid  =	GBFixed @>> (
-						updateShared "Text Editor" [MenuParamAction ("openFile", Always):map MenuAction actions] sid [titleListener,mainEditor]
-	>>= \(action, _).	case action of
-							ActionNew					= writeDB sid initState >>|				return (GExtend [textEditorMain sid])
-							ActionOpen					=										return (GExtend [textEditorMain sid, open sid <<@ GBModal])
-							ActionParam "openFile" fid	= openFile (DBRef (toInt fid)) sid >>|	return (GExtend [textEditorMain sid])
-							ActionSave					= save sid >>|							return (GExtend [textEditorMain sid])
-							ActionSaveAs				=										return (GExtend [textEditorMain sid, saveAs sid <<@ GBModal])
-							ActionReplace				= 										return (GExtend [textEditorMain sid, replaceT sid <<@ subtaskBehaviour])
-							ActionStats					=										return (GExtend [textEditorMain sid, statistics sid <<@ subtaskBehaviour])
-							ActionShowAbout				= 										return (GExtend [textEditorMain sid, about <<@ subtaskBehaviour])
-							_							=										return GStop)
+textEditorMain :: (DBid AppState) -> Task Void
+textEditorMain sid  = GBFixed @>> ignoreResult (updateShared "Text Editor" [] sid [titleListener,mainEditor])
 where
-	actions =	[ (ActionNew,		Always)
-				, (ActionOpen,		Always)
-				, (ActionSave,		(Predicate (\(Valid (AppState _ file)) -> isJust file)))
-				, (ActionSaveAs,	Always)
-				, (ActionQuit,		Always)
-				, (ActionReplace,	(Predicate (\(Valid (AppState (Note txt) _)) -> txt <> "")))
-				, (ActionStats,		Always)
-				, (ActionShowAbout,	Always)
-				]
-	titleListener = listener {listenerFrom = \(AppState _ file) -> mkTitle file}
+	titleListener = listener	{ listenerFrom = \(AppState _ file) ->  case file of
+																			Nothing		= "New Text Document"
+																			Just f		= f.TextFile.name
+								}
 	mainEditor = editor	{ editorFrom	= \(AppState txt _) -> txt
 						, editorTo		= \ntxt (AppState _ file) -> AppState ntxt file
 						}
-	mkTitle file = case file of
-		Nothing		= "New Text Document"
-		(Just f)	= f.TextFile.name
 
 textEditorApp :: Task Void
 textEditorApp =
 				createDB initState
-	>>= \sid.	dynamicGroup [textEditorMain sid]
+	>>= \sid.	dynamicGroupAOnly [textEditorMain sid] (groupActions sid)
 	>>|			deleteDB sid
+where
+	groupActions sid =	[ GroupAction		ActionNew		(GOExtend [ignoreResult (writeDB sid initState)])					GroupAlways
+						, GroupAction		ActionOpen		(GOExtend [open sid <<@ GBModal])									GroupAlways
+						, GroupActionParam	actionOpenFile	(\fid -> GOExtend [openFile (DBRef (toInt fid)) sid])				GroupAlways
+						, GroupAction		ActionSave		(GOExtend [save sid])												(SharedPredicate sid (\(SharedValue (AppState _ file)) -> isJust file))
+						, GroupAction		ActionSaveAs	(GOExtend [saveAs sid <<@ GBModal])									GroupAlways
+						, GroupAction		ActionReplace	(GOExtend [replaceT sid <<@ subtaskBehaviour])						(SharedPredicate sid (\(SharedValue (AppState (Note txt) _)) -> txt <> ""))
+						, GroupAction		ActionStats		(GOExtend [statistics sid <<@ subtaskBehaviour])					GroupAlways
+						, GroupAction		ActionShowAbout	(GOExtend [showMessage "iTextEditor V0.01" <<@ subtaskBehaviour])	GroupAlways
+						, GroupAction		ActionQuit		GOStop																GroupAlways
+						]
 			
 initTextEditor :: Task Void
 initTextEditor = setMenus
 	[ Menu "File"	[ MenuItem "New"			ActionNew
 					, MenuItem "Open..."		ActionOpen
-					, MenuName "recOpened"		(SubMenu "Recently Opened" [])
+					, MenuName recOpenedMenu	(SubMenu "Recently Opened" [])
 					, MenuSeparator
 					, MenuItem "Save"			ActionSave
 					, MenuItem "Save As..."		ActionSaveAs

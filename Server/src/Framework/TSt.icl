@@ -1,7 +1,7 @@
 implementation module TSt
 
 import StdEnv, StdMaybe
-import Http, Util
+import Http, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import CommonDomain
 
@@ -561,7 +561,7 @@ mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkGroupedTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkGroupedTask`
 where
 	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
-		# tst = {tst & tree = TTGroupedTask taskInfo [], taskNr = [0:taskNr]}
+		# tst = {tst & tree = TTGroupedTask taskInfo [] [], taskNr = [0:taskNr]}
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
@@ -626,14 +626,14 @@ where
 		(TTMainTask ti mti menus inptype task)	= {tst & tree = TTMainTask ti mti menus inptype node} 	//Just replace the subtree 
 		(TTSequenceTask ti tasks)				= {tst & tree = TTSequenceTask ti [node:tasks]}			//Add the node to the sequence
 		(TTParallelTask ti tpi tasks)			= {tst & tree = TTParallelTask ti tpi [node:tasks]}		//Add the node to the parallel set
-		(TTGroupedTask ti tasks)				= {tst & tree = TTGroupedTask ti [node:tasks]}			//Add the node to the grouped set
+		(TTGroupedTask ti tasks gActions)		= {tst & tree = TTGroupedTask ti [node:tasks] gActions}	//Add the node to the grouped set
 		_										= {tst & tree = tree}
 	
 	//Perform reversal of lists that have been accumulated in reversed order
-	finalizeTaskNode (TTSequenceTask ti tasks) 		= TTSequenceTask	ti (reverse tasks)
-	finalizeTaskNode (TTParallelTask ti tpi tasks)	= TTParallelTask	ti tpi (reverse tasks)
-	finalizeTaskNode (TTGroupedTask ti tasks)		= TTGroupedTask		ti (reverse tasks)
-	finalizeTaskNode node							= node
+	finalizeTaskNode (TTSequenceTask ti tasks) 			= TTSequenceTask	ti (reverse tasks)
+	finalizeTaskNode (TTParallelTask ti tpi tasks)		= TTParallelTask	ti tpi (reverse tasks)
+	finalizeTaskNode (TTGroupedTask ti tasks gActions)	= TTGroupedTask		ti (reverse tasks) gActions
+	finalizeTaskNode node								= node
 	
 /*setTUIDef			:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt */	
 setTUIDef	:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
@@ -665,6 +665,12 @@ setStatus msg tst=:{tree}
 	= case tree of
 		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info msg}
 		_									= tst
+		
+setGroupActions :: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt -> *TSt
+setGroupActions actions tst=:{tree}
+	= case tree of
+		(TTGroupedTask info tasks _)	= {tst & tree = TTGroupedTask info tasks actions}
+		_								= tst
 
 /**
 * Store and load the result of a workflow instance
@@ -708,11 +714,20 @@ where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
 getUserUpdates :: !*TSt -> ([(String,String)],!*TSt)
-getUserUpdates tst=:{taskNr,request} = (updates request, tst);
+getUserUpdates tst=:{taskNr,request} = (updates request, tst)
 where
 	updates request
 		| http_getValue "_targettask" request.arg_post "" == taskNrToString taskNr
 			= [u \\ u =:(k,v) <- request.arg_post | k.[0] <> '_']
+		| otherwise
+			= []
+
+getChildrenUpdatesFor :: !TaskNr !*TSt -> ([(String,String)],!*TSt)
+getChildrenUpdatesFor taskNr tst=:{request} = (updates request, tst);
+where
+	updates request
+		| startsWith (taskNrToString taskNr) (http_getValue "_targettask" request.arg_post "")
+			= [u \\ u =:(k,v) <- request.arg_post]
 		| otherwise
 			= []
 			

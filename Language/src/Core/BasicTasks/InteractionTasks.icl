@@ -534,7 +534,9 @@ getAction updates buttonActions tst
 		| index <> -1
 			= (Just (buttonActions !! index),tst)
 		| otherwise
-			= (parseString (http_getValue "menu" updates ""),tst)
+			= case parseString (http_getValue "menu" updates "") of
+				Nothing	= (parseString (http_getValue "menuAndGroup" updates ""),tst)
+				res		= (res,tst)
 			
 getButtonActions :: ![TaskAction a] -> [ActionWithCond a]
 getButtonActions actions = map getAction (filter isButtonAction actions)

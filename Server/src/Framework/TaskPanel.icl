@@ -26,7 +26,10 @@ JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
 JSONEncode{|UserName|} (UserName name disp)	c			= ["\"" +++ disp +++ " <" +++ name +++ ">\"" : c]
 
 buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)
-buildTaskPanel tree menus currentUser tst=:{menusChanged} = case tree of
+buildTaskPanel tree menus currentUser tst = buildTaskPanel` tree menus [] currentUser tst
+
+buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action,Bool)] !UserName !*TSt -> (!TaskPanel,!*TSt)
+buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
@@ -34,7 +37,7 @@ buildTaskPanel tree menus currentUser tst=:{menusChanged} = case tree of
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
-			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
+			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA gActions ti, buttons = map TUIButton buttons}
 			, updates 	= Nothing
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
@@ -45,19 +48,19 @@ buildTaskPanel tree menus currentUser tst=:{menusChanged} = case tree of
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Nothing
-			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA ti)
+			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA gActions ti)
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst) = f tst
-		= buildTaskPanel (TTInteractiveTask ti fres) menus currentUser tst
+		= buildTaskPanel` (TTInteractiveTask ti fres) menus gActions currentUser tst
 	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
 		= (TTCMessageContainer {TTCMessageContainer
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId	= ti.TaskInfo.taskId
-			, content	= {form = msg, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
+			, content	= {form = msg, tbar = makeMenuBar menus acceptedA gActions ti, buttons = map TUIButton buttons}
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
@@ -97,10 +100,11 @@ buildTaskPanel tree menus currentUser tst=:{menusChanged} = case tree of
 	(TTSequenceTask ti tasks)
 		= case [t \\ t <- tasks | not (isFinished t)] of
 			[]	= (if (allFinished tasks) TaskDone TaskRedundant,tst)
-			[t]	= buildTaskPanel t menus currentUser tst
+			[t]	= buildTaskPanel` t menus gActions currentUser tst
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
-	(TTGroupedTask ti tasks)
-		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel t menus currentUser \\ t <- tasks & idx <- [0..]] tst
+	(TTGroupedTask ti tasks gActions)
+		# (gActions,tst)	= evaluateGActions gActions tst
+		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel` t menus gActions currentUser \\ t <- tasks & idx <- [0..]] tst
 		# containers		= filter filterFinished containers
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
@@ -131,7 +135,7 @@ where
 			(TTInteractiveTask ti _ ) 	= ti.TaskInfo.worker == currentUser
 			(TTMonitorTask ti _)		= ti.TaskInfo.worker == currentUser 
 			(TTRpcTask ti _)			= ti.TaskInfo.worker == currentUser
-			(TTGroupedTask ti _)		= ti.TaskInfo.worker == currentUser	
+			(TTGroupedTask ti _ _)		= ti.TaskInfo.worker == currentUser	
 			(TTInstructionTask ti _ _)	= ti.TaskInfo.worker == currentUser
 			(TTFinishedTask _ _)		= True										// always show finished tasks
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
@@ -155,7 +159,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 		    								| xtype		= "itasks.ttc.form"
 		    								, id 		= "taskform-" +++ ti.TaskInfo.taskId
 		   									, taskId 	= ti.TaskInfo.taskId
-		   									, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
+		   									, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA [] ti, buttons = map TUIButton buttons}
 		   									, updates	= Nothing
 		   									, subtaskId = Just (subtaskNrToString stnr)
 		   									, description = ti.TaskInfo.taskDescription
@@ -173,7 +177,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 											, id 		= "taskform-" +++ ti.TaskInfo.taskId
 											, taskId 	= ti.TaskInfo.taskId
 											, content	= Nothing 
-											, updates 	= Just (determineUpdates upd menus menusChanged acceptedA ti)
+											, updates 	= Just (determineUpdates upd menus menusChanged acceptedA [] ti)
 											, subtaskId = Just (subtaskNrToString stnr)
 											, description = ti.TaskInfo.taskDescription
 											}
@@ -192,7 +196,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 							| xtype		= "itasks.ttc.message"
 							, id		= "taskform-" +++ ti.TaskInfo.taskId
 							, taskId	= ti.TaskInfo.taskId
-							, content	= {form = msg, tbar = makeMenuBar menus acceptedA ti, buttons = map TUIButton buttons}
+							, content	= {form = msg, tbar = makeMenuBar menus acceptedA [] ti, buttons = map TUIButton buttons}
 							, subtaskId = Just (subtaskNrToString stnr)
 							, description = ti.TaskInfo.taskDescription
 							}
@@ -268,8 +272,9 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, processProperties = procProps, taskpanel = TaskRedundant}],tst)
 			[t] = buildSubtaskPanels t stnr menus manager partype inClosed procProps tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
-	(TTGroupedTask ti tasks)
-		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel t menus manager \\ t <- tasks & idx <- [0..]] tst
+	(TTGroupedTask ti tasks gActions)
+		# (gActions,tst)	= evaluateGActions gActions tst
+		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel` t menus gActions manager \\ t <- tasks & idx <- [0..]] tst
 		= ([{SubtaskContainer
 			| subtaskNr = stnr
 			, manager = manager
@@ -283,14 +288,6 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 											, subtaskId = Just (subtaskNrToString stnr)
 											}
 			}], tst)
-	/*(TTGroupedTask ti tasks)
-		= build tasks 1 tst
-		where
-			build []	 idx tst = ([],tst)
-			build [t:ts] idx tst
-				# (p,tst) = buildSubtaskPanels t [idx:stnr] menus manager partype inClosed procProps tst
-				# (ps,tst)= build ts (idx+1) tst
-				= (p++ps,tst)*/
 	(TTParallelTask ti tpi tasks)
 		# children = zip2 [1..] tasks
 		# nmanager = ti.TaskInfo.worker
@@ -339,7 +336,7 @@ where
 			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
-		(TTGroupedTask ti _)
+		(TTGroupedTask ti _ _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTMainTask ti mti _ _ _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
@@ -354,8 +351,8 @@ filterClosedSubtasks container manager
 	| otherwise = True
 
 // === Menu Functions
-makeMenuBar :: !(Maybe [Menu]) [(Action,Bool)] TaskInfo -> [TUIDef]
-makeMenuBar menus acceptedA ti
+makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIDef]
+makeMenuBar menus acceptedA gActions ti
 	= case menus of
 		Nothing		= []
 		Just menus	= (fst (mkMenus [] menus 0))
@@ -366,11 +363,42 @@ where
 	mkMenus defs [] id = (reverse defs,id)
 	
 	mkMenuItems _    _ 							   id 
-		| isEmpty acceptedA = ([], id)
+		| isEmpty acceptedA && isEmpty gActions = ([], id)
 	mkMenuItems defs [MenuItem label action:items] id
-		#accAction = filter (\(a,_) -> a == action) acceptedA
-		| isEmpty accAction	= mkMenuItems defs items (id + 1)
-		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id), text = label, name = Just "menu", value = Just (printToString action), disabled = not (snd (hd accAction)), menu = Nothing, iconCls = Just (getActionIcon action)}:defs] items (id + 1)
+		# taskA		= filter (\(a,_) -> a == action) acceptedA
+		# groupA	= filter (\(a,_) -> a == action) gActions
+		#defs = case taskA of
+			[(taskA,taskAEnabled):_] = case groupA of
+				[(groupA,groupAEnabled):_]	= [TUIMenuItem	{TUIMenuItem	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
+																			, text = label
+																			, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "_group"))
+																			, value = Just (printToString action)
+																			, disabled = not (taskAEnabled || groupAEnabled)
+																			, menu = Nothing
+																			, iconCls = Just (getActionIcon action)
+															}
+											:defs]
+				_							= [TUIMenuItem	{TUIMenuItem	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
+																			, text = label
+																			, name = Just "menu"
+																			, value = Just (printToString action)
+																			, disabled = not taskAEnabled
+																			, menu = Nothing
+																			, iconCls = Just (getActionIcon action)
+															}
+											:defs]
+			_ = case groupA of
+				[(groupA,groupAEnabled):_]	= [TUIMenuItem	{TUIMenuItem	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
+																			, text = label
+																			, name = Just "_group"
+																			, value = Just (printToString action)
+																			, disabled = not groupAEnabled
+																			, menu = Nothing
+																			, iconCls = Just (getActionIcon action)
+															}
+											:defs]
+				_							= defs
+		= mkMenuItems defs items (id + 1)
 	mkMenuItems defs [SubMenu label sitems:items]  id
 		#(children,id) = mkMenuItems [] sitems id
 		| isEmpty children	= mkMenuItems defs items id
@@ -391,14 +419,16 @@ where
 			[TUIMenuSeparator:defs]	= defs
 			defs					= defs
 
-determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) !Bool [(Action,Bool)] TaskInfo -> [TUIUpdate]
-determineUpdates upd mbMenus menusChanged acceptedA ti
+determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) !Bool ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIUpdate]
+determineUpdates upd mbMenus menusChanged acceptedA gActions ti
 	= case mbMenus of
 		Nothing		= upd
 		Just menus
-			| menusChanged	= [TUIReplaceMenu (makeMenuBar mbMenus acceptedA ti):upd]
+			| menusChanged	= [TUIReplaceMenu (makeMenuBar mbMenus acceptedA gActions ti):upd]
 			| otherwise		= fst (determineMenuUpd upd menus 0)
 where
+	acceptedActions = acceptedA ++ gActions
+
 	determineMenuUpd upd [Menu _ items:menus] id
 		#(upd,id) = determineItemUpd upd items id
 		= determineMenuUpd upd menus id
@@ -407,13 +437,21 @@ where
 		#(upd,id) = determineItemUpd upd sitems id
 		= determineItemUpd upd items id
 	determineItemUpd upd [MenuItem _ action:items] id
-		#accAction = filter (\(a,_) -> a == action) acceptedA
+		#accAction = filter (\(a,_) -> a == action) acceptedActions
 		| isEmpty accAction	= determineItemUpd upd items (id + 1)
 		| otherwise			= determineItemUpd [TUISetEnabled (ti.TaskInfo.taskId +++ "-menu-" +++ toString id) (snd (hd accAction)):upd] items (id + 1)
 	determineItemUpd upd [MenuSeparator:items] id = determineItemUpd upd items id
 	determineItemUpd upd [MenuName _ item:items] id = determineItemUpd upd [item:items] id
 	determineItemUpd upd [] id = (upd,id)
-
+	
+evaluateGActions gActions tst = seqList [evaluateGAction action \\ action <- gActions] tst
+where
+	evaluateGAction (action,cond) tst = case cond of
+		Left b	= ((action,b),tst)
+		Right f
+			# (b,tst) = f tst
+			= ((action,b),tst)
+			
 subtaskNrToString :: SubtaskNr -> String
 subtaskNrToString [] 	 = ""
 subtaskNrToString [i] 	 = toString i
@@ -436,7 +474,7 @@ getGroupedBehaviour task
 		(TTParallelTask ti _ _)		= ti
 		(TTSequenceTask ti _)		= ti
 		(TTMainTask ti _ _ _ _)		= ti
-		(TTGroupedTask ti _)		= ti
+		(TTGroupedTask ti _ _)		= ti
 		(TTInstructionTask ti _ _)	= ti
 		_ 							= abort "Unknown panel type in group"
 	= info.TaskInfo.groupedBehaviour

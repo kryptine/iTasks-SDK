@@ -21,31 +21,46 @@ import GenVisualize, GenUpdate
 
 derive gPrint Either
 derive gParse Either
-derive gParse GAction
-derive gPrint GAction
-derive gVisualize GAction
-derive gUpdate GAction
-
+derive gParse		GAction, GOnlyAction, GroupedBehaviour
+derive gPrint		GAction, GOnlyAction, GroupedBehaviour
+derive gVisualize	GAction, GOnlyAction, GroupedBehaviour
+derive gUpdate		GAction, GOnlyAction, GroupedBehaviour
 derive bimap Maybe, (,)
 
 //Grouping combinators
+emptyGActionL :: [GroupAction a b Void]
+emptyGActionL = []
+
 dynamicGroup :: ![Task GAction] -> Task Void
-dynamicGroup initTasks = group "dynamicGroup" "A simple group with dynamically added tasks" procfun id Void initTasks
+dynamicGroup initTasks = dynamicGroupA initTasks emptyGActionL
+
+dynamicGroupA :: ![Task GAction] ![GroupAction GAction Void s] -> Task Void | iTask s
+dynamicGroupA initTasks gActions =  group "dynamicGroup" "A simple group with dynamically added tasks" procfun id Void initTasks gActions
 where
 	procfun (action,_) _ = case action of
 		GStop			= (Void, Stop)
 		GContinue		= (Void, Continue)
 		GExtend tasks	= (Void, Extend tasks)
-
+		
+dynamicGroupAOnly :: ![Task Void] ![GroupAction GOnlyAction Void s] -> Task Void | iTask s
+dynamicGroupAOnly initTasks gActions = group "dynamicGroup" "A simple group with dynamically added tasks" procfun id Void (changeTasksType initTasks) gActions
+where
+	procfun (action,_) _ = case action of
+		GOStop			= (Void, Stop)
+		GOContinue		= (Void, Continue)
+		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
+	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ getGroupedBehaviour t) tasks
+	getGroupedBehaviour (Task td=:{TaskDescription|groupedBehaviour} _ _) = groupedBehaviour
+		
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
-(-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] 
+(-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] emptyGActionL
 where
 	orfunc (val,_) [] = ([val],Stop)
 	orfunc (val,_) _  = abort "Multiple results in OR"
 
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= group "||-" "Done when the second subtask is finished." rorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+	= group "||-" "Done when the second subtask is finished." rorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)] emptyGActionL
 where
 	rorfunc (Right val,_) [] = ([val],Stop)
 	rorfunc (Left val, _) [] = ([],Continue)
@@ -53,14 +68,14 @@ where
 
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= group "||-" "Done when the first subtask is finished" lorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+	= group "||-" "Done when the first subtask is finished" lorfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)] emptyGActionL
 where
 	lorfunc (Right val,_) [] = ([],Continue)
 	lorfunc (Left val, _) [] = ([val],Stop)
 	lorfunc _ _				 = abort "Illegal result in -||"
 
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb = group "-&&-" "Done when both subtasks are finished" andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))]
+(-&&-) taska taskb = group "-&&-" "Done when both subtasks are finished" andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))] emptyGActionL
 where
 	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
 	andfunc (val,_) (left,right)
@@ -81,13 +96,13 @@ where
 
 anyTask :: ![Task a] -> Task a | iTask a
 anyTask [] 		= getDefaultValue
-anyTask tasks 	= group "any" "Done when any subtask is finished" anyfunc hd [] tasks
+anyTask tasks 	= group "any" "Done when any subtask is finished" anyfunc hd [] tasks emptyGActionL
 where
 	anyfunc (val,_) [] = ([val],Stop)
 	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
 allTasks :: ![Task a] -> Task [a] | iTask a
-allTasks tasks = group "all" "Done when all subtasks are finished" (allfunc(length tasks)) sortByIndex [] tasks
+allTasks tasks = group "all" "Done when all subtasks are finished" (allfunc(length tasks)) sortByIndex [] tasks emptyGActionL
 where
 	allfunc tlen (val,idx) st 
 		# st = st ++ [(idx,val)]
@@ -95,7 +110,7 @@ where
 		| otherwise = (st,Continue)
 		
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb = group "either" "Done when either subtask is finished" eitherfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+eitherTask taska taskb = group "either" "Done when either subtask is finished" eitherfunc hd [] [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)] emptyGActionL
 where
 	eitherfunc (val,idx) [] = ([val],Stop)
 	eitherfunc (val,idx) _  = abort "Multiple results in Either"
@@ -150,7 +165,7 @@ where
 //derive bimap (,)
 
 oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b
-oldParallel label pred f_pred f_all tasks = group label label aggregate finalize (False,[]) tasks
+oldParallel label pred f_pred f_all tasks = group label label aggregate finalize (False,[]) tasks emptyGActionL
 where
 	aggregate x (match,xs) = let xs` = [x:xs] in
 		if (length xs` == length tasks)
@@ -172,7 +187,7 @@ where
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
 (-&?&-) taska taskb 
-= group "-&?&-" "Done when both subtasks are finished. Yields only a result of both subtasks have a result" mbandfunc parsefunc (Nothing,Nothing) [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
+= group "-&?&-" "Done when both subtasks are finished. Yields only a result of both subtasks have a result" mbandfunc parsefunc (Nothing,Nothing) [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)] emptyGActionL
 where
 	mbandfunc (val,_) (left,right)
 		= case val of

@@ -27,7 +27,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| TTRpcTask			TaskInfo RPCExecute															//A task that represents an rpc invocation
 					| TTSequenceTask	TaskInfo [TaskTree]															//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]										//A task that is composed of a number of parallel executed subprocesses  
-					| TTGroupedTask		TaskInfo [TaskTree]															//A task that is composed of a number of grouped subtasks
+					| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))]		//A task that is composed of a number of grouped subtasks
 					| TTFinishedTask	TaskInfo [HtmlTag]															//A completed task
 							
 :: TaskInfo	=		{ taskId			:: TaskId											//Task number in string format
@@ -45,11 +45,11 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 :: TaskSystemProperties =
 	{ processId			:: ProcessId		// Process table identification
-	, manager			:: UserName			// Who is managing this task
+	, manager			:: UserName		// Who is managing this task
 	, issuedAt			:: Timestamp		// When was the task created
 	, firstEvent		:: Maybe Timestamp	// When was the first work done on this task
 	, latestEvent		:: Maybe Timestamp	// When was the latest event on this task	
-	, latestExtEvent	:: Maybe Timestamp  // When was the latest event from an external source (e.g. Rpc Daemon)
+	, latestExtEvent	:: Maybe Timestamp // When was the latest event from an external source (e.g. Rpc Daemon)
 	}
 
 :: TaskManagerProperties =

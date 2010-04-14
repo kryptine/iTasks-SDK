@@ -6,6 +6,7 @@ definition module CoreCombinators
 from Types 			import :: Task, :: TaskPriority
 from Time			import :: Timestamp
 from TaskTree		import :: TaskParallelType, :: GroupedBehaviour
+from ProcessDB		import :: Action
 
 from	iTasks		import class iTask(..)
 
@@ -111,10 +112,16 @@ class PActionClass t where
 instance PActionClass AssignedTask
 instance PActionClass Task
 
-//parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction AssignedTask a)) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a))) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
-//group 	 :: 				  !String !String !((a,Int) b -> (b,PAction Task a)) 		 (b -> c) !b ![Task a] 		   -> Task c | iTask a & iTask b & iTask c
-group 	 :: 				  !String !String !((a,Int) b -> (b,PAction (Task a))) 		 (b -> c) !b ![Task a] 		   -> Task c | iTask a & iTask b & iTask c
+:: GroupAction a b s			= GroupAction Action a (GroupCondition b s)
+								| GroupActionParam String (String -> a) (GroupCondition b s)
+:: GroupCondition a b			= GroupAlways
+								| StatePredicate (a -> Bool)
+								| SharedPredicate (DBid b) ((SharedValue b) -> Bool)
+:: SharedValue a				= SharedDeleted
+								| SharedValue a
+
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a)))	(b -> c) !b ![AssignedTask a]				-> Task c | iTask a & iTask b & iTask c
+group 	 :: 				  !String !String !((a,Int) b -> (b,PAction (Task a))) 		 	(b -> c) !b ![Task a] ![GroupAction a b s]	-> Task c | iTask a & iTask b & iTask c & iTask s
 
 // Multi-user workflows
 

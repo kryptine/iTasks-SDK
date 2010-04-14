@@ -296,15 +296,16 @@ mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 */
 applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 //// TASK CONTENT
-//setTUIDef			:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt				-> *TSt //Only for interactive tasks
-setTUIDef			:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt
-setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt						-> *TSt //Only for interactive tasks
-setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt		-> *TSt //Only for interactive tasks
-setTUIMessage 		:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt //Only for interactive tasks
+setTUIDef			:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 		-> *TSt
+setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for interactive tasks
+setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt			-> *TSt //Only for interactive tasks
+setTUIMessage 		:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 		-> *TSt //Only for interactive tasks
+setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
+setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
 
-setStatus			:: ![HtmlTag] !*TSt				-> *TSt	//Only for monitor tasks
-getUserUpdates		:: !*TSt						-> ([(String,String)],!*TSt)
-anyUpdates			:: !*TSt						-> (Bool,!*TSt)
+getUserUpdates			:: !*TSt						-> ([(String,String)],!*TSt)
+getChildrenUpdatesFor	:: !TaskNr !*TSt				-> ([(String,String)],!*TSt)
+anyUpdates				:: !*TSt						-> (Bool,!*TSt)
 
 /**
 * Writes a 'task scoped' value to the store

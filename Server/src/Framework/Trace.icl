@@ -111,7 +111,7 @@ where
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 		  
-	mkTree (TTGroupedTask info trees)
+	mkTree (TTGroupedTask info trees _)
 		= { cls = "master-task"
 		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
