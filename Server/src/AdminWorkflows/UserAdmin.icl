@@ -7,6 +7,7 @@ userAdministration
 	= [{Workflow|name = "Admin/Create user", label = "Create user ", roles = ["admin"], mainTask = createUserFlow}
 	  ,{Workflow|name = "Admin/Update user", label = "Update user", roles = ["admin"], mainTask = updateUserFlow}
 	  ,{Workflow|name = "Admin/Delete users", label = "Delete users", roles = ["admin"], mainTask = deleteUserFlow}
+	  ,{Workflow|name = "Admin/List users", label = "List users", roles = ["admin"], mainTask = listUserFlow}
 	  ]
 
 createUserFlow :: Task Void
@@ -37,4 +38,9 @@ deleteUserFlow
 		ActionCancel	=	stop
 		ActionOk		=	allTasks [deleteUser user \\ user <- users]
 						>>| showMessage "Successfully deleted users"
+						
+listUserFlow :: Task Void
+listUserFlow
+	=	getUsers
+	>>=	showMessageAbout "These are the current users"
 	
