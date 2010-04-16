@@ -76,9 +76,9 @@ We can implement this rough sketch by updating our definition of the "coffeeTime
 \begin{CleanCodeN}
 coffeeTime :: Task Void
 coffeeTime
- =   showInstruction "Collect wishes" "Find out what everybody wants to drink"
- >>| showInstruction "Find victim" "Determine who gets the drinks"
- >>| showInstruction "Get drinks" "The unlucky one needs to go get the drinks"
+   =   showInstruction "Collect wishes" "Find out what everybody wants to drink"
+   >>| showInstruction "Find victim" "Determine who gets the drinks"
+   >>| showInstruction "Get drinks" "The unlucky one needs to go get the drinks"
 \end{CleanCodeN}
 This simple workfow uses the simplest sequential combinator in iTasks, the \CleanInline{>>|} combinator.  In iTasks, compound tasks are created from other tasks by using combinator functions and operators. These are functions that take other tasks as their arguments to produce a combined task. The \CleanInline{>>|} operator creates a task from two other tasks by doing its left argument first, and its right argument once the left argument is done. The result of the combination is the result of the last performed task (the rightmost one). In this case the type of the composition is \CleanInline{Void} because the type of showInstruction is \CleanInline{Void}. 
 \section{Who wants what?}
@@ -99,18 +99,18 @@ We can now add this task in the main workflow, instead of the first intstruction
 \begin{CleanCodeN}
 coffeeTime :: Task Void
 coffeeTime
- =   getUserNames
- >>= \users ->
-     collectOrders users
- >>| showInstruction "Find victim" "Determine who gets the drinks"
- >>| showInstruction "Get drinks" "The unlucky one needs to go get the drinks"
+  =   getUserNames
+  >>= \users ->
+      collectOrders users
+  >>| showInstruction "Find victim" "Determine who gets the drinks"
+  >>| showInstruction "Get drinks" "The unlucky one needs to go get the drinks"
 \end{CleanCodeN}
 The \CleanInline{>>=} combines two tasks sequentially and passes the result of the first task as argument to the second. The \CleanInline{\\users ->} part that comes after the \CleanInline{>>=} combinator turns what comes after it into a parameterized task. What we gain from this is that we can give the result of the previous task a name and use that name to pass the result to later tasks. In this case to \CleanInline{collectOrders}. If you run the current version of this worfklow you can see how a multi user workflow in iTasks works. You will have to log in as all the users you created in the beginning of the tutorial.
 
 Currently our workflow is a little bit too demanding. We have to say what we want to drink. But what if we are not thirsty? We can make the workflow definition a little more friendly by making the result type of the \CleanInline{collectOrder} task optional. The result type of the \CleanInline{collectOrders} task then needs to be changed to a list of optional results. We will change the code to let the choice of drinks be preceded by the question whether someone wants something to drink. We change the specification to the following:
 \begin{CleanCodeN}
 collectOrders :: [UserName] -> Task [Maybe String] 
-collectOrders users = allTasks [u @: ("Coffee time!",getOrder) \\ u <- users]
+collectOrders users = allTasks [u @: ("Coffee time!",collectOrder) \\ u <- users]
 
 collectOrder :: Task (Maybe String)
 collectOrder
@@ -187,7 +187,7 @@ orderlist users orders
  = [(user, fromJust order) \\ user <- users & order <- orders | isJust order]
 
 collectOrders :: [UserName] -> Task [Maybe String] 
-collectOrders users = allTasks [u @: ("Coffee time!",getOrder) \\ u <- users]
+collectOrders users = allTasks [u @: ("Coffee time!",collectOrder) \\ u <- users]
 
 collectOrder :: Task (Maybe String)
 collectOrder
