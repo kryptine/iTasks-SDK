@@ -84,26 +84,15 @@ iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-// Parallel composition
-
-/**
-* Execute a list of tasks in parallel. The parameters define how the tasks are combined in the
-* user interface and when the combined task is finished. The combinator keeps an internal state of type 'b'
-* and uses the accumulator function to alter this state using the result of a subtask as soon as it is finished.
-*
-* @param Label
-* @param An accumulator function which alters the internal state
-* @param A function which transforms the internal state to the desired output
-* @param Initial value of the internal state
-* @param List of initial tasks
-*/
+// Parallel/Grouped composition
 :: AssignedTask a =
 	{ user :: UserName
 	, task :: Task a
 	}
 	
-:: PAction x = Stop | Continue | Extend .[x]
-//:: PAction t a = Stop | Continue | Extend .[t a]
+:: PAction x	= Stop			// stop the entire parallel/grouped execution
+				| Continue		// continue execution without change
+				| Extend .[x]	// dynamically extend list of tasks in parallel/group
 
 class PActionClass t where
 	getName :: (t a) -> Maybe UserName
@@ -112,16 +101,44 @@ class PActionClass t where
 instance PActionClass AssignedTask
 instance PActionClass Task
 
-:: GroupAction a b s			= GroupAction Action a (GroupCondition b s)
-								| GroupActionParam String (String -> a) (GroupCondition b s)
-:: GroupCondition a b			= GroupAlways
-								| StatePredicate (a -> Bool)
-								| SharedPredicate (DBid b) ((SharedValue b) -> Bool)
-:: SharedValue a				= SharedDeleted
-								| SharedValue a
+:: GroupAction taskResult gState shared		= GroupAction Action taskResult (GroupCondition gState shared)					// accept given menu-action for entire group and generate 'taskResult' which is given to accumulator function
+											| GroupActionParam String (String -> taskResult) (GroupCondition gState shared)	// accept given parameterized action and use parameter to compute 'taskResult' which is given to accumulator function
+:: GroupCondition gState shared				= GroupAlways																	// group action is always enabled
+											| StatePredicate (gState -> Bool)												// use predicate on internal state to determine if action is enabled
+											| SharedPredicate (DBid shared) ((SharedValue shared) -> Bool)					// use predicate on given shared variable to determine if action is enabled
+:: SharedValue shared						= SharedDeleted																	// shared variable was deleted
+											| SharedValue shared															// shared variable has stored value
 
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a)))	(b -> c) !b ![AssignedTask a]				-> Task c | iTask a & iTask b & iTask c
-group 	 :: 				  !String !String !((a,Int) b -> (b,PAction (Task a))) 		 	(b -> c) !b ![Task a] ![GroupAction a b s]	-> Task c | iTask a & iTask b & iTask c & iTask s
+/**
+* Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
+* state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
+* or stop execution of the entire parallel using the result of a subtask as soon as it is finished.
+*
+* @param Type of the parallel, defines who is allowed to see the status of the parallel
+* @param Label
+* @param Description
+* @param An accumulator function which alters the internal state
+* @param A function which transforms the internal state to the desired output
+* @param Initial value of the internal state
+* @param List of initial tasks
+*/
+parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (AssignedTask taskResult)))	(pState -> pResult) !pState ![AssignedTask taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
+
+/**
+* Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
+* be influenced by assigning a GroupedBehaviour to sub-tasks using the annotation combinator. The group-combinator
+* keeps an internal state of type 'gState' and uses the accumulator function to alter this state and dynamically
+* add new tasks or stop execution of the entire group using the result of a subtask as soon as it is finished.
+*
+* @param Label
+* @param Description
+* @param An accumulator function which alters the internal state
+* @param A function which transforms the internal state to the desired output
+* @param Initial value of the internal state
+* @param List of initial tasks
+* @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
+*/
+group 	 :: 				  !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) 		 	(gState -> gResult) !gState ![Task taskResult] ![GroupAction taskResult gState shared]	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & iTask shared
 
 // Multi-user workflows
 
