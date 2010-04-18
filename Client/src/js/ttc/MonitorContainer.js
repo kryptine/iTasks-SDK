@@ -7,17 +7,31 @@ itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
 				unstyled: true
 			},
 			bodyStyle: 'padding: 10px',
-			unstyled: true
+			unstyled: true,
+			cls: 'MonitorContainer',
+			items: [
+				{ xtype: 'itasks.ttc.common.description'
+				, cls: 'MonitorContainerDescription'
+				, description: 'Monitor task'
+				, headerButton: this.headerButton
+				},
+				{ xtype: 'panel'
+				, cls: 'MonitorPanel'
+				, unstyled: true
+				, html: this.html
+				}
+			]
 		});
+		delete this.html;
 		
 		itasks.ttc.MonitorContainer.superclass.initComponent.apply(this,arguments);
 	},
 	
 	update: function(data){		
-		if(this.rendered){
-			this.el.update(data.html);
+		if(this.get(1).rendered){
+			this.get(1).el.update(data.html);
 		}else{
-			this.html = data.html;
+			this.get(1).html = data.html;
 		}
 	}
 });

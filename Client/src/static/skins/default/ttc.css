@@ -47,7 +47,8 @@
 .GroupFixedNoFocus .ProcessControlPanel,
 .GroupFixedNoFocus .InstructionContainer-Text,
 .GroupFixedNoFocus .InstructionContainer-Context,
-.GroupFixedNoFocus .MessagePanel {
+.GroupFixedNoFocus .MessagePanel,
+.GroupFixedNoFocus .MonitorPanel {
 	background-image : url('img/ttc-icons/TTCBackgroundNoFocus.png') !important;
 	border-bottom:1px solid #ddd;
 	border-left:1px solid #ddd;
@@ -64,25 +65,36 @@
 	color:#888899;
 }
 
+.GroupFloating .x-window-body {
+	background-color: white;
+}
+
+.GroupFloating .GroupUnpinButton {
+	display: none;
+}
+
 .GroupFloating .FormPanel,
 .GroupFloating .ProcessControlPanel,
 .GroupFloating .InstructionContainer-Text,
 .GroupFloating .InstructionContainer-Context,
-.GroupFloating .MessagePanel {
+.GroupFloating .MessagePanel,
+.GroupFloating .MonitorPanel {
 	margin: 0px;
 	border: none;
+	width: auto;
 }
 
 .GroupFloating .task-description {
 	display: none;
 }
 
-/*.GroupFloating .FormPanel {
-	width: auto;
-}*/
-
-.GroupFloating .GroupToolbarNoEnabledItems {
+.GroupFloating .ToolbarNoEnabledItems,
+.GroupFloating .ToolbarGroupActionsOnly {
 	display: none;
+}
+
+.x-window-maximized  .ToolbarGroupActionsOnly {
+	display: block;
 }
 
 /* Finished Container */
@@ -149,6 +161,7 @@
 	background-repeat: repeat-x;
 	border: 1px solid #99BBE8;
 	margin: 10px 0px 0px 10px;
+	width: 700px;
 }
 
 .ParallelControlPanel{
@@ -158,6 +171,7 @@
 	border-right: 1px solid #99BBE8;
 	margin: 0px 0px 0px 10px;
 	background-repeat: repeat;
+	width: 700px;
 }
 
 /* Instruction Container */
@@ -258,5 +272,29 @@
 	width: 700px;
 }
 
+/* Monitor Container */
+.MonitorContainer {
+	background-color: #eee;
+	#background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
+	background-repeat: no-repeat ;
+	background-position: 3px 3px;
+}
 
+.MonitorPanel {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	padding: 4px;
+	border-left: 1px solid #99BBE8;
+	border-bottom: 1px solid #99BBE8;
+	border-right: 1px solid #99BBE8;
+	margin: 0px 0px 0px 10px;
+	width: 700px;
+	background-repeat: repeat;
+}
 
+.MonitorContainerDescription {
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 0px 0px 10px;
+	width: 700px;
+}

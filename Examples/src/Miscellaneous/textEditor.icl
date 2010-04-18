@@ -55,7 +55,7 @@ open :: (DBid AppState) -> Task Void
 open sid =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
-					(showMessage "No files to open!")
+					(showMessageAbout "Open File" "No files to open!")
 					(										enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files
 						>>= \(action,(name, Hidden fid)).	case action of
 					 										ActionOk	=				addToRecentlyOpened name fid
@@ -95,11 +95,11 @@ replaceT :: (DBid AppState) -> Task Void
 replaceT sid = replaceT` {searchFor = "", replaceWith = ""}
 where
 	replaceT` repl =
-							updateInformationA "Replace..." [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)] repl
+							updateInformationA "Replace" [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)] repl
 		>>= \(action, v).	case action of
 								ActionReplaceAll	=										readDB sid
 														>>= \(AppState (Note txt) file).	writeDB sid (AppState (Note (replaceSubString v.searchFor v.replaceWith txt)) file)
-														>>|									replaceT` v <<@ subtaskBehaviour
+														>>|									replaceT` v
 								_					= 										stop
 
 :: TextStatistics =	{ lines			:: Int
@@ -133,7 +133,7 @@ ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
 
 textEditorMain :: (DBid AppState) -> Task Void
-textEditorMain sid  = GBFixed @>> ignoreResult (updateShared "Text Editor" [] sid [titleListener,mainEditor])
+textEditorMain sid  = ignoreResult (updateShared "Text Editor" [] sid [titleListener,mainEditor])
 where
 	titleListener = listener	{ listenerFrom = \(AppState _ file) ->  case file of
 																			Nothing		= "New Text Document"
@@ -146,18 +146,18 @@ where
 textEditorApp :: Task Void
 textEditorApp =
 				createDB initState
-	>>= \sid.	dynamicGroupAOnly [textEditorMain sid] (groupActions sid)
+	>>= \sid.	dynamicGroupAOnly [textEditorMain sid <<@ GBFixed] (groupActions sid)
 	>>|			deleteDB sid
 where
-	groupActions sid =	[ GroupAction		ActionNew		(GOExtend [ignoreResult (writeDB sid initState)])					GroupAlways
-						, GroupAction		ActionOpen		(GOExtend [open sid <<@ GBModal])									GroupAlways
-						, GroupActionParam	actionOpenFile	(\fid -> GOExtend [openFile (DBRef (toInt fid)) sid])				GroupAlways
-						, GroupAction		ActionSave		(GOExtend [save sid])												(SharedPredicate sid (\(SharedValue (AppState _ file)) -> isJust file))
-						, GroupAction		ActionSaveAs	(GOExtend [saveAs sid <<@ GBModal])									GroupAlways
-						, GroupAction		ActionReplace	(GOExtend [replaceT sid <<@ subtaskBehaviour])						(SharedPredicate sid (\(SharedValue (AppState (Note txt) _)) -> txt <> ""))
-						, GroupAction		ActionStats		(GOExtend [statistics sid <<@ subtaskBehaviour])					GroupAlways
-						, GroupAction		ActionShowAbout	(GOExtend [showMessage "iTextEditor V0.01" <<@ subtaskBehaviour])	GroupAlways
-						, GroupAction		ActionQuit		GOStop																GroupAlways
+	groupActions sid =	[ GroupAction		ActionNew		(GOExtend [ignoreResult (writeDB sid initState)])								GroupAlways
+						, GroupAction		ActionOpen		(GOExtend [open sid <<@ GBModal])												GroupAlways
+						, GroupActionParam	actionOpenFile	(\fid -> GOExtend [openFile (DBRef (toInt fid)) sid])							GroupAlways
+						, GroupAction		ActionSave		(GOExtend [save sid])															(SharedPredicate sid (\(SharedValue (AppState _ file)) -> isJust file))
+						, GroupAction		ActionSaveAs	(GOExtend [saveAs sid <<@ GBModal])												GroupAlways
+						, GroupAction		ActionReplace	(GOExtend [replaceT sid <<@ subtaskBehaviour])									(SharedPredicate sid (\(SharedValue (AppState (Note txt) _)) -> txt <> ""))
+						, GroupAction		ActionStats		(GOExtend [statistics sid <<@ subtaskBehaviour])								GroupAlways
+						, GroupAction		ActionShowAbout	(GOExtend [showMessageAbout "About" "iTextEditor V0.01" <<@ subtaskBehaviour])	GroupAlways
+						, GroupAction		ActionQuit		GOStop																			GroupAlways
 						]
 			
 initTextEditor :: Task Void

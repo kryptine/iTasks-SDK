@@ -1,47 +1,44 @@
 Ext.ns('itasks.ttc')
 
 itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
-
 	initComponent: function(){
 		Ext.apply(this, 
 		{ layout:'auto'
-		, autoScroll: true
 		, cls: 'GroupContainer'
+		, autoScroll: true
 		, unstyled: true
 		, tbar: []
+		, fixedCont: new Ext.util.MixedCollection()		// collection of all fixed containers
+		, floatingCont: new Ext.util.MixedCollection()	// collection of all floating containers
+		, taskUpdates : {}
+		, url: itasks.config.serverUrl + '/work/tab'
 		});
 
 		itasks.ttc.GroupContainer.superclass.initComponent.apply(this,arguments);
 		
-		this.content = this.filterContent(this.content);
-		
 		for(var i=0; i < this.content.length; i++) {
-			this.addContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index,false);
+			this.createContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index,false);
 		}
+		
+		// add all fixed containers as children, floating containers are rendered in a different way
+		this.fixedCont.each(function(cont) {
+			this.add(cont);
+		}, this);
 	},
 	
-	onLayout: function() {
-		itasks.ttc.GroupContainer.superclass.onLayout.call(this,arguments);
-		if(!Ext.isDefined(this.focusedContainer))
-			this.focusFirstContainer();
-	},
-	
-	addContainer: function(cont,behaviour,id,focus,pos) {
+	createContainer: function(cont, behaviour, idx, focus) {
 		var group = this;
-		if(Ext.isNumber(id))
-			id = this.mkElementId(id);
-
+		
+		this.setupChildContainer(cont, behaviour);
+	
 		switch(behaviour) {
 			case 'GBFixed':
-				var undockable = true;
 			case 'GBAlwaysFixed':
-				var panel = {
-					xtype: 'panel',
+				this.fixedCont.add(idx, new Ext.Panel({
+					index: idx,
 					cls: 'GroupFixed GroupFixedNoFocus',
-					id: id,
 					items: [cont],
 					unstyled: true,
-					disabled: this.modalDlg,
 					listeners: {
 						afterrender: function(p) {
 							p.el.fadeIn();
@@ -63,159 +60,206 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 						this.removeClass('GroupFixedNoFocus');
 						this.addClass('GroupFixedNoFocus');
 						this.doLayout();
-					},
-					undockable: undockable
-				};
+					}
+				}));
 				break;
 			default:
-				if (behaviour == 'GBFloating')
+				if (behaviour == 'GBFloating') {
+					// pin button for floating containers
 					var tools = [{
 						id: 'pin',
 						handler: function(ev,el,window) {
-							window.getEl().fadeOut({callback: function() {
-								var pos = group.items.indexOf(window);
-								var cont = window.get(0);
-								window.removeAll(false);
-								window.destroy();
-								group.addContainer(cont, 'GBFixed', window.id, true, pos);
-								group.doLayout();
-							}});
+							var cont = window.get(0);
+							var idx = window.index;
+							window.removeAll(false);
+							group.floatingCont.remove(window);
+							window.destroy();
+							group.createContainer(cont, 'GBFixed', idx, true);
+							group.renderFixed();
 						}
 					}];
-				else if(behaviour == 'GBModal') {
-					this.disable();
-					// also disable all windows
-					this.items.each(function(cont) {
-						cont.disable();
-					});
-					this.modalDlg = true;
 				}
-					
-				var panel = {
+				
+				if(cont.xtype == 'itasks.ttc.proc-control')
+					var title = 'Control process properties';
+				else if(cont.xtype == 'itasks.ttc.monitor')
+					var title = 'Monitor task';
+				else
+					var title = cont.description || cont.label;
+
+				this.floatingCont.add(idx, {
 					xtype: 'window',
+					index: idx,
 					cls: 'GroupFloating',
-					id: id,
-					initHidden: false,
 					closable: false,
-					resizable: false,
-					shadow: false,
+					autoScroll: true,
+					maximizable: true,
+					constrainHeader: true,
+					modal: behaviour == 'GBModal',
 					items: [cont],
-					title: cont.description || "No Description",
-					tools: tools,
-					disabled: this.modalDlg && behaviour != 'GBModal',
-					listeners: {
-						afterrender: function(p) {
-							if(behaviour == 'GBModal')
-								p.toFront();
-							else
-								p.toBack();
-							p.el.fadeIn();
-						},
-						destroy: function(){
-							if(behaviour == 'GBModal') {
-								this.enable();
-								this.items.each(function(cont) {
-									cont.enable();
-								});
-								this.modalDlg = false;
-							}
-						}.createDelegate(this)
-					}
-				};
+					title: title,
+					tools: tools
+				});
 				break;
+		}
+	},
+	
+	setupChildContainer: function(cont,behaviour) {
+		var group = this;
+		if (behaviour == 'GBFixed' || behaviour == 'GBFloating') {
+			// add unpin button for undockable containers, is hidden if rendered inside window
+			cont.headerButton = {
+				xtype:'button', unstyled: true, iconCls: 'icon-unpin', cls: 'GroupUnpinButton',
+				handler: function() {
+					var panel = group.focusedContainer;
+					panel.getEl().fadeOut({callback: function() {
+						group.focusedContainer = null;
+						var cont = panel.get(0);
+						panel.removeAll(false);
+						group.fixedCont.remove(panel);
+						panel.destroy();
+
+						// copy toolbar back from shared one
+						if(cont.getXType() == 'itasks.ttc.form' || cont.getXType() == 'itasks.ttc.message') {
+							group.copyTbar(group.getTopToolbar(), cont.getTopToolbar());
+						}
+
+						// hack: remove fixed width of footer
+						var footer = Ext.DomQuery.selectNode('.x-plain-footer', cont.getEl().dom);
+						if(footer)
+							Ext.DomHelper.applyStyles(footer, {width:'auto'});
+							
+						group.createContainer(cont, 'GBFloating', panel.index, false);
+						group.focusFirstContainer();
+						group.doLayout();
+					}});
+				}
+			};
+		}
+	},
+	
+	renderFixed: function() {
+		// add new floating containers in order given by index
+		var insertPos = 0;
+		this.fixedCont.keySort();
+		this.fixedCont.eachKey(function(idx,cont) {
+			var pos = this.items.indexOf(cont);
+			if(pos != -1) {
+				insertPos = pos + 1;
+			} else {
+				this.insert(insertPos, cont);
+				insertPos++;
 			}
-			
-		if (Ext.isDefined(pos))
-			this.insert(pos,panel);
-		else
-			this.add(panel);
+		}, this);
+		
+		this.doLayout();
+	},
+	
+	renderFloating: function() {
+		var modalDlgs = new Ext.util.MixedCollection();
+		this.floatingCont.eachKey(function(idx,cont) {
+			if (!cont.rendered) {
+				cont.renderTo = this.getEl();
+				cont = Ext.create(cont);
+				// fix size of window
+				var s = cont.getSize();
+				cont.setSize(s.width, s.height);
+				//hack: make sure the ownerCt is set to reference the parent, so that findParentByType works.
+				cont.ownerCt = this;
+				
+				if(!cont.modal)
+					cont.show();
+				else
+					modalDlgs.add(cont);
+				// put created object into collection
+				this.floatingCont.replace(idx,cont);
+			}
+		}, this);
+		
+		// show modal dialogs after normal ones to make sure they are rendered in front
+		modalDlgs.each(function(dlg) {
+			dlg.show();
+		});
+	},
+	
+	onLayout: function() {
+		itasks.ttc.GroupContainer.superclass.onLayout.call(this,arguments);
+		// render windows after layouting to make sure they are positioned inside container correctly
+		this.renderFloating();
+		// focus first container the first time group is layouted
+		if(!Ext.isDefined(this.focusedContainer))
+			this.focusFirstContainer();
 	},
 	
 	focusContainer: function(cont) {
 		if(cont == this.focusedContainer)
-			return;
+			return; // cont already focused
 			
-		if(Ext.isDefined(this.focusedContainer)) {
-			// copy top toolbar back to container
-			var prevTbar = this.focusedContainer.get(0).getTopToolbar();
-			if (prevTbar) {
-				var groupTbar = this.getTopToolbar();
-				groupTbar.items.each(function(item) {
-					if(item.undockControl)
-						item.destroy();
-				});
-				this.copyTbar(groupTbar, prevTbar);
-			}
+		if(this.focusedContainer) {
 			this.focusedContainer.unfocusFixed();
+			
+			// only copy toolbar of form and message containers
+			if(this.focusedContainer.get(0).getXType() == 'itasks.ttc.form' || this.focusedContainer.get(0).getXType() == 'itasks.ttc.message') {
+				// copy top toolbar back to container
+				this.copyTbar(this.getTopToolbar(), this.focusedContainer.get(0).getTopToolbar());
+			}
 		}
-	
-		this.mkSharedTbar(cont);
 
-		// focus container
+		// make new toolbar & focus container
+		this.mkSharedTbar(cont);
 		cont.focusFixed();
 		this.focusedContainer = cont;
 	},
 	
+	focusFirstContainer: function() {
+		if (this.fixedCont.getCount() > 0) {
+			this.focusContainer(this.fixedCont.itemAt(0));
+		} else {
+			// there is no fixed cont, create toolbar with group-actions
+			this.focusedContainer = null;
+			this.mkGroupAToolbar();
+		}
+	},
+	
 	mkSharedTbar: function(cont) {
 		var groupTbar = this.getTopToolbar();
-		
 		groupTbar.removeAll();
-
-		// copy top toolbar to shared group toolbar
-		var taskTbar = cont.get(0).getTopToolbar();
-		if(taskTbar) {
-			this.copyTbar(taskTbar, groupTbar);
-		}
 		
-		if(cont.undockable) {
-			// add undock button to toolbar for undockable tasks
-			var group = this;
-			var undockButton = {
-				iconCls: 'icon-unpin',
-				cls: 'GroupToolbarUndockControls',
-				handler: function() {
-					var panel = group.focusedContainer;
-					panel.getEl().fadeOut({callback: function() {
-						var pos = group.items.indexOf(panel);
-						delete group.focusedContainer;
-						var cont = panel.get(0);
-						panel.removeAll(false);
-						panel.destroy();
-						
-						// copy toolbar back from shared one
-						var contTbar = cont.getTopToolbar();
-						if(contTbar) {
-							var groupTbar = group.getTopToolbar();
-							groupTbar.items.each(function(item) {
-								if(item.undockControl)
-									item.destroy();
-							});
-							group.copyTbar(groupTbar, contTbar);
-						}
-						
-						group.addContainer(cont, 'GBFloating', panel.id, false, pos);
-						group.doLayout();
-						group.focusFirstContainer();
-					}});
-				},
-				undockControl: true
-			};
-			if(groupTbar.items.length > 0)
-				groupTbar.add({xtype: 'tbseparator', undockControl: true});
-			groupTbar.add(undockButton);
-			groupTbar.doLayout();
+		// only copy toolbar of form and message containers
+		if (cont.get(0).getXType() == 'itasks.ttc.form' || cont.get(0).getXType() == 'itasks.ttc.message') {
+			// copy top toolbar to shared group toolbar
+			var taskTbar = cont.get(0).getTopToolbar();
+			if(taskTbar) {
+				this.copyTbar(taskTbar, groupTbar);
+			}
+			
+			//apply the taskId to the new TB, so that attachTaskHandlers nows on which subtask the actions should
+			//be applied
+			groupTbar.cascade(function(){
+				Ext.apply(this,{
+					taskId : cont.get(0).taskId
+				});
+			});
+			itasks.ttc.common.attachTaskHandlers(groupTbar,cont.get(0).taskId);
 		}
 		
 		groupTbar.setVisible(groupTbar.items.length > 0);
-
+	},
+	
+	mkGroupAToolbar: function() {
+		var groupTbar = this.getTopToolbar();
+		groupTbar.removeAll();
+		groupTbar.add(this.groupAMenu);
+		groupTbar.setVisible(groupTbar.items.length > 0);
 		//apply the taskId to the new TB, so that attachTaskHandlers nows on which subtask the actions should
 		//be applied
 		groupTbar.cascade(function(){
 			Ext.apply(this,{
-				taskId : cont.get(0).taskId
+				taskId : this.taskId
 			});
 		});
-		itasks.ttc.common.attachTaskHandlers(groupTbar,cont.get(0).taskId);
+		itasks.ttc.common.attachTaskHandlers(groupTbar,this.taskId);
+		groupTbar.doLayout();
 	},
 	
 	copyTbar: function(src,dst) {
@@ -227,88 +271,92 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		dst.doLayout();
 	},
 	
-	focusFirstContainer: function() {
-		var fixedExisting = false;
-		for(var i=0; i < this.items.length; i++){
-			if(this.get(i).getXType() != "window") {
-				this.focusContainer(this.get(i));
-				fixedExisting = true;
-				break;
-			}
-		}
-		
-		if(!fixedExisting) {
-			delete this.focusedContainer;
-			this.getTopToolbar().hide();
-		}
-	},
-	
-	removeContainer: function(i) {
-		var cont = this.get(i);
-		if(cont == this.focusedContainer && cont.getXType() != 'Window') {
-			delete this.focusedContainer;
-		}
-		this.remove(i,true);
-	},
-	
-	filterContent: function(content) {
-		return content.filter(function (val) {
-			if(val.panel == "done" || val.panel == "redundant") return false;
-			else return true;
-		});
-	},
-	
 	update: function(data) {
-		var content = this.filterContent(data.content);
-
-		for(var i=0; i < content.length; i++){
-			var data = content[i].panel;
+		var content = data.content;
+		this.groupAMenu = data.groupAMenu;
 		
-			for(var j=i; j < this.items.length; j++) {
-				if(this.mkElementId(content[i].index) == this.get(j).id) break;
-			}
+		// make copy of old collection of containers to keep track of non-updated ones
+		var oldFixed = this.fixedCont;
+		this.fixedCont = new Ext.util.MixedCollection();
+		var oldFloating = this.floatingCont;
+		this.floatingCont = new Ext.util.MixedCollection();
+		
 
-			for(var k=0; k < (j-i); k++) {
-				this.removeContainer(i);
-			}
-			
-			if(i < this.items.length){
-				var cont = this.get(i).get(0);
-				
-				if(cont.getXType() == data.xtype && cont.taskId == data.taskId) {
-					cont.update(data);
-				} else {
-					//if not same xtype or taskId - completely replace container contents
-					this.get(i).removeAll();
-					this.get(i).add(data);
-				}
+		for(var i=0; i < content.length; i++) {
+			if(cont = oldFixed.key(content[i].index)) {
+				// update existing fixed container
+				this.updateItem(cont, content[i].panel, content[i].behaviour);
+				oldFixed.remove(cont);
+			} else if(cont = oldFloating.key(content[i].index)) {
+				// update existing floating container
+				this.updateItem(cont, content[i].panel, content[i].behaviour);
+				oldFloating.remove(cont);
 			} else {
-				this.addContainer(data,content[i].behaviour,content[i].index,false,j);
+				// create new container
+				this.createContainer(content[i].panel, content[i].behaviour, content[i].index);
 			}
 		}
 		
-		var trailing = this.items.length - content.length;
-		for(var i=0; i<trailing; i++){
-			this.removeContainer(this.items.length-1);
-		}
+		// destroy removed containers
+		oldFixed.each(function(item) {
+			if(item == this.focusedContainer)
+				this.focusedContainer = null;
+			item.destroy();
+		}, this);
+		oldFloating.each(function(item) {
+			item.destroy();
+		});
 		
-		if(Ext.isDefined(this.focusedContainer) && this.focusedContainer.get(0).getTopToolbar() && this.focusedContainer.get(0).getTopToolbar().items.length > 0) {
+		this.renderFixed();
+		if (this.focusedContainer && this.focusedContainer.get(0).getTopToolbar().items.length > 0) {
+			// toolbar of focused container has been updated, copy changes to shared toolbar
 			this.mkSharedTbar(this.focusedContainer);
-		}
+		} 
 		
-		this.doLayout();
+		// try to focus new fixed container
+		if(!this.focusedContainer)
+			this.focusFirstContainer();
+	},
+	
+	updateItem: function(old, newC, behaviour) {
+		var oldC = old.get(0);
+		this.setupChildContainer(newC, behaviour);
+		if(oldC.getXType() == newC.xtype && oldC.taskId == newC.taskId) {
+			// update container contents
+			oldC.update(newC);
+		} else {
+			//if not same xtype or taskId - completely replace container contents
+			old.removeAll();
+			old.add(newC);
+		}
+		old.doLayout();
+		// put changed container into collections
+		if(old.getXType() == 'window')
+			this.floatingCont.add(old.index,old);
+		else
+			this.fixedCont.add(old.index,old);
 	},
 	
 	addUpdate: function(name, value) {
-		this.focusedContainer.get(0).addUpdate(name, value);
+		if(this.focusedContainer)
+			// update is handled by focused child
+			this.focusedContainer.get(0).addUpdate(name, value);
+		else
+			// updates for groupAToolbar are handled by group container
+			this.taskUpdates[name] = value;
 	},
 	
 	sendUpdates: function(delay) {
-		this.focusedContainer.get(0).sendUpdates(delay);
-	},
-	
-	mkElementId: function(idx) {
-		return 'groupEl-' + this.taskId + '-' + idx;
+		if(this.focusedContainer)
+			// update is handled by focused child
+			this.focusedContainer.get(0).sendUpdates(delay);
+		else {
+			// updates for groupAToolbar are handled by group container
+			var wt = this.findParentByType(itasks.WorkPanel);
+			if(!wt) return;
+			wt.sendTaskUpdates(this.taskId,this.taskUpdates);
+			this.taskUpdates = {};
+		}
 	}
 });
 

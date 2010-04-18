@@ -3,11 +3,9 @@ Ext.ns('itasks.ttc');
 itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 
 	initComponent : function() {
-		
 		this.buildComponents(this);
 		this.tbar = this.content.tbar;
 		this.replaceItems = [];
-		
 		delete this.content;
 		
 		Ext.apply(this,
@@ -19,9 +17,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		, autoScroll: true
 		, cls: 'FormContainer'
 		});
-		
+
 		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
-		
 	},
 	
 	buildComponents: function(data){
@@ -33,8 +30,10 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		}
 		
 		this.descpanel = {
-			xtype: 'itasks.ttc.form.description',
-			html: data.description
+			xtype: 'itasks.ttc.common.description',
+			cls: 'FormDescription',
+			description: data.description,
+			headerButton: this.headerButton
 		}
 	},
 	
@@ -202,30 +201,42 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 				enabledPresent = true;
 				break;
 			}
-			
-		var cls = 'GroupToolbarNoEnabledItems';
+		
+		var cls = 'ToolbarNoEnabledItems';
 		if(enabledPresent)
 			tb.removeClass(cls);
 		else {
 			tb.removeClass(cls);
 			tb.addClass(cls);
 		}
-	},
-
+		
+		var checkGroupOnly = function(item) {
+			if(item.disabled)
+				return true;
+				
+			if(item.name) {
+				return item.name == '_group';
+			} else if (item.getXType() != 'menuseparator') {
+				var children =  item.items || item.menu.items;
+				for(var i = 0; i < children.length; i++) {
+					if (!checkGroupOnly(children.get(i)))
+						return false;
+				}
+			}
+			return true;
+		};
+		
+		var cls = 'ToolbarGroupActionsOnly';
+		if(checkGroupOnly(tb)) {
+			tb.removeClass(cls);
+			tb.addClass(cls);
+		} else {
+			tb.removeClass(cls);
+		}
+	}
 });
 
 Ext.ns('itasks.ttc.form');
-
-itasks.ttc.form.FormDescription = Ext.extend(Ext.Panel,{
-	initComponent : function(){
-		Ext.apply(this,{		
-			cls: 'task-description FormDescription',
-			unstyled: true,
-		});
-		
-		itasks.ttc.form.FormDescription.superclass.initComponent.apply(this,arguments);
-	}
-});
 
 itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 
@@ -243,7 +254,6 @@ itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 
 Ext.reg('itasks.ttc.form',itasks.ttc.FormContainer);
 Ext.reg('itasks.ttc.form.panel', itasks.ttc.form.FormPanel);
-Ext.reg('itasks.ttc.form.description', itasks.ttc.form.FormDescription);
 
 /*
 itasks.ttc.FormContainer = Ext.extend(Ext.Panel,{

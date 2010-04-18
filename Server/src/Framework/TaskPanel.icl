@@ -111,6 +111,7 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 								, taskId = ti.TaskInfo.taskId
 								, content = containers
 								, subtaskId = Nothing
+								, groupAMenu = makeMenuBar menus [] gActions ti
 								})
 		= (container,tst)
 	(TTParallelTask ti tpi tasks)
@@ -286,6 +287,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 											, taskId = ti.TaskInfo.taskId
 											, content = reverse containers
 											, subtaskId = Just (subtaskNrToString stnr)
+											, groupAMenu = makeMenuBar menus [] gActions ti
 											}
 			}], tst)
 	(TTParallelTask ti tpi tasks)

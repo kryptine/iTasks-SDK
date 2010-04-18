@@ -13,7 +13,10 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 		Ext.apply(this,
 		{ activeTab: 0
 		, items: []
-		});		
+		});
+		
+		if (Ext.isDefined(this.headerButton))
+			this.tbar = [this.headerButton];
 		
 		itasks.ttc.ParallelContainer.superclass.initComponent.apply(this,arguments);	
 		
@@ -132,7 +135,6 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 			items: [
 				{ xtype: 'panel'
 				, cls: 'task-description ParallelControlDescription'
-				, width: 700
 				, unstyled: true
 				, html: this.label
 				},
@@ -147,7 +149,6 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 					this.grid
 				]
 				, cls: 'ParallelControlPanel'
-				, width: 700
 				, unstyled: true
 				, buttons: [
 					{ xtype: 'button'
@@ -285,12 +286,6 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 itasks.ttc.parallel.ManageWindow = Ext.extend(Ext.Window,{
 
 	initComponent : function(){
-		
-		var vsize = Ext.getDoc().getViewSize();
-		
-		var x = (vsize.width-735)/2;
-		var y = (vsize.height-300)/2;
-		
 		Ext.apply(this,
 		{ width: 735
 		, height: 300
@@ -298,8 +293,8 @@ itasks.ttc.parallel.ManageWindow = Ext.extend(Ext.Window,{
 		, modal: true
 		, closable: true
 		, resizable: false
-		, x: x
-		, y: y
+		, renderTo: this.parent.getEl()
+		, constrain: true
 		, items: [			
 			{ xtype: 'itasks.ttc.proc-control'
 			, taskId: this.properties.systemProps.processId

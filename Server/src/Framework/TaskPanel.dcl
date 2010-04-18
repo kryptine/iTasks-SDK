@@ -104,6 +104,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, taskId		:: !String
 	, content		:: ![GroupContainerElement]
 	, subtaskId		:: !(Maybe String)
+	, groupAMenu	:: ![TUIDef]
 	}
 
 :: GroupContainerElement =

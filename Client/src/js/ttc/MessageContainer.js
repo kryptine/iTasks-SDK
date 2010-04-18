@@ -32,8 +32,10 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		}
 		
 		this.descpanel = {
-			xtype: 'itasks.ttc.message.description',
-			html: data.description
+			xtype: 'itasks.ttc.common.description',
+			cls: 'MessageDescription',
+			description: data.description,
+			headerButton: this.headerButton
 		}
 	},
 	
@@ -54,7 +56,7 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		if(delay) {
 			new Ext.util.DelayedTask().delay(250,this.sendUpdates,this);
 		} else {
-			var wt = this.findParentByType(itasks.WorkPanel);
+			var wt = this.findParentByType(itasks.WorkPanel) || this.workPanel;
 			if(!wt) return;
 			
 			wt.sendTaskUpdates(this.taskId,this.taskUpdates);
@@ -72,29 +74,42 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 				enabledPresent = true;
 				break;
 			}
-			
-		var cls = 'GroupToolbarNoEnabledItems';
+		
+		var cls = 'ToolbarNoEnabledItems';
 		if(enabledPresent)
 			tb.removeClass(cls);
 		else {
 			tb.removeClass(cls);
 			tb.addClass(cls);
 		}
+		
+		var checkGroupOnly = function(item) {
+			if(item.disabled)
+				return true;
+				
+			if(item.name) {
+				return item.name == '_group';
+			} else if (item.getXType() != 'menuseparator') {
+				var children =  item.items || item.menu.items;
+				for(var i = 0; i < children.length; i++) {
+					if (!checkGroupOnly(children.get(i)))
+						return false;
+				}
+			}
+			return true;
+		};
+		
+		var cls = 'ToolbarGroupActionsOnly';
+		if(checkGroupOnly(tb)) {
+			tb.removeClass(cls);
+			tb.addClass(cls);
+		} else {
+			tb.removeClass(cls);
+		}
 	}
 });
 
 Ext.ns('itasks.ttc.message');
-
-itasks.ttc.message.MessageDescription = Ext.extend(Ext.Panel,{
-	initComponent : function(){
-		Ext.apply(this,{		
-			cls: 'task-description MessageDescription',
-			unstyled: true,
-		});
-		
-		itasks.ttc.message.MessageDescription.superclass.initComponent.apply(this,arguments);
-	}
-});
 
 itasks.ttc.message.MessagePanel = Ext.extend(Ext.Panel, {
 
@@ -112,4 +127,3 @@ itasks.ttc.message.MessagePanel = Ext.extend(Ext.Panel, {
 
 Ext.reg('itasks.ttc.message',itasks.ttc.MessageContainer);
 Ext.reg('itasks.ttc.message.panel', itasks.ttc.message.MessagePanel);
-Ext.reg('itasks.ttc.message.description', itasks.ttc.message.MessageDescription);
