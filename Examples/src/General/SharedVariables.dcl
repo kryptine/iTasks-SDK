@@ -1,4 +1,4 @@
-definition module SharedValues
+definition module SharedVariables
 
 import iTasks
 

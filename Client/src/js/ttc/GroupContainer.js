@@ -98,7 +98,8 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 					modal: behaviour == 'GBModal',
 					items: [cont],
 					title: title,
-					tools: tools
+					tools: tools,
+					minWidth: 300
 				});
 				break;
 		}
@@ -163,7 +164,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 				cont = Ext.create(cont);
 				// fix size of window
 				var s = cont.getSize();
-				cont.setSize(s.width, s.height);
+				cont.setSize(s.width > cont.minWidth ? s.width : cont.minWidth, s.height);
 				//hack: make sure the ownerCt is set to reference the parent, so that findParentByType works.
 				cont.ownerCt = this;
 				

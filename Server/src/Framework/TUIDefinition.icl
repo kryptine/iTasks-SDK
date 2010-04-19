@@ -4,7 +4,7 @@ import JSON,StdList
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
 derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUIDocument, TUITuple
-derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDisplayControl
+derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDisplayControl, TUIFormattedTextControl
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITextArea r) c = addXType "textarea" (JSONEncode{|*|} r c)
@@ -36,6 +36,7 @@ JSONEncode{|TUIDef|} (TUIIntControl r) c	= addXType "itasks.tui.Int" (JSONEncode
 JSONEncode{|TUIDef|} (TUIRealControl r) c	= addXType "itasks.tui.Real" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIBoolControl r) c	= addXType "itasks.tui.Bool" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUINoteControl r) c	= addXType "itasks.tui.Note" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIFormattedTextControl r) c	= addXType "itasks.tui.FormattedText" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIDateControl r) c	= addXType "itasks.tui.Date" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUITimeControl r) c	= addXType "itasks.tui.Time" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUICurrencyControl r) c	= addXType "itasks.tui.Currency" (JSONEncode{|*|} r c)

@@ -36,7 +36,7 @@ import FlowEditor
 import LaunchFlow
 
 //Shared Value Examples
-import SharedValues
+import SharedVariables
 
 Start :: *World -> *World
 Start world = startEngine workflows world

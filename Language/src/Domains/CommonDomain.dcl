@@ -18,6 +18,23 @@ import GenCopy
 // Plain text notes
 :: Note			= Note String
 
+:: FormattedText = FormattedText String FormattedTextControls
+:: FormattedTextControls =
+	{ alignmentControls	:: Bool	// Enable the left, center, right alignment buttons
+	, colorControls		:: Bool // Enable the fore/highlight color buttons
+	, fontControl		:: Bool // Enable font selection
+	, fontSizeControls	:: Bool // Enable the increase/decrease font size buttons
+	, formatControls	:: Bool // Enable the bold, italic and underline buttons
+	, linkControl		:: Bool // Enable the create link button
+	, listControls		:: Bool // Enable the bullet and numbered list buttons
+	, sourceEditControl	:: Bool // Enable the switch to source edit button
+	}
+
+mkEmptyFormattedText :: FormattedTextControls -> FormattedText
+allControls	:: FormattedTextControls
+noControls	:: FormattedTextControls
+toUnformattedString :: FormattedText -> String
+
 // Dates, times and intervals
 :: Date	=
 	{ day	:: Int
@@ -43,15 +60,16 @@ currentDateTime :: !*World -> (!DateTime,!*World)
 	| USD Int
 	| JPY Int
 	
-derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gVisualize		EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gVisualize		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
 
 instance html Note
+instance toString FormattedText
 
 instance toString Date
 instance toString Time

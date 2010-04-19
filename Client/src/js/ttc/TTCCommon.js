@@ -30,10 +30,8 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 		
 		var value;
 		switch(this.xtype) {
-			
 			case "radiogroup": value = this.getValue().value; break;
 			case "checkboxgroup": value = checkboxValues(arguments[1]); break;
-			case "datefield": value = this.getRawValue(); break;
 			default: value = this.getValue();
 		}
 		ct.addUpdate(this.name, value);
@@ -93,6 +91,9 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			case "menuitem":
 				if(comp.name)
 					comp.on("click",clickTaskEvent);
+				break;
+			case "itasks.tui.FormattedText":
+				comp.on("sync",changeTaskEvent);
 				break;
 	}
 	if(comp.buttons) {

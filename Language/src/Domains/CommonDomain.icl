@@ -5,13 +5,13 @@ import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
-derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
 derive gVisualize		EmailAddress, DateTime
-derive gUpdate			EmailAddress, Note, DateTime
-derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency
+derive gUpdate			EmailAddress, Note, DateTime, FormattedText, FormattedTextControls
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
 derive gLexOrd			Currency
 
 derive bimap	Maybe, (,)
@@ -81,6 +81,46 @@ where
 	id			= dp2id idPrefix contentPath
 	oldV		= value2s contentPath old
 	newV		= value2s contentPath new
+	
+gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+	= case vizType of
+		VEditorDefinition	= ([TUIFragment (TUIFormattedTextControl	{ name				= dp2s contentPath
+																		, id				= id
+																		, value				= oldV
+																		, fieldLabel		= labelAttr useLabels label
+																		, optional			= optional
+																		, enableAlignments	= controls.alignmentControls
+																		, enableColors		= controls.colorControls
+																		, enableFont		= controls.fontControl
+																		, enableFontSize	= controls.fontSizeControls
+																		, enableFormat		= controls.formatControls
+																		, enableLinks		= controls.linkControl
+																		, enableLists		= controls.listControls
+																		, enableSourceEdit	= controls.sourceEditControl
+																		}
+								)]
+								, 0
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+		VEditorUpdate
+			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+								, 0
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+		_					# htmlFrag = case old of
+								VBlank		= [Text ""]
+								VValue v _	= html v
+							= ([HtmlFragment htmlFrag]
+								, 0
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+where
+	// Use the path to the inner constructor instead of the current path.
+	// This way the generic gUpdate will work for this type
+	contentPath	= shiftDataPath currentPath
+	id			= dp2id idPrefix contentPath
+	oldV		= value2s contentPath old
+	newV		= value2s contentPath new
+	controls = case old of
+		VBlank								= allControls
+		VValue (FormattedText _ controls) _	= controls
 
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
 	= case vizType of
@@ -185,7 +225,11 @@ currentDateTime world
 instance html Note
 where
 	html (Note msg) = [Text msg]
-	
+
+instance html FormattedText
+where
+	html (FormattedText txt _) = [RawText txt]
+
 instance toString Time
 where
 	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
@@ -205,7 +249,26 @@ where
 instance toString Note
 where
 	toString (Note s)				= s
-
+	
+instance toString FormattedText
+where
+	toString (FormattedText s _) = s
+	
+toUnformattedString :: FormattedText -> String
+toUnformattedString (FormattedText s _)
+	# s	= replaceSubString "<br>" "\n" s
+	# s	= replaceSubString "</li>" "\n" s
+	# s	= stripHtmlTags s
+	= s
+where
+	stripHtmlTags s
+		# fstOpen	= indexOf "<" s
+		# fstClose	= indexOf ">" s
+		| fstOpen <> -1 && fstClose <> -1 && fstOpen < fstClose
+			= stripHtmlTags (subString 0 fstOpen s +++ subString (fstClose + 1) (textSize s - fstClose) s)
+		| otherwise
+			= s
+				
 instance toString Currency
 where
 	toString (EUR x) = "EUR " +++ decFormat x
@@ -286,3 +349,27 @@ where
 
 decFormat :: Int -> String
 decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
+
+mkEmptyFormattedText :: FormattedTextControls -> FormattedText
+mkEmptyFormattedText controls = FormattedText "" controls
+
+allControls	:: FormattedTextControls
+allControls =	{ alignmentControls	= True
+				, colorControls		= True
+				, fontControl		= True
+				, fontSizeControls	= True
+				, formatControls	= True
+				, linkControl		= True
+				, listControls		= True
+				, sourceEditControl	= True
+				}
+noControls	:: FormattedTextControls
+noControls =	{ alignmentControls	= False
+				, colorControls		= False
+				, fontControl		= False
+				, fontSizeControls	= False
+				, formatControls	= False
+				, linkControl		= False
+				, listControls		= False
+				, sourceEditControl	= False
+				}

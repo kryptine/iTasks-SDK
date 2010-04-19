@@ -17,6 +17,7 @@
 		,{"text":"GMapControl.js","path":"src/js/tui/"}
 		,{"text":"IntControl.js","path":"src/js/tui/"}
 		,{"text":"NoteControl.js","path":"src/js/tui/"}
+		,{"text":"FormattedTextControl.js","path":"src/js/tui/"}
 		,{"text":"PasswordControl.js","path":"src/js/tui/"}
 		,{"text":"RealControl.js","path":"src/js/tui/"}
 		,{"text":"StringControl.js","path":"src/js/tui/"}

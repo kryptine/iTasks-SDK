@@ -1,4 +1,4 @@
-implementation module SharedValues
+implementation module SharedVariables
 
 import iTasks, CommonDomain, GeoDomain, Text
 
@@ -136,9 +136,29 @@ autoSortedList = ignoreResult (updateSharedLocal "Automatically Sorted List" [qu
 where
 	emptyL :: [String]
 	emptyL = []
+
+//Different Views on Formatted Text
+formattedText :: Task Void
+formattedText =
+				setMenus [Menu "Example" [MenuItem "Quit" ActionQuit]]
+	>>|			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
+	>>= \sid.	dynamicGroupAOnly [(ignoreResult t) <<@ GBFloating \\ t <- tasks sid] actions
+	>>|			deleteDB sid
+where
+	tasks sid =
+		[ updateShared "WYSIWYG Editor"			[] sid [idEditor]
+		, updateShared "HTML-Source Editor"		[] sid [editor		{ editorFrom	= \(FormattedText src _) -> Note src
+																	, editorTo		= \(Note src) (FormattedText _ ctrls) -> FormattedText src ctrls
+																	}]
+		, updateShared "Formatted Preview"		[] sid [idListener]
+		, updateShared "Unformatted Preview"	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft)}]
+		]
+		
+	actions :: [GroupAction GOnlyAction Void Void]
+	actions = [GroupAction ActionQuit GOStop GroupAlways]
 								
 sharedValueExamples :: [Workflow]
-sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (parallel tasks)" linesPar
+sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)" linesPar
 						, workflow "Examples/Shared Variables/Text-Lines (single editor)" linesSingle
 						, workflow "Examples/Shared Variables/Calculate Sum" calculateSum
 						, workflow "Examples/Shared Variables/Balanced Binary Tree" tree
@@ -146,4 +166,5 @@ sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (parallel
 						, workflow "Examples/Shared Variables/Merge Test (Documents)" mergeTestDocuments
 						, workflow "Examples/Shared Variables/Google Maps Example" googleMaps
 						, workflow "Examples/Shared Variables/Sorted List" autoSortedList
+						, workflow "Examples/Shared Variables/Formatted Text" formattedText
 						]
