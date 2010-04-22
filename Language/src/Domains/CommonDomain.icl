@@ -71,7 +71,7 @@ gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
-		_					= ([TextFragment (toString old)]
+		_					= ([HtmlFragment (flatten [[Text line,BrTag []] \\ line <- split "\n" (toString old)])]
 								, 2
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 where
