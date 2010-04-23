@@ -39,7 +39,9 @@ derive gPrint     BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnaly
 derive gParse	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive gVisualize BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive gUpdate	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-	
+
+derive gMakeLocalCopy Bug, BugAnalysis, BugReport, BugStatus, BugSeverity, BugOccurance
+
 derive bimap (,), Maybe
 	
 instance DB Bug where
@@ -209,4 +211,6 @@ makePatches bug =
 			  >>| return Void
 		
 notifyReporter :: Bug -> Task Void
-notifyReporter bug = notifyUser "The bug you reported has been fixed" bug.reportedBy
+notifyReporter bug = bug.reportedBy @: ("Bug Report Result", showMessageAbout "The bug you reported has been fixed" bug)
+
+//notifyUser "The bug you reported has been fixed" bug.reportedBy

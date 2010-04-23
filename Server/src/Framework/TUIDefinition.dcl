@@ -14,6 +14,7 @@ derive JSONEncode TUIDef, TUIUpdate
 
 :: TUIUpdate
 	= TUIAdd TUIId TUIDef		// Add the additional component *after* the component with indicated id
+	| TUIAddTo TUIId TUIDef		// Add the additional component as a child of the component with indicated id
 	| TUIRemove TUIId			// Remove the component with indicated id
 	| TUIReplace TUIId TUIDef	// Replace a component
 	| TUISetValue TUIId String	// Call setValue on the component with indicated id
@@ -34,7 +35,12 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIPasswordControl TUIBasicControl	
 	| TUICurrencyControl TUICurrencyControl
 	| TUIUsernameControl TUIBasicControl
-	| TUIDisplayControl TUIDisplayControl
+	| TUIDocumentControl TUIDocumentControl
+	| TUIConstructorControl TUIConstructorControl
+	
+	| TUITupleContainer TUITupleContainer
+	| TUIRecordContainer TUIRecordContainer
+	//-- OLD --
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
 	| TUITextArea TUITextArea
@@ -53,7 +59,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIHtmlPanel TUIHtmlPanel
 	| TUIList TUIList
 	| TUIListItem TUIListItem
-	| TUIDocument TUIDocument
 	| TUIMenuButton TUIMenuButton
 	| TUIMenuItem TUIMenuItem
 	| TUIMenuSeparator
@@ -65,6 +70,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, id			:: !String
 	, value			:: !String
 	, fieldLabel	:: !Maybe String
+	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	}
 :: TUICurrencyControl =
@@ -74,15 +80,41 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, currencyLabel	:: !String
 	, optional		:: !Bool
+	, staticDisplay	:: !Bool
 	}
-:: TUIDisplayControl =
+:: TUIDocumentControl = 
 	{ id			:: !String
+	, name			:: !String
+	, docInfo		:: !String
 	, fieldLabel	:: !Maybe String
-	, optional		:: !Bool
-	, html			:: !String
-	, formItems		:: ![(PlaceholderId,[TUIDef])]
+	, hideLabel		:: !Bool //-> Change to optional!
+	, staticDisplay :: !Bool
+	}
+:: TUIConstructorControl =
+	{ id			:: !String
+	, name			:: !String
+	, fieldLabel	:: !Maybe String
+	, consSelIdx	:: !Int
+	, consValues	:: ![String]
+	, items			:: ![TUIDef]
+	, staticDisplay	:: !Bool
 	}
 	
+:: TUITupleContainer =
+	{ id			:: !String
+	, definitions	:: ![[TUIDef]]
+	, fieldLabel	:: !Maybe String
+	}
+:: TUIRecordContainer = 
+	{ id			:: !String
+	, name			:: !String
+	, title			:: !Maybe String
+	, items			:: ![TUIDef]
+	, optional		:: !Bool
+	, hasValue		:: !Bool
+	}
+	
+//-- OLD --	
 :: TUIButton =
 	{ name			:: !String
 	, id			:: !String
@@ -99,8 +131,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	, hideLabel		:: !Bool
 	, allowDecimals	:: !Bool
 	, numDecimals	:: !Int
-	}
-	
+	}	
 :: TUITextArea =
 	{ name			:: !String
 	, id			:: !String
@@ -217,20 +248,13 @@ derive JSONEncode TUIDef, TUIUpdate
 	, id			:: !String
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
+	, staticDisplay	:: !Bool
 	}
 :: TUIListItem =
 	{ items			:: ![TUIDef]
 	, index			:: !Int
 	, id			:: !String
 	, name			:: !String
-	}
-:: TUIDocument = 
-	{ id			:: !String
-	, name			:: !String
-	, docInfo		:: !String
-	, allowUpload	:: !Bool
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
 	}
 :: TUIMenu =
 	{ items			:: ![TUIDef]

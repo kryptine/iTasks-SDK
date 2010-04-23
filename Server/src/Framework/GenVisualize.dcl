@@ -41,13 +41,13 @@ derive bimap VisualizationValue
 	, label				:: !Maybe String				// Optional label to attach to editor fields
 	// Additional information for form generation
 	, currentPath		:: !DataPath					// Accumulated path through the data structure, used to identify sub-structures
+	, selectedConsIndex	:: !Int							// Index of the selected constructor in an Object
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
-	, onlyBody			:: !Bool						// Only generate a constructor body for editors
+	//, onlyBody			:: !Bool						// Only generate a constructor body for editors
 	, optional			:: !Bool						// Create optional form fields
 	, valid				:: !Bool						// Is the form valid
 	, listMask			:: !ListMask					// Indicating which parts of a list have changed
-	, defAcc			:: ![(!String,[TUIDef])]		// An accumulator for definitions which cannot be directly placed in their HTML context
-	, phId				:: Int							// Counter for placeholder id's
+	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
 	}
 
 :: VisualizationType

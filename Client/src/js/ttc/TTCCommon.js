@@ -30,6 +30,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 		
 		var value;
 		switch(this.xtype) {
+			case "itasks.tui.Date": value = this.getRawValue(); break;
 			case "radiogroup": value = this.getValue().value; break;
 			case "checkboxgroup": value = checkboxValues(arguments[1]); break;
 			default: value = this.getValue();

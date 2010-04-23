@@ -19,11 +19,31 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 		}
 	},
 	initComponent: function() {
+		if(this.staticDisplay){
+			this.autoCreate = {tag: 'span', html: this.value};
+		}
+		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.allowBlank = this.optional;
 		if(this.value == "") delete this.value;
 		itasks.tui.UsernameControl.superclass.initComponent.apply(this,arguments);
+	},
+	
+	afterRender: function(ct,position){		
+		itasks.tui.TimeControl.superclass.afterRender.call(this,ct,position);
+
+		if(this.staticDisplay){
+			this.el.next().remove();		
+		}	
+	},	
+	
+	setValue: function(value){
+		if(this.staticDisplay){
+			this.update(value);
+		}else{
+			itasks.tui.UsernameControl.superclass.setValue.call(this,value);
+		}
 	}
 });
 

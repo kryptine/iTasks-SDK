@@ -17,9 +17,9 @@ derive gLexOrd			Currency
 derive bimap	Maybe, (,)
 
 //VValue a DataMask
-gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIPasswordControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+		VEditorDefinition	= ([TUIFragment (TUIPasswordControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
 								, 1
 								, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -32,9 +32,9 @@ where
 	oldV	= value2s currentPath old
 	newV	= value2s currentPath new
 		
-gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIDateControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+		VEditorDefinition	= ([TUIFragment (TUIDateControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -47,9 +47,9 @@ where
 	oldV	= value2s currentPath old
 	newV	= value2s currentPath new
 	
-gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUITimeControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
+		VEditorDefinition	= ([TUIFragment (TUITimeControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate
@@ -62,17 +62,17 @@ where
 	oldV	= value2s currentPath old
 	newV	= value2s currentPath new
 	
-gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUINoteControl {TUIBasicControl|name = dp2s contentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional})]
-								, 2
+		VEditorDefinition	= ([TUIFragment (TUINoteControl {TUIBasicControl|name = dp2s contentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
+								, 3
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
 		VEditorUpdate
 			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-								, 2
+								, 3
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 		_					= ([HtmlFragment (flatten [[Text line,BrTag []] \\ line <- split "\n" (toString old)])]
-								, 2
+								, 3
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -122,11 +122,12 @@ where
 		VBlank								= allControls
 		VValue (FormattedText _ controls) _	= controls
 
-gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUICurrencyControl {TUICurrencyControl|id = id, name = dp2s currentPath
 												, value = oldV, fieldLabel = labelAttr useLabels label
-												, currencyLabel = curLabel old, optional = optional})]
+												, currencyLabel = curLabel old, optional = optional
+												, staticDisplay = renderAsStatic})]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
 		VEditorUpdate

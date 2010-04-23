@@ -15,7 +15,7 @@ import ExceptionHandling
 //Miscellaneous examples
 import SmallExamples
 import GUIDemo
-//import BugReport
+import BugReport
 import Coffeemachine
 import Newsgroups
 import ChangeHandling
@@ -48,7 +48,7 @@ where
 						, reviewTaskExample
 						, smallExamples
 						, guiDemoExample
-//						, bugReportExample
+						, bugReportExample
 						, coffeemachineExample
 						, textEditor
 						, coffeeTimeExample

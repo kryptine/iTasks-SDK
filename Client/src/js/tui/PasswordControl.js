@@ -5,6 +5,10 @@ itasks.tui.PasswordControl = Ext.extend(Ext.form.TextField,{
 	fieldClass: 'x-form-field',
 
 	initComponent: function(){
+		if(this.staticDisplay){
+			this.autoCreate = {tag: 'span', html: '***********'};
+		}
+		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.allowBlank = this.optional;

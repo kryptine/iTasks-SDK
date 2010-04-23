@@ -30,7 +30,7 @@ itasks.ListPanel = Ext.extend(Ext.Panel,
 			var addButtonPanel = new Ext.Panel({
 				layout: 'ux.html',
 				html: '<table><tr><td style="font-style: italic; padding-right: 5px;">The list is empty.</td><td><span name="button"></span></td></tr></table>',
-				items: [addButton],
+				items: (this.staticDisplay)?[]:[addButton],
 				baseCls: 'list-item'
 			});
 			
@@ -119,7 +119,7 @@ itasks.list.Toolbox = Ext.extend(Ext.Panel,{
 
 itasks.list.Item = Ext.extend(Ext.Panel,{	
 	initComponent: function(){
-		
+			
 		Ext.apply(this,
 		{ border: false
 		, cls: 'list-item'
@@ -138,8 +138,8 @@ itasks.list.Item = Ext.extend(Ext.Panel,{
 		itasks.list.Item.superclass.initComponent.apply(this,arguments);
 	},
 	
-	afterRender: function(){
-		this.add(this.toolbox);
+	afterRender: function(){	
+		if(!this.ownerCt.staticDisplay) this.add(this.toolbox);
 		itasks.list.Item.superclass.afterRender.call(this,arguments);
 	}
 });

@@ -23,7 +23,6 @@
 		,{"text":"StringControl.js","path":"src/js/tui/"}
 		,{"text":"TimeControl.js","path":"src/js/tui/"}
 		,{"text":"UsernameControl.js","path":"src/js/tui/"}
-		,{"text":"DisplayControl.js","path":"src/js/tui/"}
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
 		,{"text":"TupleContainer.js","path":"src/js/tui/"}

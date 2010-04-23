@@ -312,7 +312,6 @@ where
 gUpdate{|[]|} fx l ust = (l,ust)
 
 //Specialized instance Maybe that chooses the non-recursive constructor 
-
 gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate} = (Nothing,ust)
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 	| currentPath == searchPath && update == ""	
@@ -355,7 +354,7 @@ gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, upd
 
 gUpdate {|Document|} s ust = (s,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
+derive gUpdate Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
 
 //Utility functions
 dp2s :: DataPath -> String

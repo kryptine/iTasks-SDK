@@ -7,7 +7,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		this.tbar = this.content.tbar;
 		this.replaceItems = [];
 		delete this.content;
-		
+				
 		Ext.apply(this,
 		{ layout: 'anchor'
 		, taskUpdates : {}
@@ -93,13 +93,23 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 							itasks.ttc.common.attachTaskHandlers(newct);
 						}
 						break;
+					case "TUIAddTo":
+						var ct = Ext.getCmp(update[1]);
+						if(ct){
+							ct.add(update[2]);		
+							ct.doLayout();
+						
+							itasks.ttc.common.attachTaskHandlers(ct);							
+						}
+						
+						break;					
 					case "TUIRemove":
 						var ct = Ext.getCmp(update[1]);
 						
 						if(ct) {
 							var oct = ct.ownerCt;
-							oct.remove(update[1]);
 							
+							oct.remove(update[1]);							
 							oct.ownerCt.doLayout();
 							oct.ownerCt.syncSize();
 						}
@@ -125,7 +135,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 							
 							oct.doLayout();
 							oct.syncSize();
-							oct.ownerCt.doLayout();
+							//oct.ownerCt.doLayout();
 							
 							//this.attachTaskHandlers(newct);
 							itasks.ttc.common.attachTaskHandlers(newct);
@@ -140,6 +150,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 						break;
 					case "TUISetValue":
 						var ct = Ext.getCmp(update[1]);
+						
 						if(ct && ct.setValue) {
 							//suspend events to prevent check-event for checkbox
 							ct.suspendEvents();
@@ -152,8 +163,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 										cur.setValue(false);
 									//...then set new one
 									ct.setValue(true);
-								}
-							} else {
+								}			
+							}else {
 								ct.setValue(update[2]);
 							}
 							ct.resumeEvents();
