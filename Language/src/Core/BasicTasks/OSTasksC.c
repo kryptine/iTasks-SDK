@@ -7,12 +7,12 @@ Bool WinIsDirectory(CLEAN_STRING name) {
 
 	if (handle != INVALID_HANDLE_VALUE) {
 		FindClose(handle);
-		return find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY;
+		return find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? TRUE : FALSE;
 	}
 	else
 		return FALSE;
 }
 
 Bool WinCreateDirectory (CLEAN_STRING name) {
-	return CreateDirectory(cstring (name), NULL);
+	return CreateDirectory(cstring (name), NULL) ? TRUE : FALSE;
 }

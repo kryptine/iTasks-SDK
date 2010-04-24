@@ -3,10 +3,10 @@ implementation module OSTasks
 import iTasks, TSt, ostoolbox, clCCall_12, StdFile, Text
 import code from "OSTasksC."
 
-derive gPrint		FileException, FileProblem, CallException
-derive gParse		FileException, FileProblem, CallException
-derive gVisualize	FileException, FileProblem, CallException
-derive gUpdate		FileException, FileProblem, CallException
+derive gPrint		FileException, FileProblem, CallException, DirectoryException
+derive gParse		FileException, FileProblem, CallException, DirectoryException
+derive gVisualize	FileException, FileProblem, CallException, DirectoryException
+derive gUpdate		FileException, FileProblem, CallException, DirectoryException
 derive bimap		Maybe, (,)
 
 callProcess :: !Path -> Task Int

@@ -10,10 +10,10 @@ import iTasks
 :: CallException = CallFailed !Path
 :: DirectoryException = CannotCreate
 
-derive gPrint		FileException, FileProblem, CallException
-derive gParse		FileException, FileProblem, CallException
-derive gVisualize	FileException, FileProblem, CallException
-derive gUpdate		FileException, FileProblem, CallException
+derive gPrint		FileException, FileProblem, CallException, DirectoryException
+derive gParse		FileException, FileProblem, CallException, DirectoryException
+derive gVisualize	FileException, FileProblem, CallException, DirectoryException
+derive gUpdate		FileException, FileProblem, CallException, DirectoryException
 
 /**
 * Calls an external executable. The call is blocking and should only
