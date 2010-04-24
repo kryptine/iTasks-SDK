@@ -31,6 +31,8 @@ import GenCopy
 	}
 
 mkEmptyFormattedText :: FormattedTextControls -> FormattedText
+setFormattedTextSrc :: !String !FormattedText -> FormattedText
+getFormattedTextSrc :: !FormattedText -> String
 allControls	:: FormattedTextControls
 noControls	:: FormattedTextControls
 toUnformattedString :: FormattedText -> String

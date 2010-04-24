@@ -147,8 +147,8 @@ formattedText =
 where
 	tasks sid =
 		[ updateShared "WYSIWYG Editor"			[] sid [idEditor]
-		, updateShared "HTML-Source Editor"		[] sid [editor		{ editorFrom	= \(FormattedText src _) -> Note src
-																	, editorTo		= \(Note src) (FormattedText _ ctrls) -> FormattedText src ctrls
+		, updateShared "HTML-Source Editor"		[] sid [editor		{ editorFrom	= \ft -> Note (getFormattedTextSrc ft)
+																	, editorTo		= \(Note src) ft -> setFormattedTextSrc src ft
 																	}]
 		, updateShared "Formatted Preview"		[] sid [idListener]
 		, updateShared "Unformatted Preview"	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft)}]

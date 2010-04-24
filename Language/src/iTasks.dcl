@@ -18,7 +18,8 @@ import	Engine						// basic iTask system creator
 	,	DateTimeTasks				// tasks triggered by date and time
 	,	ChangeTasks					// Tasks for changing existing workflows
 	
-	,	MenuTasks
+	,	MenuTasks					// tasks for setting/changing the menu structure of a process
+	,	OSTasks						// tasks for OS operations like reading/writing files or calling external processes
 	
 	//	Task combinators
 	,	CoreCombinators				// The core iTask combinators

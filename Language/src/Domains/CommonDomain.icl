@@ -258,7 +258,9 @@ where
 toUnformattedString :: FormattedText -> String
 toUnformattedString (FormattedText s _)
 	# s	= replaceSubString "<br>" "\n" s
+	# s	= replaceSubString "<BR>" "\n" s
 	# s	= replaceSubString "</li>" "\n" s
+	# s = replaceSubString "&nbsp;" " " s
 	# s	= stripHtmlTags s
 	= s
 where
@@ -353,6 +355,12 @@ decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
 
 mkEmptyFormattedText :: FormattedTextControls -> FormattedText
 mkEmptyFormattedText controls = FormattedText "" controls
+
+setFormattedTextSrc :: !String !FormattedText -> FormattedText
+setFormattedTextSrc cont (FormattedText _ controls) = FormattedText cont controls
+
+getFormattedTextSrc :: !FormattedText -> String
+getFormattedTextSrc (FormattedText src _) = src
 
 allControls	:: FormattedTextControls
 allControls =	{ alignmentControls	= True
