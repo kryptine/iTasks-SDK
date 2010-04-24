@@ -229,7 +229,7 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [{user = who, task = spawnProcess msg.to True (mailMess me msg) <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->						allProc [{user = who, task = spawnProcess who True (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
@@ -239,7 +239,7 @@ internalEmailConf :: (Task EMail)
 internalEmailConf
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [{user = who, task = mailMess me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->						allProc [{user = who, task = (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
 
 getUserName (UserName id name) = name
