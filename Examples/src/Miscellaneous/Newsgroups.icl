@@ -170,28 +170,35 @@ where
 */
 
 // chat
+:: Chat :== (Note,Note)
 
 chat 
 	= 					getCurrentUser
 		>>= \me ->		createChatBox
 		>>= \chatBox ->	enterInformation "With whom do you want to Chat ?" 
 		>>= \friend ->	friend @: ("Chat Request", chatSession chatBox friend) 
-		>>= \yes ->		if yes (chatTask chatBox) (return Void)
+		>>= \yes ->		if yes (chatTask True chatBox) (return Void)
 where		
-	createChatBox :: (Task (DBid [Note]))
-	createChatBox = createDB []
+	createChatBox :: (Task (DBid Chat))
+	createChatBox = createDB (Note "",Note "")
 
-	chatSession :: (DBid [Note]) UserName -> Task Bool
+	chatSession :: (DBid Chat) UserName -> Task Bool
 	chatSession chatBox friend 
 		= 				requestConfirmation "Do you want to Chat with me ?"
 			>>= \yes -> if yes 
-							(spawnProcess friend True (chatTask chatBox) >>| return True)
+							(spawnProcess friend True (chatTask False chatBox) >>| return True)
 							(return False)
 
-	chatTask chatBox = updateShared "Chat" [] chatBox [chatEditor] >>| return Void
+	chatTask bool chatBox = updateShared "Chat" [] chatBox [chatEditor bool] >>| return Void
 
-	chatEditor :: (View [Note])
-	chatEditor = idEditor
+	chatEditor :: Bool -> (View Chat)
+	chatEditor b = editor {editorFrom = editorFrom b, editorTo = editorTo b}
+	where
+		editorFrom True (note1,note2) = HtmlDisplay (note1, Editable note2)
+		editorFrom False (note1,note2) = HtmlDisplay (note2, Editable note1)
+		
+		editorTo True (HtmlDisplay (note1, Editable note2)) s = (note1,note2)
+		editorTo False (HtmlDisplay (note2, Editable note1)) s = (note1,note2)
 
 // mail handling, to be put in sepparate icl file
 
