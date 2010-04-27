@@ -35,7 +35,8 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 			xtype: 'itasks.ttc.common.description',
 			cls: 'MessageDescription',
 			description: data.description,
-			headerButton: this.headerButton
+			headerButton: this.headerButton,
+			width: 720
 		}
 	},
 	
@@ -118,6 +119,7 @@ itasks.ttc.message.MessagePanel = Ext.extend(Ext.Panel, {
 		{ layout: 'fit'
 		, unstyled: true
 		, cls: 'MessagePanel'
+		, width: 720
 		});
 		
 		itasks.ttc.message.MessagePanel.superclass.initComponent.apply(this,arguments);

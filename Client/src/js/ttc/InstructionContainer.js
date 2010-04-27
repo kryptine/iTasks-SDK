@@ -12,23 +12,13 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 			, cls: 'InstructionContainer-Description'
 			, description: this.label
 			, headerButton: this.headerButton
+			, width: 720
 			},
 			{ xtype: 'panel'
 			, unstyled: true
 			, html: this.instruction
 			, cls: 'InstructionContainer-Text'
-			/*
-			, buttons: [
-				{ xtype: 'button'
-				, name: 'action'
-				, id: 'tf-'+this.taskId+'-action-0'
-				, text: 'Done'
-				, value: 1
-				, disabled: false
-				, iconCls: 'icon-ok'
-				}	
-			]
-			*/
+			, width: 720
 			}
 		]});
 		if(this.context != null){
@@ -36,7 +26,8 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 				xtype: 'panel',
 				html: this.context,
 				unstyled: true,
-				cls: 'InstructionContainer-Context'
+				cls: 'InstructionContainer-Context',
+				width: 720
 			};
 		}
 		Ext.apply(this.items[this.items.length - 1],{

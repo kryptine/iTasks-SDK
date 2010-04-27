@@ -139,13 +139,13 @@ div.treegrid {
 div.treegrid-empty {
 }
 div.treegrid-line {
-	background: url('../../ext3.1.1/resources/images/default/tree/elbow-line.gif') no-repeat;
+	background: url('../../ext-3.2.0/resources/images/default/tree/elbow-line.gif') no-repeat;
 }
 div.treegrid-middle {
-	background: url('../../ext3.1.1/resources/images/default/tree/elbow.gif') no-repeat;
+	background: url('../../ext-3.2.0/resources/images/default/tree/elbow.gif') no-repeat;
 }
 div.treegrid-last {
-	background: url('../../ext3.1.1/resources/images/default/tree/elbow-end.gif') no-repeat;
+	background: url('../../ext-3.2.0/resources/images/default/tree/elbow-end.gif') no-repeat;
 }
 div.treegrid-icon {
 	background-position: 0 2px;

@@ -14,11 +14,13 @@ itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
 				, cls: 'MonitorContainerDescription'
 				, description: 'Monitor task'
 				, headerButton: this.headerButton
+				, width: 720
 				},
 				{ xtype: 'panel'
 				, cls: 'MonitorPanel'
 				, unstyled: true
 				, html: this.html
+				, width: 720
 				}
 			]
 		});

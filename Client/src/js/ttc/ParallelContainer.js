@@ -77,8 +77,8 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 			}
 			
 			if(i<(this.items.length-1)){
-				if (this.items.get(i+1).getXType() == content[i].xtype){
-					this.items.get(i+1).update(content[i]);
+				if (this.items.get(i+1).getXType() == content[i].xtype && this.items.get(i+1).body){
+					this.items.get(i+1).update(content[i]);				
 				}else{
 					//if not same xtype - completely replace tab contents
 					this.remove(i+1);
@@ -137,6 +137,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 				, cls: 'task-description ParallelControlDescription'
 				, unstyled: true
 				, html: this.label
+				, width: 720
 				},
 				{ xtype: 'panel'
 				, bodyStyle: 'padding: 4px'
@@ -149,6 +150,7 @@ itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
 					this.grid
 				]
 				, cls: 'ParallelControlPanel'
+				, width: 720
 				, unstyled: true
 				, buttons: [
 					{ xtype: 'button'
@@ -287,7 +289,7 @@ itasks.ttc.parallel.ManageWindow = Ext.extend(Ext.Window,{
 
 	initComponent : function(){
 		Ext.apply(this,
-		{ width: 735
+		{ width: 745
 		, height: 300
 		, layout: 'fit'
 		, modal: true

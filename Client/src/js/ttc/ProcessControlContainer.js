@@ -12,12 +12,14 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 			, cls: 'ProcessControlDescription'
 			, description: 'Control process properties'
 			, headerButton: this.headerButton
+			, width: 720
 			},
 			{ xtype: 'panel'
 			, unstyled: true
 			, layout: "form"
 			, defaultType: "staticfield"
 			, cls: 'ProcessControlPanel'
+			, width: 720
 			, items: [
 				{ html: "Waiting for <i>" +  this.properties.managerProps.subject + "</i>"
 				, style: "margin: 0px 0px 20px 0px;"
