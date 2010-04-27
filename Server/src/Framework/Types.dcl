@@ -13,8 +13,8 @@ from iTasks			import class iTask
  
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON, StoreTasks
 
-derive gPrint			Session, Document, Hidden, HtmlDisplay, Editable, UserName
-derive gParse			Session, Document, Hidden, HtmlDisplay, Editable, UserName
+derive gPrint			Session, Document, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
+derive gParse			Session, Document, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
 derive gVisualize		Session
 derive gUpdate			Session
 derive gMerge			Session, UserName, User

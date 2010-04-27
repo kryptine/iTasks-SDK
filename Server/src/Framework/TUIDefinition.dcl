@@ -37,9 +37,11 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIUsernameControl TUIBasicControl
 	| TUIDocumentControl TUIDocumentControl
 	| TUIConstructorControl TUIConstructorControl
+	| TUIHiddenControl TUIBasicControl
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
+	
 	//-- OLD --
 	| TUIButton TUIButton
 	| TUINumberField TUINumberField
