@@ -92,8 +92,8 @@ initTaskProperties
 	    }
 	 }
 		  
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
-createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
+createTaskInstance task managerProps toplevel mbParType tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
@@ -126,7 +126,7 @@ createTaskInstance task managerProps toplevel tst=:{taskNr,mainTask}
 		, changeCount	 = 0
 		, mutable		 = True
 		, menus			 = Nothing
-		, inParallelType = Nothing
+		, inParallelType = mbParType
 		}
 	//Create an entry in the process table
 	# (processId, tst)		= createProcess process tst
@@ -613,7 +613,7 @@ applyTask (Task desc=:{TaskDescription | groupedBehaviour} mbCxt taskfun) tst=:{
 				(TaskException e)
 					// Store exception
 					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (finalizeTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = "Exception"} [Text "Uncaught exception"]) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
 					= (TaskException e, tst)
 		
 where

@@ -406,7 +406,8 @@ makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTask}
 	# (mbcvalue,tst)		= readShared sharedId tst
 	= case mbcvalue of
-		Nothing = applyTask (throw "updateShared: shared variable is deleted") tst
+		Nothing
+			= (TaskException (dynamic "updateShared: shared variable is deleted"), tst)
 		Just cvalue
 			# (anyUpd,tst)			= anyUpdates tst
 			| newTask || not anyUpd

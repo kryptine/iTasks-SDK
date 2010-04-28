@@ -272,7 +272,7 @@ instance assign User
 where
 	assign :: !User !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
 	assign user initPriority initDeadline task = createOrEvaluateTaskInstance (toUserName user) initPriority initDeadline Nothing task
-						 
+
 createOrEvaluateTaskInstance :: !UserName !TaskPriority !(Maybe Timestamp) !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
 createOrEvaluateTaskInstance userName initPriority initDeadline mbpartype task = mkMainTask "assign" createOrEvaluateTaskInstance`
 where
@@ -292,8 +292,8 @@ where
 					  				, tempWorkers	 = []
 									}
 				# tst				  = addTemporaryUser taskId userName mbpartype tst
-				# (result,procId,tst) = createTaskInstance task props False tst
-				# (ok,tst) = updateProcess procId (\x -> {Process | x & inParallelType = mbpartype}) tst
+				# (result,procId,tst) = createTaskInstance task props False mbpartype tst
+				//# (ok,tst) = updateProcess procId (\x -> {Process | x & inParallelType = mbpartype}) tst
 				= (result,tst)
 			//When found, evaluate
 			Just proc
@@ -303,7 +303,7 @@ where
 				# (result,_,tst)	= evaluateTaskInstance proc Nothing False False tst
 				// <- TSt back to current process				
 				//Add parallel type after the new proc is evaluated
-				# (ok,tst) 			= updateProcess proc.Process.processId (\x -> {Process | x & inParallelType = mbpartype}) tst 
+				//# (ok,tst) 			= updateProcess proc.Process.processId (\x -> {Process | x & inParallelType = mbpartype}) tst 
 				= case result of
 					TaskBusy				
 						= (TaskBusy,tst)

@@ -29,5 +29,5 @@ where
 						  , deadline		= Nothing
 						  , tempWorkers		= []
 						  }
-		# (_,pid,tst) = createTaskInstance workflow.Workflow.mainTask properties True tst
+		# (_,pid,tst) = createTaskInstance workflow.Workflow.mainTask properties True Nothing tst
 		= (pid,tst)
