@@ -89,6 +89,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 				comp.on("select",changeTaskEvent);
 				break;
 			case "button":
+			case "itasks.tui.FormButton":
 			case "menuitem":
 				if(comp.name)
 					comp.on("click",clickTaskEvent);

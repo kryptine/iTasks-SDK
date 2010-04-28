@@ -18,6 +18,15 @@ import GenCopy
 // Plain text notes
 :: Note			= Note String
 
+// Form buttons
+:: FormButton 		= 
+	{ label			:: String
+	, icon			:: String
+	, state			:: ButtonState
+	}
+	
+:: ButtonState		= NotPressed | Pressed
+
 :: FormattedText = FormattedText String FormattedTextControls
 :: FormattedTextControls =
 	{ alignmentControls	:: Bool	// Enable the left, center, right alignment buttons
@@ -62,13 +71,13 @@ currentDateTime :: !*World -> (!DateTime,!*World)
 	| USD Int
 	| JPY Int
 	
-derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
-derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
-derive gVisualize		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
-derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
-derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton
+derive gVisualize		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton
+derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton, ButtonState
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton, ButtonState
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormButton, ButtonState
 
 instance html Note
 instance toString FormattedText
@@ -76,6 +85,7 @@ instance toString FormattedText
 instance toString Date
 instance toString Time
 instance toString Currency
+instance toString DateTime
 
 instance toInt Currency
 

@@ -10,9 +10,9 @@ derive gPrint			Session, Document, DocumentType, DocumentInfo, DocumentContent, 
 derive gParse			Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
 derive gVisualize		Session
 derive gUpdate			Session
-derive gMerge			Session, UserName, User
-derive gMakeLocalCopy	Session, UserName, User
-derive gMakeSharedCopy	Session, UserName, User
+derive gMerge			Session, UserName, User, VisualizationHint
+derive gMakeLocalCopy	Session, UserName, User, VisualizationHint
+derive gMakeSharedCopy	Session, UserName, User, VisualizationHint
 derive bimap			Maybe, (,)
 
 derive JSONEncode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation

@@ -38,6 +38,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIDocumentControl TUIDocumentControl
 	| TUIConstructorControl TUIConstructorControl
 	| TUIHiddenControl TUIBasicControl
+	| TUIFormButtonControl TUIButtonControl
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
@@ -91,6 +92,16 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool //-> Change to optional!
 	, staticDisplay :: !Bool
+	}
+:: TUIButtonControl =
+	{ name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, label			:: !String
+	, iconCls		:: !String
+	, fieldLabel	:: !Maybe String
+	, staticDisplay	:: !Bool
+	, optional		:: !Bool
 	}
 :: TUIConstructorControl =
 	{ id			:: !String

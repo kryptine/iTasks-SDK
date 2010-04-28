@@ -17,9 +17,9 @@ derive gPrint			Session, Document, Hidden, HtmlDisplay, Editable, UserName, Visu
 derive gParse			Session, Document, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
 derive gVisualize		Session
 derive gUpdate			Session
-derive gMerge			Session, UserName, User
-derive gMakeLocalCopy	Session, UserName, User
-derive gMakeSharedCopy	Session, UserName, User
+derive gMerge			Session, UserName, User, VisualizationHint
+derive gMakeLocalCopy	Session, UserName, User, VisualizationHint
+derive gMakeSharedCopy	Session, UserName, User, VisualizationHint
 
 derive JSONEncode Document
 derive JSONDecode Document

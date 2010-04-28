@@ -5,18 +5,45 @@ import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
-derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
-derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
 derive gVisualize		EmailAddress, DateTime
 derive gUpdate			EmailAddress, Note, DateTime, FormattedText, FormattedTextControls
-derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
 derive gLexOrd			Currency
 
 derive bimap	Maybe, (,)
 
 //VValue a DataMask
+gVisualize{|FormButton|} old new vst=:{vizType,label=fLabel,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
+	= case vizType of
+		VEditorDefinition
+			= ([TUIFragment (TUIFormButtonControl {TUIButtonControl | label = label old, iconCls = icon old, name = dp2s currentPath, id = id, value = toString pressedOld, fieldLabel = labelAttr useLabels fLabel, optional = optional, staticDisplay = renderAsStatic})]
+				, 1
+				, {VSt | vst & currentPath = stepDataPath currentPath})
+		VEditorUpdate
+			| pressedOld <> pressedNew	= ([TUIUpdate (TUISetValue id (toString pressedNew))]
+											, 1
+											, {VSt | vst & currentPath = stepDataPath currentPath})
+										= ([],1,{VSt | vst & currentPath = stepDataPath currentPath})
+		_
+										= ([TextFragment (label old)]
+											, 1
+											, {VSt | vst & currentPath = stepDataPath currentPath})
+where
+	id			= dp2id idPrefix currentPath
+	
+	label b		= case b of (VValue b _) = b.FormButton.label; _ = ""
+	icon b		= case b of (VValue b _) = b.icon; _ = ""	
+	
+	pressedOld	= case old of (VValue ob _) = pressed ob; _ = False
+	pressedNew	= case new of (VValue nb _) = pressed nb; _ = True
+	pressed b	= case b.FormButton.state of
+		Pressed		= True
+		NotPressed	= False	
+
 gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIPasswordControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
@@ -149,6 +176,17 @@ where
 	
 	id = dp2id idPrefix currentPath
 
+		
+gUpdate{|FormButton|} _ ust=:{USt|mode=UDCreate}
+	= ({FormButton | label = "Form Button", icon="", state = NotPressed}, ust)
+gUpdate{|FormButton|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+	| currentPath == searchPath
+		= ({s & state = if(update == "true") Pressed NotPressed}, toggleMask {USt|ust & mode = UDDone}) 
+	| otherwise
+		= (s, {USt | ust & currentPath = stepDataPath currentPath})
+gUpdate{|FormButton|} s ust=:{USt|mode=UDMask,currentPath,mask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
+		
 gUpdate{|Password|} _ ust=:{USt|mode=UDCreate} 
 	= (Password "", ust)
 gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
@@ -246,6 +284,10 @@ where
 instance fromString Date
 where
 	fromString s					= {Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
+
+instance toString DateTime
+where
+	toString (DateTime d t) = toString d +++ " " +++ toString t
 
 instance toString Note
 where

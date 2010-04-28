@@ -7,6 +7,7 @@ implementation module Newsgroups
 
 import StdList, StdOrdList, StdTuple, StdMisc
 import iTasks
+import Text
 import CommonDomain
 
 derive gPrint		EMail, Reply, DisplayNews, Broadcast
@@ -19,11 +20,11 @@ derive bimap		Maybe, (,)
 newsgroupsExample :: [Workflow]
 newsgroupsExample
 =	[	workflow	 "Examples/Communication/Newsgroups" handleMenu
-	,	workflow	 "Examples/Communication/mail" internalEmail
-	,	workflow	 "Examples/Communication/broadcast" internalBroadcast
-	,	workflow	 "Examples/Communication/mail with confirmation" internalEmailConf
-	,	workflow	 "Examples/Communication/mail with forced reply" internalEmailReply
-	,	workflow	 "Examples/Communication/make appointment" mkAppointment
+	,	workflow	 "Examples/Communication/Mail" internalEmail
+	,	workflow	 "Examples/Communication/Broadcast" internalBroadcast
+	,	workflow	 "Examples/Communication/Mail with confirmation" internalEmailConf
+	,	workflow	 "Examples/Communication/Mail with forced reply" internalEmailReply
+	,	workflow	 "Examples/Communication/Make appointment" mkAppointment
 	,	workflow	 "Examples/Communication/Delegate Instruction" mkInstruction
 	,	workflow	 "Examples/Communication/Chat with someone" chat
 	]
@@ -170,35 +171,145 @@ where
 */
 
 // chat
-:: Chat :== (Note,Note)
+derive gPrint 			Chat, ChatMessage, ChatView, ChatMessageView
+derive gParse			Chat, ChatMessage, ChatView, ChatMessageView
+derive gUpdate			Chat, ChatMessage, ChatView, ChatMessageView
+derive gVisualize		Chat, ChatMessage, ChatView, ChatMessageView
+derive gMakeLocalCopy 	Chat, ChatMessage, ChatView, ChatMessageView
+derive gMakeSharedCopy	Chat, ChatMessage, ChatView, ChatMessageView
+derive gMerge			Chat, ChatMessage, ChatView, ChatMessageView
 
-chat 
-	= 					getCurrentUser
-		>>= \me ->		createChatBox
-		>>= \chatBox ->	enterInformation "With whom do you want to Chat ?" 
-		>>= \friend ->	friend @: ("Chat Request", chatSession chatBox friend) 
-		>>= \yes ->		if yes (chatTask True chatBox) (return Void)
-where		
+//Shared State	
+:: Chat =
+	{ users		:: [UserName]
+	, messages	:: [ChatMessage]
+	}
+	
+:: ChatMessage =
+	{ who		:: UserName
+	, when		:: DateTime
+	, message	:: Note
+	, replies	:: [ChatMessage]
+	}
+
+//Transformed View
+:: ChatView = 
+	{ users		:: HtmlDisplay [UserName]
+	, messages	:: HtmlDisplay [ChatMessageView]
+	}
+	
+:: ChatMessageView = 
+	{ info		:: String
+	, message 	:: VisualizationHint Note
+	, replies	:: [ChatMessageView]
+	, addReply	:: Editable FormButton
+	}
+
+chat
+	=				getCurrentUser
+	>>= \me ->		selectFriends
+	>>= \friends -> createChatBox
+	>>= \chatbox ->	allTasks ([spawnProcess f True (initiateChat chatbox f [un me:friends]) \\ f <- friends]
+							++ [spawnProcess (un me) True (initSession >>| chatSession chatbox (un me))]) 						
+where
+	un me = toUserName me
+	
 	createChatBox :: (Task (DBid Chat))
-	createChatBox = createDB (Note "",Note "")
+	createChatBox = createDB {Chat | users = [], messages = []}
 
-	chatSession :: (DBid Chat) UserName -> Task Bool
-	chatSession chatBox friend 
-		= 				requestConfirmation "Do you want to Chat with me ?"
-			>>= \yes -> if yes 
-							(spawnProcess friend True (chatTask False chatBox) >>| return True)
-							(return False)
-
-	chatTask bool chatBox = updateShared "Chat" [] chatBox [chatEditor bool] >>| return Void
-
-	chatEditor :: Bool -> (View Chat)
-	chatEditor b = editor {editorFrom = editorFrom b, editorTo = editorTo b}
+	selectFriends :: Task [UserName]
+	selectFriends = enterInformation "Whom do you want to chat with?"
+	
+	initiateChat :: (DBid Chat) UserName [UserName] -> Task Void
+	initiateChat chatbox friend friends
+		=	requestConfirmation ("Do you want to initiate a chat with "+++printFriends+++"?")
+		>>= \yes -> if yes
+						(initSession >>| chatSession chatbox friend)
+						(return Void)
 	where
-		editorFrom True (note1,note2) = HtmlDisplay (note1, Editable note2)
-		editorFrom False (note1,note2) = HtmlDisplay (note2, Editable note1)
+		printFriends = join ", " (map toString friends)
+
+	initSession :: Task Void
+	initSession = setMenus
+		[ Menu "File" [ MenuItem "New Topic" ActionNew
+					  , MenuItem "Quit"		 ActionQuit
+					  ]
+		]
+	
+	chatSession :: (DBid Chat) UserName -> Task Void
+	chatSession chatbox user 
+		= 			readDB chatbox
+		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
+		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBAlwaysFixed] (chatActions chatbox user)
+	where
+		chatActions :: (DBid Chat) UserName -> [GroupAction GOnlyAction Void Chat]
+		chatActions chatbox user = [ GroupAction	ActionNew	(GOExtend [ignoreResult (newTopic chatbox user)]) 	GroupAlways
+						 		   , GroupAction 	ActionQuit	GOStop												GroupAlways
+						 		   ]
+						 		   	
+	chatEditor :: (DBid Chat) UserName -> Task Void
+	chatEditor chatbox user = ignoreResult (getCurrentDateTime >>= \dt -> updateShared "Chat" [] chatbox [mainEditor user dt])
+	
+	mainEditor :: UserName DateTime -> (View Chat)
+	mainEditor user dt = editor {editorFrom = editorFrom user, editorTo = editorTo user dt}
+	where
+		editorFrom :: UserName Chat -> ChatView
+		editorFrom user chat = {ChatView 
+							   | users 		= HtmlDisplay chat.Chat.users
+							   , messages 	= HtmlDisplay [(convertMessageToView user msg) \\ msg <- chat.Chat.messages]
+							   }
+		where
+			convertMessageToView :: UserName ChatMessage -> ChatMessageView
+			convertMessageToView user msg =
+				{ ChatMessageView
+				| info		= toString msg.ChatMessage.who+++" said at "+++toString msg.ChatMessage.when
+				, message	= if(user == msg.ChatMessage.who) (VHEditable msg.ChatMessage.message) (VHHtmlDisplay msg.ChatMessage.message)
+				, replies	= [convertMessageToView user reply \\ reply <- msg.ChatMessage.replies]
+				, addReply	= Editable {FormButton | label = "Add reply", icon = "", state = NotPressed}
+				}
 		
-		editorTo True (HtmlDisplay (note1, Editable note2)) s = (note1,note2)
-		editorTo False (HtmlDisplay (note2, Editable note1)) s = (note1,note2)
+		editorTo :: UserName DateTime ChatView Chat -> Chat
+		editorTo user dt view chat = {Chat
+								  | users 		= chat.Chat.users
+								  , messages 	= [convertViewToMessage user dt vmsg omsg \\ vmsg <- (fromHtmlDisplay view.ChatView.messages) & omsg <- chat.Chat.messages]
+								  }
+		where
+			convertViewToMessage :: UserName DateTime ChatMessageView ChatMessage -> ChatMessage
+			convertViewToMessage user dt vmsg omsg =
+				{ ChatMessage
+				| who		= omsg.ChatMessage.who
+				, when		= omsg.ChatMessage.when
+				, message	= fromVizHint vmsg.ChatMessageView.message
+				, replies	= [convertViewToMessage user dt vreply oreply \\ vreply <- vmsg.ChatMessageView.replies & oreply <- omsg.ChatMessage.replies ] ++ addReply (fromEditable vmsg.addReply) user dt
+				}
+			
+			addReply :: FormButton UserName DateTime -> [ChatMessage]
+			addReply button user dt 
+				= case button.state of
+					Pressed
+						= [{ChatMessage | who = user, when = dt, message = Note "", replies = []}]
+					NotPressed
+						= []
+				
+			fromVizHint (VHEditable x) 		= x
+			fromVizHint (VHHtmlDisplay x) 	= x
+			fromVizHint (VHHidden x) 		= x
+	
+	newTopic :: (DBid Chat) UserName -> Task Void
+	newTopic chatbox user 
+		= 				readDB  chatbox
+		>>= \chat ->	getCurrentDateTime
+		>>= \dt	  ->	writeDB chatbox (addNew chat user dt)
+		>>|				return  Void
+	where
+		addNew chat user dt = {Chat | chat & messages = chat.Chat.messages ++ [mkMsg user dt]}			
+			
+		mkMsg user dt = {ChatMessage 
+						| who = user
+						, when = dt
+		  				, message = (Note "")
+		  				, replies = []
+		   				}
 
 // mail handling, to be put in sepparate icl file
 

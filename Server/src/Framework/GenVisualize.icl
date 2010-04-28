@@ -235,7 +235,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 		VHtmlDisplay
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
-					# (vizBody,rh, vst) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath}
+					# (vizBody,rh, vst) = fx (VValue ox omask) (VValue nx nmask) {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
 					//Records
 					| not (isEmpty d.gcd_fields) 
 						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]],rh,{VSt|vst & currentPath = stepDataPath currentPath})
@@ -246,7 +246,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 					= ([],0,{VSt|vst & currentPath = stepDataPath currentPath})
 		//Other visualizations
 		_	
-			# (viz,rh,vst) = fx oldV newV {vst & label = Nothing, currentPath = shiftDataPath currentPath}
+			# (viz,rh,vst) = fx oldV newV {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
 			= (viz,0,{VSt|vst & currentPath = stepDataPath currentPath})
 where
 	oldV = case old of (VValue (CONS ox) omask) = VValue ox omask; _ = VBlank
