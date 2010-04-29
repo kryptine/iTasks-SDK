@@ -170,7 +170,7 @@ where
 	defineOptions = enterInformation "Define date and time options:"
 */
 
-// chat
+// ====== CHAT =====================================================
 derive gPrint 			Chat, ChatMessage, ChatView, ChatMessageView
 derive gParse			Chat, ChatMessage, ChatView, ChatMessageView
 derive gUpdate			Chat, ChatMessage, ChatView, ChatMessageView
@@ -181,7 +181,8 @@ derive gMerge			Chat, ChatMessage, ChatView, ChatMessageView
 
 //Shared State	
 :: Chat =
-	{ users		:: [UserName]
+	{ initUser	:: UserName
+	, users		:: [UserName]
 	, messages	:: [ChatMessage]
 	}
 	
@@ -204,18 +205,20 @@ derive gMerge			Chat, ChatMessage, ChatView, ChatMessageView
 	, replies	:: [ChatMessageView]
 	, addReply	:: Editable FormButton
 	}
+	
+ActionAddUser :== ActionLabel "Add User" 
 
 chat
 	=				getCurrentUser
 	>>= \me ->		selectFriends
-	>>= \friends -> createChatBox
-	>>= \chatbox ->	allTasks ([spawnProcess f True (initiateChat chatbox f [un me:friends]) \\ f <- friends]
-							++ [spawnProcess (un me) True (initSession >>| chatSession chatbox (un me))]) 						
+	>>= \friends -> createChatBox (toUserName me)
+	>>= \chatbox ->	allTasks ([spawnProcess f True ("Chat Request" @>> (initiateChat chatbox f [un me:friends])) \\ f <- friends]
+							++ [spawnProcess (un me) True ("Chat Request" @>> (initSession >>| chatSession chatbox (un me)))]) 						
 where
 	un me = toUserName me
 	
-	createChatBox :: (Task (DBid Chat))
-	createChatBox = createDB {Chat | users = [], messages = []}
+	createChatBox :: UserName -> (Task (DBid Chat))
+	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
 
 	selectFriends :: Task [UserName]
 	selectFriends = enterInformation "Whom do you want to chat with?"
@@ -232,6 +235,7 @@ where
 	initSession :: Task Void
 	initSession = setMenus
 		[ Menu "File" [ MenuItem "New Topic" ActionNew
+					  , MenuItem "Add Users" ActionAddUser
 					  , MenuItem "Quit"		 ActionQuit
 					  ]
 		]
@@ -243,8 +247,9 @@ where
 		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBAlwaysFixed] (chatActions chatbox user)
 	where
 		chatActions :: (DBid Chat) UserName -> [GroupAction GOnlyAction Void Chat]
-		chatActions chatbox user = [ GroupAction	ActionNew	(GOExtend [ignoreResult (newTopic chatbox user)]) 	GroupAlways
-						 		   , GroupAction 	ActionQuit	GOStop												GroupAlways
+		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [ignoreResult (newTopic chatbox user)]) 	GroupAlways
+						 		   , GroupAction 	ActionQuit		GOStop												GroupAlways
+						 		   , GroupAction	ActionAddUser	(GOExtend [ignoreResult (addUsers chatbox)])		(SharedPredicate chatbox (\(SharedValue chat) -> chat.Chat.initUser == user)) 
 						 		   ]
 						 		   	
 	chatEditor :: (DBid Chat) UserName -> Task Void
@@ -270,8 +275,8 @@ where
 		
 		editorTo :: UserName DateTime ChatView Chat -> Chat
 		editorTo user dt view chat = {Chat
-								  | users 		= chat.Chat.users
-								  , messages 	= [convertViewToMessage user dt vmsg omsg \\ vmsg <- (fromHtmlDisplay view.ChatView.messages) & omsg <- chat.Chat.messages]
+								  | chat
+								  & messages 	= [convertViewToMessage user dt vmsg omsg \\ vmsg <- (fromHtmlDisplay view.ChatView.messages) & omsg <- chat.Chat.messages]
 								  }
 		where
 			convertViewToMessage :: UserName DateTime ChatMessageView ChatMessage -> ChatMessage
@@ -310,6 +315,14 @@ where
 		  				, message = (Note "")
 		  				, replies = []
 		   				}
+	
+	addUsers :: (DBid Chat) -> Task Void
+	addUsers chatbox
+		= 			 	enterInformation "Select users to add to the chat"	
+		>>= \users -> 	readDB chatbox
+		>>= \chat ->	allTasks ([spawnProcess u True ("Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
+		>>| 		 	return Void
+//===============================================
 
 // mail handling, to be put in sepparate icl file
 
