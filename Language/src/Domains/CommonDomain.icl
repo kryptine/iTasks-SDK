@@ -301,9 +301,14 @@ toUnformattedString :: FormattedText -> String
 toUnformattedString (FormattedText s _)
 	# s	= replaceSubString "<br>" "\n" s
 	# s	= replaceSubString "<BR>" "\n" s
+	# s	= replaceSubString "<br/>" "\n" s
+	# s	= replaceSubString "<BR/>" "\n" s
 	# s	= replaceSubString "</li>" "\n" s
-	# s = replaceSubString "&nbsp;" " " s
 	# s	= stripHtmlTags s
+	# s = replaceSubString "&nbsp;" " " s
+	# s = replaceSubString "&lt;" "<" s
+	# s = replaceSubString "&gt;" ">" s
+	# s = replaceSubString "&amp;" "&" s
 	= s
 where
 	stripHtmlTags s

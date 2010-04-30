@@ -57,13 +57,83 @@ ActionCompile				:== ActionLabel "compile"
 ActionEditCodeGenOptions	:== ActionLabel "codeGenOpts"
 ActionEditAppOptions		:== ActionLabel "appOpts"
 ActionEditLinkOptions		:== ActionLabel "linkOpts"
+
+ActionSyntax :== ActionLabel "Do Synatx Highlighting"
 	
 srcEditor :: !(DBid AppState) -> Task Void
-srcEditor sid = ignoreResult (updateShared "Clean Source" [] sid [srcEditorView])
+srcEditor sid =
+				readDB sid
+	>>= \state.	writeDB sid {state & srcEditorContent = highlightSyntax state.srcEditorContent}
+	>>|			updateShared "Clean Source" [ButtonAction (ActionSyntax, Always)] sid [srcEditorView]
+	>>|			srcEditor sid
+	>>|			return Void
 where
 	srcEditorView = editor	{ editorFrom	= \state		-> state.srcEditorContent
 							, editorTo		= \src state	-> {state & srcEditorContent = src}
 							}
+
+:: Mode = InCode | InString | InChar | InMLComment |InSLComment | InNum
+						
+highlightSyntax ft
+	# tags	= highlightSyntax` 0 InCode '\0' "" []
+	# src	= foldl (+++) "" (map toString tags)
+	= setFormattedTextSrc src ft
+where
+	highlightSyntax` n mode prevChar curString acc
+		| n < textSize src
+			# curChar	= select src n
+			# m			= inc n
+			# (pos, mode, curString, acc) = case mode of
+				InCode
+					| curChar == '"'								= (m,							InString,	"\"",			addToAcc 1)
+					| curChar == '\''								= (m,							InChar,		"'",			addToAcc 1)
+					| prevChar == '/' && curChar == '*'				= (m,							InMLComment,"/*",			addToAcc 2)
+					| prevChar == '/' && curChar == '/'				= (m,							InSLComment,"//",			addToAcc 2)
+					| isDigit curChar && not (isAlphanum prevChar)	= (m,							InNum,		if (prevChar == '-' || prevChar == '+') (toString [prevChar,curChar]) (toString curChar),	addToAcc (if (prevChar == '-' || prevChar == '+') 2 1))
+				InString | (curChar == '"' && prevChar <> '\\') || curChar == '\n'
+																	= (if (curChar == '\n') n m,	InCode,		"",				addToAcc (if (curChar == '\n') 1 0))
+				InChar | (curChar == '\'' && prevChar <> '\\') || curChar == '\n'
+																	= (if (curChar == '\n') n m,	InCode,		"",				addToAcc (if (curChar == '\n') 1 0))
+				InMLComment | prevChar == '*' && curChar == '/'
+																	= (m,							InCode,		"",				addToAcc 0)
+				InSLComment | curChar == '\n'
+																	= (n,							InCode,		"",				addToAcc 1)
+				InNum | not (isHexDigit curChar || curChar == 'E' || curChar == 'x' || curChar == '.')
+																	= (n,							InCode,		"",				addToAcc 1)
+				_													= (m,							mode,		appToCurStr,	acc)
+			= highlightSyntax` pos mode curChar curString acc
+		| otherwise = reverse (addToAcc 0)
+	where
+		src	= toUnformattedString ft
+		appToCurStr
+			| n < textSize src	= curString +++ toString (select src n)
+			| otherwise			= curString
+		addToAcc removeChars
+			# string = case removeChars of
+				0	= appToCurStr
+				1	= curString
+				n	= subString 0 (textSize curString - 1) curString
+			= case mode of
+				InString	= [SpanTag [StyleAttr "color: green"] 	(mkTextTags string False):acc]
+				InChar		= [SpanTag [StyleAttr "color: purple"]	(mkTextTags string False):acc]
+				InNum		= [SpanTag [StyleAttr "color: orange"]	(mkTextTags string False):acc]
+				InSLComment	= [SpanTag [StyleAttr "color: blue"]	(mkTextTags string False):acc]
+				InMLComment	= [SpanTag [StyleAttr "color: blue"]	(createLineBreaks string False):acc]
+				InCode		= reverse (createLineBreaks string True) ++ acc
+				
+	createLineBreaks src processContent
+		# lines	= split "\n" src
+		= init (flatten (map (\line -> mkTextTags line processContent ++ [BrTag []]) lines))
+			
+	mkTextTags str processContent
+		#tags = init (flatten [[wordTag word, RawText "&nbsp;"] \\ word <- split " " str])
+		| processContent && indexOf "::" str <> -1	= [SpanTag [StyleAttr "color: red"] tags]
+		| otherwise									= tags
+	where
+		wordTag word
+			| processContent && isMember word keywords	= SpanTag [StyleAttr "color: purple"] [Text word]
+			| otherwise									= Text word
+		keywords = ["where", "import", "from", "let", "in", "module", "definition", "implementation", "derive", "class", "True", "False"]
 
 save :: !(DBid AppState) -> Task Void
 save sid =
@@ -93,10 +163,8 @@ openFile :: !Path !(DBid AppState) -> Task Void
 openFile path sid =
 				readDB sid
 	>>= \state.	readTextFile path
-	>>= \src.	writeDB sid {state & srcEditorContent = setFormattedTextSrc (mkFormattedSrc src) state.srcEditorContent}
+	>>= \src.	writeDB sid {state & srcEditorContent = setFormattedTextSrc src state.srcEditorContent}
 	>>|			stop
-where
-	mkFormattedSrc src = replaceSubString "\n" "<br>" src
 
 createTestPrj :: !(DBid AppState) -> Task Void
 createTestPrj sid =
