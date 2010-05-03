@@ -33,8 +33,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			xtype: 'itasks.ttc.common.description',
 			cls: 'FormDescription',
 			description: data.description,
-			headerButton: this.headerButton,
-			width: 720
+			headerButton: this.headerButton//,
+			//width: 720
 		}
 	},
 	
@@ -42,6 +42,13 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		itasks.ttc.FormContainer.superclass.afterRender.call(this,arguments);
 		//attachTaskHandlers is moved to file 'TTCCommon.js'		
 		itasks.ttc.common.attachTaskHandlers(this);
+		
+		if(!this.fullscreen){
+			for(var i=0; i<this.items.items.length; i++){
+				var cmp = this.getComponent(i);
+				cmp.setWidth(720);
+			}
+		}
 		
 		var tb = this.getTopToolbar();
 		this.setupToolbar(tb);
