@@ -10,10 +10,10 @@ import iTasks
 import Text
 import CommonDomain
 
-derive gPrint		EMail, Reply, DisplayNews, Broadcast
-derive gParse		EMail, Reply, DisplayNews, Broadcast
-derive gVisualize	EMail, Reply, DisplayNews, Broadcast	
-derive gUpdate		EMail, Reply, DisplayNews, Broadcast
+derive gPrint		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
+derive gParse		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
+derive gVisualize	EMail, Reply, DisplayNews, Broadcast, ReplyHdr	
+derive gUpdate		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
 
 derive bimap		Maybe, (,)
 
@@ -332,7 +332,11 @@ where
 				, message		:: !Note
 				, attachements	:: ![Document]
 				}
-:: Reply	=	{ reply			:: !Note
+:: ReplyHdr	=	{ replyFrom		:: !UserName
+				, subject 		:: !String
+				}
+:: Reply =		{ reply			:: !Note
+				, attachements	:: ![Document]
 				}
 :: Broadcast =	{ subject 		:: !String
 				, message		:: !Note
@@ -368,26 +372,29 @@ mailMess me msg = showMessageAbout ("Mail from " <+++ me.displayName <+++ ":") m
 
 internalEmailConf :: (Task EMail)
 internalEmailConf
-=									enterInformation "Type your email message ..."
-	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [{user = who, task = (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
-	>>|								return msg
+=						enterInformation "Type your email message ..."
+	>>= \msg ->			getCurrentUser
+	>>= \me ->			allProc [{user = who, task = (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
+	>>|					return msg
 
 getUserName (UserName id name) = name
 getUserId   (UserName id name) = id
 	
 internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
-=									enterInformation "Type your email message ..."
-	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [{user = who, task = mailMess2 me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
-	>>= \reply ->					return (msg,reply)
+=					enterInformation "Type your email message ..."
+	>>= \msg ->		getCurrentUser
+	>>= \me ->		allProc [{user = who, task = mailMess2 me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \reply ->	showMessageAbout "The following replies have been commited:" reply
+	>>|				return (msg,map snd reply)
 
-mailMess2 :: User EMail -> Task Reply
-mailMess2 me msg = 	(showStickyMessageAbout ("Mail from " <+++ me.displayName <+++ ":") msg 
-				  	||- 
-			   		enterInformation "The sender requested a reply...")
+mailMess2 :: User EMail -> Task (ReplyHdr, Reply)
+mailMess2 me msg 
+	= 	(showStickyMessageAbout ("Mail from " <+++ me.displayName <+++ ":") msg 
+	  	||- updateInformation "The sender requested a reply..." 
+   				(HtmlDisplay {replyFrom = toUserName me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = [] }))
 					<<@ msg.EMail.subject
+		>>= \(HtmlDisplay hdr,reply) -> return (hdr,reply)
 
 // newsgroup handling
 
