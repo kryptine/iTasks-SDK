@@ -9,17 +9,19 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.autoHeight = true;
-		this.autoEl = {tag: 'ul' }
+		//this.autoEl = {tag: 'ul' }
 		
 		for(var i=0; i<this.definitions.length; i++){
-			this.items[i] = {
-				xtype: 'container',
-				autoEl: {tag: 'li', style: 'padding: 0px 4px 0px 0px; float: left'},
-				layout: 'form',
+			/*this.items[i] = {
+				//xtype: 'container',
+				//autoEl: {tag: 'li', style: 'padding: 0px 4px 0px 0px; width: 100%'},
+				layout: 'fit',
 				items: this.definitions[i],
 				unstyled: true,
 				autoHeight: true
-			}
+			}*/
+			
+			this.items[i] = this.definitions[i];
 		}
 			
 		itasks.tui.TupleContainer.superclass.initComponent.apply(this,arguments);
@@ -27,7 +29,7 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 
 	afterRender: function(){
 		itasks.tui.TupleContainer.superclass.afterRender.call(this,arguments);
-		this.doLayoutComponents.defer(50,this);
+		//this.doLayoutComponents.defer(50,this);
 	},
 
 	doLayoutComponents: function(){

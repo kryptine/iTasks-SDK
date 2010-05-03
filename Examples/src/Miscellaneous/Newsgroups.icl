@@ -74,7 +74,7 @@ derive gMakeLocalCopy		Meeting, Appointment, Attending
 import StdDebug, GenPrint
 
 //mkAppointment :: Task (Appointment,Meeting,[UserName])
-mkAppointment 
+/*mkAppointment 
 	= 					meetingGoal 
 		>>= \goal -> 	defineParticipants 
 		>>= \users ->	defineOptions
@@ -121,9 +121,9 @@ where
 	defineParticipants = enterInformation "Select participants:"
 
 	defineOptions :: Task [Meeting]
-	defineOptions = enterInformation "Define date and time options:"
+	defineOptions = enterInformation "Define date and time options:"*/
 
-/*
+
 mkAppointment 
 	= 					meetingGoal 
 		>>= \goal -> 	defineParticipants 
@@ -151,11 +151,11 @@ where
 			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
 			
 			editorFrom (goal, props) 
-				= (Static goal, [let (att,user) = attlist!!n in (Static (meeting, attlist),(Static (user +++> "  can you attend ?"),att)) 
+				= (HtmlDisplay goal, [let (att,user) = attlist!!n in (HtmlDisplay (meeting, attlist),(HtmlDisplay (user +++> "  can you attend ?"),att)) 
 									\\ (meeting,attlist) <- props])
 
-			editorTo (Static goal, props) _ 
-				= (goal, [(meeting,let (att,user) = attlist!!n in updateAt n (yn,user) attlist) \\ (Static (meeting, attlist),(_,yn)) <- props])
+			editorTo (HtmlDisplay goal, props) _ 
+				= (goal, [(meeting,let (att,user) = attlist!!n in updateAt n (yn,user) attlist) \\ (HtmlDisplay (meeting, attlist),(_,yn)) <- props])
 
 			pred (Valid (_,props))	= and [let (att,user) = attlist!!n in isJust att \\ (_,attlist) <- props] // Lijkt deze niet te testen...
 			pred _					= False 
@@ -168,7 +168,6 @@ where
 
 	defineOptions :: Task [Meeting]
 	defineOptions = enterInformation "Define date and time options:"
-*/
 
 // ====== CHAT =====================================================
 derive gPrint 			Chat, ChatMessage, ChatView, ChatMessageView
