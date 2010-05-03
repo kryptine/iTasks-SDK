@@ -107,7 +107,9 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		} else {
 			tb.removeClass(cls);
 		}
-	}
+	},
+	
+	update: function(data){}
 });
 
 Ext.ns('itasks.ttc.message');
