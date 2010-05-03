@@ -142,19 +142,25 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 
 itasks.ttc.common.DescriptionPanel = Ext.extend(Ext.Panel,{
 	initComponent : function(){
+		
 		Ext.apply(this,{
 			cls: this.cls + ' task-description',
 			unstyled: true
 		});
+		
 		if(Ext.isDefined(this.headerButton)) {
 			this.items = [{html: this.description, unstyled: true, columnWidth: 1}, this.headerButton];
 			this.layout = 'column';
 		} else {
-			this.html = this.description;
+			this.items = [{html: this.description, unstyled: true}];
 		}
 
 		itasks.ttc.common.DescriptionPanel.superclass.initComponent.apply(this,arguments);
 	}
 });
+
+itasks.ttc.common.setFullscreen = function(ct){
+	ct.fullscreen = true;
+};
 
 Ext.reg('itasks.ttc.common.description', itasks.ttc.common.DescriptionPanel);
