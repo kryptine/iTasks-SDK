@@ -29,6 +29,7 @@
 		,{"text":"ListContainer.js","path":"src/js/tui/"}
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
 		,{"text":"TupleContainer.js","path":"src/js/tui/"}
+		,{"text":"AppletContainer.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}
 		,{"text":"FormContainer.js","path":"src/js/ttc/"}
