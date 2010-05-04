@@ -196,20 +196,22 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		if(cont == this.focusedContainer)
 			return; // cont already focused
 			
-		if(this.focusedContainer) {
-			this.focusedContainer.unfocusFixed();
+		var oldFocused = this.focusedContainer;
+		this.focusedContainer = cont;
+			
+		if(oldFocused) {
+			oldFocused.unfocusFixed();
 			
 			// only copy toolbar of form and message containers
-			if(this.focusedContainer.get(0).getXType() == 'itasks.ttc.form' || this.focusedContainer.get(0).getXType() == 'itasks.ttc.message') {
+			if(oldFocused.get(0).getXType() == 'itasks.ttc.form' || oldFocused.get(0).getXType() == 'itasks.ttc.message') {
 				// copy top toolbar back to container
-				this.copyTbar(this.getTopToolbar(), this.focusedContainer.get(0).getTopToolbar());
+				this.copyTbar(this.getTopToolbar(), oldFocused.get(0).getTopToolbar());
 			}
 		}
 
 		// make new toolbar & focus container
 		this.mkSharedTbar(cont);
 		cont.focusFixed();
-		this.focusedContainer = cont;
 	},
 	
 	focusFirstContainer: function() {

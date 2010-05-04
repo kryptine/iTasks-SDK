@@ -15,7 +15,7 @@ where
 	compileToExe` =
 						getConfig sid
 		>>= \config.	getAppPath
-		>>= \appPath.	callProcess (config.oldIDEPath +++ " --batch-build " +++ appPath +++ (config.projectsPath +++ "\\test\\test.prj"))
+		>>= \appPath.	callProcess (config.oldIDEPath +++ " --batch-build \"" +++ appPath +++ (config.projectsPath +++ "\\test\\test.prj\""))
 		>>= \ret.		case ret of
 							0	= 				loadDocumentFromFile "test.exe" "projects\\test"
 									>>= \mbExe.	case mbExe of
