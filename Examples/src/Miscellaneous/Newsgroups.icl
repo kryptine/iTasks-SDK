@@ -61,104 +61,47 @@ derive gMerge				Meeting, Appointment, Attending
 derive gMakeSharedCopy		Meeting, Appointment, Attending
 derive gMakeLocalCopy		Meeting, Appointment, Attending
 
+import StdDebug, GenPrint
+
 :: Appointment		=	{ topic :: Note
 						}
 :: Meeting 			=	{ date		:: Date
 						, from_		:: Time
 						, till		:: Time
 						}
-:: Attending		=	Yes | No | Remark Note
-
-:: MeetingDB		:== (Appointment,[(Meeting,[(Maybe Attending,UserName)])]) 
-
-import StdDebug, GenPrint
-
-//mkAppointment :: Task (Appointment,Meeting,[UserName])
-/*mkAppointment 
-	= 					meetingGoal 
-		>>= \goal -> 	defineParticipants 
-		>>= \users ->	defineOptions
-		>>= \dates ->	let 	sharedData :: MeetingDB
-								sharedData = (goal,[(date,[(Nothing, user)\\ user <- users])\\ date <- dates])
-						in (createDB sharedData
-								>>= \dbid -> startup dbid users sharedData)
-		>>= showMessageAbout "Result"
-where
-	startup :: (DBid MeetingDB) [UserName] MeetingDB -> Task MeetingDB
-	startup dbid [] data = return data
-	startup dbid users data		
-		= let d = (length (snd data)-1)
-		  in 
-			allProc [{user = u, task = ("Meeting Request" @>> task n d)} \\ u <- users & n <- [0..]] Open
-			>>| readDB dbid
-	where			
-		task :: Int Int -> Task [MeetingDB]
-		task uid len
-			= allTasks [updateShared "Meeting request" [ButtonAction (ActionOk,IfValid)] dbid [appointEditor idx] \\ idx <- [0..len]]
-				>>= \list -> return (map snd list)
-		where
-			
-			appointEditor idx = editor {editorFrom = editorFrom idx, editorTo = editorTo idx}
-
-			editorFrom :: Int MeetingDB -> (HtmlDisplay (Meeting,[(Maybe Attending,UserName)]),(HtmlDisplay String,(Maybe Attending)))
-			editorFrom idx (goal, dates)
-				# (date,attlist) = dates !! idx
-				= let (att,user) = attlist !! uid in (HtmlDisplay (date,attlist),(HtmlDisplay(user +++> " can you attend?"),att))
-			
-			editorTo :: Int (HtmlDisplay (Meeting,[(Maybe Attending,UserName)]),(HtmlDisplay String,(Maybe Attending))) MeetingDB -> MeetingDB 				
-			editorTo idx (info,(question,att)) (goal, dates)
-				= let (meeting,attlist) = dates !! idx 
-				  in (goal,updateAt idx (meeting, let (_,user) = attlist !! uid 
-				  								  in updateAt uid (att,user) attlist) dates)
-
-			//pred (Valid (_,props))	= and [let (att,user) = attlist!!n in isJust att \\ (_,attlist) <- props] // Lijkt deze niet te testen...
-			//pred _					= False 
-
-	meetingGoal	:: Task Appointment
-	meetingGoal = enterInformation "Describe the topic of the meeting:"	
-
-	defineParticipants :: Task [UserName]
-	defineParticipants = enterInformation "Select participants:"
-
-	defineOptions :: Task [Meeting]
-	defineOptions = enterInformation "Define date and time options:"*/
-
+:: Attending		=	No | Yes
+:: MeetingDB		:== (Appointment,[(Meeting,[(UserName, Maybe Attending)])]) 
 
 mkAppointment 
 	= 					meetingGoal 
-		>>= \goal -> 	defineParticipants 
-		>>= \users ->	defineOptions
-		>>= \dates ->	let 	sharedData :: (Appointment,[( Meeting,[(Maybe Attending,UserName)])])
-								sharedData = (goal,[(date,[(Nothing, user)\\ user <- users])\\ date <- dates])
+		>>= \goal -> 	defineOptions
+		>>= \dates ->	defineParticipants 
+		>>= \users ->	let 	sharedData :: MeetingDB
+								sharedData = (goal,[(date,[(user, Nothing)\\ user <- users])\\ date <- dates])
 							in (createDB sharedData
 								>>= \dbid -> startup 0 dbid users sharedData)
 where
 	startup n dbid [] _
 		= return Void
 	startup n dbid [u:us] data
-		= spawnProcess u True ("Meeting Request" @>> task True n) >>| 	startup (n+1) dbid us data
+		= spawnProcess u True ("Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
 	where
-		task :: Bool Int -> Task (Appointment,[( Meeting,[(Maybe Attending,UserName)])])
-		task notDone n 
-			= 							if notDone
-											(updateShared "Meeting requested" [ButtonAction (ActionOk,Predicate pred)] dbid [appointEditor])
-											(updateShared "Meeting requested" [ButtonAction (ActionOk,Always)] dbid [idListener])
-				>>= switch notDone
+		task :: Int -> Task MeetingDB
+		task n 
+			= 		updateShared "Meeting requested" [ButtonAction (ActionOk,IfValid)] dbid [appointEditor]
+				>>= switch 
 		where
-			switch True  (ActionOk,_) = task False n
-			switch False (_,result)	  = return result
+			switch   (ActionOk,_) = task n
+			switch  (_,result)	  = return result
 
 			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
 			
 			editorFrom (goal, props) 
-				= (HtmlDisplay goal, [let (att,user) = attlist!!n in (HtmlDisplay (meeting, attlist),(HtmlDisplay (user +++> "  can you attend ?"),att)) 
+				= (HtmlDisplay goal, [let (user,att) = attlist!!n in (HtmlDisplay (meeting, attlist, user +++> "  can you attend ?", Editable att)) 
 									\\ (meeting,attlist) <- props])
 
 			editorTo (HtmlDisplay goal, props) _ 
-				= (goal, [(meeting,let (att,user) = attlist!!n in updateAt n (yn,user) attlist) \\ (HtmlDisplay (meeting, attlist),(_,yn)) <- props])
-
-			pred (Valid (_,props))	= and [let (att,user) = attlist!!n in isJust att \\ (_,attlist) <- props] // Lijkt deze niet te testen...
-			pred _					= False 
+				= (goal, [(meeting,let (user,att) = attlist!!n in updateAt n (user,yn) attlist) \\ (HtmlDisplay (meeting, attlist,_,Editable yn)) <- props])
 
 	meetingGoal	:: Task Appointment
 	meetingGoal = enterInformation "Describe the topic of the meeting:"	
