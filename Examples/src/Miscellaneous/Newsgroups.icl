@@ -97,11 +97,11 @@ where
 			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
 			
 			editorFrom (goal, props) 
-				= (HtmlDisplay goal, [let (user,att) = attlist!!n in (HtmlDisplay (meeting, attlist, user +++> "  can you attend ?", Editable att)) 
+				= HtmlDisplay (goal, [let (user,att) = attlist!!n in (meeting, attlist, user +++> "  can you attend ?", Editable att) 
 									\\ (meeting,attlist) <- props])
 
-			editorTo (HtmlDisplay goal, props) _ 
-				= (goal, [(meeting,let (user,att) = attlist!!n in updateAt n (user,yn) attlist) \\ (HtmlDisplay (meeting, attlist,_,Editable yn)) <- props])
+			editorTo (HtmlDisplay (goal, props)) _ 
+				= (goal, [(meeting,let (user,att) = attlist!!n in updateAt n (user,yn) attlist) \\ (meeting, attlist,_,Editable yn) <- props])
 
 	meetingGoal	:: Task Appointment
 	meetingGoal = enterInformation "Describe the topic of the meeting:"	
