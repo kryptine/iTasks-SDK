@@ -43,8 +43,10 @@ from Time		import :: Timestamp
 	| ActionSaveAs
 	| ActionSave
 	| ActionQuit
+	| ActionClose
 	| ActionHelp
 	| ActionShowAbout
+	| ActionFind
 	
 getActionIcon :: !Action -> String
 

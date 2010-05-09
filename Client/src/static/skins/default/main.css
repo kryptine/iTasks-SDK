@@ -81,6 +81,10 @@ button.icon-help, .icon-help {
 	background-image: url('img/icons/help.png');
 }
 
+button.icon-find, .icon-find {
+	background-image: url('img/icons/find.png');
+}
+
 button.icon-collapse-tree, .icon-collapse-tree {
 	background-image: url('img/icons/collapse-all.gif') !important;
 }
@@ -596,6 +600,10 @@ button.x-form-document-trash-icon {
 
 .file-type-application-pdf-icon{
 	background-image: url('img/icons/page_white_acrobat.png') !important;
+}
+
+.x-color-palette {
+	width: 260px;
 }
 
 /* == Horizontal Grid Layout == */

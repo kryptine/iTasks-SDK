@@ -5,13 +5,13 @@ import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
-derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
-derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
+derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState, Color
+derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState, Color
 derive gVisualize		EmailAddress, DateTime
-derive gUpdate			EmailAddress, Note, DateTime, FormattedText, FormattedTextControls
-derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState
+derive gUpdate			EmailAddress, Note, DateTime, FormattedText, FormattedTextControls, Color
+derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState, Color
+derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState, Color
+derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormattedText, FormattedTextControls, FormButton, ButtonState, Color
 derive gLexOrd			Currency
 
 derive bimap	Maybe, (,)
@@ -113,7 +113,7 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 	= case vizType of
 		VEditorDefinition	= ([TUIFragment (TUIFormattedTextControl	{ name				= dp2s contentPath
 																		, id				= id
-																		, value				= oldV
+																		, value				= replaceMarkers oldV
 																		, fieldLabel		= labelAttr useLabels label
 																		, optional			= optional
 																		, enableAlignments	= controls.alignmentControls
@@ -129,7 +129,7 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 								, 0
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
 		VEditorUpdate
-			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
+			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
 								, 0
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
 		_					# htmlFrag = case old of
@@ -148,6 +148,42 @@ where
 	controls = case old of
 		VBlank								= allControls
 		VValue (FormattedText _ controls) _	= controls
+		
+	replaceMarkers v
+		# v = replaceSubString SelectionStartMarker ("<span class='marker-start' id='" +++ id +++ "_marker-start'></span>") v
+		# v = replaceSubString SelectionEndMarker ("<span class='marker-end' id='" +++ id +++ "_marker-end'></span>") v
+		= v
+
+gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic}
+	= case vizType of
+		VEditorDefinition	= ([TUIFragment (TUIColorChooser	{ TUIBasicControl
+																| name			= dp2s contentPath
+																, id			= id
+																, value			= oldV
+																, fieldLabel	= labelAttr useLabels label
+																, optional		= optional
+																, staticDisplay = renderAsStatic
+																}
+								)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+		VEditorUpdate
+			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+		_					# htmlFrag = case old of
+								VBlank		= [Text ""]
+								VValue v _	= html v
+							= ([HtmlFragment htmlFrag]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+where
+	// Use the path to the inner constructor instead of the current path.
+	// This way the generic gUpdate will work for this type
+	contentPath	= shiftDataPath currentPath
+	id			= dp2id idPrefix contentPath
+	oldV		= value2s contentPath old
+	newV		= value2s contentPath new
 
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
 	= case vizType of
@@ -267,7 +303,11 @@ where
 
 instance html FormattedText
 where
-	html (FormattedText txt _) = [RawText txt]
+	html (FormattedText src _) = [RawText (removeMarkers src)]
+	
+instance html Color
+where
+	html (Color c) = [DivTag [StyleAttr ("background-color: #" +++ c +++ "; border: 1px solid; border-color: #ACA899; height: 10px; width: 10px;")] []]
 
 instance toString Time
 where
@@ -297,8 +337,13 @@ instance toString FormattedText
 where
 	toString (FormattedText s _) = s
 	
-toUnformattedString :: FormattedText -> String
-toUnformattedString (FormattedText s _)
+instance toString Color
+where
+	toString (Color c) = "#" +++ c
+
+toUnformattedString :: !FormattedText !Bool -> String
+toUnformattedString (FormattedText s _) includeCursorMarkers
+	# s = insertMarkers s
 	# s	= replaceSubString "<br>" "\n" s
 	# s	= replaceSubString "<BR>" "\n" s
 	# s	= replaceSubString "<br/>" "\n" s
@@ -318,6 +363,21 @@ where
 			= stripHtmlTags (subString 0 fstOpen s +++ subString (fstClose + 1) (textSize s - fstClose) s)
 		| otherwise
 			= s
+			
+	insertMarkers s
+		# s = case indexOf "<span class=\"marker-start\"" s of
+			-1	= s
+			n	= subString 0 n s +++ SelectionStartMarker +++ subString (indexOfAfter n "</span>" s + 7) (textSize s) s
+		# s = case indexOf "<span class=\"marker-end\"" s of
+			-1	= s
+			n	= subString 0 n s +++ SelectionEndMarker +++ subString (indexOfAfter n "</span>" s + 7) (textSize s) s
+		= s
+			
+removeMarkers :: !String -> String
+removeMarkers s
+	# s = replaceSubString SelectionStartMarker "" s
+	# s = replaceSubString SelectionEndMarker "" s
+	= s
 				
 instance toString Currency
 where
@@ -400,8 +460,11 @@ where
 decFormat :: Int -> String
 decFormat x = toString (x / 100) +++ "." +++ pad 2 (x rem 100)
 
-mkEmptyFormattedText :: FormattedTextControls -> FormattedText
-mkEmptyFormattedText controls = FormattedText "" controls
+mkEmptyFormattedText :: !FormattedTextControls -> FormattedText
+mkEmptyFormattedText controls = mkFormattedText "" controls
+
+mkFormattedText :: !String !FormattedTextControls -> FormattedText
+mkFormattedText src controls = FormattedText src controls
 
 setFormattedTextSrc :: !String !FormattedText -> FormattedText
 setFormattedTextSrc cont (FormattedText _ controls) = FormattedText cont controls

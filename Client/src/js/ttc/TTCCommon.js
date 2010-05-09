@@ -86,6 +86,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 				break;
 			case "combo":
 			case "itasks.userfield":
+			case "itasks.tui.ColorChooser":
 				comp.on("select",changeTaskEvent);
 				break;
 			case "button":
@@ -95,7 +96,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 					comp.on("click",clickTaskEvent);
 				break;
 			case "itasks.tui.FormattedText":
-				comp.on("sync",changeTaskEvent);
+				comp.on("update",changeTaskEvent);
 				break;
 	}
 	if(comp.buttons) {

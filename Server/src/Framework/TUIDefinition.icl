@@ -47,6 +47,7 @@ JSONEncode{|TUIDef|} (TUIPasswordControl r) c	= addXType "itasks.tui.Password" (
 JSONEncode{|TUIDef|} (TUIDocumentControl r) c 	= addXType "itasks.tui.Document" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIConstructorControl r) c	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIFormattedTextControl r) c	= addXType "itasks.tui.FormattedText" (JSONEncode{|*|} r c)
+JSONEncode{|TUIDef|} (TUIColorChooser r) c	= addXType "itasks.tui.ColorChooser" (JSONEncode{|*|} r c)
 
 JSONEncode{|TUIDef|} (TUITupleContainer r) c	= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIRecordContainer r) c	= addXType "itasks.tui.Record" (JSONEncode{|*|} r c)

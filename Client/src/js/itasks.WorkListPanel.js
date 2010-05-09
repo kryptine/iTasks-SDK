@@ -182,7 +182,7 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				interval: itasks.config.refreshRate
 			})
 		}
-	},
+	}
 });
 
 Ext.reg('itasks.worklist',itasks.WorkListPanel);

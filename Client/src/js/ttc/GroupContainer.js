@@ -41,13 +41,13 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 					unstyled: true,
 					listeners: {
 						afterrender: function(p) {
-							p.el.fadeIn();
+							//p.el.fadeIn();
 							p.el.on('mousedown', function() {
 								group.focusContainer(p);
 							});
 							
 							if(focus) {
-								p.el.frame();
+								//p.el.frame();
 								group.focusContainer(p);
 							}
 						}
@@ -113,7 +113,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 				xtype:'button', unstyled: true, iconCls: 'icon-unpin', cls: 'GroupUnpinButton',
 				handler: function() {
 					var panel = group.focusedContainer;
-					panel.getEl().fadeOut({callback: function() {
+					//panel.getEl().fadeOut({callback: function() {
 						group.focusedContainer = null;
 						var cont = panel.get(0);
 						panel.removeAll(false);
@@ -133,7 +133,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 						group.createContainer(cont, 'GBFloating', panel.index, false);
 						group.focusFirstContainer();
 						group.doLayout();
-					}});
+					//}});
 				}
 			};
 		}

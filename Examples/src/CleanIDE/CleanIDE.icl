@@ -3,7 +3,7 @@ module CleanIDE
 import iTasks, CommonDomain, Text
 from StdFunc import flip
 import PmProject, UtilStrictLists
-import CompilerInterface, AppState, Configuration, GUI
+import CompilerInterface, AppState, Configuration, GUI, StdMisc
 
 Start world = startEngine [workflow "Clean IDE" cleanIDE] world
 
@@ -28,19 +28,25 @@ where
 											, MenuSeparator
 											, MenuItem "Quit" ActionQuit
 											]
-						, Menu "Options"	[ MenuItem "Application..."		ActionEditAppOptions
-											, MenuItem "Code Generation..."	ActionEditCodeGenOptions
-											, MenuItem "Linker..."			ActionEditLinkOptions
+						, Menu "Search"		[ MenuItem "Find & Replace..."				ActionFind]
+						, Menu "Options"	[ MenuItem "Application..."					ActionEditAppOptions
+											, MenuItem "Code Generation..."				ActionEditCodeGenOptions
+											, MenuItem "Linker..."						ActionEditLinkOptions
+											, MenuSeparator
+											, MenuItem "Syntax Highlighter Colours..."	ActionEditSyntaxColOptions
 											]
 						]
 	
 		actions :: !(DBid AppState) -> [GroupAction GOnlyAction Void Void]
-		actions sid =	[ GroupAction ActionQuit				GOStop GroupAlways
-						, GroupAction ActionSave				(GOExtend [save sid]) GroupAlways
-						, GroupAction ActionCompile				(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
-						, GroupAction ActionEditCodeGenOptions	(GOExtend [editProjectOptions	"Code Generation Options"	PR_GetCodeGenOptions		PR_SetCodeGenOptions		sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditAppOptions		(GOExtend [editProjectOptions	"Application Options"		PR_GetApplicationOptions	PR_SetApplicationOptions	sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditLinkOptions		(GOExtend [editProjectOptions	"Linker Options"			PR_GetLinkOptions			(flip PR_SetLinkOptions)	sid <<@ GBAlwaysFloating]) GroupAlways
+		actions sid =	[ GroupAction ActionQuit					GOStop GroupAlways
+						, GroupAction ActionSave					(GOExtend [save sid]) GroupAlways
+						, GroupAction ActionCompile					(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
+						, GroupAction ActionFind					(GOExtend [findAndReplace sid <<@ GBAlwaysFloating]) GroupAlways
+						, GroupAction ActionEditCodeGenOptions		(GOExtend [editProjectOptions	"Code Generation Options"		PR_GetCodeGenOptions		PR_SetCodeGenOptions					sid <<@ GBAlwaysFloating]) GroupAlways
+						, GroupAction ActionEditAppOptions			(GOExtend [editProjectOptions	"Application Options"			PR_GetApplicationOptions	PR_SetApplicationOptions				sid <<@ GBAlwaysFloating]) GroupAlways
+						, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
+						, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
+						, GroupAction ActionEditSyntaxColOptions	(GOExtend [editAppStateOptions	"Syntax Highlighter Colours"	(\s -> s.syntaxHighlColors)	(\c s -> {s & syntaxHighlColors = c})	sid <<@ GBAlwaysFloating]) GroupAlways
 						]
 						
 		editProjectOptions desc get putback sid =
@@ -49,6 +55,12 @@ where
 			>>= \(prj,ok,err).	editOptions desc prj get putback
 			>>= \prj.			accWorld (accFiles (SaveProjectFile (state.config.projectsPath +++ "\\test\\test.prj") prj ""))
 			>>|					stop
+			
+		editAppStateOptions desc get putback sid =
+						readDB sid
+			>>= \state.	editOptions desc state get putback
+			>>= \state.	writeDB sid state
+			>>|			stop
 	
 	handleErrors :: !FileException -> Task Void
 	handleErrors (FileException path _) = showMessageAbout "Error" ("Could not open '" +++ path +++ "'!")
@@ -57,32 +69,31 @@ ActionCompile				:== ActionLabel "compile"
 ActionEditCodeGenOptions	:== ActionLabel "codeGenOpts"
 ActionEditAppOptions		:== ActionLabel "appOpts"
 ActionEditLinkOptions		:== ActionLabel "linkOpts"
-
-ActionSyntax :== ActionLabel "Do Synatx Highlighting"
+ActionEditSyntaxColOptions	:==	ActionLabel "syntColOpts"
 	
 srcEditor :: !(DBid AppState) -> Task Void
 srcEditor sid =
-				readDB sid
-	>>= \state.	writeDB sid {state & srcEditorContent = highlightSyntax state.srcEditorContent}
-	>>|			updateShared "Clean Source" [ButtonAction (ActionSyntax, Always)] sid [srcEditorView]
-	>>|			srcEditor sid
-	>>|			return Void
+		updateShared "Clean Source" [] sid [srcEditorView]
+	>>|	return Void
 where
-	srcEditorView = editor	{ editorFrom	= \state		-> state.srcEditorContent
-							, editorTo		= \src state	-> {state & srcEditorContent = src}
+	srcEditorView = editor	{ editorFrom	= \state		-> highlightSyntax state.srcEditorContent state.syntaxHighlColors
+							, editorTo		= \ft state		-> {state & srcEditorContent = toUnformattedString ft True}
 							}
 
 :: Mode = InCode | InString | InChar | InMLComment |InSLComment | InNum
 						
-highlightSyntax ft
+highlightSyntax src colors
 	# tags	= highlightSyntax` 0 InCode '\0' "" []
 	# src	= foldl (+++) "" (map toString tags)
-	= setFormattedTextSrc src ft
+	= mkFormattedText src noControls
 where
 	highlightSyntax` n mode prevChar curString acc
 		| n < textSize src
 			# curChar	= select src n
 			# m			= inc n
+			| curChar == '\0'
+				// skip markers
+				= highlightSyntax` (inc m) mode prevChar (curString +++ {curChar, select src (inc n)}) acc
 			# (pos, mode, curString, acc) = case mode of
 				InCode
 					| curChar == '"'								= (m,							InString,	"\"",			addToAcc 1)
@@ -104,7 +115,6 @@ where
 			= highlightSyntax` pos mode curChar curString acc
 		| otherwise = reverse (addToAcc 0)
 	where
-		src	= toUnformattedString ft
 		appToCurStr
 			| n < textSize src	= curString +++ toString (select src n)
 			| otherwise			= curString
@@ -114,11 +124,11 @@ where
 				1	= curString
 				n	= subString 0 (textSize curString - 1) curString
 			= case mode of
-				InString	= [SpanTag [StyleAttr "color: green"] 	(mkTextTags string False):acc]
-				InChar		= [SpanTag [StyleAttr "color: purple"]	(mkTextTags string False):acc]
-				InNum		= [SpanTag [StyleAttr "color: orange"]	(mkTextTags string False):acc]
-				InSLComment	= [SpanTag [StyleAttr "color: blue"]	(mkTextTags string False):acc]
-				InMLComment	= [SpanTag [StyleAttr "color: blue"]	(createLineBreaks string False):acc]
+				InString	= [SpanTag [StyleAttr ("color: " +++ toString colors.strings)] 				(mkTextTags string False):acc]
+				InChar		= [SpanTag [StyleAttr ("color: " +++ toString colors.characters)]			(mkTextTags string False):acc]
+				InNum		= [SpanTag [StyleAttr ("color: " +++ toString colors.numbers)]				(mkTextTags string False):acc]
+				InSLComment	= [SpanTag [StyleAttr ("color: " +++ toString colors.singleLineComments)]	(mkTextTags string False):acc]
+				InMLComment	= [SpanTag [StyleAttr ("color: " +++ toString colors.multiLineComments)]	(createLineBreaks string False):acc]
 				InCode		= reverse (createLineBreaks string True) ++ acc
 				
 	createLineBreaks src processContent
@@ -127,18 +137,18 @@ where
 			
 	mkTextTags str processContent
 		#tags = init (flatten [[wordTag word, RawText "&nbsp;"] \\ word <- split " " str])
-		| processContent && indexOf "::" str <> -1	= [SpanTag [StyleAttr "color: red"] tags]
+		| processContent && indexOf "::" str <> -1	= [SpanTag [StyleAttr ("color: " +++ toString colors.typeDefinitions)] tags]
 		| otherwise									= tags
 	where
 		wordTag word
-			| processContent && isMember word keywords	= SpanTag [StyleAttr "color: purple"] [Text word]
+			| processContent && isMember word keywords	= SpanTag [StyleAttr ("color: " +++ toString colors.keywords)] [Text word]
 			| otherwise									= Text word
 		keywords = ["where", "import", "from", "let", "in", "module", "definition", "implementation", "derive", "class", "True", "False"]
 
 save :: !(DBid AppState) -> Task Void
 save sid =
 				readDB sid
-	>>= \state.	writeTextFile (state.config.projectsPath +++ "\\test\\test.icl") (toUnformattedString state.srcEditorContent)
+	>>= \state.	writeTextFile (state.config.projectsPath +++ "\\test\\test.icl") (removeMarkers state.srcEditorContent)
 
 saveAndCompile :: !(DBid AppState) -> Task Void
 saveAndCompile sid
@@ -163,7 +173,7 @@ openFile :: !Path !(DBid AppState) -> Task Void
 openFile path sid =
 				readDB sid
 	>>= \state.	readTextFile path
-	>>= \src.	writeDB sid {state & srcEditorContent = setFormattedTextSrc src state.srcEditorContent}
+	>>= \src.	writeDB sid {state & srcEditorContent = src}
 	>>|			stop
 
 createTestPrj :: !(DBid AppState) -> Task Void
@@ -181,3 +191,42 @@ where
 		codeGenOptions	= DefCodeGenOptions
 		appOptions		= DefApplicationOptions
 		linkOptions		= DefaultLinkOptions
+		
+:: Replace =	{ searchFor		:: String
+				, replaceWith	:: String
+				}
+derive gPrint Replace
+derive gParse Replace
+derive gVisualize Replace
+derive gUpdate Replace
+derive bimap Maybe, (,)
+
+ActionReplaceAll	:== ActionLabel "Replace All"
+		
+findAndReplace :: !(DBid AppState) -> Task Void
+findAndReplace sid = findAndReplace` {searchFor = "", replaceWith = ""}
+where
+	findAndReplace` replace =
+								updateInformationA "Find & Replace" [ButtonAction (ActionCancel, Always), ButtonAction (ActionReplaceAll, IfValid), ButtonAction (ActionFind, IfValid)] replace
+		>>= \(action, replace).	case action of
+									ActionReplaceAll =
+													readDB sid
+										>>= \state.	writeDB sid {state & srcEditorContent = replaceSubString replace.searchFor replace.replaceWith (removeMarkers state.srcEditorContent)}
+										>>|			findAndReplace` replace
+									ActionFind =
+													readDB sid
+										>>= \state.	writeDB sid {state & srcEditorContent = find replace state.srcEditorContent}
+										>>|			findAndReplace` replace
+									_ = stop
+									
+	find replace src
+		# findStr = replace.searchFor
+		# (startIdx, markerFound) = case indexOf SelectionEndMarker src of
+			-1	= (0, False)
+			i	= (i, True)
+		# src = removeMarkers src
+		# foundIdx = indexOfAfter startIdx findStr src
+		| foundIdx == -1
+			| markerFound	= find replace src
+			| otherwise		= src
+		= subString 0 foundIdx src +++ SelectionStartMarker +++ findStr +++ SelectionEndMarker +++ subString (foundIdx + textSize findStr) (textSize src) src

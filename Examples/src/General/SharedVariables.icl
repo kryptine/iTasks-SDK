@@ -151,7 +151,7 @@ where
 																	, editorTo		= \(Note src) ft -> setFormattedTextSrc src ft
 																	}]
 		, updateShared "Formatted Preview"		[] sid [idListener]
-		, updateShared "Unformatted Preview"	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft)}]
+		, updateShared "Unformatted Preview"	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft False)}]
 		]
 		
 	actions :: [GroupAction GOnlyAction Void Void]

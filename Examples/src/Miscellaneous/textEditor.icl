@@ -89,7 +89,6 @@ derive gVisualize Replace
 derive gUpdate Replace
 
 ActionReplaceAll	:== ActionLabel "Replace All"
-ActionClose			:== ActionLabel "Close"
 
 replaceT :: (DBid AppState) -> Task Void
 replaceT sid = replaceT` {searchFor = "", replaceWith = ""}

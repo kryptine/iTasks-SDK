@@ -50,6 +50,15 @@ class Text s
 	lastIndexOf 		:: !s !s -> Int
 	
 	/**
+	* Find the first occurence of a substring in another string after a given offset.
+	*
+	* @param The offset.
+	* @param The search string.
+	* @param The string that is being searched.
+	*/
+	indexOfAfter		:: !Int !s !s -> Int
+	
+	/**
 	* Predicate which tests if a string starts with another substring
 	*
 	* @param The substring.

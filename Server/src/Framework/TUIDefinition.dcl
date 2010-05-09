@@ -30,6 +30,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIBoolControl TUIBasicControl
 	| TUINoteControl TUIBasicControl
 	| TUIFormattedTextControl TUIFormattedTextControl
+	| TUIColorChooser TUIBasicControl
 	| TUIDateControl TUIBasicControl
 	| TUITimeControl TUIBasicControl
 	| TUIPasswordControl TUIBasicControl	

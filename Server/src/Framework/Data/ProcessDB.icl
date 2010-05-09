@@ -17,8 +17,10 @@ getActionIcon ActionOpen			= "icon-open"
 getActionIcon ActionSaveAs			= "icon-save-as"
 getActionIcon ActionSave			= "icon-save"
 getActionIcon ActionQuit			= "icon-exit"
+getActionIcon ActionClose			= "icon-cancel"
 getActionIcon ActionHelp			= "icon-help"
 getActionIcon ActionShowAbout		= "icon-help"
+getActionIcon ActionFind			= "icon-find"
 getActionIcon _						= ""
 
 instance == ProcessStatus
