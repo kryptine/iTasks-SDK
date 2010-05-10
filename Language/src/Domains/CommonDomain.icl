@@ -150,8 +150,8 @@ where
 		VValue (FormattedText _ controls) _	= controls
 		
 	replaceMarkers v
-		# v = replaceSubString SelectionStartMarker ("<span class='marker-start' id='" +++ id +++ "_marker-start'></span>") v
-		# v = replaceSubString SelectionEndMarker ("<span class='marker-end' id='" +++ id +++ "_marker-end'></span>") v
+		# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
+		# v = replaceSubString SelectionEndMarker ("<markerend id='" +++ id +++ "_marker-end'></markerend>") v
 		= v
 
 gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic}
@@ -365,12 +365,12 @@ where
 			= s
 			
 	insertMarkers s
-		# s = case indexOf "<span class=\"marker-start\"" s of
+		# s = case indexOf "<markerstart" s of
 			-1	= s
-			n	= subString 0 n s +++ SelectionStartMarker +++ subString (indexOfAfter n "</span>" s + 7) (textSize s) s
-		# s = case indexOf "<span class=\"marker-end\"" s of
+			n	= subString 0 n s +++ SelectionStartMarker +++ subString (indexOfAfter n "</markerstart>" s + 14) (textSize s) s
+		# s = case indexOf "<markerend" s of
 			-1	= s
-			n	= subString 0 n s +++ SelectionEndMarker +++ subString (indexOfAfter n "</span>" s + 7) (textSize s) s
+			n	= subString 0 n s +++ SelectionEndMarker +++ subString (indexOfAfter n "</markerend>" s + 12) (textSize s) s
 		= s
 			
 removeMarkers :: !String -> String

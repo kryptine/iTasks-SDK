@@ -25,20 +25,20 @@ itasks.tui.FormattedTextControl = Ext.extend(Ext.form.HtmlEditor,{
 			
 			var doc = this.getDoc();
 			var sel = Ext.isIE ? new DOMSelection(doc) : this.getWin().getSelection();
-			if (sel.isCollapsed) {
+			var origRange = sel.getRangeAt(0);
+			if (origRange.collapsed) {
 				// no selection, insert start marker at cursor
-				this.insertAtCursor("<span class='marker-start' id='" + this.selectionStartElId + "'></span>");
+				this.insertAtCursor("<markerstart id=\"" + this.selectionStartElId + "\"></markerstart>");
 			} else {
 				// create start/end markers
-				var startEl = doc.createElement('span');
+				var startEl = doc.createElement('markerstart');
 				startEl.id = this.selectionStartElId;
-				startEl.setAttribute('class', 'marker-start');
-				var endEl = doc.createElement('span');
+				//startEl.setAttribute('class', 'marker-start');
+				var endEl = doc.createElement('markerend');
 				endEl.id = this.selectionEndElId;
-				endEl.setAttribute('class', 'marker-end');
+				//endEl.setAttribute('class', 'marker-end');
 				
 				// get start/end point of current selection
-				var origRange = sel.getRangeAt(0);
 				var startRange = origRange.cloneRange();
 				var endRange = origRange.cloneRange();
 				startRange.collapse(true);
@@ -126,14 +126,16 @@ itasks.tui.FormattedTextControl = Ext.extend(Ext.form.HtmlEditor,{
 	setSelection: function(start, end) {
 		// set selection from start to end element
 		var doc = this.getDoc();
-		var range = Ext.isIE ? TextRangeUtils.convertToDOMRange(doc.selection.createRange(), doc) : doc.createRange();
-		
-		range.setStartAfter(start);
-		range.setEndAfter(end);
-		
 		var sel = Ext.isIE ? new DOMSelection(doc) : this.getWin().getSelection();
 		sel.removeAllRanges();
-		sel.addRange(range);
+		
+		var range = Ext.isIE ? new DOMRange(doc) : doc.createRange();
+		range.setStartAfter(start);
+		range.setEndAfter(end);
+		if (Ext.isIE)
+			TextRangeUtils.convertFromDOMRange(range).select();
+		else
+			sel.addRange(range);
 	}
 });
 

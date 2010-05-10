@@ -83,46 +83,52 @@ where
 :: Mode = InCode | InString | InChar | InMLComment |InSLComment | InNum
 						
 highlightSyntax src colors
-	# tags	= highlightSyntax` 0 InCode '\0' "" []
+	# tags	= highlightSyntax` 0 InCode '\0' "" Nothing []
 	# src	= foldl (+++) "" (map toString tags)
 	= mkFormattedText src noControls
 where
-	highlightSyntax` n mode prevChar curString acc
+	highlightSyntax` n mode prevChar curString mbMarker acc
 		| n < textSize src
 			# curChar	= select src n
 			# m			= inc n
 			| curChar == '\0'
 				// skip markers
-				= highlightSyntax` (inc m) mode prevChar (curString +++ {curChar, select src (inc n)}) acc
+				= highlightSyntax` (inc m) mode prevChar curString (Just {curChar, select src (inc n)}) acc
 			# (pos, mode, curString, acc) = case mode of
 				InCode
-					| curChar == '"'								= (m,							InString,	"\"",			addToAcc 1)
-					| curChar == '\''								= (m,							InChar,		"'",			addToAcc 1)
-					| prevChar == '/' && curChar == '*'				= (m,							InMLComment,"/*",			addToAcc 2)
-					| prevChar == '/' && curChar == '/'				= (m,							InSLComment,"//",			addToAcc 2)
+					| curChar == '"'								= (m,							InString,	"\"",					addToAcc 1)
+					| curChar == '\''								= (m,							InChar,		"'",					addToAcc 1)
+					| prevChar == '/' && curChar == '*'				= (m,							InMLComment,"/*",					addToAcc 2)
+					| prevChar == '/' && curChar == '/'				= (m,							InSLComment,"//",					addToAcc 2)
 					| isDigit curChar && not (isAlphanum prevChar)	= (m,							InNum,		if (prevChar == '-' || prevChar == '+') (toString [prevChar,curChar]) (toString curChar),	addToAcc (if (prevChar == '-' || prevChar == '+') 2 1))
 				InString | (curChar == '"' && prevChar <> '\\') || curChar == '\n'
-																	= (if (curChar == '\n') n m,	InCode,		"",				addToAcc (if (curChar == '\n') 1 0))
+																	= (if (curChar == '\n') n m,	InCode,		"",						addToAcc (if (curChar == '\n') 1 0))
 				InChar | (curChar == '\'' && prevChar <> '\\') || curChar == '\n'
-																	= (if (curChar == '\n') n m,	InCode,		"",				addToAcc (if (curChar == '\n') 1 0))
+																	= (if (curChar == '\n') n m,	InCode,		"",						addToAcc (if (curChar == '\n') 1 0))
 				InMLComment | prevChar == '*' && curChar == '/'
-																	= (m,							InCode,		"",				addToAcc 0)
+																	= (m,							InCode,		"",						addToAcc 0)
 				InSLComment | curChar == '\n'
-																	= (n,							InCode,		"",				addToAcc 1)
+																	= (n,							InCode,		"",						addToAcc 1)
 				InNum | not (isHexDigit curChar || curChar == 'E' || curChar == 'x' || curChar == '.')
-																	= (n,							InCode,		"",				addToAcc 1)
-				_													= (m,							mode,		appToCurStr,	acc)
-			= highlightSyntax` pos mode curChar curString acc
+																	= (n,							InCode,		"",						addToAcc 1)
+				_													= (m,							mode,		appToCurStr mbMarker,	acc)
+			= highlightSyntax` pos mode curChar curString Nothing acc
 		| otherwise = reverse (addToAcc 0)
 	where
-		appToCurStr
+		appToCurStr mbMarker
+			# curString = case mbMarker of
+				Just marker	= curString +++ marker
+				Nothing		= curString
 			| n < textSize src	= curString +++ toString (select src n)
 			| otherwise			= curString
 		addToAcc removeChars
 			# string = case removeChars of
-				0	= appToCurStr
+				0	= appToCurStr Nothing
 				1	= curString
 				n	= subString 0 (textSize curString - 1) curString
+			# string = case mbMarker of
+				Just marker	= string +++ marker
+				Nothing		= string
 			= case mode of
 				InString	= [SpanTag [StyleAttr ("color: " +++ toString colors.strings)] 				(mkTextTags string False):acc]
 				InChar		= [SpanTag [StyleAttr ("color: " +++ toString colors.characters)]			(mkTextTags string False):acc]
