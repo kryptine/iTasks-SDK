@@ -36,6 +36,7 @@ gMakeLocalCopy{|EITHER|}	fx fy (LEFT x) tst		= app2 (LEFT,id) (fx x tst)
 gMakeLocalCopy{|EITHER|}	fx fy (RIGHT y) tst		= app2 (RIGHT,id) (fy y tst)
 gMakeLocalCopy{|UNIT|}		UNIT tst				= (UNIT,tst)
 gMakeLocalCopy{|Dynamic|}	dyn tst = (dyn,tst)
+gMakeLocalCopy{|Task|}		_ t tst	= (t,tst)
 gMakeLocalCopy{|Document|}	doc=:{content} tst=:{taskNr}
 	= case content of
 		DocumentContent info = case info.dataLocation of

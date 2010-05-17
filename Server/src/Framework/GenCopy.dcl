@@ -10,5 +10,5 @@ derive gMakeSharedCopy OBJECT, CONS, PAIR, FIELD, EITHER, UNIT
 derive gMakeSharedCopy Int, Real, Char, Bool, String, Dynamic
 derive gMakeSharedCopy [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, Document
 derive gMakeLocalCopy OBJECT, CONS, PAIR, FIELD, EITHER, UNIT
-derive gMakeLocalCopy Int, Real, Char, Bool, String, Dynamic
+derive gMakeLocalCopy Int, Real, Char, Bool, String, Dynamic, Task
 derive gMakeLocalCopy [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, Document
