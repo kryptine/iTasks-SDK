@@ -90,6 +90,14 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			, html 		= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
 			, subtaskId	= Nothing
 			},tst)
+	(TTExtProcessTask ti cmdline) 
+		= (TTCMonitorContainer {TTCMonitorContainer 
+			| xtype 	= "itasks.ttc.monitor"
+			, id 		= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 	= ti.TaskInfo.taskId
+			, html 		= toString (DivTag [] [Text "running '", Text cmdline, Text "' ..."])
+			, subtaskId	= Nothing
+			},tst)
 	(TTMainTask ti mti menus _ _)
 		= (TTCProcessControlContainer {TTCProcessControlContainer 
 			| xtype = "itasks.ttc.proc-control"
@@ -247,6 +255,21 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 		    									, id = "taskform-" +++ ti.TaskInfo.taskId
 		   										, taskId = ti.TaskInfo.taskId
 		   										, html = toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
+		   										, subtaskId = Just (subtaskNrToString stnr)
+		   										}
+		   	}],tst)
+	(TTExtProcessTask ti cmdline)
+		= ([{SubtaskContainer 
+			| subtaskNr = stnr
+			, manager = manager
+			, inClosedPar = inClosed
+			, tasktree = tree
+			, processProperties = procProps
+		    , taskpanel = TTCMonitorContainer {TTCMonitorContainer 
+		    									| xtype = "itasks.ttc.monitor"
+		    									, id = "taskform-" +++ ti.TaskInfo.taskId
+		   										, taskId = ti.TaskInfo.taskId
+		   										, html = toString (DivTag [] [Text "running '", Text cmdline, Text "' ..."])
 		   										, subtaskId = Just (subtaskNrToString stnr)
 		   										}
 		   	}],tst)

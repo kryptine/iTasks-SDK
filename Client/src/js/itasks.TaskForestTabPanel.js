@@ -67,6 +67,7 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 				  '<div class="taskForestLegend task-grp">Grouping Combinator</div>'+
 				  '<div class="taskForestLegend task-par">Parallel Combinator</div>'+
 				  '<div class="taskForestLegend task-rpc">Remote Procedure Call</div>'+
+				  '<div class="taskForestLegend task-prc">External Process</div>'+
 				  '<div class="x-clear"></div>'
 		
 		});

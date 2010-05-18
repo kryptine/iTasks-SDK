@@ -9,8 +9,8 @@ derive gVisualize	FileException, FileProblem, CallException, DirectoryException
 derive gUpdate		FileException, FileProblem, CallException, DirectoryException
 derive bimap		Maybe, (,)
 
-callProcess :: !Path -> Task Int
-callProcess cmd = mkInstantTask "callProcess" callProcess`
+callProcessBlocking :: !Path -> Task Int
+callProcessBlocking cmd = mkInstantTask "callProcess" callProcess`
 where
 	callProcess` tst=:{TSt|world}
 		# (os,world)	= worldGetToolbox world
@@ -21,6 +21,46 @@ where
 		# tst			= {TSt|tst & world = world}
 		| not succ		= (TaskException (dynamic (CallFailed cmd)), tst)
 		| otherwise		= (TaskFinished ret, tst)
+
+callProcess :: !Path -> Task Int
+callProcess cmd = mkExtProcessTask "callProcess" cmd callProcess`
+where
+	callProcess` tst
+		# (mbHandle, tst)			= getTaskStore "handle" tst
+		# (os, world)				= worldGetToolbox tst.TSt.world
+		# (res, handle, os) = case mbHandle of
+			Nothing
+				# (ccmd,os)			= winMakeCString cmd os
+				# (succ,handle,os)	= winCallExecutable ccmd os
+				# os				= winReleaseCString ccmd os
+				| not succ			= (TaskException (dynamic (CallFailed cmd)), handle, os)
+				| otherwise			= (TaskBusy, handle, os)
+			Just handle
+				# (active, ret, os)	= winCheckProcess handle os
+				| active			= (TaskBusy, handle, os)
+				| otherwise			= (TaskFinished ret, handle, os)
+		# world						= worldSetToolbox os world
+		# tst						= {TSt|tst & world = world}
+		# tst						= setTaskStore "handle" handle tst
+		= (res, tst)
+		
+	winCallExecutable ::  !CSTR !*OSToolbox -> (!Bool, !Int, !*OSToolbox)
+	winCallExecutable _ _
+		= code
+		{
+			.inline WinCallExecutable
+				ccall WinCallExecutable "II-III"
+			.end
+		}
+		
+	winCheckProcess :: !Int !*OSToolbox -> (!Bool, !Int, !*OSToolbox)
+	winCheckProcess _ _
+		= code
+		{
+			.inline WinCheckProcess
+				ccall WinCheckProcess "II-III"
+			.end
+		}
 		
 readTextFile :: !Path -> Task String
 readTextFile path = mkInstantTask "readTextFile" readTextFile`

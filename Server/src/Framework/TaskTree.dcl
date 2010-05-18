@@ -25,6 +25,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| TTMonitorTask		TaskInfo [HtmlTag]															//A task that upon evaluation monitors a condition and may give status output
 					| TTInstructionTask TaskInfo [HtmlTag] (Maybe [HtmlTag])										//A task which displays an (offline) instruction to the user
 					| TTRpcTask			TaskInfo RPCExecute															//A task that represents an rpc invocation
+					| TTExtProcessTask	TaskInfo !String															//A task that represents an external process
 					| TTSequenceTask	TaskInfo [TaskTree]															//A task that is composed of a number of sequentially executed subtasks
 					| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]										//A task that is composed of a number of parallel executed subprocesses  
 					| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))]		//A task that is composed of a number of grouped subtasks

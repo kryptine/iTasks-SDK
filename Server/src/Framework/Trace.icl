@@ -83,7 +83,20 @@ where
 		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "RPC"
 		  , children = []
-		  }		  
+		  }
+		  
+	mkTree (TTExtProcessTask info _ )
+		= { cls = "master-task"
+		  , user = toString info.TaskInfo.worker
+		  , uiProvider = "col"
+		  , leaf = True
+		  , iconCls = "task-prc"
+		  , taskId = info.TaskInfo.taskId
+		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
+		  , traceValue = info.TaskInfo.traceValue
+		  , taskClass = "RPC"
+		  , children = []
+		  }	  
 		  
 	mkTree (TTSequenceTask info trees)
 		= { cls = "master-task"

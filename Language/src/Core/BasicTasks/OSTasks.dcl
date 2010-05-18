@@ -16,6 +16,15 @@ derive gVisualize	FileException, FileProblem, CallException, DirectoryException
 derive gUpdate		FileException, FileProblem, CallException, DirectoryException
 
 /**
+* Calls an external executable. The call is non-blocking.
+*
+* @param path to the executable
+* @return return-code of the process
+* @throws CallException
+*/
+callProcess :: !Path ->	Task Int
+
+/**
 * Calls an external executable. The call is blocking and should only
 * be used for executables terminating within a very short time.
 *
@@ -23,7 +32,7 @@ derive gUpdate		FileException, FileProblem, CallException, DirectoryException
 * @return return-code of the process
 * @throws CallException
 */
-callProcess :: !Path ->	Task Int
+callProcessBlocking :: !Path -> Task Int
 
 /**
 * Reads a textfile from disc.

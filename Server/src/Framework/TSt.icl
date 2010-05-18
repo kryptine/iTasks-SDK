@@ -543,6 +543,12 @@ where
 			
 	setStatus "" tst		= tst
 	setStatus status tst	= setTaskStore "status" status tst
+
+mkExtProcessTask :: !String !String !(*TSt -> *(!TaskResult Int,!*TSt)) -> Task Int
+mkExtProcessTask taskname cmdline taskfun = Task {TaskDescription | title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkExtProcessTask`
+where
+	mkExtProcessTask` tst =:{TSt | taskInfo}
+		= taskfun {tst & tree = TTExtProcessTask taskInfo cmdline}
 		
 mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkSequenceTask`
