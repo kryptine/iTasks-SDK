@@ -4,10 +4,10 @@ import iTasks
 
 userAdministration :: [Workflow]
 userAdministration
-	= [{Workflow|name = "Admin/Create user", label = "Create user ", roles = ["admin"], mainTask = createUserFlow}
-	  ,{Workflow|name = "Admin/Update user", label = "Update user", roles = ["admin"], mainTask = updateUserFlow}
-	  ,{Workflow|name = "Admin/Delete users", label = "Delete users", roles = ["admin"], mainTask = deleteUserFlow}
-	  ,{Workflow|name = "Admin/List users", label = "List users", roles = ["admin"], mainTask = listUserFlow}
+	= [{Workflow|name = "Admin/Create user", roles = ["admin"], mainTask = "Create user " @>> createUserFlow}
+	  ,{Workflow|name = "Admin/Update user", roles = ["admin"], mainTask = "Update user" @>> updateUserFlow}
+	  ,{Workflow|name = "Admin/Delete users", roles = ["admin"], mainTask = "Delete users" @>> deleteUserFlow}
+	  ,{Workflow|name = "Admin/List users", roles = ["admin"], mainTask = "List users" @>> listUserFlow}
 	  ]
 
 createUserFlow :: Task Void

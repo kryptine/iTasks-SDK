@@ -28,9 +28,8 @@ movingTaskExample :: [Workflow]
 movingTaskExample
 = [ {Workflow
 	|	name		= "Examples/Higher order/Moving task"
-	,	label		= "Suspend,Activate or move a task"
 	,	roles		= []
-	,	mainTask	= movingTask ("Task which can be moved", trivialTask )
+	,	mainTask	= "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask )
 	}
   ]
 

@@ -83,6 +83,7 @@ where
       suggestion Evacuation       = [0,2]
       suggestion _                = []
 
+/*
   parallelDeployment :: IncidentNR [Task Void] -> Task Void
   parallelDeployment icNR tasks
   	= 	getContextWorker
@@ -104,6 +105,7 @@ where
  	stopResponse :: Task Int
  	stopResponse
  		= "Stop the complete response operation" @>> (requestConfirmation "Are you sure?" >>= \stop -> if stop (return 1) (return 0))
+*/
 
 // SAR Heli deployment
 deploySARHeli :: IncidentNR -> Task Void

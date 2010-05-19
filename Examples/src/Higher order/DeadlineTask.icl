@@ -17,9 +17,8 @@ deadlineTaskExample :: [Workflow]
 deadlineTaskExample
 = [ { Workflow
 	| name	= "Examples/Higher order/Deadline task"
-	, label	= "Do task before deadline"
 	, roles	= []
-	, mainTask	= deadline trivialTask >>| return Void
+	, mainTask	= "Do task before deadline" @>> (deadline trivialTask >>| return Void)
 	}
   ] 
 

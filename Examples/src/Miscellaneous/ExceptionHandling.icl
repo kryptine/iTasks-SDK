@@ -18,9 +18,8 @@ exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
 =	[{ Workflow 
 	 | name		= "Examples/Higher order/Exception handling"
-	 , label	= "Exception example"
 	 , roles	= []
-	 , mainTask	= exceptionTask
+	 , mainTask	= "Exception example" @>> exceptionTask
 	 }]
 
 exceptionTask :: Task Void

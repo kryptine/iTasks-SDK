@@ -7,7 +7,7 @@ from StdLibMisc import ::Date{..}, ::Time{..}
 
 import Store, UserDB, ProcessDB, SessionDB
 import Text, Util
-import CoreCombinators
+import CoreCombinators, TuningCombinators
 import CommandLine
 import Directory
 
@@ -63,9 +63,8 @@ workflow :: String (Task a) -> Workflow | iTask a
 workflow path task =
 	{ Workflow
 	| name	= path
-	, label = last (split "/" path)
 	, roles	= []
-	, mainTask = task >>| return Void
+	, mainTask = taskLabel task @>> (task >>| return Void)
 	}
 
 config :: !*World -> (!Maybe Config,!*World)

@@ -53,7 +53,7 @@ bugReportExample :: [Workflow]
 bugReportExample
 	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBugVerySimple
 	  , workflow "Examples/Miscellaneous/Bug report (simple 2)" reportBugSimple
-	  , {Workflow|name = "Examples/Miscellaneous/Bug report (simple 3)",label = "Bug report (simple 2)",roles = [], mainTask =  bugReport}
+	  , workflow "Examples/Miscellaneous/Bug report (simple 3)" bugReport
 	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBug
 	  ]
 	 

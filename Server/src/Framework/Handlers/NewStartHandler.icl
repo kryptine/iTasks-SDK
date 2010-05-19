@@ -24,7 +24,7 @@ where
 	startWorkflow workflow tst=:{staticInfo}
 		# user			= staticInfo.currentSession.user
 		# properties	= { worker			= toUserName user
-						  , subject 		= workflow.Workflow.label
+						  , subject 		= taskLabel workflow.Workflow.mainTask
 						  , priority		= NormalPriority
 						  , deadline		= Nothing
 						  }

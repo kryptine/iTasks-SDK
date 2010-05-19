@@ -47,9 +47,8 @@ reviewTaskExample :: [Workflow]
 reviewTaskExample
 = [	{	Workflow
 	|	name		= "Examples/Higher order/Review task"
-	,	label		= "Review the results of a task"
 	,	roles		= []
-	,	mainTask	= reviewtask >>| return Void
+	,	mainTask	= "Review the results of a task" @>> (reviewtask >>| return Void)
 	}
   ]
 

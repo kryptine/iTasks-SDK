@@ -6,54 +6,14 @@ from TaskTree import :: TaskProperties(..),::TaskWorkerProperties(..),::TaskMana
 
 changeExamples :: [Workflow]
 changeExamples =
-	[ 	{ Workflow
-		| name		= "Examples/Changes/Change priority"
-		, label		= "Change priority"
-		, roles		= []
-		, mainTask	= try changePrio catch
-		},
-		{ Workflow
-		| name		= "Examples/Changes/Add warning"
-		, label		= "Add warning"
-		, roles		= []
-		, mainTask	= try changeWarningTask catch
-		},
-		{ Workflow
-		| name		= "Examples/Changes/Duplicate task"
-		, label		= "Duplicate task"
-		, roles		= []
-  		, mainTask	= try duplicateTask catch
-  		},
- 		{ Workflow
-		| name		= "Examples/Changes/Show result when task finishes"
-		, label		= "Show result when task finishes"
-		, roles		= []
-  		, mainTask	= try informTask catch
-  		},
- 		{ Workflow
-		| name		= "Examples/Changes/Check task when finished"
-		, label		= "Check task when finished"
-		, roles		= []
-  		, mainTask	= try checkTask catch
-  		},
- 		{ Workflow
-		| name		= "Examples/Changes/Cancel task"
-		, label		= "Cancel task"
-		, roles		= []
-  		, mainTask	= try cancelTask catch
-  		},
- 		{ Workflow
-		| name		= "Examples/Changes/Reassign task"
-		, label		= "Reassign task"
-		, roles		= []
-  		, mainTask	= try reassignTask catch
-  		},
- 		{ Workflow
-		| name		= "Examples/Changes/Restart task"
-		, label		= "Restart task"
-		, roles		= []
-  		, mainTask	= try restartTask catch
-  		}
+	[ 	workflow "Examples/Changes/Change priority" ("Change priority" @>> (try changePrio catch))
+	,	workflow "Examples/Changes/Add warning" ("Add warning" @>> (try changeWarningTask catch))
+	,	workflow "Examples/Changes/Duplicate task" ("Duplicate task" @>> (try duplicateTask catch))
+	,	workflow "Examples/Changes/Show result when task finishes" ("Show result when task finishes" @>> (try informTask catch))
+	,	workflow "Examples/Changes/Check task when finished" ("Check task when finished" @>> (try checkTask catch))
+	,	workflow "Examples/Changes/Cancel task" ("Cancel task" @>> (try cancelTask catch))
+ 	,	workflow "Examples/Changes/Reassign task" ("Reassign task" @>> (try reassignTask catch))
+ 	,	workflow "Examples/Changes/Restart task" ("Restart task" @>> (try restartTask catch))
   	]
 where
 	catch :: String -> Task Void

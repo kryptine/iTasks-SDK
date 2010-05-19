@@ -51,7 +51,6 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 
 // A workflow specification
 :: Workflow		=	{ name			:: !String											// a unique name of this workflow
-					, label			:: !String											// a label that will be used for displaying
 					, roles			:: ![String]										// the roles that are allowed to initate this workflow
 					, mainTask		:: Task Void										// the main task of the workflow
 					}
