@@ -5,7 +5,7 @@ import JSON,StdList
 derive JSONEncode TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
 derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUITuple
 
-derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIFormattedTextControl, TUIConstructorControl, TUIButtonControl
+derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl
 derive JSONEncode TUITupleContainer, TUIRecordContainer
 
 JSONEncode{|TUIDef|} (TUIButton r) c = addXType "button" (JSONEncode{|*|} r c)
@@ -46,8 +46,6 @@ JSONEncode{|TUIDef|} (TUIUsernameControl r) c	= addXType "itasks.tui.Username" (
 JSONEncode{|TUIDef|} (TUIPasswordControl r) c	= addXType "itasks.tui.Password" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIDocumentControl r) c 	= addXType "itasks.tui.Document" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIConstructorControl r) c	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r c)
-JSONEncode{|TUIDef|} (TUIFormattedTextControl r) c	= addXType "itasks.tui.FormattedText" (JSONEncode{|*|} r c)
-JSONEncode{|TUIDef|} (TUIColorChooser r) c	= addXType "itasks.tui.ColorChooser" (JSONEncode{|*|} r c)
 
 JSONEncode{|TUIDef|} (TUITupleContainer r) c	= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r c)
 JSONEncode{|TUIDef|} (TUIRecordContainer r) c	= addXType "itasks.tui.Record" (JSONEncode{|*|} r c)

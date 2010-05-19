@@ -1,6 +1,6 @@
 implementation module AppState
 
-import CommonDomain
+import ExperimentalDomain
 from Configuration import :: IDEConfig
 
 derive gPrint			AppState, SyntaxHighlighterColors

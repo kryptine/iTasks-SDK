@@ -29,8 +29,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIRealControl TUIBasicControl
 	| TUIBoolControl TUIBasicControl
 	| TUINoteControl TUIBasicControl
-	| TUIFormattedTextControl TUIFormattedTextControl
-	| TUIColorChooser TUIBasicControl
 	| TUIDateControl TUIBasicControl
 	| TUITimeControl TUIBasicControl
 	| TUIPasswordControl TUIBasicControl	
@@ -299,19 +297,4 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, renderingHint	:: !Int
 	, unstyled		:: !Bool
-	}
-:: TUIFormattedTextControl =
-	{ name				:: !String
-	, id				:: !String
-	, value				:: !String
-	, fieldLabel		:: !Maybe String
-	, optional			:: !Bool
-	, enableAlignments	:: !Bool
-	, enableColors		:: !Bool
-	, enableFont		:: !Bool
-	, enableFontSize	:: !Bool
-	, enableFormat		:: !Bool
-	, enableLinks		:: !Bool
-	, enableLists		:: !Bool
-	, enableSourceEdit	:: !Bool
 	}

@@ -1,6 +1,6 @@
 definition module AppState
 
-import iTasks, CommonDomain
+import iTasks, ExperimentalDomain
 from Configuration import :: IDEConfig
 
 :: AppState =	{ srcEditorContent	:: !String
