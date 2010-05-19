@@ -92,8 +92,8 @@ initTaskProperties
 	    }
 	 }
 		  
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
-createTaskInstance task managerProps toplevel mbParType tst=:{taskNr,mainTask}
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
+createTaskInstance task managerProps toplevel mbParType activate tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
@@ -120,7 +120,7 @@ createTaskInstance task managerProps toplevel mbParType tst=:{taskNr,mainTask}
 	# process =
 		{ Process
 		| processId		 = processId
-		, status		 = Active
+		, status		 = if activate Active Suspended
 		, parent		 = parent
 		, properties	 = properties
 		, changeCount	 = 0
@@ -135,12 +135,15 @@ createTaskInstance task managerProps toplevel mbParType tst=:{taskNr,mainTask}
 	# process				= fromJust mbProcess
 	//Create a thread with task functions in the store
 	# tst					= storeThread processId (createThread task) tst
-	//Evaluate the process once to kickstart automated steps that can be set in motion immediately
-	# (result,tree,tst)		= evaluateTaskInstance process Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
-	= case result of
-		TaskBusy				= (TaskBusy, processId, tst)
-		TaskFinished (a :: a^)	= (TaskFinished a, processId, tst)
-		TaskException e			= (TaskException e, processId, tst)
+	| activate
+		//If directly active, evaluate the process once to kickstart automated steps that can be set in motion immediately	
+		# (result,tree,tst)		= evaluateTaskInstance process Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
+		= case result of
+			TaskBusy				= (TaskBusy, processId, tst)
+			TaskFinished (a :: a^)	= (TaskFinished a, processId, tst)
+			TaskException e			= (TaskException e, processId, tst)
+	| otherwise
+		= (TaskBusy, processId, tst)
 
 //NEW THREAD FUNCTIONS
 createThread :: !(Task a) -> Dynamic	| iTask a

@@ -292,8 +292,7 @@ where
 					  				, tempWorkers	 = []
 									}
 				# tst				  = addTemporaryUser taskId userName mbpartype tst
-				# (result,procId,tst) = createTaskInstance task props False mbpartype tst
-				//# (ok,tst) = updateProcess procId (\x -> {Process | x & inParallelType = mbpartype}) tst
+				# (result,procId,tst) = createTaskInstance task props False mbpartype True tst
 				= (result,tst)
 			//When found, evaluate
 			Just proc
@@ -303,7 +302,6 @@ where
 				# (result,_,tst)	= evaluateTaskInstance proc Nothing False False tst
 				// <- TSt back to current process				
 				//Add parallel type after the new proc is evaluated
-				//# (ok,tst) 			= updateProcess proc.Process.processId (\x -> {Process | x & inParallelType = mbpartype}) tst 
 				= case result of
 					TaskBusy				
 						= (TaskBusy,tst)

@@ -81,10 +81,8 @@ getProcessOwner 		:: !pid 					-> Task (Maybe UserName) | toProcessId pid
 *
 * @param The new process owner
 * @param The process id
-*
-* @return True when the process is updated, False if the process was not found.
 */
-setProcessOwner			:: !UserName !pid			-> Task Bool 			| toProcessId pid
+setProcessOwner			:: !UserName !pid			-> Task Void 			| toProcessId pid
 /**
 * Poll the status of a process.
 *
@@ -101,24 +99,18 @@ getProcessStatus		:: !pid						-> Task ProcessStatus	| toProcessId pid
 * @return A task that yields True when the process was successfully activated
 *         and False when the process could not be found.
 */
-activateProcess			:: !pid						-> Task Bool			| toProcessId pid
+activateProcess			:: !pid						-> Task Void			| toProcessId pid
 /**
 * Change the process status to suspended.
 * The tasks within this process will be inaccessible until the process is activated again.
 *
 * @param The process reference
-*
-* @return A task that yields True when the process was successfully suspended
-*         and False when the process could not be found.
 */
-suspendProcess			:: !pid						-> Task Bool			| toProcessId pid
+suspendProcess			:: !pid						-> Task Void			| toProcessId pid
 /**
 * Delete a process from the process database
 * Once a process is deleted all of its results are lost.
 *
 * @param The process reference
-*
-* @return A task that yields True when the process was successfully deleted
-*         and False when the process could not be found.
 */
-deleteProcess			:: pid						-> Task Bool			| toProcessId pid
+deleteProcess			:: pid						-> Task Void			| toProcessId pid

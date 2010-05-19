@@ -21,11 +21,11 @@ from Time		import :: Timestamp
 				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
 				  }				
 
-:: ProcessStatus =	Active
-				 |	Suspended
-				 |	Finished
-				 |	Excepted
-				 |	Deleted
+:: ProcessStatus =	Active			// A process is active and can be further evaluated
+				 |	Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
+				 |	Finished		// A process terminated normally
+				 |	Excepted		// A process terminated with an exception
+				 |	Deleted			// A process is marked for deletion and may be garbage collected
 				 
 :: Action
 	= ActionLabel !String

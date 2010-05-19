@@ -72,7 +72,7 @@ where
 			, deadline		 = Nothing
 			, tempWorkers	 = []
 			}
-		# (result,pid,tst)	= TSt@createTaskInstance task properties True Nothing tst
+		# (result,pid,tst)	= TSt@createTaskInstance task properties True Nothing activate tst
 		= (TaskFinished (ProcessRef pid), tst)
 	
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a

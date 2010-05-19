@@ -56,12 +56,12 @@ where
 	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProps.TaskManagerProperties.worker)
 	= (TaskFinished owner,tst)
 	
-setProcessOwner :: !UserName !pid -> Task Bool | toProcessId pid
+setProcessOwner :: !UserName !pid -> Task Void | toProcessId pid
 setProcessOwner username pid = mkInstantTask "setProcessOwner" setProcessOwner`
 where
 	setProcessOwner` tst=:{staticInfo}
-		# (ok,tst)			= ProcessDB@setProcessOwner username (toProcessId pid) tst
-		= (TaskFinished ok,tst)
+		# (_,tst)			= ProcessDB@setProcessOwner username (toProcessId pid) tst
+		= (TaskFinished Void,tst)
 
 getProcessStatus :: !pid -> Task ProcessStatus | toProcessId pid
 getProcessStatus pid = mkInstantTask "getProcessStatus" getProcessStatus`
@@ -73,23 +73,23 @@ where
 			Nothing					= (TaskFinished Deleted, tst)
 			
 
-activateProcess	:: !pid	-> Task Bool | toProcessId pid
+activateProcess	:: !pid	-> Task Void | toProcessId pid
 activateProcess pid = mkInstantTask "activateProcess" activateProcess`
 where
 	activateProcess` tst
-		# (ok,tst)	= ProcessDB@setProcessStatus Active (toProcessId pid) tst
-		= (TaskFinished ok,tst)
+		# (_,tst)	= ProcessDB@setProcessStatus Active (toProcessId pid) tst
+		= (TaskFinished Void,tst)
 		
-suspendProcess :: !pid -> Task Bool	| toProcessId pid
+suspendProcess :: !pid -> Task Void	| toProcessId pid
 suspendProcess pid = mkInstantTask "suspendProcess" suspendProcess`
 where
 	suspendProcess` tst
-		# (ok,tst)	= ProcessDB@setProcessStatus Suspended (toProcessId pid) tst
-		= (TaskFinished ok,tst)
+		# (_,tst)	= ProcessDB@setProcessStatus Suspended (toProcessId pid) tst
+		= (TaskFinished Void,tst)
 		
-deleteProcess :: pid -> Task Bool | toProcessId pid
+deleteProcess :: pid -> Task Void | toProcessId pid
 deleteProcess pid = mkInstantTask "deleteProcess" deleteProcess`
 where
 	deleteProcess` tst
-		# (ok,tst)	= ProcessDB@deleteProcess (toProcessId pid) tst
-		= (TaskFinished ok,tst)
+		# (_,tst)	= ProcessDB@deleteProcess (toProcessId pid) tst
+		= (TaskFinished Void,tst)

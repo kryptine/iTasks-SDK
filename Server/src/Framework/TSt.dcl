@@ -77,13 +77,14 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -
 * @param The task
 * @param Start as toplevel, or as subtask of another task (parent information is read from the task state)
 * @param Whether this process is part of a parallel
+* @param Activate the task instance immediately
 * @param The task state
 *
 * @return The process id of the new instance
 * @return The result of the first run
 * @return The modified task state
 */
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
 /**
 * Evaluates an existing task instance
 *

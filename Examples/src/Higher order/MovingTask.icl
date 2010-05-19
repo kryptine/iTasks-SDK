@@ -74,14 +74,13 @@ where
 								Suspended	-> showMessage ("It is suspended, user " <+++ hd names <+++ " was working on it") >>| return False		
 	suspend wid
 	=						suspendProcess wid
-		>>= \ok ->			if ok
-								(showMessage "workflow is suspended" >>| return False)
-								(showMessage "workflow could not be suspended" >>| return False)
+		>>|					showMessage "workflow is suspended"
+		>>|					return False
+								
 	activate wid
 	=						activateProcess wid
-		>>= \ok ->			if ok
-								(showMessage "workflow is activated" >>| return False)
-								(showMessage "workflow could not be activated"  >>| return False)
+		>>|					showMessage "workflow is activated"
+		>>|					return False
 
 	delete wid
 	=						deleteProcess wid 
