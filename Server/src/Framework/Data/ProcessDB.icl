@@ -99,8 +99,8 @@ where
 		# procids		= [p \\ p <- rprocs | p <> ""]
 		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
 	where
-		relevantProc userName {Process | processId, properties = {managerProps = {worker,tempWorkers}}}
-			| isMember userName (snd(unzip tempWorkers)) && userName <> worker = processId
+		relevantProc userName {Process | processId, properties = {managerProps = {TaskManagerProperties|worker}, systemProps = {subTaskWorkers} }}
+			| isMember userName (snd (unzip subTaskWorkers)) && userName <> worker = processId
 			| otherwise 										  = ""
 	
 	setProcessOwner	:: !UserName !ProcessId !*TSt	-> (!Bool, !*TSt)

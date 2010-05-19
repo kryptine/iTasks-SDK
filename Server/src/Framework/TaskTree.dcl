@@ -45,12 +45,13 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					}
 
 :: TaskSystemProperties =
-	{ processId			:: ProcessId		// Process table identification
-	, manager			:: UserName		// Who is managing this task
-	, issuedAt			:: Timestamp		// When was the task created
-	, firstEvent		:: Maybe Timestamp	// When was the first work done on this task
-	, latestEvent		:: Maybe Timestamp	// When was the latest event on this task	
-	, latestExtEvent	:: Maybe Timestamp // When was the latest event from an external source (e.g. Rpc Daemon)
+	{ processId			:: ProcessId				// Process table identification
+	, manager			:: UserName					// Who is managing this task
+	, issuedAt			:: Timestamp				// When was the task created
+	, firstEvent		:: Maybe Timestamp			// When was the first work done on this task
+	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
+	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
+	, subTaskWorkers	:: [(ProcessId, UserName)] 	// Users who have temporary access to the process because they work on a subprocess in an open parralel.
 	}
 
 :: TaskManagerProperties =
@@ -58,7 +59,6 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 	, subject			:: String 					// The subject of the task
 	, priority			:: TaskPriority				// What is the current priority of this task?
 	, deadline			:: Maybe Timestamp			// When is the task due?
-	, tempWorkers		:: [(ProcessId, UserName)] 	// Users who have temporary access to the process. (In case of an open parallel)
 	}
 					
 :: TaskWorkerProperties =

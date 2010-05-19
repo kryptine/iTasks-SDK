@@ -15,11 +15,11 @@ traceProcesses :: [Process] -> HtmlTag
 traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
-	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Temp. Access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "Mutable"],ThTag [] [Text "In Open Parallel?" ] ]
+	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Subtask access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "Mutable"],ThTag [] [Text "In Open Parallel?" ] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
 							, TdTag [] [Text process.Process.properties.managerProps.subject]
 							, TdTag [] [Text (toString process.Process.properties.managerProps.TaskManagerProperties.worker)]
-							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.managerProps.tempWorkers])]
+							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.systemProps.subTaskWorkers])]
 							, TdTag [] [Text (toString process.Process.properties.systemProps.manager)]
 							, TdTag [] [Text (toString process.Process.status)]
 							, TdTag [] (case process.Process.parent of

@@ -70,7 +70,6 @@ where
 			, subject 		 = taskLabel task
 			, priority		 = NormalPriority
 			, deadline		 = Nothing
-			, tempWorkers	 = []
 			}
 		# (result,pid,tst)	= TSt@createTaskInstance task properties True Nothing activate tst
 		= (TaskFinished (ProcessRef pid), tst)

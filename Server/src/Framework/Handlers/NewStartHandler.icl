@@ -27,7 +27,6 @@ where
 						  , subject 		= workflow.Workflow.label
 						  , priority		= NormalPriority
 						  , deadline		= Nothing
-						  , tempWorkers		= []
 						  }
 		# (_,pid,tst) = createTaskInstance workflow.Workflow.mainTask properties True Nothing True tst
 		= (pid,tst)

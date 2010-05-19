@@ -77,6 +77,7 @@ initTaskProperties
 		, firstEvent = Nothing
 		, latestEvent = Nothing
 		, latestExtEvent = Nothing
+		, subTaskWorkers = []
 		}
 	  , managerProps =
 	    {TaskManagerProperties
@@ -84,7 +85,6 @@ initTaskProperties
 	    , subject = ""
 	    , priority = NormalPriority
 	    , deadline = Nothing
-	    , tempWorkers = []
 	    }
 	  , workerProps =
 	    {TaskWorkerProperties
@@ -110,6 +110,7 @@ createTaskInstance task managerProps toplevel mbParType activate tst=:{taskNr,ma
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
 			, latestExtEvent = Nothing
+			, subTaskWorkers = []
 			}
 		, managerProps = managerProps
 		, workerProps =

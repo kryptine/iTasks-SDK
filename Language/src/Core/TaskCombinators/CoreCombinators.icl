@@ -289,15 +289,14 @@ where
 					  				, subject		 = taskLabel task
 					  				, priority		 = initPriority
 					  				, deadline		 = initDeadline
-					  				, tempWorkers	 = []
 									}
-				# tst				  = addTemporaryUser taskId userName mbpartype tst
+				# tst				  = addSubTaskWorker taskId userName mbpartype tst
 				# (result,procId,tst) = createTaskInstance task props False mbpartype True tst
 				= (result,tst)
 			//When found, evaluate
 			Just proc
 				//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info
-				# tst				= addTemporaryUser taskId userName mbpartype tst
+				# tst				= addSubTaskWorker taskId userName mbpartype tst
 				// -> TSt in subprocess
 				# (result,_,tst)	= evaluateTaskInstance proc Nothing False False tst
 				// <- TSt back to current process				
@@ -306,32 +305,32 @@ where
 					TaskBusy				
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
-						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst	 
+						# tst = removeSubTaskWorker proc.Process.processId userName mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
-						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst
+						# tst = removeSubTaskWorker proc.Process.processId userName mbpartype tst
 						= (TaskException (dynamic "assign: result of wrong type returned"),tst)
 					TaskException e			
-						# tst = removeTemporaryUser proc.Process.processId userName mbpartype tst
+						# tst = removeSubTaskWorker proc.Process.processId userName mbpartype tst
 						= (TaskException e, tst)
 
-addTemporaryUser :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt
-addTemporaryUser procId uname mbpartype tst
+addSubTaskWorker :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt
+addSubTaskWorker procId uname mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
 			(Just Open)		
-				# twlist = tst.TSt.properties.managerProps.tempWorkers
-				# ntwlist = [(procId,uname):[(p,u) \\ (p,u) <- twlist | not (p == procId && u == uname)]]				
-				= {TSt | tst & properties = {tst.TSt.properties & managerProps = {tst.TSt.properties.managerProps & tempWorkers = ntwlist}}} 
+				# stwlist = tst.TSt.properties.systemProps.subTaskWorkers
+				# nstwlist = [(procId,uname):[(p,u) \\ (p,u) <- stwlist | not (p == procId && u == uname)]]				
+				= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = nstwlist}}} 
 
-removeTemporaryUser :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt			
-removeTemporaryUser procId uname mbpartype tst
+removeSubTaskWorker :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt			
+removeSubTaskWorker procId uname mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
 			(Just Open)		
-				# twlist = tst.TSt.properties.managerProps.tempWorkers
-				# ntwlist = [(p,u) \\ (p,u) <- twlist | not (p == procId && u == uname)]				
-				= {TSt | tst & properties = {tst.TSt.properties & managerProps = {tst.TSt.properties.managerProps & tempWorkers = ntwlist}}} 
+				# stwlist = tst.TSt.properties.systemProps.subTaskWorkers
+				# nstwlist = [(p,u) \\ (p,u) <- stwlist | not (p == procId && u == uname)]				
+				= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = nstwlist}}} 
 						
