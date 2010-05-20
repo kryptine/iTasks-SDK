@@ -21,7 +21,7 @@ derive bimap		(,), Maybe
 
 nProc name task = spawnProcess here True (name @>> task)
 where
-	here = UserName "0" "root"
+	here = UserName "root" "Root"
 
 // utilities to apply functions to a stream 
 
