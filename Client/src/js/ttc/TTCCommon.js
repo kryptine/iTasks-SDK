@@ -96,6 +96,7 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 					comp.on("click",clickTaskEvent);
 				break;
 			case "itasks.tui.FormattedText":
+			case "itasks.tui.SourceCode":
 				comp.on("update",changeTaskEvent);
 				break;
 	}

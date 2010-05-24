@@ -2,13 +2,13 @@ definition module ExperimentalDomain
 
 import GenPrint, GenParse, GenUpdate, GenVisualize, GenMerge, GenCopy
 
-derive gPrint			FormattedText, Color
-derive gParse			FormattedText, Color
-derive gVisualize		FormattedText, Color
-derive gUpdate			FormattedText, Color
-derive gMerge			FormattedText, Color
-derive gMakeSharedCopy	FormattedText, Color
-derive gMakeLocalCopy	FormattedText, Color
+derive gPrint			FormattedText, SourceCode, Color
+derive gParse			FormattedText, SourceCode, Color
+derive gVisualize		FormattedText, SourceCode, Color
+derive gUpdate			FormattedText, SourceCode, Color
+derive gMerge			FormattedText, SourceCode, Color
+derive gMakeSharedCopy	FormattedText, SourceCode, Color
+derive gMakeLocalCopy	FormattedText, SourceCode, Color
 
 // Html-formatted text
 :: FormattedText = FormattedText !String !FormattedTextControls
@@ -85,6 +85,16 @@ toUnformattedString :: !FormattedText !Bool -> String
 removeMarkers :: !String -> String
 
 instance toString FormattedText
+
+// source code
+:: SourceCode =	SourceCode !String !SourceCodeLanguage
+:: SourceCodeLanguage = JS | CSS | PHP | HTML | XML | Clean
+
+mkSourceCode :: !String !SourceCodeLanguage -> SourceCode
+setSource :: !String !SourceCode -> SourceCode
+getSource :: !SourceCode -> String
+
+instance toString SourceCode
 
 // colors
 :: Color = Color !String

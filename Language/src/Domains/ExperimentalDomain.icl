@@ -2,13 +2,13 @@ implementation module ExperimentalDomain
 
 import iTasks, Text
 
-derive gPrint			FormattedText, FormattedTextControls, Color
-derive gParse			FormattedText, FormattedTextControls, Color
-derive gUpdate			FormattedText, FormattedTextControls, Color
-derive gMerge			FormattedText, FormattedTextControls, Color
-derive gMakeSharedCopy	FormattedText, FormattedTextControls, Color
-derive gMakeLocalCopy	FormattedText, FormattedTextControls, Color
-derive JSONEncode		TUIFormattedText, TUIColorChooser
+derive gPrint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gParse			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gMerge			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gMakeSharedCopy	FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage,  Color
+derive gMakeLocalCopy	FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive JSONEncode		TUIFormattedText, TUIColorChooser, TUISourceCode
 derive bimap			Maybe, (,)
 
 mkEmptyFormattedText :: !FormattedTextControls -> FormattedText
@@ -153,6 +153,27 @@ where
 instance toString FormattedText
 where
 	toString (FormattedText s _) = s
+	
+mkSourceCode :: !String !SourceCodeLanguage -> SourceCode
+mkSourceCode src lang = SourceCode src lang
+
+setSource :: !String !SourceCode -> SourceCode
+setSource src (SourceCode _ lang) = SourceCode src lang
+
+getSource :: !SourceCode -> String
+getSource (SourceCode src _) = src
+
+//'js', 'css', 'php', 'htm', 'html', 'xml'
+:: TUISourceCode =
+	{ xtype			:: !String
+	, name			:: !String
+	, id			:: !String
+	, value			:: !String
+	, fieldLabel	:: !Maybe String
+	, staticDisplay	:: !Bool
+	, optional		:: !Bool
+	, language		:: !String
+	}
 
 :: TUIColorChooser =
 	{ xtype			:: !String
@@ -163,6 +184,57 @@ where
 	, staticDisplay	:: !Bool
 	, optional		:: !Bool
 	}
+	
+gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic}
+	= case vizType of
+		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
+									{ TUISourceCode
+									| xtype			= "itasks.tui.SourceCode"
+									, name			= dp2s contentPath
+									, id			= id
+									, value			= oldV
+									, fieldLabel	= labelAttr useLabels label
+									, optional		= optional
+									, staticDisplay = renderAsStatic
+									, language		= language
+									}
+								)))]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+		VEditorUpdate
+			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+		_					# htmlFrag = case old of
+								VBlank		= [Text ""]
+								VValue v _	= html v
+							= ([HtmlFragment htmlFrag]
+								, 1
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+where
+	// Use the path to the inner constructor instead of the current path.
+	// This way the generic gUpdate will work for this type
+	contentPath	= shiftDataPath currentPath
+	id			= dp2id idPrefix contentPath
+	oldV		= value2s contentPath old
+	newV		= value2s contentPath new
+	language = case old of
+		VBlank							= ""
+		VValue (SourceCode _ lang) _	= case lang of
+			JS		= "js"
+			CSS		= "css"
+			PHP		= "php"
+			HTML	= "html"
+			XML		= "xml"
+			Clean	= "clean"
+
+instance html SourceCode
+where
+	html (SourceCode src _) = [Text src]
+	
+instance toString SourceCode
+where
+	toString (SourceCode src _) = src
 
 gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic}
 	= case vizType of

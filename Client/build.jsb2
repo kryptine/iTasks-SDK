@@ -18,6 +18,7 @@
 		,{"text":"IntControl.js","path":"src/js/tui/"}
 		,{"text":"NoteControl.js","path":"src/js/tui/"}
 		,{"text":"FormattedTextControl.js","path":"src/js/tui/"}
+		,{"text":"SourceCodeControl.js","path":"src/js/tui/"}
 		,{"text":"ColorChooser.js","path":"src/js/tui/"}
 		,{"text":"PasswordControl.js","path":"src/js/tui/"}
 		,{"text":"RealControl.js","path":"src/js/tui/"}

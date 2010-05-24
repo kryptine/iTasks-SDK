@@ -5,10 +5,10 @@ from StdFunc import flip
 import PmProject, UtilStrictLists
 import CompilerInterface, AppState, Configuration, GUI, StdMisc
 
-Start world = startEngine [workflow "Clean IDE" cleanIDE] world
+Start world = startEngine [workflow "Clean IDE (using formatted text type)" cleanIDEFT, workflow "Clean IDE (using source code type)" cleanIDESC] world
 
-cleanIDE :: Task Void
-cleanIDE = try cleanIDE` handleErrors
+cleanIDEFT :: Task Void
+cleanIDEFT = try cleanIDE` handleErrors
 where
 	cleanIDE` =
 						setMenus menuStructure
@@ -22,63 +22,100 @@ where
 								>>|				dynamicGroupAOnly [srcEditor sid] (actions sid)
 								>>|				deleteDB sid
 							Nothing = stop
+							
+	actions :: !(DBid AppState) -> [GroupAction GOnlyAction Void Void]
+	actions sid =	[ GroupAction ActionQuit					GOStop GroupAlways
+					, GroupAction ActionSave					(GOExtend [save sid]) GroupAlways
+					, GroupAction ActionCompile					(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
+					, GroupAction ActionFind					(GOExtend [findAndReplace sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditCodeGenOptions		(GOExtend [editProjectOptions	"Code Generation Options"		PR_GetCodeGenOptions		PR_SetCodeGenOptions					sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditAppOptions			(GOExtend [editProjectOptions	"Application Options"			PR_GetApplicationOptions	PR_SetApplicationOptions				sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditSyntaxColOptions	(GOExtend [editAppStateOptions	"Syntax Highlighter Colours"	(\s -> s.syntaxHighlColors)	(\c s -> {s & syntaxHighlColors = c})	sid <<@ GBAlwaysFloating]) GroupAlways
+					]
+					
+	srcEditor :: !(DBid AppState) -> Task Void
+	srcEditor sid =
+			updateShared "Clean Source" [] sid [srcEditorView]
+		>>|	return Void
 	where
-		menuStructure =	[ Menu "File"		[ MenuItem "Save" ActionSave
-											, MenuItem "Save & Compile..." ActionCompile
-											, MenuSeparator
-											, MenuItem "Quit" ActionQuit
-											]
-						, Menu "Search"		[ MenuItem "Find & Replace..."				ActionFind]
-						, Menu "Options"	[ MenuItem "Application..."					ActionEditAppOptions
-											, MenuItem "Code Generation..."				ActionEditCodeGenOptions
-											, MenuItem "Linker..."						ActionEditLinkOptions
-											, MenuSeparator
-											, MenuItem "Syntax Highlighter Colours..."	ActionEditSyntaxColOptions
-											]
-						]
-	
-		actions :: !(DBid AppState) -> [GroupAction GOnlyAction Void Void]
-		actions sid =	[ GroupAction ActionQuit					GOStop GroupAlways
-						, GroupAction ActionSave					(GOExtend [save sid]) GroupAlways
-						, GroupAction ActionCompile					(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
-						, GroupAction ActionFind					(GOExtend [findAndReplace sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditCodeGenOptions		(GOExtend [editProjectOptions	"Code Generation Options"		PR_GetCodeGenOptions		PR_SetCodeGenOptions					sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditAppOptions			(GOExtend [editProjectOptions	"Application Options"			PR_GetApplicationOptions	PR_SetApplicationOptions				sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
-						, GroupAction ActionEditSyntaxColOptions	(GOExtend [editAppStateOptions	"Syntax Highlighter Colours"	(\s -> s.syntaxHighlColors)	(\c s -> {s & syntaxHighlColors = c})	sid <<@ GBAlwaysFloating]) GroupAlways
-						]
+		srcEditorView = editor	{ editorFrom	= \state		-> highlightSyntax state.srcEditorContent state.syntaxHighlColors
+								, editorTo		= \ft state		-> {state & srcEditorContent = toUnformattedString ft True}
+								}
+					
+cleanIDESC :: Task Void
+cleanIDESC = try cleanIDE` handleErrors
+where
+	cleanIDE` =
+						setMenus menuStructure
+		>>|				loadConfig
+		>>= \mbConfig.	case mbConfig of
+							Just config =	
+												createDB (initAppState config)
+								>>= \sid.		isDirectory (config.projectsPath +++ "\\test")
+								>>= \prjExists.	if prjExists (return Void) (createTestPrj sid)
+								>>|				openFile (config.projectsPath +++ "\\test\\test.icl") sid
+								>>|				dynamicGroupAOnly [srcEditor sid] (actions sid)
+								>>|				deleteDB sid
+							Nothing = stop
+							
+	actions :: !(DBid AppState) -> [GroupAction GOnlyAction Void Void]
+	actions sid =	[ GroupAction ActionQuit					GOStop GroupAlways
+					, GroupAction ActionSave					(GOExtend [save sid]) GroupAlways
+					, GroupAction ActionCompile					(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
+					//, GroupAction ActionFind					(GOExtend [findAndReplace sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditCodeGenOptions		(GOExtend [editProjectOptions	"Code Generation Options"		PR_GetCodeGenOptions		PR_SetCodeGenOptions					sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditAppOptions			(GOExtend [editProjectOptions	"Application Options"			PR_GetApplicationOptions	PR_SetApplicationOptions				sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
+					, GroupAction ActionEditLinkOptions			(GOExtend [editProjectOptions	"Linker Options"				PR_GetLinkOptions			(flip PR_SetLinkOptions)				sid <<@ GBAlwaysFloating]) GroupAlways
+					//, GroupAction ActionEditSyntaxColOptions	(GOExtend [editAppStateOptions	"Syntax Highlighter Colours"	(\s -> s.syntaxHighlColors)	(\c s -> {s & syntaxHighlColors = c})	sid <<@ GBAlwaysFloating]) GroupAlways
+					]
+					
+	srcEditor :: !(DBid AppState) -> Task Void
+	srcEditor sid =
+			updateShared "Clean Source" [] sid [srcEditorView]
+		>>|	return Void
+	where
+		srcEditorView = editor	{ editorFrom	= \state		-> mkSourceCode state.srcEditorContent Clean
+								, editorTo		= \sc state		-> {state & srcEditorContent = getSource sc}
+								}
+							
+menuStructure =	[ Menu "File"		[ MenuItem "Save" ActionSave
+									, MenuItem "Save & Compile..." ActionCompile
+									, MenuSeparator
+									, MenuItem "Quit" ActionQuit
+									]
+				, Menu "Search"		[ MenuItem "Find & Replace..."				ActionFind]
+				, Menu "Options"	[ MenuItem "Application..."					ActionEditAppOptions
+									, MenuItem "Code Generation..."				ActionEditCodeGenOptions
+									, MenuItem "Linker..."						ActionEditLinkOptions
+									, MenuSeparator
+									, MenuItem "Syntax Highlighter Colours..."	ActionEditSyntaxColOptions
+									]
+				]
 						
-		editProjectOptions desc get putback sid =
-								readDB sid
-			>>= \state.			accWorld (accFiles (ReadProjectFile (state.config.projectsPath +++ "\\test\\test.prj") ""))
-			>>= \(prj,ok,err).	editOptions desc prj get putback
-			>>= \prj.			accWorld (accFiles (SaveProjectFile (state.config.projectsPath +++ "\\test\\test.prj") prj ""))
-			>>|					stop
-			
-		editAppStateOptions desc get putback sid =
+editProjectOptions desc get putback sid =
 						readDB sid
-			>>= \state.	editOptions desc state get putback
-			>>= \state.	writeDB sid state
-			>>|			stop
+	>>= \state.			accWorld (accFiles (ReadProjectFile (state.config.projectsPath +++ "\\test\\test.prj") ""))
+	>>= \(prj,ok,err).	editOptions desc prj get putback
+	>>= \prj.			accWorld (accFiles (SaveProjectFile (state.config.projectsPath +++ "\\test\\test.prj") prj ""))
+	>>|					stop
 	
-	handleErrors :: !FileException -> Task Void
-	handleErrors (FileException path _) = showMessageAbout "Error" ("Could not open '" +++ path +++ "'!")
+editAppStateOptions desc get putback sid =
+				readDB sid
+	>>= \state.	editOptions desc state get putback
+	>>= \state.	writeDB sid state
+	>>|			stop
+	
+handleErrors :: !FileException -> Task Void
+handleErrors (FileException path _) = showMessageAbout "Error" ("Could not open '" +++ path +++ "'!")
 	
 ActionCompile				:== ActionLabel "compile"
 ActionEditCodeGenOptions	:== ActionLabel "codeGenOpts"
 ActionEditAppOptions		:== ActionLabel "appOpts"
 ActionEditLinkOptions		:== ActionLabel "linkOpts"
 ActionEditSyntaxColOptions	:==	ActionLabel "syntColOpts"
-	
-srcEditor :: !(DBid AppState) -> Task Void
-srcEditor sid =
-		updateShared "Clean Source" [] sid [srcEditorView]
-	>>|	return Void
-where
-	srcEditorView = editor	{ editorFrom	= \state		-> highlightSyntax state.srcEditorContent state.syntaxHighlColors
-							, editorTo		= \ft state		-> {state & srcEditorContent = toUnformattedString ft True}
-							}
 
 :: Mode = InCode | InString | InChar | InMLComment |InSLComment | InNum
 						
