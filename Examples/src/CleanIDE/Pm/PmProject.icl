@@ -15,10 +15,16 @@ derive gPrint		Project, CodeGenOptions, ProjectDynamicInfo, ProjectStaticInfo, S
 derive gParse		Project, CodeGenOptions, ProjectDynamicInfo, ProjectStaticInfo, StaticLibInfo, List, LinkOptions, ApplicationOptions, InfListItem, UndefModule, UndefSymbol
 derive gUpdate		Project, CodeGenOptions, ProjectDynamicInfo, ProjectStaticInfo, StaticLibInfo, List, LinkOptions, ApplicationOptions, InfListItem, UndefModule, UndefSymbol
 derive gVisualize	Project, CodeGenOptions, ProjectDynamicInfo, ProjectStaticInfo, StaticLibInfo, List, LinkOptions, ApplicationOptions, InfListItem, UndefModule, UndefSymbol
+derive gHint		Project, CodeGenOptions, ProjectDynamicInfo, ProjectStaticInfo, StaticLibInfo, List, LinkOptions, ApplicationOptions, InfListItem, UndefModule, UndefSymbol
+derive gError		Project, CodeGenOptions, ProjectDynamicInfo, ProjectStaticInfo, StaticLibInfo, List, LinkOptions, ApplicationOptions, InfListItem, UndefModule, UndefSymbol
+
 derive gPrint		LinkMethod, Output, ModInfo, ABCLinkInfo, DATE, EditWdOptions, CompilerOptions, OptionalWindowPosAndSize, EditOptions, ListTypes, WindowPos_and_Size, NewlineConvention
 derive gParse		LinkMethod, Output, ModInfo, ABCLinkInfo, DATE, EditWdOptions, CompilerOptions, OptionalWindowPosAndSize, EditOptions, ListTypes, WindowPos_and_Size, NewlineConvention
 derive gUpdate		LinkMethod, Output, ModInfo, ABCLinkInfo, DATE, EditWdOptions, CompilerOptions, OptionalWindowPosAndSize, EditOptions, ListTypes, WindowPos_and_Size, NewlineConvention
 derive gVisualize	LinkMethod, Output, ModInfo, ABCLinkInfo, DATE, EditWdOptions, CompilerOptions, OptionalWindowPosAndSize, EditOptions, ListTypes, WindowPos_and_Size, NewlineConvention
+derive gHint		LinkMethod, Output, ModInfo, ABCLinkInfo, DATE, EditWdOptions, CompilerOptions, OptionalWindowPosAndSize, EditOptions, ListTypes, WindowPos_and_Size, NewlineConvention
+derive gError		LinkMethod, Output, ModInfo, ABCLinkInfo, DATE, EditWdOptions, CompilerOptions, OptionalWindowPosAndSize, EditOptions, ListTypes, WindowPos_and_Size, NewlineConvention
+
 derive bimap		Maybe, (,)
 
 //--

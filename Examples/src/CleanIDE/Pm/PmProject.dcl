@@ -40,6 +40,8 @@ derive gPrint		Project, CodeGenOptions, ApplicationOptions, LinkOptions
 derive gParse		Project, CodeGenOptions, ApplicationOptions, LinkOptions
 derive gUpdate		Project, CodeGenOptions, ApplicationOptions, LinkOptions
 derive gVisualize	Project, CodeGenOptions, ApplicationOptions, LinkOptions
+derive gHint		Project, CodeGenOptions, ApplicationOptions, LinkOptions
+derive gError		Project, CodeGenOptions, ApplicationOptions, LinkOptions
 
 SaveProjectFile	::
 	!String			// path to projectfile

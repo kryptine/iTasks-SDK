@@ -242,6 +242,8 @@ derive gPrint Replace
 derive gParse Replace
 derive gVisualize Replace
 derive gUpdate Replace
+derive gHint Replace
+derive gError Replace
 derive bimap Maybe, (,)
 
 ActionReplaceAll	:== ActionLabel "Replace All"

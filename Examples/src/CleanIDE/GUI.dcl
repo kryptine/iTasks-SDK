@@ -9,6 +9,8 @@ derive gPrint		WizardAction
 derive gParse		WizardAction
 derive gUpdate		WizardAction
 derive gVisualize	WizardAction
+derive gHint		WizardAction
+derive gError		WizardAction
 
 wizard :: !description ![WizardStep state] !state -> Task (Maybe state) | html description & iTask state & SharedVariable state
 

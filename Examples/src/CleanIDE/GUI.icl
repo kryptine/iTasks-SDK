@@ -6,6 +6,8 @@ derive gPrint		WizardAction
 derive gParse		WizardAction
 derive gUpdate		WizardAction
 derive gVisualize	WizardAction
+derive gHint		WizardAction
+derive gError		WizardAction
 derive bimap		Maybe, (,)
 
 wizard :: !question ![WizardStep state] !state -> Task (Maybe state) | html question & iTask state & SharedVariable state

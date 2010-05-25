@@ -7,6 +7,8 @@ derive gPrint			AppState, SyntaxHighlighterColors
 derive gParse			AppState, SyntaxHighlighterColors
 derive gVisualize		AppState, SyntaxHighlighterColors
 derive gUpdate			AppState, SyntaxHighlighterColors
+derive gHint			AppState, SyntaxHighlighterColors
+derive gError			AppState, SyntaxHighlighterColors
 derive gMerge			AppState, SyntaxHighlighterColors
 derive gMakeSharedCopy	AppState, SyntaxHighlighterColors
 derive gMakeLocalCopy	AppState, SyntaxHighlighterColors

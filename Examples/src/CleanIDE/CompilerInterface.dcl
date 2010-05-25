@@ -8,5 +8,7 @@ derive gPrint		CompilerException
 derive gParse		CompilerException
 derive gVisualize	CompilerException
 derive gUpdate		CompilerException
+derive gHint		CompilerException
+derive gError		CompilerException
 
 compileToExe :: !(DBid AppState) -> Task Document
