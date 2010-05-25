@@ -48,6 +48,12 @@ from Time		import :: Timestamp
 	| ActionShowAbout
 	| ActionFind
 	
+:: Hotkey =	{ keys	:: !String
+			, ctrl	:: !Bool
+			, alt	:: !Bool
+			, shift	:: !Bool
+			}
+	
 getActionIcon :: !Action -> String
 
 :: Menu 		= Menu !String ![MenuItem]

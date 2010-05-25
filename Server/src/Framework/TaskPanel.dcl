@@ -43,6 +43,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, taskId		:: !String
 	, content		:: !(Maybe FormContent)
 	, updates		:: !(Maybe [TUIUpdate])
+	, hotkeys		:: ![(!String, !Hotkey)]
 	, subtaskId		:: !(Maybe String)
 	, description	:: !String
 	}
@@ -52,6 +53,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, id			:: !String
 	, taskId		:: !String
 	, content		:: !FormContent
+	, hotkeys		:: ![(!String, !Hotkey)]
 	, subtaskId		:: !(Maybe String)
 	, description	:: !String
 	}

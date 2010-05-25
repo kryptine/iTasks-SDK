@@ -159,11 +159,11 @@ where
 						, editorTo		= \ntxt (EditorState _ file) -> EditorState ntxt file
 						}
 						
-	actions =	[ MenuAction (ActionSave,		Predicate \v -> case v of Valid (EditorState _ (Just _)) = True; _ = False)
-				, MenuAction (ActionSaveAs,		Always)
-				, MenuAction (ActionReplace,	Predicate \v -> case v of Valid (EditorState (Note txt) _) = txt <> ""; _ = False)
-				, MenuAction (ActionStats,		Always)
-				, MenuAction (ActionClose,		Always)
+	actions =	[ MenuActionWithHotkey 	(ActionSave,	Predicate \v -> case v of Valid (EditorState _ (Just _)) = True; _ = False)			{keys = "s", ctrl = False, alt = True, shift = False}
+				, MenuActionWithHotkey 	(ActionSaveAs,	Always)																				{keys = "a", ctrl = False, alt = True, shift = False}
+				, MenuActionWithHotkey 	(ActionReplace,	Predicate \v -> case v of Valid (EditorState (Note txt) _) = txt <> ""; _ = False)	{keys = "r", ctrl = False, alt = True, shift = False}
+				, MenuActionWithHotkey 	(ActionStats,	Always)																				{keys = "t", ctrl = False, alt = True, shift = False}
+				, MenuActionWithHotkey 	(ActionClose,	Always)																				{keys = "c", ctrl = False, alt = True, shift = False}
 				]
 				
 titleListener = listener	{ listenerFrom = \(EditorState _ file) -> case file of

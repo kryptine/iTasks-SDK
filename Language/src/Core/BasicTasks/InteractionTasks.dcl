@@ -4,7 +4,7 @@ from TSt		import :: Task
 from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
-from ProcessDB	import :: Action
+from ProcessDB	import :: Action, :: Hotkey{..}
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, StoreTasks, GenCopy
 
 // This type class contains types that may be used as
@@ -272,16 +272,18 @@ where
 instance html String
 instance html [HtmlTag]
 
-:: TaskAction a 		= 	ButtonAction (ActionWithCond a) 
-						| 	MenuAction (ActionWithCond a) 
-						| 	ButtonAndMenuAction (ActionWithCond a) 
-						| 	MenuParamAction (String, ActionCondition a)
-:: ActionWithCond a 	:== (Action, ActionCondition a)
+:: TaskAction a 		= 	ButtonAction !(ActionWithCond a) 
+						| 	MenuAction !(ActionWithCond a)
+						| 	ButtonAndMenuAction !(ActionWithCond a) 
+						| 	MenuParamAction !(!String, ActionCondition a)
+						|	HotkeyAction !(ActionWithCond a) !Hotkey
+						|	MenuActionWithHotkey !(ActionWithCond a) !Hotkey
+:: ActionWithCond a 	:== (!Action, ActionCondition a)
 :: ActionCondition a 	= 	Always 
 						| 	IfValid 
 						| 	Predicate ((EditorValue a) -> Bool)
 :: EditorValue a 		= 	Invalid 
-						| 	Valid a
+						| 	Valid !a
 
 //*** Utility Functions ***//
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid

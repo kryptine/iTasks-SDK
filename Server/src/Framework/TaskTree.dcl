@@ -10,15 +10,15 @@ import Types
 import Html, Time
 import RPC
 
-from   ProcessDB		import :: ProcessStatus, :: Action, :: Menu, :: MenuItem
+from   ProcessDB		import :: ProcessStatus, :: Action, :: Hotkey, :: Menu, :: MenuItem
 from   JSON 			import :: JSON
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition (TUIDef,[TUIButton]) [(Action,Bool)]
-					| Updates [TUIUpdate] [(Action,Bool)]
+:: InteractiveTask	= Definition (TUIDef,[TUIButton]) [(Action,Bool)] ![(!Action, !Hotkey)]
+					| Updates [TUIUpdate] [(Action,Bool)] ![(!Action, !Hotkey)]
 					| Func (*TSt -> *(!InteractiveTask, !*TSt))
-					| Message (TUIDef,[TUIButton]) [(Action,Bool)]
+					| Message (TUIDef,[TUIButton]) [(Action,Bool)] ![(!Action, !Hotkey)]
 
 :: TaskTree			= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) !(Maybe TaskParallelType) TaskTree	//A task that is treated as a main chunk of work
 					| TTInteractiveTask	TaskInfo InteractiveTask													//A task that can be worked on through a gui 

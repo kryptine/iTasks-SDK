@@ -645,17 +645,16 @@ where
 	finalizeTaskNode (TTGroupedTask ti tasks gActions)	= TTGroupedTask		ti (reverse tasks) gActions
 	finalizeTaskNode node								= node
 	
-/*setTUIDef			:: !(TUIDef,[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt */	
-setTUIDef	:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
-setTUIDef def taskDescription accActions tst=:{tree}
+setTUIDef	:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
+setTUIDef def taskDescription accActions hotkeys tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Definition def accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Definition def accActions hotkeys)}
 		_								= tst
 
-setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
-setTUIUpdates upd accActions tst=:{tree}
+setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
+setTUIUpdates upd accActions hotkeys tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Updates upd accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Updates upd accActions hotkeys)}
 		_								= tst
 		
 setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt -> *TSt
@@ -664,10 +663,10 @@ setTUIFunc func taskDescription tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Func func)}
 		_								= tst
 
-setTUIMessage :: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
-setTUIMessage msg taskDescription accActions tst=:{tree}
+setTUIMessage :: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
+setTUIMessage msg taskDescription accActions hotkeys tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Message msg accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Message msg accActions hotkeys)}
 		_								= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt

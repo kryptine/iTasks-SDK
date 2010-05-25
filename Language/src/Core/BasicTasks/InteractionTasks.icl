@@ -58,14 +58,15 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 		# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
 		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
 		# buttonActions	= evaluateConditions buttonActions valid ovalue
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
+		# hotkeyActions	= evaluateHotkeyConditions (getHotkeyActions actions) valid ovalue
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions hotkeyActions tst
 		= (TaskBusy,tst)
 	| otherwise
 		//Check for user updates
 		# (updates,tst) = getUserUpdates tst
 		| isEmpty updates
 			// no change for this task
-			# tst = setTUIUpdates [] [] tst
+			# tst = setTUIUpdates [] [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
 			# (nvalue,nmask,lmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask [] tst
@@ -77,7 +78,8 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 				# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue
 				# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 				# buttonActions		= evaluateConditions buttonActions valid nvalue
-				# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
+				# hotkeyActions		= evaluateHotkeyConditions (getHotkeyActions actions) valid nvalue
+				# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions hotkeyActions tst
 				= (TaskBusy, tst)
 where
 	readValue initial tst
@@ -166,14 +168,15 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 												}]
 		# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
 		# buttonActions	= evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
+		# hotkeyActions	= evaluateHotkeyConditions (getHotkeyActions actions) valid (if valid (options !! selection) (hd options))
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions hotkeyActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		//Check for user updates
 		# (updates,tst) = getUserUpdates tst
 		| isEmpty updates
 			// no change for this task
-			# tst = setTUIUpdates [] [] tst
+			# tst = setTUIUpdates [] [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
 			# (action,tst) = getAction updates (map fst buttonActions) tst
@@ -189,11 +192,12 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 						# tst			= setTaskStore "selection" index tst
 						# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
 						# buttonActions = evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-						# tst			= setTUIUpdates (enables editorId buttonActions) menuActions tst
+						# hotkeyActions	= evaluateHotkeyConditions (getHotkeyActions actions) valid (if valid (options !! selection) (hd options))
+						# tst			= setTUIUpdates (enables editorId buttonActions) menuActions hotkeyActions tst
 						= (TaskBusy, tst)	
 					// Fallback case (shouldn't really happen)
 					| otherwise
-						# tst = setTUIUpdates [] [] tst
+						# tst = setTUIUpdates [] [] [] tst
 						= (TaskBusy, tst)
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
@@ -243,14 +247,15 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
 		# form			= [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
 		# menuActions	= evaluateConditions (getMenuActions actions) True (select selection options)
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
+		# hotkeyActions = evaluateHotkeyConditions (getHotkeyActions actions) True (select selection options)
+		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions hotkeyActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		//Check for user updates
 		# (updates,tst) = getUserUpdates tst
 		| isEmpty updates
 			// no change for this task
-			# tst = setTUIUpdates [] [] tst
+			# tst = setTUIUpdates [] [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
 			// One of the buttons was pressed
@@ -262,7 +267,8 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 					# mbSel		= parseSelection updates 
 					# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 					# tst		= setTaskStore "selection" (sort selection) tst
-					# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
+					# hotkeyActions = evaluateHotkeyConditions (getHotkeyActions actions) True (select selection options)
+					# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) hotkeyActions tst
 					= (TaskBusy, tst)
 where
 	parseSelection :: [(String,String)] -> Maybe [String]
@@ -313,7 +319,8 @@ makeMessageTask message context actions tst=:{taskNr}
 	| isEmpty updates
 		# menuActions	= evaluateConditions (getMenuActions actions) True Void
 		# buttonActions	= evaluateConditions buttonActions True Void
-		# tst			= setTUIMessage (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) (html message) menuActions tst
+		# hotkeyActions = evaluateHotkeyConditions (getHotkeyActions actions) True Void
+		# tst			= setTUIMessage (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) (html message) menuActions hotkeyActions tst
 		= (TaskBusy, tst)
 	| otherwise
 		# (action,tst) = getAction updates (map fst buttonActions) tst
@@ -434,7 +441,8 @@ where
 		# (form,valid,_,tst)	= foldl (createDef svalue) ([],True,0,tst) views
 		# menuActions			= evaluateConditions menuActions valid svalue
 		# buttonActions			= evaluateConditions buttonActions valid svalue
-		= (Definition (taskPanel taskId (html question) Nothing (Just form) (makeButtons baseEditorId buttonActions)) menuActions,tst)
+		# hotkeyActions			= evaluateHotkeyConditions (getHotkeyActions actions) valid svalue
+		= (Definition (taskPanel taskId (html question) Nothing (Just form) (makeButtons baseEditorId buttonActions)) menuActions hotkeyActions,tst)
 	
 	createDef svalue (def,valid,n,tst) (Editor editor)
 		# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") svalue tst
@@ -449,7 +457,8 @@ where
 		# (upd,valid,_,tst)	= foldl (detUpd cvalue) ([],True,0,tst) views
 		# menuActions		= evaluateConditions menuActions valid cvalue
 		# buttonActions		= evaluateConditions buttonActions valid cvalue
-		= (Updates (enables baseEditorId buttonActions ++ upd) menuActions,tst)
+		# hotkeyActions		= evaluateHotkeyConditions (getHotkeyActions actions) valid cvalue
+		= (Updates (enables baseEditorId buttonActions ++ upd) menuActions hotkeyActions,tst)
 		
 	updateV updates (cvalue,n,tst) (Editor editor)
 		# (ovalue,tst)			= readValue n tst
@@ -536,8 +545,10 @@ getAction updates buttonActions tst
 			= (Just (buttonActions !! index),tst)
 		| otherwise
 			= case parseString (http_getValue "menu" updates "") of
-				Nothing	= (parseString (http_getValue "menuAndGroup" updates ""),tst)
-				res		= (res,tst)
+				Nothing	= case parseString (http_getValue "menuAndGroup" updates "") of
+					Nothing		= (parseString (http_getValue "hotkey" updates "") ,tst)
+					Just res	= (res, tst)
+				Just res		= (res ,tst)
 			
 getButtonActions :: ![TaskAction a] -> [ActionWithCond a]
 getButtonActions actions = map getAction (filter isButtonAction actions)
@@ -554,21 +565,36 @@ where
 	isMenuAction (MenuAction _)				= True
 	isMenuAction (ButtonAndMenuAction _)	= True
 	isMenuAction (MenuParamAction _)		= True
+	isMenuAction (MenuActionWithHotkey _ _)	= True
 	isMenuAction _							= False
-	getAction (MenuAction a)			= a
-	getAction (ButtonAndMenuAction a)	= a
-	getAction (MenuParamAction (s,c))	= (ActionParam s "?", c)
-
-evaluateConditions :: ![ActionWithCond a] Bool a -> [(Action, Bool)]
-evaluateConditions actions valid value = [(action,evaluateCondition cond valid value) \\ (action,cond) <- actions]
+	getAction (MenuAction a)				= a
+	getAction (ButtonAndMenuAction a)		= a
+	getAction (MenuParamAction (s,c))		= (ActionParam s "?", c)
+	getAction (MenuActionWithHotkey a _)	= a
+	
+getHotkeyActions :: ![TaskAction a] -> [(ActionWithCond a, Hotkey)]
+getHotkeyActions actions = map getAction (filter isHotkeyAction actions)
 where
-	evaluateCondition Always _ _		= True
-	evaluateCondition IfValid valid _ 	= valid
-	evaluateCondition (Predicate p) valid value
-		= case valid of
-			False	= p Invalid
-			True	= p (Valid value)
+	isHotkeyAction (HotkeyAction _ _)			= True
+	isHotkeyAction (MenuActionWithHotkey _ _)	= True
+	isHotkeyAction _							= False
+	getAction (HotkeyAction a hk)				= (a, hk)
+	getAction (MenuActionWithHotkey a hk)		= (a, hk)
 
+evaluateConditions :: ![ActionWithCond a] !Bool !a -> [(Action, Bool)]
+evaluateConditions actions valid value = [(action,evaluateCondition cond valid value) \\ (action,cond) <- actions]
+			
+evaluateHotkeyConditions :: ![(ActionWithCond a, !Hotkey)] !Bool !a -> [(Action, Hotkey)]
+evaluateHotkeyConditions actions valid value = [(action, hk) \\ ((action,cond), hk) <- actions | evaluateCondition cond valid value]
+
+evaluateCondition :: !(ActionCondition a) !Bool !a -> Bool
+evaluateCondition Always _ _		= True
+evaluateCondition IfValid valid _ 	= valid
+evaluateCondition (Predicate p) valid value
+	= case valid of
+		False	= p Invalid
+		True	= p (Valid value)
+			
 //Throw away the chosen action part of the result
 ignoreActionA :: (*TSt -> (!TaskResult (!Action,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 ignoreActionA f = \tst -> let (res,tst`) = f tst in (mapTaskResult snd res,tst`)

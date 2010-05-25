@@ -4,7 +4,7 @@ import JSON, TUIDefinition, TSt, ProcessDB
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import Html
 
-derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
+derive JSONEncode TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, SubtaskInfo, Hotkey
 
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
@@ -32,36 +32,39 @@ buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action,Bool)] !UserName !*TSt ->
 buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
-	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA hotkeyA))
 		= (TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA gActions ti, buttons = map TUIButton buttons}
 			, updates 	= Nothing
+			, hotkeys	= mkHotkeys hotkeyA
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
-	(TTInteractiveTask ti (Updates upd acceptedA))
+	(TTInteractiveTask ti (Updates upd acceptedA hotkeyA))
 		= (TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Nothing
 			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA gActions ti)
+			, hotkeys	= mkHotkeys hotkeyA
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst) = f tst
 		= buildTaskPanel` (TTInteractiveTask ti fres) menus gActions currentUser tst
-	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
+	(TTInteractiveTask ti (Message (msg,buttons) acceptedA hotkeyA))
 		= (TTCMessageContainer {TTCMessageContainer
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId	= ti.TaskInfo.taskId
 			, content	= {form = msg, tbar = makeMenuBar menus acceptedA gActions ti, buttons = map TUIButton buttons}
 			, subtaskId = Nothing
+			, hotkeys	= mkHotkeys hotkeyA
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTMonitorTask ti html)
@@ -157,7 +160,7 @@ where
 			
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menusChanged} = case tree of
-	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA hotkeyA))
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
 			, manager = manager
@@ -170,11 +173,12 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 		   									, taskId 	= ti.TaskInfo.taskId
 		   									, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA [] ti, buttons = map TUIButton buttons}
 		   									, updates	= Nothing
+		   									, hotkeys	= mkHotkeys hotkeyA
 		   									, subtaskId = Just (subtaskNrToString stnr)
 		   									, description = ti.TaskInfo.taskDescription
 		   									}
 		   	}], tst)
-	(TTInteractiveTask ti (Updates upd acceptedA))
+	(TTInteractiveTask ti (Updates upd acceptedA hotkeyA))
 		= ([{SubtaskContainer 
 			| subtaskNr = stnr
 			, manager = manager
@@ -187,6 +191,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 											, taskId 	= ti.TaskInfo.taskId
 											, content	= Nothing 
 											, updates 	= Just (determineUpdates upd menus menusChanged acceptedA [] ti)
+											, hotkeys	= mkHotkeys hotkeyA
 											, subtaskId = Just (subtaskNrToString stnr)
 											, description = ti.TaskInfo.taskDescription
 											}
@@ -194,7 +199,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst)	= f tst
 		= buildSubtaskPanels (TTInteractiveTask ti fres) stnr menus manager partype inClosed procProps tst
-	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
+	(TTInteractiveTask ti (Message (msg,buttons) acceptedA hotkeyA))
 		= ([{SubtaskContainer
 			| subtaskNr = stnr
 			, manager = manager
@@ -206,6 +211,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 							, id		= "taskform-" +++ ti.TaskInfo.taskId
 							, taskId	= ti.TaskInfo.taskId
 							, content	= {form = msg, tbar = makeMenuBar menus acceptedA [] ti, buttons = map TUIButton buttons}
+							, hotkeys	= mkHotkeys hotkeyA
 							, subtaskId = Just (subtaskNrToString stnr)
 							, description = ti.TaskInfo.taskDescription
 							}
@@ -476,6 +482,9 @@ where
 		Right f
 			# (b,tst) = f tst
 			= ((action,b),tst)
+			
+mkHotkeys :: ![(!Action,!Hotkey)] -> [(String,Hotkey)]
+mkHotkeys a = [(printToString ac, hk) \\ (ac, hk) <- a]
 			
 subtaskNrToString :: SubtaskNr -> String
 subtaskNrToString [] 	 = ""

@@ -47,6 +47,7 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		
 		var tb = this.getTopToolbar();
 		this.setupToolbar(tb);
+		this.setupHotkeys(this.hotkeys);
 	},
 		
 	addUpdate: function(name, value) {
@@ -109,7 +110,37 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		}
 	},
 	
-	update: function(data){}
+	setupHotkeys: function(hotkeys) {
+		if (this.keyMap)
+			this.keyMap.disable();
+	
+		if (hotkeys.length == 0)
+			return;
+		
+		var conf = new Array();
+		var form = this;
+		for (i = 0; i < hotkeys.length; i++) {
+			var h = hotkeys[i][1];
+			conf[conf.length] = {
+				key: h.keys,
+				ctrl: h.ctrl,
+				alt: h.alt,
+				shift: h.shift,
+				stopEvent: true,
+				handler: function() {
+					form.addUpdate('hotkey', this);
+					form.sendUpdates();
+				},
+				scope: hotkeys[i][0]
+			};
+		}
+
+		this.keyMap = new Ext.KeyMap(this.getEl(), conf);
+	},
+	
+	update: function(data){
+		this.setupHotkeys(data.hotkeys);
+	}
 });
 
 Ext.ns('itasks.ttc.message');

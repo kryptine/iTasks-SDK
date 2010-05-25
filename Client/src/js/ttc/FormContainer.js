@@ -52,6 +52,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		
 		var tb = this.getTopToolbar();
 		this.setupToolbar(tb);
+		this.setupHotkeys(this.hotkeys);
 	},
 		
 	addUpdate: function(name, value) {
@@ -71,7 +72,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		}
 	},
 	
-	update: function(data) {	
+	update: function(data) {
 		if(data.updates) {
 			
 			var num = data.updates.length;
@@ -209,6 +210,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			//this.attachTaskHandlers(this);
 			itasks.ttc.common.attachTaskHandlers(this);
 		}
+		
+		this.setupHotkeys(data.hotkeys);
 	},
 	
 	replaceToolbar: function(newTb) {
@@ -260,6 +263,34 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		} else {
 			tb.removeClass(cls);
 		}
+	},
+	
+	setupHotkeys: function(hotkeys) {
+		if (this.keyMap)
+			this.keyMap.disable();
+	
+		if (hotkeys.length == 0)
+			return;
+		
+		var conf = new Array();
+		var form = this;
+		for (i = 0; i < hotkeys.length; i++) {
+			var h = hotkeys[i][1];
+			conf[conf.length] = {
+				key: h.keys,
+				ctrl: h.ctrl,
+				alt: h.alt,
+				shift: h.shift,
+				stopEvent: true,
+				handler: function() {
+					form.addUpdate('hotkey', this);
+					form.sendUpdates();
+				},
+				scope: hotkeys[i][0]
+			};
+		}
+
+		this.keyMap = new Ext.KeyMap(this.getEl(), conf);
 	}
 });
 
