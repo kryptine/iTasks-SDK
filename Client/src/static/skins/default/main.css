@@ -669,7 +669,7 @@ button.x-form-document-trash-icon {
 	width: auto;
 	height: 18px;
 	padding: 2px 2px 2px 24px;
-	margin: -5px 0px 5px 0px;
+	margin: 0px 0px 5px 0px;
 	z-index: 1;
 	color: #777777;
 	font-size: 11px;
@@ -681,7 +681,7 @@ button.x-form-document-trash-icon {
 	width: auto;
 	height: 18px;
 	padding: 2px 2px 2px 24px;
-	margin: -5px 0px 5px 0px;
+	margin: 0px 0px 5px 0px;
 	z-index: 1;
 	color: #E87979;
 	font-size: 11px;
