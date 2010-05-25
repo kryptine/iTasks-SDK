@@ -14,6 +14,8 @@ derive gPrint		FileException, FileProblem, CallException, DirectoryException
 derive gParse		FileException, FileProblem, CallException, DirectoryException
 derive gVisualize	FileException, FileProblem, CallException, DirectoryException
 derive gUpdate		FileException, FileProblem, CallException, DirectoryException
+derive gHint		FileException, FileProblem, CallException, DirectoryException
+derive gError		FileException, FileProblem, CallException, DirectoryException
 
 /**
 * Calls an external executable. The call is non-blocking.
