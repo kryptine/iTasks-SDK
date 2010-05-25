@@ -23,6 +23,8 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 			this.autoCreate = {tag: 'span', html: this.value};
 		}
 		
+		this.msgTarget = 'side';
+		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.allowBlank = this.optional;
@@ -36,6 +38,11 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 		if(this.staticDisplay){
 			this.el.next().remove();		
 		}	
+		
+		(function(){
+			this.setError(this.errorMsg);
+			this.setHint(this.hintMsg);
+		}).defer(50,this);
 	},	
 	
 	setValue: function(value){
@@ -44,6 +51,21 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 		}else{
 			itasks.tui.UsernameControl.superclass.setValue.call(this,value);
 		}
+		if(this.activeError) this.setError(this.activeError);
+	},
+	
+	setError: function(msg){		
+		(function() {
+			if(msg == "") this.clearInvalid();
+			else this.markInvalid(msg);
+		}).defer(50,this);
+	},
+	
+	setHint: function(msg){
+		(function() {
+			if(msg == "") itasks.tui.common.clearHint(this);
+			else itasks.tui.common.markHint(this,msg);
+		}).defer(50,this);
 	}
 });
 

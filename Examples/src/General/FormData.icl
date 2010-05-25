@@ -8,6 +8,8 @@ derive gPrint 		Form, FormShape, Tup
 derive gParse 		Form, FormShape, Tup
 derive gUpdate 		Form, FormShape, Tup
 derive gVisualize 	Form, FormShape, Tup
+derive gError		Form, FormShape, Tup
+derive gHint		Form, FormShape, Tup
 
 derive bimap		Maybe, (,)
 

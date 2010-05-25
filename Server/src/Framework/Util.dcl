@@ -11,6 +11,8 @@ derive gParse 		Task, User, Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
 
 derive gVisualize	Task, User
 derive gUpdate		Task, User
+derive gHint		Task, User
+derive gError		Task, User
 
 iTaskId 			:: !TaskNr !String 	-> String
 

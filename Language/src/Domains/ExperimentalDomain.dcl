@@ -9,6 +9,8 @@ derive gUpdate			FormattedText, SourceCode, Color
 derive gMerge			FormattedText, SourceCode, Color
 derive gMakeSharedCopy	FormattedText, SourceCode, Color
 derive gMakeLocalCopy	FormattedText, SourceCode, Color
+derive gError			FormattedText, SourceCode, Color
+derive gHint			FormattedText, SourceCode, Color
 
 // Html-formatted text
 :: FormattedText = FormattedText !String !FormattedTextControls

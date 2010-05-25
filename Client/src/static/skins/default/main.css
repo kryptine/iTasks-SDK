@@ -636,3 +636,71 @@ button.x-form-document-trash-icon {
 	font-family: monospace;
 	text-align: right;
 }
+
+/* == Hint & Error Icons == */
+.x-form-invalid-icon {
+	z-index: 10;
+}
+
+.x-form-hint-icon {
+	background:none no-repeat scroll 0 2px transparent;
+	background-image: url('img/icons/information.png') !important;
+	display:block;
+	height:18px;
+	left:0;
+	position:absolute;
+	top:0;
+	visibility:hidden;
+	width:16px;
+	z-index: 1;
+}
+
+.x-form-hint-tip .x-tip-body {
+    padding-left:24px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+    background:transparent no-repeat 0px 0px;
+	background-image: url('img/icons/information.png') !important;
+}
+
+.x-record-hint-icon {
+	background:none no-repeat scroll 0 2px transparent;
+	background-image: url('img/icons/information.png') !important;
+	width: auto;
+	height: 18px;
+	padding: 2px 2px 2px 24px;
+	margin: -5px 0px 5px 0px;
+	z-index: 1;
+	color: #777777;
+	font-size: 11px;
+}
+
+.x-record-invalid-icon {
+	background:none no-repeat scroll 0 2px transparent;
+	background-image: url('img/icons/exclamation.png') !important;
+	width: auto;
+	height: 18px;
+	padding: 2px 2px 2px 24px;
+	margin: -5px 0px 5px 0px;
+	z-index: 1;
+	color: #E87979;
+	font-size: 11px;
+}
+
+.x-document-hint-icon{
+	width: 25px;
+	background: none no-repeat scroll 0 4px transparent;
+	background-image: url('img/icons/information.png') !important;
+	height: 24px;
+	z-index: 1;
+	margin-left: 4px;
+}
+
+.x-document-invalid-icon{
+	width: 25px;
+	background: none no-repeat scroll 0 4px transparent;
+	background-image: url('img/icons/exclamation.png') !important;
+	height: 24px;
+	z-index: 10;
+	margin-left: 4px;
+}

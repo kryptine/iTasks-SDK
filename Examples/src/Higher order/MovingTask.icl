@@ -7,6 +7,8 @@ derive gVisualize 	QForm, Person, Gender
 derive gUpdate	 	QForm, Person, Gender
 derive gParse 		QForm, Person, Gender
 derive gPrint 		QForm, Person, Gender
+derive gError		QForm, Person, Gender
+derive gHint		QForm, Person, Gender
 
 derive bimap (,), Maybe
 

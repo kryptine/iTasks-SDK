@@ -10,6 +10,8 @@ derive gPrint 			FormStore, FlowStore
 derive gParse 			FormStore, FlowStore
 derive gUpdate 			FormStore, FlowStore
 derive gVisualize 		FormStore, FlowStore
+derive gError	 		FormStore, FlowStore
+derive gHint	 		FormStore, FlowStore
 derive gMakeLocalCopy	FormStore, FlowStore, Form, Flow, FormShape, FlowShape, CleanExpr, AssignInfo
 
 derive bimap Maybe, (,)

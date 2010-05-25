@@ -21,6 +21,8 @@ derive gParse		GAction, GOnlyAction
 derive gPrint		GAction, GOnlyAction
 derive gVisualize	GAction, GOnlyAction
 derive gUpdate		GAction, GOnlyAction
+derive gError		GAction, GOnlyAction
+derive gHint		GAction, GOnlyAction
 
 /**
 * Tasks can dynamically add other tasks or stop execution of group.

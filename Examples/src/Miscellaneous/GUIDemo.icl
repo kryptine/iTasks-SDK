@@ -29,6 +29,8 @@ derive gPrint		Person, Address
 derive gParse		Person, Address
 derive gVisualize	Person, Address
 derive gUpdate		Person, Address
+derive gHint		Person, Address
+derive gError		Person, Address
 
 derive bimap (,), Maybe
 

@@ -42,6 +42,8 @@ derive gUpdate EditorState, TextFile
 derive gMerge EditorState, TextFile
 derive gMakeSharedCopy EditorState, TextFile
 derive gMakeLocalCopy EditorState, TextFile
+derive gError EditorState, TextFile
+derive gHint EditorState, TextFile
 
 openFile :: !(DBRef TextFile) -> Task EditorState
 openFile id =
@@ -84,6 +86,8 @@ derive gPrint Replace
 derive gParse Replace
 derive gVisualize Replace
 derive gUpdate Replace
+derive gError Replace
+derive gHint Replace
 
 ActionReplaceAll	:== ActionLabel "Replace All"
 
@@ -106,6 +110,8 @@ derive gPrint TextStatistics
 derive gParse TextStatistics
 derive gVisualize TextStatistics
 derive gUpdate TextStatistics
+derive gError TextStatistics
+derive gHint TextStatistics
 
 statistics :: (DBid EditorState)  -> Task GAction
 statistics sid =

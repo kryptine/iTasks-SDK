@@ -16,6 +16,9 @@ derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriori
 derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gError		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gHint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId

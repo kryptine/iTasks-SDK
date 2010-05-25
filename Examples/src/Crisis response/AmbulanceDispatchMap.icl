@@ -12,6 +12,8 @@ derive gPrint		Incident, IncidentType
 derive gParse		Incident, IncidentType
 derive gVisualize 	Incident, IncidentType
 derive gUpdate		Incident, IncidentType
+derive gError		Incident, IncidentType
+derive gHint		Incident, IncidentType
 
 derive bimap (,), Maybe
 

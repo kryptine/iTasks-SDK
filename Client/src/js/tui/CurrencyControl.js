@@ -13,6 +13,8 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 			this.autoCreate = {tag: 'div', style: 'overflow: auto; padding-top: 4px', html: this.value};
 		}
 		
+		this.msgTarget = 'side';
+		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.allowBlank = this.optional;
@@ -24,6 +26,14 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		//Overlay currency symbol on top of input
 		var cl = ct.createChild({tag: 'span', style: 'position: absolute;', cn: this.currencyLabel});
 		cl.setLocation(this.getEl().getLeft() + 5, this.getEl().getTop() + 5);
+	},
+	afterRender: function(){
+		itasks.tui.CurrencyControl.superclass.afterRender.call(this,arguments);
+		
+		(function(){
+			this.setError(this.errorMsg);
+			this.setHint(this.hintMsg);
+		}).defer(50,this);
 	},
 	normalize: function(s) {
 		if(s == "")
@@ -55,6 +65,20 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		}else{
 			itasks.tui.CurrencyControl.superclass.setValue.call(this,value);
 		}
+		
+		if(this.activeError) this.setError(this.activeError);
+	},
+	setError: function(msg){		
+		(function() {
+			if(msg == "") this.clearInvalid();
+			else this.markInvalid(msg);
+		}).defer(50,this);
+	},
+	setHint: function(msg){
+		(function() {
+			if(msg == "") itasks.tui.common.clearHint(this);
+			else itasks.tui.common.markHint(this,msg);
+		}).defer(50,this);
 	}
 });
 

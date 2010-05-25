@@ -11,6 +11,8 @@ derive gVisualize	NegativeValueException, TooLargeValueException
 derive gUpdate		NegativeValueException, TooLargeValueException
 derive gPrint		NegativeValueException, TooLargeValueException
 derive gParse		NegativeValueException, TooLargeValueException
+derive gError		NegativeValueException, TooLargeValueException
+derive gHint		NegativeValueException, TooLargeValueException
 
 derive bimap (,), Maybe
 

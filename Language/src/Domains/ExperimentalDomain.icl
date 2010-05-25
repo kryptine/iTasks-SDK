@@ -8,6 +8,8 @@ derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLan
 derive gMerge			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gMakeSharedCopy	FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage,  Color
 derive gMakeLocalCopy	FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gError			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gHint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		TUIFormattedText, TUIColorChooser, TUISourceCode
 derive bimap			Maybe, (,)
 
@@ -61,10 +63,11 @@ noControls =	{ alignmentControls	= False
 	, enableSourceEdit	:: !Bool
 	}
 
-gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid}
+gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,errorMask}
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
-									{ xtype				= "itasks.tui.FormattedText"
+									{ TUIFormattedText
+									| xtype				= "itasks.tui.FormattedText"
 									, name				= dp2s contentPath
 									, id				= id
 									, value				= replaceMarkers oldV
@@ -81,17 +84,17 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 									}
 								)))]
 								, 0
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
 								, 0
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
 								VBlank		= [Text ""]
 								VValue v _	= html v
 							= ([HtmlFragment htmlFrag]
 								, 0
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
@@ -185,7 +188,7 @@ getSource (SourceCode src _) = src
 	, optional		:: !Bool
 	}
 	
-gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic}
+gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,errorMask}
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
 									{ TUISourceCode
@@ -200,17 +203,17 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									}
 								)))]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
 								VBlank		= [Text ""]
 								VValue v _	= html v
 							= ([HtmlFragment htmlFrag]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
@@ -236,7 +239,7 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic}
+gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,errorMask}
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
 									{ TUIColorChooser
@@ -250,17 +253,17 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 									}
 								)))]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
 								VBlank		= [Text ""]
 								VValue v _	= html v
 							= ([HtmlFragment htmlFrag]
 								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type

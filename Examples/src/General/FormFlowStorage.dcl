@@ -8,6 +8,8 @@ derive gPrint 		FormStore, FlowStore
 derive gParse 		FormStore, FlowStore
 derive gUpdate 		FormStore, FlowStore
 derive gVisualize 	FormStore, FlowStore
+derive gError	 	FormStore, FlowStore
+derive gHint	 	FormStore, FlowStore
 
 :: FormStore	= 	{ formName 	:: !String
 					, formType	:: !String

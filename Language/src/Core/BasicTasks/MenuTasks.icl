@@ -12,6 +12,8 @@ derive gParse Menu, MenuItem
 derive gPrint Menu, MenuItem
 derive gVisualize Menu, MenuItem
 derive gUpdate Menu, MenuItem
+derive gError Menu, MenuItem
+derive gHint Menu, MenuItem
 
 derive bimap (,), Maybe
 

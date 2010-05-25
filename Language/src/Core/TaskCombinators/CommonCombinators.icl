@@ -25,6 +25,8 @@ derive gParse		GAction, GOnlyAction, GroupedBehaviour
 derive gPrint		GAction, GOnlyAction, GroupedBehaviour
 derive gVisualize	GAction, GOnlyAction, GroupedBehaviour
 derive gUpdate		GAction, GOnlyAction, GroupedBehaviour
+derive gError		GAction, GOnlyAction, GroupedBehaviour
+derive gHint		GAction, GOnlyAction, GroupedBehaviour
 derive bimap Maybe, (,)
 
 //Grouping combinators

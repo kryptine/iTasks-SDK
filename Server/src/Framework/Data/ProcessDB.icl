@@ -189,6 +189,8 @@ derive gUpdate		Action
 derive gPrint		Action
 derive gParse		Action
 derive gEq			Action
+derive gHint		Action
+derive gError		Action
 
 derive bimap Maybe, (,)
 

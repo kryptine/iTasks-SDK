@@ -12,6 +12,8 @@ derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleSt
 derive gMerge	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gMakeSharedCopy	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gMakeLocalCopy	GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gError			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gHint			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
 derive bimap	Maybe, (,)
 

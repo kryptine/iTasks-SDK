@@ -6,6 +6,8 @@ derive gPrint 		Form, FormShape
 derive gParse 		Form, FormShape
 derive gUpdate 		Form, FormShape
 derive gVisualize 	Form, FormShape
+derive gError		Form, FormShape
+derive gHint		Form, FormShape
 
 
 :: Form			= 	{ formShape :: ![FormShape]

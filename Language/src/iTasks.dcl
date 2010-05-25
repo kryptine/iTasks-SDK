@@ -32,6 +32,7 @@ import	Engine						// basic iTask system creator
 	,	Util
 	,	GenVisualize				// Functions for generating GUIs
 	,	GenUpdate					// Functions for updating arbitrary values
+	,	GenVerify					// Functions for appending errors and hints to form values
 	
 	//StdEnv modules
 	,	StdInt
@@ -63,5 +64,7 @@ class iTask a
 	| gPrint {|*|}
 	, gParse {|*|}
 	, gVisualize{|*|}
+	, gHint{|*|}
+	, gError{|*|}
 	, gUpdate{|*|}
 	, TC a

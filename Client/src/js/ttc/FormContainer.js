@@ -181,6 +181,14 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 					case "TUIReplaceMenu":
 						this.replaceToolbar(update[1]);
 						break;
+					case "TUISetError":
+						var ct = Ext.getCmp(update[1]);
+						if(ct && ct.setError) ct.setError(update[2]);					
+					break;
+					case "TUISetHint":
+						var ct = Ext.getCmp(update[1]);
+						if(ct && ct.setHint) ct.setHint(update[2]);
+					break;
 				}
 			}
 			

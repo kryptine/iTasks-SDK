@@ -13,12 +13,16 @@ derive JSONEncode TUIDef, TUIUpdate
 :: PlaceholderId :== String
 
 :: TUIUpdate
-	= TUIAdd TUIId TUIDef		// Add the additional component *after* the component with indicated id
-	| TUIAddTo TUIId TUIDef		// Add the additional component as a child of the component with indicated id
-	| TUIRemove TUIId			// Remove the component with indicated id
-	| TUIReplace TUIId TUIDef	// Replace a component
-	| TUISetValue TUIId String	// Call setValue on the component with indicated id
-	| TUISetEnabled TUIId Bool	// Enable/disable form elements
+	= TUIAdd TUIId TUIDef			// Add the additional component *after* the component with indicated id
+	| TUIAddTo TUIId TUIDef			// Add the additional component as a child of the component with indicated id
+	| TUIRemove TUIId				// Remove the component with indicated id
+	| TUIReplace TUIId TUIDef		// Replace a component
+	| TUISetValue TUIId String		// Call setValue on the component with indicated id
+	| TUISetEnabled TUIId Bool		// Enable/disable form elements
+	| TUISetError TUIId String		// Set the error messages on a component
+	| TUISetHint TUIId String		// Set the hint messages on a component
+	//| TUIClearError TUIId			// Clears all error messages on a component
+	//| TUIClearHint TUIId			// Clears all hint messages on a component
 	| TUIReplaceMenu [TUIDef]
 
 :: TUIDef
@@ -74,6 +78,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, staticDisplay	:: !Bool
 	, optional		:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
 	}
 :: TUICurrencyControl =
 	{ name			:: !String
@@ -83,6 +89,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, currencyLabel	:: !String
 	, optional		:: !Bool
 	, staticDisplay	:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
 	}
 :: TUIDocumentControl = 
 	{ id			:: !String
@@ -91,6 +99,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool //-> Change to optional!
 	, staticDisplay :: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
 	}
 :: TUIButtonControl =
 	{ name			:: !String
@@ -101,6 +111,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, staticDisplay	:: !Bool
 	, optional		:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
 	}
 :: TUIConstructorControl =
 	{ id			:: !String
@@ -110,6 +122,25 @@ derive JSONEncode TUIDef, TUIUpdate
 	, consValues	:: ![String]
 	, items			:: ![TUIDef]
 	, staticDisplay	:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
+	}
+:: TUIFormattedTextControl =
+	{ name				:: !String
+	, id				:: !String
+	, value				:: !String
+	, fieldLabel		:: !Maybe String
+	, optional			:: !Bool
+	, enableAlignments	:: !Bool
+	, enableColors		:: !Bool
+	, enableFont		:: !Bool
+	, enableFontSize	:: !Bool
+	, enableFormat		:: !Bool
+	, enableLinks		:: !Bool
+	, enableLists		:: !Bool
+	, enableSourceEdit	:: !Bool
+	, errorMsg			:: !String
+	, hintMsg			:: !String
 	}
 	
 :: TUITupleContainer =
@@ -124,6 +155,8 @@ derive JSONEncode TUIDef, TUIUpdate
 	, items			:: ![TUIDef]
 	, optional		:: !Bool
 	, hasValue		:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
 	}
 	
 //-- OLD --	

@@ -4,7 +4,7 @@ import StdGeneric, StdMaybe, Void, Either
 import Types
 
 //Datapath is used to point to substructures of data structures
-:: DataPath
+:: DataPath = DataPath [Int] (Maybe SubEditorIndex) Bool
 :: SubEditorIndex :== Int
 :: DataMask :== [[Int]]
 :: ListMask :== [([Int],[Int])]

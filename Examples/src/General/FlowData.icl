@@ -10,6 +10,9 @@ derive gPrint 		Flow, FlowShape, AssignInfo, CleanExpr
 derive gParse 		Flow, FlowShape, AssignInfo, CleanExpr
 derive gUpdate 		Flow, FlowShape, AssignInfo, CleanExpr
 derive gVisualize 	Flow, FlowShape, AssignInfo, CleanExpr
+derive gError	 	Flow, FlowShape, AssignInfo, CleanExpr
+derive gHint	 	Flow, FlowShape, AssignInfo, CleanExpr
+
 
 derive bimap	Maybe, (,)
 

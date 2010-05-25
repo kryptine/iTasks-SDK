@@ -10,6 +10,8 @@ derive gPrint			Session, Document, DocumentType, DocumentInfo, DocumentContent, 
 derive gParse			Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
 derive gVisualize		Session
 derive gUpdate			Session
+derive gError			Session, UserName, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gHint			Session, UserName, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gMerge			Session, UserName, User, VisualizationHint
 derive gMakeLocalCopy	Session, UserName, User, VisualizationHint
 derive gMakeSharedCopy	Session, UserName, User, VisualizationHint

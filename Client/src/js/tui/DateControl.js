@@ -6,6 +6,8 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 		if(this.staticDisplay){
 			this.autoCreate = {tag: 'div', style: 'padding-top: 4px', html: this.value};
 		}
+		
+		this.msgTarget = 'side';
 			
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
@@ -22,6 +24,11 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 		if(this.staticDisplay){
 			this.el.next().remove();		
 		}	
+		
+		(function(){
+			this.setError(this.errorMsg);
+			this.setHint(this.hintMsg);
+		}).defer(50,this);
 	},
 	setValue: function(value){
 		if(this.staticDisplay){
@@ -29,6 +36,22 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 		}else{
 			itasks.tui.DateControl.superclass.setValue.call(this,value);
 		}
+		
+		if(this.activeError) this.setError(this.activeError);
+	},
+	
+	setError: function(msg){		
+		(function() {
+			if(msg == "") this.clearInvalid();
+			else this.markInvalid(msg);
+		}).defer(50,this);
+	},
+	
+	setHint: function(msg){
+		(function() {
+			if(msg == "") itasks.tui.common.clearHint(this);
+			else itasks.tui.common.markHint(this,msg);
+		}).defer(50,this);
 	}
 });
 

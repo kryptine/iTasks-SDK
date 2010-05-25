@@ -10,15 +10,16 @@ MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the 
 						//with radio buttons. When it exceeds this, a combobox is used.
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
-
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, listMask = initialListMask, renderAsStatic = False}
+		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, listMask = initialListMask, renderAsStatic = False, errorMask = [], hintMask = []}
 
 //Wrapper functions
-visualizeAsEditor :: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool) | gVisualize{|*|} a
+visualizeAsEditor :: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool) | gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
 visualizeAsEditor name mbSubIdx mask x
-	# vst = {mkVSt & origVizType = VEditorDefinition, vizType = VEditorDefinition, idPrefix = name}
+	# emask = determineErrors x mask
+	# hmask = determineHints x mask
+	# vst = {mkVSt & origVizType = VEditorDefinition, vizType = VEditorDefinition, idPrefix = name, errorMask = emask, hintMask = hmask}
 	# vst = case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
@@ -47,13 +48,16 @@ visualizeAsTextLabel x = join " " (coerceToStrings (fst3 (gVisualize{|*|} val va
 where
 	val = VValue x initialDataMask
 	
-determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
+//visualizeAsEditor name mbSubIdx mask x
 determineEditorUpdates name mbSubIdx omask nmask lmask old new
 	//# omask = trace_n ("OLD MASK: " +++ printToString omask) omask
 	//# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask
 	//# lmask = trace_n ("LST MASK: " +++ printToString lmask) lmask
-	# vst = {mkVSt & vizType = VEditorUpdate, idPrefix = name, listMask = lmask}
-	# vst = case mbSubIdx of
+	# emask = determineErrors new nmask
+	# hmask = determineHints new nmask
+	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, listMask = lmask, errorMask = emask, hintMask = hmask}
+	# vst 	= case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,rh,vst=:{valid}) = (gVisualize{|*|} (VValue old omask) (VValue new nmask) vst)
@@ -187,20 +191,22 @@ where
 	//pathid					= dp2id idPrefix (dataPathSetConsFlag currentPath)
 	pathid					= dp2id idPrefix currentPath
 
-gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,optional,valid}
+gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,optional,valid,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition
 			# (ox,nx) = case (old,new) of (VValue (CONS ox) omask,VValue (CONS nx) nmask)	= (VValue ox omask, VValue nx nmask); _ = (VBlank,VBlank)
+			# errMsg = getErrorMessage currentPath errorMask
+			# hntMsg = getHintMessage currentPath hintMask
 			//records
 			| not (isEmpty d.gcd_fields)
 				= case ox of 
 					VBlank 
-						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = [], optional = optional, hasValue = False})]
+						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = [], optional = optional, hasValue = False, errorMsg = errMsg, hintMsg = hntMsg})]
 						  , 0 //fieldset is always full width (rh = 0)
 						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					_
 						# (viz,rh,vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = coerceToTUIDefs viz, optional = optional, hasValue = True})]
+						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = coerceToTUIDefs viz, optional = optional, hasValue = True, errorMsg = errMsg, hintMsg = hntMsg})]
 						  , 0 //fieldset is always full width (rh = 0)
 						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 			//ADT's
@@ -215,20 +221,20 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 					(VValue (CONS ox) omask, VBlank)
 						// remove components
 						# (viz,rh,vst=:{valid}) = fx (VValue ox omask) (VValue ox omask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ((determineRemovals viz),rh,{VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});
+						= ([getErrorUpdate fsid currentPath errorMask, getHintUpdate fsid currentPath hintMask:(determineRemovals viz)],rh,{VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});
 					(VBlank, VValue (CONS nx) nmask)
 						// add components
 						# (viz,rh,vst=:{valid}) = fx (VValue nx nmask) (VValue nx nmask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ((determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz),rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});				
+						= ([getErrorUpdate fsid currentPath errorMask, getHintUpdate fsid currentPath hintMask:(determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz)],rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});				
 					(VValue (CONS ox) omask, VValue (CONS nx) nmask) 
 						# (vizBody,rh, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False} 
-						= (vizBody, 0, {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
+						= ([getErrorUpdate fsid currentPath errorMask, getHintUpdate fsid currentPath hintMask:vizBody], 0, {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 					_
 						= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})
 			//ADT's
 			| otherwise
 				# (viz,rh,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-				= (viz,rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
+				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:viz],rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
 		//Cons selector	update	
 		VConsSelectorUpdate = (consSelectorUpdate old, undef, vst)
 		//Html display vizualization
@@ -252,6 +258,10 @@ where
 	oldV = case old of (VValue (CONS ox) omask) = VValue ox omask; _ = VBlank
 	newV = case new of (VValue (CONS nx) nmask) = VValue nx nmask; _ = VBlank  
 	
+	fsid = (dp2id idPrefix currentPath)+++"-fs"
+	cId = (dp2id idPrefix currentPath)+++"c"
+	id = (dp2id idPrefix currentPath)
+	
 	//Do not show constructors that start with an underscore (_Tuple2,_Cons etc.)
 	vizCons = if (d.gcd_name.[0] == '_') [] [TextFragment d.gcd_name]
 
@@ -262,19 +272,19 @@ where
 	consSelectorUpdate VBlank = []
 	consSelectorUpdate (VValue _ dm)
 		| isMasked currentPath dm && isEmpty  d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1
-			=[TUIUpdate (TUISetValue ((dp2id idPrefix currentPath)+++"c") d.gcd_name)]	
+			=[TUIUpdate (TUISetValue cId d.gcd_name)]	
 		| otherwise
 			= []
 
-import StdDebug
-
-gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,valid,optional,renderAsStatic}
+gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,valid,optional,renderAsStatic,errorMask,hintMask}
 	//ADT's with multiple constructors
 	| d.gtd_num_conses > 1
 		= case vizType of 
 			VEditorDefinition
 				# (items,rh,vst=:{selectedConsIndex}) 	= fx oldV newV {vst & useLabels = False, optional = False}
 				# consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
+				# errMsg = getErrorMessage currentPath errorMask
+				# hntMsg = getHintMessage currentPath hintMask
 				= ([TUIFragment (TUIConstructorControl {TUIConstructorControl
 														| id = id
 														, name = dp2s currentPath
@@ -283,16 +293,18 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 														, consValues = consValues
 														, items = if(isMasked currentPath oldM) (coerceToTUIDefs items) []
 														, staticDisplay = renderAsStatic
+														, errorMsg = errMsg
+														, hintMsg = hntMsg
 														})]
 				  ,0
 				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional,valid=(isMasked currentPath oldM)})
 			VEditorUpdate
 				| not (isMasked currentPath newM)
 				# (rem,rh,vst=:{valid})	= (fx oldV oldV {vst & vizType = VEditorDefinition})
-				= (determineRemovals rem,rh,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex,valid=isOptional valid})		
+				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:determineRemovals rem],rh,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex,valid=isOptional valid})		
 				| otherwise
 				# (upd,rh,vst) = fx oldV newV {vst & useLabels = False, optional = False}
-				= (upd,rh,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})			
+				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:upd],rh,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})			
 			_
 				# (viz,rh,vst) = fx oldV newV vst
 				= (viz,rh,{VSt | vst & currentPath = stepDataPath currentPath})
@@ -332,71 +344,97 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
-gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic}
+import StdDebug
+
+gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
-		VEditorDefinition						
-			=	([TUIFragment (TUIIntControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
+		VEditorDefinition
+			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath hintMask)								
+			# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath errorMask)
+			= ([TUIFragment (TUIIntControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, 1
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
-			| oldV <> newV	=	([TUIUpdate (TUISetValue id newV)]
-									, 1
-									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_					=	([TextFragment (toString old)]
-									, 1
-									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
+			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
+			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath hintMask:upd]
+			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath errorMask:upd]
+			= (upd, 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+		_	
+			= ([TextFragment (toString old)]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
 	oldV	= value2s currentPath old
 	
-gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic}
+gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIRealControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		VEditorDefinition	
+		# errMsg = getErrorMessage currentPath errorMask
+		# hntMsg = getHintMessage currentPath hintMask
+		= ([TUIFragment (TUIRealControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
+			, 1
+			, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
-			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
+			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
+			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath hintMask:upd]
+			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath errorMask:upd]
+			= (upd, 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+		_					
+			= ([TextFragment (toString old)]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
 	oldV	= value2s currentPath old
 		
-gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic}
+gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUICharControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		VEditorDefinition	
+			# errMsg = getErrorMessage currentPath errorMask
+			# hntMsg = getHintMessage currentPath hintMask
+			= ([TUIFragment (TUICharControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
-			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
+			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
+			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath hintMask: upd]
+			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath errorMask:upd]
+			= (upd, 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+		_		
+			= ([TextFragment (toString old)]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
 	oldV	= value2s currentPath old
 
-gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic}
+gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition
-			= ([TUIFragment (TUIBoolControl {TUIBasicControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
-								, 1
-								, {VSt|vst & currentPath = stepDataPath currentPath})
+			# errMsg = getErrorMessage currentPath errorMask
+			# hntMsg = getHintMessage currentPath hintMask
+			= ([TUIFragment (TUIBoolControl {TUIBasicControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
-			| checkedOld <> checkedNew 	= ([TUIUpdate (TUISetValue id (toString checkedNew))]
-											, 1
-											, {VSt|vst & currentPath = stepDataPath currentPath})
-		_								= ([TextFragment (toString old)]
-											, 1
-											, {VSt|vst & currentPath = stepDataPath currentPath})		
+			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
+			# upd = if (checkedOld <> checkedNew) [TUIUpdate(TUISetValue id (toString checkedNew))] []
+			# err = getErrorUpdate id currentPath errorMask
+			# hnt = getHintUpdate id currentPath hintMask
+			= ([err,hnt:upd]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath})
+		_	
+			= ([TextFragment (toString old)]
+				, 1
+				, {VSt|vst & currentPath = stepDataPath currentPath})		
 where
 	id			= dp2id idPrefix currentPath
 	checkedOld	= checked old
@@ -405,18 +443,26 @@ where
 		VBlank			= False
 		(VValue v mask) = if (isMasked currentPath mask) v False
 	
-gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic}
+gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUIStringControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
-									, 3
-									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath old optional valid})
+		VEditorDefinition	
+		# errMsg = getErrorMessage currentPath errorMask
+		# hntMsg = getHintMessage currentPath hintMask
+		=	([TUIFragment (TUIStringControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
+			, 3
+			, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
-			| oldV <> newV	=	([TUIUpdate (TUISetValue id newV)]
-									, 3
-									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
-		_					=	([TextFragment (toString old)]
-									, 3
-									, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath new optional valid})
+			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
+			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
+			# err = getErrorUpdate id currentPath errorMask
+			# hnt = getHintUpdate id currentPath hintMask
+			= ([err,hnt:upd]		
+				, 3
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+		_			
+			=	([TextFragment (toString old)]
+				, 3
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	newV	= value2s currentPath new
@@ -661,18 +707,25 @@ where
 	| otherwise = []
 
 //UserName type
-gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic}
+gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
-		VEditorDefinition	= ([TUIFragment (TUIUsernameControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic})]
-								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath old optional valid})
+		VEditorDefinition	
+			# errMsg = getErrorMessage currentPath errorMask
+			# hntMsg = getHintMessage currentPath hintMask
+			= ([TUIFragment (TUIUsernameControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
+				, 2
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
-			| oldV <> newV 	= ([TUIUpdate (TUISetValue id newV)]
-								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
-		_					= ([TextFragment (toString old)]
-								, 2
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath new optional valid})
+			# upd = [TUIUpdate (TUISetValue id newV)]
+			# err = getErrorUpdate id currentPath errorMask
+			# hnt = getHintUpdate id currentPath hintMask
+			= ([err,hnt:upd]
+				, 2
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
+		_					
+			= ([TextFragment (toString old)]
+				, 2
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
@@ -681,7 +734,7 @@ where
 	newV		= value2s currentPath new
 	
 //Document Type
-gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic}
+gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, errorMask, hintMask}
 = case vizType of
 	VHtmlDisplay
 		= case old of
@@ -703,21 +756,23 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 				  							3,
 			 	  							{VSt | vst & currentPath = stepDataPath currentPath})
 	_ 
+		# errMsg = getErrorMessage currentPath errorMask
+		# hntMsg = getHintMessage currentPath hintMask
 		= case new of 
 			(VValue nval=:{content} nmask)			
-				= ([TUIFragment (TUIDocumentControl {TUIDocumentControl | id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON nval, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
+				= ([TUIFragment (TUIDocumentControl {TUIDocumentControl | id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON nval, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 				  4,
-				  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval optional valid})
+				  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval currentPath errorMask optional valid})
 			(VBlank)
 				= case old of
 					(VValue oval=:{content} omask)
-						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON oval, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
+						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON oval, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 						4,
-						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval optional valid})
+						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath errorMask optional valid})
 					(VBlank)
-						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON emptyDoc, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
+						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON emptyDoc, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 						4,
-						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid emptyDoc optional valid})	
+						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid emptyDoc currentPath errorMask optional valid})	
 where
 	fixReal r = (toReal (toInt (r*100.0)))/100.0
 	
@@ -733,9 +788,10 @@ where
 			SharedLocation sid _	= "shared_" +++ sid
 		= "/document/download/link/" +++ location +++ "/" +++ toString info.DocumentInfo.index
 	
-	isValid :: Document Bool Bool -> Bool
-	isValid doc optional valid
+	isValid :: Document DataPath ErrorMask Bool Bool -> Bool
+	isValid doc cp em optional valid
 	| optional || not (isEmptyDoc doc)	= valid
+	| getErrorCount cp em > 0			= False
 	| otherwise							= False
 
 //Hidden type
@@ -761,8 +817,6 @@ where
 	oldV = case old of (VValue (Editable ov) om) = (VValue ov om); _ = VBlank
 	newV = case new of (VValue (Editable nv) nm) = (VValue nv nm); _ = VBlank
 
-import StdDebug
-
 gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVizType, currentPath, renderAsStatic}
 	= case origVizType of
 		VHtmlDisplay
@@ -777,7 +831,7 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 				//_, hidden -> replace with hidden
 				(_,(VValue (VHHidden _) _))
 					# path = shiftDataPath currentPath
-					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True})]
+					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
 					  ,0,{VSt | vst & currentPath = stepDataPath currentPath})
 				//hidden, html -> replace with static
 				((VValue (VHHidden _) _),(VValue (VHHtmlDisplay _) _))
@@ -802,7 +856,7 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 		_
 			= case old of
 				(VValue (VHHidden _) _)
-					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True})]
+					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
 					  ,0,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue (VHHtmlDisplay _) _)
 					# (viz,rh,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = True}
@@ -841,12 +895,13 @@ label2s _		Nothing		= Nothing
 label2s True	(Just l)	= Just (l +++ " (optional)")
 label2s False	(Just l)	= Just l
 
-stillValid :: DataPath (VisualizationValue a) Bool Bool -> Bool
-stillValid dp val optional valid
+stillValid :: DataPath ErrorMask (VisualizationValue a) Bool Bool -> Bool
+stillValid dp em val optional valid
 	# dm = case val of (VValue _ m) = m ; _ = initialDataMask
-	| optional				= valid //Nothing changes
-	| not (isMasked dp dm)	= False
-	| otherwise				= valid	//A non-optional field must be masked to be valid
+	| getErrorCount dp em > 0	= False //If there is an error, the form is invalid. Regardless any optional fields.
+	| optional					= valid //Nothing changes
+	| not (isMasked dp dm)		= False
+	| otherwise					= valid	//A non-optional field must be masked to be valid
 
 //	| optional				= trace_n (printToString dp +++ " OPT") valid 	//Nothing changes
 //	| not (isMasked dp dm)	= trace_n (printToString dp +++ " BAD") False
@@ -891,6 +946,12 @@ determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def
 
 determineChildAdditions :: String [Visualization] -> [Visualization]
 determineChildAdditions consid editor = [TUIUpdate (TUIAddTo consid def) \\ def <- coerceToTUIDefs editor]
+
+getHintUpdate :: TUIId DataPath HintMask -> Visualization
+getHintUpdate id cp hm = TUIUpdate (TUISetHint id (getHintMessage cp hm))
+
+getErrorUpdate :: TUIId DataPath ErrorMask -> Visualization
+getErrorUpdate id cp em = TUIUpdate (TUISetError id (getErrorMessage cp em))
 
 //Coercion of visualizations
 coerceToTUIDefs :: [Visualization] -> [TUIDef]

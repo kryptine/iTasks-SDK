@@ -10,6 +10,8 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
 derive gPrint Maybe, Void, (,), (,,), (,,,), (,,,,), User
 derive gParse Maybe, Void, (,), (,,), (,,,), (,,,,), User
+derive gHint User
+derive gError User
 
 derive bimap	Maybe, (,)
 
@@ -82,6 +84,9 @@ gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
 	= (Task {TaskDescription|title = "return", description = Note "", groupedBehaviour=GBFixed} Nothing (\tst -> (TaskFinished a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
+
+gError{|Task|} fx x est = est
+gHint{|Task|} fx x hst = hst
 
 derive gUpdate User
 derive gVisualize User

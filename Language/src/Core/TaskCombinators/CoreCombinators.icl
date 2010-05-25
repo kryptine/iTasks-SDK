@@ -101,6 +101,8 @@ derive gPrint 		PSt
 derive gParse 		PSt
 derive gVisualize 	PSt
 derive gUpdate 		PSt
+derive gError		PSt
+derive gHint		PSt
 
 derive bimap Maybe, (,)
 

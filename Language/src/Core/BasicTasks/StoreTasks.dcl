@@ -21,6 +21,8 @@ derive gParse			DBRef
 derive gMerge			DBRef
 derive gMakeSharedCopy	DBRef
 derive gMakeLocalCopy	DBRef
+derive gHint			DBRef
+derive gError			DBRef
 
 //Core database access functions
 

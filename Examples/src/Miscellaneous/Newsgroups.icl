@@ -14,6 +14,8 @@ derive gPrint		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
 derive gParse		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
 derive gVisualize	EMail, Reply, DisplayNews, Broadcast, ReplyHdr	
 derive gUpdate		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
+derive gError		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
+derive gHint		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
 
 derive bimap		Maybe, (,)
 
@@ -33,6 +35,8 @@ derive gPrint		InstructionMsg
 derive gParse		InstructionMsg
 derive gVisualize	InstructionMsg
 derive gUpdate		InstructionMsg
+derive gError		InstructionMsg
+derive gHint		InstructionMsg
 
 :: InstructionMsg	=	{ worker		:: !UserName
 						, title			:: !String
@@ -56,6 +60,8 @@ derive gPrint		Appointment, Meeting, Attending
 derive gParse		Appointment, Meeting, Attending
 derive gVisualize	Appointment, Meeting, Attending	
 derive gUpdate		Appointment, Meeting, Attending
+derive gError		Appointment, Meeting, Attending
+derive gHint		Appointment, Meeting, Attending
 
 derive gMerge				Meeting, Appointment, Attending
 derive gMakeSharedCopy		Meeting, Appointment, Attending
@@ -120,6 +126,8 @@ derive gVisualize		Chat, ChatMessage, ChatView, ChatMessageView
 derive gMakeLocalCopy 	Chat, ChatMessage, ChatView, ChatMessageView
 derive gMakeSharedCopy	Chat, ChatMessage, ChatView, ChatMessageView
 derive gMerge			Chat, ChatMessage, ChatView, ChatMessageView
+derive gError			Chat, ChatMessage, ChatView, ChatMessageView
+derive gHint			Chat, ChatMessage, ChatView, ChatMessageView
 
 //Shared State	
 :: Chat =

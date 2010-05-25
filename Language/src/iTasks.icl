@@ -1,3 +1,3 @@
 implementation module iTasks
 
-import GenPrint, GenParse, GenUpdate, GenVisualize
+import GenPrint, GenParse, GenUpdate, GenVerify, GenVisualize

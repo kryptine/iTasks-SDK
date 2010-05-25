@@ -21,6 +21,8 @@ derive	gPrint		Mode
 derive	gParse		Mode
 derive	gUpdate		Mode
 derive	gVisualize	Mode
+derive	gError		Mode
+derive	gHint		Mode
 derive	bimap		Maybe, (,)
 
 ActionEditType	:== ActionLabel "Edit Type"

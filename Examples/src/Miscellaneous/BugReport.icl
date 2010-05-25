@@ -39,6 +39,8 @@ derive gPrint     BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnaly
 derive gParse	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive gVisualize BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive gUpdate	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
+derive gError	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
+derive gHint	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 
 derive gMakeLocalCopy Bug, BugAnalysis, BugReport, BugStatus, BugSeverity, BugOccurance
 

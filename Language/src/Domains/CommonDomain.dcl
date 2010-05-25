@@ -59,6 +59,8 @@ derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency, F
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
+derive gError			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
+derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 
 instance html Note
 

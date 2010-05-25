@@ -90,3 +90,5 @@ derive gPrint Action
 derive gVisualize Action
 derive gUpdate Action
 derive gParse Action
+derive gError Action
+derive gHint Action
