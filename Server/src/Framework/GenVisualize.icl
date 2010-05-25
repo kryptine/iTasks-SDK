@@ -195,17 +195,20 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 	= case vizType of
 		VEditorDefinition
 			# (ox,nx) = case (old,new) of (VValue (CONS ox) omask,VValue (CONS nx) nmask)	= (VValue ox omask, VValue nx nmask); _ = (VBlank,VBlank)
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
 			//records
 			| not (isEmpty d.gcd_fields)
 				= case ox of 
 					VBlank 
+						# errMsg = getErrorMessage currentPath errorMask
+						# hntMsg = getHintMessage currentPath hintMask
 						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = [], optional = optional, hasValue = False, errorMsg = errMsg, hintMsg = hntMsg})]
 						  , 0 //fieldset is always full width (rh = 0)
 						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					_
 						# (viz,rh,vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
+						//first translate any labels.. then determine errors
+						# errMsg = getErrorMessage currentPath errorMask
+						# hntMsg = getHintMessage currentPath hintMask
 						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = coerceToTUIDefs viz, optional = optional, hasValue = True, errorMsg = errMsg, hintMsg = hntMsg})]
 						  , 0 //fieldset is always full width (rh = 0)
 						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
@@ -328,7 +331,10 @@ where
 	
 	isOptional valid = if optional True valid 
 
-gVisualize{|FIELD of d|} fx old new vst=:{vizType}
+import StdDebug
+
+gVisualize{|FIELD of d|} fx old new vst=:{vizType,hintMask,errorMask,currentPath}
+	# vst = determineIndexOfLabels d.gfd_name vst	
 	= case (old,new) of
 		(VValue (FIELD ox) omask, VValue (FIELD nx) nmask)
 			= case vizType of
@@ -343,8 +349,6 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType}
 					= (vizBody,rh, {VSt | vst & label = Nothing})
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
-
-import StdDebug
 
 gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
@@ -952,6 +956,37 @@ getHintUpdate id cp hm = TUIUpdate (TUISetHint id (getHintMessage cp hm))
 
 getErrorUpdate :: TUIId DataPath ErrorMask -> Visualization
 getErrorUpdate id cp em = TUIUpdate (TUISetError id (getErrorMessage cp em))
+
+derive gPrint LabelOrNumber
+
+determineIndexOfLabels :: !String !*VSt -> *VSt
+determineIndexOfLabels label vst=:{VSt | errorMask,hintMask,currentPath}
+	# curPath 	= [Label label:[Unlabeled i \\ i <- tl (getDP currentPath)]]
+	# pos		= hd (getDP currentPath)
+	# hntMask	= [(translateLDP curPath ldp pos, msg) \\ (ldp,msg) <- hintMask]
+	# errMask	= [(translateLDP curPath ldp pos, msg) \\ (ldp,msg) <- errorMask]	
+	= {VSt | vst & hintMask = hntMask, errorMask = errMask}
+where 
+	getDP (DataPath dp _ _) = dp
+
+	translateLDP currPath maskPath pos
+		# currPath = reverse currPath
+		# maskPath = reverse maskPath
+		| tlEqual currPath maskPath
+			# maskPath = updateAt ((length currPath)-1) (Unlabeled pos) maskPath
+			= reverse maskPath
+		| otherwise
+			= reverse maskPath
+
+	tlEqual _		[]		= False
+	tlEqual [c] 	[m:_] 	= c == m
+	tlEqual [c:cs]	[m:ms] 	= (c == m) && tlEqual cs ms 
+
+instance == LabelOrNumber
+where
+	(==) (Unlabeled a) (Unlabeled b) = a == b
+	(==) (Label a) (Label b) = a == b
+	(==) _ _ = False
 
 //Coercion of visualizations
 coerceToTUIDefs :: [Visualization] -> [TUIDef]

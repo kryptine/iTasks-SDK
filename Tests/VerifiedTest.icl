@@ -18,11 +18,11 @@ derive bimap (,),Maybe
 	, value2 :: String
 	}
 
-derive gPrint 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc
-derive gParse 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc
-derive gUpdate 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc
-derive gVisualize	TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc
-derive gError		TestDoc
+derive gPrint 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec
+derive gParse 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec
+derive gUpdate 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec
+derive gVisualize	TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec
+derive gError		TestDoc, NestedTest, NestedRec
 
 instance == ButtonState
 where
@@ -40,13 +40,13 @@ gHint{|TestRec|} Nothing hst=:{HSt | currentPath}
 	
 gHint{|TestRec|} (Just rec) hst=:{HSt | currentPath}
 	# hst = appendHint "Hi! Make sure to specify the string length in the second field." hst
-	# hst = firstChild (appendHint ("Pssst.. the lenght of the string is "+++ toString (size rec.string))) hst
+	# hst = labeledChild "string" (appendHint ("Pssst.. the lenght of the string is "+++ toString (size rec.TestRec.string))) hst
 	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
 	
 gError{|TestRec|} r est=:{ESt | currentPath}
-	#est = case r.int <> (size r.string) of
+	#est = case r.int <> (size r.TestRec.string) of
 		True
-			# est = nthChild 1 (appendError "This does not match the length of the string") est
+			# est = labeledChild "int" (appendError "This does not match the length of the string") est
 			= appendError("You don't get it, do you?") est
 		_	= est
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
@@ -58,10 +58,27 @@ gError{|PositiveNum|} (Positive x) est=:{ESt | currentPath}
 gHint{|PositiveNum|} _ hst=:{HSt | currentPath}
 	# hst = firstChild (appendHint "Enter a positive number") hst
 	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
+
+gHint{|NestedTest|} _ Nothing hst = hst	
+gHint{|NestedTest|} fx (Just x) hst=:{HSt | currentPath}
+	# hst = appendHint("Both strings need to be equal") hst
+	# hst = labeledChild "rec" (labeledChild "string" (appendHint "<- string")) hst
+	# hst = firstChild (appendHint "<- string") hst
+	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
 	
 :: TestRec =
 	{ string :: String
 	, int	 :: Int
+	}
+
+:: NestedRec a =
+	{ string 	:: String
+	, positive 	:: a
+	}
+	
+:: NestedTest a =
+	{ string :: String
+	, rec	 :: PositiveNum
 	}
 	
 verifiedTest :: Task TestRec
