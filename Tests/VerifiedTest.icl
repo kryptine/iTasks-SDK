@@ -64,7 +64,7 @@ gHint{|PositiveNum|} _ hst=:{HSt | currentPath}
 	, int	 :: Int
 	}
 	
-verifiedTest :: Task TestDoc
+verifiedTest :: Task TestRec
 verifiedTest = enterInformation "Enter info"
 
 Start :: *World -> *World

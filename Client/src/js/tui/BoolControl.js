@@ -41,8 +41,8 @@ itasks.tui.BoolControl = Ext.extend(Ext.form.Checkbox,{
 	
 	setError: function(msg){		
 		(function() {
-			if(msg == "") this.unmarkError();
-			else this.markError(msg);
+			if(msg == "") itasks.tui.common.clearError(this);
+			else itasks.tui.common.markError(this,msg);
 		}).defer(50,this);
 	},
 	

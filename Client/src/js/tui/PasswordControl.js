@@ -42,10 +42,11 @@ itasks.tui.PasswordControl = Ext.extend(Ext.form.TextField,{
 	
 	setError: function(msg){		
 		(function() {
-			if(msg == "") this.clearInvalid();
-			else this.markInvalid(msg);
+			if(msg == "") itasks.tui.common.clearError(this);
+			else itasks.tui.common.markError(this,msg);
 		}).defer(50,this);
 	},
+	
 	setHint: function(msg){
 		(function() {
 			if(msg == "") itasks.tui.common.clearHint(this);

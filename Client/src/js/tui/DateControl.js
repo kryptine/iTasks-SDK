@@ -42,8 +42,8 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 	
 	setError: function(msg){		
 		(function() {
-			if(msg == "") this.clearInvalid();
-			else this.markInvalid(msg);
+			if(msg == "") itasks.tui.common.clearError(this);
+			else itasks.tui.common.markError(this,msg);
 		}).defer(50,this);
 	},
 	
