@@ -67,8 +67,6 @@ derive gMerge				Meeting, Appointment, Attending
 derive gMakeSharedCopy		Meeting, Appointment, Attending
 derive gMakeLocalCopy		Meeting, Appointment, Attending
 
-import StdDebug, GenPrint
-
 :: Appointment		=	{ topic :: Note
 						}
 :: Meeting 			=	{ date		:: Date

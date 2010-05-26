@@ -27,7 +27,8 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 				value: store[(this.consSelIdx+1)][1],
 				hideLabel: true,
 				style: 'margin-bottom: 4px',
-				msgTarget: 'side'
+				msgTarget: 'side',
+				valueNotFoundText: 'Value not found...'
 			});
 		}else{
 			this.consField = {
@@ -41,33 +42,25 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		}
 		
 		this.consField.setValue = function(value){
-				if(this.staticDisplay){
-					this.update(value);
-				}else{
-					Ext.form.ComboBox.superclass.setValue.call(this,value);
-				}
-				
-				if(this.activeError) this.setError(this.activeError);
-		};
-		
-		this.consField.afterRender = function(){
-			Ext.form.ComboBox.superclass.afterRender.call(this,arguments);
-			
-			(function(){
-				this.setError(this.errorMsg);
-				this.setHint(this.hintMsg);
-			}).defer(50,this);
-		};
-		
+			if(this.staticDisplay){
+				if(value == "") value = "Select...";
+				this.update(value);
+			}else{
+				Ext.form.ComboBox.superclass.setValue.call(this,value);
+				if(value == "" ) this.setRawValue("Select...");
+			}
+		};		
+/*		
 		this.consField.setError = function(msg){		
-			if(msg == "") this.clearInvalid();
-			else this.markInvalid(msg);
+			if(msg == "" || msg == null)  itasks.tui.common.clearError(this);
+			else itasks.tui.common.markError(this,msg);
 		};
 		
 		this.consField.setHint = function(msg){
-			if(msg == "") itasks.tui.common.clearHint(this);
+			if(msg == "" || msg == null) itasks.tui.common.clearHint(this);
 			else itasks.tui.common.markHint(this,msg);
 		};
+*/
 		
 		this.items = [this.consField].concat(this.items);	
 	

@@ -1,6 +1,6 @@
 implementation module Base64
 
-import StdChar, StdString, StdList, StdArray, StdDebug, StdMisc, StdBool
+import StdChar, StdString, StdList, StdArray, StdMisc, StdBool
 
 //65th character is padding-character
 stdAlphabet :== {'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',

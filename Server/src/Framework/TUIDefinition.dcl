@@ -21,8 +21,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUISetEnabled TUIId Bool		// Enable/disable form elements
 	| TUISetError TUIId String		// Set the error messages on a component
 	| TUISetHint TUIId String		// Set the hint messages on a component
-	//| TUIClearError TUIId			// Clears all error messages on a component
-	//| TUIClearHint TUIId			// Clears all hint messages on a component
 	| TUIReplaceMenu [TUIDef]
 
 :: TUIDef

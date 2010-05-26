@@ -12,6 +12,8 @@ derive gUpdate Typetest, Test, RecA, RecB
 derive gMakeLocalCopy Typetest, Test, RecA, RecB
 derive gMakeSharedCopy Typetest, Test, RecA, RecB
 derive gMerge Typetest, Test, RecA, RecB
+derive gError Typetest, Test, RecA, RecB
+derive gHint Typetest, Test, RecA, RecB
 
 enter :: Task Int
 enter = enterInformation "Enter a number"
@@ -60,6 +62,9 @@ tupletest = enterInformation "Tuple"
 	, fieldB :: String
 	}
 
+consTest :: Task (Maybe Test)
+consTest = enterInformation "Cons"
+
 recordtest :: Task RecA
 recordtest = enterInformation "Record"
 
@@ -74,6 +79,7 @@ quitButton = ButtonAction (ActionQuit, Always)
 	
 Start :: *World -> *World
 Start world = startEngine [
+			workflow "Constructor Test" consTest,
 			workflow "Display Instruction" (showInstruction "Test Instruction" "Please perform the following.."),
 			workflow "Display Instruction About" instructionAbout,
 			workflow "Types Test" typestest,

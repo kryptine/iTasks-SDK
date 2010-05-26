@@ -146,8 +146,8 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VBlank
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (old,rho,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,rhn,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
 					= (determineRemovals old ++ determineChildAdditions pathid new, rhn, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
@@ -168,9 +168,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VValue nx nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new, rhn, {vst & vizType = VEditorUpdate})
+					# (consSelUpd,_,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,rho,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,rhn,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VBlank, VValue (RIGHT ny) nmask)
@@ -178,9 +179,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VValue ny nmask
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) = fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) = fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new, rhn, {vst & vizType = VEditorUpdate})
+					# (consSelUpd,_,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,rho,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,rhn,vst) 		= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		//Default case
@@ -239,7 +241,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 				# (viz,rh,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
 				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:viz],rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
 		//Cons selector	update	
-		VConsSelectorUpdate = (consSelectorUpdate old, undef, vst)
+		VConsSelectorUpdate = (consSelectorUpdate new, undef, vst)
 		//Html display vizualization
 		VHtmlDisplay
 			= case (old,new) of
@@ -274,8 +276,8 @@ where
 	
 	consSelectorUpdate VBlank = []
 	consSelectorUpdate (VValue _ dm)
-		| isMasked currentPath dm && isEmpty  d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1
-			=[TUIUpdate (TUISetValue cId d.gcd_name)]	
+		| (isMasked currentPath dm && isEmpty  d.gcd_fields && d.gcd_type_def.gtd_num_conses > 1)
+			= [TUIUpdate (TUISetValue cId d.gcd_name)]	
 		| otherwise
 			= []
 
@@ -300,14 +302,18 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 														, hintMsg = hntMsg
 														})]
 				  ,0
-				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional,valid=(isMasked currentPath oldM)})
+				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional, valid= if optional True (isMasked currentPath oldM)})
 			VEditorUpdate
-				| not (isMasked currentPath newM)
-				# (rem,rh,vst=:{valid})	= (fx oldV oldV {vst & vizType = VEditorDefinition})
-				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:determineRemovals rem],rh,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex,valid=isOptional valid})		
+				| not (isMasked currentPath newM) //reset the constructor
+				# (rem,rh,vst=:{valid})	= fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath}
+				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask, TUIUpdate (TUISetValue cId ""):determineRemovals rem]
+					,rh
+					,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, valid = isOptional valid})		
 				| otherwise
 				# (upd,rh,vst) = fx oldV newV {vst & useLabels = False, optional = False}
-				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:upd],rh,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})			
+				= ([getErrorUpdate id currentPath errorMask, getHintUpdate id currentPath hintMask:upd]
+					,rh
+					,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})			
 			_
 				# (viz,rh,vst) = fx oldV newV vst
 				= (viz,rh,{VSt | vst & currentPath = stepDataPath currentPath})
@@ -324,14 +330,13 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 				= fx VBlank VBlank	vst
 where
 	id		= dp2id idPrefix currentPath
+	cId 	= (dp2id idPrefix currentPath)+++"c"
 	oldV 	= case old of (VValue (OBJECT ox) omask) = (VValue ox omask); _ = VBlank
 	newV 	= case new of (VValue (OBJECT nx) nmask) = (VValue nx nmask); _ = VBlank
 	oldM	= case old of (VValue _ omask) = omask ; _ = []
 	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 	
 	isOptional valid = if optional True valid 
-
-import StdDebug
 
 gVisualize{|FIELD of d|} fx old new vst=:{vizType,hintMask,errorMask,currentPath}
 	# vst = determineIndexOfLabels d.gfd_name vst	
