@@ -5,7 +5,7 @@ import StdList
 from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config
 from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Workflow
 from TSt import mkInstantTask, mkMonitorTask
-from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString
+from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString, setStatus
 from TSt import qualified createTaskInstance
 
 import Types
@@ -71,23 +71,24 @@ where
 			, priority		 = NormalPriority
 			, deadline		 = Nothing
 			}
-		# (result,pid,tst)	= TSt@createTaskInstance task properties True Nothing activate tst
+		# (result,pid,tst)	= TSt@createTaskInstance task properties True Nothing activate False tst
 		= (TaskFinished (ProcessRef pid), tst)
-	
+
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcess (ProcessRef pid) = mkMonitorTask "waitForProcess" waitForProcess`
 where
 	waitForProcess` tst 
 		# (mbProcess,tst) = ProcessDB@getProcess pid tst
 		= case mbProcess of
-			Just {Process | processId, status}
+			Just {Process | processId, status, properties}
 				= case status of
 					Finished
-						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst
+						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst	
 						= case mbResult of
-							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)
+							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
 							_								= (TaskFinished Nothing, tst) //Ignore all other cases
 					_	
+						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProps.subject,Text "\""]] tst
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done

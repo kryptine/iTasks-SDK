@@ -52,6 +52,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
 	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
 	, subTaskWorkers	:: [(ProcessId, UserName)] 	// Users who have temporary access to the process because they work on a subprocess in an open parralel.
+	, deleteWhenDone	:: Bool						// Delete the process after completion
 	}
 
 :: TaskManagerProperties =

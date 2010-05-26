@@ -293,7 +293,7 @@ where
 					  				, deadline		 = initDeadline
 									}
 				# tst				  = addSubTaskWorker taskId userName mbpartype tst
-				# (result,procId,tst) = createTaskInstance task props False mbpartype True tst
+				# (result,procId,tst) = createTaskInstance task props False mbpartype True False tst
 				= (result,tst)
 			//When found, evaluate
 			Just proc

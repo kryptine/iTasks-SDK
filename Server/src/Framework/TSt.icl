@@ -78,6 +78,7 @@ initTaskProperties
 		, latestEvent = Nothing
 		, latestExtEvent = Nothing
 		, subTaskWorkers = []
+		, deleteWhenDone = False
 		}
 	  , managerProps =
 	    {TaskManagerProperties
@@ -92,8 +93,8 @@ initTaskProperties
 	    }
 	 }
 		  
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
-createTaskInstance task managerProps toplevel mbParType activate tst=:{taskNr,mainTask}
+createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
+createTaskInstance task managerProps toplevel mbParType activate delete tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
@@ -111,6 +112,7 @@ createTaskInstance task managerProps toplevel mbParType activate tst=:{taskNr,ma
 			, latestEvent	= Nothing
 			, latestExtEvent = Nothing
 			, subTaskWorkers = []
+			, deleteWhenDone = delete
 			}
 		, managerProps = managerProps
 		, workerProps =
@@ -686,10 +688,8 @@ setGroupActions actions tst=:{tree}
 */
 loadProcessResult :: !TaskNr !*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
 loadProcessResult taskNr tst =:{dataStore, world}
-	# (mbDyn, dataStore, world) = loadValue key dataStore world
-	= case mbDyn of
-		( Just (result :: TaskResult Dynamic))	= (Just result, {TSt | tst & dataStore = dataStore, world = world})
-		_										= (Nothing, {TSt | tst & dataStore = dataStore, world = world})
+	# (mbResult, dataStore, world) = loadValue key dataStore world
+	= (mbResult, {TSt | tst & dataStore = dataStore, world = world})
 where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	

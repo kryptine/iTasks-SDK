@@ -28,5 +28,5 @@ where
 						  , priority		= NormalPriority
 						  , deadline		= Nothing
 						  }
-		# (_,pid,tst) = createTaskInstance workflow.Workflow.mainTask properties True Nothing True tst
+		# (_,pid,tst) = createTaskInstance workflow.Workflow.mainTask properties True Nothing True True tst
 		= (pid,tst)
