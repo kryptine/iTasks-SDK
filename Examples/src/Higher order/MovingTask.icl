@@ -28,12 +28,7 @@ derive bimap (,), Maybe
 
 movingTaskExample :: [Workflow]
 movingTaskExample
-= [ {Workflow
-	|	name		= "Examples/Higher order/Moving task"
-	,	roles		= []
-	,	mainTask	= "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask )
-	}
-  ]
+	= [ workflow "Examples/Higher order/Moving task" ("Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask ))]
 
 trivialTask :: Task QForm
 trivialTask = getDefaultValue >>= fillInForm

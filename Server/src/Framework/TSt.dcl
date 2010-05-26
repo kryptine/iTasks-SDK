@@ -50,9 +50,9 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					}
 
 // A workflow specification
-:: Workflow		=	{ name			:: !String											// a unique name of this workflow
+:: Workflow		=	{ path			:: !String											// a unique name of this workflow
 					, roles			:: ![String]										// the roles that are allowed to initate this workflow
-					, mainTask		:: Task Void										// the main task of the workflow
+					, task			:: Task Void										// the main task of the workflow
 					}
 /**
 * Creates an initial task state.

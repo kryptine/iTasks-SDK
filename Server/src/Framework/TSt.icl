@@ -455,7 +455,7 @@ getWorkflows tst=:{staticInfo = staticInfo =:{staticWorkflows}}
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
 getWorkflowByName name tst
 	# (workflows, tst)	= getWorkflows tst
-	= case filter (\wf -> wf.Workflow.name == name) workflows of
+	= case filter (\wf -> wf.Workflow.path == name) workflows of
 		[workflow]	= (Just workflow, tst)
 		_			= (Nothing,tst)
 

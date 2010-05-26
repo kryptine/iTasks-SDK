@@ -312,7 +312,7 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [{user = who, task = spawnProcess who True (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->						allProc [{AssignedTask|user = who, task = spawnProcess who True (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
@@ -322,7 +322,7 @@ internalEmailConf :: (Task EMail)
 internalEmailConf
 =						enterInformation "Type your email message ..."
 	>>= \msg ->			getCurrentUser
-	>>= \me ->			allProc [{user = who, task = (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->			allProc [{AssignedTask|user = who, task = (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
 	>>|					return msg
 
 getUserName (UserName id name) = name
@@ -332,7 +332,7 @@ internalEmailReply :: (Task (EMail,[Reply]))
 internalEmailReply
 =					enterInformation "Type your email message ..."
 	>>= \msg ->		getCurrentUser
-	>>= \me ->		allProc [{user = who, task = mailMess2 me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->		allProc [{AssignedTask|user = who, task = mailMess2 me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
 	>>= \reply ->	showMessageAbout "The following replies have been commited:" reply
 	>>|				return (msg,map snd reply)
 

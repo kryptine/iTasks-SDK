@@ -47,12 +47,7 @@ derive bimap (,), Maybe
 
 reviewTaskExample :: [Workflow]
 reviewTaskExample
-= [	{	Workflow
-	|	name		= "Examples/Higher order/Review task"
-	,	roles		= []
-	,	mainTask	= "Review the results of a task" @>> (reviewtask >>| return Void)
-	}
-  ]
+= [workflow "Examples/Higher order/Review task" ("Review the results of a task" @>> reviewtask) ]
 
 reviewtask :: Task (QForm,Review)
 reviewtask = getDefaultValue >>= \def -> taskToReview "unknown" (def, mytask)

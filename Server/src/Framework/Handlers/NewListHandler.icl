@@ -31,13 +31,13 @@ where
 															= True	//User has at least one of the roles needed for the flow
 		| otherwise											= False //Workflow is not allowed
 		
-	checkPath flow path	= flow.Workflow.name % (0, (size path - 1)) == path
+	checkPath flow path	= flow.Workflow.path % (0, (size path - 1)) == path
 	
 	mkNode flow path
-		# shortPath 	= flow.Workflow.name % (size path, size flow.Workflow.name)
+		# shortPath 	= flow.Workflow.path % (size path, size flow.Workflow.path)
 		# slashPosition	= indexOf "/" shortPath
 		| slashPosition == -1
-			= {id = flow.Workflow.name, iconCls = "icon-workflow", text = shortPath, leaf = True, singleClickExpand = True}
+			= {id = flow.Workflow.path, iconCls = "icon-workflow", text = shortPath, leaf = True, singleClickExpand = True}
 		| otherwise
 			# text = shortPath % (0, slashPosition - 1)
 			= {id = path +++ text +++ "/", iconCls = "icon-folder", text = text, leaf = False, singleClickExpand = True}

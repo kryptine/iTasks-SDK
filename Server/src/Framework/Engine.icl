@@ -59,12 +59,20 @@ where
 	//Always add the workflows for administering the itask system
 	flows = userflows ++ userAdministration
 
-workflow :: String (Task a) -> Workflow | iTask a
+workflow :: !String !(Task a) -> Workflow | iTask a
 workflow path task =
 	{ Workflow
-	| name	= path
+	| path	= path
 	, roles	= []
-	, mainTask = taskLabel task @>> (task >>| return Void)
+	, task = taskLabel task @>> (task >>| return Void)
+	}
+
+restrictedWorkflow :: !String ![Role] !(Task a) -> Workflow | iTask a
+restrictedWorkflow path roles task =
+	{ Workflow
+	| path	= path
+	, roles	= roles
+	, task = taskLabel task @>> (task >>| return Void)
 	}
 
 config :: !*World -> (!Maybe Config,!*World)

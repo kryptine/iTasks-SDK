@@ -46,8 +46,8 @@ where
 	change me user topics props t t0 
 		= 	( Just {TaskProperties | props & managerProps = {TaskManagerProperties | props.managerProps & worker = toUserName me}}
 			, Just (assign (toUserName me) NormalPriority Nothing 
-							(anyProc 	[ {user = props.managerProps.TaskManagerProperties.worker , task = t <<@ topics} 
-										, {user = toUserName user, task = t <<@ topics}
+							(anyProc 	[ {AssignedTask| user = props.managerProps.TaskManagerProperties.worker , task = t <<@ topics} 
+										, {AssignedTask| user = toUserName user, task = t <<@ topics}
 										] Open
 							)
 							<<@ ("Duplicated " +++ topics))

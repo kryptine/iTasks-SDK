@@ -7,7 +7,9 @@ from StdFunc import o
 derive gVisualize	Stream	
 derive gUpdate		Stream	
 derive gPrint		Stream, Either	
-derive gParse		Stream, Either	
+derive gParse		Stream, Either
+derive gHint		Stream
+derive gError		Stream	
 
 
 :: Stream a 

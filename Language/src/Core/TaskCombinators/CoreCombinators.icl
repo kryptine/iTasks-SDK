@@ -115,7 +115,7 @@ instance PActionClass AssignedTask where
 	getName at = (Just at.AssignedTask.user)
 	
 	getTask :: (AssignedTask a) -> Task a
-	getTask at = at.task
+	getTask at = at.AssignedTask.task
 	
 instance PActionClass Task where
 	getName :: (Task a) -> Maybe UserName

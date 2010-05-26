@@ -18,14 +18,10 @@ derive bimap (,), Maybe
 
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
-=	[{ Workflow 
-	 | name		= "Examples/Higher order/Exception handling"
-	 , roles	= []
-	 , mainTask	= "Exception example" @>> exceptionTask
-	 }]
+= [workflow "Examples/Higher order/Exception handling" exceptionTask]
 
 exceptionTask :: Task Void
-exceptionTask = try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask)
+exceptionTask = "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
 db :: (DBid Int)
 db = mkDBid "MyIntDB"
