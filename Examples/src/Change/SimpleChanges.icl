@@ -2,7 +2,7 @@ implementation module SimpleChanges
 
 import iTasks
 from TSt import :: Change(..)
-from TaskTree import :: TaskProperties(..),::TaskWorkerProperties(..),::TaskManagerProperties(..), :: TaskSystemProperties(..), :: TaskProgress, :: TaskParallelType(..)
+from TaskTree import :: TaskProperties(..),::WorkerProperties(..),::ManagerProperties(..), :: SystemProperties(..), :: TaskProgress, :: TaskParallelType(..)
 
 changeExamples :: [Workflow]
 changeExamples =
@@ -44,9 +44,9 @@ duplicate me user topics =
 where
 	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
-		= 	( Just {TaskProperties | props & managerProps = {TaskManagerProperties | props.managerProps & worker = toUserName me}}
+		= 	( Just {TaskProperties | props & managerProps = {ManagerProperties | props.managerProps & worker = toUserName me}}
 			, Just (assign (toUserName me) NormalPriority Nothing 
-							(anyProc 	[ {AssignedTask| user = props.managerProps.TaskManagerProperties.worker , task = t <<@ topics} 
+							(anyProc 	[ {AssignedTask| user = props.managerProps.ManagerProperties.worker , task = t <<@ topics} 
 										, {AssignedTask| user = toUserName user, task = t <<@ topics}
 										] Open
 							)
@@ -88,7 +88,7 @@ where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
 		# username = (toUserName user)
-		= (Just {TaskProperties | props & managerProps = {TaskManagerProperties | props.managerProps & worker = username}},Nothing, Nothing)
+		= (Just {TaskProperties | props & managerProps = {ManagerProperties | props.managerProps & worker = username}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -168,7 +168,7 @@ chooseProcess question
 	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.processId
 																	, proc.Process.properties.managerProps.subject
 																	, proc.Process.properties.managerProps.priority
-																	, proc.Process.properties.managerProps.TaskManagerProperties.worker)
+																	, proc.Process.properties.managerProps.ManagerProperties.worker)
 																	\\ proc <- procs | proc.Process.processId <> mypid]
 	>>= \(action,(pid,_,_,_)) ->	case action of
 										ActionCancel -> throw "choosing a process has been cancelled"

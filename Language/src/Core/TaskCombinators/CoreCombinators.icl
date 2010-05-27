@@ -9,6 +9,7 @@ import	Util, Http
 import	GenUpdate
 import	UserDB, ProcessDB
 import  Store
+import	TuningCombinators
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -286,14 +287,14 @@ where
 			//Nothing found, create a task instance
 			Nothing	
 				# (userName,tst)= tidyUserName userName tst
-				# props 		= {TaskManagerProperties
+				# props 		= {ManagerProperties
 					  				| worker		 = userName
 					  				, subject		 = taskLabel task
 					  				, priority		 = initPriority
 					  				, deadline		 = initDeadline
 									}
 				# tst				  = addSubTaskWorker taskId userName mbpartype tst
-				# (resDyn,procId,tst) = createTaskInstance (createThread task (Just props)) False mbpartype True False tst
+				# (resDyn,procId,tst) = createTaskInstance (createThread (task <<@ props)) False mbpartype True False tst
 				= case resDyn of
 					(result :: TaskResult a^)	= (result, tst)
 					_							= abort "createOrEvaluateTaskIntance: task result of invalid type!"

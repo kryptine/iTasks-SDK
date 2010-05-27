@@ -44,7 +44,7 @@ where
 	createProcess entry tst
 		#(procs,tst)	= processStore id tst
 		# pid = if (entry.Process.processId <> "") entry.Process.processId (getNewPid procs entry)
-		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {TaskSystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) tst
+		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {SystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) tst
 		= (pid, tst)
 		
 	deleteProcess :: !ProcessId !*TSt	-> (!Bool, !*TSt)
@@ -63,7 +63,7 @@ where
 	getProcessForUser :: !UserName !ProcessId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForUser username processId tst
 		# (procs,tst) 	= processStore id tst
-		#  usernames	= [p.Process.properties.managerProps.TaskManagerProperties.worker \\ p <- procs | relevantProc processId p]
+		#  usernames	= [p.Process.properties.managerProps.ManagerProperties.worker \\ p <- procs | relevantProc processId p]
 		= case [p \\ p <- procs | p.Process.processId == processId && isMember username usernames] of
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
@@ -89,7 +89,7 @@ where
 		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses ], tst)
 	where
 		relevantProc username {Process | processId, properties}
-			| properties.managerProps.TaskManagerProperties.worker == username	= processId
+			| properties.managerProps.ManagerProperties.worker == username	= processId
 			| otherwise															= ""
 	
 	getTempProcessesForUser :: !UserName ![ProcessStatus] !*TSt -> (![Process], !*TSt)
@@ -99,13 +99,13 @@ where
 		# procids		= [p \\ p <- rprocs | p <> ""]
 		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
 	where
-		relevantProc userName {Process | processId, properties = {managerProps = {TaskManagerProperties|worker}, systemProps = {subTaskWorkers} }}
+		relevantProc userName {Process | processId, properties = {managerProps = {ManagerProperties|worker}, systemProps = {subTaskWorkers} }}
 			| isMember userName (snd (unzip subTaskWorkers)) && userName <> worker = processId
 			| otherwise 										  = ""
 	
 	setProcessOwner	:: !UserName !ProcessId !*TSt	-> (!Bool, !*TSt)
 	setProcessOwner worker processId tst
-		= updateProcess processId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProps = {TaskManagerProperties | x.Process.properties.managerProps & worker = worker}}}) tst
+		= updateProcess processId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProps = {ManagerProperties | x.Process.properties.managerProps & worker = worker}}}) tst
 	
 	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
 	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst

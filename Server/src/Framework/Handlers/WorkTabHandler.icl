@@ -17,15 +17,15 @@ handleWorkTabRequest req tst=:{staticInfo}
 	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
 	= case tree of
 		(TTMainTask ti properties menus _ task)
-			# subject			= [properties.managerProps.TaskManagerProperties.subject]
+			# subject			= [properties.managerProps.ManagerProperties.subject]
 			# username			= toUserName staticInfo.currentSession.Session.user
 			# (panel,tst)		= buildTaskPanel task menus username tst
 			// Collect debug information
 			# (debuginfo,tst)	= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.
-			| username == properties.managerProps.TaskManagerProperties.worker || isMember username [u \\ (p,u) <- properties.systemProps.subTaskWorkers]	
+			| username == properties.managerProps.ManagerProperties.worker || isMember username [u \\ (p,u) <- properties.systemProps.subTaskWorkers]	
 				// Update the task timestamps 
-				# tst		= updateTimeStamps properties.systemProps.TaskSystemProperties.processId tst
+				# tst		= updateTimeStamps properties.systemProps.SystemProperties.processId tst
 				// Create the response
 				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
 		 			({http_emptyResponse & rsp_data = toJSON content}, tst)

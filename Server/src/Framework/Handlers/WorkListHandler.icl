@@ -49,23 +49,23 @@ where
 				(Just Open)
 					= not (isMember p.parent [p.Process.processId \\ p <- plist])
 				(Just Closed)
-					= toUserName staticInfo.currentSession.user <> p.Process.properties.systemProps.TaskSystemProperties.manager
+					= toUserName staticInfo.currentSession.user <> p.Process.properties.systemProps.SystemProperties.manager
 
 bldWorkItems :: [Process] -> [WorkListItem]
 bldWorkItems processes
 	= markLast [
 		{ taskid		= processId
-		, manager		= toString p.systemProps.TaskSystemProperties.manager
-		, subject		= p.managerProps.TaskManagerProperties.subject
-		, priority		= p.managerProps.TaskManagerProperties.priority
-		, progress		= p.workerProps.TaskWorkerProperties.progress
-		, timestamp		= p.systemProps.TaskSystemProperties.issuedAt
-		, latestExtEvent = p.systemProps.TaskSystemProperties.latestExtEvent
-		, deadline		= p.managerProps.TaskManagerProperties.deadline
+		, manager		= toString p.systemProps.SystemProperties.manager
+		, subject		= p.managerProps.ManagerProperties.subject
+		, priority		= p.managerProps.ManagerProperties.priority
+		, progress		= p.workerProps.WorkerProperties.progress
+		, timestamp		= p.systemProps.SystemProperties.issuedAt
+		, latestExtEvent = p.systemProps.SystemProperties.latestExtEvent
+		, deadline		= p.managerProps.ManagerProperties.deadline
 		, tree_path		= []
 		, tree_last		= False
 		, tree_icon		= "task"
-		, tree_new		= isNothing p.systemProps.TaskSystemProperties.firstEvent
+		, tree_new		= isNothing p.systemProps.SystemProperties.firstEvent
 		} \\ {Process|processId,properties = p} <- processes]
 		
 markLast :: [WorkListItem] -> [WorkListItem]

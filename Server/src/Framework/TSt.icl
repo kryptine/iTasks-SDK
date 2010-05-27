@@ -66,52 +66,54 @@ initTaskInfo
 		, taskDescription = ""
 		}
 
+initSystemProperties :: SystemProperties
+initSystemProperties =
+	{SystemProperties
+	| processId = ""
+	, manager = UserName "" ""
+	, issuedAt = Timestamp 0
+	, firstEvent = Nothing
+	, latestEvent = Nothing
+	, latestExtEvent = Nothing
+	, subTaskWorkers = []
+	, deleteWhenDone = False
+	}
+	
+initManagerProperties :: ManagerProperties
+initManagerProperties = 
+	{ManagerProperties
+	| worker = UserName "" ""
+	, subject = ""
+	, priority = NormalPriority
+	, deadline = Nothing
+	}
+
+initWorkerProperties :: WorkerProperties
+initWorkerProperties =
+	{WorkerProperties
+	| progress = TPActive
+	}
+	
 initTaskProperties :: TaskProperties
 initTaskProperties
-	= { systemProps =
-		{TaskSystemProperties
-		| processId = ""
-		, manager = UserName "" ""
-		, issuedAt = Timestamp 0
-		, firstEvent = Nothing
-		, latestEvent = Nothing
-		, latestExtEvent = Nothing
-		, subTaskWorkers = []
-		, deleteWhenDone = False
-		}
-	  , managerProps =
-	    {TaskManagerProperties
-	    | worker = UserName "" ""
-	    , subject = ""
-	    , priority = NormalPriority
-	    , deadline = Nothing
-	    }
-	  , workerProps =
-	    {TaskWorkerProperties
-	    | progress = TPActive
-	    }
-	 }
+	= { systemProps		= initSystemProperties
+	  , managerProps	= initManagerProperties
+	  , workerProps		= initWorkerProperties
+	  }
 		  
 createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
-createTaskInstance thread=:(Container {TaskThread|originalTask,initProperties} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,mainTask}
+createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
 	# processId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel "" mainTask
-	# managerProps			= case initProperties of
-		Just props	= props
-		Nothing		= { TaskManagerProperties
-					  | worker = toUserName manager
-					  , subject = taskLabel originalTask
-					  , priority = NormalPriority
-					  , deadline = Nothing
-					  }
+	# managerProps			= setUser manager (taskProperties originalTask)
 	# properties =
 		{TaskProperties
 		| systemProps =
-			{TaskSystemProperties
+			{SystemProperties
 			| processId	= ""
 			, manager		= toUserName manager
 			, issuedAt		= currentTime
@@ -123,7 +125,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask,initProperties} :
 			}
 		, managerProps = managerProps
 		, workerProps =
-			{TaskWorkerProperties
+			{WorkerProperties
 			| progress	= TPActive
 			}
 		}
@@ -154,12 +156,16 @@ createTaskInstance thread=:(Container {TaskThread|originalTask,initProperties} :
 			TaskException e			= (dynamic TaskException e :: TaskResult a, processId, tst)
 	| otherwise
 		= (dynamic TaskBusy :: TaskResult a, processId, tst)
+where
+	setUser manager props=:{ManagerProperties|worker=UserName "" ""} = {ManagerProperties|props & worker = toUserName manager}
+	setUser manager props = props
+
 
 //NEW THREAD FUNCTIONS
-createThread :: !(Task a) !(Maybe TaskManagerProperties) -> Dynamic	| iTask a
-createThread task properties = (dynamic container :: Container (TaskThread a^) a^)
+createThread :: !(Task a) -> Dynamic	| iTask a
+createThread task = (dynamic container :: Container (TaskThread a^) a^)
 where
- 	container = Container {TaskThread|originalTask = task, currentTask = task, initProperties = properties}
+ 	container = Container {TaskThread|originalTask = task, currentTask = task}
 
 applyThread :: !Dynamic *TSt -> (!TaskResult Dynamic, !*TSt)
 applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst
@@ -244,7 +250,7 @@ where
 	resetTSt :: !ProcessId !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
 	resetTSt processId properties inptype tst
 		# taskNr	= taskNrFromString processId
-		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = GBFixed, taskDescription = ""}
+		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.ManagerProperties.worker, groupedBehaviour = GBFixed, taskDescription = ""}
 		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
@@ -373,7 +379,7 @@ where
 	* Adds the task number at which it has run before to a task
 	*/
 	setTaskContext :: !TaskNr !(Task a) -> (Task a)
-	setTaskContext cxt (Task name _ tf) = Task name (Just cxt) tf
+	setTaskContext cxt (Task props gb _ tf) = Task props gb (Just cxt) tf
 	
 	/*
 	* Store the changes that are still active after  a run.
@@ -421,7 +427,7 @@ calculateTaskTree processId tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
-					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.TaskManagerProperties.worker, groupedBehaviour = GBFixed, taskDescription="Task Result"} [], tst)
+					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.ManagerProperties.worker, groupedBehaviour = GBFixed, taskDescription="Task Result"} [], tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -449,7 +455,7 @@ getCurrentProcess tst =: {staticInfo}
 
 getCurrentWorker :: !*TSt -> (!User, !*TSt)
 getCurrentWorker tst =: {TSt | properties}
-	= getUser (properties.managerProps.TaskManagerProperties.worker) {TSt | tst & properties = properties}
+	= getUser (properties.managerProps.ManagerProperties.worker) {TSt | tst & properties = properties}
 
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
@@ -479,31 +485,31 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
 mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
-mkInteractiveTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkInteractiveTask`	
+mkInteractiveTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkInstantTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkInstantTask`
+mkInstantTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo []} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMonitorTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkMonitorTask`
+mkMonitorTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
-mkInstructionTask taskname taskfun = Task {TaskDescription | title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkInstructionTask`
+mkInstructionTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkInstructionTask`
 where
 	mkInstructionTask` tst =:{TSt | taskInfo}
 		= taskfun {tst & tree = TTInstructionTask taskInfo [] Nothing}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -558,45 +564,45 @@ where
 	setStatus status tst	= setTaskStore "status" status tst
 
 mkExtProcessTask :: !String !String !(*TSt -> *(!TaskResult Int,!*TSt)) -> Task Int
-mkExtProcessTask taskname cmdline taskfun = Task {TaskDescription | title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkExtProcessTask`
+mkExtProcessTask taskname cmdline taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkExtProcessTask`
 where
 	mkExtProcessTask` tst =:{TSt | taskInfo}
 		= taskfun {tst & tree = TTExtProcessTask taskInfo cmdline}
 		
 mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkSequenceTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkSequenceTask`
+mkSequenceTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkParallelTask taskname tpi taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkParallelTask`
+mkParallelTask taskname tpi taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo tpi [], taskNr = [0:taskNr]}												
 		= taskfun tst
 
 mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkGroupedTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkGroupedTask`
+mkGroupedTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkGroupedTask`
 where
 	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTGroupedTask taskInfo [] [], taskNr = [0:taskNr]}
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMainTask taskname taskfun = Task {TaskDescription| title = taskname, description = Note "", groupedBehaviour = GBFixed} Nothing mkMainTask`
+mkMainTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo [])}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask (Task desc=:{TaskDescription | groupedBehaviour} mbCxt taskfun) tst=:{taskNr,tree,dataStore,world,properties}
+applyTask (Task initProperties groupedBehaviour mbInitTaskNr taskfun) tst=:{taskNr,tree,dataStore,world,properties}
 	# taskId					= iTaskId taskNr ""
 	# (taskVal,dataStore,world)	= loadValue taskId dataStore world
 	# taskInfo =	{ taskId			= taskNrToString taskNr
-					, taskLabel			= desc.TaskDescription.title
+					, taskLabel			= initProperties.subject
 					, traceValue		= ""
-					, worker			= properties.managerProps.TaskManagerProperties.worker
+					, worker			= properties.managerProps.ManagerProperties.worker
 					, groupedBehaviour 	= groupedBehaviour
 					, taskDescription	= ""
 					}
@@ -607,8 +613,8 @@ applyTask (Task desc=:{TaskDescription | groupedBehaviour} mbCxt taskfun) tst=:{
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
-			# tst	= case (taskVal,mbCxt) of
-						(Nothing, Just oldTaskNr)	= copyTaskStates oldTaskNr taskNr tst
+			# tst	= case (taskVal,mbInitTaskNr) of
+						(Nothing, Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
 						_							= tst
 			// Execute task function
 			# (result, tst)	= taskfun tst
@@ -808,4 +814,7 @@ where
 	stl xs = tl xs
 
 taskLabel :: !(Task a) -> String
-taskLabel (Task desc _ _) = desc.TaskDescription.title
+taskLabel (Task p _ _ _) = p.subject
+
+taskProperties :: !(Task a) -> ManagerProperties
+taskProperties (Task p _ _ _) = p

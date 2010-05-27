@@ -9,7 +9,7 @@ from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString, set
 from TSt import qualified createTaskInstance, createThread
 
 import Types
-from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties(..), :: TaskSystemProperties(..), :: TaskWorkerProperties, :: TaskManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
+from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties(..), :: SystemProperties(..), :: WorkerProperties, :: ManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
 
 from Time	import :: Timestamp, :: Clock(..), clock
 from Random	import genRandInt
@@ -22,6 +22,7 @@ from ProcessDB import qualified instance ProcessDB TSt
 
 from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
+import	TuningCombinators
 
 getCurrentUser :: Task User
 getCurrentUser = mkInstantTask "getCurrentUser" getCurrentUser`
@@ -65,13 +66,13 @@ spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
 		# properties	=
-			{ TaskManagerProperties
+			{ ManagerProperties
 			| worker		 = username
 			, subject 		 = taskLabel task
 			, priority		 = NormalPriority
 			, deadline		 = Nothing
 			}
-		# (result,pid,tst)	= TSt@createTaskInstance (TSt@createThread task (Just properties)) True Nothing activate False tst
+		# (result,pid,tst)	= TSt@createTaskInstance (TSt@createThread (task <<@ properties)) True Nothing activate False tst
 		= (TaskFinished (ProcessRef pid), tst)
 
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a

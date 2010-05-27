@@ -6,7 +6,7 @@ implementation module CommonCombinators
 import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdClass
 
 from StdFunc	import id, const
-from TSt		import :: Task(..), :: TaskDescription(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
+from TSt		import :: Task(..), :: TSt{..}, :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
 from TSt		import applyTask, mkSequenceTask, mkParallelTask
 from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store
@@ -52,7 +52,7 @@ where
 		GOContinue		= (Void, Continue)
 		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
 	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ getGroupedBehaviour t) tasks
-	getGroupedBehaviour (Task td=:{TaskDescription|groupedBehaviour} _ _) = groupedBehaviour
+	getGroupedBehaviour (Task _ gb _ _) = gb
 		
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] emptyGActionL

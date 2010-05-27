@@ -16,12 +16,12 @@ import CommonCombinators
 
 import Store
 
-derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gError		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gHint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskSystemProperties, TaskManagerProperties, TaskWorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gError		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive gHint		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 derive bimap	Maybe, (,)
 
@@ -55,7 +55,7 @@ getProcessOwner pid = mkInstantTask "getProcess" getProcessStatus`
 where
 	getProcessStatus` tst 
 	# (process,tst)	= ProcessDB@getProcess (toProcessId pid) tst
-	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProps.TaskManagerProperties.worker)
+	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProps.ManagerProperties.worker)
 	= (TaskFinished owner,tst)
 	
 setProcessOwner :: !UserName !pid -> Task Void | toProcessId pid

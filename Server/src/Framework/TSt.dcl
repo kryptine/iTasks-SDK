@@ -76,11 +76,10 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -
 * It contains the task plus the iTask context restrictions.
 *
 * @param The task that is to be converted to a runnable thread
-* @param Optionally the initial properties of the task
 * 
 * @return A dynamic containing the thread
 */
-createThread :: !(Task a) !(Maybe TaskManagerProperties) -> Dynamic	| iTask a
+createThread :: !(Task a) -> Dynamic	| iTask a
 
 /**
 * Creates an instance of a task definition
@@ -407,3 +406,11 @@ taskNrToString		:: !TaskNr 					-> String
 * @return The task's label
 */
 taskLabel			:: !(Task a)				-> String
+/*
+* Extracts the initial properties of a task
+*
+* @param The task
+*
+* @return The task's initial properties
+*/
+taskProperties		:: !(Task a)				-> ManagerProperties

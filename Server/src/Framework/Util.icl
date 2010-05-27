@@ -77,12 +77,12 @@ gParse{|Dynamic|} expr
 		parseString expr = gParse{|*|} expr
 
 
-gVisualize{|Task|} fx (VValue (Task desc _ _) _) _ vst = ([TextFragment desc.TaskDescription.title],4,vst)
+gVisualize{|Task|} fx (VValue (Task props _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],4,vst)
 gVisualize{|Task|} fx _ _ vst = ([],0,vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
-	= (Task {TaskDescription|title = "return", description = Note "", groupedBehaviour=GBFixed} Nothing (\tst -> (TaskFinished a,tst)), ust)
+	= (Task {ManagerProperties|worker = UserName "" "",subject = "return", priority = NormalPriority, deadline = Nothing} GBFixed Nothing (\tst -> (TaskFinished a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
 
 gError{|Task|} fx x est = est

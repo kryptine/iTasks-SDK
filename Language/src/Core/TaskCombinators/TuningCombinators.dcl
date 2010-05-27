@@ -2,20 +2,24 @@ definition module TuningCombinators
 /**
 * This module provides combinators for fine-tuning of workflows.
 */
-from Types	import :: Task, :: TaskDescription
-from TaskTree import :: GroupedBehaviour(..)
+from Types	import :: Task, :: ManagerProperties, :: UserName, :: TaskPriority
+from Time	import :: Timestamp
+from TaskTree import :: GroupedBehaviour
 
 //Annotation combinator
 class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 
 class 	(@>>) infixr 2 b ::  !b !(Task a)   -> Task a
-/**
-* Change the label of a task
-*/
-instance <<@	String
+
+instance <<@	ManagerProperties		//Set initial properties
+instance @>>	ManagerProperties
+instance <<@	UserName				//Set initial worker
+instance @>>	UserName
+instance <<@	String					//Set initial subject
 instance @>>	String
+instance <<@	TaskPriority			//Set initial priority
+instance @>>	TaskPriority
+instance <<@	Timestamp				//Set initial deadline	
+instance @>>	Timestamp
 
-instance <<@	TaskDescription
-instance @>>	TaskDescription
-
-instance <<@	GroupedBehaviour
+instance <<@	GroupedBehaviour		//Set grouped behaviour
 instance @>>	GroupedBehaviour

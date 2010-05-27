@@ -5,7 +5,7 @@ definition module Types
 */
 
 from TSt 			import :: TSt
-from TaskTree		import :: TaskProperties, :: GroupedBehaviour
+from TaskTree		import :: TaskProperties, :: GroupedBehaviour(..)
 from Html 			import :: HtmlTag
 from CommonDomain	import :: Note, :: Password
 from Time			import :: Timestamp
@@ -75,21 +75,14 @@ instance == Password
 :: TaskId			:== String		// String serialization of TaskNr values
 :: MenuId			:== Int
 
-:: Task a 			= Task !TaskDescription !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
+:: Task a 			= Task !ManagerProperties !GroupedBehaviour !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
 					| TaskException !Dynamic
 
-:: TaskDescription	=
-	{ title				:: !String
-	, description		:: !Note
-	, groupedBehaviour  :: !GroupedBehaviour
-	}
-
 :: TaskThread a		=
 	{ originalTask		:: !Task a
 	, currentTask		:: !Task a
-	, initProperties	:: !(Maybe TaskManagerProperties) //TODO must be moved to task datastructure
 	}	
 
 :: TaskPriority		= HighPriority				// tasks can have three levels of priority
@@ -97,12 +90,12 @@ instance == Password
 					| LowPriority
 
 :: TaskProperties =
-	{ systemProps		:: TaskSystemProperties
-	, managerProps		:: TaskManagerProperties
-	, workerProps		:: TaskWorkerProperties
+	{ systemProps		:: SystemProperties
+	, managerProps		:: ManagerProperties
+	, workerProps		:: WorkerProperties
 	}
 
-:: TaskSystemProperties =
+:: SystemProperties =
 	{ processId			:: ProcessId				// Process table identification
 	, manager			:: UserName					// Who is managing this task
 	, issuedAt			:: Timestamp				// When was the task created
@@ -113,14 +106,14 @@ instance == Password
 	, deleteWhenDone	:: Bool						// Delete the process after completion
 	}
 
-:: TaskManagerProperties =
+:: ManagerProperties =
 	{ worker			:: UserName					// Who has to do the task? 
 	, subject			:: String 					// The subject of the task
 	, priority			:: TaskPriority				// What is the current priority of this task?
 	, deadline			:: Maybe Timestamp			// When is the task due?
 	}
 					
-:: TaskWorkerProperties =
+:: WorkerProperties =
 	{ progress		:: TaskProgress		// Indication of the worker's progress
 	}
 

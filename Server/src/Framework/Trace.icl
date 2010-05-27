@@ -18,7 +18,7 @@ where
 	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Subtask access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "Mutable"],ThTag [] [Text "In Open Parallel?" ], ThTag [] [Text "Delete when done"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
 							, TdTag [] [Text process.Process.properties.managerProps.subject]
-							, TdTag [] [Text (toString process.Process.properties.managerProps.TaskManagerProperties.worker)]
+							, TdTag [] [Text (toString process.Process.properties.managerProps.ManagerProperties.worker)]
 							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.systemProps.subTaskWorkers])]
 							, TdTag [] [Text (toString process.Process.properties.systemProps.manager)]
 							, TdTag [] [Text (toString process.Process.status)]
@@ -141,7 +141,7 @@ where
 	mkTree (TTMainTask info mti menus inptype tree)
 		= { cls = "master-task"
 		  , uiProvider = "col"
-		  , user = toString mti.TaskProperties.managerProps.TaskManagerProperties.worker
+		  , user = toString mti.TaskProperties.managerProps.ManagerProperties.worker
 		  , leaf = False
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
