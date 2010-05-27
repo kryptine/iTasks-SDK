@@ -39,38 +39,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					, taskDescription	:: String
 					}
 
-:: TaskProperties = { systemProps	:: TaskSystemProperties
-					, managerProps	:: TaskManagerProperties
-					, workerProps	:: TaskWorkerProperties
-					}
 
-:: TaskSystemProperties =
-	{ processId			:: ProcessId				// Process table identification
-	, manager			:: UserName					// Who is managing this task
-	, issuedAt			:: Timestamp				// When was the task created
-	, firstEvent		:: Maybe Timestamp			// When was the first work done on this task
-	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
-	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
-	, subTaskWorkers	:: [(ProcessId, UserName)] 	// Users who have temporary access to the process because they work on a subprocess in an open parralel.
-	, deleteWhenDone	:: Bool						// Delete the process after completion
-	}
-
-:: TaskManagerProperties =
-	{ worker			:: UserName					// Who has to do the task? 
-	, subject			:: String 					// The subject of the task
-	, priority			:: TaskPriority				// What is the current priority of this task?
-	, deadline			:: Maybe Timestamp			// When is the task due?
-	}
-					
-:: TaskWorkerProperties =
-	{ progress		:: TaskProgress		// Indication of the worker's progress
-	}
-
-:: TaskProgress		= TPActive			//Worker is happily working on the task
-					| TPStuck			//Worker is stuck and needs assistence
-					| TPWaiting			//Worker is waiting, not actively working on the task
-					| TPReject			//Worker does not want to continue working on the task
-	
 :: TaskParallelInfo =
 	{ type			:: TaskParallelType //Indicating the scope of the parallel. 
 	, description	:: String			//Description of the behavior of this parallel. This is also displayed in the overview panel in the interface

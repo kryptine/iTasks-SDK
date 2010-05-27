@@ -64,7 +64,7 @@ workflow path task =
 	{ Workflow
 	| path	= path
 	, roles	= []
-	, task = taskLabel task @>> (task >>| return Void)
+	, thread = createThread task Nothing
 	}
 
 restrictedWorkflow :: !String ![Role] !(Task a) -> Workflow | iTask a
@@ -72,7 +72,7 @@ restrictedWorkflow path roles task =
 	{ Workflow
 	| path	= path
 	, roles	= roles
-	, task = taskLabel task @>> (task >>| return Void)
+	, thread = createThread task Nothing
 	}
 
 config :: !*World -> (!Maybe Config,!*World)

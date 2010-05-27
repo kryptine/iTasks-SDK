@@ -21,12 +21,6 @@ where
 	response taskid	= "{\"success\" : true, \"taskid\": \""  +++ taskid +++ "\"}"
 	
 	startWorkflow :: !Workflow !*TSt -> (!ProcessId,!*TSt)
-	startWorkflow workflow tst=:{staticInfo}
-		# user			= staticInfo.currentSession.user
-		# properties	= { worker			= toUserName user
-						  , subject 		= taskLabel workflow.Workflow.task
-						  , priority		= NormalPriority
-						  , deadline		= Nothing
-						  }
-		# (_,pid,tst) = createTaskInstance workflow.Workflow.task properties True Nothing True True tst
+	startWorkflow workflow tst
+		# (_,pid,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
 		= (pid,tst)

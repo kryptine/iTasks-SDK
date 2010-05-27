@@ -6,7 +6,8 @@ import StdMaybe
 from TSt		import :: Task
 from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: Menu
 from Types		import :: ProcessId, :: ProcessRef, :: TaskId
-from TaskTree	import :: TaskProperties, :: TaskPriority, :: TaskProgress, :: TaskParallelType
+from Types		import :: TaskProperties, :: TaskPriority, :: TaskProgress
+from TaskTree	import :: TaskParallelType
 from Time		import :: Timestamp 
 
 from iTasks		import class iTask

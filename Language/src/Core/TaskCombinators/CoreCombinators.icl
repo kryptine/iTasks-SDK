@@ -293,8 +293,10 @@ where
 					  				, deadline		 = initDeadline
 									}
 				# tst				  = addSubTaskWorker taskId userName mbpartype tst
-				# (result,procId,tst) = createTaskInstance task props False mbpartype True False tst
-				= (result,tst)
+				# (resDyn,procId,tst) = createTaskInstance (createThread task (Just props)) False mbpartype True False tst
+				= case resDyn of
+					(result :: TaskResult a^)	= (result, tst)
+					_							= abort "createOrEvaluateTaskIntance: task result of invalid type!"
 			//When found, evaluate
 			Just proc
 				//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info

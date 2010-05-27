@@ -8,6 +8,7 @@ from TSt 			import :: TSt
 from TaskTree		import :: TaskProperties, :: GroupedBehaviour
 from Html 			import :: HtmlTag
 from CommonDomain	import :: Note, :: Password
+from Time			import :: Timestamp
 from StdString		import class toString
 from iTasks			import class iTask
  
@@ -86,13 +87,47 @@ instance == Password
 	}
 
 :: TaskThread a		=
-	{ originalTask	:: !Task a
-	, currentTask	:: !Task a
+	{ originalTask		:: !Task a
+	, currentTask		:: !Task a
+	, initProperties	:: !(Maybe TaskManagerProperties) //TODO must be moved to task datastructure
 	}	
 
 :: TaskPriority		= HighPriority				// tasks can have three levels of priority
 					| NormalPriority
 					| LowPriority
+
+:: TaskProperties =
+	{ systemProps		:: TaskSystemProperties
+	, managerProps		:: TaskManagerProperties
+	, workerProps		:: TaskWorkerProperties
+	}
+
+:: TaskSystemProperties =
+	{ processId			:: ProcessId				// Process table identification
+	, manager			:: UserName					// Who is managing this task
+	, issuedAt			:: Timestamp				// When was the task created
+	, firstEvent		:: Maybe Timestamp			// When was the first work done on this task
+	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
+	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
+	, subTaskWorkers	:: [(ProcessId, UserName)] 	// Users who have temporary access to the process because they work on a subprocess in an open parralel.
+	, deleteWhenDone	:: Bool						// Delete the process after completion
+	}
+
+:: TaskManagerProperties =
+	{ worker			:: UserName					// Who has to do the task? 
+	, subject			:: String 					// The subject of the task
+	, priority			:: TaskPriority				// What is the current priority of this task?
+	, deadline			:: Maybe Timestamp			// When is the task due?
+	}
+					
+:: TaskWorkerProperties =
+	{ progress		:: TaskProgress		// Indication of the worker's progress
+	}
+
+:: TaskProgress		= TPActive			//Worker is happily working on the task
+					| TPStuck			//Worker is stuck and needs assistence
+					| TPWaiting			//Worker is waiting, not actively working on the task
+					| TPReject			//Worker does not want to continue working on the task
 
 
 :: Container a c	= Container a & iTask c		// container for context restrictions

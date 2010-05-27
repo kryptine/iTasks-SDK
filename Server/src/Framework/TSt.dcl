@@ -52,7 +52,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 // A workflow specification
 :: Workflow		=	{ path			:: !String											// a unique name of this workflow
 					, roles			:: ![String]										// the roles that are allowed to initate this workflow
-					, task			:: Task Void										// the main task of the workflow
+					, thread		:: !Dynamic											// the thread of the main task of the workflow
 					}
 /**
 * Creates an initial task state.
@@ -69,11 +69,24 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @return a TSt iTask state
 */
 mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
+
+
+/**
+* Creates a dynamic containing a runnable task thread structure.
+* It contains the task plus the iTask context restrictions.
+*
+* @param The task that is to be converted to a runnable thread
+* @param Optionally the initial properties of the task
+* 
+* @return A dynamic containing the thread
+*/
+createThread :: !(Task a) !(Maybe TaskManagerProperties) -> Dynamic	| iTask a
+
 /**
 * Creates an instance of a task definition
 * As soon as an instance is created it is immediately evaluated once.
 *
-* @param The task
+* @param A task thread of the task to create an instance of
 * @param Start as toplevel, or as subtask of another task (parent information is read from the task state)
 * @param Whether this process is part of a parallel
 * @param Activate the task instance immediately
@@ -81,10 +94,10 @@ mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -
 * @param The task state
 *
 * @return The process id of the new instance
-* @return The result of the first run
+* @return The result of the first run (as dynamic)
 * @return The modified task state
 */
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
 /**
 * Evaluates an existing task instance
 *

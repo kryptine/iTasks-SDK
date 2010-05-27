@@ -12,7 +12,6 @@ import dynamic_string
 
 from JSON import JSONDecode, fromJSON
 
-
 :: RPCMessage =
 			{ success		:: Bool
 			, error			:: Bool
@@ -93,14 +92,22 @@ initTaskProperties
 	    }
 	 }
 		  
-createTaskInstance :: !(Task a) !TaskManagerProperties !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!TaskResult a,!ProcessId,!*TSt) | iTask a
-createTaskInstance task managerProps toplevel mbParType activate delete tst=:{taskNr,mainTask}
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
+createTaskInstance thread=:(Container {TaskThread|originalTask,initProperties} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
 	# processId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel "" mainTask
+	# managerProps			= case initProperties of
+		Just props	= props
+		Nothing		= { TaskManagerProperties
+					  | worker = toUserName manager
+					  , subject = taskLabel originalTask
+					  , priority = NormalPriority
+					  , deadline = Nothing
+					  }
 	# properties =
 		{TaskProperties
 		| systemProps =
@@ -137,22 +144,22 @@ createTaskInstance task managerProps toplevel mbParType activate delete tst=:{ta
 	# (mbProcess,tst)		= getProcess processId tst
 	# process				= fromJust mbProcess
 	//Create a thread with task functions in the store
-	# tst					= storeThread processId (createThread task) tst
+	# tst					= storeThread processId thread tst
 	| activate
 		//If directly active, evaluate the process once to kickstart automated steps that can be set in motion immediately	
 		# (result,tree,tst)		= evaluateTaskInstance process Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
 		= case result of
-			TaskBusy				= (TaskBusy, processId, tst)
-			TaskFinished (a :: a^)	= (TaskFinished a, processId, tst)
-			TaskException e			= (TaskException e, processId, tst)
+			TaskBusy				= (dynamic TaskBusy :: TaskResult a, processId, tst)
+			TaskFinished (r :: a)	= (dynamic TaskFinished r :: TaskResult a, processId, tst)
+			TaskException e			= (dynamic TaskException e :: TaskResult a, processId, tst)
 	| otherwise
-		= (TaskBusy, processId, tst)
+		= (dynamic TaskBusy :: TaskResult a, processId, tst)
 
 //NEW THREAD FUNCTIONS
-createThread :: !(Task a) -> Dynamic	| iTask a
-createThread task = (dynamic container :: Container (TaskThread a^) a^)
+createThread :: !(Task a) !(Maybe TaskManagerProperties) -> Dynamic	| iTask a
+createThread task properties = (dynamic container :: Container (TaskThread a^) a^)
 where
- 	container = Container {TaskThread|originalTask = task, currentTask = task}
+ 	container = Container {TaskThread|originalTask = task, currentTask = task, initProperties = properties}
 
 applyThread :: !Dynamic *TSt -> (!TaskResult Dynamic, !*TSt)
 applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) tst

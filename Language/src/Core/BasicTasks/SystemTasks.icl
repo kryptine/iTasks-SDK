@@ -6,7 +6,7 @@ from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config
 from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Workflow
 from TSt import mkInstantTask, mkMonitorTask
 from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString, setStatus
-from TSt import qualified createTaskInstance
+from TSt import qualified createTaskInstance, createThread
 
 import Types
 from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties(..), :: TaskSystemProperties(..), :: TaskWorkerProperties, :: TaskManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
@@ -71,7 +71,7 @@ where
 			, priority		 = NormalPriority
 			, deadline		 = Nothing
 			}
-		# (result,pid,tst)	= TSt@createTaskInstance task properties True Nothing activate False tst
+		# (result,pid,tst)	= TSt@createTaskInstance (TSt@createThread task (Just properties)) True Nothing activate False tst
 		= (TaskFinished (ProcessRef pid), tst)
 
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
