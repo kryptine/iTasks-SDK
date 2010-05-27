@@ -22,18 +22,18 @@ derive bimap	Maybe, (,)
 gVisualize{|FormButton|} old new vst=:{vizType,label=fLabel,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
+			# errMsg = getErrorMessage currentPath oldM errorMask
+			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUIFormButtonControl {TUIButtonControl | label = label old, iconCls = icon old, name = dp2s currentPath, id = id, value = toString pressedOld, fieldLabel = labelAttr useLabels fLabel, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, 1
-				, {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid currentPath errorMask valid})
+				, {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid currentPath oldM errorMask valid})
 		VEditorUpdate
 			# upd = if (pressedOld <> pressedNew) [TUIUpdate (TUISetValue id (toString pressedNew))] []
-			# err = getErrorUpdate id currentPath errorMask
-			# hnt = getHintUpdate id currentPath hintMask
+			# err = getErrorUpdate id currentPath newM errorMask
+			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
 				, 1
-				, {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid currentPath errorMask valid})
+				, {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid currentPath newM errorMask valid})
 		_
 			= ([TextFragment (label old)]
 				, 1
@@ -50,22 +50,25 @@ where
 		Pressed		= True
 		NotPressed	= False	
 		
-	isValid dp em valid
-		| getErrorCount dp em > 0 	= False
+	isValid dp dm em valid
+		| getErrorCount dp dm em > 0 	= False
 		| otherwise 				= valid
+		
+	oldM	= case old of (VValue _ omask) = omask ; _ = []
+	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 
 gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
+			# errMsg = getErrorMessage currentPath oldM errorMask
+			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUIPasswordControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, 1
 				, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
-			# err = getErrorUpdate id currentPath errorMask
-			# hnt = getHintUpdate id currentPath hintMask
+			# err = getErrorUpdate id currentPath newM errorMask
+			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
 				, 1
 				, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
@@ -75,19 +78,21 @@ where
 	id		= dp2id idPrefix currentPath
 	oldV	= value2s currentPath old
 	newV	= value2s currentPath new
+	oldM	= case old of (VValue _ omask) = omask; _ = []
+	newM	= case new of (VValue _ nmask) = nmask; _ = []
 		
 gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
+			# errMsg = getErrorMessage currentPath oldM errorMask
+			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUIDateControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
-			# err = getErrorUpdate id currentPath errorMask
-			# hnt = getHintUpdate id currentPath hintMask
+			# err = getErrorUpdate id currentPath newM errorMask
+			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
 				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
@@ -97,19 +102,21 @@ where
 	id		= dp2id idPrefix currentPath
 	oldV	= value2s currentPath old
 	newV	= value2s currentPath new
+	oldM	= case old of (VValue _ omask) = omask ; _ = []
+	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 	
 gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
+			# errMsg = getErrorMessage currentPath oldM errorMask
+			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUITimeControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
-			# err = getErrorUpdate id currentPath errorMask
-			# hnt = getHintUpdate id currentPath hintMask
+			# err = getErrorUpdate id currentPath newM errorMask
+			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
 				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
@@ -120,18 +127,21 @@ where
 	oldV	= value2s currentPath old
 	newV	= value2s currentPath new
 	
+	oldM	= case old of (VValue _ omask) = omask ; _ = []
+	newM	= case new of (VValue _ nmask) = nmask ; _ = []
+	
 gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
+			# errMsg = getErrorMessage currentPath oldM errorMask
+			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUINoteControl {TUIBasicControl|name = dp2s contentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, 3
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
-			# err = getErrorUpdate id currentPath errorMask
-			# hnt = getHintUpdate id currentPath hintMask
+			# err = getErrorUpdate id currentPath newM errorMask
+			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
 					, 3
 					, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
@@ -147,11 +157,14 @@ where
 	oldV		= value2s contentPath old
 	newV		= value2s contentPath new
 
+	oldM	= case old of (VValue _ omask) = omask ; _ = []
+	newM	= case new of (VValue _ nmask) = nmask ; _ = []
+
 gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath errorMask
-			# hntMsg = getHintMessage currentPath hintMask
+			# errMsg = getErrorMessage currentPath oldM errorMask
+			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUICurrencyControl {TUICurrencyControl|id = id, name = dp2s currentPath
 												, value = oldV, fieldLabel = labelAttr useLabels label
 												, currencyLabel = curLabel old, optional = optional
@@ -161,8 +174,8 @@ gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabel
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
-			# err = getErrorUpdate id currentPath errorMask
-			# hnt = getHintUpdate id currentPath hintMask
+			# err = getErrorUpdate id currentPath newM errorMask
+			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
 				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
@@ -175,6 +188,8 @@ where
 	curLabel (VValue (JPY _) _) = "&yen;"
 	curLabel _					= "&euro;" //Use the default currency
 	
+	oldM	= case old of (VValue _ omask) = omask ; _ = []
+	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 	oldV	= value currentPath old
 	newV	= value currentPath new
 	value dp VBlank			= ""

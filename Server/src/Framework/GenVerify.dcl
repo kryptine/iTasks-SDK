@@ -4,11 +4,12 @@ import GenUpdate
 :: LabeledDataPath :== [LabelOrNumber]
 :: LabelOrNumber = Unlabeled Int | Label String
 
+:: MessagePredicate = MPIfMasked | MPAlways
 :: ErrorMessage :== String
 :: HintMessage :== String
 
-:: ErrorMask :== [(LabeledDataPath, ErrorMessage)]
-:: HintMask  :== [(LabeledDataPath, HintMessage)]
+:: ErrorMask :== [(LabeledDataPath, MessagePredicate, ErrorMessage)]
+:: HintMask  :== [(LabeledDataPath, MessagePredicate, HintMessage)]
 
 :: *ESt =
 	{ dataMask		:: DataMask
@@ -34,8 +35,8 @@ determineHints 			:: a DataMask -> HintMask 	| gHint{|*|} a
 stepLabeledDataPath 	:: LabeledDataPath -> LabeledDataPath
 shiftLabeledDataPath 	:: LabeledDataPath -> LabeledDataPath
 
-appendError 			:: !String 			*ESt -> *ESt
-appendHint				:: !String			*HSt -> *HSt
+appendError 			:: !String !MessagePredicate *ESt -> *ESt
+appendHint				:: !String !MessagePredicate *HSt -> *HSt
 
 class ChildLookup st
 where
@@ -46,7 +47,7 @@ where
 instance ChildLookup HSt
 instance ChildLookup ESt
 
-getErrorMessage 		:: DataPath ErrorMask -> String
-getHintMessage 			:: DataPath HintMask  -> String
+getErrorMessage 		:: DataPath DataMask ErrorMask -> String
+getHintMessage 			:: DataPath DataMask HintMask  -> String
 
-getErrorCount			:: DataPath ErrorMask -> Int
+getErrorCount			:: DataPath DataMask ErrorMask -> Int

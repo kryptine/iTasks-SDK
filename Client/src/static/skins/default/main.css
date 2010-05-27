@@ -625,6 +625,8 @@ button.x-form-document-trash-icon {
 	border: 1px solid transparent;
 }
 
+/*== CodeMirror == */
+
 .codemirror-iframe {
 	background: white;
 	color: black;
@@ -635,6 +637,20 @@ button.x-form-document-trash-icon {
 	margin: 0.4em;
 	font-family: monospace;
 	text-align: right;
+}
+
+/* == Constructor Panel == */
+
+.x-constructor-panel-tc{
+	height: 5px;
+	background: none no-repeat scroll 0 0 transparent;
+	background-image: url('img/constructor-top.png') !important;
+}
+
+.x-constructor-panel-mc{
+	padding-top: 4px;
+	padding-bottom: 1px;
+	background-image: url('img/constructor-background.png') !important;
 }
 
 /* == Hint & Error Icons == */

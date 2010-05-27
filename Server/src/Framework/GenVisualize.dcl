@@ -69,8 +69,8 @@ derive bimap VisualizationValue
 //Utility functions making specializations of gVisualize
 instance toString (VisualizationValue a) | toString a
 
-getHintUpdate :: TUIId DataPath HintMask -> Visualization
-getErrorUpdate :: TUIId DataPath ErrorMask -> Visualization
+getHintUpdate :: TUIId DataPath DataMask HintMask -> Visualization
+getErrorUpdate :: TUIId DataPath DataMask ErrorMask -> Visualization
 
 value2s 	:: DataPath (VisualizationValue a)							-> String | toString a
 label2s 	:: Bool (Maybe String)										-> Maybe String

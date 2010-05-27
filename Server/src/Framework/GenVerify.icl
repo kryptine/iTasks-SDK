@@ -11,6 +11,12 @@ derive gHint  Void, Either
 generic gError a :: a *ESt -> *ESt
 generic gHint  a :: (Maybe a) *HSt -> *HSt
 
+instance == LabelOrNumber
+where
+	(==) (Unlabeled a) (Unlabeled b) = a == b
+	(==) (Label a) (Label b) = a == b
+	(==) _ _ = False
+
 mkHSt :: *HSt
 mkHSt = {HSt | dataMask = [], hintMask = [], currentPath = shiftLabeledDataPath []}
 
@@ -139,13 +145,13 @@ gHint{|Maybe|} fx (Just Nothing) hst=:{HSt | currentPath}
 gHint{|Dynamic|}	x hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
 
 //Utility functions
-appendError :: !String *ESt -> *ESt
-appendError err est=:{ESt | currentPath,errorMask} 
-	= {ESt | est & errorMask = [(currentPath,err):errorMask]}
+appendError :: !String !MessagePredicate *ESt -> *ESt
+appendError err pred est=:{ESt | currentPath,errorMask} 
+	= {ESt | est & errorMask = [(currentPath,pred,err):errorMask]}
 
-appendHint :: !String *HSt -> *HSt
-appendHint hint hst=:{HSt | currentPath,hintMask}
-	= {HSt | hst & hintMask = [(currentPath,hint):hintMask]}
+appendHint :: !String !MessagePredicate *HSt -> *HSt
+appendHint hint pred hst=:{HSt | currentPath,hintMask}
+	= {HSt | hst & hintMask = [(currentPath,pred,hint):hintMask]}
 
 instance ChildLookup ESt
 where
@@ -192,14 +198,18 @@ stepLabeledDataPath [] 					= []
 dp2ldp :: DataPath -> LabeledDataPath
 dp2ldp (DataPath p _ _) = [Unlabeled i \\ i <- p]
 
-getErrorMessage :: DataPath ErrorMask -> String
-getErrorMessage (DataPath dp _ _) mmask = join ", " [s \\ (ldp,s) <- mmask | eqPath dp ldp]
+getErrorMessage :: DataPath DataMask ErrorMask -> String
+getErrorMessage (DataPath dp _ _) dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath dp ldp && predValid ldp p dmask]
 
-getHintMessage :: DataPath HintMask -> String
-getHintMessage (DataPath dp _ _) mmask = join ", " [s \\ (ldp,s) <- mmask | eqPath dp ldp]
+getHintMessage :: DataPath DataMask HintMask -> String
+getHintMessage (DataPath dp _ _) dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath dp ldp && predValid ldp p dmask]
 
-getErrorCount :: DataPath ErrorMask -> Int
-getErrorCount (DataPath dp _ _) mmask = length [s \\ (ldp,s) <- mmask | eqPath dp ldp]
+getErrorCount :: DataPath DataMask ErrorMask -> Int
+getErrorCount (DataPath dp _ _) dmask mmask = length [s \\ (ldp,p,s) <- mmask | eqPath dp ldp && predValid ldp p dmask]
+
+predValid :: LabeledDataPath MessagePredicate DataMask -> Bool
+predValid ldp MPAlways dm = True
+predValid ldp MPIfMasked dm = isMember ldp [[Unlabeled i \\ i<-dp] \\ dp <- dm]
 
 eqPath :: [Int] [LabelOrNumber] -> Bool
 eqPath [] 		[] 					= True
