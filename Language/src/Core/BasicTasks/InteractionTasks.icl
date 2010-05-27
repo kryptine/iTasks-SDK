@@ -190,9 +190,9 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 					| index <> -1
 						# valid			= index >= 0 && index < length options	//Recompute validity
 						# tst			= setTaskStore "selection" index tst
-						# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
-						# buttonActions = evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-						# hotkeyActions	= evaluateHotkeyConditions (getHotkeyActions actions) valid (if valid (options !! selection) (hd options))
+						# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! index) (hd options))
+						# buttonActions = evaluateConditions buttonActions valid (if valid (options !! index) (hd options))
+						# hotkeyActions	= evaluateHotkeyConditions (getHotkeyActions actions) valid (if valid (options !! index) (hd options))
 						# tst			= setTUIUpdates (enables editorId buttonActions) menuActions hotkeyActions tst
 						= (TaskBusy, tst)	
 					// Fallback case (shouldn't really happen)
