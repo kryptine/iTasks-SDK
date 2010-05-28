@@ -87,7 +87,7 @@
 }
 
 .GroupFloating .ToolbarNoEnabledItems,
-.GroupFloating .ToolbarGroupActionsOnly {
+/*.GroupFloating .ToolbarGroupActionsOnly*/ {
 	display: none;
 }
 

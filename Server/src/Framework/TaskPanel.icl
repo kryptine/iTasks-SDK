@@ -115,7 +115,7 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks gActions)
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel` t menus gActions currentUser \\ t <- tasks & idx <- [0..]] tst
+		# (containers,tst)	= buildGroupElements tasks currentUser gActions menus tst
 		# containers		= filter filterFinished containers
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
@@ -153,10 +153,6 @@ where
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
 			(TTMainTask _ _ _ _ _)		= False 									// a main-subtask should not become visible
 			_ 							= abort "Unknown panel type in parallel"
-	filterFinished container =
-		case container.panel of
-			TaskDone	= False
-			_			= True
 			
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menusChanged} = case tree of
@@ -304,7 +300,8 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
 	(TTGroupedTask ti tasks gActions)
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (containers,tst)	= seqList [(\(p,tst) -> ({panel = p, behaviour = getGroupedBehaviour t, index = idx},tst)) o buildTaskPanel` t menus gActions manager \\ t <- tasks & idx <- [0..]] tst
+		# (containers,tst)	= buildGroupElements tasks manager gActions menus tst
+		# containers		= filter filterFinished containers
 		= ([{SubtaskContainer
 			| subtaskNr = stnr
 			, manager = manager
@@ -380,6 +377,28 @@ filterClosedSubtasks :: !SubtaskContainer !UserName -> Bool
 filterClosedSubtasks container manager
 	| container.inClosedPar	= container.SubtaskContainer.manager == manager
 	| otherwise = True
+	
+filterFinished container = case container.panel of
+	TaskDone	= False
+	_			= True
+
+buildGroupElements :: ![TaskTree] !UserName ![(Action,Bool)] !(Maybe [Menu]) !*TSt -> (![GroupContainerElement], !*TSt)
+buildGroupElements tasks currentUser gActions menus tst
+	# (panels, tst)	= seqList [buildPanel t gActions \\ t <- tasks] tst
+	# elements		= [{panel = p, behaviour = b, index = idx} \\ (p, b) <- flatten panels & idx <- [0..]]
+	= (elements, tst)
+where
+	buildPanel :: !TaskTree ![(Action,Bool)] !*TSt -> (![(TaskPanel, GroupedBehaviour)] , !*TSt)
+	buildPanel (TTGroupedTask _ tasks gActions) _ tst
+		# (gActions,tst)	= evaluateGActions gActions tst
+		# (panels, tst)	= seqList [buildPanel t gActions \\ t <- tasks] tst
+		= (flatten panels, tst)
+	buildPanel (TTSequenceTask ti tasks) gActions tst
+		# (panels, tst)	= seqList [buildPanel t gActions \\ t <- tasks] tst
+		= (flatten panels, tst)
+	buildPanel t gActions tst
+		# (p, tst) = buildTaskPanel` t menus gActions currentUser tst
+		= ([(p, getGroupedBehaviour t)], tst)
 
 // === Menu Functions
 makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIDef]
