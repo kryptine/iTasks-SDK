@@ -384,21 +384,40 @@ filterFinished container = case container.panel of
 
 buildGroupElements :: ![TaskTree] !UserName ![(Action,Bool)] !(Maybe [Menu]) !*TSt -> (![GroupContainerElement], !*TSt)
 buildGroupElements tasks currentUser gActions menus tst
-	# (panels, tst)	= seqList [buildPanel t gActions \\ t <- tasks] tst
+	# (panels, tst)	= seqList [buildPanel t gActions Nothing \\ t <- tasks] tst
 	# elements		= [{panel = p, behaviour = b, index = idx} \\ (p, b) <- flatten panels & idx <- [0..]]
 	= (elements, tst)
 where
-	buildPanel :: !TaskTree ![(Action,Bool)] !*TSt -> (![(TaskPanel, GroupedBehaviour)] , !*TSt)
-	buildPanel (TTGroupedTask _ tasks gActions) _ tst
+	buildPanel :: !TaskTree ![(Action,Bool)] !(Maybe GroupedBehaviour) !*TSt -> (![(TaskPanel, GroupedBehaviour)] , !*TSt)
+	buildPanel (TTGroupedTask _ tasks gActions) _  _ tst
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (panels, tst)	= seqList [buildPanel t gActions \\ t <- tasks] tst
+		# (panels, tst)		= seqList [buildPanel t gActions Nothing \\ t <- tasks] tst
 		= (flatten panels, tst)
-	buildPanel (TTSequenceTask ti tasks) gActions tst
-		# (panels, tst)	= seqList [buildPanel t gActions \\ t <- tasks] tst
-		= (flatten panels, tst)
-	buildPanel t gActions tst
+	buildPanel (TTSequenceTask ti tasks) gActions mbBehaviour tst
+		= case filter (not o isFinished) tasks of
+			[]  = ([], tst)
+			[t] = buildPanel t gActions (Just (getGroupedBehaviour t mbBehaviour)) tst
+			_	= abort "Multiple simultaneously active tasks in a sequence!"
+	buildPanel t gActions mbBehaviour tst
 		# (p, tst) = buildTaskPanel` t menus gActions currentUser tst
-		= ([(p, getGroupedBehaviour t)], tst)
+		= ([(p, getGroupedBehaviour t mbBehaviour)], tst)
+		
+	getGroupedBehaviour :: !TaskTree !(Maybe GroupedBehaviour) -> GroupedBehaviour		
+	getGroupedBehaviour task mbFixedBehaviour = case mbFixedBehaviour of
+		Just fixedBehaviour = fixedBehaviour
+		Nothing
+			# info = case task of
+				(TTInteractiveTask ti _ ) 	= ti
+				(TTMonitorTask ti _)		= ti
+				(TTRpcTask ti _)			= ti
+				(TTFinishedTask ti _)		= ti
+				(TTParallelTask ti _ _)		= ti
+				(TTSequenceTask ti _)		= ti
+				(TTMainTask ti _ _ _ _)		= ti
+				(TTGroupedTask ti _ _)		= ti
+				(TTInstructionTask ti _ _)	= ti
+				_ 							= abort "Unknown panel type in group"
+			= info.TaskInfo.groupedBehaviour
 
 // === Menu Functions
 makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIDef]
@@ -516,18 +535,3 @@ isFinished _						= False
 
 allFinished :: [TaskTree] -> Bool
 allFinished ts = and (map isFinished ts)
-
-getGroupedBehaviour :: !TaskTree -> GroupedBehaviour		
-getGroupedBehaviour task
-	# info = case task of
-		(TTInteractiveTask ti _ ) 	= ti
-		(TTMonitorTask ti _)		= ti
-		(TTRpcTask ti _)			= ti
-		(TTFinishedTask ti _)		= ti
-		(TTParallelTask ti _ _)		= ti
-		(TTSequenceTask ti _)		= ti
-		(TTMainTask ti _ _ _ _)		= ti
-		(TTGroupedTask ti _ _)		= ti
-		(TTInstructionTask ti _ _)	= ti
-		_ 							= abort "Unknown panel type in group"
-	= info.TaskInfo.groupedBehaviour
