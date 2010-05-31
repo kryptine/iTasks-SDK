@@ -11,7 +11,7 @@ handleAuthenticationRequest req tst
 		Just user
 			# (session, tst)	= createSession user tst
 			# tst				= flushStore tst
-			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId user.displayName},tst)
+			= ({http_emptyResponse & rsp_data = encodeSuccess session.sessionId (displayName user)},tst)
 		Nothing
 			= ({http_emptyResponse & rsp_data = encodeFailure},tst)
 where

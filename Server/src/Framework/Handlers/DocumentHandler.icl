@@ -112,8 +112,8 @@ updateTasks procId tst
 	# (tree, tst) = calculateTaskTree procId tst	
 	= case tree of
 		(TTMainTask ti properties _ _ task)
-			# username = toUserName tst.staticInfo.currentSession.Session.user
-			| username == properties.managerProps.ManagerProperties.worker || isMember username [u \\ (p,u) <- properties.systemProps.subTaskWorkers]
+			# user = tst.staticInfo.currentSession.Session.user
+			| user == properties.managerProps.ManagerProperties.worker || isMember user [u \\ (p,u) <- properties.systemProps.subTaskWorkers]
 				= updateTimeStamps properties.systemProps.SystemProperties.processId tst
 			| otherwise = tst
 		_ = tst

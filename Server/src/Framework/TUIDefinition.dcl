@@ -35,7 +35,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUITimeControl TUIBasicControl
 	| TUIPasswordControl TUIBasicControl	
 	| TUICurrencyControl TUICurrencyControl
-	| TUIUsernameControl TUIBasicControl
+	| TUIUserControl TUIBasicControl
 	| TUIDocumentControl TUIDocumentControl
 	| TUIConstructorControl TUIConstructorControl
 	| TUIHiddenControl TUIBasicControl

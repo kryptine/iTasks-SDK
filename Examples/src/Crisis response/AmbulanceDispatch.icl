@@ -41,25 +41,25 @@ where
 	
 ::Provider =
 	{ name			:: String
-	, id			:: UserName
+	, id			:: User
 	, location		:: Location
 	, capacity		:: Int
 	}
 
-::Opinion = Opinion UserName Note
+::Opinion = Opinion User Note
 
 //Static population
 
-allproviders  = [{name="Ambulance Post 0",id=toUserName "ambupost0",location={street="Teststreet",place="Testville",coordinates=Just{lat=1.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 1",id=toUserName "ambupost1",location={street="Teststreet",place="Testville",coordinates=Just{lat=2.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 2",id=toUserName "ambupost2",location={street="Teststreet",place="Testville",coordinates=Just{lat=3.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 3",id=toUserName "ambupost3",location={street="Teststreet",place="Testville",coordinates=Just{lat=4.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 4",id=toUserName "ambupost4",location={street="Teststreet",place="Testville",coordinates=Just{lat=5.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 5",id=toUserName "ambupost5",location={street="Teststreet",place="Testville",coordinates=Just{lat=6.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 6",id=toUserName "ambupost6",location={street="Teststreet",place="Testville",coordinates=Just{lat=7.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 7",id=toUserName "ambupost7",location={street="Teststreet",place="Testville",coordinates=Just{lat=8.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 8",id=toUserName "ambupost8",location={street="Teststreet",place="Testville",coordinates=Just{lat=9.0,lon=2.0}},capacity=2}
-				,{name="Ambulance Post 9",id=toUserName "ambupost9",location={street="Teststreet",place="Testville",coordinates=Just{lat=9.0,lon=3.0}},capacity=2}
+allproviders  = [{name="Ambulance Post 0",id=NamedUser "ambupost0",location={street="Teststreet",place="Testville",coordinates=Just{lat=1.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 1",id=NamedUser "ambupost1",location={street="Teststreet",place="Testville",coordinates=Just{lat=2.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 2",id=NamedUser "ambupost2",location={street="Teststreet",place="Testville",coordinates=Just{lat=3.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 3",id=NamedUser "ambupost3",location={street="Teststreet",place="Testville",coordinates=Just{lat=4.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 4",id=NamedUser "ambupost4",location={street="Teststreet",place="Testville",coordinates=Just{lat=5.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 5",id=NamedUser "ambupost5",location={street="Teststreet",place="Testville",coordinates=Just{lat=6.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 6",id=NamedUser "ambupost6",location={street="Teststreet",place="Testville",coordinates=Just{lat=7.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 7",id=NamedUser "ambupost7",location={street="Teststreet",place="Testville",coordinates=Just{lat=8.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 8",id=NamedUser "ambupost8",location={street="Teststreet",place="Testville",coordinates=Just{lat=9.0,lon=2.0}},capacity=2}
+				,{name="Ambulance Post 9",id=NamedUser "ambupost9",location={street="Teststreet",place="Testville",coordinates=Just{lat=9.0,lon=3.0}},capacity=2}
 				]
 
 derive gPrint		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion			
@@ -171,16 +171,16 @@ where
 	preCombine as				= (0,as)
 	allCombine as				= (needed - sum (map numAmbulances as),as)
 	
-resourceRequestTimeOut :: [(b,UserName,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
+resourceRequestTimeOut :: [(b,User,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
                              Task (a,[(b,Maybe a)]) | iTask a & iTask b
 resourceRequestTimeOut resources time_out check predf allf task
 	= oldParallel "Resource_requests" check predf allf 
              [(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba)) 
              \\ (resource,uid,amount) <- resources]
 
-delegateTaskTimeOut :: UserName String a (a -> Task a) Time -> Task (Maybe a) | iTask a
+delegateTaskTimeOut :: User String a (a -> Task a) Time -> Task (Maybe a) | iTask a
 delegateTaskTimeOut who description value task time_out 
-	= timeOutTask (who @: (description, task value)) time_out 
+	= timeOutTask (who @: (description @>> task value)) time_out 
    			  
 timeOutTask :: (Task a) Time -> Task (Maybe a) | iTask a
 timeOutTask task time

@@ -21,7 +21,7 @@ derive bimap	(,), Maybe
 BookTrip :: Task FlightHotel
 BookTrip
 	=						enterInformation "Please fill in trip information to make booking"
-		>>= \info ->		assign info.delegateTo NormalPriority Nothing (enterInformationAbout "Please book the following trip" info)
+		>>= \info ->		assign info.delegateTo (enterInformationAbout "Please book the following trip" info)
 		>>= \booking ->		showMessageAbout "The following trip has been booked" booking
 		>>|					return booking
 	
@@ -30,7 +30,7 @@ BookTrip
 	=	{ destination 	:: String
 		, leaving		:: Date
 		, returning		:: Date
-		, delegateTo	:: UserName
+		, delegateTo	:: User
 		}
 :: FlightHotel
 	=	{ carrier		:: String

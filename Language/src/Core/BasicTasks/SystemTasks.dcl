@@ -25,13 +25,13 @@ getCurrentProcessId		:: 	Task ProcessId
 *
 * @return The username of the user that currently works on a task
 */
-getContextWorker :: Task UserName
+getContextWorker :: Task User
 /**
 * Gets the user that the current task is managed by
 *
 * @return the username of the user that manages the current task
 */
-getContextManager :: Task UserName
+getContextManager :: Task User
 /**
 * Compute a default value 
 *
@@ -53,7 +53,7 @@ getRandomInt 			:: Task Int
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !UserName !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+spawnProcess	:: !User !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
 
 /**
 * Wait (blocking) for a process to complete.

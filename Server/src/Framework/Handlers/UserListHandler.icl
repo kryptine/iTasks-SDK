@@ -16,13 +16,19 @@ import JSON, Text
 derive JSONEncode UserResponse,UserRecord
 
 handleUserListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-handleUserListRequest req tst
+handleUserListRequest req tst=:{staticInfo}
 	# (users,tst)	= getUsers tst
-	# filtered		= [{UserRecord
-					   |user = fromUserName (toUserName user)
-					   } \\ user <- users
-					   | query == "" || startsWith query user.User.userName || startsWith query user.User.displayName
+	# filtered		= (rootItem staticInfo.currentSession.Session.user) ++
+	 				  [{UserRecord
+					   |user = toString user
+					   } \\ user =:(RegisteredUser details) <- users
+					   | query == "" || startsWith query details.UserDetails.userName || startsWith query details.UserDetails.displayName
 					  ]
 	= ({http_emptyResponse & rsp_data = toJSON {UserResponse| users = filtered, total = length filtered}}, tst)
 where
+	//Only add Root user entry for root itself
+	rootItem RootUser	= [{UserRecord|user = toString RootUser}]
+	rootItem _			= [] 
+	
 	query = http_getValue "query" req.arg_post ""
+	

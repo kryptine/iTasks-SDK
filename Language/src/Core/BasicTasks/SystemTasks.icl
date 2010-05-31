@@ -36,12 +36,12 @@ where
 	getCurrentProcessId` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentProcessId,tst)
 
-getContextWorker :: Task UserName
+getContextWorker :: Task User
 getContextWorker = mkInstantTask "getContextWorker" getContextWorker`
 where
 	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProps.worker,tst)
 
-getContextManager :: Task UserName
+getContextManager :: Task User
 getContextManager = mkInstantTask "getContextManager" getContextManager`
 where
 	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProps.manager, tst)
@@ -61,13 +61,13 @@ where
 		# (Clock seed, tst)	= accWorldTSt clock tst
 		= (TaskFinished (hd (genRandInt seed)), tst)
 		
-spawnProcess :: !UserName !Bool !(Task a) -> Task (ProcessRef a) | iTask a
-spawnProcess username activate task = mkInstantTask "spawnProcess" spawnProcess`
+spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
 		# properties	=
 			{ ManagerProperties
-			| worker		 = username
+			| worker		 = user
 			, subject 		 = taskLabel task
 			, priority		 = NormalPriority
 			, deadline		 = Nothing

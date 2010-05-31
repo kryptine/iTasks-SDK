@@ -21,12 +21,12 @@ import CommonDomain
 	{ bugNr			:: BugNr
 	, status		:: BugStatus
 	, reportedAt	:: (Date,Time)
-	, reportedBy	:: UserName
+	, reportedBy	:: User
 	, report		:: BugReport
 	, analysis		:: Maybe BugAnalysis
 	}
 
-:: BugStatus = Reported | Assigned UserName | Repaired
+:: BugStatus = Reported | Assigned User | Repaired
 
 :: BugAnalysis =
 	{ cause				:: Note
@@ -63,7 +63,7 @@ reportBugVerySimple :: Task Note
 reportBugVerySimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
-		assign (toUserName "bas") NormalPriority Nothing
+		assign (NamedUser "bas")
 			("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
@@ -71,7 +71,7 @@ reportBugSimple :: Task BugReport
 reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
-		assign (toUserName "bas") NormalPriority Nothing
+		assign (NamedUser "bas")
 			("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
@@ -83,7 +83,7 @@ where
 	reportBug = enterInformation "Please describe the bug you found"
 	
 	fixBug :: BugReport -> Task Void
-	fixBug bug = "bas" @: ("Bug Report", showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
+	fixBug bug = NamedUser "bas" @: ("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
 
 //Main workflow	  
 reportBug :: Task Void
@@ -106,8 +106,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign developer priority Nothing
-			(subject @>> resolveBug bug critical)
+		assign developer (subject @>> priority @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -139,7 +138,7 @@ fileBug :: BugReport -> Task Bug
 fileBug report
 	=	getDefaultValue -&&- getCurrentUser
 	>>= \(bug,user) ->
-		dbCreateItem {bug & report = report, reportedBy = (toUserName user)}
+		dbCreateItem {bug & report = report, reportedBy = user}
 
 updateBug :: (Bug -> Bug) Bug -> Task Bug
 updateBug f bug = dbUpdateItem (f bug)
@@ -148,30 +147,26 @@ confirmCritical :: BugReport -> Task Bool
 confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
-		assign assessor HighPriority Nothing
+		assign assessor
 			( "Bug report assessment"
-			  @>>
+			  @>> HighPriority @>>
 			  requestConfirmationAbout "Is this bug really critical?" report
 			)
 
-instance < UserName
-where
-	(<) (UserName ida dispa) (UserName idb dispb) = ida < idb
-
-selectDeveloper :: String -> Task UserName
+selectDeveloper :: String -> Task User
 selectDeveloper application
 	=	findAppDevelopers application
 	>>= \developers -> case developers of
-		[]	= getCurrentUser >>= \user -> return (toUserName user)
+		[]	= getCurrentUser
 		_	= selectLeastBusy developers
 where
-	findAppDevelopers :: String -> Task [UserName]
-	findAppDevelopers "itasks"	= return [toUserName "bas"]
+	findAppDevelopers :: String -> Task [User]
+	findAppDevelopers "itasks"	= return [NamedUser "bas"]
 	findAppDevelopers _			= return []
 		
-	selectLeastBusy :: [UserName] -> Task UserName
+	selectLeastBusy :: [User] -> Task User
 	selectLeastBusy []
-		=	getCurrentUser >>= \user -> return (toUserName user)
+		=	getCurrentUser
 	selectLeastBusy names
 		= 	allTasks [getNumTasksForUser name \\ name <- names]
 		>>= \activity -> 
@@ -179,7 +174,7 @@ where
 	where	
 		minimum l = foldl min (hd l) (tl l) 
 		
-	getNumTasksForUser :: UserName -> Task Int
+	getNumTasksForUser :: User -> Task Int
 	getNumTasksForUser name = return 42			//TODO: Use API function
 	 
 analyzeBug :: Bug -> Task Bug
@@ -213,6 +208,6 @@ makePatches bug =
 			  >>| return Void
 		
 notifyReporter :: Bug -> Task Void
-notifyReporter bug = bug.reportedBy @: ("Bug Report Result", showMessageAbout "The bug you reported has been fixed" bug)
+notifyReporter bug = bug.reportedBy @: ("Bug Report Result" @>> showMessageAbout "The bug you reported has been fixed" bug)
 
 //notifyUser "The bug you reported has been fixed" bug.reportedBy

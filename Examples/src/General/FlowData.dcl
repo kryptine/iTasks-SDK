@@ -23,7 +23,7 @@ derive gHint	 	Flow, FlowShape, AssignInfo, CleanExpr
 				|	CleanExpr		!CleanExpr
 				| 	First
 				| 	Second
-:: AssignInfo	= 	{ nameOfUser:: !UserName
+:: AssignInfo	= 	{ nameOfUser:: !User
 			  		, taskName 	:: !String
 			  		}
 :: CleanExpr	=	CI Int

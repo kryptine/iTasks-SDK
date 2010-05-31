@@ -24,7 +24,7 @@ deadline :: (Task a) -> Task a | iTask a
 deadline task
 =					chooseUser "Choose person you want to delegate work to:"
 	>>= \whom ->	enterInformation "How long do you want to wait?" 
-	>>= \time ->	(delegateTask whom.User.userName time task)
+	>>= \time ->	(delegateTask whom time task)
 					-||-
 					(showMessage "Cancel delegated work if you are getting impatient:" >>| return Nothing)
 	>>= 			checkDone
@@ -35,7 +35,7 @@ where
 		= showMessage "Task expired or canceled, you have to do it yourself!" >>| task
 
 	delegateTask who time task
-	= who  @: ("Timed Task",mytask)
+	= who  @: ("Timed Task" @>> mytask)
 	where
 		mytask
 		=			// wait for timeout and return nothing

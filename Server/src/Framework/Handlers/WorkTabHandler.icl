@@ -18,12 +18,12 @@ handleWorkTabRequest req tst=:{staticInfo}
 	= case tree of
 		(TTMainTask ti properties menus _ task)
 			# subject			= [properties.managerProps.ManagerProperties.subject]
-			# username			= toUserName staticInfo.currentSession.Session.user
-			# (panel,tst)		= buildTaskPanel task menus username tst
+			# user				= staticInfo.currentSession.Session.user
+			# (panel,tst)		= buildTaskPanel task menus user tst
 			// Collect debug information
 			# (debuginfo,tst)	= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.
-			| username == properties.managerProps.ManagerProperties.worker || isMember username [u \\ (p,u) <- properties.systemProps.subTaskWorkers]	
+			| user == properties.managerProps.ManagerProperties.worker || isMember user [u \\ (p,u) <- properties.systemProps.subTaskWorkers]	
 				// Update the task timestamps 
 				# tst		= updateTimeStamps properties.systemProps.SystemProperties.processId tst
 				// Create the response

@@ -61,7 +61,7 @@ initTaskInfo
 		| taskId = ""
 		, taskLabel = ""
 		, traceValue = ""
-		, worker = UserName "" ""
+		, worker = AnyUser
 		, groupedBehaviour = GBFixed
 		, groupActionsBehaviour = IncludeGroupActions
 		, taskDescription = ""
@@ -71,7 +71,7 @@ initSystemProperties :: SystemProperties
 initSystemProperties =
 	{SystemProperties
 	| processId = ""
-	, manager = UserName "" ""
+	, manager = AnyUser
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
 	, latestEvent = Nothing
@@ -83,7 +83,7 @@ initSystemProperties =
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
 	{ManagerProperties
-	| worker = UserName "" ""
+	| worker = AnyUser
 	, subject = ""
 	, priority = NormalPriority
 	, deadline = Nothing
@@ -106,7 +106,7 @@ createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt
 createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
-	# (manager,tst) 		= if (worker <> unknownUser) (worker,tst) (getCurrentUser tst)	
+	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
 	# processId				= if toplevel "" (taskNrToString taskNr)
 	# parent				= if toplevel "" mainTask
@@ -116,7 +116,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		| systemProps =
 			{SystemProperties
 			| processId	= ""
-			, manager		= toUserName manager
+			, manager		= manager
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
 			, latestEvent	= Nothing
@@ -158,7 +158,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	| otherwise
 		= (dynamic TaskBusy :: TaskResult a, processId, tst)
 where
-	setUser manager props=:{ManagerProperties|worker=UserName "" ""} = {ManagerProperties|props & worker = toUserName manager}
+	setUser manager props=:{ManagerProperties|worker=AnyUser} = {ManagerProperties|props & worker = manager}
 	setUser manager props = props
 
 
@@ -419,7 +419,7 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = UserName "" "", groupedBehaviour = GBFixed, groupActionsBehaviour = IncludeGroupActions, taskDescription="Task Result"} [], tst)
+			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = AnyUser, groupedBehaviour = GBFixed,groupActionsBehaviour = IncludeGroupActions, taskDescription="Task Result"} [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -456,7 +456,7 @@ getCurrentProcess tst =: {staticInfo}
 
 getCurrentWorker :: !*TSt -> (!User, !*TSt)
 getCurrentWorker tst =: {TSt | properties}
-	= getUser (properties.managerProps.ManagerProperties.worker) {TSt | tst & properties = properties}
+	= (properties.managerProps.ManagerProperties.worker,{TSt | tst & properties = properties})
 
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
@@ -814,9 +814,3 @@ where
 	stl :: [Char] -> [Char]
 	stl [] = []
 	stl xs = tl xs
-
-taskLabel :: !(Task a) -> String
-taskLabel (Task p _ _ _ _) = p.subject
-
-taskProperties :: !(Task a) -> ManagerProperties
-taskProperties (Task p _ _ _ _) = p

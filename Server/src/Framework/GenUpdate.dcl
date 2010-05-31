@@ -29,7 +29,7 @@ import Types
 generic gUpdate a		:: a 		*USt -> (a, *USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
-derive gUpdate Int, Real, Char, Bool, String, Document, UserName
+derive gUpdate Int, Real, Char, Bool, String, Document
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
 
 //Wrapper functions for updating

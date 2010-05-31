@@ -7,16 +7,14 @@ definition module CommonCombinators
 import CoreCombinators, TuningCombinators, InteractionTasks
 import Either
 
-from Types import :: User (..), :: UserName
-
-// A task with a label used for labeling buttons, pulldown menus, and the like
-:: LabeledTask a	:== (!String,!Task a)		
+from Types import :: User (..)
 
 //Grouping composition
 
 // types are similar to PAction but are needed to avoid circular definitions
 :: GAction		= GStop | GContinue | GExtend [Task GAction]
 :: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void]
+
 derive gParse		GAction, GOnlyAction
 derive gPrint		GAction, GOnlyAction
 derive gVisualize	GAction, GOnlyAction
@@ -58,10 +56,10 @@ allTasks			:: ![Task a]			-> Task [a]				| iTask a
 eitherTask			:: !(Task a) !(Task b) 	-> Task (Either a b)	| iTask a & iTask b	
 
 //Parallel composition
-orProc 				:: !(AssignedTask a) !(AssignedTask a) !TaskParallelType -> Task a 	 | iTask a
-andProc 			:: !(AssignedTask a) !(AssignedTask b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-anyProc 			:: ![AssignedTask a] 				   !TaskParallelType -> Task a 	 | iTask a
-allProc 			:: ![AssignedTask a] 				   !TaskParallelType -> Task [a] 	 | iTask a
+orProc 				:: !(Task a) !(Task a) !TaskParallelType -> Task a 	 	| iTask a
+andProc 			:: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) 	| iTask a & iTask b
+anyProc 			:: ![Task a] 		   !TaskParallelType -> Task a 	 	| iTask a
+allProc 			:: ![Task a] 		   !TaskParallelType -> Task [a] 	| iTask a
 
 //Legacy.. should be removed
 oldParallel :: !String !([a] -> Bool) ([a] -> b) ([a] -> b) ![Task a] -> Task b | iTask a & iTask b 
@@ -81,11 +79,7 @@ stop				:: Task Void
 randomChoice		:: ![a]										-> Task a				| iTask a
 
 //Task delegation
-class (@:) infix 3 u :: u !(LabeledTask a) -> Task a | iTask a
-
-instance @: User
-instance @: UserName
-instance @: String
+(@:) infix 3		:: !User !(Task a) -> Task a | iTask a
 
 /* Handling recursion and loops:
 repeatTask		:: repeat Task until predicate is valid

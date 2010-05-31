@@ -14,51 +14,47 @@ from iTasks			import class iTask
  
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON, StoreTasks
 
-derive gPrint			Session, Document, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
-derive gParse			Session, Document, Hidden, HtmlDisplay, Editable, UserName, VisualizationHint
-derive gVisualize		Session
-derive gUpdate			Session
-derive gError			Session, UserName, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gHint			Session, UserName, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gMerge			Session, UserName, User, VisualizationHint
-derive gMakeLocalCopy	Session, UserName, User, VisualizationHint
-derive gMakeSharedCopy	Session, UserName, User, VisualizationHint
-		
+derive gPrint			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gParse			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gVisualize		User, UserDetails, Session, Task
+derive gUpdate			User, UserDetails, Session, Task
+derive gError			User, UserDetails, Session, Task, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gHint			User, UserDetails, Session, Task, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
 
+derive gMerge			User, Session, VisualizationHint
+derive gMakeLocalCopy	User, Session, VisualizationHint
+derive gMakeSharedCopy	User, Session, VisualizationHint
+		
 derive JSONEncode Document
 derive JSONDecode Document
 
+instance toString User
 instance toString TaskPriority
-instance toString UserName
 instance toString Password
 
-class toUserName a :: a -> UserName
-instance toUserName String
-instance toUserName (String,String)
-instance toUserName User
-
-class fromUserName a :: UserName -> a
-instance fromUserName String
-instance fromUserName (String,String)
-
-instance == UserName
 instance == User
 instance == Password
+
+instance < User
 		
-:: Role				:== String
-
-:: UserId			:== String
-:: DisplayName		:== String
-
-:: Password			= Password String
-
-:: UserName			= UserName !UserId !DisplayName
-:: User 			=
+:: User
+	= AnyUser						// Any not further specified person
+	| RootUser						// The system super user
+	| RegisteredUser !UserDetails	// A registered person of whom we know details
+	| NamedUser !String				// A person identified by a username
+	| SessionUser !SessionId		// A person that is only identified by a session
+	
+:: UserDetails			=
 	{ userName		:: !UserId
 	, password		:: !Password
-	, displayName	:: !DisplayName
+	, displayName	:: !String
 	, roles			:: ![Role]
 	}
+
+:: UserId			:== String
+:: Role				:== String
+
+:: Password			= Password !String
 
 :: SessionId		:== String
 :: Session			=
@@ -97,17 +93,17 @@ instance == Password
 
 :: SystemProperties =
 	{ processId			:: ProcessId				// Process table identification
-	, manager			:: UserName					// Who is managing this task
+	, manager			:: User						// Who is managing this task
 	, issuedAt			:: Timestamp				// When was the task created
 	, firstEvent		:: Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
 	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
-	, subTaskWorkers	:: [(ProcessId, UserName)] 	// Users who have temporary access to the process because they work on a subprocess in an open parralel.
+	, subTaskWorkers	:: [(ProcessId, User)] 		// Users who have temporary access to the process because they work on a subprocess in an open parralel.
 	, deleteWhenDone	:: Bool						// Delete the process after completion
 	}
 
 :: ManagerProperties =
-	{ worker			:: UserName					// Who has to do the task? 
+	{ worker			:: User						// Who has to do the task? 
 	, subject			:: String 					// The subject of the task
 	, priority			:: TaskPriority				// What is the current priority of this task?
 	, deadline			:: Maybe Timestamp			// When is the task due?
@@ -183,3 +179,38 @@ toHidden :: !.a -> (Hidden .a)
 
 emptyDoc 	 		:: Document
 isEmptyDoc 			:: !Document -> Bool
+/*
+* Gives the unique username of a user
+*
+* @param The user
+* @return The user's username
+*/
+userName 			:: !User -> String
+/*
+* Gives the display name of a user
+*
+* @param The user
+* @return The user's display name
+*/
+displayName			:: !User -> String
+/**
+* Extracts the task label of a task
+*
+* @param The task
+* @return The task's label
+*/
+taskLabel			:: !(Task a)				-> String
+/**
+* Extracts the initial worker of a task
+*
+* @param The task
+* @param The task's initial worker
+*/
+taskUser			:: !(Task a)				-> User
+/*
+* Extracts the initial properties of a task
+*
+* @param The task
+* @return The task's initial properties
+*/
+taskProperties		:: !(Task a)				-> ManagerProperties

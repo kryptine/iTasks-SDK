@@ -23,12 +23,14 @@ JSONEncode{|TaskPanel|} (TTCGroupContainer x) c				= JSONEncode{|*|} x c
 
 //JSON specialization for Timestamp: Ignore the constructor
 JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
-JSONEncode{|UserName|} (UserName name disp)	c			= ["\"" +++ disp +++ " <" +++ name +++ ">\"" : c]
+JSONEncode{|User|} u c									= ["\"" +++ toString u +++ "\"" : c]
 
-buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)
+derive JSONEncode UserDetails, Password
+
+buildTaskPanel :: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)
 buildTaskPanel tree menus currentUser tst = buildTaskPanel` tree menus [] currentUser tst
 
-buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action,Bool)] !UserName !*TSt -> (!TaskPanel,!*TSt)
+buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action,Bool)] !User!*TSt -> (!TaskPanel,!*TSt)
 buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
@@ -158,7 +160,7 @@ where
 		IncludeGroupActions	= True
 		ExcludeGroupActions	= False
 			
-buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
+buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !User !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menusChanged} = case tree of
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA hotkeyA))
 		= ([{SubtaskContainer 
@@ -351,7 +353,7 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 							}], tst)
 				_		 = buildSubtaskPanels task stnr menus manager partype inClosed (Just mti) tst
 
-buildSubtaskInfo :: ![SubtaskContainer] !UserName -> [SubtaskInfo]
+buildSubtaskInfo :: ![SubtaskContainer] !User -> [SubtaskInfo]
 buildSubtaskInfo containers manager = [buildSubtaskInfo` c \\ c <- containers | filterClosedSubtasks c manager]
 where
 	buildSubtaskInfo` :: !SubtaskContainer -> SubtaskInfo
@@ -377,7 +379,7 @@ where
 	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", subtaskId = "", description = "", properties = Nothing}
 	
 //Only show subtasks of closed parallels if you are the manager of that task
-filterClosedSubtasks :: !SubtaskContainer !UserName -> Bool
+filterClosedSubtasks :: !SubtaskContainer !User -> Bool
 filterClosedSubtasks container manager
 	| container.inClosedPar	= container.SubtaskContainer.manager == manager
 	| otherwise = True
@@ -386,7 +388,7 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !UserName ![(Action,Bool)] !(Maybe [Menu]) !*TSt -> (![GroupContainerElement], !*TSt)
+buildGroupElements :: ![TaskTree] !User ![(Action,Bool)] !(Maybe [Menu]) !*TSt -> (![GroupContainerElement], !*TSt)
 buildGroupElements tasks currentUser gActions menus tst
 	# (elements, tst)	= seqList [buildGroupElements` t [nr] gActions Nothing \\ t <- tasks & nr <- [1..]] tst
 	= (flatten elements, tst)

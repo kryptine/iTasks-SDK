@@ -22,12 +22,12 @@ updateUserFlow :: Task Void
 updateUserFlow = "Update user" 
 	@>>	getUsers
 	>>= enterChoiceA "Which user do you want to update?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionNext, IfValid)]
-	>>= \(action1,user1) -> case action1 of
+	>>= \(action1,user1 =:(RegisteredUser details1)) -> case action1 of
 		ActionCancel	=	stop
-		ActionNext		=	updateInformationA "Please make your changes" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] user1
-						>>= \(action2,user2) -> case action2 of
+		ActionNext		=	updateInformationA "Please make your changes" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] details1
+						>>= \(action2,details2) -> case action2 of
 							ActionCancel	=	stop
-							ActionOk		=	updateUser user2
+							ActionOk		=	updateUser user1 details2
 											>>| showMessage "Successfully updated user"
 											
 deleteUserFlow :: Task Void

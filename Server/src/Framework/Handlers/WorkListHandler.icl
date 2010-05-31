@@ -29,9 +29,9 @@ JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
-	# username				= toUserName staticInfo.currentSession.user
-	# (processes,tst)		= getProcessesForUser username [Active] tst
-	# (tmpprocs ,tst)		= getTempProcessesForUser username [Active] tst
+	# user					= staticInfo.currentSession.user
+	# (processes,tst)		= getProcessesForUser user [Active] tst
+	# (tmpprocs ,tst)		= getTempProcessesForUser user [Active] tst
 	# proclist				= processes ++ tmpprocs
 	# fproclist				= filter proclist
 	# workitems				= bldWorkItems fproclist
@@ -49,7 +49,7 @@ where
 				(Just Open)
 					= not (isMember p.parent [p.Process.processId \\ p <- plist])
 				(Just Closed)
-					= toUserName staticInfo.currentSession.user <> p.Process.properties.systemProps.SystemProperties.manager
+					= staticInfo.currentSession.user <> p.Process.properties.systemProps.SystemProperties.manager
 
 bldWorkItems :: [Process] -> [WorkListItem]
 bldWorkItems processes

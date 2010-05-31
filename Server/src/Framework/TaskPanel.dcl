@@ -27,7 +27,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, inClosedPar			:: !Bool
 	, tasktree				:: !TaskTree
 	, taskpanel				:: !TaskPanel
-	, manager				:: !UserName
+	, manager				:: !User
 	, processProperties		:: !(Maybe TaskProperties)
 	}
 
@@ -125,4 +125,4 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, description	:: !String
 	}
 
-buildTaskPanel :: !TaskTree !(Maybe [Menu]) !UserName !*TSt -> (!TaskPanel,!*TSt)
+buildTaskPanel :: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)

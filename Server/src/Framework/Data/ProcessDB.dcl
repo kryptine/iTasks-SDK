@@ -67,13 +67,13 @@ where
 	createProcess			:: !Process												!*st -> (!ProcessId,	!*st)
 	deleteProcess			:: !ProcessId											!*st -> (!Bool,			!*st)
 	getProcess				:: !ProcessId											!*st -> (!Maybe Process,!*st)
-	getProcessForUser		:: !UserName !ProcessId									!*st -> (!Maybe Process,!*st)
+	getProcessForUser		:: !User !ProcessId										!*st -> (!Maybe Process,!*st)
 	getProcesses 			:: ![ProcessStatus] 									!*st -> (![Process], 	!*st)
 	getProcessesById		:: ![ProcessId]											!*st -> (![Process],	!*st)
-	getProcessesForUser		:: !UserName ![ProcessStatus]							!*st -> (![Process],	!*st)
-	getTempProcessesForUser :: !UserName ![ProcessStatus]							!*st -> (![Process],	!*st)
+	getProcessesForUser		:: !User ![ProcessStatus]								!*st -> (![Process],	!*st)
+	getTempProcessesForUser :: !User ![ProcessStatus]								!*st -> (![Process],	!*st)
 	
-	setProcessOwner			:: !UserName !ProcessId									!*st -> (!Bool,			!*st)
+	setProcessOwner			:: !User !ProcessId										!*st -> (!Bool,			!*st)
 	setProcessStatus		:: !ProcessStatus !ProcessId							!*st -> (!Bool,			!*st)
 
 	updateProcess			:: !ProcessId (Process -> Process)						!*st -> (!Bool,			!*st)

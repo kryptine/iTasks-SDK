@@ -44,10 +44,10 @@ duplicate me user topics =
 where
 	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
-		= 	( Just {TaskProperties | props & managerProps = {ManagerProperties | props.managerProps & worker = toUserName me}}
-			, Just (assign (toUserName me) NormalPriority Nothing 
-							(anyProc 	[ {AssignedTask| user = props.managerProps.ManagerProperties.worker , task = t <<@ topics} 
-										, {AssignedTask| user = toUserName user, task = t <<@ topics}
+		= 	( Just {TaskProperties | props & managerProps = {ManagerProperties | props.managerProps & worker = me}}
+			, Just (assign me
+							(anyProc 	[ props.managerProps.ManagerProperties.worker @>> topics @>> t 
+										, user @>> topics @>> t
 										] Open
 							)
 							<<@ ("Duplicated " +++ topics))
@@ -59,7 +59,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess (toUserName user) True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess user True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
@@ -67,7 +67,7 @@ check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> assign user HighPriority Nothing (updateInformation ("Please verify result of " +++ procName) res)), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> assign user (HighPriority @>> (updateInformation ("Please verify result of " +++ procName) res))), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
@@ -87,8 +87,7 @@ reassign user procName pid  =
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
-		# username = (toUserName user)
-		= (Just {TaskProperties | props & managerProps = {ManagerProperties | props.managerProps & worker = username}},Nothing, Nothing)
+		= (Just {TaskProperties | props & managerProps = {ManagerProperties | props.managerProps & worker = user}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -96,7 +95,7 @@ restart user procName =
 	dynamic change user procName :: A.a: Change a | iTask a
 where
 	change :: User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user procName props t t0 = (Nothing, Just (assign (toUserName user) HighPriority Nothing (t0 <<@ procName)), Nothing)
+	change user procName props t t0 = (Nothing, Just (assign user (procName @>> HighPriority @>> t0 )), Nothing)
 
 changePrio :: Task Void
 changePrio

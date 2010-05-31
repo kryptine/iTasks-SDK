@@ -107,24 +107,6 @@ derive gHint		PSt
 
 derive bimap Maybe, (,)
 
-class PActionClass t where
-	getName :: (t a) -> Maybe UserName
-	getTask :: (t a) -> Task a
-	
-instance PActionClass AssignedTask where
-	getName :: (AssignedTask a) -> Maybe UserName
-	getName at = (Just at.AssignedTask.user)
-	
-	getTask :: (AssignedTask a) -> Task a
-	getTask at = at.AssignedTask.task
-	
-instance PActionClass Task where
-	getName :: (Task a) -> Maybe UserName
-	getName ta = Nothing
-	
-	getTask :: (Task a) -> Task a
-	getTask ta = ta
-
 :: PSt a b =
 	{ state :: b
 	, tasks :: [(Task a,Bool)]
@@ -134,7 +116,7 @@ import GenPrint
 //:: PAction t a = Stop | Continue | Extend .[t a]
 derive gPrint PAction
 
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (AssignedTask a))) (b -> c) !b ![AssignedTask a] -> Task c | iTask a & iTask b & iTask c
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel type label description procFun parseFun initState initTask = execInParallel (Just type) label description procFun parseFun initState initTask nothing
 where
 	nothing :: Maybe [GroupAction a b Void]
@@ -143,7 +125,7 @@ where
 group :: !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
 group label description procFun parseFun initState initTasks groupActions = execInParallel Nothing label description procFun parseFun initState initTasks (Just groupActions)
 
-execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (t a))) (b->c) !b ![t a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & PActionClass t & iTask s
+execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (Task a))) (b->c) !b ![Task a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & iTask s
 execInParallel mbParType label description procFun parseFun initState initTasks mbGroupActions =
 	case mbParType of
 		(Nothing) = makeTaskNode label Nothing execInParallel`
@@ -216,13 +198,11 @@ where
 		# tst = setTaskStoreFor taskNr "pst" pst tst
 		= (pst,tst)
 
-	assignTask atask
-		# mbUser = getName atask
-		# task	 = getTask atask
-		= case mbUser of
-			(Nothing)  = task
-			(Just usr) = createOrEvaluateTaskInstance usr NormalPriority Nothing mbParType task
-	
+	assignTask task
+		= case (taskUser task) of
+			AnyUser = task 			//Just let the current user do it
+			user	= createOrEvaluateTaskInstance user mbParType task
+		
 	mkTpi parType =
 		{ TaskParallelInfo
 		| type = parType
@@ -264,20 +244,12 @@ where
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-class assign u :: u !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
 
-instance assign UserName
-where
-	assign :: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
-	assign userName initPriority initDeadline task = createOrEvaluateTaskInstance userName initPriority initDeadline Nothing task
+assign :: !User !(Task a) -> Task a | iTask a	
+assign user task = createOrEvaluateTaskInstance user Nothing task
 
-instance assign User
-where
-	assign :: !User !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a | iTask a	
-	assign user initPriority initDeadline task = createOrEvaluateTaskInstance (toUserName user) initPriority initDeadline Nothing task
-
-createOrEvaluateTaskInstance :: !UserName !TaskPriority !(Maybe Timestamp) !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
-createOrEvaluateTaskInstance userName initPriority initDeadline mbpartype task = mkMainTask "assign" createOrEvaluateTaskInstance`
+createOrEvaluateTaskInstance :: !User !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
+createOrEvaluateTaskInstance user mbpartype task = mkMainTask "assign" createOrEvaluateTaskInstance`
 where
 	createOrEvaluateTaskInstance` tst=:{TSt|taskNr}
 		//Try to load the stored process for this subtask
@@ -286,22 +258,15 @@ where
 		= case mbProc of
 			//Nothing found, create a task instance
 			Nothing	
-				# (userName,tst)= tidyUserName userName tst
-				# props 		= {ManagerProperties
-					  				| worker		 = userName
-					  				, subject		 = taskLabel task
-					  				, priority		 = initPriority
-					  				, deadline		 = initDeadline
-									}
-				# tst				  = addSubTaskWorker taskId userName mbpartype tst
-				# (resDyn,procId,tst) = createTaskInstance (createThread (task <<@ props)) False mbpartype True False tst
+				# tst				  = addSubTaskWorker taskId user mbpartype tst
+				# (resDyn,procId,tst) = createTaskInstance (createThread (task <<@ user)) False mbpartype True False tst
 				= case resDyn of
 					(result :: TaskResult a^)	= (result, tst)
 					_							= abort "createOrEvaluateTaskIntance: task result of invalid type!"
 			//When found, evaluate
 			Just proc
 				//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info
-				# tst				= addSubTaskWorker taskId userName mbpartype tst
+				# tst				= addSubTaskWorker taskId user mbpartype tst
 				// -> TSt in subprocess
 				# (result,_,tst)	= evaluateTaskInstance proc Nothing False False tst
 				// <- TSt back to current process				
@@ -310,32 +275,26 @@ where
 					TaskBusy				
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
-						# tst = removeSubTaskWorker proc.Process.processId userName mbpartype tst	 
+						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
-						# tst = removeSubTaskWorker proc.Process.processId userName mbpartype tst
+						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst
 						= (TaskException (dynamic "assign: result of wrong type returned"),tst)
 					TaskException e			
-						# tst = removeSubTaskWorker proc.Process.processId userName mbpartype tst
+						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst
 						= (TaskException e, tst)
 
-addSubTaskWorker :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt
-addSubTaskWorker procId uname mbpartype tst
+addSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt
+addSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		
-				# stwlist = tst.TSt.properties.systemProps.subTaskWorkers
-				# nstwlist = [(procId,uname):[(p,u) \\ (p,u) <- stwlist | not (p == procId && u == uname)]]				
-				= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = nstwlist}}} 
+			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProps.subTaskWorkers]}}} 
 
-removeSubTaskWorker :: !ProcessId !UserName !(Maybe TaskParallelType) !*TSt -> *TSt			
-removeSubTaskWorker procId uname mbpartype tst
+removeSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt			
+removeSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		
-				# stwlist = tst.TSt.properties.systemProps.subTaskWorkers
-				# nstwlist = [(p,u) \\ (p,u) <- stwlist | not (p == procId && u == uname)]				
-				= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = nstwlist}}} 
-						
+			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeMember (procId,user) tst.TSt.properties.systemProps.subTaskWorkers }}} 
+			

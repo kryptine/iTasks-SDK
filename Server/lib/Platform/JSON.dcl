@@ -9,7 +9,6 @@ definition module JSON
 */
 
 import StdGeneric, StdMaybe
-from Types import :: UserName
 
 //Token type which is the intermediary representation during JSON parsing
 :: Token	= TokenInt Int

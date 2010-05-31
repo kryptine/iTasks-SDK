@@ -34,12 +34,11 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 :: TaskInfo	=		{ taskId				:: TaskId											//Task number in string format
 					, taskLabel				:: String											//Descriptive label of the task
 					, traceValue			:: String											//String representation of value for tracing
-					, worker				:: UserName				
+					, worker				:: User			
 					, groupedBehaviour		:: GroupedBehaviour
 					, groupActionsBehaviour	:: GroupActionsBehaviour
 					, taskDescription		:: String
 					}
-
 
 :: TaskParallelInfo =
 	{ type			:: TaskParallelType //Indicating the scope of the parallel. 

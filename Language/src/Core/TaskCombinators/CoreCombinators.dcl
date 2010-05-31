@@ -84,22 +84,9 @@ iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-// Parallel/Grouped composition
-:: AssignedTask a =
-	{ user :: UserName
-	, task :: Task a
-	}
-	
 :: PAction x	= Stop			// stop the entire parallel/grouped execution
 				| Continue		// continue execution without change
 				| Extend .[x]	// dynamically extend list of tasks in parallel/group
-
-class PActionClass t where
-	getName :: (t a) -> Maybe UserName
-	getTask :: (t a) -> Task a
-
-instance PActionClass AssignedTask
-instance PActionClass Task
 
 :: GroupAction taskResult gState shared		= GroupAction Action taskResult (GroupCondition gState shared)					// accept given menu-action for entire group and generate 'taskResult' which is given to accumulator function
 											| GroupActionParam String (String -> taskResult) (GroupCondition gState shared)	// accept given parameterized action and use parameter to compute 'taskResult' which is given to accumulator function
@@ -122,7 +109,7 @@ instance PActionClass Task
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (AssignedTask taskResult)))	(pState -> pResult) !pState ![AssignedTask taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
+parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
 
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
@@ -138,7 +125,7 @@ parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pSta
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: 				  !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) 		 	(gState -> gResult) !gState ![Task taskResult] ![GroupAction taskResult gState shared]	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & iTask shared
+group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction taskResult gState shared]	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & iTask shared
 
 // Multi-user workflows
 
@@ -151,8 +138,4 @@ group 	 :: 				  !String !String !((taskResult,Int) gState -> (gState,PAction (T
 * @param The task that is to be delegated.
 * @return The combined task
 */ 
-class assign u :: u !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
-instance assign UserName
-instance assign User
-
-//assign 	:: !UserName !TaskPriority !(Maybe Timestamp) !(Task a) -> Task a	| iTask a
+assign :: !User !(Task a) -> Task a	| iTask a

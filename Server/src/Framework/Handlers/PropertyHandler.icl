@@ -40,8 +40,8 @@ where
 	parsePrio _					= Nothing
 	
 	
-	updateUser proc userName tst=:{staticInfo}
-		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & managerProps = {ManagerProperties | p.managerProps & worker = toUserName userName}, workerProps = {p.workerProps & progress = TPActive}}) tst
+	updateUser proc username tst=:{staticInfo}
+		# (_,tst)			= updateProcessProperties proc (\p -> {TaskProperties| p & managerProps = {ManagerProperties | p.managerProps & worker = NamedUser username}, workerProps = {p.workerProps & progress = TPActive}}) tst
 		= (successResponse,tst)
 		 	
 	updateProgress proc val tst

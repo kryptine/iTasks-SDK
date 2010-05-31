@@ -60,11 +60,11 @@ where
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
 
-	getProcessForUser :: !UserName !ProcessId !*TSt -> (!Maybe Process,!*TSt)
-	getProcessForUser username processId tst
+	getProcessForUser :: !User !ProcessId !*TSt -> (!Maybe Process,!*TSt)
+	getProcessForUser user processId tst
 		# (procs,tst) 	= processStore id tst
-		#  usernames	= [p.Process.properties.managerProps.ManagerProperties.worker \\ p <- procs | relevantProc processId p]
-		= case [p \\ p <- procs | p.Process.processId == processId && isMember username usernames] of
+		#  users		= [p.Process.properties.managerProps.ManagerProperties.worker \\ p <- procs | relevantProc processId p]
+		= case [p \\ p <- procs | p.Process.processId == processId && isMember user users] of
 			[entry]	= (Just entry, tst)
 			_		= (Nothing, tst)
 	where
@@ -81,38 +81,33 @@ where
 		# (procs,tst) 	= processStore id tst
 		= ([process \\ process <- procs | isMember process.Process.processId ids], tst)
 
-	getProcessesForUser	:: !UserName ![ProcessStatus] !*TSt -> (![Process], !*TSt)
-	getProcessesForUser userName statusses tst
+	getProcessesForUser	:: !User ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+	getProcessesForUser user statusses tst
 		# (procs,tst) 	= processStore id tst
-		# rprocs	 	= map (relevantProc userName) procs
-		# procids		= [p \\ p <- rprocs | p <> ""]
+		# procids		= [p \\ Just p <- map (relevantProc user) procs]
 		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses ], tst)
 	where
-		relevantProc username {Process | processId, properties}
-			| properties.managerProps.ManagerProperties.worker == username	= processId
-			| otherwise															= ""
+		relevantProc user {Process | processId, properties}
+			| properties.managerProps.ManagerProperties.worker == user	= Just processId
+			| otherwise													= Nothing
 	
-	getTempProcessesForUser :: !UserName ![ProcessStatus] !*TSt -> (![Process], !*TSt)
-	getTempProcessesForUser userName statusses tst
+	getTempProcessesForUser :: !User ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+	getTempProcessesForUser user statusses tst
 		# (procs,tst) 	= processStore id tst
-		# rprocs		= map (relevantProc userName) procs
-		# procids		= [p \\ p <- rprocs | p <> ""]
+		# procids		= [p \\ Just p <- map (relevantProc user) procs]
 		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
 	where
-		relevantProc userName {Process | processId, properties = {managerProps = {ManagerProperties|worker}, systemProps = {subTaskWorkers} }}
-			| isMember userName (snd (unzip subTaskWorkers)) && userName <> worker = processId
-			| otherwise 										  = ""
+		relevantProc user {Process | processId, properties = {managerProps = {ManagerProperties|worker}, systemProps = {subTaskWorkers}}}
+			| isMember user (snd (unzip subTaskWorkers)) && user <> worker	= Just processId
+			| otherwise 										  			= Nothing
 	
-	setProcessOwner	:: !UserName !ProcessId !*TSt	-> (!Bool, !*TSt)
+	setProcessOwner	:: !User !ProcessId !*TSt	-> (!Bool, !*TSt)
 	setProcessOwner worker processId tst
 		= updateProcess processId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProps = {ManagerProperties | x.Process.properties.managerProps & worker = worker}}}) tst
 	
 	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
 	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst
 
-	//setProcessResult :: !DynamicId !ProcessId !*TSt -> (!Bool,!*TSt)
-	//setProcessResult result processId tst = updateProcess processId (\x -> {Process| x & result = Just result}) tst 
-	
 	updateProcess :: ProcessId (Process -> Process) !*TSt -> (!Bool, !*TSt)
 	updateProcess processId f tst
 		# (procs,tst) 	= processStore id tst

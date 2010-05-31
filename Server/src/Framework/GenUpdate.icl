@@ -203,16 +203,6 @@ gUpdate{|String|} s ust=:{USt|mode=UDMask,currentPath,mask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask}) 
 gUpdate{|String|} s ust = (s, ust)
 
-gUpdate{|UserName|} _ ust=:{USt|mode=UDCreate} = (UserName "Unknown user" "unknown", ust)
-gUpdate{|UserName|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	| currentPath == searchPath
-		= (toUserName update, toggleMask {USt|ust & mode = UDDone})
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath})
-gUpdate{|UserName|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask}) 
-gUpdate{|UserName|} s ust = (s, ust)
-
 //Specialize instance for Dynamic
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)

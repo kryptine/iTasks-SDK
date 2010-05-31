@@ -14,7 +14,7 @@ coffeeTimeExample = [workflow "Examples/Miscellaneous/Coffee time" coffeeTime]
 */
 coffeeTime :: Task Void
 coffeeTime
-	=	getUserNames
+	=	getUsers
 	>>= \users ->
 		collectOrders users 
 	>>= \orders ->
@@ -26,8 +26,8 @@ where
 /*
 * Collect the drinks orders from all users
 */
-collectOrders :: [UserName] -> Task [Maybe String] 
-collectOrders users = allTasks [u @: ("Coffee time!",getOrder) \\ u <- users]
+collectOrders :: [User] -> Task [Maybe String] 
+collectOrders users = allTasks [u @: ("Coffee time!" @>> getOrder) \\ u <- users]
 /*
 * Ask someone if he/she wants something to drink
 */
@@ -41,10 +41,10 @@ getOrder
 * Determine who has to go get coffee
 * A random choice is made between the people who want something
 */
-determineWhoGoes :: [(UserName,String)] -> Task UserName
+determineWhoGoes :: [(User,String)] -> Task User
 determineWhoGoes orders = randomChoice [user \\ (user,_) <- orders]
 /*
 * Give someone directions to go get coffee for everyone
 */
-goGetCoffee :: UserName [(UserName,String)] -> Task Void
-goGetCoffee user orders = user @: ("Get coffee", showInstructionAbout "Coffee orders" "You have been chosen to get the following drinks" orders)
+goGetCoffee :: User [(User,String)] -> Task Void
+goGetCoffee user orders = user @: ("Get coffee" @>> showInstructionAbout "Coffee orders" "You have been chosen to get the following drinks" orders)

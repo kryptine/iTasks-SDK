@@ -7,7 +7,7 @@ class 	(<<@) infixl 2 b ::  !(Task a) !b  -> Task a
 
 instance <<@ ManagerProperties
 where	(<<@) (Task _ gb ga mbTn tf) props	= Task props gb ga mbTn tf
-instance <<@ UserName
+instance <<@ User
 where	(<<@) (Task props gb ga mbTn tf) u	= Task {ManagerProperties|props & worker = u} gb ga mbTn tf
 instance <<@ String
 where	(<<@) (Task props gb ga mbTn tf) s	= Task {ManagerProperties|props & subject = s} gb ga mbTn tf
@@ -26,7 +26,7 @@ class 	(@>>) infixr 2 b ::  !b !(Task a)   -> Task a
 
 instance @>> ManagerProperties
 where	(@>>) props (Task _ gb ga mbTn tf)	= Task props gb ga mbTn tf
-instance @>> UserName
+instance @>> User
 where	(@>>) u (Task props gb ga mbTn tf)	= Task {ManagerProperties|props & worker = u} gb ga mbTn tf
 instance @>> String
 where	(@>>) s (Task props gb ga mbTn tf)	= Task {ManagerProperties|props & subject = s} gb ga mbTn tf

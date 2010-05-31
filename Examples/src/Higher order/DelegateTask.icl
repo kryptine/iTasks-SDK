@@ -59,11 +59,7 @@ where
 		timerStop time	= waitForTimerTask time #>> return True
 */
 
-instance < UserName
-where
-	(<) (UserName ida dispa) (UserName idb dispb) = ida < idb
-
-determineSet :: [UserName] -> Task [UserName]
+determineSet :: [User] -> Task [User]
 determineSet people = determineSet`
 where
 	determineSet`	
@@ -73,10 +69,10 @@ where
 						] 	
 		>>= \task	->	task					
 		>>= \result -> 	case result of
-							(Just new)  -> determineSet (sort (removeDup [toUserName new:people])) 
+							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
-	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user.User.userName)
+	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user)
 
 	cancelTask task = task -||- (showMessage "Cancel task?" >>| getDefaultValue )
 	

@@ -736,35 +736,7 @@ where
 		= [TUIUpdate (TUIAdd (pfx+++"_"+++toString(lo-1)) x) \\ x <- (reverse el)]
 	| otherwise = []
 
-//UserName type
-gVisualize{|UserName|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
-	= case vizType of
-		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath oldM errorMask
-			# hntMsg = getHintMessage currentPath oldM hintMask
-			= ([TUIFragment (TUIUsernameControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, 2
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
-		VEditorUpdate
-			# upd = [TUIUpdate (TUISetValue id newV)]
-			# err = getErrorUpdate id currentPath newM errorMask
-			# hnt = getHintUpdate id currentPath newM hintMask
-			= ([err,hnt:upd]
-				, 2
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
-		_					
-			= ([TextFragment (toString old)]
-				, 2
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
-where
-	// Use the path to the inner constructor instead of the current path.
-	// This way the generic gUpdate will work for this type
-	id			= dp2id idPrefix currentPath
-	oldV		= value2s currentPath old
-	newV		= value2s currentPath new
-	oldM		= case old of (VValue _ omask) = omask ; _ = []
-	newM		= case new of (VValue _ nmask) = nmask ; _ = []
-	
+
 //Document Type
 gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, errorMask, hintMask}
 = case vizType of
@@ -1043,7 +1015,7 @@ getId (TUINoteControl d)		= Just d.TUIBasicControl.id
 getId (TUIDateControl d)		= Just d.TUIBasicControl.id
 getId (TUITimeControl d)		= Just d.TUIBasicControl.id
 getId (TUICurrencyControl d)	= Just d.TUICurrencyControl.id
-getId (TUIUsernameControl d)	= Just d.TUIBasicControl.id
+getId (TUIUserControl d)		= Just d.TUIBasicControl.id
 getId (TUIPasswordControl d)	= Just d.TUIBasicControl.id
 getId (TUIDocumentControl d)	= Just d.TUIDocumentControl.id
 getId (TUIConstructorControl d)	= Just d.TUIConstructorControl.id

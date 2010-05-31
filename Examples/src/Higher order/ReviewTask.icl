@@ -50,15 +50,15 @@ reviewTaskExample
 = [workflow "Examples/Higher order/Review task" ("Review the results of a task" @>> reviewtask) ]
 
 reviewtask :: Task (QForm,Review)
-reviewtask = getDefaultValue >>= \def -> taskToReview "unknown" (def, mytask)
+reviewtask = getDefaultValue >>= \def -> taskToReview AnyUser (def, mytask)
 
 mytask :: a -> (Task a) | iTask a
 mytask v =	updateInformation "Fill in Form:" v
 
-taskToReview :: String (a,a -> Task a) -> Task (a,Review) | iTask a 
+taskToReview :: User (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
-		>>= \v ->		reviewer @: ("Review", review v) 
+		>>= \v ->		reviewer @: ("Review" @>> review v) 
 		>>= \r ->		showMessageAbout [Text ("Reviewer " <+++ reviewer <+++ " says ")] r 
 		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	

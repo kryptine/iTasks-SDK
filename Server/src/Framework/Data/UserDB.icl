@@ -6,33 +6,27 @@ import TSt, Util
 
 from Types import :: Password(..)
 
-derive JSONEncode User, Password
-derive JSONDecode User, Password
+derive JSONEncode User, UserDetails, Password
+derive JSONDecode User, UserDetails, Password
 derive bimap (,), Maybe
 
-unknownUser :: User
-unknownUser = {User | userName = "unknown", displayName = "Unknown user", password = Password "", roles = []}
-
-rootUser :: User
-rootUser = {User | userName = "root", displayName = "Root", password = Password "", roles = []}
-
-getUser :: !UserName !*TSt -> (!User,!*TSt)
-getUser (UserName "root" _) tst
-	= (rootUser,tst)
+getUser :: !UserId !*TSt -> (!User,!*TSt)
+getUser "root" tst
+	= (RootUser,tst)
 getUser userName tst
 	# (users, tst) = userStore id tst
-	= case filter (\u -> (toUserName u) == userName) users of
+	= case filter ((==) (NamedUser userName)) users of
 		[x] = (x,tst)
-		_	= (unknownUser,tst)
+		_	= (AnyUser,tst)
 
 getUserByName :: !String !*TSt -> (!User, !*TSt)
 getUserByName "root" tst
-	= (rootUser,tst)
+	= (RootUser,tst)
 getUserByName userName tst
 	# (users, tst)		= userStore id tst
-	= case filter (\u -> u.User.userName == userName) users of
+	= case [u \\ u=:(RegisteredUser d) <- users | d.UserDetails.userName == userName ] of
 		[x] = (x,tst)
-		_	= (unknownUser,tst)
+		_	= (AnyUser,tst)
 	
 getUsers :: !*TSt -> (![User], !*TSt)
 getUsers tst
@@ -42,65 +36,46 @@ getUsers tst
 getUsersWithRole :: !String !*TSt -> (![User], !*TSt)
 getUsersWithRole role tst
 	# (users, tst)		= userStore id tst
-	= (filter (\u -> isMember role u.User.roles) users, tst) //Do not include the "root" user"
-
-getDisplayNames	:: ![UserName] !*TSt -> (![DisplayName], !*TSt)
-getDisplayNames	usernames tst
-	# (users, tst)		= userStore id tst
-	= (map (displayName users) usernames, tst)
-where
-	displayName users (UserName "root" _) = "Root"
-	displayName users name = lookupUserProperty users (\u -> u.displayName) "Unknown user" name
+	= ([u \\ u=:(RegisteredUser d) <- users | isMember role d.UserDetails.roles], tst)
 	
-getRoles :: ![UserName] !*TSt -> (![[Role]], !*TSt)
-getRoles usernames tst
-	# (users, tst)		= userStore id tst
-	= (map (lookupUserProperty users (\u -> u.User.roles) []) usernames, tst)
-
-
 authenticateUser :: !String !String	!*TSt -> (!Maybe User, !*TSt)
 authenticateUser username password tst
 	| username == "root"
 		| password	== tst.config.rootPassword
-			= (Just rootUser, tst)
+			= (Just RootUser, tst)
 		| otherwise
 			= (Nothing, tst)
 	| otherwise
 		# (users, tst)		= userStore id tst
-		= case [u \\ u <- users | u.userName == username && u.password == (Password password)] of
+		= case [u \\ u=:(RegisteredUser d) <- users | d.userName == username && d.password == (Password password)] of
 			[user]	= (Just user, tst)		
 			_		= (Nothing, tst)
 
-createUser :: !User !*TSt -> (!User,!*TSt)
-createUser user tst
+createUser :: !UserDetails !*TSt -> (!User,!*TSt)
+createUser details tst
 	# (users, tst)		= userStore id tst
-	# (users, tst)		= userStore (\_-> [user:users]) tst
-	= (user,tst)
+	# (users, tst)		= userStore (\_-> [RegisteredUser details:users]) tst
+	= (RegisteredUser details,tst)
 	
-updateUser :: !User !*TSt -> (!User,!*TSt)
-updateUser user tst
-	# (users,tst)		= userStore (map (update user)) tst
-	= (user,tst)
+updateUser :: !User !UserDetails !*TSt -> (!User,!*TSt)
+updateUser match details tst
+	# (users,tst)		= userStore (map (update match new)) tst
+	= (new,tst)
 where
-	update new old	= if (old.User.userName == new.User.userName) new old
+	new = RegisteredUser details
+	update match details old	= if (old == match) new old
 
 deleteUser :: !User !*TSt -> (!User,!*TSt)
 deleteUser user tst
 	# (users,tst)		= userStore delete tst
 	= (user,tst)
 where
-	delete users	= [u \\ u <- users | u.User.userName <> user.User.userName]
-	
-tidyUserName :: !UserName !*TSt -> (!UserName, !*TSt)
-tidyUserName (UserName uid disp) tst
-	# (user,tst) = getUser (UserName uid disp) tst
-	| user == unknownUser 	= (UserName uid "unregistered",tst)
-	| otherwise 			= (UserName uid user.displayName,tst)
+	delete users	= removeMember user users
 	
 //Helper function which finds a property of a certain user
-lookupUserProperty :: ![User] !(User -> a) !a !UserName -> a
+lookupUserProperty :: ![User] !(User -> a) !a !UserId -> a
 lookupUserProperty users selectFunction defaultValue userName
-		= case [selectFunction user \\ user <- users | toUserName user == userName] of
+		= case [selectFunction user \\ user=:(RegisteredUser d) <- users | d.UserDetails.userName == userName] of
 			[x] = x
 			_	= defaultValue
 

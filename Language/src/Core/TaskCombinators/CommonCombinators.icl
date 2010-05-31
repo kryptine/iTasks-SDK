@@ -118,16 +118,16 @@ where
 	eitherfunc (val,idx) _  = abort "Multiple results in Either"
 
 //Parallel composition
-orProc :: !(AssignedTask a) !(AssignedTask a) !TaskParallelType -> Task a | iTask a
+orProc :: !(Task a) !(Task a) !TaskParallelType -> Task a | iTask a
 orProc taska taskb type = parallel type "-|@|-" "Done if either subtask is finished." orfunc hd [] [taska,taskb] 
 where
 	orfunc (val,_) [] = ([val],Stop)
 	orfunc (val,_) _  = abort "Multiple results in -|@|-"
 
-andProc :: !(AssignedTask a) !(AssignedTask b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-andProc taska taskb type = parallel type "AndProc" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [{AssignedTask | taska & task = taska.task >>= \a -> return (Left a)},{AssignedTask | taskb & task = taskb.task >>= \b -> return (Right b)}]
+andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
+andProc taska taskb type = parallel type "AndProc" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (AssignedTask (Either a b)))
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)
@@ -144,14 +144,14 @@ where
 	parseresult (Just a,Just b) = (a,b)
 	parseresult _	 			= abort "AND not finished"
 
-anyProc :: ![AssignedTask a] !TaskParallelType -> Task a | iTask a
+anyProc :: ![Task a] !TaskParallelType -> Task a | iTask a
 anyProc [] 	  type = getDefaultValue
 anyProc tasks type = parallel type "any" "Done when any subtask is finished." anyfunc hd [] tasks
 where
 	anyfunc (val,_) [] = ([val],Stop)
 	anyfunc (val,_) _  = abort "Multiple results in ANY"
 
-allProc :: ![AssignedTask a] !TaskParallelType -> Task [a] | iTask a
+allProc :: ![Task a] !TaskParallelType -> Task [a] | iTask a
 allProc tasks type = parallel type "all" "Done when all subtasks are finished." (allfunc (length tasks)) sortByIndex [] tasks 
 where
 	allfunc tlen (val,idx) st 
@@ -241,19 +241,7 @@ repeatTask task pred a =
 // ******************************************************************************************************
 // Assigning tasks to users, each user has to be identified by an unique number >= 0
 
-instance @: String
-where
-	(@:) :: !String !(LabeledTask a) -> Task a | iTask a
-	(@:) s (label,task) = assign (toUserName s) NormalPriority Nothing (task <<@ label)
-	
-instance @: UserName
-where
-	(@:) :: !UserName !(LabeledTask a) -> Task a | iTask a
-	(@:) username (label,task) = assign username NormalPriority Nothing (task <<@ label)
-
-instance @: User
-where
-	(@:) :: !User !(LabeledTask a) -> Task a | iTask a
-	(@:) user task = (toUserName user) @: task
+(@:) infix 3 :: !User !(Task a) -> Task a | iTask a
+(@:) user task = assign user task
 
 // ******************************************************************************************************

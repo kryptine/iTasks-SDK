@@ -398,19 +398,3 @@ taskNrFromString 	:: !String 					-> TaskNr
 * @return The formatted task number
 */
 taskNrToString		:: !TaskNr 					-> String
-/**
-* Extracts the task label of a task
-*
-* @param The task
-* 
-* @return The task's label
-*/
-taskLabel			:: !(Task a)				-> String
-/*
-* Extracts the initial properties of a task
-*
-* @param The task
-*
-* @return The task's initial properties
-*/
-taskProperties		:: !(Task a)				-> ManagerProperties

@@ -9,7 +9,7 @@ from ProcessDB import qualified instance ProcessDB TSt
 
 from UserDB import getUser
 
-from Types	import :: ProcessId, :: ProcessRef, :: UserName
+from Types	import :: ProcessId, :: ProcessRef
 
 import Time
 import CommonCombinators
@@ -38,8 +38,8 @@ where
 getProcess :: !pid -> Task (Maybe Process) | toProcessId pid
 getProcess pid = mkInstantTask "getProcess" (mkTaskFunction (\tst -> ProcessDB@getProcess (toProcessId pid) tst))
 
-getProcessForUser :: !UserName !pid -> Task (Maybe Process) | toProcessId pid
-getProcessForUser username pid = mkInstantTask "getProcessForUser" (mkTaskFunction (\tst -> ProcessDB@getProcessForUser username (toProcessId pid) tst))
+getProcessForUser :: !User !pid -> Task (Maybe Process) | toProcessId pid
+getProcessForUser user pid = mkInstantTask "getProcessForUser" (mkTaskFunction (\tst -> ProcessDB@getProcessForUser user (toProcessId pid) tst))
 
 getProcesses :: ![pid] -> Task [Process] | toProcessId pid
 getProcesses ids = mkInstantTask "getProcessesById" (mkTaskFunction (\tst -> ProcessDB@getProcessesById (map toProcessId ids) tst))
@@ -47,10 +47,10 @@ getProcesses ids = mkInstantTask "getProcessesById" (mkTaskFunction (\tst -> Pro
 getProcessesWithStatus :: ![ProcessStatus] -> Task [Process]
 getProcessesWithStatus statuses = mkInstantTask "getProcesses" (mkTaskFunction (\tst -> ProcessDB@getProcesses statuses tst))
 
-getProcessesForUser	:: !UserName ![ProcessStatus] -> Task [Process]
-getProcessesForUser username statuses = mkInstantTask "getProcessesForUser" (mkTaskFunction (\tst -> ProcessDB@getProcessesForUser username statuses tst))
+getProcessesForUser	:: !User ![ProcessStatus] -> Task [Process]
+getProcessesForUser user statuses = mkInstantTask "getProcessesForUser" (mkTaskFunction (\tst -> ProcessDB@getProcessesForUser user statuses tst))
 
-getProcessOwner :: !pid -> Task (Maybe UserName) | toProcessId pid
+getProcessOwner :: !pid -> Task (Maybe User) | toProcessId pid
 getProcessOwner pid = mkInstantTask "getProcess" getProcessStatus`
 where
 	getProcessStatus` tst 
@@ -58,11 +58,11 @@ where
 	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProps.ManagerProperties.worker)
 	= (TaskFinished owner,tst)
 	
-setProcessOwner :: !UserName !pid -> Task Void | toProcessId pid
-setProcessOwner username pid = mkInstantTask "setProcessOwner" setProcessOwner`
+setProcessOwner :: !User !pid -> Task Void | toProcessId pid
+setProcessOwner user pid = mkInstantTask "setProcessOwner" setProcessOwner`
 where
 	setProcessOwner` tst=:{staticInfo}
-		# (_,tst)			= ProcessDB@setProcessOwner username (toProcessId pid) tst
+		# (_,tst)			= ProcessDB@setProcessOwner user (toProcessId pid) tst
 		= (TaskFinished Void,tst)
 
 getProcessStatus :: !pid -> Task ProcessStatus | toProcessId pid

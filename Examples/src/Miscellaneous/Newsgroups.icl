@@ -38,7 +38,7 @@ derive gUpdate		InstructionMsg
 derive gError		InstructionMsg
 derive gHint		InstructionMsg
 
-:: InstructionMsg	=	{ worker		:: !UserName
+:: InstructionMsg	=	{ worker		:: !User
 						, title			:: !String
 						, instruction	:: !Note
 						, attachments	:: !(Maybe [Document])
@@ -47,7 +47,7 @@ derive gHint		InstructionMsg
 mkInstruction :: Task Void
 mkInstruction
 	= 			mkMsg 
-	>>= \msg -> msg.InstructionMsg.worker @: ("Instructions regarding: "+++msg.InstructionMsg.title, showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
+	>>= \msg -> msg.InstructionMsg.worker @: ("Instructions regarding: "+++msg.InstructionMsg.title @>> showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
 	
 	where
 		mkMsg :: Task InstructionMsg
@@ -74,7 +74,7 @@ derive gMakeLocalCopy		Meeting, Appointment, Attending
 						, till		:: Time
 						}
 :: Attending		=	No | Yes
-:: MeetingDB		:== (Appointment,[(Meeting,[(UserName, Maybe Attending)])]) 
+:: MeetingDB		:== (Appointment,[(Meeting,[(User, Maybe Attending)])]) 
 
 mkAppointment 
 	= 					meetingGoal 
@@ -110,7 +110,7 @@ where
 	meetingGoal	:: Task Appointment
 	meetingGoal = enterInformation "Describe the topic of the meeting:"	
 
-	defineParticipants :: Task [UserName]
+	defineParticipants :: Task [User]
 	defineParticipants = enterInformation "Select participants:"
 
 	defineOptions :: Task [Meeting]
@@ -129,13 +129,13 @@ derive gHint			Chat, ChatMessage, ChatView, ChatMessageView
 
 //Shared State	
 :: Chat =
-	{ initUser	:: UserName
-	, users		:: [UserName]
+	{ initUser	:: User
+	, users		:: [User]
 	, messages	:: [ChatMessage]
 	}
 	
 :: ChatMessage =
-	{ who		:: UserName
+	{ who		:: User
 	, when		:: DateTime
 	, message	:: Note
 	, replies	:: [ChatMessage]
@@ -143,7 +143,7 @@ derive gHint			Chat, ChatMessage, ChatView, ChatMessageView
 
 //Transformed View
 :: ChatView = 
-	{ users		:: HtmlDisplay [UserName]
+	{ users		:: HtmlDisplay [User]
 	, messages	:: HtmlDisplay [ChatMessageView]
 	}
 	
@@ -159,19 +159,18 @@ ActionAddUser :== ActionLabel "Add User"
 chat
 	=				getCurrentUser
 	>>= \me ->		selectFriends
-	>>= \friends -> createChatBox (toUserName me)
-	>>= \chatbox ->	allTasks ([spawnProcess f True ("Chat Request" @>> (initiateChat chatbox f [un me:friends])) \\ f <- friends]
-							++ [spawnProcess (un me) True ("Chat Request" @>> (initSession >>| chatSession chatbox (un me)))]) 						
+	>>= \friends -> createChatBox me
+	>>= \chatbox ->	allTasks ([spawnProcess f True ("Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
+							++ [spawnProcess me True ("Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
 where
-	un me = toUserName me
 	
-	createChatBox :: UserName -> (Task (DBid Chat))
+	createChatBox :: User -> (Task (DBid Chat))
 	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
 
-	selectFriends :: Task [UserName]
+	selectFriends :: Task [User]
 	selectFriends = enterInformation "Whom do you want to chat with?"
 	
-	initiateChat :: (DBid Chat) UserName [UserName] -> Task Void
+	initiateChat :: (DBid Chat) User [User] -> Task Void
 	initiateChat chatbox friend friends
 		=	requestConfirmation ("Do you want to initiate a chat with "+++printFriends+++"?")
 		>>= \yes -> if yes
@@ -188,31 +187,31 @@ where
 					  ]
 		]
 	
-	chatSession :: (DBid Chat) UserName -> Task Void
+	chatSession :: (DBid Chat) User -> Task Void
 	chatSession chatbox user 
 		= 			readDB chatbox
 		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
 		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBAlwaysFixed] (chatActions chatbox user)
 	where
-		chatActions :: (DBid Chat) UserName -> [GroupAction GOnlyAction Void Chat]
+		chatActions :: (DBid Chat) User -> [GroupAction GOnlyAction Void Chat]
 		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [ignoreResult (newTopic chatbox user)]) 	GroupAlways
 						 		   , GroupAction 	ActionQuit		GOStop												GroupAlways
 						 		   , GroupAction	ActionAddUser	(GOExtend [ignoreResult (addUsers chatbox)])		(SharedPredicate chatbox (\(SharedValue chat) -> chat.Chat.initUser == user)) 
 						 		   ]
 						 		   	
-	chatEditor :: (DBid Chat) UserName -> Task Void
+	chatEditor :: (DBid Chat) User -> Task Void
 	chatEditor chatbox user = ignoreResult (getCurrentDateTime >>= \dt -> updateShared "Chat" [] chatbox [mainEditor user dt])
 	
-	mainEditor :: UserName DateTime -> (View Chat)
+	mainEditor :: User DateTime -> (View Chat)
 	mainEditor user dt = editor {editorFrom = editorFrom user, editorTo = editorTo user dt}
 	where
-		editorFrom :: UserName Chat -> ChatView
+		editorFrom :: User Chat -> ChatView
 		editorFrom user chat = {ChatView 
 							   | users 		= HtmlDisplay chat.Chat.users
 							   , messages 	= HtmlDisplay [(convertMessageToView user msg) \\ msg <- chat.Chat.messages]
 							   }
 		where
-			convertMessageToView :: UserName ChatMessage -> ChatMessageView
+			convertMessageToView :: User ChatMessage -> ChatMessageView
 			convertMessageToView user msg =
 				{ ChatMessageView
 				| info		= toString msg.ChatMessage.who+++" said at "+++toString msg.ChatMessage.when
@@ -221,13 +220,13 @@ where
 				, addReply	= Editable {FormButton | label = "Add reply", icon = "", state = NotPressed}
 				}
 		
-		editorTo :: UserName DateTime ChatView Chat -> Chat
+		editorTo :: User DateTime ChatView Chat -> Chat
 		editorTo user dt view chat = {Chat
 								  | chat
 								  & messages 	= [convertViewToMessage user dt vmsg omsg \\ vmsg <- (fromHtmlDisplay view.ChatView.messages) & omsg <- chat.Chat.messages]
 								  }
 		where
-			convertViewToMessage :: UserName DateTime ChatMessageView ChatMessage -> ChatMessage
+			convertViewToMessage :: User DateTime ChatMessageView ChatMessage -> ChatMessage
 			convertViewToMessage user dt vmsg omsg =
 				{ ChatMessage
 				| who		= omsg.ChatMessage.who
@@ -236,7 +235,7 @@ where
 				, replies	= [convertViewToMessage user dt vreply oreply \\ vreply <- vmsg.ChatMessageView.replies & oreply <- omsg.ChatMessage.replies ] ++ addReply (fromEditable vmsg.addReply) user dt
 				}
 			
-			addReply :: FormButton UserName DateTime -> [ChatMessage]
+			addReply :: FormButton User DateTime -> [ChatMessage]
 			addReply button user dt 
 				= case button.state of
 					Pressed
@@ -248,7 +247,7 @@ where
 			fromVizHint (VHHtmlDisplay x) 	= x
 			fromVizHint (VHHidden x) 		= x
 	
-	newTopic :: (DBid Chat) UserName -> Task Void
+	newTopic :: (DBid Chat) User -> Task Void
 	newTopic chatbox user 
 		= 				readDB  chatbox
 		>>= \chat ->	getCurrentDateTime
@@ -274,13 +273,13 @@ where
 
 // mail handling, to be put in sepparate icl file
 
-:: EMail	=	{ to 			:: !UserName
-				, cc			:: ![UserName]
+:: EMail	=	{ to 			:: !User
+				, cc			:: ![User]
 				, subject 		:: !String
 				, message		:: !Note
 				, attachements	:: ![Document]
 				}
-:: ReplyHdr	=	{ replyFrom		:: !UserName
+:: ReplyHdr	=	{ replyFrom		:: !User
 				, subject 		:: !String
 				}
 :: Reply =		{ reply			:: !Note
@@ -303,8 +302,8 @@ where
 	broadcast me msg [] 
 		=			return msg
 	broadcast me msg [u:us] 
-		=			spawnProcess (UserName u.userName u.displayName)True
-						(showMessageAbout ("You have received the following broadcast message from " <+++ me.displayName) msg <<@ msg.Broadcast.subject)
+		=			spawnProcess u True
+						(showMessageAbout ("You have received the following broadcast message from " <+++ displayName me) msg <<@ msg.Broadcast.subject)
 			>>|			broadcast me msg us 
 				
 
@@ -312,35 +311,32 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [{AssignedTask|user = who, task = spawnProcess who True (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->						allProc [who @>> (spawnProcess who True (mailMess me msg <<@ msg.EMail.subject)) \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
-mailMess me msg = showMessageAbout ("Mail from " <+++ me.displayName <+++ ":") msg 
+mailMess me msg = showMessageAbout ("Mail from " <+++ displayName me <+++ ":") msg 
 
 internalEmailConf :: (Task EMail)
 internalEmailConf
 =						enterInformation "Type your email message ..."
 	>>= \msg ->			getCurrentUser
-	>>= \me ->			allProc [{AssignedTask|user = who, task = (mailMess me msg <<@ msg.EMail.subject)} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->			allProc [who @>> (mailMess me msg <<@ msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
 	>>|					return msg
-
-getUserName (UserName id name) = name
-getUserId   (UserName id name) = id
 	
 internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
 =					enterInformation "Type your email message ..."
 	>>= \msg ->		getCurrentUser
-	>>= \me ->		allProc [{AssignedTask|user = who, task = mailMess2 me msg <<@ msg.EMail.subject} \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
 	>>= \reply ->	showMessageAbout "The following replies have been commited:" reply
 	>>|				return (msg,map snd reply)
 
 mailMess2 :: User EMail -> Task (ReplyHdr, Reply)
 mailMess2 me msg 
-	= 	(showStickyMessageAbout ("Mail from " <+++ me.displayName <+++ ":") msg 
+	= 	(showStickyMessageAbout ("Mail from " <+++ displayName me <+++ ":") msg 
 	  	||- updateInformation "The sender requested a reply..." 
-   				(HtmlDisplay {replyFrom = toUserName me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = [] }))
+   				(HtmlDisplay {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = [] }))
 					<<@ msg.EMail.subject
 		>>= \(HtmlDisplay hdr,reply) -> return (hdr,reply)
 
@@ -350,14 +346,14 @@ mailMess2 me msg
 :: GroupName		:== String						// Name of the newsgroup
 :: NewsGroup		:== [NewsItem]					// News stored in a news group
 :: NewsItem			:== (Subscriber,Message)		// id, name, and message of the publisher
-:: Subscriber		:== UserName					// the id of the publisher
+:: Subscriber		:== User						// the id of the publisher
 :: Name				:== String						// the login name of the publisher
 :: Message			:== Note						// the message
 :: Subscriptions	:== [Subscription]				// newsgroup subscriptions of user
 :: Subscription		:== (GroupName,Index)			// last message read in corresponding group
 :: Index			:== Int							// 0 <= index < length newsgroup 
 :: DisplayNews	=	{ messageNr :: Int
-					, postedBy	:: UserName
+					, postedBy	:: User
 					, message	:: Message
 					}
 
@@ -399,7 +395,7 @@ handleMenu :: Task Void
 handleMenu 
 	=					readNewsGroups
 		>>= \groups -> 	getCurrentUser
-		>>= \me ->		initMenu groups >>| doMenu (toUserName me) groups
+		>>= \me ->		initMenu groups >>| doMenu me groups
 where
 	doMenu me groups
 		=						showMessageA "Newsgroup reader, select from menu..." (actions groups)
@@ -448,7 +444,7 @@ readactions nmessage index nmsg
 		] ++
 		[MenuAction (ActionParam "nmessage" (toString i), Always) \\ i <- [1,5,10,30,50]]
 
-readNews :: Int UserName String Int -> Task Void
+readNews :: Int User String Int -> Task Void
 readNews nmessage me group index
 	= 	readMenu >>| readNews` nmessage me group index
 where
@@ -486,7 +482,7 @@ where
 				switch (ActionCancel,_) = return Void
 				switch (_,note)
 					=					readNewsGroup  group 
-						>>= \news ->	writeNewsGroup group (news ++ [(toUserName me,note)]) 
+						>>= \news ->	writeNewsGroup group (news ++ [(me,note)]) 
 			 			>>|				showMessage ("Message commited to newsgroup " <+++ group) 
 	
 		messageList nmessage newsItems
@@ -500,8 +496,8 @@ where
 newsGroupsId ::  (DBid NewsGroupNames)
 newsGroupsId		=	mkDBid "newsGroups"
 
-readerId :: UserName -> (DBid Subscriptions)
-readerId name		= 	mkDBid ("Reader-" <+++ getUserId name)
+readerId :: User -> (DBid Subscriptions)
+readerId user		= 	mkDBid ("Reader-" <+++ userName user)
 
 groupNameId :: String -> (DBid NewsGroup)
 groupNameId name	=	mkDBid ("NewsGroup-" +++ name)

@@ -12,8 +12,7 @@ derive bimap Maybe
 simpleTest :: Task Int
 simpleTest =
 	getCurrentUser >>=
-	\user  -> return (toUserName user) >>=
-	\uname -> uname @: ("Assigned Task",enterInformation "Value 1")
+	\user -> user @: ("Assigned Task" @>> enterInformation "Value 1")
 
 orTest :: Task Int
 orTest = (enterInformation "Value 1" -||- enterInformation "Value 2")
@@ -33,9 +32,10 @@ eitherTest = eitherTask (enterInformation "Value 1") (enterInformation "Value 2"
 maybeTest :: Task (Maybe (Int,Note))
 maybeTest = (enterInformation "Value 1" -&?&- enterInformation "Value 2")
 
+/*
 parExtendTest :: Task Int
 parExtendTest =
-	group  "Extender" "" extfunc id 0 [task]
+	group  "Extender" "" extfunc id 0 [task] []
 where
 	extfunc :: (Int,Int) Int -> (Int,PAction (Task Int))
 	extfunc (val,idx) cnt
@@ -44,47 +44,44 @@ where
 		= (cnt+val,Extend addTasks)
 
 	task = enterInformation "How many new tasks do you want? (0 is stop)"
-
+*/
 
 parOpenTest :: Task [Int]
 parOpenTest = 
- 	allProc [
-				{user = toUserName "erik",  task = enterInformation "Please enter a number"},
-				{user = toUserName "rinus", task = enterInformation "Please enter a number"}] Open
+ 	allProc [ NamedUser "erik" @>> enterInformation "Please enter a number"
+ 	        , NamedUser "rinus" @>> enterInformation "Please enter a number"
+ 	        ] Open
 
 parClosedTest :: Task [Int]
 parClosedTest =
-		allProc [
-				{user = toUserName "erik",  task = enterInformation "Please enter a number"},
-				{user = toUserName "rinus", task = enterInformation "Please enter a number"}] Closed
-
+	allProc [ NamedUser "erik" @>> enterInformation "Please enter a number"
+	        , NamedUser "rinus" @>> enterInformation "Please enter a number"
+	        ] Closed
+		        
 parNestedTest1 :: Task [[Int]]
 parNestedTest1 =
-	allProc [
-		{user = toUserName "erik",  task = parOpenTest},
-		{user = toUserName "rinus", task = parOpenTest}
-	] Open
+	allProc [ NamedUser "erik" @>> parOpenTest
+	        , NamedUser "rinus" @>> parOpenTest
+	        ] Open
 
 parNestedTest2 :: Task [[Int]]
 parNestedTest2 =
-	allProc [
-		{user = toUserName "erik",  task = parClosedTest},
-		{user = toUserName "rinus", task = parClosedTest}
-	] Open
+	allProc [ NamedUser "erik" @>> parClosedTest
+	        , NamedUser "rinus" @>> parClosedTest
+	        ] Open
 
 parNestedTest3 :: Task [[String]]
 parNestedTest3 =
-	allProc [
-		{user = toUserName "erik",  task = subtask1},
-		{user = toUserName "rinus", task = subtask2},
-		{user = toUserName "erik",  task = subtask3}
-	] Open
+	allProc [ NamedUser "erik" @>> subtask1
+	        , NamedUser "rinus" @>> subtask2
+	        , NamedUser "erik" @>> subtask3
+	        ] Open
 where
 	subtask1 :: Task [String]
 	subtask1 = 
 		getUsers >>= 
 		enterChoice "Please select a user" >>= \user ->
-		user @: ("Subtask 1", enterInformation "List of Strings")
+		user @: ("Subtask 1" @>> enterInformation "List of Strings")
 		
 	subtask2 :: Task [String]
 	subtask2 =
@@ -94,16 +91,16 @@ where
 	subtask3 :: Task [String]
 	subtask3 =
 		getUsers >>= \ulist ->
-		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> let usernames = map toUserName users in 
-		parallel Open "Weird string function" "Keeps extending until user types '.'" (func usernames) parse (0,[]) [{AssignedTask | user = (hd usernames), task = task}]
+		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> 
+		parallel Open "Weird string function" "Keeps extending until user types '.'" (func users) parse (0,[]) [(hd users) @>> task]
 		where	
-			func :: ![UserName] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),PAction (AssignedTask String))
+			func :: ![User] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),PAction (Task String))
 			func usernames (result,pos) (idx,acc)
 			| result == "." = ((idx,acc),Stop)
 			# acc = [(pos,result):acc]
 			# idx = ((idx+1) rem (length usernames))
 			# usr = usernames !! idx
-			= ((idx,acc),Extend [{AssignedTask | user = usr ,task=task}])
+			= ((idx,acc),Extend [usr @>> task])
 	
 			task :: Task String
 			task = enterInformation "Type String, '.' to stop"
@@ -114,11 +111,10 @@ where
 
 parNestedTest4 :: Task[[Note]]
 parNestedTest4 =
-	allProc [
-		{ user = toUserName "erik", task = allTest },
-		{ user = toUserName "erik", task = allTest }
-	] Open
-	
+	allProc [ NamedUser "erik" @>> allTest
+	        , NamedUser "erik" @>> allTest
+	        ] Open
+	        
 parNestedTest5 :: Task ([Int],[Int])
 parNestedTest5 = 
 	parOpenTest -&&- parOpenTest
@@ -132,7 +128,7 @@ Start world = startEngine [
 			workflow "All Test" (allTest  >>= showMessageAbout "Result"),
 			workflow "Either Test" (eitherTest  >>= showMessageAbout "Result"),
 			workflow "Maybe Test" (maybeTest >>= showMessageAbout "Result"),
-			workflow "Extender Test" (parExtendTest >>= showMessageAbout "You created this many additional tasks:"),
+			//workflow "Extender Test" (parExtendTest >>= showMessageAbout "You created this many additional tasks:"),
 			workflow "Open Test" (parOpenTest >>= showMessageAbout "Result"),
 			workflow "Closed Test" (parClosedTest >>= showMessageAbout "Result"),
 			workflow "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result"),

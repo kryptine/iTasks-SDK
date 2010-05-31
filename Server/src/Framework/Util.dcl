@@ -1,18 +1,12 @@
 definition module Util
 
-from TSt 			import :: Task
-from Types			import :: TaskNr, :: User
+from Types			import :: TaskNr
 from Void			import :: Void
 
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenPrint, GenParse, GenVisualize, GenUpdate, GenVerify
 
-derive gPrint 		Task, User, Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
-derive gParse 		Task, User, Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
-
-derive gVisualize	Task, User
-derive gUpdate		Task, User
-derive gHint		Task, User
-derive gError		Task, User
+derive gPrint 		Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
+derive gParse 		Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
 
 iTaskId 			:: !TaskNr !String 	-> String
 
