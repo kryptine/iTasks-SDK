@@ -285,6 +285,10 @@ currentDateTime world
 instance html Note
 where
 	html (Note msg) = [Text msg]
+	
+instance == Note
+where
+	(==) (Note x) (Note y) = x == y
 
 instance toString Time
 where

@@ -3,9 +3,6 @@ implementation module Map
 import StdEnv
 import StdMaybe
 
-:: Map k v	= MNode (Map k v) k Int v (Map k v)
-			| MLeaf
-
 //Create function
 newMap :: w:(Map k u:v), [ w <= u]
 newMap = MLeaf

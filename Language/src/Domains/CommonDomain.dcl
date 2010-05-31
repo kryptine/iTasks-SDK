@@ -63,6 +63,7 @@ derive gError			EmailAddress, Password, Note, Date, Time, DateTime, Currency, Fo
 derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 
 instance html Note
+instance == Note
 
 instance toString Date
 instance toString Time
