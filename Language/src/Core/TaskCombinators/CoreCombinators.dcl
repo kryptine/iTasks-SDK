@@ -84,6 +84,11 @@ iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
+
+
+
+
+
 :: PAction x	= Stop			// stop the entire parallel/grouped execution
 				| Continue		// continue execution without change
 				| Extend .[x]	// dynamically extend list of tasks in parallel/group
@@ -139,3 +144,23 @@ group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task ta
 * @return The combined task
 */ 
 assign :: !User !(Task a) -> Task a	| iTask a
+
+/**
+* Create a new process.
+*
+* @param The user that will perform processes main task.
+* @param Activate the process immediately (False creates the process in a suspended state)
+*
+* @return A reference to the newly created process
+*/
+spawnProcess	:: !User !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+
+/**
+* Wait (blocking) for a process to complete.
+*
+* @param The process reference
+*
+* @return A task that maybe gives the result of the process.
+*         When a process is prematurely deleted, the task yields Nothing
+*/
+waitForProcess	:: (ProcessRef a)				-> Task (Maybe a)	| iTask a

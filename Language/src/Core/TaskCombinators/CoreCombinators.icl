@@ -297,4 +297,38 @@ removeSubTaskWorker procId user mbpartype tst
 			Nothing 		= tst
 			(Just Closed) 	= tst
 			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeMember (procId,user) tst.TSt.properties.systemProps.subTaskWorkers }}} 
-			
+
+spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
+where
+	spawnProcess` tst=:{TSt|mainTask}
+		# properties	=
+			{ ManagerProperties
+			| worker		 = user
+			, subject 		 = taskLabel task
+			, priority		 = NormalPriority
+			, deadline		 = Nothing
+			}
+		# (result,pid,tst)	= createTaskInstance (createThread (task <<@ properties)) True Nothing activate False tst
+		= (TaskFinished (ProcessRef pid), tst)
+
+waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
+waitForProcess (ProcessRef pid) = mkMonitorTask "waitForProcess" waitForProcess`
+where
+	waitForProcess` tst 
+		# (mbProcess,tst) = getProcess pid tst
+		= case mbProcess of
+			Just {Process | processId, status, properties}
+				= case status of
+					Finished
+						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst	
+						= case mbResult of
+							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
+							_								= (TaskFinished Nothing, tst) //Ignore all other cases
+					_	
+						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProps.subject,Text "\""]] tst
+						= (TaskBusy, tst)		// We are not done yet...
+			_	
+				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done
+
+	

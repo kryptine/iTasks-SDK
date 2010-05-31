@@ -2,27 +2,21 @@ implementation module SystemTasks
 
 import StdList
 
-from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config
-from TSt import :: ChangeLifeTime, :: StaticInfo(..), :: Workflow
-from TSt import mkInstantTask, mkMonitorTask
-from TSt import accWorldTSt, loadProcessResult, taskLabel, taskNrFromString, setStatus
-from TSt import qualified createTaskInstance, createThread
+from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config, :: StaticInfo(..), :: Workflow
+from TSt import mkInstantTask, mkMonitorTask, accWorldTSt
 
 import Types
-from TaskTree import :: TaskTree, :: TaskInfo, ::TaskProperties(..), :: SystemProperties(..), :: WorkerProperties, :: ManagerProperties(..), :: TaskPriority(..), ::TaskParallelType(..)
+from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..), ::TaskParallelType(..)
+from TaskTree import :: TaskProperties(..), :: SystemProperties(..), :: WorkerProperties, :: ManagerProperties(..)
 
 from Time	import :: Timestamp, :: Clock(..), clock
 from Random	import genRandInt
 
 from UserDB	import qualified getUser
-
-from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: Menu
-from ProcessDB import qualified class ProcessDB(..)
-from ProcessDB import qualified instance ProcessDB TSt
+from ProcessDB import :: Menu
 
 from	iTasks import class iTask
 import	GenPrint, GenParse, GenVisualize, GenUpdate
-import	TuningCombinators
 
 getCurrentUser :: Task User
 getCurrentUser = mkInstantTask "getCurrentUser" getCurrentUser`
@@ -61,35 +55,3 @@ where
 		# (Clock seed, tst)	= accWorldTSt clock tst
 		= (TaskFinished (hd (genRandInt seed)), tst)
 		
-spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
-spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
-where
-	spawnProcess` tst=:{TSt|mainTask}
-		# properties	=
-			{ ManagerProperties
-			| worker		 = user
-			, subject 		 = taskLabel task
-			, priority		 = NormalPriority
-			, deadline		 = Nothing
-			}
-		# (result,pid,tst)	= TSt@createTaskInstance (TSt@createThread (task <<@ properties)) True Nothing activate False tst
-		= (TaskFinished (ProcessRef pid), tst)
-
-waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
-waitForProcess (ProcessRef pid) = mkMonitorTask "waitForProcess" waitForProcess`
-where
-	waitForProcess` tst 
-		# (mbProcess,tst) = ProcessDB@getProcess pid tst
-		= case mbProcess of
-			Just {Process | processId, status, properties}
-				= case status of
-					Finished
-						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst	
-						= case mbResult of
-							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
-							_								= (TaskFinished Nothing, tst) //Ignore all other cases
-					_	
-						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProps.subject,Text "\""]] tst
-						= (TaskBusy, tst)		// We are not done yet...
-			_	
-				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done

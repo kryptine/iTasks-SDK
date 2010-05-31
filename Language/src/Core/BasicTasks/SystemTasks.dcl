@@ -44,23 +44,3 @@ getDefaultValue 		:: Task a | iTask a
 * @return The random number
 */ 
 getRandomInt 			:: Task Int
-
-/**
-* Create a new process.
-*
-* @param The user that will perform processes main task.
-* @param Activate the process immediately (False creates the process in a suspended state)
-*
-* @return A reference to the newly created process
-*/
-spawnProcess	:: !User !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
-
-/**
-* Wait (blocking) for a process to complete.
-*
-* @param The process reference
-*
-* @return A task that maybe gives the result of the process.
-*         When a process is prematurely deleted, the task yields Nothing
-*/
-waitForProcess	:: (ProcessRef a)				-> Task (Maybe a)	| iTask a
