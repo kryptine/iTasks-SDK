@@ -31,12 +31,13 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))]		//A task that is composed of a number of grouped subtasks
 					| TTFinishedTask	TaskInfo [HtmlTag]															//A completed task
 							
-:: TaskInfo	=		{ taskId			:: TaskId											//Task number in string format
-					, taskLabel			:: String											//Descriptive label of the task
-					, traceValue		:: String											//String representation of value for tracing
-					, worker			:: UserName				
-					, groupedBehaviour	:: GroupedBehaviour
-					, taskDescription	:: String
+:: TaskInfo	=		{ taskId				:: TaskId											//Task number in string format
+					, taskLabel				:: String											//Descriptive label of the task
+					, traceValue			:: String											//String representation of value for tracing
+					, worker				:: UserName				
+					, groupedBehaviour		:: GroupedBehaviour
+					, groupActionsBehaviour	:: GroupActionsBehaviour
+					, taskDescription		:: String
 					}
 
 
@@ -53,3 +54,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| GBAlwaysFixed		//Same as Fixed, but user cannot undock
 					| GBAlwaysFloating	//Same as Floating, but user cannot dock
 					| GBModal			//The editor is shown in a modal dialog
+
+// Determines if group-actions are added to actions of interactive task
+:: GroupActionsBehaviour	= IncludeGroupActions
+							| ExcludeGroupActions

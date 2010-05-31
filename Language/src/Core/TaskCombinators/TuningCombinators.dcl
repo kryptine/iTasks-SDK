@@ -4,7 +4,7 @@ definition module TuningCombinators
 */
 from Types	import :: Task, :: ManagerProperties, :: UserName, :: TaskPriority
 from Time	import :: Timestamp
-from TaskTree import :: GroupedBehaviour
+from TaskTree import :: GroupedBehaviour, :: GroupActionsBehaviour
 
 //Annotation combinator
 class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 
@@ -23,3 +23,5 @@ instance @>>	Timestamp
 
 instance <<@	GroupedBehaviour		//Set grouped behaviour
 instance @>>	GroupedBehaviour
+instance <<@	GroupActionsBehaviour
+instance @>>	GroupActionsBehaviour

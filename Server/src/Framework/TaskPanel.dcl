@@ -110,9 +110,9 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	}
 
 :: GroupContainerElement =
-	{ panel		:: TaskPanel
-	, behaviour	:: GroupedBehaviour
-	, index		:: Int
+	{ panel		:: !TaskPanel
+	, behaviour	:: !GroupedBehaviour
+	, index		:: !String
 	}
 
 :: SubtaskInfo =

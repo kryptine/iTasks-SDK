@@ -5,7 +5,7 @@ definition module Types
 */
 
 from TSt 			import :: TSt
-from TaskTree		import :: TaskProperties, :: GroupedBehaviour(..)
+from TaskTree		import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 from Html 			import :: HtmlTag
 from CommonDomain	import :: Note, :: Password
 from Time			import :: Timestamp
@@ -75,7 +75,7 @@ instance == Password
 :: TaskId			:== String		// String serialization of TaskNr values
 :: MenuId			:== Int
 
-:: Task a 			= Task !ManagerProperties !GroupedBehaviour !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
+:: Task a 			= Task !ManagerProperties !GroupedBehaviour !GroupActionsBehaviour !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
 					| TaskException !Dynamic

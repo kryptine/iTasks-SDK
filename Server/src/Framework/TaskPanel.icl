@@ -37,7 +37,7 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
-			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA gActions ti, buttons = map TUIButton buttons}
+			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
 			, updates 	= Nothing
 			, hotkeys	= mkHotkeys hotkeyA
 			, subtaskId = Nothing
@@ -49,7 +49,7 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Nothing
-			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA gActions ti)
+			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA (if (includeGroupActions ti) gActions []) ti)
 			, hotkeys	= mkHotkeys hotkeyA
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
@@ -62,7 +62,7 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId	= ti.TaskInfo.taskId
-			, content	= {form = msg, tbar = makeMenuBar menus acceptedA gActions ti, buttons = map TUIButton buttons}
+			, content	= {form = msg, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
 			, subtaskId = Nothing
 			, hotkeys	= mkHotkeys hotkeyA
 			, description = ti.TaskInfo.taskDescription
@@ -153,6 +153,10 @@ where
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
 			(TTMainTask _ _ _ _ _)		= False 									// a main-subtask should not become visible
 			_ 							= abort "Unknown panel type in parallel"
+				
+	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
+		IncludeGroupActions	= True
+		ExcludeGroupActions	= False
 			
 buildSubtaskPanels :: !TaskTree !SubtaskNr !(Maybe [Menu]) !UserName !TaskParallelType !Bool !(Maybe TaskProperties) !*TSt -> (![SubtaskContainer],!*TSt)
 buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menusChanged} = case tree of
@@ -384,40 +388,41 @@ filterFinished container = case container.panel of
 
 buildGroupElements :: ![TaskTree] !UserName ![(Action,Bool)] !(Maybe [Menu]) !*TSt -> (![GroupContainerElement], !*TSt)
 buildGroupElements tasks currentUser gActions menus tst
-	# (panels, tst)	= seqList [buildPanel t gActions Nothing \\ t <- tasks] tst
-	# elements		= [{panel = p, behaviour = b, index = idx} \\ (p, b) <- flatten panels & idx <- [0..]]
-	= (elements, tst)
+	# (elements, tst)	= seqList [buildGroupElements` t [nr] gActions Nothing \\ t <- tasks & nr <- [1..]] tst
+	= (flatten elements, tst)
 where
-	buildPanel :: !TaskTree ![(Action,Bool)] !(Maybe GroupedBehaviour) !*TSt -> (![(TaskPanel, GroupedBehaviour)] , !*TSt)
-	buildPanel (TTGroupedTask _ tasks gActions) _  _ tst
+	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool)] !(Maybe GroupedBehaviour) !*TSt -> (![GroupContainerElement] , !*TSt)
+	buildGroupElements` (TTGroupedTask _ tasks gActions) stnr _  _ tst
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (panels, tst)		= seqList [buildPanel t gActions Nothing \\ t <- tasks] tst
+		# (panels, tst)		= seqList [buildGroupElements` t [nr:stnr] gActions Nothing \\ t <- tasks & nr <- [1..]] tst
 		= (flatten panels, tst)
-	buildPanel (TTSequenceTask ti tasks) gActions mbBehaviour tst
+	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour tst
 		= case filter (not o isFinished) tasks of
 			[]  = ([], tst)
-			[t] = buildPanel t gActions (Just (getGroupedBehaviour t mbBehaviour)) tst
+			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
-	buildPanel t gActions mbBehaviour tst
+	buildGroupElements` t stnr gActions mbBehaviour tst
 		# (p, tst) = buildTaskPanel` t menus gActions currentUser tst
-		= ([(p, getGroupedBehaviour t mbBehaviour)], tst)
+		= ([{panel = p, behaviour = getGroupedBehaviour (getTaskInfo t) mbBehaviour, index = subtaskNrToString stnr}], tst)
 		
-	getGroupedBehaviour :: !TaskTree !(Maybe GroupedBehaviour) -> GroupedBehaviour		
-	getGroupedBehaviour task mbFixedBehaviour = case mbFixedBehaviour of
-		Just fixedBehaviour = fixedBehaviour
-		Nothing
-			# info = case task of
-				(TTInteractiveTask ti _ ) 	= ti
-				(TTMonitorTask ti _)		= ti
-				(TTRpcTask ti _)			= ti
-				(TTFinishedTask ti _)		= ti
-				(TTParallelTask ti _ _)		= ti
-				(TTSequenceTask ti _)		= ti
-				(TTMainTask ti _ _ _ _)		= ti
-				(TTGroupedTask ti _ _)		= ti
-				(TTInstructionTask ti _ _)	= ti
-				_ 							= abort "Unknown panel type in group"
-			= info.TaskInfo.groupedBehaviour
+	getGroupedBehaviour :: !TaskInfo !(Maybe GroupedBehaviour) -> GroupedBehaviour
+	getGroupedBehaviour info mbFixedBehaviour = case mbFixedBehaviour of
+		Just fixedBehaviour	= fixedBehaviour
+		Nothing				= info.TaskInfo.groupedBehaviour
+		
+	getTaskInfo task
+		# info = case task of
+			(TTInteractiveTask ti _ ) 	= ti
+			(TTMonitorTask ti _)		= ti
+			(TTRpcTask ti _)			= ti
+			(TTFinishedTask ti _)		= ti
+			(TTParallelTask ti _ _)		= ti
+			(TTSequenceTask ti _)		= ti
+			(TTMainTask ti _ _ _ _)		= ti
+			(TTGroupedTask ti _ _)		= ti
+			(TTInstructionTask ti _ _)	= ti
+			_ 							= abort "Unknown panel type in group"
+		= info
 
 // === Menu Functions
 makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIDef]

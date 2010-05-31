@@ -86,8 +86,8 @@
 	display: none;
 }
 
-.GroupFloating .ToolbarNoEnabledItems,
-/*.GroupFloating .ToolbarGroupActionsOnly*/ {
+.GroupFloating .ToolbarNoEnabledItems/*,
+.GroupFloating .ToolbarGroupActionsOnly*/ {
 	display: none;
 }
 
