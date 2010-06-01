@@ -46,7 +46,7 @@ itasks.tui.FormButtonControl = Ext.extend(Ext.Button,{
 	
 	setError: function(msg){		
 		(function() {
-			if(msg == "") this.unmarkError();
+			if(msg == "") this.clearError();
 			else this.markError(msg);
 		}).defer(50,this);
 	},
@@ -104,7 +104,7 @@ itasks.tui.FormButtonControl = Ext.extend(Ext.Button,{
 		}
 	},
 	
-	unmarkHint: function(){		
+	clearHint: function(){		
 		if(this.hintIcon){
 			this.hintIcon.dom.qtip = '';
 			this.hintIcon.hide();
@@ -112,7 +112,7 @@ itasks.tui.FormButtonControl = Ext.extend(Ext.Button,{
 		}
 	},
 	
-	unmarkError: function(){		
+	clearError: function(){		
 		if(this.errorIcon){
 			this.errorIcon.dom.qtip = '';
 			this.errorIcon.hide();
