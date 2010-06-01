@@ -12,9 +12,9 @@ derive gHint		Stream
 derive gError		Stream	
 
 
-:: Stream a 
-//:: Stream a = ES
-//			| S a (Task (Stream a))
+:: Stream a = ES
+			| S a (Task (Stream a))
+
 :: StreamFun a b :== (Task (Stream a)) -> Task (Stream b)
 
 /**
