@@ -1,6 +1,9 @@
 implementation module streamTasks
 
 import iTasks
+
+import streamUtil
+
 from StdMisc import abort
 from StdFunc import o
 
@@ -25,31 +28,10 @@ derive bimap		(,), Maybe
 
 nChannel name task	= spawnProcess RootUser True (name @>> task)
 
-// spawn an asyncronous process
-
-spawnP :: String (Task a) -> Task (Task a) | iTask a					// spawn process, return task fetching its result
-spawnP name ta	
-	= 					spawnProcess RootUser True (name @>> ta)		// spawn of asynchronous process
-		>>= \pid ->		return (waitFor name pid)						// return task which waits for its result upon evaluation
-where
-	waitFor :: String (ProcessRef a) -> Task a | iTask a
-	waitFor name pid 
-	=					prompt name 									// prompt that we are waiting 
-						||- 
-						waitForProcess pid 								// wait for process to complete
-		>>= \mbVal -> 	return (fromJust mbVal)							// and return its value
-	
-	prompt name			= showStickyMessage ("Waiting for process " +++ name) 
-
-// wait for such a process
-
-waitP :: (a -> Task  b) (Task a) -> Task b  | iTask a & iTask b
-waitP fun str = str >>= fun
-
-// specialized version of wait applying a function on streams
+// specialized version of waitP applying a function on streams
 
 waitPS :: (a (Task (Stream a)) -> Task (Stream b)) (Task (Stream a)) -> Task (Stream b)  | iTask a & iTask b
-waitPS fun str = str >>= applyFun
+waitPS fun str = waitP applyFun str
 where
 	applyFun ES 		= return ES
 	applyFun (S a str) 	= fun a str
@@ -66,8 +48,11 @@ where
 returnS :: String (Stream a) -> Task (Stream a)  | iTask a 
 returnS name ES = 		return ES				// end of stream
 returnS name (S a str) 							// item in stream
-	=					spawnP name str			// create channel process to fetch next item from stream
+	=					spawnP myname str		// create channel process to fetch next item from stream
 		>>= \nstr -> 	return (S a nstr)		// return
+where
+	myname = name +++ " " +++ printToString a	// for debugging	
+
 
 // ************************
 
@@ -75,7 +60,7 @@ returnS name (S a str) 							// item in stream
 
 generator :: [a] -> Task (Stream a) | iTask a
 generator [] 		= return ES
-generator [x:xs]	= return (S x (generator xs))		// generates items lazy
+generator [x:xs]	= return (S x (generator xs))	// generates items lazy
 
 // sink
 
@@ -83,22 +68,44 @@ sink :: (Task (Stream a)) -> Task [a] | iTask a
 sink str = waitP (show []) str
 where
 	show accu ES 			
-		= 			let result = reverse accu in 
-					showMessageAbout "Stream ended: " result
-			>>| 	return result
+	= 			let result = reverse accu in 
+				showMessageAbout "Stream ended: " result
+		>>| 	return result
 	show accu (S a str) 	
-		= 					spawnP "Sink" str			// eager ask for next item...
-			>>= \nstr ->	showMessageAbout "Sink received: " a 
-			>>| 			waitP (show [a:accu]) nstr 
+	= 					spawnP myname str			// eager ask for next item...
+		>>= \nstr ->	showMessageAbout "Sink received: " a 
+		>>| 			waitP (show [a:accu]) nstr 
+	where
+		myname = "Sink " +++ printToString a	
+
 
 // ************************
+
+// filters, grouping, ungrouping
 
 filterS :: (a -> Bool) -> StreamFun a a  | iTask a 
 filterS pred = waitPS filterS`
 where
 	filterS` a str 
-	| pred a			=	returnS "filter" (S a (filterS pred str)) 
+	| pred a			=	returnS "filter" (S a (filterS pred str))
 	= filterS pred str
+
+toList :: Int -> StreamFun a [a]   | iTask a 
+toList m 
+| m <= 0 	= toList 1				// at least one element required...
+|otherwise 	= waitP (take [] m)
+where
+	take as _ ES		= return (S (reverse as) (return ES))
+	take as 1 (S a st) 	= returnS "toList" (S (reverse [a:as]) (toList m st))
+	take as n (S a st)	= st >>= take [a:as] (n-1)
+
+fromList :: StreamFun [a] a   | iTask a 
+fromList = waitPS fromList2
+where
+	fromList2 [] st		= fromList st
+	fromList2 [a:as] st = returnS "fromList" (S a (fromList2 as st))
+
+// ************************
 
 mapS :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
 mapS [ta:tas] = waitPS mapS`
@@ -137,20 +144,6 @@ where
 		repeatS 0 a st	= dupP` n st
 		repeatS n a st  = return (S a (repeatS (n-1) a st))
 
-toList :: Int -> StreamFun a [a]   | iTask a 
-toList m 
-| m <= 0 	= toList 1				// at least one element required...
-|otherwise 	= waitP (take [] m)
-where
-	take as _ ES		= return (S (reverse as) (return ES))
-	take as 1 (S a st) 	= returnS "toList" (S (reverse [a:as]) (toList m st))
-	take as n (S a st)	= st >>= take [a:as] (n-1)
-
-fromList :: StreamFun [a] a   | iTask a 
-fromList = waitPS fromList2
-where
-	fromList2 [] st		= fromList st
-	fromList2 [a:as] st = returnS "fromList" (S a (fromList2 as st))
 
 splitS :: (a -> Bool) (StreamFun a b) (StreamFun a c) 
 				(Task (Stream a)) -> Task (Task (Stream b),Task (Stream c)) | iTask a & iTask b & iTask c
@@ -224,5 +217,29 @@ where
 
 */
 
+// spawn an asyncronous process
+
+/*
+spawnP :: String (Task a) -> Task (Task a) | iTask a					// spawn process, return task fetching its result
+spawnP name ta	
+	= 					spawnProcess RootUser True (name @>> ta)		// spawn of asynchronous process
+		>>= \pid ->		return (waitFor name pid)						// return task which waits for its result upon evaluation
+where
+	waitFor :: String (ProcessRef a) -> Task a | iTask a
+	waitFor name pid 
+	=					prompt name 									// prompt that we are waiting 
+						||- 
+						waitForProcess pid 								// wait for process to complete
+		>>= \mbVal -> 	deleteProcess pid								// delete from process table
+		>>|				return (fromJust mbVal)							// and return its value
+	
+	prompt name			= showStickyMessage ("Waiting for process " +++ name) 
+
+// wait for such a process
+
+waitP :: (a -> Task  b) (Task a) -> Task b  | iTask a & iTask b
+waitP fun str = str >>= fun
+
+*/
 
 

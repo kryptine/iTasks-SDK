@@ -11,27 +11,28 @@ Start world = startEngine wfl world
 
 wfl :: [Workflow]
 wfl
-= [	workflow "stream" test00
+= [	workflow "stream" ("stream test" @>> test003)
   ]
 
 edit :: String -> (Int -> Task Int)
 edit s = updateInformation s
 
-test0 = 	generator [1..5] 
+test000 = 	generator [1..5] 
 		|> 	sink
-test00 = 	generator [1..2] 
-		|> 	mapS 	[updateInformation "verander I"]
-		|> 	mapS 	[updateInformation "verander II"]
-		|> 	sink
-test01 = 	generator [1..10] 
-		|> 	toList 3 
-		|> 	sink
-test011 = 	generator [1..10] 
+test001 = 	generator [1..10] 
 		|> 	filterS isEven
 		|> 	sink
-test02 = 	generator [1..10] 
+test002 = 	generator [1..10] 
+		|> 	toList 3 
+		|> 	sink
+test003 = 	generator [1..10] 
 		|> 	toList 3 
 		|>	fromList
+		|> 	sink
+
+test02 = 	generator [1..2] 
+		|> 	mapS 	[updateInformation "verander I"]
+		|> 	mapS 	[updateInformation "verander II"]
 		|> 	sink
 test03 = 	generator [1..3] 
 		|> 	mapS 	[updateInformation "verander I"]
