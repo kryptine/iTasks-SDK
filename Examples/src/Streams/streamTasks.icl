@@ -15,17 +15,16 @@ derive bimap		(,), Maybe
 // ************************
 
 :: Stream a = ES
-			| S a (Task (Stream a))
+			| S a !(Task (Stream a))
 
 :: StreamFun a b :== (Task (Stream a)) -> Task (Stream b)
 
 // ************************
 
-nProc name task = spawnProcess here True (name @>> task)
-where
-	here = UserName "root" "Root"
+// utility functions
 
-// utilities to apply functions to a stream 
+nChannel name task	= spawnProcess RootUser True (name @>> task)
+prompt name			= showStickyMessage (name +++ " is waiting for next item in stream...") 
 
 apply :: String ((Stream a) -> Task b)  (Task (Stream a)) -> Task b | iTask a & iTask b
 apply  name fun st = name @>> (prompt name  ||- st) >>= fun
@@ -35,9 +34,6 @@ applyS name fun st = name @>> (prompt name  ||- st) >>= apply
 where
 	apply ES 		= return ES
 	apply (S a st) 	= fun a st
-
-prompt name 
-	= 					showStickyMessage (name +++ " is waiting for next item in stream...") 
 
 // ************************
 
@@ -49,10 +45,10 @@ prompt name
 // pipeline return
 
 returnS :: String (Stream a) -> Task (Stream a)  | iTask a 
-returnS name ES 		// end of stream
-= return ES
-returnS name (S a st) 	// item in stream
-=						nProc name st					// start process to collect next item
+returnS name ES 										// end of stream
+	= return ES
+returnS name (S a st) 									// item in stream
+	=					nChannel name st				// create channel process to fetch next item from stream
 		>>= \refst -> 	return (S a (nextItem refst))	// return
 where
 	nextItem refst 
@@ -60,7 +56,6 @@ where
 						||- 
 						waitForProcess refst 			// wait for next item in stream
 		>>= \mbst -> 	return (fromJust mbst)			// and return it
-
 
 // ************************
 
@@ -76,11 +71,14 @@ sink :: (Task (Stream a)) -> Task [a] | iTask a
 sink st 
 	= 	  apply "Sink" (show []) st						// evaluates eagerly
 where
-	show as ES 			= let 	result = reverse as in 
-											showMessageAbout "Stream ended: " result
-										>>| return result
-	show as (S a st) 	= 		showMessageAbout "Sink received: " a 
-							>>| st >>= show [a:as] 
+	show as ES 			
+		= 			let result = reverse as in 
+					showMessageAbout "Stream ended: " result
+			>>| 	return result
+	show as (S a st) 	
+		= 			showMessageAbout "Sink received: " a 
+			>>| 	st 
+			>>= 	show [a:as] 
 
 // ************************
 
@@ -110,7 +108,7 @@ where
 	mapP2 _  	 	ES 		= return ([],return ES)
 	mapP2 []      	s  		= return ([],return s)
 	mapP2 [task:tasks] (S a st) 
-		= 						nProc "mapP" (task a) 
+		= 						nChannel "mapP" (task a) 
 			>>= \ref -> 		st
 			>>=	\s ->			mapP2 tasks s
 			>>= \(refs,st) -> 	return ([ref:refs],st)
@@ -152,9 +150,9 @@ where
 	splitS2 :: (a -> Bool) (Stream a) -> Task (Task (Stream a),Task (Stream a)) | iTask a
 	splitS2 pred ES			= return (return ES, return ES)
 	splitS2 pred (S a st)	
-	| pred a			= 				nProc "splitS" (st >>= splitS2 pred)
+	| pred a			= 				nChannel "splitS" (st >>= splitS2 pred)
 							>>= \ref -> return (return (S a (fetch fst ref)), fetch snd ref)
-	| otherwise			= 				nProc "splitS" (st >>= splitS2 pred)
+	| otherwise			= 				nChannel "splitS" (st >>= splitS2 pred)
 							>>= \ref -> return (fetch fst ref,                return (S a (fetch snd ref)))
 	where
 		fetch fun ref = waitForProcess ref >>= \mbst ->  case mbst of
@@ -163,8 +161,8 @@ where
 
 joinS :: (Task (Task (Stream a),Task (Stream b))) -> Task (Stream (Either a b)) | iTask a & iTask b
 joinS st =					st 
-			>>= \(sa,sb) -> nProc "join Left"  sa
-			>>= \refsa ->	nProc "join Right" sb
+			>>= \(sa,sb) -> nChannel "join Left"  sa
+			>>= \refsa ->	nChannel "join Right" sb
 			>>= \refsb ->	twoStreams refsa refsb
 where
 	twoStreams refsa refsb
@@ -175,14 +173,14 @@ where
 		= 					waitForProcess refsb 
 			>>= \mbnb ->	mapS [\a -> return (Right a)] (return (fromJust mbnb))
 	doLeft (S a sa) refsb	
-		= 					nProc "doLeft" sa
+		= 					nChannel "doLeft" sa
 			>>= \refsa ->	return (S (Left a)  (twoStreams refsa refsb))
 
 	doRight refsa ES		
 		= 					waitForProcess refsa 
 			>>= \mbna ->	mapS [\a -> return (Left a)] (return (fromJust mbna))
 	doRight refsa (S b sb)			
-		= 					nProc "doRight" sb
+		= 					nChannel "doRight" sb
 			>>= \refsb ->	return (S (Right b)  (twoStreams refsa refsb))
 
 :: DynPipe a = DP (a -> (StreamFun a a, Maybe a, Maybe (DynPipe a)))
