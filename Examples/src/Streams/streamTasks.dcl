@@ -13,6 +13,8 @@ derive gError		Stream
 
 
 :: Stream a 
+//:: Stream a = ES
+//			| S a (Task (Stream a))
 :: StreamFun a b :== (Task (Stream a)) -> Task (Stream b)
 
 /**
@@ -93,7 +95,7 @@ toList :: Int -> StreamFun a [a]  | iTask a
 *
 * @return The stream with the list elements 
 */
-fromList :: -> StreamFun [a] a | iTask a 
+fromList :: StreamFun [a] a   | iTask a 
 
 /**
 * splitS takes a stream and produces two streams

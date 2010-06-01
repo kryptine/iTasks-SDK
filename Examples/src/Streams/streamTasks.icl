@@ -15,7 +15,7 @@ derive bimap		(,), Maybe
 // ************************
 
 :: Stream a = ES
-			| S a !(Task (Stream a))
+			| S a (Task (Stream a))
 
 :: StreamFun a b :== (Task (Stream a)) -> Task (Stream b)
 
@@ -24,16 +24,28 @@ derive bimap		(,), Maybe
 // utility functions
 
 nChannel name task	= spawnProcess RootUser True (name @>> task)
-prompt name			= showStickyMessage (name +++ " is waiting for next item in stream...") 
 
-apply :: String ((Stream a) -> Task b)  (Task (Stream a)) -> Task b | iTask a & iTask b
-apply  name fun st = name @>> (prompt name  ||- st) >>= fun
+
+nChannel2 :: String (Task a) -> Task (Task a) | iTask a
+nChannel2 name task	
+	= 					spawnProcess RootUser True (name @>> task)		// spawn of asynchronous process
+		>>= \pid ->		return (waitFor name pid)						// return which waits for its result upon evaluation
+where
+	waitFor :: String (ProcessRef a) -> Task a | iTask a
+	waitFor name pid 
+	=					prompt name 									// show process is waiting 
+						||- 
+						waitForProcess pid 								// wait for next item in stream
+		>>= \mbVal -> 	return (fromJust mbVal)							// and return it
+	
+	prompt name			= showStickyMessage (name +++ " is waiting for next item in stream...") 
 
 applyS :: String (a (Task (Stream a)) -> Task (Stream b)) (Task (Stream a)) -> Task (Stream b)  | iTask a & iTask b
-applyS name fun st = name @>> (prompt name  ||- st) >>= apply
+applyS name fun st = nChannel2 name st >>= \str -> str >>= apply
 where
 	apply ES 		= return ES
 	apply (S a st) 	= fun a st
+
 
 // ************************
 
@@ -48,14 +60,8 @@ returnS :: String (Stream a) -> Task (Stream a)  | iTask a
 returnS name ES 										// end of stream
 	= return ES
 returnS name (S a st) 									// item in stream
-	=					nChannel name st				// create channel process to fetch next item from stream
-		>>= \refst -> 	return (S a (nextItem refst))	// return
-where
-	nextItem refst 
-	=					prompt name 					// show process is waiting 
-						||- 
-						waitForProcess refst 			// wait for next item in stream
-		>>= \mbst -> 	return (fromJust mbst)			// and return it
+	=					nChannel2 name st				// create channel process to fetch next item from stream
+		>>= \nst -> 	return (S a nst)				// return
 
 // ************************
 
@@ -71,6 +77,20 @@ sink :: (Task (Stream a)) -> Task [a] | iTask a
 sink st 
 	= 	  apply "Sink" (show []) st						// evaluates eagerly
 where
+	show accu ES 			
+		= 			let result = reverse accu in 
+					showMessageAbout "Stream ended: " result
+			>>| 	return result
+	show accu (S a st) 	
+		= 					nChannel2 "Sink" st
+			>>= \nst ->		showMessageAbout "Sink received: " a 
+			>>| 			nst 
+			>>= 			show [a:accu] 
+/*
+sink :: (Task (Stream a)) -> Task [a] | iTask a
+sink st 
+	= 	  apply "Sink" (show []) st						// evaluates eagerly
+where
 	show as ES 			
 		= 			let result = reverse as in 
 					showMessageAbout "Stream ended: " result
@@ -79,6 +99,9 @@ where
 		= 			showMessageAbout "Sink received: " a 
 			>>| 	st 
 			>>= 	show [a:as] 
+*/
+apply :: String ((Stream a) -> Task b)  (Task (Stream a)) -> Task b | iTask a & iTask b
+apply  name fun st = nChannel2 name st >>= \str -> str >>= fun
 
 // ************************
 
