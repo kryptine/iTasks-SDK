@@ -107,47 +107,36 @@ where
 
 // ************************
 
-// sequential map
+// map a function 
+
+mapFun :: (a -> b) -> StreamFun a b  | iTask a & iTask b
+mapFun fun = waitPS mymap
+where
+	mymap a st = return (S (fun a) (mapFun fun st))
+
+// sequential map of a Task
+// if applied to >1 functions, they are applied in a round robin way to the input stream 
 
 mapS :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
+mapS [] = abort "mapS not defined on empty list"
 mapS [ta:tas] = waitPS mapS`
 where
 	mapS` a st 
 	= 				ta a 
 		>>= \b -> 	returnS "mapS" (S b (mapS (tas++[ta]) st))
 
-// parallel map
+// parallel map of a Task
 
-mapP :: [a -> Task b] -> StreamFun a [b]  | iTask a & iTask b
-mapP tasks  
- = 	\st ->					waitP (mapP2 tasks) st
-		>>= \(refs,st) -> 	waitForAll refs
-		>>= \bs ->			returnS "mapP" (S bs (mapP tasks st))
+mapP :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
+mapP [] = abort "mapP not defined on empty list"
+mapP tasks 
+	= \st -> toList (length tasks) st 		// wait until n elements collected
+			|> 	waitPS mapP`
+			|>	fromList
 where
-	mapP2 :: [a -> Task b] (Stream a) -> Task ([ProcessRef b], Task (Stream a))  | iTask a & iTask b
-	mapP2 _  	 	ES 		= return ([],return ES)
-	mapP2 []      	s  		= return ([],return s)
-	mapP2 [ta:tas] (S a st) 
-		= 						nChannel "mapP" (ta a) 
-			>>= \ref -> 		st
-			>>=	\s ->			mapP2 tas s
-			>>= \(refs,st) -> 	return ([ref:refs],st)
-
-	waitForAll:: [ProcessRef b] -> Task [b]| iTask b 
-	waitForAll [] 		= return []
-	waitForAll [rb:rbs] = waitForProcess rb >>= handle rbs
-
-	handle rbs Nothing	= waitForAll rbs  	 
-	handle rbs (Just b)	= waitForAll rbs >>= \bs -> return [b:bs] 	 
-		
-dupP :: [a -> Task b] -> StreamFun a [b]  | iTask a & iTask b
-dupP tasks = \st -> mapP tasks (dupP` (length tasks) st)
-where
-	dupP` n st = waitPS  (repeatS n) st
-	where
-		repeatS 0 a st	= dupP` n st
-		repeatS n a st  = return (S a (repeatS (n-1) a st))
-
+	mapP` as st 
+		= 			allTasks [task a \\ task <- tasks & a <- as]
+		>>= \asr ->	returnS "mapP" (S asr (waitPS mapP` st))
 
 splitS :: (a -> Bool) (StreamFun a b) (StreamFun a c) 
 				(Task (Stream a)) -> Task (Task (Stream b),Task (Stream c)) | iTask a & iTask b & iTask c
@@ -202,48 +191,5 @@ where
 		= returnS ("last pipe " +++ toString a) (S (fromJust mba) nst)
 	| isNothing mba			= pipeline (fromJust mbpipefun) nst
 	= returnS ("pipe " +++ toString a) (S (fromJust mba) (pipeline (fromJust mbpipefun) nst))
-
-
-/*
-:: DynPipe a = DP ([(Task (Stream a)) -> Task (Stream a)] a -> ([(Task (Stream a)) -> Task (Stream a)], Maybe a, Maybe (DynPipe a)))
-
-pipeline :: [(Task (Stream a)) -> Task (Stream a)] (DynPipe a) (Task (Stream a)) -> Task (Stream a)  | iTask a & toString a
-pipeline funs (DP pipefun) st = waitPS pipeline2 (applyBoxes funs st)
-where
-	applyBoxes [] st 			= st
-	applyBoxes [fun:funs] st	= applyBoxes funs (fun st)
-
-	pipeline2 a st	  
-	# (nfuns, mba, mbpipe)	= pipefun funs a
-	| isNothing mbpipe 		= st
-	| isNothing mba			= pipeline nfuns (fromJust mbpipe) st
-	= returnS ("pipeline " +++ toString a) (S (fromJust mba) (pipeline nfuns (fromJust mbpipe) st))
-
-*/
-
-// spawn an asyncronous process
-
-/*
-spawnP :: String (Task a) -> Task (Task a) | iTask a					// spawn process, return task fetching its result
-spawnP name ta	
-	= 					spawnProcess RootUser True (name @>> ta)		// spawn of asynchronous process
-		>>= \pid ->		return (waitFor name pid)						// return task which waits for its result upon evaluation
-where
-	waitFor :: String (ProcessRef a) -> Task a | iTask a
-	waitFor name pid 
-	=					prompt name 									// prompt that we are waiting 
-						||- 
-						waitForProcess pid 								// wait for process to complete
-		>>= \mbVal -> 	deleteProcess pid								// delete from process table
-		>>|				return (fromJust mbVal)							// and return its value
-	
-	prompt name			= showStickyMessage ("Waiting for process " +++ name) 
-
-// wait for such a process
-
-waitP :: (a -> Task  b) (Task a) -> Task b  | iTask a & iTask b
-waitP fun str = str >>= fun
-
-*/
 
 

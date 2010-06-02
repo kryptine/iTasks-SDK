@@ -12,8 +12,10 @@ derive gHint		Stream
 derive gError		Stream	
 
 
-:: Stream a = ES
-			| S a (Task (Stream a))
+:: Stream a 
+
+//= ES
+//			| S a (Task (Stream a))
 
 :: StreamFun a b :== (Task (Stream a)) -> Task (Stream b)
 
@@ -28,11 +30,11 @@ derive gError		Stream
 (|>) infixl 9 :: a (a -> b) -> b
 
 /**
-* generator drops list elements one by one into a stream
+* generator lazily drops list elements one by one into a stream
 *
 * @param The list 
 *
-* @return The stream
+* @return The list elements in the stream
 */
 generator :: [a] -> Task (Stream a) | iTask a
 
@@ -41,7 +43,7 @@ generator :: [a] -> Task (Stream a) | iTask a
 *
 * @param The stream 
 *
-* @return All the received elements (watch out for infinite streams)
+* @return All the received elements (does not terminate for infinite streams)
 */
 sink :: (Task (Stream a)) -> Task [a] | iTask a 
 
@@ -53,38 +55,11 @@ sink :: (Task (Stream a)) -> Task [a] | iTask a
 filterS :: (a -> Bool) -> StreamFun a a  | iTask a 
 
 /**
-* mapS applies the task-i to element-i (modulo number of tasks) in the stream (sequential one by one) 
-*
-* @param The n tasks to apply one by one in a round robin fashion to the next n elements in the stream 
-*
-* @return Stream with mapped elements
-*/
-mapS :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
-
-/**
-* mapP applies the task-i to element-i in the stream in parallel, and collects the results in a list
-*
-* @param The n tasks to apply in parallel to the next n elements in the stream 
-*
-* @return Stream with mapped elements
-*/
-mapP :: [a -> Task b] -> StreamFun a [b]  | iTask a & iTask b
-		
-/**
-* dupP like mapP, but now each stream element is broadcasted to all parallel tasks 
-*
-* @param The tasks to apply in prallel 
-*
-* @return Stream with mapped elements
-*/
-dupP :: [a -> Task b] -> StreamFun a [b]  | iTask a & iTask b
-
-/**
 * toList collects n elements and puts them into a list in the resulting stream
 *
 * @param The number of elements to collect 
 *
-* @return Stream with list of n elements
+* @return Stream with list of n elements, maybe <= n for last elements in stream
 */
 toList :: Int -> StreamFun a [a]  | iTask a 
 
@@ -97,6 +72,34 @@ toList :: Int -> StreamFun a [a]  | iTask a
 */
 fromList :: StreamFun [a] a   | iTask a 
 
+/**
+* mapFun duplicates an element in a list
+*
+* @param The number of elements to collect 
+*
+* @return Stream with list of n elements
+*/
+mapFun :: (a -> b) -> StreamFun a b  | iTask a & iTask b
+
+/**
+* mapS applies the task-i to element-i (modulo number of tasks) in the stream (sequential one by one) 
+*
+* @param The n tasks to apply one by one in a round robin fashion to the next n elements in the stream 
+*
+* @return Stream with mapped elements
+*/
+mapS :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
+
+/**
+* mapP applies the task-i to element-i (modulo number of tasks) in the stream in parallel 
+*
+* @param The n tasks to apply in parallel to the next n elements in the stream 
+*
+* @return Stream with mapped elements
+*/
+
+mapP :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
+		
 /**
 * splitS takes a stream and produces two streams
 * those elements obeying the predicate go into first, the others in the second stream

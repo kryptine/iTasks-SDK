@@ -11,7 +11,7 @@ Start world = startEngine wfl world
 
 wfl :: [Workflow]
 wfl
-= [	workflow "stream" ("stream test" @>> test12)
+= [	workflow "stream" ("stream test" @>> test30)
   ]
 
 edit :: String -> (Int -> Task Int)
@@ -53,34 +53,45 @@ test13 = 	generator [1..3]
 
 // mapP test
 
-test05 = 	generator [1..5] 
-		|>	dupP [\a -> return a, \a -> return a] 
-		|>	sink
-test07 = 	generator [1..5] 
+test20 = 	generator [1..5] 
 		|>	mapP 	[edit "oneven taken"
 					,edit "even taken"
 					]
 	  	|>	sink
-test08 = 	generator [1..5] 
-		|>	dupP 	[edit "oneven taken"
+
+// dupP test // crashes due to fusion error
+
+test30 = 	generator [1..5] 
+		|>	mapFun (repeatn 2)
+		|>  fromList
+		|>  mapP 	[edit "oneven taken"
 					,edit "even taken"
 					]
 	  	|>	sink
-test09 = 	generator [1..4] 
+
+
+// split & join test // crashes due to fusion error
+
+test40 = 	generator [1..4] 
 		|> 	mapS 	[edit "verander I"]
 		|>	splitS isEven (mapS [edit "Even"]) (mapS [edit "Oneven"]) 
 		|>	joinS
 	  	|>	sink
-	  		 
+  		 
+test41 = 	generator [1..4] 
+		|>	splitS isEven id id 
+		|>	joinS
+	  	|>	sink
 
+// pipeline tests
 
-test111 = 	generator [1..10] 
+test50 = 	generator [1..10] 
 		|> 	pipeline (DP (fib 1 1))
 		|> 	sink
 where
-	fib n m _ = let nm = n + m in (id,Just nm, Just (DP (fib m (n+m))))
+	fib n m _ = let nm = n + m in (id, Just nm, Just (DP (fib m (n+m))))
 
-test112 = 	generator [2..100] 
+test51 = 	generator [2..40] 
 		|> 	pipeline (DP sieve)
 		|> 	sink
 where
