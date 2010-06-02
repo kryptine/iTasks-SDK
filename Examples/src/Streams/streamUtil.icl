@@ -12,8 +12,8 @@ spawnP name ta
 where
 	waitFor :: String (ProcessRef a) -> Task a | iTask a
 	waitFor name pid 
-	=					prompt name 									// prompt that we are waiting 
-						||- 
+	=	//				prompt name 									// prompt that we are waiting 
+		//				||- 
 						waitForProcess pid 								// wait for process to complete
 		>>= \mbVal -> //	deleteProcess pid								// delete from process table
 /*		>>| 	*/		return (fromJust mbVal)							// and return its value

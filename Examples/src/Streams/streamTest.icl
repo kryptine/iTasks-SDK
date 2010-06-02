@@ -11,45 +11,51 @@ Start world = startEngine wfl world
 
 wfl :: [Workflow]
 wfl
-= [	workflow "stream" ("stream test" @>> test003)
+= [	workflow "stream" ("stream test" @>> test12)
   ]
 
 edit :: String -> (Int -> Task Int)
 edit s = updateInformation s
 
-test000 = 	generator [1..5] 
+// generator, sink, filters
+
+test00 = 	generator [1..5] 
 		|> 	sink
-test001 = 	generator [1..10] 
+test01 = 	generator [1..10] 
 		|> 	filterS isEven
 		|> 	sink
-test002 = 	generator [1..10] 
+test02 = 	generator [1..10] 
 		|> 	toList 3 
 		|> 	sink
-test003 = 	generator [1..10] 
+test03 = 	generator [1..10] 
 		|> 	toList 3 
 		|>	fromList
 		|> 	sink
 
-test02 = 	generator [1..2] 
-		|> 	mapS 	[updateInformation "verander I"]
-		|> 	mapS 	[updateInformation "verander II"]
-		|> 	sink
-test03 = 	generator [1..3] 
-		|> 	mapS 	[updateInformation "verander I"]
-		|> 	mapS 	[updateInformation "verander II"]
-		|> 	filterS isEven
-		|> 	sink
-test04 = 	generator [1..10] 
+// mapS test
+
+test10 = 	generator [1..10] 
 		|> 	mapS [\x -> return (x ^ 2)] 
 		|> 	sink
-test05 = 	generator [1..5] 
-		|>	dupP [\a -> return a, \a -> return a] 
-		|>	sink
-test06 = 	generator [1..5] 
+test11 = 	generator [1..4] 
+		|> 	mapS 	[updateInformation "verander"]
+		|> 	sink
+test12 = 	generator [1..5] 
 		|> 	mapS 	[edit "oneven taken"
 			   		,edit "even taken"
 			   	   	]
 	  	|>	sink 
+test13 = 	generator [1..3] 
+		|> 	mapS 	[updateInformation "verander I"]
+		|> 	filterS isEven
+		|> 	mapS 	[updateInformation "verander II"]
+		|> 	sink
+
+// mapP test
+
+test05 = 	generator [1..5] 
+		|>	dupP [\a -> return a, \a -> return a] 
+		|>	sink
 test07 = 	generator [1..5] 
 		|>	mapP 	[edit "oneven taken"
 					,edit "even taken"
@@ -68,13 +74,13 @@ test09 = 	generator [1..4]
 	  		 
 
 
-test11 = 	generator [1..10] 
+test111 = 	generator [1..10] 
 		|> 	pipeline (DP (fib 1 1))
 		|> 	sink
 where
 	fib n m _ = let nm = n + m in (id,Just nm, Just (DP (fib m (n+m))))
 
-test12 = 	generator [2..100] 
+test112 = 	generator [2..100] 
 		|> 	pipeline (DP sieve)
 		|> 	sink
 where

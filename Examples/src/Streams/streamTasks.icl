@@ -107,12 +107,16 @@ where
 
 // ************************
 
+// sequential map
+
 mapS :: [a -> Task b] -> StreamFun a b  | iTask a & iTask b
 mapS [ta:tas] = waitPS mapS`
 where
 	mapS` a st 
 	= 				ta a 
 		>>= \b -> 	returnS "mapS" (S b (mapS (tas++[ta]) st))
+
+// parallel map
 
 mapP :: [a -> Task b] -> StreamFun a [b]  | iTask a & iTask b
 mapP tasks  
