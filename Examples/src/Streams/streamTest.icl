@@ -11,7 +11,7 @@ Start world = startEngine wfl world
 
 wfl :: [Workflow]
 wfl
-= [	workflow "stream" ("stream test" @>> test30)
+= [	workflow "stream" ("stream test" @>> test06)
   ]
 
 edit :: String -> (Int -> Task Int)
@@ -31,8 +31,37 @@ test03 = 	generator [1..10]
 		|> 	toList 3 
 		|>	fromList
 		|> 	sink
+test04 n = 	generator [1..10] 
+		|> 	toList n 
+		|>	mapFun sum
+		|> 	sink
+test05 = 	generator [[1..j] \\ j <- [1..10]] 
+		|>	mapFun sum
+		|> 	sink
 
-// mapS test
+test06 =	generator genlist
+//		|>	mapP (repeatn npar sortTask)
+		|>	mapP [sortTask]
+		|>	toList npar
+		|>	mapFun combine_lists
+		|>	sink
+where
+	list 	= [1, 9, 4, 6, 2, 8, 5, 3, 10, 7]
+	n 		= 3
+	genlist	= divide n list	
+	npar	= length genlist
+
+	sortTask a = return (sort a)
+
+	combine_lists :: [[Int]] -> [Int]
+	combine_lists [] = []
+	combine_lists [x:xs] = merge x (combine_lists xs)// mapS test
+
+	divide :: Int [Int] -> [[Int]]
+	divide n xs = [tak n (drop i xs) \\ i<-[0..n-1]]
+	where
+		tak n [] = []
+		tak n [x:xs] = [x : tak n (drop (n-1) xs)]
 
 test10 = 	generator [1..10] 
 		|> 	mapS [\x -> return (x ^ 2)] 
