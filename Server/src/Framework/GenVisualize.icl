@@ -764,7 +764,7 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 			(VValue nval=:{content} nmask)			
 				# errMsg = getErrorMessage currentPath nmask errorMask
 				# hntMsg = getHintMessage currentPath nmask hintMask
-				= ([TUIFragment (TUIDocumentControl {TUIDocumentControl | id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON nval, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+				= ([TUIFragment (TUIDocumentControl {TUIDocumentControl | id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString (toJSON nval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 				  4,
 				  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval currentPath nmask errorMask optional valid})
 			(VBlank)
@@ -772,13 +772,13 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 					(VValue oval=:{content} omask)
 						# errMsg = getErrorMessage currentPath omask errorMask
 						# hntMsg = getHintMessage currentPath omask hintMask
-						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON oval, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString (toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 						4,
 						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath omask errorMask optional valid})
 					(VBlank)
 						# errMsg = getErrorMessage currentPath [] errorMask
 						# hntMsg = getHintMessage currentPath [] hintMask
-						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toJSON emptyDoc, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString (toJSON emptyDoc), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 						4,
 						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid emptyDoc currentPath [] errorMask optional valid})	
 where

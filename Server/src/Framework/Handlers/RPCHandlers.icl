@@ -9,7 +9,7 @@ handleRPCListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCListRequest request tst
 	# (forest, tst) = calculateTaskForest tst
 	# (rpcinfos, tst) = determineRPCItems forest tst
-	= ({http_emptyResponse & rsp_data = (toJSON rpcinfos)},tst)
+	= ({http_emptyResponse & rsp_data = toString (toJSON rpcinfos)},tst)
 	
 determineRPCItems :: ![TaskTree] !*TSt -> ([RPCExecute],!*TSt)
 determineRPCItems forest tst = (flatten [determineTreeRPCItems tree \\ tree <- forest],tst)

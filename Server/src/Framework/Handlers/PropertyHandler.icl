@@ -61,12 +61,12 @@ where
 errorResponse :: String -> HTTPResponse
 errorResponse msg = 
 	{ rsp_headers = []
-	, rsp_data	= toJSON {PropertyResponse|success = False, error = Just msg}
+	, rsp_data	= toString (toJSON {PropertyResponse|success = False, error = Just msg})
 	}
 successResponse :: HTTPResponse
 successResponse =
 	{ rsp_headers	= []
-	, rsp_data		= toJSON {PropertyResponse|success = True, error = Nothing}
+	, rsp_data		= toString (toJSON {PropertyResponse|success = True, error = Nothing})
 	}
 
 instance fromString Int

@@ -10,20 +10,20 @@ derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessage
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
 
 //JSON specialization for TaskPanel: Ignore the union constructor
-JSONEncode{|TaskPanel|} (TaskDone) c						= ["\"done\"" : c]
-JSONEncode{|TaskPanel|} (TaskRedundant) c					= ["\"redundant\"" : c]
-JSONEncode{|TaskPanel|} (TTCFormContainer x) c				= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCMonitorContainer x) c			= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCMessageContainer x) c			= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCInstructionContainer x) c		= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCResultContainer x) c			= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCProcessControlContainer x) c 	= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCParallelContainer x) c			= JSONEncode{|*|} x c
-JSONEncode{|TaskPanel|} (TTCGroupContainer x) c				= JSONEncode{|*|} x c
+JSONEncode{|TaskPanel|} (TaskDone)							= [JSONString "done"]
+JSONEncode{|TaskPanel|} (TaskRedundant)						= [JSONString "redundant"]
+JSONEncode{|TaskPanel|} (TTCFormContainer x)				= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCMonitorContainer x)				= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCMessageContainer x)				= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCInstructionContainer x)			= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCResultContainer x)				= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCProcessControlContainer x)	 	= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCParallelContainer x)			= JSONEncode{|*|} x
+JSONEncode{|TaskPanel|} (TTCGroupContainer x)				= JSONEncode{|*|} x
 
 //JSON specialization for Timestamp: Ignore the constructor
-JSONEncode{|Timestamp|}	(Timestamp x) c					= JSONEncode{|*|} x c
-JSONEncode{|User|} u c									= ["\"" +++ toString u +++ "\"" : c]
+JSONEncode{|Timestamp|}	(Timestamp x)					= JSONEncode{|*|} x
+JSONEncode{|User|} u									= [JSONString (toString u)]
 
 derive JSONEncode UserDetails, Password
 

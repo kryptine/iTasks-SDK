@@ -5,7 +5,6 @@ import CommonDomain
 import GeoDomain
 import google_maps_services
 import Base64
-import JSONTree
 import DocumentDomain
 
 derive gPrint		Incident, IncidentType
@@ -20,7 +19,7 @@ derive bimap (,), Maybe
 ambulanceDispatchMapExamples :: [Workflow]
 ambulanceDispatchMapExamples = flows
 where
-	flows = [ workflow "Examples/Crisis response/Report incident (Map)" (reportIncident -|| showSources) ]
+	flows = [ workflow "Examples/Crisis response/Report incident (Map)" reportIncident/*(reportIncident -|| showSources)*/ ]
 
 :: Incident =
 	{ location		:: Coordinate
@@ -53,9 +52,9 @@ addressLookup marker
 	  ||- reverse_geocoding (toString lat+++","+++toString lng) "json" False GOOGLE_API_KEY parseJSON
 where
 	parseJSON info 
-	= case toJSONTree (base64Decode info) of
-		(Just tree)
-			= case queryJSONTree "Placemark\\1\\address" tree of
+	= case fromString (base64Decode info) of
+		(obj =:(JSONObject f))
+			= case jsonQuery "Placemark/1/address" obj of
 				(Just addr) = addr
 				_			= "Address Unknown"
 		_	= "Address Unknown"

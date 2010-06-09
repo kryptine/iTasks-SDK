@@ -25,7 +25,7 @@ import Text, JSON, Time, Util
 //JSON encoding for the used types 				
 derive JSONEncode WorkList, WorkListItem, TaskPriority, TaskProgress
 //JSON specialization for Timestamp: Ignore the constructor
-JSONEncode{|Timestamp|}	(Timestamp x) c	= JSONEncode{|*|} x c
+JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
@@ -39,7 +39,7 @@ handleWorkListRequest request tst=:{staticInfo}
 							  , total		= length workitems
 							  , worklist	= workitems
 							  }
-	= ({http_emptyResponse & rsp_data = toJSON worklist}, tst)
+	= ({http_emptyResponse & rsp_data = toString (toJSON worklist)}, tst)
 where
 	filter plist = [p \\ p <- plist | filter` p]
 	where

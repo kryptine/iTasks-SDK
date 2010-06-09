@@ -24,7 +24,7 @@ handleUserListRequest req tst=:{staticInfo}
 					   } \\ user =:(RegisteredUser details) <- users
 					   | query == "" || startsWith query details.UserDetails.userName || startsWith query details.UserDetails.displayName
 					  ]
-	= ({http_emptyResponse & rsp_data = toJSON {UserResponse| users = filtered, total = length filtered}}, tst)
+	= ({http_emptyResponse & rsp_data = toString (toJSON {UserResponse| users = filtered, total = length filtered})}, tst)
 where
 	//Only add Root user entry for root itself
 	rootItem RootUser	= [{UserRecord|user = toString RootUser}]

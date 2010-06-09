@@ -67,7 +67,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIMenuItem TUIMenuItem
 	| TUIMenuSeparator
 	| TUITuple TUITuple
-	| TUICustom JSON
+	| TUICustom JSONNode
 
 :: TUIBasicControl =
 	{ name			:: !String

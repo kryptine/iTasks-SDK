@@ -8,14 +8,14 @@ handleDocumentUploadRequest req tst
 	| length req.arg_uploads <> 1
 		= (errorResponse "Invalid upload.",tst)
 	# upl	= hd req.arg_uploads
-	# mbDoc	= fromJSON (http_getValue "docInfo" req.arg_post "")
+	# mbDoc	= fromJSON (fromString (http_getValue "docInfo" req.arg_post ""))
 	| isNothing mbDoc
 		= (errorResponse "Cannot parse document information.",tst)
 	# taskId	= http_getValue "_targettask" req.arg_post ""
 	# name		= http_getValue "_name" req.arg_post ""
 	# fname		= last (split "\\" upl.upl_filename)
 	# (doc,tst)	= updateDocument (fromJust mbDoc) fname upl.upl_mimetype taskId upl.upl_content tst
-	# new_post  = [(name,toJSON doc):req.arg_post]
+	# new_post  = [(name,toString (toJSON doc)):req.arg_post]
 	# tst		= {TSt | tst & request = {req & arg_post = new_post}}
 	// update tasks
 	# procId			= http_getValue "_maintask" req.arg_post "0"
@@ -25,12 +25,12 @@ handleDocumentUploadRequest req tst
 //used to clear a document after trash button is clicked
 handleDocumentClearRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentClearRequest req tst
-	# mbDoc		= fromJSON (http_getValue "docInfo" req.arg_post "")
+	# mbDoc		= fromJSON (fromString (http_getValue "docInfo" req.arg_post ""))
 	# (res,tst)	= case mbDoc of
 		(Just doc)
 			# (doc,tst) = clearDocument doc tst
 			# name		= http_getValue "_name" req.arg_post ""
-			# new_post  = [(name,toJSON doc):req.arg_post]
+			# new_post  = [(name,toString (toJSON doc)):req.arg_post]
 			= (successResponse,{tst & request = {req & arg_post = new_post}})
 		_ = (errorResponse "Cannot parse document information.",tst)
 	// update tasks
@@ -41,7 +41,7 @@ handleDocumentClearRequest req tst
 //used to download documents through the download button
 handleDocumentDownloadRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleDocumentDownloadRequest req tst
-	# mbDoc = fromJSON (http_getValue "docInfo" req.arg_post "")
+	# mbDoc = fromJSON (fromString (http_getValue "docInfo" req.arg_post ""))
 	= case mbDoc of
 		Just doc = case doc.content of
 			DocumentContent info

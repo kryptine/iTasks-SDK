@@ -545,7 +545,7 @@ applyRpcUpdates :: [(String,String)] !*TSt !RPCExecute !(String -> a) -> *(!Task
 applyRpcUpdates [] tst rpce parsefun = (TaskBusy,tst)
 applyRpcUpdates [(n,v):xs] tst rpce parsefun
 | n == "_rpcresult" 
-	# (mbMsg) = fromJSON v
+	# (mbMsg) = fromJSON (fromString v)
 	= case mbMsg of
 		Just msg = applyRpcMessage msg tst rpce parsefun
 		Nothing  = applyRpcUpdates xs tst rpce parsefun //Ignore the message and go on..

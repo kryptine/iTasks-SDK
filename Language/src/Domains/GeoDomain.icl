@@ -59,9 +59,8 @@ where
 
 gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
 	= case vizType of
-		VEditorDefinition = ([TUIFragment (TUICustom   (JSON ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath True))))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
-		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (mapPanel new (label2s optional label) (not useLabels) idPrefix currentPath True))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
-		//_				  = ([TUIFragment (TUICustom   (JSON ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath False))))], {VSt | vst & currentPath = stepDataPath currentPath })
+		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath True)))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
+		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (toString (mapPanel new (label2s optional label) (not useLabels) idPrefix currentPath True)))], 4,{VSt | vst & currentPath = stepDataPath currentPath })
 		_				  = (staticMapPanel old, 4,{VSt | vst & currentPath = stepDataPath currentPath})
 where
 	mapPanel VBlank fl hl 		  idp cp ed = toJSON (tuidef mkMap fl hl idp cp ed)
@@ -105,7 +104,7 @@ gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u) _ ) _ vst=:{vizTy
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],4,{VSt | vst & currentPath = stepDataPath currentPath})
 		VHtmlLabel		= ([HtmlFragment [Text "Static Map"]],4,{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextLabel		= ([TextFragment "Static Map"],4,{VSt | vst & currentPath = stepDataPath currentPath})
-		_				= ([TUIFragment (TUICustom (JSON (toJSON staticMap)))],4,{VSt | vst & currentPath = stepDataPath currentPath})
+		_				= ([TUIFragment (TUICustom ((toJSON staticMap)))],4,{VSt | vst & currentPath = stepDataPath currentPath})
 where
 	staticMap =
 		{ TUIGoogleStaticMap
@@ -139,11 +138,11 @@ gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, up
 		= (s, {USt | ust & currentPath = stepDataPath currentPath})
 where
 	parseUpdate orig update
-	# mbMVC		= fromJSON update
+	# mbMVC		= fromJSON (fromString update)
 	| isJust mbMVC
 		# mvc = fromJust mbMVC
 		= {GoogleMap | orig & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, mapType = mvc.MVCUpdate.type}
-	# mbClick 	= fromJSON update
+	# mbClick 	= fromJSON (fromString update)
 	| isJust mbClick
 		# click = fromJust mbClick
 		# marker = {GoogleMapMarker | position = click.ClickUpdate.point, infoWindow = {GoogleMapInfoWindow | content = "", width=0}} 

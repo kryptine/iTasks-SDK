@@ -6,5 +6,5 @@ import Html, Time
 import RPC
 
 from   ProcessDB		import :: ProcessStatus, :: Action, :: Menu, :: MenuItem
-from   JSON 			import :: JSON
+from   JSON 			import :: JSONNode
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate

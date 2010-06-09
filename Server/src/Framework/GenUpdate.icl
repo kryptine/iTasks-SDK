@@ -335,7 +335,7 @@ gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
 	
 gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, mask}
 	| currentPath == searchPath
-		# upd = fromJSON update
+		# upd = fromJSON (fromString update)
 		| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 		| otherwise = abort "[Upd Document] Cannot parse JSON"
 		//| otherwise  = ({ Document | fileName = "", size = 0, mimeType = "", taskId = "", index = 0},{USt | ust & currentPath = stepDataPath currentPath})

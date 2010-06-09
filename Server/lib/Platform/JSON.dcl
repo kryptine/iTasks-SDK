@@ -8,32 +8,32 @@ definition module JSON
 * For more info about JSON see: http://www.json.org/
 */
 
-import StdGeneric, StdMaybe
+import StdGeneric, StdMaybe, StdString
 
-//Token type which is the intermediary representation during JSON parsing
-:: Token	= TokenInt Int
-			| TokenReal	Real
-			| TokenString String
-			| TokenBool	Bool
-			| TokenNull
-			| TokenBracketOpen
-			| TokenBracketClose
-			| TokenBraceOpen
-			| TokenBraceClose
-			| TokenName	String
-			| TokenColon
-			| TokenComma
-			| TokenWhitespace String
-			| TokenFail	
-
-:: JSON = JSON String	//String which is already in JSON encoding
+:: JSONNode	= JSONNull
+			| JSONBool !Bool
+			| JSONInt !Int
+			| JSONReal !Real
+			| JSONString !String
+			| JSONArray ![JSONNode]
+			| JSONObject ![(!String,!JSONNode)]
+			| JSONRaw !String
+			| JSONError
+/**
+* Serializing JSON structures is done with a toString instance
+*/
+instance toString JSONNode
+/**
+* Deserializing JSON structures is done with a fromString instance
+*/
+instance fromString JSONNode
 
 /**
 * Encodes any value to JSON format.
 * @param The value to encode
 * @return The JSON encoded value
 */
-toJSON		:: a		-> String	| JSONEncode{|*|} a
+toJSON		:: a		-> JSONNode	| JSONEncode{|*|} a
 /**
 * Tries to parse a JSON encoded string.
 * When parsing fails, the result is Nothing.
@@ -41,7 +41,7 @@ toJSON		:: a		-> String	| JSONEncode{|*|} a
 * @param The JSON encoded input
 * @return Just the result, when parsing succeeds
 */
-fromJSON	:: String	-> Maybe a	| JSONDecode{|*|} a
+fromJSON	:: JSONNode	-> Maybe a	| JSONDecode{|*|} a
 
 /**
 * Escapes a string for manual JSON construction
@@ -49,24 +49,38 @@ fromJSON	:: String	-> Maybe a	| JSONDecode{|*|} a
 * @param The unescaped string
 * @return A properly escaped string
 */
-jsonEscape	:: String	-> String
+jsonEscape	:: !String	-> String
 
 /**
-* Lexer for Json-Strings. This function is used by the JSONTree-module.
-**/
-lex :: String Int [Token] -> (Int, [Token])
+* Unescapes a string that is escaped for use in a serialized JSON string
+*
+* @param The escaped string
+* @return An unescaped string
+*/
+jsonUnescape :: !String -> String
+
+/**
+* Simple query-by-path function that enables searching of JSON structures
+*
+* @param The query path separated by '/'. Objects are indexed by fieldname
+*        and arrays by their array index.
+*        Example paths: 'node1/node3' 'node1/node2/23'
+*
+* @return The value if a value of the right type is at that path.
+*/
+jsonQuery :: !String !JSONNode -> Maybe a | JSONDecode{|*|} a
 
 /**
 * Generic encoding function. This function should not be used
 * directly but always through the toJSON function. It must be derived
 * for each type you want to encode in JSON format.
 */
-generic JSONEncode t :: t [String] -> [String]
-derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe, JSON
+generic JSONEncode t :: t -> [JSONNode]
+derive  JSONEncode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe, JSONNode
 /**
 * Generic decoding function. This function should not be used
 * directly, but always through the fromJSON function. It must be derived
 * for each type you want to parse from JSON format.
 */
-generic JSONDecode t :: [Token] -> (Maybe t,[Token])
-derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe
+generic JSONDecode t :: [JSONNode] -> (!Maybe t,![JSONNode])
+derive  JSONDecode Int, Real, Char, Bool, String, UNIT, PAIR, EITHER, FIELD, CONS, OBJECT, [], (,), {}, {!}, Maybe, JSONNode

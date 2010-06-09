@@ -11,7 +11,7 @@ import Html, Time
 import RPC
 
 from   ProcessDB		import :: ProcessStatus, :: Action, :: Hotkey, :: Menu, :: MenuItem
-from   JSON 			import :: JSON
+from   JSON 			import :: JSONNode
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...

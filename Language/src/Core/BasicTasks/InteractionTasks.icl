@@ -272,7 +272,7 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 					= (TaskBusy, tst)
 where
 	parseSelection :: [(String,String)] -> Maybe [String]
-	parseSelection updates = fromJSON (http_getValue "selection" updates "[]")	
+	parseSelection updates = fromJSON (fromString (http_getValue "selection" updates "[]"))	
 
 	select :: [Int] [a] -> [a]
 	select indices options = [options !! index \\ index <- indices]

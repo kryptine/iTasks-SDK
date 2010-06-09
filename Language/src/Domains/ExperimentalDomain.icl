@@ -65,7 +65,7 @@ noControls =	{ alignmentControls	= False
 
 gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,errorMask}
 	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
+		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUIFormattedText
 									| xtype				= "itasks.tui.FormattedText"
 									, name				= dp2s contentPath
@@ -82,7 +82,7 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 									, enableLists		= controls.listControls
 									, enableSourceEdit	= controls.sourceEditControl
 									}
-								)))]
+								))]
 								, 0
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
@@ -190,7 +190,7 @@ getSource (SourceCode src _) = src
 	
 gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,errorMask}
 	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
+		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUISourceCode
 									| xtype			= "itasks.tui.SourceCode"
 									, name			= dp2s contentPath
@@ -201,7 +201,7 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									, staticDisplay = renderAsStatic
 									, language		= language
 									}
-								)))]
+								))]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
@@ -241,7 +241,7 @@ where
 
 gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,errorMask}
 	= case vizType of
-		VEditorDefinition	=	([TUIFragment (TUICustom (JSON (toJSON
+		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUIColorChooser
 									| xtype			= "itasks.tui.ColorChooser"
 									, name			= dp2s contentPath
@@ -251,7 +251,7 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 									, optional		= optional
 									, staticDisplay = renderAsStatic
 									}
-								)))]
+								))]
 								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate

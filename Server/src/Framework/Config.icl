@@ -24,9 +24,9 @@ loadConfig appName world
 	| content == ""
 		= (Nothing,world)
 	| otherwise
-		= (fromJSON content,world)
+		= (fromJSON (fromString content),world)
 	
 storeConfig :: !String !Config !*World -> *World
 storeConfig appName config world
-	= writefile (appName +++ "-config.json") (toJSON config) world
+	= writefile (appName +++ "-config.json") (toString (toJSON config)) world
 	

@@ -28,7 +28,7 @@ handleWorkTabRequest req tst=:{staticInfo}
 				# tst		= updateTimeStamps properties.systemProps.SystemProperties.processId tst
 				// Create the response
 				= let content = {TaskContent| success = True, properties = Just properties, subject = subject, content = panel, debug = debuginfo} in
-		 			({http_emptyResponse & rsp_data = toJSON content}, tst)
+		 			({http_emptyResponse & rsp_data = toString (toJSON content)}, tst)
 			
 			| otherwise
 				= redundant tst
@@ -46,10 +46,10 @@ where
 		= ({http_emptyResponse & rsp_data = "{ \"success\" : false, \"error\" : \"" +++ msg +++ "\"}"}, tst)
 	redundant tst
 		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskRedundant, debug = Nothing} in
-			({http_emptyResponse & rsp_data = toJSON content}, tst)
+			({http_emptyResponse & rsp_data = toString (toJSON content)}, tst)
 	finished tst
 		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskDone, debug = Nothing} in
-			({http_emptyResponse & rsp_data = toJSON content}, tst)
+			({http_emptyResponse & rsp_data = toString (toJSON content)}, tst)
 			
 :: TaskContent =
 	{ success		:: Bool
@@ -76,7 +76,7 @@ updateTimeStamps pid tst
 collectDebugInfo :: TaskTree *TSt -> (Maybe DebugInfo, *TSt)
 collectDebugInfo tree tst
 	# tasktree			= traceTaskTree tree
-	= (Just {DebugInfo | tasktree = toJSON tasktree}, tst)
+	= (Just {DebugInfo | tasktree = toString (toJSON tasktree)}, tst)
 
 isFinished :: TaskTree -> Bool
 isFinished (TTFinishedTask	_ _)	= True

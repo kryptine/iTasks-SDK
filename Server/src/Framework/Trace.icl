@@ -169,4 +169,4 @@ where
 		| otherwise 				= True
 	
 traceTaskForest :: [TaskTree] -> String
-traceTaskForest trees = toJSON [traceTaskTree tree \\ tree <- trees]
+traceTaskForest trees = toString (toJSON [traceTaskTree tree \\ tree <- trees])

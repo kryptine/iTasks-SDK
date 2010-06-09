@@ -91,11 +91,11 @@ where
 		| content == ""
 			= ([],world)
 		| otherwise
-			= case (fromJSON content) of
+			= case (fromJSON (fromString content)) of
 				Just users	= (users,world)
 				Nothing		= ([],world)
 				
 	writeUserFile users appName world
-		= writefile (appName +++ "-users.json") (toJSON users) world
+		= writefile (appName +++ "-users.json") (toString (toJSON users)) world
 		
 			

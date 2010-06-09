@@ -20,9 +20,9 @@ handleNewListRequest request tst
 	# path 				= if (path == "_ROOT_") "" path
 	# (session,tst)		= getCurrentSession tst
 	# (workflows,tst)	= getWorkflows tst	
-	= ({http_emptyResponse & rsp_data = toJSON (sort (removeDup	[ mkNode flow path \\ flow <- workflows
+	= ({http_emptyResponse & rsp_data = toString (toJSON (sort (removeDup	[ mkNode flow path \\ flow <- workflows
 															| checkRoles flow session && checkPath flow path
-															]))}, tst)
+															])))}, tst)
 where
 	checkRoles flow session
 		| isEmpty flow.Workflow.roles	= True  //The workflow does not have required roles
