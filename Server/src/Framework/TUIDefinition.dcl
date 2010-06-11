@@ -4,10 +4,11 @@ definition module TUIDefinition
 * component definitions and a specialized instance of
 * JSONEncode for serializing them to JSON
 */
-import JSON
+import JSON, GenEq
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
+derive gEq TUIDef
 
 :: TUIId :== String
 :: PlaceholderId :== String
@@ -40,9 +41,11 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIConstructorControl TUIConstructorControl
 	| TUIHiddenControl TUIBasicControl
 	| TUIFormButtonControl TUIButtonControl
+	| TUIListItemControl TUIListItemControl
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
+	| TUIListContainer TUIListContainer
 	
 	//-- OLD --
 	| TUIButton TUIButton
@@ -61,8 +64,7 @@ derive JSONEncode TUIDef, TUIUpdate
 	| TUIPanel TUIPanel
 	| TUIBox TUIBox
 	| TUIHtmlPanel TUIHtmlPanel
-	| TUIList TUIList
-	| TUIListItem TUIListItem
+
 	| TUIMenuButton TUIMenuButton
 	| TUIMenuItem TUIMenuItem
 	| TUIMenuSeparator
@@ -140,6 +142,12 @@ derive JSONEncode TUIDef, TUIUpdate
 	, errorMsg			:: !String
 	, hintMsg			:: !String
 	}
+:: TUIListItemControl =
+	{ name				:: !String
+	, id				:: !String
+	, items				:: ![TUIDef]
+	, index				:: !Int
+	}
 	
 :: TUITupleContainer =
 	{ id			:: !String
@@ -153,6 +161,16 @@ derive JSONEncode TUIDef, TUIUpdate
 	, items			:: ![TUIDef]
 	, optional		:: !Bool
 	, hasValue		:: !Bool
+	, errorMsg		:: !String
+	, hintMsg		:: !String
+	}
+:: TUIListContainer =
+	{ items			:: ![TUIDef]
+	, name			:: !String
+	, id			:: !String
+	, fieldLabel	:: !Maybe String
+	, hideLabel		:: !Bool
+	, staticDisplay	:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
 	}
@@ -284,20 +302,6 @@ derive JSONEncode TUIDef, TUIUpdate
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
 	, unstyled		:: !Bool
-	}
-:: TUIList =
-	{ items			:: ![TUIDef]
-	, name			:: !String
-	, id			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, staticDisplay	:: !Bool
-	}
-:: TUIListItem =
-	{ items			:: ![TUIDef]
-	, index			:: !Int
-	, id			:: !String
-	, name			:: !String
 	}
 :: TUIMenu =
 	{ items			:: ![TUIDef]

@@ -83,17 +83,14 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 									, enableSourceEdit	= controls.sourceEditControl
 									}
 								))]
-								, 0
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
-								, 0
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
 								VBlank		= [Text ""]
 								VValue v _	= html v
 							= ([HtmlFragment htmlFrag]
-								, 0
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -202,17 +199,14 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									, language		= language
 									}
 								))]
-								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
 								VBlank		= [Text ""]
 								VValue v _	= html v
 							= ([HtmlFragment htmlFrag]
-								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -252,17 +246,14 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 									, staticDisplay = renderAsStatic
 									}
 								))]
-								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
 								VBlank		= [Text ""]
 								VValue v _	= html v
 							= ([HtmlFragment htmlFrag]
-								, 1
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.

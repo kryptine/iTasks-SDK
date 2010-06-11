@@ -25,7 +25,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, taskInfo		:: !TaskInfo										// task information available to tasks
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 					, newTask		:: !Bool											// does the task run for the first time
-
+					
 					, mainTask		:: !ProcessId									// The id of the current main task 
 					, properties	:: !TaskProperties								// Properties of the current evaluated process		
 					, menus			:: !Maybe [Menu]								// Menu structure of the current task

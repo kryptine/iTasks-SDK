@@ -28,6 +28,8 @@ derive gMakeSharedCopy	User, Session, VisualizationHint
 derive JSONEncode Document
 derive JSONDecode Document
 
+derive gEq Document
+
 instance toString User
 instance toString TaskPriority
 instance toString Password

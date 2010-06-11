@@ -23,28 +23,28 @@ visualizeAsEditor name mbSubIdx mask x
 	# vst = case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
-	# (defs,rh,vst=:{valid}) = gVisualize{|*|} val val vst
+	# (defs,vst=:{valid}) = gVisualize{|*|} val val vst
 	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x mask
 	
 visualizeAsHtmlDisplay :: a -> [HtmlTag] | gVisualize{|*|} a
-visualizeAsHtmlDisplay x = flatten (coerceToHtml (fst3 (gVisualize{|*|} val val {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
+visualizeAsHtmlDisplay x = flatten (coerceToHtml (fst (gVisualize{|*|} val val {mkVSt & origVizType = VHtmlDisplay, vizType = VHtmlDisplay})))
 where
 	val = VValue x initialDataMask
 
 visualizeAsTextDisplay :: a -> String | gVisualize{|*|} a
-visualizeAsTextDisplay x = join " " (coerceToStrings (fst3 (gVisualize{|*|} val val {mkVSt & origVizType = VTextDisplay, vizType = VTextDisplay})))
+visualizeAsTextDisplay x = join " " (coerceToStrings (fst (gVisualize{|*|} val val {mkVSt & origVizType = VTextDisplay, vizType = VTextDisplay})))
 where
 	val = VValue x initialDataMask
 
 visualizeAsHtmlLabel :: a -> [HtmlTag] | gVisualize{|*|} a
-visualizeAsHtmlLabel x =  flatten (coerceToHtml (fst3 (gVisualize{|*|} val val {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel})))
+visualizeAsHtmlLabel x =  flatten (coerceToHtml (fst (gVisualize{|*|} val val {mkVSt & origVizType = VHtmlLabel, vizType = VHtmlLabel})))
 where
 	val = VValue x initialDataMask
 	
 visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
-visualizeAsTextLabel x = join " " (coerceToStrings (fst3 (gVisualize{|*|} val val {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
+visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} val val {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 where
 	val = VValue x initialDataMask
 	
@@ -60,28 +60,28 @@ determineEditorUpdates name mbSubIdx omask nmask lmask old new
 	# vst 	= case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
-	# (updates,rh,vst=:{valid}) = (gVisualize{|*|} (VValue old omask) (VValue new nmask) vst)
+	# (updates,vst=:{valid}) = (gVisualize{|*|} (VValue old omask) (VValue new nmask) vst)
 	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue
 
 //Generic visualizer
-generic gVisualize a :: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], RenderingHint, *VSt)
+generic gVisualize a :: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], *VSt)
 
 gVisualize{|UNIT|} _ _ vst
-	= ([],0,vst)
+	= ([],vst)
 
 gVisualize{|PAIR|} fx fy old new vst
 	= case (old,new) of
 		(VValue (PAIR ox oy) omask, VValue (PAIR nx ny) nmask)
-			# (vizx, rhx, vst) = fx (VValue ox omask) (VValue nx nmask) vst
-			# (vizy, rhy, vst) = fy (VValue oy omask) (VValue ny nmask) vst
-			= (vizx ++ vizy, rhx+rhy, vst)
+			# (vizx, vst) = fx (VValue ox omask) (VValue nx nmask) vst
+			# (vizy, vst) = fy (VValue oy omask) (VValue ny nmask) vst
+			= (vizx ++ vizy, vst)
 		_
-			# (vizx, rhx, vst) = fx VBlank VBlank vst
-			# (vizy, rhy, vst) = fy VBlank VBlank vst
-			= (vizx ++ vizy, rhx+rhy, vst)
+			# (vizx, vst) = fx VBlank VBlank vst
+			# (vizy, vst) = fy VBlank VBlank vst
+			= (vizx ++ vizy, vst)
 
 gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 	= case (old,new) of
@@ -92,13 +92,13 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			= case vizType of
 				VEditorUpdate
 					| maskChanged currentPath omask nmask
-						# (consSelUpd,_,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
-						# (old,rho,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-						# (new,rhn,vst)			= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-						= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})			
+						# (consSelUpd,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
+						# (old,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+						# (new,vst)			= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+						= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})			
 					| otherwise
-						# (upd,rh,vst) = fx oval nval {vst & vizType = VEditorUpdate}
-						= (upd,rh,vst)
+						# (upd,vst) = fx oval nval {vst & vizType = VEditorUpdate}
+						= (upd,vst)
 				_
 					= fx oval nval vst
 		(VValue (RIGHT oy) omask, VValue (RIGHT ny) nmask)
@@ -107,13 +107,13 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			= case vizType of
 				VEditorUpdate
 					| maskChanged currentPath omask nmask
-						# (consSelUpd,_,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
-						# (old,rho,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-						# (new,rhn,vst)			= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-						= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
+						# (consSelUpd,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
+						# (old,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+						# (new,vst)			= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+						= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})
 					| otherwise
-						# (upd,rh,vst) = fy oval nval {vst & vizType = VEditorUpdate}
-						= (upd,rh,vst)
+						# (upd,vst) = fy oval nval {vst & vizType = VEditorUpdate}
+						= (upd,vst)
 				_
 					= fy oval nval vst
 		//Different structure:
@@ -122,10 +122,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VValue ny nmask
 			= case vizType of
 				VEditorUpdate
-					# (consSelUpd,_,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
-					# (old,rho,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) 		= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
+					# (consSelUpd,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,vst) 		= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VValue (RIGHT oy) omask, VValue (LEFT nx) nmask)
@@ -133,10 +133,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VValue nx nmask
 			= case vizType of
 				VEditorUpdate
-					# (consSelUpd,_,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
-					# (old,rho,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
+					# (consSelUpd,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})
 				_
 					= fy oval oval vst //Default case: ignore the new value
 		
@@ -146,9 +146,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VBlank
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new, rhn, {vst & vizType = VEditorUpdate})
+					# (old,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VValue (RIGHT oy) omask, VBlank)
@@ -156,9 +156,9 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VBlank
 			= case vizType of
 				VEditorUpdate
-					# (old,rho,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new, rhn, {vst & vizType = VEditorUpdate})
+					# (old,vst) = fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,vst) = fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new, {vst & vizType = VEditorUpdate})
 				_
 					= fy oval oval vst //Default case: ignore the new value					
 		
@@ -168,10 +168,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VValue nx nmask
 			= case vizType of
 				VEditorUpdate
-					# (consSelUpd,_,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
-					# (old,rho,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
+					# (consSelUpd,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,vst) 		= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		(VBlank, VValue (RIGHT ny) nmask)
@@ -179,10 +179,10 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid}
 			# nval = VValue ny nmask
 			= case vizType of
 				VEditorUpdate
-					# (consSelUpd,_,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
-					# (old,rho,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					# (new,rhn,vst) 		= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
-					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, rhn, {vst & vizType = VEditorUpdate})
+					# (consSelUpd,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
+					# (old,vst) 		= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					# (new,vst) 		= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+					= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})
 				_
 					= fx oval oval vst //Default case: ignore the new value
 		//Default case
@@ -204,20 +204,18 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 						# errMsg = getErrorMessage currentPath oldM errorMask
 						# hntMsg = getHintMessage currentPath oldM hintMask
 						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = [], optional = optional, hasValue = False, errorMsg = errMsg, hintMsg = hntMsg})]
-						  , 0 //fieldset is always full width (rh = 0)
 						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					_
-						# (viz,rh,vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
+						# (viz,vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
 						//first translate any labels.. then determine errors
 						# errMsg = getErrorMessage currentPath oldM errorMask
 						# hntMsg = getHintMessage currentPath oldM hintMask
 						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = coerceToTUIDefs viz, optional = optional, hasValue = True, errorMsg = errMsg, hintMsg = hntMsg})]
-						  , 0 //fieldset is always full width (rh = 0)
-						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
+						 , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 			//ADT's
 			| otherwise
-				# (viz,rh,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath}
-				= (viz,rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex= d.gcd_index})
+				# (viz,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath}
+				= (viz,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex= d.gcd_index})
 		//Structure update
 		VEditorUpdate
 			// records
@@ -225,43 +223,46 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 				= case (old,new) of 
 					(VValue (CONS ox) omask, VBlank)
 						// remove components
-						# (viz,rh,vst=:{valid}) = fx (VValue ox omask) (VValue ox omask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:(determineRemovals viz)],rh,{VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});
+						# (viz,vst=:{valid}) = fx (VValue ox omask) (VValue ox omask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
+						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:(determineRemovals viz)]
+						, {VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 					(VBlank, VValue (CONS nx) nmask)
 						// add components
-						# (viz,rh,vst=:{valid}) = fx (VValue nx nmask) (VValue nx nmask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:(determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz)],rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});				
+						# (viz,vst=:{valid}) = fx (VValue nx nmask) (VValue nx nmask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
+						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:(determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz)]
+						, {VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});				
 					(VValue (CONS ox) omask, VValue (CONS nx) nmask) 
-						# (vizBody,rh, vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False} 
-						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:vizBody], 0, {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
+						# (vizBody,vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False} 
+						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:vizBody]
+						, {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 					_
-						= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})
+						= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 			//ADT's
 			| otherwise
-				# (viz,rh,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask:viz],rh,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
+				# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask:viz],{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
 		//Cons selector	update	
-		VConsSelectorUpdate = (consSelectorUpdate new, undef, vst)
+		VConsSelectorUpdate = (consSelectorUpdate new, vst)
 		//Html display vizualization
 		VHtmlDisplay
 			= case (old,new) of
 				(VValue (CONS ox) omask, VValue (CONS nx) nmask)
-					# (vizBody,rh, vst) = fx (VValue ox omask) (VValue nx nmask) {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
+					# (vizBody,vst) = fx (VValue ox omask) (VValue nx nmask) {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
 					//Records
 					| not (isEmpty d.gcd_fields) 
-						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]],rh,{VSt|vst & currentPath = stepDataPath currentPath})
+						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]], {VSt|vst & currentPath = stepDataPath currentPath})
 					//Normal ADT's
 					| otherwise
-						= (vizCons ++ [TextFragment " "] ++ vizBody,rh,{VSt|vst & currentPath = stepDataPath currentPath})
+						= (vizCons ++ [TextFragment " "] ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
 				_
-					= ([],0,{VSt|vst & currentPath = stepDataPath currentPath})
+					= ([],{VSt|vst & currentPath = stepDataPath currentPath})
 		//Other visualizations
 		_	
-			# (viz,rh,vst) = fx oldV newV {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
-			= (viz,0,{VSt|vst & currentPath = stepDataPath currentPath})
+			# (viz,vst) = fx oldV newV {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
+			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
 where
-	oldV = case old of (VValue (CONS ox) omask) = VValue ox omask; _ = VBlank
-	newV = case new of (VValue (CONS nx) nmask) = VValue nx nmask; _ = VBlank  
+	oldV 	= case old of (VValue (CONS ox) omask) = VValue ox omask; _ = VBlank
+	newV 	= case new of (VValue (CONS nx) nmask) = VValue nx nmask; _ = VBlank  
 	oldM	= case old of (VValue _ omask) = omask ; _ = []
 	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 	
@@ -288,7 +289,7 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 	| d.gtd_num_conses > 1
 		= case vizType of 
 			VEditorDefinition
-				# (items,rh,vst=:{selectedConsIndex}) 	= fx oldV newV {vst & useLabels = False, optional = False}
+				# (items,vst=:{selectedConsIndex}) 	= fx oldV newV {vst & useLabels = False, optional = False}
 				# consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
 				# errMsg = getErrorMessage currentPath  oldM errorMask
 				# hntMsg = getHintMessage currentPath oldM hintMask
@@ -303,22 +304,19 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 														, errorMsg = errMsg
 														, hintMsg = hntMsg
 														})]
-				  ,0
 				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional, valid= if optional True (isMasked currentPath oldM)})
 			VEditorUpdate
 				| not (isMasked currentPath newM) //reset the constructor
-				# (rem,rh,vst=:{valid})	= fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath}
+				# (rem,vst=:{valid})	= fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath}
 				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask, TUIUpdate (TUISetValue cId ""):determineRemovals rem]
-					,rh
 					,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, valid = isOptional valid})		
 				| otherwise
-				# (upd,rh,vst=:{valid}) = fx oldV newV {vst & useLabels = False, optional = False}
+				# (upd,vst=:{valid}) = fx oldV newV {vst & useLabels = False, optional = False}
 				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask:upd]
-					,rh
 					,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, valid = hasErrors currentPath newM errorMask valid, optional = optional})			
 			_
-				# (viz,rh,vst) = fx oldV newV vst
-				= (viz,rh,{VSt | vst & currentPath = stepDataPath currentPath})
+				# (viz,vst) = fx oldV newV vst
+				= (viz,{VSt | vst & currentPath = stepDataPath currentPath})
 	//Everything else
 	| otherwise
 		= case (old,new) of
@@ -350,14 +348,14 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType,hintMask,errorMask,currentPath
 		(VValue (FIELD ox) omask, VValue (FIELD nx) nmask)
 			= case vizType of
 				VHtmlDisplay
-					# (vizBody,rh,vst) 	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Nothing}
-					= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],rh,{VSt | vst & label = Nothing})
+					# (vizBody,vst) 	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Nothing}
+					= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
 				VTextDisplay
-					# (vizBody,rh,vst) 	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
-					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody],rh, {VSt | vst & label = Nothing})
+					# (vizBody,vst) 	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
+					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody], {VSt | vst & label = Nothing})
 				_
-					# (vizBody,rh,vst)	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
-					= (vizBody,rh, {VSt | vst & label = Nothing})
+					# (vizBody,vst)	= fx (VValue ox omask) (VValue nx nmask) {VSt |vst & label = Just (formatLabel d.gfd_name)}
+					= (vizBody, {VSt | vst & label = Nothing})
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
@@ -367,17 +365,15 @@ gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,opt
 			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)								
 			# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
 			= ([TUIFragment (TUIIntControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
 			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
 			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath newM hintMask:upd]
 			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath newM errorMask:upd]
-			= (upd, 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			= (upd, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_	
 			= ([TextFragment (toString old)]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
@@ -393,17 +389,15 @@ gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,op
 		# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
 		# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
 		= ([TUIFragment (TUIRealControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-			, 1
 			, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
 			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
 			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath newM hintMask:upd]
 			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath newM errorMask:upd]
-			= (upd, 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			= (upd, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_					
 			= ([TextFragment (toString old)]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
@@ -419,17 +413,15 @@ gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,op
 			# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
 			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
 			= ([TUIFragment (TUICharControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
 			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
 			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath newM hintMask: upd]
 			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath newM errorMask:upd]
-			= (upd, 1, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			= (upd, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_		
 			= ([TextFragment (toString old)]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
@@ -445,7 +437,6 @@ gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,op
 			# errMsg = if (renderAsStatic) "" (getErrorMessage currentPath oldM errorMask)
 			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
 			= ([TUIFragment (TUIBoolControl {TUIBasicControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
@@ -453,11 +444,9 @@ gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,op
 			# err = getErrorUpdate id currentPath newM errorMask
 			# hnt = getHintUpdate id currentPath  newM hintMask
 			= ([err,hnt:upd]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 		_	
 			= ([TextFragment (toString old)]
-				, 1
 				, {VSt|vst & currentPath = stepDataPath currentPath})		
 where
 	id			= dp2id idPrefix currentPath
@@ -476,7 +465,6 @@ gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,
 		# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
 		# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
 		=	([TUIFragment (TUIStringControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-			, 3
 			, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
@@ -484,11 +472,9 @@ gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,
 			# err = getErrorUpdate id currentPath newM errorMask
 			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]		
-				, 3
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_			
 			=	([TextFragment (toString old)]
-				, 3
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 where
 	id		= dp2id idPrefix currentPath
@@ -504,58 +490,57 @@ gVisualize{|Maybe|} fx old new vst=:{vizType,idPrefix,currentPath,optional,valid
 			= case (old,new) of
 				(VValue (Just ox) omask, _)
 					# oval = VValue ox omask
-					# (viz, rh, vst) = fx oval oval {VSt|vst & optional = True}
-					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, vst) = fx oval oval {VSt|vst & optional = True}
+					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				_
-					# (viz, rh, vst) = fx VBlank VBlank {VSt|vst & optional = True}
-					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, vst) = fx VBlank VBlank {VSt|vst & optional = True}
+					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 		VEditorUpdate
 			= case (old,new) of
 				(VValue (Just ox) omask, VValue (Just nx) nmask)
-					# (viz, rh, vst) = fx (VValue ox omask) (VValue nx nmask) {VSt|vst & optional = True}
-					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, vst) = fx (VValue ox omask) (VValue nx nmask) {VSt|vst & optional = True}
+					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				(VValue (Just ox) omask, VValue Nothing nmask)
-					# (viz, rh, vst) = fx (VValue ox omask) VBlank {VSt|vst & optional = True}
-					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, vst) = fx (VValue ox omask) VBlank {VSt|vst & optional = True}
+					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				(VValue Nothing omask, VValue (Just nx) nmask)
-					# (viz, rh, vst) = fx VBlank (VValue nx nmask) {VSt|vst & optional = True}
-					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, vst) = fx VBlank (VValue nx nmask) {VSt|vst & optional = True}
+					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 				_
-					# (viz, rh, vst) = fx VBlank VBlank {VSt|vst & optional = True}
-					= (viz, rh, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
+					# (viz, vst) = fx VBlank VBlank {VSt|vst & optional = True}
+					= (viz, {VSt|vst & optional = optional, currentPath = stepDataPath currentPath})
 		_			
 			= case old of
-				(VValue Nothing m)	= ([TextFragment "-"],0,vst)
+				(VValue Nothing m)	= ([TextFragment "-"],vst)
 				(VValue (Just x) m)	= fx (VValue x m) (VValue x m) vst
-				VBlank				= ([],0,vst)
+				VBlank				= ([],vst)
 where
 	pathid = dp2id idPrefix currentPath		
 
 gVisualize{|Dynamic|} old new vst
-	= ([],0,vst)
+	= ([],vst)
 
 gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional}
 	= case vizType of
 		VEditorDefinition
 			# oldLabels = useLabels
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
-			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			# (viz2,rh2,vst) = f2 v2 v2 vst
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (viz2,vst) = f2 v2 v2 vst
 			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, definitions = [coerceToTUIDefs viz1, coerceToTUIDefs viz2]})]		 
-			  , 0
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2) omask, VValue(n1,n2) nmask)
 					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					= (viz1 ++ separator ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
+					= (viz1 ++ separator ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
-					# (viz2,rh2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ separator ++ viz2,6,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
+					# (viz2,vst) = f2 VBlank VBlank vst
+					= (viz1 ++ separator ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 where
 	separator = case vizType of
 		VHtmlDisplay	= []
@@ -566,26 +551,25 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 		VEditorDefinition
 			# oldLabels = useLabels
 			# (v1,v2,v3) = case old of (VValue (o1,o2,o3) omask) = (VValue o1 omask, VValue o2 omask, VValue o3 omask) ; _ = (VBlank,VBlank,VBlank)
-			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			# (viz2,rh2,vst) = f2 v2 v2 vst
-			# (viz3,rh3,vst) = f3 v3 v3 vst
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (viz2,vst) = f2 v2 v2 vst
+			# (viz3,vst) = f3 v3 v3 vst
 			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, definitions = [coerceToTUIDefs viz1,coerceToTUIDefs viz2,coerceToTUIDefs viz3]})]			 
-			  , 0
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels=oldLabels})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2,o3) omask, VValue(n1,n2,n3) nmask)
 					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					# (viz3,rh3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
-					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
+					# (viz3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
-					# (viz2,rh2,vst) = f2 VBlank VBlank vst
-					# (viz3,rh3,vst) = f3 VBlank VBlank vst
-					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
+					# (viz2,vst) = f2 VBlank VBlank vst
+					# (viz3,vst) = f3 VBlank VBlank vst
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 where
 	separator = case vizType of
 		VHtmlDisplay	= []
@@ -597,146 +581,112 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 		VEditorDefinition
 			# oldLabels = useLabels
 			# (v1,v2,v3,v4) = case old of (VValue (o1,o2,o3,o4) omask) = (VValue o1 omask, VValue o2 omask, VValue o3 omask,VValue o4 omask) ; _ = (VBlank,VBlank,VBlank,VBlank)
-			# (viz1,rh1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			# (viz2,rh2,vst) = f2 v2 v2 vst
-			# (viz3,rh3,vst) = f3 v3 v3 vst
-			# (viz4,rh4,vst) = f4 v4 v4 vst
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (viz2,vst) = f2 v2 v2 vst
+			# (viz3,vst) = f3 v3 v3 vst
+			# (viz4,vst) = f4 v4 v4 vst
 			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, definitions = [coerceToTUIDefs viz1,coerceToTUIDefs viz2,coerceToTUIDefs viz3,coerceToTUIDefs viz4]})]			 
-			  , 0
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
 				(VValue (o1,o2,o3,o4) omask, VValue(n1,n2,n3,n4) nmask)
 					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-					# (viz2,rh2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
-					# (viz3,rh3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
-					# (viz4,rh4,vst) = f4 (VValue o4 omask) (VValue n4 nmask) vst
-					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3 ++ separator ++ viz4,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					# (viz1,vst) = f1 (VValue o1 omask) (VValue n1 nmask) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+					# (viz2,vst) = f2 (VValue o2 omask) (VValue n2 nmask) vst
+					# (viz3,vst) = f3 (VValue o3 omask) (VValue n3 nmask) vst
+					# (viz4,vst) = f4 (VValue o4 omask) (VValue n4 nmask) vst
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3 ++ separator ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 				_
 					# oldLabels = useLabels
-					# (viz1,rh1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
-					# (viz2,rh2,vst) = f2 VBlank VBlank vst
-					# (viz3,rh3,vst) = f3 VBlank VBlank vst
-					# (viz4,rh4,vst) = f4 VBlank VBlank vst
-					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3 ++ separator ++ viz4,4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
+					# (viz2,vst) = f2 VBlank VBlank vst
+					# (viz3,vst) = f3 VBlank VBlank vst
+					# (viz4,vst) = f4 VBlank VBlank vst
+					= (viz1 ++ separator ++ viz2 ++ separator ++ viz3 ++ separator ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
 where
 	separator = case vizType of
 		VHtmlDisplay	= []
 		_				= [TextFragment ", "]
-	
-gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,listMask,renderAsStatic}
-	= case vizType of		
+
+import StdDebug
+
+gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,listMask, renderAsStatic, errorMask, hintMask}
+	= case vizType of
 		VEditorDefinition
-			= case old of
-				(VValue [] omask)
-					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s (dataPathSetConsFlag currentPath), id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					  0,
-					  {VSt | vst & currentPath = stepDataPath currentPath}) 
-				(VValue ov omask)
-					# (viz,rh,vst) = vizEditor fx ov omask 0 (dp2id idPrefix currentPath) (dp2s (dataPathSetConsFlag currentPath)) {VSt | vst & currentPath = shiftDataPath currentPath, vizType=VEditorDefinition}
-					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s (dataPathSetConsFlag currentPath), id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					  0,
-					  {VSt | vst & currentPath = stepDataPath currentPath})
-				(VBlank)
-					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s (dataPathSetConsFlag currentPath), id= dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					  0,
-					  {VSt | vst & currentPath = stepDataPath currentPath})
+			# errMsg 		= getErrorMessage currentPath oldM errorMask
+			# hntMsg 		= getHintMessage currentPath oldM hintMask
+			# (items,vst) 	= TUIDef fx oldV oldM 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, name = name, id = id, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+			  {VSt | vst & currentPath = stepDataPath currentPath, label = label, useLabels = useLabels})
 		VEditorUpdate
-			= case (old,new) of
-				(_, VBlank) 
-					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s (dataPathSetConsFlag currentPath), id= dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					0,
-					{VSt | vst & currentPath = stepDataPath currentPath})
-				(VBlank,(VValue nv nmask)) 
-					# (viz, rh, vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s (dataPathSetConsFlag currentPath)) {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, optional = False}
-					# vst = {VSt | vst & optional = optional}
-					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s (dataPathSetConsFlag currentPath), id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					  0,
-					  {VSt | vst & currentPath = stepDataPath currentPath})
-				(VValue [] omask, VValue nv nmask)
-					# (viz, rh, vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s (dataPathSetConsFlag currentPath)) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorDefinition, optional=False}
-					# vst = {VSt | vst & optional = optional}
-					= ([TUIFragment (TUIList {TUIList | items = viz, name = dp2s (dataPathSetConsFlag currentPath), id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					  0,
-					  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})
-				(VValue ov omask, VValue [] nmask)
-					= ([TUIFragment (TUIList {TUIList | items = [], name = dp2s (dataPathSetConsFlag currentPath), id = dp2id idPrefix currentPath, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic})],
-					  0,
-					  {VSt | vst & currentPath = stepDataPath currentPath})  
-				(VValue ov omask, VValue nv nmask)						
-					# (nupd,rh,vst) = vizUpdate fx ov nv omask nmask {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorUpdate}
-					# (nviz,rh,vst) = vizEditor fx nv nmask 0 (dp2id idPrefix currentPath) (dp2s (dataPathSetConsFlag currentPath)) {VSt | vst & currentPath = shiftDataPath currentPath, vizType = VEditorDefinition, optional=False}
-					# vst			= {VSt | vst & optional = optional, useLabels = useLabels, label = label}
-					# lo			= length ov
-					# ln  			= length nv
-					# (lmask,idx)	= updateListMask listMask currentPath
-					# idx 		 	= [x \\ x <- idx | x < length ov && x < length nv]
-					# rplc 		 	= determineReplacements nviz idx
-					# rem  			= determineRemovals lo ln (dp2id idPrefix currentPath)
-					# add  		 	= determineAdditions nviz lo ln (dp2id idPrefix currentPath)
-					= (nupd++rplc++add++rem,0,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate})	
+			# (updates,vst) 	= TUIUpd fx oldV newV oldM newM {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (newDefs,vst=:{valid})	= TUIDef fx newV newM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (oldDefs,vst)				= TUIDef fx oldV oldM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (replacements)			= determineChanges oldDefs newDefs 0
+			= (replacements ++ updates,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=valid})
 		VHtmlDisplay
-			= case old of
-				(VValue [] omask)
-					= ([HtmlFragment [ITag [] [(Text "Empty list")]]],0,{VSt | vst & currentPath = stepDataPath currentPath})
-				(VValue ov omask)
-					# (viz,rh,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
-					= ([HtmlFragment [UlTag [ClassAttr "listDisplay"] [(LiTag [ClassAttr "listDisplay"] (flatten (coerceToHtml x))) \\ x <- viz]]],0,{VSt | vst & currentPath = stepDataPath currentPath})
-				(VBlank)
-					= ([HtmlFragment [(Text "-")]],0,{VSt | vst & currentPath = stepDataPath currentPath})	
+			= case oldV of
+				[] 
+					= ([HtmlFragment [UlTag [] [LiTag [ClassAttr "list-item-light"] [(Text "Empty list")]]]],{VSt | vst & currentPath = stepDataPath currentPath})
+				_		
+					# (items,vst) = staticDef fx oldV oldM {VSt | vst & currentPath = shiftDataPath currentPath}
+					= ([HtmlFragment [UlTag [] [(LiTag [ClassAttr (itemCls i)] (flatten (coerceToHtml x))) \\ x <- items & i <- [0..]]]],{VSt | vst & currentPath = stepDataPath currentPath})
+		VTextDisplay
+			= case oldV of
+				[]
+					= ([TextFragment "[]"],{VSt | vst & currentPath = stepDataPath currentPath})
+				_
+					# (items,vst) = staticDef fx oldV oldM {VSt | vst & currentPath = shiftDataPath currentPath}
+					= ([TextFragment ("["+++join ", " (flatten  [(coerceToStrings x) \\ x <-items])+++"]")],{VSt | vst & currentPath = stepDataPath currentPath})
 		_
-			= case old of
-				(VValue [] omask)
-					= ([TextFragment "Empty list"],0,{VSt | vst & currentPath = stepDataPath currentPath})
-				(VValue ov omask)
-					# (viz,rh,vst) = vizStatic fx ov omask {VSt | vst & currentPath = shiftDataPath currentPath}
-					# strings      = flatten [(coerceToStrings x) \\ x <-viz]
-					= ([TextFragment (toTextFrag strings)],0,{VSt | vst & currentPath = stepDataPath currentPath})
-				(VBlank)
-					= ([TextFragment "-"],0,{VSt | vst & currentPath = stepDataPath currentPath})	 					
+			= ([],
+			  {VSt | vst & currentPath = stepDataPath currentPath})
 where
-	vizEditor fx []     mask index pfx name vst = ([],[],vst)
-	vizEditor fx [x:xs] mask index pfx name vst=:{label,useLabels}
-	# (vx,rh,vst) 	= fx (VValue x mask) (VValue x mask) {VSt | vst & label = Nothing, useLabels = False} //Don't display any labels.
-	# tx			= (TUIListItem {TUIListItem | items=coerceToTUIDefs vx, index=index, name = name, id=pfx+++"_"+++toString index})
-	# (txs,rhs,vst)	= vizEditor fx xs mask (index+1) pfx name vst
-	= ([tx:txs],[rh:rhs],{VSt | vst & label = label, useLabels = useLabels})
-	
-	vizUpdate fx [o:os] [n:ns] omask nmask vst
-		# (ux,rh,vst)   = fx (VValue o omask) (VValue n nmask) {VSt | vst & label = Nothing, useLabels = False}
-		# (uxs,rhs,vst) = vizUpdate fx os ns omask nmask vst
-		= (ux ++ uxs,[rh:rhs],vst)
-	vizUpdate fx _      _      omask nmask vst = ([],[],vst)
+	oldV = case old of (VValue ol om) = ol; _ = []
+	oldM = case old of (VValue ol om) = om; _ = []
+	newV = case new of (VValue nl nm) = nl; _ = []
+	newM = case new of (VValue nl nm) = nm; _ = []
+
+	id 			= dp2id idPrefix currentPath
+	name 		= (dp2s (dataPathSetConsFlag currentPath))
+	itemId idx 	= id+++"#"+++toString idx
+
+	itemCls i
+		| isEven i  = "list-item-light"
+		| otherwise = "list-item-dark"
+
+	TUIDef fx []     om idx vst=:{VSt | optional}
+		| renderAsStatic
+		= ([],vst)
+		| otherwise
+		# (dx,vst)  = fx VBlank VBlank {VSt | vst & optional = True}
+		= ([TUIListItemControl {TUIListItemControl | name = name, id=itemId idx, index = idx, items = coerceToTUIDefs dx}],{VSt | vst & optional = optional})
+	TUIDef fx [x:xs] om idx vst
+		# (dx, vst) = fx (VValue x om) (VValue x om) vst
+		# (dxs,vst) = TUIDef fx xs om (inc idx) vst
+		= ([TUIListItemControl {TUIListItemControl | name = name, id=itemId idx, index = idx, items = coerceToTUIDefs dx}:dxs],vst)
 		
-	vizStatic fx []     mask vst = ([],[],vst)
-	vizStatic fx [x:xs] mask vst
-	# (vx,rh,vst)   = fx (VValue x mask) (VValue x mask) {VSt | vst & label = Nothing, useLabels = False}
-	# (vxs,rhs,vst) = vizStatic fx xs mask vst
-	= ([vx:vxs],[rh:rhs],vst)
+	TUIUpd fx [o:os] [n:ns] om nm vst
+		# (u,  vst) = fx (VValue o om) (VValue n nm) vst
+		# (us, vst) = TUIUpd fx os ns om nm vst
+		= (u++us,vst)
+	TUIUpd _  _      _      _  _  vst = ([],vst)
 	
-	toTextFrag [] = ""
-	toTextFrag [x] = x
-	toTextFrag [x:xs] = x+++","+++toTextFrag xs
-
-	determineReplacements items [] = []
-	determineReplacements items idx
-		# list = [item \\ item <- items & i <- [0..] | isMember i  idx]
-		= [TUIUpdate (TUIReplace (fromJust(getId x)) x) \\ x <- list | isJust (getId x)]
+	staticDef fx []     om vst = ([],vst)
+	staticDef fx [o:os] om vst
+		# (hx, vst) = fx (VValue o om) (VValue o om) vst
+		# (hxs,vst) = staticDef fx os om vst
+		= ([hx:hxs],vst);
+			
+	determineChanges []     []     idx = []
+	determineChanges [o:os] []     idx = [TUIUpdate (TUIRemove (itemId idx)):determineChanges os [] (idx+1)]
+	determineChanges []     [n:ns] idx = [TUIUpdate (TUIAdd (itemId (idx-1)) n):determineChanges [] ns (idx+1)]
+	determineChanges [o:os] [n:ns] idx
+		| o =!= n   = [TUIUpdate (TUIReplace (fromJust (getId n)) n):determineChanges os ns (idx+1)]
+		| otherwise = determineChanges os ns (idx+1)
 	
-	determineRemovals lo ln pfx
-	| lo > ln
-		# idx = [ln..(lo-1)]
-		= [TUIUpdate (TUIRemove (pfx+++"_"+++toString x)) \\ x <- idx]
-	| otherwise = []
+import StdDebug
 	
-	determineAdditions nviz lo ln pfx
-	| lo < ln
-		# el = [x \\ x <- nviz & i <- [0..] | i >= lo]
-		= [TUIUpdate (TUIAdd (pfx+++"_"+++toString(lo-1)) x) \\ x <- (reverse el)]
-	| otherwise = []
-
-
 //Document Type
 gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, errorMask, hintMask}
 = case vizType of
@@ -749,7 +699,6 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 					# downLink = ATag [HrefAttr (buildLink info),TargetAttr "_blank",IdAttr (dp2id idPrefix currentPath),NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
 					# prevLink = ATag [HrefAttr "#", IdAttr (dp2id idPrefix currentPath), NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
 					= ([HtmlFragment [(Text (info.fileName+++" ("+++printByteSize info.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
-				  		3,
 				  		{VSt | vst & currentPath = stepDataPath currentPath})
 	VTextDisplay
 		= case old of
@@ -757,31 +706,26 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 			(VValue {content} omask) = case content of
 				EmptyDocument			= noDocument vst
 				(DocumentContent info)	= ([TextFragment info.fileName],
-				  							3,
 			 	  							{VSt | vst & currentPath = stepDataPath currentPath})
-	_ 
-		= case new of 
-			(VValue nval=:{content} nmask)			
-				# errMsg = getErrorMessage currentPath nmask errorMask
-				# hntMsg = getHintMessage currentPath nmask hintMask
-				= ([TUIFragment (TUIDocumentControl {TUIDocumentControl | id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString (toJSON nval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
-				  4,
-				  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval currentPath nmask errorMask optional valid})
-			(VBlank)
-				= case old of
-					(VValue oval=:{content} omask)
-						# errMsg = getErrorMessage currentPath omask errorMask
-						# hntMsg = getHintMessage currentPath omask hintMask
-						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString (toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
-						4,
-						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath omask errorMask optional valid})
-					(VBlank)
-						# errMsg = getErrorMessage currentPath [] errorMask
-						# hntMsg = getHintMessage currentPath [] hintMask
-						= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString (toJSON emptyDoc), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
-						4,
-						{VSt | vst & currentPath = stepDataPath currentPath, valid = isValid emptyDoc currentPath [] errorMask optional valid})	
+	VEditorDefinition
+		# errMsg = getErrorMessage currentPath omask errorMask
+		# hntMsg = getHintMessage currentPath omask hintMask
+		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString(toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath omask errorMask optional valid})
+	VEditorUpdate
+		| oval =!= nval
+		# errMsg = getErrorMessage currentPath nmask errorMask
+		# hntMsg = getHintMessage currentPath nmask hintMask
+		= ([TUIUpdate (TUISetValue (dp2id idPrefix currentPath) (toString (toJSON nval)))],
+		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval currentPath nmask errorMask optional valid})
+		| otherwise = ([],{VSt | vst & currentPath = stepDataPath currentPath})
 where
+	oval = case old of (VValue o om) = o; _ = emptyDoc
+	nval = case new of (VValue n nm) = n; _ = emptyDoc
+	
+	omask = case old of (VValue o om) = om; _ = []
+	nmask = case new of (VValue n nm) = nm; _ = []
+	
 	fixReal r = (toReal (toInt (r*100.0)))/100.0
 		
 	printByteSize size
@@ -789,7 +733,7 @@ where
 	| size >= 1024    = toString (fixReal ((toReal size)/(toReal 1024)))+++" Kbyte"
 	| otherwise 	  = toString size +++ " byte"
 	
-	noDocument vst = ([TextFragment "No Document."],2,vst)
+	noDocument vst = ([TextFragment "No Document."],vst)
 	buildLink info
 		# location = case info.dataLocation of
 			LocalLocation taskId	= taskId
@@ -804,23 +748,23 @@ where
 
 //Hidden type
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
-	= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})
+	= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 
 gVisualize{|HtmlDisplay|} fx old new vst=:{VSt | origVizType, vizType, currentPath, renderAsStatic}
 	= case origVizType of
 		VHtmlDisplay
-			# (def,rh,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-			= (def,rh,{VSt | vst & currentPath = stepDataPath currentPath})
+			# (def,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			= (def,{VSt | vst & currentPath = stepDataPath currentPath})
 		_
-			# (def,rh,vst) = fx oldV newV {VSt | vst &  renderAsStatic = True, currentPath = shiftDataPath currentPath}
-			= (def,rh,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+			# (def,vst) = fx oldV newV {VSt | vst &  renderAsStatic = True, currentPath = shiftDataPath currentPath}
+			= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 where 
 	oldV = case old of (VValue (HtmlDisplay ov) om) = (VValue ov om); _ = VBlank
 	newV = case new of (VValue (HtmlDisplay nv) nm) = (VValue nv nm); _ = VBlank
 
 gVisualize{|Editable|} fx old new vst=:{VSt | vizType, currentPath, renderAsStatic}
-	# (def,rh,vst) = fx oldV newV {VSt | vst & renderAsStatic = False, currentPath = shiftDataPath currentPath}
-	= (def,rh,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+	# (def,vst) = fx oldV newV {VSt | vst & renderAsStatic = False, currentPath = shiftDataPath currentPath}
+	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 where 
 	oldV = case old of (VValue (Editable ov) om) = (VValue ov om); _ = VBlank
 	newV = case new of (VValue (Editable nv) nm) = (VValue nv nm); _ = VBlank
@@ -830,48 +774,48 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 		VHtmlDisplay
 			= case old of
 				(VValue (VHHidden _) _) 
-					= ([],0,{VSt | vst & currentPath = stepDataPath currentPath})
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 				_
-					# (viz,rh,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, vizType = vizType})
+					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+					= (viz,{vst & currentPath = stepDataPath currentPath, vizType = vizType})
 		VEditorUpdate
 			= case (old,new) of		
 				//_, hidden -> replace with hidden
 				(_,(VValue (VHHidden _) _))
 					# path = shiftDataPath currentPath
 					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
-					  ,0,{VSt | vst & currentPath = stepDataPath currentPath})
+					  ,{VSt | vst & currentPath = stepDataPath currentPath})
 				//hidden, html -> replace with static
 				((VValue (VHHidden _) _),(VValue (VHHtmlDisplay _) _))
-					# (viz,rh,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				//hidden, edit = replace with editable
 				((VValue (VHHidden _) _),(VValue (VHEditable _) _))
-					# (viz,rh,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				//html, edit -> replace
 				((VValue (VHHtmlDisplay _) _),(VValue (VHEditable _) _))
-					# (viz,rh,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				//edit, html -> replace
 				((VValue (VHEditable _) _),(VValue (VHHtmlDisplay _) _))
-					# (viz,rh,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				//_ -> update	
 				_	
-					# (upd,rh,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-					= (upd,rh,{VSt | vst & currentPath = stepDataPath currentPath})	
+					# (upd,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+					= (upd,{VSt | vst & currentPath = stepDataPath currentPath})	
 		_
 			= case old of
 				(VValue (VHHidden _) _)
 					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
-					  ,0,{VSt | vst & currentPath = stepDataPath currentPath})
+					  ,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue (VHHtmlDisplay _) _)
-					# (viz,rh,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = True}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = True}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				(VValue (VHEditable _) _)
-					# (viz,rh,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = False}
-					= (viz,rh,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})			
+					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = False}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})			
 where
 	oldV = case old of (VValue (VHEditable ox) omask) = (VValue ox omask); (VValue (VHHtmlDisplay ox) omask) = (VValue ox omask); _ = VBlank
 	newV = case new of (VValue (VHEditable nx) nmask) = (VValue nx nmask); (VValue (VHHtmlDisplay nx) nmask) = (VValue nx nmask); _ = VBlank
@@ -1019,8 +963,10 @@ getId (TUIUserControl d)		= Just d.TUIBasicControl.id
 getId (TUIPasswordControl d)	= Just d.TUIBasicControl.id
 getId (TUIDocumentControl d)	= Just d.TUIDocumentControl.id
 getId (TUIConstructorControl d)	= Just d.TUIConstructorControl.id
+getId (TUIListItemControl d)	= Just d.TUIListItemControl.id
 getId (TUITupleContainer d)		= Just d.TUITupleContainer.id
 getId (TUIRecordContainer d)	= Just d.TUIRecordContainer.id
+getId (TUIListContainer d)		= Just d.TUIListContainer.id
 
 getId (TUILabel)				= Nothing
 getId (TUIButton d)				= Just d.TUIButton.id
@@ -1038,8 +984,6 @@ getId (TUIFieldSet d)			= Just d.TUIFieldSet.id
 getId (TUIPanel d)				= Nothing
 getId (TUIBox d)				= Nothing
 getId (TUIHtmlPanel d)			= Just d.TUIHtmlPanel.id
-getId (TUIList d)				= Just d.TUIList.id
-getId (TUIListItem d)			= Just d.TUIListItem.id
 getId (TUICustom d)				= Nothing
 getId (TUITuple d)				= Just d.TUITuple.id
 getId _							= abort "unknown TUI Definition"

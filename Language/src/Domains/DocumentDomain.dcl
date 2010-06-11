@@ -3,10 +3,10 @@ definition module DocumentDomain
 import GenVisualize, GenUpdate, GenParse, GenPrint
 from Types import :: Document {..}, :: Task
 
-derive gUpdate PDFDocument, ImageDocument, TextDocument
-derive gVisualize PDFDocument, ImageDocument, TextDocument
-derive gParse PDFDocument, ImageDocument, TextDocument
-derive gPrint PDFDocument, ImageDocument, TextDocument
+//derive gUpdate PDFDocument, ImageDocument, TextDocument
+//derive gVisualize PDFDocument, ImageDocument, TextDocument
+//derive gParse PDFDocument, ImageDocument, TextDocument
+//derive gPrint PDFDocument, ImageDocument, TextDocument
 
 :: PDFDocument = PDFDocument Document
 :: ImageDocument = ImageDocument Document

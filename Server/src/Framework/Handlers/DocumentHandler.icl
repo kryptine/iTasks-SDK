@@ -15,12 +15,13 @@ handleDocumentUploadRequest req tst
 	# name		= http_getValue "_name" req.arg_post ""
 	# fname		= last (split "\\" upl.upl_filename)
 	# (doc,tst)	= updateDocument (fromJust mbDoc) fname upl.upl_mimetype taskId upl.upl_content tst
-	# new_post  = [(name,toString (toJSON doc)):req.arg_post]
-	# tst		= {TSt | tst & request = {req & arg_post = new_post}}
+	//# new_post  = [(name,toString (toJSON doc)):req.arg_post]
+	//# tst		= {TSt | tst & request = {req & arg_post = new_post}}
 	// update tasks
-	# procId			= http_getValue "_maintask" req.arg_post "0"
-	# tst				= updateTasks procId tst
-	= (successResponse,tst)
+	//# procId			= http_getValue "_maintask" req.arg_post "0"
+	//# tst				= updateTasks procId tst
+	//= (successResponse,tst)
+	= (docInfoResponse doc,tst)
 
 //used to clear a document after trash button is clicked
 handleDocumentClearRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
@@ -29,13 +30,14 @@ handleDocumentClearRequest req tst
 	# (res,tst)	= case mbDoc of
 		(Just doc)
 			# (doc,tst) = clearDocument doc tst
-			# name		= http_getValue "_name" req.arg_post ""
-			# new_post  = [(name,toString (toJSON doc)):req.arg_post]
-			= (successResponse,{tst & request = {req & arg_post = new_post}})
+			//# name		= http_getValue "_name" req.arg_post ""
+			//# new_post  = [(name,toString (toJSON doc)):req.arg_post]
+			//= (successResponse,{tst & request = {req & arg_post = new_post}})
+			= (docInfoResponse "",tst)
 		_ = (errorResponse "Cannot parse document information.",tst)
 	// update tasks
-	# procId			= http_getValue "_maintask" req.arg_post "0"
-	# tst				= updateTasks procId tst
+	//# procId			= http_getValue "_maintask" req.arg_post "0"
+	//# tst				= updateTasks procId tst
 	= (res,tst)
 
 //used to download documents through the download button
@@ -78,6 +80,10 @@ handleDocumentLinkRequest req asAttachment tst
 		Nothing						= notFoundResponse req tst
 		
 // === UTILITY ===
+docInfoResponse doc =
+	let response = "{\"success\":true, \"docInfo\":"+++toString (toJSON doc)+++"}" in
+	okResponse "text/html" (size response) Nothing response
+
 okResponse mimeType length disposition data =
 	{ rsp_headers =	[ ("Status", "200 OK")
 					, ("Content-Type", mimeType)

@@ -124,8 +124,6 @@ Ext.apply(Ext.form.MessageTargets.side, {
 		if(field.errIcon){
 			field.errIcon.dom.qtip = '';
 			field.errIcon.hide();
-		}else{
-			field.el.dom.title = '';
 		}
 	},
 	
@@ -157,8 +155,6 @@ Ext.apply(Ext.form.MessageTargets.side, {
 		if(field.hintIcon){
 			field.hintIcon.dom.qtip = '';
 			field.hintIcon.hide();
-		}else{
-			field.el.dom.title = '';
 		}
 	}	
 });

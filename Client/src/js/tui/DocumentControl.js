@@ -73,6 +73,18 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 			this.uploadPanel.setHint(msg);
 			this.downloadPanel.setHint(msg);
 		}).defer(50,this);
+	},
+	
+	setValue: function(docInfo){
+		if(!this.rendered) return;
+		
+		this.docInfo = Ext.decode(docInfo)
+		
+		if(this.docInfo.content == "EmptyDocument"){
+			this.showUploadPanel(false);
+		}else{
+			this.showDownloadPanel(false);
+		}
 	}
 });
 
@@ -251,9 +263,17 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 		form.getForm().submit({
 			url: itasks.config.serverUrl+"/document/clear",
 			params: params,
-			success: function() { wt.refresh(); },
+			success: function(form,response) { //wt.refresh();
+						var resp = Ext.decode(response.response.responseText);
+						tf.addUpdate(dp.name,"");
+						tf.sendUpdates(false);
+			},
 			failure: function() { itasks.app.restart("Document transaction failed"); return; }
 		});
+	},
+	
+	setValue: function(docInfo){
+		this.ownerCt.setValue(docInfo);
 	}
 });
 
@@ -337,7 +357,9 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 		var tf = this.findParentByType(itasks.ttc.FormContainer);
 		var wt = this.findParentByType("itasks.work");
 		var dp = this.findParentByType("itasks.tui.Document");
-						
+			
+
+			
 		if(form.getForm().isValid()){				
 			form.getForm().submit({
 				url: itasks.config.serverUrl+"/document/upload",
@@ -353,7 +375,9 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 				waitMsg: 'Uploading document. Please wait..',
 				success: function(form,response)
 					{
-						wt.refresh();
+						var resp = Ext.decode(response.response.responseText);
+						tf.addUpdate(dp.name,Ext.encode(resp.docInfo));
+						tf.sendUpdates(false);
 					},
 				failure: function(form,response)
 					{
@@ -367,6 +391,10 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 	cancelButtonHandler: function(src,evt){
 		var form = this.findParentByType('itasks.tui.Document');
 		form.showDownloadPanel(false);
+	},
+	
+	setValue: function(docInfo){
+		this.ownerCt.setValue(docInfo);
 	}
 });
 

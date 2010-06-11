@@ -7,13 +7,14 @@ import StdList, StdFile, StdArray, Text
 import StdMisc
 import Directory, ExtToMime
 import TSt, DocumentDB
-
+/*
 derive gUpdate PDFDocument, ImageDocument, TextDocument
 derive gParse  PDFDocument, ImageDocument, TextDocument
 derive gPrint  PDFDocument, ImageDocument, TextDocument
-
+*/
 derive bimap (,), Maybe
 
+/*
 gVisualize{|PDFDocument|} old new vst=:{vizType, currentPath, valid}
 = case VEditorUpdate of
 	VEditorUpdate 
@@ -40,7 +41,7 @@ gVisualize{|TextDocument|} old new vst=:{vizType, currentPath, valid}
 = case VEditorUpdate of
 	VEditorUpdate 
 		= case new of
-		VBlank							  = vizDocument VBlank 			  VBlank 		 	"(plain text)" vst
+		VBlank							 = vizDocument VBlank 			  VBlank 		 	"(plain text)" vst
 		(VValue (TextDocument nv) nmask) = vizDocument (VValue nv nmask) (VValue nv nmask) "(plain text)" {VSt | vst & valid = isValid nv.content ["txt"] valid}
 	_	
 		= case old of
@@ -48,17 +49,16 @@ gVisualize{|TextDocument|} old new vst=:{vizType, currentPath, valid}
 		(VValue (TextDocument ov) omask) = vizDocument (VValue ov omask) (VValue ov omask) "(plain text)" {VSt | vst & valid = isValid ov.content ["txt"] valid}
 
 // --- Utility functions for visualize
-vizDocument :: !(VisualizationValue Document) !(VisualizationValue Document) String !*VSt -> ([Visualization],RenderingHint,*VSt)
+vizDocument :: !(VisualizationValue Document) !(VisualizationValue Document) String !*VSt -> ([Visualization],*VSt)
 vizDocument old new desc vst
 	# cp = vst.VSt.currentPath
-	#(viz,rh,vst=:{VSt|label, optional}) = gVisualize{|*|} old new {VSt | vst & currentPath = shiftDataPath cp}
+	#(viz,vst=:{VSt|label, optional}) = gVisualize{|*|} old new {VSt | vst & currentPath = shiftDataPath cp}
 	= case viz of
 		([(TUIFragment tuidef):vs])
-			= ([TUIFragment (TUIPanel {TUIPanel | layout = "", items = [tuidef,(TUIBox {TUIBox|html="<p style=\"margin-left: 3px\">"+++desc})], buttons=Nothing, autoHeight = True, autoWidth = True, border=False, bodyCssClass="", fieldLabel = label2s optional label, renderingHint = rh, unstyled=True})]++vs,
-			  rh,
+			= ([TUIFragment (TUIPanel {TUIPanel | layout = "", items = [tuidef,(TUIBox {TUIBox|html="<p style=\"margin-left: 3px\">"+++desc})], buttons=Nothing, autoHeight = True, autoWidth = True, border=False, bodyCssClass="", fieldLabel = label2s optional label, unstyled=True})]++vs,
 			  {VSt | vst & currentPath = stepDataPath cp})
 		_	
-			= (viz,0,{VSt | vst & currentPath = stepDataPath cp})
+			= (viz,{VSt | vst & currentPath = stepDataPath cp})
 
 isValid :: !DocumentContent [String] Bool -> Bool
 isValid content extList val
@@ -69,6 +69,7 @@ isValid content extList val
 			| isMember (toLowerCase ext) (extList) = val
 			| otherwise			   				   = False
 // ---
+*/
 
 // --- Store and retrieve documents from file system (server side)
 storeDocumentToFile :: Document String -> Task Bool

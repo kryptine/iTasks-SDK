@@ -88,6 +88,7 @@ userStore fn tst=:{TSt|staticInfo,world}
 where
 	readUserFile appName world
 		# (content,world) = readfile (appName +++ "-users.json") world
+		# world = world
 		| content == ""
 			= ([],world)
 		| otherwise

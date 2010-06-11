@@ -447,21 +447,86 @@ div.taskForestLegend{
 /* == ListPanel == */
 
 .list{
-	padding: 2px;
-	background-color: #c0c0c0;
+	position: relative;
+}
+
+.list-sidebar{
+	width: 5px;
+	height: 100%;
+	background-color: transparent none no-repeat scroll 0 0;
+	position: absolute;
+	float: right;
+	top: 0px;
+	right: 0px;
+}
+
+.list-sidebar-collapsed{
+	width: 5px;
+	background-color: #DFE8F6;
+	position: absolute;
+	height: 100%;
+	top: 0px;
+	left: 0px;
+	cursor: pointer;
+	border-left: 1px solid #B9C7DD;
+}
+
+.list-sidebar-expanded{
+	width: 5px;
+	background-color: #DFE8F6;
+	position: absolute;
+	height: 100%;
+	top: 0px;
+	left: 0px;
+	cursor: pointer;
+}
+
+.list-sidebar-bg{
+	background-image: url('img/list-toolbox-background.png') !important;
+	position: absolute;
+	width: 80px;
+	height: 100%;
+	top: 0px;
+	left: 5px;
+	z-index: 20;
+}
+
+.list-sidebar-control{
+	top: 50%;
+	margin-top: -18px
 }
 
 .list-toolbox {
-	padding: 3px;
-	margin: 0px;
-	float: right;
-	background-color: #c0c0c0;
+	background: transparent none repeat-y scroll 0 0;
+	position: absolute;
+	z-index: 40;
+	width: 80px;
+	padding-left: 4px;
+	visibility: hidden;
+	top: -1px;
+	right: -4px;
+	height: 100%;
+	border-bottom: 1px solid #DFE8F6;
 }
 
-.list-item {
-	padding: 2px 0px 0px 4px;
-	background-color: #DDD;
-	border: 1px solid #c0c0c0;
+.list-item-light {
+	padding: 4px 5px 2px 0px;
+	background-image: url('img/light-blue-background.png') !important;
+	position: relative;
+}
+
+.list-item-dark {
+	padding: 4px 6px 2px 0px;
+	background-image: url('img/dark-blue-background.png') !important;
+	position: relative;
+}
+
+.list-item-dark.list-last-item {
+	background-image: url('img/dark-blue-background-hatched.png') !important;
+}
+
+.list-item-light.list-last-item {
+	background-image: url('img/light-blue-background-hatched.png') !important;
 }
 
 .list-toolbox-button{
@@ -469,12 +534,15 @@ div.taskForestLegend{
 	height: 16px;
 }
 
-.list-toolbox-button button{
+.list-toolbox-button /*button*/{
 	color: transparent;
 	background: transparent none repeat scroll 0 0;
 	border: none;
 	width: 16px;
 	height: 16px;
+	margin-top: 4px;
+	float: left;
+	cursor: pointer;
 }
 
 .list-toolbox-button .x-button-click {
@@ -650,7 +718,7 @@ button.x-form-document-trash-icon {
 .x-constructor-panel-mc{
 	padding-top: 4px;
 	padding-bottom: 1px;
-	background-image: url('img/constructor-background.png') !important;
+	background-image: url('img/light-blue-background.png') !important;
 }
 
 /* == Hint & Error Icons == */
@@ -720,3 +788,4 @@ button.x-form-document-trash-icon {
 	z-index: 10;
 	margin-left: 4px;
 }
+

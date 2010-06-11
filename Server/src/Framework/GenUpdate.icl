@@ -27,6 +27,11 @@ updateValue path update a world
 	# (a,_,_,world) = updateValueAndMask path update a [] [] world
 	= (a,world)
 
+updateValueAndListMask :: DataPath String a !*World ->(a,ListMask,!*World) | gUpdate{|*|} a
+updateValueAndListMask path update a world
+	# (a,_,lm,world) = updateValueAndMask path update a [] [] world
+	= (a,lm,world) 
+
 updateValueAndMask :: DataPath String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
 updateValueAndMask path update a mask listMask world	
 	# (a,ust=:{world,mask,listMask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, mask = mask, listMask = listMask, world = world}
@@ -203,52 +208,70 @@ gUpdate{|String|} s ust=:{USt|mode=UDMask,currentPath,mask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask}) 
 gUpdate{|String|} s ust = (s, ust)
 
+import StdDebug
+derive gPrint DataPath
+
 //Specialize instance for Dynamic
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
 
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
 
-gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
-	# (lx,ust=:{mask,listMask}) = applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath}
+gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
+	# (l,ust)	= case (isNewElement (dataPathList currentPath) (dataPathList searchPath) (length l)) of
+					True
+						# (nv,ust=:{USt | listMask}) = fx (abort "LIST - new element accessed during create") {USt | ust & mode=UDCreate}
+						= applyListUpdates fx (l++[nv]) {USt | ust & currentPath = shiftDataPath currentPath, mode = UDSearch} //apply updates for new element, because here currentPath =/= searchPath
+					False 
+						= (l,ust)
+	# (lx,ust=:{mask,listMask}) 
+				= (applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath})
+	# lx 		= removeUnmaskedTail lx (dataPathList currentPath) mask
 	| currentPath == searchPath
-	= case (update % (0,2)) of	
+	# split = split "_" update
+	# index = toInt (last split)
+	= case hd split of	
 		"mup"
-			# index = toInt (last (split "_" update))
 			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 			# upd   = swapList lx index
 			# nm    = swapMask mask currentPath index
-			# lmask = appendToListMask currentPath [index-1,index] listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm, listMask=lmask, mode=UDDone}) 
+			//# lmask = appendToListMask currentPath [index-1,index] listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm, mode=UDDone}) 
 		"mdn"
-			# index = toInt (last(split "_" update))
 			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 			# upd	= swapList lx ((toInt index)+1) //down idx == up (idx+1)
 			# nm	= swapMask mask currentPath (index+1)
-			# lmask = appendToListMask currentPath [index,index+1] listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDDone})
+			//# lmask = appendToListMask currentPath [index,index+1] listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, mode=UDDone})
 		"rem"
-			# index = toInt (last(split "_" update))
 			# upd   = removeAt index lx
 			# nm	= (maskRemove mask currentPath index (length lx == (index+1)))
-			# lmask = appendToListMask currentPath [index..length upd-1] listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDDone})	
+			//# lmask = appendToListMask currentPath [index..length upd-1] listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, mode=UDDone})	
 		"add"
-			# index    = toInt (last (split "_" update))
 			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
 			# upd	   = insertAt (index+1) nv lx
 			# nm	   = moveMaskDown mask currentPath (index+1)
-			# lmask    = appendToListMask currentPath [index+1..length upd-1] listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, listMask=lmask, mode=UDDone})
+			//# lmask    = appendToListMask currentPath [index+1..length upd-1] listMask
+			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, mode=UDDone})
 		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 	| otherwise
 		= (lx, {USt | ust & currentPath = stepDataPath currentPath})
 where
+	isNewElement cp sp l = sp <== [l:cp] //search path is equal or below [datapath:(length list)]
+
+	removeUnmaskedTail [] cp mask = []
+	removeUnmaskedTail l  cp mask
+		| lastElementMasked (length l) cp mask = l
+		| otherwise = removeUnmaskedTail (init l) cp mask
+	where
+		lastElementMasked l cp mask = not (isEmpty [m \\ m <- mask | m <== [(l-1):cp]])
+
 	applyListUpdates fx []     ust = ([],ust)
 	applyListUpdates fx [l:ls] ust
-	# (lx,ust)  = fx l ust
-	# (lxs,ust) = applyListUpdates fx ls ust
-	= ([lx:lxs],ust)
+		# (lx,ust)  = fx l ust
+		# (lxs,ust) = applyListUpdates fx ls ust
+		= ([lx:lxs],ust)
 	
 	swapList []	  _		= []
 	swapList list index
@@ -260,30 +283,25 @@ where
 		= updateAt (index-1) l (updateAt index f list)
 	
 	swapMask mask (DataPath path _ _) index = [ (swapMask` m path index) \\ m <- mask ]
-	
-	swapMask` m path index
-	| tlEq m [index:path] = changeMask [index:path] (-) m
-	| tlEq m [(index-1):path] = changeMask [(index-1):path] (+) m
-	| otherwise = m
-	
-	maskRemove mask (DataPath path _ _) index True		= [m \\ m <- mask | not(tlEq m [index:path])] //last element, nothing to move up
-	maskRemove mask dp=:(DataPath path _ _) index False	= moveMaskUp [m \\ m <- mask | not(tlEq m [index:path])] dp (index+1)
-	
-	moveMaskUp mask (DataPath path _ _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (-) m) (id m)) mask
-	
-	moveMaskDown mask (DataPath path _ _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (+) m) (id m)) mask
+	where
+		swapMask` m path index
+		| m <== [index:path] 	 = changeMask [index:path] (-) m
+		| m <== [(index-1):path] = changeMask [(index-1):path] (+) m
+		| otherwise = m
 	
 	changeMask prefix fx datapath
 	# (unchanged,changed) = splitAt((length datapath-length prefix)) datapath
 	# id = hd changed
 	# tl = tl prefix
-	= unchanged ++ [(fx id 1)] ++ tl	
-		
-	tlEq mask path = tlEq` (reverse mask) (reverse path)
-	tlEq` _  	 []		= True
-	tlEq` [] 	 _ 		= False
-	tlEq` [e:ex] [i:ix] = (i == e) && (tlEq` ex ix)		
-
+	= unchanged ++ [(fx id 1)] ++ tl
+	
+	maskRemove mask (DataPath path _ _) index True		= [m \\ m <- mask | not(m <== [index:path])] //last element, nothing to move up
+	maskRemove mask dp=:(DataPath path _ _) index False	= moveMaskUp [m \\ m <- mask | not(m <== [index:path])] dp (index+1)
+	
+	moveMaskUp mask (DataPath path _ _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (-) m) (id m)) mask
+	
+	moveMaskDown mask (DataPath path _ _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (+) m) (id m)) mask
+			
 	tlGrEq mask path = tlGrEq` (reverse mask) (reverse path)
 	tlGrEq` []	   _	  = False
 	tlGrEq` [e:ex] [i]	  = (e>=i)
@@ -293,11 +311,8 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,mask}
 	# ust = gMarkList fx l {USt|ust & mask = appendToMask currentPath mask,currentPath = shiftDataPath currentPath}
 	= (l,{USt | ust & currentPath = stepDataPath currentPath})
 where
-	gMarkList fx [] ust
-		= ust
-	gMarkList fx [x:xs] ust=:{USt|currentPath,mask}
-		# (_,ust)	= fx x ust
-		= gMarkList fx xs ust
+	gMarkList fx []     ust = ust
+	gMarkList fx [x:xs] ust = gMarkList fx xs (snd (fx x ust))
 		
 gUpdate{|[]|} fx l ust = (l,ust)
 
@@ -336,8 +351,9 @@ gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
 gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, mask}
 	| currentPath == searchPath
 		# upd = fromJSON (fromString update)
-		| isJust upd = (fromJust upd,{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
-		| otherwise = abort "[Upd Document] Cannot parse JSON"
+		# ust = toggleMask ust
+		| isJust upd = (fromJust upd, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
+		| otherwise  = (emptyDoc, {USt | ust & currentPath = stepDataPath currentPath}) //abort "[Upd Document] Cannot parse JSON"
 		//| otherwise  = ({ Document | fileName = "", size = 0, mimeType = "", taskId = "", index = 0},{USt | ust & currentPath = stepDataPath currentPath})
 	| otherwise 
 		= (s, {USt | ust & currentPath = stepDataPath currentPath})
@@ -406,6 +422,15 @@ where
 
 dataPathList :: DataPath -> [Int]
 dataPathList (DataPath list _ _) = list
+
+// detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
+// e.g. [1,0] <== [0] 
+(<==) infixr 1 :: [Int] [Int] -> Bool
+(<==) pathA pathB = tlEq (reverse pathA) (reverse pathB)
+where
+	tlEq _  	 []		= True
+	tlEq [] 	 _ 		= False
+	tlEq [a:as] [b:bs] 	= (a == b) && (tlEq as bs)
 
 //Force a field to be masked
 setMask :: *USt -> *USt

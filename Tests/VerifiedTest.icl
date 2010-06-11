@@ -99,7 +99,7 @@ gHint{|NestedTest|} fx (Just x) hst=:{HSt | currentPath}
 	, rec	 :: PositiveNum
 	}
 	
-verifiedTest :: Task TestCons2
+verifiedTest :: Task [PositiveNum]
 verifiedTest = enterInformation "Enter info"
 
 Start :: *World -> *World

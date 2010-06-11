@@ -33,10 +33,10 @@ derive gUpdate Int, Real, Char, Bool, String, Document
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
 
 //Wrapper functions for updating
-defaultValue		:: !*World -> (!a,!*World)														| gUpdate{|*|} a
-defaultMask			:: a !*World -> (DataMask,*World)												| gUpdate{|*|} a
-updateValue			:: DataPath String a !*World -> (a,!*World)										| gUpdate{|*|} a 
-updateValueAndMask  :: DataPath String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
+defaultValue			:: !*World -> (!a,!*World)														| gUpdate{|*|} a
+defaultMask				:: a !*World -> (DataMask,*World)												| gUpdate{|*|} a
+updateValue				:: DataPath String a !*World -> (a,!*World)										| gUpdate{|*|} a 
+updateValueAndMask  	:: DataPath String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
 
 //Utility functions for dealing with DataPath values
 initialDataPath			:: DataPath
@@ -47,6 +47,7 @@ dataPathHasSubEditorIdx	:: DataPath Int		-> Bool
 dataPathSetSubEditorIdx	:: DataPath Int		-> DataPath
 dataPathHasConsFlag		:: DataPath			-> Bool
 dataPathSetConsFlag		:: DataPath			-> DataPath
+dataPathList 			:: DataPath 		-> [Int]
 
 dp2s			:: DataPath			-> String
 dp2id			:: String DataPath	-> String

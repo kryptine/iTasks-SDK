@@ -352,6 +352,8 @@ makeInstructionTask instruction context tst
 					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
 					}
 
+import StdDebug
+
 editor :: !(Editor s a) -> View s | iTask a & iTask s & SharedVariable s
 editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
 where
@@ -362,13 +364,16 @@ where
 			# tst				= setTaskStore (addStorePrefix n "value") oEditV tst
 			= (cur,tst)
 		| otherwise
+			//# oEditV = trace_n (printToString oEditV) oEditV
 			//first apply basic value updates to get value represented by user interface on client
 			# basicValueUpdates	= filter (\upd -> not (dataPathHasConsFlag (fst upd))) myUpdates
 			# (oEditV,tst)		= applyUpdates basicValueUpdates oEditV tst
+			//# oEditV = trace_n (printToString oEditV) oEditV
 			# tst				= setTaskStore (addStorePrefix n "value") oEditV tst
 			//then apply constructor updates
 			# consUpdates		= filter (\upd -> dataPathHasConsFlag (fst upd)) myUpdates
 			# (nEditV,tst)		= applyUpdates consUpdates oEditV tst
+			//# nEditV = trace_n (printToString nEditV) nEditV
 			= (mergeValues old cur (editorTo nEditV old), tst)
 		
 	determineUpdates taskNr n new tst
@@ -387,7 +392,7 @@ where
 	applyUpdates [(p,v):us] val tst=:{TSt|world}
 		# (val,world) = updateValue p v val world
 		= applyUpdates us val {TSt|tst & world = world}
-		
+				
 listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}
 where

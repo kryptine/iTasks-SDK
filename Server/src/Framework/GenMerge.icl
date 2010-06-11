@@ -8,7 +8,6 @@ mergeValues old cur new = getValue (gMerge{|*|} Merge old cur new)
 :: MergeMode = Merge | Compare
 :: MergeResult a = IsEqual Bool | Value a
 derive gMerge [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
-derive gEq Document, DocumentContent, DocumentType, DocumentInfo, DocumentDataLocation
 derive bimap MergeResult
 
 generic gMerge a :: MergeMode a a a -> MergeResult a

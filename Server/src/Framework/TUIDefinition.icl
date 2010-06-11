@@ -1,12 +1,19 @@
 implementation module TUIDefinition
 
-import JSON,StdList
-//JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIList, TUIMenuButton, TUIMenu, TUIMenuItem
-derive JSONEncode TUIUpdate, TUIBox, TUIListItem, TUITuple
+import JSON,StdList,GenEq
 
-derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl
-derive JSONEncode TUITupleContainer, TUIRecordContainer
+derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
+derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe
+
+derive gEq TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIMenuButton, TUIMenu, TUIMenuItem
+derive gEq TUIUpdate, TUIBox, TUITuple
+
+//JSON Encoding of TUI definitions is directly encoded as JSON data.
+derive JSONEncode TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIMenuButton, TUIMenu, TUIMenuItem
+derive JSONEncode TUIUpdate, TUIBox, TUITuple
+
+derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
+derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer
 
 JSONEncode{|TUIDef|} (TUIButton r) = addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUITextArea r) = addXType "textarea" (JSONEncode{|*|} r)
@@ -23,8 +30,6 @@ JSONEncode{|TUIDef|} (TUIFieldSet r) = addXType "fieldset" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIPanel r) = addXType "panel" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIBox r) = addXType "box" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIHtmlPanel r) = addXType "panel" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIList r) = addXType "itasks.list" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIListItem r) = addXType "itasks.list.item" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuButton r) = addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuItem r) = addXType "menuitem" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuSeparator) = [JSONRaw "{\\\"xtype\":\\\"menuseparator\"}"]
@@ -46,9 +51,11 @@ JSONEncode{|TUIDef|} (TUIUserControl r)			= addXType "itasks.tui.Username" (JSON
 JSONEncode{|TUIDef|} (TUIPasswordControl r)		= addXType "itasks.tui.Password" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIDocumentControl r)	 	= addXType "itasks.tui.Document" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIConstructorControl r)	= addXType "itasks.tui.Constructor" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (JSONEncode{|*|} r)
 
 JSONEncode{|TUIDef|} (TUITupleContainer r)		= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIListContainer r) 	= addXType "itasks.tui.List" (JSONEncode{|*|} r)
 
 addXType :: !String ![JSONNode] -> [JSONNode]
 addXType xtype [JSONObject fields: xs]	= [JSONObject [("xtype", JSONString xtype):fields] : xs]

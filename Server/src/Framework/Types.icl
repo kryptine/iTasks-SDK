@@ -24,6 +24,8 @@ derive bimap			Maybe, (,)
 derive JSONEncode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation
 derive JSONDecode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation
 
+derive gEq Document, DocumentContent, DocumentType, DocumentInfo, DocumentDataLocation
+
 instance toString TaskPriority
 where
 	toString LowPriority	= "LowPriority"
@@ -146,18 +148,15 @@ gVisualize{|User|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 			# errMsg = getErrorMessage currentPath oldM errorMask
 			# hntMsg = getHintMessage currentPath oldM hintMask
 			= ([TUIFragment (TUIUserControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, 2
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			# upd = [TUIUpdate (TUISetValue id newV)]
 			# err = getErrorUpdate id currentPath newM errorMask
 			# hnt = getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:upd]
-				, 2
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
 		_					
 			= ([TextFragment (toString old)]
-				, 2
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -195,8 +194,8 @@ gParse{|Task|} ga expr
 		parseString :: Expr -> Maybe String
 		parseString expr = gParse{|*|} expr
 
-gVisualize{|Task|} fx (VValue (Task props _ _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],4,vst)
-gVisualize{|Task|} fx _ _ vst = ([],0,vst)
+gVisualize{|Task|} fx (VValue (Task props _ _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
+gVisualize{|Task|} fx _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust

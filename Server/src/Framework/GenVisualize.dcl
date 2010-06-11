@@ -5,7 +5,7 @@ import StdGeneric, StdMaybe, Void, Either
 import GenUpdate, GenVerify
 
 //Generic visualization function
-generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], RenderingHint, *VSt)
+generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], *VSt)
 
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
@@ -21,10 +21,6 @@ visualizeAsTextLabel	:: a -> String														| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
 determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
-
-//Hint for the layout engine how to render the different panels in case of a
-//horizontal layout (tuples) (0 = full width, 1 = inline, 2 = medium, 4 = large)
-:: RenderingHint :== Int
 
 //Type definitions for visualization
 :: VisualizationValue a
