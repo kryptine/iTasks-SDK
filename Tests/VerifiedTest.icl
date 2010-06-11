@@ -17,16 +17,17 @@ derive bimap (,),Maybe
 :: EqString = Eq String String
 :: FString = FString String
 :: TestDoc = Test Document
+:: PercentList = PercentList [Int]
 
 :: TestStruct = 
 	{ value1 :: String
 	, value2 :: String
 	}
 
-derive gPrint 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3
-derive gParse 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3
-derive gUpdate 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3
-derive gVisualize	TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3
+derive gPrint 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
+derive gParse 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
+derive gUpdate 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
+derive gVisualize	TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
 derive gError		TestDoc, NestedTest, NestedRec, TestCons2, TestCons3
 derive gHint		TestCons2, TestCons3
 
@@ -83,6 +84,17 @@ gHint{|NestedTest|} fx (Just x) hst=:{HSt | currentPath}
 	# hst = labeledChild "rec" (labeledChild "string" (appendHint "<- string" MPAlways)) hst
 	# hst = firstChild (appendHint "<- string" MPAlways) hst
 	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
+
+gError{|PercentList|} (PercentList []) est=:{ESt | currentPath} 
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gError{|PercentList|} (PercentList x) est=:{ESt | currentPath}
+	# sum = sum x;
+	# est = if (sum <> 100) (firstChild (appendError ("The sum is "+++toString sum+++". It should be 100") MPAlways) est) est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+gHint{|PercentList|} _ hst=:{HSt | currentPath}
+	# hst = firstChild (appendHint "The sum of all values should be 100" MPAlways) hst
+	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
 	
 :: TestRec =
 	{ string :: String
@@ -99,7 +111,7 @@ gHint{|NestedTest|} fx (Just x) hst=:{HSt | currentPath}
 	, rec	 :: PositiveNum
 	}
 	
-verifiedTest :: Task [PositiveNum]
+verifiedTest :: Task PercentList
 verifiedTest = enterInformation "Enter info"
 
 Start :: *World -> *World

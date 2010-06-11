@@ -529,12 +529,7 @@ div.taskForestLegend{
 	background-image: url('img/light-blue-background-hatched.png') !important;
 }
 
-.list-toolbox-button{
-	width: 16px;
-	height: 16px;
-}
-
-.list-toolbox-button /*button*/{
+.list-toolbox-button {
 	color: transparent;
 	background: transparent none repeat scroll 0 0;
 	border: none;
@@ -543,10 +538,6 @@ div.taskForestLegend{
 	margin-top: 4px;
 	float: left;
 	cursor: pointer;
-}
-
-.list-toolbox-button .x-button-click {
-	color: transparent;
 }
 
 .list-button-up{
@@ -565,22 +556,40 @@ div.taskForestLegend{
 	background-image: url('img/icons/delete.png') !important;
 }
 
-ul.listDisplay{
-	padding: 1px 2px 1px 4px;
+.list-msg-field{
+	background-image: url('img/light-blue-background.png') !important;
+	padding: 2px 2px 0px 2px;
+	position: relative;
 }
 
-ul.listDisplay li:nth-child(even){
-	margin: 1px;
-	padding: 2px 2px 2px 5px;
-	border: 1px solid #c0c0c0;
-	background-color: #eee;
+.list-record-hint-icon {
+	background:none no-repeat scroll 0 2px #eee;
+	background-image: url('img/icons/information.png') !important;
+	width: auto;
+	height: 18px;
+	padding: 2px 2px 2px 24px;
+	margin: 0px 0px 5px 0px;
+	z-index: 1;
+	color: #777777;
+	font-size: 11px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
 }
 
-ul.listDisplay li:nth-child(odd){
-	margin: 1px;
-	padding: 2px 2px 2px 5px;
-	border: 1px solid #c0c0c0;
-	background-color: #ddd;
+.list-record-invalid-icon {
+	background:none no-repeat scroll 0 2px #eee;
+	background-image: url('img/icons/exclamation.png') !important;
+	width: auto;
+	height: 18px;
+	padding: 2px 2px 2px 24px;
+	margin: 0px 0px 5px 0px;
+	z-index: 10;
+	color: #E87979;
+	font-size: 11px;
+	position: absolute;
+	top: 0px;
+	left: 0px;
 }
 
 /* == Document Panel == */

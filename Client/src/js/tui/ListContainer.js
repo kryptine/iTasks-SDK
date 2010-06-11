@@ -27,6 +27,11 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 	afterRender : function(ct,position){
 		itasks.tui.ListContainer.superclass.afterRender.call(this,ct,position);
 		this.initSidebar();
+		
+		(function(){
+			this.setError(this.errorMsg);
+			this.setHint(this.hintMsg);
+		}).defer(50,this);
 	},
 	
 	getSidebarEl : function(){		
@@ -110,6 +115,64 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 		});	
 		
 		this.sbExpanded = true;
+	},
+	
+	setError: function(msg){
+		if(this.staticDisplay) return;
+		
+		(function() {
+			if(msg == "") this.clearError();
+			else this.markError(msg);
+		}).defer(50,this);
+	},
+	
+	setHint: function(msg){
+		if(msg == "") this.clearHint();
+		else this.markHint(msg);
+	},
+	
+	markHint : function (msg){
+		if(this.rendered){
+			if(!this.msgField) {
+				this.ownerCt.el.createChild({cls: 'x-constructor-panel-tc'});
+				this.msgField = this.ownerCt.el.createChild({cls: 'list-msg-field'});
+			}
+			
+			if(!this.hintIcon){
+				this.hintIcon = this.msgField.createChild({cls: 'x-record-hint-icon'});
+				this.hintIcon.setVisibilityMode(Ext.Element.DISPLAY);
+			}
+			
+			this.hintIcon.dom.innerHTML = msg;
+			this.hintIcon.setVisible(true);
+		}
+	},
+	
+	markError: function(msg){
+		if(this.rendered){
+			if(!this.msgField) {
+				this.ownerCt.el.createChild({cls: 'x-constructor-panel-tc'});
+				this.msgField = this.ownerCt.el.createChild({cls: 'list-msg-field'});
+			}
+			
+			if(this.hintIcon) this.hintIcon.hide();
+			
+			if(!this.errorIcon){
+				this.errorIcon = this.msgField.createChild({cls: 'x-record-invalid-icon'});
+				this.errorIcon.setVisibilityMode(Ext.Element.DISPLAY);
+			}
+			
+			this.errorIcon.dom.innerHTML = msg;
+			this.errorIcon.setVisible(true);
+		}
+	},
+	
+	clearHint : function(){
+		if(this.hintIcon) this.hintIcon.setVisible(false);
+	},
+	
+	clearError : function(){
+		if(this.errorIcon) this.errorIcon.setVisible(false);
 	}
 });
 

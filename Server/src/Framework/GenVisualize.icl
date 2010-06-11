@@ -613,17 +613,20 @@ import StdDebug
 gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,listMask, renderAsStatic, errorMask, hintMask}
 	= case vizType of
 		VEditorDefinition
-			# errMsg 		= getErrorMessage currentPath oldM errorMask
-			# hntMsg 		= getHintMessage currentPath oldM hintMask
-			# (items,vst) 	= TUIDef fx oldV oldM 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# errMsg 				= getErrorMessage currentPath oldM errorMask
+			# hntMsg 				= getHintMessage currentPath oldM hintMask
+			# (items,vst=:{valid}) 	= TUIDef fx oldV oldM 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, name = name, id = id, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
-			  {VSt | vst & currentPath = stepDataPath currentPath, label = label, useLabels = useLabels})
+			  {VSt | vst & currentPath = stepDataPath currentPath, label = label, useLabels = useLabels, valid=isValid currentPath oldM errorMask valid})
 		VEditorUpdate
-			# (updates,vst) 	= TUIUpd fx oldV newV oldM newM {VSt | vst & currentPath = shiftDataPath currentPath}
-			# (newDefs,vst=:{valid})	= TUIDef fx newV newM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			# (oldDefs,vst)				= TUIDef fx oldV oldM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			# (replacements)			= determineChanges oldDefs newDefs 0
-			= (replacements ++ updates,{VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=valid})
+			# (updates,vst) 		= TUIUpd fx oldV newV oldM newM {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (newDefs,vst=:{valid})= TUIDef fx newV newM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (oldDefs,vst)			= TUIDef fx oldV oldM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
+			# (replacements)		= determineChanges oldDefs newDefs 0
+			# err 					= getErrorUpdate id currentPath newM errorMask
+			# hnt 					= getHintUpdate id currentPath newM hintMask
+			= ([err,hnt:replacements ++ updates],
+			  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=isValid currentPath newM errorMask valid})
 		VHtmlDisplay
 			= case oldV of
 				[] 
@@ -685,7 +688,9 @@ where
 		| o =!= n   = [TUIUpdate (TUIReplace (fromJust (getId n)) n):determineChanges os ns (idx+1)]
 		| otherwise = determineChanges os ns (idx+1)
 	
-import StdDebug
+	isValid cp dm em valid
+		| getErrorCount cp dm em > 0 = False
+		| otherwise = valid
 	
 //Document Type
 gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, errorMask, hintMask}
