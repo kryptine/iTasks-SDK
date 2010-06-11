@@ -212,11 +212,12 @@ isWhitespaceToken _						= False
 
 //Simple recursive descent parser
 parse :: ![Token] -> (!JSONNode,![Token])
-parse [TokenNull:ts] 		= (JSONNull, ts)
-parse [TokenBool x:ts] 		= (JSONBool x, ts)
-parse [TokenInt x:ts]		= (JSONInt x, ts)
-parse [TokenReal x:ts] 		= (JSONReal x, ts)
-parse [TokenString x:ts]	= (JSONString (jsonUnescape x), ts)
+parse [TokenNull:ts] 							= (JSONNull, ts)
+parse [TokenBool x:ts] 							= (JSONBool x, ts)
+parse [TokenInt x:ts]							= (JSONInt x, ts)
+parse [TokenReal x:ts] 							= (JSONReal x, ts)
+parse [TokenString x:ts]						= (JSONString (jsonUnescape x), ts)
+parse [TokenBracketOpen,TokenBracketClose:ts]	= (JSONArray [], ts)
 parse [TokenBracketOpen:ts]
 	= case (parseArrayItems ts []) of
 		([TokenBracketClose:ts`],items)	= (JSONArray (reverse items), ts`)
@@ -227,6 +228,7 @@ where
 		= case (parse tokens) of
 			(node,[TokenComma:ts])	= parseArrayItems ts [node:nodes]
 			(node,ts)				= (ts,[node:nodes])
+parse [TokenBraceOpen:TokenBraceClose:ts]		= (JSONObject [], ts)
 parse [TokenBraceOpen:ts]
 	= case (parseObjectItems ts []) of
 		([TokenBraceClose:ts`],items)	= (JSONObject (reverse items), ts`)
@@ -403,13 +405,13 @@ JSONDecode{|CONS of d|} fx l
 	| otherwise					= case l of
 		[JSONArray [JSONString name:fields] :xs]
 			| name == d.gcd_name			= case fx fields of
-				(Just x, [])				= (Just (CONS x), xs)
+				(Just x, _)					= (Just (CONS x), xs)
 				_							= (Nothing, l)
 			| otherwise						= (Nothing, l)
 		_									= (Nothing, l)
 		
 JSONDecode{|CONS|} fx l = (Nothing, l)
-										
+
 JSONDecode{|FIELD of d|} fx l =: [JSONObject fields]
 	= case findField d.gfd_name fields of
 		(Just field)	= case fx [field] of
