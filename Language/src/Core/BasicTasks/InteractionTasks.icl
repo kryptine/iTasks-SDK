@@ -359,26 +359,16 @@ editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpda
 where
 	getNewValue n updates old cur tst
 		# oEditV				= editorFrom old
+		# tst					= setTaskStore (addStorePrefix n "value") oEditV tst
 		# myUpdates				= filter (\upd -> dataPathHasSubEditorIdx (fst upd) n) updates
 		| isEmpty myUpdates
-			# tst				= setTaskStore (addStorePrefix n "value") oEditV tst
 			= (cur,tst)
 		| otherwise
-			//# oEditV = trace_n (printToString oEditV) oEditV
-			//first apply basic value updates to get value represented by user interface on client
-			# basicValueUpdates	= filter (\upd -> not (dataPathHasConsFlag (fst upd))) myUpdates
-			# (oEditV,tst)		= applyUpdates basicValueUpdates oEditV tst
-			//# oEditV = trace_n (printToString oEditV) oEditV
-			# tst				= setTaskStore (addStorePrefix n "value") oEditV tst
-			//then apply constructor updates
-			# consUpdates		= filter (\upd -> dataPathHasConsFlag (fst upd)) myUpdates
-			# (nEditV,tst)		= applyUpdates consUpdates oEditV tst
-			//# nEditV = trace_n (printToString nEditV) nEditV
+			# (nEditV,tst)		= applyUpdates myUpdates oEditV tst
 			= (mergeValues old cur (editorTo nEditV old), tst)
 		
 	determineUpdates taskNr n new tst
-		# (mbOEditV,tst)	= getTaskStoreFor taskNr (addStorePrefix n "value") tst
-		# oEditV			= fromJust mbOEditV
+		# (Just oEditV,tst)	= getTaskStoreFor taskNr (addStorePrefix n "value") tst
 		# nEditV			= editorFrom new
 		# (mask,tst)		= accWorldTSt (defaultMask nEditV) tst
 		= (determineEditorUpdates (editorId taskNr n) (Just n) mask mask [] oEditV nEditV,tst)

@@ -10,7 +10,7 @@ from StdFunc import id
 
 derive bimap	(,)
 
-:: DataPath = DataPath [Int] (Maybe SubEditorIndex) Bool
+:: DataPath = DataPath [Int] (Maybe SubEditorIndex)
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
@@ -282,7 +282,7 @@ where
 		# l = list !! (index)
 		= updateAt (index-1) l (updateAt index f list)
 	
-	swapMask mask (DataPath path _ _) index = [ (swapMask` m path index) \\ m <- mask ]
+	swapMask mask (DataPath path _) index = [ (swapMask` m path index) \\ m <- mask ]
 	where
 		swapMask` m path index
 		| m <== [index:path] 	 = changeMask [index:path] (-) m
@@ -295,12 +295,12 @@ where
 	# tl = tl prefix
 	= unchanged ++ [(fx id 1)] ++ tl
 	
-	maskRemove mask (DataPath path _ _) index True		= [m \\ m <- mask | not(m <== [index:path])] //last element, nothing to move up
-	maskRemove mask dp=:(DataPath path _ _) index False	= moveMaskUp [m \\ m <- mask | not(m <== [index:path])] dp (index+1)
+	maskRemove mask (DataPath path _) index True		= [m \\ m <- mask | not(m <== [index:path])] //last element, nothing to move up
+	maskRemove mask dp=:(DataPath path _) index False	= moveMaskUp [m \\ m <- mask | not(m <== [index:path])] dp (index+1)
 	
-	moveMaskUp mask (DataPath path _ _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (-) m) (id m)) mask
+	moveMaskUp mask (DataPath path _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (-) m) (id m)) mask
 	
-	moveMaskDown mask (DataPath path _ _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (+) m) (id m)) mask
+	moveMaskDown mask (DataPath path _) index = map (\m = if(tlGrEq m [index:path]) (changeMask [index:path] (+) m) (id m)) mask
 			
 	tlGrEq mask path = tlGrEq` (reverse mask) (reverse path)
 	tlGrEq` []	   _	  = False
@@ -364,12 +364,11 @@ derive gUpdate Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, Vi
 
 //Utility functions
 dp2s :: DataPath -> String
-dp2s (DataPath path idx cons) = (join "-" (map toString (reverse path))) +++ subEditorPostfix +++ consPostfix
+dp2s (DataPath path idx) = (join "-" (map toString (reverse path))) +++ subEditorPostfix
 where
 	subEditorPostfix = case idx of
 		Nothing		= ""
 		Just idx	= "_" +++ (toString idx)
-	consPostfix		= if cons "c" ""
 
 dp2id :: String DataPath -> String
 dp2id prefix path = prefix +++ "-" +++ dp2s path 
@@ -377,51 +376,41 @@ dp2id prefix path = prefix +++ "-" +++ dp2s path
 s2dp :: String -> DataPath
 s2dp str
 	# length				= textSize str
-	# (str,cons)			= if (endsWith "c" str)
-								(subString 0 (length - 1) str,True)
-								(str,False)
-	# length				= textSize str
 	# postfixIdx			= lastIndexOf "_" str
 	# (str,sidx)			= if (postfixIdx == -1)
 								(str,Nothing)
 								(subString 0 postfixIdx str,Just (toInt (subString (postfixIdx + 1) (length - postfixIdx - 1) str)))
-	= DataPath (reverse (map toInt (split "-" str))) sidx cons
+	= DataPath (reverse (map toInt (split "-" str))) sidx
 
 isdps :: String -> Bool
-isdps path = and [c == '-' || isDigit c || c == 'c' || c == '_' \\ c <-: path]
+isdps path = and [c == '-' || isDigit c || c == '_' \\ c <-: path]
 
 initialDataPath :: DataPath
-initialDataPath = DataPath [] Nothing False
+initialDataPath = DataPath [] Nothing
 
 stepDataPath :: DataPath -> DataPath
-stepDataPath dp=:(DataPath [] _ _)			= dp
-stepDataPath (DataPath [x:xs] sidx cons)	= (DataPath [inc x:xs] sidx cons)
+stepDataPath dp=:(DataPath [] _)	= dp
+stepDataPath (DataPath [x:xs] sidx)	= DataPath [inc x:xs] sidx
 
 shiftDataPath :: DataPath -> DataPath
-shiftDataPath (DataPath path sidx cons)	= DataPath [0:path] sidx cons
+shiftDataPath (DataPath path sidx) = DataPath [0:path] sidx
 
 dataPathLevel :: DataPath -> Int
-dataPathLevel (DataPath l _ _) = length l
+dataPathLevel (DataPath l _) = length l
 
 dataPathHasSubEditorIdx	:: DataPath Int -> Bool
-dataPathHasSubEditorIdx (DataPath _ (Just idx0) _ ) idx1	= idx0 == idx1
-dataPathHasSubEditorIdx _ _									= False
+dataPathHasSubEditorIdx (DataPath _ (Just idx0)) idx1	= idx0 == idx1
+dataPathHasSubEditorIdx _ _								= False
 
 dataPathSetSubEditorIdx	:: DataPath Int -> DataPath
-dataPathSetSubEditorIdx	(DataPath dp _ cons) idx = DataPath dp (Just idx) cons
-
-dataPathHasConsFlag :: DataPath -> Bool
-dataPathHasConsFlag (DataPath _ _ cons) = cons
-
-dataPathSetConsFlag :: DataPath -> DataPath
-dataPathSetConsFlag (DataPath dp idx _) = DataPath dp idx True
+dataPathSetSubEditorIdx	(DataPath dp _) idx = DataPath dp (Just idx)
 
 instance == DataPath
 where
-	(==) (DataPath a _ _) (DataPath b _ _) = a == b
+	(==) (DataPath a _) (DataPath b _) = a == b
 
 dataPathList :: DataPath -> [Int]
-dataPathList (DataPath list _ _) = list
+dataPathList (DataPath list _) = list
 
 // detect whether two paths are equal or if path A is a sub-path of B, assuming reverse-notation. 
 // e.g. [1,0] <== [0] 
@@ -455,7 +444,7 @@ toggleMask ust=:{searchPath,currentPath,update,mask}
 		= ust
 where
 	//Check if a datapath is a child of another
-	childOf (DataPath parent _ _) child 
+	childOf (DataPath parent _) child 
 		| clen > plen
 			= take plen (reverse child) == reverse parent
 		| otherwise
@@ -476,10 +465,10 @@ updateListMask lmask path
 	= (nmask,if(length nmask > 0) (snd (last nmask)) [])
 		
 isMasked :: DataPath DataMask -> Bool
-isMasked (DataPath dp _ _) dm = isMember dp dm
+isMasked (DataPath dp _) dm = isMember dp dm
 
 appendToMask :: DataPath DataMask -> DataMask
-appendToMask (DataPath l _ _) mask = [l:mask]
+appendToMask (DataPath l _) mask = [l:mask]
 
 appendToListMask :: DataPath [Int] ListMask -> ListMask
-appendToListMask (DataPath path _ _) ints lmask = [(path,ints):lmask]
+appendToListMask (DataPath path _) ints lmask = [(path,ints):lmask]

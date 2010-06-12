@@ -651,7 +651,7 @@ where
 	newM = case new of (VValue nl nm) = nm; _ = []
 
 	id 			= dp2id idPrefix currentPath
-	name 		= (dp2s (dataPathSetConsFlag currentPath))
+	name 		= dp2s currentPath
 	itemId idx 	= id+++"#"+++toString idx
 
 	itemCls i
@@ -914,14 +914,12 @@ derive gPrint LabelOrNumber
 
 determineIndexOfLabels :: !String !*VSt -> *VSt
 determineIndexOfLabels label vst=:{VSt | errorMask,hintMask,currentPath}
-	# curPath 	= [Label label:[Unlabeled i \\ i <- tl (getDP currentPath)]]
-	# pos		= hd (getDP currentPath)
+	# curPath 	= [Label label:[Unlabeled i \\ i <- tl (dataPathList currentPath)]]
+	# pos		= hd (dataPathList currentPath)
 	# hntMask	= [(translateLDP curPath ldp pos,p,msg) \\ (ldp,p,msg) <- hintMask]
 	# errMask	= [(translateLDP curPath ldp pos,p,msg) \\ (ldp,p,msg) <- errorMask]	
 	= {VSt | vst & hintMask = hntMask, errorMask = errMask}
-where 
-	getDP (DataPath dp _ _) = dp
-
+where
 	translateLDP currPath maskPath pos
 		# currPath = reverse currPath
 		# maskPath = reverse maskPath

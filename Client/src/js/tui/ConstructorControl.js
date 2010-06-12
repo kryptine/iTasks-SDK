@@ -17,8 +17,8 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		
 		if(!this.staticDisplay){
 			this.consField = new Ext.form.ComboBox({
-				name: this.name+'c',
-				id: this.id+'c',
+				name: this.name,
+				id: this.id + 'c',
 				triggerAction: 'all',
 				editable: false,
 				store: store,
@@ -30,7 +30,7 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 			});
 		}else{
 			this.consField = {
-				id : this.id+'c',
+				id : this.id + 'c',
 				staticDisplay: true,
 				html: store[(this.consSelIdx+1)][1],
 				hideLabel: true,

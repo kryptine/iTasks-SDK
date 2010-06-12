@@ -196,16 +196,16 @@ stepLabeledDataPath [Label s:xs]		= [Label s:xs]
 stepLabeledDataPath [] 					= []
 
 dp2ldp :: DataPath -> LabeledDataPath
-dp2ldp (DataPath p _ _) = [Unlabeled i \\ i <- p]
+dp2ldp dp = [Unlabeled i \\ i <- dataPathList dp]
 
 getErrorMessage :: DataPath DataMask ErrorMask -> String
-getErrorMessage (DataPath dp _ _) dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath dp ldp && predValid ldp p dmask]
+getErrorMessage dp dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
 
 getHintMessage :: DataPath DataMask HintMask -> String
-getHintMessage (DataPath dp _ _) dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath dp ldp && predValid ldp p dmask]
+getHintMessage dp dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
 
 getErrorCount :: DataPath DataMask ErrorMask -> Int
-getErrorCount (DataPath dp _ _) dmask mmask = length [s \\ (ldp,p,s) <- mmask | eqPath dp ldp && predValid ldp p dmask]
+getErrorCount dp dmask mmask = length [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
 
 predValid :: LabeledDataPath MessagePredicate DataMask -> Bool
 predValid ldp MPAlways dm = True
