@@ -23,7 +23,16 @@ setFormattedTextSrc :: !String !FormattedText -> FormattedText
 setFormattedTextSrc cont (FormattedText _ controls) = FormattedText cont controls
 
 getFormattedTextSrc :: !FormattedText -> String
-getFormattedTextSrc (FormattedText src _) = src
+getFormattedTextSrc (FormattedText src _) = removeMarkerTags src
+where
+	removeMarkerTags s
+		# s = case indexOf "<markerstart" s of
+			-1	= s
+			n	= subString 0 n s +++ subString (indexOfAfter n "</markerstart>" s + 14) (textSize s) s
+		# s = case indexOf "<markerend" s of
+			-1	= s
+			n	= subString 0 n s +++ subString (indexOfAfter n "</markerend>" s + 12) (textSize s) s
+		= s
 
 allControls	:: FormattedTextControls
 allControls =	{ alignmentControls	= True
@@ -110,7 +119,7 @@ where
 		
 toUnformattedString :: !FormattedText !Bool -> String
 toUnformattedString (FormattedText s _) includeCursorMarkers
-	# s = insertMarkers s
+	# s = if includeCursorMarkers (insertMarkers s) s
 	# s	= replaceSubString "<br>" "\n" s
 	# s	= replaceSubString "<BR>" "\n" s
 	# s	= replaceSubString "<br/>" "\n" s

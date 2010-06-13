@@ -144,7 +144,7 @@ formattedText :: Task Void
 formattedText =
 				setMenus [Menu "Example" [MenuItem "Quit" ActionQuit]]
 	>>|			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
-	>>= \sid.	dynamicGroupAOnly [(ignoreResult t) <<@ GBFloating \\ t <- tasks sid] actions
+	>>= \sid.	dynamicGroupAOnly [(ignoreResult (t <<@ ExcludeGroupActions) <<@ GBFloating) \\ t <- tasks sid] actions
 	>>|			deleteDB sid
 where
 	tasks sid =
