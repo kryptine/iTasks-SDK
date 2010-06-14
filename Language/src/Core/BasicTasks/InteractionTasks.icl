@@ -69,13 +69,13 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 			# tst = setTUIUpdates [] [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
-			# (nvalue,nmask,lmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask [] tst
+			# (nvalue,nmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask tst
 			# (action,tst) = getAction updates (map fst buttonActions) tst
 			| isJust action = (TaskFinished (fromJust action,nvalue),tst)
 			| otherwise
 				# tst				= setTaskStore "value" nvalue tst
 				# tst				= setTaskStore "mask" nmask tst
-				# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask lmask ovalue nvalue
+				# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask ovalue nvalue
 				# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 				# buttonActions		= evaluateConditions buttonActions valid nvalue
 				# hotkeyActions		= evaluateHotkeyConditions (getHotkeyActions actions) valid nvalue
@@ -101,10 +101,10 @@ where
 				Nothing	= ([],tst) 
 
 
-	applyUpdates [] val mask lmask tst = (val,mask,lmask,tst)
-	applyUpdates [(p,v):us] val mask lmask tst=:{TSt|world}
-		# (val,mask,lmask,world) = updateValueAndMask p v val mask lmask world
-		= applyUpdates us val mask lmask {TSt|tst & world = world}
+	applyUpdates [] val mask tst = (val,mask,tst)
+	applyUpdates [(p,v):us] val mask tst=:{TSt|world}
+		# (val,mask,world) = updateValueAndMask p v val mask world
+		= applyUpdates us val mask {TSt|tst & world = world}
 
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= throw "enterChoice: cannot choose from empty option list"
@@ -371,7 +371,7 @@ where
 		# (Just oEditV,tst)	= getTaskStoreFor taskNr (addStorePrefix n "value") tst
 		# nEditV			= editorFrom new
 		# (mask,tst)		= accWorldTSt (defaultMask nEditV) tst
-		= (determineEditorUpdates (editorId taskNr n) (Just n) mask mask [] oEditV nEditV,tst)
+		= (determineEditorUpdates (editorId taskNr n) (Just n) mask mask oEditV nEditV,tst)
 	
 	visualize taskNr n stateV tst
 		# editV			= editorFrom stateV

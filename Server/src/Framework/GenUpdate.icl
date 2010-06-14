@@ -14,28 +14,23 @@ derive bimap	(,)
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
 defaultValue world  
-	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = initialDataPath, currentPath = initialDataPath, consPath = [], update = "", mask = [], listMask = [], world = world}
+	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = initialDataPath, currentPath = initialDataPath, consPath = [], update = "", mask = [], world = world}
 	= (a,world)
 	
 defaultMask :: a !*World -> (DataMask,*World) | gUpdate{|*|} a
 defaultMask a world
-	# (_,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = initialDataPath, currentPath = shiftDataPath initialDataPath, consPath = [], update = "", mask = [], listMask = [], world = world}
+	# (_,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = initialDataPath, currentPath = shiftDataPath initialDataPath, consPath = [], update = "", mask = [], world = world}
 	= (mask,world)
 	
 updateValue	:: DataPath String a !*World -> (a,!*World)	| gUpdate{|*|} a  
 updateValue path update a world
-	# (a,_,_,world) = updateValueAndMask path update a [] [] world
+	# (a,_,world) = updateValueAndMask path update a [] world
 	= (a,world)
 
-updateValueAndListMask :: DataPath String a !*World ->(a,ListMask,!*World) | gUpdate{|*|} a
-updateValueAndListMask path update a world
-	# (a,_,lm,world) = updateValueAndMask path update a [] [] world
-	= (a,lm,world) 
-
-updateValueAndMask :: DataPath String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
-updateValueAndMask path update a mask listMask world	
-	# (a,ust=:{world,mask,listMask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, mask = mask, listMask = listMask, world = world}
-	= (a,mask,listMask,world)
+updateValueAndMask :: DataPath String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
+updateValueAndMask path update a mask world	
+	# (a,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, mask = mask, world = world}
+	= (a,mask,world)
 
 //Generic updater
 generic gUpdate a :: a *USt ->  (a, *USt)
@@ -220,11 +215,11 @@ gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
 gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
 	# (l,ust)	= case (isNewElement (dataPathList currentPath) (dataPathList searchPath) (length l)) of
 					True
-						# (nv,ust=:{USt | listMask}) = fx (abort "LIST - new element accessed during create") {USt | ust & mode=UDCreate}
+						# (nv,ust) = fx (abort "LIST - new element accessed during create") {USt | ust & mode=UDCreate}
 						= applyListUpdates fx (l++[nv]) {USt | ust & currentPath = shiftDataPath currentPath, mode = UDSearch} //apply updates for new element, because here currentPath =/= searchPath
 					False 
 						= (l,ust)
-	# (lx,ust=:{mask,listMask}) 
+	# (lx,ust=:{mask}) 
 				= (applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath})
 	# lx 		= removeUnmaskedTail lx (dataPathList currentPath) mask
 	| currentPath == searchPath
@@ -455,20 +450,9 @@ where
 
 initialDataMask :: DataMask
 initialDataMask = []
-
-initialListMask		:: ListMask
-initialListMask = []
-
-updateListMask :: ListMask DataPath -> (ListMask,[Int])
-updateListMask lmask path
-	# nmask = [(dp,idx) \\ (dp,idx) <- lmask | (dataPathList path) == dp]
-	= (nmask,if(length nmask > 0) (snd (last nmask)) [])
-		
+	
 isMasked :: DataPath DataMask -> Bool
 isMasked (DataPath dp _) dm = isMember dp dm
 
 appendToMask :: DataPath DataMask -> DataMask
 appendToMask (DataPath l _) mask = [l:mask]
-
-appendToListMask :: DataPath [Int] ListMask -> ListMask
-appendToListMask (DataPath path _) ints lmask = [(path,ints):lmask]

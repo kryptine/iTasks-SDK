@@ -12,7 +12,7 @@ NEWLINE	:== "\n"		//The character sequence to use for new lines in text display 
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, listMask = initialListMask, renderAsStatic = False, errorMask = [], hintMask = []}
+		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, errorMask = [], hintMask = []}
 
 //Wrapper functions
 visualizeAsEditor :: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool) | gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
@@ -48,15 +48,14 @@ visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} val val
 where
 	val = VValue x initialDataMask
 	
-determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
+determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
 //visualizeAsEditor name mbSubIdx mask x
-determineEditorUpdates name mbSubIdx omask nmask lmask old new
+determineEditorUpdates name mbSubIdx omask nmask old new
 	//# omask = trace_n ("OLD MASK: " +++ printToString omask) omask
 	//# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask
-	//# lmask = trace_n ("LST MASK: " +++ printToString lmask) lmask
 	# emask = determineErrors new nmask
 	# hmask = determineHints new nmask
-	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, listMask = lmask, errorMask = emask, hintMask = hmask}
+	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, errorMask = emask, hintMask = hmask}
 	# vst 	= case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
@@ -610,7 +609,7 @@ where
 
 import StdDebug
 
-gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,listMask, renderAsStatic, errorMask, hintMask}
+gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,renderAsStatic, errorMask, hintMask}
 	= case vizType of
 		VEditorDefinition
 			# errMsg 				= getErrorMessage currentPath oldM errorMask
@@ -909,8 +908,6 @@ getHintUpdate id cp dm hm = TUIUpdate (TUISetHint id (getHintMessage cp dm hm))
 
 getErrorUpdate :: TUIId DataPath DataMask ErrorMask -> Visualization
 getErrorUpdate id cp dm em = TUIUpdate (TUISetError id (getErrorMessage cp dm em))
-
-derive gPrint LabelOrNumber
 
 determineIndexOfLabels :: !String !*VSt -> *VSt
 determineIndexOfLabels label vst=:{VSt | errorMask,hintMask,currentPath}

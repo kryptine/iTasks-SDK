@@ -7,7 +7,6 @@ import Types
 :: DataPath
 :: SubEditorIndex :== Int
 :: DataMask :== [[Int]]
-:: ListMask :== [([Int],[Int])]
 
 :: *USt =
 	{ mode				:: UpdateMode
@@ -16,7 +15,6 @@ import Types
 	, update			:: String
 	, consPath			:: [ConsPos]
 	, mask				:: DataMask
-	, listMask			:: ListMask
 	, world				:: *World
 	}
 
@@ -36,7 +34,7 @@ derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, 
 defaultValue			:: !*World -> (!a,!*World)														| gUpdate{|*|} a
 defaultMask				:: a !*World -> (DataMask,*World)												| gUpdate{|*|} a
 updateValue				:: DataPath String a !*World -> (a,!*World)										| gUpdate{|*|} a 
-updateValueAndMask  	:: DataPath String a DataMask ListMask !*World -> (a,DataMask,ListMask,!*World)	| gUpdate{|*|} a
+updateValueAndMask  	:: DataPath String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
 
 //Utility functions for dealing with DataPath values
 initialDataPath			:: DataPath
@@ -57,8 +55,5 @@ instance == DataPath
 //Masking and unmasking of fields
 toggleMask			:: *USt -> *USt
 initialDataMask		:: DataMask
-initialListMask		:: ListMask
-updateListMask		:: ListMask DataPath -> (ListMask,[Int])
 isMasked			:: DataPath DataMask -> Bool
 appendToMask		:: DataPath DataMask -> DataMask
-appendToListMask	:: DataPath [Int] ListMask -> ListMask

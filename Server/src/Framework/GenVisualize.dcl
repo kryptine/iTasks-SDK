@@ -20,7 +20,7 @@ visualizeAsHtmlLabel	:: a -> [HtmlTag]													| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String														| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask ListMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
+determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a
@@ -41,7 +41,6 @@ derive bimap VisualizationValue
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
 	, valid				:: !Bool						// Is the form valid
-	, listMask			:: !ListMask					// Indicating which parts of a list have changed
 	, errorMask			:: !ErrorMask
 	, hintMask			:: !HintMask
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
