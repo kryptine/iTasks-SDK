@@ -32,7 +32,7 @@ JSONEncode{|TUIDef|} (TUIBox r) = addXType "box" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIHtmlPanel r) = addXType "panel" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuButton r) = addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuItem r) = addXType "menuitem" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIMenuSeparator) = [JSONRaw "{\\\"xtype\":\\\"menuseparator\"}"]
+JSONEncode{|TUIDef|} (TUIMenuSeparator) = [JSONRaw "{\"xtype\":\"menuseparator\"}"]
 JSONEncode{|TUIDef|} (TUITuple r) = addXType "panel" (JSONEncode {|*|} r)
 JSONEncode{|TUIDef|} (TUICustom r) = JSONEncode{|*|} r
 
