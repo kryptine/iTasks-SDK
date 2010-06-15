@@ -136,8 +136,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		var index = find(ct, ct.ownerCt, 0) + 1;
 		var newct = ct.ownerCt.insert(index, cmp);
 		
-		ct.ownerCt.doLayout();
-		ct.ownerCt.syncSize();
+		//ct.ownerCt.doLayout();
+		//ct.ownerCt.syncSize();
 		ct.ownerCt.ownerCt.doLayout();
 		
 		itasks.ttc.common.attachTaskHandlers(newct);

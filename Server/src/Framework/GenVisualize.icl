@@ -49,7 +49,6 @@ where
 	val = VValue x initialDataMask
 	
 determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
-//visualizeAsEditor name mbSubIdx mask x
 determineEditorUpdates name mbSubIdx omask nmask old new
 	//# omask = trace_n ("OLD MASK: " +++ printToString omask) omask
 	//# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask

@@ -10,6 +10,7 @@ from StdFunc import id
 
 derive bimap	(,)
 
+
 :: DataPath = DataPath [Int] (Maybe SubEditorIndex)
 
 defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
@@ -221,7 +222,7 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
 						= (l,ust)
 	# (lx,ust=:{mask}) 
 				= (applyListUpdates fx l {USt|ust & currentPath = shiftDataPath currentPath})
-	# lx 		= removeUnmaskedTail lx (dataPathList currentPath) mask
+	//# lx 		= removeUnmaskedTail lx (dataPathList currentPath) mask
 	| currentPath == searchPath
 	# split = split "_" update
 	# index = toInt (last split)
