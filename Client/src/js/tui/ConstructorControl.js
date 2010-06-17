@@ -41,8 +41,8 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		
 		this.consField.setValue = function(value){
 			if(this.staticDisplay){
-				if(value == "") value = "Select...";
-				this.update(value);
+				if(value == "") value = "Select...";				
+				if(this.el) this.el.dom.innerHTML = value;
 			}else{
 				Ext.form.ComboBox.superclass.setValue.call(this,value);
 				if(value == "" ) this.setRawValue("Select...");

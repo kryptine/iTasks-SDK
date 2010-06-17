@@ -151,7 +151,7 @@ derive gEq TUIDef
 	
 :: TUITupleContainer =
 	{ id			:: !String
-	, definitions	:: ![[TUIDef]]
+	, items			:: ![[TUIDef]]
 	, fieldLabel	:: !Maybe String
 	}
 :: TUIRecordContainer = 

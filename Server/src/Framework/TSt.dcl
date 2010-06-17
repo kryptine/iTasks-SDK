@@ -328,6 +328,7 @@ setStatus			:: ![HtmlTag] !*TSt																	-> *TSt	//Only for monitor tasks
 setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt						-> *TSt //Only for group tasks
 
 getUserUpdates			:: !*TSt						-> ([(String,String)],!*TSt)
+userUpdates2Paths 		:: ![(String,String)] 			-> [DataPath]
 getChildrenUpdatesFor	:: !TaskNr !*TSt				-> ([(String,String)],!*TSt)
 anyUpdates				:: !*TSt						-> (Bool,!*TSt)
 

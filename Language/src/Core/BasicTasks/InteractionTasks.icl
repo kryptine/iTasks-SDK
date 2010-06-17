@@ -75,7 +75,8 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 			| otherwise
 				# tst				= setTaskStore "value" nvalue tst
 				# tst				= setTaskStore "mask" nmask tst
-				# (updates,valid)	= determineEditorUpdates editorId Nothing omask nmask ovalue nvalue
+				# updpaths			= userUpdates2Paths updates
+				# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths omask nmask ovalue nvalue
 				# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 				# buttonActions		= evaluateConditions buttonActions valid nvalue
 				# hotkeyActions		= evaluateHotkeyConditions (getHotkeyActions actions) valid nvalue
@@ -348,7 +349,7 @@ makeInstructionTask instruction context tst
 :: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
 :: Listener` s a =	{ visualize :: s -> [HtmlTag] }
 :: Editor` s a =	{ getNewValue :: Int [(!DataPath,!String)] s s *TSt -> *(!s,!*TSt)
-					, determineUpdates :: !TaskNr Int s *TSt -> *((![TUIUpdate],!Bool),!*TSt)
+					, determineUpdates :: !TaskNr Int s [(String,String)] *TSt -> *((![TUIUpdate],!Bool),!*TSt)
 					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
 					}
 
@@ -367,11 +368,13 @@ where
 			# (nEditV,tst)		= applyUpdates myUpdates oEditV tst
 			= (mergeValues old cur (editorTo nEditV old), tst)
 		
-	determineUpdates taskNr n new tst
+	determineUpdates taskNr n new postValues tst
 		# (Just oEditV,tst)	= getTaskStoreFor taskNr (addStorePrefix n "value") tst
 		# nEditV			= editorFrom new
 		# (mask,tst)		= accWorldTSt (defaultMask nEditV) tst
-		= (determineEditorUpdates (editorId taskNr n) (Just n) mask mask oEditV nEditV,tst)
+		# (updates,tst)		= getUserUpdates tst
+		# updpaths			= userUpdates2Paths postValues
+		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths mask mask oEditV nEditV,tst)
 	
 	visualize taskNr n stateV tst
 		# editV			= editorFrom stateV
@@ -428,7 +431,7 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTas
 						# (result,tst)	= gMakeLocalCopy{|*|} (fromJust mbcvalue) tst
 						= (TaskFinished (action,result),tst)
 					Nothing
-						# tst = setTUIFunc createUpdates (html question) tst
+						# tst = setTUIFunc (createUpdates updates) (html question) tst
 						= (TaskBusy, tst)
 where
 	createDefs tst
@@ -446,10 +449,10 @@ where
 		
 	createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
 	
-	createUpdates tst
+	createUpdates postValues tst
 		# (mbcvalue,tst)	= readShared sharedId tst
 		# cvalue			= fromJust mbcvalue
-		# (upd,valid,_,tst)	= foldl (detUpd cvalue) ([],True,0,tst) views
+		# (upd,valid,_,tst)	= foldl (detUpd cvalue postValues) ([],True,0,tst) views
 		# menuActions		= evaluateConditions menuActions valid cvalue
 		# buttonActions		= evaluateConditions buttonActions valid cvalue
 		# hotkeyActions		= evaluateHotkeyConditions (getHotkeyActions actions) valid cvalue
@@ -461,11 +464,12 @@ where
 		= (nvalue,n + 1,tst)
 	updateV _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
 	
-	detUpd nvalue (upd,valid,n,tst) (Editor editor)
-		# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue tst
+	detUpd nvalue postValues (upd,valid,n,tst) (Editor editor)
+		# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue postValues tst
 		# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
 		= (upd ++ nupd,	valid && nvalid, n + 1, tst)
-	detUpd nvalue (upd,valid,n,tst) (Listener listener) = ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
+	detUpd nvalue _ (upd,valid,n,tst) (Listener listener) 
+		= ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
 	
 	listenerPanel value listener n = TUIHtmlPanel {TUIHtmlPanel| id = (editorId taskNr n), html = toString (DivTag [] (html (listener.Listener`.visualize value))), border = True, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True}
 	

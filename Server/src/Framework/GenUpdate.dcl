@@ -3,6 +3,8 @@ definition module GenUpdate
 import StdGeneric, StdMaybe, Void, Either
 import Types
 
+derive gPrint DataPath
+
 //Datapath is used to point to substructures of data structures
 :: DataPath
 :: SubEditorIndex :== Int

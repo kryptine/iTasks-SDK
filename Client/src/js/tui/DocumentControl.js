@@ -3,7 +3,7 @@ Ext.ns('itasks.tui');
 itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 {	
 	initComponent : function(){
-		this.uploadPanel = new itasks.tui.document.UploadPanel({name: this.name, id: this.id});
+		this.uploadPanel = new itasks.tui.document.UploadPanel({name: this.name});
 		this.downloadPanel = new itasks.tui.document.DownloadPanel();
 		
 		Ext.apply(this,
@@ -63,7 +63,7 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 		(function(){
 			this.uploadPanel.setError(msg);
 			this.downloadPanel.setError(msg);
-		}).defer(50,this);
+		}).defer(30,this);
 	},
 	
 	setHint: function(msg){
@@ -72,7 +72,7 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 		(function(){
 			this.uploadPanel.setHint(msg);
 			this.downloadPanel.setHint(msg);
-		}).defer(50,this);
+		}).defer(70,this);
 	},
 	
 	setValue: function(docInfo){
@@ -111,8 +111,8 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 			, handler : this.trashButtonHandler
 			});
 			
-		this.errorIcon = new Ext.Panel({cls: 'x-document-invalid-icon', width: 25, hideMode: 'display', unstyled: true, hidden: true});
-		this.hintIcon = new Ext.Panel({cls: 'x-document-hint-icon', width: 25, hideMode: 'display', unstyled: true, hidden: true});
+		this.errorIcon = new Ext.Panel({cls: 'x-document-invalid-icon', width: 25, unstyled: true, hidden: true});
+		this.hintIcon = new Ext.Panel({cls: 'x-document-hint-icon', width: 25, unstyled: true, hidden: true});
 			
 		Ext.apply(this,
 		{ layout : 'hbox'
@@ -134,8 +134,8 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 			this.editButton,
 			this.trashButton,
 			this.dlButton,
-			this.errorIcon,
-			this.hintIcon
+			this.hintIcon,
+			this.errorIcon
 			]
 		});
 		
@@ -212,7 +212,7 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 	
 	setHint : function(msg){
 		if(this.rendered){
-			if(msg == '' || msg == null){
+			if(msg == '' || msg == null || this.errorIcon.isVisible()){
 				this.hintIcon.hide();
 			}else{
 				this.hintIcon.show();
@@ -292,8 +292,8 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 			, handler: this.cancelButtonHandler			
 			});
 			
-		this.errorIcon = new Ext.Panel({cls: 'x-document-invalid-icon', width: 25, hideMode: 'display', unstyled: true, hidden: true});
-		this.hintIcon = new Ext.Panel({cls: 'x-document-hint-icon', width: 25, hideMode: 'display', unstyled: true, hidden: true});
+		this.errorIcon = new Ext.Panel({cls: 'x-document-invalid-icon', width: 25, unstyled: true, hidden: true});
+		this.hintIcon = new Ext.Panel({cls: 'x-document-hint-icon', width: 25, unstyled: true, hidden: true});
 			
 		Ext.apply(this,
 		{ fileUpload: true
@@ -311,8 +311,8 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 			},
 			this.cancelButton,
 			this.uplButton,
-			this.errorIcon,
-			this.hintIcon
+			this.hintIcon,
+			this.errorIcon
 			]
 		});
 		
@@ -336,7 +336,7 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 	
 	setHint : function(msg){
 		if(this.rendered){
-			if(msg == '' || msg == null){
+			if(msg == '' || msg == null || this.errorIcon.isVisible()){
 				this.hintIcon.hide();
 			}else{
 				this.hintIcon.show();
@@ -404,7 +404,6 @@ Ext.reg("itasks.tui.document.upload",itasks.tui.document.UploadPanel);
 
 //--- Preview function ---
 itasks.preview = function(link){
-	
 	var vport = Ext.getDoc().getViewSize();
 		
 	var prevWindow = new Ext.Window(
@@ -412,14 +411,7 @@ itasks.preview = function(link){
 		, width: vport.width*.9
 		, height: vport.height*.9
 		, title: 'Document Preview'
-		, layout: 'fit'
-		, items: [
-			{ xtype: 'iframepanel'
-			, frameCfg: { name: 'preview_frame' } 
-			, defaultSrc: link
-			, header: false
-			}
-		]
+		, html: '<iframe src="'+link+'" frameborder="0" style="width: 100%; height: 100%; background-color: white"></iframe>'
 		}
 	);
 		

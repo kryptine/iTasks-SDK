@@ -12,7 +12,7 @@ NEWLINE	:== "\n"		//The character sequence to use for new lines in text display 
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, errorMask = [], hintMask = []}
+		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, errorMask = [], hintMask = [], updates = []}
 
 //Wrapper functions
 visualizeAsEditor :: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool) | gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
@@ -48,13 +48,13 @@ visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} val val
 where
 	val = VValue x initialDataMask
 	
-determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
-determineEditorUpdates name mbSubIdx omask nmask old new
+determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
+determineEditorUpdates name mbSubIdx updatedPaths omask nmask old new
 	//# omask = trace_n ("OLD MASK: " +++ printToString omask) omask
 	//# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask
 	# emask = determineErrors new nmask
 	# hmask = determineHints new nmask
-	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, errorMask = emask, hintMask = hmask}
+	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, errorMask = emask, hintMask = hmask, updates = updatedPaths}
 	# vst 	= case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
@@ -340,7 +340,7 @@ where
 		| getErrorCount cp dm em > 0 = False
 		| otherwise = valid
 
-gVisualize{|FIELD of d|} fx old new vst=:{vizType,hintMask,errorMask,currentPath}
+gVisualize{|FIELD of d|} fx old new vst=:{vizType,currentPath}
 	# vst = determineIndexOfLabels d.gfd_name vst	
 	= case (old,new) of
 		(VValue (FIELD ox) omask, VValue (FIELD nx) nmask)
@@ -357,19 +357,17 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType,hintMask,errorMask,currentPath
 		_
 			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
 
-gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
+gVisualize{|Int|} old new vst=:{vizType,idPrefix,label,currentPath,updates,useLabels,optional,valid,renderAsStatic,errorMask}
 	= case vizType of
 		VEditorDefinition
-			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)								
-			# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
+			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
 			= ([TUIFragment (TUIIntControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
+			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]			
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
-			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
-			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath newM hintMask:upd]
-			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath newM errorMask:upd]
-			= (upd, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			# (msg,vst) = updateErrorNHintMessages newM vst
+			= (upd++msg, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_	
 			= ([TextFragment (toString old)]
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
@@ -381,19 +379,16 @@ where
 	oldM	= case old of (VValue _ omask) = omask ; _ = []
 	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 		
-gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
+gVisualize{|Real|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,updates,errorMask}
 	= case vizType of
 		VEditorDefinition	
-		# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
-		# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
+		# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
 		= ([TUIFragment (TUIRealControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 			, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
-			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
-			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
-			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath newM hintMask:upd]
-			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath newM errorMask:upd]
-			= (upd, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
+			# (msg,vst) = updateErrorNHintMessages newM vst
+			= (upd++msg, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_					
 			= ([TextFragment (toString old)]
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
@@ -405,19 +400,17 @@ where
 	oldM	= case old of (VValue _ omask) = omask ; _ = []
 	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 		
-gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
+gVisualize{|Char|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
-			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
+			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
 			= ([TUIFragment (TUICharControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
-			# upd = if (oldV == newV) [] [TUIUpdate (TUISetValue id newV)]
-			# upd = if (renderAsStatic) upd [getHintUpdate id currentPath newM hintMask: upd]
-			# upd = if (renderAsStatic || (optional && newV == "")) upd [getErrorUpdate id currentPath newM errorMask:upd]
-			= (upd, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
+			# (msg,vst) = updateErrorNHintMessages newM vst
+			= (upd++msg, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_		
 			= ([TextFragment (toString old)]
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
@@ -429,19 +422,17 @@ where
 	oldM	= case old of (VValue _ omask) = omask ; _ = []
 	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 
-gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
+gVisualize{|Bool|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
 	= case vizType of
 		VEditorDefinition
-			# errMsg = if (renderAsStatic) "" (getErrorMessage currentPath oldM errorMask)
-			# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
+			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
 			= ([TUIFragment (TUIBoolControl {TUIBasicControl|name = dp2s currentPath, id = id, value = toString checkedOld , fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
-			# upd = if (checkedOld <> checkedNew) [TUIUpdate(TUISetValue id (toString checkedNew))] []
-			# err = getErrorUpdate id currentPath newM errorMask
-			# hnt = getHintUpdate id currentPath  newM hintMask
-			= ([err,hnt:upd]
+			# upd = if (checkedOld <> checkedNew) [TUIUpdate(TUISetValue id (toString checkedNew))] (restoreField currentPath updates id (toString checkedOld))
+			# (msg,vst) = updateErrorNHintMessages newM vst
+			= (upd++msg
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 		_	
 			= ([TextFragment (toString old)]
@@ -457,19 +448,17 @@ where
 	oldM	= case old of (VValue _ omask) = omask ; _ = []
 	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 	
-gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
+gVisualize{|String|} old new vst=:{vizType,idPrefix,label,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
 	= case vizType of
 		VEditorDefinition	
-		# errMsg = if (renderAsStatic || (optional && oldV == "")) "" (getErrorMessage currentPath oldM errorMask)
-		# hntMsg = if (renderAsStatic) "" (getHintMessage currentPath oldM hintMask)
+		# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
 		=	([TUIFragment (TUIStringControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
 			, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 		VEditorUpdate
 			//always include the most recent error and/or hint, regardless whether the value has changed, because other fields may have changed the context
-			# upd = if (oldV <> newV) [TUIUpdate (TUISetValue id newV)] []
-			# err = getErrorUpdate id currentPath newM errorMask
-			# hnt = getHintUpdate id currentPath newM hintMask
-			= ([err,hnt:upd]		
+			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
+			# (msg,vst) = updateErrorNHintMessages newM vst
+			= (upd++msg		
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_			
 			=	([TextFragment (toString old)]
@@ -525,7 +514,7 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2) omask) = (VValue o1 omask, VValue o2 omask) ; _ = (VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, definitions = [coerceToTUIDefs viz1, coerceToTUIDefs viz2]})]		 
+			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, items = map coerceToTUIDefs [viz1,viz2]})]		 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
@@ -552,7 +541,7 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
-			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, definitions = [coerceToTUIDefs viz1,coerceToTUIDefs viz2,coerceToTUIDefs viz3]})]			 
+			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, items = map coerceToTUIDefs [viz1,viz2,viz3]})]			 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels=oldLabels})		
 		_
 			= case (old,new) of
@@ -583,7 +572,7 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			# (viz4,vst) = f4 v4 v4 vst
-			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, definitions = [coerceToTUIDefs viz1,coerceToTUIDefs viz2,coerceToTUIDefs viz3,coerceToTUIDefs viz4]})]			 
+			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, items = map coerceToTUIDefs [viz1,viz2,viz3,viz4]})]			 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})		
 		_
 			= case (old,new) of
@@ -605,8 +594,6 @@ where
 	separator = case vizType of
 		VHtmlDisplay	= []
 		_				= [TextFragment ", "]
-
-import StdDebug
 
 gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,renderAsStatic, errorMask, hintMask}
 	= case vizType of
@@ -691,16 +678,26 @@ where
 		| otherwise = valid
 	
 //Document Type
-gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, errorMask, hintMask}
+gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, errorMask, updates}
 = case vizType of
+	VEditorDefinition
+		# (errMsg,hntMsg,vst) = getErrorNHintMessages omask vst
+		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = id, name = dp2s currentPath, docInfo = toString(toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath omask errorMask optional valid})
+	VEditorUpdate
+		# (msg,vst) = updateErrorNHintMessages nmask vst
+		| oval =!= nval
+		= ([TUIUpdate (TUISetValue id (toString (toJSON nval))):msg],
+		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval currentPath nmask errorMask optional valid})
+		| otherwise = ((restoreField currentPath updates id (toString (toJSON oval)))++msg,{VSt | vst & currentPath = stepDataPath currentPath})
 	VHtmlDisplay
 		= case old of
 			(VBlank) = noDocument vst
 			(VValue ov=:{content} omask) = case content of
 				EmptyDocument = noDocument vst
 				(DocumentContent info)
-					# downLink = ATag [HrefAttr (buildLink info),TargetAttr "_blank",IdAttr (dp2id idPrefix currentPath),NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
-					# prevLink = ATag [HrefAttr "#", IdAttr (dp2id idPrefix currentPath), NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
+					# downLink = ATag [HrefAttr (buildLink info),TargetAttr "_blank",IdAttr id,NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
+					# prevLink = ATag [HrefAttr "#", IdAttr id, NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
 					= ([HtmlFragment [(Text (info.fileName+++" ("+++printByteSize info.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
 				  		{VSt | vst & currentPath = stepDataPath currentPath})
 	VTextDisplay
@@ -710,19 +707,9 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 				EmptyDocument			= noDocument vst
 				(DocumentContent info)	= ([TextFragment info.fileName],
 			 	  							{VSt | vst & currentPath = stepDataPath currentPath})
-	VEditorDefinition
-		# errMsg = getErrorMessage currentPath omask errorMask
-		# hntMsg = getHintMessage currentPath omask hintMask
-		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = dp2id idPrefix currentPath, name = dp2s currentPath, docInfo = toString(toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
-		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath omask errorMask optional valid})
-	VEditorUpdate
-		| oval =!= nval
-		# errMsg = getErrorMessage currentPath nmask errorMask
-		# hntMsg = getHintMessage currentPath nmask hintMask
-		= ([TUIUpdate (TUISetValue (dp2id idPrefix currentPath) (toString (toJSON nval)))],
-		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid nval currentPath nmask errorMask optional valid})
-		| otherwise = ([],{VSt | vst & currentPath = stepDataPath currentPath})
 where
+	id = dp2id idPrefix currentPath
+	
 	oval = case old of (VValue o om) = o; _ = emptyDoc
 	nval = case new of (VValue n nm) = n; _ = emptyDoc
 	
@@ -872,27 +859,6 @@ where
 		| isUpper c			= [' ',toLower c:addspace cs]
 		| otherwise			= [c:addspace cs]
 
-consSelector :: GenericConsDescriptor String DataPath (VisualizationValue a) (Maybe String) Bool Bool -> [Visualization]
-consSelector d idPrefix dp value label useLabels renderAsStatic
-	# masked = case value of (VValue _ dm) = isMasked dp dm; _ = False
-	//No choice needed with only one constructor
-	| d.gcd_type_def.gtd_num_conses == 1 
-		= []
-	//Use radiogroup to choose a constructor
-	//| d.gcd_type_def.gtd_num_conses <= MAX_CONS_RADIO 
-	//	# items	= [TUIRadio {TUIRadio|name = name, id = (dp2id idPrefix rdp)+++"-radio", value = c.gcd_name, boxLabel = Just c.gcd_name, checked = (masked && c.gcd_index == index), fieldLabel = Nothing, hideLabel = True} 
-	//			   \\ c <- d.gcd_type_def.gtd_conses & rdp <- radioDps (shiftDataPath dp)]
-	//	= [TUIFragment (TUIRadioGroup {TUIRadioGroup|name = name, id = id, items = items, fieldLabel = label, columns = 4, hideLabel = not useLabels})]
-	//Use combobox to choose a constructor
-	| otherwise
-		= [TUIFragment (TUIComboBox {TUIComboBox|name = name, id = id, value = (if masked d.gcd_name ""), fieldLabel = label, hideLabel = not useLabels, store = store, triggerAction = "all", editable = False})]
-where
-	store		= [("","Select...") : [(c.gcd_name,c.gcd_name) \\ c <- d.gcd_type_def.gtd_conses]]
-	name		= dp2s dp
-	id			= dp2id idPrefix dp
-	index		= d.gcd_index
-	radioDps dp	= [dp:radioDps (stepDataPath dp)]
-
 determineRemovals :: [Visualization] -> [Visualization]
 determineRemovals editor = ([TUIUpdate (TUIRemove (fromJust (getId consid))) \\ consid <- (coerceToTUIDefs editor) | isJust (getId consid)])
 	
@@ -902,6 +868,26 @@ determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def
 determineChildAdditions :: String [Visualization] -> [Visualization]
 determineChildAdditions consid editor = [TUIUpdate (TUIAddTo consid def) \\ def <- coerceToTUIDefs editor]
 
+import StdDebug
+derive gPrint LabelOrNumber
+derive gPrint MessagePredicate
+
+// === Error & Hint Utility functions ===
+getErrorNHintMessages :: !DataMask !*VSt -> (String, String, *VSt)
+getErrorNHintMessages mask vst=:{renderAsStatic,optional,currentPath,errorMask,hintMask}
+	# errMsg = if(renderAsStatic || (optional && not (isMasked currentPath mask))) "" (getErrorMessage currentPath mask errorMask)
+	# hntMsg = if(renderAsStatic) "" (getHintMessage currentPath mask hintMask)
+	= (errMsg,hntMsg,vst)
+			
+updateErrorNHintMessages :: !DataMask !*VSt -> ([Visualization], *VSt)
+updateErrorNHintMessages mask vst=:{renderAsStatic, optional, currentPath, idPrefix, errorMask, hintMask}
+	//# upd = if(renderAsStatic || (optional && not (isMasked currentPath mask))) [] [TUIUpdate (TUISetError id (getErrorMessage currentPath mask errorMask))]
+	# upd = if(renderAsStatic) [] [TUIUpdate (TUISetError id (getErrorMessage currentPath mask errorMask))]
+	# upd = if(renderAsStatic) upd [TUIUpdate (TUISetHint id (getHintMessage currentPath mask hintMask)):upd]
+	= (upd,vst)
+where
+	id = dp2id idPrefix currentPath
+	
 getHintUpdate :: TUIId DataPath DataMask HintMask -> Visualization
 getHintUpdate id cp dm hm = TUIUpdate (TUISetHint id (getHintMessage cp dm hm))
 
@@ -934,6 +920,12 @@ where
 	(==) (Unlabeled a) (Unlabeled b) = a == b
 	(==) (Label a) (Label b) = a == b
 	(==) _ _ = False
+
+
+
+//Sends the TUIRestore-update if a field has received an update, but it should not be updated.
+restoreField :: DataPath [DataPath] String String -> [Visualization]
+restoreField currpath updates id val  = if (isMember currpath updates) [TUIUpdate (TUISetValue id val)] []
 
 //Coercion of visualizations
 coerceToTUIDefs :: [Visualization] -> [TUIDef]

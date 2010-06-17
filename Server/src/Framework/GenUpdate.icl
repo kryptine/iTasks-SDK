@@ -231,24 +231,20 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
 			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 			# upd   = swapList lx index
 			# nm    = swapMask mask currentPath index
-			//# lmask = appendToListMask currentPath [index-1,index] listMask
 			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask = nm, mode=UDDone}) 
 		"mdn"
 			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 			# upd	= swapList lx ((toInt index)+1) //down idx == up (idx+1)
 			# nm	= swapMask mask currentPath (index+1)
-			//# lmask = appendToListMask currentPath [index,index+1] listMask
 			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, mode=UDDone})
 		"rem"
 			# upd   = removeAt index lx
 			# nm	= (maskRemove mask currentPath index (length lx == (index+1)))
-			//# lmask = appendToListMask currentPath [index..length upd-1] listMask
 			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, mode=UDDone})	
 		"add"
 			# (nv,ust) = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
 			# upd	   = insertAt (index+1) nv lx
 			# nm	   = moveMaskDown mask currentPath (index+1)
-			//# lmask    = appendToListMask currentPath [index+1..length upd-1] listMask
 			= (upd, {USt | ust & currentPath = stepDataPath currentPath, mask=nm, mode=UDDone})
 		_ 	= (lx, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 	| otherwise

@@ -59,9 +59,6 @@
 		,{"text":"itasks.Application.js","path":"src/js/"}
 		,{"text":"itasks.GMapPanel.js","path":"src/js/"}
 		,{"text":"itasks.GStaticMapPanel.js","path":"src/js/"}
-		,{"text":"itasks.ListPanel.js","path":"src/js/"} 
-		,{"text":"itasks.DocumentPanel.js","path":"src/js/"} 
-		,{"text":"itasks.HorizontalGridLayout.js","path":"src/js/"}
 		,{"text":"itasks.js","path":"src/js/"}]
 	,"pkgDeps" : ["ext-ux-all.js"]
 	,"includeDeps" : false
@@ -79,7 +76,7 @@
 		,{"text":"Ext.ux.tree.TreeGridSorter.js","path":"src/js/"}
 		,{"text":"Ext.ux.layout.HtmlLayout.js","path":"src/js/"}
 		,{"text":"Ext.ux.form.FileUploadField.js","path":"src/js/"}
-		,{"text":"Ext.ux.MIframe.js","path":"src/js/"}]
+		]
 	,"pkgDeps" : []
 	,"includeDeps" : false
 	}]

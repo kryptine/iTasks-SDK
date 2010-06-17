@@ -20,7 +20,7 @@ visualizeAsHtmlLabel	:: a -> [HtmlTag]													| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String														| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (Maybe SubEditorIndex) DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
+determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a
@@ -43,6 +43,7 @@ derive bimap VisualizationValue
 	, valid				:: !Bool						// Is the form valid
 	, errorMask			:: !ErrorMask
 	, hintMask			:: !HintMask
+	, updates			:: ![DataPath]
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
 	}
 
@@ -66,8 +67,12 @@ instance toString (VisualizationValue a) | toString a
 
 getHintUpdate :: TUIId DataPath DataMask HintMask -> Visualization
 getErrorUpdate :: TUIId DataPath DataMask ErrorMask -> Visualization
+getErrorNHintMessages :: !DataMask !*VSt -> (String, String, *VSt)
+updateErrorNHintMessages :: !DataMask !*VSt -> ([Visualization], *VSt)
 
-value2s 	:: DataPath (VisualizationValue a)							-> String | toString a
-label2s 	:: Bool (Maybe String)										-> Maybe String
-labelAttr 	:: !Bool !(Maybe String)									-> Maybe String
-stillValid	:: DataPath ErrorMask (VisualizationValue a) Bool Bool		-> Bool
+restoreField :: DataPath [DataPath] String String -> [Visualization]
+
+value2s 		:: DataPath (VisualizationValue a)							-> String | toString a
+label2s 		:: Bool (Maybe String)										-> Maybe String
+labelAttr 		:: !Bool !(Maybe String)									-> Maybe String
+stillValid		:: DataPath ErrorMask (VisualizationValue a) Bool Bool		-> Bool

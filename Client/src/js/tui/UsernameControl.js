@@ -47,7 +47,7 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 	
 	setValue: function(value){
 		if(this.staticDisplay){
-			this.update(value);
+			if(this.el) this.el.dom.innerHTML = value;
 		}else{
 			itasks.tui.UsernameControl.superclass.setValue.call(this,value);
 		}
@@ -66,6 +66,14 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 			if(msg == "") itasks.tui.common.clearHint(this);
 			else itasks.tui.common.markHint(this,msg);
 		}).defer(50,this);
+	},
+	
+	getPreferredWidth : function(){
+		return 150;
+	},
+	
+	setPreferredWidth : function(width){
+		this.setWidth(width);
 	}
 });
 

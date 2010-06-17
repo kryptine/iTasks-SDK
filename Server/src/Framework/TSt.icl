@@ -746,6 +746,10 @@ where
 		| otherwise
 			= []
 
+userUpdates2Paths :: ![(String,String)] -> [DataPath]
+//userUpdates2Paths updates = map s2dp  (fst (unzip updates))
+userUpdates2Paths updates = map (s2dp o fst) updates
+
 getChildrenUpdatesFor :: !TaskNr !*TSt -> ([(String,String)],!*TSt)
 getChildrenUpdatesFor taskNr tst=:{request} = (updates request, tst);
 where

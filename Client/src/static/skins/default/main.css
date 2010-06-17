@@ -798,3 +798,9 @@ button.x-form-document-trash-icon {
 	margin-left: 4px;
 }
 
+/* == TUPLE == */
+
+.tuple-item {
+	float: left;
+	margin-right: 20px;
+}
