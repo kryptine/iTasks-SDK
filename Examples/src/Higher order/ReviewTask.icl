@@ -47,7 +47,7 @@ derive bimap (,), Maybe
 
 reviewTaskExample :: [Workflow]
 reviewTaskExample
-= [workflow "Examples/Higher order/Review task" ("Review the results of a task" @>> reviewtask) ]
+= [workflow "Examples/Higher order/Review task" (Subject "Review the results of a task" @>> reviewtask) ]
 
 reviewtask :: Task (QForm,Review)
 reviewtask = getDefaultValue >>= \def -> taskToReview AnyUser (def, mytask)
@@ -58,7 +58,7 @@ mytask v =	updateInformation "Fill in Form:" v
 taskToReview :: User (a,a -> Task a) -> Task (a,Review) | iTask a 
 taskToReview reviewer (v`,task) 
 	=					task v`               
-		>>= \v ->		reviewer @: ("Review" @>> review v) 
+		>>= \v ->		reviewer @: (Subject "Review" @>> review v) 
 		>>= \r ->		showMessageAbout [Text ("Reviewer " <+++ reviewer <+++ " says ")] r 
 		>>|				case r of
 							(NeedsRework _) -> taskToReview reviewer (v,task) 	
@@ -69,8 +69,8 @@ review v
 	=	getDefaultValue
 	>>=	\def ->
 		enterChoiceAbout "What is your verdict?" v
-			[ updateInformation "Please add your comments" (NeedsRework def) <<@ "Rework"
-			, return Approved <<@ "Approved"
-			, return Rejected <<@ "Reject"
+			[ updateInformation "Please add your comments" (NeedsRework def) <<@ Subject "Rework"
+			, return Approved <<@ Subject "Approved"
+			, return Rejected <<@ Subject "Reject"
 			]
 	>>= \task -> task

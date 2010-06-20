@@ -28,7 +28,7 @@ derive bimap (,), Maybe
 
 movingTaskExample :: [Workflow]
 movingTaskExample
-	= [ workflow "Examples/Higher order/Moving task" ("Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask ))]
+	= [ workflow "Examples/Higher order/Moving task" (Subject "Suspend,Activate or move a task" @>> movingTask ("Task which can be moved", trivialTask ))]
 
 trivialTask :: Task QForm
 trivialTask = getDefaultValue >>= fillInForm
@@ -44,17 +44,17 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess who True (task <<@ label)
+		>>= \who ->	spawnProcess who True (task <<@ Subject label)
 		>>= 		inspect
 
 	inspect wid
 	=					enterChoice "Go ahead impatient boss:" 
-							[ getStatus wid <<@ "Get status"
-							, suspend wid <<@ "Suspend"
-							, activate wid <<@ "Activate"
-							, reassign wid <<@ "Reassign"
-							, delete wid <<@ "Delete task"
-							, waitForIt wid <<@ "Wait for task"
+							[ getStatus wid <<@ Subject "Get status"
+							, suspend wid <<@ Subject "Suspend"
+							, activate wid <<@ Subject "Activate"
+							, reassign wid <<@ Subject "Reassign"
+							, delete wid <<@ Subject "Delete task"
+							, waitForIt wid <<@ Subject "Wait for task"
 							]
 		>>= \action ->	action
 		>>= \finished -> if finished (return Void) (inspect wid)

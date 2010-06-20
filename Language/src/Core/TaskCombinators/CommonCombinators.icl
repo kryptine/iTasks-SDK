@@ -52,7 +52,7 @@ where
 		GOContinue		= (Void, Continue)
 		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
 	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ getGroupedBehaviour t) tasks
-	getGroupedBehaviour (Task _ gb _ _ _) = gb
+	getGroupedBehaviour (Task _ {GroupedProperties | groupedBehaviour} _ _) = groupedBehaviour
 		
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] emptyGActionL
@@ -208,13 +208,13 @@ where
 
 //Post processing of results
 ignoreResult :: !(Task a) -> Task Void | iTask a
-ignoreResult task = "ignoreResult" @>> (task >>| return Void)
+ignoreResult task = Subject "ignoreResult" @>> (task >>| return Void)
 
 transformResult :: !(a -> b) !(Task a) -> Task b | iTask a & iTask b
-transformResult fun task = "transformResult" @>> (task >>= \a -> return (fun a))
+transformResult fun task = Subject "transformResult" @>> (task >>= \a -> return (fun a))
 
 stop :: Task Void
-stop = "stop" @>> return Void
+stop = Subject "stop" @>> return Void
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"

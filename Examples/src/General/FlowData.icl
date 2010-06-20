@@ -91,7 +91,7 @@ where
 	assignTask :: !AssignInfo !Dynamic -> Task Dynamic
 	assignTask info (e :: DF0 a b | iTask a) 	
 		= return (dynamic (case e of
-							(DF0 e) ->  DF0 (\v -> assign info.nameOfUser (e v <<@ info.taskName))) :: DF0 a b | iTask a)
+							(DF0 e) ->  DF0 (\v -> assign info.nameOfUser (e v <<@ Subject info.taskName))) :: DF0 a b | iTask a)
 	assignTask info d 									
 		= throw (typeErrorMess "Assign" d)
 

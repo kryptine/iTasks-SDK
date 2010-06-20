@@ -1,41 +1,31 @@
 implementation module TuningCombinators
 
-import StdEnv
-import Types, TSt
+import Types, StdList
+from Time		import :: Timestamp
+from TaskTree	import :: GroupedBehaviour, :: GroupActionsBehaviour
 
-class 	(<<@) infixl 2 b ::  !(Task a) !b  -> Task a
+class tune b :: !b !(Task a) -> Task a
+instance tune ManagerProperties
+where tune props (Task _ gprops mbTn tf)			= Task props gprops mbTn tf
+instance tune User
+where tune u (Task props gprops mbTn tf)			= Task {ManagerProperties|props & worker = u} gprops mbTn tf
+instance tune (Subject s)
+where tune (Subject s) (Task props gprops mbTn tf)	= Task {ManagerProperties|props & subject = toString s} gprops mbTn tf
+instance tune TaskPriority
+where tune p (Task props gprops mbTn tf)			= Task {ManagerProperties|props & priority = p} gprops mbTn tf
+instance tune Timestamp
+where tune d (Task props gprops mbTn tf)			= Task {ManagerProperties|props & deadline = Just d} gprops mbTn tf
+instance tune (Tag s)
+where tune (Tag t) (Task props gprops mbTn tf)		= Task {ManagerProperties|props & tags = [toString t : props.tags]} gprops mbTn tf
+instance tune (Tags s)
+where tune (Tags ts) (Task props gprops mbTn tf)	= Task {ManagerProperties|props & tags = (map toString ts) ++ props.tags} gprops mbTn tf
+instance tune GroupedBehaviour
+where tune gb (Task props gprops mbTn tf)			= Task props {gprops & groupedBehaviour = gb} mbTn tf
+instance tune GroupActionsBehaviour
+where tune ga (Task props gprops mbTn tf)			= Task props {gprops & groupActionsBehaviour = ga} mbTn tf
 
-instance <<@ ManagerProperties
-where	(<<@) (Task _ gb ga mbTn tf) props	= Task props gb ga mbTn tf
-instance <<@ User
-where	(<<@) (Task props gb ga mbTn tf) u	= Task {ManagerProperties|props & worker = u} gb ga mbTn tf
-instance <<@ String
-where	(<<@) (Task props gb ga mbTn tf) s	= Task {ManagerProperties|props & subject = s} gb ga mbTn tf
-instance <<@ TaskPriority
-where	(<<@) (Task props gb ga mbTn tf) p	= Task {ManagerProperties|props & priority = p} gb ga mbTn tf
-instance <<@ Timestamp
-where	(<<@) (Task props gb ga mbTn tf) d	= Task {ManagerProperties|props & deadline = Just d} gb ga mbTn tf
+(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
+(<<@) t a = tune a t
 
-instance <<@ GroupedBehaviour
-where	(<<@) (Task props _ ga mbTn tf) gb	= Task props gb ga mbTn tf
-instance <<@ GroupActionsBehaviour
-where	(<<@) (Task props gb _ mbTn tf) ga	= Task props gb ga mbTn tf
-
-
-class 	(@>>) infixr 2 b ::  !b !(Task a)   -> Task a
-
-instance @>> ManagerProperties
-where	(@>>) props (Task _ gb ga mbTn tf)	= Task props gb ga mbTn tf
-instance @>> User
-where	(@>>) u (Task props gb ga mbTn tf)	= Task {ManagerProperties|props & worker = u} gb ga mbTn tf
-instance @>> String
-where	(@>>) s (Task props gb ga mbTn tf)	= Task {ManagerProperties|props & subject = s} gb ga mbTn tf
-instance @>> TaskPriority
-where	(@>>) p (Task props gb ga mbTn tf)	= Task {ManagerProperties|props & priority = p} gb ga mbTn tf
-instance @>> Timestamp
-where	(@>>) d (Task props gb ga mbTn tf)	= Task {ManagerProperties|props & deadline = Just d} gb ga mbTn tf
-
-instance @>> GroupedBehaviour
-where	(@>>) gb (Task props _ ga mbTn tf) = Task props gb ga mbTn tf
-instance @>> GroupActionsBehaviour
-where	(@>>) ga (Task props gb _ mbTn tf) = Task props gb ga mbTn tf
+(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
+(@>>) a t = tune a t

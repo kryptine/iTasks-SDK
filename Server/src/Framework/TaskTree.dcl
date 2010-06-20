@@ -35,6 +35,7 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					, taskLabel				:: String											//Descriptive label of the task
 					, traceValue			:: String											//String representation of value for tracing
 					, worker				:: User			
+					, tags					:: [String]
 					, groupedBehaviour		:: GroupedBehaviour
 					, groupActionsBehaviour	:: GroupActionsBehaviour
 					, taskDescription		:: String

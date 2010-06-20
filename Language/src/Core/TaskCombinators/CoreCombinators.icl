@@ -302,13 +302,10 @@ spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst=:{TSt|mainTask}
-		# properties	=
-			{ ManagerProperties
-			| worker		 = user
-			, subject 		 = taskLabel task
-			, priority		 = NormalPriority
-			, deadline		 = Nothing
-			}
+		# properties	=	{ initManagerProperties
+							& worker = user
+							, subject = taskLabel task
+							}
 		# (result,pid,tst)	= createTaskInstance (createThread (task <<@ properties)) True Nothing activate False tst
 		= (TaskFinished (ProcessRef pid), tst)
 

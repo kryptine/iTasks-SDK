@@ -11,7 +11,7 @@ userAdministration
 	  ]
 
 createUserFlow :: Task Void
-createUserFlow = "Create user"
+createUserFlow = Subject "Create user"
 	@>>	enterInformationA "Enter user information" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 	>>=	\(action,user) -> case action of
 		ActionCancel	=	stop
@@ -19,7 +19,7 @@ createUserFlow = "Create user"
 						>>|	showMessage "Successfully added new user"
 
 updateUserFlow :: Task Void
-updateUserFlow = "Update user" 
+updateUserFlow = Subject "Update user" 
 	@>>	getUsers
 	>>= enterChoiceA "Which user do you want to update?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionNext, IfValid)]
 	>>= \(action1,user1 =:(RegisteredUser details1)) -> case action1 of
@@ -31,7 +31,7 @@ updateUserFlow = "Update user"
 											>>| showMessage "Successfully updated user"
 											
 deleteUserFlow :: Task Void
-deleteUserFlow = "Delete users" 
+deleteUserFlow = Subject "Delete users" 
 	@>>	getUsers
 	>>=	enterMultipleChoiceA "Which users do you want to delete?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, Always)]
 	>>= \(action,users) -> case action of
@@ -40,7 +40,7 @@ deleteUserFlow = "Delete users"
 						>>| showMessage "Successfully deleted users"
 						
 listUserFlow :: Task Void
-listUserFlow = "List users"
+listUserFlow = Subject "List users"
 	@>>	getUsers
 	>>=	showMessageAbout "These are the current users"
 	

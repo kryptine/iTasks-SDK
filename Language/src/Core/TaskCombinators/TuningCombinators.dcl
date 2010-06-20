@@ -2,26 +2,25 @@ definition module TuningCombinators
 /**
 * This module provides combinators for fine-tuning of workflows.
 */
-from Types	import :: Task, :: ManagerProperties, :: User, :: TaskPriority
-from Time	import :: Timestamp
-from TaskTree import :: GroupedBehaviour, :: GroupActionsBehaviour
+from Types		import :: Task, :: ManagerProperties, :: User, :: TaskPriority
+from Time		import :: Timestamp
+from TaskTree	import :: GroupedBehaviour, :: GroupActionsBehaviour
+
+:: Subject s	= Subject !s	& toString s
+:: Tag s		= Tag !s		& toString s
+:: Tags s		= Tags ![s]		& toString s
 
 //Annotation combinator
-class   (<<@) infixl 2 b :: !(Task a) !b 	-> Task a 
-class 	(@>>) infixr 2 b ::  !b !(Task a)   -> Task a
+class tune b :: !b !(Task a) -> Task a
+(<<@) infixl 2 :: !(Task a) !b	-> Task a | tune b
+(@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 
-instance <<@	ManagerProperties		//Set initial properties
-instance @>>	ManagerProperties
-instance <<@	User					//Set initial worker
-instance @>>	User
-instance <<@	String					//Set initial subject
-instance @>>	String
-instance <<@	TaskPriority			//Set initial priority
-instance @>>	TaskPriority
-instance <<@	Timestamp				//Set initial deadline	
-instance @>>	Timestamp
-
-instance <<@	GroupedBehaviour		//Set grouped behaviour
-instance @>>	GroupedBehaviour
-instance <<@	GroupActionsBehaviour
-instance @>>	GroupActionsBehaviour
+instance tune	ManagerProperties		//Set initial properties
+instance tune	User					//Set initial worker
+instance tune	(Subject s)				//Set initial subject
+instance tune	TaskPriority			//Set initial priority
+instance tune	Timestamp				//Set initial deadline
+instance tune	(Tag s)					//Append Tag
+instance tune	(Tags s)				//Append List of Tags	
+instance tune	GroupedBehaviour		//Set grouped behaviour
+instance tune	GroupActionsBehaviour	//Set group actions behaviour

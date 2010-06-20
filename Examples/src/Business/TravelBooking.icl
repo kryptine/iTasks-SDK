@@ -50,8 +50,8 @@ travelBookingExample
 
 travel :: Task Void
 travel 
-	=	sequence "travel" [ makeBookings <<@ "Step 1: Make Bookings:"
-						  , confirmBookings <<@ "Step 2: Confirm Bookings:"					   
+	=	sequence "travel" [ makeBookings <<@ Subject "Step 1: Make Bookings:"
+						  , confirmBookings <<@ Subject "Step 2: Confirm Bookings:"					   
 						  ]
 		-||- 
 		(showMessage "Cancel task?" >>| return [])
@@ -60,9 +60,9 @@ travel
 where
 	makeBookings :: Task [Booking]
 	makeBookings = enterMultipleChoice [Text "Choose Booking options:"]
-						[ (BookFlight <<@ "Book Flight")
-						, (BookHotel <<@ "Book Hotel")
-						, (BookCar <<@ "Book Car")
+						[ (BookFlight <<@ Subject "Book Flight")
+						, (BookHotel <<@ Subject "Book Hotel")
+						, (BookCar <<@ Subject "Book Car")
 						]
 					>>= \tasks -> sequence "bookings" tasks
 

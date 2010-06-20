@@ -21,7 +21,7 @@ exceptionHandlingExample
 = [workflow "Examples/Higher order/Exception handling" exceptionTask]
 
 exceptionTask :: Task Void
-exceptionTask = "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
+exceptionTask = Subject "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
 db :: (DBid Int)
 db = mkDBid "MyIntDB"

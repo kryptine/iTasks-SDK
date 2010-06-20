@@ -64,7 +64,7 @@ reportBugVerySimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
 		assign (NamedUser "bas")
-			("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
+			(Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
 reportBugSimple :: Task BugReport
@@ -72,7 +72,7 @@ reportBugSimple
 	=	enterInformation "Please describe the bug you have found"
 	>>=	\report ->
 		assign (NamedUser "bas")
-			("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
+			(Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
 //Different variant of simple reportBug
@@ -83,7 +83,7 @@ where
 	reportBug = enterInformation "Please describe the bug you found"
 	
 	fixBug :: BugReport -> Task Void
-	fixBug bug = NamedUser "bas" @: ("Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
+	fixBug bug = NamedUser "bas" @: (Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
 
 //Main workflow	  
 reportBug :: Task Void
@@ -106,7 +106,7 @@ assignBug bug critical
 	>>=	\developer ->
 		updateBug (\b -> {Bug| b & status = Assigned developer}) bug
 	>>= \bug ->
-		assign developer (subject @>> priority @>> resolveBug bug critical)
+		assign developer (Subject subject @>> priority @>> resolveBug bug critical)
 where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
@@ -148,7 +148,7 @@ confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
 		assign assessor
-			( "Bug report assessment"
+			( Subject "Bug report assessment"
 			  @>> HighPriority @>>
 			  requestConfirmationAbout "Is this bug really critical?" report
 			)
@@ -208,6 +208,6 @@ makePatches bug =
 			  >>| return Void
 		
 notifyReporter :: Bug -> Task Void
-notifyReporter bug = bug.reportedBy @: ("Bug Report Result" @>> showMessageAbout "The bug you reported has been fixed" bug)
+notifyReporter bug = bug.reportedBy @: (Subject "Bug Report Result" @>> showMessageAbout "The bug you reported has been fixed" bug)
 
 //notifyUser "The bug you reported has been fixed" bug.reportedBy

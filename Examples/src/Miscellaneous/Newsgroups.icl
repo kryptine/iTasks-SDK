@@ -47,7 +47,7 @@ derive gHint		InstructionMsg
 mkInstruction :: Task Void
 mkInstruction
 	= 			mkMsg 
-	>>= \msg -> msg.InstructionMsg.worker @: ("Instructions regarding: "+++msg.InstructionMsg.title @>> showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
+	>>= \msg -> msg.InstructionMsg.worker @: (Subject ("Instructions regarding: "+++msg.InstructionMsg.title) @>> showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
 	
 	where
 		mkMsg :: Task InstructionMsg
@@ -88,7 +88,7 @@ where
 	startup n dbid [] _
 		= return Void
 	startup n dbid [u:us] data
-		= spawnProcess u True ("Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
+		= spawnProcess u True (Subject "Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
 	where
 		task :: Int -> Task MeetingDB
 		task n 
@@ -160,8 +160,8 @@ chat
 	=				getCurrentUser
 	>>= \me ->		selectFriends
 	>>= \friends -> createChatBox me
-	>>= \chatbox ->	allTasks ([spawnProcess f True ("Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
-							++ [spawnProcess me True ("Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
+	>>= \chatbox ->	allTasks ([spawnProcess f True (Subject "Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
+							++ [spawnProcess me True (Subject "Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
 where
 	
 	createChatBox :: User -> (Task (DBid Chat))
@@ -267,7 +267,7 @@ where
 	addUsers chatbox
 		= 			 	enterInformation "Select users to add to the chat"	
 		>>= \users -> 	readDB chatbox
-		>>= \chat ->	allTasks ([spawnProcess u True ("Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
+		>>= \chat ->	allTasks ([spawnProcess u True (Subject "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
 		>>| 		 	return Void
 //===============================================
 
@@ -303,7 +303,7 @@ where
 		=			return msg
 	broadcast me msg [u:us] 
 		=			spawnProcess u True
-						(showMessageAbout ("You have received the following broadcast message from " <+++ displayName me) msg <<@ msg.Broadcast.subject)
+						(showMessageAbout ("You have received the following broadcast message from " <+++ displayName me) msg <<@ Subject msg.Broadcast.subject)
 			>>|			broadcast me msg us 
 				
 
@@ -311,7 +311,7 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [who @>> (spawnProcess who True (mailMess me msg <<@ msg.EMail.subject)) \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->						allProc [who @>> (spawnProcess who True (mailMess me msg <<@ Subject msg.EMail.subject)) \\ who <- [msg.to:msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
@@ -321,14 +321,14 @@ internalEmailConf :: (Task EMail)
 internalEmailConf
 =						enterInformation "Type your email message ..."
 	>>= \msg ->			getCurrentUser
-	>>= \me ->			allProc [who @>> (mailMess me msg <<@ msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->			allProc [who @>> (mailMess me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
 	>>|					return msg
 	
 internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
 =					enterInformation "Type your email message ..."
 	>>= \msg ->		getCurrentUser
-	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
 	>>= \reply ->	showMessageAbout "The following replies have been commited:" reply
 	>>|				return (msg,map snd reply)
 
@@ -337,7 +337,7 @@ mailMess2 me msg
 	= 	(showStickyMessageAbout ("Mail from " <+++ displayName me <+++ ":") msg 
 	  	||- updateInformation "The sender requested a reply..." 
    				(HtmlDisplay {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = [] }))
-					<<@ msg.EMail.subject
+					<<@Subject  msg.EMail.subject
 		>>= \(HtmlDisplay hdr,reply) -> return (hdr,reply)
 
 // newsgroup handling
@@ -420,7 +420,7 @@ where
 		>>= \groups ->		requestConfirmationAbout "Do you want to add more?" groups 
 		>>= \yn ->			if yn addNewsGroup (return Void)
 	
-subscribeProcess me group = spawnProcess me True (readNews 1 me group 0 <<@ group <+++ " newsgroup reader")
+subscribeProcess me group = spawnProcess me True (readNews 1 me group 0 <<@ Subject (group <+++ " newsgroup reader"))
 
 // news group reader
 

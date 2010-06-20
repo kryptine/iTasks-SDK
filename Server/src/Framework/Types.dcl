@@ -73,7 +73,7 @@ instance < User
 :: TaskId			:== String		// String serialization of TaskNr values
 :: MenuId			:== Int
 
-:: Task a 			= Task !ManagerProperties !GroupedBehaviour !GroupActionsBehaviour !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
+:: Task a 			= Task !ManagerProperties !GroupedProperties !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
 					| TaskException !Dynamic
@@ -109,7 +109,17 @@ instance < User
 	, subject			:: String 					// The subject of the task
 	, priority			:: TaskPriority				// What is the current priority of this task?
 	, deadline			:: Maybe Timestamp			// When is the task due?
+	, tags				:: [String]					// A list of tags
 	}
+
+initManagerProperties :: ManagerProperties
+	
+:: GroupedProperties =
+	{ groupedBehaviour		:: !GroupedBehaviour
+	, groupActionsBehaviour	:: !GroupActionsBehaviour
+	}
+
+initGroupedProperties :: GroupedProperties
 					
 :: WorkerProperties =
 	{ progress		:: TaskProgress		// Indication of the worker's progress

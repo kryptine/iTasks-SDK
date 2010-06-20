@@ -3,7 +3,7 @@ implementation module textEditor
 import iTasks, CommonDomain, StdMisc, Text, Map
 
 textEditor :: [Workflow]
-textEditor = [workflow "Examples/Miscellaneous/Text Editor" textEditorApp]
+textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ Subject "Text Editor")]
 
 // global workflows
 textEditorApp :: Task Void
@@ -99,7 +99,7 @@ textEditorFile mbFile sid =
 																	getFile fid
 														>>=	\file.	return (edIdx, (AppState (inc edIdx) newIdx (put edIdx (EditorState file.TextFile.content (OpenedFile file)) openedFiles)))
 	>>= \(editorId, state).						writeDB sid state
-	>>= \state.									dynamicGroupA [editorWindow editorId sid <<@ GBFloating] (actions editorId sid)
+	>>= \state.									dynamicGroupA [editorWindow editorId sid <<@ GBFloating <<@ Tag editorId] (actions editorId sid)
 	>>|											readDB sid
 	>>= \(AppState edIdx newIdx openedFiles).	writeDB sid (AppState edIdx newIdx (del editorId openedFiles))
 	>>|											continue

@@ -95,13 +95,13 @@ where
     suggestion _        = []
 
 sendPolice :: Incident -> Task Void
-sendPolice incident = "Send police" @>> showMessage "Please send police" 
+sendPolice incident = Subject "Send police" @>> showMessage "Please send police" 
 
 sendMedics :: Incident -> Task Void
-sendMedics incident = "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
+sendMedics incident = Subject "Send ambulances" @>> requestAmbulances incident.Incident.nrInjured incident.Incident.location
 
 sendFireBrigade :: Incident -> Task Void
-sendFireBrigade incident = "Send fire brigade" @>> showMessage "Please send fire brigade"
+sendFireBrigade incident = Subject "Send fire brigade" @>> showMessage "Please send fire brigade"
 
 dispatchAmbulances :: Task Void
 dispatchAmbulances
@@ -180,7 +180,7 @@ resourceRequestTimeOut resources time_out check predf allf task
 
 delegateTaskTimeOut :: User String a (a -> Task a) Time -> Task (Maybe a) | iTask a
 delegateTaskTimeOut who description value task time_out 
-	= timeOutTask (who @: (description @>> task value)) time_out 
+	= timeOutTask (who @: (Subject description @>> task value)) time_out 
    			  
 timeOutTask :: (Task a) Time -> Task (Maybe a) | iTask a
 timeOutTask task time

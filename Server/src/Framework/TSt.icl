@@ -62,6 +62,7 @@ initTaskInfo
 		, taskLabel = ""
 		, traceValue = ""
 		, worker = AnyUser
+		, tags = []
 		, groupedBehaviour = GBFixed
 		, groupActionsBehaviour = IncludeGroupActions
 		, taskDescription = ""
@@ -78,15 +79,6 @@ initSystemProperties =
 	, latestExtEvent = Nothing
 	, subTaskWorkers = []
 	, deleteWhenDone = False
-	}
-	
-initManagerProperties :: ManagerProperties
-initManagerProperties = 
-	{ManagerProperties
-	| worker = AnyUser
-	, subject = ""
-	, priority = NormalPriority
-	, deadline = Nothing
 	}
 
 initWorkerProperties :: WorkerProperties
@@ -251,7 +243,11 @@ where
 	resetTSt :: !ProcessId !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
 	resetTSt processId properties inptype tst
 		# taskNr	= taskNrFromString processId
-		# info		= {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "", worker=properties.managerProps.ManagerProperties.worker, groupedBehaviour = GBFixed, groupActionsBehaviour = IncludeGroupActions, taskDescription = ""}
+		# info =	{ initTaskInfo
+					& taskId	= toString processId
+					, taskLabel	= properties.managerProps.subject
+					, worker	= properties.managerProps.ManagerProperties.worker
+					}
 		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, staticInfo = {tst.staticInfo & currentProcessId = processId}, mainTask = processId}
 	
@@ -380,7 +376,7 @@ where
 	* Adds the task number at which it has run before to a task
 	*/
 	setTaskContext :: !TaskNr !(Task a) -> (Task a)
-	setTaskContext cxt (Task props gb ga _ tf) = Task props gb ga (Just cxt) tf
+	setTaskContext cxt (Task props gprops _ tf) = Task props gprops (Just cxt) tf
 	
 	/*
 	* Store the changes that are still active after  a run.
@@ -419,7 +415,13 @@ calculateTaskTree processId tst
 	# (mbProcess,tst) = getProcess processId tst
 	= case mbProcess of
 		Nothing
-			= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = "Deleted Process", traceValue="Deleted", worker = AnyUser, groupedBehaviour = GBFixed,groupActionsBehaviour = IncludeGroupActions, taskDescription="Task Result"} [], tst)
+			# info =	{ initTaskInfo
+						& taskId			= toString processId
+						, taskLabel			= "Deleted Process"
+						, traceValue		= "Deleted"
+						, taskDescription	= "Task Result"
+						}
+			= (TTFinishedTask info [], tst)
 		Just process=:{Process|status,properties}
 			= case status of
 				Active
@@ -428,7 +430,14 @@ calculateTaskTree processId tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
-					= (TTFinishedTask {TaskInfo|taskId = toString processId, taskLabel = properties.managerProps.subject, traceValue = "Finished", worker = properties.managerProps.ManagerProperties.worker, groupedBehaviour = GBFixed, groupActionsBehaviour = IncludeGroupActions, taskDescription="Task Result"} [], tst)
+					# info =	{ initTaskInfo
+								& taskId			= toString processId
+								, taskLabel			= properties.managerProps.subject
+								, traceValue		= "Finished"
+								, worker			= properties.managerProps.ManagerProperties.worker
+								, taskDescription	= "Task Result"
+								}
+					= (TTFinishedTask info [], tst)
 
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
@@ -486,31 +495,31 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
 mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
-mkInteractiveTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkInteractiveTask`	
+mkInteractiveTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkInstantTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkInstantTask`
+mkInstantTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo []} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMonitorTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkMonitorTask`
+mkMonitorTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo []}
 
 mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
-mkInstructionTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkInstructionTask`
+mkInstructionTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInstructionTask`
 where
 	mkInstructionTask` tst =:{TSt | taskInfo}
 		= taskfun {tst & tree = TTInstructionTask taskInfo [] Nothing}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkRpcTask`
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -565,47 +574,48 @@ where
 	setStatus status tst	= setTaskStore "status" status tst
 
 mkExtProcessTask :: !String !String !(*TSt -> *(!TaskResult Int,!*TSt)) -> Task Int
-mkExtProcessTask taskname cmdline taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkExtProcessTask`
+mkExtProcessTask taskname cmdline taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkExtProcessTask`
 where
 	mkExtProcessTask` tst =:{TSt | taskInfo}
 		= taskfun {tst & tree = TTExtProcessTask taskInfo cmdline}
 		
 mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkSequenceTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkSequenceTask`
+mkSequenceTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkSequenceTask`
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkParallelTask taskname tpi taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkParallelTask`
+mkParallelTask taskname tpi taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo tpi [], taskNr = [0:taskNr]}												
 		= taskfun tst
 
 mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkGroupedTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkGroupedTask`
+mkGroupedTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkGroupedTask`
 where
 	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTGroupedTask taskInfo [] [], taskNr = [0:taskNr]}
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMainTask taskname taskfun = Task {initManagerProperties & subject = taskname} GBFixed IncludeGroupActions Nothing mkMainTask`
+mkMainTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo [])}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask (Task initProperties groupedBehaviour groupActionsBehaviour mbInitTaskNr taskfun) tst=:{taskNr,tree,dataStore,world,properties}
+applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{taskNr,tree,dataStore,world,properties}
 	# taskId					= iTaskId taskNr ""
 	# (taskVal,dataStore,world)	= loadValue taskId dataStore world
 	# taskInfo =	{ taskId				= taskNrToString taskNr
 					, taskLabel				= initProperties.subject
 					, traceValue			= ""
 					, worker				= properties.managerProps.ManagerProperties.worker
-					, groupedBehaviour 		= groupedBehaviour
-					, groupActionsBehaviour	= groupActionsBehaviour
+					, tags					= initProperties.ManagerProperties.tags
+					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
+					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
 					, taskDescription		= ""
 					}
 	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo, newTask = isNothing taskVal}

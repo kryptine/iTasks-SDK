@@ -48,7 +48,7 @@ where
 		= 					getCurrentUser
 		>>= \me ->			requestConfirmation ("Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
 		>>= \ok ->			if ok (					updateInformation "Name of this workflow: " "workflow"
-									>>= \name -> 	spawnProcess me True (t <<@ name)
+									>>= \name -> 	spawnProcess me True (t <<@ Subject name)
 									>>| 			return Void)
 								  (return Void)	
 

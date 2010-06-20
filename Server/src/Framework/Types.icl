@@ -26,6 +26,23 @@ derive JSONDecode Document, DocumentType, DocumentInfo, DocumentContent, Documen
 
 derive gEq Document, DocumentContent, DocumentType, DocumentInfo, DocumentDataLocation
 
+initManagerProperties :: ManagerProperties
+initManagerProperties = 
+	{ManagerProperties
+	| worker = AnyUser
+	, subject = ""
+	, priority = NormalPriority
+	, deadline = Nothing
+	, tags = []
+	}
+	
+initGroupedProperties :: GroupedProperties
+initGroupedProperties =
+	{ GroupedProperties
+	| groupedBehaviour		= GBFixed
+	, groupActionsBehaviour	= IncludeGroupActions
+	}
+	
 instance toString TaskPriority
 where
 	toString LowPriority	= "LowPriority"
@@ -134,13 +151,13 @@ displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName _ = ""
 
 taskLabel :: !(Task a) -> String
-taskLabel (Task p _ _ _ _) = p.subject
+taskLabel (Task p _ _ _) = p.subject
 
 taskUser :: !(Task a) -> User
-taskUser (Task p _ _ _ _) = p.worker
+taskUser (Task p _ _ _) = p.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
-taskProperties (Task p _ _ _ _) = p
+taskProperties (Task p _ _ _) = p
 
 gVisualize{|User|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
 	= case vizType of
@@ -194,12 +211,12 @@ gParse{|Task|} ga expr
 		parseString :: Expr -> Maybe String
 		parseString expr = gParse{|*|} expr
 
-gVisualize{|Task|} fx (VValue (Task props _ _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
+gVisualize{|Task|} fx (VValue (Task props _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
 gVisualize{|Task|} fx _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
-	= (Task {ManagerProperties|worker = AnyUser, subject = "return", priority = NormalPriority, deadline = Nothing} GBFixed IncludeGroupActions Nothing (\tst -> (TaskFinished a,tst)), ust)
+	= (Task {initManagerProperties & subject = "return"} initGroupedProperties Nothing (\tst -> (TaskFinished a,tst)), ust)
 gUpdate{|Task|} fx x ust = (x,ust)
 
 gError{|Task|} fx x est = est

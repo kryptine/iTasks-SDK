@@ -69,8 +69,8 @@ mergeTestList :: Task Void
 mergeTestList =
 				getCurrentUser
 	>>= \user.  createDB emptyL
-	>>= \sid.	spawnProcess user True ("1st View" @>> view sid)
-	>>|			spawnProcess user True ("2nd View" @>> view sid)
+	>>= \sid.	spawnProcess user True (Subject "1st View" @>> view sid)
+	>>|			spawnProcess user True (Subject "2nd View" @>> view sid)
 	>>|			stop
 where
 	view :: (DBid [String]) -> Task (Action,[String])
@@ -83,9 +83,9 @@ mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				getCurrentUser
 	>>= \user.	createDB emptyL
-	>>= \sid.	spawnProcess user True ("1st View" @>> view sid idEditor)
-	>>|			spawnProcess user True ("2nd View" @>> view sid idEditor)
-	>>|			spawnProcess user True ("3rd View" @>> view sid idListener)
+	>>= \sid.	spawnProcess user True (Subject "1st View" @>> view sid idEditor)
+	>>|			spawnProcess user True (Subject "2nd View" @>> view sid idEditor)
+	>>|			spawnProcess user True (Subject "3rd View" @>> view sid idListener)
 	>>|			stop
 where
 	view :: (DBid [Document]) (View [Document]) -> Task (Action,[Document])
@@ -160,13 +160,13 @@ where
 	actions = [GroupAction ActionQuit GOStop GroupAlways]
 								
 sharedValueExamples :: [Workflow]
-sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)" linesPar
-						, workflow "Examples/Shared Variables/Text-Lines (single editor)" linesSingle
-						, workflow "Examples/Shared Variables/Calculate Sum" calculateSum
-						, workflow "Examples/Shared Variables/Balanced Binary Tree" tree
-						, workflow "Examples/Shared Variables/Merge Test (List)" mergeTestList
-						, workflow "Examples/Shared Variables/Merge Test (Documents)" mergeTestDocuments
-						, workflow "Examples/Shared Variables/Google Maps Example" googleMaps
-						, workflow "Examples/Shared Variables/Sorted List" autoSortedList
-						, workflow "Examples/Shared Variables/Formatted Text" formattedText
+sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	(Subject "Text-Lines (grouped tasks)"	@>> linesPar)
+						, workflow "Examples/Shared Variables/Text-Lines (single editor)"	(Subject "Text-Lines (single editor)"	@>> linesSingle)
+						, workflow "Examples/Shared Variables/Calculate Sum"				(Subject "Calculate Sum"				@>> calculateSum)
+						, workflow "Examples/Shared Variables/Balanced Binary Tree"			(Subject "Balanced Binary Tree"			@>> tree)
+						, workflow "Examples/Shared Variables/Merge Test (List)"			(Subject "Merge Test (List)"			@>> mergeTestList)
+						, workflow "Examples/Shared Variables/Merge Test (Documents)"		(Subject "Merge Test (Documents)"		@>> mergeTestDocuments)
+						, workflow "Examples/Shared Variables/Google Maps Example"			(Subject "Google Maps Example"			@>> googleMaps)
+						, workflow "Examples/Shared Variables/Sorted List"					(Subject "Sorted List"					@>> autoSortedList)
+						, workflow "Examples/Shared Variables/Formatted Text"				(Subject "Formatted Text"				@>> formattedText)
 						]
