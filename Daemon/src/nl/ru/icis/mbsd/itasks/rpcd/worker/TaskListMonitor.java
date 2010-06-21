@@ -165,7 +165,7 @@ public class TaskListMonitor implements Runnable {
 		List<NameValuePair> params = new ArrayList<NameValuePair>();
 
 		params.add(new BasicNameValuePair("username","root"));
-		params.add(new BasicNameValuePair("password",""));
+		params.add(new BasicNameValuePair("password","root"));
 
 		UrlEncodedFormEntity entity = new UrlEncodedFormEntity(params,"UTF-8");
 		post.setEntity(entity);
@@ -182,7 +182,7 @@ public class TaskListMonitor implements Runnable {
 			log.trace("Login successful. Session key: "+sessionKey);
 			return true;
 		}else{
-			log.fatal("Cannot log in to the iTasks System. The returned message is: "+root.path("error").getValueAsText()+"Daemon is exiting.");
+			log.fatal("Cannot log in to the iTasks System. The returned message is: "+root.path("error").getValueAsText()+" Daemon is exiting.");
 			return false;
 		}
 	}
