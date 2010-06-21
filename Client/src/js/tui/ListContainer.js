@@ -135,8 +135,8 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 	markHint : function (msg){
 		if(this.rendered){
 			if(!this.msgField) {
-				this.ownerCt.el.createChild({cls: 'x-constructor-panel-tc'});
-				this.msgField = this.ownerCt.el.createChild({cls: 'list-msg-field'});
+				this.msgField = this.el.insertSibling({cls: 'list-msg-field'},'after');
+				this.el.insertSibling({cls: 'x-constructor-panel-tc'},'after');
 			}
 			
 			if(!this.hintIcon){
@@ -152,8 +152,8 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 	markError: function(msg){
 		if(this.rendered){
 			if(!this.msgField) {
-				this.ownerCt.el.createChild({cls: 'x-constructor-panel-tc'});
-				this.msgField = this.ownerCt.el.createChild({cls: 'list-msg-field'});
+				this.msgField = this.el.insertSibling({cls: 'list-msg-field'},'after');
+				this.el.insertSibling({cls: 'x-constructor-panel-tc'},'after');
 			}
 			
 			if(this.hintIcon) this.hintIcon.hide();
