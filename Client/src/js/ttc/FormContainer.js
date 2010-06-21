@@ -14,8 +14,8 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		, url: itasks.config.serverUrl + '/work/tab'
 		, items: [this.descpanel,this.panel]
 		, unstyled: true
-		, autoScroll: true
 		, cls: 'FormContainer'
+		, autoScroll: true
 		});
 
 		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
@@ -24,11 +24,12 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 	buildComponents: function(data){
 		data.content.form.buttons = data.content.buttons;
 		
-		this.panel = {
+		this.panel = new itasks.ttc.form.FormPanel({
 			xtype: 'itasks.ttc.form.panel',
 			items: data.content.form,
+			buttons: data.content.buttons,
 			width: 720
-		}
+		});
 		
 		this.descpanel = {
 			xtype: 'itasks.ttc.common.description',
@@ -47,7 +48,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		this.setupToolbar(tb);
 		this.setupHotkeys(this.hotkeys);
 	},
-		
+	
 	addUpdate: function(name, value) {
 		this.taskUpdates[name] = value;
 	},
@@ -306,10 +307,11 @@ itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 	initComponent : function(){
 	
 		Ext.apply(this,
-		{ layout: 'fit'
-		, unstyled: true
+		{ unstyled: true
 		, cls: 'FormPanel'
 		, width: 720
+		, layout: 'auto'
+		, autoScroll: true
 		});
 		
 		itasks.ttc.form.FormPanel.superclass.initComponent.apply(this,arguments);

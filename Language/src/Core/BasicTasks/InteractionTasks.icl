@@ -495,13 +495,15 @@ addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
 
 //TODO remove encapsulating TUIPanel -> Form elements should be placed directly in their containers				
-taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> (TUIDef,[TUIButton])
+taskPanel :: String [HtmlTag] (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> ([TUIDef],[TUIButton])
 taskPanel taskid description mbContext mbForm buttons
-	= (TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=True}, taskButtons buttons)
+	= (items,taskButtons buttons) 
+	//(TUIPanel {TUIPanel| layout = "auto", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "basic-task", fieldLabel = Nothing, renderingHint = 0, unstyled=True}, taskButtons buttons)
 where
 	items = //[taskDescriptionPanel ("description-"+++taskid) description] ++ //extracted from form
 			(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
-			(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
+			//(case mbForm of Just form = [taskFormPanel form]; Nothing = [])
+			(case mbForm of Just form = form; Nothing = [])
 			
 	//taskDescriptionPanel :: !String ![HtmlTag] -> TUIDef
 	//taskDescriptionPanel panelid description = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] description), border = False, bodyCssClass = "task-description", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
@@ -509,8 +511,8 @@ where
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
 	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (DivTag [] (html context)), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
 	
-	taskFormPanel :: [TUIDef] -> TUIDef
-	taskFormPanel items = TUIPanel {TUIPanel| layout = "form", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 0, unstyled=True}
+	//taskFormPanel :: [TUIDef] -> TUIDef
+	//taskFormPanel items = TUIPanel {TUIPanel| layout = "", autoHeight = True, autoWidth = True, border = False, items = items, buttons = Nothing, bodyCssClass = "task-form", fieldLabel = Nothing, renderingHint = 0, unstyled=True}
 	
 	taskButtons	:: [(Action,String,String,String,Bool)] -> [TUIButton]
 	taskButtons buttons = [toTUIButton button id name value enable \\ (button,id,name,value,enable) <- buttons]

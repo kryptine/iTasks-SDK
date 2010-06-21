@@ -32,7 +32,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	}
 
 :: FormContent =
-	{ form		:: !TUIDef
+	{ form		:: ![TUIDef]
 	, tbar		:: ![TUIDef]
 	, buttons	:: ![TUIDef]
 	}

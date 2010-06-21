@@ -672,7 +672,7 @@ where
 	finalizeTaskNode (TTGroupedTask ti tasks gActions)	= TTGroupedTask		ti (reverse tasks) gActions
 	finalizeTaskNode node								= node
 	
-setTUIDef	:: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
+setTUIDef	:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
 setTUIDef def taskDescription accActions hotkeys tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Definition def accActions hotkeys)}
@@ -690,7 +690,7 @@ setTUIFunc func taskDescription tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Func func)}
 		_								= tst
 
-setTUIMessage :: !(TUIDef,[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
+setTUIMessage :: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
 setTUIMessage msg taskDescription accActions hotkeys tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Message msg accActions hotkeys)}

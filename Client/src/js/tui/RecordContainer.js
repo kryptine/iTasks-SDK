@@ -11,6 +11,8 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 		
 		this.autoHeight = true;
 		this.layout = 'form';
+		this.boxMinWidth = 500;
+		this.autoWidth = true;
 		
 		if(this.title == null) delete this.title
 		else this.title = itasks.util.fieldLabel(this.optional,this.title);

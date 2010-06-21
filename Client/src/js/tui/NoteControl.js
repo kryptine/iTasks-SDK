@@ -1,7 +1,7 @@
 Ext.ns("itasks.tui");
 
 itasks.tui.NoteControl = Ext.extend(Ext.form.TextArea,{
-	width: 330,
+	width: 400,
 	grow: true,
 	initComponent: function() {
 		if(this.staticDisplay){

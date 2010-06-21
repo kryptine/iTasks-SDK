@@ -9,6 +9,7 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 		, layout: 'anchor'
 		, unstyled: true
 		, cls: 'list'
+		, autoWidth: true
 		});	
 		
 		itasks.tui.ListContainer.superclass.initComponent.apply(this,arguments);
@@ -186,7 +187,8 @@ T.ListItemControl = Ext.extend(Ext.Panel,{
 		Ext.apply(this,
 		{ unstyled: true
 		, autoHeight: true
-		, layout: 'form'
+		, autoWidth: true
+		//, layout: 'form'
 		, cls: ((this.index%2) == 0)?"list-item-light":"list-item-dark"
 		});
 			
