@@ -68,6 +68,11 @@ where
 	deleteDB` tst=:{TSt|dataStore,world}
 		# (dstore,world) = deleteValues key dataStore world
 		= (TaskFinished Void, {TSt|tst & dataStore = dstore, world = world})
+
+modifyDB :: !(DBid a) (a -> a) -> Task a | iTask, gMakeLocalCopy{|*|} a
+modifyDB key f =
+			readDB key
+	>>= \v.	writeDB key (f v)
 		
 mkDBid :: !String -> (DBid a)
 mkDBid s = s

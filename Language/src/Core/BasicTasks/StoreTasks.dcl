@@ -74,6 +74,14 @@ writeDB	:: !(DBid a) !a 	-> Task a | iTask a
 * @param The database reference
 */
 deleteDB :: !(DBid a)		-> Task Void
+/**
+* Modify the database.
+*
+* @param The database reference
+* @param A function modifying the database
+* @param The new value of the database
+*/
+modifyDB :: !(DBid a) (a -> a) -> Task a | iTask, gMakeLocalCopy{|*|} a
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where
