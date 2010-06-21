@@ -153,7 +153,7 @@ appendHint :: !String !MessagePredicate *HSt -> *HSt
 appendHint hint pred hst=:{HSt | currentPath,hintMask}
 	= {HSt | hst & hintMask = [(currentPath,pred,hint):hintMask]}
 
-instance ChildLookup ESt
+instance VerifyState ESt
 where
 	firstChild :: (*ESt -> *ESt) *ESt -> *ESt
 	firstChild f est=:{ESt | currentPath}
@@ -170,7 +170,10 @@ where
 		# est = f {ESt | est & currentPath = [Label l:currentPath]}
 		= {ESt | est & currentPath = currentPath}
 
-instance ChildLookup HSt
+	continue :: !*ESt -> *ESt
+	continue est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+instance VerifyState HSt
 where
 	firstChild :: (*HSt -> *HSt) *HSt -> *HSt
 	firstChild f hst=:{HSt | currentPath}
@@ -186,6 +189,9 @@ where
 	labeledChild l f hst=:{HSt | currentPath}
 		# hst = f {HSt | hst & currentPath = [Label l:currentPath]}
 		= {HSt | hst & currentPath = currentPath}
+		
+	continue :: !*HSt -> *HSt
+	continue hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
 
 shiftLabeledDataPath :: LabeledDataPath -> LabeledDataPath
 shiftLabeledDataPath ldp = [Unlabeled 0:ldp]

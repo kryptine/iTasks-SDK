@@ -76,11 +76,11 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.TabPanel, {
 				this.remove(i+1,true);
 			}
 			
-			if(i<(this.items.length-1)){
-				if (this.items.get(i+1).getXType() == content[i].xtype && this.items.get(i+1).body){
+			if(i<(this.items.length-1)){				
+				if (this.items.get(i+1).getXType() == content[i].xtype){
 					this.items.get(i+1).update(content[i]);				
 				}else{
-					//if not same xtype - completely replace tab contents
+					//if not same xtype - completely replace tab contents					
 					this.remove(i+1);
 					this.insert(i+1,content[i]);
 				}

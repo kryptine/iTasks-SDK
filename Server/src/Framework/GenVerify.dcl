@@ -38,14 +38,16 @@ shiftLabeledDataPath 	:: LabeledDataPath -> LabeledDataPath
 appendError 			:: !String !MessagePredicate *ESt -> *ESt
 appendHint				:: !String !MessagePredicate *HSt -> *HSt
 
-class ChildLookup st
+class VerifyState st
 where
 	firstChild		:: (*st -> *st) *st -> *st
 	nthChild		:: !Int (*st -> *st) *st -> *st
 	labeledChild	:: !String (*st -> *st) *st -> *st
 
-instance ChildLookup HSt
-instance ChildLookup ESt
+	continue		:: *st -> *st //continuation utility-function which steps the datapath, hiding this step from the end user 
+
+instance VerifyState HSt
+instance VerifyState ESt
 
 getErrorMessage 		:: DataPath DataMask ErrorMask -> String
 getHintMessage 			:: DataPath DataMask HintMask  -> String

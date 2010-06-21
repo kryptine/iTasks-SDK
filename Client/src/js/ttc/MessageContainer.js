@@ -28,7 +28,8 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		
 		this.panel = {
 			xtype: 'itasks.ttc.message.panel',
-			items: data.content.form
+			items: data.content.form,
+			buttons: data.content.buttons
 		}
 		
 		this.descpanel = {

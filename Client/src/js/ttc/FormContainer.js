@@ -22,7 +22,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 	},
 	
 	buildComponents: function(data){
-		data.content.form.buttons = data.content.buttons;
+		//data.content.form.buttons = data.content.buttons;
 		
 		this.panel = new itasks.ttc.form.FormPanel({
 			xtype: 'itasks.ttc.form.panel',
