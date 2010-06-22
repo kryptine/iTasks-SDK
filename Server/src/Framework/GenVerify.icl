@@ -170,8 +170,8 @@ where
 		# est = f {ESt | est & currentPath = [Label l:currentPath]}
 		= {ESt | est & currentPath = currentPath}
 
-	continue :: !*ESt -> *ESt
-	continue est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
+	stepOut :: !*ESt -> *ESt
+	stepOut est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
 
 instance VerifyState HSt
 where
@@ -190,8 +190,8 @@ where
 		# hst = f {HSt | hst & currentPath = [Label l:currentPath]}
 		= {HSt | hst & currentPath = currentPath}
 		
-	continue :: !*HSt -> *HSt
-	continue hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
+	stepOut :: !*HSt -> *HSt
+	stepOut hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
 
 shiftLabeledDataPath :: LabeledDataPath -> LabeledDataPath
 shiftLabeledDataPath ldp = [Unlabeled 0:ldp]

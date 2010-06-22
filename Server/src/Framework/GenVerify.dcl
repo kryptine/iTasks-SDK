@@ -44,7 +44,7 @@ where
 	nthChild		:: !Int (*st -> *st) *st -> *st
 	labeledChild	:: !String (*st -> *st) *st -> *st
 
-	continue		:: *st -> *st //continuation utility-function which steps the datapath, hiding this step from the end user 
+	stepOut			:: *st -> *st //continuation utility-function which steps the datapath, hiding this step from the end user 
 
 instance VerifyState HSt
 instance VerifyState ESt

@@ -302,7 +302,7 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 														, errorMsg = errMsg
 														, hintMsg = hntMsg
 														})]
-				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional, valid= if optional True (isMasked currentPath oldM)})
+				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional, valid= hasErrors currentPath newM errorMask valid})
 			VEditorUpdate
 				| not (isMasked currentPath newM) //reset the constructor
 				# (rem,vst=:{valid})	= fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath}
@@ -867,10 +867,6 @@ determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def
 
 determineChildAdditions :: String [Visualization] -> [Visualization]
 determineChildAdditions consid editor = [TUIUpdate (TUIAddTo consid def) \\ def <- coerceToTUIDefs editor]
-
-import StdDebug
-derive gPrint LabelOrNumber
-derive gPrint MessagePredicate
 
 // === Error & Hint Utility functions ===
 getErrorNHintMessages :: !DataMask !*VSt -> (String, String, *VSt)

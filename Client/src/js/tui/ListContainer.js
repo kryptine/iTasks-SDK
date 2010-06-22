@@ -132,15 +132,23 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 		else this.markHint(msg);
 	},
 	
+	makeMessageField : function(){
+		this.msgField = this.el.insertSibling({tag:'div'},'after');
+		this.msgField.createChild({cls: 'x-constructor-panel-tc'});
+		this.msgField.createChild({cls: 'list-msg-field'});
+	},
+	
 	markHint : function (msg){
 		if(this.rendered){
 			if(!this.msgField) {
-				this.msgField = this.el.insertSibling({cls: 'list-msg-field'},'after');
-				this.el.insertSibling({cls: 'x-constructor-panel-tc'},'after');
+				this.makeMessageField();
+			}else{
+				this.msgField.show();
 			}
 			
 			if(!this.hintIcon){
-				this.hintIcon = this.msgField.createChild({cls: 'x-record-hint-icon'});
+				var ct = this.msgField.child('[class = list-msg-field]');
+				this.hintIcon = ct.createChild({cls: 'x-record-hint-icon'});
 				this.hintIcon.setVisibilityMode(Ext.Element.DISPLAY);
 			}
 			
@@ -152,14 +160,16 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 	markError: function(msg){
 		if(this.rendered){
 			if(!this.msgField) {
-				this.msgField = this.el.insertSibling({cls: 'list-msg-field'},'after');
-				this.el.insertSibling({cls: 'x-constructor-panel-tc'},'after');
+				this.makeMessageField();
+			}else{
+				this.msgField.show();
 			}
 			
 			if(this.hintIcon) this.hintIcon.hide();
 			
 			if(!this.errorIcon){
-				this.errorIcon = this.msgField.createChild({cls: 'x-record-invalid-icon'});
+				var ct = this.msgField.child('[class = list-msg-field]');
+				this.errorIcon = ct.createChild({cls: 'x-record-invalid-icon'});
 				this.errorIcon.setVisibilityMode(Ext.Element.DISPLAY);
 			}
 			
@@ -169,11 +179,17 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 	},
 	
 	clearHint : function(){
-		if(this.hintIcon) this.hintIcon.setVisible(false);
+		if(this.hintIcon){
+			this.hintIcon.setVisible(false);
+			this.msgField.hide();
+		}
 	},
 	
 	clearError : function(){
-		if(this.errorIcon) this.errorIcon.setVisible(false);
+		if(this.errorIcon){
+			this.errorIcon.setVisible(false);
+			this.msgField.hide();
+		}
 	}
 });
 
