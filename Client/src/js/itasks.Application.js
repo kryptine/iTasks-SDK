@@ -33,6 +33,11 @@ itasks.Application = function () {
 			
 			//Load the config
 			this.loadConfig();
+			
+			//Set cookie provider
+			Ext.state.Manager.setProvider(new Ext.state.CookieProvider({
+				expires: new Date(new Date().getTime()+(1000*60*60*24*30)), // 30 days from now
+			}));
 		},
 		loadConfig: function() {
 			Ext.Ajax.request({url:"config.json",success: this.continueConfig, scope: this});

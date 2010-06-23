@@ -28,8 +28,11 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 	
 	createContainer: function(cont, behaviour, idx, focus) {
 		var group = this;
-		
 		this.setupChildContainer(cont, behaviour);
+		
+		// check for behaviour stored in cookie for containers which can be (un)pinned
+		if (behaviour == 'GBFixed' || behaviour == 'GBFloating')
+			behaviour = Ext.state.Manager.get(this.taskId + '_' + idx + '_behaviour', behaviour);
 	
 		switch(behaviour) {
 			case 'GBFixed':
@@ -74,6 +77,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 							window.removeAll(false);
 							group.floatingCont.remove(window);
 							window.destroy();
+							Ext.state.Manager.set(group.taskId + '_' + idx + '_behaviour', 'GBFixed');
 							group.createContainer(cont, 'GBFixed', idx, true);
 							group.renderFixed();
 						}
@@ -86,8 +90,9 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 					var title = 'Monitor task';
 				else
 					var title = cont.description || cont.label;
-
+				
 				this.floatingCont.add(idx, {
+					id: this.taskId + '_' + idx,
 					xtype: 'window',
 					index: idx,
 					cls: 'GroupFloating',
@@ -99,7 +104,9 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 					items: [cont],
 					title: title,
 					tools: tools,
-					minWidth: 300
+					minWidth: 300,
+					stateful: true,
+					stateEvents: ['maximize']
 				});
 				break;
 		}
@@ -129,7 +136,8 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 						var footer = Ext.DomQuery.selectNode('.x-plain-footer', cont.getEl().dom);
 						if(footer)
 							Ext.DomHelper.applyStyles(footer, {width:'auto'});
-							
+						
+						Ext.state.Manager.set(group.taskId + '_' + panel.index + '_behaviour', 'GBFloating');
 						group.createContainer(cont, 'GBFloating', panel.index, false);
 						group.focusFirstContainer();
 						group.doLayout();
