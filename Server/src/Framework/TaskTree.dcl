@@ -20,16 +20,16 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| Func (*TSt -> *(!InteractiveTask, !*TSt))
 					| Message ([TUIDef],[TUIButton]) [(Action,Bool)] ![(!Action, !Hotkey)]
 
-:: TaskTree			= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) !(Maybe TaskParallelType) TaskTree	//A task that is treated as a main chunk of work
-					| TTInteractiveTask	TaskInfo InteractiveTask													//A task that can be worked on through a gui 
-					| TTMonitorTask		TaskInfo [HtmlTag]															//A task that upon evaluation monitors a condition and may give status output
-					| TTInstructionTask TaskInfo [HtmlTag] (Maybe [HtmlTag])										//A task which displays an (offline) instruction to the user
-					| TTRpcTask			TaskInfo RPCExecute															//A task that represents an rpc invocation
-					| TTExtProcessTask	TaskInfo !String															//A task that represents an external process
-					| TTSequenceTask	TaskInfo [TaskTree]															//A task that is composed of a number of sequentially executed subtasks
-					| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]										//A task that is composed of a number of parallel executed subprocesses  
-					| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))]		//A task that is composed of a number of grouped subtasks
-					| TTFinishedTask	TaskInfo [HtmlTag]															//A completed task
+:: TaskTree			= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) !(Maybe TaskParallelType) TaskTree				//A task that is treated as a main chunk of work
+					| TTInteractiveTask	TaskInfo InteractiveTask																//A task that can be worked on through a gui 
+					| TTMonitorTask		TaskInfo [HtmlTag]																		//A task that upon evaluation monitors a condition and may give status output
+					| TTInstructionTask TaskInfo [HtmlTag] (Maybe [HtmlTag])													//A task which displays an (offline) instruction to the user
+					| TTRpcTask			TaskInfo RPCExecute																		//A task that represents an rpc invocation
+					| TTExtProcessTask	TaskInfo !String																		//A task that represents an external process
+					| TTSequenceTask	TaskInfo [TaskTree]																		//A task that is composed of a number of sequentially executed subtasks
+					| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]													//A task that is composed of a number of parallel executed subprocesses  
+					| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !(Maybe String)	//A task that is composed of a number of grouped subtasks
+					| TTFinishedTask	TaskInfo [HtmlTag]																		//A completed task
 							
 :: TaskInfo	=		{ taskId				:: TaskId											//Task number in string format
 					, taskLabel				:: String											//Descriptive label of the task

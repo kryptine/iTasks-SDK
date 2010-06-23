@@ -596,7 +596,7 @@ mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkGroupedTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkGroupedTask`
 where
 	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
-		# tst = {tst & tree = TTGroupedTask taskInfo [] [], taskNr = [0:taskNr]}
+		# tst = {tst & tree = TTGroupedTask taskInfo [] [] Nothing, taskNr = [0:taskNr]}
 		= taskfun tst
 			
 mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
@@ -660,17 +660,17 @@ where
 	
 	//Add a new node to the current sequence or process
 	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti menus inptype task)	= {tst & tree = TTMainTask ti mti menus inptype node} 	//Just replace the subtree 
-		(TTSequenceTask ti tasks)				= {tst & tree = TTSequenceTask ti [node:tasks]}			//Add the node to the sequence
-		(TTParallelTask ti tpi tasks)			= {tst & tree = TTParallelTask ti tpi [node:tasks]}		//Add the node to the parallel set
-		(TTGroupedTask ti tasks gActions)		= {tst & tree = TTGroupedTask ti [node:tasks] gActions}	//Add the node to the grouped set
-		_										= {tst & tree = tree}
+		(TTMainTask ti mti menus inptype task)		= {tst & tree = TTMainTask ti mti menus inptype node} 			//Just replace the subtree 
+		(TTSequenceTask ti tasks)					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
+		(TTParallelTask ti tpi tasks)				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
+		(TTGroupedTask ti tasks gActions mbFocus)	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
+		_											= {tst & tree = tree}
 	
 	//Perform reversal of lists that have been accumulated in reversed order
-	finalizeTaskNode (TTSequenceTask ti tasks) 			= TTSequenceTask	ti (reverse tasks)
-	finalizeTaskNode (TTParallelTask ti tpi tasks)		= TTParallelTask	ti tpi (reverse tasks)
-	finalizeTaskNode (TTGroupedTask ti tasks gActions)	= TTGroupedTask		ti (reverse tasks) gActions
-	finalizeTaskNode node								= node
+	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
+	finalizeTaskNode (TTParallelTask ti tpi tasks)				= TTParallelTask	ti tpi (reverse tasks)
+	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
+	finalizeTaskNode node										= node
 	
 setTUIDef	:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
 setTUIDef def taskDescription accActions hotkeys tst=:{tree}
@@ -705,8 +705,14 @@ setStatus msg tst=:{tree}
 setGroupActions :: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt -> *TSt
 setGroupActions actions tst=:{tree}
 	= case tree of
-		(TTGroupedTask info tasks _)	= {tst & tree = TTGroupedTask info tasks actions}
-		_								= tst
+		(TTGroupedTask info tasks _ mbFocus)	= {tst & tree = TTGroupedTask info tasks actions mbFocus}
+		_										= tst
+		
+setFocusCommand :: !String !*TSt -> *TSt
+setFocusCommand tag tst=:{tree}
+	= case tree of
+		(TTGroupedTask info tasks actions _)	= {tst & tree = TTGroupedTask info tasks actions (Just tag)}
+		_										= tst
 
 /**
 * Store and load the result of a workflow instance

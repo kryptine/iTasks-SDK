@@ -3,12 +3,12 @@ definition module CoreCombinators
 * This is the kernel module for the specification of workflows. It contains the core set of iTasks combinators
 * with which additional combinators can be defined.
 */
-from Types 			import :: Task, :: TaskPriority
-from Time			import :: Timestamp
-from TaskTree		import :: TaskParallelType, :: GroupedBehaviour
-from ProcessDB		import :: Action
-
-from	iTasks		import class iTask(..)
+from Types 				import :: Task, :: TaskPriority
+from Time				import :: Timestamp
+from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
+from ProcessDB			import :: Action
+from TuningCombinators	import :: Tag
+from iTasks				import class iTask(..)
 
 import	GenPrint, GenParse, GenVisualize, GenUpdate
 
@@ -84,14 +84,10 @@ iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-
-
-
-
-
-:: PAction x	= Stop			// stop the entire parallel/grouped execution
+:: PAction x t	= Stop			// stop the entire parallel/grouped execution
 				| Continue		// continue execution without change
 				| Extend .[x]	// dynamically extend list of tasks in parallel/group
+				| Focus (Tag t) // focus child-tasks with given tag
 
 :: GroupAction taskResult gState shared		= GroupAction Action taskResult (GroupCondition gState shared)					// accept given menu-action for entire group and generate 'taskResult' which is given to accumulator function
 											| GroupActionParam String (String -> taskResult) (GroupCondition gState shared)	// accept given parameterized action and use parameter to compute 'taskResult' which is given to accumulator function
@@ -114,7 +110,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
+parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult) tag))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
 
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
@@ -130,7 +126,7 @@ parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pSta
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction taskResult gState shared]	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & iTask shared
+group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult) tag)) (gState -> gResult) !gState ![Task taskResult] ![GroupAction taskResult gState shared]	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & iTask shared
 
 // Multi-user workflows
 

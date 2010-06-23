@@ -113,6 +113,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	{ panel		:: !TaskPanel
 	, behaviour	:: !GroupedBehaviour
 	, index		:: !String
+	, focus		:: !Bool
 	}
 
 :: SubtaskInfo =

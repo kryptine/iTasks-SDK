@@ -112,20 +112,16 @@ derive bimap Maybe, (,)
 	, tasks :: [(Task a,Bool)]
 	}
 
-import GenPrint
-//:: PAction t a = Stop | Continue | Extend .[t a]
-derive gPrint PAction
-
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel type label description procFun parseFun initState initTask = execInParallel (Just type) label description procFun parseFun initState initTask nothing
 where
 	nothing :: Maybe [GroupAction a b Void]
 	nothing = Nothing
 
-group :: !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
+group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
 group label description procFun parseFun initState initTasks groupActions = execInParallel Nothing label description procFun parseFun initState initTasks (Just groupActions)
 
-execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (Task a))) (b->c) !b ![Task a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & iTask s
+execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b->c) !b ![Task a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & iTask s
 execInParallel mbParType label description procFun parseFun initState initTasks mbGroupActions =
 	case mbParType of
 		(Nothing) = makeTaskNode label Nothing execInParallel`
@@ -136,7 +132,7 @@ where
 		# (updates,tst)		= getChildrenUpdatesFor taskNr tst
 		# (pst,tst)   		= loadPSt taskNr tst
 		// check for group actions
-		# (gActionStop,pst) = case mbGroupActions of
+		# (gActionStop,mbFocus,pst) = case mbGroupActions of
 			Just gActions
 				# gAction = case parseString (http_getValue "_group" updates "") of
 					Nothing	= parseString (http_getValue "menuAndGroup" updates "")
@@ -147,14 +143,15 @@ where
 							# (nSt,act) = procFun (getResult action gAction,-1) pst.state
 							# pst = {pst & state = nSt}
 							= case act of
-								Stop			= (True,pst)
-								Continue		= (False,pst)
-								Extend tlist	= (False,{PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]})
-						_ = (False,pst)
-					Nothing = (False,pst)
-			Nothing = (False,pst)
-		# (result,pst,tst) 	= processAllTasks pst 0 tst
-		# tst				= setTaskStoreFor taskNr "pst" pst tst
+								Stop			= (True,Nothing,pst)
+								Continue		= (False,Nothing,pst)
+								Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]})
+								Focus tag		= (False,Just tag,pst)
+						_ = (False,Nothing,pst)
+					Nothing = (False,Nothing,pst)
+			Nothing = (False,Nothing,pst)
+		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
+		# tst						= setTaskStoreFor taskNr "pst" pst tst
 		= case result of
 			TaskException e = (TaskException e,tst)
 			TaskFinished  r = (TaskFinished (parseFun r),tst)
@@ -164,25 +161,29 @@ where
 					# tst = case mbGroupActions of
 						Just gActions	= setGroupActions (evaluateConditions gActions pst.state) tst
 						Nothing			= tst
+					# tst = case mbFocus of
+						Just (Tag t)	= setFocusCommand (toString t) tst
+						Nothing			= tst
 					= (TaskBusy,tst)
 
-	processAllTasks pst idx tst
-		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
+	processAllTasks pst idx tst mbFocus
+		| (length pst.tasks) == idx = (TaskBusy,pst,tst,mbFocus)
 		# (task,done)				= pst.tasks !! idx
 		# (res,tst)					= applyTask task tst
 		= case res of
-			TaskException e = (TaskException e,pst,tst)
-			TaskBusy		= processAllTasks pst (inc idx) tst
+			TaskException e = (TaskException e,pst,tst,mbFocus)
+			TaskBusy		= processAllTasks pst (inc idx) tst mbFocus
 			TaskFinished a	
-				| done			= processAllTasks pst (inc idx) tst
-				# (nSt,act)	= procFun (a,idx) pst.state
-				# pst		= markProcessed {PSt | pst & state = nSt} idx
+				| done			= processAllTasks pst (inc idx) tst mbFocus
+				# (nSt,act)		= procFun (a,idx) pst.state
+				# pst			= markProcessed {PSt | pst & state = nSt} idx
 				= case act of
-					Stop 		= (TaskFinished pst.state,pst,tst)
-					Continue	= processAllTasks pst (inc idx) tst
+					Stop 		= (TaskFinished pst.state,pst,tst,mbFocus)
+					Continue	= processAllTasks pst (inc idx) tst mbFocus
 					Extend tlist
 						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]}
-						= processAllTasks pst (inc idx) tst
+						= processAllTasks pst (inc idx) tst mbFocus
+					Focus tag	= processAllTasks pst (inc idx) tst (Just tag)
 
 	loadPSt taskNr tst
 		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst

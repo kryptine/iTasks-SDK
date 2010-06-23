@@ -115,9 +115,9 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			[]	= (if (allFinished tasks) TaskDone TaskRedundant,tst)
 			[t]	= buildTaskPanel` t menus gActions currentUser tst
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
-	(TTGroupedTask ti tasks gActions)
+	(TTGroupedTask ti tasks gActions mbFocus)
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (containers,tst)	= buildGroupElements tasks currentUser gActions menus tst
+		# (containers,tst)	= buildGroupElements tasks currentUser gActions menus mbFocus tst
 		# containers		= filter filterFinished containers
 		# container			= (TTCGroupContainer {TTCGroupContainer 
 								| xtype = "itasks.ttc.group"
@@ -149,7 +149,7 @@ where
 			(TTInteractiveTask ti _ ) 	= ti.TaskInfo.worker == currentUser
 			(TTMonitorTask ti _)		= ti.TaskInfo.worker == currentUser 
 			(TTRpcTask ti _)			= ti.TaskInfo.worker == currentUser
-			(TTGroupedTask ti _ _)		= ti.TaskInfo.worker == currentUser	
+			(TTGroupedTask ti _ _ _)	= ti.TaskInfo.worker == currentUser	
 			(TTInstructionTask ti _ _)	= ti.TaskInfo.worker == currentUser
 			(TTFinishedTask _ _)		= True										// always show finished tasks
 			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
@@ -304,9 +304,9 @@ buildSubtaskPanels tree stnr menus manager partype inClosed procProps tst=:{menu
 						([{SubtaskContainer | subtaskNr = stnr, manager = manager, inClosedPar = inClosed, tasktree = tree, processProperties = procProps, taskpanel = TaskRedundant}],tst)
 			[t] = buildSubtaskPanels t stnr menus manager partype inClosed procProps tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
-	(TTGroupedTask ti tasks gActions)
+	(TTGroupedTask ti tasks gActions mbFocus)
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (containers,tst)	= buildGroupElements tasks manager gActions menus tst
+		# (containers,tst)	= buildGroupElements tasks manager gActions menus mbFocus tst
 		# containers		= filter filterFinished containers
 		= ([{SubtaskContainer
 			| subtaskNr = stnr
@@ -370,7 +370,7 @@ where
 			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
-		(TTGroupedTask ti _ _)
+		(TTGroupedTask ti _ _ _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTMainTask ti mti _ _ _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
@@ -388,24 +388,34 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !User ![(Action,Bool)] !(Maybe [Menu]) !*TSt -> (![GroupContainerElement], !*TSt)
-buildGroupElements tasks currentUser gActions menus tst
-	# (elements, tst)	= seqList [buildGroupElements` t [nr] gActions Nothing \\ t <- tasks & nr <- [1..]] tst
+buildGroupElements :: ![TaskTree] !User ![(Action,Bool)] !(Maybe [Menu]) !(Maybe String) !*TSt -> (![GroupContainerElement], !*TSt)
+buildGroupElements tasks currentUser gActions menus mbFocus tst
+	# (elements, tst)	= seqList [buildGroupElements` t [nr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
 	= (flatten elements, tst)
 where
-	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool)] !(Maybe GroupedBehaviour) !*TSt -> (![GroupContainerElement] , !*TSt)
-	buildGroupElements` (TTGroupedTask _ tasks gActions) stnr _  _ tst
+	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) !*TSt -> (![GroupContainerElement] , !*TSt)
+	buildGroupElements` (TTGroupedTask _ tasks gActions mbFocus) stnr _  _ mbFocusParent tst
+		# mbFocus = case mbFocus of
+			Nothing		= mbFocusParent
+			_			= mbFocus
 		# (gActions,tst)	= evaluateGActions gActions tst
-		# (panels, tst)		= seqList [buildGroupElements` t [nr:stnr] gActions Nothing \\ t <- tasks & nr <- [1..]] tst
+		# (panels, tst)		= seqList [buildGroupElements` t [nr:stnr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
 		= (flatten panels, tst)
-	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour tst
+	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour mbFocus tst
 		= case filter (not o isFinished) tasks of
 			[]  = ([], tst)
-			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) tst
+			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) mbFocus tst
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
-	buildGroupElements` t stnr gActions mbBehaviour tst
-		# (p, tst) = buildTaskPanel` t menus gActions currentUser tst
-		= ([{panel = p, behaviour = getGroupedBehaviour (getTaskInfo t) mbBehaviour, index = subtaskNrToString stnr}], tst)
+	buildGroupElements` t stnr gActions mbBehaviour mbFocus tst
+		# (p, tst)	= buildTaskPanel` t menus gActions currentUser tst
+		# info		= getTaskInfo t
+		= ([	{ panel = p
+				, behaviour = getGroupedBehaviour info mbBehaviour
+				, index = subtaskNrToString stnr
+				, focus = case mbFocus of
+					Nothing		= False
+					Just tag	= isMember tag info.TaskInfo.tags
+				}], tst)
 		
 	getGroupedBehaviour :: !TaskInfo !(Maybe GroupedBehaviour) -> GroupedBehaviour
 	getGroupedBehaviour info mbFixedBehaviour = case mbFixedBehaviour of
@@ -421,7 +431,7 @@ where
 			(TTParallelTask ti _ _)		= ti
 			(TTSequenceTask ti _)		= ti
 			(TTMainTask ti _ _ _ _)		= ti
-			(TTGroupedTask ti _ _)		= ti
+			(TTGroupedTask ti _ _ _)	= ti
 			(TTInstructionTask ti _ _)	= ti
 			_ 							= abort "Unknown panel type in group"
 		= info

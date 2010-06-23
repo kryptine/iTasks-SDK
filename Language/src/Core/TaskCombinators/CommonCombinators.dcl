@@ -12,8 +12,8 @@ from Types import :: User (..)
 //Grouping composition
 
 // types are similar to PAction but are needed to avoid circular definitions
-:: GAction		= GStop | GContinue | GExtend [Task GAction]
-:: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void]
+:: GAction		= GStop | GContinue | GExtend [Task GAction] | GFocus String
+:: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void] | GOFocus String
 
 derive gParse		GAction, GOnlyAction
 derive gPrint		GAction, GOnlyAction

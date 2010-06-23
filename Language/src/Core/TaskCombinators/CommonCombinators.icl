@@ -19,10 +19,8 @@ import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombin
 import Util, Either
 import GenVisualize, GenUpdate
 
-derive gPrint Either
-derive gParse Either
-derive gParse		GAction, GOnlyAction, GroupedBehaviour
-derive gPrint		GAction, GOnlyAction, GroupedBehaviour
+derive gParse		GAction, GOnlyAction, GroupedBehaviour, Either
+derive gPrint		GAction, GOnlyAction, GroupedBehaviour, Either
 derive gVisualize	GAction, GOnlyAction, GroupedBehaviour
 derive gUpdate		GAction, GOnlyAction, GroupedBehaviour
 derive gError		GAction, GOnlyAction, GroupedBehaviour
@@ -43,6 +41,7 @@ where
 		GStop			= (Void, Stop)
 		GContinue		= (Void, Continue)
 		GExtend tasks	= (Void, Extend tasks)
+		GFocus tag		= (Void, Focus (Tag tag))
 		
 dynamicGroupAOnly :: ![Task Void] ![GroupAction GOnlyAction Void s] -> Task Void | iTask s
 dynamicGroupAOnly initTasks gActions = group "dynamicGroup" "A simple group with dynamically added tasks" procfun id Void (changeTasksType initTasks) gActions
@@ -51,6 +50,7 @@ where
 		GOStop			= (Void, Stop)
 		GOContinue		= (Void, Continue)
 		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
+		GOFocus tag		= (Void, Focus (Tag tag))
 	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ getGroupedBehaviour t) tasks
 	getGroupedBehaviour (Task _ {GroupedProperties | groupedBehaviour} _ _) = groupedBehaviour
 		
@@ -79,7 +79,7 @@ where
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
 (-&&-) taska taskb = group "-&&-" "Done when both subtasks are finished" andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)),(taskb >>= \b -> return (Right b))] emptyGActionL
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)) tag)
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)
@@ -127,7 +127,7 @@ where
 andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
 andProc taska taskb type = parallel type "AndProc" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [taska >>= \a -> return (Left a),taskb >>= \b -> return (Right b)]
 where
-	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
+	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)) tag)
 	andfunc (val,_) (left,right)
 	= case val of
 		(Left a)

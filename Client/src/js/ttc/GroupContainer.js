@@ -283,17 +283,22 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		this.fixedCont = new Ext.util.MixedCollection();
 		var oldFloating = this.floatingCont;
 		this.floatingCont = new Ext.util.MixedCollection();
-		
+		var focusFixed;
+		var focusFloating = new Ext.util.MixedCollection();
 
 		for(var i=0; i < content.length; i++) {
 			if(cont = oldFixed.key(content[i].index)) {
 				// update existing fixed container
 				this.updateItem(cont, content[i].panel, content[i].behaviour);
 				oldFixed.remove(cont);
+				if (content[i].focus)
+					focusFixed = cont;
 			} else if(cont = oldFloating.key(content[i].index)) {
 				// update existing floating container
 				this.updateItem(cont, content[i].panel, content[i].behaviour);
 				oldFloating.remove(cont);
+				if (content[i].focus)
+					focusFloating.add(cont);
 			} else {
 				// create new container
 				this.createContainer(content[i].panel, content[i].behaviour, content[i].index);
@@ -315,6 +320,14 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			// toolbar of focused container has been updated, copy changes to shared toolbar
 			this.mkSharedTbar(this.focusedContainer);
 		} 
+		
+		// focus containers for which focus commands have been sent
+		if (Ext.isDefined(focusFixed))
+			this.focusContainer(focusFixed);
+			
+		focusFloating.each(function(c) {
+			c.toFront();
+		}, this);
 		
 		// try to focus new fixed container
 		if(!this.focusedContainer)
