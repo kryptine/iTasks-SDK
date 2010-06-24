@@ -60,7 +60,6 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @param The application name
 * @param The server configuration
 * @param The current HTTP request
-* @param The session data
 * @param The workflows available in the application
 * @param The generic data store
 * @param The document store
@@ -68,8 +67,18 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 *
 * @return a TSt iTask state
 */
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
+mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*Store !*World -> *TSt
 
+/**
+* Initializes the session information.
+*
+* @param A session identifier
+* @param The task state
+*
+* @return Nothing if the session is initialized correctly, error message otherwise
+* @return The modified task state
+*/
+initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
 
 /**
 * Creates a dynamic containing a runnable task thread structure.

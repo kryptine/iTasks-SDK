@@ -8,6 +8,7 @@ from Types import :: Password(..)
 
 derive JSONEncode User, UserDetails, Password
 derive JSONDecode User, UserDetails, Password
+
 derive bimap (,), Maybe
 
 getUser :: !UserId !*TSt -> (!User,!*TSt)
@@ -97,6 +98,9 @@ where
 				Nothing		= ([],world)
 				
 	writeUserFile users appName world
+		| not (isEmpty users)
+			# world = writefile (appName +++ "-users-test.json") (toString (toJSON users)) world
+			= writefile (appName +++ "-users.json") (toString (toJSON users)) world
 		= writefile (appName +++ "-users.json") (toString (toJSON users)) world
 		
 			

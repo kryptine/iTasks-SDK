@@ -7,6 +7,23 @@ import TSt, Store
 import Time
 import Random
 
+
+getSessions	:: !*TSt -> (![Session], !*TSt)
+getSessions tst
+	= sessionStore id tst
+
+getSessionsForUser :: !User !*TSt -> (![Session], !*TSt)
+getSessionsForUser user tst
+	# (sessions, tst)				= sessionStore id tst
+	= ([s \\ s <- sessions | s.Session.user == user], tst)
+
+getSession :: !SessionId !*TSt -> (!Maybe Session, !*TSt)
+getSession sid tst
+	# (sessions, tst)				= sessionStore id tst
+	= case [s \\ s <- sessions | s.Session.sessionId == sid] of
+		[s]	= (Just s, tst)
+		_	= (Nothing, tst)
+
 createSession :: !User !*TSt -> (!Session,!*TSt)
 createSession user tst
 	# (sid, tst)		= genSessionId tst
@@ -14,8 +31,8 @@ createSession user tst
 	# session			= {Session | sessionId = sid, user = user, timestamp = ts}
 	# (sessions, tst)	= sessionStore (\l -> [session:l]) tst
 	= (session,tst)
-		
-restoreSession	:: !String !*TSt -> (!Maybe Session, !Bool, !*TSt)
+
+restoreSession	:: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
 restoreSession sid tst 
 	# (sessions, tst)				= sessionStore id tst
 	# (ts, tst)						= getTimeStamp tst
@@ -31,12 +48,15 @@ restoreSession sid tst
 				# (_, tst)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) tst
 			 	= (Just s, False, tst)
 	
-destroySession	:: !String !*TSt -> *TSt
-destroySession sid tst
+deleteSession	:: !SessionId !*TSt -> (!Bool,!*TSt)
+deleteSession sid tst
 	# (sessions, tst)		= sessionStore id tst
-	# (_, before, after)	= findSession sid [] sessions
-	# (_, tst)				= sessionStore (\_ -> (before ++ after)) tst
-	= tst
+	# (mbSession, before, after)	= findSession sid [] sessions
+	| isJust mbSession
+		# (_, tst)				= sessionStore (\_ -> (before ++ after)) tst
+		= (True,tst)
+	| otherwise
+		= (False, tst)
 
 findSession :: !String ![Session] ![Session] -> (!Maybe Session, ![Session], ![Session]) 
 findSession sid before [] = (Nothing, reverse before, [])

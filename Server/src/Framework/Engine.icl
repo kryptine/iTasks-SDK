@@ -20,6 +20,9 @@ import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, Propert
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers, DocumentHandler
 
+import SessionService, WorkflowService
+import HtmlUtil
+
 import Config, TSt
 
 from UserAdmin import userAdministration
@@ -36,7 +39,10 @@ engine mbConfig userflows
 			= [(\_ -> True, setupHandler handlers)]
 where
 	handlers config
-		= [((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
+		= [ // 'new' services
+		   (startsWith "/services", serviceDispatch config flows)
+			//'old' handlers
+		  ,((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
 		  ,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
 		  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
 		  ,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
@@ -59,6 +65,18 @@ where
 	//Always add the workflows for administering the itask system
 	flows = userflows ++ userAdministration
 
+	serviceDispatch config flows req world
+		# tst				= initTSt req config flows world
+		# (response,tst)	= case tl (split "/" req.req_path) of 
+			["services","html","sessions":path] 	= sessionService True path req tst
+			["services","json","sessions":path] 	= sessionService False path req tst
+			["services","html","workflows":path]	= workflowService True path req tst
+			["services","json","workflows":path]	= workflowService False path req tst
+			_										= (notFoundResponse req, tst)
+		# world				= finalizeTSt tst
+		= (response, HTTPServerContinue, world)
+		
+	
 workflow :: !String !(Task a) -> Workflow | iTask a
 workflow path task =
 	{ Workflow
@@ -152,7 +170,7 @@ initTSt request config flows world
 	# (err,world)				= createDirectory docupath world
 	| err <> NoDirError
 		&& err <> AlreadyExists	= abort "Cannot create document directory"
-	= mkTSt appName config request (abort "session not active yet") flows (createStore (appName +++ "-data\\" +++ datestr)) (createStore (appName +++ "-document\\" +++ datestr)) world
+	= mkTSt appName config request flows (createStore (appName +++ "-data\\" +++ datestr)) (createStore (appName +++ "-document\\" +++ datestr)) world
 where 
 	addPrefixZero number
 	| number < 10 = "0"+++toString number

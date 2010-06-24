@@ -27,8 +27,8 @@ derive gParse		TaskResult
 derive bimap 		Maybe, (,)
 derive JSONDecode 	RPCMessage
 
-mkTSt :: String Config HTTPRequest Session ![Workflow] !*Store !*Store !*World -> *TSt
-mkTSt appName config request session workflows dataStore documentStore world
+mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*Store !*World -> *TSt
+mkTSt appName config request workflows dataStore documentStore world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo [])
@@ -37,7 +37,7 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, properties	= initTaskProperties
 		, menus			= Nothing
 		, menusChanged	= False
-		, staticInfo	= initStaticInfo appName session workflows
+		, staticInfo	= initStaticInfo appName workflows
 		, currentChange	= Nothing
 		, pendingChanges= []
 		, config		= config
@@ -47,11 +47,11 @@ mkTSt appName config request session workflows dataStore documentStore world
 		, world			= world
 		}
 
-initStaticInfo :: String Session ![Workflow] -> StaticInfo
-initStaticInfo appName session workflows
+initStaticInfo :: String ![Workflow] -> StaticInfo
+initStaticInfo appName workflows
 	=	{ appName			= appName
 		, currentProcessId	= ""
-		, currentSession 	= session
+		, currentSession 	= {Session | sessionId = "", user = AnyUser, timestamp = 0}
 		, staticWorkflows	= workflows
 		}
 
@@ -93,7 +93,16 @@ initTaskProperties
 	  , managerProps	= initManagerProperties
 	  , workerProps		= initWorkerProperties
 	  }
-		  
+
+initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
+initSession sessionId tst
+	# (mbSession,timeout,tst=:{staticInfo})	= restoreSession sessionId tst
+	= case mbSession of
+		Nothing
+			= (Just (if timeout "Your session timed out" "Failed to load session"), tst)
+		Just session
+			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
+	  
 createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
 createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,mainTask}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)

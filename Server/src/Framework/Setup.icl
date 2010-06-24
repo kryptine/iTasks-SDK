@@ -2,7 +2,7 @@ implementation module Setup
 
 import StdList,StdBool, StdInt
 import Http, HttpServer
-import Html
+import Html, HtmlUtil
 import Config
 import Engine, Util
 
@@ -74,21 +74,7 @@ noErrors :: [(Maybe String)] -> Bool
 noErrors errors = not (or (map isJust errors))
 	
 page :: !String ![HtmlTag] !*World -> (!HTTPResponse,!HTTPServerControl, !*World)
-page appName content world = ({http_emptyResponse & rsp_data = toString (HtmlTag [] [head,body])}, HTTPServerContinue, world)
-where
-	head = HeadTag [] [TitleTag [] [Text appName], StyleTag [TypeAttr "text/css"] [RawText css]]
-	body = BodyTag [] [DivTag [IdAttr "main"] [header:content]]
-	
-	header = H1Tag [] [Text appName, Text " setup"]
-
-css :: String
-css = 	"body { background: #d1dded; font-family: Verdana, Arial, sans-serif; font-size: 12px;} th { text-align: left; } "
-	+++ ".field-error em {color: #f00; font-weight: bold} .field-error input {border-color: #f00;} "
-	+++ "#main {width: 700px; position: absolute; left: 50%; margin-left: -350px; top: 50px; background: #fff; border: solid 2px #3a81ad;} "
-	+++ "#content { padding: 10px; } "
-	+++ "#buttons { padding: 5px; background-color: #3a81ad; } "
-	+++ "h1 { margin: 10px; font-weight: normal; font-size: 24px;} "
-	+++ "p { margin: 0px 0px 10px 0px; } "
+page appName content world = ({http_emptyResponse & rsp_data = toString (pageLayout (appName +++ " setup") content)}, HTTPServerContinue, world)
 
 choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 choicePage appName config errors world = page appName [DivTag [IdAttr "content"] [instructions,showConfig config errors],buttons] world
@@ -98,7 +84,7 @@ where
 		[Text "Welcome, you are running ",StrongTag [] [Text appName],Text " for the first time.", BrTag[]
 		,Text "You may run this application with the following default configuration, or edit it first"
 		]
-	buttons = DivTag [IdAttr "buttons"]
+	buttons = DivTag [ClassAttr "buttons"]
 			  [ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/save';"] [Text "Use this default configuration"]
 			  ,ButtonTag [TypeAttr "submit",OnclickAttr "window.location = '/edit';"] [Text "Edit the configuration first"]
 			  ]
@@ -107,7 +93,7 @@ editConfigPage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTT
 editConfigPage appName config errors world = page appName [form] world
 where
 	form = FormTag [MethodAttr "post",ActionAttr "/save"] [DivTag [IdAttr "content"] [editConfig config errors],submit]
-	submit = DivTag [IdAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration and restart"]]
+	submit = DivTag [ClassAttr "buttons"] [ButtonTag [TypeAttr "submit"] [Text "Save configuration and restart"]]
 
 	instructions
 		= PTag [] [Text "Please confirm the configuration settings below and save them."]

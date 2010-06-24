@@ -7,23 +7,40 @@ import StdMaybe
 import TSt
 
 /**
+* List all sessions
+*/
+getSessions		:: !*TSt -> (![Session], !*TSt)
+
+/**
+* List all sessions for a specific user
+*/
+getSessionsForUser :: !User !*TSt -> (![Session], !*TSt)
+
+/**
+* Find a session in the session database
+*/
+getSession		:: !SessionId !*TSt -> (!Maybe Session, !*TSt)
+
+/**
 * Create a new session
 * 
 * @param the user to create the session for
 */
 createSession	:: !User !*TSt	-> (!Session,!*TSt)
+
 /**
-* Try to restore an existing session
+* Restore an existing session
 *
 * @param session id
 *
 * @return session if found
 * @return whether a session timeout occurred
 */
-restoreSession	:: !String !*TSt -> (!Maybe Session, !Bool, !*TSt)
+restoreSession	:: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
+
 /**
 * Explicitly destroy an existing session.
 *
 * @param session id
 */
-destroySession	:: !String !*TSt -> *TSt
+deleteSession	:: !SessionId !*TSt -> (!Bool, !*TSt)
