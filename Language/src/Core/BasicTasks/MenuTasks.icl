@@ -1,7 +1,6 @@
 implementation module MenuTasks
 
-from ProcessDB	import qualified class ProcessDB(..)
-from ProcessDB	import qualified instance ProcessDB TSt
+
 from ProcessDB	import ::Menu(..), ::MenuItem(..), ::Process{..}
 from TSt		import ::Task
 from Void		import :: Void

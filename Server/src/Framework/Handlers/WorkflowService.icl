@@ -15,8 +15,8 @@ derive gEq WorkflowItem
 
 instance == WorkflowItem where (==) x y = x === y
 
-workflowService :: !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-workflowService html path req tst
+workflowService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+workflowService url html path req tst
 	// Restore the session if supplied
 	# (mbErr,tst)		= if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
 	| isJust mbErr
@@ -32,8 +32,6 @@ where
 	sessionParam= paramValue "_session" req
 	
 	params 		= [("_session", sessionParam, False)]
-
-	url			= join "/" ["","services",if html "html" "json","workflows":path]
 	
 	onPath paths wf
 		= wf.Workflow.path % (0, (size paths - 1)) == paths

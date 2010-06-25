@@ -164,11 +164,11 @@ chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=								getCurrentProcessId
 	>>= \mypid ->					getProcessesWithStatus [Active]
-	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.processId
+	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.taskId
 																	, proc.Process.properties.managerProps.subject
 																	, proc.Process.properties.managerProps.priority
 																	, proc.Process.properties.managerProps.ManagerProperties.worker)
-																	\\ proc <- procs | proc.Process.processId <> mypid]
+																	\\ proc <- procs | proc.Process.taskId <> mypid]
 	>>= \(action,(pid,_,_,_)) ->	case action of
 										ActionCancel -> throw "choosing a process has been cancelled"
 										_ ->			return pid

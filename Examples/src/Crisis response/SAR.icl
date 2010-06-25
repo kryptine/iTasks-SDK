@@ -38,7 +38,7 @@ searchAndRescueExample
 	, incident	:: IncidentNR
 	, date		:: Date
 	, time		:: Time
-	, user		:: UserName
+	, user		:: User
 	, message	:: Note
 	}
 
@@ -51,6 +51,10 @@ derive gPrint 		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetai
 derive gParse		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
 derive gVisualize	Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
 derive gUpdate		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
+derive gHint		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
+derive gError		Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
+
+derive gMakeLocalCopy	Incident, LogEntry, IncidentEntry, IncidentType, HeliFlightDetails, MapCoordinates, PAction
 
 // Incident management
 manageIncident :: (Maybe Note) -> Task Void

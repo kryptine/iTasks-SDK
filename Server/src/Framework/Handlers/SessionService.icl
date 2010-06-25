@@ -8,8 +8,8 @@ import HtmlUtil, Text
 
 derive JSONEncode Session, User, UserDetails, Password
 
-sessionService :: !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
-sessionService html path req tst
+sessionService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+sessionService url html path req tst
 	= case path of
 		//List all sessions that you are allowed to view
 		//The root user can view all sessions and any other user can view sessions owned by her
@@ -72,8 +72,6 @@ sessionService html path req tst
 				
 		_		= (notFoundResponse req, tst)
 where
-	url	= join "/" ["","services",if html "html" "json","sessions":path]
-	
 	listParams		= [("_session",sessionParam,False),("_user", userParam, False)]
 	sessionParam	= paramValue "_session" req
 	userParam		= paramValue "_user" req

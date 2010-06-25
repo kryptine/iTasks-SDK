@@ -16,15 +16,15 @@ traceProcesses processes = mkTable processes
 where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
 	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Subtask access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "Mutable"],ThTag [] [Text "In Open Parallel?" ], ThTag [] [Text "Delete when done"] ]
-	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.processId]
+	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.taskId]
 							, TdTag [] [Text process.Process.properties.managerProps.subject]
 							, TdTag [] [Text (toString process.Process.properties.managerProps.ManagerProperties.worker)]
 							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.systemProps.subTaskWorkers])]
 							, TdTag [] [Text (toString process.Process.properties.systemProps.manager)]
 							, TdTag [] [Text (toString process.Process.status)]
 							, TdTag [] (case process.Process.parent of
-											""	= [Text "N/A"]
-											x	= [Text (toString x)]
+											Nothing	= [Text "N/A"]
+											Just x	= [Text x]
 										)
 							, TdTag [] [Text (printToString process.mutable)]
 							, TdTag [] [Text (printToString process.inParallelType)]

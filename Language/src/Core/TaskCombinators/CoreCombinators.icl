@@ -276,13 +276,13 @@ where
 					TaskBusy				
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
-						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst	 
+						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
-						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst
+						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
 						= (TaskException (dynamic "assign: result of wrong type returned"),tst)
 					TaskException e			
-						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst
+						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
 						= (TaskException e, tst)
 
 addSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt
@@ -316,7 +316,7 @@ where
 	waitForProcess` tst 
 		# (mbProcess,tst) = getProcess pid tst
 		= case mbProcess of
-			Just {Process | processId, status, properties}
+			Just {Process | taskId, status, properties}
 				= case status of
 					Finished
 						# (mbResult,tst)					= loadProcessResult (taskNrFromString pid) tst	

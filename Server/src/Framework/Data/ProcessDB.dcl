@@ -11,9 +11,9 @@ from Time		import :: Timestamp
 /**
 * Our local process type
 */
-:: Process 		= {	processId		:: !ProcessId					// The process identification				  
+:: Process 		= {	taskId			:: !TaskId						// The process identification				  
 				  , status			:: !ProcessStatus				// The status of the process (updated after each run)
-				  , parent			:: !ProcessId					// The (direct) parent process
+				  , parent			:: !Maybe TaskId				// The (direct) parent process
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
 				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  , mutable			:: !Bool						// May the process be evaluated further (required for duplication of processes by changes)
@@ -62,32 +62,28 @@ getActionIcon :: !Action -> String
 				| MenuSeparator 
 				| MenuName !String !MenuItem
 
-class ProcessDB st
-where
-	createProcess			:: !Process												!*st -> (!ProcessId,	!*st)
-	deleteProcess			:: !ProcessId											!*st -> (!Bool,			!*st)
-	getProcess				:: !ProcessId											!*st -> (!Maybe Process,!*st)
-	getProcessForUser		:: !User !ProcessId										!*st -> (!Maybe Process,!*st)
-	getProcesses 			:: ![ProcessStatus] 									!*st -> (![Process], 	!*st)
-	getProcessesById		:: ![ProcessId]											!*st -> (![Process],	!*st)
-	getProcessesForUser		:: !User ![ProcessStatus]								!*st -> (![Process],	!*st)
-	getTempProcessesForUser :: !User ![ProcessStatus]								!*st -> (![Process],	!*st)
-	
-	setProcessOwner			:: !User !ProcessId										!*st -> (!Bool,			!*st)
-	setProcessStatus		:: !ProcessStatus !ProcessId							!*st -> (!Bool,			!*st)
 
-	updateProcess			:: !ProcessId (Process -> Process)						!*st -> (!Bool,			!*st)
-	updateProcessProperties	:: !ProcessId (TaskProperties -> TaskProperties)		!*st -> (!Bool,			!*st)
+createProcess			:: !Process												!*TSt -> (!ProcessId,		!*TSt)
+deleteProcess			:: !TaskId												!*TSt -> (!Bool,			!*TSt)
+getProcess				:: !TaskId												!*TSt -> (!Maybe Process,	!*TSt)
+getProcessForUser		:: !User !TaskId										!*TSt -> (!Maybe Process,	!*TSt)
+getProcesses 			:: ![ProcessStatus] 									!*TSt -> (![Process], 		!*TSt)
+getProcessesById		:: ![TaskId]											!*TSt -> (![Process],		!*TSt)
+getProcessesForUser		:: !User ![ProcessStatus]								!*TSt -> (![Process],		!*TSt)
 
-	removeFinishedProcesses :: 														!*st -> (!Bool, 		!*st)
+setProcessOwner			:: !User !TaskId										!*TSt -> (!Bool,			!*TSt)
+setProcessStatus		:: !ProcessStatus !TaskId								!*TSt -> (!Bool,			!*TSt)
 
-	setImmutable			:: !ProcessId											!*st -> *st
-	copySubProcesses		:: !ProcessId !ProcessId								!*st -> *st
-	deleteSubProcesses		:: !ProcessId											!*st -> *st
+updateProcess			:: !TaskId (Process -> Process)							!*TSt -> (!Bool,			!*TSt)
+updateProcessProperties	:: !TaskId (TaskProperties -> TaskProperties)			!*TSt -> (!Bool,			!*TSt)
+
+removeFinishedProcesses :: 														!*TSt -> (!Bool, 			!*TSt)
+
+setImmutable			:: !TaskId												!*TSt -> *TSt
+copySubProcesses		:: !TaskId !TaskId										!*TSt -> *TSt
+deleteSubProcesses		:: !TaskId												!*TSt -> *TSt
 
 
-
-instance ProcessDB TSt
 instance toString ProcessStatus
 instance == ProcessStatus
 instance == Action

@@ -20,7 +20,7 @@ import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, Propert
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers, DocumentHandler
 
-import SessionService, WorkflowService
+import SessionService, WorkflowService, TaskService
 import HtmlUtil
 
 import Config, TSt
@@ -67,15 +67,22 @@ where
 
 	serviceDispatch config flows req world
 		# tst				= initTSt req config flows world
-		# (response,tst)	= case tl (split "/" req.req_path) of 
-			["services","html","sessions":path] 	= sessionService True path req tst
-			["services","json","sessions":path] 	= sessionService False path req tst
-			["services","html","workflows":path]	= workflowService True path req tst
-			["services","json","workflows":path]	= workflowService False path req tst
-			_										= (notFoundResponse req, tst)
-		# world				= finalizeTSt tst
-		= (response, HTTPServerContinue, world)
-		
+		# (response,tst) = case (split "/" req.req_path) of
+			["","services",format:path]
+				# html = format == "html"
+				# json = format == "json"
+				| html || json
+					= case path of
+						["sessions":path]	= sessionService req.req_path html path req tst
+						["workflows":path]	= workflowService req.req_path html path req tst
+						["tasks":path]		= taskService req.req_path html path req tst
+						_					= (notFoundResponse req, tst)
+				| otherwise
+					= (notFoundResponse req, tst)
+			_
+				= (notFoundResponse req, tst)
+		# tst		= flushStore tst
+		= (response, HTTPServerContinue, finalizeTSt tst)
 	
 workflow :: !String !(Task a) -> Workflow | iTask a
 workflow path task =

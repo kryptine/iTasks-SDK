@@ -30,9 +30,7 @@ JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 handleWorkListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkListRequest request tst=:{staticInfo}
 	# user					= staticInfo.currentSession.user
-	# (processes,tst)		= getProcessesForUser user [Active] tst
-	# (tmpprocs ,tst)		= getTempProcessesForUser user [Active] tst
-	# proclist				= processes ++ tmpprocs
+	# (proclist,tst)		= getProcessesForUser user [Active] tst
 	# fproclist				= filter proclist
 	# workitems				= bldWorkItems fproclist
 	# worklist				= { success		= True
@@ -47,14 +45,16 @@ where
 			= case p.inParallelType of
 				Nothing 		= True
 				(Just Open)
-					= not (isMember p.parent [p.Process.processId \\ p <- plist])
+					= case p.parent of
+						Just parent = not (isMember parent [p.Process.taskId \\ p <- plist])
+						Nothing		= False
 				(Just Closed)
 					= staticInfo.currentSession.user <> p.Process.properties.systemProps.SystemProperties.manager
 
 bldWorkItems :: [Process] -> [WorkListItem]
 bldWorkItems processes
 	= markLast [
-		{ taskid		= processId
+		{ taskid		= taskId
 		, manager		= toString p.systemProps.SystemProperties.manager
 		, subject		= p.managerProps.ManagerProperties.subject
 		, priority		= p.managerProps.ManagerProperties.priority
@@ -66,7 +66,7 @@ bldWorkItems processes
 		, tree_last		= False
 		, tree_icon		= "task"
 		, tree_new		= isNothing p.systemProps.SystemProperties.firstEvent
-		} \\ {Process|processId,properties = p} <- processes]
+		} \\ {Process|taskId,properties = p} <- processes]
 		
 markLast :: [WorkListItem] -> [WorkListItem]
 markLast [] = []

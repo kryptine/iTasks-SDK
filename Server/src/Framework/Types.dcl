@@ -100,7 +100,7 @@ instance < User
 	, firstEvent		:: Maybe Timestamp			// When was the first work done on this task
 	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
 	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
-	, subTaskWorkers	:: [(ProcessId, User)] 		// Users who have temporary access to the process because they work on a subprocess in an open parralel.
+	, subTaskWorkers	:: [(ProcessId, User)] 		// Users who have temporary access to the process because they work on a subprocess in an open parallel.
 	, deleteWhenDone	:: Bool						// Delete the process after completion
 	}
 

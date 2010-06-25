@@ -6,4 +6,4 @@ definition module WorkflowService
 */
 import Http, TSt
 
-workflowService :: !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
+workflowService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)

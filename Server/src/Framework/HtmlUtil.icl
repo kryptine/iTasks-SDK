@@ -33,14 +33,10 @@ servicePage :: !String !String ![(String,String,Bool)] JSONNode -> HtmlTag
 servicePage title url params json = pageLayout title [parameters, message]
 where
 	parameters	= pageSection "Parameters" [FormTag [ActionAttr url,MethodAttr "get"] [TableTag [ClassAttr "parameters"] (rows ++ send)]]
-	rows		= [TrTag [] (flatten [ [ThTag [] [Text n: if o [Text "*:"] [Text ":"]], TdTag [] [InputTag [NameAttr n,ValueAttr v] ]] \\ (n,v,o) <- cells]) \\ cells <- segment params]
+	rows		= [TrTag [] [ThTag [] [Text n : if o [Text "*:"] [Text ":"]], TdTag [] [InputTag [NameAttr n, ValueAttr v]]] \\ (n,v,o) <- params]
 	send		= [TrTag [] [TdTag [ColspanAttr "4"] [ButtonTag [TypeAttr "submit"] [Text "Send"]]]]
 	message		= pageSection "Message" [DivTag [ClassAttr "json"] (formatJSON json)]
-
-	segment []			= []
-	segment [x]			= [[x]]
-	segment [x1,x2:xs]	= [[x1,x2]:segment xs]
-
+	
 serviceResponse :: !Bool !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
 serviceResponse html title url params json =
 		if html	{http_emptyResponse & rsp_data = toString (servicePage title url params json)}

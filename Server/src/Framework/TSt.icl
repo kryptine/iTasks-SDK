@@ -109,14 +109,14 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# (worker,tst)			= getCurrentWorker tst
 	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
-	# processId				= if toplevel "" (taskNrToString taskNr)
-	# parent				= if toplevel "" mainTask
+	# taskId				= if toplevel "" (taskNrToString taskNr)
+	# parent				= if toplevel Nothing (Just mainTask)
 	# managerProps			= setUser manager (taskProperties originalTask)
 	# properties =
 		{TaskProperties
 		| systemProps =
 			{SystemProperties
-			| processId	= ""
+			| processId		= taskId
 			, manager		= manager
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
@@ -133,7 +133,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		}
 	# process =
 		{ Process
-		| processId		 = processId
+		| taskId		 = taskId
 		, status		 = if activate Active Suspended
 		, parent		 = parent
 		, properties	 = properties
@@ -193,43 +193,43 @@ loadThread processId tst=:{TSt|dataStore,world}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | processId, parent, properties, menus, changeCount, inParallelType} newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,mainTask,properties=parentProperties,menus=parentMenus}
+evaluateTaskInstance process=:{Process | taskId, parent, properties, menus, changeCount, inParallelType} newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,mainTask,properties=parentProperties,menus=parentMenus}
 	// Reset the task state
-	# tst								= resetTSt processId properties inParallelType tst
+	# tst								= resetTSt taskId properties inParallelType tst
 	// Queue all stored persistent changes (only when run as top node)
-	# tst								= if isTop (loadPersistentChanges processId tst) tst
+	# tst								= if isTop (loadPersistentChanges taskId tst) tst
 	// When a change is injected set it as active change
 	# tst								= if (isJust newChange) {tst & currentChange = newChange} tst
 	// Load the task instance
-	# (thread,tst)						= loadThread processId tst
+	# (thread,tst)						= loadThread taskId tst
 	// On the first run, apply all changes. Pending persistent ones as well as the currently active change
 	// On subsequent runs only apply the currently active change
 	// After each application of a change the thread is evaluated because the full evaluated tree must be the
 	// subject of later changes
 	# (changeCount,thread,properties,menus,result,tst)
 										= if firstRun
-											(applyAllChanges processId changeCount pendingChanges thread properties menus tst)
-											(applyCurrentChange processId changeCount thread properties menus tst)
+											(applyAllChanges taskId changeCount pendingChanges thread properties menus tst)
+											(applyCurrentChange taskId changeCount thread properties menus tst)
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
 	# (TTMainTask ti _ _ _ tasks,tst)	= getTaskTree tst
 	# tree								= TTMainTask ti properties menus inParallelType tasks
 	// Store the adapted persistent changes
-	# tst								= if isTop (storePersistentChanges processId tst) tst
+	# tst								= if isTop (storePersistentChanges taskId tst) tst
 	# tst								= restoreTSt mainTask parentProperties parentMenus tst
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
-			# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
+			# (_,tst)	= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
 			//Store result
-			# tst 		= storeProcessResult (taskNrFromString processId) result tst
+			# tst 		= storeProcessResult (taskNrFromString taskId) result tst
 			//Update process table (status, changeCount & properties)
-			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Finished, properties = properties, menus = menus, changeCount = changeCount }) tst
+			# (_,tst)	= updateProcess taskId (\p -> {Process|p & status = Finished, properties = properties, menus = menus, changeCount = changeCount }) tst
 			| isTop
 				//Evaluate parent process
-				| parent <> ""
-					# (mbParentProcess,tst) = getProcess parent tst
+				| isJust parent
+					# (mbParentProcess,tst) = getProcess (fromJust parent) tst
 					= case mbParentProcess of
 						Nothing 
 							= (result,tree,tst)
@@ -240,13 +240,13 @@ evaluateTaskInstance process=:{Process | processId, parent, properties, menus, c
 					= (result,tree,tst)
 			| otherwise
 				//Update process table (changeCount & properties)
-				# (_,tst)	= updateProcess processId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
+				# (_,tst)	= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 				= (result,tree,tst)
 		TaskException e
 			//Store exception
-			# tst 		= storeProcessResult (taskNrFromString processId) result tst
+			# tst 		= storeProcessResult (taskNrFromString taskId) result tst
 			//Update process table
-			# (_,tst)	= updateProcess processId (\p -> {Process|p & status = Excepted}) tst
+			# (_,tst)	= updateProcess taskId (\p -> {Process|p & status = Excepted}) tst
 			= (TaskException e, tree, tst)
 where
 	resetTSt :: !ProcessId !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
@@ -451,10 +451,8 @@ calculateTaskTree processId tst
 calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest tst 
 	# (processes, tst) = getProcesses [Active] tst
-	= calculateTrees [processId \\ {Process|processId} <- processes | isTopLevel processId] tst
+	= calculateTrees [taskId \\ {Process|taskId,parent} <- processes | isNothing parent] tst
 where
-	isTopLevel p	= length (taskNrFromString p) == 1
-	
 	calculateTrees []     tst = ([],tst)
 	calculateTrees [p:ps] tst
 		# (tree,tst)	= calculateTaskTree p tst

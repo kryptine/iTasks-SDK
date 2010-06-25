@@ -38,133 +38,123 @@ where
 	toString Finished	= "Finished"
 	toString Deleted	= "Deleted"
 
-instance ProcessDB TSt
+
+createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
+createProcess entry tst
+	#(procs,tst)	= processStore id tst
+	# pid = if (entry.Process.taskId <> "") entry.Process.taskId (getNewPid procs entry)
+	# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {SystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) tst
+	= (pid, tst)
+		
+deleteProcess :: !TaskId !*TSt	-> (!Bool, !*TSt)
+deleteProcess taskId tst 
+	# (procs,tst) 	= processStore id tst
+	# (nprocs,tst)	= processStore (\_ -> [process \\ process <- procs | process.Process.taskId <> taskId]) tst
+	= (length procs <> length nprocs, tst)
+		
+getProcess :: !TaskId !*TSt -> (!Maybe Process,!*TSt)
+getProcess taskId tst
+	# (procs,tst) 	= processStore id tst
+	= case [process \\ process <- procs | process.Process.taskId == taskId] of
+		[entry]	= (Just entry, tst)
+		_		= (Nothing, tst)
+
+getProcessForUser :: !User !TaskId !*TSt -> (!Maybe Process,!*TSt)
+getProcessForUser user taskId tst
+	# (procs,tst) 	= processStore id tst
+	#  users		= [p.Process.properties.managerProps.ManagerProperties.worker \\ p <- procs | relevantProc taskId p]
+	= case [p \\ p <- procs | p.Process.taskId == taskId && isMember user users] of
+		[entry]	= (Just entry, tst)
+		_		= (Nothing, tst)
 where
-	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
-	createProcess entry tst
-		#(procs,tst)	= processStore id tst
-		# pid = if (entry.Process.processId <> "") entry.Process.processId (getNewPid procs entry)
-		# (procs,tst)	= processStore (\_ -> procs ++ [{Process | entry & processId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {SystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) tst
-		= (pid, tst)
+	relevantProc targetId {Process|taskId}		= taskId == targetId
+	relevantProc _ _							= False
+	
+getProcesses :: ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+getProcesses statusses tst 
+	# (procs, tst)	= processStore id tst
+	= ([p \\ p <- procs | isMember p.Process.status statusses], tst)
 		
-	deleteProcess :: !ProcessId !*TSt	-> (!Bool, !*TSt)
-	deleteProcess processId tst 
-		# (procs,tst) 	= processStore id tst
-		# (nprocs,tst)	= processStore (\_ -> [process \\ process <- procs | process.Process.processId <> processId]) tst
-		= (length procs <> length nprocs, tst)
+getProcessesById :: ![TaskId] !*TSt -> (![Process], !*TSt)
+getProcessesById ids tst
+	# (procs,tst) 	= processStore id tst
+	= ([process \\ process <- procs | isMember process.Process.taskId ids], tst)
+
+getProcessesForUser	:: !User ![ProcessStatus] !*TSt -> (![Process], !*TSt)
+getProcessesForUser user statusses tst
+	# (procs,tst) 	= processStore id tst
+	= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.status statusses ], tst)
+where
+	isRelevant user {Process | properties}	
+		//Either you are working on the task
+		=  ( properties.managerProps.ManagerProperties.worker == user)
+		//Or you are working on a subtask of this task in an open collaboration
+		|| (isMember user (map snd properties.systemProps.SystemProperties.subTaskWorkers))
 		
-	getProcess :: !ProcessId !*TSt -> (!Maybe Process,!*TSt)
-	getProcess processId tst
-		# (procs,tst) 	= processStore id tst
-		= case [process \\ process <- procs | process.Process.processId == processId] of
-			[entry]	= (Just entry, tst)
-			_		= (Nothing, tst)
-
-	getProcessForUser :: !User !ProcessId !*TSt -> (!Maybe Process,!*TSt)
-	getProcessForUser user processId tst
-		# (procs,tst) 	= processStore id tst
-		#  users		= [p.Process.properties.managerProps.ManagerProperties.worker \\ p <- procs | relevantProc processId p]
-		= case [p \\ p <- procs | p.Process.processId == processId && isMember user users] of
-			[entry]	= (Just entry, tst)
-			_		= (Nothing, tst)
-	where
-		relevantProc targetId {Process|processId}	= processId == targetId
-		relevantProc _ _							= False
+setProcessOwner	:: !User !TaskId !*TSt	-> (!Bool, !*TSt)
+setProcessOwner worker taskId tst
+	= updateProcess taskId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProps = {ManagerProperties | x.Process.properties.managerProps & worker = worker}}}) tst
 	
-	getProcesses :: ![ProcessStatus] !*TSt -> (![Process], !*TSt)
-	getProcesses statusses tst 
-		# (procs, tst)	= processStore id tst
-		= ([p \\ p <- procs | isMember p.Process.status statusses], tst)
-			
-	getProcessesById :: ![ProcessId] !*TSt -> (![Process], !*TSt)
-	getProcessesById ids tst
-		# (procs,tst) 	= processStore id tst
-		= ([process \\ process <- procs | isMember process.Process.processId ids], tst)
+setProcessStatus :: !ProcessStatus !TaskId !*TSt -> (!Bool,!*TSt)
+setProcessStatus status taskId tst = updateProcess taskId (\x -> {Process| x & status = status}) tst
 
-	getProcessesForUser	:: !User ![ProcessStatus] !*TSt -> (![Process], !*TSt)
-	getProcessesForUser user statusses tst
-		# (procs,tst) 	= processStore id tst
-		# procids		= [p \\ Just p <- map (relevantProc user) procs]
-		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses ], tst)
-	where
-		relevantProc user {Process | processId, properties}
-			| properties.managerProps.ManagerProperties.worker == user	= Just processId
-			| otherwise													= Nothing
+updateProcess :: !TaskId (Process -> Process) !*TSt -> (!Bool, !*TSt)
+updateProcess taskId f tst
+	# (procs,tst) 	= processStore id tst
+	# (nprocs,upd)	= unzip (map (update f) procs)
+	# (nprocs,tst)	= processStore (\_ -> nprocs) tst
+	= (or upd, tst)
+where
+	update f x		
+		| x.Process.taskId == taskId	= (f x, True)
+		| otherwise						= (x, False)
+
+updateProcessProperties :: !TaskId (TaskProperties -> TaskProperties) !*TSt -> (!Bool, !*TSt)
+updateProcessProperties taskId f tst = updateProcess taskId (\p -> {Process |p & properties = f p.Process.properties}) tst
+
+removeFinishedProcesses :: !*TSt -> (!Bool, !*TSt)
+removeFinishedProcesses tst
+# (proc,tst) = getProcesses [Finished] tst
+= removeFinishedProcesses` proc tst
+where
+	removeFinishedProcesses` :: ![Process] !*TSt -> (!Bool, !*TSt)
+	removeFinishedProcesses` [] tst = (True, tst)
+	removeFinishedProcesses` [p:ps] tst
+	# (ok,tst)  = deleteProcess p.Process.taskId tst
+	# tst		= deleteTaskStates (taskNrFromString p.Process.taskId) tst
+	| ok 		= removeFinishedProcesses` ps tst
+	| otherwise = (False,tst)
+
+setImmutable :: !TaskId !*TSt -> *TSt
+setImmutable prefix tst
+	# (nprocs,tst)	= processStore (\procs -> [if (startsWith prefix proc.Process.taskId) {Process|proc & mutable = False} proc \\ proc <- procs]) tst
+	= tst
 	
-	getTempProcessesForUser :: !User ![ProcessStatus] !*TSt -> (![Process], !*TSt)
-	getTempProcessesForUser user statusses tst
-		# (procs,tst) 	= processStore id tst
-		# procids		= [p \\ Just p <- map (relevantProc user) procs]
-		= ([p \\ p <- procs | p.Process.mutable && isMember p.Process.processId procids && isMember p.Process.status statusses],tst)
-	where
-		relevantProc user {Process | processId, properties = {managerProps = {ManagerProperties|worker}, systemProps = {subTaskWorkers}}}
-			| isMember user (snd (unzip subTaskWorkers)) && user <> worker	= Just processId
-			| otherwise 										  			= Nothing
-	
-	setProcessOwner	:: !User !ProcessId !*TSt	-> (!Bool, !*TSt)
-	setProcessOwner worker processId tst
-		= updateProcess processId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProps = {ManagerProperties | x.Process.properties.managerProps & worker = worker}}}) tst
-	
-	setProcessStatus :: !ProcessStatus !ProcessId !*TSt -> (!Bool,!*TSt)
-	setProcessStatus status processId tst = updateProcess processId (\x -> {Process| x & status = status}) tst
+copySubProcesses :: !TaskId !TaskId !*TSt -> *TSt
+copySubProcesses fromprefix toprefix tst
+	# (nprocs,tst)	= processStore (\procs -> flatten [copy fromprefix toprefix proc \\ proc <- procs]) tst
+	= tst
+where
+	copy fromprefix toprefix proc
+		| startsWith fromprefix proc.Process.taskId
+			= [proc
+			  ,{Process| proc
+			   //Prefixes of process id's are updated
+			   & taskId = toprefix +++ (proc.Process.taskId % (size fromprefix, size proc.Process.taskId))
+			   //Prefixes of parent fields are also updated
+			   , parent = case proc.Process.parent of
+			   		Just par 	= Just (if (startsWith fromprefix par) (toprefix +++ (par % (size fromprefix, size par))) par)
+			   		Nothing		= Nothing
+			   //The new copy is mutable again
+			   , mutable = True
+			   }
+			  ]
+		| otherwise	= [proc]
 
-	updateProcess :: ProcessId (Process -> Process) !*TSt -> (!Bool, !*TSt)
-	updateProcess processId f tst
-		# (procs,tst) 	= processStore id tst
-		# (nprocs,upd)	= unzip (map (update f) procs)
-		# (nprocs,tst)	= processStore (\_ -> nprocs) tst
-		= (or upd, tst)
-	where
-		update f x		
-			| x.Process.processId == processId	= (f x, True)
-			| otherwise							= (x, False)
-
-	updateProcessProperties :: !ProcessId (TaskProperties -> TaskProperties) !*TSt -> (!Bool, !*TSt)
-	updateProcessProperties processId f tst = updateProcess processId (\p -> {Process |p & properties = f p.Process.properties}) tst
-
-	removeFinishedProcesses :: !*TSt -> (!Bool, !*TSt)
-	removeFinishedProcesses tst
-	# (proc,tst) = getProcesses [Finished] tst
-	= removeFinishedProcesses` proc tst
-	where
-		removeFinishedProcesses` :: ![Process] !*TSt -> (!Bool, !*TSt)
-		removeFinishedProcesses` [] tst = (True, tst)
-		removeFinishedProcesses` [p:ps] tst
-		# (ok,tst)  = deleteProcess p.Process.processId tst
-		# tst		= deleteTaskStates (taskNrFromString p.Process.processId) tst
-		| ok 		= removeFinishedProcesses` ps tst
-		| otherwise = (False,tst)
-
-	setImmutable :: !ProcessId !*TSt -> *TSt
-	setImmutable prefix tst
-		# (nprocs,tst)	= processStore (\procs -> [if (startsWith prefix proc.Process.processId) {Process|proc & mutable = False} proc \\ proc <- procs]) tst
-		= tst
-		
-	copySubProcesses :: !ProcessId !ProcessId !*TSt -> *TSt
-	copySubProcesses fromprefix toprefix tst
-		# (nprocs,tst)	= processStore (\procs -> flatten [copy fromprefix toprefix proc \\ proc <- procs]) tst
-		= tst
-	where
-		copy fromprefix toprefix proc
-			| startsWith fromprefix proc.Process.processId
-				= [proc
-				  ,{Process| proc
-				   //Prefixes of process id's are updated
-				   & processId = toprefix +++ (proc.Process.processId % (size fromprefix, size proc.Process.processId))
-				   //Prefixes of parent fields are also updated
-				   , parent = if (startsWith fromprefix proc.Process.parent)
-				   		(toprefix +++ (proc.Process.parent % (size fromprefix, size proc.Process.parent)))
-				   		proc.Process.parent
-				   //The new copy is mutable again
-				   , mutable = True
-				   }
-				  ]
-			| otherwise	= [proc]
-	
-	deleteSubProcesses :: !ProcessId !*TSt -> *TSt
-	deleteSubProcesses prefix tst 
-		# (nprocs,tst)	= processStore (\procs -> [process \\ process <- procs | not (startsWith prefix process.Process.processId)]) tst
-		= tst
+deleteSubProcesses :: !TaskId !*TSt -> *TSt
+deleteSubProcesses prefix tst 
+	# (nprocs,tst)	= processStore (\procs -> [process \\ process <- procs | not (startsWith prefix process.Process.taskId)]) tst
+	= tst
 
 processStore ::  !([Process] -> [Process]) !*TSt -> (![Process],!*TSt) 
 processStore fn tst=:{TSt|dataStore,world}
@@ -174,9 +164,9 @@ processStore fn tst=:{TSt|dataStore,world}
 	= (list, {TSt|tst & dataStore = dstore, world = world})
 
 maxPid :: [Process] -> Int
-maxPid db = foldr max 0 (map (last o taskNrFromString) [processId \\ {Process|processId} <- db])
+maxPid db = foldr max 0 (map (last o taskNrFromString) [taskId \\ {Process|taskId} <- db])
 
-getNewPid :: ![Process] !Process -> ProcessId
+getNewPid :: ![Process] !Process -> TaskId
 getNewPid db entry = (toString(inc(maxPid db)))
 
 derive gVisualize	Action
