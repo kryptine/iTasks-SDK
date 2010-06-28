@@ -287,7 +287,7 @@ where
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
 						//Comment out(?): Subtask workers should not be removed here, because when their access is removed, they cannot see the results of the other users
-						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst	 
+						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
 						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst

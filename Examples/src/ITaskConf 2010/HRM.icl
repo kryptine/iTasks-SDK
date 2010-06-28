@@ -64,9 +64,9 @@ where
 		
 		assignRoleToUser :: User (Role,[User]) -> Task Void
 		assignRoleToUser user (role,assignUsers) = 
-			getUser (userName user) >>= \user ->			
-				case user of
-					(RegisteredUser details=:{UserDetails | roles})
+			getUser (userName user) >>= \mbuser ->			
+				case mbuser of
+					Just (RegisteredUser details=:{UserDetails | roles})
 						# details = case isMember user assignUsers of
 										True = {UserDetails | details & roles = removeDup [role:roles]}
 										False = {UserDetails | details & roles = removeMember role roles}

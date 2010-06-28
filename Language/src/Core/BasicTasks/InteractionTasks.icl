@@ -234,6 +234,9 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
 	# buttonActions	= evaluateConditions (getButtonActions actions) True (select selection options)
 	# (anyUpd,tst)	= anyUpdates tst
+	// finish the task in case of an empty options list. As no options are selectable, the result is -of course- an empty list.
+	| isEmpty options
+	= (TaskFinished (ActionOk,[]),tst)
 	| newTask || not anyUpd
 		// generate TUI definition
 		# checks	= [isMember i selection \\ i <- [0..(length options) - 1]]
