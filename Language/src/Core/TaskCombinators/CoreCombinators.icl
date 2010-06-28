@@ -252,7 +252,7 @@ assign user task = createOrEvaluateTaskInstance user Nothing task
 createOrEvaluateTaskInstance :: !User !(Maybe TaskParallelType) !(Task a) -> Task a | iTask a
 createOrEvaluateTaskInstance user mbpartype task = mkMainTask "assign" createOrEvaluateTaskInstance`
 where
-	createOrEvaluateTaskInstance` tst=:{TSt|taskNr}
+	createOrEvaluateTaskInstance` tst=:{TSt|taskNr,updates}
 		//Try to load the stored process for this subtask
 		# taskId		 = taskNrToString taskNr
 		# (mbProc,tst)	 = getProcess taskId tst	
@@ -269,7 +269,7 @@ where
 				//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info
 				# tst				= addSubTaskWorker taskId user mbpartype tst
 				// -> TSt in subprocess
-				# (result,_,tst)	= evaluateTaskInstance proc Nothing False False tst
+				# (result,_,tst)	= evaluateTaskInstance proc updates Nothing False False tst
 				// <- TSt back to current process				
 				//Add parallel type after the new proc is evaluated
 				= case result of
@@ -302,7 +302,7 @@ removeSubTaskWorker procId user mbpartype tst
 spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
 where
-	spawnProcess` tst=:{TSt|mainTask}
+	spawnProcess` tst
 		# properties	=	{ initManagerProperties
 							& worker = user
 							, subject = taskLabel task

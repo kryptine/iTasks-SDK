@@ -14,7 +14,7 @@ from TaskTree import :: TaskParallelType{..}
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst=:{staticInfo}
 	# tst		  = {TSt | tst & request = req}
-	# (tree, tst) = calculateTaskTree taskId tst	// Calculate the task tree
+	# (tree, tst) = calculateTaskTree taskId [] tst	// Calculate the task tree TODO : add updates
 	= case tree of
 		(TTMainTask ti properties menus _ task)
 			# subject			= [properties.managerProps.ManagerProperties.subject]

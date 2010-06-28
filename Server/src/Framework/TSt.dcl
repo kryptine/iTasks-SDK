@@ -26,11 +26,14 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 					, newTask		:: !Bool											// does the task run for the first time
 					
-					, mainTask		:: !ProcessId									// The id of the current main task 
-					, properties	:: !TaskProperties								// Properties of the current evaluated process		
-					, menus			:: !Maybe [Menu]								// Menu structure of the current task
-					, menusChanged	:: !Bool										// Has the menu structure been changed
-					, staticInfo	:: !StaticInfo									// info which does not change during a run
+					, updates		:: ![TaskUpdate]									// The update events for interactive tasks
+																						// (task id, name, value)
+																						
+					, properties	:: !TaskProperties									// Properties of the current evaluated process		
+					, menus			:: !Maybe [Menu]									// Menu structure of the current task
+					, menusChanged	:: !Bool											// Has the menu structure been changed
+					
+					, staticInfo	:: !StaticInfo										// info which does not change during a run
 										
 					, currentChange	:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
 					, pendingChanges:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
@@ -110,6 +113,7 @@ createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt
 * Evaluates an existing task instance
 *
 * @param Process information from the process database
+* @param The value updates to apply
 * @param Optionally a new Change that is to be applied to this task instance
 * @param Is the instance evaluated as top node, or as subnode while evaluating a parent process
 * @param Is the task evaluated for the first time
@@ -117,7 +121,7 @@ createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt
 *
 * @return The modified task state
 */
-evaluateTaskInstance :: !Process !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+evaluateTaskInstance :: !Process ![TaskUpdate] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
 /**
 * Applies a change to a running task process task state.
 * 
@@ -131,22 +135,24 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 /**
 * Calculates a single task tree for a given process id
 *
-* @param The process id
+* @param The task id of the process
+* @param The value updates to apply
 * @param The task state
 *
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree :: !ProcessId !*TSt -> (!TaskTree, !*TSt)
+calculateTaskTree :: !TaskId ![TaskUpdate] !*TSt -> (!TaskTree, !*TSt)
 /**
 * Calculates all task trees
 *
+* @param The value updates to apply
 * @param The task state
 *
 * @return The list of task trees (task forest)
 * @return The modified task state
 */
-calculateTaskForest :: !*TSt -> (![TaskTree], !*TSt)
+calculateTaskForest :: ![TaskUpdate] !*TSt -> (![TaskTree], !*TSt)
 /**
 * Lists which workflows are available
 *

@@ -132,7 +132,8 @@ initGroupedProperties :: GroupedProperties
 
 
 :: Container a c	= Container a & iTask c		// container for context restrictions
-					
+
+:: TaskUpdate	:== (!TaskId,!String,!String)	// taskid, name, value			
 // Changes
 
 // A dynamic that contains a change

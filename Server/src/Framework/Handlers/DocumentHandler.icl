@@ -115,7 +115,7 @@ errorResponse error = {http_emptyResponse & rsp_data = "{\"success\": false, \"e
 
 updateTasks :: !ProcessId !*TSt -> *TSt
 updateTasks procId tst
-	# (tree, tst) = calculateTaskTree procId tst	
+	# (tree, tst) = calculateTaskTree procId [] tst	
 	= case tree of
 		(TTMainTask ti properties _ _ task)
 			# user = tst.staticInfo.currentSession.Session.user

@@ -7,7 +7,7 @@ import RPC
 
 handleRPCListRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCListRequest request tst
-	# (forest, tst) = calculateTaskForest tst
+	# (forest, tst) = calculateTaskForest [] tst
 	# (rpcinfos, tst) = determineRPCItems forest tst
 	= ({http_emptyResponse & rsp_data = toString (toJSON rpcinfos)},tst)
 	
@@ -24,7 +24,7 @@ determineTreeRPCItems _ = []
 
 handleRPCUpdates :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleRPCUpdates request tst
-	# (tree, tst) = calculateTaskTree procId tst
+	# (tree, tst) = calculateTaskTree procId [] tst //TODO add updates
 	# tst		  = updateTimeStamps procId tst
 	= case tree of
 		(TTFinishedTask ti _)			= finished tst

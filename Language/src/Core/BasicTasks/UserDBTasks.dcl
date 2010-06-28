@@ -14,7 +14,7 @@ from InteractionTasks 	import class html
 /**
 * Finds a specific user
 */
-getUser 			:: !UserId	-> Task User
+getUser 			:: !UserId	-> Task (Maybe User)
 /**
 * Finds all users
 */

@@ -11,12 +11,12 @@ import TSt
 *
 * @param A user id
 * @param A unique user database handle
-* @return The user
+* @return The user if found
 * @return The database handle
 */
-getUser				::	!UserId			!*TSt -> (!User						, !*TSt)
+getUser				::	!UserId			!*TSt -> (!Maybe User				, !*TSt)
 /**
-* Fetches the id and display name of all users from the from the user database.
+* Fetches the id and details of all users from the from the user database.
 *
 * @param A unique user database handle
 * @return The list of users

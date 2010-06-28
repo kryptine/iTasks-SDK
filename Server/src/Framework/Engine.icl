@@ -20,7 +20,7 @@ import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, Propert
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers, DocumentHandler
 
-import SessionService, WorkflowService, TaskService
+import ApplicationService, SessionService, WorkflowService, TaskService, UserService
 import HtmlUtil
 
 import Config, TSt
@@ -73,10 +73,12 @@ where
 				# json = format == "json"
 				| html || json
 					= case path of
-						["sessions":path]	= sessionService req.req_path html path req tst
-						["workflows":path]	= workflowService req.req_path html path req tst
-						["tasks":path]		= taskService req.req_path html path req tst
-						_					= (notFoundResponse req, tst)
+						["application":path]	= applicationService req.req_path html path req tst
+						["sessions":path]		= sessionService req.req_path html path req tst
+						["workflows":path]		= workflowService req.req_path html path req tst
+						["tasks":path]			= taskService req.req_path html path req tst
+						["users":path]			= userService req.req_path html path req tst
+						_						= (notFoundResponse req, tst)
 				| otherwise
 					= (notFoundResponse req, tst)
 			_

@@ -11,14 +11,14 @@ derive JSONDecode User, UserDetails, Password
 
 derive bimap (,), Maybe
 
-getUser :: !UserId !*TSt -> (!User,!*TSt)
+getUser :: !UserId !*TSt -> (!Maybe User,!*TSt)
 getUser "root" tst
-	= (RootUser,tst)
+	= (Just RootUser,tst)
 getUser userName tst
 	# (users, tst) = userStore id tst
 	= case filter ((==) (NamedUser userName)) users of
-		[x] = (x,tst)
-		_	= (AnyUser,tst)
+		[x] = (Just x,tst)
+		_	= (Nothing,tst)
 
 getUserByName :: !String !*TSt -> (!User, !*TSt)
 getUserByName "root" tst
@@ -98,9 +98,6 @@ where
 				Nothing		= ([],world)
 				
 	writeUserFile users appName world
-		| not (isEmpty users)
-			# world = writefile (appName +++ "-users-test.json") (toString (toJSON users)) world
-			= writefile (appName +++ "-users.json") (toString (toJSON users)) world
 		= writefile (appName +++ "-users.json") (toString (toJSON users)) world
 		
 			

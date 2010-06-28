@@ -76,7 +76,7 @@ taskService url html path req tst
 				Just proc
 					# task			= taskItem proc
 					# menu			= proc.Process.menus
-					# (tree,tst)	= calculateTaskTree taskId tst //TODO Add update events as parameter
+					# (tree,tst)	= calculateTaskTree taskId [] tst //TODO Add update events as parameter
 					# (tui,tst)		= buildTaskPanel tree Nothing session.Session.user tst //TODO: Clean up this conversion. TSt should be irrelevant 
 					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menu),("tui",toJSON tui)]
 					= (serviceResponse html "task user interface" url tuiParams json, tst)
