@@ -274,21 +274,29 @@ where
 // mail handling, to be put in sepparate icl file
 
 :: EMail	=	{ to 			:: !User
-				, cc			:: ![User]
+				, cc			:: !Maybe [User]
 				, subject 		:: !String
 				, message		:: !Note
-				, attachements	:: ![Document]
+				, attachements	:: !Maybe [Document]
 				}
 :: ReplyHdr	=	{ replyFrom		:: !User
 				, subject 		:: !String
 				}
 :: Reply =		{ reply			:: !Note
-				, attachements	:: ![Document]
+				, attachements	:: !Maybe [Document]
 				}
 :: Broadcast =	{ subject 		:: !String
 				, message		:: !Note
-				, attachements	:: ![Document]
+				, attachements	:: !Maybe [Document]
 				} 
+
+mbToList :: !(Maybe [a]) -> [a]
+mbToList Nothing = []
+mbToList (Just a) = a
+
+listToMb :: ![a] -> (Maybe [a])
+listToMb [] = Nothing
+listToMb a = Just a
 
 internalBroadcast :: (Task Broadcast)
 internalBroadcast
@@ -311,7 +319,7 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [who @>> (spawnProcess who True (mailMess me msg <<@ Subject msg.EMail.subject)) \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->						allProc [who @>> (spawnProcess who True (mailMess me msg <<@ Subject msg.EMail.subject)) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
@@ -321,14 +329,14 @@ internalEmailConf :: (Task EMail)
 internalEmailConf
 =						enterInformation "Type your email message ..."
 	>>= \msg ->			getCurrentUser
-	>>= \me ->			allProc [who @>> (mailMess me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->			allProc [who @>> (mailMess me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>|					return msg
 	
 internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
 =					enterInformation "Type your email message ..."
 	>>= \msg ->		getCurrentUser
-	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:msg.cc]] Closed
+	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>= \reply ->	showMessageAbout "The following replies have been commited:" reply
 	>>|				return (msg,map snd reply)
 
@@ -336,7 +344,7 @@ mailMess2 :: User EMail -> Task (ReplyHdr, Reply)
 mailMess2 me msg 
 	= 	(showStickyMessageAbout ("Mail from " <+++ displayName me <+++ ":") msg 
 	  	||- updateInformation "The sender requested a reply..." 
-   				(HtmlDisplay {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = [] }))
+   				(HtmlDisplay {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = Nothing }))
 					<<@Subject  msg.EMail.subject
 		>>= \(HtmlDisplay hdr,reply) -> return (hdr,reply)
 

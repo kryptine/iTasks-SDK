@@ -74,7 +74,7 @@ pushList = getCurrentUser
 	>>= \me -> 	selectList me
 	>>= \id -> 	enterInformation "To whom do you want to push this list?"
 	>>= \usr ->	enterMsg usr 
-	>>= \msg -> usr @: ((showInstructionAbout ("Request to edit list from "+++toString me) "Press ok to continue to the list editor" msg) >>| listEditor id)
+	>>= \msg -> usr @: ((showInstructionAbout ("Request to edit list from "+++toString me) "Press 'Done' to continue to the list editor" msg) >>| listEditor id)
 where
 	enterMsg :: User -> Task Note
 	enterMsg user = enterInformation ("What would you like ask from "+++toString user+++"?")

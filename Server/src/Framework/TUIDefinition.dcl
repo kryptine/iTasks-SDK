@@ -173,6 +173,7 @@ derive gEq TUIDef
 	, staticDisplay	:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
+	, optional		:: !Bool
 	}
 	
 //-- OLD --	

@@ -610,8 +610,8 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			# errMsg 				= getErrorMessage currentPath oldM errorMask
 			# hntMsg 				= getHintMessage currentPath oldM hintMask
 			# (items,vst=:{valid}) 	= TUIDef fx oldV oldM 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
-			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, name = name, id = id, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
-			  {VSt | vst & currentPath = stepDataPath currentPath, label = label, useLabels = useLabels, valid=isValid currentPath oldM errorMask valid})
+			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, optional = optional, name = name, id = id, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+			  {VSt | vst & currentPath = stepDataPath currentPath, label = label, useLabels = useLabels, valid=isValid oldV oldM valid})
 		VEditorUpdate
 			# (updates,vst) 		= TUIUpd fx oldV newV oldM newM {VSt | vst & currentPath = shiftDataPath currentPath}
 			# (newDefs,vst=:{valid})= TUIDef fx newV newM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
@@ -620,7 +620,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			# err 					= getErrorUpdate id currentPath newM errorMask
 			# hnt 					= getHintUpdate id currentPath newM hintMask
 			= ([err,hnt:replacements ++ updates],
-			  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=isValid currentPath newM errorMask valid})
+			  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=isValid newV newM valid})
 		VHtmlDisplay
 			= case oldV of
 				[] 
@@ -682,8 +682,10 @@ where
 		| o =!= n   = [TUIUpdate (TUIReplace (fromJust (getId n)) n):determineChanges os ns (idx+1)]
 		| otherwise = determineChanges os ns (idx+1)
 	
-	isValid cp dm em valid
-		| getErrorCount cp dm em > 0 = False
+	isValid val dm valid
+		| optional = valid
+		| isEmpty val = False
+		| getErrorCount currentPath dm errorMask > 0 = False
 		| otherwise = valid
 	
 //Document Type
@@ -749,14 +751,14 @@ where
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
 	= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|HtmlDisplay|} fx old new vst=:{VSt | origVizType, vizType, currentPath, renderAsStatic}
+gVisualize{|HtmlDisplay|} fx old new vst=:{VSt | origVizType, vizType, currentPath, renderAsStatic,valid}
 	= case origVizType of
 		VHtmlDisplay
 			# (def,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-			= (def,{VSt | vst & currentPath = stepDataPath currentPath})
+			= (def,{VSt | vst & currentPath = stepDataPath currentPath, valid = valid})
 		_
 			# (def,vst) = fx oldV newV {VSt | vst &  renderAsStatic = True, currentPath = shiftDataPath currentPath}
-			= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+			= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic, valid = valid})
 where 
 	oldV = case old of (VValue (HtmlDisplay ov) om) = (VValue ov om); _ = VBlank
 	newV = case new of (VValue (HtmlDisplay nv) nm) = (VValue nv nm); _ = VBlank
@@ -768,12 +770,15 @@ where
 	oldV = case old of (VValue (Editable ov) om) = (VValue ov om); _ = VBlank
 	newV = case new of (VValue (Editable nv) nm) = (VValue nv nm); _ = VBlank
 
-gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVizType, currentPath, renderAsStatic}
+gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVizType, currentPath, renderAsStatic,valid}
 	= case origVizType of
 		VHtmlDisplay
 			= case old of
 				(VValue (VHHidden _) _) 
 					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+				(VValue (VHHtmlDisplay _) _)
+					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+					= (viz,{vst & currentPath = stepDataPath currentPath, vizType = vizType, valid = valid})
 				_
 					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
 					= (viz,{vst & currentPath = stepDataPath currentPath, vizType = vizType})
@@ -787,7 +792,7 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 				//hidden, html -> replace with static
 				((VValue (VHHidden _) _),(VValue (VHHtmlDisplay _) _))
 					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
-					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic,valid=valid})
 				//hidden, edit = replace with editable
 				((VValue (VHHidden _) _),(VValue (VHEditable _) _))
 					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
@@ -799,7 +804,11 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 				//edit, html -> replace
 				((VValue (VHEditable _) _),(VValue (VHHtmlDisplay _) _))
 					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
-					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic,valid=valid})
+				//update VHHtmlDisplay, ignore validation
+				((VValue (VHHtmlDisplay _) _),(VValue (VHHtmlDisplay _) _))
+					# (upd,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+					= (upd,{VSt | vst & currentPath = stepDataPath currentPath, valid = valid})
 				//_ -> update	
 				_	
 					# (upd,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}

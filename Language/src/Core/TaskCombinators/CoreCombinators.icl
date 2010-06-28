@@ -113,7 +113,10 @@ derive bimap Maybe, (,)
 	}
 
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallel type label description procFun parseFun initState initTask = execInParallel (Just type) label description procFun parseFun initState initTask nothing
+parallel type label description procFun parseFun initState initTask = 
+	case initTask of
+		[] = return (parseFun initState)
+		_  = execInParallel (Just type) label description procFun parseFun initState initTask nothing
 where
 	nothing :: Maybe [GroupAction a b Void]
 	nothing = Nothing
@@ -131,9 +134,6 @@ where
 		# taskNr			= drop 1 taskNr // get taskNr of group-task
 		# (updates,tst)		= getChildrenUpdatesFor taskNr tst
 		# (pst,tst)   		= loadPSt taskNr tst
-		// immediately return 'TaskFinished' if the initTasks list is empty, as there is nothing to process
-		| isEmpty initTasks
-		= (TaskFinished (parseFun initState),tst)
 		| otherwise		
 		// check for group actions
 		# (gActionStop,mbFocus,pst) = case mbGroupActions of

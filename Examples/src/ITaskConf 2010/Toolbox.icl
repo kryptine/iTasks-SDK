@@ -16,7 +16,7 @@ derive gUpdate Message
 derive gHint Message
 derive gMakeLocalCopy Message, TaskPriority
 
-derive gEq Message, HtmlDisplay, User, Note, TaskPriority, UserDetails, Password
+derive gEq Message, HtmlDisplay, User, Note, TaskPriority, UserDetails, Password,Maybe
 
 derive bimap Maybe, (,)
 
@@ -41,11 +41,11 @@ toolbox
 :: Message =
 	{ sender			:: HtmlDisplay User
 	, to 				:: [User]
-	, cc 				:: [User]
+	, cc 				:: Maybe [User]
 	, priority 			:: TaskPriority
 	, subject			:: String
 	, message			:: Note
-	, attachments		:: [Document]
+	, attachments		:: Maybe [Document]
 	, previousMessages 	:: HtmlDisplay [Message]
 	}
 
@@ -56,11 +56,11 @@ mkMsg :: User -> Message
 mkMsg me = { Message
 			| sender 		= (toHtmlDisplay me)
 			, to 			= []
-			, cc 			= []
+			, cc 			= Nothing
 			, priority 		= NormalPriority
 			, subject		= ""
 			, message		= Note ""
-		  	, attachments	= []
+		  	, attachments	= Nothing
 		   	, previousMessages = HtmlDisplay []
 		   	}
 
@@ -81,14 +81,15 @@ newMessageToGroup = getCurrentUser
 	
 sendMessage :: Message -> Task Void
 sendMessage msg = allProc [who @>> spawnProcess who True 
-					((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.to++msg.Message.cc)] Closed
+					((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.to ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
 					>>| showMessageAbout "The following message has been sent:" msg
 
 writeMessage :: User String [User] [User] [Message] -> Task Message
-writeMessage me subj to cc thread = updateInformation "Enter your message" {Message | (mkMsg me) & subject = subj, to = to, cc = cc, previousMessages = (HtmlDisplay thread)}	
+writeMessage me subj to cc thread = updateInformation "Enter your message" {Message | (mkMsg me) & subject = subj, to = to, cc = if(isEmpty cc) Nothing (Just cc), previousMessages = (HtmlDisplay thread)}	
 
 readMessage :: Message -> Task Void
-readMessage msg=:{Message | previousMessages} = showMessageAboutA "You received a message" [ButtonAction (ActionLabel "Reply",Always), 
+readMessage msg=:{Message | previousMessages} 
+	= showMessageAboutA "You received a message" [ButtonAction (ActionLabel "Reply",Always), 
 		ButtonAction (ActionLabel "Reply All",Always), ButtonAction (ActionLabel "Forward",Always), ButtonAction (ActionLabel "Delete", Always), ButtonAction (ActionLabel "Archive & Close",Always)] msg
 	>>= \act -> case act of
 		(ActionLabel "Reply")
@@ -97,7 +98,7 @@ readMessage msg=:{Message | previousMessages} = showMessageAboutA "You received 
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Reply All")
 			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromHtmlDisplay msg.sender):[u \\ u <- msg.to | u <> me]] msg.cc [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
+			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromHtmlDisplay msg.sender):[u \\ u <- msg.to | u <> me]] (if(isJust msg.cc) (fromJust msg.cc) []) [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Forward")
 			= 			getCurrentUser 
@@ -121,7 +122,7 @@ viewArchive = getCurrentUser
 where
 	selectMsg :: MsgDB User -> Task [Message]
 	selectMsg mdb me
-		# mdbs = filter (\msg -> (isMember me msg.to) || (isMember me msg.cc)) mdb
+		# mdbs = filter (\msg -> (isMember me msg.to) || (isMember me (if(isJust msg.cc) (fromJust msg.cc) []))) mdb
 		= case mdb of
 			[] = showMessage "The archive is empty" >>| return []
 			_  = enterMultipleChoice "Which messages do you want to view?" mdbs
@@ -168,8 +169,9 @@ derive gEq			Date
 
 pickADate :: Task Void
 pickADate = enterInformation "What is the subject?"
-	>>= \subj ->	enterInformation "Who should be managing the descision?"
-	>>= \ref ->		enterInformation "Who should be involved in the descision?"
+	>>= \subj ->	getCurrentUser
+	>>= \me -> 		updateInformation "Who should be managing the descision?" me
+	>>= \ref ->		enterInformation "Who else should be involved in the descision?"
 	>>= \oth ->		(ref @: datePicker [ref:oth])
 	>>= \date ->	broadcast [ref:oth] ("The chosen date for "+++subj+++": ") (Just date)
 
@@ -202,7 +204,3 @@ where
 				Yes 	= {vc & yes 	= inc yes}
 				No  	= {vc & no  	= inc no}
 				Maybe	= {vc & maybe 	= inc maybe}
-
-//========================================================================================================================================================================
-// ToDo-list
-//========================================================================================================================================================================
