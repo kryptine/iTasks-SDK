@@ -131,6 +131,10 @@ where
 		# taskNr			= drop 1 taskNr // get taskNr of group-task
 		# (updates,tst)		= getChildrenUpdatesFor taskNr tst
 		# (pst,tst)   		= loadPSt taskNr tst
+		// immediately return 'TaskFinished' if the initTasks list is empty, as there is nothing to process
+		| isEmpty initTasks
+		= (TaskFinished (parseFun initState),tst)
+		| otherwise		
 		// check for group actions
 		# (gActionStop,mbFocus,pst) = case mbGroupActions of
 			Just gActions
@@ -149,12 +153,18 @@ where
 								Focus tag		= (False,Just tag,pst)
 						_ = (False,Nothing,pst)
 					Nothing = (False,Nothing,pst)
-			Nothing = (False,Nothing,pst)
+			Nothing = (False,Nothing,pst)		
 		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
 		# tst						= setTaskStoreFor taskNr "pst" pst tst
 		= case result of
-			TaskException e = (TaskException e,tst)
-			TaskFinished  r = (TaskFinished (parseFun r),tst)
+			TaskException e 
+				//remove all subtask workers from this process at once, as it is in Exception state, so their temporary rights to see this parallel should be revoked.
+				//# tst = clearSubTaskWorkers (taskNrToString taskNr) mbParType tst
+				= (TaskException e,tst)
+			TaskFinished  r 
+				//remove all subtask workers from this process at once, as it is finished.
+				//# tst = clearSubTaskWorkers (taskNrToString taskNr) mbParType tst
+				= (TaskFinished (parseFun r),tst)
 			TaskBusy
 				| gActionStop	= (TaskFinished (parseFun pst.state),tst)
 				| otherwise
@@ -276,7 +286,8 @@ where
 					TaskBusy				
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
-						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst	 
+						//Comment out(?): Subtask workers should not be removed here, because when their access is removed, they cannot see the results of the other users
+						# tst = removeSubTaskWorker proc.Process.processId user mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
 						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
@@ -298,6 +309,13 @@ removeSubTaskWorker procId user mbpartype tst
 			Nothing 		= tst
 			(Just Closed) 	= tst
 			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeMember (procId,user) tst.TSt.properties.systemProps.subTaskWorkers }}} 
+
+clearSubTaskWorkers :: !ProcessId !(Maybe TaskParallelType) !*TSt -> *TSt
+clearSubTaskWorkers procId mbpartype tst
+	= case mbpartype of
+		Nothing			= tst
+		(Just Closed)	= tst
+		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | pId <> procId] }}}
 
 spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
