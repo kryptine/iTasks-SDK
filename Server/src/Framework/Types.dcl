@@ -174,11 +174,28 @@ fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
 
 // Documents
+/*
+:: Document = EmptyDocument
+			| TaskDocument !TaskId !DocumentIndex !DocumentDetails
+			| SharedDocument !String !SharedDocumentVersion !DocumentDetails
+			| ShadowDocument !Document
+			
+:: DocumentDetails =
+	{ name		:: !String
+	, size		:: !String
+	, mime		:: !String
+	}
+
+:: DocumentIndex 			:== Int
+:: SharedDocumentVersion	:== Int
+*/
+
 :: Document =	{ type		:: !DocumentType
 				, content	:: !DocumentContent
 				}
 :: DocumentType		= Local | Shared !String
 :: DocumentContent	= EmptyDocument | DocumentContent !DocumentInfo
+
 :: DocumentInfo = 
 	{ fileName 		:: !String
 	, size	   		:: !Int

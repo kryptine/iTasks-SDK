@@ -20,7 +20,7 @@ import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, Propert
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers, DocumentHandler
 
-import ApplicationService, SessionService, WorkflowService, TaskService, UserService
+import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
 import HtmlUtil
 
 import Config, TSt
@@ -78,6 +78,7 @@ where
 						["workflows":path]		= workflowService req.req_path html path req tst
 						["tasks":path]			= taskService req.req_path html path req tst
 						["users":path]			= userService req.req_path html path req tst
+						["documents":path]		= documentService req.req_path html path req tst
 						_						= (notFoundResponse req, tst)
 				| otherwise
 					= (notFoundResponse req, tst)
