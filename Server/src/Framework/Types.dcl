@@ -206,6 +206,13 @@ userName 			:: !User -> String
 * @return The user's display name
 */
 displayName			:: !User -> String
+/* 
+* Gives the roles of the passed user
+*
+* @param The user
+* @return The roles currently assigned to this user
+*/
+getRoles			:: !User -> [Role]
 /**
 * Extracts the task label of a task
 *

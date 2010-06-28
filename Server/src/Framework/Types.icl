@@ -150,6 +150,10 @@ where
 displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName _ = ""
 
+getRoles :: !User -> [Role]
+getRoles (RegisteredUser details) = details.roles
+getRoles _ = []
+
 taskLabel :: !(Task a) -> String
 taskLabel (Task p _ _ _) = p.subject
 
