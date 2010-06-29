@@ -133,9 +133,9 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 						}
 
 						// hack: remove fixed width of footer
-						var footer = Ext.DomQuery.selectNode('.x-plain-footer', cont.getEl().dom);
+						/*var footer = Ext.DomQuery.selectNode('.x-plain-footer', cont.getEl().dom);
 						if(footer)
-							Ext.DomHelper.applyStyles(footer, {width:'auto'});
+							Ext.DomHelper.applyStyles(footer, {width:'auto'});*/
 						
 						Ext.state.Manager.set(group.taskId + '_' + panel.index + '_behaviour', 'GBFloating');
 						group.createContainer(cont, 'GBFloating', panel.index, false);

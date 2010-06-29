@@ -1,6 +1,6 @@
 implementation module textEditor
 
-import iTasks, CommonDomain, StdMisc, Text, Map
+import iTasks, CommonDomain, StdMisc, Text
 
 textEditor :: [Workflow]
 textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ Subject "Text Editor")]
@@ -23,49 +23,49 @@ textEditorApp =
 					, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats ]
 					, Menu "Help"	[ MenuItem "About"			ActionShowAbout ]
 					]
-	>>|			createDB (AppState 0 1 newMap)
-	>>= \sid.	dynamicGroupA [] (groupActions sid)
-	>>|			deleteDB sid
+	>>|			mdiApplication 0 groupActions
 where
-	groupActions :: !AppStateRef -> [GroupAction GAction Void Void]
-	groupActions sid =	[ GroupAction		ActionNew		(GExtend [textEditorFile Nothing sid]) 								GroupAlways
-						, GroupAction		ActionOpen		(GExtend [openDialog sid <<@ GBFloating])							GroupAlways
-						, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) sid Nothing])			GroupAlways
-						, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])								GroupAlways
-						, GroupAction		ActionQuit		(GExtend [quit sid <<@ GBModal])									GroupAlways
-						]
+	groupActions :: !(DBid Int) !(MDITasks EditorState Bool) -> [GroupAction GAction Void Int]
+	groupActions aid mdiTasks=:{createEditor, iterateEditors} =
+		[ GroupAction		ActionNew		(GExtend [modifyDB aid inc >>= \newNum. createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile])	GroupAlways
+		, GroupAction		ActionOpen		(GExtend [openDialog mdiTasks <<@ GBFloating])																	GroupAlways
+		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks Nothing])													GroupAlways
+		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])																			GroupAlways
+		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])																		GroupAlways
+		]									
 						
 ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
 recOpenedMenu	:== "recOpened"
 actionOpenFile	:== "openFile"
 
-openDialog :: !AppStateRef -> Task GAction
-openDialog sid =
+openDialog :: !(MDITasks EditorState a) -> Task GAction
+openDialog mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
 					(showMessageAbout "Open File" "No files to open!" <<@ ExcludeGroupActions >>| continue)
 					(										enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files <<@ ExcludeGroupActions
 						>>= \(action,(name, Hidden fid)).	case action of
-					 										ActionOk	=	open fid sid (Just name)
+					 										ActionOk	=	open fid mdiTasks (Just name)
 					 										_			=	continue
 					)
-		
-open :: !(DBRef TextFile) !AppStateRef !(Maybe String) -> Task GAction
-open fid sid mbAddToRecOpenedName =						
-										readDB sid
-	>>= \(AppState _ _ openedFiles).	if (isEmpty (filter (editorOf fid) (toList openedFiles)))
-					 						(		case mbAddToRecOpenedName of
-					 									Just name	= addToRecentlyOpened name fid
-					 									Nothing		= return Void
-					 							>>|	return (GExtend [textEditorFile (Just fid) sid <<@ GBFloating])
-					 						)
-					 						continue
+					
+open :: !(DBRef TextFile) !(MDITasks EditorState a) !(Maybe String) -> Task GAction
+open fid {createEditor, existsEditor} mbAddToRecOpenedName =
+				existsEditor checkIfAlreadyOpened
+	>>= \mbEid.	case mbEid of
+		Nothing =
+				case mbAddToRecOpenedName of
+					Just name	= addToRecentlyOpened name fid
+					Nothing		= return Void
+			>>|	getFile fid
+			>>= \file.	return (GExtend [createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating])
+		(Just eid) = return (GFocus eid)
 where
-	editorOf :: !(DBRef TextFile) !(!EditorId, !EditorState) -> Bool
-	editorOf fid (_, EditorState _ file) = case file of
+	checkIfAlreadyOpened :: !EditorState -> Bool
+	checkIfAlreadyOpened (EditorState _ file) =	case file of
 		NewFile _		= False
-		OpenedFile file	= fid == file.fileId
+		OpenedFile file	= (fid == file.fileId)
 					
 	addToRecentlyOpened :: !String !(DBRef TextFile) -> Task Void
 	addToRecentlyOpened name (DBRef id) =
@@ -76,82 +76,85 @@ where
 
 about :: Task GAction
 about =
-		showMessageAbout "About" "iTextEditor May 2010" <<@ ExcludeGroupActions
+		showMessageAbout "About" "iTextEditor June 2010" <<@ ExcludeGroupActions
 	>>|	continue
-	
-quit :: !AppStateRef -> Task GAction
-quit sid =
-										readDB sid
-	>>= \(AppState _ _ openedFiles).	closeAllFiles (toList openedFiles)
+
+quit :: !(Bool -> (Bool -> (String -> Task Bool)) -> (Task Bool)) -> Task GAction	
+quit iterateEditors =
+					iterateEditors False checkForUnsavedData
+	>>= \cancel.	if cancel continue stopGroup
 where
-	closeAllFiles [] = return GStop
-	closeAllFiles [(eid,_):openedFiles] =
-						requestClosingFile eid sid
-		>>= \cancel.	if cancel (return GContinue) (closeAllFiles openedFiles)
+	checkForUnsavedData :: !Bool !String -> Task Bool
+	checkForUnsavedData True e	= return True
+	checkForUnsavedData False e	= requestClosingFile e
 	
 // editor workflows
-textEditorFile :: !(Maybe (DBRef TextFile)) !AppStateRef -> Task GAction
-textEditorFile mbFile sid = 
-												readDB sid
-	>>= \(AppState edIdx newIdx openedFiles).	case mbFile of
-													Nothing		= return (edIdx, (AppState (inc edIdx) (inc newIdx) (put edIdx (EditorState (Note "") (NewFile newIdx)) openedFiles)))
-													Just fid	=
-																	getFile fid
-														>>=	\file.	return (edIdx, (AppState (inc edIdx) newIdx (put edIdx (EditorState file.TextFile.content (OpenedFile file)) openedFiles)))
-	>>= \(editorId, state).						writeDB sid state
-	>>= \state.									dynamicGroupA [editorWindow editorId sid <<@ GBFloating <<@ Tag editorId] (actions editorId sid)
-	>>|											readDB sid
-	>>= \(AppState edIdx newIdx openedFiles).	writeDB sid (AppState edIdx newIdx (del editorId openedFiles))
-	>>|											continue
+textEditorFile :: !EditorStateRef -> Task Void
+textEditorFile eid = dynamicGroupA [editorWindow eid <<@ GBFloating] (actions eid)
 where
-	actions :: !EditorId !AppStateRef -> [GroupAction GAction Void AppState]
-	actions eid sid =	[ GroupAction ActionSave	(GExtend [save eid sid])						(SharedPredicate sid (\v -> case v of SharedValue (AppState _ _ files) = let (Just (EditorState _ file)) = get eid files in case file of (OpenedFile _) = True; _ = False; _ = False))
-						, GroupAction ActionSaveAs	(GExtend [saveAs eid sid <<@ GBModal])			GroupAlways
-						, GroupAction ActionReplace	(GExtend [replaceT eid sid <<@ GBFloating])		(SharedPredicate sid (\v -> case v of SharedValue (AppState _ _ files) = let (Just (EditorState (Note txt) _)) = get eid files in txt <> ""; _ = False))
-						, GroupAction ActionStats	(GExtend [statistics eid sid <<@ GBFloating])	GroupAlways
-						, GroupAction ActionClose	(GExtend [close eid sid <<@ GBModal])			GroupAlways
-						]
-
-editorWindow :: !EditorId !AppStateRef -> Task GAction
-editorWindow eid sid =
-		updateShared "Text Editor" [] sid [titleListener eid, mainEditor]
+	actions :: !EditorStateRef -> [GroupAction GAction Void EditorState]
+	actions eid =	[ GroupAction ActionSave	(GExtend [save eid])						(SharedPredicate eid noNewFile)
+					, GroupAction ActionSaveAs	(GExtend [saveAs eid <<@ GBModal])			GroupAlways
+					, GroupAction ActionReplace	(GExtend [replaceT eid  <<@ GBFloating])	(SharedPredicate eid contNotEmpty)
+					, GroupAction ActionStats	(GExtend [statistics eid  <<@ GBFloating])	GroupAlways
+					, GroupAction ActionClose	(GExtend [close eid <<@ GBModal])			GroupAlways
+					]
+	
+	noNewFile :: !(SharedValue EditorState) -> Bool					
+	noNewFile SharedDeleted = abort "editor state deleted"
+	noNewFile (SharedValue (EditorState _ file)) = case file of
+		(OpenedFile _)	= True
+		_				= False
+	
+	contNotEmpty :: !(SharedValue EditorState) -> Bool
+	contNotEmpty SharedDeleted = abort "editor state deleted"
+	contNotEmpty (SharedValue (EditorState (Note cont) _)) = cont <> ""
+	
+editorWindow :: !EditorStateRef -> Task GAction
+editorWindow eid =
+		updateShared "Text Editor" [] eid [titleListener, mainEditor] <<@ Tag eid
 	>>|	continue
 where		
-	mainEditor = editor	{ editorFrom	= \(AppState _ _ files)						-> let (Just (EditorState cont _)) = get eid files in cont
-						, editorTo		= \newCont (AppState edIdx newIdx files)	-> let (Just (EditorState _ file)) = get eid files in AppState edIdx newIdx (put eid (EditorState newCont file) files)
+	mainEditor = editor	{ editorFrom	= \(EditorState continue _)			-> continue
+						, editorTo		= \newCont (EditorState _ file)	-> EditorState newCont file
 						}
 						
-save :: !EditorId !AppStateRef -> Task GAction
-save eid sid =
-												getEditorState eid sid
-	>>= \(EditorState txt (OpenedFile file)).	setFileContent txt file
-	>>= \file.									setEditorState (EditorState file.TextFile.content (OpenedFile file)) eid sid
-	>>|											continue
+save :: !EditorStateRef -> Task GAction
+save eid =
+					readDB eid
+	>>= \editor.	case editor of
+						(EditorState txt (OpenedFile file)) =
+										setFileContent txt file
+							>>= \file.	writeDB eid (EditorState file.TextFile.content (OpenedFile file))
+							>>|			continue
+						_ = saveAs eid
 
-saveAs :: !EditorId !AppStateRef -> Task GAction
-saveAs eid sid =
+saveAs :: !EditorStateRef -> Task GAction
+saveAs eid =
 						enterInformationA "Save As: enter name" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] <<@ ExcludeGroupActions
 	>>= \(action,name).	case action of
-							ActionOk	=								getEditorState eid sid
-											>>= \(EditorState txt _).	storeFile name txt
-											>>= \file.					setEditorState (EditorState file.TextFile.content (OpenedFile file)) eid sid
-											>>|							continue
-							_			=								continue
-
+							ActionOk =
+															readDB eid
+								>>= \(EditorState txt _).	storeFile name txt
+								>>= \file.					writeDB eid (EditorState file.TextFile.content (OpenedFile file))
+								>>|							continue
+							_ = continue
+							
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
 				}
 
-replaceT :: !EditorId !AppStateRef -> Task GAction
-replaceT eid sid = replace` {searchFor = "", replaceWith = ""}
+replaceT :: !EditorStateRef -> Task GAction
+replaceT eid = replace` {searchFor = "", replaceWith = ""}
 where
+	replace` :: !Replace -> Task GAction
 	replace` repl =
-							updateInformationA "Replace" [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)] repl <<@ ExcludeGroupActions
-		>>= \(action, v).	case action of
-								ActionReplaceAll	=										getEditorState eid sid
-														>>= \(EditorState (Note txt) file).	setEditorState (EditorState (Note (replaceSubString v.searchFor v.replaceWith txt)) file) eid sid
-														>>|									replace` v
-								_					= 										continue
+								updateInformationA "Replace" [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)] repl <<@ ExcludeGroupActions
+		>>= \(action, repl).	case action of
+									ActionReplaceAll =
+											modifyDB eid (\(EditorState (Note txt) file) -> (EditorState (Note (replaceSubString repl.searchFor repl.replaceWith txt)) file))
+										>>|	replace` repl
+									_ = continue
 								
 ActionReplaceAll :== ActionLabel "Replace all"
 												
@@ -160,79 +163,57 @@ ActionReplaceAll :== ActionLabel "Replace all"
 					, characters	:: Int
 					}
 
-statistics :: !EditorId !AppStateRef  -> Task GAction
-statistics eid sid = 
-		updateShared "Statistics" [ButtonAction (ActionOk, Always)] sid [titleListener eid, statsListener] <<@ ExcludeGroupActions
+statistics :: !EditorStateRef  -> Task GAction
+statistics eid = 
+		updateShared "Statistics" [ButtonAction (ActionOk, Always)] eid [titleListener, statsListener] <<@ ExcludeGroupActions
 	>>|	continue
 where
-	statsListener = listener {listenerFrom =  \(AppState _ _ files) ->
-			let
-				(Just (EditorState (Note text) _)) = get eid files
-				txt = trim text
+	statsListener = listener {listenerFrom =  \(EditorState (Note text) _) ->
+			let txt = trim text
 			in
 				{lines = length (split "\n" txt), words = length (split " " (replaceSubString "\n" " " txt)), characters = textSize txt}
 		}
-
-titleListener :: !EditorId -> View AppState						
-titleListener eid = listener	{ listenerFrom = \(AppState _ _ files) -> 
-									let (Just st=:(EditorState _ file)) = get eid files in
-									if (hasUnsavedData st) "*" "" 
-									+++
-									getFileName file
-								}
+					
+titleListener :: View EditorState					
+titleListener = listener	{ listenerFrom = \st=:(EditorState _ file) ->
+								if (hasUnsavedData st) "*" "" 
+								+++
+								getFileName file
+							}
 								
-close :: !EditorId !AppStateRef -> Task GAction
-close eid sid =
-					requestClosingFile eid sid
-	>>= \cancel.	if cancel (return GContinue) (return GStop)
-
+close :: !EditorStateRef -> Task GAction
+close eid =
+					requestClosingFile eid
+	>>= \cancel.	if cancel continue stopGroup
+	
 // helper functions
 continue :: Task GAction
 continue = return GContinue
 
-getEditorState :: !EditorId !AppStateRef -> Task EditorState
-getEditorState eid sid =
-										readDB sid
-	>>= \(AppState edIdx newIdx files).	return (get eid files)
-	>>= \mbEditorState.					case mbEditorState of
-											Just editorState	= return editorState
-											Nothing				= throw "cannot get editor state"
-											
-setEditorState :: !EditorState !EditorId !AppStateRef -> Task Void
-setEditorState state eid sid =
-										readDB sid
-	>>= \(AppState edIdx newIdx files).	writeDB sid (AppState edIdx newIdx (put eid state files))
-	>>|									stop
-	
+stopGroup :: Task GAction
+stopGroup = return GStop
+
 hasUnsavedData :: !EditorState -> Bool
-hasUnsavedData (EditorState cont file) = case file of
-	NewFile _			= True
-	OpenedFile file	= cont <> file.TextFile.content
-
-
-
-requestClosingFile :: !EditorId !AppStateRef -> Task Bool
-requestClosingFile eid sid =
-											getEditorState eid sid
-	>>= \state=:(EditorState cont file).	if (hasUnsavedData state)
-												(					showMessageAboutA "Save changes?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionNo, Always), ButtonAction (ActionYes, Always)] ("Save changes to '" +++ getFileName file +++ "'?") <<@ ExcludeGroupActions
-													>>= \action.	case action of
-																		ActionCancel	= return True
-																		ActionNo		= return False
-																		ActionYes =
-																				case file of
-																					NewFile _		= ignoreResult (saveAs eid sid)
-																					OpenedFile file	= ignoreResult (save eid sid)
-																			>>|	return False
-												)
-												(return False)
+hasUnsavedData (EditorState continue file) = case file of
+	NewFile _		= True
+	OpenedFile file	= continue <> file.TextFile.content
+	
+requestClosingFile :: !EditorStateRef -> Task Bool
+requestClosingFile eid =
+	readDB eid
+	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
+										(					showMessageAboutA "Save changes?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionNo, Always), ButtonAction (ActionYes, Always)] ("Save changes to '" +++ getFileName file +++ "'?") <<@ ExcludeGroupActions
+											>>= \action.	case action of
+																ActionCancel	= return True
+																ActionNo		= return False
+																ActionYes		= save eid >>| return False
+										)
+										(return False)
 
 // global application state
 :: EditorState = EditorState !Note !EditorFile
 :: EditorFile = NewFile !Int | OpenedFile !TextFile
-:: AppState = AppState !Int !Int !(Map EditorId EditorState)
-:: EditorId :== Int
-:: AppStateRef :== DBid AppState
+:: EditorStateRef :== DBid EditorState
 
 // text files database
 :: FileName :==	String
@@ -253,7 +234,7 @@ storeFile name txt =
 	>>= \file.	return file
 	
 setFileContent :: !Note !TextFile -> Task TextFile
-setFileContent cont file = dbUpdateItem {TextFile | file & content = cont}
+setFileContent continue file = dbUpdateItem {TextFile | file & content = continue}
 	
 getFile :: !(DBRef TextFile) -> Task TextFile
 getFile id =
@@ -272,13 +253,13 @@ getAllFileNames =
 				dbReadAll
 	>>= \files.	return (map (\f -> (f.TextFile.name, Hidden f.fileId)) files)
 	
-derive gPrint			AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
-derive gParse			AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
-derive gVisualize		AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
-derive gUpdate			AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
-derive gMerge			AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
-derive gMakeSharedCopy	AppState, EditorState, EditorFile, TextFile, Map
-derive gMakeLocalCopy	AppState, EditorState, EditorFile, TextFile, Map
-derive gError			AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
-derive gHint			AppState, EditorState, EditorFile, TextFile, Map, TextStatistics, Replace
+derive gPrint			EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive gParse			EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive gVisualize		EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive gUpdate			EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive gMerge			EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive gMakeSharedCopy	EditorState, EditorFile, TextFile
+derive gMakeLocalCopy	EditorState, EditorFile, TextFile
+derive gError			EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive gHint			EditorState, EditorFile, TextFile, TextStatistics, Replace
 derive bimap			Maybe, (,)

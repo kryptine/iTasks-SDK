@@ -245,3 +245,55 @@ repeatTask task pred a =
 (@:) user task = assign user task
 
 // ******************************************************************************************************
+
+//MDI Application
+:: MDIAppState editorState :== [DBid editorState] // collection of references to all editor states
+
+mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) -> Task Void | iTask, SharedVariable globalState & iTask, SharedVariable editorState & iTask iterationState
+mdiApplication initAppState gActions =
+				createDB initAppState
+	>>= \aid.	createDB initMDIState
+	>>= \sid.	dynamicGroupA [] (gActions aid (globalTasks sid))
+	>>|			deleteDB aid
+	>>|			deleteDB sid
+where
+	initMDIState :: [DBid editorState]
+	initMDIState = []
+
+	globalTasks :: !(DBid (MDIAppState editorState)) -> MDITasks editorState iterationState | iTask, SharedVariable editorState & iTask iterationState
+	globalTasks sid =
+		{ createEditor		= createEditor
+		, iterateEditors	= iterateEditors
+		, existsEditor		= existsEditor
+		}
+	where
+		createEditor :: !editorState ((DBid editorState) -> Task Void) -> Task GAction | iTask, SharedVariable editorState
+		createEditor initState editorTask =
+						createDB initState
+			>>= \esid.	modifyDB sid (\editors -> [esid:editors])
+			>>|			editorTask esid
+			>>|			deleteDB esid
+			>>|			modifyDB sid (\editors -> filter (\id -> id <> esid) editors)
+			>>|			return GContinue
+			
+		iterateEditors	:: !iterationState !(iterationState (DBid editorState) -> Task iterationState) -> Task iterationState | iTask, SharedVariable editorState & iTask iterationState
+		iterateEditors v f =
+							readDB sid
+			>>= \editors.	iterate v editors
+		where
+			iterate v [] = return v
+			iterate v [editor:editors] =
+						f v editor
+				>>= \v.	iterate v editors
+			
+		existsEditor :: !(editorState -> Bool) -> Task (Maybe (DBid editorState)) | iTask, SharedVariable editorState
+		existsEditor pred =
+							readDB sid
+			>>= \editors.	check editors
+		where
+			check [] = return Nothing
+			check [eid:eids] =
+								readDB eid
+				>>= \editor.	if (pred editor)
+									(return (Just eid))
+									(check eids)

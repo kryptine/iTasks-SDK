@@ -87,3 +87,42 @@ repeatTask		:: repeat Task until predicate is valid
 */
 repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 (<|)  infixl 6 	:: !(Task a)  !(a -> (Bool, [HtmlTag])) 	-> Task a 					| iTask a
+
+/**
+* Combinator for creating Multiple Document Interface (MDI) applications.
+*
+* @param An initial state for global application data
+* @param A function generating global application group actions.
+*        The first parameter is a reference to the global state store.
+*        The second parameter is a collection of tasks for dealing with editors.
+*/
+mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) -> Task Void | iTask, SharedVariable globalState & iTask, SharedVariable editorState & iTask iterationState
+
+// A collection of tasks for dealing with editors within an MDI application.
+:: MDITasks editorState iterationState = {
+	/**
+	* Creates a new editor.
+	*
+	* @param An initial editor state, stored as long as the editor task is running
+	* @param The editor task using a reference to the editor's state
+	* @return The created editor task
+	*/
+	createEditor :: !editorState ((DBid editorState) -> Task Void) -> Task GAction,
+	
+	/**
+	* Iterates over all editors using an accumulator tasks to transform an state.
+	*
+	* @param The initial value of the accumulated state
+	* @param The accumulator task, getting the current state and a reference to the current editor's state and returning a new value of the state
+	* @param The final value of the accumulated state
+	*/
+	iterateEditors :: !iterationState (iterationState (DBid editorState) -> Task iterationState) -> Task iterationState,
+	
+	/**
+	* Check if an editor for which a given predicate holds exists and a reference to its state.
+	*
+	* @param The predicate on the editor state
+	* @return Nothing if the predicate holds for no editor; A refenrece to the first editor's state for which the predicate holds
+	*/
+	existsEditor :: !(editorState -> Bool) -> Task (Maybe (DBid editorState))
+	}
