@@ -6,8 +6,6 @@ derive gPrint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLang
 derive gParse			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gMerge			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
-derive gMakeSharedCopy	FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage,  Color
-derive gMakeLocalCopy	FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gError			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gHint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		TUIFormattedText, TUIColorChooser, TUISourceCode

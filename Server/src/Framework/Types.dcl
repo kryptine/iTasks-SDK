@@ -11,24 +11,21 @@ from CommonDomain	import :: Note, :: Password
 from Time			import :: Timestamp
 from StdString		import class toString
 from iTasks			import class iTask
- 
+from Config			import :: Config
+
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON, StoreTasks
 
 derive gPrint			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gParse			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gVisualize		User, UserDetails, Session, Task
 derive gUpdate			User, UserDetails, Session, Task
-derive gError			User, UserDetails, Session, Task, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gHint			User, UserDetails, Session, Task, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gError			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gHint			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 
 derive gMerge			User, Session, VisualizationHint
-derive gMakeLocalCopy	User, Session, VisualizationHint
-derive gMakeSharedCopy	User, Session, VisualizationHint
 		
 derive JSONEncode Document
 derive JSONDecode Document
-
-derive gEq Document
 
 instance toString User
 instance toString TaskPriority
@@ -134,6 +131,13 @@ initGroupedProperties :: GroupedProperties
 :: Container a c	= Container a & iTask c		// container for context restrictions
 
 :: TaskUpdate	:== (!TaskId,!String,!String)	// taskid, name, value			
+
+:: *IWorld		=	{ application	:: !String											// The name of the application	
+					, store			:: !Store											// The generic data store
+					, config		:: !Config											// The server configuration
+					, world			:: !*World											// The outside world
+					}
+
 // Changes
 
 // A dynamic that contains a change
@@ -174,41 +178,15 @@ fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
 
 // Documents
-/*
-:: Document = EmptyDocument
-			| TaskDocument !TaskId !DocumentIndex !DocumentDetails
-			| SharedDocument !String !SharedDocumentVersion !DocumentDetails
-			| ShadowDocument !Document
-			
-:: DocumentDetails =
-	{ name		:: !String
-	, size		:: !String
-	, mime		:: !String
+:: Document =
+	{ documentId	:: !DocumentId				//A unique identifier of the document
+	, name			:: !String					//The filename of a document
+	, mime			:: !String					//The mime type of the document
+	, size			:: !Int						//The filesize in bytes
 	}
 
-:: DocumentIndex 			:== Int
-:: SharedDocumentVersion	:== Int
-*/
+:: DocumentId :== String
 
-:: Document =	{ type		:: !DocumentType
-				, content	:: !DocumentContent
-				}
-:: DocumentType		= Local | Shared !String
-:: DocumentContent	= EmptyDocument | DocumentContent !DocumentInfo
-
-:: DocumentInfo = 
-	{ fileName 		:: !String
-	, size	   		:: !Int
-	, mimeType 		:: !String
-	, dataLocation	:: !DocumentDataLocation
-	, index			:: !Int	
-	}
-:: SharedDocumentVersion :== Int
-:: DocumentDataLocation = LocalLocation !TaskId | SharedLocation !String !SharedDocumentVersion
-:: DocumentData :== String
-
-emptyDoc 	 		:: Document
-isEmptyDoc 			:: !Document -> Bool
 /*
 * Gives the unique username of a user
 *

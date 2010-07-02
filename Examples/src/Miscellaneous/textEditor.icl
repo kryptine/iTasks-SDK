@@ -253,13 +253,13 @@ getAllFileNames =
 				dbReadAll
 	>>= \files.	return (map (\f -> (f.TextFile.name, Hidden f.fileId)) files)
 	
+
 derive gPrint			EditorState, EditorFile, TextFile, TextStatistics, Replace
 derive gParse			EditorState, EditorFile, TextFile, TextStatistics, Replace
 derive gVisualize		EditorState, EditorFile, TextFile, TextStatistics, Replace
 derive gUpdate			EditorState, EditorFile, TextFile, TextStatistics, Replace
 derive gMerge			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gMakeSharedCopy	EditorState, EditorFile, TextFile
-derive gMakeLocalCopy	EditorState, EditorFile, TextFile
 derive gError			EditorState, EditorFile, TextFile, TextStatistics, Replace
 derive gHint			EditorState, EditorFile, TextFile, TextStatistics, Replace
+
 derive bimap			Maybe, (,)

@@ -1,14 +1,12 @@
 definition module ExperimentalDomain
 
-import GenPrint, GenParse, GenUpdate, GenVisualize, GenMerge, GenCopy
+import GenPrint, GenParse, GenUpdate, GenVisualize, GenMerge
 
 derive gPrint			FormattedText, SourceCode, Color
 derive gParse			FormattedText, SourceCode, Color
 derive gVisualize		FormattedText, SourceCode, Color
 derive gUpdate			FormattedText, SourceCode, Color
 derive gMerge			FormattedText, SourceCode, Color
-derive gMakeSharedCopy	FormattedText, SourceCode, Color
-derive gMakeLocalCopy	FormattedText, SourceCode, Color
 derive gError			FormattedText, SourceCode, Color
 derive gHint			FormattedText, SourceCode, Color
 

@@ -11,11 +11,15 @@ import Types
 	, scope		:: ProcessId	// For which (sub) process(es) is change applicable
 	}
 
+class ChangeDB st
+where
+	createChange			:: !PersistentChange									!*st -> *st
+	updateChange			:: !ChangeLabel !(PersistentChange -> PersistentChange)	!*st -> *st
+	deleteChange 			:: !ChangeLabel											!*st -> *st
+	
+	getChange				:: !ChangeLabel											!*st -> (!Maybe PersistentChange,!*st)
+	getChanges				::														!*st -> (![PersistentChange],!*st)
+	getChangesForProcess	:: !ProcessId											!*st -> (![PersistentChange],!*st)
 
-createChange			:: !PersistentChange									!*TSt -> *TSt
-updateChange			:: !ChangeLabel !(PersistentChange -> PersistentChange)	!*TSt -> *TSt
-deleteChange 			:: !ChangeLabel											!*TSt -> *TSt
-
-getChange				:: !ChangeLabel											!*TSt -> (!Maybe PersistentChange,!*TSt)
-getChanges				::														!*TSt -> (![PersistentChange],!*TSt)
-getChangesForProcess	:: !ProcessId											!*TSt -> (![PersistentChange],!*TSt)
+instance ChangeDB IWorld
+instance ChangeDB TSt

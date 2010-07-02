@@ -26,6 +26,4 @@ from Types import :: Document {..}, :: Task
 //instance PreviewConverter Document
 
 // Combinators for handling server-side files
-storeDocumentToFile  :: Document String -> Task Bool
-loadDocumentFromFile :: String   String -> Task (Maybe Document)
-
+//storeDocumentToFile  :: Document String -> Task Bool

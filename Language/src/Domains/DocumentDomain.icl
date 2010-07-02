@@ -72,6 +72,7 @@ isValid content extList val
 */
 
 // --- Store and retrieve documents from file system (server side)
+/*
 storeDocumentToFile :: Document String -> Task Bool
 storeDocumentToFile doc=:{content} path = mkInstantTask "Store Document to FS" storeDoc
 where
@@ -97,25 +98,5 @@ where
 						# (ok,world) 		= fclose file world
 						| not ok 			= (TaskFinished False,{TSt | tst & world = world})
 						= (TaskFinished ok,{TSt | tst & world = world})
-					Nothing = (TaskFinished False,tst)		
-	
-loadDocumentFromFile :: String String -> Task (Maybe Document)
-loadDocumentFromFile fname path = mkInstantTask "Load Document from FS" loadDoc 
-where
-	loadDoc tst
-		# world 			= tst.TSt.world
-		# (ok,file,world) 	= fopen (path+++"/"+++fname) FReadData world		
-		| not ok 			= (TaskFinished Nothing,{TSt | tst & world = world})
-		# (data,file,size) 	= readFile file "" 0
-		# (ok,world) 		= fclose file world
-		| not ok 			= (TaskFinished Nothing,{TSt | tst & world = world})
-		//Find way to derive mime/type
-		# mime				= extToMimeType ("."+++last(split "." fname))
-		# (doc,tst) 		= createDocument fname mime Local (taskNrToString tst.taskNr) data {TSt | tst & world = world}
-		= (TaskFinished (Just doc),tst)
-
-	readFile :: !*File !String !Int -> (!String,!*File,!Int)
-	readFile f a s
-		# (d,f) = freads f 102400
-		| (size d) < 102400 = (a+++d,f,(size d)+s)
-		| otherwise = readFile f (a+++d) ((size d)+s)
+					Nothing = (TaskFinished False,tst)
+*/

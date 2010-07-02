@@ -1,9 +1,8 @@
 implementation module Util
 
 import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc, StdFile
-import Time
-import TSt
-import Types
+import Time, Text
+import TSt, Types
 import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
@@ -48,6 +47,13 @@ writefile filename content world
 	# (ok,world)		= fclose file world
 	= world
 
+fileExtension :: !String -> String
+fileExtension filename = case (split "." filename) of
+	[_]		= ""
+	parts	= last parts
+	
+baseName :: !String -> String
+baseName path = last (split "\\" path)
 
 // ******************************************************************************************************
 

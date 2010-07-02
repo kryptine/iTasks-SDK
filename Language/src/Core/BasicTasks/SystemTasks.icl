@@ -2,7 +2,7 @@ implementation module SystemTasks
 
 import StdList
 
-from TSt import :: Task, :: TSt(..), :: Store, :: HTTPRequest, :: Config, :: StaticInfo(..), :: Workflow
+from TSt import :: Task, :: TSt(..), :: IWorld(..), :: Store, :: HTTPRequest, :: Config, :: StaticInfo(..), :: Workflow
 from TSt import mkInstantTask, mkMonitorTask, accWorldTSt
 
 import Types
@@ -12,7 +12,9 @@ from TaskTree import :: TaskProperties(..), :: SystemProperties(..), :: WorkerPr
 from Time	import :: Timestamp, :: Clock(..), clock
 from Random	import genRandInt
 
-from UserDB	import qualified getUser
+from UserDB	import qualified class UserDB
+from UserDB import qualified instance UserDB TSt
+
 from ProcessDB import :: Menu
 
 from	iTasks import class iTask
@@ -43,9 +45,9 @@ where
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask "getDefaultValue" getDefaultValue`
 where
-	getDefaultValue` tst
-		# (d,tst) = accWorldTSt defaultValue tst
-		= (TaskFinished d,tst)
+	getDefaultValue` tst=:{TSt|iworld}
+		# (d,iworld)	= defaultValue iworld
+		= (TaskFinished d, {TSt|tst & iworld = iworld})
 
 
 getRandomInt :: Task Int

@@ -10,8 +10,6 @@ derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, Fo
 derive gVisualize		EmailAddress, DateTime
 derive gUpdate			EmailAddress, Note, DateTime
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gLexOrd			Currency
 derive gError			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
@@ -193,9 +191,9 @@ gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 gUpdate{|Password|} s ust=:{USt|mode=UDMask,currentPath,mask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
 	
-gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,world}
+gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,iworld=iworld=:{IWorld|world}}
 	# (date,world) = currentDate world
-	= (date, {USt|ust & world = world})
+	= (date, {USt|ust & iworld = {IWorld|iworld & world = world}})
 gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
 		= (fromString update, toggleMask {USt|ust & mode = UDDone})
@@ -206,9 +204,9 @@ gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,mask}
 
 gUpdate{|Date|} s ust = (s, ust)
 
-gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,world}
+gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,iworld=iworld=:{IWorld|world}}
 	# (time,world) = currentTime world
-	= (time, {USt|ust & world = world})
+	= (time, {USt|ust & iworld = {IWorld|iworld & world = world}})
 gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
 	| currentPath == searchPath
 		= (fromString update, toggleMask {USt|ust & mode = UDDone})

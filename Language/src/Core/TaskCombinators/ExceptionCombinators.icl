@@ -8,20 +8,23 @@ import	TSt, Store, Util
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 try normalTask handlerTask = mkSequenceTask "try" exceptionTask
 where
-	exceptionTask tst=:{taskNr,dataStore,world}
+	exceptionTask tst=:{taskNr,iworld=iworld=:{IWorld|store,world}}
 		# key						= iTaskId (tl taskNr) "exception"
-		# (mbEx,dataStore,world)	= loadValue key dataStore world
+		# (mbEx,store,world)	= loadValue key store world
 		= case mbEx of
 			Just ex	
-				= applyTask (handlerTask ex) {TSt|tst & dataStore = dataStore, world = world}
+				= applyTask (handlerTask ex) {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 			Nothing			
-				# (result, tst)	= applyTask normalTask {TSt|tst & dataStore = dataStore, world = world}
+				# (result, tst)	= applyTask normalTask {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 				= case result of
 					//Handle exception if it matches
 					TaskException (ex :: e^)
-						# tst=:{TSt|dataStore}	= deleteTaskStates taskNr tst 						//Garbage collect
-						# dataStore				= storeValueAs SFDynamic key ex dataStore			//Store the exception
-						= applyTask (handlerTask ex) (resetSequence {tst & dataStore = dataStore})	//Run the handler
+						# tst					= deleteTaskStates taskNr tst 					//Garbage collect
+						# tst=:{TSt|iworld=iworld=:{IWorld|store}}
+												= tst
+						# store					= storeValueAs SFDynamic key ex store			//Store the exception
+						# tst					= {TSt| tst & iworld = {IWorld|iworld & store = store}}
+						= applyTask (handlerTask ex) (resetSequence tst)						//Run the handler
 					//Just pass through the result
 					_
 						= (result,tst) 

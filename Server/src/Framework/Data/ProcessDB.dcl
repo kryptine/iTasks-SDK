@@ -63,25 +63,30 @@ getActionIcon :: !Action -> String
 				| MenuName !String !MenuItem
 
 
-createProcess			:: !Process												!*TSt -> (!ProcessId,		!*TSt)
-deleteProcess			:: !TaskId												!*TSt -> (!Bool,			!*TSt)
-getProcess				:: !TaskId												!*TSt -> (!Maybe Process,	!*TSt)
-getProcessForUser		:: !User !TaskId										!*TSt -> (!Maybe Process,	!*TSt)
-getProcesses 			:: ![ProcessStatus] 									!*TSt -> (![Process], 		!*TSt)
-getProcessesById		:: ![TaskId]											!*TSt -> (![Process],		!*TSt)
-getProcessesForUser		:: !User ![ProcessStatus]								!*TSt -> (![Process],		!*TSt)
+class ProcessDB st
+where
+	createProcess			:: !Process												!*st -> (!ProcessId,		!*st)
+	deleteProcess			:: !TaskId												!*st -> (!Bool,				!*st)
+	getProcess				:: !TaskId												!*st -> (!Maybe Process,	!*st)
+	getProcessForUser		:: !User !TaskId										!*st -> (!Maybe Process,	!*st)
+	getProcesses 			:: ![ProcessStatus] 									!*st -> (![Process], 		!*st)
+	getProcessesById		:: ![TaskId]											!*st -> (![Process],		!*st)
+	getProcessesForUser		:: !User ![ProcessStatus]								!*st -> (![Process],		!*st)
+	
+	setProcessOwner			:: !User !TaskId										!*st -> (!Bool,				!*st)
+	setProcessStatus		:: !ProcessStatus !TaskId								!*st -> (!Bool,				!*st)
+	
+	updateProcess			:: !TaskId (Process -> Process)							!*st -> (!Bool,				!*st)
+	updateProcessProperties	:: !TaskId (TaskProperties -> TaskProperties)			!*st -> (!Bool,				!*st)
+	
+	removeFinishedProcesses :: 														!*st -> (!Bool, 			!*st)
+	
+	setImmutable			:: !TaskId												!*st -> *st
+	copySubProcesses		:: !TaskId !TaskId										!*st -> *st
+	deleteSubProcesses		:: !TaskId												!*st -> *st
 
-setProcessOwner			:: !User !TaskId										!*TSt -> (!Bool,			!*TSt)
-setProcessStatus		:: !ProcessStatus !TaskId								!*TSt -> (!Bool,			!*TSt)
-
-updateProcess			:: !TaskId (Process -> Process)							!*TSt -> (!Bool,			!*TSt)
-updateProcessProperties	:: !TaskId (TaskProperties -> TaskProperties)			!*TSt -> (!Bool,			!*TSt)
-
-removeFinishedProcesses :: 														!*TSt -> (!Bool, 			!*TSt)
-
-setImmutable			:: !TaskId												!*TSt -> *TSt
-copySubProcesses		:: !TaskId !TaskId										!*TSt -> *TSt
-deleteSubProcesses		:: !TaskId												!*TSt -> *TSt
+instance ProcessDB IWorld
+instance ProcessDB TSt
 
 
 instance toString ProcessStatus

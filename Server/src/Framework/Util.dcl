@@ -15,3 +15,7 @@ iTaskId 			:: !TaskNr !String 	-> String
 
 readfile			:: !String !*World -> (!String,!*World)
 writefile			:: !String !String !*World -> *World
+
+
+fileExtension		:: !String -> String
+baseName			:: !String -> String

@@ -8,7 +8,6 @@ import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
 import StdString
 from Html	import :: HtmlTag
 from InteractionTasks import class html 
-import GenCopy
 
 // Strings with special meanings
 :: EmailAddress	= EmailAddress String
@@ -57,8 +56,6 @@ derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, Fo
 derive gVisualize		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 derive gUpdate			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
-derive gMakeSharedCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
-derive gMakeLocalCopy	EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 derive gError			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton
 

@@ -18,7 +18,6 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 			]
 		});
 	
-		this.docInfo = Ext.decode(this.docInfo);
 		itasks.tui.DocumentControl.superclass.initComponent.apply(this,arguments);
 	},
 	
@@ -26,13 +25,13 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 		itasks.tui.DocumentControl.superclass.afterRender.call(this,arguments);
 		
 		if(this.staticDisplay){
-			if(this.docInfo.content != "EmptyDocument"){
+			if(this.document.size != 0){
 				this.showDownloadPanel(true);
 			}else{
 				this.removeAll();
 				this.add({html: 'Empty Document', unstyled: true});
 			}				
-		}else if(this.docInfo.content != "EmptyDocument"){
+		}else if(this.document.size != 0){
 			this.showDownloadPanel(false);
 		}else{
 			this.showUploadPanel(false);
@@ -47,7 +46,7 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 	},
 	
 	showDownloadPanel : function(isStatic){
-		this.downloadPanel.updateDocInfo(this.docInfo);
+		this.downloadPanel.updateDocInfo(this.document);
 		this.downloadPanel.setStaticDisplay(isStatic);
 		this.getLayout().setActiveItem(1);
 	},
@@ -75,12 +74,12 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 		}).defer(70,this);
 	},
 	
-	setValue: function(docInfo){
+	setValue: function(value){
 		if(!this.rendered) return;
 		
-		this.docInfo = Ext.decode(docInfo)
-		
-		if(this.docInfo.content == "EmptyDocument"){
+		this.document = Ext.decode(value);
+	
+		if(this.document.size == 0){
 			this.showUploadPanel(false);
 		}else{
 			this.showDownloadPanel(false);
@@ -94,19 +93,22 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 	
 	initComponent: function(){
 		this.dlButton = new Ext.Button(
-			{ text : 'Download'
+			{ text : ''
+			, qtip : 'Download'
 			, iconCls : 'x-form-document-download-icon'
 			, handler: this.dlButtonHandler
 			});
 		
 		this.editButton = new Ext.Button(
 			{ text : ''
+			, qtip : 'Edit'
 			, iconCls : 'x-form-document-edit-icon'
 			, handler : this.editButtonHandler
 			});
 			
 		this.trashButton = new Ext.Button(
 			{ text : ''
+			, qtip : 'Remove'
 			, iconCls : 'x-form-document-trash-icon'
 			, handler : this.trashButtonHandler
 			});
@@ -149,15 +151,15 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 	},
 	
 	updateDocInfo: function(docInfo){
-		this.docInfo = docInfo;
+		this.document = docInfo;
 		
-		var fn = this.docInfo.content[1].fileName;
-		var fs = this.printFileSize(this.docInfo.content[1].size);
+		var fn = this.document.name;
+		var fs = this.printFileSize(this.document.size);
 		
 		this.get(1).setValue(fn+" ("+fs+")");
 		
 		this.get(0).cls = '';
-		this.get(0).addClass(this.iconMimeType(this.docInfo.content[1].mimeType));
+		this.get(0).addClass(this.iconMimeType(this.document.mime));
 	},
 	
 	iconMimeType: function(mime){
@@ -225,13 +227,17 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 	},
 	
 	dlButtonHandler: function(src, evt){
-		var form = this.findParentByType('itasks.tui.document.download');
+		var form = this.findParentByType('itasks.tui.document.Download');
+		var dp = this.findParentByType('itasks.tui.Document');
 		var wt = this.findParentByType('itasks.work');
+		
+		console.log("/services/json/documents/" + dp.document.documentId + "/download");
 		
 		if(form.getForm().isValid()){
 			form.getForm().submit({
-				url: itasks.config.serverUrl+'/document/download',
-				params: { _session : itasks.app.session, docInfo: Ext.encode(form.docInfo) },
+			
+				url: "/services/json/documents/" + dp.document.documentId + "/download",
+				params: { _session : itasks.app.session },
 				waitMsg: null,
 				failure: function(form, o){
 					Ext.Msg.alert('Error',o.result.errors,function(){wt.refresh()});
@@ -241,51 +247,27 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 	},
 	
 	editButtonHandler: function(src, evt){
-		var form = this.findParentByType('itasks.tui.Document');
-		form.showUploadPanel(true);
+		this.findParentByType('itasks.tui.Document').showUploadPanel(true);
 	},
 	
 	trashButtonHandler: function(src, evt){
-		var form = this.findParentByType('itasks.tui.document.download');
+	
 		var tf = this.findParentByType(itasks.ttc.FormContainer);
-		var wt = this.findParentByType('itasks.work');
 		var dp = this.findParentByType('itasks.tui.Document');
-		
-		var params =
-			{ _session : itasks.app.session
-			, _targettask : tf.taskId
-			, _maintask : wt.taskId
-			, _debug : itasks.app.debug ? 1 : 0
-			, _name : dp.name
-			, docInfo : Ext.encode(dp.docInfo)
-			};
-			
-		form.getForm().submit({
-			url: itasks.config.serverUrl+"/document/clear",
-			params: params,
-			success: function(form,response) { //wt.refresh();
-						var resp = Ext.decode(response.response.responseText);
-						tf.addUpdate(dp.name,"");
-						tf.sendUpdates(false);
-			},
-			failure: function() { itasks.app.restart("Document transaction failed"); return; }
-		});
+	
+		tf.addUpdate(dp.name,"");
+		tf.sendUpdates(false);
 	},
 	
-	setValue: function(docInfo){
-		this.ownerCt.setValue(docInfo);
+	setValue: function(value){
+		this.ownerCt.setValue(value);
 	}
 });
 
 itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 
 	initComponent: function(){
-		this.uplButton = new Ext.Button(
-			{ text : 'Upload'
-			, iconCls: 'x-form-document-upload-icon'
-			, handler: this.uplButtonHandler
-			});
-		
+	
 		this.cancelButton = new Ext.Button(
 			{ text : ''
 			, iconCls: 'x-form-document-cancel-icon'
@@ -308,9 +290,9 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 			, name: 'document'
 			, buttonText: ''
 			, buttonCfg: { iconCls: 'x-form-document-browse-icon' }
+			, listeners: { fileselected : this.uplHandler }
 			},
 			this.cancelButton,
-			this.uplButton,
 			this.hintIcon,
 			this.errorIcon
 			]
@@ -352,68 +334,46 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 		this.cancelButton.setVisible(cancel);
 	},
 	
-	uplButtonHandler : function(src,evt){
-		var form = this.findParentByType("itasks.tui.document.upload");
+	uplHandler : function(src,evt){
+	
+		var form = this.findParentByType("itasks.tui.document.Upload");
 		var tf = this.findParentByType(itasks.ttc.FormContainer);
-		var wt = this.findParentByType("itasks.work");
 		var dp = this.findParentByType("itasks.tui.Document");
-			
-
-			
+						
 		if(form.getForm().isValid()){				
 			form.getForm().submit({
-				url: itasks.config.serverUrl+"/document/upload",
+				url: "/services/json/documents/upload",
 				
-				params: 
-					{ _session : itasks.app.session
-					, _targettask : tf.taskId
-					, _maintask : wt.taskId
-					, _debug : itasks.app.debug ? 1 : 0
-					, _name : dp.name
-					, docInfo: Ext.encode(dp.docInfo)
+				params: { _session : itasks.app.session },
+				waitMsg: "Uploading document. Please wait..",
+				success: function(form,response) {
+						try {
+							var resp = Ext.decode(response.response.responseText);
+							
+							tf.addUpdate(dp.name, resp.documents[0].documentId);
+							tf.sendUpdates(false);
+						} catch(e) {
+							itasks.app.restart("Document transaction failed");
+							return;
+						}
 					},
-				waitMsg: 'Uploading document. Please wait..',
-				success: function(form,response)
-					{
-						var resp = Ext.decode(response.response.responseText);
-						tf.addUpdate(dp.name,Ext.encode(resp.docInfo));
-						tf.sendUpdates(false);
-					},
-				failure: function(form,response)
-					{
+				failure: function(form,response) {
 						itasks.app.restart("Document transaction failed");
 						return;
 					}					
 			});
 		}
 	},
-	
 	cancelButtonHandler: function(src,evt){
 		var form = this.findParentByType('itasks.tui.Document');
 		form.showDownloadPanel(false);
 	},
 	
-	setValue: function(docInfo){
-		this.ownerCt.setValue(docInfo);
+	setValue: function(value){
+		this.ownerCt.setValue(value);
 	}
 });
 
 Ext.reg("itasks.tui.Document",itasks.tui.DocumentControl);
-Ext.reg("itasks.tui.document.download",itasks.tui.document.DownloadPanel);
-Ext.reg("itasks.tui.document.upload",itasks.tui.document.UploadPanel);
-
-//--- Preview function ---
-itasks.preview = function(link){
-	var vport = Ext.getDoc().getViewSize();
-		
-	var prevWindow = new Ext.Window(
-		{ modal: true
-		, width: vport.width*.9
-		, height: vport.height*.9
-		, title: 'Document Preview'
-		, html: '<iframe src="'+link+'" frameborder="0" style="width: 100%; height: 100%; background-color: white"></iframe>'
-		}
-	);
-		
-	prevWindow.show();
-};
+Ext.reg("itasks.tui.document.Download",itasks.tui.document.DownloadPanel);
+Ext.reg("itasks.tui.document.Upload",itasks.tui.document.UploadPanel);

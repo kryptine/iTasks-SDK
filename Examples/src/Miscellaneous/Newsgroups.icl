@@ -64,8 +64,6 @@ derive gError		Appointment, Meeting, Attending
 derive gHint		Appointment, Meeting, Attending
 
 derive gMerge				Meeting, Appointment, Attending
-derive gMakeSharedCopy		Meeting, Appointment, Attending
-derive gMakeLocalCopy		Meeting, Appointment, Attending
 
 :: Appointment		=	{ topic :: Note
 						}
@@ -121,8 +119,6 @@ derive gPrint 			Chat, ChatMessage, ChatView, ChatMessageView
 derive gParse			Chat, ChatMessage, ChatView, ChatMessageView
 derive gUpdate			Chat, ChatMessage, ChatView, ChatMessageView
 derive gVisualize		Chat, ChatMessage, ChatView, ChatMessageView
-derive gMakeLocalCopy 	Chat, ChatMessage, ChatView, ChatMessageView
-derive gMakeSharedCopy	Chat, ChatMessage, ChatView, ChatMessageView
 derive gMerge			Chat, ChatMessage, ChatView, ChatMessageView
 derive gError			Chat, ChatMessage, ChatView, ChatMessageView
 derive gHint			Chat, ChatMessage, ChatView, ChatMessageView

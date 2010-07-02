@@ -9,33 +9,56 @@ derive gPrint PersistentChange
 derive gParse PersistentChange
 derive bimap Maybe
 
-createChange :: !PersistentChange !*TSt -> *TSt
-createChange change tst = snd (changeStore (\list -> list ++ [change]) tst)
+instance ChangeDB IWorld
+where
+	createChange :: !PersistentChange !*IWorld -> *IWorld
+	createChange change iworld = snd (changeStore (\list -> list ++ [change]) iworld)
+	
+	updateChange :: !ChangeLabel !(PersistentChange -> PersistentChange) !*IWorld -> *IWorld
+	updateChange label f iworld = snd (changeStore (\list -> [if (c.PersistentChange.label == label) (f c) c \\ c <- list]) iworld)
+	
+	deleteChange :: !ChangeLabel !*IWorld -> *IWorld
+	deleteChange label iworld = snd (changeStore (\list -> [c \\ c <- list | c.PersistentChange.label <> label]) iworld)
+	
+	getChange :: !ChangeLabel !*IWorld -> (!Maybe PersistentChange,!*IWorld)
+	getChange label iworld
+		# (list,iworld) = changeStore id iworld
+		= case [c \\ c <- list | c.PersistentChange.label == label] of
+			[c] = (Just c,iworld)
+			_	= (Nothing,iworld)
+	
+	getChanges :: !*IWorld -> (![PersistentChange],!*IWorld)
+	getChanges iworld = changeStore id iworld
+	
+	getChangesForProcess :: !ProcessId !*IWorld -> (![PersistentChange],!*IWorld)
+	getChangesForProcess processId iworld
+		# (list,iworld) = changeStore id iworld
+		= ([c \\ c <- list | startsWith c.PersistentChange.scope processId],iworld)
 
-updateChange :: !ChangeLabel !(PersistentChange -> PersistentChange) !*TSt -> *TSt
-updateChange label f tst = snd (changeStore (\list -> [if (c.PersistentChange.label == label) (f c) c \\ c <- list]) tst)
-
-deleteChange :: !ChangeLabel !*TSt -> *TSt
-deleteChange label tst = snd (changeStore (\list -> [c \\ c <- list | c.PersistentChange.label <> label]) tst)
-
-getChange :: !ChangeLabel !*TSt -> (!Maybe PersistentChange,!*TSt)
-getChange label tst
-	# (list,tst) = changeStore id tst
-	= case [c \\ c <- list | c.PersistentChange.label == label] of
-		[c] = (Just c,tst)
-		_	= (Nothing,tst)
-
-getChanges :: !*TSt -> (![PersistentChange],!*TSt)
-getChanges tst = changeStore id tst
-
-getChangesForProcess :: !ProcessId !*TSt -> (![PersistentChange],!*TSt)
-getChangesForProcess processId tst
-	# (list,tst) = changeStore id tst
-	= ([c \\ c <- list | startsWith c.PersistentChange.scope processId],tst)
-
-changeStore ::  !([PersistentChange] -> [PersistentChange]) !*TSt -> (![PersistentChange],!*TSt) 
-changeStore fn tst=:{TSt|dataStore,world}
-	# (mbList,dstore,world)	= loadValue "ChangeDB" dataStore world
+changeStore ::  !([PersistentChange] -> [PersistentChange]) !*IWorld -> (![PersistentChange],!*IWorld) 
+changeStore fn iworld=:{IWorld|store,world}
+	# (mbList,store,world)	= loadValue "ChangeDB" store world
 	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# dstore				= storeValue "ChangeDB" list dstore 
-	= (list, {TSt|tst & dataStore = dstore, world = world})
+	# store					= storeValue "ChangeDB" list store 
+	= (list, {IWorld|iworld & store = store, world = world})
+
+instance ChangeDB TSt
+where
+	createChange :: !PersistentChange !*TSt -> *TSt
+	createChange change tst = appIWorldTSt (createChange change) tst
+	
+	updateChange :: !ChangeLabel !(PersistentChange -> PersistentChange) !*TSt -> *TSt
+	updateChange label f tst = appIWorldTSt (updateChange label f) tst
+	
+	deleteChange :: !ChangeLabel !*TSt -> *TSt
+	deleteChange label tst = appIWorldTSt (deleteChange label) tst
+	
+	getChange :: !ChangeLabel !*TSt -> (!Maybe PersistentChange,!*TSt)
+	getChange label tst = accIWorldTSt (getChange label) tst
+	
+	getChanges :: !*TSt -> (![PersistentChange],!*TSt)
+	getChanges tst = accIWorldTSt getChanges tst
+	
+	getChangesForProcess :: !ProcessId !*TSt -> (![PersistentChange],!*TSt)
+	getChangesForProcess processId tst = accIWorldTSt (getChangesForProcess processId) tst
+	

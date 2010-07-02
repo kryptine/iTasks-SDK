@@ -5,7 +5,7 @@ from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
 from ProcessDB	import :: Action, :: Hotkey{..}
-import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, StoreTasks, GenCopy
+import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, StoreTasks
 
 // This type class contains types that may be used as
 // messages and questions: plain strings and html.
@@ -250,7 +250,7 @@ showInstructionAbout 		:: !String !instruction b 	-> Task Void | html instructio
 //notifyGroup					:: message Role -> Task Void										| html message
 
 //*** Shared variable tasks ***//
-class SharedVariable a | gMerge{|*|}, gMakeSharedCopy{|*|}, gMakeLocalCopy{|*|} a
+class SharedVariable a | gMerge{|*|} a
 
 :: Editor s a	= {editorFrom :: s -> a, editorTo :: a s -> s}
 :: Listener s a	= {listenerFrom :: s -> a}

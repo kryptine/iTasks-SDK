@@ -38,13 +38,12 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, currentChange	:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
 					, pendingChanges:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
 					
-					, config		:: !Config											// The server configuration
+					
 					, request		:: !HTTPRequest										// The current http request
-									
-					, dataStore		:: !Store											// Runtime data (Processes, Sessions, Tasks, Dynamics)
-					, documentStore	:: !Store											// Documents
-					, world			:: !*World											// The world
+					
+					, iworld		:: !*IWorld											// The 'iTasks' world				
 					}
+					
 
 :: StaticInfo	=	{ appName			:: String										// the name of the server executable
 					, currentProcessId	:: !ProcessId									// the id of the current process
@@ -65,12 +64,11 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 * @param The current HTTP request
 * @param The workflows available in the application
 * @param The generic data store
-* @param The document store
 * @param The world
 *
 * @return a TSt iTask state
 */
-mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*Store !*World -> *TSt
+mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*World -> *TSt
 
 /**
 * Initializes the session information.
@@ -172,6 +170,15 @@ getWorkflows :: !*TSt -> (![Workflow],!*TSt)
 * @return The modified task state
 */
 getWorkflowByName :: !String !*TSt -> (!Maybe Workflow, !*TSt)
+
+/**
+* Apply a function on IWorld on a TSt
+*/ 
+appIWorldTSt :: !.(*IWorld -> *IWorld) !*TSt -> *TSt
+/**
+* Apply a function yielding a result on IWorld on a TSt
+*/
+accIWorldTSt :: !.(*IWorld -> *(.a,*IWorld))!*TSt -> (.a,!*TSt)
 /**
 * Apply a function on World on a TSt
 */ 

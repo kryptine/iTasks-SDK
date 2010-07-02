@@ -1,7 +1,7 @@
 definition module GenUpdate
 
 import StdGeneric, StdMaybe, Void, Either
-import Types
+import Types, Store
 
 derive gPrint DataPath
 
@@ -17,7 +17,7 @@ derive gPrint DataPath
 	, update			:: String
 	, consPath			:: [ConsPos]
 	, mask				:: DataMask
-	, world				:: *World
+	, iworld			:: *IWorld
 	}
 
 :: UpdateMode
@@ -33,10 +33,14 @@ derive gUpdate Int, Real, Char, Bool, String, Document
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
 
 //Wrapper functions for updating
-defaultValue			:: !*World -> (!a,!*World)														| gUpdate{|*|} a
-defaultMask				:: a !*World -> (DataMask,*World)												| gUpdate{|*|} a
-updateValue				:: DataPath String a !*World -> (a,!*World)										| gUpdate{|*|} a 
-updateValueAndMask  	:: DataPath String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
+defaultValue			:: !*IWorld -> (!a,!*IWorld)										| gUpdate{|*|} a
+defaultMask				:: a !*IWorld -> (!DataMask,!*IWorld)								| gUpdate{|*|} a
+updateValue				:: DataPath String a !*IWorld -> (a,!*IWorld)						| gUpdate{|*|} a 
+updateValueAndMask  	:: DataPath String a DataMask !*IWorld -> (a,DataMask,!*IWorld)		| gUpdate{|*|} a
+
+//Utility functions for working accessing the iWorld in a USt
+appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
+accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
 
 //Utility functions for dealing with DataPath values
 initialDataPath			:: DataPath

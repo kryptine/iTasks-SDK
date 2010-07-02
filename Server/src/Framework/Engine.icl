@@ -18,7 +18,7 @@ import Setup
 import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
-import RPCHandlers, DocumentHandler
+import RPCHandlers
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
 import HtmlUtil
@@ -54,11 +54,11 @@ where
 		  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
 		  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)
 		  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
-		  ,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
-		  ,((==) (config.serverPath +++ "/document/upload"), handleSessionRequest config flows handleDocumentUploadRequest)
-		  ,((==) (config.serverPath +++ "/document/clear"), handleSessionRequest config flows handleDocumentClearRequest)
-		  ,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
-		  ,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
+		  //,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
+		  //,((==) (config.serverPath +++ "/document/upload"), handleSessionRequest config flows handleDocumentUploadRequest)
+		  //,((==) (config.serverPath +++ "/document/clear"), handleSessionRequest config flows handleDocumentClearRequest)
+		  //,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
+		  //,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
 		  ,((==) "/stop", handleStopRequest)
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]	
@@ -172,22 +172,18 @@ initTSt request config flows world
 	| err <> NoDirError			= abort "Cannot get executable info."
 	# (date,time)				= info.pi_fileInfo.lastModified
 	# datestr					= (toString date.Date.year)+++"."+++(addPrefixZero date.Date.month)+++"."+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++"."+++(addPrefixZero time.Time.minutes)+++"."+++(addPrefixZero time.Time.seconds)
-	# ((ok,datapath),world)		= pd_StringToPath (appName +++ "-data") world
-	# ((ok,docupath),world)		= pd_StringToPath (appName +++ "-document") world
+	# ((ok,datapath),world)		= pd_StringToPath appName world
 	# (err,world)				= createDirectory datapath world
 	| err <> NoDirError 
 		&& err <> AlreadyExists	= abort "Cannot create data directory"
-	# (err,world)				= createDirectory docupath world
-	| err <> NoDirError
-		&& err <> AlreadyExists	= abort "Cannot create document directory"
-	= mkTSt appName config request flows (createStore (appName +++ "-data\\" +++ datestr)) (createStore (appName +++ "-document\\" +++ datestr)) world
+	= mkTSt appName config request flows (createStore (appName +++ "\\" +++ datestr)) world
 where 
 	addPrefixZero number
 	| number < 10 = "0"+++toString number
 	| otherwise = toString number
 
 finalizeTSt :: !*TSt -> *World
-finalizeTSt tst=:{TSt|world} = world
+finalizeTSt tst=:{TSt|iworld={IWorld|world}} = world
 
 // Determines the server executables path
 determineAppPath :: !*World -> (!String, !*World)

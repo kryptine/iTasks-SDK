@@ -5,6 +5,7 @@ definition module TUIDefinition
 * JSONEncode for serializing them to JSON
 */
 import JSON, GenEq
+from Types import :: Document(..), :: DocumentId
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
@@ -95,9 +96,9 @@ derive gEq TUIDef
 :: TUIDocumentControl = 
 	{ id			:: !String
 	, name			:: !String
-	, docInfo		:: !String
+	, document		:: !Document
 	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool //-> Change to optional!
+	, optional		:: !Bool
 	, staticDisplay :: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String

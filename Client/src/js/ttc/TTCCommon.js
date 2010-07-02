@@ -123,11 +123,6 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 	for(var x=0; x < links.length; x++){
 		var link = links[x];
 		
-		if(link.pathname.indexOf('/') != 0){
-			link.pathname = itasks.config.serverUrl+'/'+link.pathname;
-		}else{
-			link.pathname = itasks.config.serverUrl+link.pathname;
-		}
 		link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
 		link.name = "";
 		
@@ -135,7 +130,7 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 			if(plinks[y].id == link.id){
 				var plink = plinks[y];		
 
-				plink.href="javascript:itasks.preview('"+link.href.replace( 'download','preview')+"')";
+				plink.href="javascript:itasks.util.preview('"+link.href.replace( 'download','preview')+"')";
 				plink.name = "";
 			}
 		}

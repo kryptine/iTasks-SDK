@@ -1,9 +1,10 @@
 implementation module TUIDefinition
 
 import JSON,StdList,GenEq
+from Types import :: Document, :: DocumentId
 
 derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
-derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe
+derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
 
 derive gEq TUIButton, TUITextArea, TUIUserField, TUINumberField, TUIComboBox, TUICheckBox, TUICheckBoxGroup, TUIRadio, TUIRadioGroup, TUIDateField, TUITimeField, TUIFieldSet, TUIPanel, TUIHtmlPanel, TUIMenuButton, TUIMenu, TUIMenuItem
 derive gEq TUIUpdate, TUIBox, TUITuple

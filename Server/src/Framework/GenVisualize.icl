@@ -4,7 +4,8 @@ import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGene
 import GenUpdate, GenEq
 import Void, Either
 import Text, Html, JSON, TUIDefinition
-from Types import emptyDoc
+
+derive gEq Document
 
 MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
 						//with radio buttons. When it exceeds this, a combobox is used.
@@ -693,7 +694,7 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 = case vizType of
 	VEditorDefinition
 		# (errMsg,hntMsg,vst) = getErrorNHintMessages omask vst
-		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = id, name = dp2s currentPath, docInfo = toString(toJSON oval), fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
+		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = id, name = dp2s currentPath, document = oval, fieldLabel = label2s optional label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 		  {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid oval currentPath omask errorMask optional valid})
 	VEditorUpdate
 		# (msg,vst) = updateErrorNHintMessages nmask vst
@@ -704,48 +705,48 @@ gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, val
 	VHtmlDisplay
 		= case old of
 			(VBlank) = noDocument vst
-			(VValue ov=:{content} omask) = case content of
-				EmptyDocument = noDocument vst
-				(DocumentContent info)
-					# downLink = ATag [HrefAttr (buildLink info),TargetAttr "_blank",IdAttr id,NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
-					# prevLink = ATag [HrefAttr "#", IdAttr id, NameAttr "x-form-document-preview-link"][ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
-					= ([HtmlFragment [(Text (info.fileName+++" ("+++printByteSize info.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
+			(VValue document omask)
+				| document.Document.size == 0
+					= noDocument vst
+				| otherwise
+					# downLink = ATag [HrefAttr (buildLink document)
+									  ,TargetAttr "_blank",IdAttr id
+									  ,NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
+					# prevLink = ATag [HrefAttr "#", IdAttr id
+									  ,NameAttr "x-form-document-preview-link" ] [ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
+					= ([HtmlFragment [(Text ( document.Document.name +++" ("+++printByteSize document.Document.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
 				  		{VSt | vst & currentPath = stepDataPath currentPath})
 	VTextDisplay
 		= case old of
 			(VBlank) = noDocument vst
-			(VValue {content} omask) = case content of
-				EmptyDocument			= noDocument vst
-				(DocumentContent info)	= ([TextFragment info.fileName],
-			 	  							{VSt | vst & currentPath = stepDataPath currentPath})
+			(VValue document omask)
+				| document.Document.size == 0 = noDocument vst
+				| otherwise	= ([TextFragment document.Document.name],{VSt | vst & currentPath = stepDataPath currentPath})
 where
 	id = dp2id idPrefix currentPath
 	
-	oval = case old of (VValue o om) = o; _ = emptyDoc
-	nval = case new of (VValue n nm) = n; _ = emptyDoc
+	oval = case old of (VValue o om) = o; _ = {Document|documentId = "",name = "", mime = "", size = 0}
+	nval = case new of (VValue n nm) = n; _ = {Document|documentId = "",name = "", mime = "", size = 0}
 	
 	omask = case old of (VValue o om) = om; _ = []
 	nmask = case new of (VValue n nm) = nm; _ = []
 	
 	fixReal r = (toReal (toInt (r*100.0)))/100.0
-		
+	
 	printByteSize size
 	| size >= 1048576 = toString (fixReal ((toReal size)/(toReal 1048576)))+++" Mbyte"
 	| size >= 1024    = toString (fixReal ((toReal size)/(toReal 1024)))+++" Kbyte"
 	| otherwise 	  = toString size +++ " byte"
 	
 	noDocument vst = ([TextFragment "No Document."],vst)
-	buildLink info
-		# location = case info.dataLocation of
-			LocalLocation taskId	= taskId
-			SharedLocation sid _	= "shared_" +++ sid
-		= "/document/download/link/" +++ location +++ "/" +++ toString info.DocumentInfo.index
-	
+	buildLink document = "/services/json/documents/" +++ document.Document.documentId +++ "/download"
+
 	isValid :: Document DataPath DataMask ErrorMask Bool Bool -> Bool
 	isValid doc cp dm em optional valid
-	| optional || not (isEmptyDoc doc)	= valid
-	| getErrorCount cp dm em > 0		= False
-	| otherwise							= False
+		| optional || not (doc.Document.size == 0)	= valid
+		| getErrorCount cp dm em > 0				= False
+		| otherwise									= False
+
 
 //Hidden type
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}

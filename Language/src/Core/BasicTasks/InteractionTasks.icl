@@ -89,23 +89,29 @@ where
 			Just v		= (v,tst)
 			Nothing		= case initial of
 						Just i	= (i,tst)
-						Nothing	= accWorldTSt defaultValue tst
+						Nothing	
+							# tst=:{TSt|iworld}			= tst
+							# (def,iworld)				= defaultValue iworld
+							= (def,{TSt|tst & iworld = iworld})
+							
 	readMask initial tst
 		# (mbmask,tst)	= getTaskStore "mask" tst
 		= case mbmask of
 			Just m = (m,tst)
 			Nothing = case initial of
 				Just v 
-					# (mask,tst)	= accWorldTSt (defaultMask v) tst
-					# tst			= setTaskStore "mask" mask tst // <- store the initial mask
+					# tst=:{TSt|iworld}= tst
+					# (mask,iworld)			= defaultMask v iworld
+					# tst					= setTaskStore "mask" mask
+												{TSt|tst & iworld = iworld} // <- store the initial mask
 					= (mask,tst)
 				Nothing	= ([],tst) 
 
 
 	applyUpdates [] val mask tst = (val,mask,tst)
-	applyUpdates [(p,v):us] val mask tst=:{TSt|world}
-		# (val,mask,world) = updateValueAndMask p v val mask world
-		= applyUpdates us val mask {TSt|tst & world = world}
+	applyUpdates [(p,v):us] val mask tst=:{TSt|iworld}
+		# (val,mask,iworld) = updateValueAndMask p v val mask iworld
+		= applyUpdates us val mask {TSt|tst & iworld = iworld}
 
 enterChoice :: question [a] -> Task a | html question & iTask a
 enterChoice question []			= throw "enterChoice: cannot choose from empty option list"
@@ -372,22 +378,23 @@ where
 			= (mergeValues old cur (editorTo nEditV old), tst)
 		
 	determineUpdates taskNr n new postValues tst
-		# (Just oEditV,tst)	= getTaskStoreFor taskNr (addStorePrefix n "value") tst
-		# nEditV			= editorFrom new
-		# (mask,tst)		= accWorldTSt (defaultMask nEditV) tst
-		# (updates,tst)		= getUserUpdates tst
-		# updpaths			= userUpdates2Paths postValues
+		# (Just oEditV,tst)			= getTaskStoreFor taskNr (addStorePrefix n "value") tst
+		# nEditV					= editorFrom new
+		# tst=:{TSt|iworld}			= tst
+		# (mask,iworld)				= defaultMask nEditV iworld
+		# (updates,tst)				= getUserUpdates {TSt|tst & iworld = iworld}
+		# updpaths					= userUpdates2Paths postValues
 		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths mask mask oEditV nEditV,tst)
 	
-	visualize taskNr n stateV tst
-		# editV			= editorFrom stateV
-		# (mask,tst)	= accWorldTSt (defaultMask editV) tst
-		= (visualizeAsEditor (editorId taskNr n) (Just n) mask editV,tst)
+	visualize taskNr n stateV tst=:{TSt|iworld}
+		# editV					= editorFrom stateV
+		# (mask,iworld)			= defaultMask editV iworld
+		= (visualizeAsEditor (editorId taskNr n) (Just n) mask editV,{TSt|tst & iworld = iworld})
 				
 	applyUpdates [] val tst = (val,tst)
-	applyUpdates [(p,v):us] val tst=:{TSt|world}
-		# (val,world) = updateValue p v val world
-		= applyUpdates us val {TSt|tst & world = world}
+	applyUpdates [(p,v):us] val tst=:{TSt|iworld}
+		# (val,iworld)		= updateValue p v val iworld
+		= applyUpdates us val {TSt|tst & iworld = iworld}
 				
 listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}
@@ -426,13 +433,14 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTas
 				# (updates,tst)		= getUserUpdates tst
 				# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
 				# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
-				# nvalue			= gMakeSharedCopy{|*|} nvalue sharedId
-				# tst				= {tst & dataStore = storeValue sharedId nvalue tst.dataStore}
+				# tst=:{TSt|iworld=iworld=:{IWorld|store}}
+									= tst
+				# store				= storeValue sharedId nvalue store
+				# tst				= {TSt|tst & iworld = {IWorld|iworld & store = store}}
 				# (mbAction,tst)	= getAction updates (map fst buttonActions) tst
 				= case mbAction of
 					Just action
-						# (result,tst)	= gMakeLocalCopy{|*|} (fromJust mbcvalue) tst
-						= (TaskFinished (action,result),tst)
+						= (TaskFinished (action,fromJust mbcvalue),tst)
 					Nothing
 						# tst = setTUIFunc (createUpdates updates) (html question) tst
 						= (TaskBusy, tst)
@@ -487,11 +495,11 @@ where
 			Just v		= (v,tst)
 			Nothing		= abort "cannot get local value"
 			
-	readShared sid tst=:{dataStore,world}
-		# (mbvalue,dstore,world) = loadValue sid dataStore world
-		# tst = {tst & dataStore = dstore, world = world}
+	readShared sid tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
+		# (mbvalue,store,world) = loadValue sid store world
+		# tst = {TSt|tst & iworld = {IWorld| iworld & store = store, world = world}}
 		= case mbvalue of
-			Just v		= (Just (gMakeSharedCopy{|*|} v sid),tst)
+			Just v		= (Just v,tst)
 			Nothing		= (Nothing,tst)
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key

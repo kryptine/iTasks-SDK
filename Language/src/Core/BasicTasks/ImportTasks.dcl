@@ -11,3 +11,5 @@ importTextFile		:: !String -> Task String
 importCSVFile		:: !String -> Task [[String]]
 
 importCSVFileWith	:: !Char !Char !Char !String -> Task [[String]]
+
+importDocument		:: !String -> Task Document

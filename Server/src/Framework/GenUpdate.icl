@@ -5,6 +5,7 @@ import Void, Either
 import Text
 import JSON
 import Types
+import DocumentDB
 
 from StdFunc import id
 
@@ -13,25 +14,35 @@ derive bimap	(,)
 
 :: DataPath = DataPath [Int] (Maybe SubEditorIndex)
 
-defaultValue :: !*World -> (!a,!*World) | gUpdate{|*|} a
-defaultValue world  
-	# (a,ust=:{world}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = initialDataPath, currentPath = initialDataPath, consPath = [], update = "", mask = [], world = world}
-	= (a,world)
-	
-defaultMask :: a !*World -> (DataMask,*World) | gUpdate{|*|} a
-defaultMask a world
-	# (_,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = initialDataPath, currentPath = shiftDataPath initialDataPath, consPath = [], update = "", mask = [], world = world}
-	= (mask,world)
-	
-updateValue	:: DataPath String a !*World -> (a,!*World)	| gUpdate{|*|} a  
-updateValue path update a world
-	# (a,_,world) = updateValueAndMask path update a [] world
-	= (a,world)
+defaultValue :: !*IWorld -> (!a,!*IWorld) | gUpdate{|*|} a
+defaultValue iworld  
+	# (a,ust=:{USt|iworld}) = gUpdate{|*|} (abort "gUpdate accessed value during create") {USt|mode = UDCreate, searchPath = initialDataPath, currentPath = initialDataPath, consPath = [], update = "", mask = [], iworld = iworld}
+	= (a,iworld)
 
-updateValueAndMask :: DataPath String a DataMask !*World -> (a,DataMask,!*World)	| gUpdate{|*|} a
-updateValueAndMask path update a mask world	
-	# (a,ust=:{world,mask}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, mask = mask, world = world}
-	= (a,mask,world)
+defaultMask :: a !*IWorld -> (!DataMask,!*IWorld) | gUpdate{|*|} a	
+defaultMask a iworld
+	# (_,ust=:{mask,iworld}) = gUpdate{|*|} a {USt| mode = UDMask, searchPath = initialDataPath, currentPath = shiftDataPath initialDataPath, consPath = [], update = "", mask = [], iworld = iworld}
+	= (mask,iworld)
+
+updateValue	:: DataPath String a !*IWorld -> (a,!*IWorld) | gUpdate{|*|} a 	
+updateValue path update a iworld
+	# (a,_,iworld) = updateValueAndMask path update a [] iworld
+	= (a,iworld)
+
+updateValueAndMask :: DataPath String a DataMask !*IWorld -> (a,DataMask,!*IWorld) | gUpdate{|*|} a
+updateValueAndMask path update a mask iworld	
+	# (a,ust=:{mask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, mask = mask, iworld = iworld}
+	= (a,mask,iworld)
+
+
+appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
+appIWorldUSt f ust=:{USt|iworld}
+	= {USt|ust & iworld = f iworld}
+	
+accIWorldUSt :: !.(*IWorld -> *(.a,*IWorld))!*USt -> (.a,!*USt)
+accIWorldUSt f ust=:{USt|iworld}
+	# (a,iworld) = f iworld
+	= (a,{USt|ust & iworld = iworld})
 
 //Generic updater
 generic gUpdate a :: a *USt ->  (a, *USt)
@@ -335,18 +346,22 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,mask}
 gUpdate{|Maybe|} fx l ust = (l,ust)
 
 // Document
-gUpdate {|Document|} _ ust =: {USt | mode=UDCreate} = (emptyDoc,ust)
+
+gUpdate {|Document|} _ ust =: {USt | mode=UDCreate} = ({Document|documentId = "", name="", mime="", size = 0},ust)
 
 gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,mask}
 	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
 	
 gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, mask}
 	| currentPath == searchPath
-		# upd = fromJSON (fromString update)
 		# ust = toggleMask ust
-		| isJust upd = (fromJust upd, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
-		| otherwise  = (emptyDoc, {USt | ust & currentPath = stepDataPath currentPath}) //abort "[Upd Document] Cannot parse JSON"
-		//| otherwise  = ({ Document | fileName = "", size = 0, mimeType = "", taskId = "", index = 0},{USt | ust & currentPath = stepDataPath currentPath})
+		| update == "" // Reset
+			= ({Document|documentId = "", name="", mime="", size = 0},{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
+		| otherwise // Look up meta-data in the store and update the document
+			# (mbDocument,ust) = getDocument update ust
+			= case mbDocument of
+				Just document 	= (document,{USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
+				Nothing			= (s, {USt | ust & currentPath = stepDataPath currentPath, mode=UDDone})
 	| otherwise 
 		= (s, {USt | ust & currentPath = stepDataPath currentPath})
 

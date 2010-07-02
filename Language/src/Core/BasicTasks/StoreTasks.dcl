@@ -6,7 +6,7 @@ from TSt 			import :: Task
 from StdOverloaded	import class ==, class <
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, GenCopy
+import	GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge
 
 //Database identifier for storing a single value of type a
 ::DBid a :== String
@@ -19,8 +19,6 @@ derive gUpdate			DBRef
 derive gPrint			DBRef
 derive gParse			DBRef
 derive gMerge			DBRef
-derive gMakeSharedCopy	DBRef
-derive gMakeLocalCopy	DBRef
 derive gHint			DBRef
 derive gError			DBRef
 
@@ -52,14 +50,14 @@ createDB :: !a 				-> Task (DBid a) | iTask a
 * @param The database reference
 * @return The value in the database or a default value if no value is stored.
 */
-readDB :: !(DBid a) 		-> Task a | iTask, gMakeLocalCopy{|*|} a
+readDB :: !(DBid a) 		-> Task a | iTask a
 /**
 * Read the database.
 *
 * @param The database reference
 * @return The value in the database if a value is stored.
 */
-readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask, gMakeLocalCopy{|*|} a
+readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
 /**
 * Write the database.
 *
@@ -81,7 +79,7 @@ deleteDB :: !(DBid a)		-> Task Void
 * @param A function modifying the database
 * @param The new value of the database
 */
-modifyDB :: !(DBid a) (a -> a) -> Task a | iTask, gMakeLocalCopy{|*|} a
+modifyDB :: !(DBid a) (a -> a) -> Task a | iTask a
 
 //Convenience wrapper functions for databases with multiple values of type a 
 class DB a where
@@ -94,11 +92,11 @@ instance <  (DBRef a)
 
 eqItemId 		:: a a -> Bool | DB a
 
-dbReadAll		::                 Task [a]       | iTask, gMakeLocalCopy{|*|}, DB a
+dbReadAll		::                 Task [a]       | iTask, DB a
 dbWriteAll		:: ![a]         -> Task Void      | iTask, DB a
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
-dbCreateItem	:: a            -> Task a         | iTask, gMakeLocalCopy{|*|}, DB a
-dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iTask, gMakeLocalCopy{|*|}, DB a
-dbUpdateItem	:: a			-> Task a         | iTask, gMakeLocalCopy{|*|}, DB a
-dbDeleteItem	:: !(DBRef a)	-> Task Void      | iTask, gMakeLocalCopy{|*|}, DB a
+dbCreateItem	:: a            -> Task a         | iTask, DB a
+dbReadItem		:: !(DBRef a)	-> Task (Maybe a) | iTask, DB a
+dbUpdateItem	:: a			-> Task a         | iTask, DB a
+dbDeleteItem	:: !(DBRef a)	-> Task Void      | iTask, DB a

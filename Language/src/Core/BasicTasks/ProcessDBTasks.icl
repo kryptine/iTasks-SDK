@@ -5,10 +5,11 @@ import TSt
 
 from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: Menu
 
-from ProcessDB import qualified getProcess, getProcessForUser, getProcesses, getProcessesById, getProcessesForUser
-from ProcessDB import qualified setProcessOwner, setProcessStatus, deleteProcess
+from ProcessDB import qualified class ProcessDB(..)
+from ProcessDB import qualified instance ProcessDB TSt
 
-from UserDB import getUser
+from UserDB import class UserDB(..)
+from UserDB import instance UserDB TSt
 
 from Types	import :: ProcessId, :: ProcessRef
 

@@ -7,76 +7,94 @@ import TSt, Store
 import Time
 import Random
 
-
-getSessions	:: !*TSt -> (![Session], !*TSt)
-getSessions tst
-	= sessionStore id tst
-
-getSessionsForUser :: !User !*TSt -> (![Session], !*TSt)
-getSessionsForUser user tst
-	# (sessions, tst)				= sessionStore id tst
-	= ([s \\ s <- sessions | s.Session.user == user], tst)
-
-getSession :: !SessionId !*TSt -> (!Maybe Session, !*TSt)
-getSession sid tst
-	# (sessions, tst)				= sessionStore id tst
-	= case [s \\ s <- sessions | s.Session.sessionId == sid] of
-		[s]	= (Just s, tst)
-		_	= (Nothing, tst)
-
-createSession :: !User !*TSt -> (!Session,!*TSt)
-createSession user tst
-	# (sid, tst)		= genSessionId tst
-	# (ts, tst)			= getTimeStamp tst
-	# session			= {Session | sessionId = sid, user = user, timestamp = ts}
-	# (sessions, tst)	= sessionStore (\l -> [session:l]) tst
-	= (session,tst)
-
-restoreSession	:: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
-restoreSession sid tst 
-	# (sessions, tst)				= sessionStore id tst
-	# (ts, tst)						= getTimeStamp tst
-	# (mbSession, before, after)	= findSession sid [] sessions
-	= case mbSession of
-		Nothing
-			= (Nothing, False, tst)							// Not found and no timeout
-		Just s
-			| (ts - s.timestamp) > tst.config.sessionTime	// Session found but timed out
-				# (_, tst)	= sessionStore (\_ -> (before ++ after)) tst
-				= (Nothing, True, tst)
-			| otherwise										// Session found and still valid
-				# (_, tst)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) tst
-			 	= (Just s, False, tst)
+instance SessionDB IWorld
+where
+	getSessions	:: !*IWorld -> (![Session], !*IWorld)
+	getSessions iworld
+		= sessionStore id iworld
 	
-deleteSession	:: !SessionId !*TSt -> (!Bool,!*TSt)
-deleteSession sid tst
-	# (sessions, tst)		= sessionStore id tst
-	# (mbSession, before, after)	= findSession sid [] sessions
-	| isJust mbSession
-		# (_, tst)				= sessionStore (\_ -> (before ++ after)) tst
-		= (True,tst)
-	| otherwise
-		= (False, tst)
-
+	getSessionsForUser :: !User !*IWorld -> (![Session], !*IWorld)
+	getSessionsForUser user iworld
+		# (sessions, iworld)				= sessionStore id iworld
+		= ([s \\ s <- sessions | s.Session.user == user], iworld)
+	
+	getSession :: !SessionId !*IWorld -> (!Maybe Session, !*IWorld)
+	getSession sid iworld
+		# (sessions, iworld)				= sessionStore id iworld
+		= case [s \\ s <- sessions | s.Session.sessionId == sid] of
+			[s]	= (Just s, iworld)
+			_	= (Nothing, iworld)
+	
+	createSession :: !User !*IWorld -> (!Session,!*IWorld)
+	createSession user iworld
+		# (sid, iworld)		= genSessionId iworld
+		# (ts, iworld)		= getTimeStamp iworld
+		# session			= {Session | sessionId = sid, user = user, timestamp = ts}
+		# (sessions, iworld)= sessionStore (\l -> [session:l]) iworld
+		= (session,iworld)
+	
+	restoreSession	:: !SessionId !*IWorld -> (!Maybe Session, !Bool, !*IWorld)
+	restoreSession sid iworld 
+		# (sessions, iworld)			= sessionStore id iworld
+		# (ts, iworld)					= getTimeStamp iworld
+		# (mbSession, before, after)	= findSession sid [] sessions
+		= case mbSession of
+			Nothing
+				= (Nothing, False, iworld)							// Not found and no timeout
+			Just s
+				| (ts - s.timestamp) > iworld.config.sessionTime	// Session found but timed out
+					# (_, iworld)	= sessionStore (\_ -> (before ++ after)) iworld
+					= (Nothing, True, iworld)
+				| otherwise											// Session found and still valid
+					# (_, iworld)	= sessionStore (\_ -> (before ++ [{s & timestamp = ts}: after])) iworld
+				 	= (Just s, False, iworld)
+		
+	deleteSession	:: !SessionId !*IWorld -> (!Bool,!*IWorld)
+	deleteSession sid iworld
+		# (sessions, iworld)		= sessionStore id iworld
+		# (mbSession, before, after)= findSession sid [] sessions
+		| isJust mbSession
+			# (_, iworld)			= sessionStore (\_ -> (before ++ after)) iworld
+			= (True,iworld)
+		| otherwise
+			= (False, iworld)
+	
 findSession :: !String ![Session] ![Session] -> (!Maybe Session, ![Session], ![Session]) 
 findSession sid before [] = (Nothing, reverse before, [])
 findSession sid before [s=:{sessionId}:after]
 	| sid == sessionId	= (Just s, reverse before, after)
 						= findSession sid [s:before] after
 						
-genSessionId :: !*TSt -> (!String, !*TSt)
-genSessionId tst
-	# (Clock seed, tst)	= accWorldTSt clock tst
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt seed]) ,tst)
+genSessionId :: !*IWorld -> (!String, !*IWorld)
+genSessionId iworld=:{IWorld|world}
+	# (Clock seed, world)	= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt seed]) , {IWorld|iworld & world = world})
 
-getTimeStamp :: !*TSt -> (!Int, !*TSt)
-getTimeStamp tst
-	# (Timestamp t, tst) = accWorldTSt time tst
-	= (t, tst)
+getTimeStamp :: !*IWorld -> (!Int, !*IWorld)
+getTimeStamp iworld=:{IWorld|world}
+	# (Timestamp t, world) = time world
+	= (t, {IWorld|iworld & world = world})
 
-sessionStore ::  !([Session] -> [Session]) !*TSt -> (![Session],!*TSt) 
-sessionStore fn tst=:{TSt|dataStore,world = world}
-	# (mbList,dstore,world)	= loadValue "SessionDB" dataStore world
+sessionStore :: !([Session] -> [Session]) !*IWorld -> (![Session],!*IWorld) 
+sessionStore fn iworld=:{IWorld|store,world}
+	# (mbList,store,world)	= loadValue "SessionDB" store world
 	# list 					= fn (case mbList of Nothing = []; Just list = list)
-	# dstore				= storeValue "SessionDB" list dstore 
-	= (list, {TSt|tst & dataStore = dstore, world = world })
+	# store					= storeValue "SessionDB" list store 
+	= (list, {IWorld|iworld & store = store, world = world })
+
+instance SessionDB TSt
+where
+	getSessions	:: !*TSt -> (![Session], !*TSt)
+	getSessions tst = accIWorldTSt getSessions tst
+	getSessionsForUser :: !User !*TSt -> (![Session], !*TSt)
+	getSessionsForUser user tst = accIWorldTSt (getSessionsForUser user) tst
+	getSession :: !SessionId !*TSt -> (!Maybe Session, !*TSt)
+	getSession sessionId tst = accIWorldTSt (getSession sessionId) tst
+	createSession :: !User !*TSt -> (!Session,!*TSt)
+	createSession user tst = accIWorldTSt (createSession user) tst
+	restoreSession :: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
+	restoreSession sessionId tst=:{TSt|iworld}
+		# (mbSession,timeout,iworld) = restoreSession sessionId iworld
+		= (mbSession,timeout,{TSt|tst & iworld = iworld})
+	deleteSession :: !SessionId !*TSt -> (!Bool,!*TSt)
+	deleteSession sessionId tst = accIWorldTSt (deleteSession sessionId) tst

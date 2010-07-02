@@ -27,8 +27,8 @@ derive gParse		TaskResult
 derive bimap 		Maybe, (,)
 derive JSONDecode 	RPCMessage
 
-mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*Store !*World -> *TSt
-mkTSt appName config request workflows dataStore documentStore world
+mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*World -> *TSt
+mkTSt appName config request workflows store world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
 		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo [])
@@ -40,11 +40,8 @@ mkTSt appName config request workflows dataStore documentStore world
 		, staticInfo	= initStaticInfo appName workflows
 		, currentChange	= Nothing
 		, pendingChanges= []
-		, config		= config
 		, request		= request
-		, dataStore		= dataStore
-		, documentStore	= documentStore
-		, world			= world
+		, iworld		= initIWorld appName config store world
 		}
 
 initStaticInfo :: String ![Workflow] -> StaticInfo
@@ -55,6 +52,15 @@ initStaticInfo appName workflows
 		, staticWorkflows	= workflows
 		}
 
+initIWorld	:: !String !Config !*Store !*World -> *IWorld
+initIWorld application config store world
+	= 	{ IWorld
+		| application		= application
+		, config			= config
+		, store				= store
+		, world				= world
+		}
+		
 initTaskInfo :: TaskInfo
 initTaskInfo
 	=	{ TaskInfo
@@ -178,15 +184,15 @@ applyThread (Container {TaskThread|currentTask} :: Container (TaskThread a) a) t
 			TaskException e	= (TaskException e, tst)
 
 storeThread :: !ProcessId !Dynamic !*TSt -> *TSt
-storeThread processId thread tst=:{TSt|dataStore}
-	# dataStore = storeValueAs SFDynamic ("iTask_" +++ processId +++ "-thread") thread dataStore
-	= {tst & dataStore = dataStore}
+storeThread processId thread tst=:{TSt|iworld=iworld=:{IWorld|store}}
+	# store = storeValueAs SFDynamic ("iTask_" +++ processId +++ "-thread") thread store
+	= {TSt|tst & iworld = {IWorld|iworld & store = store}}
 
 loadThread :: !ProcessId !*TSt -> (!Dynamic,!*TSt)
-loadThread processId tst=:{TSt|dataStore,world}
-	# (mbThread, dataStore, world)	= loadValue ("iTask_" +++ processId +++ "-thread") dataStore world
+loadThread processId tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
+	# (mbThread, store, world)	= loadValue ("iTask_" +++ processId +++ "-thread") store world
 	= case mbThread of
-		Just thread	= (thread,{tst & dataStore = dataStore, world = world})
+		Just thread	= (thread,{TSt|tst & iworld = {IWorld|iworld & store = store, world = world}})
 		Nothing		= abort "Could not load task thread"
 		
 //END NEW THREAD FUNCTIONS
@@ -276,9 +282,9 @@ where
 		= {tst & pendingChanges = changes}
 	where
 		loadChangeFunctions [] tst = ([],tst)
-		loadChangeFunctions [{PersistentChange|label}:cs] tst=:{TSt|dataStore,world}
-			# (mbDyn, dataStore, world)	= loadValue ("iTask_change-" +++ label) dataStore world
-			# (dyns,tst)	= loadChangeFunctions cs {TSt|tst & dataStore = dataStore, world = world}
+		loadChangeFunctions [{PersistentChange|label}:cs] tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
+			# (mbDyn, store, world)	= loadValue ("iTask_change-" +++ label) store world
+			# (dyns,tst)	= loadChangeFunctions cs {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 			= case mbDyn of
 				Nothing		= (dyns,tst)
 				Just dyn	= ([(CLPersistent label,dyn):dyns],tst)
@@ -339,9 +345,11 @@ where
 										//is removed from the store
 										= case lifetime of
 											CLPersistent label
-												# tst=:{dataStore,world}	= deleteChange label tst
-												# (dataStore,world)			= deleteValues ("iTask_change-" +++ label) dataStore world 
-												= {tst & dataStore = dataStore, world = world, currentChange = Nothing}
+												# tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
+																	= deleteChange label tst
+												# (store,world)		= deleteValues ("iTask_change-" +++ label) store world 
+												
+												= {tst & iworld = {IWorld| iworld & store = store, world = world}, currentChange = Nothing}
 											_
 												= {tst & currentChange = Nothing}
 									Just change
@@ -405,8 +413,9 @@ where
 						= tst 
 	where
 		storeChanges [] tst = tst
-		storeChanges [(label,dyn):cs] tst=:{dataStore} 
-			= storeChanges cs {tst & dataStore = (storeValueAs SFDynamic ("iTask_change-" +++ label) dyn dataStore)} 
+		storeChanges [(label,dyn):cs] tst=:{TSt|iworld=iworld=:{IWorld|store}} 
+			# store	= storeValueAs SFDynamic ("iTask_change-" +++ label) dyn store
+			= storeChanges cs {TSt|tst & iworld = {IWorld|iworld & store = store}} 
 			
 applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInfo,currentChange,pendingChanges, properties, menus}
@@ -489,14 +498,24 @@ getWorkflowByName name tst
 		[workflow]	= (Just workflow, tst)
 		_			= (Nothing,tst)
 
+appIWorldTSt :: !.(*IWorld -> *IWorld) !*TSt -> *TSt
+appIWorldTSt f tst=:{TSt|iworld}
+	= {TSt|tst & iworld = f iworld}
+	
+accIWorldTSt :: !.(*IWorld -> *(.a,*IWorld))!*TSt -> (.a,!*TSt)
+accIWorldTSt f tst=:{TSt|iworld}
+	# (a,iworld) = f iworld
+	= (a,{TSt|tst & iworld = iworld})
+
+
 appWorldTSt	:: !.(*World -> *World) !*TSt -> *TSt
-appWorldTSt f tst=:{TSt|world}
-	= {TSt|tst & world = f world}
+appWorldTSt f tst=:{TSt|iworld=iworld=:{IWorld|world}}
+	= {TSt|tst & iworld = {IWorld|iworld & world = f world}}
 
 accWorldTSt	:: !.(*World -> *(.a,*World))!*TSt -> (.a,!*TSt)
-accWorldTSt f tst=:{TSt|world}
+accWorldTSt f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (a,world) = f world
-	= (a, {TSt|tst & world = world})
+	= (a, {TSt|tst & iworld = {IWorld|iworld & world = world}})
 
 mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
@@ -574,8 +593,10 @@ where
 			| msg.RPCMessage.finished 	= (TaskFinished (parsefun msg.RPCMessage.result),tst)
 			| otherwise					= (TaskBusy,tst)
 		| otherwise
-			# (def,tst) = accWorldTSt defaultValue tst
-			= (TaskFinished def, tst)
+			# tst=:{TSt|iworld}	
+										= tst
+			# (def,iworld)				= defaultValue iworld
+			= (TaskFinished def, {TSt|tst & iworld = iworld})
 			
 	setStatus "" tst		= tst
 	setStatus status tst	= setTaskStore "status" status tst
@@ -613,9 +634,9 @@ where
 		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo [])}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{taskNr,tree,dataStore,world,properties}
+applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{taskNr,tree,properties,iworld=iworld=:{IWorld|store,world}}
 	# taskId					= iTaskId taskNr ""
-	# (taskVal,dataStore,world)	= loadValue taskId dataStore world
+	# (taskVal,store,world)		= loadValue taskId store world
 	# taskInfo =	{ taskId				= taskNrToString taskNr
 					, taskLabel				= initProperties.subject
 					, traceValue			= ""
@@ -625,7 +646,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
 					, taskDescription		= ""
 					}
-	# tst = {TSt|tst & dataStore = dataStore, world = world, taskInfo = taskInfo, newTask = isNothing taskVal}
+	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal, iworld = {IWorld| iworld & store = store, world = world }}
 	= case taskVal of
 		(Just (TaskFinished a))	
 			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a)) tst
@@ -638,26 +659,32 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 			// Execute task function
 			# (result, tst)	= taskfun tst
 			// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
-			# tst=:{tree=node,dataStore}	= clearUserUpdates tst
+			# tst=:{tree=node,iworld=iworld=:{IWorld|store}}
+							= clearUserUpdates tst
 			// Update task state
 			= case result of
 				(TaskFinished a)
 					//Garbage collect
-					# tst=:{TSt|dataStore}	= deleteTaskStates taskNr {TSt|tst & dataStore = dataStore}
+					# tst=:{TSt|iworld=iworld=:{IWorld|store}}		
+											= deleteTaskStates taskNr
+												{TSt|tst & iworld = {IWorld|iworld & store = store}}
 					
 					// Store final value
-					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a)) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# store					= storeValue taskId result store
+					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a))
+												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskFinished a, tst)
 				(TaskBusy)
 					// Store intermediate value
-					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (finalizeTaskNode node) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# store					= storeValue taskId result store
+					# tst					= addTaskNode (finalizeTaskNode node)
+												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskBusy, tst)
 				(TaskException e)
 					// Store exception
-					# dataStore				= storeValue taskId result dataStore
-					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = "Exception"} [Text "Uncaught exception"]) {tst & taskNr = incTaskNr taskNr, tree = tree, dataStore = dataStore}
+					# store					= storeValue taskId result store
+					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = "Exception"} [Text "Uncaught exception"])
+												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskException e, tst)
 		
 where
@@ -725,16 +752,16 @@ setFocusCommand tag tst=:{tree}
 * Store and load the result of a workflow instance
 */
 loadProcessResult :: !TaskNr !*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
-loadProcessResult taskNr tst =:{dataStore, world}
-	# (mbResult, dataStore, world) = loadValue key dataStore world
-	= (mbResult, {TSt | tst & dataStore = dataStore, world = world})
+loadProcessResult taskNr tst =:{TSt|iworld=iworld=:{IWorld|store, world}}
+	# (mbResult, store, world) = loadValue key store world
+	= (mbResult, {TSt | tst & iworld = {IWorld|iworld & store = store, world = world}})
 where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
 storeProcessResult :: !TaskNr !(TaskResult Dynamic) !*TSt -> *TSt
-storeProcessResult taskNr result tst=:{dataStore}
-	# dataStore	= storeValueAs SFDynamic key result dataStore
-	= {TSt |tst & dataStore = dataStore}
+storeProcessResult taskNr result tst=:{TSt|iworld=iworld=:{IWorld|store}}
+	# store	= storeValueAs SFDynamic key result store
+	= {TSt |tst & iworld = {IWorld|iworld & store = store}}
 where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
@@ -743,9 +770,9 @@ setTaskStore key value tst=:{taskNr}
 	= setTaskStoreFor taskNr key value tst
 	
 setTaskStoreFor :: !TaskNr !String !a !*TSt -> *TSt | iTask a
-setTaskStoreFor taskNr key value tst=:{dataStore}
-	# dataStore = storeValue storekey value dataStore
-	= {TSt|tst & dataStore = dataStore}
+setTaskStoreFor taskNr key value tst=:{TSt|iworld=iworld=:{IWorld|store}}
+	# store = storeValue storekey value store
+	= {TSt|tst & iworld = {IWorld| iworld & store = store}}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
@@ -754,9 +781,9 @@ getTaskStore key tst=:{taskNr}
 	= getTaskStoreFor taskNr key tst
 
 getTaskStoreFor	:: !TaskNr !String !*TSt -> (Maybe a, !*TSt) | iTask a
-getTaskStoreFor taskNr key tst=:{dataStore,world}
-	# (mbValue,dataStore,world) = loadValue storekey dataStore world
-	= (mbValue,{TSt|tst&dataStore = dataStore, world = world})
+getTaskStoreFor taskNr key tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
+	# (mbValue,store,world) = loadValue storekey store world
+	= (mbValue,{TSt|tst& iworld = {IWorld|iworld & store = store, world = world}})
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
@@ -799,26 +826,25 @@ resetSequence tst=:{taskNr,tree}
 		_								= {tst & tree = tree}
 
 deleteTaskStates :: !TaskNr !*TSt -> *TSt
-deleteTaskStates taskNr tst=:{TSt|dataStore,world}
+deleteTaskStates taskNr tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 	// Delete values in the data store
-	# (dataStore,world) = deleteValues (iTaskId taskNr "") dataStore world
+	# (store,world) 	= deleteValues (iTaskId taskNr "") store world
 	// Delete subprocesses in the process table
-	# tst				= deleteSubProcesses (taskNrToString taskNr) {TSt|tst & world = world, dataStore = dataStore} 
+	# tst				= deleteSubProcesses (taskNrToString taskNr) {TSt|tst & iworld = {IWorld|iworld & world = world, store = store}}
 	= tst
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
-copyTaskStates fromtask totask tst=:{TSt|dataStore,world}
+copyTaskStates fromtask totask tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 	// Copy values in the data store
-	# (dstore,world) 	= copyValues (iTaskId fromtask "") (iTaskId totask "") dataStore world
+	# (store,world) 	= copyValues (iTaskId fromtask "") (iTaskId totask "") store world
 	// Copy subprocess in the process table
-	# tst				= copySubProcesses (taskNrToString fromtask) (taskNrToString totask) {TSt|tst & dataStore = dstore, world = world}
+	# tst				= copySubProcesses (taskNrToString fromtask) (taskNrToString totask) {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 	= tst
 	
 flushStore :: !*TSt -> *TSt
-flushStore tst=:{TSt|dataStore,documentStore,world}
-	# (dataStore,world) = flushCache dataStore world
-	# (documentStore,world) = flushCache documentStore world
-	= {TSt|tst & dataStore = dataStore, documentStore = documentStore, world = world}
+flushStore tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
+	# (store,world) = flushCache store world
+	= {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 
 taskNrToString :: !TaskNr -> String
 taskNrToString [] 		= ""

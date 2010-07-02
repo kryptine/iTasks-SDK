@@ -6,41 +6,41 @@ definition module SessionDB
 import StdMaybe
 import TSt
 
-/**
-* List all sessions
-*/
-getSessions		:: !*TSt -> (![Session], !*TSt)
-
-/**
-* List all sessions for a specific user
-*/
-getSessionsForUser :: !User !*TSt -> (![Session], !*TSt)
-
-/**
-* Find a session in the session database
-*/
-getSession		:: !SessionId !*TSt -> (!Maybe Session, !*TSt)
-
-/**
-* Create a new session
-* 
-* @param the user to create the session for
-*/
-createSession	:: !User !*TSt	-> (!Session,!*TSt)
-
-/**
-* Restore an existing session
-*
-* @param session id
-*
-* @return session if found
-* @return whether a session timeout occurred
-*/
-restoreSession	:: !SessionId !*TSt -> (!Maybe Session, !Bool, !*TSt)
-
-/**
-* Explicitly destroy an existing session.
-*
-* @param session id
-*/
-deleteSession	:: !SessionId !*TSt -> (!Bool, !*TSt)
+class SessionDB st
+where
+	/**
+	* List all sessions
+	*/
+	getSessions		:: !*st -> (![Session], !*st)
+	/**
+	* List all sessions for a specific user
+	*/
+	getSessionsForUser :: !User !*st -> (![Session], !*st)	
+	/**
+	* Find a session in the session database
+	*/
+	getSession		:: !SessionId !*st -> (!Maybe Session, !*st)	
+	/**
+	* Create a new session
+	* 
+	* @param the user to create the session for
+	*/
+	createSession	:: !User !*st	-> (!Session,!*st)	
+	/**
+	* Restore an existing session
+	*
+	* @param session id
+	*
+	* @return session if found
+	* @return whether a session timeout occurred
+	*/
+	restoreSession	:: !SessionId !*st -> (!Maybe Session, !Bool, !*st)	
+	/**
+	* Explicitly destroy an existing session.
+	*
+	* @param session id
+	*/
+	deleteSession	:: !SessionId !*st -> (!Bool, !*st)
+	
+instance SessionDB IWorld
+instance SessionDB TSt

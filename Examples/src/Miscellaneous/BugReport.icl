@@ -42,8 +42,6 @@ derive gUpdate	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalys
 derive gError	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive gHint	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 
-derive gMakeLocalCopy Bug, BugAnalysis, BugReport, BugStatus, BugSeverity, BugOccurance
-
 derive bimap (,), Maybe
 	
 instance DB Bug where
@@ -201,7 +199,7 @@ makePatches bug =
 			= return Void
 		Just {affectedVersions = versions}
 			= allTasks [showInstructionAbout "Patch" ("Please make a patch of bugfix " <+++ bug.bugNr <+++
-								" for the following version of " <+++ bug.Bug.report.application)
+								" for the following version of " <+++ bug.Bug.report.BugReport.application)
 								version
 						\\ version <- versions
 					   ]

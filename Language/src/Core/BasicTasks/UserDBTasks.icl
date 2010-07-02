@@ -5,7 +5,8 @@ from TSt import mkInstantTask, mkTaskFunction
 import StdList, StdMaybe
 
 from UserDB import :: User
-from UserDB import qualified getUser, getUsers, getUsersWithRole, authenticateUser, createUser, updateUser, deleteUser
+from UserDB import qualified class UserDB(..)
+from UserDB import qualified instance UserDB TSt
 
 import InteractionTasks, CoreCombinators
 

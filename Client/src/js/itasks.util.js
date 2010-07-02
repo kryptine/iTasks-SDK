@@ -73,7 +73,23 @@ if (!Array.prototype.filter)
     return res;
   };
 };
-  
+
+//Open a preview window for (external) urls
+//--- Preview function ---
+itasks.util.preview = function(link){
+	var vport = Ext.getDoc().getViewSize();
+		
+	var prevWindow = new Ext.Window(
+		{ modal: true
+		, width: vport.width*.9
+		, height: vport.height*.9
+		, title: 'Document Preview'
+		, html: '<iframe src="'+link+'" frameborder="0" style="width: 100%; height: 100%; background-color: white"></iframe>'
+		}
+	);		
+	prevWindow.show();
+};
+
 //Function to determine scrollbar width
 itasks.util.getScrollerWidth =  function() {
 /*	var scr = null;

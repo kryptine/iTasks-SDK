@@ -14,13 +14,13 @@ derive bimap		Maybe, (,)
 callProcessBlocking :: !Path -> Task Int
 callProcessBlocking cmd = mkInstantTask "callProcess" callProcess`
 where
-	callProcess` tst=:{TSt|world}
+	callProcess` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (os,world)	= worldGetToolbox world
 		# (ccmd,os)		= winMakeCString cmd os
 		# (succ,ret,os)	= winCallProcess ccmd 0 0 0 0 0 os
 		# os			= winReleaseCString ccmd os
 		# world			= worldSetToolbox os world
-		# tst			= {TSt|tst & world = world}
+		# tst			= {TSt|tst & iworld = {IWorld|iworld & world = world}}
 		| not succ		= (TaskException (dynamic (CallFailed cmd)), tst)
 		| otherwise		= (TaskFinished ret, tst)
 
@@ -29,7 +29,9 @@ callProcess cmd = mkExtProcessTask "callProcess" cmd callProcess`
 where
 	callProcess` tst
 		# (mbHandle, tst)			= getTaskStore "handle" tst
-		# (os, world)				= worldGetToolbox tst.TSt.world
+		# tst=:{TSt|iworld=iworld=:{IWorld|world}}
+									= tst
+		# (os, world)				= worldGetToolbox world
 		# (res, handle, os) = case mbHandle of
 			Nothing
 				# (ccmd,os)			= winMakeCString cmd os
@@ -42,7 +44,7 @@ where
 				| active			= (TaskBusy, handle, os)
 				| otherwise			= (TaskFinished ret, handle, os)
 		# world						= worldSetToolbox os world
-		# tst						= {TSt|tst & world = world}
+		# tst						= {TSt|tst & iworld = {IWorld|iworld & world = world}}
 		# tst						= setTaskStore "handle" handle tst
 		= (res, tst)
 		
@@ -67,12 +69,12 @@ where
 readTextFile :: !Path -> Task String
 readTextFile path = mkInstantTask "readTextFile" readTextFile`
 where
-	readTextFile` tst=:{TSt|world}
+	readTextFile` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (ok,file,world) 	= fopen path FReadText world		
-		| not ok 			= (TaskException (fileException CannotOpen),{TSt | tst & world = world})
+		| not ok 			= (TaskException (fileException CannotOpen),{TSt|tst & iworld = {IWorld|iworld & world = world}})
 		# (mbStrAcc,file)	= readFile file []
 		# (ok,world) 		= fclose file world
-		# tst				= {TSt | tst & world = world}
+		# tst				= {TSt|tst & iworld = {IWorld|iworld & world = world}}
 		= case mbStrAcc of
 			Nothing			= (TaskException (fileException IOError),tst)
 			Just strAcc
@@ -92,13 +94,13 @@ where
 writeTextFile :: !String !Path -> Task Void
 writeTextFile path text = mkInstantTask "writeTextFile" writeTextFile`
 where
-	writeTextFile` tst=:{TSt|world}
+	writeTextFile` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (ok,file,world) 	= fopen path FWriteText world		
-		| not ok 			= (TaskException (fileException CannotOpen),{TSt | tst & world = world})
+		| not ok 			= (TaskException (fileException CannotOpen),{TSt|tst & iworld = {IWorld|iworld & world = world}})
 		# file				= fwrites text file
 		# (err,file)		= ferror file
 		# (ok,world) 		= fclose file world
-		# tst				= {TSt | tst & world = world}
+		# tst				= {TSt|tst & iworld = {IWorld|iworld & world = world}}
 		| err				= (TaskException (fileException IOError),tst)
 		| not ok 			= (TaskException (fileException CannotClose),tst)
 		| otherwise			= (TaskFinished Void,tst)
@@ -133,9 +135,9 @@ where
 getAppPath :: Task String
 getAppPath = mkInstantTask "getAppPath" getAppPath`
 where
-	getAppPath` tst=:{TSt|world}
+	getAppPath` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (os,world)	= worldGetToolbox world
 		# cstr			= winGetAppPath
 		# (path,os)		= winGetCStringAndFree cstr os
 		# world			= worldSetToolbox os world
-		= (TaskFinished path, {TSt|tst & world = world})
+		= (TaskFinished path, {TSt|tst & iworld = {IWorld|iworld & world = world}})

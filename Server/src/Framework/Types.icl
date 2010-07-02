@@ -8,23 +8,20 @@ import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
-derive gPrint			User, UserDetails, Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gParse			User, UserDetails, Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gPrint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gParse			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
-derive gError			User, UserDetails, Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gHint			User, UserDetails, Session, Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gError			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gHint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 
 derive gMerge			User, Session, VisualizationHint, UserDetails
-derive gMakeLocalCopy	User, Session, VisualizationHint, UserDetails
-derive gMakeSharedCopy	User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
 
-derive JSONEncode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation
-derive JSONDecode Document, DocumentType, DocumentInfo, DocumentContent, DocumentDataLocation
+derive JSONEncode Document
+derive JSONDecode Document
 
-derive gEq Document, DocumentContent, DocumentType, DocumentInfo, DocumentDataLocation
 
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
@@ -92,14 +89,6 @@ where
 	(<) (RegisteredUser _) _					= False
 	(<)	_ _										= False
 
-
-// Document
-emptyDoc :: Document
-emptyDoc = {type = Local, content = EmptyDocument}
-
-isEmptyDoc :: !Document -> Bool
-isEmptyDoc {type,content=EmptyDocument}	= True
-isEmptyDoc _							= False
 
 // VisualizationHints etc..
 fromVisualizationHint :: !(VisualizationHint .a) -> .a

@@ -19,7 +19,7 @@ derive bimap (,), Maybe
 ambulanceDispatchMapExamples :: [Workflow]
 ambulanceDispatchMapExamples = flows
 where
-	flows = [ workflow "Examples/Crisis response/Report incident (Map)" reportIncident/*(reportIncident -|| showSources)*/ ]
+	flows = [ workflow "Examples/Crisis response/Report incident (Map)" (reportIncident -|| showSources)]
 
 :: Incident =
 	{ location		:: Coordinate
@@ -75,7 +75,7 @@ specifyIncident addr marker
 
 //====
 showSources ::  Task Void
-showSources  
-	=       loadDocumentFromFile "AmbulanceDispatchMap.icl" "Crisis Response/" >>=
-	\icl -> loadDocumentFromFile "AmbulanceDispatchMap.dcl" "Crisis Response/" >>=
+showSources
+	=       importDocument "Crisis Response\\AmbulanceDispatchMap.icl" >>=
+	\icl -> importDocument "Crisis Response\\AmbulanceDispatchMap.dcl" >>=
 	\dcl -> showStickyMessageAbout "Source Codes" [icl,dcl]
