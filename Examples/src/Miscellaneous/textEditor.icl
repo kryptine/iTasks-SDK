@@ -26,12 +26,12 @@ textEditorApp =
 	>>|			mdiApplication 0 groupActions
 where
 	groupActions :: !(DBid Int) !(MDITasks EditorState Bool) -> [GroupAction GAction Void Int]
-	groupActions aid mdiTasks=:{createEditor, iterateEditors} =
-		[ GroupAction		ActionNew		(GExtend [modifyDB aid inc >>= \newNum. createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile])	GroupAlways
-		, GroupAction		ActionOpen		(GExtend [openDialog mdiTasks <<@ GBFloating])																	GroupAlways
-		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks Nothing])													GroupAlways
-		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])																			GroupAlways
-		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])																		GroupAlways
+	groupActions gid mdiTasks=:{createEditor, iterateEditors} =
+		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])							GroupAlways
+		, GroupAction		ActionOpen		(GExtend [openDialog mdiTasks <<@ GBFloating])					GroupAlways
+		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks False])	GroupAlways
+		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])							GroupAlways
+		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])						GroupAlways
 		]									
 						
 ActionReplace	:== ActionLabel "replace"
@@ -39,31 +39,38 @@ ActionStats		:== ActionLabel "stats"
 recOpenedMenu	:== "recOpened"
 actionOpenFile	:== "openFile"
 
+newFile :: !(DBid Int) !(MDICreateEditor EditorState) -> Task GAction
+newFile aid createEditor =
+					modifyDB aid inc
+	>>= \newNum.	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
+
 openDialog :: !(MDITasks EditorState a) -> Task GAction
 openDialog mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
 					(showMessageAbout "Open File" "No files to open!" <<@ ExcludeGroupActions >>| continue)
-					(										enterChoiceA "Open File" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] files <<@ ExcludeGroupActions
+					(										enterChoiceA "Open File" buttons files <<@ ExcludeGroupActions
 						>>= \(action,(name, Hidden fid)).	case action of
-					 										ActionOk	=	open fid mdiTasks (Just name)
+					 										ActionOk	=	open fid mdiTasks True
 					 										_			=	continue
 					)
+where
+	buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 					
-open :: !(DBRef TextFile) !(MDITasks EditorState a) !(Maybe String) -> Task GAction
-open fid {createEditor, existsEditor} mbAddToRecOpenedName =
-				existsEditor checkIfAlreadyOpened
+open :: !(DBRef TextFile) !(MDITasks EditorState a) !Bool -> Task GAction
+open fid {createEditor, existsEditor} addToRecOpened =
+				existsEditor isEditingOpenendFile
 	>>= \mbEid.	case mbEid of
 		Nothing =
-				case mbAddToRecOpenedName of
-					Just name	= addToRecentlyOpened name fid
-					Nothing		= return Void
-			>>|	getFile fid
-			>>= \file.	return (GExtend [createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating])
-		(Just eid) = return (GFocus eid)
+						getFile fid
+			>>= \file.	if addToRecOpened
+							(addToRecentlyOpened file.TextFile.name fid)
+							(return Void)
+			>>|			return (GExtend [editor file])
+		Just eid = return (GFocus eid)
 where
-	checkIfAlreadyOpened :: !EditorState -> Bool
-	checkIfAlreadyOpened (EditorState _ file) =	case file of
+	isEditingOpenendFile :: !EditorState -> Bool
+	isEditingOpenendFile (EditorState _ file) =	case file of
 		NewFile _		= False
 		OpenedFile file	= (fid == file.fileId)
 					
@@ -71,22 +78,27 @@ where
 	addToRecentlyOpened name (DBRef id) =
 					getMenuItem recOpenedMenu
 		>>= \item.	case item of
-						Just (SubMenu label entries)	= setMenuItem recOpenedMenu (SubMenu label (take 5 [MenuItem name (ActionParam actionOpenFile (toString id)):entries]))
+						Just (SubMenu label entries)	= setMenuItem recOpenedMenu (newSubMenu label entries)
 						_								= stop
+	where
+		newSubMenu label entries = SubMenu label (take 5 [MenuItem name (ActionParam actionOpenFile (toString id)):entries])
+	
+	editor :: !TextFile -> Task GAction					
+	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
 
 about :: Task GAction
 about =
-		showMessageAbout "About" "iTextEditor June 2010" <<@ ExcludeGroupActions
+		showMessageAbout "About" "iTextEditor July 2010" <<@ ExcludeGroupActions
 	>>|	continue
 
-quit :: !(Bool -> (Bool -> (String -> Task Bool)) -> (Task Bool)) -> Task GAction	
+quit :: !(MDIIterateEditors EditorState Bool) -> Task GAction	
 quit iterateEditors =
 					iterateEditors False checkForUnsavedData
 	>>= \cancel.	if cancel continue stopGroup
 where
 	checkForUnsavedData :: !Bool !String -> Task Bool
-	checkForUnsavedData True e	= return True
-	checkForUnsavedData False e	= requestClosingFile e
+	checkForUnsavedData True editor		= return True
+	checkForUnsavedData False editor	= requestClosingFile editor
 	
 // editor workflows
 textEditorFile :: !EditorStateRef -> Task Void
@@ -115,7 +127,7 @@ editorWindow eid =
 		updateShared "Text Editor" [] eid [titleListener, mainEditor] <<@ Tag eid
 	>>|	continue
 where		
-	mainEditor = editor	{ editorFrom	= \(EditorState continue _)			-> continue
+	mainEditor = editor	{ editorFrom	= \(EditorState cont _)			-> cont
 						, editorTo		= \newCont (EditorState _ file)	-> EditorState newCont file
 						}
 						
@@ -123,7 +135,7 @@ save :: !EditorStateRef -> Task GAction
 save eid =
 					readDB eid
 	>>= \editor.	case editor of
-						(EditorState txt (OpenedFile file)) =
+						EditorState txt (OpenedFile file) =
 										setFileContent txt file
 							>>= \file.	writeDB eid (EditorState file.TextFile.content (OpenedFile file))
 							>>|			continue
@@ -131,30 +143,36 @@ save eid =
 
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
-						enterInformationA "Save As: enter name" [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] <<@ ExcludeGroupActions
+						enterInformationA "Save As: enter name" buttons <<@ ExcludeGroupActions
 	>>= \(action,name).	case action of
 							ActionOk =
-															readDB eid
-								>>= \(EditorState txt _).	storeFile name txt
-								>>= \file.					writeDB eid (EditorState file.TextFile.content (OpenedFile file))
-								>>|							continue
+																readDB eid
+								>>= \(EditorState txt _).		storeFile name txt
+								>>= \file=:{TextFile|content}.	writeDB eid (EditorState content (OpenedFile file))
+								>>|								continue
 							_ = continue
+where
+	buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
 							
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
 				}
 
 replaceT :: !EditorStateRef -> Task GAction
-replaceT eid = replace` {searchFor = "", replaceWith = ""}
+replaceT eid = replaceT` {searchFor = "", replaceWith = ""}
 where
-	replace` :: !Replace -> Task GAction
-	replace` repl =
-								updateInformationA "Replace" [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)] repl <<@ ExcludeGroupActions
+	replaceT` :: !Replace -> Task GAction
+	replaceT` repl =
+								updateInformationA "Replace" buttons repl <<@ ExcludeGroupActions
 		>>= \(action, repl).	case action of
 									ActionReplaceAll =
-											modifyDB eid (\(EditorState (Note txt) file) -> (EditorState (Note (replaceSubString repl.searchFor repl.replaceWith txt)) file))
-										>>|	replace` repl
+											modifyDB eid (dbReplaceFunc repl)
+										>>|	replaceT` repl
 									_ = continue
+									
+	buttons = [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)]
+	
+	dbReplaceFunc repl (EditorState (Note txt) file) = EditorState (Note (replaceSubString repl.searchFor repl.replaceWith txt)) file
 								
 ActionReplaceAll :== ActionLabel "Replace all"
 												
@@ -202,14 +220,17 @@ requestClosingFile :: !EditorStateRef -> Task Bool
 requestClosingFile eid =
 	readDB eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
-										(					showMessageAboutA "Save changes?" [ButtonAction (ActionCancel, Always), ButtonAction (ActionNo, Always), ButtonAction (ActionYes, Always)] ("Save changes to '" +++ getFileName file +++ "'?") <<@ ExcludeGroupActions
+										(					showMessageAboutA "Save changes?" buttons (question file) <<@ ExcludeGroupActions
 											>>= \action.	case action of
 																ActionCancel	= return True
 																ActionNo		= return False
 																ActionYes		= save eid >>| return False
 										)
 										(return False)
-
+where
+	buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionNo, Always), ButtonAction (ActionYes, Always)]
+	question file = "Save changes to '" +++ getFileName file +++ "'?"
+	
 // global application state
 :: EditorState = EditorState !Note !EditorFile
 :: EditorFile = NewFile !Int | OpenedFile !TextFile

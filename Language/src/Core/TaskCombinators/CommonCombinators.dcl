@@ -107,7 +107,7 @@ mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterat
 	* @param The editor task using a reference to the editor's state
 	* @return The created editor task
 	*/
-	createEditor :: !editorState ((DBid editorState) -> Task Void) -> Task GAction,
+	createEditor :: MDICreateEditor editorState,
 	
 	/**
 	* Iterates over all editors using an accumulator tasks to transform an state.
@@ -116,7 +116,7 @@ mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterat
 	* @param The accumulator task, getting the current state and a reference to the current editor's state and returning a new value of the state
 	* @param The final value of the accumulated state
 	*/
-	iterateEditors :: !iterationState (iterationState (DBid editorState) -> Task iterationState) -> Task iterationState,
+	iterateEditors :: MDIIterateEditors editorState iterationState,
 	
 	/**
 	* Check if an editor for which a given predicate holds exists and a reference to its state.
@@ -124,5 +124,9 @@ mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterat
 	* @param The predicate on the editor state
 	* @return Nothing if the predicate holds for no editor; A refenrece to the first editor's state for which the predicate holds
 	*/
-	existsEditor :: !(editorState -> Bool) -> Task (Maybe (DBid editorState))
+	existsEditor :: MDIExistsEditor editorState
 	}
+	
+:: MDICreateEditor editorState					:== editorState ((DBid editorState) -> Task Void) -> Task GAction
+:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (DBid editorState) -> Task iterationState) -> Task iterationState
+:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (DBid editorState))
