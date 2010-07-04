@@ -209,8 +209,8 @@ where
 	handleCompilerExceptions e = showMessageAbout "Compiler Errors" msg <<@ ExcludeGroupActions
 	where
 		msg = case e of
-			CannotCallCompiler path		= ["Unable to run compiler: '" +++ path +++ "'"]
-			CompilerErrors errs			= errs
+			CannotRunCompiler msg	= ["Unable to run compiler: " +++ msg]
+			CompilerErrors errs		= errs
 			
 	handleFileExceptions (FileException path _) = showMessageAbout "Save Error" ("Unnable to write to '" +++ path +++ "'")
 

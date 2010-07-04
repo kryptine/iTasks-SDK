@@ -2,7 +2,7 @@ definition module CompilerInterface
 
 import iTasks, AppState
 
-:: CompilerException = CannotCallCompiler !Path | CompilerErrors ![String]
+:: CompilerException = CannotRunCompiler !String | CompilerErrors ![String]
 
 derive gPrint		CompilerException
 derive gParse		CompilerException
