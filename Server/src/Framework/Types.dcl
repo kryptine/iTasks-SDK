@@ -33,6 +33,7 @@ instance toString Password
 
 instance == User
 instance == Password
+instance == Document
 
 instance < User
 		

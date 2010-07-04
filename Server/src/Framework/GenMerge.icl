@@ -1,6 +1,6 @@
 implementation module GenMerge
 
-import StdGeneric, StdInt, StdReal, StdChar, StdBool, StdString, StdMisc, StdMaybe, Void, Either, Types, GenEq
+import StdGeneric, StdInt, StdReal, StdChar, StdBool, StdString, StdMisc, StdMaybe, Void, Either, Types
 
 mergeValues :: a a a -> a | gMerge{|*|} a
 mergeValues old cur new = getValue (gMerge{|*|} Merge old cur new)
@@ -9,7 +9,6 @@ mergeValues old cur new = getValue (gMerge{|*|} Merge old cur new)
 :: MergeResult a = IsEqual Bool | Value a
 derive gMerge [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden
 derive bimap MergeResult
-derive gEq Document
 
 generic gMerge a :: MergeMode a a a -> MergeResult a
 
@@ -23,6 +22,8 @@ gMerge{|Bool|}		Merge old cur new	= mergeBasic old cur new
 gMerge{|Bool|}		Compare x y _  		= IsEqual (x == y)
 gMerge{|String|}	Merge old cur new 	= mergeBasic old cur new
 gMerge{|String|}	Compare x y _  		= IsEqual (x == y)
+gMerge{|Document|}	Merge old cur new	= mergeBasic old cur new
+gMerge{|Document|} Compare x y _		= IsEqual (x == y)
 
 gMerge{|OBJECT|}	f Merge (OBJECT old) (OBJECT cur) (OBJECT new)	= Value (OBJECT	(getValue (f Merge old cur new)))
 gMerge{|OBJECT|}	f Compare (OBJECT x) (OBJECT y) _  				= IsEqual (isEqual (f Compare x y undef))
@@ -49,11 +50,6 @@ gMerge{|EITHER|}	fl fr Compare _ _ _  											= IsEqual False
 
 gMerge{|UNIT|} Merge UNIT UNIT UNIT	= Value UNIT
 gMerge{|UNIT|} Compare UNIT UNIT _	= IsEqual True
-
-gMerge{|Document|} Merge old cur new
-	| gEq{|*|} old cur	= Value new
-	| otherwise			= Value cur
-gMerge{|Document|} Compare x y _ = IsEqual (gEq{|*|} x y)
 
 mergeBasic :: a a a -> MergeResult a | == a
 mergeBasic old cur new

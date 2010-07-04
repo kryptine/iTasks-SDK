@@ -72,7 +72,11 @@ where
 	
 instance == Password
 where
-	(==) (Password a) (Password b) = a == b	
+	(==) (Password a) (Password b) = a == b
+	
+instance == Document
+where
+	(==) doc0 doc1 = doc0.documentId == doc1.documentId
 
 instance < User
 where
