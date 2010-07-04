@@ -13,8 +13,6 @@ derive gUpdate			IDEConfig
 derive gHint			IDEConfig
 derive gError			IDEConfig
 derive gMerge			IDEConfig
-derive gMakeSharedCopy	IDEConfig
-derive gMakeLocalCopy	IDEConfig
 				
 loadConfig :: Task (Maybe IDEConfig)
 getConfig :: !(DBid AppState) -> Task IDEConfig

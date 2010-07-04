@@ -19,12 +19,10 @@ where
 		>>= \config.	getAppPath
 		>>= \appPath.	callProcess (config.oldIDEPath +++ " --batch-build \"" +++ appPath +++ (config.projectsPath +++ "\\test\\test.prj\""))
 		>>= \ret.		case ret of
-							0	= 				loadDocumentFromFile "test.exe" "projects\\test"
-									>>= \mbExe.	case mbExe of
-													Nothing		= throw (CompilerErrors ["Unable to read executable"])
-													Just exe	= return exe
+							0	= 				importDocument "projects\\test\\test.exe"
+									>>=			return
 							_	=				try (readTextFile (config.projectsPath +++ "\\test\\test.log")) readLogError
 									>>= \log.	throw (CompilerErrors (filter ((<>) "") (split "\n" log)))
 									
 	handleCallExceptions (CallFailed path)	= throw (CannotCallCompiler path)
-	readLogError (FileException path _)			= return ("Unable to retrieve compiler errors from '" +++ path +++ "'")
+	readLogError (FileException path _)		= return ("Unable to retrieve compiler errors from '" +++ path +++ "'")

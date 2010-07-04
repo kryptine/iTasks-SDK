@@ -10,13 +10,11 @@ derive gUpdate			AppState, SyntaxHighlighterColors
 derive gHint			AppState, SyntaxHighlighterColors
 derive gError			AppState, SyntaxHighlighterColors
 derive gMerge			AppState, SyntaxHighlighterColors
-derive gMakeSharedCopy	AppState, SyntaxHighlighterColors
-derive gMakeLocalCopy	AppState, SyntaxHighlighterColors
 derive bimap			Maybe, (,)
 
 initAppState :: !IDEConfig -> AppState
 initAppState config =	{ srcEditorContent	= ""
-						, config			= config
+						, ideConfig			= config
 						, syntaxHighlColors =	{ keywords				= colorPurple
 												, typeDefinitions		= colorRed
 												, singleLineComments	= colorAqua

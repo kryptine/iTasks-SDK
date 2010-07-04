@@ -9,8 +9,6 @@ derive gUpdate			IDEConfig
 derive gHint			IDEConfig
 derive gError			IDEConfig
 derive gMerge			IDEConfig
-derive gMakeSharedCopy	IDEConfig
-derive gMakeLocalCopy	IDEConfig
 derive JSONEncode		IDEConfig
 derive JSONDecode		IDEConfig
 derive bimap			Maybe, (,)
@@ -31,11 +29,11 @@ loadConfig =
 readConfig :: !*World -> (!Maybe IDEConfig, !*World)
 readConfig world
 	# (content,world) = readfile configFileName world
-	= (fromJSON content,world)
+	= (fromJSON (fromString content),world)
 	
 writeConfig :: !IDEConfig !*World -> *World
 writeConfig config world
-	= writefile configFileName (toJSON config) world
+	= writefile configFileName (toString (toJSON config)) world
 	
 configFileName = "cleanIDE-globalConfig.json"
 
@@ -91,4 +89,4 @@ where
 getConfig :: !(DBid AppState) -> Task IDEConfig
 getConfig sid =
 					readDB sid
-	>>= \state.		return state.config
+	>>= \state.		return state.ideConfig

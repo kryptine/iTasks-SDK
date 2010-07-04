@@ -5,7 +5,9 @@ from StdFunc import flip
 import PmProject, UtilStrictLists
 import CompilerInterface, AppState, Configuration, GUI, StdMisc
 
-Start world = startEngine [workflow "Clean IDE (using formatted text type)" cleanIDEFT, workflow "Clean IDE (using source code type)" cleanIDESC] world
+Start world = startEngine	[ workflow "Clean IDE (using formatted text type)"	(cleanIDEFT <<@ Subject "Clean IDE (using formatted text type)")
+							, workflow "Clean IDE (using source code type)"		(cleanIDESC <<@ Subject "Clean IDE (using source code type)")
+							] world
 
 cleanIDEFT :: Task Void
 cleanIDEFT = try cleanIDE` handleErrors
@@ -97,9 +99,9 @@ menuStructure =	[ Menu "File"		[ MenuItem "Save" ActionSave
 						
 editProjectOptions desc get putback sid =
 						readDB sid
-	>>= \state.			accWorld (accFiles (ReadProjectFile (state.config.projectsPath +++ "\\test\\test.prj") ""))
+	>>= \state.			accWorld (accFiles (ReadProjectFile (state.ideConfig.projectsPath +++ "\\test\\test.prj") ""))
 	>>= \(prj,ok,err).	editOptions desc prj get putback
-	>>= \prj.			accWorld (accFiles (SaveProjectFile (state.config.projectsPath +++ "\\test\\test.prj") prj ""))
+	>>= \prj.			accWorld (accFiles (SaveProjectFile (state.ideConfig.projectsPath +++ "\\test\\test.prj") prj ""))
 	>>|					stop
 	
 editAppStateOptions desc get putback sid =
@@ -109,7 +111,7 @@ editAppStateOptions desc get putback sid =
 	>>|			stop
 	
 handleErrors :: !FileException -> Task Void
-handleErrors (FileException path _) = showMessageAbout "Error" ("Could not open '" +++ path +++ "'!")
+handleErrors (FileException path _) = showMessageAbout "Error" ("Could not open '" +++ path +++ "'!") <<@ ExcludeGroupActions
 	
 ActionCompile				:== ActionLabel "compile"
 ActionEditCodeGenOptions	:== ActionLabel "codeGenOpts"
@@ -191,7 +193,7 @@ where
 save :: !(DBid AppState) -> Task Void
 save sid =
 				readDB sid
-	>>= \state.	writeTextFile (state.config.projectsPath +++ "\\test\\test.icl") (removeMarkers state.srcEditorContent)
+	>>= \state.	writeTextFile (state.ideConfig.projectsPath +++ "\\test\\test.icl") (removeMarkers state.srcEditorContent)
 
 saveAndCompile :: !(DBid AppState) -> Task Void
 saveAndCompile sid
@@ -202,9 +204,9 @@ where
 	compile` =
 						save sid
 		>>|				compileToExe sid
-		>>= \exeDoc.	showMessageAbout "Download Executable" exeDoc
+		>>= \exeDoc.	showMessageAbout "Download Executable" exeDoc <<@ ExcludeGroupActions
 	
-	handleCompilerExceptions e = showMessageAbout "Compiler Errors" msg
+	handleCompilerExceptions e = showMessageAbout "Compiler Errors" msg <<@ ExcludeGroupActions
 	where
 		msg = case e of
 			CannotCallCompiler path		= ["Unable to run compiler: '" +++ path +++ "'"]
@@ -222,9 +224,9 @@ openFile path sid =
 createTestPrj :: !(DBid AppState) -> Task Void
 createTestPrj sid =
 				readDB sid
-	>>= \state.	createDirectory (state.config.projectsPath +++ "\\test")
-	>>|			accWorld (createPrjFile state.config.projectsPath)
-	>>= \ok.	writeTextFile (state.config.projectsPath +++ "\\test\\test.icl") "module test\n\nimport StdEnv\n\nStart = "
+	>>= \state.	createDirectory (state.ideConfig.projectsPath +++ "\\test")
+	>>|			accWorld (createPrjFile state.ideConfig.projectsPath)
+	>>= \ok.	writeTextFile (state.ideConfig.projectsPath +++ "\\test\\test.icl") "module test\n\nimport StdEnv\n\nStart = "
 where
 	createPrjFile path world = accFiles (\f -> SaveProjectFile (path +++ "\\test\\test.prj") initProj "" f) world
 	initProj = PR_NewProject "test" editOptions compilerOptions codeGenOptions appOptions ("{Project}" :! Nil) linkOptions
@@ -252,6 +254,7 @@ findAndReplace :: !(DBid AppState) -> Task Void
 findAndReplace sid = findAndReplace` {searchFor = "", replaceWith = ""}
 where
 	findAndReplace` replace =
+								ExcludeGroupActions @>>
 								updateInformationA "Find & Replace" [ButtonAction (ActionCancel, Always), ButtonAction (ActionReplaceAll, IfValid), ButtonAction (ActionFind, IfValid)] replace
 		>>= \(action, replace).	case action of
 									ActionReplaceAll =

@@ -4,7 +4,7 @@ import iTasks, ExperimentalDomain
 from Configuration import :: IDEConfig
 
 :: AppState =	{ srcEditorContent	:: !String
-				, config			:: !IDEConfig
+				, ideConfig			:: !IDEConfig
 				, syntaxHighlColors	:: !SyntaxHighlighterColors
 				}
 				
@@ -24,7 +24,5 @@ derive gUpdate			AppState, SyntaxHighlighterColors
 derive gHint			AppState, SyntaxHighlighterColors
 derive gError			AppState, SyntaxHighlighterColors
 derive gMerge			AppState
-derive gMakeSharedCopy	AppState
-derive gMakeLocalCopy	AppState
 
 initAppState :: !IDEConfig -> AppState
