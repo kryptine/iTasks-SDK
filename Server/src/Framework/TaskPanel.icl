@@ -146,14 +146,15 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 where
 	filterPanel t =
 		case t of
-			(TTInteractiveTask ti _ ) 	= ti.TaskInfo.worker == currentUser
-			(TTMonitorTask ti _)		= ti.TaskInfo.worker == currentUser 
-			(TTRpcTask ti _)			= ti.TaskInfo.worker == currentUser
-			(TTGroupedTask ti _ _ _)	= ti.TaskInfo.worker == currentUser	
-			(TTInstructionTask ti _ _)	= ti.TaskInfo.worker == currentUser
-			(TTFinishedTask _ _)		= True										// always show finished tasks
-			(TTParallelTask _ _ _)		= False 									// the parallel subtask itself should not become visible
-			(TTMainTask _ _ _ _ _)		= False 									// a main-subtask should not become visible
+			TTInteractiveTask ti _ 		= ti.TaskInfo.worker == currentUser
+			TTMonitorTask ti _			= ti.TaskInfo.worker == currentUser 
+			TTRpcTask ti _				= ti.TaskInfo.worker == currentUser
+			TTExtProcessTask ti _		= ti.TaskInfo.worker == currentUser
+			TTGroupedTask ti _ _ _		= ti.TaskInfo.worker == currentUser	
+			TTInstructionTask ti _ _	= ti.TaskInfo.worker == currentUser
+			TTFinishedTask _ _			= True										// always show finished tasks
+			TTParallelTask _ _ _		= False 									// the parallel subtask itself should not become visible
+			TTMainTask _ _ _ _ _		= False 									// a main-subtask should not become visible
 			_ 							= abort "Unknown panel type in parallel"
 				
 	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
@@ -366,6 +367,8 @@ where
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTRpcTask ti _)
 			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
+		(TTExtProcessTask ti _)
+			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTFinishedTask ti _)
 			= {SubtaskInfo | mkSti & finished = True, taskId = ti.TaskInfo.taskId, properties = container.processProperties, subject = ti.TaskInfo.taskLabel, subtaskId = subtaskNrToString container.subtaskNr, delegatedTo = toString ti.TaskInfo.worker}
 		(TTParallelTask ti tpi _)
@@ -424,15 +427,16 @@ where
 		
 	getTaskInfo task
 		# info = case task of
-			(TTInteractiveTask ti _ ) 	= ti
-			(TTMonitorTask ti _)		= ti
-			(TTRpcTask ti _)			= ti
-			(TTFinishedTask ti _)		= ti
-			(TTParallelTask ti _ _)		= ti
-			(TTSequenceTask ti _)		= ti
-			(TTMainTask ti _ _ _ _)		= ti
-			(TTGroupedTask ti _ _ _)	= ti
-			(TTInstructionTask ti _ _)	= ti
+			TTInteractiveTask ti _	 	= ti
+			TTMonitorTask ti _			= ti
+			TTRpcTask ti _				= ti
+			TTExtProcessTask ti _		= ti
+			TTFinishedTask ti _			= ti
+			TTParallelTask ti _ _		= ti
+			TTSequenceTask ti _			= ti
+			TTMainTask ti _ _ _ _		= ti
+			TTGroupedTask ti _ _ _		= ti
+			TTInstructionTask ti _ _	= ti
 			_ 							= abort "Unknown panel type in group"
 		= info
 
