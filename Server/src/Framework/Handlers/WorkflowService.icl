@@ -4,6 +4,8 @@ import Http, TSt
 import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
 
+from Util import mb2list
+
 :: WorkflowItem =
 	{ name 		:: !String 	//Full name of the workflow
 	, label		:: !String	//Displayed label of the workflow
@@ -39,7 +41,7 @@ where
 	//Allow the root user
 	isAllowed RootUser	_					= True
 	//Allow workflows for which the user has permission
-	isAllowed (RegisteredUser details) wf	= or [isMember role details.UserDetails.roles \\ role <- wf.Workflow.roles]
+	isAllowed (RegisteredUser details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles]
 	//Allow workflows without required roles
 	isAllowed _ wf							= isEmpty wf.Workflow.roles		
 	

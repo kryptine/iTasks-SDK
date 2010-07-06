@@ -69,8 +69,8 @@ mergeTestList :: Task Void
 mergeTestList =
 				getCurrentUser
 	>>= \user.  createDB emptyL
-	>>= \sid.	spawnProcess user True (Subject "1st View" @>> view sid)
-	>>|			spawnProcess user True (Subject "2nd View" @>> view sid)
+	>>= \sid.	spawnProcess user True True (Subject "1st View" @>> view sid)
+	>>|			spawnProcess user True True (Subject "2nd View" @>> view sid)
 	>>|			stop
 where
 	view :: (DBid [String]) -> Task (Action,[String])
@@ -83,9 +83,9 @@ mergeTestDocuments :: Task Void
 mergeTestDocuments =
 				getCurrentUser
 	>>= \user.	createDB emptyL
-	>>= \sid.	spawnProcess user True (Subject "1st View" @>> view sid idEditor)
-	>>|			spawnProcess user True (Subject "2nd View" @>> view sid idEditor)
-	>>|			spawnProcess user True (Subject "3rd View" @>> view sid idListener)
+	>>= \sid.	spawnProcess user True True (Subject "1st View" @>> view sid idEditor)
+	>>|			spawnProcess user True True (Subject "2nd View" @>> view sid idEditor)
+	>>|			spawnProcess user True True (Subject "3rd View" @>> view sid idListener)
 	>>|			stop
 where
 	view :: (DBid [Document]) (View [Document]) -> Task (Action,[Document])

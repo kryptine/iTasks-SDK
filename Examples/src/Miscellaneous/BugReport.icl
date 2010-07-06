@@ -11,7 +11,7 @@ import CommonDomain
 	, occursAt		:: BugOccurance
 	, severity		:: BugSeverity
 	, description	:: Note
-	, attachment	:: [Document]
+	, attachment	:: Maybe [Document]
 	}
 
 :: BugSeverity	= Low | Medium | High | Critical	

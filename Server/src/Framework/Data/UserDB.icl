@@ -30,7 +30,7 @@ where
 	getUsersWithRole :: !String !*IWorld -> (![User], !*IWorld)
 	getUsersWithRole role iworld
 		# (users, iworld)		= userStore id iworld
-		= ([u \\ u=:(RegisteredUser d) <- users | isMember role d.UserDetails.roles], iworld)
+		= ([u \\ u=:(RegisteredUser d) <- users | isMember role (mb2list d.UserDetails.roles)], iworld)
 		
 	authenticateUser :: !String !String	!*IWorld -> (!Maybe User, !*IWorld)
 	authenticateUser username password iworld

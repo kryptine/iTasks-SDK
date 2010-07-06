@@ -67,7 +67,7 @@ where
 readContents :: !*File -> (Maybe RPCDescription, *File)
 readContents file
 	# (content,file) = readWholeFile "" file
-	= (fromJSON content,file)
+	= (fromJSON (fromString content),file)
 where
 	readWholeFile acc file
 	#(end,file) = fend file

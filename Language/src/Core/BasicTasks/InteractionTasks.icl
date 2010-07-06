@@ -362,8 +362,6 @@ makeInstructionTask instruction context tst
 					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
 					}
 
-import StdDebug
-
 editor :: !(Editor s a) -> View s | iTask a & iTask s & SharedVariable s
 editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
 where

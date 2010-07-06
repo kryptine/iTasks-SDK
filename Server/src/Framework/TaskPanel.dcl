@@ -98,7 +98,6 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, label			:: !String
 	, description	:: !String
 	, subtaskInfo	:: ![SubtaskInfo]
-	, content		:: ![TaskPanel]
 	}
 
 :: TTCGroupContainer =
@@ -118,11 +117,9 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 
 :: SubtaskInfo =
 	{ finished		:: !Bool
-	, properties	:: !(Maybe TaskProperties)
 	, taskId		:: !String
 	, subject		:: !String
 	, delegatedTo	:: !String
-	, subtaskId		:: !String
 	, description	:: !String
 	}
 

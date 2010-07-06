@@ -32,8 +32,6 @@ derive gError ListDBItem, List, ListItem
 derive gHint ListDBItem, List, ListItem
 
 derive gMerge ListDBItem, List, ListItem
-derive gMakeSharedCopy ListDBItem, List, ListItem
-derive gMakeLocalCopy ListDBItem, List, ListItem
 
 derive bimap Maybe, (,)
 

@@ -88,7 +88,6 @@ where
 instance ProcessDB IWorld
 instance ProcessDB TSt
 
-
 instance toString ProcessStatus
 instance == ProcessStatus
 instance == Action

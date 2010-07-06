@@ -4,6 +4,7 @@ implementation module ExceptionCombinators
 */
 import	StdList, StdArray, StdTuple
 import	TSt, Store, Util
+import 	ProcessDB
 
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
 try normalTask handlerTask = mkSequenceTask "try" exceptionTask
@@ -20,6 +21,7 @@ where
 					//Handle exception if it matches
 					TaskException (ex :: e^)
 						# tst					= deleteTaskStates taskNr tst 					//Garbage collect
+						# tst					= deleteSubProcesses (taskNrToString taskNr) tst
 						# tst=:{TSt|iworld=iworld=:{IWorld|store}}
 												= tst
 						# store					= storeValueAs SFDynamic key ex store			//Store the exception

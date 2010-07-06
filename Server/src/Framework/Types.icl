@@ -144,7 +144,7 @@ displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName _ = ""
 
 getRoles :: !User -> [Role]
-getRoles (RegisteredUser details) = details.roles
+getRoles (RegisteredUser details) = mb2list details.roles
 getRoles _ = []
 
 taskLabel :: !(Task a) -> String

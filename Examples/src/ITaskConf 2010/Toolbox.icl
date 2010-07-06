@@ -14,9 +14,8 @@ derive gParse Message
 derive gVisualize Message
 derive gUpdate Message
 derive gHint Message
-derive gMakeLocalCopy Message, TaskPriority
 
-derive gEq Message, HtmlDisplay, User, Note, TaskPriority, UserDetails, Password,Maybe
+derive gEq Document, Message, HtmlDisplay, User, Note, TaskPriority, UserDetails, Password,Maybe
 
 derive bimap Maybe, (,)
 
@@ -80,7 +79,7 @@ newMessageToGroup = getCurrentUser
 	>>= \msg ->		sendMessage msg
 	
 sendMessage :: Message -> Task Void
-sendMessage msg = allProc [who @>> spawnProcess who True 
+sendMessage msg = allProc [who @>> spawnProcess who True True
 					((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.to ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
 					>>| showMessageAbout "The following message has been sent:" msg
 
@@ -117,7 +116,7 @@ viewArchive :: Task Void
 viewArchive = getCurrentUser
 	>>= \me ->	readDB msgDBid
 	>>= \mdb -> selectMsg mdb me
-	>>= \sel -> allProc [spawnProcess me True ((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ msg <- sel] Closed
+	>>= \sel -> allProc [spawnProcess me True True ((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ msg <- sel] Closed
 	>>| return Void
 where
 	selectMsg :: MsgDB User -> Task [Message]
@@ -132,7 +131,7 @@ where
 //========================================================================================================================================================================
 
 broadcast :: [User] String (Maybe a) -> Task Void | iTask a
-broadcast to msg mbAbout = allProc [spawnProcess who True show \\ who <- to] Closed >>| return Void
+broadcast to msg mbAbout = allProc [spawnProcess who True True show \\ who <- to] Closed >>| return Void
 where
 	show = case mbAbout of
 		Just a = showMessageAbout msg a

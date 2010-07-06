@@ -46,7 +46,6 @@ writefile filename content world
 	# file				= fwrites content file
 	# (ok,world)		= fclose file world
 	= world
-
 fileExtension :: !String -> String
 fileExtension filename = case (split "." filename) of
 	[_]		= ""
@@ -54,6 +53,16 @@ fileExtension filename = case (split "." filename) of
 	
 baseName :: !String -> String
 baseName path = last (split "\\" path)
+
+// ******************************************************************************************************
+
+mb2list	:: !(Maybe [a]) -> [a]
+mb2list	Nothing = []
+mb2list (Just a) = a
+
+list2mb	:: ![a] -> (Maybe [a])
+list2mb [] = Nothing
+list2mb a = (Just a)
 
 // ******************************************************************************************************
 

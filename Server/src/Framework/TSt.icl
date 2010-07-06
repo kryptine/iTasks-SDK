@@ -168,6 +168,20 @@ where
 	setUser manager props=:{ManagerProperties|worker=AnyUser} = {ManagerProperties|props & worker = manager}
 	setUser manager props = props
 
+deleteTaskInstance :: !ProcessId !*TSt -> *TSt
+deleteTaskInstance procId tst 
+	# (_,tst) 						= deleteProcess procId tst
+	# tst=:{TSt | iworld=iworld=:{store,world}}	= deleteSubProcesses procId tst
+	# (store,world)					= deleteValues (iTaskId (taskNrFromString procId) "") store world
+	= {TSt | tst & iworld = {iworld & world = world, store = store}}
+
+garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
+garbageCollectTaskInstance procId tst
+	| tst.TSt.properties.systemProps.deleteWhenDone
+	# tst = deleteTaskInstance procId tst
+	= (True,tst)	
+	| otherwise
+	= (False,tst)
 
 //NEW THREAD FUNCTIONS
 createThread :: !(Task a) -> Dynamic	| iTask a
@@ -635,8 +649,8 @@ where
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{taskNr,tree,properties,iworld=iworld=:{IWorld|store,world}}
-	# taskId					= iTaskId taskNr ""
-	# (taskVal,store,world)		= loadValue taskId store world
+	# taskId								= iTaskId taskNr ""
+	# (taskVal,store,world)					= loadValue taskId store world
 	# taskInfo =	{ taskId				= taskNrToString taskNr
 					, taskLabel				= initProperties.subject
 					, traceValue			= ""
@@ -659,18 +673,19 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 			// Execute task function
 			# (result, tst)	= taskfun tst
 			// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
-			# tst=:{tree=node,iworld=iworld=:{IWorld|store}}
-							= clearUserUpdates tst
+			# tst=:{tree=node,iworld=iworld=:{IWorld|store}} = clearUserUpdates tst
 			// Update task state
 			= case result of
 				(TaskFinished a)
-					//Garbage collect
-					# tst=:{TSt|iworld=iworld=:{IWorld|store}}		
-											= deleteTaskStates taskNr
-												{TSt|tst & iworld = {IWorld|iworld & store = store}}
-					
-					// Store final value
-					# store					= storeValue taskId result store
+					//If a process is finished (tl taskNr == procId), remove the process from the process DB (if it's allowed to be deleted)
+					# procId				= taskNrToString (tl taskNr)
+					# (gc,tst)				= if(procId == tst.TSt.properties.systemProps.processId)
+													(garbageCollectTaskInstance procId {TSt | tst & tree=node, iworld = {IWorld | iworld & store = store}})
+													(False,tst)
+					//Garbage collect task store
+					# tst=:{TSt|iworld =iworld=:{IWorld|store}}	= deleteTaskStates taskNr tst					
+					// Store final value if the process is not garbage collected
+					# store					= if(gc) store (storeValue taskId result store)
 					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a))
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskFinished a, tst)
@@ -705,7 +720,7 @@ where
 	finalizeTaskNode (TTParallelTask ti tpi tasks)				= TTParallelTask	ti tpi (reverse tasks)
 	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
 	finalizeTaskNode node										= node
-	
+		
 setTUIDef	:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt -> *TSt
 setTUIDef def taskDescription accActions hotkeys tst=:{tree}
 	= case tree of
@@ -759,11 +774,18 @@ where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
 	
 storeProcessResult :: !TaskNr !(TaskResult Dynamic) !*TSt -> *TSt
-storeProcessResult taskNr result tst=:{TSt|iworld=iworld=:{IWorld|store}}
-	# store	= storeValueAs SFDynamic key result store
+storeProcessResult taskNr result tst
+	// Only store process result if the process is not garbage collected (still exists in te process table)
+	# (storeResult,tst=:{TSt|iworld=iworld=:{IWorld|store}}) = storeResult tst
+	# store	= if(storeResult) (storeValueAs SFDynamic key result store) store
 	= {TSt |tst & iworld = {IWorld|iworld & store = store}}
 where
 	key = "iTask_"+++(taskNrToString taskNr)+++"-result"
+	
+	storeResult tst 
+		# (mbproc,tst) = getProcess (taskNrToString taskNr) tst
+		= (isJust mbproc, tst) 
+		
 	
 setTaskStore :: !String !a !*TSt -> *TSt | iTask a
 setTaskStore key value tst=:{taskNr}
@@ -829,9 +851,7 @@ deleteTaskStates :: !TaskNr !*TSt -> *TSt
 deleteTaskStates taskNr tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 	// Delete values in the data store
 	# (store,world) 	= deleteValues (iTaskId taskNr "") store world
-	// Delete subprocesses in the process table
-	# tst				= deleteSubProcesses (taskNrToString taskNr) {TSt|tst & iworld = {IWorld|iworld & world = world, store = store}}
-	= tst
+	= {TSt|tst & iworld = {IWorld|iworld & world = world, store = store}}
 	
 copyTaskStates :: !TaskNr !TaskNr !*TSt	-> *TSt
 copyTaskStates fromtask totask tst=:{TSt|iworld=iworld=:{IWorld|store,world}}

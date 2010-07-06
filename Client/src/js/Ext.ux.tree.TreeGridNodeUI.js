@@ -20,7 +20,7 @@ Ext.ux.tree.TreeGridNodeUI = Ext.extend(Ext.tree.TreeNodeUI, {
             i, buf, len;
 
         this.indentMarkup = n.parentNode ? n.parentNode.ui.getChildIndent() : '';
-
+		
         buf = [
              '<tbody class="x-tree-node">',
                 '<tr ext:tree-node-id="', n.id ,'" class="x-tree-node-el x-tree-node-leaf ', a.cls, '">',
@@ -33,10 +33,11 @@ Ext.ux.tree.TreeGridNodeUI = Ext.extend(Ext.tree.TreeNodeUI, {
                         '<span unselectable="on">', (c.tpl ? c.tpl.apply(a) : a[c.dataIndex] || c.text), '</span></a>',
                     '</td>'
         ];
-
+		
         for(i = 1, len = cols.length; i < len; i++){
             c = cols[i];
-            buf.push(
+
+		   buf.push(
                     '<td class="x-treegrid-col ', (c.cls ? c.cls : ''), '">',
                         '<div unselectable="on" class="x-treegrid-text"', (c.align ? ' style="text-align: ' + c.align + ';"' : ''), '>',
                             (c.tpl ? c.tpl.apply(a) : a[c.dataIndex]),

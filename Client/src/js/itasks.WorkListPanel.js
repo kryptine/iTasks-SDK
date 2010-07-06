@@ -3,93 +3,30 @@
 */
 Ext.ns('itasks');
 
-itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
+itasks.WorkListPanel = Ext.extend(Ext.Panel,{ 
+	initComponent: function(){
 
-	initComponent: function () {
-	
-		var treeRenderer = function (label, meta, record) {
-			var html = "";
-			var level = record.data.tree_path.length;
-			
-			//Disable margins
-			meta['attr'] = 'style="margin: 0px; padding: 0px"';
-			
-			//Create path
-			for(var i = 0; i < level; i++) {
-				if(record.data.tree_path[i]) {
-					html += '<div class="treegrid treegrid-line" style="left: ' + i * 16 + 'px"></div>';
-				} else {
-					html += '<div class="treegrid treegrid-empty" style="left: ' + i * 16 + 'px"></div>';
-				}
-			}
-			//Add elbow
-			if(record.data.tree_last) {
-				html += '<div class="treegrid treegrid-last" style="left: ' + level * 16 + 'px"></div>';
-			} else {
-				html += '<div class="treegrid treegrid-middle" style="left: ' + level * 16 + 'px"></div>';
-			}
-			//Add icon
-			html += '<div class="treegrid treegrid-icon icon-' + record.data.tree_icon +'" style="left: ' + (level + 1) * 16 + 'px"></div>';
-			
-			//Add label
-			if(record.data.tree_new) {
-				html += '<div class="treegrid-label" style="font-weight: bold; left: ' + (level + 2) * 16 + 'px">' + label + '</div>';
-			} else {
-				html += '<div class="treegrid-label" style="left: ' + (level + 2) * 16 + 'px">' + label + '</div>';
-			}
-			return html;
-		};
-	
-	
-		this.workStore = new Ext.data.Store({
-			autoLoad: false,
-			bufferSize: 300,
-			url: itasks.config.serverUrl + "/work/list",
-			reader: new Ext.data.JsonReader({
-					root: 'worklist',
-					totalProperty: 'total',
-					successProperty: 'success',
-					fields: [
-						{name: 'subject'},
-						{name: 'priority'},
-						{name: 'progress'},
-						{name: 'manager'},
-						{name: 'timestamp'},
-						{name: 'latestExtEvent'},
-						{name: 'deadline'},
-						{name: 'tree_path'},
-						{name: 'tree_last'},
-						{name: 'tree_icon'},
-						{name: 'tree_new'},
-						{name: 'taskid'}
-					]})
-			});
-		
-		this.workView = new Ext.grid.GridView({
-			deferEmptyText: true,
-			emptyText: 'There is no unfinished work.',
-			nearLimit: 100,
-			loadMask: { msg: 'Please wait...'}
+		this.treeGrid = new Ext.ux.tree.TreeGrid({
+			rootVisible: false,
+			border: false,
+			columns: [
+				{id: 'subject', header: 'Subject', dataIndex: 'subject', width: 300},
+				{id: 'priority', header: 'Priority', dataIndex: 'priority', width: 100},
+				{id: 'progress', header: 'Progress', dataIndex: 'progress', width: 100},
+				{id: 'manager', header: 'Managed by', dataIndex: 'manager', width: 100},
+				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', width: 120},
+				//{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
+				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', width: 100}
+			],
+			root: new Ext.tree.TreeNode({
+				text: 'Empty'
+			})
 		});
 	
-		Ext.apply(this, {
-			border: false,
-			store: this.workStore,
-			view: this.workView,
-			selModel: new Ext.grid.RowSelectionModel(),
-			columns: [
-				{id: 'subject', header: 'Subject', dataindex: 'taskid', renderer: treeRenderer, width: 200},		
-				{id: 'priority', header: 'Priority', dataindex: 'priority', renderer: itasks.util.formatPriority, width: 100},
-				{id: 'progress', header: 'Progress', dataindex: 'progress', renderer: itasks.util.formatProgress, width: 100},
-				{id: 'manager', header: 'Managed by', dataIndex: 'manager', renderer: Ext.util.Format.htmlEncode, width: 100},
-				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', renderer: itasks.util.formatDate, width: 120},
-				{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
-				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', renderer: itasks.util.formatDeadline, width: 100}
-			],
-			autoExpandColumn: 'subject',
-			enableColumnMove: false,
-			enableHdMenu: false,
-			stripeRows: true,
+		Ext.apply(this,{
+			unstyled: true,
+			layout: 'fit',
+			items: [this.treeGrid],	
 			tbar: [{
 				id: 'refreshbutton',
 				xtype: 'tbbutton',
@@ -122,66 +59,80 @@ itasks.WorkListPanel = Ext.extend(Ext.grid.GridPanel, {
 				}
 			}]
 		});
-		
-		itasks.WorkListPanel.superclass.initComponent.apply(this, arguments);
+
+		itasks.WorkListPanel.superclass.initComponent.apply(this,arguments);	
 		this.addEvents("workListRefreshed");
+	},
+	
+	buildTree : function(data){		
+		var buildNode = function(d, isLeaf){
+			return new Ext.tree.TreeNode({
+				cls: 'worklist-node',
+				uiProvider: Ext.ux.tree.TreeGridNodeUI,
+				leaf: isLeaf,
+				iconCls: 'task-int',
+				subject: d.properties.managerProps.subject,
+				priority: itasks.util.formatPriority(d.properties.managerProps.priority),
+				progress: itasks.util.formatProgress(d.properties.workerProps.progress),
+				manager: Ext.util.Format.htmlEncode(d.properties.systemProps.manager),
+				timestamp: itasks.util.formatDate(d.properties.systemProps.issuedAt),
+				deadline: itasks.util.formatDeadline(d.properties.managerProps.deadline),
+				taskId: d.taskId
+			});
+		}
 		
-		//Check session error responses
-		this.store.on('loadexception',function() {
-			if(this.store.reader.jsonData.error) {
-				itasks.app.restart(this.store.reader.jsonData.error);
-			}
-		},this);
-	
-		this.startAutoRefresh();
+		var buildSubTree = function(parent){
+			var children = [];
+		
+			for(var i=0; i < treeData.length; i++){
+				var d = treeData[i];
+				
+				if(d.parent == parent){					
+					var childNodes = buildSubTree(d.taskId);	
+					var node = buildNode(d, (childNodes > 0)?true:false);					
+					treeData.splice(i,1);
+					i--;
+					node.appendChild(childNodes);
+					children.push(node);
+				}
+			}	
+
+			return children;		
+		};
+		
+		var treeData = data;
+		var children = buildSubTree();
+		
+		for(var i=0; i < treeData.length; i++){
+			children.push(buildNode(treeData[i]));
+		}
+		
+		this.treeGrid.getRootNode().removeAll();
+		this.treeGrid.getRootNode().appendChild(children);
+		this.treeGrid.expandAll();
 	},
 	
-	/*
-	* Return the taskid of the selected row
-	*/
-	getTaskId: function (index) {
-		return this.store.getAt(index).data.taskid;
-	},
-	/*
-	* Mark a task in the list as read
-	*/
-	markRead: function (taskid) {
-		this.store.each(function(rec) {
-			if(Ext.isArray(taskid) && taskid.isMember(rec.data.taskid) || rec.data.taskid == taskid) {
-					
-				rec.set("tree_new",false);
-				rec.commit();
+	refresh : function(){	
+		var ct = this;
+		var conn = new Ext.data.Connection();
+		
+		conn.request({
+			url: itasks.config.servicesUrl + "/json/tasks",
+			params: { '_session' : itasks.app.session },
+			callback: function(options,success,response) {
+				if(!success) itasks.app.restart('Cannot retrieve work list');
+				
+				var data = Ext.decode(response.responseText);
+				if(!data.success) itasks.app.restart(data.error);
+
+				ct.buildTree(data.tasks);
+				ct.fireEvent("workListRefreshed", ct);
 			}
 		});
 	},
-	/*
-	* Refresh the list
-	*/
-	refresh: function () {
-		if(this.store != null){
-			this.store.load({
-				params: {_session: itasks.app.session}
-			});
-			
-			this.fireEvent("workListRefreshed", this);
-		}
-	},
 	
-	/* 
-	* Start the timed task for auto-refreshing.
-	*/
-	startAutoRefresh: function(){
-		if(itasks.config.autoRefresh){
-		
-			var parent = this;
-		
-			Ext.TaskMgr.start({
-				run: function(){
-					parent.refresh();
-				},
-				interval: itasks.config.refreshRate
-			})
-		}
+	markRead : function(taskId){
+	
 	}
 });
 

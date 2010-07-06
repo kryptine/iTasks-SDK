@@ -146,10 +146,20 @@ assign :: !User !(Task a) -> Task a	| iTask a
 *
 * @param The user that will perform processes main task.
 * @param Activate the process immediately (False creates the process in a suspended state)
+* @param Automatically garbage collect the process when it is finished (removing all references to the state of the process).
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !User !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+spawnProcess	:: !User !Bool !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+
+/**
+* Kills a process disregarding any other references to this process.
+*
+* @param The process reference
+*
+* @return Void
+*/
+killProcess 	:: !(ProcessRef a) -> Task Void | iTask a
 
 /**
 * Wait (blocking) for a process to complete.

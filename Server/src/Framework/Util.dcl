@@ -16,6 +16,8 @@ iTaskId 			:: !TaskNr !String 	-> String
 readfile			:: !String !*World -> (!String,!*World)
 writefile			:: !String !String !*World -> *World
 
-
 fileExtension		:: !String -> String
 baseName			:: !String -> String
+
+mb2list				:: !(Maybe [a]) -> [a]
+list2mb				:: ![a] -> (Maybe [a])

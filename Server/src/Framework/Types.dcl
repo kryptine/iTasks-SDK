@@ -48,7 +48,7 @@ instance < User
 	{ userName		:: !UserId
 	, password		:: !Password
 	, displayName	:: !String
-	, roles			:: ![Role]
+	, roles			:: !Maybe [Role]
 	}
 
 :: UserId			:== String

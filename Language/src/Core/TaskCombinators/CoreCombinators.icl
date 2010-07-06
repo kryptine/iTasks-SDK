@@ -10,6 +10,7 @@ import	GenUpdate
 import	UserDB, ProcessDB
 import  Store
 import	TuningCombinators
+import  Types
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -42,6 +43,8 @@ where
 		= case result of
 			TaskFinished _			
 				# tst = deleteTaskStates (tl taskNr) tst
+				// Delete subprocesses in the process table
+				# tst = deleteSubProcesses (taskNrToString (tl taskNr)) tst 
 				# tst = resetSequence tst
 				= forever` tst				
 			_
@@ -58,6 +61,7 @@ where
 			TaskFinished a
 				| not (pred a)			
 					# tst = deleteTaskStates (tl taskNr) tst
+					# tst = deleteSubProcesses (taskNrToString (tl taskNr)) tst
 					# tst = resetSequence tst
 					= doTask tst
 				| otherwise
@@ -113,24 +117,73 @@ derive bimap Maybe, (,)
 	}
 
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallel type label description procFun parseFun initState initTask = 
-	case initTask of
-		[] = return (parseFun initState)
-		_  = execInParallel (Just type) label description procFun parseFun initState initTask nothing
+parallel parType label description procFun parseFun initState initTasks 
+	| isEmpty initTasks	= return (parseFun initState)
+	| otherwise = mkParallelTask label {TaskParallelInfo | type = parType, description = description} execInParallel
 where
-	nothing :: Maybe [GroupAction a b Void]
-	nothing = Nothing
+	execInParallel tst=:{taskNr}
+		# (pst,tst)			= loadPSt taskNr tst
+		# (result,pst,tst)	= processAllTasks pst 0 tst
+		# tst				= setTaskStoreFor taskNr "pst" pst tst	
+		= case result of
+			TaskException e
+				= (TaskException e,tst)
+			TaskFinished r
+				= (TaskFinished (parseFun r),tst)
+			TaskBusy
+				= (TaskBusy,tst)
+	
+	processAllTasks pst idx tst=:{TSt | properties}
+		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
+		# (task,done)				= pst.tasks !! idx
+		# (res,tst)					= applyTask task tst
+		= case res of
+			TaskException e = (TaskException e,pst,tst)
+			TaskBusy		= processAllTasks pst (inc idx) tst
+			TaskFinished a	
+				| done			= processAllTasks pst (inc idx) tst
+				# (nSt,act)		= procFun (a,idx) pst.state
+				# pst			= markProcessed {PSt | pst & state = nSt} idx
+				= case act of
+					Stop 		= (TaskFinished pst.state,pst,tst)
+					Continue	= processAllTasks pst (inc idx) tst
+					Extend tlist
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task properties.managerProps.ManagerProperties.worker,False) \\ task <- tlist]}
+						= processAllTasks pst (inc idx) tst
+		
+	loadPSt taskNr tst
+		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
+		= case mbPSt of	(Just p) = (p,tst); Nothing  = initPSt taskNr tst
+	
+	initPSt taskNr tst=:{TSt | properties}
+		# pst = { PSt
+				| state = initState
+				, tasks = [(assignTask task properties.managerProps.ManagerProperties.worker, False) \\ task <- initTasks]
+				}
+		# tst = setTaskStoreFor taskNr "pst" pst tst
+		= (pst,tst)
 
+	assignTask task worker
+		= case (taskUser task) of
+			AnyUser = createOrEvaluateTaskInstance worker (Just parType) task //Just let the current user (worker) do it
+			user	= createOrEvaluateTaskInstance user (Just parType) task	
+		
+	markProcessed pst idx
+	# (t,b) 	= pst.tasks !! idx
+	# tasks 	= updateAt idx (t,True) pst.tasks
+	= {PSt | pst & tasks = tasks}			
+
+//TODO : CLEAN UP!
 group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
-group label description procFun parseFun initState initTasks groupActions = execInParallel Nothing label description procFun parseFun initState initTasks (Just groupActions)
+group label description procFun parseFun initState initTasks groupActions = execInGroup Nothing label description procFun parseFun initState initTasks (Just groupActions)
 
-execInParallel :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b->c) !b ![Task a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & iTask s
-execInParallel mbParType label description procFun parseFun initState initTasks mbGroupActions =
+execInGroup :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b->c) !b ![Task a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & iTask s
+execInGroup mbParType label description procFun parseFun initState initTasks mbGroupActions =
 	case mbParType of
-		(Nothing) = makeTaskNode label Nothing execInParallel`
-		(Just pt) = makeTaskNode label (Just (mkTpi pt)) execInParallel`
+		(Nothing) = makeTaskNode label Nothing execInGroup`
+		(Just pt) = makeTaskNode label (Just (mkTpi pt)) execInGroup`
 where
-	execInParallel` tst=:{taskNr,request}
+	execInGroup` tst=:{taskNr,request}
 		# taskNr			= drop 1 taskNr // get taskNr of group-task
 		# (updates,tst)		= getChildrenUpdatesFor taskNr tst
 		# (pst,tst)   		= loadPSt taskNr tst
@@ -317,16 +370,23 @@ clearSubTaskWorkers procId mbpartype tst
 		(Just Closed)	= tst
 		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | pId <> procId] }}}
 
-spawnProcess :: !User !Bool !(Task a) -> Task (ProcessRef a) | iTask a
-spawnProcess user activate task = mkInstantTask "spawnProcess" spawnProcess`
+spawnProcess :: !User !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess user activate gcWhenDone task = mkInstantTask "spawnProcess" spawnProcess`
 where
 	spawnProcess` tst
 		# properties	=	{ initManagerProperties
 							& worker = user
 							, subject = taskLabel task
 							}
-		# (result,pid,tst)	= createTaskInstance (createThread (task <<@ properties)) True Nothing activate False tst
+		# (result,pid,tst)	= createTaskInstance (createThread (task <<@ properties)) True Nothing activate gcWhenDone tst
 		= (TaskFinished (ProcessRef pid), tst)
+
+killProcess :: !(ProcessRef a) -> Task Void | iTask a
+killProcess (ProcessRef pid) = mkInstantTask "killProcess" killProcess`
+where
+	killProcess` tst 
+		# tst = deleteTaskInstance pid tst
+		= (TaskFinished Void, tst)
 
 waitForProcess :: (ProcessRef a) -> Task (Maybe a) | iTask a
 waitForProcess (ProcessRef pid) = mkMonitorTask "waitForProcess" waitForProcess`

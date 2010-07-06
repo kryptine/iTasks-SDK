@@ -79,13 +79,14 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			}
 			tab[0].refresh();
 		};
-		worklist.on("cellclick",function (grid,row,col,event) {
-			attachTabHandlers(worktabs.openWorkTab(grid.getTaskId(row)));
+		
+		worklist.treeGrid.on("click", function(node,evt) {		
+			attachTabHandlers(worktabs.openWorkTab(node.attributes.taskId));			
 		});
 		
 		worklist.on("workListRefreshed",function(worklist) {
 		
-			worklist.workStore.each(function(){
+			/*worklist.workStore.each(function(){
 				var tab = worktabs.getComponent("worktab-"+this.data.taskid);
 				var wlTStamp = this.data.latestExtEvent;
 				
@@ -96,7 +97,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 						tab.refresh();
 					}				
 				}				
-			});
+			});*/
 		});
 		
 		newpanel.on("processStarted",function(taskid) {

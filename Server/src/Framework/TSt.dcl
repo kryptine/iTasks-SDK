@@ -107,6 +107,28 @@ createThread :: !(Task a) -> Dynamic	| iTask a
 * @return The modified task state
 */
 createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
+
+/**
+* Removes a running task instance from the list of processes and clears any associated data in the store
+*
+* @param The process id of the instance
+* @param The task state
+*
+* @return The modified task state
+*/
+deleteTaskInstance :: !ProcessId !*TSt -> *TSt
+
+/**
+* Removes a (finished) process only if it is marked to be deleted when done
+*
+* @param The process id of the instance
+* @param The task state
+*
+* @return Whether the process has been garbage collected
+* @return The modified task state
+*/
+garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
+
 /**
 * Evaluates an existing task instance
 *

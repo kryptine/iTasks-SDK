@@ -42,10 +42,24 @@ instance ProcessDB IWorld
 where
 	createProcess :: !Process !*IWorld -> (!ProcessId,!*IWorld)
 	createProcess entry iworld
-		#(procs,iworld)	= processStore id iworld
-		# pid = if (entry.Process.taskId <> "") entry.Process.taskId (getNewPid procs entry)
-		# (procs,iworld)	= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {SystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) iworld
+		#(procs,iworld=:{store,world})	= processStore id iworld
+		# (pid,store,world) 			= getPid store world
+		# (procs,iworld)				= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {SystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) {iworld & store = store, world = world}
 		= (pid, iworld)
+		where
+			getPid store world
+				| entry.Process.taskId <> "" = (entry.Process.taskId,store,world)
+				| otherwise = getNewPid store world
+						
+			getNewPid store world
+				# (mbNewPid,store,world) = loadValue "NextProcessID" store world
+				= case mbNewPid of
+				(Just pid)
+					# store = storeValue "NextProcessID" (pid+1) store //increment the stored counter by 1
+					= (toString pid,store,world)
+				Nothing
+					# store = storeValue "NextProcessID" 2 store //store the next value (2)
+					= ("1",store,world) //return the first value (1)
 			
 	deleteProcess :: !TaskId !*IWorld	-> (!Bool, !*IWorld)
 	deleteProcess taskId iworld 
@@ -163,11 +177,17 @@ processStore fn iworld=:{IWorld|store,world}
 	# store					= storeValue "ProcessDB" list store 
 	= (list, {IWorld| iworld & store = store, world = world})
 
+/*
+Deprecated! The next PID is now read from the store
+
 maxPid :: [Process] -> Int
 maxPid db = foldr max 0 (map (last o taskNrFromString) [taskId \\ {Process|taskId} <- db])
 
 getNewPid :: ![Process] !Process -> TaskId
 getNewPid db entry = (toString(inc(maxPid db)))
+*/
+
+
 
 instance ProcessDB TSt
 where

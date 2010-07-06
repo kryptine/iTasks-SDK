@@ -12,7 +12,6 @@ derive gParse HRTree
 derive gVisualize HRTree
 derive gUpdate HRTree
 derive gHint HRTree
-derive gMakeLocalCopy HRTree
 
 derive bimap Maybe, (,)
 
@@ -67,9 +66,10 @@ where
 			getUser (userName user) >>= \mbuser ->			
 				case mbuser of
 					Just (RegisteredUser details=:{UserDetails | roles})
+						# roles	  = mb2list roles
 						# details = case isMember user assignUsers of
-										True = {UserDetails | details & roles = removeDup [role:roles]}
-										False = {UserDetails | details & roles = removeMember role roles}
+										True = {UserDetails | details & roles = list2mb (removeDup [role:roles])}
+										False = {UserDetails | details & roles = list2mb (removeMember role roles)}
 						= updateUser user details >>| return Void
 					_ 
 						= return Void
@@ -83,7 +83,7 @@ where
 	
 	mapUsers tree user =
 		case user of
-			(RegisteredUser details=:{UserDetails | roles}) = foldl (fillTree user) tree roles
+			(RegisteredUser details=:{UserDetails | roles}) = foldl (fillTree user) tree (mb2list roles)
 			_ = tree
 		
 	fillTree user tree role =

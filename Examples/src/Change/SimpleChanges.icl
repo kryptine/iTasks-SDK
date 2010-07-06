@@ -59,7 +59,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess user True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess user True True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn

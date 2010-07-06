@@ -30,7 +30,7 @@ where
 			//The "root" user does not need to have assigned roles
 			RootUser					= True
 			//User has at least one of the roles needed for the flow
-			RegisteredUser details		= or [isMember role details.UserDetails.roles \\ role <- flow.Workflow.roles]
+			RegisteredUser details		= or [isMember role (mb2list details.UserDetails.roles) \\ role <- flow.Workflow.roles]
 			//Workflow is not allowed
 			_							= False
 		

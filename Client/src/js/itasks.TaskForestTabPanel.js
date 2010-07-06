@@ -109,15 +109,17 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 	},
 	
 	expandTree: function(){
-		var rootNode = this.tree.getRootNode();
-		var toggleChild = function(child){child.expand(true,true);};
-		rootNode.eachChild(toggleChild);
+		//var rootNode = this.tree.getRootNode();
+		//var toggleChild = function(child){child.expand(true,true);};
+		//rootNode.eachChild(toggleChild);
+		this.tree.expandAll();
 	},
 	
 	collapseTree: function(){
-		var rootNode = this.tree.getRootNode();
-		var toggleChild = function(child){child.collapse(true,false);};
-		rootNode.eachChild(toggleChild);
+		//var rootNode = this.tree.getRootNode();
+		//var toggleChild = function(child){child.collapse(true,false);};
+		//rootNode.eachChild(toggleChild);
+		this.tree.collapseAll();
 	}
 });
 

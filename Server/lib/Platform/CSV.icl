@@ -2,7 +2,6 @@ implementation module CSV
 
 import StdEnv
 import StdMaybe
-import StdDebug
 import Text
 
 BUFF_SIZE :== 1024
