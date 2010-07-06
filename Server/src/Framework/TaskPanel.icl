@@ -30,7 +30,7 @@ derive JSONEncode UserDetails, Password
 buildTaskPanel :: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)
 buildTaskPanel tree menus currentUser tst = buildTaskPanel` tree menus [] currentUser tst
 
-buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action,Bool)] !User!*TSt -> (!TaskPanel,!*TSt)
+buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action, Bool, Bool)] !User !*TSt -> (!TaskPanel,!*TSt)
 buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
@@ -124,7 +124,7 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 								, taskId = ti.TaskInfo.taskId
 								, content = containers
 								, subtaskId = Nothing
-								, groupAMenu = makeMenuBar menus [] gActions ti
+								, groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, b) <- gActions] ti
 								})
 		= (container,tst)
 	(TTParallelTask ti tpi tasks)
@@ -175,15 +175,16 @@ filterFinished container = case container.panel of
 
 buildGroupElements :: ![TaskTree] !User ![(Action,Bool)] !(Maybe [Menu]) !(Maybe String) !*TSt -> (![GroupContainerElement], !*TSt)
 buildGroupElements tasks currentUser gActions menus mbFocus tst
-	# (elements, tst)	= seqList [buildGroupElements` t [nr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
+	# (elements, tst)	= seqList [buildGroupElements` t [nr] [(a, b, True) \\ (a, b) <- gActions] Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
 	= (flatten elements, tst)
 where
-	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) !*TSt -> (![GroupContainerElement] , !*TSt)
-	buildGroupElements` (TTGroupedTask _ tasks gActions mbFocus) stnr _  _ mbFocusParent tst
+	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) !*TSt -> (![GroupContainerElement] , !*TSt)
+	buildGroupElements` (TTGroupedTask _ tasks gActions mbFocus) stnr parentGActions  _ mbFocusParent tst
 		# mbFocus = case mbFocus of
 			Nothing		= mbFocusParent
 			_			= mbFocus
 		# (gActions,tst)	= evaluateGActions gActions tst
+		# gActions			= [(a, b, False) \\ (a, b) <- gActions] ++ parentGActions
 		# (panels, tst)		= seqList [buildGroupElements` t [nr:stnr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
 		= (flatten panels, tst)
 	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour mbFocus tst
@@ -223,7 +224,7 @@ where
 		= info
 
 // === Menu Functions
-makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIDef]
+makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool,Bool)] !TaskInfo -> [TUIDef]
 makeMenuBar menus acceptedA gActions ti
 	= case menus of
 		Nothing		= []
@@ -237,45 +238,61 @@ where
 	mkMenuItems _    _ 							   id 
 		| isEmpty acceptedA && isEmpty gActions = ([], id)
 	mkMenuItems defs [MenuItem label action:items] id
-		# taskA		= filter (\(a,_) -> a == action) acceptedA
-		# groupA	= filter (\(a,_) -> a == action) gActions
+		# taskA		= filter (\(a,_)	-> a == action) acceptedA
+		# groupA	= filter (\(a,_,_)	-> a == action) gActions
 		#defs = case taskA of
 			[(taskA,taskAEnabled):_] = case groupA of
-				[(groupA,groupAEnabled):_]	= [TUIMenuItem	{TUIMenuItem	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
-																			, text = label
-																			, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "_group"))
-																			, value = Just (printToString action)
-																			, disabled = not (taskAEnabled || groupAEnabled)
-																			, menu = Nothing
-																			, iconCls = Just (getActionIcon action)
-															}
-											:defs]
-				_							= [TUIMenuItem	{TUIMenuItem	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
-																			, text = label
-																			, name = Just "menu"
-																			, value = Just (printToString action)
-																			, disabled = not taskAEnabled
-																			, menu = Nothing
-																			, iconCls = Just (getActionIcon action)
-															}
-											:defs]
+				[(groupA,groupAEnabled,_):_]		= [TUIMenuItem	{ TUIMenuItem	
+																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
+																	, text = label
+																	, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "_group"))
+																	, value = Just (printToString action)
+																	, disabled = not (taskAEnabled || groupAEnabled)
+																	, menu = Nothing
+																	, iconCls = Just (getActionIcon action)
+																	, topGroupAction = Just False
+																	}
+													:defs]
+				_									= [TUIMenuItem	{ TUIMenuItem
+																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
+																	, text = label
+																	, name = Just "menu"
+																	, value = Just (printToString action)
+																	, disabled = not taskAEnabled
+																	, menu = Nothing
+																	, iconCls = Just (getActionIcon action)
+																	, topGroupAction = Just False
+																	}
+													:defs]
 			_ = case groupA of
-				[(groupA,groupAEnabled):_]	= [TUIMenuItem	{TUIMenuItem	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
-																			, text = label
-																			, name = Just "_group"
-																			, value = Just (printToString action)
-																			, disabled = not groupAEnabled
-																			, menu = Nothing
-																			, iconCls = Just (getActionIcon action)
-															}
-											:defs]
-				_							= defs
+				[(groupA,groupAEnabled,topLevel):_]	= [TUIMenuItem	{ TUIMenuItem
+																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
+																	, text = label
+																	, name = Just "_group"
+																	, value = Just (printToString action)
+																	, disabled = not groupAEnabled
+																	, menu = Nothing
+																	, iconCls = Just (getActionIcon action)
+																	, topGroupAction = Just topLevel
+																	}
+														:defs]
+				_									= defs
 		= mkMenuItems defs items (id + 1)
-	mkMenuItems defs [SubMenu label sitems:items]  id
+	mkMenuItems defs [SubMenu label sitems:items] id
 		#(children,id) = mkMenuItems [] sitems id
 		| isEmpty children	= mkMenuItems defs items id
-		| otherwise			= mkMenuItems [TUIMenuItem {TUIMenuItem | id = Nothing, text = label, menu = Just {TUIMenu | items = children}, disabled = False, name = Nothing, value = Nothing, iconCls = Nothing}:defs] items id
-	mkMenuItems defs [MenuSeparator:items]         id = mkMenuItems ndefs items id
+		| otherwise			= mkMenuItems [TUIMenuItem	{ TUIMenuItem
+														| id = Nothing
+														, text = label
+														, menu = Just {TUIMenu | items = children}
+														, disabled = False
+														, name = Nothing
+														, value = Nothing
+														, iconCls = Nothing
+														, topGroupAction = Nothing
+														}
+							:defs] items id
+	mkMenuItems defs [MenuSeparator:items] id = mkMenuItems ndefs items id
 	where
 		// add separators only where needed
 		ndefs = case defs of
@@ -291,7 +308,7 @@ where
 			[TUIMenuSeparator:defs]	= defs
 			defs					= defs
 
-determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) !Bool ![(Action,Bool)] ![(Action,Bool)] !TaskInfo -> [TUIUpdate]
+determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) !Bool ![(Action,Bool)] ![(Action,Bool,Bool)] !TaskInfo -> [TUIUpdate]
 determineUpdates upd mbMenus menusChanged acceptedA gActions ti
 	= case mbMenus of
 		Nothing		= upd
@@ -299,23 +316,22 @@ determineUpdates upd mbMenus menusChanged acceptedA gActions ti
 			| menusChanged	= [TUIReplaceMenu (makeMenuBar mbMenus acceptedA gActions ti):upd]
 			| otherwise		= fst (determineMenuUpd upd menus 0)
 where
-	acceptedActions = acceptedA ++ gActions
-
 	determineMenuUpd upd [Menu _ items:menus] id
-		#(upd,id) = determineItemUpd upd items id
+		# (upd,id) = determineItemUpd upd items id
 		= determineMenuUpd upd menus id
 	determineMenuUpd upd [] id = (upd,id)
 	determineItemUpd upd [SubMenu _ sitems:items] id
-		#(upd,id) = determineItemUpd upd sitems id
+		# (upd,id) = determineItemUpd upd sitems id
 		= determineItemUpd upd items id
 	determineItemUpd upd [MenuItem _ action:items] id
-		#accAction = filter (\(a,_) -> a == action) acceptedActions
+		# accAction = [b \\ (a,b) <- acceptedA | a == action] ++ [b \\ (a,b,_) <- gActions | a == action]
 		| isEmpty accAction	= determineItemUpd upd items (id + 1)
-		| otherwise			= determineItemUpd [TUISetEnabled (ti.TaskInfo.taskId +++ "-menu-" +++ toString id) (snd (hd accAction)):upd] items (id + 1)
+		| otherwise			= determineItemUpd [TUISetEnabled (ti.TaskInfo.taskId +++ "-menu-" +++ toString id) (hd accAction):upd] items (id + 1)
 	determineItemUpd upd [MenuSeparator:items] id = determineItemUpd upd items id
 	determineItemUpd upd [MenuName _ item:items] id = determineItemUpd upd [item:items] id
 	determineItemUpd upd [] id = (upd,id)
-	
+
+evaluateGActions :: ![(Action, Either Bool (*TSt -> (Bool, *TSt)))] !*TSt -> ([(Action, Bool)], *TSt)
 evaluateGActions gActions tst = seqList [evaluateGAction action \\ action <- gActions] tst
 where
 	evaluateGAction (action,cond) tst = case cond of

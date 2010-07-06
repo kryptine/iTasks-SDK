@@ -27,11 +27,11 @@ textEditorApp =
 where
 	groupActions :: !(DBid Int) !(MDITasks EditorState Bool) -> [GroupAction GAction Void Int]
 	groupActions gid mdiTasks=:{createEditor, iterateEditors} =
-		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])							GroupAlways
-		, GroupAction		ActionOpen		(GExtend [openDialog mdiTasks <<@ GBFloating])					GroupAlways
+		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])						GroupAlways
+		, GroupAction		ActionOpen		(GExtend [openDialog mdiTasks <<@ GBFloating])				GroupAlways
 		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks False])	GroupAlways
-		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])							GroupAlways
-		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])						GroupAlways
+		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])						GroupAlways
+		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])					GroupAlways
 		]									
 						
 ActionReplace	:== ActionLabel "replace"
@@ -48,8 +48,8 @@ openDialog :: !(MDITasks EditorState a) -> Task GAction
 openDialog mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
-					(showMessageAbout "Open File" "No files to open!" <<@ ExcludeGroupActions >>| continue)
-					(										enterChoiceA "Open File" buttons files <<@ ExcludeGroupActions
+					(showMessageAbout "Open File" "No files to open!" >>| continue)
+					(										enterChoiceA "Open File" buttons files
 						>>= \(action,(name, Hidden fid)).	case action of
 					 										ActionOk	=	open fid mdiTasks True
 					 										_			=	continue
@@ -88,7 +88,7 @@ where
 
 about :: Task GAction
 about =
-		showMessageAbout "About" "iTextEditor July 2010" <<@ ExcludeGroupActions
+		showMessageAbout "About" "iTextEditor July 2010"
 	>>|	continue
 
 quit :: !(MDIIterateEditors EditorState Bool) -> Task GAction	

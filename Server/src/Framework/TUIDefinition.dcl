@@ -321,6 +321,7 @@ derive gEq TUIDef
 	, menu			:: !Maybe TUIMenu
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String
+	, topGroupAction:: !Maybe Bool
 	}
 :: TUITuple =
 	{ layout		:: !String

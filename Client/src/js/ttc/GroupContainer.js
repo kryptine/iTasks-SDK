@@ -28,12 +28,13 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 	
 	createContainer: function(cont, behaviour, idx, focus) {
 		var group = this;
-		this.setupChildContainer(cont, behaviour);
 		
 		// check for behaviour stored in cookie for containers which can be (un)pinned
 		if (behaviour == 'GBFixed' || behaviour == 'GBFloating')
 			behaviour = Ext.state.Manager.get(this.taskId + '_' + idx + '_behaviour', behaviour);
-	
+		
+		this.setupChildContainer(cont, behaviour);
+		
 		switch(behaviour) {
 			case 'GBFixed':
 			case 'GBAlwaysFixed':
@@ -79,6 +80,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 							window.destroy();
 							Ext.state.Manager.set(group.taskId + '_' + idx + '_behaviour', 'GBFixed');
 							group.createContainer(cont, 'GBFixed', idx, true);
+							group.showAllMenuItems(cont.getTopToolbar());
 							group.renderFixed();
 						}
 					}];
@@ -127,9 +129,10 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 						group.fixedCont.remove(panel);
 						panel.destroy();
 
-						// copy toolbar back from shared one
+						// copy toolbar back from shared one & hide menu items referring to top group actions
 						if(cont.getXType() == 'itasks.ttc.form' || cont.getXType() == 'itasks.ttc.message') {
 							group.copyTbar(group.getTopToolbar(), cont.getTopToolbar());
+							group.hideTopGroupActionMenuItems(cont.getTopToolbar());
 						}
 
 						// hack: remove fixed width of footer
@@ -170,6 +173,11 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			if (!cont.rendered) {
 				cont.renderTo = this.getEl();
 				cont = Ext.create(cont);
+				
+				// hide menu items referring to top group actions
+				if(cont.get(0).getXType() == 'itasks.ttc.form' || cont.get(0).getXType() == 'itasks.ttc.message')
+					this.hideTopGroupActionMenuItems(cont.get(0).getTopToolbar());
+				
 				// fix size of window
 				var s = cont.getSize();
 				cont.setSize(s.width > cont.minWidth ? s.width : cont.minWidth, s.height);
@@ -380,6 +388,81 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			if(!wt) return;
 			wt.sendTaskUpdates(this.taskId,this.taskUpdates);
 			this.taskUpdates = {};
+		}
+	},
+	
+	hideTopGroupActionMenuItems: function(item, options) {
+		if(Ext.isBoolean(item.topGroupAction)) {
+			// items is a normal menu item
+			if (item.topGroupAction) {
+				// hide top group actions
+				item.hide();
+			} else {
+				// there is a non-hidden item
+				// no separator has to be hidden and the menu can stay enabled
+				options.hideNextSeparator = false;
+				options.hideSeparatorOnEnd = false;
+				options.disableMenu = false;
+			}
+		} else if (item.getXType() == 'menuseparator') {
+			if (options.hideNextSeparator)
+				// hide separator
+				item.hide();
+			else
+				// do not hide separator at the moment,
+				// but possibly later if it would be the last item of the menu
+				options.hideSeparatorOnEnd = item;
+				
+			// no two consecutive separators
+			options.hideNextSeparator = true;
+		} else {
+			// start of new (sub menu)
+			var newOpts = {
+				disableMenu: true,
+				hideNextSeparator: true,
+				hideSeparatorOnEnd: false
+			};
+				
+			var children =  item.items || item.menu.items;
+
+			for(var i = 0; i < children.length; i++) {
+				this.hideTopGroupActionMenuItems(children.get(i), newOpts);
+			}
+
+			if (item.getXType() != 'toolbar') {
+				// possibly hide last separator
+				if (newOpts.hideSeparatorOnEnd)
+					newOpts.hideSeparatorOnEnd.hide();
+				
+				// disable empty main and hide empty submenus
+				if (newOpts.disableMenu)
+					if (item.getXType() == 'button')
+						item.disable();
+					else
+						item.hide();
+			}
+		}
+	},
+	
+	showAllMenuItems: function(item) {
+		if(item.name || item.getXType() == 'menuseparator') {
+			// show all normal item & separators
+			item.show();
+		} else {
+			if (item.getXType() == 'button' && item.menu.items.length == 0) {
+				// disable empty main menus
+				item.disable();
+				return;
+			} else {
+				// show & enable all non-empty main and all submenus
+				item.enable();
+				item.show();
+			}
+			
+			var children =  item.items || item.menu.items;
+			for(var i = 0; i < children.length; i++) {
+				this.showAllMenuItems(children.get(i));
+			}
 		}
 	}
 });

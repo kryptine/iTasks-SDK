@@ -90,8 +90,8 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 			if(item.disabled)
 				return true;
 				
-			if(item.name) {
-				return item.name == '_group';
+			if(Ext.isDefined(item.topGroupAction)) {
+				return item.topGroupAction;
 			} else if (item.getXType() != 'menuseparator') {
 				var children =  item.items || item.menu.items;
 				for(var i = 0; i < children.length; i++) {
