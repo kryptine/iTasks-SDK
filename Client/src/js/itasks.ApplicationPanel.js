@@ -85,19 +85,22 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 		});
 		
 		worklist.on("workListRefreshed",function(worklist) {
-		
-			/*worklist.workStore.each(function(){
-				var tab = worktabs.getComponent("worktab-"+this.data.taskid);
-				var wlTStamp = this.data.latestExtEvent;
+			var f = function(node){
+				if(!node.attributes.taskId) return true;
+				
+				var tab = worktabs.getComponent("worktab-"+node.attributes.taskId);
+				var wlTStamp = node.attributes.properties.systemProps.latestExtEvent
 				
 				if(tab != null){
-					var tTStamp = tab.properties.systemProps.latestEvent
+					var tTStamp = tab.properties.systemProps.latestEvent;
+					
+					if(wlTStamp > tTStamp) tab.refresh();
+				}
 				
-					if(wlTStamp > tTStamp){
-						tab.refresh();
-					}				
-				}				
-			});*/
+				return true;
+			}
+
+			worklist.treeGrid.getRootNode().cascade(f);
 		});
 		
 		newpanel.on("processStarted",function(taskid) {

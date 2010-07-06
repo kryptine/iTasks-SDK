@@ -93,6 +93,10 @@ button.icon-expand-tree, .icon-expand-tree {
 	background-image: url('img/icons/expand-all.gif') !important;
 }
 
+.new-task-node { 
+	font-weight: bold;
+}
+
 .icon-task-tree {
 	background-image: url('img/icons/chart_organisation.png');
 }

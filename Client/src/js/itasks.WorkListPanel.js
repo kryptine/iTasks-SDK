@@ -13,7 +13,7 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 				{id: 'subject', header: 'Subject', dataIndex: 'subject', width: 300},
 				{id: 'priority', header: 'Priority', dataIndex: 'priority', width: 100},
 				{id: 'progress', header: 'Progress', dataIndex: 'progress', width: 100},
-				{id: 'manager', header: 'Managed by', dataIndex: 'manager', width: 100},
+				{id: 'manager', header: 'Managed by', dataIndex: 'manager', width: 150},
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', width: 120},
 				//{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
 				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', width: 100}
@@ -66,8 +66,11 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 	
 	buildTree : function(data){		
 		var buildNode = function(d, isLeaf){
+			
+			var newCls = (d.properties.systemProps.firstEvent == d.properties.systemProps.latestEvent)?'new-task-node':''
+			
 			return new Ext.tree.TreeNode({
-				cls: 'worklist-node',
+				cls: 'worklist-node '+newCls,
 				uiProvider: Ext.ux.tree.TreeGridNodeUI,
 				leaf: isLeaf,
 				iconCls: 'task-int',
@@ -77,6 +80,7 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 				manager: Ext.util.Format.htmlEncode(d.properties.systemProps.manager),
 				timestamp: itasks.util.formatDate(d.properties.systemProps.issuedAt),
 				deadline: itasks.util.formatDeadline(d.properties.managerProps.deadline),
+				properties: d.properties,
 				taskId: d.taskId
 			});
 		}
@@ -132,7 +136,13 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 	},
 	
 	markRead : function(taskId){
-	
+				
+		var f = function(){
+			if(this.attributes.taskId == taskId) this.ui.removeClass('new-task-node');
+			return true;
+		}
+		
+		this.treeGrid.getRootNode().cascade(f);
 	}
 });
 
