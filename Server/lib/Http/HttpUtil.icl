@@ -199,7 +199,7 @@ http_encodeResponse {rsp_headers = headers, rsp_data = data} withreply world //W
 	# reply = if withreply
 			("HTTP/1.0 " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
 			("Status: " +++ (http_getValue "Status" headers "200 OK") +++ "\r\n")
-	# reply = reply +++ ("Date: " +++ (http_getValue "Date" headers (now tm)) +++ "\r\n")								//Date
+	# reply = reply +++ ("Date: " +++ (http_getValue "Date" headers (now tm)) +++ "\r\n")										//Date
 	# reply = reply +++ ("Server: " +++ (http_getValue "Server" headers "Clean HTTP 1.0 Server") +++ "\r\n")					//Server identifier	
 	# reply = reply +++	("Content-Type: " +++ (http_getValue "Content-Type" headers "text/html") +++ "\r\n")					//Content type header
 	# reply = reply +++	("Content-Length: " +++ (toString (size data)) +++ "\r\n")												//Content length header

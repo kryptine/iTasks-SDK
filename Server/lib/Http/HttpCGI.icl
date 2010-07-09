@@ -16,7 +16,7 @@ HTTP_CGI_HEADERS :==[ ("Content-Type","CONTENT_TYPE")
 					]
 
 //Starts the CGI Wrapper
-http_startCGI :: [HTTPCGIOption] [((String -> Bool),(HTTPRequest *World-> (HTTPResponse,*World)))] *World -> *World
+http_startCGI :: [HTTPCGIOption] [((String -> Bool),(HTTPRequest *World-> (HTTPResponse,HTTPServerControl,*World)))] *World -> *World
 http_startCGI options handlers world
 	# (console, world)		= stdio world
 	# (ok,console)			= freopen console FReadData
@@ -32,7 +32,7 @@ http_startCGI options handlers world
 													client_name = getClientName}
 	
 	# request				= if (getParseOption options) (http_parseArguments request) request
-	# (response,world)		= http_makeResponse request handlers (getStaticOption options) world
+	# (response,_,world)	= http_makeResponse request handlers (getStaticOption options) world
 	# (response,world)		= http_encodeResponse response False world
 	# (ok,console)			= freopen console FWriteData
 	# console				= fwrites response console
