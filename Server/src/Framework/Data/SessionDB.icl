@@ -67,8 +67,9 @@ findSession sid before [s=:{sessionId}:after]
 						
 genSessionId :: !*IWorld -> (!String, !*IWorld)
 genSessionId iworld=:{IWorld|world}
-	# (Clock seed, world)	= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt seed]) , {IWorld|iworld & world = world})
+	# (Timestamp t, world)	= time world
+	# (Clock c, world)		= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (t+c)]) , {IWorld|iworld & world = world})
 
 getTimeStamp :: !*IWorld -> (!Int, !*IWorld)
 getTimeStamp iworld=:{IWorld|world}

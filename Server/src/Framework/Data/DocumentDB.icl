@@ -58,8 +58,9 @@ documentStore fn iworld=:{IWorld|store,world}
 
 genDocumentId :: !*IWorld -> (!DocumentId, !*IWorld)
 genDocumentId iworld=:{IWorld|world}
-	# (Clock seed, world)	= clock world
-	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt seed]) ,{iworld & world = world})
+	# (Timestamp t, world)	= time world
+	# (Clock c, world)		= clock world
+	= (toString (take 32 [toChar (97 +  abs (i rem 26)) \\ i <- genRandInt (t+c)]) ,{iworld & world = world})
 
 
 
