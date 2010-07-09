@@ -273,7 +273,7 @@
 /* Monitor Container */
 .MonitorContainer {
 	background-color: #eee;
-	#background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
+	background-image : url('img/ttc-icons/TTCMessageContainer.png') !important;
 	background-repeat: no-repeat ;
 	background-position: 3px 3px;
 }

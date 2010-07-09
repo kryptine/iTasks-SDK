@@ -12,6 +12,7 @@ derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, Gro
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone)							= [JSONString "done"]
 JSONEncode{|TaskPanel|} (TaskRedundant)						= [JSONString "redundant"]
+JSONEncode{|TaskPanel|} (TaskNotDone)						= [JSONString "notdone"]
 JSONEncode{|TaskPanel|} (TTCFormContainer x)				= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCMonitorContainer x)				= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCMessageContainer x)				= JSONEncode{|*|} x
@@ -141,6 +142,20 @@ where
 	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
 		IncludeGroupActions	= True
 		ExcludeGroupActions	= False
+
+buildResultPanel :: !TaskTree -> TaskPanel
+buildResultPanel tree = case tree of 
+	(TTFinishedTask	ti result)
+		= (TTCResultContainer {TTCResultContainer
+								| xtype 	= "itasks.ttc.result"
+								, id 		= "taskform-" +++ ti.TaskInfo.taskId
+								, taskId	= ti.TaskInfo.taskId
+								, label		= ti.TaskInfo.taskLabel
+								, result	= (foldl (+++) "" (map toString result))
+								, subtaskId	= Nothing
+								})
+	_	
+		= TaskNotDone
 
 buildSubtaskInfo :: ![TaskTree] !User -> [SubtaskInfo]
 buildSubtaskInfo tasks manager = [buildSubtaskInfo` t \\ t <- tasks]

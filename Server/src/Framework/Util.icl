@@ -12,11 +12,21 @@ derive gParse	Maybe, Void, (,), (,,), (,,,), (,,,,)
 
 derive bimap	Maybe, (,)
 
-iTaskId :: !TaskNr !String -> String
-iTaskId tasknr postfix 
-	# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
-	| postfix == ""		= "iTask_" +++ (taskNrToString tasknr) 
-	| otherwise			= "iTask_" +++ (taskNrToString tasknr) +++ "-" +++ postfix
+instance iTaskId TaskNr
+where
+	iTaskId :: !TaskNr !String -> String
+	iTaskId tasknr postfix 
+		# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
+		| postfix == ""		= "iTask_" +++ (taskNrToString tasknr) 
+		| otherwise			= "iTask_" +++ (taskNrToString tasknr) +++ "-" +++ postfix
+
+instance iTaskId TaskId
+where
+	iTaskId :: !TaskId !String -> String
+	iTaskId taskid postfix
+		# postfix	=	{ c \\ c <-: postfix | not (isMember c ['\\\"/:*?<>|"']) }		// throw away characters not allowed in a file name
+		| postfix == ""		= "iTask_" +++ taskid 
+		| otherwise			= "iTask_" +++ taskid +++ "-" +++ postfix
 
 (+++>) infixr 5	:: !a !String -> String | gVisualize{|*|} a
 (+++>) a s = visualizeAsTextLabel a +++ s

@@ -442,6 +442,8 @@ applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInf
 		Nothing		
 			= tst
 
+import StdDebug
+
 calculateTaskTree :: !TaskId ![TaskUpdate] !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree taskId updates tst
 	# (mbProcess,tst) = getProcess taskId tst
@@ -462,6 +464,11 @@ calculateTaskTree taskId updates tst
 					= (tree,tst)
 				_		
 					//retrieve process result from store and show it??
+					# tst=:{TSt | iworld=iworld=:{store,world}} = tst
+					# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world				
+					# result = case mbContainer of
+						(Just dyn) = renderResult dyn
+						(Nothing)  = [Text "Cannot load result."]
 					# info =	{ initTaskInfo
 								& taskId			= taskId
 								, taskLabel			= properties.managerProps.subject
@@ -469,7 +476,10 @@ calculateTaskTree taskId updates tst
 								, worker			= properties.managerProps.ManagerProperties.worker
 								, taskDescription	= "Task Result"
 								}
-					= (TTFinishedTask info [], tst)
+					= (TTFinishedTask info result, {TSt | tst & iworld = {IWorld | iworld & store = store, world = world}})
+where
+	renderResult :: Dynamic -> [HtmlTag]
+	renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value				
 
 calculateTaskForest :: ![TaskUpdate] !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest updates tst 
@@ -686,6 +696,8 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 					# tst=:{TSt|iworld =iworld=:{IWorld|store}}	= deleteTaskStates taskNr tst					
 					// Store final value if the process is not garbage collected
 					# store					= if(gc) store (storeValue taskId result store)
+					// Store the final value and it's type as a dynamic value, so it can be visualized by the task-result service later.
+					# store					= if(gc) store (storeValueAs SFDynamic (taskId+++"-container") (dynamic (Container a) :: Container a^ a^) store)
 					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a))
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskFinished a, tst)

@@ -80,6 +80,26 @@ taskService url html path req tst
 					# (tui,tst)		= buildTaskPanel tree Nothing session.Session.user tst //TODO: Clean up this conversion. TSt should be irrelevant 
 					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menu),("tui",toJSON tui)]
 					= (serviceResponse html "task user interface" url tuiParams json, tst)
+		
+		//taskId/result -> show result of a finished in serialized form (to be implemented)
+		
+		//Show the result of a finished task as interface definition	
+		[taskId,"result","tui"]
+			| isJust mbSessionErr
+				= (serviceResponse html "task result user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)
+			/*# (mbProcess, tst)	= case session.Session.user of
+				RootUser		= getProcess taskId tst
+				user			= getProcessForUser user taskId tst*/
+			# (mbProcess, tst) = getProcess taskId tst
+			= case mbProcess of
+				Nothing 
+					= (notFoundResponse req, tst)
+				Just proc
+					# task			= taskItem proc
+					# (tree,tst)	= calculateTaskTree taskId [] tst
+					# tui			= buildResultPanel tree
+					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
+					= (serviceResponse html "task result user interface" url tuiParams json, tst)
 		_
 			= (notFoundResponse req, tst)		
 where

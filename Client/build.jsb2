@@ -54,6 +54,7 @@
 		,{"text":"itasks.TaskForestTabPanel.js","path":"src/js/"}
 		,{"text":"itasks.ProcessTableTabPanel.js","path":"src/js/"}
 		,{"text":"itasks.WorkTabPanel.js","path":"src/js/"}
+		,{"text":"itasks.ResultTabPanel.js","path":"src/js/"}
 		,{"text":"itasks.WorkTabsPanel.js","path":"src/js/"}
 		,{"text":"itasks.ApplicationPanel.js","path":"src/js/"}
 		,{"text":"itasks.Application.js","path":"src/js/"}

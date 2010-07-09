@@ -43,6 +43,27 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		//Return a reference to the new tab
 		return [tab,isnew];
 	},
+	openResultTab: function(taskid) {
+		var id = "resulttab-" + taskid;
+		var tab = this.getComponent(id);
+		var isnew = false;
+		
+		if(tab == undefined){
+			isnew = true;
+			tab = new itasks.ResultPanel({id: id, taskId: taskid});
+			
+			this.add(tab);
+			this.activate(tab);
+			this.doLayout();
+			tab.refresh();
+		}else{
+			this.activate(tab);
+		}
+		
+		this.fireEvent("taskOpened", taskid);
+		
+		return [tab,isnew];	
+	},
 	openDebugTab: function() {
 		var tab = this.getComponent("debugtab");
 		if(tab == undefined) {

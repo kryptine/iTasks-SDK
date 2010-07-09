@@ -86,14 +86,15 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 		}
 		
 		var buildSubTree = function(parent){
-			var children = [];
 		
+			var children = [];
+			
 			for(var i=0; i < treeData.length; i++){
 				var d = treeData[i];
 				
 				if(d.parent == parent){					
 					var childNodes = buildSubTree(d.taskId);	
-					var node = buildNode(d, (childNodes > 0)?true:false);					
+					var node = buildNode(d, (childNodes.length > 0)?false:true);					
 					treeData.splice(i,1);
 					i--;
 					node.appendChild(childNodes);
@@ -103,12 +104,19 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 
 			return children;		
 		};
-		
+				
 		var treeData = data;
+		
+		//first build top level (parent == undefined)
 		var children = buildSubTree();
 		
+		//build all other trees
 		for(var i=0; i < treeData.length; i++){
-			children.push(buildNode(treeData[i]));
+			var d = treeData[i];
+			var c = buildSubTree(d.taskId);
+			var n = buildNode(d, (c.length > 0)?false:true);
+			n.appendChild(c);
+			children.push(n);
 		}
 		
 		this.treeGrid.getRootNode().removeAll();

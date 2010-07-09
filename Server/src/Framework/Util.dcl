@@ -8,7 +8,12 @@ import GenPrint, GenParse, GenVisualize, GenUpdate, GenVerify
 derive gPrint 		Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
 derive gParse 		Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
 
-iTaskId 			:: !TaskNr !String 	-> String
+class iTaskId a
+where
+	iTaskId 			:: !a !String 	-> String
+	
+instance iTaskId TaskNr
+instance iTaskId TaskId
 
 (+++>) infixr 5		:: !a	!String	-> String | gVisualize{|*|} a
 (<+++) infixl 5		:: !String	!a	-> String | gVisualize{|*|} a

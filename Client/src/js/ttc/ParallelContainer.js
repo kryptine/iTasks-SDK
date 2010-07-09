@@ -82,11 +82,23 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 		});
 		
 		this.grid.on('afteredit', this.handleChange, this);
+		this.grid.on('rowdblclick', this.handleDblClick, this);
 	},
 	
 	handleChange : function(edit){
-		console.log(edit);
+		/* TODO: set properties */
 		this.grid.store.commitChanges();
+	},
+	
+	handleDblClick : function(grid,row,e){
+		var rec = grid.getStore().getAt(row);
+		var taskId = rec.data.taskId;
+		var finished = rec.data.finished;
+		
+		if(finished){
+			var worktabs = grid.findParentByType(itasks.WorkTabsPanel);
+			var tab = worktabs.openResultTab(taskId);
+		}
 	},
 	
 	update : function(data){

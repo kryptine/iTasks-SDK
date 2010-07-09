@@ -11,6 +11,7 @@ import	UserDB, ProcessDB
 import  Store
 import	TuningCombinators
 import  Types
+import	Text
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
@@ -115,64 +116,7 @@ derive bimap Maybe, (,)
 	{ state :: b
 	, tasks :: [(Task a,Bool)]
 	}
-
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
-parallel parType label description procFun parseFun initState initTasks 
-	| isEmpty initTasks	= return (parseFun initState)
-	| otherwise = mkParallelTask label {TaskParallelInfo | type = parType, description = description} execInParallel
-where
-	execInParallel tst=:{taskNr}
-		# (pst,tst)			= loadPSt taskNr tst
-		# (result,pst,tst)	= processAllTasks pst 0 tst
-		# tst				= setTaskStoreFor taskNr "pst" pst tst	
-		= case result of
-			TaskException e
-				= (TaskException e,tst)
-			TaskFinished r
-				= (TaskFinished (parseFun r),tst)
-			TaskBusy
-				= (TaskBusy,tst)
 	
-	processAllTasks pst idx tst=:{TSt | properties}
-		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
-		# (task,done)				= pst.tasks !! idx
-		# (res,tst)					= applyTask task tst
-		= case res of
-			TaskException e = (TaskException e,pst,tst)
-			TaskBusy		= processAllTasks pst (inc idx) tst
-			TaskFinished a	
-				| done			= processAllTasks pst (inc idx) tst
-				# (nSt,act)		= procFun (a,idx) pst.state
-				# pst			= markProcessed {PSt | pst & state = nSt} idx
-				= case act of
-					Stop 		= (TaskFinished pst.state,pst,tst)
-					Continue	= processAllTasks pst (inc idx) tst
-					Extend tlist
-						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task properties.managerProps.ManagerProperties.worker,False) \\ task <- tlist]}
-						= processAllTasks pst (inc idx) tst
-		
-	loadPSt taskNr tst
-		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
-		= case mbPSt of	(Just p) = (p,tst); Nothing  = initPSt taskNr tst
-	
-	initPSt taskNr tst=:{TSt | properties}
-		# pst = { PSt
-				| state = initState
-				, tasks = [(assignTask task properties.managerProps.ManagerProperties.worker, False) \\ task <- initTasks]
-				}
-		# tst = setTaskStoreFor taskNr "pst" pst tst
-		= (pst,tst)
-
-	assignTask task worker
-		= case (taskUser task) of
-			AnyUser = createOrEvaluateTaskInstance worker (Just parType) task //Just let the current user (worker) do it
-			user	= createOrEvaluateTaskInstance user (Just parType) task	
-		
-	markProcessed pst idx
-	# (t,b) 	= pst.tasks !! idx
-	# tasks 	= updateAt idx (t,True) pst.tasks
-	= {PSt | pst & tasks = tasks}			
-
 //TODO : CLEAN UP!
 group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
 group label description procFun parseFun initState initTasks groupActions = execInGroup Nothing label description procFun parseFun initState initTasks (Just groupActions)
@@ -266,7 +210,7 @@ where
 		= case (taskUser task) of
 			AnyUser = task 			//Just let the current user do it
 			user	= createOrEvaluateTaskInstance user mbParType task
-		
+			
 	mkTpi parType =
 		{ TaskParallelInfo
 		| type = parType
@@ -302,8 +246,67 @@ where
 	
 	getResult	(ActionParam _ param)	(GroupActionParam _ f _)	= f param
 	getResult	_						(GroupAction _ res _)		= res
+
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+parallel parType label description procFun parseFun initState initTasks 
+	| isEmpty initTasks	= return (parseFun initState)
+	| otherwise = mkParallelTask label {TaskParallelInfo | type = parType, description = description} execInParallel
+where
+	execInParallel tst=:{taskNr}
+		# parTaskNr			= tl taskNr		
+		# (pst,tst)			= trace_n("Init "+++taskNrToString parTaskNr) loadPSt parTaskNr tst
+		# (result,pst,tst)	= processAllTasks pst 0 tst
+		# tst				= setTaskStoreFor parTaskNr "pst" pst tst	
+		= case result of
+			TaskException e
+				= (TaskException e,tst)
+			TaskFinished r
+				# tst = clearSubTaskWorkers (taskNrToString parTaskNr) (Just parType) tst
+				= (TaskFinished (parseFun r),tst)
+			TaskBusy
+				= (TaskBusy,tst)
 	
-				
+	processAllTasks pst idx tst=:{TSt | properties}
+		| (length pst.tasks) == idx = (TaskBusy,pst,tst)
+		# (task,done)				= pst.tasks !! idx
+		# (res,tst)					= applyTask task tst
+		= case res of
+			TaskException e = (TaskException e,pst,tst)
+			TaskBusy		= processAllTasks pst (inc idx) tst
+			TaskFinished a	
+				| done			= processAllTasks pst (inc idx) tst
+				# (nSt,act)		= procFun (a,idx) pst.state
+				# pst			= markProcessed {PSt | pst & state = nSt} idx
+				= case act of
+					Stop 		= (TaskFinished pst.state,pst,tst)
+					Continue	= processAllTasks pst (inc idx) tst
+					Extend tlist
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task properties.managerProps.ManagerProperties.worker,False) \\ task <- tlist]}
+						= processAllTasks pst (inc idx) tst
+		
+	loadPSt taskNr tst
+		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
+		= case mbPSt of	(Just p) = (p,tst); Nothing  = initPSt taskNr tst
+	
+	initPSt taskNr tst=:{TSt | properties}
+		# pst = { PSt
+				| state = initState
+				, tasks = [(assignTask task properties.managerProps.ManagerProperties.worker, False) \\ task <- initTasks]
+				}
+		# tst = setTaskStoreFor taskNr "pst" pst tst
+		= (pst,tst)
+
+	assignTask task worker
+		= case (taskUser task) of
+			AnyUser = createOrEvaluateTaskInstance worker (Just parType) task //Just let the current user (worker) do it
+			user	= createOrEvaluateTaskInstance user (Just parType) task	
+		
+	markProcessed pst idx
+	# (t,b) 	= pst.tasks !! idx
+	# tasks 	= updateAt idx (t,True) pst.tasks
+	= {PSt | pst & tasks = tasks}			
+
+
 /*
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
@@ -340,7 +343,7 @@ where
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
 						//Comment out(?): Subtask workers should not be removed here, because when their access is removed, they cannot see the results of the other users
-						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst	 
+						//# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
 						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
@@ -349,12 +352,14 @@ where
 						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
 						= (TaskException e, tst)
 
+import StdDebug
+
 addSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt
 addSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProps.subTaskWorkers]}}} 
+			(Just Open)		= trace_n("Add "+++toString user) {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProps.subTaskWorkers]}}} 
 
 removeSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt			
 removeSubTaskWorker procId user mbpartype tst
@@ -368,7 +373,7 @@ clearSubTaskWorkers procId mbpartype tst
 	= case mbpartype of
 		Nothing			= tst
 		(Just Closed)	= tst
-		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | pId <> procId] }}}
+		(Just Open)		= trace_n("Clear "+++procId) {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | not (startsWith procId pId)] }}}
 
 spawnProcess :: !User !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess user activate gcWhenDone task = mkInstantTask "spawnProcess" spawnProcess`

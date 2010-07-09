@@ -93,7 +93,6 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 				
 				if(tab != null){
 					var tTStamp = tab.properties.systemProps.latestEvent;
-					
 					if(wlTStamp > tTStamp) tab.refresh();
 				}
 				

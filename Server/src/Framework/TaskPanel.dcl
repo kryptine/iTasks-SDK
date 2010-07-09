@@ -10,6 +10,7 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 
 :: TaskPanel
 	= TaskDone
+	| TaskNotDone
 	| TaskRedundant
 	| TTCFormContainer TTCFormContainer
 	| TTCMessageContainer TTCMessageContainer
@@ -123,4 +124,5 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, description	:: !String
 	}
 
-buildTaskPanel :: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)
+buildTaskPanel 		:: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)
+buildResultPanel 	:: !TaskTree 							 -> TaskPanel
