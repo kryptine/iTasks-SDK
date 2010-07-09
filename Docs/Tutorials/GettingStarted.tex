@@ -24,27 +24,27 @@ Start world = startEngine [] world
 \end{CleanCode}
 Save this file and create a new project file called "CoffeeTime.prj" by choosing "File" $\rightarrow$ "New Project..." from the IDE's menu. Set the project's environment to "iTasks" by choosing "Environment" $\rightarrow$ "iTasks" from the menu.
 \begin{figure}[h]
-\centerline{\includegraphics[width=12cm]{GettingStarted-img/ide-version1.png}}
+\centerline{\includegraphics[width=12cm]{GettingStarted-img/ide-version1.eps}}
 \caption{The Clean IDE with the CoffeeTime.icl file} \label{ide-version1}
 \end{figure}
 You can now build the project by selecting "Project" $\rightarrow$ "Update and Run" from the menu or pressing "Ctrl+R". After compilation, a command prompt will open showing the iTasks HTTP server in setup mode. This is shown in figure \ref{setup-server}.  The windows firewall may give a "Windows Security Alert". If this happens choose "Unblock" to allow the server listen to the HTTP port (80).
 \begin{figure}[h]
-\centerline{\includegraphics[width=10cm]{GettingStarted-img/setup-server.png}}
+\centerline{\includegraphics[width=10cm]{GettingStarted-img/setup-server.eps}}
 \caption{The server of your first iTasks application is running} \label{setup-server}
 \end{figure}
-If you open a browser and open the url http://localhost/ you are presented with a setup screen shown in figure \ref{setup-browser}. If you have created your project in one of the iTasks folders, like "Tutorials", "Examples" or "Assignments" all settings are set automatically and you can complete setup by clicking the "Use this default configuration" button. The server restarts and you are presented with a login screen as shown in figure \ref{login-browser}. 
+If you open a browser and open the url http://localhost/ you are presented with a setup screen shown in figure \ref{setup-browser}. If you have created your project in one of the iTasks folders, like "Tutorials", "Examples" or "Assignments" all settings are set automatically and you can complete setup by clicking the "Use this default configuration" button. The server restarts and you are presented with a login screen as shown in figure \ref{login-browser}.
 \begin{figure}[h]
-\centerline{\includegraphics[width=10cm]{GettingStarted-img/setup-browser.png}}
+\centerline{\includegraphics[width=10cm]{GettingStarted-img/setup-browser.eps}}
 \caption{Setup of an iTasks application} \label{setup-browser}
 \end{figure}
 You can log in to your application with username "root" and password "root". This is a special superuser with full access, meant for system administration. After logging in you are presented with the default user interface of an iTask application as shown in figure \ref{empty-browser}.
 \begin{figure}[h]
-\centerline{\includegraphics[width=10cm]{GettingStarted-img/login-browser.png}}
+\centerline{\includegraphics[width=10cm]{GettingStarted-img/login-browser.eps}}
 \caption{Login screen of an iTasks application} \label{login-browser}
 \end{figure}
 The default user interface of an iTask application consists of three main components. The panel on the left side of the screen shows a folder hierarchy of available workflows. Users can initiate instances of these workflows based on the roles they have. The top right panel shows a user's worklist. It is a list of tasks that you are either working on or managing. The tasks in this worklist are an aggregation of all tasks assigned to you by the currently active workflow instances. The bottom right panel is the work area. In this tabbed workspace you can open tasks by double clicking them in the worklist. Further instructions and a user interface for a task are shown in the tab of an opened task.
 \begin{figure}[h]
-\centerline{\includegraphics[width=12cm]{GettingStarted-img/empty-browser.png}}
+\centerline{\includegraphics[width=12cm]{GettingStarted-img/empty-browser.eps}}
 \caption{Default GUI of iTasks application} \label{empty-browser}
 \end{figure}
 
@@ -80,7 +80,7 @@ coffeeTime
   >>| showInstruction "Find victim" "Determine who gets the drinks"
   >>| showInstruction "Get drinks" "The unlucky one needs to go get the drinks"
 \end{CleanCode}
-This simple workfow uses the simplest sequential combinator in iTasks, the \CleanInline{>>|} combinator.  In iTasks, compound tasks are created from other tasks by using combinator functions and operators. These are functions that take other tasks as their arguments to produce a combined task. The \CleanInline{>>|} operator creates a task from two other tasks by doing its left argument first, and its right argument once the left argument is done. The result of the combination is the result of the last performed task (the rightmost one). In this case the type of the composition is \CleanInline{Void} because the type of showInstruction is \CleanInline{Void}. 
+This simple workfow uses the simplest sequential combinator in iTasks, the \CleanInline{>>|} combinator.  In iTasks, compound tasks are created from other tasks by using combinator functions and operators. These are functions that take other tasks as their arguments to produce a combined task. The \CleanInline{>>|} operator creates a task from two other tasks by doing its left argument first, and its right argument once the left argument is done. The result of the combination is the result of the last performed task (the rightmost one). In this case the type of the composition is \CleanInline{Void} because the type of showInstruction is \CleanInline{Void}.
 \section{Who wants what?}
 So far we have at least outlined the steps that are involved in getting everyone drinks at coffeetime, but the system is not very helpful yet.
 It would make it a lot easier if the system coordinated the collection of everyone's drink orders. First let's define a task to collect a single order:
@@ -109,7 +109,7 @@ The \CleanInline{>>=} combines two tasks sequentially and passes the result of t
 
 Currently our workflow is a little bit too demanding. We have to say what we want to drink. But what if we are not thirsty? We can make the workflow definition a little more friendly by making the result type of the \CleanInline{collectOrder} task optional. The result type of the \CleanInline{collectOrders} task then needs to be changed to a list of optional results. We will change the code to let the choice of drinks be preceded by the question whether someone wants something to drink. We change the specification to the following:
 \begin{CleanCode}
-collectOrders :: [UserName] -> Task [Maybe String] 
+collectOrders :: [UserName] -> Task [Maybe String]
 collectOrders users = allTasks [u @: ("Coffee time!",collectOrder) \\ u <- users]
 
 collectOrder :: Task (Maybe String)
@@ -136,7 +136,7 @@ coffeeTime :: Task Void
 coffeeTime
     =   getUserNames
     >>= \users ->
-        collectOrders users 
+        collectOrders users
     >>= \orders ->
         determineWhoGoes (orderlist users orders)
     >>= \victim ->
@@ -153,8 +153,8 @@ goGetCoffee :: UserName [(UserName,String)] -> Task Void
 goGetCoffee user orders
     = user @:
      ("Get coffee", showInstructionAbout
-                        "Coffee orders" 
-                        "You have been chosen to get the following drinks" 
+                        "Coffee orders"
+                        "You have been chosen to get the following drinks"
                         orders
      )
 \end{CleanCode}
@@ -176,7 +176,7 @@ coffeeTime :: Task Void
 coffeeTime
     =   getUserNames
     >>= \users ->
-        collectOrders users 
+        collectOrders users
     >>= \orders ->
         determineWhoGoes (orderlist users orders)
     >>= \victim ->
@@ -186,7 +186,7 @@ orderlist :: [UserName] [Maybe String] -> [(UserName,String)]
 orderlist users orders
  = [(user, fromJust order) \\ user <- users & order <- orders | isJust order]
 
-collectOrders :: [UserName] -> Task [Maybe String] 
+collectOrders :: [UserName] -> Task [Maybe String]
 collectOrders users = allTasks [u @: ("Coffee time!",collectOrder) \\ u <- users]
 
 collectOrder :: Task (Maybe String)
@@ -205,8 +205,8 @@ goGetCoffee :: UserName [(UserName,String)] -> Task Void
 goGetCoffee user orders
     = user @:
      ("Get coffee", showInstructionAbout
-                        "Coffee orders" 
-                        "You have been chosen to get the following drinks" 
+                        "Coffee orders"
+                        "You have been chosen to get the following drinks"
                         orders
      )
 
