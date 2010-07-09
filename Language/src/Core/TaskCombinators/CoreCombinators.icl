@@ -254,7 +254,7 @@ parallel parType label description procFun parseFun initState initTasks
 where
 	execInParallel tst=:{taskNr}
 		# parTaskNr			= tl taskNr		
-		# (pst,tst)			= trace_n("Init "+++taskNrToString parTaskNr) loadPSt parTaskNr tst
+		# (pst,tst)			= loadPSt parTaskNr tst
 		# (result,pst,tst)	= processAllTasks pst 0 tst
 		# tst				= setTaskStoreFor parTaskNr "pst" pst tst	
 		= case result of
@@ -352,14 +352,12 @@ where
 						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
 						= (TaskException e, tst)
 
-import StdDebug
-
 addSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt
 addSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		= trace_n("Add "+++toString user) {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProps.subTaskWorkers]}}} 
+			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProps.subTaskWorkers]}}} 
 
 removeSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt			
 removeSubTaskWorker procId user mbpartype tst
@@ -373,7 +371,7 @@ clearSubTaskWorkers procId mbpartype tst
 	= case mbpartype of
 		Nothing			= tst
 		(Just Closed)	= tst
-		(Just Open)		= trace_n("Clear "+++procId) {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | not (startsWith procId pId)] }}}
+		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | not (startsWith procId pId)] }}}
 
 spawnProcess :: !User !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess user activate gcWhenDone task = mkInstantTask "spawnProcess" spawnProcess`
