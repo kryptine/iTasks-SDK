@@ -86,28 +86,33 @@ instance < User
 					| LowPriority
 
 :: TaskProperties =
-	{ systemProps		:: SystemProperties
-	, managerProps		:: ManagerProperties
-	, workerProps		:: WorkerProperties
+	{ systemProperties	:: SystemProperties
+	, managerProperties	:: ManagerProperties
+	, workerProperties	:: WorkerProperties
 	}
 
 :: SystemProperties =
-	{ processId			:: ProcessId				// Process table identification
-	, manager			:: User						// Who is managing this task
-	, issuedAt			:: Timestamp				// When was the task created
-	, firstEvent		:: Maybe Timestamp			// When was the first work done on this task
-	, latestEvent		:: Maybe Timestamp			// When was the latest event on this task	
-	, latestExtEvent	:: Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
-	, subTaskWorkers	:: [(ProcessId, User)] 		// Users who have temporary access to the process because they work on a subprocess in an open parallel.
-	, deleteWhenDone	:: Bool						// Delete the process after completion
+	{ taskId			:: !TaskId					// Process table identification
+	, parent			:: !Maybe TaskId			// The (direct) parent process
+	, manager			:: !User					// Who is managing this task
+	, issuedAt			:: !Timestamp				// When was the task created
+	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
+	, latestEvent		:: !Maybe Timestamp			// When was the latest event on this task	
+	, latestExtEvent	:: !Maybe Timestamp			// When was the latest event from an external source (e.g. Rpc Daemon)
+	, subTaskWorkers	:: ![(ProcessId, User)] 	// Users who have temporary access to the process because they work on a subprocess in an open parallel.
+	, deleteWhenDone	:: !Bool					// Delete the process after completion
 	}
 
 :: ManagerProperties =
-	{ worker			:: User						// Who has to do the task? 
-	, subject			:: String 					// The subject of the task
-	, priority			:: TaskPriority				// What is the current priority of this task?
-	, deadline			:: Maybe Timestamp			// When is the task due?
-	, tags				:: [String]					// A list of tags
+	{ worker			:: !User					// Who has to do the task? 
+	, subject			:: !String 					// The subject of the task
+	, priority			:: !TaskPriority			// What is the current priority of this task?
+	, deadline			:: !Maybe Timestamp			// When is the task due?
+	, tags				:: ![String]				// A list of tags
+	}
+	
+:: WorkerProperties =
+	{ progress			:: !TaskProgress			// Indication of the worker's progress
 	}
 
 initManagerProperties :: ManagerProperties
@@ -119,10 +124,6 @@ initManagerProperties :: ManagerProperties
 
 initGroupedProperties :: GroupedProperties
 					
-:: WorkerProperties =
-	{ progress		:: TaskProgress		// Indication of the worker's progress
-	}
-
 :: TaskProgress		= TPActive			//Worker is happily working on the task
 					| TPStuck			//Worker is stuck and needs assistence
 					| TPWaiting			//Worker is waiting, not actively working on the task

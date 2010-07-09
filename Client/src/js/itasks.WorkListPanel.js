@@ -15,7 +15,6 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 				{id: 'progress', header: 'Progress', dataIndex: 'progress', width: 100},
 				{id: 'manager', header: 'Managed by', dataIndex: 'manager', width: 150},
 				{id: 'timestamp', header: 'Date', dataIndex: 'timestamp', width: 120},
-				//{id: 'latestExtEvent', header: 'Latest Ext Event', dataIndex: 'latestExtEvent', renderer: itasks.util.formatDate, width: 120},
 				{id: 'deadline', header: 'Deadline', dataIndex: 'deadline', width: 100}
 			],
 			root: new Ext.tree.TreeNode({
@@ -67,21 +66,20 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 	buildTree : function(data){		
 		var buildNode = function(d, isLeaf){
 			
-			var newCls = (d.properties.systemProps.firstEvent == d.properties.systemProps.latestEvent)?'new-task-node':''
+			var newCls = (d.systemProperties.firstEvent == d.systemProperties.latestEvent)?'new-task-node':''
 			
 			return new Ext.tree.TreeNode({
 				cls: 'worklist-node '+newCls,
 				uiProvider: Ext.ux.tree.TreeGridNodeUI,
 				leaf: isLeaf,
 				iconCls: 'task-int',
-				subject: d.properties.managerProps.subject,
-				priority: itasks.util.formatPriority(d.properties.managerProps.priority),
-				progress: itasks.util.formatProgress(d.properties.workerProps.progress),
-				manager: Ext.util.Format.htmlEncode(d.properties.systemProps.manager),
-				timestamp: itasks.util.formatDate(d.properties.systemProps.issuedAt),
-				deadline: itasks.util.formatDeadline(d.properties.managerProps.deadline),
-				properties: d.properties,
-				taskId: d.taskId
+				subject: d.managerProperties.subject,
+				priority: itasks.util.formatPriority(d.managerProperties.priority),
+				progress: itasks.util.formatProgress(d.workerProperties.progress),
+				manager: Ext.util.Format.htmlEncode(d.systemProperties.manager),
+				timestamp: itasks.util.formatDate(d.systemProperties.issuedAt),
+				deadline: itasks.util.formatDeadline(d.managerProperties.deadline),
+				taskId: d.systemProperties.taskId
 			});
 		}
 		
@@ -92,8 +90,8 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 			for(var i=0; i < treeData.length; i++){
 				var d = treeData[i];
 				
-				if(d.parent == parent){					
-					var childNodes = buildSubTree(d.taskId);	
+				if(d.systemProperties.parent == parent){					
+					var childNodes = buildSubTree(d.systemProperties.taskId);	
 					var node = buildNode(d, (childNodes.length > 0)?false:true);					
 					treeData.splice(i,1);
 					i--;

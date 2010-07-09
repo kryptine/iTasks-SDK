@@ -12,7 +12,7 @@ derive bimap Maybe
 simpleTest :: Task Int
 simpleTest =
 	getCurrentUser >>=
-	\user -> user @: ("Assigned Task" @>> enterInformation "Value 1")
+	\user -> user @: (Subject "Assigned Task" @>> enterInformation "Value 1")
 
 orTest :: Task Int
 orTest = (enterInformation "Value 1" -||- enterInformation "Value 2")
@@ -70,44 +70,7 @@ parNestedTest2 =
 	        , NamedUser "rinus" @>> parClosedTest
 	        ] Open
 
-parNestedTest3 :: Task [[String]]
-parNestedTest3 =
-	allProc [ NamedUser "erik" @>> subtask1
-	        , NamedUser "rinus" @>> subtask2
-	        , NamedUser "erik" @>> subtask3
-	        ] Open
-where
-	subtask1 :: Task [String]
-	subtask1 = 
-		getUsers >>= 
-		enterChoice "Please select a user" >>= \user ->
-		user @: ("Subtask 1" @>> enterInformation "List of Strings")
-		
-	subtask2 :: Task [String]
-	subtask2 =
-		enterInformation "Sorted list of Strings" >>= \list ->
-		return (sortBy (<) list)
-		
-	subtask3 :: Task [String]
-	subtask3 =
-		getUsers >>= \ulist ->
-		enterMultipleChoice "Please select round-robin users" ulist >>= \users -> 
-		parallel Open "Weird string function" "Keeps extending until user types '.'" (func users) parse (0,[]) [(hd users) @>> task]
-		where	
-			func :: ![User] !(String,Int) !(Int,[(Int,String)]) -> ((Int,[(Int,String)]),PAction (Task String))
-			func usernames (result,pos) (idx,acc)
-			| result == "." = ((idx,acc),Stop)
-			# acc = [(pos,result):acc]
-			# idx = ((idx+1) rem (length usernames))
-			# usr = usernames !! idx
-			= ((idx,acc),Extend [usr @>> task])
-	
-			task :: Task String
-			task = enterInformation "Type String, '.' to stop"
-			
-			parse :: !(Int,[(Int,String)]) -> [String]
-			parse b = snd (unzip (sortBy (\l -> \r -> (fst l) < (fst r))  (snd b)))
-			
+
 
 parNestedTest4 :: Task[[Note]]
 parNestedTest4 =
@@ -133,7 +96,6 @@ Start world = startEngine [
 			workflow "Closed Test" (parClosedTest >>= showMessageAbout "Result"),
 			workflow "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result"),
 			workflow "Nested Test 2" (parNestedTest2 >>= showMessageAbout "Result"),
-			workflow "Nested Test 3" (parNestedTest3 >>= showMessageAbout "Result"),
 			workflow "Nested Test 4" (parNestedTest4 >>= showMessageAbout "Result"),
 			workflow "Nested Test 5" (parNestedTest5 >>= showMessageAbout "Result")
 		] world 

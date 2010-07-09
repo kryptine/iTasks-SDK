@@ -13,8 +13,9 @@ from Time		import :: Timestamp
 */
 :: Process 		= {	taskId			:: !TaskId						// The process identification				  
 				  , status			:: !ProcessStatus				// The status of the process (updated after each run)
-				  , parent			:: !Maybe TaskId				// The (direct) parent process
+				  //Public process meta data
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
+				  //System internal information
 				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  , mutable			:: !Bool						// May the process be evaluated further (required for duplication of processes by changes)
 				  , menus			:: !(Maybe [Menu])

@@ -6,16 +6,13 @@ import StdList
 import ProcessDB
 import TaskPanel
 
-derive JSONEncode TaskItem
+derive bimap (,), Maybe
+
 derive JSONEncode Menu, MenuItem, Action
+derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
 
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
-
-:: TaskItem =
-	{ taskId		:: !TaskId
-	, parent		:: !Maybe TaskId
-	, properties	:: !TaskProperties
-	}
+JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst
@@ -80,16 +77,42 @@ taskService url html path req tst
 					# (tui,tst)		= buildTaskPanel tree Nothing session.Session.user tst //TODO: Clean up this conversion. TSt should be irrelevant 
 					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menu),("tui",toJSON tui)]
 					= (serviceResponse html "task user interface" url tuiParams json, tst)
+
+		//Show / update Manager properties
+
+		[taskId,"managerProperties"]
+			| isJust mbSessionErr
+				= (serviceResponse html "Manager properties" url propParams (jsonSessionErr mbSessionErr), tst)			
+			# (mbProcess, tst)	= case session.Session.user of
+				RootUser
+								= getProcess taskId tst
+				user			= getProcessForUser user taskId tst
+			= case mbProcess of
+				Nothing
+					= (notFoundResponse req, tst)
+				Just proc
+					//Update properties if "update" is set
+					# (json, tst) = case updateParam of
+						""	= (JSONObject [("success",JSONBool True),("managerProperties",toJSON proc.Process.properties.managerProperties)], tst)
+						update
+							= case (fromJSON (fromString update)) of
+								Just managerProperties
+									# (ok,tst) = updateProcessProperties taskId (\p -> {p & managerProperties = managerProperties}) tst
+									| ok	= (JSONObject [("success",JSONBool True),("managerProperties",toJSON proc.Process.properties.managerProperties)], tst)
+											= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
+								_
+									= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to parse update")],tst)
+					= (serviceResponse html "Manager properties" url propParams json, tst)
+					
+					
+		//TODO: Worker properties & System properties
+		
 		
 		//taskId/result -> show result of a finished in serialized form (to be implemented)
-		
 		//Show the result of a finished task as interface definition	
 		[taskId,"result","tui"]
 			| isJust mbSessionErr
 				= (serviceResponse html "task result user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)
-			/*# (mbProcess, tst)	= case session.Session.user of
-				RootUser		= getProcess taskId tst
-				user			= getProcessForUser user taskId tst*/
 			# (mbProcess, tst) = getProcess taskId tst
 			= case mbProcess of
 				Nothing 
@@ -114,10 +137,13 @@ where
 	detailsParams	= [("_session",sessionParam,True)]
 	tuiParams		= [("_session",sessionParam,True)]
 	
+	propParams		= [("_session",sessionParam,True),("update",updateParam,False)]
+	updateParam		= paramValue "update" req
+	
 	jsonSessionErr (Just error)
 					= JSONObject [("success",JSONBool False),("error", JSONString error)]
 	
 	taskItems processes = map taskItem processes
-	taskItem process	= {TaskItem | taskId = process.Process.taskId, parent = process.Process.parent, properties = process.Process.properties} 
+	taskItem process	= process.Process.properties
 	
 	

@@ -17,18 +17,18 @@ where
 	mkTable processes	= TableTag [ClassAttr "debug-table"] [mkHeader: [mkRow process \\ process <- processes]]
 	mkHeader			= TrTag [] [ThTag [] [Text "Id"],ThTag [] [Text "Subject"],ThTag [] [Text "Owner"],ThTag [] [Text "Subtask access"], ThTag [] [Text "Delegator"], ThTag [] [Text "Status"],ThTag [] [Text "Parent"],ThTag [] [Text "Mutable"],ThTag [] [Text "In Open Parallel?" ], ThTag [] [Text "Delete when done"] ]
 	mkRow process		= TrTag []	[ TdTag [] [Text process.Process.taskId]
-							, TdTag [] [Text process.Process.properties.managerProps.subject]
-							, TdTag [] [Text (toString process.Process.properties.managerProps.ManagerProperties.worker)]
-							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.systemProps.subTaskWorkers])]
-							, TdTag [] [Text (toString process.Process.properties.systemProps.manager)]
+							, TdTag [] [Text process.Process.properties.managerProperties.subject]
+							, TdTag [] [Text (toString process.Process.properties.managerProperties.ManagerProperties.worker)]
+							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.systemProperties.subTaskWorkers])]
+							, TdTag [] [Text (toString process.Process.properties.systemProperties.manager)]
 							, TdTag [] [Text (toString process.Process.status)]
-							, TdTag [] (case process.Process.parent of
+							, TdTag [] (case process.Process.properties.systemProperties.parent of
 											Nothing	= [Text "N/A"]
 											Just x	= [Text x]
 										)
 							, TdTag [] [Text (printToString process.mutable)]
 							, TdTag [] [Text (printToString process.inParallelType)]
-							, TdTag [] [Text (printToString process.Process.properties.systemProps.deleteWhenDone)]
+							, TdTag [] [Text (printToString process.Process.properties.systemProperties.deleteWhenDone)]
 							]
 
 traceTaskTree :: TaskTree -> TraceTree
@@ -141,7 +141,7 @@ where
 	mkTree (TTMainTask info mti menus inptype tree)
 		= { cls = "master-task"
 		  , uiProvider = "col"
-		  , user = toString mti.TaskProperties.managerProps.ManagerProperties.worker
+		  , user = toString mti.TaskProperties.managerProperties.ManagerProperties.worker
 		  , leaf = False
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId

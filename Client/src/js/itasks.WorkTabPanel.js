@@ -227,8 +227,8 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.workerProps.progress),worktabBackground(properties.managerProps.priority),subject, properties.systemProps.manager
-				, itasks.util.formatDeadline(properties.managerProps.deadline)
+				, worktabStatus(properties.workerProperties.progress),worktabBackground(properties.managerProperties.priority),subject, properties.systemProperties.manager
+				, itasks.util.formatDeadline(properties.managerProperties.deadline)
 				));
 	},
 	setBusy: function(busy) {
@@ -250,7 +250,7 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 				fieldLabel: "Progress",
 				format: itasks.util.formatProgress,
 				listeners: {
-					"change" : function(ov,nv) {var wt = this.findParentByType(itasks.WorkPanel); wt.sendPropertyEvent(wt.properties.systemProps.processId,"progress",nv); }
+					"change" : function(ov,nv) {var wt = this.findParentByType(itasks.WorkPanel); wt.sendPropertyEvent(wt.properties.systemProperties.taskId,"progress",nv); }
 				}
 			},{
 				name: "priority",
@@ -273,7 +273,7 @@ itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
 		itasks.WorkStatusPanel.superclass.initComponent.apply(this,arguments);
 	},
 	update: function (p) {
-		var props = [p.workerProps.progress,p.managerProps.priority,p.systemProps.issuedAt,p.systemProps.firstEvent,p.systemProps.latestEvent];
+		var props = [p.workerProperties.progress,p.managerProperties.priority,p.systemProperties.issuedAt,p.systemProperties.firstEvent,p.systemProperties.latestEvent];
 		this.items.each(function(cmt,i){ cmt.setValue(props[i]); });
 	}
 });

@@ -77,7 +77,8 @@ initTaskInfo
 initSystemProperties :: SystemProperties
 initSystemProperties =
 	{SystemProperties
-	| processId = ""
+	| taskId = ""
+	, parent = Nothing
 	, manager = AnyUser
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
@@ -95,9 +96,9 @@ initWorkerProperties =
 	
 initTaskProperties :: TaskProperties
 initTaskProperties
-	= { systemProps		= initSystemProperties
-	  , managerProps	= initManagerProperties
-	  , workerProps		= initWorkerProperties
+	= { systemProperties	= initSystemProperties
+	  , managerProperties	= initManagerProperties
+	  , workerProperties		= initWorkerProperties
 	  }
 
 initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
@@ -116,13 +117,14 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# (manager,tst) 		= if (worker <> AnyUser) (worker,tst) (getCurrentUser tst)	
 	# (currentTime, tst)	= accWorldTSt time tst
 	# taskId				= if toplevel "" (taskNrToString taskNr)
-	# parent				= if toplevel Nothing (Just properties.systemProps.SystemProperties.processId)
-	# managerProps			= setUser manager (taskProperties originalTask)
+	# parent				= if toplevel Nothing (Just properties.systemProperties.SystemProperties.taskId)
+	# managerProperties		= setUser manager (taskProperties originalTask)
 	# properties =
 		{TaskProperties
-		| systemProps =
+		| systemProperties =
 			{SystemProperties
-			| processId		= taskId
+			| taskId		= taskId
+			, parent		= parent
 			, manager		= manager
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
@@ -131,8 +133,8 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 			, subTaskWorkers = []
 			, deleteWhenDone = delete
 			}
-		, managerProps = managerProps
-		, workerProps =
+		, managerProperties = managerProperties
+		, workerProperties =
 			{WorkerProperties
 			| progress	= TPActive
 			}
@@ -141,7 +143,6 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 		{ Process
 		| taskId		 = taskId
 		, status		 = if activate Active Suspended
-		, parent		 = parent
 		, properties	 = properties
 		, changeCount	 = 0
 		, mutable		 = True
@@ -177,7 +178,7 @@ deleteTaskInstance procId tst
 
 garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 garbageCollectTaskInstance procId tst
-	| tst.TSt.properties.systemProps.deleteWhenDone
+	| tst.TSt.properties.systemProperties.deleteWhenDone
 	# tst = deleteTaskInstance procId tst
 	= (True,tst)	
 	| otherwise
@@ -213,7 +214,7 @@ loadThread processId tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process ![TaskUpdate] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | taskId, parent, properties, menus, changeCount, inParallelType} updates newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,updates=parentUpdates,properties=parentProperties,menus=parentMenus}
+evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount, inParallelType} updates newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,updates=parentUpdates,properties=parentProperties,menus=parentMenus}
 	// Reset the task state
 	# tst								= resetTSt taskId updates properties inParallelType tst
 	// Queue all stored persistent changes (only when run as top node)
@@ -248,8 +249,8 @@ evaluateTaskInstance process=:{Process | taskId, parent, properties, menus, chan
 			# (_,tst)	= updateProcess taskId (\p -> {Process|p & status = Finished, properties = properties, menus = menus, changeCount = changeCount }) tst
 			| isTop
 				//Evaluate parent process
-				| isJust parent
-					# (mbParentProcess,tst) = getProcess (fromJust parent) tst
+				| isJust properties.systemProperties.parent
+					# (mbParentProcess,tst) = getProcess (fromJust properties.systemProperties.parent) tst
 					= case mbParentProcess of
 						Nothing 
 							= (result,tree,tst)
@@ -274,8 +275,8 @@ where
 		# taskNr	= taskNrFromString taskId
 		# info =	{ initTaskInfo
 					& taskId	= taskId
-					, taskLabel	= properties.managerProps.subject
-					, worker	= properties.managerProps.ManagerProperties.worker
+					, taskLabel	= properties.managerProperties.subject
+					, worker	= properties.managerProperties.ManagerProperties.worker
 					}
 		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
 		= {TSt| tst & taskNr = taskNr, tree = tree, updates = updates, staticInfo = {tst.staticInfo & currentProcessId = taskId}}
@@ -471,9 +472,9 @@ calculateTaskTree taskId updates tst
 						(Nothing)  = [Text "Cannot load result."]
 					# info =	{ initTaskInfo
 								& taskId			= taskId
-								, taskLabel			= properties.managerProps.subject
+								, taskLabel			= properties.managerProperties.subject
 								, traceValue		= "Finished"
-								, worker			= properties.managerProps.ManagerProperties.worker
+								, worker			= properties.managerProperties.ManagerProperties.worker
 								, taskDescription	= "Task Result"
 								}
 					= (TTFinishedTask info result, {TSt | tst & iworld = {IWorld | iworld & store = store, world = world}})
@@ -484,7 +485,7 @@ where
 calculateTaskForest :: ![TaskUpdate] !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest updates tst 
 	# (processes, tst) = getProcesses [Active] tst
-	= calculateTrees [taskId \\ {Process|taskId,parent} <- processes | isNothing parent] tst
+	= calculateTrees [taskId \\ {Process|taskId,properties} <- processes | isNothing properties.systemProperties.parent] tst
 where
 	calculateTrees []     tst = ([],tst)
 	calculateTrees [p:ps] tst
@@ -505,7 +506,7 @@ getCurrentProcess tst =: {staticInfo}
 
 getCurrentWorker :: !*TSt -> (!User, !*TSt)
 getCurrentWorker tst =: {TSt | properties}
-	= (properties.managerProps.ManagerProperties.worker,{TSt | tst & properties = properties})
+	= (properties.managerProperties.ManagerProperties.worker,{TSt | tst & properties = properties})
 
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
@@ -664,7 +665,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 	# taskInfo =	{ taskId				= taskNrToString taskNr
 					, taskLabel				= initProperties.subject
 					, traceValue			= ""
-					, worker				= properties.managerProps.ManagerProperties.worker
+					, worker				= properties.managerProperties.ManagerProperties.worker
 					, tags					= initProperties.ManagerProperties.tags
 					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
@@ -689,7 +690,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 				(TaskFinished a)
 					//If a process is finished (tl taskNr == procId), remove the process from the process DB (if it's allowed to be deleted)
 					# procId				= taskNrToString (tl taskNr)
-					# (gc,tst)				= if(procId == tst.TSt.properties.systemProps.processId)
+					# (gc,tst)				= if(procId == tst.TSt.properties.systemProperties.SystemProperties.taskId)
 													(garbageCollectTaskInstance procId {TSt | tst & tree=node, iworld = {IWorld | iworld & store = store}})
 													(False,tst)
 					//Garbage collect task store

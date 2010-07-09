@@ -44,7 +44,7 @@ where
 	createProcess entry iworld
 		#(procs,iworld=:{store,world})	= processStore id iworld
 		# (pid,store,world) 			= getPid store world
-		# (procs,iworld)				= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {TaskProperties| entry.Process.properties & systemProps = {SystemProperties|entry.Process.properties.systemProps & processId = pid}} }]) {iworld & store = store, world = world}
+		# (procs,iworld)				= processStore (\_ -> procs ++ [{Process | entry & taskId = pid, properties = {TaskProperties| entry.Process.properties & systemProperties = {SystemProperties|entry.Process.properties.systemProperties & taskId = pid}} }]) {iworld & store = store, world = world}
 		= (pid, iworld)
 		where
 			getPid store world
@@ -77,7 +77,7 @@ where
 	getProcessForUser :: !User !TaskId !*IWorld -> (!Maybe Process,!*IWorld)
 	getProcessForUser user taskId iworld
 		# (procs,iworld) 	= processStore id iworld
-		#  users		= [p.Process.properties.managerProps.ManagerProperties.worker \\ p <- procs | relevantProc taskId p]
+		#  users		= [p.Process.properties.managerProperties.ManagerProperties.worker \\ p <- procs | relevantProc taskId p]
 		= case [p \\ p <- procs | p.Process.taskId == taskId && isMember user users] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
@@ -102,13 +102,13 @@ where
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
-			=  ( properties.managerProps.ManagerProperties.worker == user)
+			=  ( properties.managerProperties.ManagerProperties.worker == user)
 			//Or you are working on a subtask of this task in an open collaboration
-			|| (isMember user (map snd properties.systemProps.SystemProperties.subTaskWorkers))
+			|| (isMember user (map snd properties.systemProperties.SystemProperties.subTaskWorkers))
 			
 	setProcessOwner	:: !User !TaskId !*IWorld	-> (!Bool, !*IWorld)
 	setProcessOwner worker taskId iworld
-		= updateProcess taskId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProps = {ManagerProperties | x.Process.properties.managerProps & worker = worker}}}) iworld
+		= updateProcess taskId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProperties = {ManagerProperties | x.Process.properties.managerProperties & worker = worker}}}) iworld
 		
 	setProcessStatus :: !ProcessStatus !TaskId !*IWorld -> (!Bool,!*IWorld)
 	setProcessStatus status taskId iworld = updateProcess taskId (\x -> {Process| x & status = status}) iworld
@@ -151,16 +151,24 @@ where
 	where
 		copy fromprefix toprefix proc
 			| startsWith fromprefix proc.Process.taskId
+				//Prefix of task id has got to be updated
+				# taskId = toprefix +++ (proc.Process.taskId % (size fromprefix, size proc.Process.taskId))
+				//Update properties
+				# systemProperties =
+					{SystemProperties|proc.Process.properties.systemProperties
+					//Prefix of task id has got to be updated
+					& taskId = taskId
+					//Prefixes of parent fields are also updated
+					, parent = case proc.Process.properties.systemProperties.parent of
+						Just par	= Just (if (startsWith fromprefix par) (toprefix +++ (par % (size fromprefix, size par))) par)
+						Nothing		= Nothing
+				 	}
 				= [proc
 				  ,{Process| proc
-				   //Prefixes of process id's are updated
-				   & taskId = toprefix +++ (proc.Process.taskId % (size fromprefix, size proc.Process.taskId))
-				   //Prefixes of parent fields are also updated
-				   , parent = case proc.Process.parent of
-				   		Just par 	= Just (if (startsWith fromprefix par) (toprefix +++ (par % (size fromprefix, size par))) par)
-				   		Nothing		= Nothing
+				   & taskId			= taskId
+				   , properties		= {TaskProperties|proc.Process.properties & systemProperties = systemProperties}
 				   //The new copy is mutable again
-				   , mutable = True
+				   , mutable 		= True
 				   }
 				  ]
 			| otherwise	= [proc]

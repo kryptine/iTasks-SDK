@@ -35,12 +35,12 @@ where
 getContextWorker :: Task User
 getContextWorker = mkInstantTask "getContextWorker" getContextWorker`
 where
-	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProps.worker,tst)
+	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProperties.worker,tst)
 
 getContextManager :: Task User
 getContextManager = mkInstantTask "getContextManager" getContextManager`
 where
-	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProps.manager, tst)
+	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProperties.manager, tst)
 
 getDefaultValue :: Task a | iTask a
 getDefaultValue = mkInstantTask "getDefaultValue" getDefaultValue`

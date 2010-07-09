@@ -43,6 +43,6 @@ where
 updateTimeStamps :: !ProcessId !*TSt -> *TSt
 updateTimeStamps pid tst
 	# (now,tst)	= accWorldTSt time tst
-	= snd (updateProcessProperties pid (\p -> {p & systemProps = {p.systemProps & firstEvent = case p.systemProps.firstEvent of Nothing = Just now; x = x
+	= snd (updateProcessProperties pid (\p -> {p & systemProperties = {p.systemProperties & firstEvent = case p.systemProperties.firstEvent of Nothing = Just now; x = x
 												 , latestExtEvent = Just now
 												}}) tst)

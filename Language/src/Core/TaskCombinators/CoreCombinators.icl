@@ -281,7 +281,7 @@ where
 					Stop 		= (TaskFinished pst.state,pst,tst)
 					Continue	= processAllTasks pst (inc idx) tst
 					Extend tlist
-						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task properties.managerProps.ManagerProperties.worker,False) \\ task <- tlist]}
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task properties.managerProperties.ManagerProperties.worker,False) \\ task <- tlist]}
 						= processAllTasks pst (inc idx) tst
 		
 	loadPSt taskNr tst
@@ -291,7 +291,7 @@ where
 	initPSt taskNr tst=:{TSt | properties}
 		# pst = { PSt
 				| state = initState
-				, tasks = [(assignTask task properties.managerProps.ManagerProperties.worker, False) \\ task <- initTasks]
+				, tasks = [(assignTask task properties.managerProperties.ManagerProperties.worker, False) \\ task <- initTasks]
 				}
 		# tst = setTaskStoreFor taskNr "pst" pst tst
 		= (pst,tst)
@@ -357,21 +357,21 @@ addSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProps.subTaskWorkers]}}} 
+			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProperties.subTaskWorkers]}}} 
 
 removeSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt			
 removeSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = removeMember (procId,user) tst.TSt.properties.systemProps.subTaskWorkers }}} 
+			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = removeMember (procId,user) tst.TSt.properties.systemProperties.subTaskWorkers }}} 
 
 clearSubTaskWorkers :: !ProcessId !(Maybe TaskParallelType) !*TSt -> *TSt
 clearSubTaskWorkers procId mbpartype tst
 	= case mbpartype of
 		Nothing			= tst
 		(Just Closed)	= tst
-		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProps = {tst.TSt.properties.systemProps & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProps.subTaskWorkers | not (startsWith procId pId)] }}}
+		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProperties.subTaskWorkers | not (startsWith procId pId)] }}}
 
 spawnProcess :: !User !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
 spawnProcess user activate gcWhenDone task = mkInstantTask "spawnProcess" spawnProcess`
@@ -405,7 +405,7 @@ where
 							Just (TaskFinished (a :: a^))	= (TaskFinished (Just a), tst)	
 							_								= (TaskFinished Nothing, tst) //Ignore all other cases
 					_	
-						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProps.subject,Text "\""]] tst
+						# tst = setStatus [Text "Waiting for result of task ",StrongTag [] [Text "\"",Text properties.managerProperties.subject,Text "\""]] tst
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done

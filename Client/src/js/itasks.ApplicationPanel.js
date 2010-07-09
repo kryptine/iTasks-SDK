@@ -89,10 +89,10 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 				if(!node.attributes.taskId) return true;
 				
 				var tab = worktabs.getComponent("worktab-"+node.attributes.taskId);
-				var wlTStamp = node.attributes.properties.systemProps.latestExtEvent
+				var wlTStamp = node.attributes.latestExtEvent
 				
 				if(tab != null){
-					var tTStamp = tab.properties.systemProps.latestEvent;
+					var tTStamp = tab.properties.systemProperties.latestEvent;
 					if(wlTStamp > tTStamp) tab.refresh();
 				}
 				

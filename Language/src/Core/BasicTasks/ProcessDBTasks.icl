@@ -57,7 +57,7 @@ getProcessOwner pid = mkInstantTask "getProcess" getProcessStatus`
 where
 	getProcessStatus` tst 
 	# (process,tst)	= 'ProcessDB'.getProcess (toProcessId pid) tst
-	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProps.ManagerProperties.worker)
+	# owner 		= if (isNothing process) Nothing (Just (fromJust process).Process.properties.managerProperties.ManagerProperties.worker)
 	= (TaskFinished owner,tst)
 	
 setProcessOwner :: !User !pid -> Task Void | toProcessId pid
