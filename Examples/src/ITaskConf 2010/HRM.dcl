@@ -4,4 +4,7 @@ import iTasks
 
 hrm :: [Workflow]
 
-getUserRoles :: [String]
+manageGroups :: Task Void
+listGroups :: Task Void
+
+getUserGroups :: Task [String]

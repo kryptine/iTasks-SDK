@@ -3,105 +3,73 @@ implementation module HRM
 import iTasks
 
 hrm :: [Workflow]
-hrm = [restrictedWorkflow "HRM/Manage Human Resources" ["chair"] manageHumanResources
-	  ,restrictedWorkflow "HRM/List Human Resources" ["chair"] listHumanResources
+hrm = [restrictedWorkflow "Groups/Manage Groups" ["Chair"] manageGroups
+	  ,restrictedWorkflow "Groups/List Groups" ["Chair"] listGroups
 	  ]
 
-derive gPrint HRTree
-derive gParse HRTree
-derive gVisualize HRTree
-derive gUpdate HRTree
-derive gHint HRTree
+:: Group = { label :: String, members :: (Maybe [User]) }
 
+derive class iTask Group
 derive bimap Maybe, (,)
 
-getUserRoles :: [String]
-getUserRoles = ["chair","steering committee","program committee","secretary","catering","it support","av support"]
+manageGroups :: Task Void
+manageGroups = buildGroups 
+	>>= \groups 	-> updateInformation "Please assign users to groups" groups
+	>>= \ngroups	-> getUsers
+	>>= \users		-> removeAllGroupsFromUsers users
+	>>|				   assignGroupsToUsers ngroups users
 
-:: HRTree =
-	{ chair 				:: User
-	, steeringCommittee 	:: [User]
-	, programCommittee		:: [User]
-	, secretary				:: [User]
-	, catering				:: [User]
-	, itSupport				:: [User]
-	, avSupport				:: [User]	
-	}
-	
-gError{|HRTree|} hrt est
-	# est = if(isEmpty hrt.steeringCommittee) (labeledChild "steeringCommittee" (appendError "Please select one or more users" MPAlways) est) est
-	# est = if(isEmpty hrt.programCommittee)  (labeledChild "programCommittee" (appendError "Please select one or more users" MPAlways) est) est
-	# est = if(isEmpty hrt.secretary) 		  (labeledChild "secretary" (appendError "Please select one or more users" MPAlways) est) est
-	# est = if(isEmpty hrt.catering) 	      (labeledChild "catering" (appendError "Please select one or more users" MPAlways) est) est
-	# est = if(isEmpty hrt.itSupport)         (labeledChild "itSupport" (appendError "Please select one or more users" MPAlways) est) est
-	# est = if(isEmpty hrt.avSupport)         (labeledChild "avSupport" (appendError "Please select one or more users" MPAlways) est) est
-	= stepOut est
-
-listHumanResources :: Task Void
-listHumanResources = buildTree >>= showMessageAbout "Assigned Roles"
-	
-manageHumanResources :: Task Void
-manageHumanResources = updateTree
-	>>= \hrTree -> assignRolesToUsers hrTree
-	>>| showMessage "User roles updated"	
+removeAllGroupsFromUsers :: [User] -> Task Void
+removeAllGroupsFromUsers users = sequence "removeAllGroupsFromUsers" [removeAllGroupsFromUser u \\ u <- users] >>| return Void
 where	
-	updateTree :: Task HRTree
-	updateTree = buildTree >>= updateInformation "Please assign users to the various roles"
-
-	assignRolesToUsers :: HRTree -> Task Void
-	assignRolesToUsers hrtree = getUsers
-		>>= \users -> sequence "Assign Roles to all users" [assignRolesToUser u hrtree \\ u <- users]
-		>>| return Void
-	where
-		assignRolesToUser :: User HRTree -> Task Void
-		assignRolesToUser user ht
-			# assignments  = [("chair",[ht.chair]),("steering committee",ht.steeringCommittee),
-				("program committee",ht.programCommittee),("secretary",ht.secretary),
-				("catering",ht.catering),("it support",ht.itSupport),("av support",ht.avSupport)]
-			= sequence ("Assign Roles to "+++toString user) [assignRoleToUser user a \\ a <- assignments] 
-			>>| return Void
-		
-		assignRoleToUser :: User (Role,[User]) -> Task Void
-		assignRoleToUser user (role,assignUsers) = 
-			getUser (userName user) >>= \mbuser ->			
-				case mbuser of
-					Just (RegisteredUser details=:{UserDetails | roles})
-						# roles	  = mb2list roles
-						# details = case isMember user assignUsers of
-										True = {UserDetails | details & roles = list2mb (removeDup [role:roles])}
-										False = {UserDetails | details & roles = list2mb (removeMember role roles)}
-						= updateUser user details >>| return Void
-					_ 
-						= return Void
-
-buildTree :: Task HRTree
-buildTree = getUsers
-	>>= \users -> return (buildTree` users)
+	removeAllGroupsFromUser :: User -> Task Void
+	removeAllGroupsFromUser user =
+		getUser (userName user) >>= \mbuser ->
+			case mbuser of
+				Just (RegisteredUser details=:{UserDetails | roles})
+					= updateUser user {UserDetails | details & roles = Nothing} >>| return Void
+				_
+					= return Void
+	
+assignGroupsToUsers :: [Group] [User] -> Task Void	
+assignGroupsToUsers groups users = sequence "assignGroupsToUsers" [assignGroupToUsers g users \\ g <- groups] >>| return Void
 where
-	buildTree` :: [User] -> HRTree
-	buildTree` users =	(foldl mapUsers mkHrTree users)
+	assignGroupToUsers :: Group [User] -> Task Void
+	assignGroupToUsers group users = sequence "assignGroupToUsers" [assignGroupToUser group u \\ u <- users] >>| return Void
 	
-	mapUsers tree user =
-		case user of
-			(RegisteredUser details=:{UserDetails | roles}) = foldl (fillTree user) tree (mb2list roles)
-			_ = tree
-		
-	fillTree user tree role =
-		case role of
-			"chair" = {tree & chair = user}
-			"steering committee" = {tree & steeringCommittee = [user:tree.steeringCommittee]}
-			"program committee" = {tree & programCommittee = [user:tree.programCommittee]}
-			"catering" = {tree & catering = [user:tree.catering]}
-			"secretary" = {tree & secretary = [user:tree.secretary]}
-			"it support" = {tree & itSupport = [user:tree.itSupport]}
-			"av support" = {tree & avSupport = [user:tree.avSupport]}
-	
-	mkHrTree = {HRTree
-		| chair = AnyUser
-		, steeringCommittee 	= []
-		, programCommittee		= []
-		, secretary				= []
-		, catering				= []
-		, itSupport				= []
-		, avSupport				= []	
-		}
+	assignGroupToUser :: Group User -> Task Void
+	assignGroupToUser group=:{label,members} user =
+		getUser (userName user) >>= \mbuser ->
+			case mbuser of
+				Just (RegisteredUser details=:{UserDetails | roles})
+					# roles = mb2list roles
+					# members = mb2list members
+					# details = case isMember user members of
+						True  = {UserDetails | details & roles = list2mb (removeDup [label:roles])}
+						False = details
+					= updateUser user details >>| return Void
+				_ 
+					= return Void
+
+listGroups :: Task Void
+listGroups = buildGroups
+	>>= showMessageAbout "This is the current assignment of roles"
+
+getUserGroups :: Task [String]
+getUserGroups = buildGroups
+	>>= \groups = return [g.Group.label \\ g <- groups]
+
+buildGroups :: Task [Group]
+buildGroups = getUsers
+	>>= \users -> return (foldl buildGroups` [] users)
+where
+	buildGroups` groups user 
+		= case user of
+			(RegisteredUser details=:{UserDetails | roles}) = foldl (addUserToGroups user) groups (mb2list roles)
+			_ = groups
+				
+	addUserToGroups user groups role
+		| isMember role [g.Group.label \\ g <- groups]  
+			= [if(g.Group.label == role) {Group | g & members = list2mb (removeDup [user:mb2list g.members])} g \\ g <- groups]
+		| otherwise
+			= [{Group | label = role, members = Just [user]}:groups]

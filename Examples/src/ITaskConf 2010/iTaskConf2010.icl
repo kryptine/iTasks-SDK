@@ -1,9 +1,9 @@
 module iTaskConf2010
 
 import iTasks
-import Toolbox, HRM, ListManagement
+import Toolbox, HRM, ListManagement, Messaging
 
 Start :: !*World -> *World
 Start world = startEngine workflows world
 where
-	workflows = flatten [ toolbox, hrm, lists ]	
+	workflows = flatten [ messaging, toolbox, hrm, lists ]	
