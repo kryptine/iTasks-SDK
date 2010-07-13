@@ -356,15 +356,17 @@ makeInstructionTask instruction context tst
 			
 //Shared value tasks
 :: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
-:: Listener` s a =	{ visualize :: s -> [HtmlTag] }
-:: Editor` s a =	{ getNewValue :: Int [(!DataPath,!String)] s s *TSt -> *(!s,!*TSt)
-					, determineUpdates :: !TaskNr Int s [(String,String)] *TSt -> *((![TUIUpdate],!Bool),!*TSt)
-					, visualize :: !TaskNr Int s *TSt -> *((![TUIDef],!Bool),!*TSt)
+:: Listener` s a =	{ visualize :: !s -> [HtmlTag] }
+:: Editor` s a =	{ getNewValue :: !ViewNr [(DataPath,String)] s s *TSt -> *(s,*TSt)
+					, determineUpdates :: !TaskNr ViewNr s [(String,String)] *TSt -> *(([TUIUpdate],Bool),*TSt)
+					, visualize :: !TaskNr ViewNr s *TSt -> *(([TUIDef],Bool),*TSt)
 					}
+:: ViewNr :== Int
 
 editor :: !(Editor s a) -> View s | iTask a & iTask s & SharedVariable s
 editor {editorFrom, editorTo} = Editor {getNewValue = getNewValue, determineUpdates = determineUpdates, visualize = visualize}
 where
+	// determine new shared value based on events for this view
 	getNewValue n updates old cur tst
 		# oEditV				= editorFrom old
 		# tst					= setTaskStore (addStorePrefix n "value") oEditV tst
@@ -374,7 +376,13 @@ where
 		| otherwise
 			# (nEditV,tst)		= applyUpdates myUpdates oEditV tst
 			= (mergeValues old cur (editorTo nEditV old), tst)
-		
+	where
+		applyUpdates [] val tst = (val,tst)
+		applyUpdates [(p,v):us] val tst=:{TSt|iworld}
+			# (val,iworld)		= updateValue p v val iworld
+			= applyUpdates us val {TSt|tst & iworld = iworld}
+	
+	// determine TUI updates for view
 	determineUpdates taskNr n new postValues tst
 		# (Just oEditV,tst)			= getTaskStoreFor taskNr (addStorePrefix n "value") tst
 		# nEditV					= editorFrom new
@@ -384,15 +392,11 @@ where
 		# updpaths					= userUpdates2Paths postValues
 		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths mask mask oEditV nEditV,tst)
 	
+	// generate TUI definition for view
 	visualize taskNr n stateV tst=:{TSt|iworld}
 		# editV					= editorFrom stateV
 		# (mask,iworld)			= defaultMask editV iworld
 		= (visualizeAsEditor (editorId taskNr n) (Just n) mask editV,{TSt|tst & iworld = iworld})
-				
-	applyUpdates [] val tst = (val,tst)
-	applyUpdates [(p,v):us] val tst=:{TSt|iworld}
-		# (val,iworld)		= updateValue p v val iworld
-		= applyUpdates us val {TSt|tst & iworld = iworld}
 				
 listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}
@@ -417,32 +421,37 @@ updateSharedLocal question actions initial views =
 
 makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
 makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTask}
-	# (mbcvalue,tst)		= readShared sharedId tst
+	# (mbcvalue,tst) = readShared sharedId tst
 	= case mbcvalue of
 		Nothing
 			= (TaskException (dynamic "updateShared: shared variable is deleted"), tst)
 		Just cvalue
 			# (anyUpd,tst)			= anyUpdates tst
 			| newTask || not anyUpd
-				// generate TUI definition
+				// generate TUI definition for new tasks or if there are no updates (refresh entire task)
 				# tst = setTUIFunc createDefs (html question) tst
 				= (TaskBusy, tst)
 			| otherwise
 				# (updates,tst)		= getUserUpdates tst
 				# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
-				# (nvalue,_,tst)	= foldl (updateV dpUpdates) (cvalue,0,tst) views
+				// determine new shared value by accumulating updates of all views
+				# (nvalue,_,tst)	= foldl (updateSharedForView dpUpdates) (cvalue,0,tst) views
 				# tst=:{TSt|iworld=iworld=:{IWorld|store}}
 									= tst
 				# store				= storeValue sharedId nvalue store
 				# tst				= {TSt|tst & iworld = {IWorld|iworld & store = store}}
+				// check if action is triggered
 				# (mbAction,tst)	= getAction updates (map fst buttonActions) tst
 				= case mbAction of
 					Just action
 						= (TaskFinished (action,fromJust mbcvalue),tst)
 					Nothing
+						// updates are calculated after tree is build, shared value maybe changed by other tasks
 						# tst = setTUIFunc (createUpdates updates) (html question) tst
 						= (TaskBusy, tst)
 where
+	// generate TUI definitions for all views
+	createDefs :: !*TSt -> *(InteractiveTask,*TSt)
 	createDefs tst
 		# (Just svalue,tst)		= readShared sharedId tst
 		# (form,valid,_,tst)	= foldl (createDef svalue) ([],True,0,tst) views
@@ -450,14 +459,16 @@ where
 		# buttonActions			= evaluateConditions buttonActions valid svalue
 		# hotkeyActions			= evaluateHotkeyConditions (getHotkeyActions actions) valid svalue
 		= (Definition (taskPanel taskId (html question) Nothing (Just form) (makeButtons baseEditorId buttonActions)) menuActions hotkeyActions,tst)
+	where
+		createDef :: !a !*([TUIDef],Bool,ViewNr,*TSt) !(View a) -> *([TUIDef],Bool,ViewNr,*TSt) | iTask a
+		createDef svalue (def,valid,n,tst) (Editor editor)
+			# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") svalue tst
+			# ((ndef,nvalid),tst)	= editor.Editor`.visualize taskNr n svalue tst
+			= (def ++ ndef,valid && nvalid,n + 1,tst)
+		createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
 	
-	createDef svalue (def,valid,n,tst) (Editor editor)
-		# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") svalue tst
-		# ((ndef,nvalid),tst)	= editor.Editor`.visualize taskNr n svalue tst
-		= (def ++ ndef,valid && nvalid,n + 1,tst)
-		
-	createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
-	
+	// create TUI updates for all views
+	createUpdates :: ![(String,String)] !*TSt -> *(InteractiveTask,*TSt)
 	createUpdates postValues tst
 		# (mbcvalue,tst)	= readShared sharedId tst
 		# cvalue			= fromJust mbcvalue
@@ -466,39 +477,51 @@ where
 		# buttonActions		= evaluateConditions buttonActions valid cvalue
 		# hotkeyActions		= evaluateHotkeyConditions (getHotkeyActions actions) valid cvalue
 		= (Updates (enables baseEditorId buttonActions ++ upd) menuActions hotkeyActions,tst)
-		
-	updateV updates (cvalue,n,tst) (Editor editor)
-		# (ovalue,tst)			= readValue n tst
+	where
+		detUpd :: !a ![(String,String)] !*([TUIUpdate],Bool,ViewNr,*TSt) !(View a) -> *([TUIUpdate],Bool,ViewNr,*TSt) | iTask a
+		detUpd nvalue postValues (upd,valid,n,tst) (Editor editor)
+			# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue postValues tst
+			# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
+			= (upd ++ nupd,	valid && nvalid, inc n, tst)
+		detUpd nvalue _ (upd,valid,n,tst) (Listener listener) 
+			= ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
+	
+	// update value of shared according to events for one view
+	updateSharedForView :: ![(DataPath,String)] !*(a,ViewNr,*TSt) !(View a) -> *(a,ViewNr,*TSt) | iTask a	
+	updateSharedForView updates (cvalue,n,tst) (Editor editor)
+		# (ovalue,tst)			= readLocalValue n tst
 		# (nvalue,tst)			= editor.getNewValue n updates ovalue cvalue tst
 		= (nvalue,n + 1,tst)
-	updateV _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
+	updateSharedForView _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
 	
-	detUpd nvalue postValues (upd,valid,n,tst) (Editor editor)
-		# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue postValues tst
-		# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
-		= (upd ++ nupd,	valid && nvalid, n + 1, tst)
-	detUpd nvalue _ (upd,valid,n,tst) (Listener listener) 
-		= ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
+	listenerPanel :: !a !(Listener` a b) !Int -> TUIDef
+	listenerPanel value listener n = TUIHtmlPanel	{ TUIHtmlPanel
+													| id = (editorId taskNr n)
+													, html = toString (DivTag [] (html (listener.Listener`.visualize value)))
+													, border = True, bodyCssClass = "task-context"
+													, fieldLabel = Nothing
+													, hideLabel = True
+													, unstyled=True}
 	
-	listenerPanel value listener n = TUIHtmlPanel {TUIHtmlPanel| id = (editorId taskNr n), html = toString (DivTag [] (html (listener.Listener`.visualize value))), border = True, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True}
-	
-	taskId			= taskNrToString taskNr
-	baseEditorId	= "tf-" +++ taskId
-	menuActions		= getMenuActions actions
-	buttonActions	= getButtonActions actions
-		
-	readValue n tst
+	readLocalValue :: !a !*TSt -> *(b,*TSt) | iTask b & toString a	
+	readLocalValue n tst
 		# (mbvalue,tst)	= getTaskStore (addStorePrefix n "value") tst
 		= case mbvalue of
 			Just v		= (v,tst)
 			Nothing		= abort "cannot get local value"
-			
+	
+	readShared :: !String !*TSt -> *((Maybe a),*TSt) | gParse{|*|}, TC a		
 	readShared sid tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
 		# (mbvalue,store,world) = loadValue sid store world
 		# tst = {TSt|tst & iworld = {IWorld| iworld & store = store, world = world}}
 		= case mbvalue of
 			Just v		= (Just v,tst)
 			Nothing		= (Nothing,tst)
+			
+	taskId			= taskNrToString taskNr
+	baseEditorId	= "tf-" +++ taskId
+	menuActions		= getMenuActions actions
+	buttonActions	= getButtonActions actions
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
