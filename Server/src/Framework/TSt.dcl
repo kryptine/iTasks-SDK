@@ -364,13 +364,13 @@ mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 */
 applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 //// TASK CONTENT
-setTUIDef			:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt 	-> *TSt //Only for interactive tasks
-setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt						-> *TSt //Only for interactive tasks
-setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt								-> *TSt //Only for interactive tasks
-setTUIMessage 		:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] ![(!Action, !Hotkey)] !*TSt 	-> *TSt //Only for interactive tasks
-setStatus			:: ![HtmlTag] !*TSt																	-> *TSt	//Only for monitor tasks
-setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt						-> *TSt //Only for group tasks
-setFocusCommand		:: !String !*TSt																	-> *TSt //Only for group tasks
+setTUIDef			:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt //Only for interactive tasks
+setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for interactive tasks
+setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt			-> *TSt //Only for interactive tasks
+setTUIMessage 		:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt		-> *TSt //Only for interactive tasks
+setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
+setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
+setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 
 getUserUpdates			:: !*TSt						-> ([(String,String)],!*TSt)
 userUpdates2Paths 		:: ![(String,String)] 			-> [DataPath]

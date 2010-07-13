@@ -4,7 +4,7 @@ from TSt		import :: Task
 from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
-from ProcessDB	import :: Action, :: Hotkey{..}
+from ProcessDB	import :: Action
 import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, StoreTasks
 
 // This type class contains types that may be used as
@@ -276,8 +276,6 @@ instance html [HtmlTag]
 						| 	MenuAction !(ActionWithCond a)
 						| 	ButtonAndMenuAction !(ActionWithCond a) 
 						| 	MenuParamAction !(!String, ActionCondition a)
-						|	HotkeyAction !(ActionWithCond a) !Hotkey
-						|	MenuActionWithHotkey !(ActionWithCond a) !Hotkey
 :: ActionWithCond a 	:== (!Action, ActionCondition a)
 :: ActionCondition a 	= 	Always 
 						| 	IfValid 

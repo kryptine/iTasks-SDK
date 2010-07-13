@@ -4,7 +4,7 @@ import JSON, TUIDefinition, TSt, ProcessDB
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import Html
 
-derive JSONEncode TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, SubtaskInfo, Hotkey
+derive JSONEncode TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
 
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
@@ -35,39 +35,36 @@ buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action, Bool, Bool)] !User !*TSt
 buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree of
 	(TTFinishedTask _ _)
 		= (TaskDone,tst)
-	(TTInteractiveTask ti (Definition (def,buttons) acceptedA hotkeyA))
+	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
 		= (TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
 			, updates 	= Nothing
-			, hotkeys	= mkHotkeys hotkeyA
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
-	(TTInteractiveTask ti (Updates upd acceptedA hotkeyA))
+	(TTInteractiveTask ti (Updates upd acceptedA))
 		= (TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, content 	= Nothing
 			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA (if (includeGroupActions ti) gActions []) ti)
-			, hotkeys	= mkHotkeys hotkeyA
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTInteractiveTask ti (Func f))
 		# (fres,tst) = f tst
 		= buildTaskPanel` (TTInteractiveTask ti fres) menus gActions currentUser tst
-	(TTInteractiveTask ti (Message (msg,buttons) acceptedA hotkeyA))
+	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
 		= (TTCMessageContainer {TTCMessageContainer
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId	= ti.TaskInfo.taskId
 			, content	= {form = msg, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
 			, subtaskId = Nothing
-			, hotkeys	= mkHotkeys hotkeyA
 			, description = ti.TaskInfo.taskDescription
 			}, tst)
 	(TTMonitorTask ti html)
@@ -354,9 +351,6 @@ where
 		Right f
 			# (b,tst) = f tst
 			= ((action,b),tst)
-			
-mkHotkeys :: ![(!Action,!Hotkey)] -> [(String,Hotkey)]
-mkHotkeys a = [(printToString ac, hk) \\ (ac, hk) <- a]
 			
 subtaskNrToString :: SubtaskNr -> String
 subtaskNrToString [] 	 = ""

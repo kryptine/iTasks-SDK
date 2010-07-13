@@ -48,7 +48,7 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 		
 		var tb = this.getTopToolbar();
 		this.setupToolbar(tb);
-		this.setupHotkeys(this.hotkeys);
+		//this.setupHotkeys(this.hotkeys);
 	},
 		
 	addUpdate: function(name, value) {
@@ -140,7 +140,7 @@ itasks.ttc.MessageContainer = Ext.extend(Ext.Panel, {
 	},
 	
 	update: function(data){
-		this.setupHotkeys(data.hotkeys);
+		//this.setupHotkeys(data.hotkeys);
 	}
 });
 

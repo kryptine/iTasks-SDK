@@ -46,7 +46,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 		
 		var tb = this.getTopToolbar();
 		this.setupToolbar(tb);
-		this.setupHotkeys(this.hotkeys);
+		//this.setupHotkeys(this.hotkeys);
 	},
 	
 	addUpdate: function(name, value) {
@@ -118,7 +118,7 @@ itasks.ttc.FormContainer = Ext.extend(Ext.Panel, {
 			itasks.ttc.common.attachTaskHandlers(this);
 		}
 		
-		this.setupHotkeys(data.hotkeys);
+		//this.setupHotkeys(data.hotkeys);
 	},
 		
 	addComponent :  function (id, cmp){
