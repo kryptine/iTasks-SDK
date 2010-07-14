@@ -6,13 +6,8 @@ import iTasks, AppState
 				, projectsPath	:: !Path
 				}
 				
-derive gPrint			IDEConfig
-derive gParse			IDEConfig
-derive gVisualize		IDEConfig
-derive gUpdate			IDEConfig
-derive gHint			IDEConfig
-derive gError			IDEConfig
-derive gMerge			IDEConfig
+derive class iTask			IDEConfig
+derive class SharedVariable	IDEConfig
 				
 loadConfig :: Task (Maybe IDEConfig)
 getConfig :: !(DBid AppState) -> Task IDEConfig

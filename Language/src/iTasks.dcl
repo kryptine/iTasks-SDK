@@ -58,7 +58,7 @@ from StdFunc import id, const
 //Types
 import Types
 from TSt		import :: Workflow{..}, :: Change(..), :: ChangeLifeTime(..)
-from ProcessDB	import :: Menu(..), :: MenuItem(..), :: Action(..)
+from ProcessDB	import :: Menu(..), :: MenuItem(..), :: Hotkey, :: Action(..)
 from TaskTree	import :: TaskParallelType(..)
 
 //iTask context restriction

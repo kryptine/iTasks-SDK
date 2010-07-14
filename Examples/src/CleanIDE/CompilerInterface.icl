@@ -3,12 +3,7 @@ implementation module CompilerInterface
 import iTasks, DocumentDomain, Text
 import Configuration
 
-derive gPrint		CompilerException
-derive gParse		CompilerException
-derive gVisualize	CompilerException
-derive gUpdate		CompilerException
-derive gHint		CompilerException
-derive gError		CompilerException
+derive class iTask	CompilerException
 derive bimap		Maybe, (,)
 
 compileToExe :: !(DBid AppState) -> Task Document

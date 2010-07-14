@@ -9,19 +9,22 @@ textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ S
 textEditorApp :: Task Void
 textEditorApp = 
 				setMenus
-					[ Menu "File"	[ MenuItem "New"			ActionNew
-									, MenuItem "Open..."		ActionOpen
+					[ Menu "File"	[ MenuItem "New"			ActionNew		(hotkey 'n')
+									, MenuItem "Open..."		ActionOpen		(hotkey 'o')
 									, MenuName recOpenedMenu	(SubMenu "Recently Opened" [])
 									, MenuSeparator
-									, MenuItem "Save"			ActionSave
-									, MenuItem "Save As..."		ActionSaveAs
+									, MenuItem "Save"			ActionSave		(hotkey 's')
+									, MenuItem "Save As..."		ActionSaveAs	(hotkey 'a')
 									, MenuSeparator
-									, MenuItem "Close"			ActionClose
-									, MenuItem "Quit"			ActionQuit
-					]
-					, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace ]
-					, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats ]
-					, Menu "Help"	[ MenuItem "About"			ActionShowAbout ]
+									, MenuItem "Close"			ActionClose		(hotkey 'c')
+									, MenuItem "Quit"			ActionQuit		(hotkey 'q')
+									]
+					, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey 'r')
+									]
+					, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey 't')
+									]
+					, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+									]
 					]
 	>>|			mdiApplication 0 groupActions
 where
@@ -32,7 +35,10 @@ where
 		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks False])	GroupAlways
 		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])						GroupAlways
 		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])					GroupAlways
-		]									
+		]
+		
+	hotkey :: !Char -> Maybe Hotkey
+	hotkey key = Just {ctrl = True, alt = False, shift = True, keys = toString key}
 						
 ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"
@@ -81,7 +87,7 @@ where
 						Just (SubMenu label entries)	= setMenuItem recOpenedMenu (newSubMenu label entries)
 						_								= stop
 	where
-		newSubMenu label entries = SubMenu label (take 5 [MenuItem name (ActionParam actionOpenFile (toString id)):entries])
+		newSubMenu label entries = SubMenu label (take 5 [MenuItem name (ActionParam actionOpenFile (toString id)) Nothing : entries])
 	
 	editor :: !TextFile -> Task GAction					
 	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
@@ -274,13 +280,6 @@ getAllFileNames =
 				dbReadAll
 	>>= \files.	return (map (\f -> (f.TextFile.name, Hidden f.fileId)) files)
 	
-
-derive gPrint			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gParse			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gVisualize		EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gUpdate			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gMerge			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gError			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive gHint			EditorState, EditorFile, TextFile, TextStatistics, Replace
-
-derive bimap			Maybe, (,)
+derive class iTask			EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive class SharedVariable	EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive bimap				Maybe, (,)

@@ -49,20 +49,19 @@ from Time		import :: Timestamp
 	| ActionShowAbout
 	| ActionFind
 	
-/*:: Hotkey =	{ keys	:: !String
-			, ctrl	:: !Bool
-			, alt	:: !Bool
-			, shift	:: !Bool
-			}*/
-	
 getActionIcon :: !Action -> String
 
 :: Menu 		= Menu !String ![MenuItem]
 :: MenuItem 	= SubMenu !String ![MenuItem] 
-				| MenuItem !String !Action 
+				| MenuItem !String !Action !(Maybe Hotkey)
 				| MenuSeparator 
 				| MenuName !String !MenuItem
-
+				
+:: Hotkey =	{ keys	:: !String
+			, ctrl	:: !Bool
+			, alt	:: !Bool
+			, shift	:: !Bool
+			}
 
 class ProcessDB st
 where

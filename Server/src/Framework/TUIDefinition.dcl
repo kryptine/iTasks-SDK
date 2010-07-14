@@ -6,6 +6,7 @@ definition module TUIDefinition
 */
 import JSON, GenEq
 from Types import :: Document(..), :: DocumentId
+from ProcessDB import :: Hotkey
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
@@ -322,6 +323,7 @@ derive gEq TUIDef
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String
 	, topGroupAction:: !Maybe Bool
+	, hotkey		:: !Maybe Hotkey
 	}
 :: TUITuple =
 	{ layout		:: !String

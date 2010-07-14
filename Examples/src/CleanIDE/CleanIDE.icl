@@ -83,17 +83,18 @@ where
 								, editorTo		= \sc state		-> {state & srcEditorContent = getSource sc}
 								}
 							
-menuStructure =	[ Menu "File"		[ MenuItem "Save" ActionSave
-									, MenuItem "Save & Compile..." ActionCompile
+menuStructure =	[ Menu "File"		[ MenuItem "Save"							ActionSave					Nothing
+									, MenuItem "Save & Compile..."				ActionCompile				Nothing
 									, MenuSeparator
-									, MenuItem "Quit" ActionQuit
+									, MenuItem "Quit"							ActionQuit					Nothing
 									]
-				, Menu "Search"		[ MenuItem "Find & Replace..."				ActionFind]
-				, Menu "Options"	[ MenuItem "Application..."					ActionEditAppOptions
-									, MenuItem "Code Generation..."				ActionEditCodeGenOptions
-									, MenuItem "Linker..."						ActionEditLinkOptions
+				, Menu "Search"		[ MenuItem "Find & Replace..."				ActionFind					Nothing 
+									]
+				, Menu "Options"	[ MenuItem "Application..."					ActionEditAppOptions		Nothing
+									, MenuItem "Code Generation..."				ActionEditCodeGenOptions	Nothing
+									, MenuItem "Linker..."						ActionEditLinkOptions		Nothing
 									, MenuSeparator
-									, MenuItem "Syntax Highlighter Colours..."	ActionEditSyntaxColOptions
+									, MenuItem "Syntax Highlighter Colours..."	ActionEditSyntaxColOptions	Nothing
 									]
 				]
 						
@@ -240,13 +241,9 @@ where
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
 				}
-derive gPrint Replace
-derive gParse Replace
-derive gVisualize Replace
-derive gUpdate Replace
-derive gHint Replace
-derive gError Replace
-derive bimap Maybe, (,)
+
+derive class iTask	Replace
+derive bimap		Maybe, (,)
 
 ActionReplaceAll	:== ActionLabel "Replace All"
 		

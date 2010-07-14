@@ -2,16 +2,11 @@ implementation module Configuration
 
 import iTasks, JSON, GUI, AppState
 
-derive gPrint			IDEConfig
-derive gParse			IDEConfig
-derive gVisualize		IDEConfig
-derive gUpdate			IDEConfig
-derive gHint			IDEConfig
-derive gError			IDEConfig
-derive gMerge			IDEConfig
-derive JSONEncode		IDEConfig
-derive JSONDecode		IDEConfig
-derive bimap			Maybe, (,)
+derive class iTask			IDEConfig
+derive class SharedVariable	IDEConfig
+derive JSONDecode			IDEConfig
+derive JSONEncode			IDEConfig
+derive bimap				Maybe, (,)
 
 loadConfig :: Task (Maybe IDEConfig)
 loadConfig =

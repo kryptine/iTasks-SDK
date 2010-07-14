@@ -16,15 +16,15 @@ ifValid expr = Predicate (\val -> case val of
 initMenu :: Task Void
 initMenu 
 	= setMenus
-		[ Menu "File"	[ MenuItem "New"			ActionNew
-						, MenuItem "Open..."		ActionOpen
+		[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
+						, MenuItem "Open..."		ActionOpen		Nothing
 						, MenuSeparator
-						, MenuItem "Save"			ActionSave
-						, MenuItem "Save As..."		ActionSaveAs
+						, MenuItem "Save"			ActionSave		Nothing
+						, MenuItem "Save As..."		ActionSaveAs	Nothing
 						, MenuSeparator
-						, MenuItem "Quit"			ActionQuit
+						, MenuItem "Quit"			ActionQuit		Nothing
 						]
-		, Menu "Help"	[ MenuItem "About"			ActionShowAbout 
+		, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
 						]
 		]
 

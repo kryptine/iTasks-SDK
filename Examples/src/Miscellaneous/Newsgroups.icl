@@ -177,9 +177,9 @@ where
 
 	initSession :: Task Void
 	initSession = setMenus
-		[ Menu "File" [ MenuItem "New Topic" ActionNew
-					  , MenuItem "Add Users" ActionAddUser
-					  , MenuItem "Quit"		 ActionQuit
+		[ Menu "File" [ MenuItem "New Topic" ActionNew		Nothing
+					  , MenuItem "Add Users" ActionAddUser	Nothing
+					  , MenuItem "Quit"		 ActionQuit		Nothing
 					  ]
 		]
 	
@@ -371,12 +371,12 @@ ActionCommit		:== ActionLabel "Commit"
 initMenu :: NewsGroupNames -> Task Void
 initMenu groups
 	= setMenus
-		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew
-						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "SubscribeTo" group) \\ group <- groups]
+		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew		Nothing
+						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "SubscribeTo" group) Nothing \\ group <- groups]
 						, MenuSeparator
-						, MenuItem "Quit"					ActionQuit
+						, MenuItem "Quit"					ActionQuit		Nothing
 						]
-		, Menu "Help"	[ MenuItem "About"					ActionShowAbout 
+		, Menu "Help"	[ MenuItem "About"					ActionShowAbout	Nothing
 						]
 		]
 
@@ -433,8 +433,8 @@ ActionRefresh :== ActionLabel "Refresh"
 readMenu :: Task Void
 readMenu 
 	= setMenus
-		[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (toString i)) \\ i <- [1,5,10,30,50]]
-						, MenuItem "Quit"	ActionQuit
+		[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (toString i)) Nothing \\ i <- [1,5,10,30,50]]
+						, MenuItem "Quit"	ActionQuit Nothing
 						]
 		]
 

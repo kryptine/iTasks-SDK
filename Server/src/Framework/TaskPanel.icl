@@ -258,7 +258,7 @@ where
 	
 	mkMenuItems _    _ 							   id 
 		| isEmpty acceptedA && isEmpty gActions = ([], id)
-	mkMenuItems defs [MenuItem label action:items] id
+	mkMenuItems defs [MenuItem label action mbHotkey : items] id
 		# taskA		= filter (\(a,_)	-> a == action) acceptedA
 		# groupA	= filter (\(a,_,_)	-> a == action) gActions
 		#defs = case taskA of
@@ -272,6 +272,7 @@ where
 																	, menu = Nothing
 																	, iconCls = Just (getActionIcon action)
 																	, topGroupAction = Just False
+																	, hotkey = mbHotkey
 																	}
 													:defs]
 				_									= [TUIMenuItem	{ TUIMenuItem
@@ -283,6 +284,7 @@ where
 																	, menu = Nothing
 																	, iconCls = Just (getActionIcon action)
 																	, topGroupAction = Just False
+																	, hotkey = mbHotkey
 																	}
 													:defs]
 			_ = case groupA of
@@ -295,6 +297,7 @@ where
 																	, menu = Nothing
 																	, iconCls = Just (getActionIcon action)
 																	, topGroupAction = Just topLevel
+																	, hotkey = mbHotkey
 																	}
 														:defs]
 				_									= defs
@@ -311,6 +314,7 @@ where
 														, value = Nothing
 														, iconCls = Nothing
 														, topGroupAction = Nothing
+														, hotkey = Nothing
 														}
 							:defs] items id
 	mkMenuItems defs [MenuSeparator:items] id = mkMenuItems ndefs items id
@@ -344,7 +348,7 @@ where
 	determineItemUpd upd [SubMenu _ sitems:items] id
 		# (upd,id) = determineItemUpd upd sitems id
 		= determineItemUpd upd items id
-	determineItemUpd upd [MenuItem _ action:items] id
+	determineItemUpd upd [MenuItem _ action _ : items] id
 		# accAction = [b \\ (a,b) <- acceptedA | a == action] ++ [b \\ (a,b,_) <- gActions | a == action]
 		| isEmpty accAction	= determineItemUpd upd items (id + 1)
 		| otherwise			= determineItemUpd [TUISetEnabled (ti.TaskInfo.taskId +++ "-menu-" +++ toString id) (hd accAction):upd] items (id + 1)

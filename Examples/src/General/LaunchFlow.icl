@@ -13,9 +13,9 @@ ActionStartFlow 	:== ActionLabel "Start Flow"
 initMenu :: Task Void
 initMenu 
 	= setMenus
-		[ Menu "File"	[ MenuItem "Start Workflow..."	ActionStartFlow
+		[ Menu "File"	[ MenuItem "Start Workflow..."	ActionStartFlow	Nothing
 						, MenuSeparator
-						, MenuItem "Quit"				ActionQuit
+						, MenuItem "Quit"				ActionQuit		Nothing
 						]
 		]
 

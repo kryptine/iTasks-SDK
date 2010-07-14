@@ -38,12 +38,8 @@ calculateSum = ignoreResult (updateSharedLocal "Sum" [quitButton] (0,0) [idEdito
 			, value			:: a
 			, leftChildren	:: Tree a
 			}
-derive gPrint Tree, Node
-derive gParse Tree, Node
-derive gVisualize Tree, Node
-derive gUpdate Tree, Node
-derive gError Tree, Node
-derive gHint Tree, Node
+
+derive class iTask Tree, Node
 
 toTree :: [a] -> (Tree a) | Ord a
 toTree list = makeTree (sort list)
@@ -105,12 +101,8 @@ where
 				, showScaleControl		:: Bool
 				, size					:: MapSize
 				}
-derive gPrint		MarkerInfo, MapSize, MapOptions
-derive gParse		MarkerInfo, MapSize, MapOptions
-derive gVisualize	MarkerInfo, MapSize, MapOptions
-derive gUpdate		MarkerInfo, MapSize, MapOptions
-derive gError		MarkerInfo, MapSize, MapOptions
-derive gHint		MarkerInfo, MapSize, MapOptions
+
+derive class iTask MarkerInfo, MapSize, MapOptions
 
 RemoveMarkersAction :== ActionLabel "Remove Markers"
 
@@ -142,7 +134,7 @@ where
 //Different Views on Formatted Text
 formattedText :: Task Void
 formattedText =
-				setMenus [Menu "Example" [MenuItem "Quit" ActionQuit]]
+				setMenus [Menu "Example" [MenuItem "Quit" ActionQuit Nothing]]
 	>>|			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
 	>>= \sid.	dynamicGroupAOnly [(ignoreResult (t <<@ ExcludeGroupActions) <<@ GBFloating) \\ t <- tasks sid] actions
 	>>|			deleteDB sid

@@ -1,16 +1,11 @@
 definition module MenuTasks
 
-from ProcessDB	import ::Menu, ::MenuItem
+from ProcessDB	import ::Menu, ::MenuItem, ::Hotkey{..}
 from TSt		import ::Task
 from Void		import :: Void
 import StdMaybe, GenPrint, GenParse, GenVisualize, GenUpdate
 
-derive gParse Menu, MenuItem
-derive gPrint Menu, MenuItem
-derive gVisualize Menu, MenuItem
-derive gUpdate Menu, MenuItem
-derive gError Menu, MenuItem
-derive gHint Menu, MenuItem
+derive class iTask Menu, MenuItem, Hotkey
 
 getMenus :: Task (Maybe [Menu])
 setMenus :: ![Menu] -> Task Void

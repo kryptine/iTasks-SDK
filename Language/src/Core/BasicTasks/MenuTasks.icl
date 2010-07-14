@@ -1,20 +1,14 @@
 implementation module MenuTasks
 
 
-from ProcessDB	import ::Menu(..), ::MenuItem(..), ::Process{..}
+from ProcessDB	import ::Menu(..), ::MenuItem(..), ::Hotkey, ::Process{..}
 from TSt		import ::Task
 from Void		import :: Void
 import TSt, CoreCombinators, StdMisc
 import StdList
 
-derive gParse Menu, MenuItem
-derive gPrint Menu, MenuItem
-derive gVisualize Menu, MenuItem
-derive gUpdate Menu, MenuItem
-derive gError Menu, MenuItem
-derive gHint Menu, MenuItem
-
-derive bimap (,), Maybe
+derive class iTask	Menu, MenuItem, Hotkey
+derive bimap		(,), Maybe
 
 getMenus :: Task (Maybe [Menu])
 getMenus

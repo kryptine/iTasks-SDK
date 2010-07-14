@@ -13,11 +13,11 @@ showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Def
 initMenu :: Task Void
 initMenu 
 	= setMenus
-		[ Menu "File"	[ MenuItem "Show Forms..."	ShowForms
-						, MenuItem "Show Flows..."	ShowFlows
-						, MenuItem "Show All..."	ShowAll
+		[ Menu "File"	[ MenuItem "Show Forms..."	ShowForms	Nothing
+						, MenuItem "Show Flows..."	ShowFlows	Nothing
+						, MenuItem "Show All..."	ShowAll		Nothing
 						, MenuSeparator
-						, MenuItem "Quit"			ActionQuit
+						, MenuItem "Quit"			ActionQuit	Nothing
 						]
 		]
 
