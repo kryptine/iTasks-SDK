@@ -43,6 +43,17 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 	},
 	
 	initGrid : function() {
+		
+		this.cellActions = new Ext.ux.grid.CellActions({
+			callbacks: {
+				'icon-edit' : function(grid, record, action, value){
+					var win = new itasks.ttc.parallel.AssignWindow({initUser : value, taskId: record.data.taskId});
+					win.show();
+				}
+			},
+			align: 'right'
+		});
+		
 		var store = new Ext.data.JsonStore({
 			autoDestroy : true,
 			root: 'subtasks',
@@ -57,6 +68,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 				'description'
 			]
 		});
+		
 		var col = new Ext.grid.ColumnModel({
 			defaults: {
 				menuDisabled: true,
@@ -64,10 +76,9 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 			},
 			columns: [
 				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
-				//{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 34, renderer: this.renderId},
-				//{header: 'Priority',				dataIndex: 'properties', width: 70, renderer: this.renderPriority},
+				//{header: 'Priority',			dataIndex: 'properties', width: 70, renderer: this.renderPriority},
 				{header: 'Subject',		   		dataIndex: 'subject', width: 250},
-				{header: 'Delegated To', 		dataIndex: 'delegatedTo', editor: new itasks.tui.UsernameControl({preventMark: true}), width: 150},
+				{header: 'Delegated To', 		dataIndex: 'delegatedTo', width: 150, renderer: this.renderDelegated, cellActions:[{ iconCls: 'icon-edit', qtip: 'Re-asign the task to another user'}]},
 				{header: 'Description',			dataIndex: 'description', width: 180},
 				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 85}				
 			]
@@ -78,6 +89,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 			colModel: col,	
 			width: '100%',
 			height: 250,
+			plugins:[this.cellActions],
 			clicksToEdit: 'auto'
 		});
 		
@@ -86,7 +98,6 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 	},
 	
 	handleChange : function(edit){
-		/* TODO: set properties */
 		this.grid.store.commitChanges();
 	},
 	
@@ -113,224 +124,93 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 			return '<div style="text-align: center"><img src="skins/default/img/icons/tick.png" /></div>'
 		}
 	},
-	
-	renderId: function(val,metadata,rec,row,col,store){
-		var split = val.split(".");
-		render = '<img style="width: '+(split.length-1)*5+'px" src="'+Ext.BLANK_IMAGE_URL+'"></span>';		
-		render += val;
-		return render;
-	},
-	
+		
 	renderPriority: function(val,metadata,rec,row,col,store){
 		if(val != null){
 			return itasks.util.formatPriority(val.managerProps.priority);
 		}
+	},
+	
+	renderDelegated: function(val,metadata,rec,row,col,store){
+		if(rec.data.finished) metadata.css += 'hide-cell-action ';
+		return Ext.util.Format.htmlEncode(val);
 	}
 });
 
-/*--------------------------------------------------------------------------------------------------------------------------------------------------------
- * Subcomponents
- *--------------------------------------------------------------------------------------------------------------------------------------------------------*/
- 
 Ext.ns('itasks.ttc.parallel');
 
-itasks.ttc.parallel.Control = Ext.extend(Ext.Panel,{
-
-	initComponent : function(){
+itasks.ttc.parallel.AssignWindow = Ext.extend(Ext.Window,{
+	
+	initComponent: function(){
 		
-		this.initGrid();
+		this.ucontrol = new itasks.tui.UsernameControl({
+			preventMark: true,
+			value: this.initUser
+		});
 		
-		var ct = this;
+		this.progress = new Ext.ProgressBar({hidden: true});
 		
 		Ext.apply(this,{
-			subtaskId: 0,
-			unstyled: true,
-			autoScroll: true,
-			iconCls : 'icon-overview',
-			title: 'Overview',	
-			cls: 'ParallelControlContainer',
-			layout: 'anchor',
-			items: [
-				{ xtype: 'panel'
-				, cls: 'task-description ParallelControlDescription'
-				, unstyled: true
-				, html: this.label
-				, width: 720
-				},
-				{ xtype: 'panel'
-				, bodyStyle: 'padding: 4px'
-				, items: [
-					{ xtype: 'panel'
-					, unstyled: true
-					, html: this.description
-					, bodyStyle: 'padding-bottom: 4px'
-					},
-					this.grid
+			title: 'test',
+			modal: true,
+			resizable: false,
+			items: [{
+				html: 'Please select a user to whom this task may be assigned.'
+			},{
+				xtype: 'form',
+				items: [this.ucontrol],
+				buttons: [{
+					text: 'Cancel',
+					iconCls: 'icon-cancel',
+					handler: function(b,e) { b.findParentByType(itasks.ttc.parallel.AssignWindow).close(); }
+				  },{
+					text: 'Ok',
+					iconCls: 'icon-ok',
+					handler: this.handleAssignment
+				  }
 				]
-				, cls: 'ParallelControlPanel'
-				, width: 720
-				, unstyled: true
-				, buttons: [
-					{ xtype: 'button'
-					, text: 'Manage selected subtask'
-					, iconCls: 'icon-manage-process'
-					, disabled: true
-					, handler: function(){					
-						var selected = ct.grid.getSelectionModel().getSelected();
-						
-						if(!selected){
-							Ext.Msg.show(
-								{ title: 'No selection'
-								, msg: 'Please select the process you want to manage in the grid'
-								, buttons: Ext.Msg.OK
-								, icon: Ext.MessageBox.ERROR
-								}
-							);
-							return;
-						}
-						
-						var properties = selected.get('properties');
-						if(properties == null){	return;	}
-								
-						var closeCB = function(){
-							this.findParentByType(itasks.WorkPanel).refresh();
-						}
-								
-						var window = new itasks.ttc.parallel.ManageWindow({properties: properties, parent: ct});
-						
-						window.on('close',closeCB);						
-						window.show();
-					  }
-					}
-				]
-				}	
-			]
+			},this.progress],
+			defaults: {unstyled: true, bodyStyle: 'padding: 4px'}
 		});
-				
-		itasks.ttc.parallel.Control.superclass.initComponent.apply(this,arguments);
-		this.updateStore(this.subtaskInfo);
+	
+		itasks.ttc.parallel.AssignWindow.superclass.initComponent.apply(this,arguments);
 	},
 	
-	initGrid : function() {
-		var store = new Ext.data.JsonStore({
-			autoDestroy: true,
-			root: 'subtasks',
-			fields: [
-				{name: 'finished', type: 'bool'},
-				'properties',
-				'taskId',
-				'subject',
-				'delegatedTo',
-				'progress',
-				'subtaskId',
-				'description'
-			]
-		});
+	handleAssignment: function(button,evt){
 		
-		var col = new Ext.grid.ColumnModel({
-			defaults: {
-				menuDisabled: true,
-				sortable: true
-			},
-			columns: [
-				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
-				{header: 'Nr.',			  			dataIndex: 'subtaskId', width: 34, renderer: this.renderId},
-				{header: 'Priority',				dataIndex: 'properties', width: 70, renderer: this.renderPriority},
-				{header: 'Subject',		   		dataIndex: 'subject', width: 130},
-				{header: 'Delegated To', 		dataIndex: 'delegatedTo', renderer: Ext.util.Format.htmlEncode, width: 150},
-				{header: 'Description',			dataIndex: 'description', width: 180},
-				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 85}				
-			]
-		});
+		var win = this.findParentByType(itasks.ttc.parallel.AssignWindow);
+		var val = win.ucontrol.getValue();
+		var upd = (val != "")?'["NamedUser",'+Ext.encode(val)+']':val;
+		var c = new Ext.data.Connection();
 		
-		this.grid = new Ext.grid.GridPanel({
-			store : store,
-			colModel: col,	
-			width: '100%',
-			height: 250
-		});
-		
-		this.grid.on("rowdblclick",function(grid,row,e){
-			var store = grid.store;
-			var rec = grid.store.getAt(row);
-			var staskId = rec.data.subtaskId;
-			var ct = this.findParentByType(itasks.ttc.ParallelContainer);
-	
-			ct.setActiveSubtask(staskId);
+		c.on('beforerequest', function(conn,options){
+			win.progress.show();
+			win.progress.wait({text: 'Reassigning task...'});
 		},this);
 		
-		this.grid.on('rowclick',function(grid,row,e){
-			var selected = grid.getSelectionModel().getSelected();
+		c.on('requestcomplete', function(conn,response,options){
+			var resp = Ext.decode(response.responseText);
 			
-			if(selected.get('properties')){
-				grid.ownerCt.buttons[0].setDisabled(false);
-			}else{
-				grid.ownerCt.buttons[0].setDisabled(true);
+			if(!resp.success){
+				Ext.Msg.alert('Error',resp.error);
 			}
-		},this);
-	},
-	
-	update: function(subtaskinfo){
-		this.updateStore(subtaskinfo);
-	},
-	
-	updateStore: function(records){
-		var store = this.grid.store;
-		store.loadData({subtasks: records},false);
-	},
-	
-	renderFinished: function(val,metadata,rec,row,col,store){
-		if(val == false){
-			return '<div style="text-align: center"><img src="skins/default/img/icons/hourglass.png" /></div>'
-		}else{
-			return '<div style="text-align: center"><img src="skins/default/img/icons/tick.png" /></div>'
-		}
-	},
-	
-	renderId: function(val,metadata,rec,row,col,store){
-		var split = val.split(".");
-		render = '<img style="width: '+(split.length-1)*5+'px" src="'+Ext.BLANK_IMAGE_URL+'"></span>';		
-		render += val;
-		return render;
-	},
-	
-	renderPriority: function(val,metadata,rec,row,col,store){
-		if(val != null){
-			return itasks.util.formatPriority(val.managerProps.priority);
-		}
-	}
-
-});
-
-
-itasks.ttc.parallel.ManageWindow = Ext.extend(Ext.Window,{
-
-	initComponent : function(){
-		Ext.apply(this,
-		{ width: 745
-		, height: 300
-		, layout: 'fit'
-		, modal: true
-		, closable: true
-		, resizable: false
-		, renderTo: this.parent.getEl()
-		, constrain: true
-		, items: [			
-			{ xtype: 'itasks.ttc.proc-control'
-			, taskId: this.properties.systemProps.processId
-			, properties: this.properties
-			}
-		]
-		//, title: 'Manage Process Properties'
-		});
-	
-		//hack: make sure the ownerCt is set to reference the parent, so that findParentByType works.
-		this.ownerCt = this.parent;
 		
-		itasks.ttc.parallel.ManageWindow.superclass.initComponent.apply(this,arguments);
+			itasks.app.mainGui.refreshGUI();	
+		},this);		
+		
+		c.on('requestexception', function(conn,response,options){
+			Ext.Msg.alert('Error', 'Cannot reassign task. The task is either non existent or you don\'t have sufficient privileges');
+		});
+		
+		c.request({
+			url: itasks.config.servicesUrl+'/json/tasks/'+win.taskId+ '/managerProperties/worker',
+			params: { _session: itasks.app.session, update: upd},
+			callback: function(){
+				win.close();
+			}
+		});		
 	}
-
 });
 
 Ext.reg('itasks.ttc.parallel',itasks.ttc.ParallelContainer);
-Ext.reg('itasks.ttc.parallel.control',itasks.ttc.parallel.Control);
+Ext.reg('itasks.ttc.parallel.assign', itasks.ttc.parallel.AssignWindow);

@@ -11,15 +11,9 @@ from TaskTree	import :: TaskParallelType
 from Time		import :: Timestamp 
 
 from iTasks		import class iTask
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenVisualize, GenUpdate, GenParse, GenPrint
 
-derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gError		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gHint		ProcessRef, Process, ProcessStatus, TaskProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-
+derive class iTask	ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId
@@ -31,7 +25,7 @@ instance toProcessId (ProcessRef a)
 * 
 * @param The process id
 *
-* @return When found, the Process record. Nothing when the process can not be found.
+* @return When found, the Process record. Nothing when the process cannot be found.
 */
 getProcess				:: !pid 					-> Task (Maybe Process) | toProcessId pid
 /**
@@ -41,9 +35,19 @@ getProcess				:: !pid 					-> Task (Maybe Process) | toProcessId pid
 * @param The owner of the indicated process
 * @param The process id
 *
-* @return When found, the Process record. Nothing when the process can not be found.
+* @return When found, the Process record. Nothing when the process cannot be found.
 */
 getProcessForUser		:: !User !pid				-> Task (Maybe Process)	| toProcessId pid
+/**
+* Retrieves a Process record with an additional check on the process manager. Only
+* when the process is managed by the indicated user it will be returned.
+*
+* @param The manager of the indicated process
+* @param The process id
+*
+* @return When found, the Process record. Nothing when the process cannot be found.
+*/
+getProcessForManager 	:: !User !pid				-> Task (Maybe Process) | toProcessId pid
 /**
 * Retrieves the processes with indicated process ids
 *

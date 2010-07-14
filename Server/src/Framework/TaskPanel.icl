@@ -126,14 +126,14 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 								})
 		= (container,tst)
 	(TTParallelTask ti tpi tasks)
-		# subtaskinfo		= buildSubtaskInfo tasks currentUser		
-		# container			= (TTCParallelContainer {TTCParallelContainer 
-								| xtype = "itasks.ttc.parallel"
-								, taskId = ti.TaskInfo.taskId
-								, label = ti.TaskInfo.taskLabel
-								, description = tpi.TaskParallelInfo.description
-								, subtaskInfo = subtaskinfo
-								})
+		# (subtaskinfo,tst)		= buildSubtaskInfo tasks currentUser tst		
+		# container				= (TTCParallelContainer {TTCParallelContainer 
+									| xtype = "itasks.ttc.parallel"
+									, taskId = ti.TaskInfo.taskId
+									, label = ti.TaskInfo.taskLabel
+									, description = tpi.TaskParallelInfo.description
+									, subtaskInfo = subtaskinfo
+									})
 		= (container,tst)
 where		
 	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
@@ -154,29 +154,38 @@ buildResultPanel tree = case tree of
 	_	
 		= TaskNotDone
 
-buildSubtaskInfo :: ![TaskTree] !User -> [SubtaskInfo]
-buildSubtaskInfo tasks manager = [buildSubtaskInfo` t \\ t <- tasks]
+buildSubtaskInfo :: ![TaskTree] !User !*TSt -> ([SubtaskInfo],*TSt)
+buildSubtaskInfo [] manager tst = ([],tst)
+buildSubtaskInfo [t:ts] manager tst
+	//= [buildSubtaskInfo` t \\ t <- tasks]
+	# (i,tst) = buildSubtaskInfo` t tst
+	# (is,tst) = buildSubtaskInfo ts manager tst
+	= ([i:is],tst) 
 where
-	buildSubtaskInfo` :: !TaskTree -> SubtaskInfo
-	buildSubtaskInfo` tree = case tree of
+	buildSubtaskInfo` :: !TaskTree !*TSt -> (SubtaskInfo,*TSt)
+	buildSubtaskInfo` tree tst = case tree of
 		(TTInteractiveTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		(TTMonitorTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		(TTInstructionTask ti _ _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		(TTRpcTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		(TTExtProcessTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		(TTFinishedTask ti _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, finished = True}
+			# (mbProc,tst) = getProcess ti.TaskInfo.taskId tst
+			# worker = case mbProc of
+				(Just proc) = toString proc.Process.properties.managerProperties.ManagerProperties.worker
+				Nothing		= toString ti.TaskInfo.worker			
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = worker, finished = True},tst)
 		(TTParallelTask ti tpi _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description},tst)
 		(TTGroupedTask ti _ _ _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		(TTMainTask ti mti _ _ _)
-			= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
 		
 	mkSti :: SubtaskInfo
 	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", description = ""}

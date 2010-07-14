@@ -8,6 +8,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 	initComponent: function() {
 
 		Ext.apply(this, {
+			id: 'apppanel',
 			layout: 'border',
 			hidden: true,
 			hideMode: 'offsets',
@@ -92,6 +93,7 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 				var wlTStamp = node.attributes.latestExtEvent
 				
 				if(tab != null){
+			
 					var tTStamp = tab.properties.systemProperties.latestEvent;
 					if(wlTStamp > tTStamp) tab.refresh();
 				}
@@ -145,5 +147,15 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 			},
 			scope: this
 		});
+	},
+	refreshGUI: function(){
+		//Refresh the worklist and the active tab
+		var worklist 	= this.getComponent('centerpanel').getComponent('worklist');
+		var worktabs 	= this.getComponent('centerpanel').getComponent('worktabs');
+		var tab = worktabs.getActiveTab();
+		
+		
+		worklist.refresh();
+		tab.refresh();
 	}
 });

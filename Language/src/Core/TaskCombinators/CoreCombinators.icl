@@ -116,58 +116,39 @@ derive bimap Maybe, (,)
 	{ state :: b
 	, tasks :: [(Task a,Bool)]
 	}
-	
-//TODO : CLEAN UP!
-group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
-group label description procFun parseFun initState initTasks groupActions = execInGroup Nothing label description procFun parseFun initState initTasks (Just groupActions)
 
-execInGroup :: !(Maybe TaskParallelType) !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b->c) !b ![Task a] !(Maybe [GroupAction a b s]) -> Task c | iTask a & iTask b & iTask c & iTask s
-execInGroup mbParType label description procFun parseFun initState initTasks mbGroupActions =
-	case mbParType of
-		(Nothing) = makeTaskNode label Nothing execInGroup`
-		(Just pt) = makeTaskNode label (Just (mkTpi pt)) execInGroup`
+group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
+group label description procFun parseFun initState initTasks groupActions = mkGroupedTask label execInGroup
 where
-	execInGroup` tst=:{taskNr,request}
-		# taskNr			= drop 1 taskNr // get taskNr of group-task
-		# (updates,tst)		= getChildrenUpdatesFor taskNr tst
-		# (pst,tst)   		= loadPSt taskNr tst
-		| otherwise		
-		// check for group actions
-		# (gActionStop,mbFocus,pst) = case mbGroupActions of
-			Just gActions
-				# gAction = case parseString (http_getValue "_group" updates "") of
-					Nothing	= parseString (http_getValue "menuAndGroup" updates "")
-					res		= res
-				= case gAction of
-					Just action	= case filter (\act -> (getAction act) == action) gActions of
-						[gAction:_]
-							# (nSt,act) = procFun (getResult action gAction,-1) pst.state
-							# pst = {pst & state = nSt}
-							= case act of
-								Stop			= (True,Nothing,pst)
-								Continue		= (False,Nothing,pst)
-								Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]})
-								Focus tag		= (False,Just tag,pst)
-						_ = (False,Nothing,pst)
-					Nothing = (False,Nothing,pst)
-			Nothing = (False,Nothing,pst)		
+	execInGroup tst=:{taskNr,request}
+		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
+		# (updates,tst)		= getChildrenUpdatesFor grTaskNr tst
+		# (pst,tst)   		= loadPSt grTaskNr tst
+		# gAction			= case parseString (http_getValue "_group" updates "") of
+								Nothing = parseString (http_getValue "menuAndGroup" updates "")
+								res = res
+		# (gActionStop,mbFocus,pst) 
+							= case gAction of
+								Just action	= case filter (\act -> (getAction act) == action) groupActions of
+									[gAction:_]
+										# (nSt,act) = procFun (getResult action gAction,-1) pst.state
+										# pst = {pst & state = nSt}
+										= case act of
+											Stop			= (True,Nothing,pst)
+											Continue		= (False,Nothing,pst)
+											Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]})
+											Focus tag		= (False,Just tag,pst)
+									_ = (False,Nothing,pst)
+								Nothing = (False,Nothing,pst)
 		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
-		# tst						= setTaskStoreFor taskNr "pst" pst tst
+		# tst						= setTaskStoreFor grTaskNr "pst" pst tst
 		= case result of
-			TaskException e 
-				//remove all subtask workers from this process at once, as it is in Exception state, so their temporary rights to see this parallel should be revoked.
-				//# tst = clearSubTaskWorkers (taskNrToString taskNr) mbParType tst
-				= (TaskException e,tst)
-			TaskFinished  r 
-				//remove all subtask workers from this process at once, as it is finished.
-				//# tst = clearSubTaskWorkers (taskNrToString taskNr) mbParType tst
-				= (TaskFinished (parseFun r),tst)
+			TaskException e = (TaskException e,tst)
+			TaskFinished  r = (TaskFinished (parseFun r),tst)
 			TaskBusy
 				| gActionStop	= (TaskFinished (parseFun pst.state),tst)
 				| otherwise
-					# tst = case mbGroupActions of
-						Just gActions	= setGroupActions (evaluateConditions gActions pst.state) tst
-						Nothing			= tst
+					# tst = setGroupActions (evaluateConditions groupActions pst.state) tst
 					# tst = case mbFocus of
 						Just (Tag t)	= setFocusCommand (toString t) tst
 						Nothing			= tst
@@ -188,7 +169,7 @@ where
 					Stop 		= (TaskFinished pst.state,pst,tst,mbFocus)
 					Continue	= processAllTasks pst (inc idx) tst mbFocus
 					Extend tlist
-						# pst = {PSt | pst & tasks = pst.tasks ++ [(assignTask task,False) \\ task <- tlist]}
+						# pst = {PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]}
 						= processAllTasks pst (inc idx) tst mbFocus
 					Focus tag	= processAllTasks pst (inc idx) tst (Just tag)
 
@@ -201,25 +182,11 @@ where
 	initPSt taskNr tst
 		# pst = { PSt
 				| state = initState
-				, tasks = [(assignTask task, False) \\ task <- initTasks]
+				, tasks = [(task, False) \\ task <- initTasks]
 				}
 		# tst = setTaskStoreFor taskNr "pst" pst tst
 		= (pst,tst)
 
-	assignTask task
-		= case (taskUser task) of
-			AnyUser = task 			//Just let the current user do it
-			user	= createOrEvaluateTaskInstance user mbParType task
-			
-	mkTpi parType =
-		{ TaskParallelInfo
-		| type = parType
-		, description = description
-		}
-
-	makeTaskNode label Nothing 	f = mkGroupedTask label f
-	makeTaskNode label (Just p)	f = mkParallelTask label p f
-	
 	markProcessed pst idx
 		# (t,b) 	= pst.tasks !! idx
 		# tasks 	= updateAt idx (t,True) pst.tasks
@@ -311,7 +278,6 @@ where
 * When a task is assigned to a user a synchronous task instance process is created.
 * It is created once and loaded and evaluated on later runs.
 */
-
 assign :: !User !(Task a) -> Task a | iTask a	
 assign user task = createOrEvaluateTaskInstance user Nothing task
 
@@ -321,7 +287,7 @@ where
 	createOrEvaluateTaskInstance` tst=:{TSt|taskNr,updates}
 		//Try to load the stored process for this subtask
 		# taskId		 = taskNrToString taskNr
-		# (mbProc,tst)	 = getProcess taskId tst	
+		# (mbProc,tst)	 = getProcess taskId tst
 		= case mbProc of
 			//Nothing found, create a task instance
 			Nothing	
@@ -342,8 +308,6 @@ where
 					TaskBusy				
 						= (TaskBusy,tst)
 					TaskFinished (a :: a^) 
-						//Comment out(?): Subtask workers should not be removed here, because when their access is removed, they cannot see the results of the other users
-						//# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst	 
 						= (TaskFinished a,tst)
 					TaskFinished _			
 						# tst = removeSubTaskWorker proc.Process.taskId user mbpartype tst
@@ -409,5 +373,3 @@ where
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done
-
-	

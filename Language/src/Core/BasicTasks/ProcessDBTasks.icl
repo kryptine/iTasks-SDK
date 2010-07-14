@@ -18,12 +18,7 @@ import CommonCombinators
 
 import Store
 
-derive gVisualize	ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gUpdate		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gPrint		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gParse		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gError		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
-derive gHint		ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive class iTask	ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 derive bimap	Maybe, (,)
 
@@ -42,6 +37,9 @@ getProcess pid = mkInstantTask "getProcess" (mkTaskFunction (\tst -> 'ProcessDB'
 
 getProcessForUser :: !User !pid -> Task (Maybe Process) | toProcessId pid
 getProcessForUser user pid = mkInstantTask "getProcessForUser" (mkTaskFunction (\tst -> 'ProcessDB'.getProcessForUser user (toProcessId pid) tst))
+
+getProcessForManager :: !User !pid -> Task (Maybe Process) | toProcessId pid
+getProcessForManager man pid = mkInstantTask "getProcessForManager" (mkTaskFunction (\tst -> 'ProcessDB'.getProcessForManager man (toProcessId pid) tst))
 
 getProcesses :: ![pid] -> Task [Process] | toProcessId pid
 getProcesses ids = mkInstantTask "getProcessesById" (mkTaskFunction (\tst -> 'ProcessDB'.getProcessesById (map toProcessId ids) tst))

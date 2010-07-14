@@ -3,16 +3,20 @@ import Http, TSt
 import HtmlUtil, Text
 import StdList
 
+import StdMisc // abort
+
 import ProcessDB
 import TaskPanel
 
 derive bimap (,), Maybe
 
-derive JSONEncode Menu, MenuItem, Action
+derive JSONEncode Menu, MenuItem, Action, User, UserDetails, Password
 derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
 
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
+
+import StdDebug
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst
@@ -79,14 +83,13 @@ taskService url html path req tst
 					= (serviceResponse html "task user interface" url tuiParams json, tst)
 
 		//Show / update Manager properties
-
 		[taskId,"managerProperties"]
 			| isJust mbSessionErr
 				= (serviceResponse html "Manager properties" url propParams (jsonSessionErr mbSessionErr), tst)			
 			# (mbProcess, tst)	= case session.Session.user of
 				RootUser
 								= getProcess taskId tst
-				user			= getProcessForUser user taskId tst
+				user			= getProcessForManager user taskId tst
 			= case mbProcess of
 				Nothing
 					= (notFoundResponse req, tst)
@@ -103,11 +106,24 @@ taskService url html path req tst
 								_
 									= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to parse update")],tst)
 					= (serviceResponse html "Manager properties" url propParams json, tst)
-					
-					
+		[taskId,"managerProperties",_]
+			# param = last path
+			| isJust mbSessionErr
+				= (serviceResponse html ("Manager property: "+++param) url propParams (jsonSessionErr mbSessionErr), tst)
+			# (mbProcess, tst) = case session.Session.user of
+				RootUser 	= getProcess taskId tst
+				user		= getProcessForManager user taskId tst
+			= case mbProcess of
+				Nothing = (notFoundResponse req, tst)
+				Just proc
+					# (json, tst) = case updateParam of
+						"" 		= (getManagerProperty param proc,tst)
+						update 	= updateManagerProperty param update proc tst
+					# updateParam = "" //reset the update paramater
+					= (serviceResponse html ("Manager property: "+++param) url propParams json, tst)
+		
 		//TODO: Worker properties & System properties
-		
-		
+				
 		//taskId/result -> show result of a finished in serialized form (to be implemented)
 		//Show the result of a finished task as interface definition	
 		[taskId,"result","tui"]
@@ -144,6 +160,25 @@ where
 					= JSONObject [("success",JSONBool False),("error", JSONString error)]
 	
 	taskItems processes = map taskItem processes
-	taskItem process	= process.Process.properties
+	taskItem process	= process.Process.properties	
 	
-	
+	//worker/subject/priority/deadline/tags	
+	getManagerProperty :: !String !Process -> JSONNode
+	getManagerProperty param proc = case param of
+		"worker" = JSONObject [("success",JSONBool True),(param,toJSON proc.Process.properties.managerProperties.ManagerProperties.worker)]
+		_		 = JSONObject [("success",JSONBool False),("error",JSONString ("Property "+++param+++" does not exist"))]
+		
+	updateManagerProperty :: !String !String !Process !*TSt -> (JSONNode,*TSt)
+	updateManagerProperty param update proc tst
+		# manProps = proc.Process.properties.managerProperties
+		= case param of
+			"worker" = case fromJSON(fromString update) of
+				Nothing 
+					= (JSONObject [("success", JSONBool False),("error", JSONString "Cannot parse update for 'worker' property")],tst)
+				Just w
+					# manProps = {ManagerProperties | manProps & worker = w}
+					# (ok,tst) = updateProcessProperties proc.Process.taskId (\p -> {p & managerProperties = manProps}) tst
+					| ok	= (JSONObject [("success",JSONBool True),("worker",toJSON w)], tst)
+							= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
+			_ 
+				= (JSONObject [("success", JSONBool False),("error", JSONString ("Property "+++param+++" does not exist"))],tst)

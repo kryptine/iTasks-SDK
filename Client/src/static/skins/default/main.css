@@ -134,6 +134,9 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-unpin{
 	background-image: url('img/icons/unpin.gif') !important;	
 }
+.icon-edit{
+	background-image: url('img/icons/pencil.png') !important;
+}
 
 #userdisplay {
 	color: #3a81ad;
@@ -810,3 +813,10 @@ button.x-form-document-trash-icon {
 	float: left;
 	margin-right: 20px;
 }
+
+/*== PARALLEL == */
+
+.hide-cell-action .ux-cell-actions{
+	display: none;
+}
+

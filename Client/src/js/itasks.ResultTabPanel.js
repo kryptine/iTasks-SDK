@@ -41,13 +41,13 @@ itasks.ResultPanel = Ext.extend(itasks.RemoteDataPanel, {
 		var rh = this.getComponent(0);
 		var rp = this.getComponent(1);
 		
-		var props = data.task.properties;
-		var subject = props.managerProps.subject
-		
+		var props = data.task;
+		var subject = props.managerProperties.subject
+				
 		this.properties = props;
 		this.setTitle(Ext.util.Format.ellipsis(subject,10));		
 		
-		rh.setContent(data.task.taskId, subject, props);
+		rh.setContent(props.systemProperties.taskId, subject, props);
 		
 		if(rp.initialized){
 			rp.removeAll();
@@ -71,7 +71,7 @@ itasks.ResultHeaderPanel = Ext.extend(Ext.Panel, {
 		itasks.ResultHeaderPanel.superclass.initComponent.apply(this,arguments);
 		
 	},
-	setContent: function(taskid, subject, properties) {			
+	setContent: function(taskid, subject, properties) {						
 			var subject = subject + (itasks.config.debug ? (" (" + taskid + ")") : "");
 			
 			this.body.update( String.format(
@@ -81,7 +81,7 @@ itasks.ResultHeaderPanel = Ext.extend(Ext.Panel, {
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, subject, properties.systemProps.manager
+				, subject, properties.managerProperties.worker
 				));
 	},
 	setBusy: function(busy) {

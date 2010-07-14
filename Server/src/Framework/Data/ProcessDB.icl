@@ -84,7 +84,18 @@ where
 	where
 		relevantProc targetId {Process|taskId}		= taskId == targetId
 		relevantProc _ _							= False
-		
+	
+	getProcessForManager :: !User !TaskId !*IWorld -> (!Maybe Process, !*IWorld)
+	getProcessForManager manager taskId iworld
+		# (procs,iworld) = processStore id iworld
+		# managers = [p.Process.properties.systemProperties.manager \\ p <- procs | relevantProc taskId p]
+		= case [p \\ p <- procs | p.Process.taskId == taskId && isMember manager managers] of
+			[entry]	= (Just entry, iworld)
+			_		= (Nothing, iworld) 
+	where
+		relevantProc targetId {Process|taskId}		= taskId == targetId
+		relevantProc _ _							= False
+			
 	getProcesses :: ![ProcessStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcesses statusses iworld 
 		# (procs, iworld)	= processStore id iworld
@@ -207,6 +218,8 @@ where
 	getProcess processId tst = accIWorldTSt (getProcess processId) tst
 	getProcessForUser :: !User !TaskId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForUser user processId tst = accIWorldTSt (getProcessForUser user processId) tst
+	getProcessForManager :: !User !TaskId !*TSt -> (!Maybe Process,!*TSt)
+	getProcessForManager manager processId tst = accIWorldTSt (getProcessForManager manager processId) tst
 	getProcesses :: ![ProcessStatus] !*TSt -> (![Process],!*TSt)
 	getProcesses statuses tst = accIWorldTSt (getProcesses statuses) tst
 	getProcessesById :: ![TaskId] !*TSt -> (![Process],!*TSt)

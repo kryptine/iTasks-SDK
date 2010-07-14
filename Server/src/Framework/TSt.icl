@@ -240,7 +240,7 @@ evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount,
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
-			# (_,tst)	= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
+			# (_,tst)	 = updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
 			//Store result
