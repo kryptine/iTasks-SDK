@@ -117,7 +117,7 @@ taskService url html path req tst
 				Nothing = (notFoundResponse req, tst)
 				Just proc
 					# (json, tst) = case updateParam of
-						"" 		= (getManagerProperty param proc,tst)
+						"" 		= (getManagerProperty param proc.Process.properties.managerProperties,tst)
 						update 	= updateManagerProperty param update proc tst
 					# updateParam = "" //reset the update paramater
 					= (serviceResponse html ("Manager property: "+++param) url propParams json, tst)
@@ -161,24 +161,40 @@ where
 	
 	taskItems processes = map taskItem processes
 	taskItem process	= process.Process.properties	
-	
-	//worker/subject/priority/deadline/tags	
-	getManagerProperty :: !String !Process -> JSONNode
-	getManagerProperty param proc = case param of
-		"worker" = JSONObject [("success",JSONBool True),(param,toJSON proc.Process.properties.managerProperties.ManagerProperties.worker)]
-		_		 = JSONObject [("success",JSONBool False),("error",JSONString ("Property "+++param+++" does not exist"))]
+		
+	getManagerProperty :: !String !ManagerProperties -> JSONNode
+	getManagerProperty param manProps = case param of
+		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.worker)]
+		"subject"	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.subject)]  
+		"priority"	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.priority)]
+		"deadline"	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.deadline)]
+		"tags"		= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.tags)]
+		_		 	= JSONObject [("success",JSONBool False),("error",JSONString ("Property "+++param+++" does not exist"))]
 		
 	updateManagerProperty :: !String !String !Process !*TSt -> (JSONNode,*TSt)
 	updateManagerProperty param update proc tst
-		# manProps = proc.Process.properties.managerProperties
-		= case param of
+		# manProps 		= proc.Process.properties.managerProperties
+		# (ok,newProps) = case param of
 			"worker" = case fromJSON(fromString update) of
-				Nothing 
-					= (JSONObject [("success", JSONBool False),("error", JSONString "Cannot parse update for 'worker' property")],tst)
-				Just w
-					# manProps = {ManagerProperties | manProps & worker = w}
-					# (ok,tst) = updateProcessProperties proc.Process.taskId (\p -> {p & managerProperties = manProps}) tst
-					| ok	= (JSONObject [("success",JSONBool True),("worker",toJSON w)], tst)
-							= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
-			_ 
-				= (JSONObject [("success", JSONBool False),("error", JSONString ("Property "+++param+++" does not exist"))],tst)
+				Nothing = (False,manProps)
+				Just upd = (True,{ManagerProperties | manProps & worker = upd})
+			"subject" = case fromJSON(fromString update) of
+				Nothing = (False,manProps)
+				Just upd = (True,{ManagerProperties | manProps & subject = upd})
+			"priority" = case fromJSON(fromString update) of
+				Nothing = (False,manProps)
+				Just upd = (True,{ManagerProperties | manProps & priority = upd})
+			"deadline" = case fromJSON(fromString update) of
+				Nothing = (False,manProps)
+				Just upd = (True,{ManagerProperties | manProps & deadline = upd})
+			"tags" = case fromJSON(fromString update) of
+				Nothing = (False,manProps)
+				Just upd = (True,{ManagerProperties | manProps & tags = upd})
+			_ = (False,manProps)
+		= case ok of
+			True
+				# (ok,tst) = updateProcessProperties proc.Process.taskId (\p -> {p & managerProperties = newProps}) tst
+				| ok	= (getManagerProperty param newProps, tst)
+						= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
+			False 
+				= (JSONObject [("success", JSONBool False),("error", JSONString ("Cannot update '"+++param+++"' property"))],tst) 
