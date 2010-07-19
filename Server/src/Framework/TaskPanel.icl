@@ -28,15 +28,15 @@ JSONEncode{|User|} u									= [JSONString (toString u)]
 
 derive JSONEncode UserDetails, Password
 
-buildTaskPanel :: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)
-buildTaskPanel tree menus currentUser tst = buildTaskPanel` tree menus [] currentUser tst
+buildTaskPanel :: !TaskTree !(Maybe [Menu]) !Bool !User -> TaskPanel
+buildTaskPanel tree menus menusChanged currentUser = buildTaskPanel` tree menus menusChanged [] currentUser
 
-buildTaskPanel` :: !TaskTree !(Maybe [Menu]) ![(Action, Bool, Bool)] !User !*TSt -> (!TaskPanel,!*TSt)
-buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree of
+buildTaskPanel` :: !TaskTree !(Maybe [Menu]) !Bool ![(Action, Bool, Bool)] !User -> TaskPanel
+buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 	(TTFinishedTask _ _)
-		= (TaskDone,tst)
+		= TaskDone
 	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
-		= (TTCFormContainer {TTCFormContainer 
+		= TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
@@ -44,9 +44,9 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			, updates 	= Nothing
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
-			}, tst)
+			}
 	(TTInteractiveTask ti (Updates upd acceptedA))
-		= (TTCFormContainer {TTCFormContainer 
+		= TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
@@ -54,29 +54,28 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA (if (includeGroupActions ti) gActions []) ti)
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
-			}, tst)
+			}
 	(TTInteractiveTask ti (Func f))
-		# (fres,tst) = f tst
-		= buildTaskPanel` (TTInteractiveTask ti fres) menus gActions currentUser tst
+		= abort "Non-normalized interactive task left in task tree"
 	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
-		= (TTCMessageContainer {TTCMessageContainer
+		= TTCMessageContainer {TTCMessageContainer
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId	= ti.TaskInfo.taskId
 			, content	= {form = msg, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
-			}, tst)
+			}
 	(TTMonitorTask ti html)
-		= (TTCMonitorContainer {TTCMonitorContainer 
+		= TTCMonitorContainer {TTCMonitorContainer 
 			| xtype 	= "itasks.ttc.monitor"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, html 		= toString (DivTag [] html)
 			, subtaskId = Nothing
-			},tst)
+			}
 	(TTInstructionTask ti instruction context)
-		= (TTCInstructionContainer {TTCInstructionContainer 
+		= TTCInstructionContainer {TTCInstructionContainer 
 			| xtype 		= "itasks.ttc.instruction"
 			, id 			= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 		= ti.TaskInfo.taskId
@@ -84,57 +83,52 @@ buildTaskPanel` tree menus gActions currentUser tst=:{menusChanged} = case tree 
 			, instruction 	= toString (DivTag [] instruction)
 			, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
 			, subtaskId 	= Nothing
-			},tst)
+			}
 	(TTRpcTask ti rpc) 
-		= (TTCMonitorContainer {TTCMonitorContainer 
+		= TTCMonitorContainer {TTCMonitorContainer 
 			| xtype 	= "itasks.ttc.monitor"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, html 		= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
 			, subtaskId	= Nothing
-			},tst)
+			}
 	(TTExtProcessTask ti cmdline) 
-		= (TTCMonitorContainer {TTCMonitorContainer 
+		= TTCMonitorContainer {TTCMonitorContainer 
 			| xtype 	= "itasks.ttc.monitor"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 	= ti.TaskInfo.taskId
 			, html 		= toString (DivTag [] [Text "running '", Text cmdline, Text "' ..."])
 			, subtaskId	= Nothing
-			},tst)
+			}
 	(TTMainTask ti mti menus _ _)
-		= (TTCProcessControlContainer {TTCProcessControlContainer 
+		= TTCProcessControlContainer {TTCProcessControlContainer 
 			| xtype = "itasks.ttc.proc-control"
 			, taskId = ti.TaskInfo.taskId
 			, properties = mti
 			, subtaskId	= Nothing
-			},tst)
+			}
 	(TTSequenceTask ti tasks)
 		= case [t \\ t <- tasks | not (isFinished t)] of
-			[]	= (if (allFinished tasks) TaskDone TaskRedundant,tst)
-			[t]	= buildTaskPanel` t menus gActions currentUser tst
+			[]	= if (allFinished tasks) TaskDone TaskRedundant
+			[t]	= buildTaskPanel` t menus menusChanged gActions currentUser
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks gActions mbFocus)
-		# (gActions,tst)	= evaluateGActions gActions tst
-		# (containers,tst)	= buildGroupElements tasks currentUser gActions menus mbFocus tst
-		# containers		= filter filterFinished containers
-		# container			= (TTCGroupContainer {TTCGroupContainer 
-								| xtype = "itasks.ttc.group"
-								, taskId = ti.TaskInfo.taskId
-								, content = containers
-								, subtaskId = Nothing
-								, groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, b) <- gActions] ti
-								})
-		= (container,tst)
+		= TTCGroupContainer {TTCGroupContainer 
+					 		 | xtype = "itasks.ttc.group"
+							 , taskId = ti.TaskInfo.taskId
+							 , content = filter filterFinished (buildGroupElements tasks currentUser gActions menus menusChanged mbFocus)
+							 , subtaskId = Nothing
+							 , groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, Left b) <- gActions] ti
+							 }
 	(TTParallelTask ti tpi tasks)
-		# (subtaskinfo,tst)		= buildSubtaskInfo tasks currentUser tst		
-		# container				= (TTCParallelContainer {TTCParallelContainer 
-									| xtype = "itasks.ttc.parallel"
-									, taskId = ti.TaskInfo.taskId
-									, label = ti.TaskInfo.taskLabel
-									, description = tpi.TaskParallelInfo.description
-									, subtaskInfo = subtaskinfo
-									})
-		= (container,tst)
+		= TTCParallelContainer {TTCParallelContainer 
+								| xtype = "itasks.ttc.parallel"
+								, taskId = ti.TaskInfo.taskId
+								, label = ti.TaskInfo.taskLabel
+								, description = tpi.TaskParallelInfo.description
+								, subtaskInfo = buildSubtaskInfo tasks currentUser
+								}
+
 where		
 	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
 		IncludeGroupActions	= True
@@ -154,38 +148,29 @@ buildResultPanel tree = case tree of
 	_	
 		= TaskNotDone
 
-buildSubtaskInfo :: ![TaskTree] !User !*TSt -> ([SubtaskInfo],*TSt)
-buildSubtaskInfo [] manager tst = ([],tst)
-buildSubtaskInfo [t:ts] manager tst
-	//= [buildSubtaskInfo` t \\ t <- tasks]
-	# (i,tst) = buildSubtaskInfo` t tst
-	# (is,tst) = buildSubtaskInfo ts manager tst
-	= ([i:is],tst) 
+buildSubtaskInfo :: ![TaskTree] !User  -> [SubtaskInfo]
+buildSubtaskInfo tasks manager
+	= [buildSubtaskInfo` t \\ t <- tasks]
 where
-	buildSubtaskInfo` :: !TaskTree !*TSt -> (SubtaskInfo,*TSt)
-	buildSubtaskInfo` tree tst = case tree of
-		(TTInteractiveTask ti _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
-		(TTMonitorTask ti _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
-		(TTInstructionTask ti _ _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
-		(TTRpcTask ti _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
-		(TTExtProcessTask ti _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
-		(TTFinishedTask ti _)
-			# (mbProc,tst) = getProcess ti.TaskInfo.taskId tst
-			# worker = case mbProc of
-				(Just proc) = toString proc.Process.properties.managerProperties.ManagerProperties.worker
-				Nothing		= toString ti.TaskInfo.worker			
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = worker, finished = True},tst)
-		(TTParallelTask ti tpi _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description},tst)
-		(TTGroupedTask ti _ _ _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
-		(TTMainTask ti mti _ _ _)
-			= ({SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker},tst)
+	buildSubtaskInfo` :: !TaskTree -> SubtaskInfo
+	buildSubtaskInfo` (TTInteractiveTask ti _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+	buildSubtaskInfo` (TTMonitorTask ti _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+	buildSubtaskInfo` (TTInstructionTask ti _ _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+	buildSubtaskInfo` (TTRpcTask ti _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+	buildSubtaskInfo` (TTExtProcessTask ti _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+	buildSubtaskInfo` (TTFinishedTask ti _)		
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, finished = True}
+	buildSubtaskInfo` (TTParallelTask ti tpi _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
+	buildSubtaskInfo` (TTGroupedTask ti _ _ _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
+	buildSubtaskInfo` (TTMainTask ti mti _ _ _)
+		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
 		
 	mkSti :: SubtaskInfo
 	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", description = ""}
@@ -194,35 +179,32 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !User ![(Action,Bool)] !(Maybe [Menu]) !(Maybe String) !*TSt -> (![GroupContainerElement], !*TSt)
-buildGroupElements tasks currentUser gActions menus mbFocus tst
-	# (elements, tst)	= seqList [buildGroupElements` t [nr] [(a, b, True) \\ (a, b) <- gActions] Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
-	= (flatten elements, tst)
+buildGroupElements :: ![TaskTree] !User ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !(Maybe [Menu]) !Bool !(Maybe String) -> [GroupContainerElement]
+buildGroupElements tasks currentUser gActions menus menusChanged mbFocus
+	= flatten [buildGroupElements` t [nr] [(a, b, True) \\ (a, Left b) <- gActions] Nothing mbFocus \\ t <- tasks & nr <- [1..]]
 where
-	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) !*TSt -> (![GroupContainerElement] , !*TSt)
-	buildGroupElements` (TTGroupedTask _ tasks gActions mbFocus) stnr parentGActions  _ mbFocusParent tst
+	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) -> [GroupContainerElement]
+	buildGroupElements` (TTGroupedTask _ tasks gActions mbFocus) stnr parentGActions  _ mbFocusParent
 		# mbFocus = case mbFocus of
 			Nothing		= mbFocusParent
 			_			= mbFocus
-		# (gActions,tst)	= evaluateGActions gActions tst
-		# gActions			= [(a, b, False) \\ (a, b) <- gActions] ++ parentGActions
-		# (panels, tst)		= seqList [buildGroupElements` t [nr:stnr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]] tst
-		= (flatten panels, tst)
-	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour mbFocus tst
+		# gActions			= [(a, b, False) \\ (a, Left b) <- gActions] ++ parentGActions
+		= flatten [buildGroupElements` t [nr:stnr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]]
+	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour mbFocus
 		= case filter (not o isFinished) tasks of
-			[]  = ([], tst)
-			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) mbFocus tst
+			[]  = []
+			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) mbFocus
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
-	buildGroupElements` t stnr gActions mbBehaviour mbFocus tst
-		# (p, tst)	= buildTaskPanel` t menus gActions currentUser tst
+	buildGroupElements` t stnr gActions mbBehaviour mbFocus
+		# panel		= buildTaskPanel` t menus menusChanged gActions currentUser
 		# info		= getTaskInfo t
-		= ([	{ panel = p
-				, behaviour = getGroupedBehaviour info mbBehaviour
-				, index = subtaskNrToString stnr
-				, focus = case mbFocus of
-					Nothing		= False
-					Just tag	= isMember tag info.TaskInfo.tags
-				}], tst)
+		= [	{ panel = panel
+			, behaviour = getGroupedBehaviour info mbBehaviour
+			, index = subtaskNrToString stnr
+			, focus = case mbFocus of
+				Nothing		= False
+				Just tag	= isMember tag info.TaskInfo.tags
+			}]
 		
 	getGroupedBehaviour :: !TaskInfo !(Maybe GroupedBehaviour) -> GroupedBehaviour
 	getGroupedBehaviour info mbFixedBehaviour = case mbFixedBehaviour of
@@ -356,15 +338,15 @@ where
 	determineItemUpd upd [MenuName _ item:items] id = determineItemUpd upd [item:items] id
 	determineItemUpd upd [] id = (upd,id)
 
-evaluateGActions :: ![(Action, Either Bool (*TSt -> (Bool, *TSt)))] !*TSt -> ([(Action, Bool)], *TSt)
-evaluateGActions gActions tst = seqList [evaluateGAction action \\ action <- gActions] tst
+/*
+evaluateGActions :: ![(Action, Either Bool (*TSt -> (Bool, *TSt)))] -> [(Action, Bool)]
+evaluateGActions gActions = [evaluateGAction action \\ action <- gActions]
 where
-	evaluateGAction (action,cond) tst = case cond of
-		Left b	= ((action,b),tst)
-		Right f
-			# (b,tst) = f tst
-			= ((action,b),tst)
-			
+	evaluateGAction (action,cond) = case cond of
+		Left b	= (action,b)
+		Right f	= (action,True)	//TODO!!
+*/
+		
 subtaskNrToString :: SubtaskNr -> String
 subtaskNrToString [] 	 = ""
 subtaskNrToString [i] 	 = toString i

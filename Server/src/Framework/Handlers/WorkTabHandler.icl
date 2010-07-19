@@ -12,14 +12,14 @@ import TaskPanel
 from TaskTree import :: TaskParallelType{..}
 
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
-handleWorkTabRequest req tst=:{staticInfo}
+handleWorkTabRequest req tst=:{staticInfo,menusChanged}
 	# tst		  = {TSt | tst & request = req}
 	# (tree, tst) = calculateTaskTree taskId [] tst	// Calculate the task tree TODO : add updates
 	= case tree of
 		(TTMainTask ti properties menus _ task)
 			# subject			= [properties.managerProperties.ManagerProperties.subject]
 			# user				= staticInfo.currentSession.Session.user
-			# (panel,tst)		= buildTaskPanel task menus user tst
+			# panel				= buildTaskPanel task menus menusChanged user
 			// Collect debug information
 			# (debuginfo,tst)	= if debug (collectDebugInfo tree tst) (Nothing, tst)
 			// Check the user who has to do the work: if not the correct user, give task redundant message.

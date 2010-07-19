@@ -234,6 +234,9 @@ evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount,
 	// The tasktree of this process is the tree as it has been constructed, but with updated properties
 	# (TTMainTask ti _ _ _ tasks,tst)	= getTaskTree tst
 	# tree								= TTMainTask ti properties menus inParallelType tasks
+	// Normalize the tree by evaluating all interactive task nodes that contain functions
+	// These can only be evaluated after the complete tree has been evaluated because of mutual dependencies
+	# (tree,tst)						= normalizeInteractiveTasks tree tst
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges taskId tst) tst
 	# tst								= restoreTSt parentUpdates parentProperties parentMenus tst
@@ -431,7 +434,49 @@ where
 		storeChanges [(label,dyn):cs] tst=:{TSt|iworld=iworld=:{IWorld|store}} 
 			# store	= storeValueAs SFDynamic ("iTask_change-" +++ label) dyn store
 			= storeChanges cs {TSt|tst & iworld = {IWorld|iworld & store = store}} 
-			
+
+	/*
+	* Evaluate all functions in interactive task nodes
+	*/
+	normalizeInteractiveTasks :: !TaskTree !*TSt -> (!TaskTree,!*TSt)
+	//The interactive task leaves that are normalized
+	normalizeInteractiveTasks (TTInteractiveTask ti it) tst
+		= case it of
+			(Func f)
+				# (it,tst) = f tst
+				= (TTInteractiveTask ti it, tst)
+			_
+				= (TTInteractiveTask ti it, tst)
+	//For grouped tasks the actions are also normalized
+	normalizeInteractiveTasks (TTGroupedTask ti tasks actions s) tst
+		# (actions,tst)	= mapSt normalizeAction actions tst
+		# (tasks,tst)	= mapSt normalizeInteractiveTasks tasks tst
+		= (TTGroupedTask ti tasks actions s, tst)
+	where
+		normalizeAction (action, Left b) tst = ((action,Left b), tst)
+		normalizeAction (action, Right f) tst
+			# (b,tst)	= f tst
+			= ((action,Left b), tst)
+	//Tree traversal
+	normalizeInteractiveTasks (TTMainTask ti properties menus pt task) tst
+		# (task,tst) = normalizeInteractiveTasks task tst
+		= (TTMainTask ti properties menus pt task, tst)
+	normalizeInteractiveTasks (TTSequenceTask ti tasks) tst
+		# (tasks,tst)	= mapSt normalizeInteractiveTasks tasks tst
+		= (TTSequenceTask ti tasks, tst)
+	normalizeInteractiveTasks (TTParallelTask ti pi tasks) tst
+		# (tasks,tst)	= mapSt normalizeInteractiveTasks tasks tst
+		= (TTParallelTask ti pi tasks, tst)
+	
+	//All other leaf cases
+	normalizeInteractiveTasks tree tst = (tree,tst)
+	
+mapSt f [] st = ([], st)
+mapSt f [x:xs] st
+	# (y, st) = f x st
+	# (ys, st) = mapSt f xs st
+	= ([y:ys], st)
+	
 applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInfo,currentChange,pendingChanges, properties, menus}
 	# (mbProcess,tst) = getProcess pid tst

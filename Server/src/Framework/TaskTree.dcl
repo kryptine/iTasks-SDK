@@ -15,11 +15,12 @@ from   JSON 			import :: JSONNode
 from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition ([TUIDef],[TUIButton]) [(Action,Bool)]
-					| Updates [TUIUpdate] [(Action,Bool)]
-					| Func (*TSt -> *(!InteractiveTask, !*TSt))
-					| Message ([TUIDef],[TUIButton]) [(Action,Bool)]
-
+:: InteractiveTask	= Definition ([TUIDef],[TUIButton]) [(Action,Bool)]															//Definition for rendering a user interface
+					| Updates [TUIUpdate] [(Action,Bool)]																		//Update an already rendered user interface
+					| Message ([TUIDef],[TUIButton]) [(Action,Bool)]															//Just show a message
+					| Func (*TSt -> *(!InteractiveTask, !*TSt))																	//Function for delayed generation of an interface definition.
+																																//These functions are evaluated after the full tree has been built.
+					
 :: TaskTree			= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) !(Maybe TaskParallelType) TaskTree				//A task that is treated as a main chunk of work
 					| TTInteractiveTask	TaskInfo InteractiveTask																//A task that can be worked on through a gui 
 					| TTMonitorTask		TaskInfo [HtmlTag]																		//A task that upon evaluation monitors a condition and may give status output

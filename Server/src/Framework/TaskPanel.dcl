@@ -122,5 +122,5 @@ derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTC
 	, description	:: !String
 	}
 
-buildTaskPanel 		:: !TaskTree !(Maybe [Menu]) !User !*TSt -> (!TaskPanel,!*TSt)
-buildResultPanel 	:: !TaskTree 							 -> TaskPanel
+buildTaskPanel 		:: !TaskTree !(Maybe [Menu]) !Bool !User	-> TaskPanel
+buildResultPanel 	:: !TaskTree 					 			-> TaskPanel

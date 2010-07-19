@@ -16,8 +16,6 @@ derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
 
-import StdDebug
-
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst
 	# (mbSessionErr,tst)	= initSession sessionParam tst
@@ -77,10 +75,13 @@ taskService url html path req tst
 				Just proc
 					# task			= taskItem proc
 					# menu			= proc.Process.menus
-					# (tree,tst)	= calculateTaskTree taskId [] tst //TODO Add update events as parameter
-					# (tui,tst)		= buildTaskPanel tree Nothing session.Session.user tst //TODO: Clean up this conversion. TSt should be irrelevant 
+					//The menusChanged parameter is a global flag that is set when any task in the tree has
+					//changed the menu and thus the menu needs to be replaced
+					# (tree,tst=:{TSt|menusChanged}) 
+									= calculateTaskTree taskId [] tst //TODO Add update events as parameter
+					# tui			= buildTaskPanel tree menu menusChanged session.Session.user
 					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menu),("tui",toJSON tui)]
-					= (serviceResponse html "task user interface" url tuiParams json, tst)
+					= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
 
 		//Show / update Manager properties
 		[taskId,"managerProperties"]
