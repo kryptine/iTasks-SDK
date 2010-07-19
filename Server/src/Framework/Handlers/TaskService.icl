@@ -74,14 +74,19 @@ taskService url html path req tst
 					= (notFoundResponse req, tst)
 				Just proc
 					# task			= taskItem proc
-					# menu			= proc.Process.menus
 					//The menusChanged parameter is a global flag that is set when any task in the tree has
 					//changed the menu and thus the menu needs to be replaced
 					# (tree,tst=:{TSt|menusChanged}) 
 									= calculateTaskTree taskId [] tst //TODO Add update events as parameter
-					# tui			= buildTaskPanel tree menu menusChanged session.Session.user
-					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menu),("tui",toJSON tui)]
-					= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+					= case tree of
+						(TTMainTask ti properties menus _ content)
+							# tui			= buildTaskPanel content menus menusChanged session.Session.user
+							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menus),("tui",toJSON tui)]
+							= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+						_
+							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",JSONNull),("tui",JSONNull)]
+							= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+				
 
 		//Show / update Manager properties
 		[taskId,"managerProperties"]

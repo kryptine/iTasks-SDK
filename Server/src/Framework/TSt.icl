@@ -215,6 +215,13 @@ loadThread processId tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process ![TaskUpdate] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
 evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount, inParallelType} updates newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,updates=parentUpdates,properties=parentProperties,menus=parentMenus}
+	// Update access timestamps in properties
+	# (now,tst)							= accWorldTSt time tst
+	# properties						= {properties & systemProperties = {properties.systemProperties
+															& latestEvent = Just now
+															, firstEvent = case properties.systemProperties.firstEvent of
+																Nothing	= Just now
+																Just t	= Just t }}
 	// Reset the task state
 	# tst								= resetTSt taskId updates properties inParallelType tst
 	// Queue all stored persistent changes (only when run as top node)
