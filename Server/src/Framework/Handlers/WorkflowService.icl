@@ -3,6 +3,7 @@ implementation module WorkflowService
 import Http, TSt
 import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
+import GenEq
 
 from Util import mb2list
 

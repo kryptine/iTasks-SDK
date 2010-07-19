@@ -154,23 +154,15 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 	# buttonActions = getButtonActions actions
 	# (anyUpd,tst)	= anyUpdates tst
 	| newTask || not anyUpd
-		// generate TUI definition
-		# radios = [TUIRadio {TUIRadio	| name = selectionId
-										, id = ""
-										, value = toString i
-										, boxLabel = Just (toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)))
-										, fieldLabel = Nothing
-										, hideLabel	= True
-										, checked = (i == selection)
-										} \\ option <- options & i <- [0..] ]
-	
-		# form 	= [TUIRadioGroup {TUIRadioGroup	| name = selectionId
-												, id = selectionId
-												, fieldLabel = Nothing
-												, hideLabel = True
-												, columns = 1
-												, items = radios
-												}]
+		# form			= [TUIChoiceControl {TUIChoiceControl
+											| name = selectionId
+											, id   = selectionId
+											, fieldLabel = Nothing
+											, optional = False
+											, allowMultiple = False
+											, options = [toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)) \\ option <- options]
+											, selection = [selection]
+											}]
 		# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
 		# buttonActions	= evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
@@ -190,7 +182,8 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 				// The selection was updated
 				Nothing
 					// The selection was updated
-					# index = toInt (http_getValue selectionId updates "-1")
+					# upd = parseUpdate selectionId updates
+					# index = if(isEmpty upd) -1 (hd upd)
 					| index <> -1
 						# valid			= index >= 0 && index < length options	//Recompute validity
 						# tst			= setTaskStore "selection" index tst
@@ -202,6 +195,11 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 					| otherwise
 						# tst = setTUIUpdates [] [] tst
 						= (TaskBusy, tst)
+where
+	parseUpdate :: !String ![(String,String)] -> [Int]
+	parseUpdate	selectionId updates
+		# mbList = fromJSON(fromString (http_getValue selectionId updates "[]"))
+		= case mbList of Nothing = []; Just list = list
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
 enterMultipleChoice question options = mkInteractiveTask "enterMultipleChoice" (ignoreActionA (makeMultipleChoiceTask question options [] Nothing [ButtonAction (ActionOk, IfValid)]))
@@ -241,17 +239,16 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 	= (TaskFinished (ActionOk,[]),tst)
 	| newTask || not anyUpd
 		// generate TUI definition
-		# checks	= [isMember i selection \\ i <- [0..(length options) - 1]]
-		# cboxes	= [TUICheckBox 
-					  {TUICheckBox
-					  | name = "sel-" +++ toString i
-					  , id = editorId +++ "-cb-" +++ toString i
-					  , value = toString i
-					  , fieldLabel = Nothing
-					  , hideLabel = True
-					  , boxLabel = Just (visualizeAsTextLabel o)
-					  , checked = c} \\ o <- options & i <- [0..] & c <- checks ]
-		# form			= [ TUICheckBoxGroup {TUICheckBoxGroup |name = "selection", id = editorId +++ "-selection", fieldLabel = Nothing, hideLabel = True, columns = 1, items = cboxes}]
+		# checks		= [isMember i selection \\ i <- [0..(length options) - 1]]
+		# form			= [TUIChoiceControl { TUIChoiceControl
+											| name = "selection"
+											, id = editorId +++ "-selection"
+											, fieldLabel = Nothing
+											, allowMultiple = True
+											, optional = False
+											, options = [toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)) \\ option <- options]
+											, selection = selection
+											}]
 		# menuActions	= evaluateConditions (getMenuActions actions) True (select selection options)
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy, tst)
@@ -269,18 +266,18 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 				Just action	= (TaskFinished (action, select selection options),tst)
 				Nothing
 					// Perhaps the selection was changed
-					# mbSel		= parseSelection updates 
+					# mbSel		= parseSelection updates
 					# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 					# tst		= setTaskStore "selection" (sort selection) tst
 					# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
 					= (TaskBusy, tst)
 where
-	parseSelection :: [(String,String)] -> Maybe [String]
+	parseSelection :: [(String,String)] -> Maybe [Int]
 	parseSelection updates = fromJSON (fromString (http_getValue "selection" updates "[]"))	
 
 	select :: [Int] [a] -> [a]
 	select indices options = [options !! index \\ index <- indices]
-
+	
 //Output tasks
 showMessage	:: message -> Task Void	| html message
 showMessage message = mkInteractiveTask "showMessage" (ignoreActionV (makeMessageTask message Nothing [ButtonAction (ActionOk, IfValid)]))

@@ -87,6 +87,8 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 		
 			var children = [];
 			
+			if(!treeData) return [];
+			
 			for(var i=0; i < treeData.length; i++){
 				var d = treeData[i];
 				

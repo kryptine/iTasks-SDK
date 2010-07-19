@@ -4,7 +4,7 @@ implementation module Toolbox
 	This toolbox contains a number of workflows which can be handle unforseen situations. Or can be used as 'units' in other workflows.
 */
 
-import iTasks
+import iTasks, GenEq
 import CommonDomain, Messaging
 
 from HRM import getUserGroups

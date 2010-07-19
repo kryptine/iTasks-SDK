@@ -93,9 +93,9 @@ itasks.ApplicationPanel = Ext.extend(Ext.Panel, {
 				var wlTStamp = node.attributes.latestExtEvent
 				
 				if(tab != null){
-			
-					var tTStamp = tab.properties.systemProperties.latestEvent;
-					if(wlTStamp > tTStamp) tab.refresh();
+					//var tTStamp = tab.properties.systemProperties.latestEvent || tab.systemProperties.latestEvent;
+					//if(wlTStamp > tTStamp) tab.refresh();
+					tab.refresh(); //TODO: Fix props!
 				}
 				
 				return true;

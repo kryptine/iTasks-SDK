@@ -13,7 +13,6 @@ derive JSONEncode TUIDef, TUIUpdate
 derive gEq TUIDef
 
 :: TUIId :== String
-:: PlaceholderId :== String
 
 :: TUIUpdate
 	= TUIAdd TUIId TUIDef			// Add the additional component *after* the component with indicated id
@@ -28,6 +27,7 @@ derive gEq TUIDef
 
 :: TUIDef
 	= TUILabel
+	| TUIButton TUIButton
 	| TUIStringControl TUIBasicControl
 	| TUICharControl TUIBasicControl
 	| TUIIntControl TUIBasicControl
@@ -36,7 +36,8 @@ derive gEq TUIDef
 	| TUINoteControl TUIBasicControl
 	| TUIDateControl TUIBasicControl
 	| TUITimeControl TUIBasicControl
-	| TUIPasswordControl TUIBasicControl	
+	| TUIPasswordControl TUIBasicControl
+	| TUIChoiceControl TUIChoiceControl	
 	| TUICurrencyControl TUICurrencyControl
 	| TUIUserControl TUIBasicControl
 	| TUIDocumentControl TUIDocumentControl
@@ -48,29 +49,11 @@ derive gEq TUIDef
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
 	| TUIListContainer TUIListContainer
-	
-	//-- OLD --
-	| TUIButton TUIButton
-	| TUINumberField TUINumberField
-	| TUITextArea TUITextArea
-	| TUIUserField TUIUserField
-	| TUIComboBox TUIComboBox
-	| TUICheckBox TUICheckBox
-	| TUICheckBoxGroup TUICheckBoxGroup
-	| TUIRadio TUIRadio
-	| TUIRadioGroup TUIRadioGroup
-	| TUITimeField TUITimeField
-	| TUIDateField TUIDateField
-	| TUIHtmlEditor
-	| TUIFieldSet TUIFieldSet
-	| TUIPanel TUIPanel
-	| TUIBox TUIBox
+		
 	| TUIHtmlPanel TUIHtmlPanel
-
 	| TUIMenuButton TUIMenuButton
 	| TUIMenuItem TUIMenuItem
 	| TUIMenuSeparator
-	| TUITuple TUITuple
 	| TUICustom JSONNode
 
 :: TUIBasicControl =
@@ -82,6 +65,15 @@ derive gEq TUIDef
 	, optional		:: !Bool
 	, errorMsg		:: !String
 	, hintMsg		:: !String
+	}
+:: TUIChoiceControl =
+	{ name			:: !String
+	, id			:: !String
+	, fieldLabel	:: !Maybe String
+	, allowMultiple	:: !Bool
+	, optional		:: !Bool
+	, options		:: ![String]
+	, selection		:: ![Int]
 	}
 :: TUICurrencyControl =
 	{ name			:: !String
@@ -177,126 +169,6 @@ derive gEq TUIDef
 	, hintMsg		:: !String
 	, optional		:: !Bool
 	}
-	
-//-- OLD --	
-:: TUIButton =
-	{ name			:: !String
-	, id			:: !String
-	, text			:: !String
-	, value			:: !String
-	, disabled		:: !Bool
-	, iconCls		:: !String
-	}
-:: TUINumberField =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, allowDecimals	:: !Bool
-	, numDecimals	:: !Int
-	}	
-:: TUITextArea =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, width			:: !Int
-	, height		:: !Int
-	}
-:: TUIUserField =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	}
-:: TUIComboBox =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, store			:: ![(String,String)]
-	, triggerAction	:: !String
-	, editable		:: !Bool
-	}
-:: TUICheckBox =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, boxLabel		:: !Maybe String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, checked		:: !Bool
-	}
-:: TUICheckBoxGroup =
-	{ name			:: !String
-	, id			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, columns		:: !Int
-	, items			:: ![TUIDef]
-	}
-:: TUIRadio =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, boxLabel		:: !Maybe String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, checked		:: !Bool
-	}
-:: TUIRadioGroup =
-	{ name			:: !String
-	, id			:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, columns		:: !Int
-	, items			:: ![TUIDef]
-	}
-:: TUIDateField =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, format		:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	}
-:: TUITimeField =
-	{ name			:: !String
-	, id			:: !String
-	, value			:: !String
-	, format		:: !String
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	}
-:: TUIFieldSet =
-	{ title			:: !String
-	, id			:: !String
-	, layout		:: !Maybe String
-	, items			:: ![TUIDef]
-	, autoHeight	:: !Bool
-	, border		:: !Bool
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	}
-:: TUIPanel =
-	{ layout		:: !String
-	, items			:: ![TUIDef]
-	, buttons		:: !Maybe [TUIDef]
-	, autoHeight	:: !Bool
-	, autoWidth		:: !Bool
-	, border		:: !Bool
-	, bodyCssClass	:: !String
-	, fieldLabel	:: !Maybe String
-	, renderingHint	:: !Int
-	, unstyled		:: !Bool
-	}
-:: TUIBox =
-	{ html			:: !String
-	}
 :: TUIHtmlPanel =
 	{ html			:: !String
 	, border		:: !Bool
@@ -305,6 +177,15 @@ derive gEq TUIDef
 	, fieldLabel	:: !Maybe String
 	, hideLabel		:: !Bool
 	, unstyled		:: !Bool
+	}
+
+:: TUIButton =
+	{ name			:: !String
+	, id			:: !String
+	, text			:: !String
+	, value			:: !String
+	, disabled		:: !Bool
+	, iconCls		:: !String
 	}
 :: TUIMenu =
 	{ items			:: ![TUIDef]
@@ -324,17 +205,4 @@ derive gEq TUIDef
 	, iconCls		:: !Maybe String
 	, topGroupAction:: !Maybe Bool
 	, hotkey		:: !Maybe Hotkey
-	}
-:: TUITuple =
-	{ layout		:: !String
-	, id			:: !String
-	, items			:: ![TUIDef]
-	, buttons		:: !Maybe [TUIDef]
-	, autoHeight	:: !Bool
-	, autoWidth		:: !Bool
-	, border		:: !Bool
-	, bodyCssClass	:: !String
-	, fieldLabel	:: !Maybe String
-	, renderingHint	:: !Int
-	, unstyled		:: !Bool
 	}

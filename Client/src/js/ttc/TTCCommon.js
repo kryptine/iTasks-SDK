@@ -56,7 +56,22 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			
 		ct.addUpdate(this.name, this.value);
 		ct.sendUpdates();
-	};
+	};	
+	var choiceTaskEvent  = function(){
+		var ct = this.findParentByType(itasks.ttc.FormContainer);
+		if (!ct)
+			ct = this.findParentByType(itasks.ttc.InstructionContainer);
+		if(!ct)
+			ct = this.findParentByType(itasks.ttc.MessageContainer);
+		// if element is not inside form/instr/message it's a group's toolbar
+		if (!ct)
+			ct = this.findParentByType(itasks.ttc.GroupContainer);
+		if(!ct) return;
+		
+		
+		ct.addUpdate(this.name, Ext.encode(comp.getValue()));
+		ct.sendUpdates(true);
+	}
 	
 	switch(comp.getXType()) {
 			case "textfield":
@@ -98,6 +113,9 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			case "itasks.tui.FormattedText":
 			case "itasks.tui.SourceCode":
 				comp.on("update",changeTaskEvent);
+				break;
+			case "itasks.tui.Choice":
+				comp.on("change",choiceTaskEvent);
 				break;
 	}
 	if(comp.buttons) {

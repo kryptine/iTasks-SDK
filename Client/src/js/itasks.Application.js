@@ -63,6 +63,8 @@ itasks.Application = function () {
 			this.loginWindow.show();
 		},
 		loadSkin: function() {
+			if(this.skinLoaded) return;
+			
 			var link = document.createElement("link");
 			link.rel = "stylesheet";
 			link.type = "text/css";
@@ -70,6 +72,8 @@ itasks.Application = function () {
 			
 			document.body.appendChild(link);
 			document.title = itasks.config.appTitle;
+			
+			this.skinLoaded = true;
 		},	
 		/**
 		* Loads and builds the GUI
