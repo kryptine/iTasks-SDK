@@ -231,8 +231,6 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 		var dp = this.findParentByType('itasks.tui.Document');
 		var wt = this.findParentByType('itasks.work');
 		
-		console.log("/services/json/documents/" + dp.document.documentId + "/download");
-		
 		if(form.getForm().isValid()){
 			form.getForm().submit({
 			
