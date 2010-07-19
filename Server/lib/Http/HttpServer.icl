@@ -1,8 +1,15 @@
 implementation module HttpServer
 
 import Http, HttpUtil, HttpTextUtil
-import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc
-import StdTCP
+import StdList, StdTuple, StdArray, StdFile, StdBool, StdMisc, StdMaybe
+//import StdTCP
+//import TCPIP
+
+import	TCPChannelClass,
+		TCPChannels,
+		TCPEvent,
+		TCPStringChannels,
+		TCPDef
 
 //Start the HTTP server
 http_startServer :: [HTTPServerOption] [(!(String -> Bool),!(HTTPRequest *World-> (!HTTPResponse,!HTTPServerControl,!*World)))] *World -> *World
@@ -29,11 +36,11 @@ loop ::	[HTTPServerOption]
 		*World -> *World
 loop options handlers listener rchannels schannels requests world
 	//Join the listener with the open channels
-	# glue = (TCP_Listeners [listener]) :^: (TCP_RChannels rchannels)
+	# glue = TCP_Pair (TCP_Listeners [listener]) (TCP_RChannels rchannels)
 	//Select the channel which has data available
-	# ([(who,what):_],glue,_,world) = selectChannel_MT Nothing glue Void world
+	# ([(who,what):_],glue,_,world) = selectChannel_MT Nothing glue TCP_Void world
 	//Split the listener from the open channels
-	# ((TCP_Listeners [listener:_]) :^: (TCP_RChannels rchannels)) = glue
+	# (TCP_Pair (TCP_Listeners [listener:_]) (TCP_RChannels rchannels)) = glue
 	//A new client attempts to connect
 	| who == 0
 		# world										= debug "New connection opened" options world

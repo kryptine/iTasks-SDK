@@ -219,6 +219,7 @@ gUpdate{|String|} s ust = (s, ust)
 gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
 
+import StdDebug
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate} = ([], ust)
 
 gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,mask}
@@ -324,11 +325,14 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 	| otherwise
 		= case m of
 			Nothing
-				# (x,ust) = fx (abort "Maybe create with undef") {ust & mode = UDCreate} //Create an empty value to update
-				# (x,ust=:{mode,currentPath}) = fx x {ust & mode = UDSearch,currentPath = currentPath, searchPath = searchPath,update = update}
-				= case mode of
-					UDDone	= (Just x,ust) //Only switch keep newly created value if a field was updated
-					_		= (Nothing, ust)
+				| (dataPathList searchPath) <== (dataPathList currentPath)
+					# (x,ust) = fx (abort "Maybe create with undef") {ust & mode = UDCreate} //Create an empty value to update
+					# (x,ust=:{mode,currentPath}) = fx x {ust & mode = UDSearch,currentPath = currentPath, searchPath = searchPath,update = update}
+					= case mode of
+						UDDone	= (Just x,ust) //Only switch keep newly created value if a field was updated
+						_		= (Nothing, ust)
+				| otherwise
+					= (Nothing, ust)
 			Just x
 				# (x,ust) = fx x ust
 				= (Just x,ust)

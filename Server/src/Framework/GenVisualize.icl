@@ -680,7 +680,7 @@ where
 	determineChanges [o:os] []     idx = [TUIUpdate (TUIRemove (itemId idx)):determineChanges os [] (idx+1)]
 	determineChanges []     [n:ns] idx = [TUIUpdate (TUIAdd (itemId (idx-1)) n):determineChanges [] ns (idx+1)]
 	determineChanges [o:os] [n:ns] idx
-		| o =!= n   = [TUIUpdate (TUIReplace (fromJust (getId n)) n):determineChanges os ns (idx+1)]
+		| o <> n   = [TUIUpdate (TUIReplace (fromJust (getId n)) n):determineChanges os ns (idx+1)]
 		| otherwise = determineChanges os ns (idx+1)
 	
 	isValid val dm valid

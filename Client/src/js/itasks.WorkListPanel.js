@@ -64,6 +64,8 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 	},
 	
 	buildTree : function(data){		
+		if(!data) return;
+		
 		var buildNode = function(d, isLeaf){
 			
 			var newCls = (d.systemProperties.firstEvent == d.systemProperties.latestEvent)?'new-task-node':''
@@ -86,8 +88,6 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 		var buildSubTree = function(parent){
 		
 			var children = [];
-			
-			if(!treeData) return [];
 			
 			for(var i=0; i < treeData.length; i++){
 				var d = treeData[i];

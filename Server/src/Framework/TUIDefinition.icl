@@ -4,9 +4,9 @@ import JSON,StdList,StdBool,GenEq
 from Types import :: Document, :: DocumentId
 from ProcessDB import :: Hotkey
 
-derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
-derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
-derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey
+//derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
+//derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
+//derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey
 
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
 derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey
@@ -48,9 +48,6 @@ addXType :: !String ![JSONNode] -> [JSONNode]
 addXType xtype [JSONObject fields: xs]	= [JSONObject [("xtype", JSONString xtype):fields] : xs]
 addXType xtype nodes					= nodes
 
-/************** 
-Not right yet..
-
 instance == TUIDef //Compare TUI Definitions based on structure, not on their actual values
 where
 	(==) (TUIStringControl a) 		(TUIStringControl b) 		= a == b
@@ -74,12 +71,12 @@ where
 	(==) (TUIRecordContainer a) 	(TUIRecordContainer b) 		= a == b
 	(==) (TUIListContainer a) 		(TUIListContainer b) 		= a == b
 	
-	(==) (TUIButton a) 				(TUIButton b) 				= a === b
-	(==) (TUIHtmlPanel a)			(TUIHtmlPanel b)			= a === b
-	(==) (TUIMenuButton a) 			(TUIMenuButton b) 			= a == b
-	(==) (TUIMenuItem a) 			(TUIMenuItem b) 			= a == b
+	(==) (TUIButton a) 				(TUIButton b) 				= True //a == b
+	(==) (TUIHtmlPanel a)			(TUIHtmlPanel b)			= True //a == b
+	(==) (TUIMenuButton a) 			(TUIMenuButton b) 			= True //a == b
+	(==) (TUIMenuItem a) 			(TUIMenuItem b) 			= True //a == b
 	(==) (TUIMenuSeparator) 		(TUIMenuSeparator)			= True
-	(==) (TUICustom a) 				(TUICustom b)				= a === b
+	(==) (TUICustom a) 				(TUICustom b)				= True //a == b
 	
 	(==) _							_							= False
 
@@ -91,7 +88,9 @@ where
 	
 instance == TUIChoiceControl
 where
-	(==) a b = a.TUIChoiceControl.id == b.TUIChoiceControl.id
+	(==) a b = (a.TUIChoiceControl.id == b.TUIChoiceControl.id)
+			&& (a.TUIChoiceControl.optional == b.TUIChoiceControl.optional)
+			&& (a.TUIChoiceControl.options == a.TUIChoiceControl.options)
 	
 instance == TUICurrencyControl
 where
@@ -120,6 +119,7 @@ where
 instance == TUIListItemControl
 where
 	(==) a b = a.TUIListItemControl.id == b.TUIListItemControl.id
+			&& (a.TUIListItemControl.items == b.TUIListItemControl.items)
 			
 instance == TUIMenuItem
 	where
@@ -137,6 +137,8 @@ where
 	(==) a b = (a.TUIListContainer.id == b.TUIListContainer.id) 
 			&& (a.TUIListContainer.staticDisplay == b.TUIListContainer.staticDisplay) 
 			&& (a.TUIListContainer.items == b.TUIListContainer.items)
+
+import StdDebug
 			
 instance == TUIRecordContainer
 where
@@ -152,4 +154,3 @@ where
 instance == TUIMenu
 where
 	(==) a b = a.TUIMenu.items == b.TUIMenu.items
-**********************/

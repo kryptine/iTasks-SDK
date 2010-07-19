@@ -10,7 +10,9 @@ from ProcessDB import :: Hotkey
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate
-derive gEq TUIDef
+//derive gEq TUIDef
+
+instance == TUIDef
 
 :: TUIId :== String
 
