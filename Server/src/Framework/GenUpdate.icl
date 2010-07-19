@@ -332,7 +332,7 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update}
 						UDDone	= (Just x,ust) //Only switch keep newly created value if a field was updated
 						_		= (Nothing, ust)
 				| otherwise
-					= (Nothing, ust)
+					= (Nothing, {USt | ust & currentPath = stepDataPath currentPath})
 			Just x
 				# (x,ust) = fx x ust
 				= (Just x,ust)
