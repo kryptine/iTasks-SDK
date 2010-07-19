@@ -22,7 +22,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			//Fade out the window
 			this.getEl().fadeOut({
 				callback: function() {
-					this.continuation(action.result.displayName, action.result.sessionId);		
+					this.continuation(action.result.session);		
 				},
 				scope: this
 			});
@@ -52,7 +52,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			shadow: false,
 			items: {
 				xtype: 'form',
-				url: itasks.config.serverUrl + '/authenticate',
+				url: '/services/json/sessions/create',
 				baseCls: 'x-plain',
 				style: 'padding: 5px',
 				layout: 'absolute',
@@ -126,7 +126,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 	setError: function(msg) {
 		this.getComponent(0).getComponent(1).setText(msg ? msg : "");	
 	},
-	continuation: function(displayName, sessionId) {
+	continuation: function(session) {
 	}
 	
 });

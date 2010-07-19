@@ -41,6 +41,17 @@ itasks.util.coloredLabel = function (color, msg) {
 	return "<span style=\"color: " + color + "; font-weight: bold;\">" + msg + "</span>";
 };
 
+itasks.util.formatUser = function (user) {
+	if (user == "RootUser")
+		return "Root user"
+	if (user.length == 2 && user[0] == "RegisteredUser")
+		return user[1].displayName;
+	if (user.length == 2 && user[0] == "NamedUser")
+		return user[1];
+			
+	return "Unknown user type"
+}
+
 itasks.util.fieldLabel = function(optional, label) {
 	if(optional) {
 		return label

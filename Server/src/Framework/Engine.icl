@@ -15,7 +15,7 @@ import Http, HttpUtil
 from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import Setup
-import AuthenticationHandler, DeauthenticationHandler
+//import AuthenticationHandler, DeauthenticationHandler
 import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers
@@ -42,8 +42,8 @@ where
 		= [ // 'new' services
 		   (startsWith "/services", serviceDispatch config flows)
 			//'old' handlers
-		  ,((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
-		  ,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
+		  //,((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
+		  //,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
 		  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
 		  ,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
 		  ,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)

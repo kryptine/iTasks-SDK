@@ -74,11 +74,11 @@ itasks.Application = function () {
 		/**
 		* Loads and builds the GUI
 		*/	
-		loadUserInterface: function(displayName, session) {
+		loadUserInterface: function(session) {
 			
 			//Update global state
-			this.session = session;
-			this.displayName = displayName;
+			this.session = session.sessionId;
+			this.displayName = itasks.util.formatUser(session.user);
 			this.scrollbarWidth = itasks.util.getScrollerWidth();
 			
 			//Remove the login window
