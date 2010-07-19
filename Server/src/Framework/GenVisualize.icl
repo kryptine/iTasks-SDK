@@ -975,23 +975,7 @@ getId (TUIRecordContainer d)	= Just d.TUIRecordContainer.id
 getId (TUIListContainer d)		= Just d.TUIListContainer.id
 
 getId (TUILabel)				= Nothing
-getId (TUIButton d)				= Just d.TUIButton.id
-getId (TUINumberField d)		= Just d.TUINumberField.id				
-getId (TUITextArea d)			= Just d.TUITextArea.id
-getId (TUIComboBox d)			= Just d.TUIComboBox.id
-getId (TUICheckBox d)			= Just d.TUICheckBox.id
-getId (TUICheckBoxGroup d)		= Just d.TUICheckBoxGroup.id
-getId (TUIRadio d)				= Nothing
-getId (TUIRadioGroup d)			= Just d.TUIRadioGroup.id
-getId (TUITimeField d)			= Just d.TUITimeField.id
-getId (TUIDateField d)			= Just d.TUIDateField.id
-getId (TUIHtmlEditor)			= Nothing
-getId (TUIFieldSet d)			= Just d.TUIFieldSet.id
-getId (TUIPanel d)				= Nothing
-getId (TUIBox d)				= Nothing
-getId (TUIHtmlPanel d)			= Just d.TUIHtmlPanel.id
 getId (TUICustom d)				= Nothing
-getId (TUITuple d)				= Just d.TUITuple.id
 getId _							= abort "unknown TUI Definition"
 
 coerceToStrings :: [Visualization] -> [String]
