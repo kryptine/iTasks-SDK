@@ -335,6 +335,7 @@ JSONEncode{|CONS of d|} fx (CONS x)
 JSONEncode{|FIELD of d|} fx (FIELD x) = fx x							
 JSONEncode{|[]|} fx x = [JSONArray (flatten [fx e \\ e <- x])]
 JSONEncode{|(,)|} fx fy (x,y) = [JSONArray (fx x ++ fy y)]
+JSONEncode{|(,,)|} fx fy fz (x,y,z) = [JSONArray (fx x ++ fy y ++ fz z)]
 JSONEncode{|{}|} fx x = [JSONArray (flatten [fx e \\ e <-: x])]
 JSONEncode{|{!}|} fx x = [JSONArray (flatten [fx e \\ e <-: x])]
 JSONEncode{|Maybe|} fx (Just x) = fx x
@@ -439,6 +440,18 @@ JSONDecode{|(,)|} fx fy l =:[JSONArray [xo,yo]:xs]
 			_				= (Nothing, l)
 		_					= (Nothing, l)
 JSONDecode{|(,)|} fx fy l	= (Nothing, l)
+
+JSONDecode{|(,,)|} fx fy fz l =:[JSONArray [xo,yo,zo]:xs]
+	= case fx [xo] of
+		(Just x,_)	= case fy [yo] of
+			(Just y,_)			= case fz [zo] of
+				(Just z,_)		= (Just (x,y,z), xs)
+				_				= (Nothing, l)
+			_					= (Nothing, l)
+		_						= (Nothing, l)
+JSONDecode{|(,,)|} fx fy fz l	= (Nothing, l)
+
+
 
 JSONDecode{|{}|} fx l =:[JSONArray items:xs]
 	= case decodeItems fx items of

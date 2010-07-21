@@ -122,10 +122,10 @@ group label description procFun parseFun initState initTasks groupActions = mkGr
 where
 	execInGroup tst=:{taskNr,request}
 		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
-		# (updates,tst)		= getChildrenUpdatesFor grTaskNr tst
+		# (events,tst)		= getEventsFor (taskNrToString grTaskNr) True tst
 		# (pst,tst)   		= loadPSt grTaskNr tst
-		# gAction			= case parseString (http_getValue "_group" updates "") of
-								Nothing = parseString (http_getValue "menuAndGroup" updates "")
+		# gAction			= case parseString (http_getValue "_group" events "") of
+								Nothing = parseString (http_getValue "menuAndGroup" events "")
 								res = res
 		# (gActionStop,mbFocus,pst) 
 							= case gAction of
@@ -300,7 +300,7 @@ where
 		= (result,{TSt|tst & tree = node})
 		
 createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !TaskTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,updates}
+createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = getProcess taskId tst
@@ -320,7 +320,7 @@ createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,updates}
 			# user				= proc.Process.properties.managerProperties.ManagerProperties.worker
 			# tst				= addSubTaskWorker taskId user mbpartype tst
 			// -> TSt in subprocess
-			# (result,tree,tst)	= evaluateTaskInstance proc updates Nothing False False tst
+			# (result,tree,tst)	= evaluateTaskInstance proc events Nothing False False tst
 			// <- TSt back to current process				
 			//Add parallel type after the new proc is evaluated
 			= case result of

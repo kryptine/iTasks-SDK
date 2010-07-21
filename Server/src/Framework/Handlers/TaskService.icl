@@ -1,6 +1,7 @@
 implementation module TaskService
 import Http, TSt
 import HtmlUtil, Text
+import JSON
 import StdList
 
 import StdMisc // abort
@@ -15,6 +16,8 @@ derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
 
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
+
+import StdDebug
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst
@@ -74,10 +77,14 @@ taskService url html path req tst
 					= (notFoundResponse req, tst)
 				Just proc
 					# task			= taskItem proc
+					//Updates are posted as a list of triplets
+					# updates		= case (fromJSON (fromString updatesParam)) of
+						Just updates	= trace_n ("woot" +++ printToString updates ) updates
+						Nothing			= trace_n "bummer" []
 					//The menusChanged parameter is a global flag that is set when any task in the tree has
 					//changed the menu and thus the menu needs to be replaced
 					# (tree,tst=:{TSt|menusChanged}) 
-									= calculateTaskTree taskId [] tst //TODO Add update events as parameter
+									= calculateTaskTree taskId updates tst
 					= case tree of
 						(TTMainTask ti properties menus _ content)
 							# tui			= buildTaskPanel content menus menusChanged session.Session.user
@@ -157,7 +164,8 @@ where
 	listParams		= [("_session",sessionParam,True),("_user",userParam,False)]
 	
 	detailsParams	= [("_session",sessionParam,True)]
-	tuiParams		= [("_session",sessionParam,True)]
+	tuiParams		= [("_session",sessionParam,True),("updates",updatesParam,False)]
+	updatesParam	= paramValue "updates" req
 	
 	propParams		= [("_session",sessionParam,True),("update",updateParam,False)]
 	updateParam		= paramValue "update" req

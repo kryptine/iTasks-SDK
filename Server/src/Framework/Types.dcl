@@ -141,7 +141,7 @@ initGroupedProperties :: GroupedProperties
 
 :: Container a c	= Container a & iTask c		// container for context restrictions
 
-:: TaskUpdate	:== (!TaskId,!String,!String)	// taskid, name, value			
+:: TaskEvent	:== (!TaskId,!String,!String)	// taskid, name, value			
 
 :: *IWorld		=	{ application	:: !String											// The name of the application	
 					, store			:: !Store											// The generic data store

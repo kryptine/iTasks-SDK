@@ -26,7 +26,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
 					, newTask		:: !Bool											// does the task run for the first time
 					
-					, updates		:: ![TaskUpdate]									// The update events for interactive tasks
+					, events		:: ![TaskEvent]									// The update events for interactive tasks
 																						// (task id, name, value)
 																						
 					, properties	:: !TaskProperties									// Properties of the current evaluated process		
@@ -142,7 +142,7 @@ garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 *
 * @return The modified task state
 */
-evaluateTaskInstance :: !Process ![TaskUpdate] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+evaluateTaskInstance :: !Process ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
 /**
 * Applies a change to a running task process task state.
 * 
@@ -163,7 +163,7 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree :: !TaskId ![TaskUpdate] !*TSt -> (!TaskTree, !*TSt)
+calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 /**
 * Calculates all task trees
 *
@@ -173,7 +173,7 @@ calculateTaskTree :: !TaskId ![TaskUpdate] !*TSt -> (!TaskTree, !*TSt)
 * @return The list of task trees (task forest)
 * @return The modified task state
 */
-calculateTaskForest :: ![TaskUpdate] !*TSt -> (![TaskTree], !*TSt)
+calculateTaskForest :: ![TaskEvent] !*TSt -> (![TaskTree], !*TSt)
 /**
 * Lists which workflows are available
 *
@@ -384,10 +384,35 @@ setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
 setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 
-getUserUpdates			:: !*TSt						-> ([(String,String)],!*TSt)
-userUpdates2Paths 		:: ![(String,String)] 			-> [DataPath]
-getChildrenUpdatesFor	:: !TaskNr !*TSt				-> ([(String,String)],!*TSt)
-anyUpdates				:: !*TSt						-> (Bool,!*TSt)
+
+//EVENTS
+/**
+* Get the events (name/value pairs) for the current task
+*
+* @param The task state
+*
+* @return The modified task state
+*/
+getEvents			:: !*TSt						-> ([(!String,!String)],!*TSt)
+/**
+* Get the events for a specific tasks
+*
+* @param The task id to get events for
+* @param Include events of subtasks?
+* @param The task state
+*
+* @return The modified task state
+*/
+getEventsFor		:: !TaskId !Bool !*TSt			-> ([(!String,!String)],!*TSt)
+/**
+* Test if there are events for any task during this run.
+*
+* @param The task state
+*
+* @return The test results
+* @return The modified task state
+*/
+anyEvents			:: !*TSt						-> (!Bool,!*TSt)
 
 /**
 * Writes a 'task scoped' value to the store
@@ -406,11 +431,7 @@ getTaskStoreFor		:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) | iTask a
 */
 loadProcessResult		:: !TaskNr 							!*TSt -> (!Maybe (TaskResult Dynamic), !*TSt)
 storeProcessResult		:: !TaskNr !(TaskResult Dynamic)	!*TSt -> *TSt
-/**
-* Removes all events for the current task. This is automatically called by applyTask
-* after task evaluation to prevent updates from being applied twice.
-*/
-clearUserUpdates	:: !*TSt						-> *TSt
+
 /**
 * Resets a sequence
 */
@@ -456,3 +477,12 @@ taskNrFromString 	:: !String 					-> TaskNr
 * @return The formatted task number
 */
 taskNrToString		:: !TaskNr 					-> String
+
+/**
+* Convert the names in events to data paths
+*
+* @param The events (name/value list)
+*
+* @return The converted data paths
+*/
+events2Paths 		:: ![(!String,!String)] 	-> [DataPath]

@@ -52,8 +52,8 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 	# (ovalue,tst)		= readValue initial tst
 	# (omask,tst)		= readMask initial tst
 	# buttonActions		= getButtonActions actions
-	# (anyUpd,tst)		= anyUpdates tst
-	| newTask || not anyUpd
+	# (anyEvent,tst)	= anyEvents tst
+	| newTask || not anyEvent
 		// generate TUI definition
 		# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
 		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
@@ -61,20 +61,20 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy,tst)
 	| otherwise
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst
-		| isEmpty updates
+		//Check for events
+		# (events,tst) = getEvents tst
+		| isEmpty events
 			// no change for this task
 			# tst = setTUIUpdates [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
-			# (nvalue,nmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- updates | isdps key] ovalue omask tst
-			# (action,tst) = getAction updates (map fst buttonActions) tst
+			# (nvalue,nmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue omask tst
+			# (action,tst) = getAction events (map fst buttonActions) tst
 			| isJust action = (TaskFinished (fromJust action,nvalue),tst)
 			| otherwise
 				# tst				= setTaskStore "value" nvalue tst
 				# tst				= setTaskStore "mask" nmask tst
-				# updpaths			= userUpdates2Paths updates
+				# updpaths			= events2Paths events
 				# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths omask nmask ovalue nvalue
 				# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 				# buttonActions		= evaluateConditions buttonActions valid nvalue
@@ -152,8 +152,8 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
 	# valid			= selection >= 0 && selection < length options	//Do we have a valid index
 	# buttonActions = getButtonActions actions
-	# (anyUpd,tst)	= anyUpdates tst
-	| newTask || not anyUpd
+	# (anyEvent,tst)	= anyEvents tst
+	| newTask || not anyEvent
 		# form			= [TUIChoiceControl {TUIChoiceControl
 											| name = selectionId
 											, id   = selectionId
@@ -169,20 +169,20 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 		= (TaskBusy, tst)
 	| otherwise
 		//Check for user updates
-		# (updates,tst) = getUserUpdates tst
-		| isEmpty updates
+		# (events,tst) = getEvents tst
+		| isEmpty events
 			// no change for this task
 			# tst = setTUIUpdates [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
-			# (action,tst) = getAction updates (map fst buttonActions) tst
+			# (action,tst) = getAction events (map fst buttonActions) tst
 			= case action of
 				// One of the buttons was pressed
 				Just action	= (TaskFinished (action, if valid (options !! selection) (hd options)),tst)
 				// The selection was updated
 				Nothing
 					// The selection was updated
-					# upd = parseUpdate selectionId updates
+					# upd = parseUpdate selectionId events
 					# index = if(isEmpty upd) -1 (hd upd)
 					| index <> -1
 						# valid			= index >= 0 && index < length options	//Recompute validity
@@ -197,8 +197,8 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 						= (TaskBusy, tst)
 where
 	parseUpdate :: !String ![(String,String)] -> [Int]
-	parseUpdate	selectionId updates
-		# mbList = fromJSON(fromString (http_getValue selectionId updates "[]"))
+	parseUpdate	selectionId events
+		# mbList = fromJSON(fromString (http_getValue selectionId events "[]"))
 		= case mbList of Nothing = []; Just list = list
 
 enterMultipleChoice :: question [a] -> Task [a] | html question & iTask a
@@ -233,11 +233,11 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 	# (mbSel,tst)	= getTaskStore "selection" tst
 	# selection		= case mbSel of Nothing = initsel ; Just sel = sel
 	# buttonActions	= evaluateConditions (getButtonActions actions) True (select selection options)
-	# (anyUpd,tst)	= anyUpdates tst
+	# (anyEvent,tst)= anyEvents tst
 	// finish the task in case of an empty options list. As no options are selectable, the result is -of course- an empty list.
 	| isEmpty options
 	= (TaskFinished (ActionOk,[]),tst)
-	| newTask || not anyUpd
+	| newTask || not anyEvent
 		// generate TUI definition
 		# checks		= [isMember i selection \\ i <- [0..(length options) - 1]]
 		# form			= [TUIChoiceControl { TUIChoiceControl
@@ -253,27 +253,27 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
-		//Check for user updates
-		# (updates,tst) = getUserUpdates tst
-		| isEmpty updates
+		//Check for events
+		# (events,tst) = getEvents tst
+		| isEmpty events
 			// no change for this task
 			# tst = setTUIUpdates [] [] tst
 			= (TaskBusy,tst)
 		| otherwise
 			// One of the buttons was pressed
-			# (action,tst) = getAction updates (map fst buttonActions) tst
+			# (action,tst) = getAction events (map fst buttonActions) tst
 			= case action of
 				Just action	= (TaskFinished (action, select selection options),tst)
 				Nothing
 					// Perhaps the selection was changed
-					# mbSel		= parseSelection updates
+					# mbSel		= parseSelection events
 					# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 					# tst		= setTaskStore "selection" (sort selection) tst
 					# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
 					= (TaskBusy, tst)
 where
 	parseSelection :: [(String,String)] -> Maybe [Int]
-	parseSelection updates = fromJSON (fromString (http_getValue "selection" updates "[]"))	
+	parseSelection events = fromJSON (fromString (http_getValue "selection" events "[]"))	
 
 	select :: [Int] [a] -> [a]
 	select indices options = [options !! index \\ index <- indices]
@@ -316,14 +316,14 @@ makeMessageTask message context actions tst=:{taskNr}
 	# taskId	= taskNrToString taskNr
 	# editorId	= "tf-" +++ taskId
 	# buttonActions	= getButtonActions actions
-	# (updates,tst) = getUserUpdates tst
-	| isEmpty updates
+	# (events,tst) = getEvents tst
+	| isEmpty events
 		# menuActions	= evaluateConditions (getMenuActions actions) True Void
 		# buttonActions	= evaluateConditions buttonActions True Void
 		# tst			= setTUIMessage (taskPanel taskId (html message) context Nothing (makeButtons editorId buttonActions)) (html message) menuActions tst
 		= (TaskBusy, tst)
 	| otherwise
-		# (action,tst) = getAction updates (map fst buttonActions) tst
+		# (action,tst) = getAction events (map fst buttonActions) tst
 		= case action of
 			Just action	=	(TaskFinished action, tst)
 			Nothing =		(TaskBusy, tst)
@@ -336,8 +336,8 @@ showInstructionAbout title instruction context = mkInstructionTask title (makeIn
 
 makeInstructionTask :: !instruction (Maybe [HtmlTag]) *TSt -> *(!TaskResult Void,!*TSt) | html instruction
 makeInstructionTask instruction context tst
-	# (updates, tst) = getUserUpdates tst
-	| isEmpty updates
+	# (events, tst) = getEvents tst
+	| isEmpty events
 		= case tst.tree of
 			(TTInstructionTask ti _ _)	= (TaskBusy ,{tst & tree = TTInstructionTask ti (html instruction) context})
 			_							= (TaskException (dynamic "Illegal node in makeInstructionTask"), tst)
@@ -378,8 +378,8 @@ where
 		# nEditV					= editorFrom new
 		# tst=:{TSt|iworld}			= tst
 		# (mask,iworld)				= defaultMask nEditV iworld
-		# (updates,tst)				= getUserUpdates {TSt|tst & iworld = iworld}
-		# updpaths					= userUpdates2Paths postValues
+		# (events,tst)				= getEvents {TSt|tst & iworld = iworld}
+		# updpaths					= events2Paths postValues
 		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths mask mask oEditV nEditV,tst)
 	
 	// generate TUI definition for view
@@ -416,28 +416,28 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTas
 		Nothing
 			= (TaskException (dynamic "updateShared: shared variable is deleted"), tst)
 		Just cvalue
-			# (anyUpd,tst)			= anyUpdates tst
-			| newTask || not anyUpd
+			# (anyEvent,tst)			= anyEvents tst
+			| newTask || not anyEvent
 				// generate TUI definition for new tasks or if there are no updates (refresh entire task)
 				# tst = setTUIFunc createDefs (html question) tst
 				= (TaskBusy, tst)
 			| otherwise
-				# (updates,tst)		= getUserUpdates tst
-				# dpUpdates			= [(s2dp key,value) \\ (key,value) <- updates | isdps key]
+				# (events,tst)		= getEvents tst
+				# dpEvents			= [(s2dp key,value) \\ (key,value) <- events | isdps key]
 				// determine new shared value by accumulating updates of all views
-				# (nvalue,_,tst)	= foldl (updateSharedForView dpUpdates) (cvalue,0,tst) views
+				# (nvalue,_,tst)	= foldl (updateSharedForView dpEvents) (cvalue,0,tst) views
 				# tst=:{TSt|iworld=iworld=:{IWorld|store}}
 									= tst
 				# store				= storeValue sharedId nvalue store
 				# tst				= {TSt|tst & iworld = {IWorld|iworld & store = store}}
 				// check if action is triggered
-				# (mbAction,tst)	= getAction updates (map fst buttonActions) tst
+				# (mbAction,tst)	= getAction events (map fst buttonActions) tst
 				= case mbAction of
 					Just action
 						= (TaskFinished (action,fromJust mbcvalue),tst)
 					Nothing
 						// updates are calculated after tree is build, shared value maybe changed by other tasks
-						# tst = setTUIFunc (createUpdates updates) (html question) tst
+						# tst = setTUIFunc (createUpdates events) (html question) tst
 						= (TaskBusy, tst)
 where
 	// generate TUI definitions for all views
@@ -560,14 +560,14 @@ enables editorId actions
 
 //Get button or menu action given by updates.
 getAction :: [(String, String)] ![Action] !*TSt -> (!Maybe Action, !*TSt)
-getAction updates buttonActions tst
-		# index = toInt (http_getValue "action" updates "-1")
+getAction events buttonActions tst
+		# index = toInt (http_getValue "action" events "-1")
 		| index <> -1
 			= (Just (buttonActions !! index),tst)
 		| otherwise
-			= case parseString (http_getValue "menu" updates "") of
-				Nothing	= case parseString (http_getValue "menuAndGroup" updates "") of
-					Nothing	= (parseString (http_getValue "hotkey" updates "") ,tst)
+			= case parseString (http_getValue "menu" events "") of
+				Nothing	= case parseString (http_getValue "menuAndGroup" events "") of
+					Nothing	= (parseString (http_getValue "hotkey" events "") ,tst)
 					res		= (res, tst)
 				res			= (res ,tst)
 			

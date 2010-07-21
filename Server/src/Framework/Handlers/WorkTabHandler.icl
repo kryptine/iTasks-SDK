@@ -14,7 +14,7 @@ from TaskTree import :: TaskParallelType{..}
 handleWorkTabRequest :: !HTTPRequest !*TSt -> (!HTTPResponse, !*TSt)
 handleWorkTabRequest req tst=:{staticInfo,menusChanged}
 	# tst		  = {TSt | tst & request = req}
-	# (tree, tst) = calculateTaskTree taskId [] tst	// Calculate the task tree TODO : add updates
+	# (tree, tst) = calculateTaskTree taskId updates tst
 	= case tree of
 		(TTMainTask ti properties menus _ task)
 			# subject			= [properties.managerProperties.ManagerProperties.subject]
@@ -50,7 +50,13 @@ where
 	finished tst
 		= let content = {TaskContent| success = True, properties = Nothing, subject = [], content = TaskDone, debug = Nothing} in
 			({http_emptyResponse & rsp_data = toString (toJSON content)}, tst)
-			
+
+	
+	updates = case http_getValue "_targettask" req.arg_post "" of
+		""		= []
+		target	= [(target,name,value) \\ (name,value) <- req.arg_post | name.[0] <> '_']
+
+
 :: TaskContent =
 	{ success		:: Bool
 	, properties	:: Maybe TaskProperties
