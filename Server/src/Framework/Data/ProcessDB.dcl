@@ -12,7 +12,6 @@ from Time		import :: Timestamp
 * Our local process type
 */
 :: Process 		= {	taskId			:: !TaskId						// The process identification				  
-				  , status			:: !ProcessStatus				// The status of the process (updated after each run)
 				  //Public process meta data
 				  , properties		:: !TaskProperties				// The properties of the main task node of this process
 				  //System internal information
@@ -22,11 +21,7 @@ from Time		import :: Timestamp
 				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
 				  }				
 
-:: ProcessStatus =	Active			// A process is active and can be further evaluated
-				 |	Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
-				 |	Finished		// A process terminated normally
-				 |	Excepted		// A process terminated with an exception
-				 |	Deleted			// A process is marked for deletion and may be garbage collected
+
 				 
 :: Action
 	= ActionLabel !String
@@ -70,12 +65,12 @@ where
 	getProcess				:: !TaskId												!*st -> (!Maybe Process,	!*st)
 	getProcessForUser		:: !User !TaskId										!*st -> (!Maybe Process,	!*st)
 	getProcessForManager 	:: !User !TaskId 										!*st -> (!Maybe Process, 	!*st)
-	getProcesses 			:: ![ProcessStatus] 									!*st -> (![Process], 		!*st)
+	getProcesses 			:: ![TaskStatus] 										!*st -> (![Process], 		!*st)
 	getProcessesById		:: ![TaskId]											!*st -> (![Process],		!*st)
-	getProcessesForUser		:: !User ![ProcessStatus]								!*st -> (![Process],		!*st)
+	getProcessesForUser		:: !User ![TaskStatus]									!*st -> (![Process],		!*st)
 	
 	setProcessOwner			:: !User !TaskId										!*st -> (!Bool,				!*st)
-	setProcessStatus		:: !ProcessStatus !TaskId								!*st -> (!Bool,				!*st)
+	setProcessStatus		:: !TaskStatus !TaskId									!*st -> (!Bool,				!*st)
 	
 	updateProcess			:: !TaskId (Process -> Process)							!*st -> (!Bool,				!*st)
 	updateProcessProperties	:: !TaskId (TaskProperties -> TaskProperties)			!*st -> (!Bool,				!*st)
@@ -89,8 +84,7 @@ where
 instance ProcessDB IWorld
 instance ProcessDB TSt
 
-instance toString ProcessStatus
-instance == ProcessStatus
+
 instance == Action
 
 derive gPrint Action

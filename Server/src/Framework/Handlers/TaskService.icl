@@ -44,7 +44,7 @@ taskService url html path req tst
 				Nothing
 					= (JSONObject [("success",JSONBool False),("error",JSONString "No such workflow")], tst)
 				Just workflow
-					# (_,taskId,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
+					# (taskId,_,_,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
 					= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
 			= (serviceResponse html "create task" url createParams json, tst)
 		//Show task details of an individual task

@@ -4,7 +4,7 @@ definition module ProcessDBTasks
 */
 import StdMaybe
 from TSt		import :: Task
-from ProcessDB	import :: ProcessStatus(..), :: Process(..), :: Menu
+from ProcessDB	import :: Process(..), :: Menu
 from Types		import :: ProcessId, :: ProcessRef, :: TaskId
 from Types		import :: TaskProperties, :: TaskPriority, :: TaskProgress
 from TaskTree	import :: TaskParallelType
@@ -13,7 +13,7 @@ from Time		import :: Timestamp
 from iTasks		import class iTask
 import GenVisualize, GenUpdate, GenParse, GenPrint
 
-derive class iTask	ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId
@@ -63,7 +63,7 @@ getProcesses			:: ![pid]					-> Task [Process] 		| toProcessId pid
 * 
 * @return The list of processes having the given statuses
 */
-getProcessesWithStatus	:: ![ProcessStatus]			-> Task [Process]
+getProcessesWithStatus	:: ![TaskStatus]			-> Task [Process]
 /**
 * Retrieves the processes that are owned by indicated user and have one of the
 * given statuses.
@@ -74,7 +74,7 @@ getProcessesWithStatus	:: ![ProcessStatus]			-> Task [Process]
 *
 * @return The list of found processes
 */
-getProcessesForUser		:: !User ![ProcessStatus]	-> Task [Process]
+getProcessesForUser		:: !User ![TaskStatus]		-> Task [Process]
 /**
 * Poll who is the owner of a process.
 *
@@ -98,7 +98,7 @@ setProcessOwner			:: !User !pid				-> Task Void 			| toProcessId pid
 *
 * @return A task that yields the status of the referenced process
 */
-getProcessStatus		:: !pid						-> Task ProcessStatus	| toProcessId pid
+getProcessStatus		:: !pid						-> Task TaskStatus		| toProcessId pid
 /**
 * Change the process status to Active
 *

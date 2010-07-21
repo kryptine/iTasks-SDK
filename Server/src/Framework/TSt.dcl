@@ -103,10 +103,11 @@ createThread :: !(Task a) -> Dynamic	| iTask a
 * @param The task state
 *
 * @return The process id of the new instance
-* @return The result of the first run (as dynamic)
+* @return The result of the first run (as dynamic result)
+* @return The task tree created at the first run
 * @return The modified task state
 */
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !TaskTree, !*TSt)
 
 /**
 * Removes a running task instance from the list of processes and clears any associated data in the store
@@ -363,6 +364,17 @@ mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The modified task state
 */
 applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
+
+/**
+* Add a subnode to the current task tree
+*
+* @param The sub node
+* @param The task state
+*
+* @return The modified task state
+*/
+addTaskNode 		:: !TaskTree !*TSt -> *TSt
+
 //// TASK CONTENT
 setTUIDef			:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt //Only for interactive tasks
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for interactive tasks

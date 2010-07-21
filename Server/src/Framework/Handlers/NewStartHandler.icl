@@ -22,5 +22,5 @@ where
 	
 	startWorkflow :: !Workflow !*TSt -> (!ProcessId,!*TSt)
 	startWorkflow workflow tst
-		# (_,pid,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
+		# (pid,_,_,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
 		= (pid,tst)

@@ -4,7 +4,7 @@ import JSON, TUIDefinition, TSt, ProcessDB
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import Html
 
-derive JSONEncode TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
+derive JSONEncode TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, SubtaskInfo
 
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
@@ -126,13 +126,25 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 								, taskId = ti.TaskInfo.taskId
 								, label = ti.TaskInfo.taskLabel
 								, description = tpi.TaskParallelInfo.description
-								, subtaskInfo = buildSubtaskInfo tasks currentUser
+								, subtaskInfo = map buildSubtaskInfo tasks
 								}
 
 where		
 	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
 		IncludeGroupActions	= True
 		ExcludeGroupActions	= False
+
+buildSubtaskInfo :: !TaskTree -> SubtaskInfo
+buildSubtaskInfo (TTMainTask _ p _ _ _)
+		= {SubtaskInfo	| taskId		= p.systemProperties.SystemProperties.taskId
+						, subject		= p.managerProperties.ManagerProperties.subject
+						, description	= p.managerProperties.ManagerProperties.subject
+						, delegatedTo	= toString p.managerProperties.ManagerProperties.worker
+						, finished		= case p.systemProperties.SystemProperties.status of
+											Finished	= True	//Possible improvement:			
+											Excepted	= True	//We could give more information to the client here!
+											_			= False
+						}
 
 buildResultPanel :: !TaskTree -> TaskPanel
 buildResultPanel tree = case tree of 
@@ -148,33 +160,6 @@ buildResultPanel tree = case tree of
 	_	
 		= TaskNotDone
 
-buildSubtaskInfo :: ![TaskTree] !User  -> [SubtaskInfo]
-buildSubtaskInfo tasks manager
-	= [buildSubtaskInfo` t \\ t <- tasks]
-where
-	buildSubtaskInfo` :: !TaskTree -> SubtaskInfo
-	buildSubtaskInfo` (TTInteractiveTask ti _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-	buildSubtaskInfo` (TTMonitorTask ti _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-	buildSubtaskInfo` (TTInstructionTask ti _ _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-	buildSubtaskInfo` (TTRpcTask ti _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-	buildSubtaskInfo` (TTExtProcessTask ti _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-	buildSubtaskInfo` (TTFinishedTask ti _)		
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, finished = True}
-	buildSubtaskInfo` (TTParallelTask ti tpi _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker, description = tpi.TaskParallelInfo.description}
-	buildSubtaskInfo` (TTGroupedTask ti _ _ _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-	buildSubtaskInfo` (TTMainTask ti mti _ _ _)
-		= {SubtaskInfo | mkSti & taskId = ti.TaskInfo.taskId, subject = ti.TaskInfo.taskLabel, delegatedTo = toString ti.TaskInfo.worker}
-		
-	mkSti :: SubtaskInfo
-	mkSti = {SubtaskInfo | finished = False, taskId = "", subject = "", delegatedTo = "", description = ""}
-	
 filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True

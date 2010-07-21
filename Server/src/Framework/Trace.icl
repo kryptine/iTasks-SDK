@@ -21,7 +21,7 @@ where
 							, TdTag [] [Text (toString process.Process.properties.managerProperties.ManagerProperties.worker)]
 							, TdTag [] [Text (foldr (+++) "" ["("+++toString p +++": "+++toString u+++") " \\ (p,u) <- process.Process.properties.systemProperties.subTaskWorkers])]
 							, TdTag [] [Text (toString process.Process.properties.systemProperties.manager)]
-							, TdTag [] [Text (toString process.Process.status)]
+							, TdTag [] [Text (toString process.Process.properties.systemProperties.SystemProperties.status)]
 							, TdTag [] (case process.Process.properties.systemProperties.parent of
 											Nothing	= [Text "N/A"]
 											Just x	= [Text x]

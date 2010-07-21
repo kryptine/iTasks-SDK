@@ -23,21 +23,6 @@ getActionIcon ActionShowAbout		= "icon-help"
 getActionIcon ActionFind			= "icon-find"
 getActionIcon _						= ""
 
-instance == ProcessStatus
-where
-	(==) Active		Active		= True
-	(==) Suspended	Suspended	= True
-	(==) Finished	Finished	= True
-	(==) Deleted	Deleted		= True
-	(==) _			_			= False
-
-instance toString ProcessStatus
-where
-	toString Active		= "Active"
-	toString Suspended	= "Suspended"
-	toString Finished	= "Finished"
-	toString Deleted	= "Deleted"
-
 instance ProcessDB IWorld
 where
 	createProcess :: !Process !*IWorld -> (!ProcessId,!*IWorld)
@@ -96,20 +81,20 @@ where
 		relevantProc targetId {Process|taskId}		= taskId == targetId
 		relevantProc _ _							= False
 			
-	getProcesses :: ![ProcessStatus] !*IWorld -> (![Process], !*IWorld)
+	getProcesses :: ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcesses statusses iworld 
 		# (procs, iworld)	= processStore id iworld
-		= ([p \\ p <- procs | isMember p.Process.status statusses], iworld)
+		= ([p \\ p <- procs | isMember p.Process.properties.systemProperties.SystemProperties.status statusses], iworld)
 			
 	getProcessesById :: ![TaskId] !*IWorld -> (![Process], !*IWorld)
 	getProcessesById ids iworld
 		# (procs,iworld) 	= processStore id iworld
 		= ([process \\ process <- procs | isMember process.Process.taskId ids], iworld)
 	
-	getProcessesForUser	:: !User ![ProcessStatus] !*IWorld -> (![Process], !*IWorld)
+	getProcessesForUser	:: !User ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcessesForUser user statusses iworld
 		# (procs,iworld) 	= processStore id iworld
-		= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.status statusses ], iworld)
+		= ([p \\ p <- procs | p.Process.mutable && isRelevant user p && isMember p.Process.properties.systemProperties.SystemProperties.status statusses ], iworld)
 	where
 		isRelevant user {Process | properties}	
 			//Either you are working on the task
@@ -121,9 +106,10 @@ where
 	setProcessOwner worker taskId iworld
 		= updateProcess taskId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & managerProperties = {ManagerProperties | x.Process.properties.managerProperties & worker = worker}}}) iworld
 		
-	setProcessStatus :: !ProcessStatus !TaskId !*IWorld -> (!Bool,!*IWorld)
-	setProcessStatus status taskId iworld = updateProcess taskId (\x -> {Process| x & status = status}) iworld
-	
+	setProcessStatus :: !TaskStatus !TaskId !*IWorld -> (!Bool,!*IWorld)
+	setProcessStatus status taskId iworld
+		= updateProcess taskId (\x -> {Process | x & properties = {TaskProperties|x.Process.properties & systemProperties = {SystemProperties | x.Process.properties.systemProperties & status = status}}}) iworld
+
 	updateProcess :: !TaskId (Process -> Process) !*IWorld -> (!Bool, !*IWorld)
 	updateProcess taskId f iworld
 		# (procs,iworld) 	= processStore id iworld
@@ -220,15 +206,15 @@ where
 	getProcessForUser user processId tst = accIWorldTSt (getProcessForUser user processId) tst
 	getProcessForManager :: !User !TaskId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForManager manager processId tst = accIWorldTSt (getProcessForManager manager processId) tst
-	getProcesses :: ![ProcessStatus] !*TSt -> (![Process],!*TSt)
+	getProcesses :: ![TaskStatus] !*TSt -> (![Process],!*TSt)
 	getProcesses statuses tst = accIWorldTSt (getProcesses statuses) tst
 	getProcessesById :: ![TaskId] !*TSt -> (![Process],!*TSt)
 	getProcessesById processIds tst = accIWorldTSt (getProcessesById processIds) tst
-	getProcessesForUser :: !User ![ProcessStatus] !*TSt -> (![Process],!*TSt)
+	getProcessesForUser :: !User ![TaskStatus] !*TSt -> (![Process],!*TSt)
 	getProcessesForUser user statuses tst = accIWorldTSt (getProcessesForUser user statuses) tst
 	setProcessOwner	:: !User !TaskId !*TSt -> (!Bool,!*TSt)
 	setProcessOwner user processId tst = accIWorldTSt (setProcessOwner user processId) tst
-	setProcessStatus :: !ProcessStatus !TaskId !*TSt -> (!Bool,!*TSt)
+	setProcessStatus :: !TaskStatus !TaskId !*TSt -> (!Bool,!*TSt)
 	setProcessStatus status processId tst = accIWorldTSt (setProcessStatus status processId) tst
 	updateProcess :: !TaskId (Process -> Process) !*TSt -> (!Bool,!*TSt)
 	updateProcess processId f tst = accIWorldTSt (updateProcess processId f) tst

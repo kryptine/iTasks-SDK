@@ -14,7 +14,6 @@ derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
 derive gError			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gHint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-
 derive gMerge			User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
@@ -50,6 +49,14 @@ instance toString Password
 where
 	toString (Password p) = p
 
+instance toString TaskStatus
+where
+	toString Active		= "Active"
+	toString Suspended	= "Suspended"
+	toString Finished	= "Finished"
+	toString Excepted	= "Excepted"
+	toString Deleted	= "Deleted"
+
 instance toString User
 where
 	toString user
@@ -73,6 +80,15 @@ where
 instance == Password
 where
 	(==) (Password a) (Password b) = a == b
+
+instance == TaskStatus
+where
+	(==) Active		Active		= True
+	(==) Suspended	Suspended	= True
+	(==) Finished	Finished	= True
+	(==) Excepted	Excepted	= True
+	(==) Deleted	Deleted		= True
+	(==) _			_			= False
 	
 instance == Document
 where
@@ -94,6 +110,9 @@ where
 	(<)	_ _										= False
 
 
+
+
+	
 // VisualizationHints etc..
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a

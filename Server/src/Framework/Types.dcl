@@ -30,9 +30,11 @@ derive JSONDecode Document
 instance toString User
 instance toString TaskPriority
 instance toString Password
+instance toString TaskStatus
 
 instance == User
 instance == Password
+instance == TaskStatus
 instance == Document
 
 instance < User
@@ -94,6 +96,7 @@ instance < User
 :: SystemProperties =
 	{ taskId			:: !TaskId					// Process table identification
 	, parent			:: !Maybe TaskId			// The (direct) parent process
+	, status			:: !TaskStatus				// Is a maintask active,suspended,finished or excepted
 	, manager			:: !User					// Who is managing this task
 	, issuedAt			:: !Timestamp				// When was the task created
 	, firstEvent		:: !Maybe Timestamp			// When was the first work done on this task
@@ -114,6 +117,12 @@ instance < User
 :: WorkerProperties =
 	{ progress			:: !TaskProgress			// Indication of the worker's progress
 	}
+
+:: TaskStatus =	Active			// A process is active and can be further evaluated
+			 |	Suspended		// A process is (temporarily) suspended and will not be evaluated until it is activated 
+			 |	Finished		// A process terminated normally
+			 |	Excepted		// A process terminated with an exception
+			 |	Deleted			// A process is deleted (never set, but returned when process can not be found)
 
 initManagerProperties :: ManagerProperties
 	

@@ -79,6 +79,7 @@ initSystemProperties =
 	{SystemProperties
 	| taskId = ""
 	, parent = Nothing
+	, status = Active
 	, manager = AnyUser
 	, issuedAt = Timestamp 0
 	, firstEvent = Nothing
@@ -109,8 +110,8 @@ initSession sessionId tst
 			= (Just (if timeout "Your session timed out" "Failed to load session"), tst)
 		Just session
 			= (Nothing, {tst & staticInfo = {staticInfo & currentSession = session}})
-	  
-createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!Dynamic,!ProcessId,!*TSt)
+
+createTaskInstance :: !Dynamic !Bool !(Maybe TaskParallelType) !Bool !Bool !*TSt -> (!ProcessId, !TaskResult Dynamic, !TaskTree, !*TSt)	  
 createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (TaskThread a) a) toplevel mbParType activate delete tst=:{taskNr,properties}
 	//-> the current assigned worker is also the manager of all the tasks IN the process (excluding the main task)
 	# (worker,tst)			= getCurrentWorker tst
@@ -125,6 +126,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 			{SystemProperties
 			| taskId		= taskId
 			, parent		= parent
+			, status		= if activate Active Suspended
 			, manager		= manager
 			, issuedAt		= currentTime
 			, firstEvent	= Nothing
@@ -142,7 +144,6 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# process =
 		{ Process
 		| taskId		 = taskId
-		, status		 = if activate Active Suspended
 		, properties	 = properties
 		, changeCount	 = 0
 		, mutable		 = True
@@ -158,16 +159,22 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# tst					= storeThread processId thread tst
 	| activate
 		//If directly active, evaluate the process once to kickstart automated steps that can be set in motion immediately	
-		# (result,tree,tst)		= evaluateTaskInstance process [] Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
-		= case result of
-			TaskBusy				= (dynamic TaskBusy :: TaskResult a, processId, tst)
-			TaskFinished (r :: a)	= (dynamic TaskFinished r :: TaskResult a, processId, tst)
-			TaskException e			= (dynamic TaskException e :: TaskResult a, processId, tst)
+		# (result,tree,tst)	= evaluateTaskInstance process [] Nothing toplevel True {tst & staticInfo = {tst.staticInfo & currentProcessId = processId}}
+		= (processId,result,tree,tst)
 	| otherwise
-		= (dynamic TaskBusy :: TaskResult a, processId, tst)
+		= (processId, TaskBusy, node properties processId, tst)
 where
 	setUser manager props=:{ManagerProperties|worker=AnyUser} = {ManagerProperties|props & worker = manager}
 	setUser manager props = props
+
+	node properties taskId
+		# taskNr	= taskNrFromString taskId
+		# info =	{ initTaskInfo
+					& taskId	= taskId
+					, taskLabel	= properties.managerProperties.subject
+					, worker	= properties.managerProperties.ManagerProperties.worker
+					}
+		= TTMainTask info properties Nothing mbParType (TTFinishedTask info [Text "Dummy"])
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -214,7 +221,7 @@ loadThread processId tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
 
 //Computes a workflow (sub) process
 evaluateTaskInstance :: !Process ![TaskUpdate] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
-evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount, inParallelType} updates newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,updates=parentUpdates,properties=parentProperties,menus=parentMenus}
+evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount, inParallelType} updates newChange isTop firstRun tst=:{TSt|currentChange,pendingChanges,tree=parentTree,updates=parentUpdates,properties=parentProperties,menus=parentMenus}
 	// Update access timestamps in properties
 	# (now,tst)							= accWorldTSt time tst
 	# properties						= {properties & systemProperties = {properties.systemProperties
@@ -246,17 +253,19 @@ evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount,
 	# (tree,tst)						= normalizeInteractiveTasks tree tst
 	// Store the adapted persistent changes
 	# tst								= if isTop (storePersistentChanges taskId tst) tst
-	# tst								= restoreTSt parentUpdates parentProperties parentMenus tst
+	# tst								= restoreTSt parentTree parentUpdates parentProperties parentMenus tst
 	= case result of
 		TaskBusy
 			//Update process table (changeCount & properties)
-			# (_,tst)	 = updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
+			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Active}}
+			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 			= (TaskBusy, tree, tst)
 		TaskFinished dyn
 			//Store result
-			# tst 		= storeProcessResult (taskNrFromString taskId) result tst
+			# tst 			= storeProcessResult (taskNrFromString taskId) result tst
 			//Update process table (status, changeCount & properties)
-			# (_,tst)	= updateProcess taskId (\p -> {Process|p & status = Finished, properties = properties, menus = menus, changeCount = changeCount }) tst
+			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Finished}}
+			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 			| isTop
 				//Evaluate parent process
 				| isJust properties.systemProperties.parent
@@ -271,13 +280,15 @@ evaluateTaskInstance process=:{Process | taskId, properties, menus, changeCount,
 					= (result,tree,tst)
 			| otherwise
 				//Update process table (changeCount & properties)
-				# (_,tst)	= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
+				# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Finished}}
+				# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 				= (result,tree,tst)
 		TaskException e
 			//Store exception
 			# tst 		= storeProcessResult (taskNrFromString taskId) result tst
 			//Update process table
-			# (_,tst)	= updateProcess taskId (\p -> {Process|p & status = Excepted}) tst
+			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Excepted}}
+			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, menus = menus, changeCount = changeCount }) tst
 			= (TaskException e, tree, tst)
 where
 	resetTSt :: !TaskId ![TaskUpdate] !TaskProperties !(Maybe TaskParallelType) !*TSt -> *TSt
@@ -288,12 +299,11 @@ where
 					, taskLabel	= properties.managerProperties.subject
 					, worker	= properties.managerProperties.ManagerProperties.worker
 					}
-		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [])
-		= {TSt| tst & taskNr = taskNr, tree = tree, updates = updates, staticInfo = {tst.staticInfo & currentProcessId = taskId}}
+		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [Text "Dummy"])
+		= {TSt| tst & taskNr = taskNr, tree = tree, updates = updates, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
-	
-	restoreTSt :: ![TaskUpdate] !TaskProperties !(Maybe [Menu]) !*TSt -> *TSt
-	restoreTSt updates properties menus tst = {TSt|tst & updates = updates, properties = properties, menus = menus}
+	restoreTSt :: !TaskTree ![TaskUpdate] !TaskProperties !(Maybe [Menu]) !*TSt -> *TSt
+	restoreTSt tree updates properties menus tst = {TSt|tst & tree = tree, updates = updates, properties = properties, menus = menus}
 	/*
 	* Load all stored persistent changes that are applicable to the current (sub) process.
 	* In case of evaluating a subprocess, this also includes the changes that have been injected
@@ -509,8 +519,8 @@ calculateTaskTree taskId updates tst
 						, taskDescription	= "Task Result"
 						}
 			= (TTFinishedTask info [], tst)
-		Just process=:{Process|status,properties}
-			= case status of
+		Just process=:{Process|properties}
+			= case properties.systemProperties.SystemProperties.status of
 				Active
 					//Evaluate the process
 					# (result,tree,tst) = evaluateTaskInstance process updates Nothing True False tst
@@ -694,7 +704,7 @@ mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) ->
 mkParallelTask taskname tpi taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkParallelTask`
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
-		# tst = {tst & tree = TTParallelTask taskInfo tpi [], taskNr = [0:taskNr]}												
+		# tst = {tst & tree = TTParallelTask taskInfo tpi []}												
 		= taskfun tst
 
 mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
@@ -772,19 +782,20 @@ where
 	incTaskNr [] = [0]
 	incTaskNr [i:is] = [i+1:is]
 	
-	//Add a new node to the current sequence or process
-	addTaskNode node tst=:{tree} = case tree of
-		(TTMainTask ti mti menus inptype task)		= {tst & tree = TTMainTask ti mti menus inptype node} 			//Just replace the subtree 
-		(TTSequenceTask ti tasks)					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
-		(TTParallelTask ti tpi tasks)				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
-		(TTGroupedTask ti tasks gActions mbFocus)	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
-		_											= {tst & tree = tree}
-	
 	//Perform reversal of lists that have been accumulated in reversed order
 	finalizeTaskNode (TTSequenceTask ti tasks) 					= TTSequenceTask	ti (reverse tasks)
 	finalizeTaskNode (TTParallelTask ti tpi tasks)				= TTParallelTask	ti tpi (reverse tasks)
 	finalizeTaskNode (TTGroupedTask ti tasks gActions mbFocus)	= TTGroupedTask		ti (reverse tasks) gActions mbFocus
 	finalizeTaskNode node										= node
+
+//Add a new node to the current sequence or process
+addTaskNode :: !TaskTree !*TSt -> *TSt
+addTaskNode node tst=:{tree} = case tree of
+	(TTMainTask ti mti menus inptype task)		= {tst & tree = TTMainTask ti mti menus inptype node} 			//Just replace the subtree 
+	(TTSequenceTask ti tasks)					= {tst & tree = TTSequenceTask ti [node:tasks]}					//Add the node to the sequence
+	(TTParallelTask ti tpi tasks)				= {tst & tree = TTParallelTask ti tpi [node:tasks]}				//Add the node to the parallel set
+	(TTGroupedTask ti tasks gActions mbFocus)	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
+	_											= {tst & tree = tree}
 		
 setTUIDef	:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
 setTUIDef def taskDescription accActions tst=:{tree}

@@ -3,7 +3,7 @@ implementation module ProcessDBTasks
 import StdOverloaded, StdClass, StdInt, StdArray, StdTuple, StdList
 import TSt
 
-from ProcessDB import :: Process{..}, :: ProcessStatus(..), :: Menu
+from ProcessDB import :: Process{..}, :: Menu
 
 from ProcessDB import qualified class ProcessDB(..)
 from ProcessDB import qualified instance ProcessDB TSt
@@ -18,7 +18,7 @@ import CommonCombinators
 
 import Store
 
-derive class iTask	ProcessRef, Process, ProcessStatus, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, Timestamp, TaskParallelType
 
 derive bimap	Maybe, (,)
 
@@ -44,10 +44,10 @@ getProcessForManager man pid = mkInstantTask "getProcessForManager" (mkTaskFunct
 getProcesses :: ![pid] -> Task [Process] | toProcessId pid
 getProcesses ids = mkInstantTask "getProcessesById" (mkTaskFunction (\tst -> 'ProcessDB'.getProcessesById (map toProcessId ids) tst))
 
-getProcessesWithStatus :: ![ProcessStatus] -> Task [Process]
+getProcessesWithStatus :: ![TaskStatus] -> Task [Process]
 getProcessesWithStatus statuses = mkInstantTask "getProcesses" (mkTaskFunction (\tst -> 'ProcessDB'.getProcesses statuses tst))
 
-getProcessesForUser	:: !User ![ProcessStatus] -> Task [Process]
+getProcessesForUser	:: !User ![TaskStatus] -> Task [Process]
 getProcessesForUser user statuses = mkInstantTask "getProcessesForUser" (mkTaskFunction (\tst -> 'ProcessDB'.getProcessesForUser user statuses tst))
 
 getProcessOwner :: !pid -> Task (Maybe User) | toProcessId pid
@@ -65,14 +65,14 @@ where
 		# (_,tst)			= 'ProcessDB'.setProcessOwner user (toProcessId pid) tst
 		= (TaskFinished Void,tst)
 
-getProcessStatus :: !pid -> Task ProcessStatus | toProcessId pid
+getProcessStatus :: !pid -> Task TaskStatus | toProcessId pid
 getProcessStatus pid = mkInstantTask "getProcessStatus" getProcessStatus`
 where
 	getProcessStatus` tst
 		# (mbProcess,tst)	= 'ProcessDB'.getProcess (toProcessId pid) tst
 		= case mbProcess of
-			Just {Process | status}	= (TaskFinished status, tst)
-			Nothing					= (TaskFinished Deleted, tst)
+			Just proc	= (TaskFinished proc.Process.properties.systemProperties.SystemProperties.status, tst)
+			Nothing		= (TaskFinished Deleted, tst)
 			
 
 activateProcess	:: !pid	-> Task Void | toProcessId pid
