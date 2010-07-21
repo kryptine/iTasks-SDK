@@ -9,19 +9,19 @@ textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ S
 textEditorApp :: Task Void
 textEditorApp = 
 				setMenus
-					[ Menu "File"	[ MenuItem "New"			ActionNew		(hotkey 'n')
-									, MenuItem "Open..."		ActionOpen		(hotkey 'o')
+					[ Menu "File"	[ MenuItem "New"			ActionNew		(hotkey N)
+									, MenuItem "Open..."		ActionOpen		(hotkey O)
 									, MenuName recOpenedMenu	(SubMenu "Recently Opened" [])
 									, MenuSeparator
-									, MenuItem "Save"			ActionSave		(hotkey 's')
-									, MenuItem "Save As..."		ActionSaveAs	(hotkey 'a')
+									, MenuItem "Save"			ActionSave		(hotkey S)
+									, MenuItem "Save As..."		ActionSaveAs	(hotkey A)
 									, MenuSeparator
-									, MenuItem "Close"			ActionClose		(hotkey 'c')
-									, MenuItem "Quit"			ActionQuit		(hotkey 'q')
+									, MenuItem "Close"			ActionClose		(hotkey C)
+									, MenuItem "Quit"			ActionQuit		(hotkey Q)
 									]
-					, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey 'r')
+					, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey R)
 									]
-					, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey 't')
+					, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey T)
 									]
 					, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
 									]
@@ -37,8 +37,8 @@ where
 		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])					GroupAlways
 		]
 		
-	hotkey :: !Char -> Maybe Hotkey
-	hotkey key = Just {ctrl = True, alt = False, shift = True, keys = toString key}
+	hotkey :: !Key -> Maybe Hotkey
+	hotkey key = Just {ctrl = True, alt = False, shift = True, key = key}
 						
 ActionReplace	:== ActionLabel "replace"
 ActionStats		:== ActionLabel "stats"

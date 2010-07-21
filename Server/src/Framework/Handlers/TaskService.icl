@@ -10,7 +10,7 @@ import TaskPanel
 
 derive bimap (,), Maybe
 
-derive JSONEncode Menu, MenuItem, Hotkey, Action, User, UserDetails, Password
+derive JSONEncode Menu, MenuItem, Hotkey, Key, Action, User, UserDetails, Password
 derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
 
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x

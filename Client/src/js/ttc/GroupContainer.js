@@ -278,6 +278,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 			});
 		});
 		itasks.ttc.common.attachTaskHandlers(groupTbar,this.taskId);
+		itasks.ttc.common.setupHotkeys(groupTbar, this);
 		groupTbar.doLayout();
 	},
 	

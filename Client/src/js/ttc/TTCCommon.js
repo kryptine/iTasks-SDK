@@ -178,4 +178,59 @@ itasks.ttc.common.setFullscreen = function(ct){
 	ct.fullscreen = true;
 };
 
+itasks.ttc.common.setupHotkeys = function(tb, parent) {
+	// collect all hotkeys
+	var hotkeys = new Ext.util.MixedCollection();
+	
+	var collectHotkeys = function(item) {
+		var hk = item.hotkey;
+		if(hk) {
+			hotkeys.add({hotkey: hk, menuitem: item});
+			// append hotkey-string to item name
+			var str = hk.key;
+			if (hk.shift)	str = "Shift+" + str;
+			if (hk.alt)		str = "Alt+" + str;
+			if (hk.ctrl)	str = "Ctrl+" + str;
+			item.setText(item.text + "&nbsp;&nbsp;&nbsp;&nbsp;(" + str + ")");
+		} else if (item.items || item.menu) {
+			var children =  item.items || item.menu.items;
+			for(var i = 0; i < children.length; i++) {
+				collectHotkeys(children.get(i));
+			}
+		}
+	}
+	
+	collectHotkeys(tb);
+	
+	// disabled old hotkeys
+	if (parent.keyMap)
+		parent.keyMap.disable();
+
+	if (hotkeys.getCount() == 0)
+		return;
+	
+	// build up config array for KeyMap
+	var conf = new Array();
+	hotkeys.each(function(hk) {
+		var h = hk.hotkey;
+		conf[conf.length] = {
+			key: h.key,
+			ctrl: h.ctrl,
+			alt: h.alt,
+			shift: h.shift,
+			stopEvent: true,
+			handler: function() {
+				var item = hk.menuitem;
+				// only fire hotkey-event if item is not disabled
+				if (!item.disabled) {
+					parent.addUpdate(item.name, item.value);
+					parent.sendUpdates();
+				}
+			}
+		};
+	});
+
+	parent.keyMap = new Ext.KeyMap(parent.getEl(), conf);
+};
+
 Ext.reg('itasks.ttc.common.description', itasks.ttc.common.DescriptionPanel);
