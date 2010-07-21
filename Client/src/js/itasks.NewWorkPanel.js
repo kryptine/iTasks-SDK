@@ -3,6 +3,35 @@
 */
 Ext.ns("itasks");
 
+itasks.NewWorkTreeLoader = Ext.extend(Ext.tree.TreeLoader, {
+	load: function (node, callback, scope) {
+		this.dataUrl = "/services/json/workflows" + (node.id == "_ROOT_" ? "" : "/" + node.id);
+		itasks.NewWorkTreeLoader.superclass.load.apply(this,arguments);
+	},
+	processResponse: function (response, node, callback, scope) {
+		try {
+			var o = Ext.decode(response.responseText);
+			node.beginUpdate();
+			for(var i = 0, len = o.workflows.length; i < len; i++ ) {
+				var wf = o.workflows[i];
+				var n = this.createNode({ id : wf.name
+										, text: wf.label
+										, iconCls: wf.folder ? "icon-folder" : "icon-workflow"
+										, leaf: ! wf.folder
+										, singleClickExpand: true
+										});
+				if(n) {
+					node.appendChild(n);
+				}
+			}
+			node.endUpdate();
+			this.runCallback(callback, scope || node, [node]);
+		} catch(e) {
+			handleFailure(response);
+		}
+	}
+});
+
 itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 
 	initComponent: function() {
@@ -10,10 +39,8 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 		Ext.apply(this, {
 			title: "New task...",
 			iconCls: "icon-newwork",	
-			loader: new Ext.tree.TreeLoader({
-				dataUrl: itasks.config.serverUrl + "/new/list",
-				baseParams: {_session: itasks.app.session},
-				requestMethod: "POST"
+			loader: new itasks.NewWorkTreeLoader({
+				baseParams: {_session: itasks.app.session}
 			}),
 			root: {text: "_ROOT_", nodeType: "async", id: "_ROOT_", expanded: true},
 			rootVisible: false,
@@ -31,7 +58,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 	
 		Ext.Ajax.request({
 			method: "POST",
-			url: itasks.config.serverUrl + "/new/start",
+			url: "/services/json/tasks/create",
 			params: {_session: itasks.app.session, workflow: workflow},
 			scripts: false,
 			callback: this.startWorkflowCB,
@@ -40,9 +67,8 @@ itasks.NewWorkPanel = Ext.extend(Ext.tree.TreePanel ,{
 	},
 	startWorkflowCB: function(el, success, response, options){
 		try {
-			var data = Ext.decode(response.responseText);
-
-			this.fireEvent("processStarted",data.taskid);
+			var o = Ext.decode(response.responseText);
+			this.fireEvent("processStarted",o.taskId);
 		} catch(SyntaxError) {}
 	}
 });

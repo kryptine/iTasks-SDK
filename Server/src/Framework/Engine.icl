@@ -16,7 +16,8 @@ from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import Setup
 //import AuthenticationHandler, DeauthenticationHandler
-import NewListHandler, NewStartHandler, WorkListHandler, WorkTabHandler, PropertyHandler, UserListHandler
+//import NewListHandler, NewStartHandler, WorkListHandler
+import WorkTabHandler, PropertyHandler, UserListHandler
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers
 
@@ -44,9 +45,9 @@ where
 			//'old' handlers
 		  //,((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
 		  //,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
-		  ,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
-		  ,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
-		  ,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
+		  //,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
+		  //,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
+		  //,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
 		  ,((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
 		  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
 		  ,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
@@ -67,7 +68,7 @@ where
 
 	serviceDispatch config flows req world
 		# tst				= initTSt req config flows world
-		# (response,tst) = case (split "/" req.req_path) of
+		# (response,tst) = case (split "/" (http_urldecode req.req_path)) of
 			["","services",format:path]
 				# html = format == "html"
 				# json = format == "json"

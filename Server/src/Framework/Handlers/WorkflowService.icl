@@ -36,8 +36,7 @@ where
 	
 	params 		= [("_session", sessionParam, False)]
 	
-	onPath paths wf
-		= wf.Workflow.path % (0, (size paths - 1)) == paths
+	onPath paths wf = paths == "" || (wf.Workflow.path % (0, (size paths))) == paths +++ "/"
 	
 	//Allow the root user
 	isAllowed RootUser	_					= True
@@ -47,7 +46,7 @@ where
 	isAllowed _ wf							= isEmpty wf.Workflow.roles		
 	
 	workflowItems path user workflows
-		# paths				= join "/" path 
+		# paths				= join "/" path
 		= removeDup [workflowItem paths wf \\ wf <- workflows | onPath paths wf && isAllowed user wf]
 	workflowItem paths wf
 		# shortPath = wf.Workflow.path % (if (paths == "") 0 (size paths + 1), size wf.Workflow.path)
