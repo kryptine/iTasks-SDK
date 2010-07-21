@@ -17,7 +17,6 @@ import JSON
 	, iconCls		:: String
 	, taskId 		:: String
 	, taskLabel 	:: String
-	, traceValue	:: String
 	, taskClass		:: String
 	, children		:: [TraceTree]
 	}

@@ -34,10 +34,6 @@ itasks.TaskForestTabPanel = Ext.extend( Ext.Panel, {
 						header:'Task Label',
 						dataIndex:'taskLabel',
 						width: 200
-					},{
-						header:'Trace Value',
-						dataIndex: 'traceValue',
-						width: 200
 					}],	
 			
 			loader: new Ext.tree.TreeLoader({

@@ -66,8 +66,6 @@ initTaskInfo
 	=	{ TaskInfo
 		| taskId = ""
 		, taskLabel = ""
-		, traceValue = ""
-		, worker = AnyUser
 		, tags = []
 		, groupedBehaviour = GBFixed
 		, groupActionsBehaviour = IncludeGroupActions
@@ -172,7 +170,6 @@ where
 		# info =	{ initTaskInfo
 					& taskId	= taskId
 					, taskLabel	= properties.managerProperties.subject
-					, worker	= properties.managerProperties.ManagerProperties.worker
 					}
 		= TTMainTask info properties Nothing mbParType (TTFinishedTask info [Text "Dummy"])
 
@@ -297,7 +294,6 @@ where
 		# info =	{ initTaskInfo
 					& taskId	= taskId
 					, taskLabel	= properties.managerProperties.subject
-					, worker	= properties.managerProperties.ManagerProperties.worker
 					}
 		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [Text "Dummy"])
 		= {TSt| tst & taskNr = taskNr, tree = tree, updates = updates, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
@@ -515,7 +511,6 @@ calculateTaskTree taskId updates tst
 			# info =	{ initTaskInfo
 						& taskId			= taskId
 						, taskLabel			= "Deleted Process"
-						, traceValue		= "Deleted"
 						, taskDescription	= "Task Result"
 						}
 			= (TTFinishedTask info [], tst)
@@ -535,8 +530,6 @@ calculateTaskTree taskId updates tst
 					# info =	{ initTaskInfo
 								& taskId			= taskId
 								, taskLabel			= properties.managerProperties.subject
-								, traceValue		= "Finished"
-								, worker			= properties.managerProperties.ManagerProperties.worker
 								, taskDescription	= "Task Result"
 								}
 					= (TTFinishedTask info result, {TSt | tst & iworld = {IWorld | iworld & store = store, world = world}})
@@ -726,8 +719,6 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 	# (taskVal,store,world)					= loadValue taskId store world
 	# taskInfo =	{ taskId				= taskNrToString taskNr
 					, taskLabel				= initProperties.subject
-					, traceValue			= ""
-					, worker				= properties.managerProperties.ManagerProperties.worker
 					, tags					= initProperties.ManagerProperties.tags
 					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
@@ -736,7 +727,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal, iworld = {IWorld| iworld & store = store, world = world }}
 	= case taskVal of
 		(Just (TaskFinished a))	
-			# tst = addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a)) tst
+			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a)) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
@@ -761,7 +752,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 					# store					= if(gc) store (storeValue taskId result store)
 					// Store the final value and it's type as a dynamic value, so it can be visualized by the task-result service later.
 					# store					= if(gc) store (storeValueAs SFDynamic (taskId+++"-container") (dynamic (Container a) :: Container a^ a^) store)
-					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = printToString a} (visualizeAsHtmlDisplay a))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a))
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskFinished a, tst)
 				(TaskBusy)
@@ -773,7 +764,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 				(TaskException e)
 					// Store exception
 					# store					= storeValue taskId result store
-					# tst					= addTaskNode (TTFinishedTask {taskInfo & traceValue = "Exception"} [Text "Uncaught exception"])
+					# tst					= addTaskNode (TTFinishedTask taskInfo [Text "Uncaught exception"])
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskException e, tst)
 		

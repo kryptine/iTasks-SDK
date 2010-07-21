@@ -36,104 +36,96 @@ traceTaskTree tree = mkTree tree
 where
 	mkTree (TTInteractiveTask info _) 
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = True
 		  , iconCls = "task-int"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "INT"
 		  , children = []
 		  }
 	
 	mkTree (TTMonitorTask info _ )
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = True
 		  , iconCls = "task-mon"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "MON"
 		  , children = []
 		  }
   
 	mkTree (TTInstructionTask info _ _)
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = True
 		  , iconCls = "task-ins"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "INS"
 		  , children = []
 		  }
 	
 	mkTree (TTRpcTask info _ )
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = True
 		  , iconCls = "task-rpc"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "RPC"
 		  , children = []
 		  }
 		  
 	mkTree (TTExtProcessTask info _ )
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = True
 		  , iconCls = "task-prc"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "RPC"
 		  , children = []
 		  }	  
 		  
 	mkTree (TTSequenceTask info trees)
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-seq"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "SEQ"
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 	
 	mkTree (TTParallelTask info tpi trees)
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-par"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = tpi.TaskParallelInfo.description
 		  , taskClass = "PAR"
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
 		  
 	mkTree (TTGroupedTask info trees _ _)
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
 		  , uiProvider = "col"
+		  , user = ""
 		  , leaf = checkIfLeaf trees
 		  , iconCls = "task-grp"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "GRP"
 		  , children = [traceTaskTree tree \\ tree <- trees]
 		  }
@@ -146,20 +138,18 @@ where
 		  , iconCls = "task-mnt"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = printToString inptype
 		  , taskClass = "MNT"
 		  , children = [traceTaskTree tree]
 		  }
 	
 	mkTree (TTFinishedTask info _)
 		= { cls = "master-task"
-		  , user = toString info.TaskInfo.worker
+		  , user = ""
 		  , uiProvider = "col"
 		  , leaf = True
 		  , iconCls = "task-fin"
 		  , taskId = info.TaskInfo.taskId
 		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , traceValue = info.TaskInfo.traceValue
 		  , taskClass = "FIN"
 		  , children = []
 		  }
