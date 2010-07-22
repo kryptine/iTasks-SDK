@@ -1,29 +1,37 @@
 Ext.ns("itasks.tui");
 
+itasks.tui.UsernameReader = new Ext.data.JsonReader();
+itasks.tui.UsernameReader.readRecords = function(o) {
+	var UsernameRecord = Ext.data.Record.create(["username"]);	
+	var usernames = [];
+	for(var i = 0, len = o.users.length; i < len; i++) {
+		
+		usernames[usernames.length] = new UsernameRecord({username: o.users[i]});
+	}
+	return {success: true, records: usernames, totalRecords: usernames.length};
+}
+
 itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
-	store: new Ext.data.JsonStore({
-		url: "/dummy",
-		root: "users",
-		totalProperty: "total",
-		fields: ["user"]
-	}),
-	valueField: "user",
-	displayField: "user",
-	tpl: new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{user:htmlEncode}</div></tpl>'),
+	store: {
+		url: "/services/json/users/names",
+		reader: itasks.tui.UsernameReader
+	},
+	valueField: "username",
+	displayField: "username",
+	tpl: new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{username:htmlEncode}</div></tpl>'),
 	triggerAction: "all",
 	listeners: {
 		"beforequery": function(e) {
-			e.combo.store.proxy.conn.url = itasks.config.serverUrl + "/data/users";
 			e.combo.store.baseParams["_session"] = itasks.app.session;
 			delete e.combo.lastQuery;
 		}
 	},
 	initComponent: function() {
 		if(this.staticDisplay){
-			this.autoCreate = {tag: 'span', html: this.value};
+			this.autoCreate = {tag: "span", html: this.value};
 		}
 		
-		this.msgTarget = 'side';
+		this.msgTarget = "side";
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);

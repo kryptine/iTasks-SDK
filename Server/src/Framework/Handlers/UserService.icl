@@ -20,6 +20,13 @@ userService url html path req tst
 			# items			= [details \\ RegisteredUser details <- users]
 			# json			= JSONObject [("success",JSONBool True),("users",toJSON items)]
 			= (serviceResponse html "users" url params json, tst)
+		//List usernames
+		["names"]
+			| isJust mbSessionErr
+				= (serviceResponse html "users names" url params (jsonSessionErr mbSessionErr), tst)	
+			# (users,tst)	= getUsers tst
+			# json			= JSONObject [("success",JSONBool True),("users",toJSON [toString u \\ u <- users])]
+			= (serviceResponse html "users names" url params json, tst)
 		//Show user details
 		[userId]
 			| isJust mbSessionErr
