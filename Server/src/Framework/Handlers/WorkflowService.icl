@@ -28,7 +28,7 @@ workflowService url html path req tst
 	// List available flows
 	# (session,tst)		= getCurrentSession tst
 	# (workflows,tst)	= getWorkflows tst
-	# items				= workflowItems path (session.Session.user) workflows 
+	# items				= workflowItems path (session.Session.user) workflows
 	# json 				= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
 	= (serviceResponse html "workflows" url params json, tst)
 where
@@ -41,7 +41,7 @@ where
 	//Allow the root user
 	isAllowed RootUser	_					= True
 	//Allow workflows for which the user has permission
-	isAllowed (RegisteredUser details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles]
+	isAllowed (RegisteredUser details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles] || isEmpty wf.Workflow.roles
 	//Allow workflows without required roles
 	isAllowed _ wf							= isEmpty wf.Workflow.roles		
 	
