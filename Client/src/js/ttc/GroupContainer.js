@@ -80,7 +80,8 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 							window.destroy();
 							Ext.state.Manager.set(group.taskId + '_' + idx + '_behaviour', 'GBFixed');
 							group.createContainer(cont, 'GBFixed', idx, true);
-							group.showAllMenuItems(cont.getTopToolbar());
+							if (cont.getXType() == 'itasks.ttc.form' || cont.getXType() == 'itasks.ttc.message') 
+								group.showAllMenuItems(cont.getTopToolbar());
 							group.renderFixed();
 						}
 					}];
@@ -333,10 +334,18 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		});
 		
 		this.renderFixed();
-		if (this.focusedContainer && this.focusedContainer.get(0).getTopToolbar().items.length > 0) {
-			// toolbar of focused container has been updated, copy changes to shared toolbar
-			this.mkSharedTbar(this.focusedContainer);
-		} 
+		
+		if (this.focusedContainer) {
+			var cont = this.focusedContainer.get(0);
+		
+			if (
+				(cont.getXType() == 'itasks.ttc.form' || cont.getXType() == 'itasks.ttc.message') &&
+				cont.getTopToolbar().items.length > 0
+			) {
+				// toolbar of focused container has been updated, copy changes to shared toolbar
+				this.mkSharedTbar(this.focusedContainer);
+			} 
+		}
 		
 		// focus containers for which focus commands have been sent
 		if (Ext.isDefined(focusFixed))
