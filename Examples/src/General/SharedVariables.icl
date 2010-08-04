@@ -7,15 +7,15 @@ derive bimap Maybe, (,)
 quitButton = ButtonAction (ActionQuit, Always)
 
 //Text-Lines Examples
-noteEditor = editor {editorFrom = \txt -> Note txt,			editorTo = \(Note txt) _ -> txt}
-listEditor = editor {editorFrom = \txt -> split "\n" txt,	editorTo = \l _ -> join "\n" l}
+noteEditor = editor {editorFrom = \txt -> Note txt,	editorTo = \(Note txt) _ -> txt}
+listEditor = editor {editorFrom = split "\n" ,		editorTo = \l _ -> join "\n" l}
 
 TrimAction :== ActionLabel "Trim"
 
 linesPar :: Task Void
 linesPar =
 				createDB ""
-	>>= \sid.	noteE sid -||- ignoreResult (updateShared "Lines" [quitButton] sid [listEditor])
+	>>= \sid.	noteE sid -|| updateShared "Lines" [quitButton] sid [listEditor]
 	>>|			deleteDB sid
 where
 	noteE sid = 
@@ -25,12 +25,10 @@ where
 												>>|		noteE sid
 								_			= 			stop
 
-linesSingle :: Task Void
-linesSingle = ignoreResult (updateSharedLocal "Text & Lines" [quitButton] "" [noteEditor,listEditor])
+linesSingle = updateSharedLocal "Text & Lines" [quitButton] "" [noteEditor,listEditor]
 
-//Calculate Sum Example
-calculateSum :: Task Void
-calculateSum = ignoreResult (updateSharedLocal "Sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = \(x,y) -> x + y}])
+//Calculate Sum Example)
+calculateSum = updateSharedLocal "Sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = \(x,y) -> x + y}]
 
 //Tree Example
 :: Tree a = Leaf | Node (Node a)
@@ -54,8 +52,7 @@ where
 		middle		= list !! (middlePos) 
 		end			= drop (middlePos + 1) list
 
-tree :: Task Void
-tree = ignoreResult (updateSharedLocal "List & Balanced Binary Tree" [quitButton] emptyL [idEditor, listener {listenerFrom = toTree}])
+tree = updateSharedLocal "List & Balanced Binary Tree" [quitButton] emptyL [idEditor, listener {listenerFrom = toTree}]
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -125,8 +122,7 @@ where
 								}
 
 //Auto sorted list
-autoSortedList :: Task Void
-autoSortedList = ignoreResult (updateSharedLocal "Automatically Sorted List" [quitButton] emptyL [editor {editorFrom = \list -> sort list, editorTo = \list _ -> list}])
+autoSortedList = updateSharedLocal "Automatically Sorted List" [quitButton] emptyL [editor {editorFrom = sort, editorTo = \list _ -> list}]
 where
 	emptyL :: [String]
 	emptyL = []
