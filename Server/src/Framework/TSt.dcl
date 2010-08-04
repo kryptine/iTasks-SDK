@@ -293,16 +293,6 @@ mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
 */
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 /**
-* Create a task represention an external running process.
-*
-* @param A name used as the task label
-* @param The name of the command shown the user if the process is not finished
-*        at the moment the treee is build
-*
-* @return Teh constructed external process task
-*/
-mkExtProcessTask :: !String !String !(*TSt -> *(!TaskResult Int,!*TSt)) -> Task Int
-/**
 * Wraps a function of proper type to create a task that will consist
 * of a sequence of subtasks. The given task function will execute in a blank sequence
 * and the resulting sequence will be combined in a single sequence node.
@@ -312,7 +302,7 @@ mkExtProcessTask :: !String !String !(*TSt -> *(!TaskResult Int,!*TSt)) -> Task 
 *
 * @return The newly constructed sequence task
 */
-mkSequenceTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration for

@@ -1,21 +1,26 @@
 implementation module OSTasks
 
 import iTasks, TSt, ostoolbox, clCCall_12, StdFile, Text
+from Directory import pathToPD_String
 import code from "OSTasksC."
 
-derive gPrint		FileException, FileProblem, CallException, DirectoryException
-derive gParse		FileException, FileProblem, CallException, DirectoryException
-derive gVisualize	FileException, FileProblem, CallException, DirectoryException
-derive gUpdate		FileException, FileProblem, CallException, DirectoryException
-derive gHint		FileException, FileProblem, CallException, DirectoryException
-derive gError		FileException, FileProblem, CallException, DirectoryException
+derive class iTask			Path, PathStep, FileException, FileProblem, CallException, DirectoryException
+derive class SharedVariable	Path, PathStep
 derive bimap		Maybe, (,)
 
-callProcessBlocking :: !Path -> Task Int
-callProcessBlocking cmd = mkInstantTask "callProcess" callProcess`
+(+<) infixr 5 :: !Path	![PathStep]	-> Path
+(+<) (RelativePath steps)		appSteps = RelativePath (steps ++ appSteps)
+(+<) (AbsolutePath disk steps)	appSteps = AbsolutePath disk (steps ++ appSteps)
+
+pathToPDString :: !Path -> Task String
+pathToPDString path = accWorld (pathToPD_String path)
+
+callProcessBlocking :: !Path ![String] -> Task Int
+callProcessBlocking cmd args = mkInstantTask "callProcess" callProcess`
 where
 	callProcess` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (os,world)	= worldGetToolbox world
+		# (cmd, world)	= mkCmdString cmd args world
 		# (ccmd,os)		= winMakeCString cmd os
 		# (succ,ret,os)	= winCallProcess ccmd 0 0 0 0 0 os
 		# os			= winReleaseCString ccmd os
@@ -24,14 +29,16 @@ where
 		| not succ		= (TaskException (dynamic (CallFailed cmd)), tst)
 		| otherwise		= (TaskFinished ret, tst)
 
-callProcess :: !Path -> Task Int
-callProcess cmd = mkExtProcessTask "callProcess" cmd callProcess`
+callProcess :: !message !Path ![String] -> Task Int | html message
+callProcess msg cmd args = mkMonitorTask "callProcess" callProcess`
 where
 	callProcess` tst
+		# tst						= setStatus (html msg) tst
 		# (mbHandle, tst)			= getTaskStore "handle" tst
 		# tst=:{TSt|iworld=iworld=:{IWorld|world}}
 									= tst
 		# (os, world)				= worldGetToolbox world
+		# (cmd, world)				= mkCmdString cmd args world
 		# (res, handle, os) = case mbHandle of
 			Nothing
 				# (ccmd,os)			= winMakeCString cmd os
@@ -66,22 +73,28 @@ where
 			.end
 		}
 		
+mkCmdString :: !Path ![String] !*World -> (String, *World)
+mkCmdString path args world
+	# (pathStr, world) = pathToPD_String path world
+	= (foldl (\cmd arg -> cmd +++ " " +++ arg) pathStr args, world)
+		
 readTextFile :: !Path -> Task String
 readTextFile path = mkInstantTask "readTextFile" readTextFile`
 where
 	readTextFile` tst=:{TSt|iworld=iworld=:{IWorld|world}}
-		# (ok,file,world) 	= fopen path FReadText world		
-		| not ok 			= (TaskException (fileException CannotOpen),{TSt|tst & iworld = {IWorld|iworld & world = world}})
+		# (pathStr, world)	= pathToPD_String path world
+		# (ok,file,world) 	= fopen pathStr FReadText world		
+		| not ok 			= (TaskException (fileException pathStr CannotOpen),{TSt|tst & iworld = {IWorld|iworld & world = world}})
 		# (mbStrAcc,file)	= readFile file []
 		# (ok,world) 		= fclose file world
 		# tst				= {TSt|tst & iworld = {IWorld|iworld & world = world}}
 		= case mbStrAcc of
-			Nothing			= (TaskException (fileException IOError),tst)
+			Nothing			= (TaskException (fileException pathStr IOError),tst)
 			Just strAcc
-				| not ok 	= (TaskException (fileException CannotClose),tst)
+				| not ok 	= (TaskException (fileException pathStr CannotClose),tst)
 				| otherwise	= (TaskFinished (foldr (+++) "" (reverse strAcc)),tst)
 		
-	fileException prob = (dynamic (FileException path prob))
+	fileException pathStr prob = (dynamic (FileException pathStr prob))
 	
 	readFile file acc
 		# (str,file)	= freads file 1024
@@ -92,27 +105,36 @@ where
 		| otherwise		= readFile file [str:acc]
 		
 writeTextFile :: !String !Path -> Task Void
-writeTextFile path text = mkInstantTask "writeTextFile" writeTextFile`
+writeTextFile text path = mkInstantTask "writeTextFile" writeTextFile`
 where
 	writeTextFile` tst=:{TSt|iworld=iworld=:{IWorld|world}}
-		# (ok,file,world) 	= fopen path FWriteText world		
-		| not ok 			= (TaskException (fileException CannotOpen),{TSt|tst & iworld = {IWorld|iworld & world = world}})
+		# (pathStr, world)	= pathToPD_String path world
+		# (ok,file,world) 	= fopen pathStr FWriteText world		
+		| not ok 			= (TaskException (fileException pathStr CannotOpen),{TSt|tst & iworld = {IWorld|iworld & world = world}})
 		# file				= fwrites text file
 		# (err,file)		= ferror file
 		# (ok,world) 		= fclose file world
 		# tst				= {TSt|tst & iworld = {IWorld|iworld & world = world}}
-		| err				= (TaskException (fileException IOError),tst)
-		| not ok 			= (TaskException (fileException CannotClose),tst)
+		| err				= (TaskException (fileException pathStr IOError),tst)
+		| not ok 			= (TaskException (fileException pathStr CannotClose),tst)
 		| otherwise			= (TaskFinished Void,tst)
 		
-	fileException prob = (dynamic (FileException path prob))
+	fileException pathStr prob = (dynamic (FileException pathStr prob))
 
 fileExists :: !Path -> Task Bool
-fileExists path = mkInstantTask "fileExists" (\tst -> (TaskFinished (winFileExists path), tst))
+fileExists path = mkInstantTask "fileExists" fileExists`
+where
+	fileExists` tst=:{TSt|iworld=iworld=:{IWorld|world}}
+		# (pathStr, world) = pathToPD_String path world
+		= (TaskFinished (winFileExists pathStr), {TSt|tst & iworld = {IWorld|iworld & world = world}})
 
 isDirectory :: !Path -> Task Bool
-isDirectory path = return (winIsDirectory path)
+isDirectory path = mkInstantTask "isDirectory" isDirectory`
 where
+	isDirectory` tst=:{TSt|iworld=iworld=:{IWorld|world}}
+		# (pathStr, world) = pathToPD_String path world
+		= (TaskFinished (winIsDirectory pathStr), {TSt|tst & iworld = {IWorld|iworld & world = world}})
+
 	winIsDirectory :: !{#Char} -> Bool
 	winIsDirectory _	= code
 					{
@@ -122,8 +144,15 @@ where
 					}
 					
 createDirectory :: !Path -> Task Void
-createDirectory path = if (winCreateDirectory path) stop (throw CannotCreate)
+createDirectory path = mkInstantTask "createDirectory" createDirectory`
 where
+	createDirectory` tst=:{TSt|iworld=iworld=:{IWorld|world}}
+		# (pathStr, world)	= pathToPD_String path world
+		# tst				= {TSt|tst & iworld = {IWorld|iworld & world = world}}
+		# success			= winCreateDirectory pathStr
+		| success			= (TaskFinished Void, tst)
+		| otherwise			= (TaskException (dynamic CannotCreate), tst)
+		
 	winCreateDirectory :: !{#Char} -> Bool
 	winCreateDirectory _	= code
 					{

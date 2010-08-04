@@ -82,18 +82,6 @@ where
 		  , children = []
 		  }
 		  
-	mkTree (TTExtProcessTask info _ )
-		= { cls = "master-task"
-		  , uiProvider = "col"
-		  , user = ""
-		  , leaf = True
-		  , iconCls = "task-prc"
-		  , taskId = info.TaskInfo.taskId
-		  , taskLabel = toString (Text info.TaskInfo.taskLabel)
-		  , taskClass = "RPC"
-		  , children = []
-		  }	  
-		  
 	mkTree (TTSequenceTask info trees)
 		= { cls = "master-task"
 		  , uiProvider = "col"

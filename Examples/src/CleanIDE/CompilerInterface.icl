@@ -16,12 +16,13 @@ where
 	compileToExe` =
 						getConfig sid
 		>>= \config.	getAppPath
-		>>= \appPath.	callProcess (config.oldIDEPath +++ " --batch-build \"" +++ appPath +++ (config.projectsPath +++ "\\test\\test.prj\""))
+		>>= \appPath.	pathToPDString config.projectsPath
+		>>= \prjPath.	callProcess "building project..." config.oldIDEPath ["--batch-build \"" +++ appPath +++ prjPath +++ "\\test\\test.prj\""]
 		>>= \ret.		case ret of
-							0	= 				importDocument "projects\\test\\test.exe"
-									>>=			return
-							_	=				readTextFile (config.projectsPath +++ "\\test\\test.logd")
-									>>= \log.	throw (CompilerErrors (filter ((<>) "") (split "\n" log)))
+							0	= 					importDocument (prjPath +++ "\\test\\test.exe")
+									>>=				return
+							_	=					readTextFile (config.projectsPath +< [PathDown "test", PathDown "test.log"])
+									>>= \log.		throw (CompilerErrors (filter ((<>) "") (split "\n" log)))
 									
 	handleCallException (CallFailed path)			= throw (CannotRunCompiler ("Error creating process '" +++ path +++ "'"))
 	handleReadLogException (FileException path _)	= throw (CannotRunCompiler ("Unable to retrieve compiler errors from '" +++ path +++ "'"))

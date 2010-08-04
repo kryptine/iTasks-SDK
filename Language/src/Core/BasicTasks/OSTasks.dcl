@@ -1,30 +1,38 @@
 definition module OSTasks
 
 import iTasks
+from Directory import :: Path(..), ::DiskName, :: PathStep(..)
 
-:: Path :== String
+// Appends a list of path steps to a path.
+(+<) infixr 5 :: !Path	![PathStep]	-> Path
 
 // Exceptions
-:: FileException = FileException !Path !FileProblem
+:: FileException = FileException !String !FileProblem
 :: FileProblem = CannotOpen | CannotClose | IOError
-:: CallException = CallFailed !Path
+:: CallException = CallFailed !String
 :: DirectoryException = CannotCreate
 
-derive gPrint		FileException, FileProblem, CallException, DirectoryException
-derive gParse		FileException, FileProblem, CallException, DirectoryException
-derive gVisualize	FileException, FileProblem, CallException, DirectoryException
-derive gUpdate		FileException, FileProblem, CallException, DirectoryException
-derive gHint		FileException, FileProblem, CallException, DirectoryException
-derive gError		FileException, FileProblem, CallException, DirectoryException
+derive class iTask			Path, FileException, FileProblem, CallException, DirectoryException
+derive class SharedVariable	Path
+
+/**
+* Generate a platform dependent string representation of a path.
+*
+* @param a path
+* @return the path's string representation
+*/
+pathToPDString :: !Path -> Task String
 
 /**
 * Calls an external executable. The call is non-blocking.
 *
+* @param a message shown to the user while the process is running
 * @param path to the executable
+* @param a list of command-line arguments
 * @return return-code of the process
 * @throws CallException
 */
-callProcess :: !Path ->	Task Int
+callProcess :: !message !Path ![String] -> Task Int | html message
 
 /**
 * Calls an external executable. The call is blocking and should only
@@ -32,9 +40,10 @@ callProcess :: !Path ->	Task Int
 *
 * @param path to the executable
 * @return return-code of the process
+* @param a list of command-line arguments
 * @throws CallException
 */
-callProcessBlocking :: !Path -> Task Int
+callProcessBlocking :: !Path ![String] -> Task Int
 
 /**
 * Reads a textfile from disc.
@@ -79,8 +88,9 @@ isDirectory :: !Path -> Task Bool
 createDirectory :: !Path -> Task Void
 
 /**
-* Returns the path of the iTasks-server executable.
+* Returns the path of the directory including the iTasks-server executable.
+* A platform dependent string representation is generated.
 *
-* @return path of the iTasks-server executable
+* @return path of the directory including the iTasks-server executable
 */
 getAppPath :: Task String

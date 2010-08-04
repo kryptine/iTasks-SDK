@@ -4,8 +4,8 @@ import iTasks, JSON, GUI, AppState
 
 derive class iTask			IDEConfig
 derive class SharedVariable	IDEConfig
-derive JSONDecode			IDEConfig
-derive JSONEncode			IDEConfig
+derive JSONDecode			IDEConfig, Path, PathStep
+derive JSONEncode			IDEConfig, Path, PathStep
 derive bimap				Maybe, (,)
 
 loadConfig :: Task (Maybe IDEConfig)
@@ -47,10 +47,11 @@ where
 									>>= \ok.	case ok of
 													True = return (config, GotoNext)
 													False =
-																		requestConfirmation ("Directory '" +++ config.projectsPath +++ "' does not exist. Should it be created?")
+																		pathToPDString config.projectsPath
+														>>= \prjPath.	requestConfirmation ("Directory '" +++ prjPath +++ "' does not exist. Should it be created?")
 														>>= \create.	if create
 																			(let
-																				handleException = (\CannotCreate -> showMessageAbout "Error" ("Could not create '" +++ config.projectsPath +++ "'!") >>| return (config, GotoPrevious))
+																				handleException = (\CannotCreate -> showMessageAbout "Error" ("Could not create '" +++ prjPath +++ "'!") >>| return (config, GotoPrevious))
 																			in
 																				(try (createDirectory config.projectsPath >>| return (config, GotoNext)) handleException)
 																			)
@@ -68,8 +69,9 @@ where
 												fileExists config.oldIDEPath
 									>>= \ok.	if ok
 													(return (config, GotoNext))
-													(		showMessageAbout "Error" ("'" +++ config.oldIDEPath +++ "' does not exist!")
-														>>|	return (config, GotoPrevious)
+													(					pathToPDString config.oldIDEPath
+														>>= \idePath.	showMessageAbout "Error" ("'" +++ idePath +++ "' does not exist!")
+														>>|				return (config, GotoPrevious)
 													)
 							)
 			,
@@ -77,8 +79,8 @@ where
 			]
 				
 
-	initConfig =	{ oldIDEPath	= "..\\..\\..\\..\\..\\CleanIDE.exe"
-					, projectsPath	= "projects"
+	initConfig =	{ oldIDEPath	= RelativePath [PathUp, PathUp, PathUp, PathUp, PathUp, PathDown "CleanIDE.exe"]
+					, projectsPath	= RelativePath [PathDown "projects"]
 					}
 					
 getConfig :: !(DBid AppState) -> Task IDEConfig

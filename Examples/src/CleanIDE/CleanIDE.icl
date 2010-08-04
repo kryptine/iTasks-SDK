@@ -4,6 +4,7 @@ import iTasks, CommonDomain, Text
 from StdFunc import flip
 import PmProject, UtilStrictLists
 import CompilerInterface, AppState, Configuration, GUI, StdMisc
+from Directory import pathToPD_String
 
 Start world = startEngine	[ workflow "Clean IDE (using formatted text type)"	(cleanIDEFT <<@ Subject "Clean IDE (using formatted text type)")
 							, workflow "Clean IDE (using source code type)"		(cleanIDESC <<@ Subject "Clean IDE (using source code type)")
@@ -18,9 +19,9 @@ where
 		>>= \mbConfig.	case mbConfig of
 							Just config =	
 												createDB (initAppState config)
-								>>= \sid.		isDirectory (config.projectsPath +++ "\\test")
+								>>= \sid.		isDirectory (config.projectsPath +< [PathDown "test"])
 								>>= \prjExists.	if prjExists (return Void) (createTestPrj sid)
-								>>|				openFile (config.projectsPath +++ "\\test\\test.icl") sid
+								>>|				openFile (config.projectsPath +< [PathDown "test", PathDown "test.icl"]) sid
 								>>|				dynamicGroupAOnly [srcEditor sid] (actions sid)
 								>>|				deleteDB sid
 							Nothing = stop
@@ -55,9 +56,9 @@ where
 		>>= \mbConfig.	case mbConfig of
 							Just config =	
 												createDB (initAppState config)
-								>>= \sid.		isDirectory (config.projectsPath +++ "\\test")
+								>>= \sid.		isDirectory (config.projectsPath +< [PathDown "test"])
 								>>= \prjExists.	if prjExists (return Void) (createTestPrj sid)
-								>>|				openFile (config.projectsPath +++ "\\test\\test.icl") sid
+								>>|				openFile (config.projectsPath +< [PathDown "test", PathDown "test.icl"]) sid
 								>>|				dynamicGroupAOnly [srcEditor sid] (actions sid)
 								>>|				deleteDB sid
 							Nothing = stop
@@ -100,9 +101,10 @@ menuStructure =	[ Menu "File"		[ MenuItem "Save"							ActionSave					Nothing
 						
 editProjectOptions desc get putback sid =
 						readDB sid
-	>>= \state.			accWorld (accFiles (ReadProjectFile (state.ideConfig.projectsPath +++ "\\test\\test.prj") ""))
+	>>= \state.			pathToPDString (state.ideConfig.projectsPath +< [PathDown "test", PathDown "test.prj"])
+	>>= \prjPath.		accWorld (accFiles (ReadProjectFile prjPath ""))
 	>>= \(prj,ok,err).	editOptions desc prj get putback
-	>>= \prj.			accWorld (accFiles (SaveProjectFile (state.ideConfig.projectsPath +++ "\\test\\test.prj") prj ""))
+	>>= \prj.			accWorld (accFiles (SaveProjectFile prjPath prj ""))
 	>>|					stop
 	
 editAppStateOptions desc get putback sid =
@@ -194,7 +196,7 @@ where
 save :: !(DBid AppState) -> Task Void
 save sid =
 				readDB sid
-	>>= \state.	writeTextFile (state.ideConfig.projectsPath +++ "\\test\\test.icl") (removeMarkers state.srcEditorContent)
+	>>= \state.	writeTextFile (removeMarkers state.srcEditorContent) (state.ideConfig.projectsPath +< [PathDown "test", PathDown "test.icl"])
 
 saveAndCompile :: !(DBid AppState) -> Task Void
 saveAndCompile sid
@@ -225,11 +227,14 @@ openFile path sid =
 createTestPrj :: !(DBid AppState) -> Task Void
 createTestPrj sid =
 				readDB sid
-	>>= \state.	createDirectory (state.ideConfig.projectsPath +++ "\\test")
+	>>= \state.	createDirectory (state.ideConfig.projectsPath +< [PathDown "test"])
 	>>|			accWorld (createPrjFile state.ideConfig.projectsPath)
-	>>= \ok.	writeTextFile (state.ideConfig.projectsPath +++ "\\test\\test.icl") "module test\n\nimport StdEnv\n\nStart = "
+	>>= \ok.	writeTextFile "module test\n\nimport StdEnv\n\nStart = " (state.ideConfig.projectsPath +< [PathDown "test", PathDown "test.icl"])
 where
-	createPrjFile path world = accFiles (\f -> SaveProjectFile (path +++ "\\test\\test.prj") initProj "" f) world
+	createPrjFile path world
+		# (pathStr, world) = pathToPD_String (path +< [PathDown "test", PathDown "test.prj"]) world
+		= accFiles (\f -> SaveProjectFile pathStr initProj "" f) world
+		
 	initProj = PR_NewProject "test" editOptions compilerOptions codeGenOptions appOptions ("{Project}" :! Nil) linkOptions
 	where
 		editOptions		= {eo = {newlines = NewlineConventionNone}, pos_size = NoWindowPosAndSize}

@@ -425,10 +425,6 @@ div.taskForestLegend{
    background-image:url('img/icons/monitor-go.png') !important;
 }
 
-.task-prc {
-   background-image:url('img/icons/cog.png') !important;
-}
-
 .task-seq {
     background-image:url('img/icons/arrow_right.png') !important;
 }

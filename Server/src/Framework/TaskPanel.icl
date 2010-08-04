@@ -92,14 +92,6 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, html 		= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
 			, subtaskId	= Nothing
 			}
-	(TTExtProcessTask ti cmdline) 
-		= TTCMonitorContainer {TTCMonitorContainer 
-			| xtype 	= "itasks.ttc.monitor"
-			, id 		= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 	= ti.TaskInfo.taskId
-			, html 		= toString (DivTag [] [Text "running '", Text cmdline, Text "' ..."])
-			, subtaskId	= Nothing
-			}
 	(TTMainTask ti mti menus _ _)
 		= TTCProcessControlContainer {TTCProcessControlContainer 
 			| xtype = "itasks.ttc.proc-control"
@@ -201,7 +193,6 @@ where
 			TTInteractiveTask ti _	 	= ti
 			TTMonitorTask ti _			= ti
 			TTRpcTask ti _				= ti
-			TTExtProcessTask ti _		= ti
 			TTFinishedTask ti _			= ti
 			TTParallelTask ti _ _		= ti
 			TTSequenceTask ti _			= ti

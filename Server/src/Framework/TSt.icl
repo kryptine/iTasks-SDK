@@ -501,8 +501,6 @@ applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInf
 		Nothing		
 			= tst
 
-import StdDebug
-
 calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree taskId events tst
 	# (mbProcess,tst) = getProcess taskId tst
@@ -680,12 +678,6 @@ where
 			
 	setStatus "" tst		= tst
 	setStatus status tst	= setTaskStore "status" status tst
-
-mkExtProcessTask :: !String !String !(*TSt -> *(!TaskResult Int,!*TSt)) -> Task Int
-mkExtProcessTask taskname cmdline taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkExtProcessTask`
-where
-	mkExtProcessTask` tst =:{TSt | taskInfo}
-		= taskfun {tst & tree = TTExtProcessTask taskInfo cmdline}
 		
 mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkSequenceTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkSequenceTask`
@@ -875,8 +867,6 @@ getTaskStoreFor taskNr key tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 	= (mbValue,{TSt|tst& iworld = {IWorld|iworld & store = store, world = world}})
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
-
-
 
 getEvents :: !*TSt -> ([(!String,!String)],!*TSt)
 getEvents tst=:{taskNr,events}
