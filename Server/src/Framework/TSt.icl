@@ -892,9 +892,9 @@ getTaskStoreFor taskNr key tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
-getEvents :: !*TSt -> ([(!String,!String)],!*TSt)
-getEvents tst=:{taskNr,events}
-	= ([(name,value) \\ (task,name,value) <- events | task == taskId], tst)
+getEvents :: !Bool !*TSt -> ([(!String,!String)],!*TSt)
+getEvents includeGroupEvents tst=:{taskNr,events}
+	= ([(name,value) \\ (task,name,value) <- events | task == taskId && (includeGroupEvents || name <> "group")], tst)
 where
 	taskId = taskNrToString taskNr
 

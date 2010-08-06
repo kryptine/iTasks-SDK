@@ -62,7 +62,7 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 		= (TaskBusy,tst)
 	| otherwise
 		//Check for events
-		# (events,tst) = getEvents tst
+		# (events,tst) = getEvents False tst
 		| isEmpty events
 			// no change for this task
 			# tst = setTUIUpdates [] [] tst
@@ -169,7 +169,7 @@ makeChoiceTask question options initsel context actions tst=:{taskNr, newTask}
 		= (TaskBusy, tst)
 	| otherwise
 		//Check for user updates
-		# (events,tst) = getEvents tst
+		# (events,tst) = getEvents False tst
 		| isEmpty events
 			// no change for this task
 			# tst = setTUIUpdates [] [] tst
@@ -254,7 +254,7 @@ makeMultipleChoiceTask question options initsel context actions tst=:{taskNr, ne
 		= (TaskBusy, tst)
 	| otherwise
 		//Check for events
-		# (events,tst) = getEvents tst
+		# (events,tst) = getEvents False tst
 		| isEmpty events
 			// no change for this task
 			# tst = setTUIUpdates [] [] tst
@@ -316,7 +316,7 @@ makeMessageTask message context actions tst=:{taskNr}
 	# taskId	= taskNrToString taskNr
 	# editorId	= "tf-" +++ taskId
 	# buttonActions	= getButtonActions actions
-	# (events,tst) = getEvents tst
+	# (events,tst) = getEvents False tst
 	| isEmpty events
 		# menuActions	= evaluateConditions (getMenuActions actions) True Void
 		# buttonActions	= evaluateConditions buttonActions True Void
@@ -336,7 +336,7 @@ showInstructionAbout title instruction context = mkInstructionTask title (makeIn
 
 makeInstructionTask :: !instruction (Maybe [HtmlTag]) *TSt -> *(!TaskResult Void,!*TSt) | html instruction
 makeInstructionTask instruction context tst
-	# (events, tst) = getEvents tst
+	# (events, tst) = getEvents False tst
 	| isEmpty events
 		= case tst.tree of
 			(TTInstructionTask ti _ _)	= (TaskBusy ,{tst & tree = TTInstructionTask ti (html instruction) context})
@@ -378,7 +378,7 @@ where
 		# nEditV					= editorFrom new
 		# tst=:{TSt|iworld}			= tst
 		# (mask,iworld)				= defaultMask nEditV iworld
-		# (events,tst)				= getEvents {TSt|tst & iworld = iworld}
+		# (events,tst)				= getEvents False {TSt|tst & iworld = iworld}
 		# updpaths					= events2Paths postValues
 		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths mask mask oEditV nEditV,tst)
 	
@@ -422,7 +422,7 @@ makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTas
 				# tst = setTUIFunc createDefs (html question) tst
 				= (TaskBusy, tst)
 			| otherwise
-				# (events,tst)		= getEvents tst
+				# (events,tst)		= getEvents False tst
 				# dpEvents			= [(s2dp key,value) \\ (key,value) <- events | isdps key]
 				// determine new shared value by accumulating updates of all views
 				# (nvalue,_,tst)	= foldl (updateSharedForView dpEvents) (cvalue,0,tst) views

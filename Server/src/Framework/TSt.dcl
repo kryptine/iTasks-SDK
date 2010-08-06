@@ -389,11 +389,12 @@ setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 /**
 * Get the events (name/value pairs) for the current task
 *
+* @param Include group events
 * @param The task state
 *
 * @return The modified task state
 */
-getEvents			:: !*TSt						-> ([(!String,!String)],!*TSt)
+getEvents			:: !Bool !*TSt					-> ([(!String,!String)],!*TSt)
 /**
 * Get the events for a specific tasks
 *

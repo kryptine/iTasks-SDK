@@ -124,7 +124,7 @@ where
 		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
 		# (events,tst)		= getEventsFor (taskNrToString grTaskNr) True tst
 		# (pst,tst)   		= loadPSt grTaskNr tst
-		# gAction			= case parseString (http_getValue "_group" events "") of
+		# gAction			= case parseString (http_getValue "group" events "") of
 								Nothing = parseString (http_getValue "menuAndGroup" events "")
 								res = res
 		# (gActionStop,mbFocus,pst) 

@@ -227,7 +227,7 @@ where
 				[(groupA,groupAEnabled,_):_]		= [TUIMenuItem	{ TUIMenuItem	
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
-																	, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "_group"))
+																	, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "group"))
 																	, value = Just (printToString action)
 																	, disabled = not (taskAEnabled || groupAEnabled)
 																	, menu = Nothing
@@ -252,7 +252,7 @@ where
 				[(groupA,groupAEnabled,topLevel):_]	= [TUIMenuItem	{ TUIMenuItem
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
-																	, name = Just "_group"
+																	, name = Just "group"
 																	, value = Just (printToString action)
 																	, disabled = not groupAEnabled
 																	, menu = Nothing
