@@ -11,8 +11,8 @@ derive gVisualize		EmailAddress, DateTime
 derive gUpdate			EmailAddress, Note, DateTime
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gLexOrd			Currency
-derive gError			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
+derive gError 			EmailAddress, DateTime
 
 derive bimap	Maybe, (,)
 
@@ -63,7 +63,7 @@ gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabel
 			= (upd++msg
 				, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
 		_					
-			= ([TextFragment (foldr (+++) "" (repeatn (size oldV) "*"))],{VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
+			= ([TextFragment (foldr (+++) "" (repeatn 8 "*"))],{VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
 where
 	id		= dp2id idPrefix currentPath
 	oldV	= value2s currentPath old
@@ -170,6 +170,7 @@ where
 	
 	id = dp2id idPrefix currentPath
 
+//******************************************************************************************************************************************
 		
 gUpdate{|FormButton|} _ ust=:{USt|mode=UDCreate}
 	= ({FormButton | label = "Form Button", icon="", state = NotPressed}, ust)
@@ -237,6 +238,34 @@ where
 gUpdate{|Currency|} s ust=:{USt|mode=UDMask,currentPath,mask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
 gUpdate{|Currency|} s ust = (s,ust)
+
+//******************************************************************************************************************************************
+
+gError{|FormButton|} _ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+gError{|Password|} _ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+gError{|Date|} _ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+gError{|Time|} _ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+gError{|Currency|} _ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+
+gError{|Note|} _ est=:{ESt | dataMask,errorMask,currentPath}
+	# est = if (isMember (shiftLabeledDataPath currentPath) (toLabeledMask dataMask))
+				est
+				({ESt | est & errorMask = [(currentPath, MPAlways, IsBlankError):errorMask]})
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}	
+
+//******************************************************************************************************************************************
 
 currentTime :: !*World -> (!Time,!*World)
 currentTime world

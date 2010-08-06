@@ -1,6 +1,6 @@
 implementation module Types
 
-import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc
+import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList
 import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
 import Html
 import Text, Util
@@ -12,7 +12,7 @@ derive gPrint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Edita
 derive gParse			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
-derive gError			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gError			User, UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gHint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gMerge			User, Session, VisualizationHint, UserDetails
 
@@ -186,7 +186,7 @@ gVisualize{|User|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,op
 			# upd = [TUIUpdate (TUISetValue id newV)]
 			# err = getErrorUpdate id currentPath newM errorMask
 			# hnt = getHintUpdate id currentPath newM hintMask
-			= ([err,hnt:upd]
+			= (err ++ hnt ++ upd
 				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
 		_					
 			= ([TextFragment (toString old)]
@@ -237,3 +237,11 @@ gUpdate{|Task|} fx x ust = (x,ust)
 
 gError{|Task|} fx x est = est
 gHint{|Task|} fx x hst = hst
+
+// ******************************************************************************************************
+// Document specialization
+// ******************************************************************************************************
+
+gError{|Document|} _ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= stepOut est

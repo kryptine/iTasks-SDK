@@ -17,6 +17,12 @@ where
 	(==) (Label a) (Label b) = a == b
 	(==) _ _ = False
 
+instance == ErrorMessage
+where
+	(==) (ErrorMessage a) (ErrorMessage b) = a == b
+	(==) (IsBlankError) (IsBlankError) = True
+	(==) _ _ = False
+
 mkHSt :: *HSt
 mkHSt = {HSt | dataMask = [], hintMask = [], currentPath = shiftLabeledDataPath []}
 
@@ -42,15 +48,25 @@ gError{|OBJECT of d|}	fx    (OBJECT x) est=:{ESt | currentPath}
 	# est = fx x est
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 gError{|CONS of d|}		fx    (CONS x)   est=:{ESt | currentPath}
-	# est = fx x {ESt | est & currentPath = shiftLabeledDataPath currentPath}
+	# est = if(d.gcd_arity > 0 || not (isEmpty d.gcd_fields)) 
+		(fx x {ESt | est & currentPath = shiftLabeledDataPath currentPath})
+		est
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|FIELD of d|}	fx	  (FIELD x)	 est = fx x est
-
-gError{|Int|} 		_ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Real|}		_ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Char|}		_ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Bool|}		_ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|String|}	_ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gError{|FIELD of d|}fx	  (FIELD x)	 est = fx x est
+gError{|Int|} 		_ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gError{|Real|}		_ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gError{|Char|}		_ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gError{|Bool|}		_ est=:{ESt | currentPath}
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gError{|String|}	_ est=:{ESt | currentPath} 
+	# est = verifyIfBlank currentPath currentPath est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 
 gError{|(,)|}  f1 f2	 	(x1,x2)	   	   est=:{ESt | currentPath}
 	# est = f1 x1 {ESt | est & currentPath = shiftLabeledDataPath currentPath}
@@ -68,8 +84,10 @@ gError{|(,,,)|} f1 f2 f3 f4 (x1,x2,x3,x4)  est=:{ESt | currentPath}
 	# est = f4 x4 est
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 
-gError{|[]|}		fx	  l		 	 est=:{ESt | currentPath}
-	# est = checkItems fx l {ESt | est & currentPath = shiftLabeledDataPath currentPath}
+gError{|[]|}		fx	  l		 	 est=:{ESt | currentPath, errorMask}
+	# est = if (isEmpty l) 
+			({ESt | est & errorMask = [(currentPath,MPAlways,IsBlankError):errorMask]}) 
+			(checkItems fx l {ESt | est & currentPath = shiftLabeledDataPath currentPath})
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 where
 	checkItems fx []	 est = est
@@ -78,8 +96,10 @@ where
 gError{|Maybe|} fx	Nothing est=:{ESt | currentPath} 
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 gError{|Maybe|} fx (Just x) est=:{ESt | currentPath}
-	# est = fx x est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+	# est=:{ESt | errorMask} = fx x est
+	//Filter all 'blank' errors from the component directly below the maybe, as it is allowed to be empty (e.g. [])
+	# errorMask = filter (\(path,_,msg) -> (not (path == currentPath && msg == IsBlankError))) errorMask
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath, errorMask = errorMask}
 
 gError{|Dynamic|}	x est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
 
@@ -147,7 +167,7 @@ gHint{|Dynamic|}	x hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLab
 //Utility functions
 appendError :: !String !MessagePredicate *ESt -> *ESt
 appendError err pred est=:{ESt | currentPath,errorMask} 
-	= {ESt | est & errorMask = [(currentPath,pred,err):errorMask]}
+	= {ESt | est & errorMask = [(currentPath,pred,ErrorMessage err):errorMask]}
 
 appendHint :: !String !MessagePredicate *HSt -> *HSt
 appendHint hint pred hst=:{HSt | currentPath,hintMask}
@@ -205,7 +225,7 @@ dp2ldp :: DataPath -> LabeledDataPath
 dp2ldp dp = [Unlabeled i \\ i <- dataPathList dp]
 
 getErrorMessage :: DataPath DataMask ErrorMask -> String
-getErrorMessage dp dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
+getErrorMessage dp dmask mmask = join ", " [toString s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
 
 getHintMessage :: DataPath DataMask HintMask -> String
 getHintMessage dp dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
@@ -215,9 +235,22 @@ getErrorCount dp dmask mmask = length [s \\ (ldp,p,s) <- mmask | eqPath (dataPat
 
 predValid :: LabeledDataPath MessagePredicate DataMask -> Bool
 predValid ldp MPAlways dm = True
-predValid ldp MPIfMasked dm = isMember ldp [[Unlabeled i \\ i<-dp] \\ dp <- dm]
+predValid ldp MPIfMasked dm = isMember ldp [[Unlabeled i \\ i <- dp] \\ dp <- dm]
 
 eqPath :: [Int] [LabelOrNumber] -> Bool
 eqPath [] 		[] 					= True
 eqPath [i:ix]	[(Unlabeled l):lx] 	= i == l && eqPath ix lx
 eqPath _		_					= False
+
+verifyIfBlank :: !LabeledDataPath !LabeledDataPath !*ESt -> *ESt
+verifyIfBlank valuePath errorPath est=:{ESt | errorMask,dataMask}
+| not (isMember valuePath [map (\i -> Unlabeled i) m \\ m <- dataMask]) = {ESt | est & errorMask = [(errorPath, MPAlways, IsBlankError):errorMask]}
+| otherwise = est
+
+toLabeledMask :: !DataMask -> [LabeledDataPath]
+toLabeledMask dm = [map (\i -> Unlabeled i) m \\ m <- dm]
+
+instance toString ErrorMessage
+where
+	toString (ErrorMessage s) = s
+	toString IsBlankError = "This value is required"

@@ -103,7 +103,7 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 	
 	handleDblClick : function(grid,row,e){
 		var rec = grid.getStore().getAt(row);
-		var taskId = rec.data.taskId;
+		var taskId = rec.data.taskId+'.0'; //add one shift as the result node is stored as a child of the process node
 		var finished = rec.data.finished;
 		
 		if(finished){
@@ -151,7 +151,7 @@ itasks.ttc.parallel.AssignWindow = Ext.extend(Ext.Window,{
 		this.progress = new Ext.ProgressBar({hidden: true});
 		
 		Ext.apply(this,{
-			title: 'test',
+			title: 'Re-assign task',
 			modal: true,
 			resizable: false,
 			items: [{

@@ -3,6 +3,7 @@ implementation module UserService
 import Http, TSt
 import HtmlUtil
 import UserDB
+import StdOrdList
 
 derive JSONEncode UserDetails, Password
 
@@ -25,7 +26,7 @@ userService url html path req tst
 			| isJust mbSessionErr
 				= (serviceResponse html "users names" url params (jsonSessionErr mbSessionErr), tst)	
 			# (users,tst)	= getUsers tst
-			# json			= JSONObject [("success",JSONBool True),("users",toJSON [toString u \\ u <- users])]
+			# json			= JSONObject [("success",JSONBool True),("users",toJSON (sort [toString u \\ u <- users]))]
 			= (serviceResponse html "users names" url params json, tst)
 		//Show user details
 		[userId]

@@ -5,7 +5,7 @@ itasks.tui.FormattedTextControl = Ext.extend(Ext.form.HtmlEditor,{
 		Ext.apply(this, {
 			hideLabel: this.fieldLabel == null,
 			fieldLabel: itasks.util.fieldLabel(this.optional, this.fieldLabel),
-			allowBlank: this.optional,
+		//	allowBlank: this.optional,
 			width: 700,
 			height: 300,
 			// ids for selection marker elements

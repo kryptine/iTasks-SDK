@@ -11,7 +11,7 @@ itasks.tui.DateControl = Ext.extend(Ext.form.DateField,{
 			
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+		//this.allowBlank = this.optional;
 		
 		itasks.tui.DateControl.superclass.initComponent.apply(this,arguments);		
 	},

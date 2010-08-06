@@ -11,7 +11,8 @@ itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+		//this.allowBlank = this.optional;
+		this.allowBlank = true;
 		if(this.value == "") delete this.value;
 		itasks.tui.StringControl.superclass.initComponent.apply(this,arguments);
 	},

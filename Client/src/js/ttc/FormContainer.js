@@ -27,6 +27,9 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 	
 	update: function(data) {
 		if(data.updates) {
+			//clear the form from any hints and errors
+			this.clearErrorsNHints();	
+		
 			var num = data.updates.length;
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
@@ -61,7 +64,7 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 						if(ct && ct.setHint) ct.setHint(update[2]);
 					break;
 				}
-			}			
+			}				
 		} else {			
 			//Completely replace form
 			this.taskId = data.taskId;
@@ -185,6 +188,17 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 		if(newTb)
 			tb.add(newTb);
 		this.setupToolbar(tb);
+	},
+	
+	clearErrorsNHints : function(){		
+		var f = function(ct){
+			if(ct.setHint) ct.setHint(''); //empty string == clear
+			if(ct.setError) ct.setError('');
+			
+			return true;
+		}
+		
+		this.panel.cascade(f);
 	}
 });
 
@@ -198,7 +212,7 @@ itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
 		{ unstyled: true
 		, cls: 'FormPanel'
 		, width: 720
-		, layout: 'auto'
+		, layout: 'form'
 		, autoScroll: true
 		});
 		

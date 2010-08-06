@@ -139,19 +139,20 @@ taskService url html path req tst
 				
 		//taskId/result -> show result of a finished in serialized form (to be implemented)
 		//Show the result of a finished task as interface definition	
+		//TODO: Prevent access in case of a faulty user
 		[taskId,"result","tui"]
-			| isJust mbSessionErr
+		| isJust mbSessionErr
 				= (serviceResponse html "task result user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)
-			# (mbProcess, tst) = getProcess taskId tst
-			= case mbProcess of
-				Nothing 
-					= (notFoundResponse req, tst)
-				Just proc
-					# task			= taskItem proc
-					# (tree,tst)	= calculateTaskTree taskId [] tst
-					# tui			= buildResultPanel tree
-					# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
-					= (serviceResponse html "task result user interface" url tuiParams json, tst)
+		# (mbProcess, tst) = getProcessForTask taskId tst
+		= case mbProcess of
+			Nothing 
+				= (notFoundResponse req, tst)
+			Just proc
+				# task			= taskItem proc
+				# (tree,tst)	= calculateTaskResult taskId tst
+				# tui			= buildResultPanel tree
+				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
+				= (serviceResponse html "task result user interface" url tuiParams json, tst)
 		_
 			= (notFoundResponse req, tst)		
 where

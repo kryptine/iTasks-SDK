@@ -46,8 +46,8 @@ itasks.ResultPanel = Ext.extend(itasks.RemoteDataPanel, {
 				
 		this.properties = props;
 		this.setTitle(Ext.util.Format.ellipsis(subject,10));		
-		
-		rh.setContent(props.systemProperties.taskId, subject, props);
+				
+		rh.setContent(data.tui.taskId, subject, props);
 		
 		if(rp.initialized){
 			rp.removeAll();

@@ -10,7 +10,7 @@ itasks.tui.IntControl = Ext.extend(Ext.form.NumberField,{
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+	//	this.allowBlank = this.optional;
 		
 		this.msgTarget = 'side';
 				

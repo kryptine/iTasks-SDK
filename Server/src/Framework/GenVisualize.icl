@@ -24,7 +24,7 @@ visualizeAsEditor name mbSubIdx mask x
 	# vst = case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
-	# (defs,vst=:{valid}) = gVisualize{|*|} val val vst
+	# (defs,vst=:{VSt | errorMask, valid}) = gVisualize{|*|} val val vst
 	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x mask
@@ -51,15 +51,13 @@ where
 	
 determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
 determineEditorUpdates name mbSubIdx updatedPaths omask nmask old new
-	//# omask = trace_n ("OLD MASK: " +++ printToString omask) omask
-	//# nmask = trace_n ("NEW MASK: " +++ printToString nmask) nmask
 	# emask = determineErrors new nmask
 	# hmask = determineHints new nmask
 	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, errorMask = emask, hintMask = hmask, updates = updatedPaths}
 	# vst 	= case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
-	# (updates,vst=:{valid}) = (gVisualize{|*|} (VValue old omask) (VValue new nmask) vst)
+	# (updates,vst=:{VSt | errorMask, hintMask, valid}) = (gVisualize{|*|} (VValue old omask) (VValue new nmask) vst)
 	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
@@ -223,23 +221,24 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 					(VValue (CONS ox) omask, VBlank)
 						// remove components
 						# (viz,vst=:{valid}) = fx (VValue ox omask) (VValue ox omask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:(determineRemovals viz)]
+						= (getErrorUpdate fsid currentPath newM errorMask ++ getHintUpdate fsid currentPath newM hintMask ++ determineRemovals viz
 						, {VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 					(VBlank, VValue (CONS nx) nmask)
 						// add components
 						# (viz,vst=:{valid}) = fx (VValue nx nmask) (VValue nx nmask) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False}
-						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:(determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz)]
+						= (getErrorUpdate fsid currentPath newM errorMask ++ getHintUpdate fsid currentPath newM hintMask ++ (determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz)
 						, {VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});				
 					(VValue (CONS ox) omask, VValue (CONS nx) nmask) 
 						# (vizBody,vst=:{valid}) = fx (VValue ox omask) (VValue nx nmask) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False} 
-						= ([getErrorUpdate fsid currentPath newM errorMask, getHintUpdate fsid currentPath newM hintMask:vizBody]
+						= (getErrorUpdate fsid currentPath newM errorMask ++ getHintUpdate fsid currentPath newM hintMask ++ vizBody
 						, {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 					_
 						= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 			//ADT's
 			| otherwise
 				# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask:viz],{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
+				= (getErrorUpdate id currentPath newM errorMask ++ getHintUpdate id currentPath newM hintMask ++ viz
+				,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
 		//Cons selector	update	
 		VConsSelectorUpdate = (consSelectorUpdate new, vst)
 		//Html display vizualization
@@ -307,11 +306,11 @@ gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,se
 			VEditorUpdate
 				| not (isMasked currentPath newM) //reset the constructor
 				# (rem,vst=:{valid})	= fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath}
-				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask, TUIUpdate (TUISetValue cId ""):determineRemovals rem]
+				= (getErrorUpdate id currentPath newM errorMask ++ getHintUpdate id currentPath newM hintMask ++ [TUIUpdate (TUISetValue cId ""):determineRemovals rem]
 					,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, valid = isOptional valid})		
 				| otherwise
 				# (upd,vst=:{valid}) = fx oldV newV {vst & useLabels = False, optional = False}
-				= ([getErrorUpdate id currentPath newM errorMask, getHintUpdate id currentPath newM hintMask:upd]
+				= (getErrorUpdate id currentPath newM errorMask ++ getHintUpdate id currentPath newM hintMask ++ upd
 					,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, valid = hasErrors currentPath newM errorMask valid, optional = optional})			
 			_
 				# (viz,vst) = fx oldV newV vst
@@ -614,14 +613,14 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, optional = optional, name = name, id = id, fieldLabel = label2s optional label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})],
 			  {VSt | vst & currentPath = stepDataPath currentPath, label = label, useLabels = useLabels, valid=isValid oldV oldM valid})
 		VEditorUpdate
-			# (updates,vst) 		= TUIUpd fx oldV newV oldM newM {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (updates,vst) 		= TUIUpd fx oldV newV oldM newM {VSt | vst & currentPath = shiftDataPath currentPath, optional = False}
 			# (newDefs,vst=:{valid})= TUIDef fx newV newM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (oldDefs,vst)			= TUIDef fx oldV oldM 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing}
 			# (replacements)		= determineChanges oldDefs newDefs 0
 			# err 					= getErrorUpdate id currentPath newM errorMask
 			# hnt 					= getHintUpdate id currentPath newM hintMask
-			= ([err,hnt:replacements ++ updates],
-			  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=isValid newV newM valid})
+			= (replacements ++ updates ++ err ++ hnt,
+			  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=isValid newV newM valid, optional = optional})
 		VHtmlDisplay
 			= case oldV of
 				[] 
@@ -856,6 +855,7 @@ label2s _		Nothing		= Nothing
 label2s True	(Just l)	= Just (l +++ " (optional)")
 label2s False	(Just l)	= Just l
 
+//DEPRECATED! Now using ErrorMask to determine validity
 stillValid :: DataPath ErrorMask (VisualizationValue a) Bool Bool -> Bool
 stillValid dp em val optional valid
 	# dm = case val of (VValue _ m) = m ; _ = initialDataMask
@@ -863,10 +863,6 @@ stillValid dp em val optional valid
 	| optional					= valid //Nothing changes
 	| not (isMasked dp dm)		= False
 	| otherwise					= valid	//A non-optional field must be masked to be valid
-
-//	| optional				= trace_n (printToString dp +++ " OPT") valid 	//Nothing changes
-//	| not (isMasked dp dm)	= trace_n (printToString dp +++ " BAD") False
-//	| otherwise				= trace_n (printToString dp +++ " OK") valid	//A non-optional field must be masked to be valid
 
 formatLabel :: String -> String
 formatLabel label = {c \\ c <- [toUpper lname : addspace lnames]}
@@ -896,18 +892,31 @@ getErrorNHintMessages mask vst=:{renderAsStatic,optional,currentPath,errorMask,h
 			
 updateErrorNHintMessages :: !DataMask !*VSt -> ([Visualization], *VSt)
 updateErrorNHintMessages mask vst=:{renderAsStatic, optional, currentPath, idPrefix, errorMask, hintMask}
-	//# upd = if(renderAsStatic || (optional && not (isMasked currentPath mask))) [] [TUIUpdate (TUISetError id (getErrorMessage currentPath mask errorMask))]
-	# upd = if(renderAsStatic) [] [TUIUpdate (TUISetError id (getErrorMessage currentPath mask errorMask))]
-	# upd = if(renderAsStatic) upd [TUIUpdate (TUISetHint id (getHintMessage currentPath mask hintMask)):upd]
+	# err = getErrorMessage currentPath mask errorMask
+	# hnt = getHintMessage currentPath mask hintMask
+	# upd = case err of
+		"" = []
+		e  = if(renderAsStatic) [] [TUIUpdate (TUISetError id e)]	//|| (optional && not (isMasked currentPath mask))
+	# upd = case hnt of
+		"" = upd
+		h  = if(renderAsStatic) upd [TUIUpdate (TUISetHint id h):upd]
 	= (upd,vst)
 where
 	id = dp2id idPrefix currentPath
 	
-getHintUpdate :: TUIId DataPath DataMask HintMask -> Visualization
-getHintUpdate id cp dm hm = TUIUpdate (TUISetHint id (getHintMessage cp dm hm))
+getHintUpdate :: TUIId DataPath DataMask HintMask -> [Visualization]
+getHintUpdate id cp dm hm 
+	# hnt = getHintMessage cp dm hm
+	= case hnt of
+		"" = []
+		h  = [TUIUpdate (TUISetHint id h)]
 
-getErrorUpdate :: TUIId DataPath DataMask ErrorMask -> Visualization
-getErrorUpdate id cp dm em = TUIUpdate (TUISetError id (getErrorMessage cp dm em))
+getErrorUpdate :: TUIId DataPath DataMask ErrorMask -> [Visualization]
+getErrorUpdate id cp dm em
+	# err = getErrorMessage cp dm em
+	= case err of
+		"" = []
+		e  = [TUIUpdate (TUISetError id e)]
 
 determineIndexOfLabels :: !String !*VSt -> *VSt
 determineIndexOfLabels label vst=:{VSt | errorMask,hintMask,currentPath}
@@ -930,15 +939,7 @@ where
 	tlEqual [c] 	[m:_] 	= c == m
 	tlEqual [c:cs]	[m:ms] 	= (c == m) && tlEqual cs ms 
 
-instance == LabelOrNumber
-where
-	(==) (Unlabeled a) (Unlabeled b) = a == b
-	(==) (Label a) (Label b) = a == b
-	(==) _ _ = False
-
-
-
-//Sends the TUIRestore-update if a field has received an update, but it should not be updated.
+//Sends the 'old' value if a field has received an update, but it should not be updated.
 restoreField :: DataPath [DataPath] String String -> [Visualization]
 restoreField currpath updates id val  = if (isMember currpath updates) [TUIUpdate (TUISetValue id val)] []
 

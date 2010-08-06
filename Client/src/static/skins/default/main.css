@@ -515,13 +515,13 @@ div.taskForestLegend{
 }
 
 .list-item-light {
-	padding: 4px 5px 2px 0px;
+	padding: 4px 8px 2px 0px;
 	background-image: url('img/light-blue-background.png') !important;
 	position: relative;
 }
 
 .list-item-dark {
-	padding: 4px 6px 2px 0px;
+	padding: 4px 8px 2px 0px;
 	background-image: url('img/dark-blue-background.png') !important;
 	position: relative;
 }
@@ -815,4 +815,7 @@ button.x-form-document-trash-icon {
 .hide-cell-action .ux-cell-actions{
 	display: none;
 }
+
+
+
 

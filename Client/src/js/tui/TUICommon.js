@@ -8,7 +8,7 @@ itasks.tui.common.markError = function(field,msg){
 		
 		var mt = field.getMessageHandler();
 		
-		if(mt && mt.markHint){
+		if(mt && mt.markError){
 			mt.markError(field, msg);
 		}else if(field.errorTarget){
 			var t = Ext.getDom(field.errorTarget);
@@ -128,7 +128,7 @@ Ext.apply(Ext.form.MessageTargets.side, {
 	},
 	
 	markHint : function(field, msg){
-		if(!this.activeError && !field.hintIcon){
+		if(!field.hintIcon){
 			var elp = field.getErrorCt();
 			
 			if(!elp){

@@ -13,7 +13,7 @@ itasks.tui.PasswordControl = Ext.extend(Ext.form.TextField,{
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+		//this.allowBlank = this.optional;
 		this.inputType = 'password';
 		
 		if(this.value == "") delete this.value;

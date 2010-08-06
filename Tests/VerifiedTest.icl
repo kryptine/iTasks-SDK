@@ -28,7 +28,7 @@ derive gPrint 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, Ne
 derive gParse 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
 derive gUpdate 		TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
 derive gVisualize	TestRec, PositiveNum, EqString, FString, TestStruct, TestDoc, NestedTest, NestedRec, TestCons, TestCons2, TestCons3,PercentList
-derive gError		TestDoc, NestedTest, NestedRec, TestCons2, TestCons3
+derive gError		TestDoc, NestedTest, NestedRec, TestCons2, TestCons3, TestCons
 derive gHint		TestCons2, TestCons3
 
 instance == ButtonState
@@ -53,14 +53,17 @@ gHint{|TestRec|} (Just rec) hst=:{HSt | currentPath}
 	# hst = appendHint "Hi! Make sure to specify the string length in the second field." MPAlways hst
 	# hst = labeledChild "string" (appendHint ("Pssst.. the lenght of the string is "+++ toString (size rec.TestRec.string)) MPIfMasked) hst
 	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-
+/*
 gError{|TestCons|} (Test1 s) est=:{ESt | currentPath}
 	# est = appendError "You cannot select the first option." MPIfMasked est
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
+gError{|TestCons|} (Test2 i) est=:{ESt | currentPath}
+	# est = verifyIfBlank (shiftLabeledDataPath currentPath) (shiftLabeledDataPath currentPath) est
+	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 gError{|TestCons|} _ est=:{ESt | currentPath}
 	
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
+*/
 
 gError{|TestRec|} r est=:{ESt | currentPath}
 	#est = case r.int <> (size r.TestRec.string) of
@@ -71,6 +74,7 @@ gError{|TestRec|} r est=:{ESt | currentPath}
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 	
 gError{|PositiveNum|} (Positive x) est=:{ESt | currentPath}
+	# est = verifyIfBlank (shiftLabeledDataPath currentPath) (shiftLabeledDataPath currentPath) est
 	# est = if (x < 0) (firstChild (appendError ((toString x)+++" is not greater than 0") MPIfMasked) est) est
 	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
 
@@ -111,7 +115,7 @@ gHint{|PercentList|} _ hst=:{HSt | currentPath}
 	, rec	 :: PositiveNum
 	}
 	
-verifiedTest :: Task PercentList
+verifiedTest :: Task TestCons
 verifiedTest = enterInformation "Enter info"
 
 Start :: *World -> *World

@@ -501,6 +501,30 @@ applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInf
 		Nothing		
 			= tst
 
+calculateTaskResult :: !TaskId !*TSt -> (!TaskTree, !*TSt)
+calculateTaskResult taskId tst
+	# (mbProcess,tst) = getProcessForTask taskId tst
+	= case mbProcess of
+		Nothing
+			# info =	{ initTaskInfo
+						& taskId			= taskId
+						, taskLabel			= "Unknown Process"
+						, taskDescription	= "Task Result"
+						}
+			= (TTFinishedTask info [], tst)
+		Just process=:{Process|properties}
+			# tst=:{TSt | iworld=iworld=:{store,world}} = tst
+			# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world
+			# result = case mbContainer of
+				(Just dyn) = renderResult dyn
+				(Nothing)  = [Text "Cannot load result."]
+			# info = { initTaskInfo
+			 		 & taskId = taskId
+			 		 , taskLabel = properties.managerProperties.subject
+			 		 , taskDescription = "Task Result"
+			 		 }
+			= (TTFinishedTask info result, {TSt | tst & iworld = {IWorld | iworld & store = store, world = world}})
+
 calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree taskId events tst
 	# (mbProcess,tst) = getProcess taskId tst
@@ -524,16 +548,16 @@ calculateTaskTree taskId events tst
 					# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world				
 					# result = case mbContainer of
 						(Just dyn) = renderResult dyn
-						(Nothing)  = [Text "Cannot load result."]
+						(Nothing) = [Text "Cannot load result."]
 					# info =	{ initTaskInfo
 								& taskId			= taskId
 								, taskLabel			= properties.managerProperties.subject
 								, taskDescription	= "Task Result"
 								}
 					= (TTFinishedTask info result, {TSt | tst & iworld = {IWorld | iworld & store = store, world = world}})
-where
-	renderResult :: Dynamic -> [HtmlTag]
-	renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value				
+
+renderResult :: Dynamic -> [HtmlTag]
+renderResult (Container value :: Container a a) = visualizeAsHtmlDisplay value				
 
 calculateTaskForest :: ![TaskEvent] !*TSt -> (![TaskTree], !*TSt)
 calculateTaskForest events tst 

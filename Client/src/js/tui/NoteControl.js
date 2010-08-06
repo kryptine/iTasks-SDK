@@ -13,7 +13,7 @@ itasks.tui.NoteControl = Ext.extend(Ext.form.TextArea,{
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+		//this.allowBlank = this.optional;
 		if(this.value == "") delete this.value;
 		itasks.tui.NoteControl.superclass.initComponent.apply(this,arguments);
 	},

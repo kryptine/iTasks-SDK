@@ -12,7 +12,7 @@ itasks.tui.CharControl = Ext.extend(Ext.form.TextField,{
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+		//this.allowBlank = this.optional;
 		if(this.value == "") delete this.value;
 		itasks.tui.CharControl.superclass.initComponent.apply(this,arguments);
 	},

@@ -165,6 +165,16 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 */
 calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 /**
+* Render resultpanel from a task which is not process
+*
+* @param The task id
+* @param The task state
+*
+* @ return The task tree
+* @ return The modified task state
+**/
+calculateTaskResult :: !TaskId !*TSt -> (!TaskTree, !*TSt)
+/**
 * Calculates all task trees
 *
 * @param The value updates to apply

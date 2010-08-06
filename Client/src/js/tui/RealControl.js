@@ -13,7 +13,7 @@ itasks.tui.RealControl = Ext.extend(Ext.form.NumberField,{
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		this.allowBlank = this.optional;
+		//this.allowBlank = this.optional;
 		if(this.value == "") delete this.value;
 		itasks.tui.RealControl.superclass.initComponent.apply(this,arguments);
 	},

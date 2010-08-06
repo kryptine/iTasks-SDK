@@ -149,6 +149,9 @@ buildResultPanel tree = case tree of
 								, result	= (foldl (+++) "" (map toString result))
 								, subtaskId	= Nothing
 								})
+	(TTMainTask ti p _ _ tt) //Pass through any finished main tasks, in case there is a finished task below (e.g. in case of a parallel)
+		| p.systemProperties.SystemProperties.status == Finished = buildResultPanel tt
+		| otherwise = TaskNotDone
 	_	
 		= TaskNotDone
 

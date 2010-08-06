@@ -80,6 +80,20 @@ where
 	where
 		relevantProc targetId {Process|taskId}		= taskId == targetId
 		relevantProc _ _							= False
+	
+	//Finds process for task if taskId <> procId
+	getProcessForTask :: !TaskId !*IWorld -> (!Maybe Process, !*IWorld)
+	getProcessForTask taskId iworld
+		# taskNr = taskNrFromString taskId
+		# (procs,iworld) = processStore id iworld
+		= (findProc taskNr procs, iworld)
+	where
+		findProc [] 	procs = Nothing
+		findProc taskNr procs
+			# taskId = taskNrToString taskNr
+			# fproc	 = filter (\p -> p.Process.taskId == taskId) procs
+			| not (isEmpty fproc) = Just (hd fproc) 
+			= findProc (tl taskNr) procs	
 			
 	getProcesses :: ![TaskStatus] !*IWorld -> (![Process], !*IWorld)
 	getProcesses statusses iworld 
@@ -206,6 +220,8 @@ where
 	getProcessForUser user processId tst = accIWorldTSt (getProcessForUser user processId) tst
 	getProcessForManager :: !User !TaskId !*TSt -> (!Maybe Process,!*TSt)
 	getProcessForManager manager processId tst = accIWorldTSt (getProcessForManager manager processId) tst
+	getProcessForTask :: !TaskId !*TSt -> (!Maybe Process, !*TSt)
+	getProcessForTask taskId tst = accIWorldTSt (getProcessForTask taskId) tst
 	getProcesses :: ![TaskStatus] !*TSt -> (![Process],!*TSt)
 	getProcesses statuses tst = accIWorldTSt (getProcesses statuses) tst
 	getProcessesById :: ![TaskId] !*TSt -> (![Process],!*TSt)

@@ -5,7 +5,7 @@ import GenUpdate
 :: LabelOrNumber = Unlabeled Int | Label String
 
 :: MessagePredicate = MPIfMasked | MPAlways
-:: ErrorMessage :== String
+:: ErrorMessage = ErrorMessage String | IsBlankError
 :: HintMessage :== String
 
 :: ErrorMask :== [(LabeledDataPath, MessagePredicate, ErrorMessage)]
@@ -22,6 +22,8 @@ import GenUpdate
 	, hintMask		:: HintMask
 	, currentPath	:: LabeledDataPath
 	}
+
+instance == LabelOrNumber
 
 generic gError a :: a *ESt -> *ESt
 generic gHint  a :: (Maybe a) *HSt -> *HSt
@@ -49,7 +51,20 @@ where
 instance VerifyState HSt
 instance VerifyState ESt
 
+/*
+* Checks if the value is masked and adds an appropriate error if this is not the case
+*
+* @param The path in the mask which needs to be checked for the value
+* @param The path to the interface component to which the error needs to be applied
+* @param The Error State
+*
+* @return The modified Error State
+*/
+verifyIfBlank 			:: !LabeledDataPath !LabeledDataPath !*ESt -> *ESt
+
 getErrorMessage 		:: DataPath DataMask ErrorMask -> String
 getHintMessage 			:: DataPath DataMask HintMask  -> String
 
 getErrorCount			:: DataPath DataMask ErrorMask -> Int
+
+toLabeledMask :: !DataMask -> [LabeledDataPath]

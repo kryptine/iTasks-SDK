@@ -338,7 +338,11 @@ addSubTaskWorker procId user mbpartype tst
 		= case mbpartype of
 			Nothing 		= tst
 			(Just Closed) 	= tst
-			(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = removeDup [(procId,user):tst.TSt.properties.systemProperties.subTaskWorkers]}}} 
+			(Just Open)		= {TSt | tst & properties = 
+								{tst.TSt.properties & systemProperties = 
+									{tst.TSt.properties.systemProperties & subTaskWorkers = 
+										//filter the process from the current list of subtask workers before adding, as there can be only one worker on a subtask.
+										removeDup [(procId,user):(filter (\(pid,_) -> pid <> procId) tst.TSt.properties.systemProperties.subTaskWorkers)]}}} 
 
 removeSubTaskWorker :: !ProcessId !User !(Maybe TaskParallelType) !*TSt -> *TSt			
 removeSubTaskWorker procId user mbpartype tst

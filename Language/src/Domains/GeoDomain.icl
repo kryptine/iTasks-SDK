@@ -10,8 +10,9 @@ derive gParse 	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapTyp
 derive gVisualize   	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gMerge	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gError			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gHint			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gError			GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+
 
 derive bimap	Maybe, (,)
 
@@ -54,6 +55,8 @@ where
 	toString SATELLITE 	= "SATELLITE"
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
+
+gError{|GoogleMap|} _ est = (stepOut est)
 
 gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
 	= case vizType of
