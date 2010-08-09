@@ -16,8 +16,8 @@ from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import Setup
 //import AuthenticationHandler, DeauthenticationHandler
-//import NewListHandler, NewStartHandler, WorkListHandler
-import WorkTabHandler, PropertyHandler, UserListHandler
+//import NewListHandler, NewStartHandler, WorkListHandler, UserListHandler
+import WorkTabHandler, PropertyHandler
 import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers
 
@@ -50,7 +50,7 @@ where
 		  //,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
 		  ,((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
 		  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
-		  ,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
+		  //,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
 		  ,((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
 		  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
 		  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)

@@ -54,10 +54,20 @@ where
 		next		= inc cur
 		field		= if isQuoted quotedField normalField
 		isQuoted	= buffer.[start] == quoteChar && buffer.[cur - 1] == quoteChar 
-		normalField = buffer % (start,cur - 1)
-		quotedField = replaceSubString "\\\"" "\"" (replaceSubString "\\\\" "\\" (buffer % (start + 1, cur - 2)))
+		normalField = buffer % (start, cur - 1)
+		quotedField = unescape (buffer % (start + 1, cur - 2))
+		
 		remain		= size buffer - next
-
+		
+		//Remove all {escapeChar,quoteChar} and {escapeChar,escapeChar} combinations from a string
+		unescape s	= {c \\ c <- (unescape` [u \\ u <-: s])}
+		where
+			unescape` [char1,char2:rest] 
+				| char1 == escapeChar		= [char2:unescape` rest]
+											= unescape` [char2:rest]
+			unescape` [char:rest]			= [char: unescape` rest]
+			unescape` []					= []
+			
 readCSVFile :: !*File -> (![[String]],!*File)
 readCSVFile file = readCSVFileWith ',' '"' '\\' file
 
@@ -70,8 +80,24 @@ readCSVFileWith delimitChar quoteChar escapeChar file
 			# (recs,file) = readCSVFileWith delimitChar quoteChar escapeChar file
 			= ([rec:recs],file)
 
-writeCSVRecord :: ![String] !*File -> *File
-writeCSVRecord fields file = file
 
+writeCSVRecord :: ![String] !*File -> *File
+writeCSVRecord fields file = writeCSVRecordWith ',' '"' '\\' fields file
+
+writeCSVRecordWith :: !Char !Char !Char ![String] !*File -> *File
+writeCSVRecordWith delimitChar quoteChar escapeChar fields file
+	= fwrites line file
+where
+	line			= (join {delimitChar} [{quoteChar} +++ escape field +++ {quoteChar} \\ field <- fields]) +++ "\r\n"
+	escape s		= {c \\ c <- flatten [escape` u \\ u <-: s]}
+	where
+		escape` c
+			| c == escapeChar	= [escapeChar,escapeChar]
+			| c == quoteChar	= [escapeChar,quoteChar]
+								= [c]
+		
 writeCSVFile :: ![[String]] !*File -> *File
-writeCSVFile records file = file
+writeCSVFile fields file = writeCSVFileWith ',' '"' '\\' fields file
+
+writeCSVFileWith :: !Char !Char !Char ![[String]] !*File -> *File
+writeCSVFileWith delimitChar quoteChar escapeChar fields file = foldl (flip (writeCSVRecordWith delimitChar quoteChar escapeChar)) file fields

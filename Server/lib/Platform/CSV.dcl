@@ -3,7 +3,6 @@ definition module CSV
 * This module provides functions for reading and writing comma separated vector (CSV) files.
 */
 import StdFile, StdMaybe
-
 /**
 * Read a single record from a CSV file
 * A comma ',' is used as field separator, double quotes '"' may be used to enclose fields
@@ -51,3 +50,51 @@ readCSVFile			:: !*File -> (![[String]],!*File)
 * @return The file handle
 */
 readCSVFileWith		:: !Char !Char !Char !*File -> (![[String]],!*File)
+
+/**
+* Write a single record to a CSV file
+* A comma ',' is used as field separator, double quotes '"' may be used to enclose fields
+* and the escape character is backslash '\'.
+*
+* @param The record as a list of strings
+* @param The file handle to write to
+*
+* @return The file handle
+*/
+writeCSVRecord		:: ![String] !*File -> *File
+/**
+* Write a single record to a CSV file with custom separator characters.
+*
+* @param The field separator character
+* @param The field enclosure character
+* @param The escape character
+* @param The record as a list of strings
+* @param The file handle to write to
+*
+* @return The file handle
+*/ 
+writeCSVRecordWith	:: !Char !Char !Char ![String] !*File -> *File
+/**
+* Write an entire CSV file.
+*
+* A comma ',' is used as field separator, double quotes '"' may be used to enclose fields
+* and the escape character is backslash '\'.
+*
+* @param The list of records which are lists of strings
+* @param The file handle to write to
+*
+* @return The file handle
+*/
+writeCSVFile		:: ![[String]] !*File -> *File
+/**
+* Write an entire CSV file with custom separator characters.
+*
+* @param The field separator character
+* @param The field enclosure character
+* @param The escape character
+* @param The list of records which are lists of strings
+* @param The file handle to write to
+*
+* @return The file handle
+*/
+writeCSVFileWith	:: !Char !Char !Char ![[String]] !*File -> *File

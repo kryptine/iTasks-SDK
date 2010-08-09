@@ -16,6 +16,7 @@ import	Engine						// basic iTask system creator
 	,	ProcessDBTasks				// tasks for accessing the process database
 	
 	,	ImportTasks					// tasks for importing external data
+	,	ExportTasks					// tasks for exporting data
 	
 	,	DateTimeTasks				// tasks triggered by date and time
 	,	ChangeTasks					// Tasks for changing existing workflows
