@@ -15,7 +15,7 @@ import	Text
 
 //Standard monadic operations:
 (>>=) infixl 1 :: !(Task a) !(a -> Task b) -> Task b | iTask a & iTask b
-(>>=) taska taskb = mkSequenceTask ">>=" tbind
+(>>=) taska taskb = mkSequenceTask (dotdot (taskLabel taska)) tbind
 where
 	tbind tst
 		# (result,tst)		= applyTask taska tst
@@ -27,7 +27,9 @@ where
 				= applyTask (taskb a) tst
 			TaskException e
 				= (TaskException e,tst)
-				
+
+	dotdot s	= if (endsWith s "...") s (s +++ "...")
+
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
 
@@ -122,7 +124,7 @@ group label description procFun parseFun initState initTasks groupActions = mkGr
 where
 	execInGroup tst=:{taskNr,request}
 		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
-		# (events,tst)		= getEventsFor (taskNrToString grTaskNr) True tst
+		# (events,tst)		= getGroupEvents (taskNrToString grTaskNr) tst
 		# (pst,tst)   		= loadPSt grTaskNr tst
 		# gAction			= case parseString (http_getValue "group" events "") of
 								Nothing = parseString (http_getValue "menuAndGroup" events "")

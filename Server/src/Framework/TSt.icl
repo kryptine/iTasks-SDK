@@ -751,9 +751,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 						(Nothing, Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
 						_							= tst
 			// Execute task function
-			# (result, tst)	= taskfun tst
-			// Remove user updates (needed for looping. a new task may get the same tasknr again, but should not get the events)
-			# tst=:{tree=node,iworld=iworld=:{IWorld|store}} = {TSt|tst & events = []}
+			# (result, tst=:{tree=node,iworld=iworld=:{IWorld|store}})	= taskfun tst
 			// Update task state
 			= case result of
 				(TaskFinished a)
@@ -773,6 +771,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 					= (TaskFinished a, tst)
 				(TaskBusy)
 					// Store intermediate value
+					# procId				= taskNrToString (tl taskNr)	
 					# store					= storeValue taskId result store
 					# tst					= addTaskNode (finalizeTaskNode node)
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
@@ -894,13 +893,30 @@ where
 
 getEvents :: !Bool !*TSt -> ([(!String,!String)],!*TSt)
 getEvents includeGroupEvents tst=:{taskNr,events}
-	= ([(name,value) \\ (task,name,value) <- events | task == taskId && (includeGroupEvents || name <> "group")], tst)
+	# (matched, rest)	= getEvents` events
+	= (matched, {TSt|tst & events = rest})
 where
 	taskId = taskNrToString taskNr
 
-getEventsFor :: !TaskId !Bool !*TSt -> ([(!String,!String)],!*TSt)
-getEventsFor taskId includeSub tst=:{TSt|events}
-	= ([(name,value) \\ (task,name,value) <- events | if includeSub (startsWith taskId task) (taskId == task)], tst)
+	getEvents` []		= ([],[])
+	getEvents` [event=:(task,name,value):events]
+		# (matched,rest)	= getEvents` events
+		| task == taskId && (includeGroupEvents || name <> "group")	= ([(name,value):matched], rest)
+		| otherwise													= (matched, [event:rest])
+
+getGroupEvents :: !TaskId !*TSt -> ([(!String,!String)],!*TSt)
+getGroupEvents taskId tst=:{TSt|events}
+	# (matched, rest)	= getGroupEvents` events
+	= (matched, {TSt|tst & events = rest})
+where
+	getGroupEvents` []
+		= ([],[])											
+	getGroupEvents` [event=:(task,name,value):events]
+		# (matched,rest)	= getGroupEvents` events
+		| (task == taskId) && (name == "group" || name == "menuAndGroup")
+			= ([(name,value):matched], rest)
+		| otherwise
+			= (matched, [event:rest])
 
 anyEvents :: !*TSt -> (!Bool,!*TSt)
 anyEvents tst=:{TSt|events} = (not (isEmpty events),tst)
