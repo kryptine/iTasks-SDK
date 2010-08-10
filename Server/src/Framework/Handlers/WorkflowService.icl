@@ -24,13 +24,13 @@ workflowService url html path req tst
 	# (mbErr,tst)		= if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
 	| isJust mbErr
 		# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbErr))]
-		= (serviceResponse html "workflows" url params json, tst)
+		= (serviceResponse html "workflows" description url params json, tst)
 	// List available flows
 	# (session,tst)		= getCurrentSession tst
 	# (workflows,tst)	= getWorkflows tst
 	# items				= workflowItems path (session.Session.user) workflows
 	# json 				= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
-	= (serviceResponse html "workflows" url params json, tst)
+	= (serviceResponse html "workflows" description url params json, tst)
 where
 	sessionParam= paramValue "session" req
 	
@@ -56,3 +56,8 @@ where
 		| otherwise
 			# label = shortPath % (0, slashPos - 1)
 			= {WorkflowItem | name = if (paths == "") label (paths +++ "/" +++ label), label = label, folder = True}
+
+description :== "This service provides a directory of available workflows that can be started.<br />"
+			+++ "Only workflows are given that are allowed for the current session.<br />"
+			+++ "If the 'folder' field is set to true, the entry is not a workflow but a collection of flows that can be "
+			+++ "accessed by appending it's name to the URI. E.g workflows/Foo/Bar/Baz."

@@ -12,6 +12,7 @@ where
 	+++ "#content { padding: 10px; } "
 	+++ ".buttons { padding: 5px; background-color: #3a81ad; } "
 	+++ ".section { margin: 10px; border: solid 1px #d1dded; -moz-border-radius: 10px; padding: 5px; overflow: auto;} "
+	+++ ".description { padding: 15px; } "
 	+++ ".parameters th, .parameters td { width: 25%; } "
 	+++ ".json { font-family: Courier, monotype; font-size: 12px;} "
 	+++ ".json ul { padding-left: 15px;} "
@@ -20,17 +21,17 @@ where
 	+++ "p { margin: 0px 0px 10px 0px; } "
 	+++ "button {-moz-border-radius: 3px; }"
 	
-pageLayout :: !String ![HtmlTag] -> HtmlTag
-pageLayout title content = HtmlTag [] [head,body]
+pageLayout :: !String !String ![HtmlTag] -> HtmlTag
+pageLayout title description content = HtmlTag [] [head,body]
 where
 	head = HeadTag [] [TitleTag [] [Text title], embeddedStyle]
-	body = BodyTag [] [DivTag [IdAttr "main"] [header:content]]
+	body = BodyTag [] [DivTag [IdAttr "main"] (header ++ content)]
 	
-	header = H1Tag [] [Text title]
+	header = [H1Tag [] [Text title],PTag [] [DivTag [ClassAttr "description"] [RawText description]]]
 
 
-servicePage :: !String !String ![(String,String,Bool)] JSONNode -> HtmlTag
-servicePage title url params json = pageLayout title [parameters, message, alternatives]
+servicePage :: !String !String !String ![(String,String,Bool)] JSONNode -> HtmlTag
+servicePage title description url params json = pageLayout title description [parameters, message, alternatives]
 where
 	parameters	= pageSection "Parameters" [FormTag [ActionAttr url,MethodAttr "get"] [TableTag [ClassAttr "parameters"] (rows ++ send)]]
 	rows		= [TrTag [] [ThTag [] [Text n : if o [Text "*:"] [Text ":"]], TdTag [] [InputTag [NameAttr n, ValueAttr v]]] \\ (n,v,o) <- params]
@@ -39,9 +40,9 @@ where
 	jsonurl		= replaceSubString "services/html" "services/json" url
 	alternatives= pageSection "Alternative representations" [PTag [] [Text "JSON: ", ATag [HrefAttr jsonurl] [Text jsonurl]]]
 	
-serviceResponse :: !Bool !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
-serviceResponse html title url params json =
-		if html	{http_emptyResponse & rsp_data = toString (servicePage title url params json)}
+serviceResponse :: !Bool !String !String !String ![(String,String,Bool)] JSONNode -> HTTPResponse
+serviceResponse html title description url params json =
+		if html	{http_emptyResponse & rsp_data = toString (servicePage title description url params json)}
 				{http_emptyResponse & rsp_data = toString json}
 
 
@@ -58,7 +59,7 @@ formatJSON (JSONRaw r)			= [PreTag [] [Text (toString r)]]
 formatJSON _					= []
 
 notFoundPage :: !HTTPRequest -> HtmlTag
-notFoundPage req = pageLayout "404 - Not Found" message
+notFoundPage req = pageLayout "404 - Not Found" "" message
 where
 	message = [DivTag [IdAttr "content"] [Text "The resource you tried to access ",StrongTag [] [Text req.req_path], Text " could not be found."]] 
 

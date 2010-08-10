@@ -15,32 +15,32 @@ documentService url html path req tst
 		[]
 			| isJust mbSessionErr
 				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbSessionErr))]
-				= (serviceResponse html "list documents" url params json, tst)
+				= (serviceResponse html "Document list" listDescription url params json, tst)
 			# (documents, tst) = getDocuments tst
 			# json = JSONObject [("success",JSONBool True),("documents", toJSON documents)]
-			= (serviceResponse html "list documents" url params json, tst)
+			= (serviceResponse html "Document list" listDescription url params json, tst)
 		//Upload new documents (you can upload multiple documents at once)
 		["upload"]
 			| isJust mbSessionErr
 				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbSessionErr))]
-				= (serviceResponse html "upload document" url params json, tst)
+				= (serviceResponse html "Upload document" uploadDescription url params json, tst)
 			| length req.arg_uploads == 0
 				# json = JSONObject [("success",JSONBool False),("error",JSONString "No documents were uploaded")]
-				= (serviceResponse html "upload document" url params json, tst)
+				= (serviceResponse html "Upload document" uploadDescription url params json, tst)
 				
 			# (documents, tst) = createDocuments req.arg_uploads tst
 			# json = JSONObject [("success",JSONBool True),("documents", toJSON documents)]
-			= (serviceResponse html "upload document" url params json, tst)
+			= (serviceResponse html "Upload document" uploadDescription url params json, tst)
 		//Requests for a single request
 		[documentId]
 			| isJust mbSessionErr
 				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbSessionErr))]
-				= (serviceResponse html "list documents" url params json, tst)
+				= (serviceResponse html "Document details" detailsDescription url params json, tst)
 			# (mbDocument, tst)	= getDocument documentId tst
 			= case mbDocument of
 				Just document
 					# json	= JSONObject [("success",JSONBool True),("document",toJSON document)]
-					= (serviceResponse html "list documents" url params json, tst)
+					= (serviceResponse html "Document details" detailsDescription url params json, tst)
 				Nothing
 					= (notFoundResponse req,tst)
 		//Download the document (without attachment header to show embedded in a browser)
@@ -64,7 +64,7 @@ where
 	documentContent mbSessionErr documentId title download tst
 		| isJust mbSessionErr
 			# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbSessionErr))]
-			= (serviceResponse html title url params json, tst)
+			= (serviceResponse html title contentDescription url params json, tst)
 		# (mbDocument, tst)	= getDocument documentId tst
 		# (mbContent, tst)	= getDocumentContent documentId tst
 		= case (mbDocument, mbContent) of
@@ -73,5 +73,9 @@ where
 				# headers			= [("Status","200 OK"),("Content-Type", mime),("Content-Length", toString size):downloadHeader]
 				= ({HTTPResponse|rsp_headers = headers, rsp_data = content},tst)
 			_
-				= (notFoundResponse req,tst)		
-	
+				= (notFoundResponse req,tst)
+						
+listDescription		:== "This service lists all documents stored on the server."
+uploadDescription	:== "This service let's you upload a new document."
+detailsDescription	:== "This service provides the meta-data of a document."
+contentDescription	:== "This service provides the content of a document."

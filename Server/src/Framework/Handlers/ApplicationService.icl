@@ -10,5 +10,7 @@ applicationService url html path req tst=:{staticInfo}
 			# json = JSONObject [("success", JSONBool True)
 								,("application", JSONString staticInfo.appName)
 								]
-			= (serviceResponse html "application" url [] json, tst)
+			= (serviceResponse html "Application info" description url [] json, tst)
 		_	= (notFoundResponse req, tst)
+		
+description :== "This service provides basic information about the application such as it's name."

@@ -17,7 +17,7 @@ sessionService url html path req tst
 			# (mbErr,tst)		= if ( sessionParam <> "") (initSession sessionParam tst) (Nothing,tst)	
 			| isJust mbErr
 				# json	= JSONObject [("success",JSONBool False),("error", JSONString (fromJust mbErr))]
-				= (serviceResponse html "sessions" url listParams json, tst)
+				= (serviceResponse html "Session list" listDetails url listParams json, tst)
 			# (session,tst)		= getCurrentSession tst
 			# (sessions,tst)	= case session.Session.user of
 				RootUser
@@ -29,14 +29,14 @@ sessionService url html path req tst
 					= getSessionsForUser user tst
 					
 			# json = JSONObject [("success",JSONBool True),("sessions", toJSON sessions)]
-			= (serviceResponse html "sessions" url listParams json, tst)
+			= (serviceResponse html "Session list" listDetails url listParams json, tst)
 				
 		//Create a new session
 		["create"]			
 			//Anonymous session
 			| usernameParam == "" && passwordParam == ""
 				# json	= JSONObject [("success",JSONBool False),("error",JSONString "Anonymous sessions not yet supported")]
-				= (serviceResponse html "create session" url createParams json, tst)
+				= (serviceResponse html "Create session" createDescription url createParams json, tst)
 			//Authenticated session
 			| otherwise
 				# (mbUser, tst) = authenticateUser usernameParam passwordParam tst
@@ -45,10 +45,10 @@ sessionService url html path req tst
 						# (session, tst)	= createSession user tst
 						# tst				= flushStore tst
 						# json				= JSONObject [("success",JSONBool True),("session",toJSON session)]
-						= (serviceResponse html "create session" url createParams json, tst)
+						= (serviceResponse html "Create session" createDescription url createParams json, tst)
 					Nothing
 						# json	= JSONObject [("success",JSONBool False),("error",JSONString "Incorrect username or password")]
-						= (serviceResponse html "create session" url createParams json, tst)
+						= (serviceResponse html "Create session" createDescription url createParams json, tst)
 			
 		//Show details of an existing sessions
 		[sessionId]		
@@ -56,7 +56,7 @@ sessionService url html path req tst
 			= case mbSession of
 				Just session
 					# json		= JSONObject [("success",JSONBool True),("session",toJSON session)]
-					= (serviceResponse html "session details" url [] json, tst)
+					= (serviceResponse html "Session details" detailsDescription url [] json, tst)
 				Nothing
 					= (notFoundResponse req, tst)
 			
@@ -66,7 +66,7 @@ sessionService url html path req tst
 			# tst			= flushStore tst
 			# json			= JSONObject [("success", JSONBool True)]
 			| deleted
-				= (serviceResponse html "session delete" url [] json, tst)
+				= (serviceResponse html "Delete session" deleteDescription url [] json, tst)
 			| otherwise
 				= (notFoundResponse req, tst)
 				
@@ -79,3 +79,8 @@ where
 	createParams	= [("username",usernameParam,True),("password",passwordParam,True)]
 	usernameParam	= paramValue "username" req
 	passwordParam	= paramValue "password" req
+
+listDetails :== "This service lists the active sessions.<br />You only get this list by providing the session id of a session of the root user."
+createDescription :== "This service let's you create new sessions by sending a username/password combination."
+detailsDescription :== "This service provides all data of a session"
+deleteDescription :== "This service deletes an existing session"

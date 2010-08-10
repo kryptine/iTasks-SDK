@@ -49,7 +49,7 @@ taskService url html path req tst
 		//List tasks
 		[]
 			| isJust mbSessionErr
-				= (serviceResponse html "tasks" url listParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Task list" listDescription url listParams (jsonSessionErr mbSessionErr), tst)	
 						
 			# (processes,tst)	= case session.Session.user of
 				RootUser
@@ -58,18 +58,18 @@ taskService url html path req tst
 				user			= getProcessesForUser session.Session.user [Active] tst		
 			# items				= taskItems processes
 			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON items)]
-			= (serviceResponse html "tasks" url listParams json, tst)
+			= (serviceResponse html "Task list" listDescription url listParams json, tst)
 		//For debugging, list all tasks in the process table
 		["debug"]
 			| isJust mbSessionErr
-				= (serviceResponse html "tasks debug" url debugParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Task debug list" listDebugDescription url debugParams (jsonSessionErr mbSessionErr), tst)	
 			# (processes,tst)	= getProcesses [Active,Suspended,Finished,Excepted,Deleted] tst
 			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON processes)]
-			= (serviceResponse html "tasks debug" url debugParams json, tst)
+			= (serviceResponse html "Task debug list" listDebugDescription url debugParams json, tst)
 		//Start a new task (create a process)
 		["create"]
 			| isJust mbSessionErr
-				= (serviceResponse html "create task" url createParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Create task" createDescription url createParams (jsonSessionErr mbSessionErr), tst)	
 			
 			# (mbWorkflow, tst)	= getWorkflowByName workflowParam tst
 			# (json,tst) = case mbWorkflow of
@@ -78,11 +78,11 @@ taskService url html path req tst
 				Just workflow
 					# (taskId,_,_,tst) = createTaskInstance workflow.Workflow.thread True Nothing True True tst
 					= (JSONObject [("success",JSONBool True),("taskId",JSONString taskId)], tst)		
-			= (serviceResponse html "create task" url createParams json, tst)
+			= (serviceResponse html "Create task" createDescription url createParams json, tst)
 		//Show task details of an individual task
 		[taskId]
 			| isJust mbSessionErr
-				= (serviceResponse html "task details" url detailsParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Task details" detailsDescription url detailsParams (jsonSessionErr mbSessionErr), tst)	
 			# (mbProcess, tst)	= case session.Session.user of
 				RootUser
 								= getProcess taskId tst
@@ -92,11 +92,11 @@ taskService url html path req tst
 					= (notFoundResponse req, tst)
 				Just proc
 					# json = JSONObject [("success",JSONBool True),("task",toJSON (taskItem proc))]
-					= (serviceResponse html "task details" url detailsParams json, tst)
+					= (serviceResponse html "Task details" detailsDescription url detailsParams json, tst)
 		//Dump the raw tasktree datastructure
 		[taskId,"debug"]
 			| isJust mbSessionErr
-				= (serviceResponse html "task debug" url debugParams (jsonSessionErr mbSessionErr), tst)
+				= (serviceResponse html "Task debug" taskDebugDescription url debugParams (jsonSessionErr mbSessionErr), tst)
 			# (mbProcess, tst)	= getProcess taskId tst
 			= case mbProcess of
 				Nothing
@@ -104,11 +104,11 @@ taskService url html path req tst
 				Just proc
 					# (tree,tst) = calculateTaskTree taskId [] tst
 					# json		= JSONObject [("success",JSONBool True),("task",toJSON proc),("tree",toJSON tree)]
-					= (serviceResponse html "task debug" url debugParams json, tst)
+					= (serviceResponse html "Task debug" taskDebugDescription url debugParams json, tst)
 		//Show / Update task user interface definition
 		[taskId,"tui"]
 			| isJust mbSessionErr
-				= (serviceResponse html "task user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSessionErr), tst)	
 			# (mbProcess, tst)	= case session.Session.user of
 				RootUser
 								= getProcess taskId tst
@@ -130,14 +130,14 @@ taskService url html path req tst
 						(TTMainTask ti properties menus _ content)
 							# tui			= buildTaskPanel content menus menusChanged session.Session.user
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menus),("tui",toJSON tui)]
-							= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, {TSt|tst & menusChanged = menusChanged})
 						_
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",JSONNull),("tui",JSONNull)]
-							= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, {TSt|tst & menusChanged = menusChanged})
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
 			| isJust mbSessionErr
-				= (serviceResponse html "task user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)
+				= (serviceResponse html "Cancel task" cancelDescription url tuiParams (jsonSessionErr mbSessionErr), tst)
 			# (mbProcess, tst) = getProcessForTask taskId tst
 			= case mbProcess of
 				Nothing
@@ -148,14 +148,14 @@ taskService url html path req tst
 						RootUser = (Just proc,tst)
 						user	 = getProcessForManager user proc.Process.taskId tst
 					| not (isJust mbUProcess) 
-						= (serviceResponse html "cancel task" url tuiParams (JSONObject [("success",JSONBool False),("error",JSONString "You do not have permission to cancel this task")]), tst)		
+						= (serviceResponse html "Cancel task" cancelDescription url tuiParams (JSONObject [("success",JSONBool False),("error",JSONString "You do not have permission to cancel this task")]), tst)		
 					# tst = deleteTaskInstance proc.Process.taskId tst
-					= (serviceResponse html "cancel task" url tuiParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
+					= (serviceResponse html "Cancel task" cancelDescription url tuiParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
 					
 		//Show / update Manager properties
 		[taskId,"managerProperties"]
 			| isJust mbSessionErr
-				= (serviceResponse html "Manager properties" url propParams (jsonSessionErr mbSessionErr), tst)			
+				= (serviceResponse html "Manager properties" manPropsDescription url propParams (jsonSessionErr mbSessionErr), tst)			
 			# (mbProcess, tst)	= case session.Session.user of
 				RootUser
 								= getProcess taskId tst
@@ -175,11 +175,11 @@ taskService url html path req tst
 											= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
 								_
 									= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to parse update")],tst)
-					= (serviceResponse html "Manager properties" url propParams json, tst)
+					= (serviceResponse html "Manager properties" manPropsDescription url propParams json, tst)
 		[taskId,"managerProperties",_]
 			# param = last path
 			| isJust mbSessionErr
-				= (serviceResponse html ("Manager property: "+++param) url propParams (jsonSessionErr mbSessionErr), tst)
+				= (serviceResponse html ("Manager property: "+++param) manPropDescription url propParams (jsonSessionErr mbSessionErr), tst)
 			# (mbProcess, tst) = case session.Session.user of
 				RootUser 	= getProcess taskId tst
 				user		= getProcessForManager user taskId tst
@@ -190,7 +190,7 @@ taskService url html path req tst
 						"" 		= (getManagerProperty param proc.Process.properties.managerProperties,tst)
 						update 	= updateManagerProperty param update proc tst
 					# updateParam = "" //reset the update paramater
-					= (serviceResponse html ("Manager property: "+++param) url propParams json, tst)
+					= (serviceResponse html ("Manager property: "+++param) manPropDescription url propParams json, tst)
 		
 		//TODO: Worker properties & System properties
 				
@@ -199,7 +199,7 @@ taskService url html path req tst
 		//TODO: Prevent access in case of a faulty user
 		[taskId,"result","tui"]
 		| isJust mbSessionErr
-				= (serviceResponse html "task result user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)
+				= (serviceResponse html "Task result user interface" tuiResDescription url tuiParams (jsonSessionErr mbSessionErr), tst)
 		# (mbProcess, tst) = getProcessForTask taskId tst
 		= case mbProcess of
 			Nothing 
@@ -209,7 +209,7 @@ taskService url html path req tst
 				# (tree,tst)	= calculateTaskResult taskId tst
 				# tui			= buildResultPanel tree
 				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
-				= (serviceResponse html "task result user interface" url tuiParams json, tst)
+				= (serviceResponse html "Task result user interface" tuiResDescription url tuiParams json, tst)
 		_
 			= (notFoundResponse req, tst)		
 where
@@ -272,3 +272,16 @@ where
 						= (JSONObject [("success",JSONBool False),("error",JSONString "Failed to update properties")],tst)
 			False 
 				= (JSONObject [("success", JSONBool False),("error", JSONString ("Cannot update '"+++param+++"' property"))],tst) 
+
+listDescription			:== "This service lists all tasks for the user of the provided session."
+listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
+detailsDescription		:== "This service provides all meta-properties of a running task instance."
+createDescription		:== "This service let's you create new instances of a workflow.<br />"
+						+++ "The 'workflow' parameter is the path of a workflow (separated by slashes) as listed by the workflow directory service. "
+						+++ "E.g. Foo/Bar/Baz"
+taskDebugDescription	:== "This service dumps all information about a running task instance. Both its meta-properties and its task tree."
+manPropsDescription		:== "This service displays the properties of a task instance that can be modified by a manager." 
+manPropDescription		:== "This service displays a single manager property."
+cancelDescription		:== "This service let's you cancel (delete) a running task instance."
+tuiDescription 			:== "This yields an abstract user interface description for the current task."
+tuiResDescription		:== "This yields an abstract user interface description that displays the current value of the task."

@@ -74,7 +74,7 @@ noErrors :: [(Maybe String)] -> Bool
 noErrors errors = not (or (map isJust errors))
 	
 page :: !String ![HtmlTag] !*World -> (!HTTPResponse,!HTTPServerControl, !*World)
-page appName content world = ({http_emptyResponse & rsp_data = toString (pageLayout (appName +++ " setup") content)}, HTTPServerContinue, world)
+page appName content world = ({http_emptyResponse & rsp_data = toString (pageLayout (appName +++ " setup") "" content)}, HTTPServerContinue, world)
 
 choicePage :: !String !Config ![Maybe String] !*World -> (!HTTPResponse,!HTTPServerControl,!*World)
 choicePage appName config errors world = page appName [DivTag [IdAttr "content"] [instructions,showConfig config errors],buttons] world
