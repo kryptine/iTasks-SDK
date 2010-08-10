@@ -44,12 +44,15 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 							iconCls: 'x-tbar-loading',
 							scope: this,
 							handler: function(item,evt){
-									this.refresh();
-								}
+								this.refresh();
+							}
 						},{
 							text: 'Task Properties'	,
 							iconCls: 'icon-properties',
-							disabled: true
+							scope: this,
+							handler: function(item,evt){
+								this.showProperties();
+							}
 						},{
 							text: 'Discuss Task',
 							iconCls: 'icon-chat',
@@ -210,6 +213,65 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		}
 		
 		Ext.Msg.confirm("Cancel Task","Are you sure you wish to cancel this task?",doCancel);
+	},
+	showProperties: function(){
+		var p = this.properties;
+	
+		var w = new Ext.Window({
+			title : 'Task Properties',
+			iconCls: 'icon-properties',
+			resizable: false,
+			width: 500,
+			height: 300,
+			layout: 'accordion',
+			cls: 'task-properties-window',
+			defaults: {
+				bodyStyle: 'padding: 10px'
+			},
+			layoutConfig: {
+				titleCollapse: false,
+				hideCollapseTool: true
+			},
+			items: [
+				{ title: 'Runtime Properties'
+				, iconCls: 'icon-currentwork'
+				, layout: 'form'
+				, defaultType: "staticfield"
+				, items: [{
+					//xtype: "itasks.progress",
+					name: "progress",
+					fieldLabel: "Progress",
+					format: itasks.util.formatProgress,
+					value: p.workerProperties.progress
+					//listeners: {
+					//	"change" : function(ov,nv) {var wt = this.findParentByType(itasks.WorkPanel); wt.sendPropertyEvent(wt.properties.systemProperties.taskId,"progress",nv); }
+					//}
+				},{
+					name: "priority",
+					fieldLabel: "Priority",
+					format: itasks.util.formatPriority,
+					value: p.managerProperties.priority
+				},{
+					name: "issuedAt",
+					fieldLabel: "Issued at",
+					format: itasks.util.formatDate,
+					value: p.systemProperties.issuedAt
+				},{
+					name: "firstEvent",
+					fieldLabel: "First worked on",
+					format: itasks.util.formatStartDate,
+					value: p.systemProperties.firstEvent
+				},{
+					name: "latestEvent",
+					fieldLabel: "Last worked on",
+					format: itasks.util.formatStartDate,
+					value: p.systemProperties.latestEvent
+				}]
+				}
+			]
+		});
+		
+		w.show();
 	}
 });
 

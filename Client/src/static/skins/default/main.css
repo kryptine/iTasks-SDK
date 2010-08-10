@@ -303,6 +303,11 @@ div.task-context th {
 	vertical-align: top;
 }
 
+.task-properties-window .x-form-item-label {
+	font-weight: bold;
+	color: #1e3356;
+}
+
 /* DEBUG STYLES */
 .debug-button button.x-btn-text {
 	width: 150px;
