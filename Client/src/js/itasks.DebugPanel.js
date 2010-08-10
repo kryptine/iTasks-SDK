@@ -15,36 +15,6 @@ itasks.DebugPanel = Ext.extend(Ext.Panel, {
 			deferredRender: false,
 			items: [{
 				xtype: "fieldset",
-				title: "Overviews",
-				autoHeight: true,
-				items: [{
-					xtype: "button",
-					text: "Show task forest...",
-					iconCls: "icon-task-tree",
-					style: "margin-bottom: 2px;",
-					listeners: {
-						click: {
-							fn: function() {
-								this.worktabs.openTaskForestTab();
-							},
-							scope: this
-						}
-					}
-				},{
-					xtype: "button",
-					text: "Show process table...",
-					iconCls: "icon-process-table",
-					listeners: {
-						click: {
-							fn: function() {
-								this.worktabs.openProcessTableTab();
-							},
-							scope: this
-						}
-					}
-				}]
-			},{
-				xtype: "fieldset",
 				title: "Session",
 				html: itasks.app.session,
 				autoHeight: true,

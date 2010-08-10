@@ -15,10 +15,7 @@ import Http, HttpUtil
 from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import Setup
-//import AuthenticationHandler, DeauthenticationHandler
-//import NewListHandler, NewStartHandler, WorkListHandler, UserListHandler
 import WorkTabHandler, PropertyHandler
-import TaskTreeForestHandler, ProcessTableHandler
 import RPCHandlers
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
@@ -32,7 +29,7 @@ PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))] 
-engine mbConfig userflows	
+engine mbConfig userFlows	
 	= case mbConfig of
 		Just config
 			= handlers config
@@ -40,31 +37,21 @@ engine mbConfig userflows
 			= [(\_ -> True, setupHandler handlers)]
 where
 	handlers config
-		= [ // 'new' services
-		   (startsWith "/services", serviceDispatch config flows)
-			//'old' handlers
-		  //,((==) (config.serverPath +++ "/authenticate"), handleAnonRequest config flows handleAuthenticationRequest)
-		  //,((==) (config.serverPath +++ "/deauthenticate"), handleSessionRequest config flows handleDeauthenticationRequest)							
-		  //,((==) (config.serverPath +++ "/new/list"), handleSessionRequest config flows handleNewListRequest)
-		  //,((==) (config.serverPath +++ "/new/start"), handleSessionRequest config flows handleNewStartRequest)
-		  //,((==) (config.serverPath +++ "/work/list"), handleSessionRequest config flows handleWorkListRequest)
-		  ,((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
+		= [
+		  //'old' handlers
+		   ((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
 		  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
-		  //,((==) (config.serverPath +++ "/data/users"), handleSessionRequest config flows handleUserListRequest)
+		 
 		  ,((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
 		  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
-		  ,((==) (config.serverPath +++ "/debug/taskforest"), handleSessionRequest config flows handleTaskForestRequest)
-		  ,((==) (config.serverPath +++ "/debug/processtable"), handleSessionRequest config flows handleProcessTableRequest)
-		  //,((==) (config.serverPath +++ "/document/download"), handleSessionRequest config flows handleDocumentDownloadRequest)
-		  //,((==) (config.serverPath +++ "/document/upload"), handleSessionRequest config flows handleDocumentUploadRequest)
-		  //,((==) (config.serverPath +++ "/document/clear"), handleSessionRequest config flows handleDocumentClearRequest)
-		  //,((startsWith) (config.serverPath +++ "/document/download/link"), handleSessionRequest config flows handleDocumentDownloadLinkRequest)
-		  //,((startsWith) (config.serverPath +++ "/document/preview/link"), handleSessionRequest config flows handleDocumentPreviewLinkRequest)  
+		  // Webservices
+		  ,(startsWith "/services", serviceDispatch config flows)
+		  // Handler to stop the server nicely
 		  ,((==) "/stop", handleStopRequest)
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]	
 	//Always add the workflows for administering the itask system
-	flows = userflows ++ userAdministration
+	flows = userAdministration ++ userFlows
 
 	serviceDispatch config flows req world
 		# tst				= initTSt req config flows world

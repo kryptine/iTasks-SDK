@@ -72,26 +72,6 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		}
 		this.activate(tab);
 		return tab;	
-	},
-	openTaskForestTab: function () {
-		var tab = this.getComponent("taskforesttab");
-		if(tab == undefined) {
-			tab = new itasks.TaskForestTabPanel({id: "taskforesttab"});
-			this.add(tab);
-		}
-		this.activate(tab);
-		tab.refresh();
-		return tab;
-	},
-	openProcessTableTab: function () {
-		var tab = this.getComponent("processtabletab");
-		if(tab == undefined) {
-			tab = new itasks.ProcessTableTabPanel({id: "processtabletab"});
-			this.add(tab);
-		}
-		this.activate(tab);
-		tab.refresh();
-		return tab;
 	}
 });
 

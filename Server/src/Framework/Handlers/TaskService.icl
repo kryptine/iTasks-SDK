@@ -4,8 +4,6 @@ import HtmlUtil, Text
 import JSON
 import StdList
 
-import StdMisc // abort
-
 import ProcessDB
 import TaskPanel
 
@@ -14,10 +12,34 @@ derive bimap (,), Maybe
 derive JSONEncode Menu, MenuItem, Hotkey, Key, Action, User, UserDetails, Password
 derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
 
+//Additional derives for debugging
+derive JSONEncode Process, TaskParallelType, TaskParallelInfo, TaskInfo
+derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
+derive JSONEncode HtmlTag, HtmlAttr
+
+//Can't derive TaskTree serialization because the damn thing contains functions
+//on unique states @!#$%!!
+JSONEncode{|TaskTree|} (TTMainTask a0 a1 a2 a3 a4)
+	= [JSONArray [JSONString "TTMainTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2 ++ JSONEncode{|*|} a3 ++ JSONEncode{|*|} a4]]
+JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1)
+	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0]] //DOES NOT INCLUDE a1
+JSONEncode{|TaskTree|} (TTMonitorTask a0 a1)
+	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+JSONEncode{|TaskTree|} (TTInstructionTask a0 a1 a2)
+	= [JSONArray [JSONString "TTInstructionTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2]]
+JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
+	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+JSONEncode{|TaskTree|} (TTSequenceTask a0 a1)
+	= [JSONArray [JSONString "TTSequenceTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+JSONEncode{|TaskTree|} (TTParallelTask a0 a1 a2)
+	= [JSONArray [JSONString "TTParallelTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2]]
+JSONEncode{|TaskTree|} (TTGroupedTask a0 a1 a2 a3)
+	= [JSONArray [JSONString "TTGroupedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a3]] //DOES NOT INCLUDE a2	
+JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
+	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
-
-import StdDebug
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst
@@ -37,6 +59,13 @@ taskService url html path req tst
 			# items				= taskItems processes
 			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON items)]
 			= (serviceResponse html "tasks" url listParams json, tst)
+		//For debugging, list all tasks in the process table
+		["debug"]
+			| isJust mbSessionErr
+				= (serviceResponse html "tasks debug" url debugParams (jsonSessionErr mbSessionErr), tst)	
+			# (processes,tst)	= getProcesses [Active,Suspended,Finished,Excepted,Deleted] tst
+			# json				= JSONObject [("success",JSONBool True),("tasks",toJSON processes)]
+			= (serviceResponse html "tasks debug" url debugParams json, tst)
 		//Start a new task (create a process)
 		["create"]
 			| isJust mbSessionErr
@@ -64,6 +93,18 @@ taskService url html path req tst
 				Just proc
 					# json = JSONObject [("success",JSONBool True),("task",toJSON (taskItem proc))]
 					= (serviceResponse html "task details" url detailsParams json, tst)
+		//Dump the raw tasktree datastructure
+		[taskId,"debug"]
+			| isJust mbSessionErr
+				= (serviceResponse html "task debug" url debugParams (jsonSessionErr mbSessionErr), tst)
+			# (mbProcess, tst)	= getProcess taskId tst
+			= case mbProcess of
+				Nothing
+					= (notFoundResponse req, tst)
+				Just proc
+					# (tree,tst) = calculateTaskTree taskId [] tst
+					# json		= JSONObject [("success",JSONBool True),("task",toJSON proc),("tree",toJSON tree)]
+					= (serviceResponse html "task debug" url debugParams json, tst)
 		//Show / Update task user interface definition
 		[taskId,"tui"]
 			| isJust mbSessionErr
@@ -79,8 +120,8 @@ taskService url html path req tst
 					# task			= taskItem proc
 					//Updates are posted as a list of triplets
 					# updates		= case (fromJSON (fromString updatesParam)) of
-						Just updates	= trace_n ("woot" +++ printToString updates ) updates
-						Nothing			= trace_n "bummer" []
+						Just updates	= updates
+						Nothing			= []
 					//The menusChanged parameter is a global flag that is set when any task in the tree has
 					//changed the menu and thus the menu needs to be replaced
 					# (tree,tst=:{TSt|menusChanged}) 
@@ -179,6 +220,8 @@ where
 	workflowParam	= paramValue "workflow" req
 	
 	listParams		= [("_session",sessionParam,True),("_user",userParam,False)]
+	
+	debugParams		= [("_session",sessionParam,True)]
 	
 	detailsParams	= [("_session",sessionParam,True)]
 	tuiParams		= [("_session",sessionParam,True),("updates",updatesParam,False)]
