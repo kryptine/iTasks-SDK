@@ -141,7 +141,7 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 	for(var x=0; x < links.length; x++){
 		var link = links[x];
 		
-		link.href = Ext.urlAppend(link.href,'_session='+itasks.app.session);
+		link.href = Ext.urlAppend(link.href,'session='+itasks.app.session);
 		link.name = "";
 		
 		for(var y=0; y < plinks.length; y++){				

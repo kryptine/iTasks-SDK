@@ -213,21 +213,21 @@ taskService url html path req tst
 		_
 			= (notFoundResponse req, tst)		
 where
-	sessionParam	= paramValue "_session" req
-	userParam		= paramValue "_user" req
+	sessionParam	= paramValue "session" req
+	userParam		= paramValue "user" req
 	
-	createParams	= [("_session",sessionParam,True),("workflow",workflowParam,True)]
+	createParams	= [("session",sessionParam,True),("workflow",workflowParam,True)]
 	workflowParam	= paramValue "workflow" req
 	
-	listParams		= [("_session",sessionParam,True),("_user",userParam,False)]
+	listParams		= [("session",sessionParam,True),("user",userParam,False)]
 	
-	debugParams		= [("_session",sessionParam,True)]
+	debugParams		= [("session",sessionParam,True)]
 	
-	detailsParams	= [("_session",sessionParam,True)]
-	tuiParams		= [("_session",sessionParam,True),("events",eventsParam,False)]
+	detailsParams	= [("session",sessionParam,True)]
+	tuiParams		= [("session",sessionParam,True),("events",eventsParam,False)]
 	eventsParam		= paramValue "events" req
 	
-	propParams		= [("_session",sessionParam,True),("update",updateParam,False)]
+	propParams		= [("session",sessionParam,True),("update",updateParam,False)]
 	updateParam		= paramValue "update" req
 	
 	jsonSessionErr (Just error)

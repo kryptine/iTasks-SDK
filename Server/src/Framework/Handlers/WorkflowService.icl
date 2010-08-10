@@ -32,9 +32,9 @@ workflowService url html path req tst
 	# json 				= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
 	= (serviceResponse html "workflows" url params json, tst)
 where
-	sessionParam= paramValue "_session" req
+	sessionParam= paramValue "session" req
 	
-	params 		= [("_session", sessionParam, False)]
+	params 		= [("session", sessionParam, False)]
 	
 	onPath paths wf = paths == "" || (wf.Workflow.path % (0, (size paths))) == paths +++ "/"
 	

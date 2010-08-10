@@ -130,7 +130,7 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 		
 		conn.request({
 			url: itasks.config.servicesUrl + "/json/tasks",
-			params: { '_session' : itasks.app.session },
+			params: { session : itasks.app.session },
 			callback: function(options,success,response) {
 				if(!success) itasks.app.restart('Cannot retrieve work list');
 				

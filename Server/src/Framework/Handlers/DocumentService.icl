@@ -52,8 +52,8 @@ documentService url html path req tst
 		_
 			= (notFoundResponse req,tst)
 where
-	sessionParam	= paramValue "_session" req
-	params			= [("_session",sessionParam,True)]
+	sessionParam	= paramValue "session" req
+	params			= [("session",sessionParam,True)]
 					  
 	createDocuments [] tst = ([],tst)
 	createDocuments [u:us] tst

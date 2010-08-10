@@ -19,7 +19,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			autoDestroy: true,
 			iconCls: "icon-task",
 			url: itasks.config.servicesUrl + "/json/tasks/" + this.taskId + "/tui",
-			params: {_session: itasks.app.session},
+			params: {session: itasks.app.session},
 			layout: "border",
 			items: [{
 				xtype: "itasks.work-header",

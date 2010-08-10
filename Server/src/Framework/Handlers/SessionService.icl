@@ -72,9 +72,9 @@ sessionService url html path req tst
 				
 		_		= (notFoundResponse req, tst)
 where
-	listParams		= [("_session",sessionParam,False),("_user", userParam, False)]
-	sessionParam	= paramValue "_session" req
-	userParam		= paramValue "_user" req
+	listParams		= [("session",sessionParam,False),("user", userParam, False)]
+	sessionParam	= paramValue "session" req
+	userParam		= paramValue "user" req
 	
 	createParams	= [("username",usernameParam,True),("password",passwordParam,True)]
 	usernameParam	= paramValue "username" req

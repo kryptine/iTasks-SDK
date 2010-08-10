@@ -235,7 +235,7 @@ itasks.tui.document.DownloadPanel = Ext.extend(Ext.form.FormPanel,{
 			form.getForm().submit({
 			
 				url: "/services/json/documents/" + dp.document.documentId + "/download",
-				params: { _session : itasks.app.session },
+				params: { session : itasks.app.session },
 				waitMsg: null,
 				failure: function(form, o){
 					Ext.Msg.alert('Error',o.result.errors,function(){wt.refresh()});
@@ -342,7 +342,7 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 			form.getForm().submit({
 				url: "/services/json/documents/upload",
 				
-				params: { _session : itasks.app.session },
+				params: { session : itasks.app.session },
 				waitMsg: "Uploading document. Please wait..",
 				success: function(form,response) {
 						try {

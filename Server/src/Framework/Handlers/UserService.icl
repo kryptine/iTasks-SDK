@@ -42,8 +42,8 @@ userService url html path req tst
 		_
 			= (notFoundResponse req,tst)
 where
-	sessionParam	= paramValue "_session" req
-	params			= [("_session",sessionParam,True)]
+	sessionParam	= paramValue "session" req
+	params			= [("session",sessionParam,True)]
 	
 	jsonSessionErr (Just error)
 					= JSONObject [("success",JSONBool False),("error", JSONString error)]

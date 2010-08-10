@@ -22,7 +22,7 @@ itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
 	triggerAction: "all",
 	listeners: {
 		"beforequery": function(e) {
-			e.combo.store.baseParams["_session"] = itasks.app.session;
+			e.combo.store.baseParams["session"] = itasks.app.session;
 			delete e.combo.lastQuery;
 		}
 	},
