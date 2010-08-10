@@ -119,13 +119,13 @@ taskService url html path req tst
 				Just proc
 					# task			= taskItem proc
 					//Updates are posted as a list of triplets
-					# updates		= case (fromJSON (fromString updatesParam)) of
-						Just updates	= updates
+					# events		= case (fromJSON (fromString eventsParam)) of
+						Just events		= events
 						Nothing			= []
 					//The menusChanged parameter is a global flag that is set when any task in the tree has
 					//changed the menu and thus the menu needs to be replaced
 					# (tree,tst=:{TSt|menusChanged}) 
-									= calculateTaskTree taskId updates tst
+									= calculateTaskTree taskId events tst
 					= case tree of
 						(TTMainTask ti properties menus _ content)
 							# tui			= buildTaskPanel content menus menusChanged session.Session.user
@@ -224,8 +224,8 @@ where
 	debugParams		= [("_session",sessionParam,True)]
 	
 	detailsParams	= [("_session",sessionParam,True)]
-	tuiParams		= [("_session",sessionParam,True),("updates",updatesParam,False)]
-	updatesParam	= paramValue "updates" req
+	tuiParams		= [("_session",sessionParam,True),("events",eventsParam,False)]
+	eventsParam		= paramValue "events" req
 	
 	propParams		= [("_session",sessionParam,True),("update",updateParam,False)]
 	updateParam		= paramValue "update" req

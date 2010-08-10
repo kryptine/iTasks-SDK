@@ -18,8 +18,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			closable: true,
 			autoDestroy: true,
 			iconCls: "icon-task",
-			url: itasks.config.serverUrl + "/work/tab",
-			params: {_maintask: this.taskId, _debug: itasks.app.debug ? 1 : 0},
+			url: itasks.config.servicesUrl + "/json/tasks/" + this.taskId + "/tui",
+			params: {_session: itasks.app.session},
 			layout: "border",
 			items: [{
 				xtype: "itasks.work-header",
@@ -94,14 +94,14 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	update: function(data) {
 
 		//Check if the task is finished or became redundant
-		if(data.content == "done" || data.content == "redundant") {
+		if(data.tui == "done" || data.tui == "redundant") {
 			
 			var ct = this.getComponent(1);
 			
 			if(ct.items && ct.items.length) {
 				ct.remove(0);
 			}
-			switch(data.content) {
+			switch(data.tui) {
 				case "done":	
 					ct.add({
 						xtype: 'itasks.ttc.finished',
@@ -135,23 +135,16 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			return;
 		}
 		//Update properties
-		this.properties = data.properties;
+		this.properties = data.task;
 		//Update header
-		this.getComponent(0).setContent(this.taskId, data.subject, data.properties);
+		this.getComponent(0).setContent(this.taskId, data.task.managerProperties.subject, data.task);
 		//Update title
-		this.updateTitle(data.subject);
+		this.updateTitle(data.task.managerProperties.subject);
 		//Update content
-		this.updateContent(data.content);
-		//Update Toolbar
-		this.updateToolbar(data.properties);
-		//Reset params, events and states
-		this.params = 
-		{ _maintask : this.taskId
-		, _debug: itasks.app.debug ? 1 : 0
-		}
+		this.updateContent(data.tui);
 	},
 	updateTitle: function(subject) {
-		this.setTitle(Ext.util.Format.ellipsis(subject.join(" - "),10));
+		this.setTitle(Ext.util.Format.ellipsis(subject,10));
 	},
 	updateContent: function(content) {
 		var ct = this.getComponent(1);
@@ -174,6 +167,16 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.initialized = true;
 		}			
 	},
+	sendTaskUpdates: function(target, updates) {
+		//Build event list
+		var events = [];
+		for(var k in updates) {
+			events[events.length] = [target,k,updates[k].toString()];
+		}
+		//Set events and refresh
+		this.params["events"]	= Ext.encode(events);
+		this.refresh();
+	},
 	updateToolbar: function(properties) {		
 		var getUserName = function(name){
 			if(name.match("(.+)<(.+)>"))
@@ -188,31 +191,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		}else{
 			cancelMI.disable();
 		}
-	},
-	sendTaskUpdates: function(target,updates) {
-		//Add task updates to params
-		Ext.apply(this.params, updates);
-			
-		//Set target and state
-		this.params["_targettask"]	= target;
-		this.refresh();
-	},
-	sendPropertyEvent: function(process,name,value) {
-		//Ugly side-effect event handler
-		this.getComponent(0).setBusy(true);
-		
-		Ext.Ajax.request({
-			url: itasks.config.serverUrl + "/work/property",
-			method: "GET",
-			params: {_session : itasks.app.session, process : process, property: name, value: value },
-			callback: function(el,success,response,options) {
-				this.getComponent(0).setBusy(false);
-				this.fireEvent("propertyChanged");
-				if(name == "user" || name == "progress") //HACK: Fix with proper property events
-					this.refresh();
-			},
-			scope: this
-		});
 	},
 	cancel : function(){
 		var me = this;
@@ -266,7 +244,7 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 				}		
 			}
 			
-			var subject = subject.join(" &raquo; ") + (itasks.config.debug ? (" (" + taskid + ")") : "");
+			var subject = subject + (itasks.config.debug ? (" (" + taskid + ")") : "");
 			
 			this.body.update( String.format(
 				'<div class="worktab-header {1}">'+
@@ -286,46 +264,5 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 	}	
 });
 
-itasks.WorkStatusPanel = Ext.extend(Ext.Panel, {
-	initComponent: function() {
-		Ext.apply(this, {
-			layout: "form",
-			cls: "worktab-content",
-			defaultType: "staticfield",
-			items: [{
-				xtype: "itasks.progress",
-				name: "progress",
-				fieldLabel: "Progress",
-				format: itasks.util.formatProgress,
-				listeners: {
-					"change" : function(ov,nv) {var wt = this.findParentByType(itasks.WorkPanel); wt.sendPropertyEvent(wt.properties.systemProperties.taskId,"progress",nv); }
-				}
-			},{
-				name: "priority",
-				fieldLabel: "Priority",
-				format: itasks.util.formatPriority
-			},{
-				name: "issuedAt",
-				fieldLabel: "Issued at",
-				format: itasks.util.formatDate
-			},{
-				name: "firstEvent",
-				fieldLabel: "First worked on",
-				format: itasks.util.formatStartDate
-			},{
-				name: "latestEvent",
-				fieldLabel: "Last worked on",
-				format: itasks.util.formatStartDate	
-			}]
-		});
-		itasks.WorkStatusPanel.superclass.initComponent.apply(this,arguments);
-	},
-	update: function (p) {
-		var props = [p.workerProperties.progress,p.managerProperties.priority,p.systemProperties.issuedAt,p.systemProperties.firstEvent,p.systemProperties.latestEvent];
-		this.items.each(function(cmt,i){ cmt.setValue(props[i]); });
-	}
-});
-
 Ext.reg("itasks.work",itasks.WorkPanel);
 Ext.reg("itasks.work-header",itasks.WorkHeaderPanel);
-Ext.reg("itasks.work-status",itasks.WorkStatusPanel);

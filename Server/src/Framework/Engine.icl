@@ -15,7 +15,6 @@ import Http, HttpUtil
 from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import Setup
-import WorkTabHandler, PropertyHandler
 import RPCHandlers
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
@@ -39,10 +38,7 @@ where
 	handlers config
 		= [
 		  //'old' handlers
-		   ((==) (config.serverPath +++ "/work/tab"), handleSessionRequest config flows handleWorkTabRequest)
-		  ,((==) (config.serverPath +++ "/work/property"), handleSessionRequest config flows handlePropertyRequest)
-		 
-		  ,((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
+		   ((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
 		  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
 		  // Webservices
 		  ,(startsWith "/services", serviceDispatch config flows)
@@ -159,16 +155,14 @@ initTSt request config flows world
 	# ((err,info),world)		= getFileInfo path world
 	| err <> NoDirError			= abort "Cannot get executable info."
 	# (date,time)				= info.pi_fileInfo.lastModified
-	# datestr					= (toString date.Date.year)+++"."+++(addPrefixZero date.Date.month)+++"."+++(addPrefixZero date.Date.day)+++"-"+++(addPrefixZero time.Time.hours)+++"."+++(addPrefixZero time.Time.minutes)+++"."+++(addPrefixZero time.Time.seconds)
+	# datestr					= (toString date.Date.year)+++"."+++(padZero date.Date.month)+++"."+++(padZero date.Date.day)+++"-"+++(padZero time.Time.hours)+++"."+++(padZero time.Time.minutes)+++"."+++(padZero time.Time.seconds)
 	# ((ok,datapath),world)		= pd_StringToPath appName world
 	# (err,world)				= createDirectory datapath world
 	| err <> NoDirError 
 		&& err <> AlreadyExists	= abort "Cannot create data directory"
 	= mkTSt appName config request flows (createStore (appName +++ "\\" +++ datestr)) world
 where 
-	addPrefixZero number
-	| number < 10 = "0"+++toString number
-	| otherwise = toString number
+	padZero number = (if (number < 10) "0" "") +++ toString number
 
 finalizeTSt :: !*TSt -> *World
 finalizeTSt tst=:{TSt|iworld={IWorld|world}} = world
@@ -186,6 +180,3 @@ determineAppName world
 	= (strip (hd args),world)
 where
 	strip path = let executable = last (split PATH_SEP path) in executable % (0, size executable - 5)
-
-
-
