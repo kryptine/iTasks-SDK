@@ -32,7 +32,7 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 			url: url,
 			params: params,
 			scripts: false,
-			callback: function (el,success,response, options) {
+			callback: function (options,success,response) {
 				if(success) {
 					var data;
 					try {

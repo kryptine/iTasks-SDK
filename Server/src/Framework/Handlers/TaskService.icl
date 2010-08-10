@@ -93,8 +93,24 @@ taskService url html path req tst
 						_
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",JSONNull),("tui",JSONNull)]
 							= (serviceResponse html "task user interface" url tuiParams json, {TSt|tst & menusChanged = menusChanged})
-				
-
+		//Cancel / Abort / Delete the current task
+		[taskId,"cancel"]
+			| isJust mbSessionErr
+				= (serviceResponse html "task user interface" url tuiParams (jsonSessionErr mbSessionErr), tst)
+			# (mbProcess, tst) = getProcessForTask taskId tst
+			= case mbProcess of
+				Nothing
+					= (notFoundResponse req, tst)
+				Just proc
+					// check whether the current user is allowed to cancel the task (user == manager)
+					# (mbUProcess, tst) = case session.Session.user of
+						RootUser = (Just proc,tst)
+						user	 = getProcessForManager user proc.Process.taskId tst
+					| not (isJust mbUProcess) 
+						= (serviceResponse html "cancel task" url tuiParams (JSONObject [("success",JSONBool False),("error",JSONString "You do not have permission to cancel this task")]), tst)		
+					# tst = deleteTaskInstance proc.Process.taskId tst
+					= (serviceResponse html "cancel task" url tuiParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
+					
 		//Show / update Manager properties
 		[taskId,"managerProperties"]
 			| isJust mbSessionErr

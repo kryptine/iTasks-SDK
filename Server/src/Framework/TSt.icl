@@ -175,9 +175,9 @@ where
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
-	# (_,tst) 						= deleteProcess procId tst
+	# (_,tst) 									= deleteProcess procId tst
 	# tst=:{TSt | iworld=iworld=:{store,world}}	= deleteSubProcesses procId tst
-	# (store,world)					= deleteValues (iTaskId (taskNrFromString procId) "") store world
+	# (store,world)								= deleteValues (iTaskId (taskNrFromString procId) "") store world
 	= {TSt | tst & iworld = {iworld & world = world, store = store}}
 
 garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)

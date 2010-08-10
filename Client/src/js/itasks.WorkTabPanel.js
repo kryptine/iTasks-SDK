@@ -35,16 +35,34 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					anchor: 'bottom 0'
 				},
 				tbar: [{
-						text: "Refresh task",
-						iconCls: "x-tbar-loading",
-						listeners: {
-							click: {
-								scope: this,
-								fn: function (btn) {
+					text: 'Task Actions',
+					iconCls: 'icon-properties',
+					menu: {
+						id: 'taskMenu',
+						items: [{
+							text: 'Refresh Task',
+							iconCls: 'x-tbar-loading',
+							scope: this,
+							handler: function(item,evt){
 									this.refresh();
 								}
+						},{
+							text: 'Task Properties'	,
+							iconCls: 'icon-properties',
+							disabled: true
+						},{
+							text: 'Discuss Task',
+							iconCls: 'icon-chat',
+							disabled: true
+						},'-',{
+							text: 'Cancel Task',
+							iconCls: 'icon-trash',
+							scope: this,
+							handler: function(item,evt){
+								this.cancel();
 							}
-						}
+						}]
+					}					
 				}]
 			}]
 		});
@@ -124,9 +142,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.updateTitle(data.subject);
 		//Update content
 		this.updateContent(data.content);
-		//Update status
-		//this.updateStatus(data.properties);
-	
+		//Update Toolbar
+		this.updateToolbar(data.properties);
 		//Reset params, events and states
 		this.params = 
 		{ _maintask : this.taskId
@@ -157,8 +174,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.initialized = true;
 		}			
 	},
-	updateStatus: function(properties) {
-		this.getComponent(1).getComponent(1).update(properties);
+	updateToolbar: function(properties) {
+	//	var cancelMI = this.getComponent(1).getTopToolbar().getComponent(0).getComponent(3);
+	//	console.log(cancelMI);
 	},
 	sendTaskUpdates: function(target,updates) {
 		//Add task updates to params
@@ -184,6 +202,25 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			},
 			scope: this
 		});
+	},
+	cancel : function(){
+		var me = this;
+		
+		var  doCancel = function(btn){	
+			if(btn == "yes"){
+				var url = itasks.config.servicesUrl + "/json/tasks/" + me.taskId + "/cancel";
+				var params = {};
+				var cb = function(data){
+					if(data.success)
+						(function(){me.refresh()}).defer(50);
+					else
+						Ext.Msg.alert('Error','Failed to cancel task: '+data.error);
+				};		
+				me.remoteCall(url,params,cb);	
+			}
+		}
+		
+		Ext.Msg.confirm("Cancel Task","Are you sure you wish to cancel this task?",doCancel);
 	}
 });
 

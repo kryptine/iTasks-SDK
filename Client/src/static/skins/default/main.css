@@ -137,6 +137,15 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-edit{
 	background-image: url('img/icons/pencil.png') !important;
 }
+.icon-properties{
+	background-image: url('img/icons/table_gear.png') !important;
+}
+.icon-chat{
+	background-image: url('img/icons/comment.png') !important;
+}
+.icon-trash {
+	background-image: url('img/icons/trash.png') !important;
+}
 
 #userdisplay {
 	color: #3a81ad;
