@@ -174,9 +174,20 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.initialized = true;
 		}			
 	},
-	updateToolbar: function(properties) {
-	//	var cancelMI = this.getComponent(1).getTopToolbar().getComponent(0).getComponent(3);
-	//	console.log(cancelMI);
+	updateToolbar: function(properties) {		
+		var getUserName = function(name){
+			if(name.match("(.+)<(.+)>"))
+				return name.replace("(.+)<(.+)>", "$2");
+			else
+				return name;
+		}
+		
+		var cancelMI = this.getComponent(1).getTopToolbar().getComponent(0).menu.getComponent(4);
+		if(getUserName(properties.managerProperties.worker) == getUserName(properties.systemProperties.manager)){
+			cancelMI.enable();
+		}else{
+			cancelMI.disable();
+		}
 	},
 	sendTaskUpdates: function(target,updates) {
 		//Add task updates to params
