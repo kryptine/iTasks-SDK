@@ -125,15 +125,13 @@ where
 	execInGroup tst=:{taskNr,request}
 		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
 		# (events,tst)		= getGroupEvents (taskNrToString grTaskNr) tst
+		# eventActions		= [parseString value \\ (_, value) <- events]
 		# (pst,tst)   		= loadPSt grTaskNr tst
-		# gAction			= case parseString (http_getValue "group" events "") of
-								Nothing = parseString (http_getValue "menuAndGroup" events "")
-								res = res
 		# (gActionStop,mbFocus,pst) 
-							= case gAction of
-								Just action	= case filter (\act -> (getAction act) == action) groupActions of
-									[gAction:_]
-										# (nSt,act) = procFun (getResult action gAction,-1) pst.state
+							= case eventActions of
+								[Just eventAction:_] = case filter (\act -> (getAction act) == eventAction) groupActions of
+									[gActions:_]
+										# (nSt,act) = procFun (getResult eventAction gActions,-1) pst.state
 										# pst = {pst & state = nSt}
 										= case act of
 											Stop			= (True,Nothing,pst)
@@ -141,7 +139,7 @@ where
 											Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]})
 											Focus tag		= (False,Just tag,pst)
 									_ = (False,Nothing,pst)
-								Nothing = (False,Nothing,pst)
+								_ = (False,Nothing,pst)
 		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
 		# tst						= setTaskStoreFor grTaskNr "pst" pst tst
 		= case result of

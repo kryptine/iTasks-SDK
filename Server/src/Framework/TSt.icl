@@ -891,30 +891,33 @@ getTaskStoreFor taskNr key tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
-getEvents :: !Bool !*TSt -> ([(!String,!String)],!*TSt)
-getEvents includeGroupEvents tst=:{taskNr,events}
+getEvents :: !*TSt -> ([(!String,!String)],!*TSt)
+getEvents tst=:{taskNr,events}
 	# (matched, rest)	= getEvents` events
 	= (matched, {TSt|tst & events = rest})
 where
 	taskId = taskNrToString taskNr
 
-	getEvents` []		= ([],[])
+	getEvents` [] = ([],[])
 	getEvents` [event=:(task,name,value):events]
-		# (matched,rest)	= getEvents` events
-		| task == taskId && (includeGroupEvents || name <> "group")	= ([(name,value):matched], rest)
-		| otherwise													= (matched, [event:rest])
+		# (matched,rest) = getEvents` events
+		| task == taskId
+			| name == "menuAndGroup"	= ([(name,value):matched], [(task,"group",value):rest]) 
+			| name <> "group"			= ([(name,value):matched], rest)
+			| otherwise					= (matched, [event:rest])
+		| otherwise						= (matched, [event:rest])
 
 getGroupEvents :: !TaskId !*TSt -> ([(!String,!String)],!*TSt)
 getGroupEvents taskId tst=:{TSt|events}
-	# (matched, rest)	= getGroupEvents` events
+	# (matched, rest) = getGroupEvents` events
 	= (matched, {TSt|tst & events = rest})
 where
 	getGroupEvents` []
 		= ([],[])											
 	getGroupEvents` [event=:(task,name,value):events]
-		# (matched,rest)	= getGroupEvents` events
-		| (task == taskId) && (name == "group" || name == "menuAndGroup")
-			= ([(name,value):matched], rest)
+		# (matched,rest) = getGroupEvents` events
+		| (startsWith taskId task) && (name == "group" || name == "menuAndGroup")
+			= ([(name,value):matched], [event:rest])
 		| otherwise
 			= (matched, [event:rest])
 
