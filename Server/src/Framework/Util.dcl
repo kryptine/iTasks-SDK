@@ -2,11 +2,17 @@ definition module Util
 
 from Types			import :: TaskNr
 from Void			import :: Void
+from Either			import :: Either
 
-import GenPrint, GenParse, GenVisualize, GenUpdate, GenVerify
+import GenVisualize, GenUpdate, GenVerify
 
-derive gPrint 		Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
-derive gParse 		Dynamic, Maybe, Void, (,), (,,), (,,,), (,,,,)
+derive JSONEncode	Dynamic, Void, Either, Timestamp
+derive JSONDecode	Dynamic, Void, Either, Timestamp
+
+derive gVisualize	Timestamp
+derive gUpdate		Timestamp
+derive gHint		Timestamp
+derive gError		Timestamp
 
 class iTaskId a
 where

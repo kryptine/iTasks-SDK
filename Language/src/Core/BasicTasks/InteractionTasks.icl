@@ -503,7 +503,7 @@ where
 			Just v		= (v,tst)
 			Nothing		= abort "cannot get local value"
 	
-	readShared :: !String !*TSt -> *((Maybe a),*TSt) | gParse{|*|}, TC a		
+	readShared :: !String !*TSt -> *((Maybe a),*TSt) | JSONDecode{|*|}, TC a		
 	readShared sid tst=:{TSt|iworld = iworld =:{IWorld|store,world}}
 		# (mbvalue,store,world) = loadValue sid store world
 		# tst = {TSt|tst & iworld = {IWorld| iworld & store = store, world = world}}
@@ -549,8 +549,8 @@ where
 							ActionLabel text	= text
 							ActionIcon text _	= text
 							ActionParam text _	= text
-							action				#str = printToString action
-												| startsWith "Action" str	= subString 6 ((textSize str)-1) str
+							action				#str = (toString (toJSON action))
+												| startsWith "\"Action" str	= subString 7 ((textSize str)-8) str
 												| otherwise					= str
 
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
@@ -570,9 +570,9 @@ getAction events buttonActions tst
 		| index <> -1
 			= (Just (buttonActions !! index),tst)
 		| otherwise
-			= case parseString (http_getValue "menu" events "") of
-				Nothing	= case parseString (http_getValue "menuAndGroup" events "") of
-					Nothing	= (parseString (http_getValue "hotkey" events "") ,tst)
+			= case fromJSON (fromString (http_getValue "menu" events "")) of
+				Nothing	= case fromJSON (fromString (http_getValue "menuAndGroup" events "")) of
+					Nothing	= (fromJSON (fromString (http_getValue "hotkey" events "")) ,tst)
 					res		= (res, tst)
 				res			= (res ,tst)
 			

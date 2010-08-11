@@ -18,7 +18,7 @@ from Http		import :: HTTPRequest
 from ProcessDB	import :: Action
 
 from	iTasks import class iTask(..)
-import	GenPrint, GenParse, GenVisualize, GenUpdate
+import	GenVisualize, GenUpdate
 
 // The task state
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's

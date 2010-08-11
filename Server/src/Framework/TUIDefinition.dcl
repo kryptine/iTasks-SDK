@@ -6,7 +6,7 @@ definition module TUIDefinition
 */
 import JSON, GenEq
 from Types import :: Document(..), :: DocumentId
-from ProcessDB import :: Hotkey
+from ProcessDB import :: Hotkey(..), :: Key(..)
 
 //Specialized JSON encoding of TUI definitions
 derive JSONEncode TUIDef, TUIUpdate

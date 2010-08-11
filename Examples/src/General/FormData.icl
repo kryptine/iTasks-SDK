@@ -4,13 +4,7 @@ import 	iTasks, TaskContainer, GeoDomain
 from 	StdFunc import o
 from	StdMisc import abort
 				
-derive gPrint 		Form, FormShape, Tup
-derive gParse 		Form, FormShape, Tup
-derive gUpdate 		Form, FormShape, Tup
-derive gVisualize 	Form, FormShape, Tup
-derive gError		Form, FormShape, Tup
-derive gHint		Form, FormShape, Tup
-
+derive class iTask	Form, FormShape, Tup
 derive bimap		Maybe, (,)
 
 :: Form			= 	{ formShape :: ![FormShape]

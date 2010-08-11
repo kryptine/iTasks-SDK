@@ -6,8 +6,6 @@ import StdBool, StdList
 import JSON
 import HtmlUtil, Text
 
-derive JSONEncode Session, User, UserDetails, Password
-
 sessionService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 sessionService url html path req tst
 	= case path of

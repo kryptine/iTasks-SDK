@@ -5,8 +5,7 @@ import Http, Util, Text
 import ProcessDB, SessionDB, ChangeDB, DocumentDB, UserDB, TaskTree
 import CommonDomain
 
-import GenPrint, GenParse, GenEq
-import GenVisualize, GenUpdate, Store, Config
+import GenEq, GenVisualize, GenUpdate, Store, Config
 
 import dynamic_string
 
@@ -20,9 +19,6 @@ from JSON import JSONDecode, fromJSON
 			, status		:: String
 			, errormsg		:: String
 			}
-
-derive gPrint		TaskResult
-derive gParse		TaskResult
 
 derive bimap 		Maybe, (,)
 derive JSONDecode 	RPCMessage

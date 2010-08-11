@@ -6,7 +6,7 @@ from TSt		import :: Task
 from Types		import :: User, :: ProcessId, :: ProcessRef
 
 from	iTasks		import class iTask
-import	GenPrint, GenParse, GenVisualize, GenUpdate
+import	GenVisualize, GenUpdate
 
 /**
 * Returns the user currently logged in the iTask system

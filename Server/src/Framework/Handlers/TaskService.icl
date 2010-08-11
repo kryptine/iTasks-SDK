@@ -9,11 +9,11 @@ import TaskPanel
 
 derive bimap (,), Maybe
 
-derive JSONEncode Menu, MenuItem, Hotkey, Key, Action, User, UserDetails, Password
-derive JSONDecode ManagerProperties, TaskPriority, User, UserDetails, Password
+
+//derive JSONEncode Process, Menu, MenuItem, Hotkey, Key, Action
 
 //Additional derives for debugging
-derive JSONEncode Process, TaskParallelType, TaskParallelInfo, TaskInfo
+derive JSONEncode TaskParallelInfo, TaskInfo
 derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
 derive JSONEncode HtmlTag, HtmlAttr
 
@@ -45,9 +45,10 @@ JSONEncode{|TaskOutput|} fx (UIOutput _)	= [JSONString "User Interface Definitio
 JSONEncode{|TaskOutput|} fx (JSONOutput v)	= [v]
 
 JSONEncode{|InteractiveTask|} _				= [JSONNull]
+
 	
-JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
-JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
+//JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
+//JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst

@@ -13,20 +13,18 @@ from StdString		import class toString
 from iTasks			import class iTask
 from Config			import :: Config
 
-import GenPrint, GenParse, GenVisualize, GenUpdate, JSON, StoreTasks
+import GenVisualize, GenUpdate, JSON, StoreTasks
 
-derive gPrint			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gParse			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gVisualize		User, UserDetails, Session, Task
 derive gUpdate			User, UserDetails, Session, Task
 derive gError			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gHint			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 
 derive gMerge			User, Session, VisualizationHint
-		
-derive JSONEncode Document
-derive JSONDecode Document
 
+derive JSONEncode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive JSONDecode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+		
 instance toString User
 instance toString TaskPriority
 instance toString Password

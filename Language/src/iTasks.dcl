@@ -33,6 +33,7 @@ import	Engine						// basic iTask system creator
 	
 	//	Miscellaneous machinery
 	,	Util
+	,	JSON						// Functions for serializing/deserializing strings
 	,	GenVisualize				// Functions for generating GUIs
 	,	GenUpdate					// Functions for updating arbitrary values
 	,	GenVerify					// Functions for appending errors and hints to form values
@@ -50,10 +51,6 @@ import	Engine						// basic iTask system creator
 	,	StdGeneric
 	,	StdDynamic
 
-	//Generic modules
-	,	GenPrint
-	,	GenParse
-
 from StdFunc import id, const
 
 //Types
@@ -64,10 +61,10 @@ from TaskTree	import :: TaskParallelType(..)
 
 //iTask context restriction
 class iTask a
-	| gPrint {|*|}
-	, gParse {|*|}
-	, gVisualize{|*|}
+	| gVisualize{|*|}
+	, gUpdate{|*|}
 	, gHint{|*|}
 	, gError{|*|}
-	, gUpdate{|*|}
+	, JSONEncode{|*|}
+	, JSONDecode{|*|}
 	, TC a

@@ -2,17 +2,18 @@ implementation module CommonDomain
 
 import iTasks
 import StdOverloaded, StdClass, StdInt, StdMisc, StdArray
-import GenPrint, GenParse, GenVisualize, GenUpdate, GenLexOrd
+import GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
-derive gPrint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
-derive gParse			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gVisualize		EmailAddress, DateTime
 derive gUpdate			EmailAddress, Note, DateTime
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gLexOrd			Currency
 derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive gError 			EmailAddress, DateTime
+
+derive JSONEncode		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
+derive JSONDecode		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 
 derive bimap	Maybe, (,)
 

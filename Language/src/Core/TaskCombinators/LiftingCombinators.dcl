@@ -4,7 +4,7 @@ definition module LiftingCombinators
 */
 from	TSt		import :: Task, :: TSt
 from	iTasks	import class iTask
-import	GenPrint, GenParse, GenVisualize, GenUpdate
+import	GenVisualize, GenUpdate
 
 /**
 * Evaluate a "World" function that does not yield any result once.

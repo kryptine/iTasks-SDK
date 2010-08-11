@@ -10,12 +10,8 @@ import CommonDomain
 // One by one the chosen bookings will be handled
 // The bill is made up in the end
 
-derive gParse		PlaceToGo, FlightHotel
-derive gPrint		PlaceToGo, FlightHotel
-derive gUpdate		PlaceToGo, FlightHotel
-derive gError		PlaceToGo, FlightHotel
-derive gHint		PlaceToGo, FlightHotel
-derive gVisualize	PlaceToGo, FlightHotel
+derive class iTask	PlaceToGo, FlightHotel
+
 derive bimap	(,), Maybe
 
 BookTrip :: Task FlightHotel

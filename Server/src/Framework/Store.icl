@@ -4,8 +4,7 @@ import StdString,StdMaybe, StdArray, StdChar, StdClass, StdInt, StdFile, StdList
 import Directory
 
 import Map, Text
-import GenPrint
-import GenParse
+import JSON
 
 import dynamic_string //Static dynamic serialization
 
@@ -27,19 +26,19 @@ import dynamic_string //Static dynamic serialization
 createStore	:: !String -> *Store
 createStore location = {Store|cache = newMap, location = location}
 
-storeValue :: !String !a !*Store -> *Store | gPrint{|*|}, TC a
+storeValue :: !String !a !*Store -> *Store | JSONEncode{|*|}, TC a
 storeValue key value store = storeValueAs SFPlain key value store
 
 storeValueAsBlob :: !String !String !*Store -> *Store
 storeValueAsBlob key value store=:{cache}
 	= {Store|store & cache = put key (True,{StoreItem|format=SFBlob,content=value}) cache}
 
-storeValueAs :: !StoreFormat !String !a !*Store	-> *Store | gPrint{|*|}, TC a
+storeValueAs :: !StoreFormat !String !a !*Store	-> *Store | JSONEncode{|*|}, TC a
 storeValueAs format key value store=:{cache}
 	= {Store|store & cache = put key (True,{StoreItem|format=format,content=content}) cache}
 where
 	content = case format of	
-		SFPlain		= printToString value
+		SFPlain		= toString (toJSON value)
 		SFDynamic	= dynamic_to_string (dynamic value)
 
 loadDynamicValue :: !String !*Store !*World -> (!Maybe Dynamic, !*Store, !*World)
@@ -76,7 +75,7 @@ loadValueAsBlob key store=:{cache,location} world
 where
 	unpackValue {StoreItem|content} = Just content
 
-loadValue :: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | gParse{|*|}, TC a
+loadValue :: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
 loadValue key store=:{cache,location} world
 	#(mbItem,cache) = getU key cache
 	= case mbItem of
@@ -90,7 +89,7 @@ loadValue key store=:{cache,location} world
 				Nothing
 					= (Nothing, {store & cache = cache}, world)
 where
-	unpackValue {StoreItem|format=SFPlain,content} = parseString content
+	unpackValue {StoreItem|format=SFPlain,content} = fromJSON (fromString content)
 	unpackValue {StoreItem|format=SFBlob,content}  = Nothing //<- use loadValueAsBlob
 	unpackValue {StoreItem|format=SFDynamic,content}
 		= case string_to_dynamic {s` \\ s` <-: content} of

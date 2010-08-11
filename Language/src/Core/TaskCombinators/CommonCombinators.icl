@@ -19,12 +19,14 @@ import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombin
 import Util, Either
 import GenVisualize, GenUpdate
 
-derive gParse		GAction, GOnlyAction, GroupedBehaviour, Either
-derive gPrint		GAction, GOnlyAction, GroupedBehaviour, Either
 derive gVisualize	GAction, GOnlyAction, GroupedBehaviour
 derive gUpdate		GAction, GOnlyAction, GroupedBehaviour
 derive gError		GAction, GOnlyAction, GroupedBehaviour
 derive gHint		GAction, GOnlyAction, GroupedBehaviour
+
+derive JSONEncode	GAction, GOnlyAction, GroupedBehaviour
+derive JSONDecode	GAction, GOnlyAction, GroupedBehaviour
+
 derive bimap Maybe, (,)
 
 //Grouping combinators

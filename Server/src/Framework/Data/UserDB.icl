@@ -6,9 +6,6 @@ import TSt, Util
 
 from Types import :: Password(..)
 
-derive JSONEncode User, UserDetails, Password
-derive JSONDecode User, UserDetails, Password
-
 derive bimap (,), Maybe
 
 instance UserDB IWorld

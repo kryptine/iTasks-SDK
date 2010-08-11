@@ -18,7 +18,7 @@ from UserDB import qualified instance UserDB TSt
 from ProcessDB import :: Menu
 
 from	iTasks import class iTask
-import	GenPrint, GenParse, GenVisualize, GenUpdate
+import	GenVisualize, GenUpdate
 
 getCurrentUser :: Task User
 getCurrentUser = mkInstantTask "getCurrentUser" getCurrentUser`

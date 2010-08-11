@@ -4,8 +4,7 @@ import JSON, TUIDefinition, TSt, ProcessDB
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import Html
 
-derive JSONEncode TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, SubtaskInfo
-
+derive JSONEncode SubtaskInfo
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
 derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
 
@@ -21,12 +20,6 @@ JSONEncode{|TaskPanel|} (TTCResultContainer x)				= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCProcessControlContainer x)	 	= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)			= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCGroupContainer x)				= JSONEncode{|*|} x
-
-//JSON specialization for Timestamp: Ignore the constructor
-JSONEncode{|Timestamp|}	(Timestamp x)					= JSONEncode{|*|} x
-JSONEncode{|User|} u									= [JSONString (toString u)]
-
-derive JSONEncode UserDetails, Password
 
 buildTaskPanel :: !TaskTree !(Maybe [Menu]) !Bool !User -> TaskPanel
 buildTaskPanel tree menus menusChanged currentUser = buildTaskPanel` tree menus menusChanged [] currentUser
@@ -228,7 +221,7 @@ where
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
 																	, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "group"))
-																	, value = Just (printToString action)
+																	, value = Just (toString (toJSON action))
 																	, disabled = not (taskAEnabled || groupAEnabled)
 																	, menu = Nothing
 																	, iconCls = Just (getActionIcon action)
@@ -240,7 +233,7 @@ where
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
 																	, name = Just "menu"
-																	, value = Just (printToString action)
+																	, value = Just (toString (toJSON action))
 																	, disabled = not taskAEnabled
 																	, menu = Nothing
 																	, iconCls = Just (getActionIcon action)
@@ -253,7 +246,7 @@ where
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
 																	, name = Just "group"
-																	, value = Just (printToString action)
+																	, value = Just (toString (toJSON action))
 																	, disabled = not groupAEnabled
 																	, menu = Nothing
 																	, iconCls = Just (getActionIcon action)

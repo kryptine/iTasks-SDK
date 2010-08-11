@@ -2,17 +2,16 @@ implementation module GeoDomain
 
 import Html, InteractionTasks, StdEnv, JSON, CommonDomain
 
-derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap,GoogleMapMarker, GoogleMapType, GoogleMapInfoWindow
-derive JSONDecode MVCUpdate, ClickUpdate, GoogleMapType, ClickSource, ClickEvent
+derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
+derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent
 
-derive gPrint 	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gParse 	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gVisualize   	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gMerge	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gHint			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gError			GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-
+derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
 derive bimap	Maybe, (,)
 

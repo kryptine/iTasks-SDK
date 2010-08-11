@@ -1,6 +1,6 @@
 definition module DocumentDomain
 
-import GenVisualize, GenUpdate, GenParse, GenPrint
+import GenVisualize, GenUpdate
 from Types import :: Document {..}, :: Task
 
 //derive gUpdate PDFDocument, ImageDocument, TextDocument

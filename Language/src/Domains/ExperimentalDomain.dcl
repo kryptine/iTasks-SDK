@@ -1,14 +1,14 @@
 definition module ExperimentalDomain
 
-import GenPrint, GenParse, GenUpdate, GenVisualize, GenMerge
+import GenUpdate, GenVisualize, GenMerge
 
-derive gPrint			FormattedText, SourceCode, Color
-derive gParse			FormattedText, SourceCode, Color
 derive gVisualize		FormattedText, SourceCode, Color
 derive gUpdate			FormattedText, SourceCode, Color
 derive gMerge			FormattedText, SourceCode, Color
 derive gError			FormattedText, SourceCode, Color
 derive gHint			FormattedText, SourceCode, Color
+derive JSONEncode		FormattedText, SourceCode, Color
+derive JSONDecode		FormattedText, SourceCode, Color
 
 // Html-formatted text
 :: FormattedText = FormattedText !String !FormattedTextControls

@@ -10,7 +10,7 @@ from ProcessDB			import :: Action
 from TuningCombinators	import :: Tag
 from iTasks				import class iTask(..)
 
-import	GenPrint, GenParse, GenVisualize, GenUpdate
+import GenVisualize, GenUpdate
 
 //Standard monadic operations:
 

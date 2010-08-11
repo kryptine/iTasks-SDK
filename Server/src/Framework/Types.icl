@@ -1,15 +1,13 @@
 implementation module Types
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList
-import GenPrint, GenParse, GenVisualize, GenUpdate, JSON
+import GenVisualize, GenUpdate, JSON
 import Html
-import Text, Util
+import Text, Base64, Util
 import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
-derive gPrint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gParse			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
 derive gError			User, UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
@@ -18,8 +16,8 @@ derive gMerge			User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
 
-derive JSONEncode Document
-derive JSONDecode Document
+derive JSONEncode		User, UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive JSONDecode		User, UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 
 
 initManagerProperties :: ManagerProperties
@@ -217,15 +215,10 @@ gUpdate{|User|} s ust = (s, ust)
 // ******************************************************************************************************
 // Task specialization
 // ******************************************************************************************************
-gPrint{|Task|} ga task ps = ps <<- copy_to_string task
 
-gParse{|Task|} ga expr
-	# mbstring = parseString expr
-	| isNothing mbstring = Nothing
-	= Just (fst(copy_from_string {s` \\ s` <-: fromJust mbstring}))
-	where
-		parseString :: Expr -> Maybe String
-		parseString expr = gParse{|*|} expr
+JSONEncode{|Task|} fx t						= [JSONString (base64Encode (copy_to_string t))]
+JSONDecode{|Task|} fx [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|Task|} fx c						= (Nothing,c) 
 
 gVisualize{|Task|} fx (VValue (Task props _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
 gVisualize{|Task|} fx _ _ vst = ([],vst)

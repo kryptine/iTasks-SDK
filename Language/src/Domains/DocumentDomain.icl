@@ -2,7 +2,7 @@ implementation module DocumentDomain
 
 from Types import :: Document {..}, :: Task
 
-import GenVisualize, GenUpdate, GenParse, GenPrint
+import GenVisualize, GenUpdate
 import StdList, StdFile, StdArray, Text
 import StdMisc
 import Directory, ExtToMime

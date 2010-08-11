@@ -10,13 +10,7 @@ import iTasks
 import Text
 import CommonDomain
 
-derive gPrint		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
-derive gParse		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
-derive gVisualize	EMail, Reply, DisplayNews, Broadcast, ReplyHdr	
-derive gUpdate		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
-derive gError		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
-derive gHint		EMail, Reply, DisplayNews, Broadcast, ReplyHdr
-
+derive class iTask	EMail, Reply, DisplayNews, Broadcast, ReplyHdr
 derive bimap		Maybe, (,)
 
 newsgroupsExample :: [Workflow]
@@ -31,12 +25,7 @@ newsgroupsExample
 	,	workflow	 "Examples/Communication/Chat with someone" chat
 	]
 
-derive gPrint		InstructionMsg
-derive gParse		InstructionMsg
-derive gVisualize	InstructionMsg
-derive gUpdate		InstructionMsg
-derive gError		InstructionMsg
-derive gHint		InstructionMsg
+derive class iTask	InstructionMsg
 
 :: InstructionMsg	=	{ worker		:: !User
 						, title			:: !String
@@ -56,14 +45,8 @@ mkInstruction
 // --- Appointment Example ---
 
 // date fixing
-derive gPrint		Appointment, Meeting, Attending
-derive gParse		Appointment, Meeting, Attending
-derive gVisualize	Appointment, Meeting, Attending	
-derive gUpdate		Appointment, Meeting, Attending
-derive gError		Appointment, Meeting, Attending
-derive gHint		Appointment, Meeting, Attending
-
-derive gMerge				Meeting, Appointment, Attending
+derive class iTask	Appointment, Meeting, Attending
+derive gMerge		Appointment, Meeting, Attending
 
 :: Appointment		=	{ topic :: Note
 						}
@@ -115,13 +98,8 @@ where
 	defineOptions = enterInformation "Define date and time options:"
 
 // ====== CHAT =====================================================
-derive gPrint 			Chat, ChatMessage, ChatView, ChatMessageView
-derive gParse			Chat, ChatMessage, ChatView, ChatMessageView
-derive gUpdate			Chat, ChatMessage, ChatView, ChatMessageView
-derive gVisualize		Chat, ChatMessage, ChatView, ChatMessageView
-derive gMerge			Chat, ChatMessage, ChatView, ChatMessageView
-derive gError			Chat, ChatMessage, ChatView, ChatMessageView
-derive gHint			Chat, ChatMessage, ChatView, ChatMessageView
+derive class iTask	Chat, ChatMessage, ChatView, ChatMessageView
+derive gMerge		Chat, ChatMessage, ChatView, ChatMessageView
 
 //Shared State	
 :: Chat =

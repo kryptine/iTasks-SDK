@@ -18,7 +18,7 @@ import CommonCombinators
 
 import Store
 
-derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, TaskParallelType
 
 derive bimap	Maybe, (,)
 

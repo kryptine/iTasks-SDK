@@ -25,13 +25,7 @@ guiDemoExample
 	, note			:: Maybe Note
 	}
 
-derive gPrint		Person, Address
-derive gParse		Person, Address
-derive gVisualize	Person, Address
-derive gUpdate		Person, Address
-derive gHint		Person, Address
-derive gError		Person, Address
-
+derive class iTask	Person, Address
 derive bimap (,), Maybe
 
 address = {Address | street = "Heyendaalseweg", number = 135, postalCode = "6525 AJ", city = "Nijmegen"}

@@ -105,12 +105,12 @@ where
 			TaskException e				= (TaskException e,tst)
 			
 // Parallel / Grouped composition
-derive gPrint 		PSt
-derive gParse 		PSt
 derive gVisualize 	PSt
 derive gUpdate 		PSt
 derive gError		PSt
 derive gHint		PSt
+derive JSONEncode	PSt
+derive JSONDecode	PSt
 
 derive bimap Maybe, (,)
 
@@ -125,7 +125,7 @@ where
 	execInGroup tst=:{taskNr,request}
 		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
 		# (events,tst)		= getGroupEvents (taskNrToString grTaskNr) tst
-		# eventActions		= [parseString value \\ (_, value) <- events]
+		# eventActions		= [fromJSON (fromString value) \\ (_, value) <- events]
 		# (pst,tst)   		= loadPSt grTaskNr tst
 		# (gActionStop,mbFocus,pst) 
 							= case eventActions of

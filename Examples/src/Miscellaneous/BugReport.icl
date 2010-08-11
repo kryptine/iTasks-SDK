@@ -35,13 +35,7 @@ import CommonDomain
 
 :: BugNr :== Int
 
-derive gPrint     BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis	
-derive gParse	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-derive gVisualize BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-derive gUpdate	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-derive gError	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-derive gHint	  BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
-
+derive class iTask	BugReport, Bug, BugSeverity, BugOccurance, BugStatus, BugAnalysis
 derive bimap (,), Maybe
 	
 instance DB Bug where

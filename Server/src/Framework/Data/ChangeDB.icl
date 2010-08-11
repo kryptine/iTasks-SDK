@@ -5,9 +5,10 @@ import StdFunc, StdTuple, StdList
 
 import Text
 
-derive gPrint PersistentChange
-derive gParse PersistentChange
-derive bimap Maybe
+derive JSONEncode PersistentChange
+derive JSONDecode PersistentChange
+
+derive bimap Maybe, (,)
 
 instance ChangeDB IWorld
 where

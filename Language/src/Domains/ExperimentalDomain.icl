@@ -2,14 +2,16 @@ implementation module ExperimentalDomain
 
 import iTasks, Text
 
-derive gPrint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
-derive gParse			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gMerge			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gError			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gHint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive JSONEncode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive JSONDecode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+
 derive JSONEncode		TUIFormattedText, TUIColorChooser, TUISourceCode
 derive bimap			Maybe, (,)
+
 
 mkEmptyFormattedText :: !FormattedTextControls -> FormattedText
 mkEmptyFormattedText controls = mkFormattedText "" controls

@@ -3,13 +3,8 @@ definition module FormFlowStorage
 import 	iTasks
 
 import	FormData, FlowData
-				
-derive gPrint 		FormStore, FlowStore
-derive gParse 		FormStore, FlowStore
-derive gUpdate 		FormStore, FlowStore
-derive gVisualize 	FormStore, FlowStore
-derive gError	 	FormStore, FlowStore
-derive gHint	 	FormStore, FlowStore
+
+derive class iTask	FormStore, FlowStore				
 
 :: FormStore	= 	{ formName 	:: !String
 					, formType	:: !String

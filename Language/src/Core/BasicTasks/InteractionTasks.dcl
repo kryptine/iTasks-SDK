@@ -5,7 +5,7 @@ from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
 from ProcessDB	import :: Action
-import GenPrint, GenParse, GenVisualize, GenUpdate, GenMerge, StoreTasks
+import GenVisualize, GenUpdate, GenMerge, StoreTasks
 
 // This type class contains types that may be used as
 // messages and questions: plain strings and html.

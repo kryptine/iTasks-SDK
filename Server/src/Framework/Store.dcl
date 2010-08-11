@@ -10,8 +10,7 @@ definition module Store
 * Dynamics are generally more expensive, so only when really necessary (for example to store tasks or
 * functions) should they be used.
 */
-import GenPrint
-import GenParse
+import JSON
 
 // Abstract store
 :: *Store
@@ -28,12 +27,12 @@ createStore		:: !String -> *Store
 * Store a value in the default format
 * Values are first stored in a cache, so no world is needed yet
 */
-storeValue		:: !String !a !*Store	-> *Store | gPrint{|*|}, TC a
+storeValue		:: !String !a !*Store	-> *Store | JSONEncode{|*|}, TC a
 
 /**
 * Store a value in a specific format
 */
-storeValueAs	:: 	!StoreFormat !String !a !*Store	-> *Store	| gPrint{|*|}, TC a
+storeValueAs	:: 	!StoreFormat !String !a !*Store	-> *Store	| JSONEncode{|*|}, TC a
 
 /**
 * Store raw value
@@ -43,7 +42,7 @@ storeValueAsBlob :: !String !String !*Store -> *Store
 /**
 * Load a value from the store
 */
-loadValue		:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | gParse{|*|}, TC a
+loadValue		:: !String !*Store !*World -> (!Maybe a, !*Store, !*World) | JSONDecode{|*|}, TC a
 
 /**
 * Load raw data from the store

@@ -3,7 +3,7 @@ definition module MenuTasks
 from ProcessDB	import ::Menu, ::MenuItem, ::Hotkey{..}, ::Key(..)
 from TSt		import ::Task
 from Void		import :: Void
-import StdMaybe, GenPrint, GenParse, GenVisualize, GenUpdate
+import StdMaybe, GenVisualize, GenUpdate
 
 derive class iTask Menu, MenuItem, Hotkey
 

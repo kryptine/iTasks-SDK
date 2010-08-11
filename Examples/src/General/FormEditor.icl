@@ -16,14 +16,9 @@ formEditor = workflow "Examples/Interactive Workflows/Form Editor" handleMenu
 emptyState = (("",emptyForm),NoEdit)
 setShape  ((name,form),mode) shape = ((name,{form & formShape = shape}),mode)
 
-derive	gEq 		Mode
-derive	gPrint		Mode
-derive	gParse		Mode
-derive	gUpdate		Mode
-derive	gVisualize	Mode
-derive	gError		Mode
-derive	gHint		Mode
-derive	bimap		Maybe, (,)
+derive class iTask	Mode
+derive gEq 			Mode
+derive bimap		Maybe, (,)
 
 ActionEditType	:== ActionLabel "Edit Type"
 ActionEditValue	:== ActionLabel "Edit Value"

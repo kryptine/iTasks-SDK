@@ -6,15 +6,16 @@ from StdFunc import id, const
 
 from SystemTasks import getDefaultValue
 import CoreCombinators
-import GenPrint, GenParse, GenVisualize, GenUpdate
+import GenVisualize, GenUpdate
 
 derive gVisualize		DBRef
 derive gUpdate			DBRef
-derive gPrint			DBRef
-derive gParse			DBRef
-derive gMerge			DBRef
 derive gHint			DBRef
 derive gError			DBRef
+derive gMerge			DBRef
+
+derive JSONEncode		DBRef
+derive JSONDecode		DBRef
 
 derive bimap Maybe, (,)
 

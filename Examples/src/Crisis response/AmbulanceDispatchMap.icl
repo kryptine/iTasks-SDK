@@ -7,13 +7,7 @@ import google_maps_services
 import Base64
 import DocumentDomain
 
-derive gPrint		Incident, IncidentType
-derive gParse		Incident, IncidentType
-derive gVisualize 	Incident, IncidentType
-derive gUpdate		Incident, IncidentType
-derive gError		Incident, IncidentType
-derive gHint		Incident, IncidentType
-
+derive class iTask	Incident, IncidentType
 derive bimap (,), Maybe
 
 ambulanceDispatchMapExamples :: [Workflow]

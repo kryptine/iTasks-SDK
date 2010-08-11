@@ -2,11 +2,7 @@ definition module TaskPanel
 
 import JSON, TUIDefinition, TSt, ProcessDB
 
-
-derive JSONEncode TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskPriority, TaskProgress, SubtaskInfo
-
-derive JSONEncode TaskPanel, TTCParallelContainer, TTCGroupContainer
-derive JSONEncode TTCFormContainer, TTCMonitorContainer, TTCResultContainer, TTCProcessControlContainer	
+derive JSONEncode TaskPanel
 
 :: TaskPanel
 	= TaskDone

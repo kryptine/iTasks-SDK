@@ -1,26 +1,27 @@
 implementation module TUIDefinition
 
 import JSON,StdList,StdBool,GenEq
+
 from Types import :: Document, :: DocumentId
 from ProcessDB import :: Hotkey, :: Key
 
-//derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
-//derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
-//derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey
+derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
+derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
+derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey, Key
 
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey, Key
+derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Key
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl
 derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer
 
 //TODO: Separate control elements from form-widgets
-JSONEncode{|TUIDef|} (TUIButton r) = addXType "button" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIHtmlPanel r) = addXType "panel" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIMenuButton r) = addXType "button" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIMenuItem r) = addXType "menuitem" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIMenuSeparator) = [JSONRaw "{\"xtype\":\"menuseparator\"}"]
-JSONEncode{|TUIDef|} (TUICustom r) = JSONEncode{|*|} r
+JSONEncode{|TUIDef|} (TUIButton r)				= addXType "button" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIHtmlPanel r)			= addXType "panel" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIMenuItem r)			= addXType "menuitem" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIMenuSeparator)			= [JSONRaw "{\"xtype\":\"menuseparator\"}"]
+JSONEncode{|TUIDef|} (TUICustom r)				= JSONEncode{|*|} r
 
 JSONEncode{|TUIDef|} (TUIStringControl r)		= addXType "itasks.tui.String" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUICharControl r)			= addXType "itasks.tui.Char" (JSONEncode{|*|} r)

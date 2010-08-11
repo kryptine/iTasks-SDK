@@ -8,6 +8,14 @@ import Types, TSt
 from TaskTree	import :: TaskProperties, :: TaskParallelType
 from Time		import :: Timestamp
 
+derive gVisualize Action
+derive gUpdate Action
+derive gError Action
+derive gHint Action
+
+derive JSONEncode Action
+derive JSONDecode Action
+
 /**
 * Our local process type
 */
@@ -90,9 +98,4 @@ instance ProcessDB TSt
 
 instance == Action
 
-derive gPrint Action
-derive gVisualize Action
-derive gUpdate Action
-derive gParse Action
-derive gError Action
-derive gHint Action
+

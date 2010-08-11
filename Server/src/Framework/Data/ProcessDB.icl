@@ -3,6 +3,16 @@ implementation module ProcessDB
 import StdEnv, StdGeneric, StdMaybe, GenEq
 import TSt, Store, Util, Text
 
+derive gVisualize	Action
+derive gUpdate		Action
+derive gEq			Action
+derive gHint		Action
+derive gError		Action
+derive JSONEncode	Action
+derive JSONDecode	Action
+
+derive bimap Maybe, (,)
+
 getActionIcon :: !Action -> String
 getActionIcon (ActionIcon _ icon)	= icon
 getActionIcon ActionOk				= "icon-ok"
@@ -245,15 +255,6 @@ where
 	deleteSubProcesses :: !TaskId !*TSt -> *TSt
 	deleteSubProcesses prefix tst = appIWorldTSt (deleteSubProcesses prefix) tst
 	
-derive gVisualize	Action
-derive gUpdate		Action
-derive gPrint		Action
-derive gParse		Action
-derive gEq			Action
-derive gHint		Action
-derive gError		Action
-
-derive bimap Maybe, (,)
 
 instance == Action
 where

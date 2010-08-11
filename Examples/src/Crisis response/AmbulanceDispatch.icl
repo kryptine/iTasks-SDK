@@ -62,13 +62,7 @@ allproviders  = [{name="Ambulance Post 0",id=NamedUser "ambupost0",location={str
 				,{name="Ambulance Post 9",id=NamedUser "ambupost9",location={street="Teststreet",place="Testville",coordinates=Just{lat=9.0,lon=3.0}},capacity=2}
 				]
 
-derive gPrint		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion			
-derive gParse		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
-derive gVisualize 	Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
-derive gUpdate		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
-derive gError		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
-derive gHint		Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
-
+derive class iTask	Incident, IncidentType, Location, Address, MapCoordinates, Provider, Opinion
 derive bimap (,), Maybe
 
 derive gEq IncidentType

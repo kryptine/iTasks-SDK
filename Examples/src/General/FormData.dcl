@@ -1,14 +1,8 @@
 definition  module FormData
  
 import 	iTasks
-				
-derive gPrint 		Form, FormShape
-derive gParse 		Form, FormShape
-derive gUpdate 		Form, FormShape
-derive gVisualize 	Form, FormShape
-derive gError		Form, FormShape
-derive gHint		Form, FormShape
 
+derive class iTask	Form, FormShape			
 
 :: Form			= 	{ formShape :: ![FormShape]
 			  		, formDyn	:: !Dynamic

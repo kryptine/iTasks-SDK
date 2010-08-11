@@ -11,9 +11,9 @@ from TaskTree	import :: TaskParallelType
 from Time		import :: Timestamp 
 
 from iTasks		import class iTask
-import GenVisualize, GenUpdate, GenParse, GenPrint
+import GenVisualize, GenUpdate
 
-derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, Timestamp, TaskParallelType
+derive class iTask	ProcessRef, Process, TaskProperties, SystemProperties, ManagerProperties, WorkerProperties, TaskStatus, TaskPriority, TaskProgress, TaskParallelType
 
 //Allow either typed or untyped references to lookup a process table entry
 class toProcessId a where toProcessId :: a -> ProcessId

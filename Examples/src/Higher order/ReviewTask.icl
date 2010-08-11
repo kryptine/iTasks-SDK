@@ -12,13 +12,7 @@ import CommonDomain
 // Otherwise the task is completed
 // The task itself in the example is a quotation form that needs to be filled in
 
-derive gPrint 		QForm, Review, Person, Gender
-derive gParse 		QForm, Review, Person, Gender
-derive gVisualize 	QForm, Review, Person, Gender
-derive gUpdate 		QForm, Review, Person, Gender
-derive gError 		QForm, Review, Person, Gender
-derive gHint 		QForm, Review, Person, Gender
-
+derive class iTask	QForm, Review, Person, Gender
 derive bimap (,), Maybe
 
 :: PersonData	=	{ name		:: String

@@ -1,16 +1,16 @@
 implementation module Util
 
 import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc, StdFile
-import Time, Text
+import Time, Text, Base64
 import TSt, Types
 import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
-derive gPrint	Maybe, Void, (,), (,,), (,,,), (,,,,)
-derive gParse	Maybe, Void, (,), (,,), (,,,), (,,,,)
+derive JSONEncode	Void, Either
+derive JSONDecode	Void, Either
 
-derive bimap	Maybe, (,)
+derive bimap		Maybe, (,)
 
 instance iTaskId TaskNr
 where
@@ -76,12 +76,17 @@ list2mb a = (Just a)
 
 // ******************************************************************************************************
 
-gPrint{|Dynamic|} dyn ps = ps <<- dynamic_to_string dyn
 
-gParse{|Dynamic|} expr
-	# mbstring = parseString expr
-	| isNothing mbstring = Nothing
-	= Just (string_to_dynamic {s` \\ s` <-: fromJust mbstring})
-	where
-		parseString :: Expr -> Maybe String
-		parseString expr = gParse{|*|} expr
+derive gVisualize	Timestamp
+derive gUpdate		Timestamp
+derive gHint		Timestamp
+derive gError		Timestamp
+
+JSONEncode{|Dynamic|} dyn					= [JSONString (base64Encode (dynamic_to_string dyn))]
+
+JSONDecode{|Dynamic|} [JSONString string:c]	= (Just (string_to_dynamic {s` \\ s` <-: base64Decode string}), c)
+JSONDecode{|Dynamic|} c						= (Nothing, c)
+
+JSONEncode{|Timestamp|} (Timestamp t)		= [JSONInt t]
+JSONDecode{|Timestamp|} [JSONInt t:c]		= (Just (Timestamp t), c)
+JSONDecode{|Timestamp|} c					= (Nothing, c)

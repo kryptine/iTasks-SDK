@@ -5,14 +5,8 @@ from 	StdFunc import o
 from	EstherBackend import toStringDynamic
 
 import	FormData, FlowData, TaskContainer
-				
-derive gPrint 			FormStore, FlowStore
-derive gParse 			FormStore, FlowStore
-derive gUpdate 			FormStore, FlowStore
-derive gVisualize 		FormStore, FlowStore
-derive gError	 		FormStore, FlowStore
-derive gHint	 		FormStore, FlowStore
 
+derive class iTask		FormStore, FlowStore
 derive bimap Maybe, (,)
 
 :: FormStore	= 	{ formName 	:: !String

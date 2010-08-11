@@ -5,8 +5,6 @@ import HtmlUtil
 import UserDB
 import StdOrdList
 
-derive JSONEncode UserDetails, Password
-
 userService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 userService url html path req tst
 	# (mbSessionErr,tst)	= initSession sessionParam tst
