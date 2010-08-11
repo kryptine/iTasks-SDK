@@ -24,6 +24,7 @@ import	GenPrint, GenParse, GenVisualize, GenUpdate
 :: *TSt 		=	{ taskNr 		:: !TaskNr											// for generating unique form-id's
 					, taskInfo		:: !TaskInfo										// task information available to tasks
 					, tree			:: !TaskTree										// accumulator for constructing a task tree
+					, treeType		:: !TreeType										// the type of task tree that is to be constructed
 					, newTask		:: !Bool											// does the task run for the first time
 					
 					, events		:: ![TaskEvent]									// The update events for interactive tasks
@@ -134,6 +135,7 @@ garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 * Evaluates an existing task instance
 *
 * @param Process information from the process database
+* @param The type of task tree to build
 * @param The value updates to apply
 * @param Optionally a new Change that is to be applied to this task instance
 * @param Is the instance evaluated as top node, or as subnode while evaluating a parent process
@@ -142,7 +144,7 @@ garbageCollectTaskInstance :: !ProcessId !*TSt -> (!Bool,!*TSt)
 *
 * @return The modified task state
 */
-evaluateTaskInstance :: !Process ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
+evaluateTaskInstance :: !Process !TreeType ![TaskEvent] !(Maybe ChangeInjection) !Bool !Bool !*TSt-> (!TaskResult Dynamic, !TaskTree, !*TSt)
 /**
 * Applies a change to a running task process task state.
 * 
@@ -157,13 +159,14 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 * Calculates a single task tree for a given process id
 *
 * @param The task id of the process
+* @param The type of task tree to build
 * @param The value updates to apply
 * @param The task state
 *
 * @return Just an HtmlTree when the process is found, Nothing on failure
 * @return The modified task state
 */
-calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
+calculateTaskTree :: !TaskId !TreeType ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 /**
 * Render resultpanel from a task which is not process
 *
@@ -174,16 +177,6 @@ calculateTaskTree :: !TaskId ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 * @ return The modified task state
 **/
 calculateTaskResult :: !TaskId !*TSt -> (!TaskTree, !*TSt)
-/**
-* Calculates all task trees
-*
-* @param The value updates to apply
-* @param The task state
-*
-* @return The list of task trees (task forest)
-* @return The modified task state
-*/
-calculateTaskForest :: ![TaskEvent] !*TSt -> (![TaskTree], !*TSt)
 /**
 * Lists which workflows are available
 *

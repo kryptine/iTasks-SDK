@@ -46,40 +46,45 @@ updateInformationAboutA	:: question ![TaskAction a] b a -> Task (!Action,!a) | h
 updateInformationAboutA question actions about initial = mkInteractiveTask "updateInformationAboutA" (makeInformationTask question (Just initial) (Just (visualizeAsHtmlDisplay about)) actions True)
 
 makeInformationTask :: question (Maybe a) (Maybe [HtmlTag]) ![TaskAction a] !Bool !*TSt -> (!TaskResult (!Action,!a),!*TSt) | html question & iTask a
-makeInformationTask question initial context actions actionStored tst=:{taskNr, newTask}
+makeInformationTask question initial context actions actionStored tst=:{taskNr, newTask, treeType}
 	# taskId			= taskNrToString taskNr
 	# editorId			= "tf-" +++ taskNrToString taskNr
 	# (ovalue,tst)		= readValue initial tst
 	# (omask,tst)		= readMask initial tst
 	# buttonActions		= getButtonActions actions
-	# (anyEvent,tst)	= anyEvents tst
-	| newTask || not anyEvent
-		// generate TUI definition
-		# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
-		# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
-		# buttonActions	= evaluateConditions buttonActions valid ovalue
-		# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
-		= (TaskBusy,tst)
-	| otherwise
-		//Check for events
-		# (events,tst) = getEvents tst
-		| isEmpty events
-			// no change for this task
-			# tst = setTUIUpdates [] [] tst
+	= case treeType of
+		SpineTree
 			= (TaskBusy,tst)
-		| otherwise
-			# (nvalue,nmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue omask tst
-			# (action,tst) = getAction events (map fst buttonActions) tst
-			| isJust action = (TaskFinished (fromJust action,nvalue),tst)
+		UITree
+			# (anyEvent,tst)	= anyEvents tst
+			| newTask || not anyEvent
+				// generate TUI definition
+				# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
+				# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
+				# buttonActions	= evaluateConditions buttonActions valid ovalue
+				# tst			= setTUIDef (taskPanel taskId (html question) context (Just form) (makeButtons editorId buttonActions)) (html question) menuActions tst
+				= (TaskBusy,tst)
 			| otherwise
-				# tst				= setTaskStore "value" nvalue tst
-				# tst				= setTaskStore "mask" nmask tst
-				# updpaths			= events2Paths events
-				# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths omask nmask ovalue nvalue
-				# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
-				# buttonActions		= evaluateConditions buttonActions valid nvalue
-				# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
-				= (TaskBusy, tst)
+				//Check for events
+				# (events,tst) = getEvents tst
+				| isEmpty events
+					// no change for this task
+					# tst = setTUIUpdates [] [] tst
+					= (TaskBusy,tst)
+				| otherwise
+					# (nvalue,nmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue omask tst
+					# (action,tst) = getAction events (map fst buttonActions) tst
+					| isJust action
+						= (TaskFinished (fromJust action,nvalue),tst)
+					| otherwise
+						# tst				= setTaskStore "value" nvalue tst
+						# tst				= setTaskStore "mask" nmask tst
+						# updpaths			= events2Paths events
+						# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths omask nmask ovalue nvalue
+						# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
+						# buttonActions		= evaluateConditions buttonActions valid nvalue
+						# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
+						= (TaskBusy, tst)
 where
 	readValue initial tst
 		# (mbvalue,tst)	= getTaskStore "value" tst

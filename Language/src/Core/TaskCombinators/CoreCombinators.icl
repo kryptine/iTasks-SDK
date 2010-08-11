@@ -300,7 +300,7 @@ where
 		= (result,{TSt|tst & tree = node})
 		
 createOrEvaluateTaskInstance :: !(Maybe TaskParallelType) !(Task a) !*TSt -> (!TaskResult a, !TaskTree, !*TSt) | iTask a
-createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
+createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events,treeType}
 	//Try to load the stored process for this subtask
 	# taskId		 = taskNrToString taskNr
 	# (mbProc,tst)	 = getProcess taskId tst
@@ -320,7 +320,7 @@ createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events}
 			# user				= proc.Process.properties.managerProperties.ManagerProperties.worker
 			# tst				= addSubTaskWorker taskId user mbpartype tst
 			// -> TSt in subprocess
-			# (result,tree,tst)	= evaluateTaskInstance proc events Nothing False False tst
+			# (result,tree,tst)	= evaluateTaskInstance proc treeType events Nothing False False tst
 			// <- TSt back to current process				
 			//Add parallel type after the new proc is evaluated
 			= case result of

@@ -6,7 +6,7 @@ from TSt import :: Task, :: TSt(..), :: IWorld(..), :: Store, :: HTTPRequest, ::
 from TSt import mkInstantTask, mkMonitorTask, accWorldTSt
 
 import Types
-from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..), ::TaskParallelType(..)
+from TaskTree import :: TaskTree, :: TaskInfo,  :: TaskPriority(..), ::TaskParallelType(..), :: TreeType(..)
 from TaskTree import :: TaskProperties(..), :: SystemProperties(..), :: WorkerProperties, :: ManagerProperties(..)
 
 from Time	import :: Timestamp, :: Clock(..), clock

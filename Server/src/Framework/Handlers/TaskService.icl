@@ -29,16 +29,22 @@ JSONEncode{|TaskTree|} (TTGroupedTask a0 a1 a2 a3)
 	= [JSONArray [JSONString "TTGroupedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a3]] //DOES NOT INCLUDE a2	
 
 JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1)
-	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0]]
+	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTMonitorTask a0 a1)
-	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0]]
+	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTInstructionTask a0 a1)
-	= [JSONArray [JSONString "TTInstructionTask":JSONEncode{|*|} a0]]
+	= [JSONArray [JSONString "TTInstructionTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 
 JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
-	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0]]
+	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
-	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0]]
+	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+	
+JSONEncode{|TaskOutput|} fx NoOutput		= [JSONNull]
+JSONEncode{|TaskOutput|} fx (UIOutput _)	= [JSONString "User Interface Definition"]
+JSONEncode{|TaskOutput|} fx (JSONOutput v)	= [v]
+
+JSONEncode{|InteractiveTask|} _				= [JSONNull]
 	
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
@@ -104,7 +110,11 @@ taskService url html path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# (tree,tst) = calculateTaskTree taskId [] tst
+					# treeType	= case typeParam of
+						"ui"	= UITree
+						"json"	= JSONTree
+						_		= SpineTree
+					# (tree,tst) = calculateTaskTree taskId treeType [] tst
 					# json		= JSONObject [("success",JSONBool True),("task",toJSON proc),("tree",toJSON tree)]
 					= (serviceResponse html "Task debug" taskDebugDescription url debugParams json, tst)
 		//Show / Update task user interface definition
@@ -127,7 +137,7 @@ taskService url html path req tst
 					//The menusChanged parameter is a global flag that is set when any task in the tree has
 					//changed the menu and thus the menu needs to be replaced
 					# (tree,tst=:{TSt|menusChanged}) 
-									= calculateTaskTree taskId events tst
+									= calculateTaskTree taskId UITree events tst
 					= case tree of
 						(TTMainTask ti properties menus _ content)
 							# tui			= buildTaskPanel content menus menusChanged session.Session.user
@@ -223,12 +233,13 @@ where
 	
 	listParams		= [("session",sessionParam,True),("user",userParam,False)]
 	
-	debugParams		= [("session",sessionParam,True)]
+	debugParams		= [("session",sessionParam,True),("type",typeParam,False)]
+	typeParam		= paramValue "type" req
 	
 	detailsParams	= [("session",sessionParam,True)]
 	tuiParams		= [("session",sessionParam,True),("events",eventsParam,False)]
 	eventsParam		= paramValue "events" req
-	
+
 	propParams		= [("session",sessionParam,True),("update",updateParam,False)]
 	updateParam		= paramValue "update" req
 	
