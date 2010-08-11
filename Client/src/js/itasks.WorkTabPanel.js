@@ -200,7 +200,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		
 		var  doCancel = function(btn){	
 			if(btn == "yes"){
-				var url = itasks.config.servicesUrl + "/json/tasks/" + me.taskId + "/cancel";
+				var url = itasks.config.serviceUrl + "/json/tasks/" + me.taskId + "/cancel";
 				var params = {};
 				var cb = function(data){
 					if(data.success)

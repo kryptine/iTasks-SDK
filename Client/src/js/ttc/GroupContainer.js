@@ -11,7 +11,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 		, fixedCont: new Ext.util.MixedCollection()		// collection of all fixed containers
 		, floatingCont: new Ext.util.MixedCollection()	// collection of all floating containers
 		, taskUpdates : {}
-		, url: itasks.config.servicesUrl + "/json/tasks/" + this.taskId + "/tui"
+		, url: itasks.config.serviceUrl + "/json/tasks/" + this.taskId + "/tui"
 		});
 
 		itasks.ttc.GroupContainer.superclass.initComponent.apply(this,arguments);

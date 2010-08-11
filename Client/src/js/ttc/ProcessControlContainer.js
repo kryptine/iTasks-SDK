@@ -31,18 +31,53 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 					defaultType: "staticfield",
 					unstyled: true,
 					items: [{
-						xtype: "itasks.userfield",
+						xtype: "itasks.tui.Username",
+						preventMark: true,
 						fieldLabel: "Assigned to",
 						value: this.properties.managerProperties.worker,
 						listeners: {
-							"change" : { fn: function(ov,nv) {this.findParentByType(itasks.WorkPanel).sendPropertyEvent(this.properties.systemProperties.taskId,"user",nv);}, scope: this }
+							"change" : { fn: 
+								function(fld,nv,ov) {
+									var ct = this.findParentByType(itasks.WorkPanel);
+									var url = itasks.config.serviceUrl+'/json/tasks/'+this.properties.systemProperties.taskId+ '/managerProperties/worker';
+									var upd = (nv != "")?'["NamedUser",'+Ext.encode(nv)+']':nv;
+									
+									var cb = function(response){
+										if(!response.success) {
+											Ext.Msg.alert("Error","An error has occurred: "+response.error);
+										}else{
+											ct.fireEvent("propertyChanged");
+										}
+									}									
+									
+									ct.remoteCall(url,{update: upd},cb);
+								},
+								scope: this 
+							}
 						}
 					},{
 						xtype: "itasks.priority",
 						fieldLabel: "Priority",
 						value: this.properties.managerProperties.priority, 
 						listeners: {
-							"change" : { fn: function(ov,nv) {this.findParentByType(itasks.WorkPanel).sendPropertyEvent(this.properties.systemProperties.taskId,"priority",nv);}, scope: this }
+							"change" : { fn: 
+								function(fld,nv,ov) {
+									var ct = this.findParentByType(itasks.WorkPanel);
+									var url = itasks.config.serviceUrl+'/json/tasks/'+this.properties.systemProperties.taskId+ '/managerProperties/priority';
+									var upd = Ext.encode(nv);
+									
+									var cb = function(response){
+										if(!response.success) {
+											Ext.Msg.alert("Error","An error has occurred: "+response.error);
+										}else{
+											ct.fireEvent("propertyChanged");
+										}
+									}									
+									
+									ct.remoteCall(url,{update: upd},cb);
+								},
+								scope: this 
+							}
 						}
 					},{
 						fieldLabel: "Progress",
@@ -80,19 +115,6 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 });
 
 Ext.ns('itasks.ttc.process');
-
-/*
-itasks.form.PriorityField = Ext.extend(itasks.form.InlineField, {
-	format: itasks.util.formatPriority,
-	field: {
-		xtype: "combo",
-		value: this.value,
-		store: [["HighPriority","High"],["NormalPriority","Normal"],["LowPriority","Low"]],
-		editable: false,
-		triggerAction: "all",
-		forceSelection: true
-	}
-});*/
 
 itasks.form.PriorityField = Ext.extend(Ext.form.ComboBox,{
 	store: [["HighPriority","High"],["NormalPriority","Normal"],["LowPriority","Low"]],

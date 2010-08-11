@@ -203,7 +203,7 @@ itasks.ttc.parallel.AssignWindow = Ext.extend(Ext.Window,{
 		});
 		
 		c.request({
-			url: itasks.config.servicesUrl+'/json/tasks/'+win.taskId+ '/managerProperties/worker',
+			url: itasks.config.serviceUrl+'/json/tasks/'+win.taskId+ '/managerProperties/worker',
 			params: { session: itasks.app.session, update: upd},
 			callback: function(){
 				win.close();
