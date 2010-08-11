@@ -31,7 +31,7 @@ mkTSt :: String Config HTTPRequest ![Workflow] !*Store !*World -> *TSt
 mkTSt appName config request workflows store world
 	=	{ taskNr		= []
 		, taskInfo		= initTaskInfo
-		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo [])
+		, tree			= TTMainTask initTaskInfo initTaskProperties Nothing Nothing (TTFinishedTask initTaskInfo NoOutput)
 		, newTask		= True
 		, events		= []
 		, properties	= initTaskProperties
@@ -171,7 +171,7 @@ where
 					& taskId	= taskId
 					, taskLabel	= properties.managerProperties.subject
 					}
-		= TTMainTask info properties Nothing mbParType (TTFinishedTask info [Text "Dummy"])
+		= TTMainTask info properties Nothing mbParType (TTFinishedTask info NoOutput)
 
 deleteTaskInstance :: !ProcessId !*TSt -> *TSt
 deleteTaskInstance procId tst 
@@ -295,7 +295,7 @@ where
 					& taskId	= taskId
 					, taskLabel	= properties.managerProperties.subject
 					}
-		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info [Text "Dummy"])
+		# tree		= TTMainTask info properties menus inptype (TTFinishedTask info NoOutput)
 		= {TSt| tst & taskNr = taskNr, tree = tree, events = events, staticInfo = {tst.staticInfo & currentProcessId = taskId}}	
 	
 	restoreTSt :: !TaskTree ![TaskEvent] !TaskProperties !(Maybe [Menu]) !*TSt -> *TSt
@@ -455,9 +455,9 @@ where
 	//The interactive task leaves that are normalized
 	normalizeInteractiveTasks (TTInteractiveTask ti it) tst
 		= case it of
-			(Func f)
+			(UIOutput (Func f))
 				# (it,tst) = f tst
-				= (TTInteractiveTask ti it, tst)
+				= (TTInteractiveTask ti (UIOutput it), tst)
 			_
 				= (TTInteractiveTask ti it, tst)
 	//For grouped tasks the actions are also normalized
@@ -511,13 +511,13 @@ calculateTaskResult taskId tst
 						, taskLabel			= "Unknown Process"
 						, taskDescription	= "Task Result"
 						}
-			= (TTFinishedTask info [], tst)
+			= (TTFinishedTask info NoOutput, tst)
 		Just process=:{Process|properties}
 			# tst=:{TSt | iworld=iworld=:{store,world}} = tst
 			# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world
 			# result = case mbContainer of
-				(Just dyn) = renderResult dyn
-				(Nothing)  = [Text "Cannot load result."]
+				(Just dyn) = UIOutput (renderResult dyn)
+				(Nothing)  = UIOutput [Text "Cannot load result."]
 			# info = { initTaskInfo
 			 		 & taskId = taskId
 			 		 , taskLabel = properties.managerProperties.subject
@@ -535,7 +535,7 @@ calculateTaskTree taskId events tst
 						, taskLabel			= "Deleted Process"
 						, taskDescription	= "Task Result"
 						}
-			= (TTFinishedTask info [], tst)
+			= (TTFinishedTask info NoOutput, tst)
 		Just process=:{Process|properties}
 			= case properties.systemProperties.SystemProperties.status of
 				Active
@@ -547,8 +547,8 @@ calculateTaskTree taskId events tst
 					# tst=:{TSt | iworld=iworld=:{store,world}} = tst
 					# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world				
 					# result = case mbContainer of
-						(Just dyn) = renderResult dyn
-						(Nothing) = [Text "Cannot load result."]
+						(Just dyn)	= UIOutput (renderResult dyn)
+						(Nothing)	= UIOutput [Text "Cannot load result."]
 					# info =	{ initTaskInfo
 								& taskId			= taskId
 								, taskLabel			= properties.managerProperties.subject
@@ -626,25 +626,25 @@ mkInteractiveTask	:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInteractiveTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInteractiveTask`	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTInteractiveTask taskInfo (abort "No interface definition given")}
+		= taskfun {tst & tree = TTInteractiveTask taskInfo NoOutput}
 
 mkInstantTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInstantTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInstantTask`
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTFinishedTask taskInfo []} //We use a FinishedTask node because the task is finished after one evaluation
+		= taskfun {tst & tree = TTFinishedTask taskInfo NoOutput} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMonitorTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkMonitorTask`
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
-		= taskfun {tst & tree = TTMonitorTask taskInfo []}
+		= taskfun {tst & tree = TTMonitorTask taskInfo NoOutput}
 
 mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
 mkInstructionTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInstructionTask`
 where
 	mkInstructionTask` tst =:{TSt | taskInfo}
-		= taskfun {tst & tree = TTInstructionTask taskInfo [] Nothing}
+		= taskfun {tst & tree = TTInstructionTask taskInfo NoOutput}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
 mkRpcTask taskname rpce parsefun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkRpcTask`
@@ -727,7 +727,7 @@ mkMainTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkMainTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkMainTask`
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
-		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo [])}
+		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing Nothing (TTFinishedTask taskInfo NoOutput)}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{taskNr,tree,properties,iworld=iworld=:{IWorld|store,world}}
@@ -743,7 +743,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 	# tst = {TSt|tst & taskInfo = taskInfo, newTask = isNothing taskVal, iworld = {IWorld| iworld & store = store, world = world }}
 	= case taskVal of
 		(Just (TaskFinished a))	
-			# tst = addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a)) tst
+			# tst = addTaskNode (TTFinishedTask taskInfo (UIOutput (visualizeAsHtmlDisplay a))) tst
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
@@ -766,7 +766,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 					# store					= if(gc) store (storeValue taskId result store)
 					// Store the final value and it's type as a dynamic value, so it can be visualized by the task-result service later.
 					# store					= if(gc) store (storeValueAs SFDynamic (taskId+++"-container") (dynamic (Container a) :: Container a^ a^) store)
-					# tst					= addTaskNode (TTFinishedTask taskInfo (visualizeAsHtmlDisplay a))
+					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (visualizeAsHtmlDisplay a)))
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskFinished a, tst)
 				(TaskBusy)
@@ -779,7 +779,7 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr taskfun) tst=:{tas
 				(TaskException e)
 					// Store exception
 					# store					= storeValue taskId result store
-					# tst					= addTaskNode (TTFinishedTask taskInfo [Text "Uncaught exception"])
+					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput [Text "Uncaught exception"]))
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskException e, tst)
 		
@@ -806,31 +806,31 @@ addTaskNode node tst=:{tree} = case tree of
 setTUIDef	:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
 setTUIDef def taskDescription accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Definition def accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (UIOutput (Definition def accActions))}
 		_								= tst
 
 setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
 setTUIUpdates upd accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (Updates upd accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Updates upd accActions))}
 		_								= tst
 		
 setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt -> *TSt
 setTUIFunc func taskDescription tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Func func)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (UIOutput (Func func))}
 		_								= tst
 
 setTUIMessage :: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt -> *TSt
 setTUIMessage msg taskDescription accActions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (Message msg accActions)}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask {info & taskDescription = foldl (+++) "" (map toString taskDescription)} (UIOutput (Message msg accActions))}
 		_								= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt
 setStatus msg tst=:{tree}
 	= case tree of
-		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info msg}
+		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info (UIOutput msg)}
 		_									= tst
 		
 setGroupActions :: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt -> *TSt

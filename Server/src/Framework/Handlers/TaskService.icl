@@ -21,23 +21,25 @@ derive JSONEncode HtmlTag, HtmlAttr
 //on unique states @!#$%!!
 JSONEncode{|TaskTree|} (TTMainTask a0 a1 a2 a3 a4)
 	= [JSONArray [JSONString "TTMainTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2 ++ JSONEncode{|*|} a3 ++ JSONEncode{|*|} a4]]
-JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1)
-	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0]] //DOES NOT INCLUDE a1
-JSONEncode{|TaskTree|} (TTMonitorTask a0 a1)
-	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
-JSONEncode{|TaskTree|} (TTInstructionTask a0 a1 a2)
-	= [JSONArray [JSONString "TTInstructionTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2]]
-JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
-	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTSequenceTask a0 a1)
 	= [JSONArray [JSONString "TTSequenceTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTParallelTask a0 a1 a2)
 	= [JSONArray [JSONString "TTParallelTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2]]
 JSONEncode{|TaskTree|} (TTGroupedTask a0 a1 a2 a3)
 	= [JSONArray [JSONString "TTGroupedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a3]] //DOES NOT INCLUDE a2	
-JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
-	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 
+JSONEncode{|TaskTree|} (TTInteractiveTask a0 a1)
+	= [JSONArray [JSONString "TTInteractiveTask":JSONEncode{|*|} a0]]
+JSONEncode{|TaskTree|} (TTMonitorTask a0 a1)
+	= [JSONArray [JSONString "TTMonitorTask":JSONEncode{|*|} a0]]
+JSONEncode{|TaskTree|} (TTInstructionTask a0 a1)
+	= [JSONArray [JSONString "TTInstructionTask":JSONEncode{|*|} a0]]
+
+JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
+	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0]]
+JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
+	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0]]
+	
 JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
 JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
 

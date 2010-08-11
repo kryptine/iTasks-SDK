@@ -35,7 +35,7 @@ buildTaskPanel` :: !TaskTree !(Maybe [Menu]) !Bool ![(Action, Bool, Bool)] !User
 buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 	(TTFinishedTask _ _)
 		= TaskDone
-	(TTInteractiveTask ti (Definition (def,buttons) acceptedA))
+	(TTInteractiveTask ti (UIOutput (Definition (def,buttons) acceptedA)))
 		= TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -45,7 +45,7 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}
-	(TTInteractiveTask ti (Updates upd acceptedA))
+	(TTInteractiveTask ti (UIOutput (Updates upd acceptedA)))
 		= TTCFormContainer {TTCFormContainer 
 			| xtype 	= "itasks.ttc.form"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -55,9 +55,9 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}
-	(TTInteractiveTask ti (Func f))
+	(TTInteractiveTask ti (UIOutput (Func f)))
 		= abort "Non-normalized interactive task left in task tree"
-	(TTInteractiveTask ti (Message (msg,buttons) acceptedA))
+	(TTInteractiveTask ti (UIOutput (Message (msg,buttons) acceptedA)))
 		= TTCMessageContainer {TTCMessageContainer
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
@@ -66,7 +66,7 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, subtaskId = Nothing
 			, description = ti.TaskInfo.taskDescription
 			}
-	(TTMonitorTask ti html)
+	(TTMonitorTask ti (UIOutput html))
 		= TTCMonitorContainer {TTCMonitorContainer 
 			| xtype 	= "itasks.ttc.monitor"
 			, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -74,7 +74,7 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, html 		= toString (DivTag [] html)
 			, subtaskId = Nothing
 			}
-	(TTInstructionTask ti instruction context)
+	(TTInstructionTask ti (UIOutput (instruction,context)))
 		= TTCInstructionContainer {TTCInstructionContainer 
 			| xtype 		= "itasks.ttc.instruction"
 			, id 			= "taskform-" +++ ti.TaskInfo.taskId
@@ -140,7 +140,7 @@ buildSubtaskInfo (TTMainTask _ p _ _ _)
 
 buildResultPanel :: !TaskTree -> TaskPanel
 buildResultPanel tree = case tree of 
-	(TTFinishedTask	ti result)
+	(TTFinishedTask	ti (UIOutput result))
 		= (TTCResultContainer {TTCResultContainer
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId
@@ -201,7 +201,7 @@ where
 			TTSequenceTask ti _			= ti
 			TTMainTask ti _ _ _ _		= ti
 			TTGroupedTask ti _ _ _		= ti
-			TTInstructionTask ti _ _	= ti
+			TTInstructionTask ti _ 		= ti
 			_ 							= abort "Unknown panel type in group"
 		= info
 

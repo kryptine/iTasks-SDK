@@ -339,7 +339,7 @@ makeInstructionTask instruction context tst
 	# (events, tst) = getEvents tst
 	| isEmpty events
 		= case tst.tree of
-			(TTInstructionTask ti _ _)	= (TaskBusy ,{tst & tree = TTInstructionTask ti (html instruction) context})
+			(TTInstructionTask ti _)	= (TaskBusy ,{tst & tree = TTInstructionTask ti (UIOutput (html instruction,context))})
 			_							= (TaskException (dynamic "Illegal node in makeInstructionTask"), tst)
 	| otherwise
 		= (TaskFinished Void,tst)
