@@ -52,7 +52,7 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 			shadow: false,
 			items: {
 				xtype: 'form',
-				url: '/services/json/sessions/create',
+				url: itasks.config.serviceUrl + "/json/sessions/create",
 				baseCls: 'x-plain',
 				style: 'padding: 5px',
 				layout: 'absolute',
@@ -63,9 +63,11 @@ itasks.LoginWindow = Ext.extend(Ext.Window, {
 							x: 0,
 							y: 0,
 							xtype: 'label',
-							style: "color: red; font-weight: bold; background: url('skins/" + itasks.config.skin + "/img/loginwindow.png')",
+							style: "background: url('skins/" + itasks.config.skin + "/img/loginwindow.png') no-repeat;" +
+								   "padding-left: 65px; padding-top: 20px; font-size: 16px; font-weight: bold;",
 							width: 300,
-							height: 40
+							height: 55,
+							text: itasks.app.application
 						},{
 							x: 55,
 							y: 45,

@@ -15,7 +15,7 @@ itasks.ResultPanel = Ext.extend(itasks.RemoteDataPanel, {
 			autoDestroy: true,
 			iconCls: 'icon-task-result',
 			layout: 'border',
-			url: itasks.config.servicesUrl+'/json/tasks/'+this.taskId+'/result/tui',
+			url: itasks.config.serviceUrl+ "/json/tasks/" + this.taskId+ "/result/tui",
 			params: {},
 			items: [{
 				xtype: 'itasks.result-header',
