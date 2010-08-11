@@ -42,8 +42,8 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 									var url = itasks.config.serviceUrl+'/json/tasks/'+this.properties.systemProperties.taskId+ '/managerProperties/worker';
 									var upd = (nv != "")?'["NamedUser",'+Ext.encode(nv)+']':nv;
 									
-									var cb = function(response){
-										if(!response.success) {
+									var cb = function(response,success){
+										if(!response.success || !success) {
 											Ext.Msg.alert("Error","An error has occurred: "+response.error);
 										}else{
 											ct.fireEvent("propertyChanged");
@@ -66,8 +66,8 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 									var url = itasks.config.serviceUrl+'/json/tasks/'+this.properties.systemProperties.taskId+ '/managerProperties/priority';
 									var upd = Ext.encode(nv);
 									
-									var cb = function(response){
-										if(!response.success) {
+									var cb = function(response,success){
+										if(!response.success || !success) {
 											Ext.Msg.alert("Error","An error has occurred: "+response.error);
 										}else{
 											ct.fireEvent("propertyChanged");

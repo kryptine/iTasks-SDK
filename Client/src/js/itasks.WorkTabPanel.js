@@ -94,32 +94,29 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.getComponent(0).setBusy(false);
 		},this);
 	},
-	update: function(data) {
-
+	update: function(data,success) {
 		//Check if the task is finished or became redundant
-		if(data.tui == "done" || data.tui == "redundant") {
+		if(success == false || data.tui == "done" || data.tui == "redundant") {
 			
 			var ct = this.getComponent(1);
 			
 			if(ct.items && ct.items.length) {
 				ct.remove(0);
 			}
-			switch(data.tui) {
-				case "done":	
-					ct.add({
-						xtype: 'itasks.ttc.finished',
-						msg: "This task is completed. Thank you."
-					});
-					this.fireEvent("taskDone");
-					break;
-				case "redundant":
-					ct.add({
-						xtype: 'itasks.ttc.finished',
-						msg: "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort."
-					});
-					this.fireEvent("taskRedundant");
-					break;	
+
+			if(!success || data.tui == "redundant"){
+				msg = "The completion of this task is no longer required.<br />It has been removed. Thank you for your effort.";
+				this.fireEvent("taskRedundant");
+			}else{
+				msg = "This task is completed. Thank you.";
+				this.fireEvent("taskDone");
 			}
+			
+			ct.add({
+				xtype: 'itasks.ttc.finished',
+				msg: msg
+			});
+		
 			ct.doLayout();			
 			
 			var tp = this.findParentByType("itasks.worktabs");
@@ -134,7 +131,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 					}
 				}
 			);
-			
 			return;
 		}
 		//Update properties
@@ -204,7 +200,9 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				var params = {};
 				var cb = function(data){
 					if(data.success)
-						(function(){me.refresh()}).defer(50);
+						(function(){
+							me.update({},false); //send a blank update, this will mark the tab as redundant.						
+						}).defer(50);
 					else
 						Ext.Msg.alert('Error','Failed to cancel task: '+data.error);
 				};		

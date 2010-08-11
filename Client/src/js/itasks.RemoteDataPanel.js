@@ -46,27 +46,12 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 							itasks.app.restart(data.error);
 							return;
 						}
-						callback.call(this,data);
+						callback.call(this,data,true);
 					} else {
-						callback.call(this,response.responseText);
-					}
-					
+						callback.call(this,response.responseText,true);
+					}					
 				} else {
-					var win = new Ext.Window({
-						title: "Error",
-						html: response.statusText,
-						width: 200,
-						height: 100,
-						modal: true,
-						closable: true,
-						bodyStyle: "padding: 5px",
-						buttons: [{
-							text: "Ok",
-							handler: function() {win.close();}
-						}],
-						buttonAlign: "center"
-					});
-					win.show();
+					callback.call(this,response.error,false);
 				}
 				this.busy = false;
 				this.fireEvent("remoteCallEnd");
@@ -83,7 +68,7 @@ itasks.RemoteDataPanel = Ext.extend(Ext.Panel, {
 	/*
 	* This method must be implemented to handle a refresh event
 	*/
-	update: function(data) {
+	update: function(data,success) {
 	}
 });
 
