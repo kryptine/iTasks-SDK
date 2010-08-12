@@ -39,7 +39,7 @@ where
 		  // Handler to stop the server nicely
 		   ((==) "/stop", handleStopRequest)
 		  // Webservices
-		  ,(startsWith "/services", serviceDispatch config flows)
+		  ,(startsWith config.serverPath, serviceDispatch config flows)
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]	
 	//Always add the workflows for administering the itask system
@@ -47,8 +47,10 @@ where
 
 	serviceDispatch config flows req world
 		# tst				= initTSt req config flows world
-		# (response,tst) = case (split "/" (http_urldecode req.req_path)) of
-			["","services",format:path]
+		# reqpath			= (http_urldecode req.req_path)
+		# reqpath			= reqpath % (size config.serverPath, size reqpath)
+		# (response,tst) = case (split "/" reqpath) of
+			["",format:path]
 				# html = format == "html"
 				# json = format == "json"
 				| html || json
@@ -66,7 +68,7 @@ where
 				= (notFoundResponse req, tst)
 		# tst		= flushStore tst
 		= (response, HTTPServerContinue, finalizeTSt tst)
-	
+
 workflow :: !String !(Task a) -> Workflow | iTask a
 workflow path task =
 	{ Workflow

@@ -11,7 +11,7 @@ import StdMaybe
 	, rootPassword	:: !String	// Password for the 'root' superuser (default 'root').
 	, sessionTime	:: !Int		// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, serverPort	:: !Int		// The TCP port the server runs on. Default is 80.
-	, serverPath	:: !String	// The path at which the services are served (default /handlers)
+	, serverPath	:: !String	// The path at which the services are served (default /services)
 	, debug			:: !Bool	// Run the server in debug mode.
 	}
 

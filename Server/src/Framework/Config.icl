@@ -14,7 +14,7 @@ defaultConfig =
 	, rootPassword	= "root"
 	, sessionTime	= 3600
 	, serverPort	= 80
-	, serverPath	= "/handlers"
+	, serverPath	= "/services"
 	, debug			= False
 	}
 
