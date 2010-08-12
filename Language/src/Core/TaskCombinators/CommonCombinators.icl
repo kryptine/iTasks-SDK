@@ -237,7 +237,7 @@ repeatTask task pred a =
 		=			taska
 		>>= \r -> 	case pred r of
 						(True,_) -> return r
-						(False,msg) -> showStickyMessage msg ||- (taska <| pred)
+						(False,msg) -> showStickyMessage "Feedback" msg r -||- (taska <| pred)
 
 
 // ******************************************************************************************************

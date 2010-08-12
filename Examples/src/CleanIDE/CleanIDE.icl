@@ -114,7 +114,7 @@ editAppStateOptions desc get putback sid =
 	>>|			stop
 	
 handleErrors :: !FileException -> Task Void
-handleErrors (FileException path _) = showMessageAbout "Error" ("Could not open '" +++ path +++ "'!") <<@ ExcludeGroupActions
+handleErrors (FileException path _) = (showMessageAbout "Error" "Error" ("Could not open '" +++ path +++ "'!") >>| return Void )<<@ ExcludeGroupActions
 	
 ActionCompile				:== ActionLabel "compile"
 ActionEditCodeGenOptions	:== ActionLabel "codeGenOpts"
@@ -207,15 +207,15 @@ where
 	compile` =
 						save sid
 		>>|				compileToExe sid
-		>>= \exeDoc.	showMessageAbout "Download Executable" exeDoc <<@ ExcludeGroupActions
+		>>= \exeDoc.	(showMessageAbout "Download" "Download Executable" exeDoc >>| return Void )<<@ ExcludeGroupActions 
 	
-	handleCompilerExceptions e = showMessageAbout "Compiler Errors" msg <<@ ExcludeGroupActions
+	handleCompilerExceptions e = (showMessageAbout "Errors" "Compiler Errors" msg >>| return Void )<<@ ExcludeGroupActions 
 	where
 		msg = case e of
 			CannotRunCompiler msg	= ["Unable to run compiler: " +++ msg]
 			CompilerErrors errs		= errs
 			
-	handleFileExceptions (FileException path _) = showMessageAbout "Save Error" ("Unnable to write to '" +++ path +++ "'")
+	handleFileExceptions (FileException path _) = showMessageAbout "Save Error" "Save Error" ("Unnable to write to '" +++ path +++ "'") >>| return Void
 
 openFile :: !Path !(DBid AppState) -> Task Void
 openFile path sid =
@@ -257,7 +257,7 @@ findAndReplace sid = findAndReplace` {searchFor = "", replaceWith = ""}
 where
 	findAndReplace` replace =
 								ExcludeGroupActions @>>
-								updateInformationA "Find & Replace" [ButtonAction (ActionCancel, Always), ButtonAction (ActionReplaceAll, IfValid), ButtonAction (ActionFind, IfValid)] replace
+								updateInformationA "Find & Replace" "Find & Replace" [ButtonAction (ActionCancel, Always), ButtonAction (ActionReplaceAll, IfValid), ButtonAction (ActionFind, IfValid)] replace
 		>>= \(action, replace).	case action of
 									ActionReplaceAll =
 													readDB sid

@@ -55,9 +55,9 @@ where
 	mapMonad fun [d:ds] = fun d >>= \nd -> mapMonad fun ds >>= \nds -> return [nd:nds] 
 
 translate :: !FlowShape -> Task Dynamic
-translate (Editor prompt)		= return (dynamic DF0 (updateInformation prompt)	:: A.a: DF0 a a 	| iTask a)
+translate (Editor prompt)		= return (dynamic DF0 (updateInformation "Edit" prompt)	:: A.a: DF0 a a 	| iTask a)
 
-translate (DisplayIt prompt)	= return (dynamic DF0 (showMessageAbout prompt)		:: A.a: DF0 a Void 	| iTask a)
+translate (DisplayIt prompt)	= return (dynamic DF0 (\v -> showMessageAbout "Display" prompt v >>| return Void)	:: A.a: DF0 a Void 	| iTask a)
 translate Return			  	= return (dynamic DF0 (\v -> return v) 				:: A.a: DF0 a a 	| iTask a)
 
 translate (Or (left, right))	= flowShapeToFlowDyn left >>= \leftflow -> flowShapeToFlowDyn right >>= \rightflow -> checkOr leftflow rightflow

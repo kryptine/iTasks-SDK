@@ -283,7 +283,7 @@ mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 *
 * @return Void
 */
-mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
+mkInstructionTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Creates an rpc task from an rpc call definition.
 * A parse function is used to parse the result of the rpc call
@@ -374,6 +374,7 @@ setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for i
 setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt			-> *TSt //Only for interactive tasks
 setTUIMessage 		:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt		-> *TSt //Only for interactive tasks
 setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
+setInstruction		:: ![HtmlTag] !(Maybe [HtmlTag]) !*TSt							-> *TSt //Only for instruction tasks
 setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 

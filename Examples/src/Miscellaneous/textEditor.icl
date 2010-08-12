@@ -54,8 +54,8 @@ openDialog :: !(MDITasks EditorState a) -> Task GAction
 openDialog mdiTasks =
 				getAllFileNames
 	>>= \files.	if (isEmpty files)
-					(showMessageAbout "Open File" "No files to open!" >>| continue)
-					(										enterChoiceA "Open File" buttons files
+					(showMessage "Open File" "No files to open!" GContinue)
+					(										enterChoiceA "Open file" "Open File" buttons files
 						>>= \(action,(name, Hidden fid)).	case action of
 					 										ActionOk	=	open fid mdiTasks True
 					 										_			=	continue
@@ -93,9 +93,7 @@ where
 	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
 
 about :: Task GAction
-about =
-		showMessageAbout "About" "iTextEditor July 2010"
-	>>|	continue
+about = showMessageAbout "About" "iTextEditor July 2010" GContinue
 
 quit :: !(MDIIterateEditors EditorState Bool) -> Task GAction	
 quit iterateEditors =
@@ -149,7 +147,7 @@ save eid =
 
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
-						enterInformationA "Save As: enter name" buttons <<@ ExcludeGroupActions
+						enterInformationA "Save as" "Save As: enter name" buttons <<@ ExcludeGroupActions
 	>>= \(action,name).	case action of
 							ActionOk =
 																readDB eid
@@ -169,7 +167,7 @@ replaceT eid = replaceT` {searchFor = "", replaceWith = ""}
 where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
-								updateInformationA "Replace" buttons repl <<@ ExcludeGroupActions
+								updateInformationA "Replace" "Replace" buttons repl <<@ ExcludeGroupActions
 		>>= \(action, repl).	case action of
 									ActionReplaceAll =
 											modifyDB eid (dbReplaceFunc repl)
@@ -226,11 +224,11 @@ requestClosingFile :: !EditorStateRef -> Task Bool
 requestClosingFile eid =
 	readDB eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
-										(					showMessageAboutA "Save changes?" buttons (question file) <<@ ExcludeGroupActions
+										(					showMessageAboutA "Save changes" "Save changes?" buttons (question file) <<@ ExcludeGroupActions
 											>>= \action.	case action of
-																ActionCancel	= return True
-																ActionNo		= return False
-																ActionYes		= save eid >>| return False
+																(ActionCancel,_)	= return True
+																(ActionNo,_)		= return False
+																(ActionYes,_)		= save eid >>| return False
 										)
 										(return False)
 where

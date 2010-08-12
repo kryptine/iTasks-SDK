@@ -34,15 +34,15 @@ handleMenu
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val
-		=						showMessageAboutA title [ButtonAction (Refresh, Always):actions] val 
+		=						showMessageAboutA title title [ButtonAction (Refresh, Always):actions] val 
 			>>= \choice ->		readAllForms
 			>>= \allForms 	->	readAllFlows
 			>>= \allFlows	->	case choice of
-									ShowForms	-> doMenu "Stored Forms" 				(myForm allForms)
-									ShowFlows	-> doMenu "Stored Workflows" 			(myFlows allFlows)
-									ShowAll		-> doMenu "Stored Forms and Workflows" 	(myForm allForms ++ myFlows allFlows)
-									Refresh		-> doMenu title val
-									ActionQuit	-> return Void
+									(ShowForms,_)	-> doMenu "Stored Forms" 				(myForm allForms)
+									(ShowFlows,_)	-> doMenu "Stored Workflows" 			(myFlows allFlows)
+									(ShowAll,_)		-> doMenu "Stored Forms and Workflows" 	(myForm allForms ++ myFlows allFlows)
+									(Refresh,_)		-> doMenu title val
+									(ActionQuit,_)	-> return Void
 
 	myForm allForms 	= ["Forms:", "" 	: [form.formName +++ " :: " +++ form.formType \\ form <- allForms]]
 	myFlows allFlows 	= ["Workflows:", "" : [flow.flowName +++ " :: " +++ flow.flowType \\ flow <- allFlows]]

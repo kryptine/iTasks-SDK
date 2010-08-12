@@ -293,6 +293,7 @@ where
 	taskParts (TTInteractiveTask ti val)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput json = json; _ = JSONNull)]]
 	taskParts _								= []
+	
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
 detailsDescription		:== "This service provides all meta-properties of a running task instance."

@@ -34,10 +34,10 @@ deleteUser user = mkInstantTask "deleteUser" (mkTaskFunction ('UserDB'.deleteUse
 chooseUser :: !question -> Task User | html question
 chooseUser question
 	= 				getUsers
-	>>= \users ->	enterChoice question users
+	>>= \users ->	enterChoice "Choose user" question users
 
 	
 chooseUserWithRole :: !question !String -> Task User | html question
 chooseUserWithRole question role
 	= 				getUsersWithRole role
-	>>= \users ->	enterChoice question users
+	>>= \users ->	enterChoice "Choose user (with role)" question users

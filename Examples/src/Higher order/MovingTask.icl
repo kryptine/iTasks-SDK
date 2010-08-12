@@ -29,8 +29,8 @@ trivialTask = getDefaultValue >>= fillInForm
 
 fillInForm :: QForm -> Task QForm
 fillInForm form	
-	= 				updateInformation "Please fill in quotation:" form 
-	>>= \form ->	requestConfirmationAbout "Is everything filled in correctly?" form
+	= 				updateInformation "Quote information" "Please fill in quotation:" form 
+	>>= \form ->	requestConfirmationAbout "Check" "Is everything filled in correctly?" form
 	>>= \ok	->		if ok (return form) (fillInForm form) 
 
 movingTask (label,task)
@@ -42,7 +42,7 @@ where
 		>>= 		inspect
 
 	inspect wid
-	=					enterChoice "Go ahead impatient boss:" 
+	=					enterChoice "Task options" "Go ahead impatient boss:" 
 							[ getStatus wid <<@ Subject "Get status"
 							, suspend wid <<@ Subject "Suspend"
 							, activate wid <<@ Subject "Activate"
@@ -58,23 +58,21 @@ where
 		>>= \st	->			getProcessOwner wid
 		>>= \mbOwner ->		if (isNothing mbOwner) (return ["???"]) (return [toString (fromJust mbOwner)])
 		>>= \names ->		case st of
-								Finished	-> showMessage "It is finished" >>| return True
-								Deleted		-> showMessage "It is deleted" >>| return True		
-								Active		-> showMessage ("User " <+++ hd names <+++ " is working on it") >>| return False		
-								Suspended	-> showMessage ("It is suspended, user " <+++ hd names <+++ " was working on it") >>| return False		
+								Finished	-> showMessage "Task finished" "It is finished" True
+								Deleted		-> showMessage "Task deleted" "It is deleted" True		
+								Active		-> showMessage "Task busy" ("User " <+++ hd names <+++ " is working on it") False		
+								Suspended	-> showMessage "Task suspended" ("It is suspended, user " <+++ hd names <+++ " was working on it") False		
 	suspend wid
 	=						suspendProcess wid
-		>>|					showMessage "workflow is suspended"
-		>>|					return False
+		>>|					showMessage "Task suspended" "workflow is suspended" False
 								
 	activate wid
 	=						activateProcess wid
-		>>|					showMessage "workflow is activated"
-		>>|					return False
+		>>|					showMessage "Task activated" "workflow is activated" False
 
 	delete wid
 	=						killProcess wid 
-		>>| 				return True				
+		>>| 				showMessage "Task deleted" "workflow is deleted" True				
 
 	reassign wid
 	=						selectUser "Who is next?"
@@ -82,14 +80,14 @@ where
 		>>| 				return False
 
 	waitForIt wid
-	=						showStickyMessage "Waiting for the result..." ||- waitForProcess wid
+	=						showStickyMessage "Waiting" "Waiting for the result..." Void ||- waitForProcess wid
 		>>= \(Just res) -> 	deleteProcess wid 
-		>>| 				showMessageAbout "Finished, the result = " res
+		>>| 				showMessageAbout "Finished" "Finished, the result = " res 
 		>>|					return False
 
 	
 selectUser :: !String -> Task User
 selectUser question
 	= 						getUsers
-		>>= \users ->		enterChoice question users
+		>>= \users ->		enterChoice question question users
 

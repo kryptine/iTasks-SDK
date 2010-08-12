@@ -18,33 +18,31 @@ deadlineTaskExample
 	= [ workflow "Examples/Higher order/Deadline task" (Subject "Do task before deadline" @>> (deadline trivialTask))]
 
 trivialTask :: Task Int
-trivialTask = enterInformation "Enter a number larger than 42" <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
+trivialTask = enterInformation "Initial number" "Enter a number larger than 42" <| (\n -> if (n <= 42) (False,[Text ("Error " <+++ n <+++ " should be larger than 42")]) (True,[]))
 
 deadline :: (Task a) -> Task a | iTask a
 deadline task
 =					chooseUser "Choose person you want to delegate work to:"
-	>>= \whom ->	enterInformation "How long do you want to wait?" 
+	>>= \whom ->	enterInformation "Wait time" "How long do you want to wait?" 
 	>>= \time ->	(delegateTask whom time task)
 					-||-
-					(showMessage "Cancel delegated work if you are getting impatient:" >>| return Nothing)
+					(showMessage "Cancel..." "Cancel delegated work if you are getting impatient:" Nothing)
 	>>= 			checkDone
 where
 	checkDone (Just value)
-		= showMessageAbout "Result of task:" value >>| return value
+		= showMessageAbout "Task result" "Result of task:" value
 	checkDone Nothing
-		= showMessage "Task expired or canceled, you have to do it yourself!" >>| task
+		= showMessage "No result" "Task expired or canceled, you have to do it yourself!" Void >>| task
 
 	delegateTask who time task
 	= who  @: (Subject "Timed Task" @>> mytask)
 	where
 		mytask
 		=			// wait for timeout and return nothing
-					( waitForTimer time
-					  >>| return Nothing
-					)									
+					( waitForTimer time >>| return Nothing)									
 		 			-||-
 		 			// do task and return its result
-		  			( showStickyMessage ("You have to complete the task in " <+++ time <+++ " time")
+		  			( showStickyMessage "Hurry!" ("You have to complete the task in " <+++ time <+++ " time") Void
 		  			  ||- task 
 					  >>= \v -> return (Just v)
 					)				

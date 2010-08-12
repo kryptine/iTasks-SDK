@@ -28,10 +28,10 @@ delegateTaskExample
   ]
 */
 trivialTask :: Task Int
-trivialTask =			enterInformation "Enter nr 1" 
-			>>= \v1 ->	enterInformation "Enter nr 2"  
-			>>= \v2 ->	enterInformation "Enter nr 3" 
-			>>= \v3 -> 	updateInformation "Your result is:" (v1 + v2 + v3)
+trivialTask =			enterInformation "Nr 1" "Enter nr 1" 
+			>>= \v1 ->	enterInformation "Nr 2" "Enter nr 2"  
+			>>= \v2 ->	enterInformation "Nr 3" "Enter nr 3" 
+			>>= \v3 -> 	updateInformation "Result" "Your result is:" (v1 + v2 + v3)
 
 /*
 delegateTask :: (Task a) HtmlTime -> (Task a) | iData a
@@ -63,7 +63,7 @@ determineSet :: [User] -> Task [User]
 determineSet people = determineSet`
 where
 	determineSet`	
-	=					enterChoiceAbout "Current set:" people
+	=					enterChoiceAbout "Choose people" "Current set:" people
 						[ cancelTask choosePerson <<@ Subject "Add Person"
 						, return Nothing <<@ Subject "Finished"
 						] 	
@@ -74,5 +74,5 @@ where
 
 	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user)
 
-	cancelTask task = task -||- (showMessage "Cancel task?" >>| getDefaultValue )
+	cancelTask task = task -||- (getDefaultValue >>= showMessage "Cancel..." "Cancel task?")
 	

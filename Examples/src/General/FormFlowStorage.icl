@@ -50,33 +50,33 @@ readAllFlows = dbReadAll
 
 newFormName :: !Form -> Task (!String, !Form)
 newFormName form
-	=						enterInformation "Give name of new Form:" 
+	=						enterInformation "New form" "Give name of new Form:" 
 		>>= \name ->		readAllForms
 		>>= \allForms ->	case [this \\ this <- allForms | this.formName == name] of
 								[] -> 					    getDefaultValue
 											>>= \item -> 	dbCreateItem {item & form = form, formType = showDynType form.formDyn, formName = name}
 											>>|				return (name,form) 
-								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).formType)
+								found ->	requestConfirmation "Form exists" ("Name already exists, do you want to overwrite" +++ (hd found).formType)
 								 			>>= \ok -> if ok (return (name,form)) (newFormName form)
 
 newFlowName :: !Flow -> Task (!String, !Flow)
 newFlowName flow
-	=						enterInformation "Give name of new flow:" 
+	=						enterInformation "New flow" "Give name of new flow:" 
 		>>= \name ->		readAllFlows
 		>>= \allFlows ->	case [this \\ this <- allFlows | this.flowName == name] of
 								[] -> 						getDefaultValue 
 											>>= \item -> 	dbCreateItem {item & flow = flow, flowType = showDynType flow.flowDyn, flowName = name} 
 											>>|				return (name,flow) 
-								found ->	requestConfirmation ("Name already exists, do you want to overwrite" +++ (hd found).flowType )
+								found ->	requestConfirmation "Flow exists" ("Name already exists, do you want to overwrite" +++ (hd found).flowType )
 								 			>>= \ok -> if ok (return (name,flow)) (newFlowName flow)
 chooseForm :: Task (!String, !Form)
 chooseForm   
 	=						readAllForms
 		>>= \all ->			let names = [showName this \\ this <- all] in
 								case names of
-								 [] ->					updateInformation "No Forms stored !" Void
+								 [] ->					updateInformation "No forms" "No Forms stored !" Void
 								 		>>|				return ("", emptyForm)
-								 names ->				enterChoice "Choose Form you want to use:" names
+								 names ->				enterChoice "Choose form" "Choose Form you want to use:" names
 										>>= \choice ->	return (hd [(this.formName, this.form) \\ this <- all | showName this == choice])
 where
 	showName this = this.formName +++ " :: " +++ this.formType
@@ -86,15 +86,15 @@ chooseFlow
 	=						readAllFlows
 		>>= \all ->			let names = [showName this \\ this <- all] in
 								case names of
-								 [] ->					updateInformation "No Flows stored !" Void
+								 [] ->					updateInformation "No flows" "No Flows stored !" Void
 								 		>>|				return ("", emptyFlow)
-								 names ->				enterChoice "Choose Flow you want to use:" names
+								 names ->				enterChoice "Choose flow" "Choose Flow you want to use:" names
 										>>= \choice ->	return (hd [(this.flowName, this.flow) \\ this <- all | showName this == choice])
 where
 	showName this = this.flowName +++ " :: " +++ this.flowType
 
 newName fun f 
-	=		enterInformation "Type in another name " >>= \name -> fun (name, f)
+	=		enterInformation "New name" "Type in another name " >>= \name -> fun (name, f)
 
 storeForm :: !(String, !Form) -> Task (!String, !Form) // item assumed to be in store
 storeForm (name, form)

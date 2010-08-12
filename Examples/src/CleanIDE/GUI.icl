@@ -51,7 +51,7 @@ where
 editOptions :: !description !state !(state -> opts) !(opts state -> state) -> Task state | html description & iTask state & iTask opts
 editOptions description st getOpts putbackOpts =
 						ExcludeGroupActions @>>
-						updateInformationA description [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] (getOpts st)
+						updateInformationA "Edit options" description [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] (getOpts st)
 	>>= \(action,opts).	case action of
 							ActionOk		= return (putbackOpts opts st)
 							ActionCancel	= return st

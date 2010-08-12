@@ -17,7 +17,7 @@ changeExamples =
   	]
 where
 	catch :: String -> Task Void
-	catch message  = showMessage message
+	catch message  = showMessage "Error!" message Void
 
 //Simple change which will run once and change the priority of all tasks to high
 changePriority :: TaskPriority -> ChangeDyn
@@ -33,7 +33,7 @@ addWarning msg =
 	dynamic change  :: A.a: Change a | iTask a
 where
 	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Nothing, Just (((showStickyMessage (redText msg) >>| getDefaultValue) -||- t)), Just (addWarning msg))
+	change props t t0 = (Nothing, Just (((getDefaultValue >>= showStickyMessage "Warning!" (redText msg)) -||- t)), Just (addWarning msg))
 
 redText msg = [DivTag [StyleAttr "color: red; font-size: 30px;"] [Text msg]]
 
@@ -59,7 +59,7 @@ inform user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess user True True (showMessageAbout ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> spawnProcess user True True (showMessageAbout "Process ended" ("Process " +++ procName +++ " ended!") res) >>| return res), Nothing)
 
 //check will pass the result to the indicated user who can change the result in an editor before it passed.
 check :: User String -> ChangeDyn
@@ -67,7 +67,7 @@ check user procName =
 	dynamic change user :: A.a: Change a | iTask a
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change user props t t0 = (Nothing, Just (t >>= \res -> assign user (HighPriority @>> (updateInformation ("Please verify result of " +++ procName) res))), Nothing)
+	change user props t t0 = (Nothing, Just (t >>= \res -> assign user (HighPriority @>> (updateInformation "Verification" ("Please verify result of " +++ procName) res))), Nothing)
 
 //cancel stop the process, and give the indicated user the responsibility to fill in the result
 cancel ::  String ProcessId -> ChangeDyn
@@ -100,12 +100,12 @@ where
 changePrio :: Task Void
 changePrio
 	=				chooseProcess "Of which process do you want to change the priority?"			
-	>>= \proc -> 	enterInformation "What should the new priority be?"
+	>>= \proc -> 	enterInformation "New priority" "What should the new priority be?"
 	>>= \priority ->applyChangeToProcess proc (changePriority priority) (CLPersistent "priority")
 
 changeWarningTask :: Task Void
 changeWarningTask
-	=				enterInformation "Type in warning you want to show to all:"
+	=				enterInformation "Warning" "Type in warning you want to show to all:"
 	>>= \warning ->	chooseProcess "Which process do you want to change?"			
 	>>= \proc ->	applyChangeToProcess proc (addWarning warning) (CLPersistent "warning")
 
@@ -155,7 +155,7 @@ restartTask
 chooseUserA :: !question -> Task User | html question
 chooseUserA question
 	= 						getUsers
-	>>= \users ->			enterChoiceA question buttons users
+	>>= \users ->			enterChoiceA "Choose user" question buttons users
 	>>= \(action,user) ->	case action of
 										ActionCancel -> throw "choosing a user has been cancelled"
 										_ ->			return user
@@ -164,11 +164,12 @@ chooseProcess :: String -> Task ProcessId
 chooseProcess question
 	=								getCurrentProcessId
 	>>= \mypid ->					getProcessesWithStatus [Active]
-	>>= \procs ->					enterChoiceA question buttons [	( proc.Process.taskId
-																	, proc.Process.properties.managerProperties.subject
-																	, proc.Process.properties.managerProperties.priority
-																	, proc.Process.properties.managerProperties.ManagerProperties.worker)
-																	\\ proc <- procs | proc.Process.taskId <> mypid]
+	>>= \procs ->					enterChoiceA question question buttons
+										[	( proc.Process.taskId
+											, proc.Process.properties.managerProperties.subject
+											, proc.Process.properties.managerProperties.priority
+											, proc.Process.properties.managerProperties.ManagerProperties.worker)
+											\\ proc <- procs | proc.Process.taskId <> mypid]
 	>>= \(action,(pid,_,_,_)) ->	case action of
 										ActionCancel -> throw "choosing a process has been cancelled"
 										_ ->			return pid

@@ -7,7 +7,7 @@ coffeemachineExample :: [Workflow]
 coffeemachineExample = [ workflow "Examples/Miscellaneous/Coffeemachine" coffeemachine ]
 
 coffeemachine :: Task (String,Currency)
-coffeemachine  =				enterChoice "Choose product"
+coffeemachine  =				enterChoice "Product" "Choose your product"
 									[("Coffee", EUR 100)
 									,("Cappucino", EUR 150)
 									,("Tea", EUR 50)
@@ -19,7 +19,7 @@ getCoins :: String (Currency,Currency) -> Task (String,Currency)
 getCoins product (cost,paid) = getCoins`
 where
 	getCoins`		
-		=			enterChoiceA  [ Text ("Chosen product: " <+++ product), BrTag[]
+		=			enterChoiceA  "Insert coins" [ Text ("Chosen product: " <+++ product), BrTag[]
 					              , Text ("To pay: " <+++ cost), BrTag []
 					              , Text "Please insert a coin..."
 					              ] actions coins 
@@ -34,7 +34,6 @@ where
 	| cost > coin	= getCoins product (cost-coin, paid+coin)
 	| otherwise		= show product (coin-cost)
 	
-	show product money = showMessage [ Text ("product = " <+++ product) , BrTag[]
+	show product money = showMessage "Coffemaker+" [ Text ("product = " <+++ product) , BrTag[]
 									 , Text ("money returned = " <+++ money)
-									 ]
-						>>| return (product,money)
+									 ] (product,money)

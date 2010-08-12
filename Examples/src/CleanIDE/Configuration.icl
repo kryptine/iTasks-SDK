@@ -4,8 +4,6 @@ import iTasks, JSON, GUI, AppState
 
 derive class iTask			IDEConfig
 derive class SharedVariable	IDEConfig
-derive JSONDecode			IDEConfig, Path, PathStep
-derive JSONEncode			IDEConfig, Path, PathStep
 derive bimap				Maybe, (,)
 
 loadConfig :: Task (Maybe IDEConfig)
@@ -48,10 +46,10 @@ where
 													True = return (config, GotoNext)
 													False =
 																		pathToPDString config.projectsPath
-														>>= \prjPath.	requestConfirmation ("Directory '" +++ prjPath +++ "' does not exist. Should it be created?")
+														>>= \prjPath.	requestConfirmation "Create directory" ("Directory '" +++ prjPath +++ "' does not exist. Should it be created?")
 														>>= \create.	if create
 																			(let
-																				handleException = (\CannotCreate -> showMessageAbout "Error" ("Could not create '" +++ prjPath +++ "'!") >>| return (config, GotoPrevious))
+																				handleException = (\CannotCreate -> showMessageAbout "Error" "Error" ("Could not create '" +++ prjPath +++ "'!") >>| return (config, GotoPrevious))
 																			in
 																				(try (createDirectory config.projectsPath >>| return (config, GotoNext)) handleException)
 																			)
@@ -70,7 +68,7 @@ where
 									>>= \ok.	if ok
 													(return (config, GotoNext))
 													(					pathToPDString config.oldIDEPath
-														>>= \idePath.	showMessageAbout "Error" ("'" +++ idePath +++ "' does not exist!")
+														>>= \idePath.	showMessageAbout "Error" "Error" ("'" +++ idePath +++ "' does not exist!")
 														>>|				return (config, GotoPrevious)
 													)
 							)

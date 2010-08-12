@@ -36,11 +36,11 @@ derive class iTask	InstructionMsg
 mkInstruction :: Task Void
 mkInstruction
 	= 			mkMsg 
-	>>= \msg -> msg.InstructionMsg.worker @: (Subject ("Instructions regarding: "+++msg.InstructionMsg.title) @>> showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments)
+	>>= \msg -> msg.InstructionMsg.worker @: (Subject ("Instructions regarding: "+++msg.InstructionMsg.title) @>> showInstructionAbout msg.InstructionMsg.title msg.instruction msg.attachments >>| return Void)
 	
 	where
 		mkMsg :: Task InstructionMsg
-		mkMsg = enterInformation "Please write down your instructions"
+		mkMsg = enterInformation "Instructions" "Please write down your instructions"
 
 // --- Appointment Example ---
 
@@ -89,13 +89,13 @@ where
 				= (goal, [(meeting,let (user,att) = attlist!!n in updateAt n (user,yn) attlist) \\ (meeting, attlist,_,Editable yn) <- props])
 
 	meetingGoal	:: Task Appointment
-	meetingGoal = enterInformation "Describe the topic of the meeting:"	
+	meetingGoal = enterInformation "Topic" "Describe the topic of the meeting:"	
 
 	defineParticipants :: Task [User]
-	defineParticipants = enterInformation "Select participants:"
+	defineParticipants = enterInformation "Participants" "Select participants:"
 
 	defineOptions :: Task [Meeting]
-	defineOptions = enterInformation "Define date and time options:"
+	defineOptions = enterInformation "Options" "Define date and time options:"
 
 // ====== CHAT =====================================================
 derive class iTask	Chat, ChatMessage, ChatView, ChatMessageView
@@ -142,11 +142,11 @@ where
 	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
 
 	selectFriends :: Task [User]
-	selectFriends = enterInformation "Whom do you want to chat with?"
+	selectFriends = enterInformation "Select friends" "Whom do you want to chat with?"
 	
 	initiateChat :: (DBid Chat) User [User] -> Task Void
 	initiateChat chatbox friend friends
-		=	requestConfirmation ("Do you want to initiate a chat with "+++printFriends+++"?")
+		=	requestConfirmation "Confirm" ("Do you want to initiate a chat with "+++printFriends+++"?")
 		>>= \yes -> if yes
 						(initSession >>| chatSession chatbox friend)
 						(return Void)
@@ -239,7 +239,7 @@ where
 	
 	addUsers :: (DBid Chat) -> Task Void
 	addUsers chatbox
-		= 			 	enterInformation "Select users to add to the chat"	
+		= 			 	enterInformation "Select users" "Select users to add to the chat"	
 		>>= \users -> 	readDB chatbox
 		>>= \chat ->	allTasks ([spawnProcess u True True (Subject "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
 		>>| 		 	return Void
@@ -274,7 +274,7 @@ listToMb a = Just a
 
 internalBroadcast :: (Task Broadcast)
 internalBroadcast
-=									enterInformation "Type your broadcast message ..."
+=									enterInformation "Compose" "Type your broadcast message ..."
 	>>= \msg ->						getCurrentUser
 	>>= \me ->						getUsers
 	>>= \users ->					broadcast me msg users
@@ -285,39 +285,39 @@ where
 		=			return msg
 	broadcast me msg [u:us] 
 		=			spawnProcess u True True
-						(showMessageAbout ("You have received the following broadcast message from " <+++ displayName me) msg <<@ Subject msg.Broadcast.subject)
+						(showMessageAbout "Broadcast message" ("You have received the following broadcast message from " <+++ displayName me) msg <<@ Subject msg.Broadcast.subject)
 			>>|			broadcast me msg us 
 				
 
 internalEmail :: (Task EMail)
 internalEmail
-=									enterInformation "Type your email message ..."
+=									enterInformation "Compose" "Type your email message ..."
 	>>= \msg ->						getCurrentUser
 	>>= \me ->						allProc [who @>> (spawnProcess who True True (mailMess me msg <<@ Subject msg.EMail.subject)) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
-mailMess me msg = showMessageAbout ("Mail from " <+++ displayName me <+++ ":") msg 
+mailMess me msg = showMessageAbout "Mail" ("Mail from " <+++ displayName me <+++ ":") msg >>| return Void
 
 internalEmailConf :: (Task EMail)
 internalEmailConf
-=						enterInformation "Type your email message ..."
+=						enterInformation "Compose" "Type your email message ..."
 	>>= \msg ->			getCurrentUser
 	>>= \me ->			allProc [who @>> (mailMess me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>|					return msg
 	
 internalEmailReply :: (Task (EMail,[Reply])) 
 internalEmailReply
-=					enterInformation "Type your email message ..."
+=					enterInformation "Compose" "Type your email message ..."
 	>>= \msg ->		getCurrentUser
 	>>= \me ->		allProc [who @>> ( mailMess2 me msg <<@ Subject msg.EMail.subject) \\ who <- [msg.to:mbToList msg.cc]] Closed
-	>>= \reply ->	showMessageAbout "The following replies have been commited:" reply
+	>>= \reply ->	showMessageAbout "Replies" "The following replies have been commited:" reply
 	>>|				return (msg,map snd reply)
 
 mailMess2 :: User EMail -> Task (ReplyHdr, Reply)
 mailMess2 me msg 
-	= 	(showStickyMessageAbout ("Mail from " <+++ displayName me <+++ ":") msg 
-	  	||- updateInformation "The sender requested a reply..." 
+	= 	(showStickyMessageAbout "New mail" ("Mail from " <+++ displayName me <+++ ":") msg 
+	  	||- updateInformation "Reply" "The sender requested a reply..." 
    				(HtmlDisplay {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = Nothing }))
 					<<@Subject  msg.EMail.subject
 		>>= \(HtmlDisplay hdr,reply) -> return (hdr,reply)
@@ -380,26 +380,26 @@ handleMenu
 		>>= \me ->		initMenu groups >>| doMenu me groups
 where
 	doMenu me groups
-		=						showMessageA "Newsgroup reader, select from menu..." (actions groups)
+		=						showMessageA "Newsgroup reader" "Newsgroup reader, select from menu..." (actions groups) Void
 			>>= switch
 	where
-		switch ActionCancel 					= 												doMenu me groups
-		switch ActionNew 						= addNewsGroup 								>>| handleMenu
-		switch (ActionParam "SubscribeTo" group)= subscribeProcess me group					>>| doMenu me groups
-		switch ActionShowAbout 					= showMessage "Newsgroup Reader vrs. 2.0" 	>>| doMenu me groups
-		switch 	_ 								= return Void
+		switch (ActionCancel,_) 					= 															doMenu me groups
+		switch (ActionNew,_) 						= addNewsGroup 											>>| handleMenu
+		switch (ActionParam "SubscribeTo" group,_)	= subscribeProcess me group								>>| doMenu me groups
+		switch (ActionShowAbout,_) 					= showMessage "About" "Newsgroup Reader vrs. 2.0" Void 	>>| doMenu me groups
+		switch 	_ 									= return Void
 
 addNewsGroup :: (Task Void)
 addNewsGroup	
 	=						readNewsGroups
-		>>= \groups ->		enterInformationAboutA "Enter new news group name to add:"  okCancel groups 
+		>>= \groups ->		enterInformationAboutA "New group" "Enter new news group name to add:"  okCancel groups 
 		>>= switch
 where
 	switch 	(ActionCancel,_) = return Void
 	switch 	(_,newName) 	
 		= 					readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
-		>>= \groups ->		requestConfirmationAbout "Do you want to add more?" groups 
+		>>= \groups ->		requestConfirmationAbout "More groups?" "Do you want to add more?" groups 
 		>>= \yn ->			if yn addNewsGroup (return Void)
 	
 subscribeProcess me group = spawnProcess me True True (readNews 1 me group 0 <<@ Subject (group <+++ " newsgroup reader"))
@@ -432,15 +432,15 @@ readNews nmessage me group index
 where
 	readNews` nmessage me group index	
 	=						readNewsGroup group 
-		>>= \newsItems ->	showMessageAboutA ("Newsgroup " <+++ group) (readactions nmessage index (length newsItems)) (messageList nmessage newsItems)
+		>>= \newsItems ->	showMessageAboutA "Read news" ("Newsgroup " <+++ group) (readactions nmessage index (length newsItems)) (messageList nmessage newsItems)
 		>>= switch
 	where
-		switch ActionPrevious 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
-		switch ActionRefresh 	= 								readNews` nmessage me group index
-		switch ActionNext 		= readMoreNews nmessage 	>>= readNews` nmessage me group
-		switch ActionCommit 	= commitItem group 			>>| readNews` nmessage me group index
-		switch (ActionParam _ n)= 								readNews (toInt n) me group index
-		switch _ 				= return Void
+		switch (ActionPrevious,_) 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
+		switch (ActionRefresh,_) 	= 								readNews` nmessage me group index
+		switch (ActionNext,_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
+		switch (ActionCommit,_) 	= commitItem group 			>>| readNews` nmessage me group index
+		switch (ActionParam _ n,_)	= 								readNews (toInt n) me group index
+		switch _ 					= return Void
 
 		readMoreNews offset
 		=					readIndex me group
@@ -458,14 +458,14 @@ where
 			>>= \user ->      			commit user group
 		where
 			commit me group
-			=							enterInformationA "Type your message ..." okCancel
+			=							enterInformationA "Message" "Type your message ..." okCancel
 			 	>>= switch
 			where
 				switch (ActionCancel,_) = return Void
 				switch (_,note)
 					=					readNewsGroup  group 
 						>>= \news ->	writeNewsGroup group (news ++ [(me,note)]) 
-			 			>>|				showMessage ("Message commited to newsgroup " <+++ group) 
+			 			>>|				showMessage "Committed" ("Message commited to newsgroup " <+++ group) Void
 	
 		messageList nmessage newsItems
 		= 	[show i newsItem \\ newsItem <- newsItems%(index,index+nmessage-1) & i <- [index..]]

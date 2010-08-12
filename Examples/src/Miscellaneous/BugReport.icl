@@ -53,32 +53,31 @@ bugReportExample
 	 
 reportBugVerySimple :: Task Note
 reportBugVerySimple
-	=	enterInformation "Please describe the bug you have found"
+	=	enterInformation "Describe bug" "Please describe the bug you have found"
 	>>=	\report ->
 		assign (NamedUser "bas")
-			(Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
-	>>| return report
+			(Subject "Bug Report" @>> showInstructionAbout "Fix bug" "The following bug has been reported, please fix it." report)
 
 reportBugSimple :: Task BugReport
 reportBugSimple
-	=	enterInformation "Please describe the bug you have found"
+	=	enterInformation "Describe bug" "Please describe the bug you have found"
 	>>=	\report ->
 		assign (NamedUser "bas")
 			(Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." report)
 	>>| return report
 
 //Different variant of simple reportBug
-bugReport :: Task Void
+bugReport :: Task BugReport
 bugReport = reportBug >>= fixBug
 where
 	reportBug :: Task BugReport
-	reportBug = enterInformation "Please describe the bug you found"
+	reportBug = enterInformation "Describe bug" "Please describe the bug you found"
 	
-	fixBug :: BugReport -> Task Void
+	fixBug :: BugReport -> Task BugReport
 	fixBug bug = NamedUser "bas" @: (Subject "Bug Report" @>> showInstructionAbout "Fix bug"  "The following bug has been reported, please fix it." bug)
 
 //Main workflow	  
-reportBug :: Task Void
+reportBug :: Task Bug
 reportBug
 	=	enterBugReport
 	>>= \report ->
@@ -92,7 +91,7 @@ reportBug
 			_
 				=	assignBug bug False
 
-assignBug :: Bug Bool -> Task Void
+assignBug :: Bug Bool -> Task Bug
 assignBug bug critical
 	=	selectDeveloper bug.report.BugReport.application
 	>>=	\developer ->
@@ -103,7 +102,7 @@ where
 	priority = if critical HighPriority NormalPriority
 	subject  = if critical "Critical bug!" "Bug"
 
-resolveBug :: Bug Bool -> Task Void
+resolveBug :: Bug Bool -> Task Bug
 resolveBug bug critical
 	=	analyzeBug bug
 	>>= \bug ->
@@ -114,7 +113,7 @@ resolveBug bug critical
 		( mergeFixInMainLine bug
 		  >>| wrapUp bug)
 
-wrapUp :: Bug -> Task Void
+wrapUp :: Bug -> Task Bug
 wrapUp bug
 	=	updateBug (\b -> {Bug| b & status = Repaired}) bug
 	>>= \bug ->
@@ -124,7 +123,7 @@ wrapUp bug
 
 enterBugReport :: Task BugReport
 enterBugReport
-	=	enterInformation "Please describe the bug you have found"
+	=	enterInformation "Describe bug" "Please describe the bug you have found"
 	
 fileBug :: BugReport -> Task Bug
 fileBug report
@@ -140,9 +139,9 @@ confirmCritical report
 	=	selectDeveloper report.BugReport.application
 	>>= \assessor ->
 		assign assessor
-			( Subject "Bug report assessment"
-			  @>> HighPriority @>>
-			  requestConfirmationAbout "Is this bug really critical?" report
+			( Subject "Bug report assessment" @>>
+			  HighPriority @>>
+			  requestConfirmationAbout "Confirmation" "Is this bug really critical?" report
 			)
 
 selectDeveloper :: String -> Task User
@@ -176,12 +175,12 @@ analyzeBug bug
 		dbUpdateItem {bug & analysis = Just {cause = cause, affectedVersions = []}}
 where
 	determineCause bug
-		= enterInformationAbout "What is the cause of the following bug?" bug
+		= enterInformationAbout "Cause" "What is the cause of the following bug?" bug
 		
-developBugFix :: Bug -> Task Void
+developBugFix :: Bug -> Task Bug
 developBugFix bug = showInstructionAbout "Bug fix" "Please implement a fix for the following bug:" bug
 
-mergeFixInMainLine :: Bug -> Task Void
+mergeFixInMainLine :: Bug -> Task Bug
 mergeFixInMainLine bug = showInstructionAbout "Merge" "Please merge the bugfix in the main line of version control" bug
 
 makePatches :: Bug -> Task Void
@@ -199,7 +198,7 @@ makePatches bug =
 					   ]
 			  >>| return Void
 		
-notifyReporter :: Bug -> Task Void
-notifyReporter bug = bug.reportedBy @: (Subject "Bug Report Result" @>> showMessageAbout "The bug you reported has been fixed" bug)
+notifyReporter :: Bug -> Task Bug
+notifyReporter bug = bug.reportedBy @: (showMessageAbout "Bug Report Result" "The bug you reported has been fixed" bug)
 
 //notifyUser "The bug you reported has been fixed" bug.reportedBy

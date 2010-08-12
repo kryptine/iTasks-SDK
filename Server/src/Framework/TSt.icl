@@ -626,7 +626,7 @@ where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo NoOutput}
 
-mkInstructionTask :: !String !(*TSt -> *(!TaskResult Void,!*TSt)) -> Task Void
+mkInstructionTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkInstructionTask taskname taskfun = Task {initManagerProperties & subject = taskname} initGroupedProperties Nothing mkInstructionTask`
 where
 	mkInstructionTask` tst =:{TSt | taskInfo}
@@ -818,7 +818,13 @@ setStatus msg tst=:{tree}
 	= case tree of
 		(TTMonitorTask info _)				= {tst & tree = TTMonitorTask info (UIOutput msg)}
 		_									= tst
-		
+
+setInstruction :: ![HtmlTag] !(Maybe [HtmlTag]) !*TSt -> *TSt
+setInstruction instruction context tst=:{tree}
+	= case tree of
+			(TTInstructionTask ti _)	= {tst & tree = TTInstructionTask ti (UIOutput (instruction,context))}
+			_							= tst
+			
 setGroupActions :: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt -> *TSt
 setGroupActions actions tst=:{tree}
 	= case tree of
