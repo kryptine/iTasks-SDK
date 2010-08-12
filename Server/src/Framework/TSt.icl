@@ -831,6 +831,11 @@ setFocusCommand tag tst=:{tree}
 		(TTGroupedTask info tasks actions _)	= {tst & tree = TTGroupedTask info tasks actions (Just tag)}
 		_										= tst
 
+setJSONValue :: !JSONNode !*TSt -> *TSt
+setJSONValue json tst=:{tree}
+	= case tree of
+		(TTInteractiveTask info _)				= {tst & tree = TTInteractiveTask info (JSONOutput json)}
+
 /**
 * Store and load the result of a workflow instance
 */

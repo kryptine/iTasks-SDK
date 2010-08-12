@@ -55,6 +55,9 @@ makeInformationTask question initial context actions actionStored tst=:{taskNr, 
 	= case treeType of
 		SpineTree
 			= (TaskBusy,tst)
+		JSONTree
+			# tst = setJSONValue (toJSON ovalue) tst
+			= (TaskBusy,tst)
 		UITree
 			# (anyEvent,tst)	= anyEvents tst
 			| newTask || not anyEvent

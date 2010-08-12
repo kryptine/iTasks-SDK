@@ -9,9 +9,6 @@ import TaskPanel
 
 derive bimap (,), Maybe
 
-
-//derive JSONEncode Process, Menu, MenuItem, Hotkey, Key, Action
-
 //Additional derives for debugging
 derive JSONEncode TaskParallelInfo, TaskInfo
 derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
@@ -45,10 +42,6 @@ JSONEncode{|TaskOutput|} fx (UIOutput _)	= [JSONString "User Interface Definitio
 JSONEncode{|TaskOutput|} fx (JSONOutput v)	= [v]
 
 JSONEncode{|InteractiveTask|} _				= [JSONNull]
-
-	
-//JSONEncode{|Timestamp|}	(Timestamp x)	= JSONEncode{|*|} x
-//JSONDecode{|Timestamp|} [JSONInt x:c]	= (Just (Timestamp x),c)
 
 taskService :: !String !Bool ![String] !HTTPRequest *TSt -> (!HTTPResponse, !*TSt)
 taskService url html path req tst
@@ -100,7 +93,9 @@ taskService url html path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# json = JSONObject [("success",JSONBool True),("task",toJSON (taskItem proc))]
+					# (tree,tst) = calculateTaskTree taskId JSONTree [] tst
+					# task = JSONObject (taskProperties proc ++ [("parts", JSONArray (taskParts tree))]) 
+					# json = JSONObject [("success",JSONBool True),("task",task)]
 					= (serviceResponse html "Task details" detailsDescription url detailsParams json, tst)
 		//Dump the raw tasktree datastructure
 		[taskId,"debug"]
@@ -287,6 +282,17 @@ where
 			False 
 				= (JSONObject [("success", JSONBool False),("error", JSONString ("Cannot update '"+++param+++"' property"))],tst) 
 
+	taskProperties :: Process -> [(String,JSONNode)]
+	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
+
+	taskParts :: TaskTree -> [JSONNode]
+	taskParts (TTMainTask _ _ _ _ tree)		= taskParts tree
+	taskParts (TTSequenceTask _ trees)		= flatten (map taskParts trees)
+	taskParts (TTParallelTask _ _ trees)	= flatten (map taskParts trees)	
+	taskParts (TTGroupedTask _ trees _ _)	= flatten (map taskParts trees)
+	taskParts (TTInteractiveTask ti val)
+		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput json = json; _ = JSONNull)]]
+	taskParts _								= []
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
 detailsDescription		:== "This service provides all meta-properties of a running task instance."

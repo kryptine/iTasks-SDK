@@ -377,6 +377,8 @@ setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
 setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 
+setJSONValue		:: !JSONNode !*TSt												-> *TSt
+
 //EVENTS
 /**
 * Get the events (name/value pairs) for the current task
