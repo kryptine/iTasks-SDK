@@ -15,7 +15,6 @@ import Http, HttpUtil
 from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
 
 import Setup
-import RPCHandlers
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
 import HtmlUtil
@@ -37,13 +36,10 @@ engine mbConfig userFlows
 where
 	handlers config
 		= [
-		  //'old' handlers
-		   ((==) (config.serverPath +++ "/rpc/request"), handleSessionRequest config flows handleRPCListRequest)
-		  ,((==) (config.serverPath +++ "/rpc/response"), handleSessionRequest config flows handleRPCUpdates)
+		  // Handler to stop the server nicely
+		   ((==) "/stop", handleStopRequest)
 		  // Webservices
 		  ,(startsWith "/services", serviceDispatch config flows)
-		  // Handler to stop the server nicely
-		  ,((==) "/stop", handleStopRequest)
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]	
 	//Always add the workflows for administering the itask system
