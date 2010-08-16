@@ -24,13 +24,7 @@ lists = [ workflow "List Management/New List" newList
 	, flagged		:: Bool
 	}
 
-derive gPrint ListDBItem, List, ListItem
-derive gParse ListDBItem, List, ListItem
-derive gVisualize ListDBItem, List, ListItem
-derive gUpdate ListDBItem, List, ListItem
-derive gError ListDBItem, List, ListItem
-derive gHint ListDBItem, List, ListItem
-
+derive class iTask ListDBItem, List, ListItem
 derive gMerge ListDBItem, List, ListItem
 
 derive bimap Maybe, (,)
@@ -41,11 +35,11 @@ getListDB = mkDBid "ListDB"
 newList :: Task Void
 newList = readDB getListDB
 	>>= \ldb -> 	getCurrentUser
-	>>= \me -> 		enterChoice "What kind of list do you want to create?" ["Note","Date","Document"]
+	>>= \me -> 		enterChoice "Choose list" "What kind of list do you want to create?" ["Note","Date","Document"]
 	>>= \ltype ->	initList ltype
 	>>= \list ->	createDB list
 	>>= \dbid ->	writeDB getListDB [dbid:ldb]
-	>>| showMessage "List is succesfully created."
+	>>| showMessage "Success" "List is succesfully created." Void
 where
 	initList :: String -> Task ListDBItem
 	initList type = case type of
@@ -58,9 +52,9 @@ where
 		_ 
 			= initListNote >>= \l -> return (NoteList l)
 	
-	initListNote = enterInformation "Edit List"
-	initListDate = enterInformation "Edit List"
-	initListDoc  = enterInformation "Edit List"
+	initListNote = enterInformation "Note list" "Edit List"
+	initListDate = enterInformation "Date list" "Edit List"
+	initListDoc  = enterInformation "Document list" "Edit List"
 
 editList :: Task Void
 editList = getCurrentUser
@@ -70,18 +64,12 @@ editList = getCurrentUser
 pushList :: Task Void
 pushList = getCurrentUser
 	>>= \me -> 	selectList me
-	>>= \id -> 	enterInformation "To whom do you want to push this list?"
+	>>= \id -> 	enterInformation "User" "To whom do you want to push this list?"
 	>>= \usr ->	enterMsg usr 
 	>>= \msg -> usr @: ((showInstructionAbout ("Request to edit list from "+++toString me) "Press 'Done' to continue to the list editor" msg) >>| listEditor id)
 where
 	enterMsg :: User -> Task Note
-	enterMsg user = enterInformation ("What would you like ask from "+++toString user+++"?")
-/*
-pushListItem :: Task Void
-pushListItem = getCurrentUser
-	>>= \me -> selectList me
-	>>= \id -> 
-*/	
+	enterMsg user = enterInformation "Message" ("What would you like ask from "+++toString user+++"?")
 
 selectList :: User -> Task (DBid (ListDBItem))
 selectList user 
@@ -89,7 +77,7 @@ selectList user
 	= readDB getListDB
 		>>= \db -> sequence "Reading DB" [getListItem id \\ id <- db]
 		>>= \items -> sequence "Get Info" [getListInfo item id \\ item <- items & id <- db | isMember user (getOwners item) || isMember "chair" roles]
-		>>= \info -> enterChoice "Please select the list you wish to edit" info
+		>>= \info -> enterChoice "Choose list" "Please select the list you wish to edit" info
 		>>= \choice -> return (fromHidden (snd choice))	
 where
 	getListItem :: (DBid ListDBItem) -> Task ListDBItem

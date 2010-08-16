@@ -14,7 +14,7 @@ derive bimap Maybe, (,)
 
 manageGroups :: Task Void
 manageGroups = buildGroups 
-	>>= \groups 	-> updateInformation "Please assign users to groups" groups
+	>>= \groups 	-> updateInformation "Group assignment" "Please assign users to groups" groups
 	>>= \ngroups	-> getUsers
 	>>= \users		-> removeAllGroupsFromUsers users
 	>>|				   assignGroupsToUsers ngroups users
@@ -53,7 +53,7 @@ where
 
 listGroups :: Task Void
 listGroups = buildGroups
-	>>= showMessageAbout "This is the current assignment of roles"
+	>>= showMessageAbout "Role assignment" "This is the current assignment of roles" >>| return Void
 
 getUserGroups :: Task [String]
 getUserGroups = buildGroups
