@@ -93,7 +93,7 @@ where
 	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
 
 about :: Task GAction
-about = showMessageAbout "About" "iTextEditor July 2010" GContinue
+about = showMessage "About" "iTextEditor July 2010" GContinue
 
 quit :: !(MDIIterateEditors EditorState Bool) -> Task GAction	
 quit iterateEditors =

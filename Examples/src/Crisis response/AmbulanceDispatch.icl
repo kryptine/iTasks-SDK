@@ -72,7 +72,7 @@ reportIncident
   = enterIncident >>= chooseResponse >>= allTasks
 where
   enterIncident :: Task Incident
-  enterIncident = enterInformation "Incident" "Describe the incident"
+  enterIncident = enterInformation "Incident report" "Describe the incident"
 
   chooseResponse :: Incident -> Task [Task Void]
   chooseResponse incident

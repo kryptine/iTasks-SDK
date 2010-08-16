@@ -11,7 +11,7 @@ from TSt		import applyTask, mkSequenceTask, mkParallelTask
 from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store
 from SessionDB	import :: Session
-from TaskTree	import :: TaskTree, :: TaskParallelInfo{..}, :: TaskParallelType{..}
+from TaskTree	import :: TaskTree, :: TaskParallelType{..}
 from CommonDomain	import :: Note
 
 import TaskTree

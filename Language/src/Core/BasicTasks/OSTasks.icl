@@ -16,7 +16,7 @@ pathToPDString :: !Path -> Task String
 pathToPDString path = accWorld (pathToPD_String path)
 
 callProcessBlocking :: !Path ![String] -> Task Int
-callProcessBlocking cmd args = mkInstantTask "callProcess" callProcess`
+callProcessBlocking cmd args = mkInstantTask "Call process (blocking)" "Running command" callProcess`
 where
 	callProcess` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (os,world)	= worldGetToolbox world
@@ -30,10 +30,9 @@ where
 		| otherwise		= (TaskFinished ret, tst)
 
 callProcess :: !message !Path ![String] -> Task Int | html message
-callProcess msg cmd args = mkMonitorTask "callProcess" callProcess`
+callProcess msg cmd args = mkMonitorTask "Call process" ("Running command: " +++ (toString (html msg))) callProcess`
 where
 	callProcess` tst
-		# tst						= setStatus (html msg) tst
 		# (mbHandle, tst)			= getTaskStore "handle" tst
 		# tst=:{TSt|iworld=iworld=:{IWorld|world}}
 									= tst
@@ -79,7 +78,7 @@ mkCmdString path args world
 	= (foldl (\cmd arg -> cmd +++ " " +++ arg) pathStr args, world)
 		
 readTextFile :: !Path -> Task String
-readTextFile path = mkInstantTask "readTextFile" readTextFile`
+readTextFile path = mkInstantTask "Read text file" "Read a text file" readTextFile`
 where
 	readTextFile` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (pathStr, world)	= pathToPD_String path world
@@ -105,7 +104,7 @@ where
 		| otherwise		= readFile file [str:acc]
 		
 writeTextFile :: !String !Path -> Task Void
-writeTextFile text path = mkInstantTask "writeTextFile" writeTextFile`
+writeTextFile text path = mkInstantTask "Write text file" "Write a text file" writeTextFile`
 where
 	writeTextFile` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (pathStr, world)	= pathToPD_String path world
@@ -122,14 +121,14 @@ where
 	fileException pathStr prob = (dynamic (FileException pathStr prob))
 
 fileExists :: !Path -> Task Bool
-fileExists path = mkInstantTask "fileExists" fileExists`
+fileExists path = mkInstantTask "File exists check" "Check if a file exists" fileExists`
 where
 	fileExists` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (pathStr, world) = pathToPD_String path world
 		= (TaskFinished (winFileExists pathStr), {TSt|tst & iworld = {IWorld|iworld & world = world}})
 
 isDirectory :: !Path -> Task Bool
-isDirectory path = mkInstantTask "isDirectory" isDirectory`
+isDirectory path = mkInstantTask "Directory check" "Check if a path is a directory" isDirectory`
 where
 	isDirectory` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (pathStr, world) = pathToPD_String path world
@@ -144,7 +143,7 @@ where
 					}
 					
 createDirectory :: !Path -> Task Void
-createDirectory path = mkInstantTask "createDirectory" createDirectory`
+createDirectory path = mkInstantTask "Create directory" "Create a directory on the server's filesystem" createDirectory`
 where
 	createDirectory` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (pathStr, world)	= pathToPD_String path world
@@ -162,7 +161,7 @@ where
 					}
 		
 getAppPath :: Task String
-getAppPath = mkInstantTask "getAppPath" getAppPath`
+getAppPath = mkInstantTask "Get application path" "Determine the path of the server executable" getAppPath`
 where
 	getAppPath` tst=:{TSt|iworld=iworld=:{IWorld|world}}
 		# (os,world)	= worldGetToolbox world

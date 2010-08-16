@@ -11,7 +11,7 @@ itasks.ttc.InteractionBase = Ext.extend(Ext.Panel, {
 		{ layout: 'anchor'
 		, taskUpdates : {}
 		, url: itasks.config.serverUrl + '/work/tab'
-		, items: [this.descpanel,this.panel]
+		, items: [this.subjectpanel,this.descriptionpanel,this.panel]
 		, unstyled: true
 		, autoScroll: true
 		});

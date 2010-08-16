@@ -7,22 +7,22 @@ import TSt, DocumentDB, ExtToMime, Text, Util
 CHUNK_SIZE :== 1024
 
 importDocument :: !String -> Task Document
-importDocument filename = mkInstantTask ("Import of document " +++ filename) (readDocument filename)
+importDocument filename = mkInstantTask "Document import" ("Import of document " +++ filename) (readDocument filename)
 
 importTextFile :: !String -> Task String
-importTextFile filename = mkInstantTask ("Import of text file " +++ filename) (fileTask filename readAll)
+importTextFile filename = mkInstantTask  "Text file import" ("Import of text file " +++ filename) (fileTask filename readAll)
 
 importCSVFile :: !String -> Task [[String]]
-importCSVFile filename = mkInstantTask ("Import of CSV file " +++ filename) (fileTask filename readCSVFile)
+importCSVFile filename = mkInstantTask "CSV file import" ("Import of CSV file " +++ filename) (fileTask filename readCSVFile)
 
 importCSVFileWith :: !Char !Char !Char !String -> Task [[String]]
-importCSVFileWith delimitChar quoteChar escapeChar filename = mkInstantTask ("Import of CSV file " +++ filename) (fileTask filename (readCSVFileWith delimitChar quoteChar escapeChar))
+importCSVFileWith delimitChar quoteChar escapeChar filename = mkInstantTask "CSV file import" ("Import of CSV file " +++ filename) (fileTask filename (readCSVFileWith delimitChar quoteChar escapeChar))
 
 importJSONFile :: !String -> Task a | JSONDecode{|*|} a
-importJSONFile filename = mkInstantTask ("Import of JSON file " +++ filename) (readJSON filename fromJSON)
+importJSONFile filename = mkInstantTask "JSON file import" ("Import of JSON file " +++ filename) (readJSON filename fromJSON)
 
 importJSONFileWith :: !(JSONNode -> Maybe a) !String -> Task a
-importJSONFileWith parsefun filename = mkInstantTask ("Import of JSON file " +++ filename) (readJSON filename parsefun)
+importJSONFileWith parsefun filename = mkInstantTask "JSON file import" ("Import of JSON file " +++ filename) (readJSON filename parsefun)
 
 fileTask filename f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,file,world)	= fopen filename FReadData world

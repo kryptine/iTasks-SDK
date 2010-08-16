@@ -13,15 +13,22 @@ itasks.ttc.MessageContainer = Ext.extend(itasks.ttc.InteractionBase, {
 			xtype: 'itasks.ttc.message.panel',
 			items: data.content.form,
 			buttons: data.content.buttons
-		}
+		};
 		
-		this.descpanel = {
-			xtype: 'itasks.ttc.common.description',
-			cls: 'MessageDescription',
-			description: data.description,
+		this.subjectpanel = {
+			xtype: 'itasks.ttc.common.subject',
+			cls: 'TTCSubject',
+			subject: data.subject,
 			headerButton: this.headerButton,
 			width: 720
-		}
+		};
+		this.descriptionpanel = {
+			xtype: 'panel',
+			cls: 'TTCDescription',
+			html: data.description,
+			unstyled: true,
+			width: 720
+		};
 	},
 	
 	update: function(data){

@@ -23,7 +23,7 @@ derive bimap Maybe, (,)
 
 // Core db access
 createDBid :: Task (DBid a)
-createDBid = mkInstantTask "createDBid" createDBid`
+createDBid = mkInstantTask "Create DB id" "Create a database identifier" createDBid`
 where
 	createDBid` tst=:{taskNr} = (TaskFinished (mkDBid "DB_" +++ taskNrToString taskNr), tst)
 	
@@ -34,7 +34,7 @@ createDB init =
 	>>|			return id
 
 readDB :: !(DBid a) -> Task a | iTask a
-readDB key = mkInstantTask "readDB" readDB`
+readDB key = mkInstantTask "Read DB" "Read a value from the database" readDB`
 where
 	readDB` tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 		# (mbVal,store,world) = loadValue key store world
@@ -46,21 +46,21 @@ where
 				= (TaskFinished val,{TSt|tst & iworld = iworld})
 		
 readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
-readDBIfStored key = mkInstantTask "readDBIfStored" readDBIfStored`
+readDBIfStored key = mkInstantTask "Read DB (conditional)" "Read a value from the database, if it exists" readDBIfStored`
 where
 	readDBIfStored` tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 		# (mbVal,store,world)	= loadValue key store world
 		= (TaskFinished mbVal,{TSt|tst & iworld = {IWorld|iworld & store = store, world = world}})
 
 writeDB	:: !(DBid a) !a -> Task a | iTask a
-writeDB key value = mkInstantTask "writeDB" writeDB`
+writeDB key value = mkInstantTask "Write DB" "Write a value to the database" writeDB`
 where
 	writeDB` tst=:{TSt|iworld=iworld=:{IWorld|store}}
 		# store = storeValue key value store
 		= (TaskFinished value, {TSt| tst & iworld = {IWorld|iworld & store = store}})
 		
 deleteDB :: !(DBid a) -> Task Void
-deleteDB key = mkInstantTask "deleteDB" deleteDB`
+deleteDB key = mkInstantTask "Delete DB" "Delete a value from the database" deleteDB`
 where
 	deleteDB` tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 		# (store,world) = deleteValues key store world

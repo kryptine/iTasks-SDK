@@ -319,7 +319,7 @@ updateSharedLocal		:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s
 // This html class makes it possible to use either strings, or html as description/message/instruction
 class html a  
 where
-	html :: a -> [HtmlTag]
+	html :: a -> HtmlTag
 	
 instance html String
 instance html [HtmlTag]

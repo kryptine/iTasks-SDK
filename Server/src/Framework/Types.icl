@@ -25,6 +25,8 @@ initManagerProperties =
 	{ManagerProperties
 	| worker = AnyUser
 	, subject = ""
+	, description = ""
+	, context = Nothing
 	, priority = NormalPriority
 	, deadline = Nothing
 	, tags = []
@@ -164,8 +166,11 @@ getRoles :: !User -> [Role]
 getRoles (RegisteredUser details) = mb2list details.roles
 getRoles _ = []
 
-taskLabel :: !(Task a) -> String
-taskLabel (Task p _ _ _) = p.subject
+taskSubject :: !(Task a) -> String
+taskSubject (Task p _ _ _) = p.subject
+
+taskDescription	:: !(Task a) -> String
+taskDescription (Task p _ _ _) = p.ManagerProperties.description
 
 taskUser :: !(Task a) -> User
 taskUser (Task p _ _ _) = p.worker

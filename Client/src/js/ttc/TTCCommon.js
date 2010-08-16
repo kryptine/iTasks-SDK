@@ -155,22 +155,21 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 	}
 };
 
-itasks.ttc.common.DescriptionPanel = Ext.extend(Ext.Panel,{
+itasks.ttc.common.SubjectPanel = Ext.extend(Ext.Panel,{
 	initComponent : function(){
 		
 		Ext.apply(this,{
-			cls: this.cls + ' task-description',
 			unstyled: true
 		});
 		
 		if(Ext.isDefined(this.headerButton)) {
-			this.items = [{html: this.description, unstyled: true, columnWidth: 1}, this.headerButton];
+			this.items = [{html: this.subject, unstyled: true, columnWidth: 1}, this.headerButton];
 			this.layout = 'column';
 		} else {
-			this.items = [{html: this.description, unstyled: true}];
+			this.items = [{html: this.subject, unstyled: true}];
 		}
 
-		itasks.ttc.common.DescriptionPanel.superclass.initComponent.apply(this,arguments);
+		itasks.ttc.common.SubjectPanel.superclass.initComponent.apply(this,arguments);
 	}
 });
 
@@ -233,4 +232,4 @@ itasks.ttc.common.setupHotkeys = function(tb, parent) {
 	parent.keyMap = new Ext.KeyMap(parent.getEl(), conf);
 };
 
-Ext.reg('itasks.ttc.common.description', itasks.ttc.common.DescriptionPanel);
+Ext.reg('itasks.ttc.common.subject', itasks.ttc.common.SubjectPanel);

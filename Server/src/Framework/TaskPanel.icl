@@ -30,23 +30,25 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 		= TaskDone
 	(TTInteractiveTask ti (UIOutput (Definition (def,buttons) acceptedA)))
 		= TTCFormContainer {TTCFormContainer 
-			| xtype 	= "itasks.ttc.form"
-			, id 		= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 	= ti.TaskInfo.taskId
-			, content 	= Just {form = def, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
-			, updates 	= Nothing
-			, subtaskId = Nothing
-			, description = ti.TaskInfo.taskDescription
+			| xtype 		= "itasks.ttc.form"
+			, id 			= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 		= ti.TaskInfo.taskId
+			, subject		= ti.TaskInfo.subject
+			, description	= ti.TaskInfo.description
+			, content 		= Just {form = def, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
+			, updates 		= Nothing
+			, subtaskId 	= Nothing	
 			}
 	(TTInteractiveTask ti (UIOutput (Updates upd acceptedA)))
 		= TTCFormContainer {TTCFormContainer 
-			| xtype 	= "itasks.ttc.form"
-			, id 		= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 	= ti.TaskInfo.taskId
-			, content 	= Nothing
-			, updates 	= Just (determineUpdates upd menus menusChanged acceptedA (if (includeGroupActions ti) gActions []) ti)
-			, subtaskId = Nothing
-			, description = ti.TaskInfo.taskDescription
+			| xtype 		= "itasks.ttc.form"
+			, id 			= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 		= ti.TaskInfo.taskId
+			, subject		= ti.TaskInfo.subject
+			, description	= ti.TaskInfo.description
+			, content 		= Nothing
+			, updates 		= Just (determineUpdates upd menus menusChanged acceptedA (if (includeGroupActions ti) gActions []) ti)
+			, subtaskId 	= Nothing
 			}
 	(TTInteractiveTask ti (UIOutput (Func f)))
 		= abort "Non-normalized interactive task left in task tree"
@@ -55,35 +57,40 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			| xtype		= "itasks.ttc.message"
 			, id		= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId	= ti.TaskInfo.taskId
+			, subject	= ti.TaskInfo.subject
+			, description = ti.TaskInfo.description
 			, content	= {form = msg, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
 			, subtaskId = Nothing
-			, description = ti.TaskInfo.taskDescription
 			}
 	(TTMonitorTask ti (UIOutput html))
 		= TTCMonitorContainer {TTCMonitorContainer 
-			| xtype 	= "itasks.ttc.monitor"
-			, id 		= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 	= ti.TaskInfo.taskId
-			, html 		= toString (DivTag [] html)
-			, subtaskId = Nothing
+			| xtype 		= "itasks.ttc.monitor"
+			, id 			= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 		= ti.TaskInfo.taskId
+			, subject		= ti.TaskInfo.subject
+			, description	= ti.TaskInfo.description
+			, html 			= toString (DivTag [] html)
+			, subtaskId		= Nothing
 			}
-	(TTInstructionTask ti (UIOutput (instruction,context)))
+	(TTInstructionTask ti (UIOutput context))
 		= TTCInstructionContainer {TTCInstructionContainer 
 			| xtype 		= "itasks.ttc.instruction"
 			, id 			= "taskform-" +++ ti.TaskInfo.taskId
 			, taskId 		= ti.TaskInfo.taskId
-			, label			= ti.TaskInfo.taskLabel
-			, instruction 	= toString (DivTag [] instruction)
+			, subject		= ti.TaskInfo.subject
+			, description 	= ti.TaskInfo.description
 			, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
 			, subtaskId 	= Nothing
 			}
 	(TTRpcTask ti rpc) 
 		= TTCMonitorContainer {TTCMonitorContainer 
-			| xtype 	= "itasks.ttc.monitor"
-			, id 		= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 	= ti.TaskInfo.taskId
-			, html 		= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
-			, subtaskId	= Nothing
+			| xtype 		= "itasks.ttc.monitor"
+			, id 			= "taskform-" +++ ti.TaskInfo.taskId
+			, taskId 		= ti.TaskInfo.taskId
+			, subject		= ti.TaskInfo.subject
+			, description	= ti.TaskInfo.description
+			, html 			= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
+			, subtaskId		= Nothing
 			}
 	(TTMainTask ti mti menus _ _)
 		= TTCProcessControlContainer {TTCProcessControlContainer 
@@ -109,8 +116,8 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 		= TTCParallelContainer {TTCParallelContainer 
 								| xtype = "itasks.ttc.parallel"
 								, taskId = ti.TaskInfo.taskId
-								, label = ti.TaskInfo.taskLabel
-								, description = tpi.TaskParallelInfo.description
+								, subject = ti.TaskInfo.subject
+								, description = ti.TaskInfo.description
 								, subtaskInfo = map buildSubtaskInfo tasks
 								}
 
@@ -123,7 +130,7 @@ buildSubtaskInfo :: !TaskTree -> SubtaskInfo
 buildSubtaskInfo (TTMainTask _ p _ _ _)
 		= {SubtaskInfo	| taskId		= p.systemProperties.SystemProperties.taskId
 						, subject		= p.managerProperties.ManagerProperties.subject
-						, description	= p.managerProperties.ManagerProperties.subject
+						, description	= p.managerProperties.ManagerProperties.description
 						, delegatedTo	= toString p.managerProperties.ManagerProperties.worker
 						, finished		= case p.systemProperties.SystemProperties.status of
 											Finished	= True	//Possible improvement:			
@@ -138,7 +145,7 @@ buildResultPanel tree = case tree of
 								| xtype 	= "itasks.ttc.result"
 								, id 		= "taskform-" +++ ti.TaskInfo.taskId
 								, taskId	= ti.TaskInfo.taskId
-								, label		= ti.TaskInfo.taskLabel
+								, subject	= ti.TaskInfo.subject
 								, result	= (foldl (+++) "" (map toString result))
 								, subtaskId	= Nothing
 								})

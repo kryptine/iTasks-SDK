@@ -41,6 +41,7 @@ derive JSONEncode TaskPanel
 	, content		:: !(Maybe FormContent)
 	, updates		:: !(Maybe [TUIUpdate])
 	, subtaskId		:: !(Maybe String)
+	, subject		:: !String
 	, description	:: !String
 	}
 	
@@ -50,32 +51,35 @@ derive JSONEncode TaskPanel
 	, taskId		:: !String
 	, content		:: !FormContent
 	, subtaskId		:: !(Maybe String)
+	, subject		:: !String
 	, description	:: !String
 	}
 
 :: TTCMonitorContainer =
 	{ xtype			:: !String
 	, id 			:: !String 
-	, taskId		:: !String 
-	, html 			:: !String 
+	, taskId		:: !String
+	, html			:: !String 
 	, subtaskId 	:: !(Maybe String)
+	, subject		:: !String
+	, description	:: !String 
 	}
 	
 :: TTCInstructionContainer =
 	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !String
-	, label			:: !String
-	, instruction	:: !String
 	, context		:: !(Maybe String)
 	, subtaskId		:: !(Maybe String)
+	, subject		:: !String
+	, description	:: !String
 	}
 	
 :: TTCResultContainer =
 	{ xtype			:: !String
 	, id			:: !String
 	, taskId		:: !String
-	, label			:: !String
+	, subject		:: !String
 	, result		:: !String
 	, subtaskId		:: !(Maybe String)
 	}
@@ -90,7 +94,7 @@ derive JSONEncode TaskPanel
 :: TTCParallelContainer =
 	{ xtype			:: !String
 	, taskId		:: !String
-	, label			:: !String
+	, subject		:: !String
 	, description	:: !String
 	, subtaskInfo	:: ![SubtaskInfo]
 	}
@@ -114,8 +118,8 @@ derive JSONEncode TaskPanel
 	{ finished		:: !Bool
 	, taskId		:: !String
 	, subject		:: !String
-	, delegatedTo	:: !String
 	, description	:: !String
+	, delegatedTo	:: !String
 	}
 
 buildTaskPanel 		:: !TaskTree !(Maybe [Menu]) !Bool !User	-> TaskPanel

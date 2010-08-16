@@ -287,7 +287,7 @@ currentDateTime world
 
 instance html Note
 where
-	html (Note msg) = [Text msg]
+	html (Note msg) = Text msg
 	
 instance == Note
 where

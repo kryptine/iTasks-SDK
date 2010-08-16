@@ -12,21 +12,21 @@ derive bimap		(,), Maybe
 
 getMenus :: Task (Maybe [Menu])
 getMenus
-	= mkInstantTask "getMenus" getMenus`
+	= mkInstantTask "Get menus" "Access the menus set for the current process." getMenus`
 where
 	getMenus` tst=:{TSt|menus}
 		= (TaskFinished menus, tst)
 		
 setMenus :: ![Menu] -> Task Void
 setMenus menus
-	= mkInstantTask "setMenus" (setMenus` (Just menus))
+	= mkInstantTask "Set menus" "Set the menus for the current process." (setMenus` (Just menus))
 
 setMenus` :: !(Maybe [Menu]) !*TSt -> (!TaskResult Void,!*TSt) 		
 setMenus` menus tst
 	= (TaskFinished Void, {TSt|tst & menus = menus, menusChanged = True})
 		
 removeMenus :: Task Void
-removeMenus = mkInstantTask "removeMenus" (setMenus` Nothing)
+removeMenus = mkInstantTask "Remove menus" "Remove the menus for the current process." (setMenus` Nothing)
 
 setMenuItem :: !String !MenuItem -> Task Void
 setMenuItem updName newItem =

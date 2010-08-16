@@ -97,9 +97,9 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
-								VBlank		= [Text ""]
+								VBlank		= Text ""
 								VValue v _	= html v
-							= ([HtmlFragment htmlFrag]
+							= ([HtmlFragment [htmlFrag]]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -157,7 +157,7 @@ removeMarkers s
 
 instance html FormattedText
 where
-	html (FormattedText src _) = [RawText (removeMarkers src)]
+	html (FormattedText src _) = RawText (removeMarkers src)
 	
 instance toString FormattedText
 where
@@ -213,9 +213,9 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
-								VBlank		= [Text ""]
+								VBlank		= Text ""
 								VValue v _	= html v
-							= ([HtmlFragment htmlFrag]
+							= ([HtmlFragment [htmlFrag]]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -236,7 +236,7 @@ where
 
 instance html SourceCode
 where
-	html (SourceCode src _) = [Text src]
+	html (SourceCode src _) = Text src
 	
 instance toString SourceCode
 where
@@ -260,9 +260,9 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 		_					# htmlFrag = case old of
-								VBlank		= [Text ""]
+								VBlank		= Text ""
 								VValue v _	= html v
-							= ([HtmlFragment htmlFrag]
+							= ([HtmlFragment [htmlFrag]]
 								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
 where
 	// Use the path to the inner constructor instead of the current path.
@@ -274,7 +274,7 @@ where
 	
 instance html Color
 where
-	html (Color c) = [DivTag [StyleAttr ("background-color: #" +++ c +++ "; border: 1px solid; border-color: #ACA899; height: 10px; width: 10px;")] []]
+	html (Color c) = DivTag [StyleAttr ("background-color: #" +++ c +++ "; border: 1px solid; border-color: #ACA899; height: 10px; width: 10px;")] []
 
 instance toString Color
 where

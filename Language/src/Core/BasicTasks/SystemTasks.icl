@@ -21,29 +21,29 @@ from	iTasks import class iTask
 import	GenVisualize, GenUpdate
 
 getCurrentUser :: Task User
-getCurrentUser = mkInstantTask "getCurrentUser" getCurrentUser`
+getCurrentUser = mkInstantTask "Get current user" "Determine the currently logged in user." getCurrentUser`
 where
 	getCurrentUser` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentSession.user,tst)
 
 getCurrentProcessId :: Task ProcessId
-getCurrentProcessId = mkInstantTask "getCurrentProcessId" getCurrentProcessId`
+getCurrentProcessId = mkInstantTask "Get current process id" "Determine the process identifier of the current task instance." getCurrentProcessId`
 where
 	getCurrentProcessId` tst=:{staticInfo}
 		= (TaskFinished staticInfo.currentProcessId,tst)
 
 getContextWorker :: Task User
-getContextWorker = mkInstantTask "getContextWorker" getContextWorker`
+getContextWorker = mkInstantTask "Get context worker" "Determine the worker assigned to the current task." getContextWorker`
 where
 	getContextWorker` tst=:{TSt|properties} = (TaskFinished properties.managerProperties.worker,tst)
 
 getContextManager :: Task User
-getContextManager = mkInstantTask "getContextManager" getContextManager`
+getContextManager = mkInstantTask "Get context manager" "Determine the manager of the current task." getContextManager`
 where
 	getContextManager` tst=:{TSt|properties} = (TaskFinished properties.systemProperties.manager, tst)
 
 getDefaultValue :: Task a | iTask a
-getDefaultValue = mkInstantTask "getDefaultValue" getDefaultValue`
+getDefaultValue = mkInstantTask "Create default value" "Create a default data value." getDefaultValue`
 where
 	getDefaultValue` tst=:{TSt|iworld}
 		# (d,iworld)	= defaultValue iworld
@@ -51,7 +51,7 @@ where
 
 
 getRandomInt :: Task Int
-getRandomInt = mkInstantTask "getRandomInt" getRandomInt`
+getRandomInt = mkInstantTask "Create random integer" "Create a random number." getRandomInt`
 where
 	getRandomInt` tst
 		# (Clock seed, tst)	= accWorldTSt clock tst

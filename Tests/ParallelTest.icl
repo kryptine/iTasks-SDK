@@ -4,33 +4,30 @@ import iTasks
 
 from TaskTree import ::TaskParallelType{..}
 
-derive gPrint Either
-derive gParse Either
-
 derive bimap Maybe
 
 simpleTest :: Task Int
 simpleTest =
 	getCurrentUser >>=
-	\user -> user @: (Subject "Assigned Task" @>> enterInformation "Value 1")
+	\user -> user @: enterInformation "Assigned Task" "Value 1"
 
 orTest :: Task Int
-orTest = (enterInformation "Value 1" -||- enterInformation "Value 2")
+orTest = (enterInformation "Value1" "Enter value 1" -||- enterInformation "Value2" "Enter value 2")
 
 andTest :: Task (Int,String)
-andTest = (enterInformation "Value 1" -&&- enterInformation "Value 2")
+andTest = (enterInformation "Value 1" "Enter value 1" -&&- enterInformation "Value 2" "Enter value 2")
 
 anyTest :: Task Note
-anyTest = anyTask [enterInformation "Value 1",enterInformation "Value 2",enterInformation "Value 3"]
+anyTest = anyTask [enterInformation "Value 1" "Enter value 1" ,enterInformation "Value 2" "Enter value 2",enterInformation "Value 3" "Enter value 3"]
 
 allTest :: Task [Note]
-allTest = allTasks [enterInformation "Value 1",enterInformation "Value 2",enterInformation "Value 3"]
+allTest = allTasks [enterInformation "Value 1" "Enter value 1",enterInformation "Value 2" "Enter value 2",enterInformation "Value 3" "Enter value 3"]
 
 eitherTest :: Task (Either Note Int)
-eitherTest = eitherTask (enterInformation "Value 1") (enterInformation "Value 2")
+eitherTest = eitherTask (enterInformation "Value 1" "Enter value 1") (enterInformation "Value 2" "Enter value 2")
 
 maybeTest :: Task (Maybe (Int,Note))
-maybeTest = (enterInformation "Value 1" -&?&- enterInformation "Value 2")
+maybeTest = (enterInformation "Value 1" "Enter value 1" -&?&- enterInformation "Value 2" "Enter value 2")
 
 /*
 parExtendTest :: Task Int
@@ -48,14 +45,14 @@ where
 
 parOpenTest :: Task [Int]
 parOpenTest = 
- 	allProc [ NamedUser "erik" @>> enterInformation "Please enter a number"
- 	        , NamedUser "rinus" @>> enterInformation "Please enter a number"
+ 	allProc [ NamedUser "erik" @>> enterInformation "Number" "Please enter a number" 
+ 	        , NamedUser "rinus" @>> enterInformation "Number" "Please enter a number"
  	        ] Open
 
 parClosedTest :: Task [Int]
 parClosedTest =
-	allProc [ NamedUser "erik" @>> enterInformation "Please enter a number"
-	        , NamedUser "rinus" @>> enterInformation "Please enter a number"
+	allProc [ NamedUser "erik" @>> enterInformation "Number" "Please enter a number"
+	        , NamedUser "rinus" @>> enterInformation "Number" "Please enter a number"
 	        ] Closed
 		        
 parNestedTest1 :: Task [[Int]]
@@ -84,18 +81,18 @@ parNestedTest5 =
 
 Start :: *World -> *World
 Start world = startEngine [
-			workflow "Simple Test" (simpleTest >>= showMessageAbout "Result"),
-			workflow "Or Test" (orTest  >>= showMessageAbout "Result"),
-			workflow "And Test" (andTest  >>= showMessageAbout "Result"),
-			workflow "Any Test" (anyTest  >>= showMessageAbout "Result"),
-			workflow "All Test" (allTest  >>= showMessageAbout "Result"),
-			workflow "Either Test" (eitherTest  >>= showMessageAbout "Result"),
-			workflow "Maybe Test" (maybeTest >>= showMessageAbout "Result"),
+			workflow "Simple Test" (simpleTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Or Test" (orTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "And Test" (andTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "Any Test" (anyTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "All Test" (allTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "Either Test" (eitherTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "Maybe Test" (maybeTest >>= showMessageAbout "Result" "The result is:"),
 			//workflow "Extender Test" (parExtendTest >>= showMessageAbout "You created this many additional tasks:"),
-			workflow "Open Test" (parOpenTest >>= showMessageAbout "Result"),
-			workflow "Closed Test" (parClosedTest >>= showMessageAbout "Result"),
-			workflow "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result"),
-			workflow "Nested Test 2" (parNestedTest2 >>= showMessageAbout "Result"),
-			workflow "Nested Test 4" (parNestedTest4 >>= showMessageAbout "Result"),
-			workflow "Nested Test 5" (parNestedTest5 >>= showMessageAbout "Result")
+			workflow "Open Test" (parOpenTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Closed Test" (parClosedTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 2" (parNestedTest2 >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 4" (parNestedTest4 >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 5" (parNestedTest5 >>= showMessageAbout "Result" "The result is:")
 		] world 

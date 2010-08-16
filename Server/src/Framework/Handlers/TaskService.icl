@@ -10,7 +10,7 @@ import TaskPanel
 derive bimap (,), Maybe
 
 //Additional derives for debugging
-derive JSONEncode TaskParallelInfo, TaskInfo
+derive JSONEncode TaskInfo
 derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
 derive JSONEncode HtmlTag, HtmlAttr
 

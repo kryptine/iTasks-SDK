@@ -5,4 +5,10 @@ import TSt
 
 applyChangeToProcess :: !ProcessId !ChangeDyn !ChangeLifeTime  -> Task Void
 applyChangeToProcess pid change lifetime
-	= mkInstantTask "applyChangeToProcess" (\tst -> (TaskFinished Void, applyChangeToTaskTree pid (lifetime,change) tst))
+	= mkInstantTask "Apply a change to a process" ("Apply a " +++ lt +++ " change to task " +++ pid)
+		(\tst -> (TaskFinished Void, applyChangeToTaskTree pid (lifetime,change) tst))
+where
+	lt = case lifetime of
+		CLTransient = "transient"
+		CLPersistent _	= "persistent"
+		

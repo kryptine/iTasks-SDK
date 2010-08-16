@@ -7,7 +7,7 @@ import	TSt, Store, Util
 import 	ProcessDB
 
 try :: !(Task a) !(e -> Task a) 	-> Task a 	| iTask a & iTask e
-try normalTask handlerTask = mkSequenceTask "try" exceptionTask
+try normalTask handlerTask = mkSequenceTask (taskSubject normalTask) (taskDescription normalTask) exceptionTask
 where
 	exceptionTask tst=:{taskNr,iworld=iworld=:{IWorld|store,world}}
 		# key						= iTaskId (tl taskNr) "exception"
@@ -32,7 +32,7 @@ where
 						= (result,tst) 
 									
 throw :: !e -> Task a | iTask a & TC e	
-throw e = mkMonitorTask "throw" throw`
+throw e = mkMonitorTask "Throw an exception" "Throw an exception" throw`
 where
 	throw` tst
 		# tst		= setStatus [H1Tag [] [Text "Error, an uncaught exception was thrown"]] tst

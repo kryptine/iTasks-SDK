@@ -6,11 +6,11 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 		Ext.apply(this,
 		{ unstyled: true
 		, cls: 'ProcessControlContainer'
-		, description: 'Control process properties'
+		, subject: 'Control process properties'
 		, items: [
-			{ xtype: 'itasks.ttc.common.description'
+			{ xtype: 'itasks.ttc.common.subject'
 			, cls: 'ProcessControlDescription'
-			, description: 'Control process properties'
+			, subject: 'Control process properties'
 			, headerButton: this.headerButton
 			, width: 720
 			},

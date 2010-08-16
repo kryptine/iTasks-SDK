@@ -8,16 +8,16 @@ itasks.ttc.InstructionContainer = Ext.extend(Ext.Panel,{
 		, unstyled: true
 		, taskUpdates : {}
 		, items: [
-			{ xtype: 'itasks.ttc.common.description'
-			, cls: 'InstructionContainer-Description'
-			, description: this.label
+			{ xtype: 'itasks.ttc.common.subject'
+			, cls: 'TTCSubject'
+			, subject: this.subject
 			, headerButton: this.headerButton
 			, width: 720
 			},
 			{ xtype: 'panel'
 			, unstyled: true
-			, html: this.instruction
-			, cls: 'InstructionContainer-Text'
+			, html: this.description
+			, cls: 'TTCDescription'
 			, width: 720
 			}
 		]});

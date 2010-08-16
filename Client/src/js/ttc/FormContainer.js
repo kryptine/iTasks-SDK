@@ -3,26 +3,34 @@ Ext.ns('itasks.ttc');
 itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 
 	initComponent : function() {
-		this.cls = 'FormContainer';
-		
+		this.cls = 'FormContainer';	
 		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
 	},
 	
 	buildComponents: function(data){
+	
 		this.panel = new itasks.ttc.form.FormPanel({
 			xtype: 'itasks.ttc.form.panel',
 			items: data.content.form,
 			buttons: data.content.buttons,
 			width: 720
 		});
-		
-		this.descpanel = {
-			xtype: 'itasks.ttc.common.description',
-			cls: 'FormDescription',
-			description: data.description,
+		this.subjectpanel = {
+			xtype: 'itasks.ttc.common.subject',
+			cls: 'TTCSubject',
+			subject: data.subject,
 			headerButton: this.headerButton,
 			width: 720
-		}
+		};
+		this.descriptionpanel = {
+			xtype: 'panel',
+			cls: 'TTCDescription',
+			unstyled: true,
+			html: data.description,
+			width: 720
+		};
+		console.log(data.subject);
+		console.log(data.description);	
 	},
 	
 	update: function(data) {
@@ -65,13 +73,16 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 					break;
 				}
 			}				
-		} else {			
+		} else {
+		
 			//Completely replace form
 			this.taskId = data.taskId;
 			this.removeAll();
 			this.buildComponents(data);
 			
-			this.add(this.descpanel);
+		
+			this.add(this.subjectpanel);
+			this.add(this.descriptionpanel);
 			this.add(this.panel);
 			
 			this.doLayout();

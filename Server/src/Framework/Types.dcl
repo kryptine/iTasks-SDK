@@ -107,6 +107,8 @@ instance < User
 :: ManagerProperties =
 	{ worker			:: !User					// Who has to do the task? 
 	, subject			:: !String 					// The subject of the task
+	, description		:: !String					// Description of the task (html)
+	, context			:: !Maybe String			// Optional context information for doing the task (html)
 	, priority			:: !TaskPriority			// What is the current priority of this task?
 	, deadline			:: !Maybe Timestamp			// When is the task due?
 	, tags				:: ![String]				// A list of tags
@@ -218,12 +220,18 @@ displayName			:: !User -> String
 */
 getRoles			:: !User -> [Role]
 /**
-* Extracts the task label of a task
+* Extracts the subject of a task
 *
 * @param The task
-* @return The task's label
+* @return The task's subject
 */
-taskLabel			:: !(Task a)				-> String
+taskSubject			:: !(Task a)				-> String
+
+/**
+* Extracts the description of a task
+*/
+taskDescription		:: !(Task a)				-> String
+
 /**
 * Extracts the initial worker of a task
 *

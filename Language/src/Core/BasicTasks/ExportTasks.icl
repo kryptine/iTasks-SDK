@@ -5,22 +5,22 @@ import TSt, DocumentDB
 import StdFile, CSV
 
 exportDocument :: !String !Document -> Task Document
-exportDocument filename document = mkInstantTask ("Export of document " +++ filename) (writeDocument filename document)
+exportDocument filename document = mkInstantTask "Document export" ("Export of document " +++ filename) (writeDocument filename document)
 
 exportTextFile :: !String !String -> Task String
-exportTextFile filename content = mkInstantTask ("Export of text file " +++ filename) (fileTask filename content writeAll)
+exportTextFile filename content = mkInstantTask "Text file export" ("Export of text file " +++ filename) (fileTask filename content writeAll)
 
 exportCSVFile :: !String ![[String]] -> Task [[String]]
-exportCSVFile filename content = mkInstantTask ("Export of CSV file " +++ filename) (fileTask filename content writeCSVFile)
+exportCSVFile filename content = mkInstantTask "CSV file export" ("Export of CSV file " +++ filename) (fileTask filename content writeCSVFile)
 
 exportCSVFileWith :: !Char !Char !Char !String ![[String]] -> Task [[String]]
-exportCSVFileWith delimitChar quoteChar escapeChar filename content = mkInstantTask ("Export of CSV file " +++ filename) (fileTask filename content (writeCSVFileWith delimitChar quoteChar escapeChar))
+exportCSVFileWith delimitChar quoteChar escapeChar filename content = mkInstantTask "CSV file export" ("Export of CSV file " +++ filename) (fileTask filename content (writeCSVFileWith delimitChar quoteChar escapeChar))
 
 exportJSONFile :: !String a -> Task a | JSONEncode{|*|} a
 exportJSONFile filename content = exportJSONFileWith toJSON filename content
  
 exportJSONFileWith :: !(a -> JSONNode) !String a -> Task a
-exportJSONFileWith encoder filename content = mkInstantTask ("Export of JSON file " +++ filename) (fileTask filename content (writeJSON encoder))
+exportJSONFileWith encoder filename content = mkInstantTask "JSON file export" ("Export of JSON file " +++ filename) (fileTask filename content (writeJSON encoder))
 
 fileTask filename content f tst=:{TSt|iworld=iworld=:{IWorld|world}}
 	# (ok,file,world)	= fopen filename FWriteData world

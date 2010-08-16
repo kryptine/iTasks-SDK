@@ -243,47 +243,103 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 * The given task function will add a single basic step to the current
 * sequence.
 *
-* @param A name used as the task label
+* @param A subject of the task
+* @param A description of the task (html)
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkInteractiveTask			:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkInteractiveTask	:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
 * The given task function will add a single instantly computed step to
 * the current sequence.
 *
-* @param A name used as the task label
+* @param A subject of the task
+* @param A description of the task (html)
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkInstantTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkInstantTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of proper type to create a function that also
 * keeps track of the the internal numbering and administration.
 * The given task function will add a monitoring task to the 
 * the current sequence.
 *
-* @param A name used as the task label
+* @param A subject of the task
+* @param A description of the task (html)
 * @param The function on the TSt that is the task
 *
 * @return The newly constructed basic task
 */
-mkMonitorTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkMonitorTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Wrap a function of the proper type to create a function that 
 * displays an (offline) instruction to the user. The user can only
 * dismiss the instruction. No result is returned.
 *
-* @param A name used as the task label
+* @param A subject of the task
+* @param A description of the task (html)
 * @param The function on the TSt that is the task
 *
 * @return Void
 */
-mkInstructionTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+mkInstructionTask	:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+
+/**
+* Wraps a function of proper type to create a task that will consist
+* of a sequence of subtasks. The given task function will execute in a blank sequence
+* and the resulting sequence will be combined in a single sequence node.
+*
+* @param A subject of the task
+* @param A description of the task (html)
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed sequence task
+*/
+mkSequenceTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+/**
+* Wrap a function of proper type to create a function that also
+* keeps track of the the internal numbering and administration for
+* combining a set of parallel subtasks. Each of the subtasks is wrapped in a 
+* separate process. 
+*
+* @param A subject of the task
+* @param A description of the task (html)
+* @param Some info about the behavior of the parallel task
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed parallel task
+*/
+mkParallelTask		:: !String !String !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+/**
+* Wrap a function of proper type to create a function that groups a number of 
+* tasks together. None of the subtasks is created in a separate process and no
+* overview window is shown. It is not considdered good practice to assign any of
+* the subtasks to other users. For that purpose the parallel-task has been introduced
+*
+* @param A subject of the task
+* @param A description of the task (html)
+* @param The function on the TSt that is the task
+*
+* @return The newly constructed grouped task
+*/
+mkGroupedTask		:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
+/**
+* Wrap a function of proper type to create a function that will make a
+* main task. This is a sequence node that keeps track of additional information
+* such as task status, event times and user/delegate information.
+*
+* @param A subject of the task
+* @param A description of the task (html)
+* @param The task that will run inside the main task
+*
+* @return The newly constructed sequence task
+*/
+mkMainTask			:: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 /**
 * Creates an rpc task from an rpc call definition.
 * A parse function is used to parse the result of the rpc call
@@ -295,55 +351,6 @@ mkInstructionTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 * @return The constructed RPC task
 */
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-/**
-* Wraps a function of proper type to create a task that will consist
-* of a sequence of subtasks. The given task function will execute in a blank sequence
-* and the resulting sequence will be combined in a single sequence node.
-*
-* @param A name used as the task label
-* @param The function on the TSt that is the task
-*
-* @return The newly constructed sequence task
-*/
-mkSequenceTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-/**
-* Wrap a function of proper type to create a function that also
-* keeps track of the the internal numbering and administration for
-* combining a set of parallel subtasks. Each of the subtasks is wrapped in a 
-* separate process. 
-*
-* @param A name used as the task label
-* @param Some info about the behavior of the parallel task
-* @param The function on the TSt that is the task
-*
-* @return The newly constructed parallel task
-*/
-mkParallelTask :: !String !TaskParallelInfo !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-/**
-* Wrap a function of proper type to create a function that groups a number of 
-* tasks together. None of the subtasks is created in a separate process and no
-* overview window is shown. It is not considdered good practice to assign any of
-* the subtasks to other users. For that purpose the parallel-task has been introduced
-*
-* @param A name used as the task label
-* @param Some info about the behavior of the grouped task
-* @param The function on the TSt that is the task
-*
-* @return The newly constructed grouped task
-*/
-
-mkGroupedTask :: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-/**
-* Wrap a function of proper type to create a function that will make a
-* main task. This is a sequence node that keeps track of additional information
-* such as task status, event times and user/delegate information.
-*
-* @param A name used as the task label
-* @param The task that will run inside the main task
-*
-* @return The newly constructed sequence task
-*/
-mkMainTask		:: !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 
 //// TASK APPLICATION
 
@@ -369,12 +376,12 @@ applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 addTaskNode 		:: !TaskTree !*TSt -> *TSt
 
 //// TASK CONTENT
-setTUIDef			:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt 	-> *TSt //Only for interactive tasks
+setTUIDef			:: !([TUIDef],[TUIButton]) ![(Action,Bool)] !*TSt 				-> *TSt //Only for interactive tasks
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for interactive tasks
-setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) [HtmlTag] !*TSt			-> *TSt //Only for interactive tasks
-setTUIMessage 		:: !([TUIDef],[TUIButton]) [HtmlTag] ![(Action,Bool)] !*TSt		-> *TSt //Only for interactive tasks
+setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt					-> *TSt //Only for interactive tasks
+setTUIMessage 		:: !([TUIDef],[TUIButton]) ![(Action,Bool)] !*TSt				-> *TSt //Only for interactive tasks
 setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
-setInstruction		:: ![HtmlTag] !(Maybe [HtmlTag]) !*TSt							-> *TSt //Only for instruction tasks
+setInstruction		:: !(Maybe [HtmlTag]) !*TSt										-> *TSt //Only for instruction tasks
 setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks
 setFocusCommand		:: !String !*TSt												-> *TSt //Only for group tasks
 

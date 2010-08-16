@@ -15,9 +15,9 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 		, autoScroll: true
 		, cls: 'ParallelControlContainer'
 		, items: [
-			{ cls: 'task-description ParallelControlDescription'
+			{ cls: 'TTCSubject'
 			, unstyled: true
-			, html: this.label
+			, html: this.subject
 			, width: 720
 			},
 			{ bodyStyle: 'padding: 4px'

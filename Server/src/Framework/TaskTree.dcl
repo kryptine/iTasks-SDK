@@ -23,14 +23,14 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 	//A task that is composed of a number of sequentially executed subtasks
 	| TTSequenceTask	TaskInfo [TaskTree]	
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
-	| TTParallelTask	TaskInfo TaskParallelInfo [TaskTree]													 
+	| TTParallelTask	TaskInfo TaskParallelType [TaskTree]													 
 	//A task that is composed of a number of grouped subtasks
 	| TTGroupedTask		TaskInfo [TaskTree] ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !(Maybe String)
 	
 	//LEAF CONSTRUCTORS
 	
 	//A task which displays an (offline) instruction to the user
-	| TTInstructionTask TaskInfo (TaskOutput ([HtmlTag], Maybe [HtmlTag]))										
+	| TTInstructionTask TaskInfo (TaskOutput (Maybe [HtmlTag]))										
 	//A task that can be worked on through a gui
 	| TTInteractiveTask	TaskInfo (TaskOutput InteractiveTask)													
 	//A task that upon evaluation monitors a condition and may give status output
@@ -53,17 +53,13 @@ from   TUIDefinition	import :: TUIDef, :: TUIUpdate
 					| JSONOutput JSONNode														//A JSON representation of the task value is generated
 							
 :: TaskInfo	=		{ taskId				:: TaskId											//Task number in string format
-					, taskLabel				:: String											//Descriptive label of the task
-					, taskDescription		:: String
+					, subject				:: String											//Short subject of the task
+					, description			:: String											//Description of the task (html)
+					, context				:: Maybe String										//Optional context information for the task
 					, tags					:: [String]
 					, groupedBehaviour		:: GroupedBehaviour
 					, groupActionsBehaviour	:: GroupActionsBehaviour
 					}
-
-:: TaskParallelInfo =
-	{ type			:: TaskParallelType //Indicating the scope of the parallel. 
-	, description	:: String			//Description of the behavior of this parallel. This is also displayed in the overview panel in the interface
-	}
 
 :: TaskParallelType = Open 				//Everybody to whom a subtask is assigned can see the full status of this parallel, including the results of others
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.

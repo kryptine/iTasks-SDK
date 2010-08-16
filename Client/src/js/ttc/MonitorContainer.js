@@ -10,10 +10,15 @@ itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
 			unstyled: true,
 			cls: 'MonitorContainer',
 			items: [
-				{ xtype: 'itasks.ttc.common.description'
-				, cls: 'MonitorContainerDescription'
-				, description: 'Monitor task'
+				{ xtype: 'itasks.ttc.common.subject'
+				, cls: 'MonitorContainer-Subject'
+				, subject: this.subject
 				, headerButton: this.headerButton
+				, width: 720
+				},
+				{ xtype: 'panel'
+				, cls: 'MonitorContainer-Description'
+				, html: this.description
 				, width: 720
 				},
 				{ xtype: 'panel'

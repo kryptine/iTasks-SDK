@@ -2,6 +2,21 @@
 	Layout Styles of TaskTree Components
 */
 
+/* Shared subject and description panels */
+
+.TTCSubject {
+	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
+	background-repeat: repeat-x;
+	border: 1px solid #99BBE8;
+	margin: 10px 10px 0px 10px;
+	font-weight: bold;
+}
+.TTCDescription  {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	border: 1px solid #99BBE8;
+	margin: 0px 10px 0px 10px;
+	padding: 5px;
+}
 /* Form Container */
 .FormContainer {
 	background-color: #eee;
@@ -21,26 +36,17 @@
 	background-repeat: repeat;
 }
 
-.FormDescription {
-	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
-	background-repeat: repeat-x;
-	border: 1px solid #99BBE8;
-	margin: 10px 10px 0px 10px;
-}
 
 /* Group Container */
 .GroupContainer {
 	background-color: #eee;
 }
 
-.GroupFixedNoFocus  .x-panel-fbar {
-	display: none;
-}
-
 .GroupFixed .x-plain-tbar {
 	display: none;
 }
 
+/*
 .GroupFixedNoFocus .FormPanel,
 .GroupFixedNoFocus .ProcessControlPanel,
 .GroupFixedNoFocus .InstructionContainer-Text,
@@ -53,13 +59,11 @@
 	border-right:1px solid #ddd;
 	background-repeat: repeat;
 }
+*/
 
-.GroupFixedNoFocus  .task-description {
+.GroupFixedNoFocus .TTCSubject {
 	background-image: url("img/ttc-icons/TTCDescriptionBackgroundNoFocus.png") !important;
 	border:1px solid #ddd;
-}
-
-.GroupFixedNoFocus .task-description {
 	color:#888899;
 }
 
@@ -71,6 +75,7 @@
 	display: none;
 }
 
+.GroupFloating .TTCDescription,
 .GroupFloating .FormPanel,
 .GroupFloating .ProcessControlPanel,
 .GroupFloating .InstructionContainer-Text,
@@ -82,7 +87,7 @@
 	width: auto;
 }
 
-.GroupFloating .task-description {
+.GroupFloating .TTCSubject {
 	display: none;
 }
 
@@ -262,11 +267,18 @@
 	background-repeat: repeat;
 }
 
-.MessageDescription {
+.MessageContainer-Subject {
 	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
 	background-repeat: repeat-x;
 	border: 1px solid #99BBE8;
 	margin: 10px 0px 0px 10px;
+	width: 700px;
+}
+.MessageContainer-Description {
+	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
+	border: 1px solid #99BBE8;
+	margin: 0px 10px 0px 10px;
+	padding: 5px;
 	width: 700px;
 }
 
@@ -289,10 +301,5 @@
 	background-repeat: repeat;
 }
 
-.MonitorContainerDescription {
-	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
-	background-repeat: repeat-x;
-	border: 1px solid #99BBE8;
-	margin: 10px 0px 0px 10px;
-	width: 700px;
-}
+
+

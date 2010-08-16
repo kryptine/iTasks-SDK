@@ -87,12 +87,7 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 					}];
 				}
 				
-				if(cont.xtype == 'itasks.ttc.proc-control')
-					var title = 'Control process properties';
-				else if(cont.xtype == 'itasks.ttc.monitor')
-					var title = 'Monitor task';
-				else
-					var title = cont.description || cont.label;
+				var title = cont.subject;
 				
 				this.floatingCont.add(idx, {
 					id: this.taskId + '_' + idx,
