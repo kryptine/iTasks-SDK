@@ -75,8 +75,6 @@ mkDBid :: !String -> (DBid a)
 mkDBid s = s
 
 //	Convenient operations on databases
-:: DBRef a		= DBRef Int
-
 instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
 instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
 
@@ -86,10 +84,10 @@ eqItemId a b	= getItemId a == getItemId b
 dbReadAll :: Task [a] | iTask, DB a
 dbReadAll		= readDB databaseId
 
-dbWriteAll :: ![a] -> Task Void | iTask, DB a
-dbWriteAll all	= writeDB databaseId all >>| return Void
+dbWriteAll :: ![a] -> Task [a] | iTask, DB a
+dbWriteAll all	= writeDB databaseId all
 
-dbModify :: ([a] -> [a]) -> Task Void | iTask, DB a
+dbModify :: ([a] -> [a]) -> Task [a] | iTask, DB a
 dbModify f      = dbReadAll >>= \items -> dbWriteAll (f items)
 
 //	C(reate)R(ead)U(pdate)D(elete) operations:
@@ -114,14 +112,24 @@ dbUpdateItem :: a -> Task a | iTask, DB a
 dbUpdateItem new
 	= dbModify (replace eqItemId new) >>| return new
 
-dbDeleteItem :: !(DBRef a) -> Task Void | iTask, DB a
+dbDeleteItem :: !(DBRef a) -> Task (Maybe a) | iTask, DB a
 dbDeleteItem itemid
-	= dbModify (filter (\item -> itemid <> getItemId item))
- 
-//List utility function
+	= readDB databaseId >>= \items ->
+		let (match, nomatch) = splitWith (\i -> getItemId i == itemid) items in
+			dbWriteAll nomatch >>| case match of
+				[] 			= return Nothing
+				[item:_]	= return (Just item) 
+
+//List utility functions
 replace :: (a a -> Bool) a [a] -> [a]
 replace cond new []         = [new]
 replace cond new [x:xs]
     | cond new x            = [new : xs]
     | otherwise             = [x : replace cond new xs]
+
+splitWith :: (a -> Bool) [a] -> ([a],[a])
+splitWith f [] = ([],[])
+splitWith f [x:xs]
+	| f x	= let (y,n) = splitWith f xs in ([x:y],n)
+			= let (y,n)	= splitWith f xs in (y,[x:n]) 
 
