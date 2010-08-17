@@ -29,8 +29,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 			html: data.description,
 			width: 720
 		};
-		console.log(data.subject);
-		console.log(data.description);	
 	},
 	
 	update: function(data) {
