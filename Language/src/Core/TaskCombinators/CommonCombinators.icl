@@ -7,7 +7,7 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: IWorld(..), :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
-from TSt		import applyTask, mkSequenceTask, mkParallelTask
+from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkInstantTask
 from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..)
 from Store		import :: Store
 from SessionDB	import :: Session
@@ -29,6 +29,9 @@ derive JSONDecode	GAction, GOnlyAction, GroupedBehaviour
 
 derive bimap Maybe, (,)
 
+//Value transformation
+transform :: !(a -> b) !a -> Task b | iTask b
+transform f x = mkInstantTask "Value transformation" "Value transformation with a custom function" (\tst -> (TaskFinished (f x),tst))
 //Grouping combinators
 emptyGActionL :: [GroupAction a b Void]
 emptyGActionL = []

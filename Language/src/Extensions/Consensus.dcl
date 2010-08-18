@@ -1,8 +1,8 @@
-definition module Toolbox
+definition module Consensus
 
 import iTasks
 
-toolbox :: [Workflow]
+pickADate :: Task Void
 
 // Date Picking
 datePicker 		:: [User] 								-> Task Date

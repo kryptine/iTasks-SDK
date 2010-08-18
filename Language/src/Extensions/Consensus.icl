@@ -1,20 +1,11 @@
-implementation module Toolbox
-
-/*
-	This toolbox contains a number of workflows which can be handle unforseen situations. Or can be used as 'units' in other workflows.
-*/
+implementation module Consensus
 
 import iTasks, GenEq
-import CommonDomain, Messaging
-
-from HRM import getUserGroups
+import CommonDomain, Messaging, Groups
 
 derive bimap Maybe, (,)
 
-toolbox :: [Workflow]
-toolbox 
-	= [ workflow "Toolbox/Pick a date" pickADate
-	  ]
+
 
 //========================================================================================================================================================================
 // DatePicker
@@ -73,6 +64,6 @@ where
 			
 		updateCount vc=:{yes,no,maybe} (Editable v)
 			= case v of
-				Yes 	= {vc & yes 	= inc yes}
-				No  	= {vc & no  	= inc no}
-				Maybe	= {vc & maybe 	= inc maybe}
+				Yes 	= {VoteCount|vc & yes 		= inc yes}
+				No  	= {VoteCount|vc & no  		= inc no}
+				Maybe	= {VoteCount|vc & maybe 	= inc maybe}

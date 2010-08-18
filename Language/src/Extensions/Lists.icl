@@ -1,12 +1,7 @@
-implementation module ListManagement
+implementation module Lists
 
 import iTasks, CommonDomain
 
-lists :: [Workflow]
-lists = [ workflow "List Management/New List" newList
-		, workflow "List Management/Edit List" editList
-		, workflow "List Management/Push List" pushList
-		]
 
 :: ListDB :== [DBid ListDBItem]
 :: ListDBItem = NoteList (List Note) | DateList (List Date) | DocList (List Document)

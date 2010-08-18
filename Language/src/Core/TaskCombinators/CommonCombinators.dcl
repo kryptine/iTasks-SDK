@@ -24,6 +24,12 @@ derive JSONEncode	GAction, GOnlyAction
 derive JSONDecode	GAction, GOnlyAction
 
 /**
+* Transform a value with a custom function
+*
+*/
+transform			:: !(a -> b) !a 									-> Task b | iTask b
+
+/**
 * Tasks can dynamically add other tasks or stop execution of group.
 *
 * @param List of initial tasks

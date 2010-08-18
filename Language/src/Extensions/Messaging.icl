@@ -2,15 +2,9 @@ implementation module Messaging
 
 import iTasks
 import CommonDomain
-import HRM
+import Groups
 import GenEq
 
-messaging :: [Workflow]
-messaging 
-	= [ workflow "Messaging/Send a new Message" newMessage 
-	  , workflow "Messaging/Send a new Group-Message" newMessageToGroup
-	  , workflow "Messaging/View Message Archive" viewArchive
-	  ]
 
 //========================================================================================================================================================================
 // Internal mail
@@ -59,11 +53,12 @@ newMessage = getCurrentUser
 
 newMessageToGroup :: Task Void
 newMessageToGroup = getCurrentUser
-	>>= \me ->		getUserGroups
-	>>= \groups ->	enterChoice "Choose group" "Select group" groups
-	>>= \role ->	getUsersWithRole role
-	>>= \users ->	writeMessage me "" users [] []
-	>>= \msg ->		sendMessage msg
+	>>= \me ->		getMyGroups
+	>>= \groups ->	case groups of
+		[]	=	showMessage "No groups" "You are not a member of any group" Void
+		_	=	enterChoice "Choose group" "Select group" groups
+			>>= \group ->	writeMessage me "" group.members [] []
+			>>= \msg ->		sendMessage msg
 	
 sendMessage :: Message -> Task Void
 sendMessage msg = allProc [who @>> spawnProcess who True True
