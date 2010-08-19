@@ -20,14 +20,8 @@ button.icon-logout, .icon-logout {
 button.icon-refresh, .icon-refresh {
 	background-image: url('img/icons/refresh.png');
 }
-button.icon-thread-table, .icon-thread-table {
-	background-image: url('img/icons/table_lightning.png');
-}
-button.icon-process-table, .icon-process-table {
+button.icon-services, .icon-services {
 	background-image: url('img/icons/table_gear.png');
-}
-button.icon-task-tree, .icon-task-tree {
-	background-image: url('img/icons/chart_organisation.png');
 }
 button.icon-states, .icon-states {
 	background-image: url('img/icons/table_gear.png');

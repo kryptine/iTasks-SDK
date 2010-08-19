@@ -50,11 +50,14 @@ where
 		# reqpath			= (http_urldecode req.req_path)
 		# reqpath			= reqpath % (size config.serverPath, size reqpath)
 		# (response,tst) = case (split "/" reqpath) of
+			[""]								= (redirectResponse (req.req_path +++ "/html"), tst)
+			["","html"]							= (overviewResponse, tst)
 			["",format:path]
 				# html = format == "html"
 				# json = format == "json"
 				| html || json
 					= case path of
+						
 						["application":path]	= applicationService req.req_path html path req tst
 						["sessions":path]		= sessionService req.req_path html path req tst
 						["workflows":path]		= workflowService req.req_path html path req tst
@@ -111,39 +114,14 @@ handleStaticResourceRequest config req world
 											   ("Content-Length", toString (size content))											   
 											   ]
 							   	,rsp_data = content}, HTTPServerContinue, world)						   								 	 							   
-	= http_notfoundResponse req world
+	= (notFoundResponse req,HTTPServerContinue,world)
 where
 	//Translate a URL path to a filesystem path
 	filePath path = ((replaceSubString "/" PATH_SEP) o (replaceSubString ".." "")) path
 
 handleStopRequest :: HTTPRequest *World -> (!HTTPResponse,!HTTPServerControl,!*World)
 handleStopRequest req world = ({http_emptyResponse & rsp_data = "Server stopped..."},HTTPServerStop, world)
-	
-handleAnonRequest :: Config [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World)
-handleAnonRequest config flows handler request world
-	# tst						= initTSt request config flows world
-	# (response, tst)			= handler request tst
-	# world						= finalizeTSt tst
-	= (response, HTTPServerContinue, world)
 
-handleSessionRequest :: Config [Workflow] (HTTPRequest *TSt -> (!HTTPResponse, !*TSt)) !HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World)
-handleSessionRequest config flows handler request world
-	# tst						= initTSt request config flows world
-	# sessionId					= http_getValue "_session" (request.arg_get ++ request.arg_post) ""
-	# (mbSession,timeout,tst=:{staticInfo})	= restoreSession sessionId tst
-	= case mbSession of
-		Nothing
-			# world				= finalizeTSt tst
-			= ({http_emptyResponse & rsp_data = mkSessionFailureResponse timeout}, HTTPServerContinue, world)
-		(Just session)
-			# tst					= {tst & staticInfo = {staticInfo & currentSession = session}}
-			# (response,tst)		= handler request tst
-			# tst					= flushStore tst
-			# world					= finalizeTSt tst
-			= (response, HTTPServerContinue, world)		
-where
-	mkSessionFailureResponse to = "{\"success\" : false, \"session\": false, \"error\" : \"" +++ (if to "Your session timed out" "Failed to load session") +++ "\"}"
- 
 initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world
 	# (appName,world) 			= determineAppName world

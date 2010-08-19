@@ -51,6 +51,7 @@
 		,{"text":"itasks.RemoteDataPanel.js","path":"src/js/"}
 		,{"text":"itasks.NewWorkPanel.js","path":"src/js/"}
 		,{"text":"itasks.DebugPanel.js","path":"src/js/"}
+		,{"text":"itasks.ServicesPanel.js","path":"src/js/"}
 		,{"text":"itasks.WorkListPanel.js","path":"src/js/"}
 		,{"text":"itasks.HomeTabPanel.js","path":"src/js/"}
 		,{"text":"itasks.WorkTabPanel.js","path":"src/js/"}

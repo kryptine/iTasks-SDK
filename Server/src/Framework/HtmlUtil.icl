@@ -6,18 +6,18 @@ import StdList
 embeddedStyle :: HtmlTag
 embeddedStyle = StyleTag [TypeAttr "text/css"] [RawText css] 
 where
- css = 	"body { background: #d1dded; font-family: Verdana, Arial, sans-serif; font-size: 12px;} th { text-align: left; } "
+ css = 	"body { background: #fff; font-family: Verdana, Arial, sans-serif; font-size: 12px;} th { text-align: left; } "
 	+++ ".field-error em {color: #f00; font-weight: bold} .field-error input {border-color: #f00;} "
-	+++ "#main {width: 700px; position: absolute; left: 50%; margin-left: -350px; top: 50px; background: #fff; border: solid 2px #3a81ad; -moz-border-radius: 5px; background: -moz-linear-gradient(bottom,  #3a81ad,  #fff);} "
+	+++ "#main {margin: 20px; background: #d1dded; border: solid 2px #3a81ad; -moz-border-radius: 5px; background: -moz-linear-gradient(bottom,  #d1dded,  #fff);} "
 	+++ "#content { padding: 10px; } "
 	+++ ".buttons { padding: 5px; background-color: #3a81ad; } "
-	+++ ".section { margin: 10px; border: solid 1px #d1dded; -moz-border-radius: 10px; padding: 5px; overflow: auto;} "
-	+++ ".description { padding: 15px; } "
-	+++ ".parameters th, .parameters td { width: 25%; } "
+	+++ ".section { margin: 10px; padding: 5px; overflow: auto;} "
+	+++ ".description { margin: 0px 15px 0px 15px; } "
+	+++ ".parameters th, { width: 150px; } "
 	+++ ".json { font-family: Courier, monotype; font-size: 12px;} "
 	+++ ".json ul { padding-left: 15px;} "
-	+++ "h1 { margin: 10px; font-weight: normal; font-size: 24px;} "
-	+++ "h2 { margin: 5px; font-weight: bold; font-size: 14px;} "
+	+++ "h1 { margin: 10px 15px 10px 15px; font-weight: normal; font-size: 24px;} "
+	+++ "h2 { margin: 5px 5px 5px 0px; font-weight: bold; font-size: 14px;  border: solid #999; border-width: 0px 0px 1px 0px;} "
 	+++ "p { margin: 0px 0px 10px 0px; } "
 	+++ "button {-moz-border-radius: 3px; }"
 	
@@ -57,6 +57,31 @@ formatJSON (JSONArray items)	= [UlTag [] [LiTag [] (formatJSON node) \\ node <- 
 formatJSON (JSONObject fields)	= [UlTag [] [LiTag [] [Text label,Text ": " :formatJSON node] \\(label,node) <- fields ] ]
 formatJSON (JSONRaw r)			= [PreTag [] [Text (toString r)]]
 formatJSON _					= []
+
+overviewPage :: HtmlTag
+overviewPage = pageLayout "Services" description [application,sessions,workflows,tasks,users,documents]
+where
+	description = "This application can be accessed through a RESTful JSON API.<br />Below is an overview of the available service urls."
+	
+	application = pageSection "application"
+		[ATag [HrefAttr "html/application"] [Text "General information information about this application"]]
+	sessions	= pageSection "sessions"
+		[ATag [HrefAttr "html/sessions"] [Text "Authentication and session management"]]
+	workflows	= pageSection "workflows"
+		[ATag [HrefAttr "html/workflows"] [Text "A catalogue of available workflows"]]
+	tasks		= pageSection "tasks"
+		[ATag [HrefAttr "html/tasks"] [Text "Listing of and working on tasks"]]
+	users		= pageSection "users"
+		[ATag [HrefAttr "html/users"] [Text "User management"]]
+	documents	= pageSection "documents"
+		[ATag [HrefAttr "html/documents"] [Text "Upload/download of binary files"]]
+	
+overviewResponse :: HTTPResponse
+overviewResponse = {http_emptyResponse & rsp_data = toString overviewPage}
+
+redirectResponse :: !String -> HTTPResponse
+redirectResponse url
+	= {HTTPResponse | rsp_headers = [("Status","302 - Found"),("Location",url)], rsp_data = ""}
 
 notFoundPage :: !HTTPRequest -> HtmlTag
 notFoundPage req = pageLayout "404 - Not Found" "" message

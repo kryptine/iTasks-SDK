@@ -72,6 +72,15 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 		}
 		this.activate(tab);
 		return tab;	
+	},
+	openServicesTab: function() {
+		var tab = this.getComponent("servicestab");
+		if(tab == undefined) {
+			tab = new itasks.ServicesPanel({id: "servicestab", worktabs: this, closable: true});
+			this.add(tab);
+		}
+		this.activate(tab);
+		return tab;
 	}
 });
 
