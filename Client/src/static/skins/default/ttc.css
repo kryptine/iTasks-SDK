@@ -8,8 +8,10 @@
 	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
 	background-repeat: repeat-x;
 	border: 1px solid #99BBE8;
+	color: #000;
 	margin: 10px 10px 0px 10px;
 	font-weight: bold;
+	padding: 5px;
 }
 .TTCDescription  {
 	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
@@ -39,28 +41,11 @@
 
 /* Group Container */
 .GroupContainer {
-	background-color: #eee;
+	/* background-color: #eee; */
 }
-
 .GroupFixed .x-plain-tbar {
 	display: none;
 }
-
-/*
-.GroupFixedNoFocus .FormPanel,
-.GroupFixedNoFocus .ProcessControlPanel,
-.GroupFixedNoFocus .InstructionContainer-Text,
-.GroupFixedNoFocus .InstructionContainer-Context,
-.GroupFixedNoFocus .MessagePanel,
-.GroupFixedNoFocus .MonitorPanel {
-	background-image : url('img/ttc-icons/TTCBackgroundNoFocus.png') !important;
-	border-bottom:1px solid #ddd;
-	border-left:1px solid #ddd;
-	border-right:1px solid #ddd;
-	background-repeat: repeat;
-}
-*/
-
 .GroupFixedNoFocus .TTCSubject {
 	background-image: url("img/ttc-icons/TTCDescriptionBackgroundNoFocus.png") !important;
 	border:1px solid #ddd;
@@ -74,7 +59,6 @@
 .GroupFloating .GroupUnpinButton {
 	display: none;
 }
-
 .GroupFloating .TTCDescription,
 .GroupFloating .FormPanel,
 .GroupFloating .ProcessControlPanel,
@@ -158,23 +142,10 @@
 	background-repeat: no-repeat ;
 	background-position: 3px 3px;
 }
-
-.ParallelControlDescription{
-	background-image : url('img/ttc-icons/TTCDescriptionBackground.png') !important;
-	background-repeat: repeat-x;
-	border: 1px solid #99BBE8;
-	margin: 10px 0px 0px 10px;
-	width: 700px;
-}
-
 .ParallelControlPanel{
-	background-image : url('img/ttc-icons/TTCBackground80.png') !important;
-	border-left: 1px solid #99BBE8;
-	border-bottom: 1px solid #99BBE8;
-	border-right: 1px solid #99BBE8;
+	border: solid #99BBE8;
+	border-width: 0px 1px 1px 1px;
 	margin: 0px 0px 0px 10px;
-	background-repeat: repeat;
-	width: 700px;
 }
 
 /* Instruction Container */

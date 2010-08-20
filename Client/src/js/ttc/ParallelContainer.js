@@ -14,24 +14,17 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 		{ unstyled: true 
 		, autoScroll: true
 		, cls: 'ParallelControlContainer'
+		, width: 720
 		, items: [
 			{ cls: 'TTCSubject'
 			, unstyled: true
 			, html: this.subject
-			, width: 720
 			},
-			{ bodyStyle: 'padding: 4px'
-			, items : [
-				{ unstyled: true
-				, html: this.description
-				, bodyStyle: 'padding-bottom: 4px'
-				},
-				this.grid
-			]
-			, cls: 'ParallelControlPanel'
-			, width: 720
+			{ cls: 'TTCDescription'
 			, unstyled: true
-			}
+			, html: this.description
+			},
+			this.grid
 		]		
 		});
 		
@@ -59,12 +52,10 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 			root: 'subtasks',
 			fields: [
 				{name: 'finished', type: 'bool'},
-				//'properties',
 				'taskId',
 				'subject',
 				'delegatedTo',
 				'progress',
-				//'subtaskId',
 				'description'
 			]
 		});
@@ -72,24 +63,25 @@ itasks.ttc.ParallelContainer = Ext.extend(Ext.Panel, {
 		var col = new Ext.grid.ColumnModel({
 			defaults: {
 				menuDisabled: true,
-				sortable: true
+				sortable: true,
+				resizable: false
 			},
 			columns: [
-				{header: 'Done',     			dataIndex: 'finished', renderer: this.renderFinished, width: 36, resizable: false},
-				//{header: 'Priority',			dataIndex: 'properties', width: 70, renderer: this.renderPriority},
-				{header: 'Subject',		   		dataIndex: 'subject', width: 250},
-				{header: 'Delegated To', 		dataIndex: 'delegatedTo', width: 150, renderer: this.renderDelegated, cellActions:[{ iconCls: 'icon-edit', qtip: 'Re-asign the task to another user'}]},
-				{header: 'Description',			dataIndex: 'description', width: 180},
-				{header: 'Task Id', 				dataIndex: 'taskId', hidden: itasks.app.debug, width: 85}				
+				{header: 'Status', dataIndex: 'finished', renderer: this.renderFinished, width: 50},
+				{header: 'Subject',	dataIndex: 'subject', width: 450},
+				{header: 'Assigned to', dataIndex: 'delegatedTo', renderer: this.renderDelegated, cellActions:[{ iconCls: 'icon-edit', qtip: 'Re-asign the task to another user'}]}			
 			]
 		});
 		
 		this.grid = new Ext.grid.EditorGridPanel({
+			cls: 'ParallelControlPanel',
+			border: false,
 			store : store,
 			colModel: col,	
-			width: '100%',
+			width: 700,
 			height: 250,
 			plugins:[this.cellActions],
+			autoExpandColumn: 2,
 			clicksToEdit: 'auto'
 		});
 		
