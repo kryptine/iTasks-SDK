@@ -6,9 +6,10 @@ from Types		import :: Task, :: ManagerProperties, :: User, :: TaskPriority
 from Time		import :: Timestamp
 from TaskTree	import :: GroupedBehaviour, :: GroupActionsBehaviour
 
-:: Subject s	= Subject !s	& toString s
-:: Tag s		= Tag !s		& toString s
-:: Tags s		= Tags ![s]		& toString s
+:: Subject s		= Subject !s		& toString s
+:: Description s	= Description !s	& toString s
+:: Tag s			= Tag !s			& toString s
+:: Tags s			= Tags ![s]			& toString s
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -18,6 +19,7 @@ class tune b :: !b !(Task a) -> Task a
 instance tune	ManagerProperties		//Set initial properties
 instance tune	User					//Set initial worker
 instance tune	(Subject s)				//Set initial subject
+instance tune	(Description s)			//Set initial subject
 instance tune	TaskPriority			//Set initial priority
 instance tune	Timestamp				//Set initial deadline
 instance tune	(Tag s)					//Append Tag

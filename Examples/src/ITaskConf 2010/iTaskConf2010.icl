@@ -9,7 +9,8 @@ Start :: !*World -> *World
 Start world = startEngine workflows world
 where
 	workflows = [ workflow "Groups" manageGroups
-				: flatten [ messaging, toolbox, lists ]
+				, workflow "Ask opinions" askOpinions
+				: flatten [ messaging, lists ]
 				]
 				
 messaging :: [Workflow]
@@ -17,11 +18,6 @@ messaging
 	= [ workflow "Messaging/Send a new Message" newMessage 
 	  , workflow "Messaging/Send a new Group-Message" newMessageToGroup
 	  , workflow "Messaging/View Message Archive" viewArchive
-	  ]
-	  
-toolbox :: [Workflow]
-toolbox 
-	= [ workflow "Toolbox/Pick a date" pickADate
 	  ]
 
 lists :: [Workflow]

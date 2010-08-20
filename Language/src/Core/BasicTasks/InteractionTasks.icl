@@ -137,8 +137,8 @@ updateChoiceA subject description actions [] index		= throw (subject +++ ": cann
 updateChoiceA subject description actions options index	= mkInteractiveTask subject (toString (html description)) (makeChoiceTask options index Nothing actions)
 
 enterChoiceAbout :: !String !description b [a] -> Task a | html description & iTask a & iTask b
-enterChoiceAbout subject description about []		= throw (subject +++ ": cannot choose from empty option list")
-enterChoiceAbout subject description about options = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) [ButtonAction (ActionOk, IfValid)]))
+enterChoiceAbout subject description about []			= throw (subject +++ ": cannot choose from empty option list")
+enterChoiceAbout subject description about options		= mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) [ButtonAction (ActionOk, IfValid)]))
 
 enterChoiceAboutA :: !String !description ![TaskAction a] b [a] -> Task (!Action,!a) | html description & iTask a & iTask b
 enterChoiceAboutA subject description actions about []		= throw (subject +++ ": cannot choose from empty option list")
