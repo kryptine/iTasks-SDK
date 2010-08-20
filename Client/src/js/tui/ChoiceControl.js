@@ -25,7 +25,8 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 				renderTo: ct,
 				bufferResize: false,
 				layout: 'auto',
-				cls: (this.allowMultiple)?'x-form-check-group':'x-form-radio-group'
+				cls: (this.allowMultiple)?'x-form-check-group':'x-form-radio-group',
+				style: 'border: none'
 			};
 			
 			var items = [];
