@@ -77,9 +77,11 @@ workflow path task =
 	{ Workflow
 	| path	= path
 	, roles	= []
-	, thread = createThread task
+	, thread = createThread (task <<@ Subject name)
 	}
-
+where
+	name = last (split "/" path)
+	
 restrictedWorkflow :: !String ![Role] !(Task a) -> Workflow | iTask a
 restrictedWorkflow path roles task =
 	{ Workflow
