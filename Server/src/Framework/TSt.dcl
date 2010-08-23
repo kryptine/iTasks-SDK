@@ -423,13 +423,13 @@ anyEvents			:: !*TSt						-> (!Bool,!*TSt)
 * Writes a 'task scoped' value to the store
 * These values are copied and garbage collected along with a task
 */
-setTaskStore		:: !String !a !*TSt				-> *TSt | iTask a
-setTaskStoreFor 	:: !TaskNr !String !a !*TSt		-> *TSt | iTask a
+setTaskStore		:: !String !a !*TSt				-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+setTaskStoreFor 	:: !TaskNr !String !a !*TSt		-> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 /**
 * Reads a 'task scoped' value from the store
 */
-getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | iTask a
-getTaskStoreFor		:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) | iTask a
+getTaskStore		:: !String !*TSt				-> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
+getTaskStoreFor		:: !TaskNr !String !*TSt		-> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 
 /**
 * Store and load the result of a workflow instance

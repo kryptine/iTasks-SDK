@@ -21,8 +21,7 @@ import GenVisualize, GenUpdate
 
 derive gVisualize	GAction, GOnlyAction, GroupedBehaviour
 derive gUpdate		GAction, GOnlyAction, GroupedBehaviour
-derive gError		GAction, GOnlyAction, GroupedBehaviour
-derive gHint		GAction, GOnlyAction, GroupedBehaviour
+derive gVerify		GAction, GOnlyAction, GroupedBehaviour
 
 derive JSONEncode	GAction, GOnlyAction, GroupedBehaviour
 derive JSONDecode	GAction, GOnlyAction, GroupedBehaviour

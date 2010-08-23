@@ -79,8 +79,7 @@ list2mb a = (Just a)
 
 derive gVisualize	Timestamp
 derive gUpdate		Timestamp
-derive gHint		Timestamp
-derive gError		Timestamp
+derive gVerify		Timestamp
 
 JSONEncode{|Dynamic|} dyn					= [JSONString (base64Encode (dynamic_to_string dyn))]
 

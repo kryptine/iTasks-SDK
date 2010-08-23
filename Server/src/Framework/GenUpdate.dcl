@@ -6,7 +6,14 @@ import Types, Store
 //Datapath is used to point to substructures of data structures
 :: DataPath
 :: SubEditorIndex :== Int
-:: DataMask :== [[Int]]
+//:: DataMask :== [[Int]]
+
+//				Mode		Dirty			Child Components
+:: UpdateMask = Untouched 	Bool 			[UpdateMask]
+			  | Touched		Bool			[UpdateMask]
+			  | Blanked		Bool			[UpdateMask]
+//							Dirty Children	Child Components
+			  | UMList		[Int]			[UpdateMask]
 
 :: *USt =
 	{ mode				:: UpdateMode
@@ -14,7 +21,8 @@ import Types, Store
 	, currentPath		:: DataPath
 	, update			:: String
 	, consPath			:: [ConsPos]
-	, mask				:: DataMask
+	, oldMask			:: UpdateMask
+	, newMask			:: UpdateMask
 	, iworld			:: *IWorld
 	}
 
@@ -22,7 +30,6 @@ import Types, Store
 	= UDSearch
 	| UDCreate
 	| UDMask
-	| UDDone
 
 generic gUpdate a		:: a 		*USt -> (a, *USt)
 
@@ -30,11 +37,14 @@ derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String, Document
 derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
 
+derive JSONEncode UpdateMask
+derive JSONDecode UpdateMask
+
 //Wrapper functions for updating
 defaultValue			:: !*IWorld -> (!a,!*IWorld)										| gUpdate{|*|} a
-defaultMask				:: a !*IWorld -> (!DataMask,!*IWorld)								| gUpdate{|*|} a
+defaultMask				:: a !*IWorld -> (!UpdateMask,!*IWorld)								| gUpdate{|*|} a
 updateValue				:: DataPath String a !*IWorld -> (a,!*IWorld)						| gUpdate{|*|} a 
-updateValueAndMask  	:: DataPath String a DataMask !*IWorld -> (a,DataMask,!*IWorld)		| gUpdate{|*|} a
+updateValueAndMask  	:: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld)	| gUpdate{|*|} a
 
 //Utility functions for working accessing the iWorld in a USt
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
@@ -54,10 +64,19 @@ dp2id			:: String DataPath	-> String
 s2dp			:: String			-> DataPath
 isdps			:: String			-> Bool
 
-instance == DataPath
+class GenMask m
+where
+	popMask 			:: !m -> (!m, !m)
+	appendToMask 		:: !m !m -> m
+	getMaskChildren		:: !m -> [m] 
 
-//Masking and unmasking of fields
-toggleMask			:: *USt -> *USt
-initialDataMask		:: DataMask
-isMasked			:: DataPath DataMask -> Bool
-appendToMask		:: DataPath DataMask -> DataMask
+instance == DataPath
+instance GenMask UpdateMask
+
+isDirtyUM 			:: !UpdateMask 	-> Bool
+
+toggleMask 			:: !String 		-> UpdateMask
+cleanUpdMask 		:: !UpdateMask 	-> UpdateMask
+dirtyUpdMask 		:: !UpdateMask 	-> UpdateMask
+
+initialUpdateMask 	:: UpdateMask

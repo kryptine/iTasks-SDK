@@ -10,8 +10,7 @@ import GenVisualize, GenUpdate
 
 derive gVisualize		DBRef
 derive gUpdate			DBRef
-derive gHint			DBRef
-derive gError			DBRef
+derive gVerify			DBRef
 derive gMerge			DBRef
 
 derive JSONEncode		DBRef

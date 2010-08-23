@@ -63,8 +63,7 @@ from TaskTree	import :: TaskParallelType(..)
 class iTask a
 	| gVisualize{|*|}
 	, gUpdate{|*|}
-	, gHint{|*|}
-	, gError{|*|}
+	, gVerify{|*|}
 	, JSONEncode{|*|}
 	, JSONDecode{|*|}
 	, TC a

@@ -138,8 +138,6 @@ where
 	(==) a b = (a.TUIListContainer.id == b.TUIListContainer.id) 
 			&& (a.TUIListContainer.staticDisplay == b.TUIListContainer.staticDisplay) 
 			&& (a.TUIListContainer.items == b.TUIListContainer.items)
-
-import StdDebug
 			
 instance == TUIRecordContainer
 where

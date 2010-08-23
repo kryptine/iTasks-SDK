@@ -17,8 +17,7 @@ import GenVisualize, GenUpdate, JSON, StoreTasks
 
 derive gVisualize		User, UserDetails, Session, Task
 derive gUpdate			User, UserDetails, Session, Task
-derive gError			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gHint			User, UserDetails, Session, Task, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gVerify			User, UserDetails, Session, Task, Hidden, HtmlDisplay, Editable, VisualizationHint
 
 derive gMerge			User, Session, VisualizationHint
 

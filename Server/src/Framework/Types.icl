@@ -10,8 +10,7 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
-derive gError			User, UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive gHint			User, UserDetails, Session, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gVerify			User, UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gMerge			User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
@@ -178,68 +177,46 @@ taskUser (Task p _ _ _) = p.worker
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties (Task p _ _ _) = p
 
-gVisualize{|User|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,hintMask}
+gVisualize{|User|} old new vst=:{vizType,currentPath,updateMask}
 	= case vizType of
 		VEditorDefinition	
-			# errMsg = getErrorMessage currentPath oldM errorMask
-			# hntMsg = getHintMessage currentPath oldM hintMask
-			= ([TUIFragment (TUIUserControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUIUserControl ctl)], vst)
 		VEditorUpdate
-			# upd = [TUIUpdate (TUISetValue id newV)]
-			# err = getErrorUpdate id currentPath newM errorMask
-			# hnt = getHintUpdate id currentPath newM hintMask
-			= (err ++ hnt ++ upd
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
+			= updateBasicControl old new vst
 		_					
 			= ([TextFragment (toString old)]
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
-where
-	// Use the path to the inner constructor instead of the current path.
-	// This way the generic gUpdate will work for this type
-	id			= dp2id idPrefix currentPath
-	oldV		= value2s currentPath old
-	newV		= value2s currentPath new
-	oldM		= case old of (VValue _ omask) = omask ; _ = []
-	newM		= case new of (VValue _ nmask) = nmask ; _ = []
+				, {VSt|vst & currentPath = stepDataPath currentPath})
 
-gUpdate{|User|} _ ust=:{USt|mode=UDCreate} = (AnyUser, ust)
-gUpdate{|User|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+gUpdate{|User|} _ ust=:{USt|mode=UDCreate,newMask} 
+	= (AnyUser,{USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|User|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm, om) = popMask oldMask
 	| currentPath == searchPath
 		| userName (NamedUser update) == "root"
-			= (RootUser, toggleMask {USt|ust & mode = UDDone})
+			= (RootUser, {USt | ust & newMask = appendToMask newMask (toggleMask update), oldMask = om})
 		| otherwise
-			= (NamedUser update, toggleMask {USt|ust & mode = UDDone})
+			= (NamedUser update,  {USt | ust & newMask = appendToMask newMask (toggleMask update), oldMask = om})
 	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath})
-gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask}) 
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 gUpdate{|User|} s ust = (s, ust)
-
 
 // ******************************************************************************************************
 // Task specialization
 // ******************************************************************************************************
 
-JSONEncode{|Task|} fx t						= [JSONString (base64Encode (copy_to_string t))]
-JSONDecode{|Task|} fx [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
-JSONDecode{|Task|} fx c						= (Nothing,c) 
+JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
+JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|Task|} _ c						= (Nothing,c) 
 
-gVisualize{|Task|} fx (VValue (Task props _ _ _) _) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
-gVisualize{|Task|} fx _ _ vst = ([],vst)
+gVisualize{|Task|} _ (VValue (Task props _ _ _)) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
+gVisualize{|Task|} _ _ _ vst = ([],vst)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
 	= (Task {initManagerProperties & subject = "return"} initGroupedProperties Nothing (\tst -> (TaskFinished a,tst)), ust)
-gUpdate{|Task|} fx x ust = (x,ust)
+gUpdate{|Task|} _ x ust = (x,ust)
 
-gError{|Task|} fx x est = est
-gHint{|Task|} fx x hst = hst
-
-// ******************************************************************************************************
-// Document specialization
-// ******************************************************************************************************
-
-gError{|Document|} _ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= stepOut est
+gVerify{|Task|} _ _ vst = vst

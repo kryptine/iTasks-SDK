@@ -17,8 +17,7 @@ from Types import :: User (..)
 
 derive gVisualize	GAction, GOnlyAction
 derive gUpdate		GAction, GOnlyAction
-derive gError		GAction, GOnlyAction
-derive gHint		GAction, GOnlyAction
+derive gVerify		GAction, GOnlyAction
 
 derive JSONEncode	GAction, GOnlyAction
 derive JSONDecode	GAction, GOnlyAction

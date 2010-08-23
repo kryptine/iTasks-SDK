@@ -5,252 +5,152 @@ import GenUpdate, StdMisc
 
 derive bimap (,), Maybe
 
-derive gError Void, Either
-derive gHint  Void, Either
+derive gVerify (,), (,,), (,,,), Void, Either
 
-generic gError a :: a *ESt -> *ESt
-generic gHint  a :: (Maybe a) *HSt -> *HSt
+generic gVerify a :: (Maybe a) *VerSt -> *VerSt
 
-instance == LabelOrNumber
-where
-	(==) (Unlabeled a) (Unlabeled b) = a == b
-	(==) (Label a) (Label b) = a == b
-	(==) _ _ = False
-
-instance == ErrorMessage
-where
-	(==) (ErrorMessage a) (ErrorMessage b) = a == b
-	(==) (IsBlankError) (IsBlankError) = True
-	(==) _ _ = False
-
-mkHSt :: *HSt
-mkHSt = {HSt | dataMask = [], hintMask = [], currentPath = shiftLabeledDataPath []}
-
-mkESt :: *ESt
-mkESt = {ESt | dataMask = [], errorMask = [], currentPath = shiftLabeledDataPath []}
-
-determineErrors :: a DataMask -> ErrorMask | gError{|*|} a
-determineErrors a mask
-	# est = gError{|*|} a {ESt | mkESt & dataMask = mask}
-	= est.ESt.errorMask
-
-determineHints :: a DataMask -> HintMask | gHint{|*|} a
-determineHints a mask
-	# hst = gHint{|*|} (Just a) {HSt | mkHSt & dataMask = mask}
-	= hst.HSt.hintMask
-
-// generic error
-gError{|UNIT|} 	 	 	      _          est = est
-gError{|PAIR|} 			fx fy (PAIR x y) est = fy y (fx x est)
-gError{|EITHER|}		fx fy (LEFT x) 	 est = fx x est
-gError{|EITHER|}		fx fy (RIGHT y)  est = fy y est
-gError{|OBJECT of d|}	fx    (OBJECT x) est=:{ESt | currentPath}
-	# est = fx x est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|CONS of d|}		fx    (CONS x)   est=:{ESt | currentPath}
-	# est = if(d.gcd_arity > 0 || not (isEmpty d.gcd_fields)) 
-		(fx x {ESt | est & currentPath = shiftLabeledDataPath currentPath})
-		est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|FIELD of d|}fx	  (FIELD x)	 est = fx x est
-gError{|Int|} 		_ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Real|}		_ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Char|}		_ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Bool|}		_ est=:{ESt | currentPath}
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|String|}	_ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|(,)|}  f1 f2	 	(x1,x2)	   	   est=:{ESt | currentPath}
-	# est = f1 x1 {ESt | est & currentPath = shiftLabeledDataPath currentPath}
-	# est = f2 x2 est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|(,,)|}  f1 f2 f3	 (x1,x2,x3)	   est=:{ESt | currentPath}
-	# est = f1 x1 {ESt | est & currentPath = shiftLabeledDataPath currentPath}
-	# est = f2 x2 est
-	# est = f3 x3 est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}	
-gError{|(,,,)|} f1 f2 f3 f4 (x1,x2,x3,x4)  est=:{ESt | currentPath}
-	# est = f1 x1 {ESt | est & currentPath = shiftLabeledDataPath currentPath}
-	# est = f2 x2 est
-	# est = f3 x3 est
-	# est = f4 x4 est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|[]|}		fx	  l		 	 est=:{ESt | currentPath, errorMask}
-	# est = if (isEmpty l) 
-			({ESt | est & errorMask = [(currentPath,MPAlways,IsBlankError):errorMask]}) 
-			(checkItems fx l {ESt | est & currentPath = shiftLabeledDataPath currentPath})
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-where
-	checkItems fx []	 est = est
-	checkItems fx [i:ix] est = checkItems fx ix (fx i est)
-
-gError{|Maybe|} fx	Nothing est=:{ESt | currentPath} 
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-gError{|Maybe|} fx (Just x) est=:{ESt | currentPath}
-	# est=:{ESt | errorMask} = fx x est
-	//Filter all 'blank' errors from the component directly below the maybe, as it is allowed to be empty (e.g. [])
-	# errorMask = filter (\(path,_,msg) -> (not (path == currentPath && msg == IsBlankError))) errorMask
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath, errorMask = errorMask}
-
-gError{|Dynamic|}	x est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-//generic hint
-gHint{|UNIT|} 	 	      _          		hst = hst
-gHint{|PAIR|}		_  _  Nothing	 		hst = hst
-gHint{|PAIR|} 		fx fy (Just (PAIR x y)) hst = fy (Just y) (fx (Just x) hst)
-gHint{|EITHER|}		_  _  Nothing			hst = hst
-gHint{|EITHER|}		fx fy (Just (LEFT x)) 	hst = fx (Just x) hst
-gHint{|EITHER|}		fx fy (Just (RIGHT y))	hst = fy (Just y) hst
-gHint{|OBJECT|}		_	  Nothing			hst = hst
-gHint{|OBJECT|}		fx    (Just (OBJECT x))	hst=:{HSt | currentPath}
-	# hst = fx (Just x) hst
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|CONS|}		_	  Nothing	 		hst = hst	
-gHint{|CONS|}		fx    (Just (CONS x))	hst=:{HSt | currentPath}
-	# hst = fx (Just x) {HSt | hst & currentPath = shiftLabeledDataPath currentPath}
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|FIELD|}		_	  Nothing			hst = hst
-gHint{|FIELD|}		fx	  (Just (FIELD x))	hst = fx (Just x) hst
-
-gHint{|Int|} 		_ hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|Real|}		_ hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|Char|}		_ hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|Bool|}		_ hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|String|}		_ hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-
-gHint{|(,)|}		_  _   Nothing			hst = hst
-gHint{|(,)|}  		f1 f2  (Just (x1,x2))	hst=:{HSt | currentPath}
-	# hst = f1 (Just x1) {HSt | hst & currentPath = shiftLabeledDataPath currentPath}
-	# hst = f2 (Just x2) hst
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|(,,)|}  	_  _  _  Nothing	   		hst = hst
-gHint{|(,,)|}  	f1 f2 f3 (Just (x1,x2,x3))	hst=:{HSt | currentPath}
-	# hst = f1 (Just x1) {HSt | hst & currentPath = shiftLabeledDataPath currentPath}
-	# hst = f2 (Just x2) hst
-	# hst = f3 (Just x3) hst
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}	
-gHint{|(,,,)|} _  _  _  _  Nothing				hst = hst
-gHint{|(,,,)|} f1 f2 f3 f4 (Just(x1,x2,x3,x4))  hst=:{HSt | currentPath}
-	# hst = f1 (Just x1) {HSt | hst & currentPath = shiftLabeledDataPath currentPath}
-	# hst = f2 (Just x2) hst
-	# hst = f3 (Just x3) hst
-	# hst = f4 (Just x4) hst
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-
-gHint{|[]|}		_	 Nothing	 hst = hst
-gHint{|[]|}		fx	 (Just l) 	 hst=:{HSt | currentPath}
-	# hst = checkItems fx l {HSt | hst & currentPath = shiftLabeledDataPath currentPath}
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-where
-	checkItems fx []	 hst = hst
-	checkItems fx [i:ix] hst = checkItems fx ix (fx (Just i) hst)
-
-gHint{|Maybe|} _  Nothing		  hst = hst
-gHint{|Maybe|} fx (Just (Just x)) hst=:{HSt | currentPath} 
-	# hst = fx (Just x) hst
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-gHint{|Maybe|} fx (Just Nothing) hst=:{HSt | currentPath}
-	# hst = fx Nothing hst
-	= {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-
-gHint{|Dynamic|}	x hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
-
-//Utility functions
-appendError :: !String !MessagePredicate *ESt -> *ESt
-appendError err pred est=:{ESt | currentPath,errorMask} 
-	= {ESt | est & errorMask = [(currentPath,pred,ErrorMessage err):errorMask]}
-
-appendHint :: !String !MessagePredicate *HSt -> *HSt
-appendHint hint pred hst=:{HSt | currentPath,hintMask}
-	= {HSt | hst & hintMask = [(currentPath,pred,hint):hintMask]}
-
-instance VerifyState ESt
-where
-	firstChild :: (*ESt -> *ESt) *ESt -> *ESt
-	firstChild f est=:{ESt | currentPath}
-		# est = f {ESt | est & currentPath = [Unlabeled 0:currentPath]}
-		= {ESt | est & currentPath = currentPath}
+verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
+verifyValue val updateMask
+	# verSt = gVerify{|*|} (Just val) {VerSt | updateMask = updateMask, verifyMask = VMValid Nothing Nothing [], optional = False}
+	= verSt.VerSt.verifyMask
 	
-	nthChild :: !Int !(*ESt -> *ESt) *ESt -> *ESt
-	nthChild n f est=:{ESt | currentPath}
-		# est = f {ESt | est & currentPath = [Unlabeled n:currentPath]}
-		= {ESt | est & currentPath = currentPath}
-		
-	labeledChild :: !String (*ESt -> *ESt) *ESt -> *ESt
-	labeledChild l f est=:{ESt | currentPath}
-		# est = f {ESt | est & currentPath = [Label l:currentPath]}
-		= {ESt | est & currentPath = currentPath}
+//Generic Verify
+gVerify{|UNIT|} 			  _ 					vst = vst
 
-	stepOut :: !*ESt -> *ESt
-	stepOut est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
+gVerify{|PAIR|} 		_  _  Nothing				vst = vst
+gVerify{|PAIR|} 		fx fy (Just (PAIR x y))		vst = fy (Just y) (fx (Just x) vst)
 
-instance VerifyState HSt
-where
-	firstChild :: (*HSt -> *HSt) *HSt -> *HSt
-	firstChild f hst=:{HSt | currentPath}
-		# hst = f {HSt | hst & currentPath = [Unlabeled 0:currentPath]}
-		= {HSt | hst & currentPath = currentPath}
+gVerify{|EITHER|} 		_  _  Nothing				vst = vst
+gVerify{|EITHER|}		fx _  (Just (LEFT x))		vst	= fx (Just x) vst
+gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst 
+
+gVerify{|CONS of d|}    _     Nothing				vst = vst
+gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,optional}
+	# vst = fx (Just x) {VerSt | vst & optional = False}
+	| not (isEmpty d.gcd_fields) //record
+		# vst=:{VerSt | verifyMask} = vst
+		# children = getMaskChildren verifyMask
+		| allUntouched children
+			= {VerSt | vst & verifyMask = (VMUntouched Nothing Nothing children), optional = optional}
+		| allValid children
+			= {VerSt | vst & verifyMask = (VMValid Nothing Nothing children), optional = optional}
+		| otherwise
+			= {VerSt | vst & verifyMask = (VMInvalid IsBlankError Nothing children), optional = optional}
+	| otherwise = {VerSt | vst & optional = optional}
 	
-	nthChild :: !Int (*HSt -> *HSt) *HSt -> *HSt
-	nthChild n f hst=:{HSt | currentPath}
-		# hst = f {HSt | hst & currentPath = [Unlabeled n:currentPath]}
-		= {HSt | hst & currentPath = currentPath}
-		
-	labeledChild :: !String (*HSt -> *HSt) *HSt -> *HSt
-	labeledChild l f hst=:{HSt | currentPath}
-		# hst = f {HSt | hst & currentPath = [Label l:currentPath]}
-		= {HSt | hst & currentPath = currentPath}
-		
-	stepOut :: !*HSt -> *HSt
-	stepOut hst=:{HSt | currentPath} = {HSt | hst & currentPath = stepLabeledDataPath currentPath}
+gVerify{|FIELD of d|}   _	  Nothing				vst = vst
+gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
 
-shiftLabeledDataPath :: LabeledDataPath -> LabeledDataPath
-shiftLabeledDataPath ldp = [Unlabeled 0:ldp]
+gVerify{|OBJECT of d|}  _     Nothing				vst = vst
+gVerify{|OBJECT of d|}  fx	  (Just (OBJECT x))		vst=:{VerSt | verifyMask,updateMask,optional}
+	# (cm,um) = popMask updateMask
+	# vMask = case optional of
+		True  = VMValid Nothing Nothing []
+		False = case cm of
+			(Blanked _ _) 	= (VMInvalid IsBlankError Nothing [])
+			(Untouched _ _) = (VMUntouched Nothing Nothing [])	
+			(Touched _ _) 	= (VMValid Nothing Nothing [])	
+	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & verifyMask = vMask, updateMask = cm}
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask childMask}
+	
+gVerify{|Int|}    _ vst = basicVerify "Enter a number" vst
+gVerify{|Real|}   _ vst = basicVerify "Enter a decimal number" vst
+gVerify{|Char|}   _ vst = basicVerify "Enter a character" vst
+gVerify{|String|} _ vst = basicVerify "Enter a short text" vst
+gVerify{|Bool|}   _ vst=:{VerSt | verifyMask,updateMask} 
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
+	
+gVerify{|[]|} fx Nothing   vst=:{VerSt | optional}
+	# msg = if optional "You may add list items" "Create at least one list item"
+	 = basicVerify msg vst
+gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
+	# (cm,um)	= popMask updateMask
+	| optional
+		={VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing [])}	
+	# listMask  = case cm of 
+					(Untouched _ _) 
+						= (VMUntouched (Just "Create at least one list item") Nothing [])
+					_ 
+						= (VMInvalid (ErrorMessage "Create at least one list item") Nothing []) //Empty lists are invalid
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}
+gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
+	# listMask 	= (VMValid Nothing Nothing [])
+	# (cm,um)	= popMask updateMask
+	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx x {VerSt | vst & verifyMask = listMask, updateMask = cm, optional = False}
+	# children  = getMaskChildren childMask
+	| allUntouched children
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children), optional = optional}
+	| allValid children
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional}
+	| otherwise
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more elements contain errors.") Nothing children), optional = optional}
+where
+	verifyItems fx [] vst = vst
+	verifyItems fx [x:xs] vst
+	# vst = fx (Just x) vst
+	= verifyItems fx xs vst
 
-stepLabeledDataPath :: LabeledDataPath -> LabeledDataPath
-stepLabeledDataPath [Unlabeled x:xs] 	= [Unlabeled (inc x):xs]
-stepLabeledDataPath [Label s:xs]		= [Label s:xs]
-stepLabeledDataPath [] 					= []
+gVerify{|Maybe|} fx (Just (Just x)) vst=:{VerSt | optional}
+	# vst = fx (Just x) {VerSt | vst & optional = True}
+	= {VerSt | vst & optional = optional}
+gVerify{|Maybe|} fx (Just Nothing) vst=:{VerSt | optional} 
+	# vst = fx Nothing {VerSt | vst & optional = True}
+	= {VerSt | vst & optional = optional}
+gVerify{|Maybe|} _ Nothing vst=:{VerSt | updateMask,verifyMask,optional}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
 
-dp2ldp :: DataPath -> LabeledDataPath
-dp2ldp dp = [Unlabeled i \\ i <- dataPathList dp]
+gVerify{|Dynamic|} _ vst = vst
 
-getErrorMessage :: DataPath DataMask ErrorMask -> String
-getErrorMessage dp dmask mmask = join ", " [toString s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
+gVerify{|Document|} _ vst = basicVerify "Upload a document" vst
 
-getHintMessage :: DataPath DataMask HintMask -> String
-getHintMessage dp dmask mmask = join ", " [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
+basicVerify :: String !*VerSt -> *VerSt
+basicVerify msg vst=:{VerSt | updateMask,verifyMask,optional}
+	# (cm,um)   = popMask updateMask
+	| optional  = {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just msg) Nothing [])}	
+	| otherwise = case cm of
+		(Touched _ _)
+			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just msg) Nothing [])}
+		(Untouched _ _)
+			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched (Just msg) Nothing [])}
+		(Blanked _ _)
+			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid IsBlankError Nothing [])}
+		(UMList _ _)
+			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just msg) Nothing [])}
 
-getErrorCount :: DataPath DataMask ErrorMask -> Int
-getErrorCount dp dmask mmask = length [s \\ (ldp,p,s) <- mmask | eqPath (dataPathList dp) ldp && predValid ldp p dmask]
 
-predValid :: LabeledDataPath MessagePredicate DataMask -> Bool
-predValid ldp MPAlways dm = True
-predValid ldp MPIfMasked dm = isMember ldp [[Unlabeled i \\ i <- dp] \\ dp <- dm]
+allUntouched :: ![VerifyMask] -> Bool
+allUntouched children = and [isUntouched c \\ c <- children]
+where
+	isUntouched (VMUntouched _ _ _) = True
+	isUntouched _					= False
 
-eqPath :: [Int] [LabelOrNumber] -> Bool
-eqPath [] 		[] 					= True
-eqPath [i:ix]	[(Unlabeled l):lx] 	= i == l && eqPath ix lx
-eqPath _		_					= False
-
-verifyIfBlank :: !LabeledDataPath !LabeledDataPath !*ESt -> *ESt
-verifyIfBlank valuePath errorPath est=:{ESt | errorMask,dataMask}
-| not (isMember valuePath [map (\i -> Unlabeled i) m \\ m <- dataMask]) = {ESt | est & errorMask = [(errorPath, MPAlways, IsBlankError):errorMask]}
-| otherwise = est
-
-toLabeledMask :: !DataMask -> [LabeledDataPath]
-toLabeledMask dm = [map (\i -> Unlabeled i) m \\ m <- dm]
+allValid :: ![VerifyMask] -> Bool
+allValid children = and [isValid c \\ c <- children]
+where
+	isValid (VMValid _ _ _) = True
+	isValid _				= False
 
 instance toString ErrorMessage
 where
 	toString (ErrorMessage s) = s
-	toString IsBlankError = "This value is required"
+	toString IsBlankError = "This value is required."
+	
+instance GenMask VerifyMask
+where
+	popMask :: !VerifyMask -> (!VerifyMask, !VerifyMask)
+	popMask (VMValid h f [c:cm])   		= (c,(VMValid h f cm))
+	popMask (VMUntouched h f [c:cm])   	= (c,(VMUntouched h f cm))
+	popMask (VMInvalid e f [c:cm]) 		= (c,(VMInvalid e f cm))
+	popMask m					   		= (VMValid Nothing Nothing [], m)
+	
+	appendToMask :: !VerifyMask !VerifyMask -> VerifyMask
+	appendToMask (VMValid h f cm) c   		= (VMValid h f (cm++[c]))
+	appendToMask (VMUntouched h f cm) c  	= (VMUntouched h f (cm++[c]))
+	appendToMask (VMInvalid e f cm) c 		= (VMInvalid e f (cm++[c]))
+	
+	getMaskChildren :: !VerifyMask -> [VerifyMask]
+	getMaskChildren (VMValid _ _ cm)   		= cm
+	getMaskChildren (VMInvalid _ _ cm) 		= cm
+	getMaskChildren (VMUntouched _ _ cm) 	= cm

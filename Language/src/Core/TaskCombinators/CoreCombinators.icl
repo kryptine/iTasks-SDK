@@ -106,13 +106,7 @@ where
 	
 	description tasks = "Do the following tasks one at a time:<br /><ul><li>" +++ (join "</li><li>" (map taskSubject tasks)) +++ "</li></ul>"
 // Parallel / Grouped composition
-derive gVisualize 	PSt
-derive gUpdate 		PSt
-derive gError		PSt
-derive gHint		PSt
-derive JSONEncode	PSt
-derive JSONDecode	PSt
-
+derive class iTask PSt
 derive bimap Maybe, (,)
 
 :: PSt a b =

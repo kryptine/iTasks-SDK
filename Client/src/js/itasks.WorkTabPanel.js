@@ -313,7 +313,7 @@ itasks.WorkHeaderPanel = Ext.extend(Ext.Panel, {
 					'</div>'+
 				'</div>'+
 				'<div class="worktab-header-indicator">'
-				, worktabStatus(properties.workerProperties.progress),worktabBackground(properties.managerProperties.priority),subject, properties.systemProperties.manager
+				, worktabStatus(properties.workerProperties.progress),worktabBackground(properties.managerProperties.priority),subject, itasks.util.formatUser(properties.systemProperties.manager)
 				, itasks.util.formatDeadline(properties.managerProperties.deadline)
 				));
 	},

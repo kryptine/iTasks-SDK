@@ -4,8 +4,7 @@ import iTasks, Text
 
 derive gUpdate			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive gMerge			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
-derive gError			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
-derive gHint			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
+derive gVerify			FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONEncode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 derive JSONDecode		FormattedText, FormattedTextControls, SourceCode, SourceCodeLanguage, Color
 
@@ -72,7 +71,12 @@ noControls =	{ alignmentControls	= False
 	, enableSourceEdit	:: !Bool
 	}
 
-gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,errorMask}
+gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateMask,verifyMask}
+	#(cmu,um) = popMask updateMask
+	#(cmv,vm) = popMask verifyMask
+	#(valid,err,hnt) = verifyElementStr valid cmu cmv
+	# oldV		= value2s (fst (popMask cmu)) old
+	# newV		= value2s (fst (popMask cmu)) new
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUIFormattedText
@@ -92,25 +96,24 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 									, enableSourceEdit	= controls.sourceEditControl
 									}
 								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
 		_					# htmlFrag = case old of
 								VBlank		= Text ""
-								VValue v _	= html v
+								VValue v	= html v
 							= ([HtmlFragment [htmlFrag]]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
 	contentPath	= shiftDataPath currentPath
 	id			= dp2id idPrefix contentPath
-	oldV		= value2s contentPath old
-	newV		= value2s contentPath new
+	
 	controls = case old of
 		VBlank								= allControls
-		VValue (FormattedText _ controls) _	= controls
+		VValue (FormattedText _ controls) 	= controls
 		
 	replaceMarkers v
 		# v = replaceSubString SelectionStartMarker ("<markerstart id='" +++ id +++ "_marker-start'></markerstart>") v
@@ -194,7 +197,12 @@ getSource (SourceCode src _) = src
 	, optional		:: !Bool
 	}
 	
-gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,errorMask}
+gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,updateMask,verifyMask}
+	#(cmu,um) = popMask updateMask
+	#(cmv,vm) = popMask verifyMask
+	# oldV		= value2s (fst (popMask cmu)) old
+	# newV		= value2s (fst (popMask cmu)) new
+	#(valid,err,hnt) = verifyElementStr valid cmu cmv
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUISourceCode
@@ -208,25 +216,23 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									, language		= language
 									}
 								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath})
 		_					# htmlFrag = case old of
 								VBlank		= Text ""
-								VValue v _	= html v
+								VValue v 	= html v
 							= ([HtmlFragment [htmlFrag]]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
 	contentPath	= shiftDataPath currentPath
 	id			= dp2id idPrefix contentPath
-	oldV		= value2s contentPath old
-	newV		= value2s contentPath new
 	language = case old of
 		VBlank							= ""
-		VValue (SourceCode _ lang) _	= case lang of
+		VValue (SourceCode _ lang) 		= case lang of
 			JS		= "js"
 			CSS		= "css"
 			PHP		= "php"
@@ -242,7 +248,12 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,errorMask}
+gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,updateMask,verifyMask}
+	#(cmu,um) = popMask updateMask
+	#(cmv,vm) = popMask verifyMask
+	# oldV		= value2s (fst (popMask cmu)) old
+	# newV		= value2s (fst (popMask cmu)) new
+	#(valid,err,hnt) = verifyElementStr valid cmu cmv
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUIColorChooser
@@ -255,22 +266,20 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 									, staticDisplay = renderAsStatic
 									}
 								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
 		_					# htmlFrag = case old of
 								VBlank		= Text ""
-								VValue v _	= html v
+								VValue v 	= html v
 							= ([HtmlFragment [htmlFrag]]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+								, {VSt|vst & currentPath = stepDataPath currentPath})
 where
 	// Use the path to the inner constructor instead of the current path.
 	// This way the generic gUpdate will work for this type
 	contentPath	= shiftDataPath currentPath
 	id			= dp2id idPrefix contentPath
-	oldV		= value2s contentPath old
-	newV		= value2s contentPath new
 	
 instance html Color
 where

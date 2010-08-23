@@ -10,8 +10,7 @@ from Time		import :: Timestamp
 
 derive gVisualize Action
 derive gUpdate Action
-derive gError Action
-derive gHint Action
+derive gVerify Action
 
 derive JSONEncode Action
 derive JSONDecode Action

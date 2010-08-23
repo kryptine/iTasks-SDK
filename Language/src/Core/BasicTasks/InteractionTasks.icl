@@ -51,7 +51,7 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 	# taskId			= taskNrToString taskNr
 	# editorId			= "tf-" +++ taskNrToString taskNr
 	# (ovalue,tst)		= readValue initial tst
-	# (omask,tst)		= readMask initial tst
+	# (oumask,tst)		= readMask initial tst
 	# buttonActions		= getButtonActions actions
 	= case treeType of
 		SpineTree
@@ -63,7 +63,8 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 			# (anyEvent,tst)	= anyEvents tst
 			| newTask || not anyEvent
 				// generate TUI definition
-				# (form,valid) 	= visualizeAsEditor editorId Nothing omask ovalue
+				# ovmask		= verifyValue ovalue oumask			
+				# (form,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
 				# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
 				# buttonActions	= evaluateConditions buttonActions valid ovalue
 				# tst			= setTUIDef (taskPanel taskId context (Just form) (makeButtons editorId buttonActions)) menuActions tst
@@ -75,16 +76,17 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 					// no change for this task
 					# tst = setTUIUpdates [] [] tst
 					= (TaskBusy,tst)
-				| otherwise
-					# (nvalue,nmask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue omask tst
+				| otherwise		
+					# (nvalue,numask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue oumask tst
 					# (action,tst) = getAction events (map fst buttonActions) tst
 					| isJust action
 						= (TaskFinished (fromJust action,nvalue),tst)
 					| otherwise
 						# tst				= setTaskStore "value" nvalue tst
-						# tst				= setTaskStore "mask" nmask tst
+						# tst				= setTaskStore "mask" numask tst
 						# updpaths			= events2Paths events
-						# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths omask nmask ovalue nvalue
+						# nvmask			= verifyValue nvalue numask
+						# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths numask nvmask ovalue nvalue
 						# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 						# buttonActions		= evaluateConditions buttonActions valid nvalue
 						# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
@@ -112,13 +114,13 @@ where
 					# tst					= setTaskStore "mask" mask
 												{TSt|tst & iworld = iworld} // <- store the initial mask
 					= (mask,tst)
-				Nothing	= ([],tst) 
+				Nothing	= ((Untouched True []),tst) 
 
 
-	applyUpdates [] val mask tst = (val,mask,tst)
-	applyUpdates [(p,v):us] val mask tst=:{TSt|iworld}
-		# (val,mask,iworld) = updateValueAndMask p v val mask iworld
-		= applyUpdates us val mask {TSt|tst & iworld = iworld}
+	applyUpdates [] val umask tst = (val,umask,tst)
+	applyUpdates [(p,v):us] val umask tst=:{TSt|iworld}
+		# (val,umask,iworld) = updateValueAndMask p v val umask iworld
+		= applyUpdates us val umask {TSt|tst & iworld = iworld}
 
 enterChoice :: !String !description [a] -> Task a | html description & iTask a
 enterChoice subject description  []		= throw (subject +++ ": cannot choose from empty option list")
@@ -385,16 +387,18 @@ where
 		# (Just oEditV,tst)			= getTaskStoreFor taskNr (addStorePrefix n "value") tst
 		# nEditV					= editorFrom new
 		# tst=:{TSt|iworld}			= tst
-		# (mask,iworld)				= defaultMask nEditV iworld
+		# (umask,iworld)			= defaultMask nEditV iworld
+		# (vmask)					= verifyValue nEditV umask
 		# (events,tst)				= getEvents {TSt|tst & iworld = iworld}
 		# updpaths					= events2Paths postValues
-		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths mask mask oEditV nEditV,tst)
+		= (determineEditorUpdates (editorId taskNr n) (Just n) updpaths umask vmask oEditV nEditV,tst)
 	
 	// generate TUI definition for view
 	visualize taskNr n stateV tst=:{TSt|iworld}
 		# editV					= editorFrom stateV
-		# (mask,iworld)			= defaultMask editV iworld
-		= (visualizeAsEditor (editorId taskNr n) (Just n) mask editV,{TSt|tst & iworld = iworld})
+		# (umask,iworld)		= defaultMask editV iworld
+		# (vmask)				= verifyValue editV umask
+		= (visualizeAsEditor (editorId taskNr n) (Just n) umask vmask editV,{TSt|tst & iworld = iworld})
 				
 listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}

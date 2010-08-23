@@ -6,224 +6,189 @@ import GenVisualize, GenUpdate, GenLexOrd
 import Text, Time
 
 derive gVisualize		EmailAddress, DateTime
-derive gUpdate			EmailAddress, Note, DateTime
+derive gUpdate			EmailAddress, DateTime
 derive gMerge			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
+derive gVerify			EmailAddress, DateTime
+
 derive gLexOrd			Currency
-derive gHint			EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
-derive gError 			EmailAddress, DateTime
 
 derive JSONEncode		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 derive JSONDecode		EmailAddress, Password, Note, Date, Time, DateTime, Currency, FormButton, ButtonState
 
 derive bimap	Maybe, (,)
 
-//VValue a DataMask
-gVisualize{|FormButton|} old new vst=:{vizType,label=fLabel,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
+gVisualize{|FormButton|} old new vst=:{vizType,label=fLabel,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,updateMask,verifyMask,updates}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask
 	= case vizType of
 		VEditorDefinition
-			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
-			= ([TUIFragment (TUIFormButtonControl {TUIButtonControl | label = label old, iconCls = icon old, name = dp2s currentPath, id = id, value = toString pressedOld, fieldLabel = labelAttr useLabels fLabel, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid currentPath oldM errorMask valid})
+			# (valid, err, hnt) = verifyElementStr valid cmu cmv
+			= ([TUIFragment (TUIFormButtonControl {TUIButtonControl | label = label old, iconCls = icon old, name = dp2s currentPath, id = id, value = toString pressedOld, fieldLabel = labelAttr useLabels fLabel, optional = optional, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})]
+				, {VSt | vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			# upd = if (pressedOld == pressedNew) (restoreField currentPath updates id (toString pressedOld)) [TUIUpdate (TUISetValue id (toString pressedNew))]
-			# (msg,vst) = updateErrorNHintMessages newM vst
+			#(valid,msg) = verifyElementUpd valid id cmu cmv
 			= (upd ++ msg
-				, {VSt | vst & currentPath = stepDataPath currentPath, valid = isValid currentPath newM errorMask valid})
+				, {VSt | vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
 		_
 			= ([TextFragment (label old)]
 				, {VSt | vst & currentPath = stepDataPath currentPath})
 where
 	id			= dp2id idPrefix currentPath
 	
-	label b		= case b of (VValue b _) = b.FormButton.label; _ = ""
-	icon b		= case b of (VValue b _) = b.icon; _ = ""	
+	label b		= case b of (VValue b) = b.FormButton.label; _ = ""
+	icon b		= case b of (VValue b) = b.icon; _ = ""	
 	
-	pressedOld	= case old of (VValue ob _) = pressed ob; _ = False
-	pressedNew	= case new of (VValue nb _) = pressed nb; _ = True
+	pressedOld	= case old of (VValue ob) = pressed ob; _ = False
+	pressedNew	= case new of (VValue nb) = pressed nb; _ = True
 	
 	pressed b	= case b.FormButton.state of
 		Pressed		= True
 		NotPressed	= False	
-		
-	isValid dp dm em valid
-		| getErrorCount dp dm em > 0 	= False
-		| otherwise 				= valid
-		
-	oldM	= case old of (VValue _ omask) = omask ; _ = []
-	newM	= case new of (VValue _ nmask) = nmask ; _ = []
 
-gVisualize{|Password|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
+gVisualize{|Password|} old new vst=:{VSt | vizType,currentPath}
 	= case vizType of
 		VEditorDefinition	
-			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
-			= ([TUIFragment (TUIPasswordControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUIPasswordControl ctl)],vst)
 		VEditorUpdate
-			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
-			# (msg,vst) = updateErrorNHintMessages newM vst
-			= (upd++msg
-				, {VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			= updateBasicControl old new vst
 		_					
-			= ([TextFragment (foldr (+++) "" (repeatn 8 "*"))],{VSt | vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask old optional valid})
-where
-	id		= dp2id idPrefix currentPath
-	oldV	= value2s currentPath old
-	newV	= value2s currentPath new
-	oldM	= case old of (VValue _ omask) = omask; _ = []
-	newM	= case new of (VValue _ nmask) = nmask; _ = []
+			= ([TextFragment ("********")],{VSt | vst & currentPath = stepDataPath currentPath})
 		
-gVisualize{|Date|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
+gVisualize{|Date|} old new vst=:{VSt | vizType,currentPath}
 	= case vizType of
 		VEditorDefinition	
-			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
-			= ([TUIFragment (TUIDateControl {TUIBasicControl | name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUIDateControl ctl)],vst)
 		VEditorUpdate
-			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
-			# (msg,vst) = updateErrorNHintMessages newM vst
-			= (upd++msg
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
+			= updateBasicControl old new vst
 		_					
-			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
-where
-	id		= dp2id idPrefix currentPath
-	oldV	= value2s currentPath old
-	newV	= value2s currentPath new
-	oldM	= case old of (VValue _ omask) = omask ; _ = []
-	newM	= case new of (VValue _ nmask) = nmask ; _ = []
+			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 	
-gVisualize{|Time|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
+gVisualize{|Time|} old new vst=:{VSt | vizType,currentPath,updateMask,idPrefix}
 	= case vizType of
 		VEditorDefinition	
-			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
-			= ([TUIFragment (TUITimeControl {TUIBasicControl|name = dp2s currentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUITimeControl ctl)],vst)
 		VEditorUpdate
-			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
-			# (msg,vst) = updateErrorNHintMessages newM vst
-			= (upd++msg
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
+			= updateBasicControl old new vst
 		_					
-			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask new optional valid})
-where
-	id		= dp2id idPrefix currentPath
-	oldV	= value2s currentPath old
-	newV	= value2s currentPath new
+			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 	
-	oldM	= case old of (VValue _ omask) = omask ; _ = []
-	newM	= case new of (VValue _ nmask) = nmask ; _ = []
-	
-gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,verifyMask,updateMask,updates}
 	= case vizType of
 		VEditorDefinition	
-			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
-			= ([TUIFragment (TUINoteControl {TUIBasicControl|name = dp2s contentPath, id = id, value = oldV, fieldLabel = labelAttr useLabels label, optional = optional, staticDisplay = renderAsStatic, errorMsg = errMsg, hintMsg = hntMsg})]
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask old optional valid})
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUINoteControl ctl)],vst)
 		VEditorUpdate
-			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
-			# (msg,vst) = updateErrorNHintMessages newM vst
-			= (upd++msg
-					, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
+			= updateBasicControl old new vst
 		_					
 			= ([HtmlFragment (flatten [[Text line,BrTag []] \\ line <- split "\n" (toString old)])]
-					, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid contentPath errorMask new optional valid})
-where
-	// Use the path to the inner constructor instead of the current path.
-	// This way the generic gUpdate will work for this type
-	contentPath	= shiftDataPath currentPath
-	id			= dp2id idPrefix contentPath
-	oldV		= value2s contentPath old
-	newV		= value2s contentPath new
+					, {VSt|vst & currentPath = stepDataPath currentPath})
 
-	oldM	= case old of (VValue _ omask) = omask ; _ = []
-	newM	= case new of (VValue _ nmask) = nmask ; _ = []
-
-gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,errorMask,updates}
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,verifyMask,updateMask,updates}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask
+	# oldV = value old cmu
+	# newV = value new cmu
 	= case vizType of
 		VEditorDefinition	
-			# (errMsg,hntMsg,vst) = getErrorNHintMessages oldM vst
+			# (valid,err,hnt) = verifyElementStr valid cmu cmv
 			= ([TUIFragment (TUICurrencyControl {TUICurrencyControl|id = id, name = dp2s currentPath
 												, value = oldV, fieldLabel = labelAttr useLabels label
 												, currencyLabel = curLabel old, optional = optional
 												, staticDisplay = renderAsStatic
-												, errorMsg = errMsg, hintMsg = hntMsg})]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= stillValid currentPath errorMask old optional valid})
+												, errorMsg = err, hintMsg = hnt})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
-			# (msg,vst) = updateErrorNHintMessages newM vst
+			# (valid,msg) = verifyElementUpd valid id cmu cmv
 			= (upd++msg
-				, {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
 		_					
-			= ([TextFragment (toString old)], {VSt|vst & currentPath = stepDataPath currentPath, valid = stillValid currentPath errorMask new optional valid})
+			= ([TextFragment (toString old)], {VSt|vst & currentPath = stepDataPath currentPath})
 where
-	curLabel (VValue (EUR _) _)	= "&euro;"
-	curLabel (VValue (GBP _) _)	= "&pound;"
-	curLabel (VValue (USD _) _)	= "$"
-	curLabel (VValue (JPY _) _) = "&yen;"
+	curLabel (VValue (EUR _))	= "&euro;"
+	curLabel (VValue (GBP _))	= "&pound;"
+	curLabel (VValue (USD _))	= "$"
+	curLabel (VValue (JPY _)) = "&yen;"
 	curLabel _					= "&euro;" //Use the default currency
 	
-	oldM	= case old of (VValue _ omask) = omask ; _ = []
-	newM	= case new of (VValue _ nmask) = nmask ; _ = []
-	oldV	= value currentPath old
-	newV	= value currentPath new
-	value dp VBlank			= ""
-	value dp (VValue v dm)	= if (isMasked dp dm) (decFormat (toInt v)) ""
+	value VBlank um			= ""
+	value (VValue v) um = case um of (Touched _ _) = (decFormat (toInt v)); _ = ""
 	
 	id = dp2id idPrefix currentPath
 
 //******************************************************************************************************************************************
 		
-gUpdate{|FormButton|} _ ust=:{USt|mode=UDCreate}
-	= ({FormButton | label = "Form Button", icon="", state = NotPressed}, ust)
-gUpdate{|FormButton|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+gUpdate{|FormButton|} _ ust=:{USt|mode=UDCreate,newMask}
+	= ({FormButton | label = "Form Button", icon="", state = NotPressed}, {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|FormButton|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm, om) = popMask oldMask
 	| currentPath == searchPath
-		= ({s & state = if(update == "true") Pressed NotPressed}, toggleMask {USt|ust & mode = UDDone}) 
+		= ({s & state = if(update == "true") Pressed NotPressed}, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
 	| otherwise
-		= (s, {USt | ust & currentPath = stepDataPath currentPath})
-gUpdate{|FormButton|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|FormButton|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 		
-gUpdate{|Password|} _ ust=:{USt|mode=UDCreate} 
-	= (Password "", ust)
-gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+gUpdate{|Password|} _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Password "", {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
-		= (Password update, toggleMask {USt | ust & mode = UDDone})
+		= (Password update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
 	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath})
-gUpdate{|Password|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Password|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 	
-gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,iworld=iworld=:{IWorld|world}}
+gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,newMask,iworld=iworld=:{IWorld|world}}
 	# (date,world) = currentDate world
-	= (date, {USt|ust & iworld = {IWorld|iworld & world = world}})
-gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+	= (date, {USt|ust & iworld = {IWorld|iworld & world = world}, newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
-		= (fromString update, toggleMask {USt|ust & mode = UDDone})
+		= (fromString update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
 	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath})
-gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
-
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 gUpdate{|Date|} s ust = (s, ust)
 
-gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,iworld=iworld=:{IWorld|world}}
+gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,newMask,iworld=iworld=:{IWorld|world}}
 	# (time,world) = currentTime world
-	= (time, {USt|ust & iworld = {IWorld|iworld & world = world}})
-gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+	= (time, {USt|ust & iworld = {IWorld|iworld & world = world}, newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
-		= (fromString update, toggleMask {USt|ust & mode = UDDone})
+		= (fromString update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
 	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath})
-gUpdate{|Time|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Time|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 gUpdate{|Time|} s ust = (s, ust)
 
-gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate} = (EUR 0, ust)
-gUpdate{|Currency|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update}
+gUpdate{|Note|} _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Note "", {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Note|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
-		= (parseUpdate s update, toggleMask {USt|ust & mode = UDDone})
+		= (Note update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
 	| otherwise
-		= (s, {USt| ust & currentPath = stepDataPath currentPath})
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Note|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
+
+gUpdate{|Currency|} _ ust=:{USt|mode=UDCreate, newMask} 
+	= (EUR 0,{USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Currency|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,newMask, oldMask}
+	# (cm,om) = popMask oldMask
+	| currentPath == searchPath
+		= (parseUpdate s update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 where
 	parseUpdate orig update =
 		 case split "." update of
@@ -236,35 +201,18 @@ where
 	replaceVal (USD _) x = (USD x)
 	replaceVal (JPY _) x = (JPY x)
 
-gUpdate{|Currency|} s ust=:{USt|mode=UDMask,currentPath,mask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})	
+gUpdate{|Currency|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 gUpdate{|Currency|} s ust = (s,ust)
 
 //******************************************************************************************************************************************
 
-gError{|FormButton|} _ est=:{ESt | currentPath} = {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|Password|} _ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|Date|} _ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|Time|} _ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|Currency|} _ est=:{ESt | currentPath} 
-	# est = verifyIfBlank currentPath currentPath est
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}
-
-gError{|Note|} _ est=:{ESt | dataMask,errorMask,currentPath}
-	# est = if (isMember (shiftLabeledDataPath currentPath) (toLabeledMask dataMask))
-				est
-				({ESt | est & errorMask = [(currentPath, MPAlways, IsBlankError):errorMask]})
-	= {ESt | est & currentPath = stepLabeledDataPath currentPath}	
+gVerify{|FormButton|} _ vst = vst
+gVerify{|Password|} _ vst = basicVerify "Enter a password" vst
+gVerify{|Date|} _ vst = basicVerify "Enter a date" vst
+gVerify{|Time|} _ vst = basicVerify "Enter a time of day" vst
+gVerify{|Currency|} _ vst = basicVerify "Enter a currency value" vst
+gVerify{|Note|} _ vst = basicVerify "Enter a text" vst
 
 //******************************************************************************************************************************************
 

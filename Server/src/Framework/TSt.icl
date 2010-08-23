@@ -869,22 +869,22 @@ where
 		= (isJust mbproc, tst) 
 		
 	
-setTaskStore :: !String !a !*TSt -> *TSt | iTask a
+setTaskStore :: !String !a !*TSt -> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setTaskStore key value tst=:{taskNr}
 	= setTaskStoreFor taskNr key value tst
 	
-setTaskStoreFor :: !TaskNr !String !a !*TSt -> *TSt | iTask a
+setTaskStoreFor :: !TaskNr !String !a !*TSt -> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setTaskStoreFor taskNr key value tst=:{TSt|iworld=iworld=:{IWorld|store}}
 	# store = storeValue storekey value store
 	= {TSt|tst & iworld = {IWorld| iworld & store = store}}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
-getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | iTask a
+getTaskStore :: !String !*TSt -> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 getTaskStore key tst=:{taskNr}
 	= getTaskStoreFor taskNr key tst
 
-getTaskStoreFor	:: !TaskNr !String !*TSt -> (Maybe a, !*TSt) | iTask a
+getTaskStoreFor	:: !TaskNr !String !*TSt -> (Maybe a, !*TSt) | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 getTaskStoreFor taskNr key tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 	# (mbValue,store,world) = loadValue storekey store world
 	= (mbValue,{TSt|tst& iworld = {IWorld|iworld & store = store, world = world}})

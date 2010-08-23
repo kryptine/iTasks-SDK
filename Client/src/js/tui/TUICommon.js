@@ -3,23 +3,25 @@ Ext.ns('itasks.tui.common');
 itasks.tui.common.markError = function(field,msg){
 	field.msgTarget = 'side';
 	
-	if(field.rendered && !field.preventMark){
-		msg = msg || field.errorText;
-		
-		var mt = field.getMessageHandler();
-		
-		if(mt && mt.markError){
-			mt.markError(field, msg);
-		}else if(field.errorTarget){
-			var t = Ext.getDom(field.errorTarget);
-			if(t){
-				t.innerHTML = msg;
-				t.style.display = field.msgDisplay;
+	(function(){
+		if(field.rendered && !field.preventMark){
+			msg = msg || field.errorText;
+			
+			var mt = field.getMessageHandler();
+			
+			if(mt && mt.markError){
+				mt.markError(field, msg);
+			}else if(field.errorTarget){
+				var t = Ext.getDom(field.errorTarget);
+				if(t){
+					t.innerHTML = msg;
+					t.style.display = field.msgDisplay;
+				}
 			}
 		}
-	}
 	
-	field.activeError = msg;
+		field.activeError = msg;
+	}).defer(50,this);
 };
 
 itasks.tui.common.clearError = function(field){
@@ -42,23 +44,25 @@ itasks.tui.common.clearError = function(field){
 itasks.tui.common.markHint = function(field,msg){
 	field.msgTarget = 'side';
 	
-	if(field.rendered && !field.preventMark){
-		msg = msg || field.hintText;
-		
-		var mt = field.getMessageHandler();
-		
-		if(mt && mt.markHint){
-			mt.markHint(field, msg);
-		}else if(field.hintTarget){
-			var t = Ext.getDom(field.hintTarget);
-			if(t){
-				t.innerHTML = msg;
-				t.style.display = field.msgDisplay;
+	(function(){
+		if(field.rendered && !field.preventMark){
+			msg = msg || field.hintText;
+			
+			var mt = field.getMessageHandler();
+			
+			if(mt && mt.markHint){
+				mt.markHint(field, msg);
+			}else if(field.hintTarget){
+				var t = Ext.getDom(field.hintTarget);
+				if(t){
+					t.innerHTML = msg;
+					t.style.display = field.msgDisplay;
+				}
 			}
 		}
-	}
 
-	field.activeHint = msg;
+		field.activeHint = msg;
+	}).defer(50,this);
 };
 	
 itasks.tui.common.clearHint = function(field){
@@ -79,6 +83,7 @@ itasks.tui.common.clearHint = function(field){
 };
 
 itasks.tui.common.alignHintIcon = function(field){	
+
 	if(field.wrap){
 		field.hintIcon.alignTo(field.wrap, 'tl-tr', [2, 0]);
 	}else{
@@ -87,6 +92,7 @@ itasks.tui.common.alignHintIcon = function(field){
 };
 
 itasks.tui.common.alignErrIcon = function(field){
+
 	if(field.wrap){
 		field.errIcon.alignTo(field.wrap, 'tl-tr', [2, 0]);
 	}else{
@@ -100,15 +106,13 @@ Ext.apply(Ext.form.MessageTargets.side, {
 		if(!field.errIcon){
 			var elp = field.getErrorCt();
 			
-			if(!elp){
-				field.el.dom.title = msg;
-				return;
-			}
+			if(!elp) return;
 			
 			field.errIcon = elp.createChild({cls: 'x-form-invalid-icon'});
+			
 			if(field.ownerCt){
-				field.ownerCt.on('afterlayout', function(){ itasks.tui.common.alignErrIcon(this)}, field);
-				field.ownerCt.on('expand', function(){ itasks.tui.common.alignErrIcon(this)}, field);
+				//field.ownerCt.on('afterlayout', function(){ itasks.tui.common.alignErrIcon(this)}, field);
+				//field.ownerCt.on('expand', function(){ itasks.tui.common.alignErrIcon(this)}, field);
 			}
 			field.on('resize', function(){ itasks.tui.common.alignErrIcon(this)}, field);
 			field.on('destroy', function(){ Ext.destroy(this.errIcon); },field);
@@ -121,25 +125,22 @@ Ext.apply(Ext.form.MessageTargets.side, {
 	},
 	
 	clearError : function(field){
-		if(field.errIcon){
+		if(field.errIcon && field.errIcon.dom){
 			field.errIcon.dom.qtip = '';
 			field.errIcon.hide();
 		}
 	},
 	
-	markHint : function(field, msg){
+	markHint : function(field, msg){			
 		if(!field.hintIcon){
 			var elp = field.getErrorCt();
 			
-			if(!elp){
-				field.el.dom.title = msg;
-				return;
-			}
+			if(!elp) return;
 			
 			field.hintIcon = elp.createChild({cls: 'x-form-hint-icon'});
 			if(field.ownerCt){
-				field.ownerCt.on('afterlayout', function() {itasks.tui.common.alignHintIcon(this)}, field);
-				field.ownerCt.on('expand', function() {itasks.tui.common.alignHintIcon(this)}, field);
+				//field.ownerCt.on('afterlayout', function() {itasks.tui.common.alignHintIcon(this)}, field);
+				//field.ownerCt.on('expand', function() {itasks.tui.common.alignHintIcon(this)}, field);
 			}
 			field.on('resize', function() {itasks.tui.common.alignHintIcon(this)}, field);
 			field.on('destroy', function(){ Ext.destroy(this.hintIcon); }, field);
@@ -152,7 +153,7 @@ Ext.apply(Ext.form.MessageTargets.side, {
 	},
 	
 	clearHint: function(field){
-		if(field.hintIcon){
+		if(field.hintIcon && field.hintIcon.dom){
 			field.hintIcon.dom.qtip = '';
 			field.hintIcon.hide();
 		}

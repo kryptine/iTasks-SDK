@@ -13,18 +13,18 @@ derive gVisualize Int, Real, Char, Bool, String, Document
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String (Maybe SubEditorIndex) DataMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
-visualizeAsHtmlDisplay	:: a -> [HtmlTag]													| gVisualize{|*|} a
-visualizeAsTextDisplay	:: a -> String														| gVisualize{|*|} a
-visualizeAsHtmlLabel	:: a -> [HtmlTag]													| gVisualize{|*|} a
-visualizeAsTextLabel	:: a -> String														| gVisualize{|*|} a
+visualizeAsEditor		:: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
+visualizeAsHtmlDisplay	:: a -> [HtmlTag]																| gVisualize{|*|} a
+visualizeAsTextDisplay	:: a -> String																	| gVisualize{|*|} a
+visualizeAsHtmlLabel	:: a -> [HtmlTag]																| gVisualize{|*|} a
+visualizeAsTextLabel	:: a -> String																	| gVisualize{|*|} a
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] DataMask DataMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a & gHint{|*|} a & gError{|*|} a
+determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask VerifyMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a
-	= VValue a DataMask
+	= VValue a
 	| VBlank
 
 //Bimap for visualization values
@@ -41,8 +41,8 @@ derive bimap VisualizationValue
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
 	, valid				:: !Bool						// Is the form valid
-	, errorMask			:: !ErrorMask
-	, hintMask			:: !HintMask
+	, updateMask		:: !UpdateMask
+	, verifyMask		:: !VerifyMask
 	, updates			:: ![DataPath]
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
 	}
@@ -65,14 +65,15 @@ derive bimap VisualizationValue
 //Utility functions making specializations of gVisualize
 instance toString (VisualizationValue a) | toString a
 
-getHintUpdate :: TUIId DataPath DataMask HintMask -> [Visualization]
-getErrorUpdate :: TUIId DataPath DataMask ErrorMask -> [Visualization]
-getErrorNHintMessages :: !DataMask !*VSt -> (String, String, *VSt)
-updateErrorNHintMessages :: !DataMask !*VSt -> ([Visualization], *VSt)
-
 restoreField :: DataPath [DataPath] String String -> [Visualization]
+//updateVizValue:: !String !String !*VSt -> (![Visualization],!*VSt)
+//getMessageUpdates:: *VSt -> (!Bool,![Visualization], !*VSt)
 
-value2s 		:: DataPath (VisualizationValue a)							-> String | toString a
-label2s 		:: Bool (Maybe String)										-> Maybe String
+visualizeBasicControl :: !(VisualizationValue a) !*VSt -> (!TUIBasicControl, !*VSt) | toString a
+updateBasicControl :: !(VisualizationValue a) !(VisualizationValue a) !*VSt -> (![Visualization],!*VSt) | toString a
+
+verifyElementStr :: !Bool !UpdateMask !VerifyMask -> (!Bool, !String, !String)
+verifyElementUpd :: !Bool !String !UpdateMask !VerifyMask -> (!Bool, ![Visualization])
+
+value2s 		:: !UpdateMask !(VisualizationValue a) 								-> String | toString a
 labelAttr 		:: !Bool !(Maybe String)									-> Maybe String
-stillValid		:: DataPath ErrorMask (VisualizationValue a) Bool Bool		-> Bool

@@ -8,8 +8,7 @@ derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent
 derive gVisualize   	GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType
 derive gUpdate	  		GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gMerge	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gHint			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
-derive gError			GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
+derive gVerify			GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONEncode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive JSONDecode		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 
@@ -55,21 +54,21 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gError{|GoogleMap|} _ est = (stepOut est)
-
-gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels}
+gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels, updateMask, verifyMask}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask
 	= case vizType of
-		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel old (label2s optional label) (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath })
-		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (toString (mapPanel new (label2s optional label) (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath })
+		VEditorDefinition = ([TUIFragment (TUICustom   ((mapPanel old label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+		VEditorUpdate	  = ([TUIUpdate   (TUISetValue (dp2id idPrefix currentPath) (toString (mapPanel new label (not useLabels) idPrefix currentPath True)))],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		_				  = (staticMapPanel old, {VSt | vst & currentPath = stepDataPath currentPath})
 where
 	mapPanel VBlank fl hl 		  idp cp ed = toJSON (tuidef mkMap fl hl idp cp ed)
-	mapPanel (VValue map _) fl hl idp cp ed = toJSON (tuidef map   fl hl idp cp ed)
+	mapPanel (VValue map) fl hl idp cp ed = toJSON (tuidef map   fl hl idp cp ed)
 
 	staticMapPanel VBlank
 		# (GoogleStaticMap w h u) = convertToStaticMap mkMap
 		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
-	staticMapPanel (VValue map _)
+	staticMapPanel (VValue map)
 		# (GoogleStaticMap w h u) = convertToStaticMap map
 		= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]])
 
@@ -98,7 +97,7 @@ where
 		}
 
 gVisualize {|GoogleStaticMap|} VBlank _ vst = ([TextFragment "-"],vst)
-gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u) _ ) _ vst=:{vizType,idPrefix,currentPath}
+gVisualize {|GoogleStaticMap|} (VValue (GoogleStaticMap w h u)) _ vst=:{vizType,idPrefix,currentPath}
 	= case vizType of
 		VHtmlDisplay	= ([HtmlFragment [ImgTag [SrcAttr u, WidthAttr (toString w), HeightAttr (toString h)]]],{VSt | vst & currentPath = stepDataPath currentPath})
 		VTextDisplay	= ([TextFragment ("Static Map: "+++u)],{VSt | vst & currentPath = stepDataPath currentPath})
@@ -116,7 +115,7 @@ where
 		, url		= u
 		}	
 		
-gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate} = (
+gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (
 	{ GoogleMap
 	| center 			= (51.82,5.86)
 	, width	 			= 400
@@ -129,13 +128,14 @@ gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate} = (
 	, zoom				= 10
 	, mapType			= ROADMAP
 	, markers			= []
-	}, ust)
+	}, {USt | ust & newMask = appendToMask newMask (Untouched False [])})
 	
-gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update}
+gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
-		= (parseUpdate s update, toggleMask {USt | ust & mode = UDDone})
+		= (parseUpdate s update, {USt | ust & newMask = appendToMask newMask (Touched True []), oldMask = om})
 	| otherwise
-		= (s, {USt | ust & currentPath = stepDataPath currentPath})
+		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 where
 	parseUpdate orig update
 	# mbMVC		= fromJSON (fromString update)
@@ -149,8 +149,8 @@ where
 		= {GoogleMap | orig & markers = [marker:orig.GoogleMap.markers]}
 	| otherwise = orig
 
-gUpdate {|GoogleMap|} s ust =: {USt | mode = UDMask, currentPath, mask}
-	= (s, {USt | ust & currentPath = stepDataPath currentPath, mask = appendToMask currentPath mask})
+gUpdate {|GoogleMap|} s ust =: {USt | mode = UDMask, currentPath, newMask}
+	= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 
 gUpdate {|GoogleMap|} s ust = (s,ust)
 

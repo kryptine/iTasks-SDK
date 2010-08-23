@@ -6,8 +6,7 @@ import TSt, Store, Util, Text
 derive gVisualize	Action
 derive gUpdate		Action
 derive gEq			Action
-derive gHint		Action
-derive gError		Action
+derive gVerify		Action
 derive JSONEncode	Action
 derive JSONDecode	Action
 

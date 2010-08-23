@@ -188,6 +188,10 @@ div.newtask-container .x-panel-body {
 	background: #eee;
 }*/
 
+.worktabs-body{
+	background: #edf0f3 url('img/worktabs-background.png') repeat-x;
+}
+
 div.worktab-header {
 	padding: 0px;
 }

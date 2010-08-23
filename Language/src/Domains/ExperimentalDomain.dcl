@@ -5,8 +5,7 @@ import GenUpdate, GenVisualize, GenMerge
 derive gVisualize		FormattedText, SourceCode, Color
 derive gUpdate			FormattedText, SourceCode, Color
 derive gMerge			FormattedText, SourceCode, Color
-derive gError			FormattedText, SourceCode, Color
-derive gHint			FormattedText, SourceCode, Color
+derive gVerify			FormattedText, SourceCode, Color
 derive JSONEncode		FormattedText, SourceCode, Color
 derive JSONDecode		FormattedText, SourceCode, Color
 

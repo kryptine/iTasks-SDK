@@ -201,6 +201,8 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 	
 	clearErrorsNHints : function(){		
 		var f = function(ct){
+			if(!ct) return true;
+			
 			if(ct.setHint) ct.setHint(''); //empty string == clear
 			if(ct.setError) ct.setError('');
 			

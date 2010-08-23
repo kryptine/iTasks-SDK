@@ -11,8 +11,7 @@ derive JSONDecode	Dynamic, Void, Either, Timestamp
 
 derive gVisualize	Timestamp
 derive gUpdate		Timestamp
-derive gHint		Timestamp
-derive gError		Timestamp
+derive gVerify		Timestamp
 
 class iTaskId a
 where
