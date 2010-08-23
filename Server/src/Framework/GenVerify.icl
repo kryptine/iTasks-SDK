@@ -6,6 +6,7 @@ import GenUpdate, StdMisc
 derive bimap (,), Maybe
 
 derive gVerify (,), (,,), (,,,), Void, Either
+derive JSONEncode VerifyMask, ErrorMessage
 
 generic gVerify a :: (Maybe a) *VerSt -> *VerSt
 
@@ -26,8 +27,8 @@ gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst
 
 gVerify{|CONS of d|}    _     Nothing				vst = vst
 gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,optional}
-	# vst = fx (Just x) {VerSt | vst & optional = False}
 	| not (isEmpty d.gcd_fields) //record
+		# vst = fx (Just x) {VerSt | vst & optional = False}
 		# vst=:{VerSt | verifyMask} = vst
 		# children = getMaskChildren verifyMask
 		| allUntouched children
@@ -36,7 +37,9 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,optional}
 			= {VerSt | vst & verifyMask = (VMValid Nothing Nothing children), optional = optional}
 		| otherwise
 			= {VerSt | vst & verifyMask = (VMInvalid IsBlankError Nothing children), optional = optional}
-	| otherwise = {VerSt | vst & optional = optional}
+	| otherwise 
+		# vst = fx (Just x) vst
+		= {VerSt | vst & optional = optional}
 	
 gVerify{|FIELD of d|}   _	  Nothing				vst = vst
 gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
@@ -44,14 +47,14 @@ gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
 gVerify{|OBJECT of d|}  _     Nothing				vst = vst
 gVerify{|OBJECT of d|}  fx	  (Just (OBJECT x))		vst=:{VerSt | verifyMask,updateMask,optional}
 	# (cm,um) = popMask updateMask
-	# vMask = case optional of
-		True  = VMValid Nothing Nothing []
-		False = case cm of
-			(Blanked _ _) 	= (VMInvalid IsBlankError Nothing [])
-			(Untouched _ _) = (VMUntouched Nothing Nothing [])	
-			(Touched _ _) 	= (VMValid Nothing Nothing [])	
-	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & verifyMask = vMask, updateMask = cm}
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask childMask}
+	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & verifyMask = (VMValid Nothing Nothing []), updateMask = cm}
+	# children = getMaskChildren childMask
+	| allUntouched children
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children)}	
+	| allValid children
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children)}
+	| otherwise
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid IsBlankError Nothing children)}
 	
 gVerify{|Int|}    _ vst = basicVerify "Enter a number" vst
 gVerify{|Real|}   _ vst = basicVerify "Enter a decimal number" vst

@@ -23,8 +23,8 @@ visualizeAsEditor name mbSubIdx umask vmask x
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (defs,vst=:{VSt | valid}) = gVisualize{|*|} val val vst
-	//= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
-	= (coerceToTUIDefs defs, valid)	
+	= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
+	//= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x
 	
@@ -47,7 +47,9 @@ visualizeAsTextLabel :: a -> String | gVisualize{|*|} a
 visualizeAsTextLabel x = join " " (coerceToStrings (fst (gVisualize{|*|} val val {mkVSt & origVizType = VTextLabel, vizType = VTextLabel})))
 where
 	val = VValue x
-	
+
+import StdDebug
+
 determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask VerifyMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
 	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, updateMask = umask, verifyMask = vmask, updates = updatedPaths}
@@ -55,8 +57,8 @@ determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,vst=:{VSt | valid}) = (gVisualize{|*|} (VValue old) (VValue new) vst)
-	//= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
-	= (coerceToTUIUpdates updates, valid)
+	= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
+	//= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue
