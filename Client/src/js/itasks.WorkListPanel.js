@@ -78,7 +78,7 @@ itasks.WorkListPanel = Ext.extend(Ext.Panel,{
 				subject: d.managerProperties.subject,
 				priority: itasks.util.formatPriority(d.managerProperties.priority),
 				progress: itasks.util.formatProgress(d.workerProperties.progress),
-				manager: Ext.util.Format.htmlEncode(d.systemProperties.manager),
+				manager: itasks.util.formatUser(d.systemProperties.manager),
 				timestamp: itasks.util.formatDate(d.systemProperties.issuedAt),
 				deadline: itasks.util.formatDeadline(d.managerProperties.deadline),
 				taskId: d.systemProperties.taskId

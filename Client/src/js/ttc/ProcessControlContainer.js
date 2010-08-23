@@ -34,7 +34,7 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 						xtype: "itasks.tui.Username",
 						preventMark: true,
 						fieldLabel: "Assigned to",
-						value: this.properties.managerProperties.worker,
+						value: itasks.util.formatUser(this.properties.managerProperties.worker),
 						listeners: {
 							"change" : { fn: 
 								function(fld,nv,ov) {

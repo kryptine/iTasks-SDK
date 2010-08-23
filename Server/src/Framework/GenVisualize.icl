@@ -560,7 +560,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			# (valid,err,hnt) = verifyElementStr valid cmu cmv 
 			# (items,vst) = TUIDef fx oldV 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}
 			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, optional = optional, name = name, id = id, fieldLabel = label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})],
-			  {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})	
+			  {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm, useLabels = useLabels})	
 		VEditorUpdate
 			# (valid,msg) 					= verifyElementUpd valid id cmu cmv		
 			# (upd,vst=:{valid=finalValid}) = TUIUpd fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = cmu, verifyMask = cmv, valid = valid}
