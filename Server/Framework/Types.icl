@@ -10,13 +10,13 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
-derive gVerify			User, UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gVerify			UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
 derive gMerge			User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
 
-derive JSONEncode		User, UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive JSONDecode		User, UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive JSONEncode		UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive JSONDecode		UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
 
 
 initManagerProperties :: ManagerProperties
@@ -152,13 +152,13 @@ userName _ = ""
 			
 displayName :: !User -> String
 displayName RootUser = "Root"
+displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName (NamedUser name)
 	| end > start && start > -1 = trim (name % (0,start - 1)) //Named user of form "Joe Smith <joe>" (with display name)
 	| otherwise					= ""						 //Other named users (without display name)
 where
 	start = indexOf "<" name
 	end = indexOf ">" name
-displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName _ = ""
 
 getRoles :: !User -> [Role]
@@ -176,6 +176,9 @@ taskUser (Task p _ _ _) = p.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties (Task p _ _ _) = p
+
+gVerify{|User|} Nothing vst=:{VerSt | updateMask, verifyMask, optional} = vst
+gVerify{|User|} (Just x) vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
 
 gVisualize{|User|} old new vst=:{vizType,currentPath,updateMask}
 	= case vizType of
@@ -202,6 +205,31 @@ gUpdate{|User|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,
 gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,newMask}
 	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 gUpdate{|User|} s ust = (s, ust)
+
+JSONEncode{|User|} AnyUser 					= [JSONString "Any User <>"]
+JSONEncode{|User|} RootUser 				= [JSONString "Root User <root>"]
+JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName+++"<"+++details.userName+++">")]
+JSONEncode{|User|} (NamedUser username)		= [JSONString username]
+JSONEncode{|User|} (SessionUser session)	= [JSONString ("Anonymous User <#"+++session+++">")]
+
+import StdDebug, GenPrint
+derive gPrint User, UserDetails, Maybe, Password
+
+JSONDecode{|User|} [JSONString user:json]
+	# uname = extractUserName user
+	| uname == "root" 		= (Just RootUser, json)
+	| uname == ""	  		= (Just AnyUser, json)
+	| startsWith "#" uname 	= (Just (SessionUser (uname%(1,size uname))),json)
+	| otherwise				= (Just (NamedUser user), json)
+where
+	extractUserName user
+		| end > start && start > -1 = trim (user % (start,end - 1)) 
+		| otherwise					= user
+	where
+		start = indexOf "<" user
+		end = indexOf ">" user 
+		
+JSONDecode{|User|} json	= (Nothing,json)
 
 // ******************************************************************************************************
 // Task specialization

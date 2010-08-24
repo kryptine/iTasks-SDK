@@ -172,7 +172,6 @@ itasks.ttc.parallel.AssignWindow = Ext.extend(Ext.Window,{
 		
 		var win = this.findParentByType(itasks.ttc.parallel.AssignWindow);
 		var val = win.ucontrol.getValue();
-		var upd = (val != "")?'["NamedUser",'+Ext.encode(val)+']':val;
 		var c = new Ext.data.Connection();
 		
 		c.on('beforerequest', function(conn,options){
@@ -196,7 +195,7 @@ itasks.ttc.parallel.AssignWindow = Ext.extend(Ext.Window,{
 		
 		c.request({
 			url: itasks.config.serviceUrl+'/json/tasks/'+win.taskId+ '/managerProperties/worker',
-			params: { session: itasks.app.session, update: upd},
+			params: { session: itasks.app.session, update: Ext.encode(val)},
 			callback: function(){
 				win.close();
 			}

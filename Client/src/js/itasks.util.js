@@ -42,14 +42,15 @@ itasks.util.coloredLabel = function (color, msg) {
 };
 
 itasks.util.formatUser = function (user) {
-	if (user == "RootUser")
+	/*if (user == "RootUser")
 		return "Root user"
 	if (user.length == 2 && user[0] == "RegisteredUser")
 		return user[1].displayName;
 	if (user.length == 2 && user[0] == "NamedUser")
 		return user[1];
 			
-	return "Unknown user type"
+	return "Unknown user type"*/
+	return user
 }
 
 itasks.util.fieldLabel = function(optional, label) {

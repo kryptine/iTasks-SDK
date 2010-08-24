@@ -17,13 +17,22 @@ where
 	* @return The database handle
 	*/
 	getUser				::	!UserId			!*st -> (!Maybe User				, !*st)
+	/** 
+	* Looks up the details of any user in the database.
+	*
+	* @param A user
+	* @param A unique user database handle
+	* @return The user-details, if found
+	* @return The database handle
+	*/	
+	getUserDetails 		:: !User 			!*st -> (!Maybe UserDetails			,!*st)
 	/**
 	* Fetches the id and details of all users from the from the user database.
 	*
 	* @param A unique user database handle
 	* @return The list of users
 	* @return The database handle
-	*/
+	*/	
 	getUsers 			:: 					!*st -> (![User]					, !*st)
 	/**
 	* Finds a list of users that have a certain role.

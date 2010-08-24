@@ -14,20 +14,29 @@ where
 	getUser "root" iworld
 		= (Just RootUser,iworld)
 	getUser userName iworld
-		# (users, iworld) = userStore id iworld
-		= case filter ((==) (NamedUser userName)) users of
+		# (details, iworld) = userStore id iworld
+		= case filter (\d -> (==) (NamedUser userName) (RegisteredUser d)) details of
+			[x] = (Just (RegisteredUser x),iworld)
+			_	= (Nothing,iworld)
+	
+	getUserDetails :: !User !*IWorld -> (!Maybe UserDetails,!*IWorld)
+	getUserDetails (RegisteredUser details) iworld = (Just details,iworld)
+	getUserDetails (NamedUser username) iworld
+		# (details, iworld) = userStore id iworld
+		= case filter (\d -> (==) (NamedUser username) (RegisteredUser d)) details of
 			[x] = (Just x,iworld)
 			_	= (Nothing,iworld)
+	getUserDetails _ iworld = (Nothing,iworld)
 			
 	getUsers :: !*IWorld -> (![User], !*IWorld)
 	getUsers iworld
-		# (users, iworld) = userStore id iworld
-		= (users,iworld)	//Do not include the "root" user"
+		# (details, iworld) = userStore id iworld
+		= (map (\d -> RegisteredUser d) details,iworld)	//Do not include the "root" user"
 		
 	getUsersWithRole :: !String !*IWorld -> (![User], !*IWorld)
 	getUsersWithRole role iworld
-		# (users, iworld)		= userStore id iworld
-		= ([u \\ u=:(RegisteredUser d) <- users | isMember role (mb2list d.UserDetails.roles)], iworld)
+		# (details, iworld)		= userStore id iworld
+		= ([(RegisteredUser d) \\ d <- details | isMember role (mb2list d.UserDetails.roles)], iworld)
 		
 	authenticateUser :: !String !String	!*IWorld -> (!Maybe User, !*IWorld)
 	authenticateUser username password iworld
@@ -37,31 +46,30 @@ where
 			| otherwise
 				= (Nothing, iworld)
 		| otherwise
-			# (users, iworld)		= userStore id iworld
-			= case [u \\ u=:(RegisteredUser d) <- users | d.userName == username && d.password == (Password password)] of
+			# (details, iworld)	= userStore id iworld
+			= case [(RegisteredUser d) \\ d <- details | d.userName == username && d.password == (Password password)] of
 				[user]	= (Just user, iworld)		
 				_		= (Nothing, iworld)
 	
 	createUser :: !UserDetails !*IWorld -> (!User,!*IWorld)
 	createUser details iworld
-		# (users, iworld)		= userStore id iworld
-		# (users, iworld)		= userStore (\_-> [RegisteredUser details:users]) iworld
+		# (store, iworld)		= userStore id iworld
+		# (store, iworld)		= userStore (\_-> [details:store]) iworld
 		= (RegisteredUser details,iworld)
 		
 	updateUser :: !User !UserDetails !*IWorld -> (!User,!*IWorld)
 	updateUser match details iworld
-		# (users,iworld)		= userStore (map (update match new)) iworld
-		= (new,iworld)
+		# (store,iworld)		= userStore (map (update match details)) iworld
+		= (RegisteredUser details,iworld)
 	where
-		new = RegisteredUser details
-		update match details old	= if (old == match) new old
+		update match details old	= if (RegisteredUser old == match) details old
 	
 	deleteUser :: !User !*IWorld -> (!User,!*IWorld)
 	deleteUser user iworld
-		# (users,iworld)		= userStore delete iworld
+		# (store,iworld)		= userStore delete iworld
 		= (user,iworld)
 	where
-		delete users	= removeMember user users
+		delete details	= filter (\d -> (RegisteredUser d) <> user) details
 	
 //Helper function which finds a property of a certain user
 lookupUserProperty :: ![User] !(User -> a) !a !UserId -> a
@@ -70,7 +78,7 @@ lookupUserProperty users selectFunction defaultValue userName
 			[x] = x
 			_	= defaultValue
 
-userStore ::  !([User] -> [User]) !*IWorld -> (![User],!*IWorld) 	
+userStore ::  !([UserDetails] -> [UserDetails]) !*IWorld -> (![UserDetails],!*IWorld) 	
 userStore fn iworld=:{IWorld|application,world}
 	# (users,world)			= readUserFile application world 
 	# users					= fn users
@@ -94,6 +102,8 @@ instance UserDB TSt
 where
 	getUser :: !UserId !*TSt -> (!Maybe User,!*TSt)	
 	getUser userId tst = accIWorldTSt (getUser userId) tst
+	getUserDetails :: !User !*TSt -> (!Maybe UserDetails,!*TSt)
+	getUserDetails user tst = accIWorldTSt (getUserDetails user) tst
 	getUsers :: !*TSt -> (![User], !*TSt)
 	getUsers tst = accIWorldTSt getUsers tst
 	getUsersWithRole :: !String !*TSt -> (![User], !*TSt)

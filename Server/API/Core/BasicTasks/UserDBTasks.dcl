@@ -16,6 +16,10 @@ from InteractionTasks 	import class html
 */
 getUser 			:: !UserId	-> Task (Maybe User)
 /**
+* Finds the details of a user
+*/
+getUserDetails 		:: !User -> Task (Maybe UserDetails)
+/**
 * Finds all users
 */
 getUsers			:: Task [User]

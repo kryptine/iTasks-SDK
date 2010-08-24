@@ -16,6 +16,9 @@ getUser username = mkInstantTask "Get user" "Read a user from the database." (mk
 getUsers :: Task [User]
 getUsers = mkInstantTask "Get users" "Read all users from the database." (mkTaskFunction 'UserDB'.getUsers)
 
+getUserDetails :: !User -> Task (Maybe UserDetails)
+getUserDetails user = mkInstantTask "Get user details" "Obtain the details of a user from the database" (mkTaskFunction ('UserDB'.getUserDetails user))
+
 getUsersWithRole :: !Role	-> Task [User]
 getUsersWithRole role = mkInstantTask "Get users with role" "Get all users with a specific role." (mkTaskFunction ('UserDB'.getUsersWithRole role))
 

@@ -25,36 +25,46 @@ gVerify{|EITHER|} 		_  _  Nothing				vst = vst
 gVerify{|EITHER|}		fx _  (Just (LEFT x))		vst	= fx (Just x) vst
 gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst 
 
+import StdDebug
+
 gVerify{|CONS of d|}    _     Nothing				vst = vst
-gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,optional}
+gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,updateMask,optional}
+	# (cm,um) = popMask updateMask
+	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & optional = False, updateMask = cm, verifyMask = (VMValid Nothing Nothing [])}
+	# children = getMaskChildren childMask
 	| not (isEmpty d.gcd_fields) //record
-		# vst = fx (Just x) {VerSt | vst & optional = False}
-		# vst=:{VerSt | verifyMask} = vst
-		# children = getMaskChildren verifyMask
 		| allUntouched children
-			= {VerSt | vst & verifyMask = (VMUntouched Nothing Nothing children), optional = optional}
+			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children), optional = optional, updateMask = um}
 		| allValid children
-			= {VerSt | vst & verifyMask = (VMValid Nothing Nothing children), optional = optional}
+			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional, updateMask = um}
 		| otherwise
-			= {VerSt | vst & verifyMask = (VMInvalid IsBlankError Nothing children), optional = optional}
-	| otherwise 
-		# vst = fx (Just x) vst
-		= {VerSt | vst & optional = optional}
-	
+			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMInvalid IsBlankError Nothing children), optional = optional, updateMask = um}
+	| otherwise //adt
+		# consMask = case optional of
+			True
+				= case cm of
+					(Untouched _ _) = VMValid Nothing Nothing children
+					(Blanked _ _)	= VMValid Nothing Nothing children
+					(Touched _ _)
+						| allValid children 	= VMValid Nothing Nothing children
+						| allUntouched children	= VMValid Nothing Nothing children
+						| otherwise				= VMInvalid (ErrorMessage "One or more item(s) contain errors or is still required") Nothing children
+			False
+				= case cm of
+					(Untouched _ _)	= VMUntouched Nothing Nothing children
+					(Blanked _ _)	= VMInvalid IsBlankError Nothing children
+					(Touched _ _)
+						| allValid children 	= VMValid Nothing Nothing children
+						| allUntouched children	= VMUntouched Nothing Nothing children
+						| otherwise				= VMInvalid (ErrorMessage "One or more item(s) contain errors or is still required") Nothing children
+		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
+
 gVerify{|FIELD of d|}   _	  Nothing				vst = vst
 gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
 
 gVerify{|OBJECT of d|}  _     Nothing				vst = vst
-gVerify{|OBJECT of d|}  fx	  (Just (OBJECT x))		vst=:{VerSt | verifyMask,updateMask,optional}
-	# (cm,um) = popMask updateMask
-	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & verifyMask = (VMValid Nothing Nothing []), updateMask = cm}
-	# children = getMaskChildren childMask
-	| allUntouched children
-		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children)}	
-	| allValid children
-		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children)}
-	| otherwise
-		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid IsBlankError Nothing children)}
+gVerify{|OBJECT of d|}  fx	  (Just (OBJECT x))		vst
+	= fx (Just x) vst
 	
 gVerify{|Int|}    _ vst = basicVerify "Enter a number" vst
 gVerify{|Real|}   _ vst = basicVerify "Enter a decimal number" vst

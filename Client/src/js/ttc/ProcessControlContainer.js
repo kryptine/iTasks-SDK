@@ -40,7 +40,6 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 								function(fld,nv,ov) {
 									var ct = this.findParentByType(itasks.WorkPanel);
 									var url = itasks.config.serviceUrl+'/json/tasks/'+this.properties.systemProperties.taskId+ '/managerProperties/worker';
-									var upd = (nv != "")?'["NamedUser",'+Ext.encode(nv)+']':nv;
 									
 									var cb = function(response,success){
 										if(!response.success || !success) {
@@ -50,7 +49,7 @@ itasks.ttc.ProcessControlContainer = Ext.extend(Ext.Panel,{
 										}
 									}									
 									
-									ct.remoteCall(url,{update: upd},cb);
+									ct.remoteCall(url,{update: Ext.encode(nv)},cb);
 								},
 								scope: this 
 							}
