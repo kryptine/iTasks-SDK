@@ -2,7 +2,34 @@ implementation module Lists
 
 import iTasks, CommonDomain
 
+derive class iTask List, ListMeta, AnyList
+derive bimap Maybe, (,)
 
+instance DB ListMeta
+where
+	databaseId 					= mkDBid "Lists"
+	getItemId l					= DBRef l.ListMeta.listId
+	setItemId (DBRef listId) l	= {ListMeta| l & listId = listId}
+
+manageLists :: Task Void
+manageLists = stop
+
+manageList :: AnyList -> Task Void
+manageList list = stop
+
+createList :: !String -> Task AnyList
+createList name = getDefaultValue
+
+getAllLists :: Task [AnyList]
+getAllLists = return []
+
+getMyLists :: Task [AnyList]
+getMyLists = return []
+
+deleteList :: !AnyList -> Task AnyList
+deleteList list = return list
+
+/*
 :: ListDB :== [DBid ListDBItem]
 :: ListDBItem = NoteList (List Note) | DateList (List Date) | DocList (List Document)
 
@@ -156,3 +183,4 @@ getShortDescription item
 	= case mbDesc of
 		Just (Note d) = if(size d > 27) ((d % (0,27))+++"...") d
 		Nothing = "..."
+*/

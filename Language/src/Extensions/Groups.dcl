@@ -10,7 +10,7 @@ definition module Groups
 import iTasks
 
 :: Group =
-	{ no		:: !Int
+	{ groupId	:: !Int
 	, name		:: !String
 	, members	:: ![User]
 	}

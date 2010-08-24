@@ -7,15 +7,15 @@ derive bimap Maybe, (,)
 
 instance DB Group
 where
-	databaseId 				= mkDBid "Groups"
-	getItemId g				= DBRef g.Group.no
-	setItemId (DBRef no) g	= {Group| g & no = no}
+	databaseId 					= mkDBid "Groups"
+	getItemId g					= DBRef g.Group.groupId
+	setItemId (DBRef groupId) g	= {Group| g & groupId = groupId}
 
 instance toString Group where toString g = g.Group.name
 
 createGroup :: !String !User  -> Task Group
 createGroup name user 
-	= dbCreateItem {Group | no = 0, name = name, members = [user]}
+	= dbCreateItem {Group | groupId = 0, name = name, members = [user]}
 		
 getAllGroups :: Task [Group]
 getAllGroups
