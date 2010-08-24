@@ -295,8 +295,8 @@ editor		:: !(Editor s a)	-> View s | iTask a & iTask s & SharedVariable s
 idEditor	:: View s	| iTask s & SharedVariable s
 idListener	:: View s	| iTask s & SharedVariable s
 
-updateShared			:: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s)	| html question & iTask s & SharedVariable s
-updateSharedLocal		:: question ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html question & iTask s & SharedVariable s
+updateShared			:: !String question ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s)	| html question & iTask s & SharedVariable s
+updateSharedLocal		:: !String question ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html question & iTask s & SharedVariable s
 
 // To allow users to specify a followup action to their current task
 // most interactive tasks allow you to specify actions that can be chosen.
@@ -323,3 +323,4 @@ where
 	
 instance html String
 instance html [HtmlTag]
+instance html (Maybe a) | html a

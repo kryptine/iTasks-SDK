@@ -93,7 +93,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 											| GroupActionParam String (String -> taskResult) (GroupCondition gState shared)	// accept given parameterized action and use parameter to compute 'taskResult' which is given to accumulator function
 :: GroupCondition gState shared				= GroupAlways																	// group action is always enabled
 											| StatePredicate (gState -> Bool)												// use predicate on internal state to determine if action is enabled
-											| SharedPredicate (DBid shared) ((SharedValue shared) -> Bool)					// use predicate on given shared variable to determine if action is enabled
+											| SharedPredicate (DBId shared) ((SharedValue shared) -> Bool)					// use predicate on given shared variable to determine if action is enabled
 :: SharedValue shared						= SharedDeleted																	// shared variable was deleted
 											| SharedValue shared															// shared variable has stored value
 

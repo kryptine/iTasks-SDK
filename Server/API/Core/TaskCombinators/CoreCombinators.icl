@@ -193,7 +193,7 @@ where
 		evaluateCondition (StatePredicate p)		= Left	(p state)
 		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
 		
-		checkSharedPred id p tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
+		checkSharedPred (DBId id) p tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 			# (mbVal,store,world)	= loadValue id store world
 			# tst					= {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 			= case mbVal of

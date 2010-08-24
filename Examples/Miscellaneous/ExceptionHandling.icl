@@ -17,8 +17,8 @@ exceptionHandlingExample
 exceptionTask :: Task Int
 exceptionTask = Subject "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))
 
-db :: (DBid Int)
-db = mkDBid "MyIntDB"
+db :: (DBId Int)
+db = mkDBId "MyIntDB"
 
 normalTask :: Task Int
 normalTask

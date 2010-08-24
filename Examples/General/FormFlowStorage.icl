@@ -23,8 +23,8 @@ derive bimap Maybe, (,)
 // *************************************************
 
 instance DB FormStore where
-	databaseId	:: DBid [FormStore]
-	databaseId = mkDBid "FormStore"
+	databaseId	:: DBId [FormStore]
+	databaseId = mkDBId "FormStore"
 	
 	getItemId	:: FormStore -> DBRef FormStore
 	getItemId a = a.formDBRef
@@ -33,8 +33,8 @@ instance DB FormStore where
 	setItemId dbref a = {a & formDBRef = dbref}
 
 instance DB FlowStore where
-	databaseId	:: DBid [FlowStore]
-	databaseId = mkDBid "FlowStore"
+	databaseId	:: DBId [FlowStore]
+	databaseId = mkDBId "FlowStore"
 	
 	getItemId	:: FlowStore -> DBRef FlowStore
 	getItemId a = a.flowDBRef

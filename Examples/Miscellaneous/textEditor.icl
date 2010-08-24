@@ -28,7 +28,7 @@ textEditorApp =
 					]
 	>>|			mdiApplication 0 groupActions
 where
-	groupActions :: !(DBid Int) !(MDITasks EditorState Bool) -> [GroupAction GAction Void Int]
+	groupActions :: !(DBId Int) !(MDITasks EditorState Bool) -> [GroupAction GAction Void Int]
 	groupActions gid mdiTasks=:{createEditor, iterateEditors} =
 		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])						GroupAlways
 		, GroupAction		ActionOpen		(GExtend [openDialog mdiTasks <<@ GBFloating])				GroupAlways
@@ -45,7 +45,7 @@ ActionStats		:== ActionLabel "stats"
 recOpenedMenu	:== "recOpened"
 actionOpenFile	:== "openFile"
 
-newFile :: !(DBid Int) !(MDICreateEditor EditorState) -> Task GAction
+newFile :: !(DBId Int) !(MDICreateEditor EditorState) -> Task GAction
 newFile aid createEditor =
 					modifyDB aid inc
 	>>= \newNum.	createEditor (EditorState (Note "") (NewFile newNum)) textEditorFile
@@ -73,7 +73,7 @@ open fid {createEditor, existsEditor} addToRecOpened =
 							(addToRecentlyOpened file.TextFile.name fid)
 							(return Void)
 			>>|			return (GExtend [editor file])
-		Just eid = return (GFocus eid)
+		Just (DBId eid) = return (GFocus eid)
 where
 	isEditingOpenendFile :: !EditorState -> Bool
 	isEditingOpenendFile (EditorState _ file) =	case file of
@@ -100,7 +100,7 @@ quit iterateEditors =
 					iterateEditors False checkForUnsavedData
 	>>= \cancel.	if cancel continue stopGroup
 where
-	checkForUnsavedData :: !Bool !String -> Task Bool
+	checkForUnsavedData :: !Bool !EditorStateRef -> Task Bool
 	checkForUnsavedData True editor		= return True
 	checkForUnsavedData False editor	= requestClosingFile editor
 	
@@ -128,7 +128,7 @@ where
 	
 editorWindow :: !EditorStateRef -> Task GAction
 editorWindow eid =
-		updateShared "Text Editor" [] eid [titleListener, mainEditor] <<@ Tag eid
+		updateShared "Text Editor" "You can edit the text." [] eid [titleListener, mainEditor] <<@ Tag eid
 	>>|	continue
 where		
 	mainEditor = editor	{ editorFrom	= \(EditorState cont _)			-> cont
@@ -187,7 +187,7 @@ ActionReplaceAll :== ActionLabel "Replace all"
 
 statistics :: !EditorStateRef  -> Task GAction
 statistics eid = 
-		updateShared "Statistics" [ButtonAction (ActionOk, Always)] eid [titleListener, statsListener] <<@ ExcludeGroupActions
+		updateShared "Statistics" "Statistics of your document" [ButtonAction (ActionOk, Always)] eid [titleListener, statsListener] <<@ ExcludeGroupActions
 	>>|	continue
 where
 	statsListener = listener {listenerFrom =  \(EditorState (Note text) _) ->
@@ -238,7 +238,7 @@ where
 // global application state
 :: EditorState = EditorState !Note !EditorFile
 :: EditorFile = NewFile !Int | OpenedFile !TextFile
-:: EditorStateRef :== DBid EditorState
+:: EditorStateRef :== DBId EditorState
 
 // text files database
 :: FileName :==	String
@@ -248,7 +248,7 @@ where
 				}
 
 instance DB TextFile where
-	databaseId			= mkDBid "TextFiles"
+	databaseId			= mkDBId "TextFiles"
 	getItemId file		= file.fileId
 	setItemId id file	= {file & fileId = id}
 	

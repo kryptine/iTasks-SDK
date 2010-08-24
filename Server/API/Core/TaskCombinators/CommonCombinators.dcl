@@ -102,7 +102,7 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 *        The first parameter is a reference to the global state store.
 *        The second parameter is a collection of tasks for dealing with editors.
 */
-mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) -> Task Void | iTask, SharedVariable globalState & iTask, SharedVariable editorState & iTask iterationState
+mdiApplication :: !globalState !((DBId globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) -> Task Void | iTask, SharedVariable globalState & iTask, SharedVariable editorState & iTask iterationState
 
 // A collection of tasks for dealing with editors within an MDI application.
 :: MDITasks editorState iterationState = {
@@ -133,6 +133,6 @@ mdiApplication :: !globalState !((DBid globalState) (MDITasks editorState iterat
 	existsEditor :: MDIExistsEditor editorState
 	}
 	
-:: MDICreateEditor editorState					:== editorState ((DBid editorState) -> Task Void) -> Task GAction
-:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (DBid editorState) -> Task iterationState) -> Task iterationState
-:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (DBid editorState))
+:: MDICreateEditor editorState					:== editorState ((DBId editorState) -> Task Void) -> Task GAction
+:: MDIIterateEditors editorState iterationState :== iterationState (iterationState (DBId editorState) -> Task iterationState) -> Task iterationState
+:: MDIExistsEditor editorState					:== (editorState -> Bool) -> Task (Maybe (DBId editorState))

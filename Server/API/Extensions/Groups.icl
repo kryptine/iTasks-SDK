@@ -7,7 +7,7 @@ derive bimap Maybe, (,)
 
 instance DB Group
 where
-	databaseId 					= mkDBid "Groups"
+	databaseId 					= mkDBId "Groups"
 	getItemId g					= DBRef g.Group.groupId
 	setItemId (DBRef groupId) g	= {Group| g & groupId = groupId}
 
@@ -67,15 +67,14 @@ manageGroups
 	=	Subject "Manage groups" @>>
 	(	getMyGroups
 	>>=	overview 
-	>>= \(action,group) ->
-		case action of
-			ActionNew	= newGroup >>= manageGroup 	>>| return False
-			ActionOpen	= manageGroup group			>>| return False
-			ActionQuit	= 								return True
+	>>= \(action,group) -> case action of
+		ActionNew	= newGroup >>= manageGroup 	>>| return False
+		ActionOpen	= manageGroup group			>>| return False
+		ActionQuit	= 								return True
 	) <! id
 	>>| return Void
 where
-	overview []		= getDefaultValue >>= showMessageA "My groups" "You have no groups" [aNew,aQuit]
+	overview []		= getDefaultValue >>= showMessageA "My groups" "You have no groups." [aNew,aQuit]
 	overview list	= enterChoiceA "My groups" "Select a group..." [aOpen,aNew,aQuit] list
 	
 	aOpen 			= ButtonAction (ActionOpen, IfValid)

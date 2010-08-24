@@ -8,32 +8,36 @@ from SystemTasks import getDefaultValue
 import CoreCombinators
 import GenVisualize, GenUpdate
 
-derive gVisualize		DBRef
-derive gUpdate			DBRef
-derive gVerify			DBRef
-derive gMerge			DBRef
+derive gVisualize		DBRef, DBId
+derive gUpdate			DBRef, DBId
+derive gVerify			DBRef, DBId
+derive gMerge			DBRef, DBId
 
-derive JSONEncode		DBRef
-derive JSONDecode		DBRef
+derive JSONEncode		DBRef, DBId
+derive JSONDecode		DBRef, DBId
 
 derive bimap Maybe, (,)
 
-::DBid a :== String
+instance == (DBId a) where (==) (DBId x) (DBId y) = x == y
+instance toString (DBId a) where toString (DBId x) = x
+
+instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
+instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
 
 // Core db access
-createDBid :: Task (DBid a)
+createDBid :: Task (DBId a)
 createDBid = mkInstantTask "Create DB id" "Create a database identifier" createDBid`
 where
-	createDBid` tst=:{taskNr} = (TaskFinished (mkDBid "DB_" +++ taskNrToString taskNr), tst)
+	createDBid` tst=:{taskNr} = (TaskFinished (mkDBId ("DB_" +++ taskNrToString taskNr)), tst)
 	
-createDB :: !a -> Task (DBid a) | iTask a
+createDB :: !a -> Task (DBId a) | iTask a
 createDB init =
 				createDBid
 	>>= \id.	writeDB id init
 	>>|			return id
 
-readDB :: !(DBid a) -> Task a | iTask a
-readDB key = mkInstantTask "Read DB" "Read a value from the database" readDB`
+readDB :: !(DBId a) -> Task a | iTask a
+readDB (DBId key) = mkInstantTask "Read DB" "Read a value from the database" readDB`
 where
 	readDB` tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 		# (mbVal,store,world) = loadValue key store world
@@ -44,38 +48,38 @@ where
 				# (val,iworld)	= defaultValue {IWorld|iworld & store = store, world = world}
 				= (TaskFinished val,{TSt|tst & iworld = iworld})
 		
-readDBIfStored :: !(DBid a)	-> Task (Maybe a) | iTask a
-readDBIfStored key = mkInstantTask "Read DB (conditional)" "Read a value from the database, if it exists" readDBIfStored`
+readDBIfStored :: !(DBId a)	-> Task (Maybe a) | iTask a
+readDBIfStored (DBId key) = mkInstantTask "Read DB (conditional)" "Read a value from the database, if it exists" readDBIfStored`
 where
 	readDBIfStored` tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 		# (mbVal,store,world)	= loadValue key store world
 		= (TaskFinished mbVal,{TSt|tst & iworld = {IWorld|iworld & store = store, world = world}})
 
-writeDB	:: !(DBid a) !a -> Task a | iTask a
-writeDB key value = mkInstantTask "Write DB" "Write a value to the database" writeDB`
+writeDB	:: !(DBId a) !a -> Task a | iTask a
+writeDB (DBId key) value = mkInstantTask "Write DB" "Write a value to the database" writeDB`
 where
 	writeDB` tst=:{TSt|iworld=iworld=:{IWorld|store}}
 		# store = storeValue key value store
 		= (TaskFinished value, {TSt| tst & iworld = {IWorld|iworld & store = store}})
 		
-deleteDB :: !(DBid a) -> Task Void
-deleteDB key = mkInstantTask "Delete DB" "Delete a value from the database" deleteDB`
+deleteDB :: !(DBId a) -> Task (Maybe a) | iTask a
+deleteDB (DBId key) = mkInstantTask "Delete DB" "Delete a value from the database" deleteDB`
 where
 	deleteDB` tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
-		# (store,world) = deleteValues key store world
-		= (TaskFinished Void, {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}})
+		# (mbVal,store,world)	= loadValue key store world
+		# (store,world) 		= deleteValues key store world
+		= (TaskFinished mbVal, {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}})
 
-modifyDB :: !(DBid a) (a -> a) -> Task a | iTask a
+modifyDB :: !(DBId a) (a -> a) -> Task a | iTask a
 modifyDB key f =
 			readDB key
 	>>= \v.	writeDB key (f v)
 		
-mkDBid :: !String -> (DBid a)
-mkDBid s = s
+mkDBId :: !String -> (DBId a)
+mkDBId s = DBId s
 
 //	Convenient operations on databases
-instance == (DBRef a) where (==) (DBRef x) (DBRef y) = x == y
-instance <  (DBRef a) where	(<)  (DBRef x) (DBRef y) = x <  y
+
 
 eqItemId :: a a -> Bool | DB a
 eqItemId a b	= getItemId a == getItemId b

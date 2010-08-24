@@ -43,8 +43,8 @@ mkMsg me = { Message
 		   	, previousMessages = HtmlDisplay []
 		   	}
 
-msgDBid :: (DBid MsgDB)
-msgDBid = mkDBid "msgDB"
+msgDBid :: (DBId MsgDB)
+msgDBid = mkDBId "msgDB"
 
 newMessage :: Task Void
 newMessage = getCurrentUser

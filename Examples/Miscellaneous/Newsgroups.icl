@@ -73,7 +73,7 @@ where
 	where
 		task :: Int -> Task MeetingDB
 		task n 
-			= 		updateShared "Meeting requested" [ButtonAction (ActionOk,IfValid)] dbid [appointEditor]
+			= 		updateShared "Request" "Meeting requested" [ButtonAction (ActionOk,IfValid)] dbid [appointEditor]
 				>>= switch 
 		where
 			switch   (ActionOk,_) = task n
@@ -138,13 +138,13 @@ chat
 							++ [spawnProcess me True True (Subject "Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
 where
 	
-	createChatBox :: User -> (Task (DBid Chat))
+	createChatBox :: User -> (Task (DBId Chat))
 	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
 
 	selectFriends :: Task [User]
 	selectFriends = enterInformation "Select friends" "Whom do you want to chat with?"
 	
-	initiateChat :: (DBid Chat) User [User] -> Task Void
+	initiateChat :: (DBId Chat) User [User] -> Task Void
 	initiateChat chatbox friend friends
 		=	requestConfirmation "Confirm" ("Do you want to initiate a chat with "+++printFriends+++"?")
 		>>= \yes -> if yes
@@ -161,20 +161,20 @@ where
 					  ]
 		]
 	
-	chatSession :: (DBid Chat) User -> Task Void
+	chatSession :: (DBId Chat) User -> Task Void
 	chatSession chatbox user 
 		= 			readDB chatbox
 		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
 		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBAlwaysFixed] (chatActions chatbox user)
 	where
-		chatActions :: (DBid Chat) User -> [GroupAction GOnlyAction Void Chat]
+		chatActions :: (DBId Chat) User -> [GroupAction GOnlyAction Void Chat]
 		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [ignoreResult (newTopic chatbox user)]) 	GroupAlways
 						 		   , GroupAction 	ActionQuit		GOStop												GroupAlways
 						 		   , GroupAction	ActionAddUser	(GOExtend [ignoreResult (addUsers chatbox)])		(SharedPredicate chatbox (\(SharedValue chat) -> chat.Chat.initUser == user)) 
 						 		   ]
 						 		   	
-	chatEditor :: (DBid Chat) User -> Task Void
-	chatEditor chatbox user = ignoreResult (getCurrentDateTime >>= \dt -> updateShared "Chat" [] chatbox [mainEditor user dt])
+	chatEditor :: (DBId Chat) User -> Task Void
+	chatEditor chatbox user = ignoreResult (getCurrentDateTime >>= \dt -> updateShared "Chat" "You can chat now" [] chatbox [mainEditor user dt])
 	
 	mainEditor :: User DateTime -> (View Chat)
 	mainEditor user dt = editor {editorFrom = editorFrom user, editorTo = editorTo user dt}
@@ -221,7 +221,7 @@ where
 			fromVizHint (VHHtmlDisplay x) 	= x
 			fromVizHint (VHHidden x) 		= x
 	
-	newTopic :: (DBid Chat) User -> Task Void
+	newTopic :: (DBId Chat) User -> Task Void
 	newTopic chatbox user 
 		= 				readDB  chatbox
 		>>= \chat ->	getCurrentDateTime
@@ -237,7 +237,7 @@ where
 		  				, replies = []
 		   				}
 	
-	addUsers :: (DBid Chat) -> Task Void
+	addUsers :: (DBId Chat) -> Task Void
 	addUsers chatbox
 		= 			 	enterInformation "Select users" "Select users to add to the chat"	
 		>>= \users -> 	readDB chatbox
@@ -475,14 +475,14 @@ where
 	
 // reading and writing of storages
 
-newsGroupsId ::  (DBid NewsGroupNames)
-newsGroupsId		=	mkDBid "newsGroups"
+newsGroupsId ::  (DBId NewsGroupNames)
+newsGroupsId		=	mkDBId "newsGroups"
 
-readerId :: User -> (DBid Subscriptions)
-readerId user		= 	mkDBid ("Reader-" <+++ userName user)
+readerId :: User -> (DBId Subscriptions)
+readerId user		= 	mkDBId ("Reader-" <+++ userName user)
 
-groupNameId :: String -> (DBid NewsGroup)
-groupNameId name	=	mkDBid ("NewsGroup-" +++ name)
+groupNameId :: String -> (DBId NewsGroup)
+groupNameId name	=	mkDBId ("NewsGroup-" +++ name)
 
 readNewsGroups :: Task NewsGroupNames
 readNewsGroups = readDB newsGroupsId

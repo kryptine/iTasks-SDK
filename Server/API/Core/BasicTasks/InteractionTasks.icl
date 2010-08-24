@@ -20,6 +20,11 @@ instance html [HtmlTag]
 where
 	html [h]	= h
 	html h		= SpanTag [] h
+	
+instance html (Maybe a) | html a
+where
+	html Nothing	= SpanTag [] []
+	html (Just h)	= html h
 
 //Input tasks
 enterInformation :: !String !description -> Task a | html description & iTask a
@@ -411,18 +416,18 @@ idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
 idListener	:: View s	| iTask s & SharedVariable s
 idListener = listener {listenerFrom = id}
 
-updateShared :: question ![TaskAction s] !(DBid s) ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
-updateShared question actions sharedId views = mkInteractiveTask "updateShared" (toString (html question)) (makeSharedTask question actions sharedId views False)
+updateShared :: !String question ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
+updateShared subject question actions sharedId views = mkInteractiveTask subject (toString (html question)) (makeSharedTask question actions sharedId views False)
 
-updateSharedLocal :: question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
-updateSharedLocal question actions initial views =
+updateSharedLocal :: !String question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
+updateSharedLocal subject question actions initial views =
 				createDB initial
-	>>= \sid.	mkInteractiveTask "updateShared" (toString (html question)) (makeSharedTask question actions sid views False)
+	>>= \sid.	mkInteractiveTask subject (toString (html question)) (makeSharedTask question actions sid views False)
 	>>= \res.	deleteDB sid
 	>>|			return res
 
-makeSharedTask :: question ![TaskAction s] !(DBid s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
-makeSharedTask question actions sharedId views actionStored tst=:{taskNr, newTask}
+makeSharedTask :: question ![TaskAction s] !(DBId s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
+makeSharedTask question actions (DBId sharedId) views actionStored tst=:{taskNr, newTask}
 	# (mbcvalue,tst) = readShared sharedId tst
 	= case mbcvalue of
 		Nothing

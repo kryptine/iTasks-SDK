@@ -15,20 +15,21 @@ TrimAction :== ActionLabel "Trim"
 linesPar :: Task Void
 linesPar =
 				createDB ""
-	>>= \sid.	noteE sid -|| updateShared "Lines" [quitButton] sid [listEditor]
+	>>= \sid.	noteE sid -|| updateShared "Lines" "Edit lines" [quitButton] sid [listEditor]
 	>>|			deleteDB sid
+	>>|			return Void
 where
 	noteE sid = 
-							updateShared "Text" [ButtonAction (TrimAction, Always), quitButton] sid [noteEditor]
+							updateShared "Text" "Edit text" [ButtonAction (TrimAction, Always), quitButton] sid [noteEditor]
 		>>= \(action,txt).	case action of
 								TrimAction	=			writeDB sid (trim txt)
 												>>|		noteE sid
 								_			= 			stop
 
-linesSingle = updateSharedLocal "Text & Lines" [quitButton] "" [noteEditor,listEditor]
+linesSingle = updateSharedLocal "Text & Lines" "Edit text and lines" [quitButton] "" [noteEditor,listEditor]
 
 //Calculate Sum Example)
-calculateSum = updateSharedLocal "Sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = \(x,y) -> x + y}]
+calculateSum = updateSharedLocal "Sum" "Auto compute sum" [quitButton] (0,0) [idEditor, listener {listenerFrom = \(x,y) -> x + y}]
 
 //Tree Example
 :: Tree a = Leaf | Node (Node a)
@@ -52,7 +53,8 @@ where
 		middle		= list !! (middlePos) 
 		end			= drop (middlePos + 1) list
 
-tree = updateSharedLocal "List & Balanced Binary Tree" [quitButton] emptyL [idEditor, listener {listenerFrom = toTree}]
+tree = updateSharedLocal "List & Balanced Binary Tree" "Type something in the list and the tree will update as well."
+			[quitButton] emptyL [idEditor, listener {listenerFrom = toTree}]
 where
 	emptyL :: [Int]
 	emptyL = []
@@ -66,8 +68,8 @@ mergeTestList =
 	>>|			spawnProcess user True True (Subject "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (DBid [String]) -> Task (Action,[String])
-	view sid = updateShared "List" [quitButton] sid [idEditor]
+	view :: (DBId [String]) -> Task (Action,[String])
+	view sid = updateShared "List" "Merging the lists" [quitButton] sid [idEditor]
 	
 	emptyL :: [String]
 	emptyL = []
@@ -81,8 +83,8 @@ mergeTestDocuments =
 	>>|			spawnProcess user True True (Subject "3rd View" @>> view sid idListener)
 	>>|			stop
 where
-	view :: (DBid [Document]) (View [Document]) -> Task (Action,[Document])
-	view sid v = updateShared "List" [quitButton] sid [v]
+	view :: (DBId [Document]) (View [Document]) -> Task (Action,[Document])
+	view sid v = updateShared "List" "Merging the documents" [quitButton] sid [v]
 	
 	emptyL :: [Document]
 	emptyL = []
@@ -107,7 +109,8 @@ googleMaps :: Task Void
 googleMaps = googleMaps` mkMap
 where
 	googleMaps` map =
-							updateSharedLocal "Google Map, Overview & Markers" [ButtonAction (RemoveMarkersAction, Always), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
+							updateSharedLocal "Google Map, Overview & Markers" "Edit in one map. The others are updated automatically."
+								[ButtonAction (RemoveMarkersAction, Always), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
 		>>= \(action,map).	case action of
 								RemoveMarkersAction	= googleMaps` {GoogleMap| map & markers = []}
 								_					= stop
@@ -122,7 +125,8 @@ where
 								}
 
 //Auto sorted list
-autoSortedList = updateSharedLocal "Automatically Sorted List" [quitButton] emptyL [editor {editorFrom = sort, editorTo = \list _ -> list}]
+autoSortedList = updateSharedLocal "Automatically Sorted List" "You can edit the list, it will sort automatically."
+					[quitButton] emptyL [editor {editorFrom = sort, editorTo = \list _ -> list}]
 where
 	emptyL :: [String]
 	emptyL = []
@@ -134,14 +138,15 @@ formattedText =
 	>>|			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
 	>>= \sid.	dynamicGroupAOnly [(ignoreResult (t <<@ ExcludeGroupActions) <<@ GBFloating) \\ t <- tasks sid] actions
 	>>|			deleteDB sid
+	>>|			return Void
 where
 	tasks sid =
-		[ updateShared "WYSIWYG Editor"			[] sid [idEditor]
-		, updateShared "HTML-Source Editor"		[] sid [editor		{ editorFrom	= \ft -> Note (getFormattedTextSrc ft)
+		[ updateShared "WYSIWYG Editor"	""		[] sid [idEditor]
+		, updateShared "HTML-Source Editor" ""		[] sid [editor		{ editorFrom	= \ft -> Note (getFormattedTextSrc ft)
 																	, editorTo		= \(Note src) ft -> setFormattedTextSrc src ft
 																	}]
-		, updateShared "Formatted Preview"		[] sid [idListener]
-		, updateShared "Unformatted Preview"	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft False)}]
+		, updateShared "Formatted Preview" ""		[] sid [idListener]
+		, updateShared "Unformatted Preview" ""	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft False)}]
 		]
 		
 	actions :: [GroupAction GOnlyAction Void Void]

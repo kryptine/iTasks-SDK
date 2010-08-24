@@ -1,186 +1,201 @@
 implementation module Lists
 
-import iTasks, CommonDomain
+import iTasks, CommonDomain, Groups
 
-derive class iTask List, ListMeta, AnyList
+derive class iTask	List, ListMeta, ListDescription, AnyList
+derive gMerge		List, ListMeta, ListDescription, AnyList
 derive bimap Maybe, (,)
+
+//Internal administration of who owns lists and who they are shared with.
+:: ListMeta	=
+	{ listId		:: !Int
+	, owner			:: !User
+	, sharedWith	:: ![User]
+	}
+
+//Data type for form name & description
+:: ListDescription =
+	{ name			:: !String
+	, description	:: !Maybe Note
+	}
 
 instance DB ListMeta
 where
-	databaseId 					= mkDBid "Lists"
-	getItemId l					= DBRef l.ListMeta.listId
+	databaseId 					= mkDBId "Lists"
+	getItemId l					= DBRef (l.ListMeta.listId)
 	setItemId (DBRef listId) l	= {ListMeta| l & listId = listId}
 
 manageLists :: Task Void
-manageLists = stop
-
+manageLists 
+	=	Subject "Manage lists" @>>
+	(	getMyLists
+	>>=	overview
+	>>= \(action,list) -> case action of
+		ActionNew				= newList >>= manageList	>>| return False
+		ActionOpen				= manageList list			>>| return False
+		ActionLabel	"Delete"	= delList list				>>| return False
+		ActionQuit				=								return True
+	) <! id
+	>>| stop
+where
+	overview []		= getDefaultValue >>= showMessageA "My lists" "You have no lists." [aNew,aQuit]
+	overview list	= enterChoiceA "My lists" "Select a list..." [aOpen,aDelete,aNew,aQuit] list
+	
+	aOpen 			= ButtonAction (ActionOpen, IfValid)
+	aNew			= ButtonAction (ActionNew, Always)
+	aQuit			= ButtonAction (ActionQuit, Always)
+	aDelete			= ButtonAction (ActionLabel "Delete", Always)
+	
+	newList			=	enterChoice "List type" "What type of list do you want to create?"
+						["Simple list", "Todo list", "Date list","Document list"]
+					>>= \type ->
+						enterInformation "Name" "Please enter a name, and if you like, a description for the list"
+					>>= \desc ->
+						createList type desc.ListDescription.name desc.ListDescription.description
+	
+	delList	list	=	requestConfirmation "Delete list" ("Are you sure you want to delete '" +++ nameOf list +++ "'?")
+					>>= \confirm -> if confirm
+						(deleteList list)
+						(return list)
+									
 manageList :: AnyList -> Task Void
-manageList list = stop
+manageList list
+	=	
+	(	showItems list
+	>>= \(action,_) -> case action of
+		ActionLabel "Edit"	= editItems	list			>>| return False
+		ActionLabel "Share"	= manageListSharing list	>>| return False
+		ActionClose			=								return True
+	) <! id
+	>>| stop
+where
+	showItems l = case l of
+		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = simpleFrom}]
+		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = todoFrom}]
+		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = dateFrom}]
+		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = documentFrom}]
 
-createList :: !String -> Task AnyList
-createList name = getDefaultValue
+	editItems list = case list of
+		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
+		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = todoFrom, editorTo = todoTo}]
+		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = dateFrom, editorTo = dateTo}]
+		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = documentFrom, editorTo = documentTo}]
 
+	simpleFrom (SimpleList l) 		= l.List.items
+	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
+	
+	todoFrom (TodoList l)			= l.List.items
+	todoTo i (TodoList l)			= TodoList {List|l & items = i}
+	
+	dateFrom (DateList l)			= l.List.items
+	dateTo i (DateList l)			= DateList {List|l & items = i}
+
+	documentFrom (DocumentList l)	= l.List.items
+	documentTo i (DocumentList l)	= DocumentList {List|l & items = i}
+
+
+manageListSharing :: AnyList -> Task Void
+manageListSharing list
+	=
+	(	dbReadItem (DBRef (listIdOf list))
+	>>= \mbMeta -> case mbMeta of
+		Nothing		= throw "Could not find list meta data"
+		Just meta
+			= (case meta.ListMeta.sharedWith of
+				[]		= showMessageA "Sharing" "This list is not shared" [aPrevious,aAddPerson,aAddGroup] [] 
+				users	= enterMultipleChoiceA "Sharing" "This list is shared with the following people" [aPrevious,aRemove,aAddPerson,aAddGroup] users
+			  )
+			>>= \(action,users) -> case action of
+				ActionPrevious				=						return True
+				ActionLabel "Delete"		= removeUsers users >>| return False
+				ActionLabel "Add person(s)"	= addUsers list		>>| return False
+				ActionLabel "Add group"		= addGroup list		>>| return False
+	) <! id >>| stop
+
+where
+	aPrevious	= ButtonAction (ActionPrevious, Always)
+	aRemove		= ButtonAction (ActionLabel "Delete", IfValid)
+	aAddPerson	= ButtonAction (ActionLabel "Add person(s)", IfValid)
+	aAddGroup	= ButtonAction (ActionLabel "Add group", IfValid)
+
+	removeUsers users	= 	removeSharingForList list users
+	addUsers list		=	enterInformation "Add person(s)" "Enter the person(s) you want to share this list with"
+						>>= addSharingForList list 
+					
+	addGroup list		= 	getMyGroups
+						>>= \groups -> case groups of
+							[]		= showMessage "Add group" "You have no groups that you are member of" list
+							groups	= enterChoice "Add group" "Which group do you want to share this list with?" groups
+									>>= \group ->
+										addSharingForList list group.members
+
+createList :: !String !String !(Maybe Note) -> Task AnyList
+createList type name description
+	=	storeMeta
+	>>= \meta ->
+		storeList meta.ListMeta.listId (makeList type name description meta.ListMeta.listId)
+where 
+	storeMeta :: Task ListMeta
+	storeMeta
+		=	getContextWorker
+		>>= \owner ->
+			dbCreateItem {ListMeta| listId = 0, owner = owner, sharedWith =[]}
+			
+	makeList :: !String !String !(Maybe Note) !Int -> AnyList
+	makeList "Simple list" name	desc listId		= SimpleList	{List|listId = listId, name = name, description = desc, items = [] }
+	makeList "Todo list" name desc listId		= TodoList		{List|listId = listId, name = name, description = desc, items = [] }
+	makeList "Date list" name desc listId		= DateList		{List|listId = listId, name = name, description = desc, items = [] }
+	makeList "Document list" name desc listId	= DocumentList	{List|listId = listId, name = name, description = desc, items = [] }
+	
+	storeList :: !Int !AnyList -> Task AnyList 
+	storeList listId list = writeDB (mkDBId ("List-" <+++ listId)) list
+	
 getAllLists :: Task [AnyList]
-getAllLists = return []
+getAllLists = dbReadAll >>= getLists
 
 getMyLists :: Task [AnyList]
-getMyLists = return []
+getMyLists
+	=	getContextWorker >>= \user -> dbReadAll >>= transform (filter (hasAccess user)) >>= getLists 
+where
+	hasAccess user meta = user == meta.ListMeta.owner || isMember user meta.ListMeta.sharedWith
+	
+getLists :: [ListMeta] -> Task [AnyList]
+getLists [] 	= return []
+getLists meta	= allTasks [readDB (mkDBId ("List-" <+++ m.ListMeta.listId)) \\ m <- meta]
 
 deleteList :: !AnyList -> Task AnyList
-deleteList list = return list
-
-/*
-:: ListDB :== [DBid ListDBItem]
-:: ListDBItem = NoteList (List Note) | DateList (List Date) | DocList (List Document)
-
-:: List a = 
-	{ title			:: String
-	, description	:: (Maybe Note)
-	, owners		:: [User]
-	, items			:: [ListItem a]
-	}
+deleteList list = deleteMeta listId  >>| deleteList listId >>| return list
+where
+	listId	= listIdOf list
 	
-:: ListItem a =
-	{ title			:: (Maybe String)
-	, item			:: a
-	, flagged		:: Bool
-	}
-
-derive class iTask ListDBItem, List, ListItem
-derive gMerge ListDBItem, List, ListItem
-
-derive bimap Maybe, (,)
-
-getListDB :: DBid ListDB
-getListDB = mkDBid "ListDB"
-
-newList :: Task Void
-newList = readDB getListDB
-	>>= \ldb -> 	getCurrentUser
-	>>= \me -> 		enterChoice "Choose list" "What kind of list do you want to create?" ["Note","Date","Document"]
-	>>= \ltype ->	initList ltype
-	>>= \list ->	createDB list
-	>>= \dbid ->	writeDB getListDB [dbid:ldb]
-	>>| showMessage "Success" "List is succesfully created." Void
-where
-	initList :: String -> Task ListDBItem
-	initList type = case type of
-		"Note"
-			= initListNote >>= \l -> return (NoteList l)
-		"Date"
-			= initListDate >>= \l -> return (DateList l)
-		"Document"
-			= initListDoc >>= \l -> return (DocList l)
-		_ 
-			= initListNote >>= \l -> return (NoteList l)
+	deleteMeta :: Int -> Task (Maybe ListMeta)
+	deleteMeta listId = dbDeleteItem (DBRef listId)
 	
-	initListNote = enterInformation "Note list" "Edit List"
-	initListDate = enterInformation "Date list" "Edit List"
-	initListDoc  = enterInformation "Document list" "Edit List"
+	deleteList :: Int -> Task (Maybe AnyList)
+	deleteList listId = deleteDB (mkDBId ("List-" <+++ listId))
 
-editList :: Task Void
-editList = getCurrentUser
-	>>= \me -> selectList me
-	>>= \listId  -> listEditor listId	
+addSharingForList :: !AnyList ![User] -> Task AnyList
+addSharingForList list users
+	= dbReadItem (DBRef (listIdOf list))
+	>>= \mbMeta -> case mbMeta of
+		Nothing 	= throw "List meta data not found"
+		Just meta	= dbUpdateItem {ListMeta| meta & sharedWith = meta.ListMeta.sharedWith ++ users} >>| return list
 
-pushList :: Task Void
-pushList = getCurrentUser
-	>>= \me -> 	selectList me
-	>>= \id -> 	enterInformation "User" "To whom do you want to push this list?"
-	>>= \usr ->	enterMsg usr 
-	>>= \msg -> usr @: ((showInstructionAbout ("Request to edit list from "+++toString me) "Press 'Done' to continue to the list editor" msg) >>| listEditor id)
-where
-	enterMsg :: User -> Task Note
-	enterMsg user = enterInformation "Message" ("What would you like ask from "+++toString user+++"?")
+removeSharingForList :: !AnyList ![User] -> Task AnyList
+removeSharingForList list users
+	= dbReadItem (DBRef (listIdOf list))
+	>>= \mbMeta -> case mbMeta of
+		Nothing 	= throw "List meta data not found"
+		Just meta	= dbUpdateItem {ListMeta| meta & sharedWith = [u \\ u <- meta.ListMeta.sharedWith | not (isMember u users)]} >>| return list
 
-selectList :: User -> Task (DBid (ListDBItem))
-selectList user 
-	# roles = getRoles user
-	= readDB getListDB
-		>>= \db -> sequence "Reading DB" [getListItem id \\ id <- db]
-		>>= \items -> sequence "Get Info" [getListInfo item id \\ item <- items & id <- db | isMember user (getOwners item) || isMember "chair" roles]
-		>>= \info -> enterChoice "Choose list" "Please select the list you wish to edit" info
-		>>= \choice -> return (fromHidden (snd choice))	
-where
-	getListItem :: (DBid ListDBItem) -> Task ListDBItem
-	getListItem id = readDB id
-				
-	getListInfo :: ListDBItem (DBid ListDBItem) -> Task (String,(Hidden (DBid ListDBItem)))
-	getListInfo item id = return ((getTitle item)+++" - "+++(getShortDescription item),Hidden id)
+listIdOf :: !AnyList -> Int
+listIdOf (SimpleList l)		= l.List.listId
+listIdOf (TodoList l)		= l.List.listId
+listIdOf (DateList l)		= l.List.listId
+listIdOf (DocumentList l)	= l.List.listId
 
-listEditor :: (DBid ListDBItem) -> Task Void
-listEditor id = readDB id 
-	>>= \list -> listEditor` id list
-	>>| return Void
-where
-	listEditor` :: (DBid ListDBItem) ListDBItem -> Task(Action, ListDBItem)
-	listEditor` id list =
-		case list of 
-			(NoteList _) = updateShared "Edit list" [ButtonAction (ActionFinish,Always)] id [editor {editorFrom = editorFromNote, editorTo = editorToNote}]
-			(DateList _) = updateShared "Edit list" [ButtonAction (ActionFinish,Always)] id [editor {editorFrom = editorFromDate, editorTo = editorToDate}]
-			(DocList  _) = updateShared "Edit list" [ButtonAction (ActionFinish,Always)] id [editor {editorFrom = editorFromDoc, editorTo = editorToDoc}]
-	where
-		editorFromNote (NoteList l) = l
-		editorToNote l _ = (NoteList l)
-		
-		editorFromDate (DateList l) = l
-		editorToDate l _ = (DateList l)
-		
-		editorFromDoc (DocList l) = l
-		editorToDoc l _ = (DocList l)
-
-listItemEditor :: (DBid ListDBItem) Int -> Task Void
-listItemEditor id index = readDB id
-	>>= \list -> listItemEditor` id list index
-	>>| return Void
-where
-	listItemEditor` :: (DBid ListDBItem) ListDBItem Int -> Task(Action, ListDBItem)
-	listItemEditor` id list index =
-		case list of
-			(NoteList _) = updateShared "Edit list" [ButtonAction (ActionFinish,Always)] id [editor {editorFrom = editorFromNote, editorTo = editorToNote}]
-			(DateList _) = updateShared "Edit list" [ButtonAction (ActionFinish,Always)] id [editor {editorFrom = editorFromDate, editorTo = editorToDate}]
-			(DocList  _) = updateShared "Edit list" [ButtonAction (ActionFinish,Always)] id [editor {editorFrom = editorFromDoc, editorTo = editorToDoc}]
-	where
-		editorFromNote (NoteList l) = getItem index l
-		editorToNote i (NoteList l) = (NoteList (updateItemAt index i l))
-		
-		editorFromDate (DateList l) = getItem index l
-		editorToDate i (DateList l) = (DateList (updateItemAt index i l))
-		
-		editorFromDoc (DocList l) = getItem index l
-		editorToDoc i (DocList l) = (DocList (updateItemAt index i l))
-		
-		getItem :: !Int !(List a) -> (ListItem a)
-		getItem index list = list.List.items !! index
-		
-		updateItemAt :: !Int !(ListItem a) !(List a) -> (List a)
-		updateItemAt index item list 
-			# items = list.List.items
-			# items = updateAt index item items
-			= {List | list & items = items}
-		
-//Utility
-getOwners :: ListDBItem -> [User]
-getOwners item
-	= case item of
-		(NoteList list) = list.List.owners
-		(DateList list) = list.List.owners
-		(DocList  list) = list.List.owners
-
-getTitle :: ListDBItem -> String
-getTitle item
-	= case item of
-		(NoteList list) = list.List.title
-		(DateList list) = list.List.title
-		(DocList  list) = list.List.title
-
-getShortDescription :: ListDBItem -> String	
-getShortDescription item
-	# mbDesc = case item of
-		(NoteList list) = list.List.description
-		(DateList list) = list.List.description
-		(DocList  list) = list.List.description
-	= case mbDesc of
-		Just (Note d) = if(size d > 27) ((d % (0,27))+++"...") d
-		Nothing = "..."
-*/
+nameOf :: !AnyList -> String
+nameOf (SimpleList l)		= l.List.name
+nameOf (TodoList l)			= l.List.name
+nameOf (DateList l)			= l.List.name
+nameOf (DocumentList l)		= l.List.name
