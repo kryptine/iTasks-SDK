@@ -23,8 +23,8 @@ visualizeAsEditor name mbSubIdx umask vmask x
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (defs,vst=:{VSt | valid}) = gVisualize{|*|} val val vst
-	= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
-	//= (coerceToTUIDefs defs, valid)	
+	//= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
+	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x
 	
@@ -57,8 +57,8 @@ determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,vst=:{VSt | valid}) = (gVisualize{|*|} (VValue old) (VValue new) vst)
-	= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
-	//= (coerceToTUIUpdates updates, valid)
+	//= trace_n("==UMASK==\n"+++toString (toJSON umask) +++ "\n==VMASK==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
+	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue
