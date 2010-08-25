@@ -367,7 +367,26 @@ gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, upd
 		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 gUpdate {|Document|} s ust = (s,ust)
 
-derive gUpdate Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
+gUpdate {|HtmlDisplay|} fx (HtmlDisplay s) ust=:{USt | currentPath} 
+	# (s,ust) = fx s ust
+	= (HtmlDisplay s,{USt | ust & currentPath = stepDataPath currentPath})
+gUpdate {|Editable|} fx (Editable s) ust=:{USt | currentPath} 
+	# (s,ust) = fx s ust
+	= (Editable s,{USt | ust & currentPath = stepDataPath currentPath})
+gUpdate {|Hidden|} fx (Hidden s) ust=:{USt | currentPath} 
+	# (s,ust) = fx s ust
+	= (Hidden s,{USt | ust & currentPath = stepDataPath currentPath})
+gUpdate {|VisualizationHint|} fx (VHEditable s) ust=:{USt | currentPath} 
+	# (s,ust) = fx s ust
+	= (VHEditable s,{USt | ust & currentPath = stepDataPath currentPath})
+gUpdate {|VisualizationHint|} fx (VHHtmlDisplay s) ust=:{USt | currentPath} 
+	# (s,ust) = fx s ust
+	= (VHHtmlDisplay s,{USt | ust & currentPath = stepDataPath currentPath})
+gUpdate {|VisualizationHint|} fx (VHHidden s) ust=:{USt | currentPath} 
+	# (s,ust) = fx s ust
+	= (VHHidden s,{USt | ust & currentPath = stepDataPath currentPath})
+
+derive gUpdate Either, (,), (,,), (,,,), Void
 
 //Utility functions
 dp2s :: DataPath -> String

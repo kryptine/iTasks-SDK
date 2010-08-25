@@ -638,7 +638,7 @@ where
 
 	determineAddRem []     []     idx = []
 	determineAddRem [o:os] []     idx = [TUIUpdate (TUIRemove (itemId idx)):determineAddRem os [] (idx+1)]
-	determineAddRem []     [n:ns] idx = [TUIUpdate (TUIAdd (itemId (idx-1)) n):determineAddRem [] ns (idx+1)]
+	determineAddRem []     [n:ns] idx = [if(idx > 0) (TUIUpdate (TUIAdd (itemId (idx-1)) n)) (TUIUpdate (TUIAddTo id n)):determineAddRem [] ns (idx+1)]
 	determineAddRem [o:os] [n:ns] idx = determineAddRem os ns (idx+1)
 
 	determineReplacements defs idx	 = [TUIUpdate (TUIReplace (itemId i) (defs!!i)) \\ i <-idx]
@@ -706,17 +706,17 @@ gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
 gVisualize{|HtmlDisplay|} fx old new vst=:{VSt | origVizType, vizType, currentPath, renderAsStatic,valid}
 	= case origVizType of
 		VHtmlDisplay
-			# (def,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (def,vst) = fx oldV newV vst
 			= (def,{VSt | vst & currentPath = stepDataPath currentPath, valid = valid})
 		_
-			# (def,vst) = fx oldV newV {VSt | vst &  renderAsStatic = True, currentPath = shiftDataPath currentPath}
+			# (def,vst) = fx oldV newV {VSt | vst &  renderAsStatic = True}
 			= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic, valid = valid})
 where 
 	oldV = case old of (VValue (HtmlDisplay ov)) = (VValue ov); _ = VBlank
 	newV = case new of (VValue (HtmlDisplay nv)) = (VValue nv); _ = VBlank
 
 gVisualize{|Editable|} fx old new vst=:{VSt | vizType, currentPath, renderAsStatic}
-	# (def,vst) = fx oldV newV {VSt | vst & renderAsStatic = False, currentPath = shiftDataPath currentPath}
+	# (def,vst) = fx oldV newV {VSt | vst & renderAsStatic = False}
 	= (def,{VSt | vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 where 
 	oldV = case old of (VValue (Editable ov)) = (VValue ov); _ = VBlank
@@ -729,59 +729,58 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 				(VValue (VHHidden _)) 
 					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue (VHHtmlDisplay _))
-					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+					# (viz,vst) = fx oldV newV {vst & vizType = VHtmlDisplay}
 					= (viz,{vst & currentPath = stepDataPath currentPath, vizType = vizType, valid = valid})
 				_
-					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, vizType = VHtmlDisplay}
+					# (viz,vst) = fx oldV newV {vst & vizType = VHtmlDisplay}
 					= (viz,{vst & currentPath = stepDataPath currentPath, vizType = vizType})
 		VEditorUpdate
 			= case (old,new) of		
 				//_, hidden -> replace with hidden
 				(_,(VValue (VHHidden _)))
 					# path = shiftDataPath currentPath
-					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
+					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s currentPath, id = dp2id idPrefix currentPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
 					  ,{VSt | vst & currentPath = stepDataPath currentPath})
 				//hidden, html -> replace with static
 				((VValue (VHHidden _)),(VValue (VHHtmlDisplay _)))
-					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, renderAsStatic = True}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic,valid=valid})
 				//hidden, edit = replace with editable
 				((VValue (VHHidden _)),(VValue (VHEditable _)))
-					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, renderAsStatic = False}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				//html, edit -> replace
 				((VValue (VHHtmlDisplay _)),(VValue (VHEditable _)))
-					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = False}
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, renderAsStatic = False}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				//edit, html -> replace
 				((VValue (VHEditable _)),(VValue (VHHtmlDisplay _)))
-					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, renderAsStatic = True}
+					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, renderAsStatic = True}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic,valid=valid})
 				//update VHHtmlDisplay, ignore validation
 				((VValue (VHHtmlDisplay _)),(VValue (VHHtmlDisplay _)))
-					# (upd,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+					# (upd,vst) = fx oldV newV vst
 					= (upd,{VSt | vst & currentPath = stepDataPath currentPath, valid = valid})
 				//_ -> update	
 				_	
-					# (upd,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+					# (upd,vst) = fx oldV newV vst
 					= (upd,{VSt | vst & currentPath = stepDataPath currentPath})	
 		_
 			= case old of
 				(VValue (VHHidden _))
-					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s shiftPath, id = dp2id idPrefix shiftPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
+					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s currentPath, id = dp2id idPrefix currentPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
 					  ,{VSt | vst & currentPath = stepDataPath currentPath})
 				(VValue (VHHtmlDisplay _))
-					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = True}
+					# (viz,vst) = fx oldV newV {vst & renderAsStatic = True}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
 				(VValue (VHEditable _))
-					# (viz,vst) = fx oldV newV {vst & currentPath = shiftDataPath currentPath, renderAsStatic = False}
+					# (viz,vst) = fx oldV newV {vst & renderAsStatic = False}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})			
 where
 	oldV = case old of (VValue (VHEditable ox)) = (VValue ox); (VValue (VHHtmlDisplay ox)) = (VValue ox); _ = VBlank
 	newV = case new of (VValue (VHEditable nx)) = (VValue nx); (VValue (VHHtmlDisplay nx)) = (VValue nx); _ = VBlank
 	
 	id = dp2id idPrefix currentPath	
-	shiftPath = shiftDataPath currentPath	
 	
 derive gVisualize Either, Void
 

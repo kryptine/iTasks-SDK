@@ -118,6 +118,20 @@ gVerify{|Dynamic|} _ vst = vst
 
 gVerify{|Document|} _ vst = basicVerify "Upload a document" vst
 
+gVerify{|Hidden|} fx Nothing vst = vst
+gVerify{|Hidden|} fx (Just (Hidden x)) vst = vst //fx (Just x) vst
+
+gVerify{|Editable|} fx Nothing vst = fx Nothing vst
+gVerify{|Editable|} fx (Just (Editable x)) vst = fx (Just x) vst
+
+gVerify{|HtmlDisplay|} fx Nothing vst = vst
+gVerify{|HtmlDisplay|} fx (Just (HtmlDisplay x)) vst = vst //fx (Just x) vst
+
+gVerify{|VisualizationHint|} fx Nothing vst = vst
+gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst = vst
+gVerify{|VisualizationHint|} fx (Just (VHHtmlDisplay x)) vst = vst //fx (Just x) vst
+gVerify{|VisualizationHint|} fx (Just (VHEditable x)) vst = fx (Just x) vst
+
 basicVerify :: String !*VerSt -> *VerSt
 basicVerify msg vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)   = popMask updateMask

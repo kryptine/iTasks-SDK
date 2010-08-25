@@ -21,7 +21,7 @@ generic gVerify a :: (Maybe a) *VerSt -> *VerSt
 instance GenMask VerifyMask
 instance toString ErrorMessage
 
-derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS, FIELD, Int, Real, Char, Bool, String, (,), (,,), (,,,), [], Maybe, Dynamic, Void, Document, Either
+derive gVerify UNIT, PAIR, EITHER, OBJECT, CONS, FIELD, Int, Real, Char, Bool, String, (,), (,,), (,,,), [], Maybe, Dynamic, Void, Document, Either, Editable, Hidden, HtmlDisplay, VisualizationHint
 derive JSONEncode VerifyMask
 
 verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a

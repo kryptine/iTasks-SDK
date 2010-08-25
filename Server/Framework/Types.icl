@@ -10,7 +10,7 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
-derive gVerify			UserDetails, Session, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive gVerify			UserDetails, Session
 derive gMerge			User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
