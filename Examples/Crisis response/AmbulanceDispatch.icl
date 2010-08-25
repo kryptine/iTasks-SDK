@@ -168,10 +168,23 @@ where
 resourceRequestTimeOut :: [(b,User,a)] Time ([(b,Maybe a)] -> Bool) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) ([(b,Maybe a)] -> (a,[(b,Maybe a)])) (a -> Task a) -> 
                              Task (a,[(b,Maybe a)]) | iTask a & iTask b
 resourceRequestTimeOut resources time_out check predf allf task
-	= oldParallel "Resource_requests" check predf allf 
-             [(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba)) 
-             \\ (resource,uid,amount) <- resources]
+	= parallel Closed "Resource requests" "Waiting for resources..." procfun finalfun [] tasks
+where		
+	tasks	=	[(delegateTaskTimeOut uid "Resource Request" amount task time_out >>= \mba -> return (resource, mba))
+				\\ (resource,uid,amount) <- resources]
 
+  	procfun (result,index) st
+  		# st = sortBy (\x y. snd x < snd y) [(result,index):st]
+  		| check (map fst st)	= (st, Stop)
+  								= (st,Continue)
+  
+  	finalfun st
+  		# results = map fst st
+        | length st < length tasks
+        	= predf results
+        | otherwise
+        	= allf results
+                   
 delegateTaskTimeOut :: User String a (a -> Task a) Time -> Task (Maybe a) | iTask a
 delegateTaskTimeOut who description value task time_out 
 	= timeOutTask (who @: (Subject description @>> task value)) time_out 

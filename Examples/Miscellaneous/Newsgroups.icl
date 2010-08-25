@@ -168,13 +168,13 @@ where
 		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBAlwaysFixed] (chatActions chatbox user)
 	where
 		chatActions :: (DBId Chat) User -> [GroupAction GOnlyAction Void Chat]
-		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [ignoreResult (newTopic chatbox user)]) 	GroupAlways
-						 		   , GroupAction 	ActionQuit		GOStop												GroupAlways
-						 		   , GroupAction	ActionAddUser	(GOExtend [ignoreResult (addUsers chatbox)])		(SharedPredicate chatbox (\(SharedValue chat) -> chat.Chat.initUser == user)) 
+		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [newTopic chatbox user >>| stop]) 	GroupAlways
+						 		   , GroupAction 	ActionQuit		GOStop											GroupAlways
+						 		   , GroupAction	ActionAddUser	(GOExtend [addUsers chatbox >>| stop])			(SharedPredicate chatbox (\(SharedValue chat) -> chat.Chat.initUser == user)) 
 						 		   ]
 						 		   	
 	chatEditor :: (DBId Chat) User -> Task Void
-	chatEditor chatbox user = ignoreResult (getCurrentDateTime >>= \dt -> updateShared "Chat" "You can chat now" [] chatbox [mainEditor user dt])
+	chatEditor chatbox user = getCurrentDateTime >>= \dt -> updateShared "Chat" "You can chat now" [] chatbox [mainEditor user dt] >>| return Void
 	
 	mainEditor :: User DateTime -> (View Chat)
 	mainEditor user dt = editor {editorFrom = editorFrom user, editorTo = editorTo user dt}
