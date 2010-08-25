@@ -2,10 +2,9 @@ implementation module AmbulanceDispatchMap
 
 import iTasks
 import CommonDomain
-import GeoDomain
+import GoogleMaps
 import google_maps_services
 import Base64
-import DocumentDomain
 
 derive class iTask	Incident, IncidentType
 derive bimap (,), Maybe

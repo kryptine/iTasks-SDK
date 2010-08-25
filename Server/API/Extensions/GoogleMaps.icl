@@ -1,6 +1,6 @@
-implementation module GeoDomain
+implementation module GoogleMaps
 
-import Html, InteractionTasks, StdEnv, JSON, CommonDomain
+import Html, StdEnv, JSON, GenUpdate, GenVisualize, GenVerify, GenMerge
 
 derive JSONEncode TUIGoogleMap, TUIGoogleMapOptions, TUIGoogleStaticMap
 derive JSONDecode MVCUpdate, ClickUpdate, ClickSource, ClickEvent

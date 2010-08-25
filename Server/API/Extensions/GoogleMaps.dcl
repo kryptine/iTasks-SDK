@@ -1,6 +1,8 @@
-definition module GeoDomain
-
-import Html, InteractionTasks, CommonDomain, GenVerify
+definition module GoogleMaps
+/*
+* This extension allows the use of GoogleMaps in editors
+*/
+import Html, GenVerify
 
 derive gVisualize  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
 derive gUpdate	  		GoogleMap, GoogleMapMarker, GoogleMapInfoWindow, GoogleMapType, GoogleStaticMap
@@ -57,7 +59,20 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 :: ClickEvent	= LEFTCLICK | RIGHTCLICK | DBLCLICK
 :: ClickSource  = MAP | MARKER Coordinate
 
+/*
+* Convert a dynamic map into a static image
+*
+* @param The map to convert
+*
+* @return The converted result
+*/
 convertToStaticMap :: GoogleMap -> GoogleStaticMap
+
+/*
+* Create a default map
+*
+* @return A default map
+*/
 mkMap :: GoogleMap
 
 instance toString GoogleMapType

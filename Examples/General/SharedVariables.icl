@@ -1,6 +1,6 @@
 implementation module SharedVariables
 
-import iTasks, CommonDomain, GeoDomain, Text, ExperimentalDomain
+import iTasks, CommonDomain, GoogleMaps, Text, ExperimentalDomain
 
 derive bimap Maybe, (,)
 

@@ -1,6 +1,6 @@
 implementation module FormData
  
-import 	iTasks, TaskContainer, GeoDomain
+import 	iTasks, TaskContainer, GoogleMaps
 from 	StdFunc import o
 from	StdMisc import abort
 				
