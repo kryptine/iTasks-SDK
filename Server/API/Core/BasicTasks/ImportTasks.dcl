@@ -1,7 +1,6 @@
 definition module ImportTasks
 /**
 * This module provides tasks for importing external data into a workflow.
-* 
 */
 import iTasks
 /**

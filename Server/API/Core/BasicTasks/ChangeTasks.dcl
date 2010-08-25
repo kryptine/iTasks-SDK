@@ -1,6 +1,6 @@
 definition module ChangeTasks
 /**
-* This module defines combinators for manipulating the changelist of a running workflow process.
+* This module defines tasks for manipulating the changelist of a running workflow process.
 */
 
 from TSt		import ::Task, ::TSt, ::ChangeLifeTime, :: ChangeDyn

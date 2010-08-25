@@ -1,5 +1,7 @@
 definition module SessionDBTasks
-
+/*
+* This module provides means to create or destroy sessions
+*/
 from TSt		import :: Task
 from Types		import :: SessionId, :: Session, :: User
 

@@ -7,27 +7,45 @@ from Void			import :: Void
 from CommonDomain	import :: Date, :: Time, :: DateTime
 
 /**
-* Returns the current time
+* Retrieves the current time
+*
+* @return The current system time
 */
 getCurrentTime	:: Task Time
 /**
-* Returns the current date
+* Retrieves the current date
+* 
+* @return The current system date
 */
 getCurrentDate	:: Task Date
 /**
-* Returns the current datetime combination
+* Retrieves the current datetime combination
+*
+* @return The current system's date and time
 */
 getCurrentDateTime :: Task DateTime
 /**
-* Task completes at specified time.
+* Creates a task which blocks a workflow until a specified time.
+*
+* @param The specified time at which the task should complete
+*
+* @return Void
 */
 waitForTime		:: !Time			-> Task Void
 /**
-* Task completes at specified date.
+* Creates a task which blocks a workflow until a specified date.
+*
+* @param The specified date at which the task should complete
+*
+* @return Void
 */
 waitForDate		:: !Date			-> Task Void
 /**
 * Task completes after specified amount of time has passed
 * since the creation of the task.
+*
+* @param The time to wait before the task should complete
+*
+* @return Void
 */
 waitForTimer	:: !Time			-> Task Void

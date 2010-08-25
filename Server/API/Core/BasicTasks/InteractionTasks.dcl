@@ -1,5 +1,7 @@
 definition module InteractionTasks
-
+/*
+* This module provides means to interact with users
+*/
 from TSt		import :: Task
 from Types		import :: Role
 from Html		import :: HtmlTag
@@ -283,26 +285,79 @@ showInstruction 			:: !String !instruction	a	-> Task a								| html instruction
 showInstructionAbout 		:: !String !instruction a 	-> Task a								| html instruction & iTask a
 
 //*** Shared variable tasks ***//
+
+/*
+* Shared variables tasks allow to specify multiple views upon the same set of data (the share). These views can be either
+* viewed in separate tasks, but can also be combined locally into a single editor. Typically a view is created using an instance
+* of the Editor- or Listener-type, which specify how the shared data should be transformed into a single View and -in case of an editor-
+* back into the original data.
+*/
 class SharedVariable a | gMerge{|*|} a
 
 :: Editor s a	= {editorFrom :: s -> a, editorTo :: a s -> s}
 :: Listener s a	= {listenerFrom :: s -> a}
 :: View s
 
+/*
+* Creates a view from a Listener specification. Listeners can be used only to view the shared data.
+*
+* @param (Listener s a)		The specification of the listener-transformation
+*
+* @return (View s)			A view of the shared data which is read-only
+*/
 listener	:: !(Listener s a)	-> View s | iTask a & iTask s & SharedVariable s
+
+/*
+* Creates a view from an Editor specification. Editors can be used to both view and update the shared data.
+*
+* @param (Editor s a)		The specification of the editor-transformation
+*
+* @return (View s)			A view of the shared data
+*/
 editor		:: !(Editor s a)	-> View s | iTask a & iTask s & SharedVariable s
 
+/*
+* Creates a editor-view on the shared data, applying the identity function as transformation.
+*
+* @return View s			A view of the shared data
+*/
 idEditor	:: View s	| iTask s & SharedVariable s
 idListener	:: View s	| iTask s & SharedVariable s
 
-updateShared			:: !String question ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s)	| html question & iTask s & SharedVariable s
-updateSharedLocal		:: !String question ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html question & iTask s & SharedVariable s
+/*
+* Creates a task from a specified set of views using shared data which is stored in a database.
+* 
+* @param String				A short descriptive subject
+* @param question			A description of the task
+* @param [TaskAction s]		A list of buttons or menus through which the user can submit the value.
+* @param (DBId s)			The database handle of the shared data
+* @param [View s]			A list of views on the shared data, which are presented to the user
+*
+* @return Action			The action the user performed
+* @return s					The value/state of the shared data at the time this function is evaluated
+*/
+updateShared			:: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s)	| html description & iTask s & SharedVariable s
 
-// To allow users to specify a followup action to their current task
-// most interactive tasks allow you to specify actions that can be chosen.
-// These actions are either available as a button on the bottom of the task interface
-// or as an item in the task menu, or both.
-// Additionally conditions can be specified when the action is allowed to be performed.
+/*
+* Creates a task from a specified set of views using shared data which is only available to this specific task.
+* 
+* @param String				A short descriptive subject
+* @param question			A description of the task
+* @param [TaskAction s]		A list of buttons or menus through which the user can submit the value.
+* @param [View s]			A list of views on the shared data, which are presented to the user
+*
+* @return Action			The action the user performed
+* @return s					The value/state of the shared data at the time this function is evaluated
+*/
+updateSharedLocal		:: !String description ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html description & iTask s & SharedVariable s
+
+/*
+* To allow users to specify a followup action to their current task
+* most interactive tasks allow you to specify actions that can be chosen.
+* These actions are either available as a button on the bottom of the task interface
+* or as an item in the task menu, or both.
+* Additionally conditions can be specified when the action is allowed to be performed.
+*/
 
 :: TaskAction a 		= 	ButtonAction		!(!Action, ActionCondition a) 
 						| 	MenuAction			!(!Action, ActionCondition a)
@@ -316,7 +371,9 @@ updateSharedLocal		:: !String question ![TaskAction s] !s ![View s] -> Task (!Ac
 :: EditorValue a 		= 	Invalid 
 						| 	Valid !a
 
-// This html class makes it possible to use either strings, or html as description/message/instruction
+/*
+* This html class makes it possible to use either strings, or html as description/message/instruction
+*/
 class html a  
 where
 	html :: a -> HtmlTag

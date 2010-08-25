@@ -416,18 +416,18 @@ idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
 idListener	:: View s	| iTask s & SharedVariable s
 idListener = listener {listenerFrom = id}
 
-updateShared :: !String question ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
-updateShared subject question actions sharedId views = mkInteractiveTask subject (toString (html question)) (makeSharedTask question actions sharedId views False)
+updateShared :: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s) | html description & iTask s & SharedVariable s
+updateShared subject description actions sharedId views = mkInteractiveTask subject (toString (html description)) (makeSharedTask description actions sharedId views False)
 
-updateSharedLocal :: !String question ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html question & iTask s & SharedVariable s
-updateSharedLocal subject question actions initial views =
+updateSharedLocal :: !String description ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html description & iTask s & SharedVariable s
+updateSharedLocal subject description actions initial views =
 				createDB initial
-	>>= \sid.	mkInteractiveTask subject (toString (html question)) (makeSharedTask question actions sid views False)
+	>>= \sid.	mkInteractiveTask subject (toString (html description)) (makeSharedTask description actions sid views False)
 	>>= \res.	deleteDB sid
 	>>|			return res
 
-makeSharedTask :: question ![TaskAction s] !(DBId s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html question & iTask s & SharedVariable s
-makeSharedTask question actions (DBId sharedId) views actionStored tst=:{taskNr, newTask}
+makeSharedTask :: description ![TaskAction s] !(DBId s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html description & iTask s & SharedVariable s
+makeSharedTask description actions (DBId sharedId) views actionStored tst=:{taskNr, newTask}
 	# (mbcvalue,tst) = readShared sharedId tst
 	= case mbcvalue of
 		Nothing
@@ -530,8 +530,7 @@ where
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
-
-//TODO remove encapsulating TUIPanel -> Form elements should be placed directly in their containers				
+		
 taskPanel :: String (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> ([TUIDef],[TUIButton])
 taskPanel taskid mbContext mbForm buttons
 	= (items,taskButtons buttons) 

@@ -1,5 +1,7 @@
 definition module OSTasks
-
+/*
+* This module provides tasks to interface with the underlying OS
+*/
 import iTasks
 from Directory import :: Path(..), ::DiskName, :: PathStep(..)
 
