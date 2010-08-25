@@ -4,14 +4,14 @@ import iTasks
 
 :: Message =
 	{ messageId			:: Hidden Int
-	, sender			:: HtmlDisplay User
+	, sender			:: Display User
 	, recipients 		:: [User]
 	, cc 				:: Maybe [User]
 	, priority 			:: TaskPriority
 	, subject			:: String
 	, message			:: Note
 	, attachments		:: Maybe [Document]
-	, previousMessages 	:: HtmlDisplay [Message]
+	, previousMessages 	:: Display [Message]
 	}
 
 manageMessages		:: 											Task Void

@@ -10,7 +10,7 @@ generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String, Document
-derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, HtmlDisplay, Editable, Hidden, VisualizationHint
+derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a

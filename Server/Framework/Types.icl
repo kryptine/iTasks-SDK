@@ -15,8 +15,8 @@ derive gMerge			User, Session, VisualizationHint, UserDetails
 
 derive bimap			Maybe, (,)
 
-derive JSONEncode		UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive JSONDecode		UserDetails, Session, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive JSONEncode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
 
 
 initManagerProperties :: ManagerProperties
@@ -115,7 +115,7 @@ where
 // VisualizationHints etc..
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
 fromVisualizationHint (VHEditable a) = a
-fromVisualizationHint (VHHtmlDisplay a) = a
+fromVisualizationHint (VHDisplay a) = a
 fromVisualizationHint (VHHidden a) = a
 
 toVisualizationHint :: !.a -> (VisualizationHint .a)
@@ -127,11 +127,11 @@ fromEditable (Editable a) = a
 toEditable :: !.a -> (Editable .a)
 toEditable a = (Editable a)
 
-fromHtmlDisplay :: !(HtmlDisplay .a) -> .a
-fromHtmlDisplay (HtmlDisplay a) = a
+fromDisplay :: !(Display .a) -> .a
+fromDisplay (Display a) = a
 
-toHtmlDisplay :: !.a -> (HtmlDisplay .a)
-toHtmlDisplay a = (HtmlDisplay a)
+toDisplay :: !.a -> (Display .a)
+toDisplay a = (Display a)
 
 fromHidden :: !(Hidden .a) -> .a
 fromHidden (Hidden x) = x

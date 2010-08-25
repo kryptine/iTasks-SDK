@@ -82,10 +82,10 @@ where
 			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
 			
 			editorFrom (goal, props) 
-				= HtmlDisplay (goal, [let (user,att) = attlist!!n in (meeting, attlist, user +++> "  can you attend ?", Editable att) 
+				= Display (goal, [let (user,att) = attlist!!n in (meeting, attlist, user +++> "  can you attend ?", Editable att) 
 									\\ (meeting,attlist) <- props])
 
-			editorTo (HtmlDisplay (goal, props)) _ 
+			editorTo (Display (goal, props)) _ 
 				= (goal, [(meeting,let (user,att) = attlist!!n in updateAt n (user,yn) attlist) \\ (meeting, attlist,_,Editable yn) <- props])
 
 	meetingGoal	:: Task Appointment
@@ -117,8 +117,8 @@ derive gMerge		Chat, ChatMessage, ChatView, ChatMessageView
 
 //Transformed View
 :: ChatView = 
-	{ users		:: HtmlDisplay [User]
-	, messages	:: HtmlDisplay [ChatMessageView]
+	{ users		:: Display [User]
+	, messages	:: Display [ChatMessageView]
 	}
 	
 :: ChatMessageView = 
@@ -181,15 +181,15 @@ where
 	where
 		editorFrom :: User Chat -> ChatView
 		editorFrom user chat = {ChatView 
-							   | users 		= HtmlDisplay chat.Chat.users
-							   , messages 	= HtmlDisplay [(convertMessageToView user msg) \\ msg <- chat.Chat.messages]
+							   | users 		= Display chat.Chat.users
+							   , messages 	= Display [(convertMessageToView user msg) \\ msg <- chat.Chat.messages]
 							   }
 		where
 			convertMessageToView :: User ChatMessage -> ChatMessageView
 			convertMessageToView user msg =
 				{ ChatMessageView
 				| info		= toString msg.ChatMessage.who+++" said at "+++toString msg.ChatMessage.when
-				, message	= if(user == msg.ChatMessage.who) (VHEditable msg.ChatMessage.message) (VHHtmlDisplay msg.ChatMessage.message)
+				, message	= if(user == msg.ChatMessage.who) (VHEditable msg.ChatMessage.message) (VHDisplay msg.ChatMessage.message)
 				, replies	= [convertMessageToView user reply \\ reply <- msg.ChatMessage.replies]
 				, addReply	= Editable {FormButton | label = "Add reply", icon = "", state = NotPressed}
 				}
@@ -197,7 +197,7 @@ where
 		editorTo :: User DateTime ChatView Chat -> Chat
 		editorTo user dt view chat = {Chat
 								  | chat
-								  & messages 	= [convertViewToMessage user dt vmsg omsg \\ vmsg <- (fromHtmlDisplay view.ChatView.messages) & omsg <- chat.Chat.messages]
+								  & messages 	= [convertViewToMessage user dt vmsg omsg \\ vmsg <- (fromDisplay view.ChatView.messages) & omsg <- chat.Chat.messages]
 								  }
 		where
 			convertViewToMessage :: User DateTime ChatMessageView ChatMessage -> ChatMessage
@@ -218,7 +218,7 @@ where
 						= []
 				
 			fromVizHint (VHEditable x) 		= x
-			fromVizHint (VHHtmlDisplay x) 	= x
+			fromVizHint (VHDisplay x) 	= x
 			fromVizHint (VHHidden x) 		= x
 	
 	newTopic :: (DBId Chat) User -> Task Void
@@ -318,9 +318,9 @@ mailMess2 :: User EMail -> Task (ReplyHdr, Reply)
 mailMess2 me msg 
 	= 	(showStickyMessageAbout "New mail" ("Mail from " <+++ displayName me <+++ ":") msg 
 	  	||- updateInformation "Reply" "The sender requested a reply..." 
-   				(HtmlDisplay {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = Nothing }))
+   				(Display {replyFrom = me, subject = "Re: " +++ msg.EMail.subject}, {reply = Note "", attachements = Nothing }))
 					<<@Subject  msg.EMail.subject
-		>>= \(HtmlDisplay hdr,reply) -> return (hdr,reply)
+		>>= \(Display hdr,reply) -> return (hdr,reply)
 
 // newsgroup handling
 

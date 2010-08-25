@@ -124,12 +124,12 @@ gVerify{|Hidden|} fx (Just (Hidden x)) vst = vst //fx (Just x) vst
 gVerify{|Editable|} fx Nothing vst = fx Nothing vst
 gVerify{|Editable|} fx (Just (Editable x)) vst = fx (Just x) vst
 
-gVerify{|HtmlDisplay|} fx Nothing vst = vst
-gVerify{|HtmlDisplay|} fx (Just (HtmlDisplay x)) vst = vst //fx (Just x) vst
+gVerify{|Display|} fx Nothing vst = vst
+gVerify{|Display|} fx (Just (Display x)) vst = vst //fx (Just x) vst
 
 gVerify{|VisualizationHint|} fx Nothing vst = vst
 gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst = vst
-gVerify{|VisualizationHint|} fx (Just (VHHtmlDisplay x)) vst = vst //fx (Just x) vst
+gVerify{|VisualizationHint|} fx (Just (VHDisplay x)) vst = vst //fx (Just x) vst
 gVerify{|VisualizationHint|} fx (Just (VHEditable x)) vst = fx (Just x) vst
 
 basicVerify :: String !*VerSt -> *VerSt

@@ -9,14 +9,14 @@ derive bimap Maybe, (,)
 
 :: Message =
 	{ messageId			:: Hidden Int
-	, sender			:: HtmlDisplay User
+	, sender			:: Display User
 	, recipients 		:: [User]
 	, cc 				:: Maybe [User]
 	, priority 			:: TaskPriority
 	, subject			:: String
 	, message			:: Note
 	, attachments		:: Maybe [Document]
-	, previousMessages 	:: HtmlDisplay [Message]
+	, previousMessages 	:: Display [Message]
 	}
 
 instance DB Message
@@ -28,14 +28,14 @@ where
 mkMsg :: User -> Message
 mkMsg me = { Message
 			| messageId		= toHidden 0
-			, sender 		= toHtmlDisplay me
+			, sender 		= toDisplay me
 			, recipients 	= []
 			, cc 			= Nothing
 			, priority 		= NormalPriority
 			, subject		= ""
 			, message		= Note ""
 		  	, attachments	= Nothing
-		   	, previousMessages = HtmlDisplay []
+		   	, previousMessages = Display []
 		   	}
 
 manageMessages :: Task Void
@@ -64,7 +64,7 @@ where
 		>>= \me ->
 			allTasks
 				[spawnProcess me True True
-				 ((Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) @>>
+				 ((Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) @>>
 				  msg.Message.priority @>>
 				   readMessage msg)
 				 \\ msg <- messages]
@@ -86,11 +86,11 @@ newGroupMessage = getCurrentUser
 	
 sendMessage :: Message -> Task Void
 sendMessage msg = allProc [who @>> spawnProcess who True True
-					((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.recipients ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
+					((readMessage msg <<@ Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.recipients ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
 					>>| showMessageAbout "Message sent" "The following message has been sent:" msg >>| return Void
 
 writeMessage :: User String [User] [User] [Message] -> Task Message
-writeMessage me subj recipients cc thread = updateInformation "Compose" "Enter your message" {Message | (mkMsg me) & subject = subj, recipients = recipients, cc = if(isEmpty cc) Nothing (Just cc), previousMessages = (HtmlDisplay thread)}	
+writeMessage me subj recipients cc thread = updateInformation "Compose" "Enter your message" {Message | (mkMsg me) & subject = subj, recipients = recipients, cc = if(isEmpty cc) Nothing (Just cc), previousMessages = (Display thread)}	
 
 readMessage :: Message -> Task Void
 readMessage msg=:{Message | previousMessages, subject} 
@@ -99,15 +99,15 @@ readMessage msg=:{Message | previousMessages, subject}
 	>>= \act -> case act of
 		(ActionLabel "Reply",_)
 			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromHtmlDisplay msg.sender)] []  [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
+			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender)] []  [{Message | msg & previousMessages = (Display [])}:fromDisplay previousMessages]
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Reply All",_)
 			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromHtmlDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (if(isJust msg.cc) (fromJust msg.cc) []) [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
+			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (if(isJust msg.cc) (fromJust msg.cc) []) [{Message | msg & previousMessages = (Display [])}:fromDisplay previousMessages]
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Forward",_)
 			= 			getCurrentUser 
-			>>= \me -> 	writeMessage me ("Fw: "+++msg.Message.subject) [] [] [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
+			>>= \me -> 	writeMessage me ("Fw: "+++msg.Message.subject) [] [] [{Message | msg & previousMessages = (Display [])}:fromDisplay previousMessages]
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Archive & Close",_) 
 			=			dbCreateItem msg

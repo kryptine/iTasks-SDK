@@ -21,8 +21,8 @@ derive gVerify			User, UserDetails, Session, Task
 
 derive gMerge			User, Session, VisualizationHint
 
-derive JSONEncode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
-derive JSONDecode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, HtmlDisplay, Editable, VisualizationHint
+derive JSONEncode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONDecode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
 		
 instance toString User
 instance toString TaskPriority
@@ -169,10 +169,10 @@ initGroupedProperties :: GroupedProperties
 
 // Field behaviour extensions
 :: VisualizationHint a = VHEditable a
-					   | VHHtmlDisplay a
+					   | VHDisplay a
 					   | VHHidden a
 :: Editable a = Editable a					// Variable is always rendered within a form as editor field
-:: HtmlDisplay a = HtmlDisplay a			// Variable is always rendered within a form as a HTML-fragment
+:: Display a = Display a			// Variable is always rendered within a form as a HTML-fragment
 :: Hidden a = Hidden a						// Variable is never rendered
 
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
@@ -181,8 +181,8 @@ toVisualizationHint :: !.a -> (VisualizationHint .a)
 fromEditable :: !(Editable .a) -> .a
 toEditable :: !.a -> (Editable .a)
 
-fromHtmlDisplay :: !(HtmlDisplay .a) -> .a
-toHtmlDisplay :: !.a -> (HtmlDisplay .a)
+fromDisplay :: !(Display .a) -> .a
+toDisplay :: !.a -> (Display .a)
 
 fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
