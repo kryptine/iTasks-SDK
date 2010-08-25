@@ -3,23 +3,14 @@ implementation module Messaging
 import iTasks
 import CommonDomain
 import Groups
-import GenEq
-
-
-//========================================================================================================================================================================
-// Internal mail
-//========================================================================================================================================================================
 
 derive class iTask Message
-derive gEq Message, HtmlDisplay, Maybe, User, Document, Note, TaskPriority, UserDetails, Password
-
 derive bimap Maybe, (,)
 
-:: MsgDB :== [Message]
-
 :: Message =
-	{ sender			:: HtmlDisplay User
-	, to 				:: [User]
+	{ messageId			:: Hidden Int
+	, sender			:: HtmlDisplay User
+	, recipients 		:: [User]
 	, cc 				:: Maybe [User]
 	, priority 			:: TaskPriority
 	, subject			:: String
@@ -28,13 +19,17 @@ derive bimap Maybe, (,)
 	, previousMessages 	:: HtmlDisplay [Message]
 	}
 
-instance == Message
-where (==) msgA msgB = msgA === msgB
+instance DB Message
+where
+	databaseId				= mkDBId "Messages"
+	getItemId m				= DBRef (fromHidden m.Message.messageId)
+	setItemId (DBRef i) m 	= {Message|m & messageId = toHidden i}
 
 mkMsg :: User -> Message
 mkMsg me = { Message
-			| sender 		= (toHtmlDisplay me)
-			, to 			= []
+			| messageId		= toHidden 0
+			, sender 		= toHtmlDisplay me
+			, recipients 	= []
 			, cc 			= Nothing
 			, priority 		= NormalPriority
 			, subject		= ""
@@ -43,16 +38,45 @@ mkMsg me = { Message
 		   	, previousMessages = HtmlDisplay []
 		   	}
 
-msgDBid :: (DBId MsgDB)
-msgDBid = mkDBId "msgDB"
-
+manageMessages :: Task Void
+manageMessages =
+	(	getMyMessages
+	>>= overview
+	>>= \(action,messages) -> case action of
+		ActionOpen						= openMessages messages	>>|	return False
+		ActionLabel "New message"		= newMessage			>>|	return False
+		ActionLabel "New group message"	= newGroupMessage		>>| return False
+		ActionQuit						= 							return True
+	) <! id >>| stop
+where
+	overview :: [Message] -> Task (Action,[Message])
+	overview []		= showMessageA "My messages" "You have no messages" [aNew,aNewGroup,aQuit] []
+	overview msgs	= enterMultipleChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
+	
+	aOpen		= ButtonAction (ActionOpen,IfValid)
+	aNew		= ButtonAction (ActionLabel "New message", Always)
+	aNewGroup	= ButtonAction (ActionLabel "New group message", Always)
+	aQuit		= ButtonAction (ActionQuit,Always)
+	
+	openMessages :: [Message] -> Task Void
+	openMessages messages
+		= 	getContextWorker
+		>>= \me ->
+			allTasks
+				[spawnProcess me True True
+				 ((Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) @>>
+				  msg.Message.priority @>>
+				   readMessage msg)
+				 \\ msg <- messages]
+		>>| stop
+	
 newMessage :: Task Void
 newMessage = getCurrentUser
 	>>= \me -> 		writeMessage me "" [] [] []
 	>>= \msg -> 	sendMessage msg
 
-newMessageToGroup :: Task Void
-newMessageToGroup = getCurrentUser
+newGroupMessage :: Task Void
+newGroupMessage = getCurrentUser
 	>>= \me ->		getMyGroups
 	>>= \groups ->	case groups of
 		[]	=	showMessage "No groups" "You are not a member of any group" Void
@@ -62,11 +86,11 @@ newMessageToGroup = getCurrentUser
 	
 sendMessage :: Message -> Task Void
 sendMessage msg = allProc [who @>> spawnProcess who True True
-					((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.to ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
+					((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.recipients ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
 					>>| showMessageAbout "Message sent" "The following message has been sent:" msg >>| return Void
 
 writeMessage :: User String [User] [User] [Message] -> Task Message
-writeMessage me subj to cc thread = updateInformation "Compose" "Enter your message" {Message | (mkMsg me) & subject = subj, to = to, cc = if(isEmpty cc) Nothing (Just cc), previousMessages = (HtmlDisplay thread)}	
+writeMessage me subj recipients cc thread = updateInformation "Compose" "Enter your message" {Message | (mkMsg me) & subject = subj, recipients = recipients, cc = if(isEmpty cc) Nothing (Just cc), previousMessages = (HtmlDisplay thread)}	
 
 readMessage :: Message -> Task Void
 readMessage msg=:{Message | previousMessages, subject} 
@@ -79,42 +103,25 @@ readMessage msg=:{Message | previousMessages, subject}
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Reply All",_)
 			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromHtmlDisplay msg.sender):[u \\ u <- msg.to | u <> me]] (if(isJust msg.cc) (fromJust msg.cc) []) [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
+			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromHtmlDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (if(isJust msg.cc) (fromJust msg.cc) []) [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Forward",_)
 			= 			getCurrentUser 
 			>>= \me -> 	writeMessage me ("Fw: "+++msg.Message.subject) [] [] [{Message | msg & previousMessages = (HtmlDisplay [])}:fromHtmlDisplay previousMessages]
 			>>= \msg -> sendMessage msg
 		(ActionLabel "Archive & Close",_) 
-			= 			readDB msgDBid
-			>>= \mdb -> writeDB msgDBid (removeDup [msg:mdb])
+			=			dbCreateItem msg
 			>>| 		showMessage "Archived" "Message stored in archive" Void
 		(ActionLabel "Delete",_)
-			=			readDB msgDBid
-			>>= \mdb -> writeDB msgDBid (filter (\dbmsg -> dbmsg <> msg) mdb)
+			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage "Deleted" "Message deleted" Void
 
-viewArchive :: Task Void
-viewArchive = getCurrentUser
-	>>= \me ->	readDB msgDBid
-	>>= \mdb -> selectMsg mdb me
-	>>= \sel -> allProc [spawnProcess me True True ((readMessage msg <<@ Subject ("Message from "+++toString (fromHtmlDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ msg <- sel] Closed
-	>>| return Void
+getMyMessages :: Task [Message]
+getMyMessages
+	=	getContextWorker
+	>>= \user ->
+		dbReadAll
+	>>= transform (filter (isRecipientOrCc user))
 where
-	selectMsg :: MsgDB User -> Task [Message]
-	selectMsg mdb me
-		# mdbs = filter (\msg -> (isMember me msg.to) || (isMember me (if(isJust msg.cc) (fromJust msg.cc) []))) mdb
-		= case mdb of
-			[] = showMessage "Empty archive" "The archive is empty" []
-			_  = enterMultipleChoice "Select messages" "Which messages do you want to view?" mdbs
+	isRecipientOrCc user msg = isMember user msg.Message.recipients || case msg.Message.cc of Just cc = isMember user cc; _ = False  
 
-//========================================================================================================================================================================
-// Broadcasting
-//========================================================================================================================================================================
-
-broadcast :: [User] String (Maybe a) -> Task Void | iTask a
-broadcast to msg mbAbout = allProc [spawnProcess who True True show \\ who <- to] Closed >>| return Void
-where
-	show = case mbAbout of
-		Just a = showMessageAbout "TODO" msg a >>| return Void
-		Nothing = showMessage "TODOD" msg Void

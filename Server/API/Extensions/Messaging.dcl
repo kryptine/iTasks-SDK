@@ -3,8 +3,9 @@ definition module Messaging
 import iTasks
 
 :: Message =
-	{ sender			:: HtmlDisplay User
-	, to 				:: [User]
+	{ messageId			:: Hidden Int
+	, sender			:: HtmlDisplay User
+	, recipients 		:: [User]
 	, cc 				:: Maybe [User]
 	, priority 			:: TaskPriority
 	, subject			:: String
@@ -13,13 +14,13 @@ import iTasks
 	, previousMessages 	:: HtmlDisplay [Message]
 	}
 
-// Messaging
+manageMessages		:: 											Task Void
+
 newMessage 		  	::											Task Void
-newMessageToGroup 	::											Task Void
-viewArchive			:: 											Task Void
+newGroupMessage		::											Task Void
 
-sendMessage 		:: Message 								-> Task Void
-writeMessage 		:: User String [User] [User] [Message] 	-> Task Message
-readMessage 		:: Message 								-> Task Void
+sendMessage 		:: Message 								->	Task Void
+writeMessage 		:: User String [User] [User] [Message] 	->	Task Message
+readMessage 		:: Message 								->	Task Void
 
-broadcast 			:: [User] String (Maybe a) 				-> Task Void | iTask a
+getMyMessages		:: 											Task [Message]
