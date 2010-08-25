@@ -22,7 +22,7 @@ trivialTask = enterInformation "Initial number" "Enter a number larger than 42" 
 
 deadline :: (Task a) -> Task a | iTask a
 deadline task
-=					chooseUser "Choose person you want to delegate work to:"
+=					getUsers >>= enterChoice "Worker" "Choose person you want to delegate work to:"
 	>>= \whom ->	enterInformation "Wait time" "How long do you want to wait?" 
 	>>= \time ->	(delegateTask whom time task)
 					-||-

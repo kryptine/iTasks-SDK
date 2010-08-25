@@ -1,14 +1,12 @@
 implementation module UserDBTasks
 
-from TSt import :: Task, :: TSt
+from TSt import :: Task, :: TSt, :: TaskResult(..)
 from TSt import mkInstantTask, mkTaskFunction
 import StdList, StdMaybe
 
-from UserDB import :: User
+from Types import :: User, :: UserId, :: UserDetails, :: Role
 from UserDB import qualified class UserDB(..)
 from UserDB import qualified instance UserDB TSt
-
-import InteractionTasks, CoreCombinators
 
 getUser :: !UserId -> Task (Maybe User)
 getUser username = mkInstantTask "Get user" "Read a user from the database." (mkTaskFunction ('UserDB'.getUser username))
@@ -33,14 +31,3 @@ updateUser user details = mkInstantTask "Update user" "Update a user's details i
 
 deleteUser :: !User -> Task User
 deleteUser user = mkInstantTask "Delete user" "Delete a user from the database." (mkTaskFunction ('UserDB'.deleteUser user))
-
-chooseUser :: !question -> Task User | html question
-chooseUser question
-	= 				getUsers
-	>>= \users ->	enterChoice "Choose user" question users
-
-	
-chooseUserWithRole :: !question !String -> Task User | html question
-chooseUserWithRole question role
-	= 				getUsersWithRole role
-	>>= \users ->	enterChoice "Choose user (with role)" question users

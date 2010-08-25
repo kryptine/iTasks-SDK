@@ -72,7 +72,7 @@ where
 							(Just new)  -> determineSet (sort (removeDup [new:people])) 
 							Nothing		-> if (people == []) (determineSet people) (return people)
 
-	choosePerson = chooseUser "Select a user" >>= \user -> return (Just user)
+	choosePerson = getUsers >>= enterChoice "User" "Select a user" >>= \user -> return (Just user)
 
 	cancelTask task = task -||- (getDefaultValue >>= showMessage "Cancel..." "Cancel task?")
 	

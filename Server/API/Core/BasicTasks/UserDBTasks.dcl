@@ -43,7 +43,3 @@ updateUser			:: !User !UserDetails -> Task User
 * Delete an existing user
 */
 deleteUser			:: !User -> Task User
-
-//Interactively choose a user
-chooseUser			:: !question			-> Task User | html question
-chooseUserWithRole	:: !question !String	-> Task User | html question
