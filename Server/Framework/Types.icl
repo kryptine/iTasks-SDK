@@ -151,7 +151,7 @@ userName (RegisteredUser details) = details.UserDetails.userName
 userName _ = ""
 			
 displayName :: !User -> String
-displayName RootUser = "Root"
+displayName RootUser = "Root User"
 displayName (RegisteredUser details) = details.UserDetails.displayName
 displayName (NamedUser name)
 	| end > start && start > -1 = trim (name % (0,start - 1)) //Named user of form "Joe Smith <joe>" (with display name)
@@ -212,9 +212,6 @@ JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName++
 JSONEncode{|User|} (NamedUser username)		= [JSONString username]
 JSONEncode{|User|} (SessionUser session)	= [JSONString ("Anonymous User <#"+++session+++">")]
 
-import StdDebug, GenPrint
-derive gPrint User, UserDetails, Maybe, Password
-
 JSONDecode{|User|} [JSONString user:json]
 	# uname = extractUserName user
 	| uname == "root" 		= (Just RootUser, json)
@@ -223,7 +220,7 @@ JSONDecode{|User|} [JSONString user:json]
 	| otherwise				= (Just (NamedUser user), json)
 where
 	extractUserName user
-		| end > start && start > -1 = trim (user % (start,end - 1)) 
+		| end > start && start > -1 = trim (user % (start + 1, end - 1)) 
 		| otherwise					= user
 	where
 		start = indexOf "<" user
