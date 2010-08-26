@@ -78,14 +78,17 @@ gVerify{|[]|} fx Nothing   vst=:{VerSt | optional}
 	# msg = if optional "You may add list items" "Create at least one list item"
 	 = basicVerify msg vst
 gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
+	# listMask = (VMValid Nothing Nothing [])
 	# (cm,um)	= popMask updateMask
+	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx [] {VerSt | vst & verifyMask = listMask, updateMask = cm, optional = False}
+	# children  = getMaskChildren childMask
 	| optional
-		={VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing [])}	
+		={VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing children)}	
 	# listMask  = case cm of 
 					(Untouched _ _) 
-						= (VMUntouched (Just "Create at least one list item") Nothing [])
+						= (VMUntouched (Just "Create at least one list item") Nothing children)
 					_ 
-						= (VMInvalid (ErrorMessage "Create at least one list item") Nothing []) //Empty lists are invalid
+						= (VMInvalid (ErrorMessage "Create at least one list item") Nothing children) //Empty lists are invalid
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}
 gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 	# listMask 	= (VMValid Nothing Nothing [])
@@ -98,9 +101,11 @@ gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional}
 	| otherwise
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more elements contain errors.") Nothing children), optional = optional}
-where
-	verifyItems fx [] vst = vst
-	verifyItems fx [x:xs] vst
+
+verifyItems fx [] vst=:{VerSt | optional}
+	# vst = fx Nothing {VerSt | vst & optional = True}
+	= {VerSt | vst & optional = optional}
+verifyItems fx [x:xs] vst
 	# vst = fx (Just x) vst
 	= verifyItems fx xs vst
 

@@ -624,6 +624,10 @@ where
 		# (dxs,vst) = TUIDef fx xs (inc idx) {VSt | vst & optional = optional}
 		= ([TUIListItemControl {TUIListItemControl | name = name, id=itemId idx, index = idx, items = coerceToTUIDefs dx}:dxs],vst)
 
+	TUIUpd fx [o:os] [n]	vst
+		# (u, vst)				= fx (VValue o) (VValue n) vst
+		# (ub, vst)				= fx (VBlank)(VBlank) vst
+		= (u++ub,vst)
 	TUIUpd fx [o:os] [n:ns] vst
 		# (u,  vst) 			= fx (VValue o) (VValue n) vst
 		# (us, vst) 			= TUIUpd fx os ns vst
