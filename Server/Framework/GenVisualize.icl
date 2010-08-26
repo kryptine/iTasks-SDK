@@ -259,6 +259,25 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 				_
 					= ([],{VSt|vst & currentPath = stepDataPath currentPath})
 		//Other visualizations
+		VHtmlLabel
+			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			| not (isEmpty d.gcd_fields) 
+				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+			| otherwise
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+		VTextLabel
+			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			| not (isEmpty d.gcd_fields) 
+				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+			| otherwise
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+		
+		VTextDisplay
+			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			| not (isEmpty d.gcd_fields) 
+				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+			| otherwise
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
 		_	
 			# (viz,vst) = fx oldV newV {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
 			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
@@ -774,13 +793,25 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 				_	
 					# (upd,vst) = fx oldV newV vst
 					= (upd,{VSt | vst & currentPath = stepDataPath currentPath})	
-		_
+		VEditorDefinition
 			= case old of
 				(VValue (VHHidden _))
 					# (cmu,um) = popMask updateMask
 					# (cmv,vm) = popMask verifyMask	
 					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s currentPath, id = dp2id idPrefix currentPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
 					  ,{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
+				(VValue (VHDisplay _))
+					# (viz,vst) = fx oldV newV {vst & renderAsStatic = True}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
+				(VValue (VHEditable _))
+					# (viz,vst) = fx oldV newV {vst & renderAsStatic = False}
+					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})			
+		_
+			= case old of
+				(VValue (VHHidden _))
+					# (cmu,um) = popMask updateMask
+					# (cmv,vm) = popMask verifyMask	
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 				(VValue (VHDisplay _))
 					# (viz,vst) = fx oldV newV {vst & renderAsStatic = True}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})

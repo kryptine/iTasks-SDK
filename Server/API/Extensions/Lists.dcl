@@ -3,7 +3,7 @@ definition module Lists
 import iTasks
 
 :: List a =
-	{ listId		:: !Int
+	{ listId		:: !Hidden Int
 	, name			:: !String
 	, description	:: !Maybe Note
 	, items			:: ![a]

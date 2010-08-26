@@ -22,7 +22,7 @@ derive bimap Maybe, (,)
 instance DB ListMeta
 where
 	databaseId 					= mkDBId "Lists"
-	getItemId l					= DBRef (l.ListMeta.listId)
+	getItemId l					= DBRef l.ListMeta.listId
 	setItemId (DBRef listId) l	= {ListMeta| l & listId = listId}
 
 manageLists :: Task Void
@@ -70,16 +70,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = simpleFrom}]
-		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = todoFrom}]
-		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = dateFrom}]
-		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ l.List.listId)) [listener {listenerFrom = documentFrom}]
+		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = simpleFrom}]
+		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = todoFrom}]
+		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = dateFrom}]
+		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = documentFrom}]
 
 	editItems list = case list of
-		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
-		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = todoFrom, editorTo = todoTo}]
-		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = dateFrom, editorTo = dateTo}]
-		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ l.List.listId)) [editor {editorFrom = documentFrom, editorTo = documentTo}]
+		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
+		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = todoFrom, editorTo = todoTo}]
+		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = dateFrom, editorTo = dateTo}]
+		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = documentFrom, editorTo = documentTo}]
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -142,10 +142,10 @@ where
 			dbCreateItem {ListMeta| listId = 0, owner = owner, sharedWith =[]}
 			
 	makeList :: !String !String !(Maybe Note) !Int -> AnyList
-	makeList "Simple list" name	desc listId		= SimpleList	{List|listId = listId, name = name, description = desc, items = [] }
-	makeList "Todo list" name desc listId		= TodoList		{List|listId = listId, name = name, description = desc, items = [] }
-	makeList "Date list" name desc listId		= DateList		{List|listId = listId, name = name, description = desc, items = [] }
-	makeList "Document list" name desc listId	= DocumentList	{List|listId = listId, name = name, description = desc, items = [] }
+	makeList "Simple list" name	desc listId		= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
+	makeList "Todo list" name desc listId		= TodoList		{List|listId = (Hidden listId), name = name, description = desc, items = [] }
+	makeList "Date list" name desc listId		= DateList		{List|listId = (Hidden listId), name = name, description = desc, items = [] }
+	makeList "Document list" name desc listId	= DocumentList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	
 	storeList :: !Int !AnyList -> Task AnyList 
 	storeList listId list = writeDB (mkDBId ("List-" <+++ listId)) list
@@ -189,10 +189,10 @@ removeSharingForList list users
 		Just meta	= dbUpdateItem {ListMeta| meta & sharedWith = [u \\ u <- meta.ListMeta.sharedWith | not (isMember u users)]} >>| return list
 
 listIdOf :: !AnyList -> Int
-listIdOf (SimpleList l)		= l.List.listId
-listIdOf (TodoList l)		= l.List.listId
-listIdOf (DateList l)		= l.List.listId
-listIdOf (DocumentList l)	= l.List.listId
+listIdOf (SimpleList l)		= fromHidden l.List.listId
+listIdOf (TodoList l)		= fromHidden l.List.listId
+listIdOf (DateList l)		= fromHidden l.List.listId
+listIdOf (DocumentList l)	= fromHidden l.List.listId
 
 nameOf :: !AnyList -> String
 nameOf (SimpleList l)		= l.List.name

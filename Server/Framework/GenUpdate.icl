@@ -367,15 +367,30 @@ gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, upd
 		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 gUpdate {|Document|} s ust = (s,ust)
 
+gUpdate {|Display|} fx _ ust=:{USt | mode=UDCreate, currentPath}
+	# (nx,ust) = fx (abort "Display created with undef") ust
+	= (Display nx,{USt | ust & currentPath = stepDataPath currentPath})
 gUpdate {|Display|} fx (Display s) ust=:{USt | currentPath} 
 	# (s,ust) = fx s ust
 	= (Display s,{USt | ust & currentPath = stepDataPath currentPath})
+
+gUpdate {|Editable|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
+	# (nx,ust) = fx (abort "Editable created with undef") ust
+	= (Editable nx,{USt | ust & currentPath = stepDataPath currentPath})
 gUpdate {|Editable|} fx (Editable s) ust=:{USt | currentPath} 
 	# (s,ust) = fx s ust
 	= (Editable s,{USt | ust & currentPath = stepDataPath currentPath})
+
+gUpdate {|Hidden|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
+	# (nx,ust) = fx (abort "Hidden created with undef") ust
+	= (Hidden nx,{USt | ust & currentPath = stepDataPath currentPath})
 gUpdate {|Hidden|} fx (Hidden s) ust=:{USt | currentPath} 
 	# (s,ust) = fx s ust
 	= (Hidden s,{USt | ust & currentPath = stepDataPath currentPath})
+
+gUpdate {|VisualizationHint|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
+	# (nx,ust) = fx (abort "VisualizationHint created with undef") ust
+	= (VHEditable nx,{USt | ust & currentPath = stepDataPath currentPath})
 gUpdate {|VisualizationHint|} fx (VHEditable s) ust=:{USt | currentPath} 
 	# (s,ust) = fx s ust
 	= (VHEditable s,{USt | ust & currentPath = stepDataPath currentPath})
