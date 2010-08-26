@@ -38,6 +38,8 @@ import LaunchFlow
 //Shared Value Examples
 import SharedVariables
 
+//Ad-hoc work extensions
+import Groups, Lists, Messages, Consensus
 
 Start :: *World -> *World
 Start world = startEngine workflows world
@@ -65,4 +67,9 @@ where
 							, launchFlow
 							]
 						, sharedValueExamples
+						,	[workflow "General/View groups" manageGroups
+							,workflow "General/View lists" manageLists
+							,workflow "General/View messages" manageMessages
+							,workflow "General/Ask opinions" askOpinions
+							]
 						]

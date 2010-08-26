@@ -1,4 +1,4 @@
-implementation module Messaging
+implementation module Messages
 
 import iTasks
 import CommonDomain

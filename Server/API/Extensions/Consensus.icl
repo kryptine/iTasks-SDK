@@ -1,7 +1,7 @@
 implementation module Consensus
 
 import iTasks, GenEq
-import CommonDomain, Messaging, Groups
+import CommonDomain, Messages, Groups
 
 derive bimap Maybe, (,)
 

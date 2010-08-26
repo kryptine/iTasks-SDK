@@ -1,4 +1,4 @@
-definition module Messaging
+definition module Messages
 
 import iTasks
 
