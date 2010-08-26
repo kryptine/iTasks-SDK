@@ -6,6 +6,8 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 		
 		this.unstyled = true;
 		this.autoHeight = true;
+		
+		this.layout = 'form'
 				
 		if(this.fieldLabel == null) delete this.fieldLabel;
 		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
@@ -16,10 +18,10 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 	afterRender: function(){
 		itasks.tui.TupleContainer.superclass.afterRender.call(this,arguments);
 		
-		for(var i=0; i < this.items.length; i++){
+		/*for(var i=0; i < this.items.length; i++){
 			var itm = this.items.get(i);
 			itm.addClass('tuple-item');
-		}
+		}*/
 	},
 	getPreferredWidth : function(){
 		var w = 0;

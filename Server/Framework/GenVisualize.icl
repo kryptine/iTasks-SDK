@@ -207,12 +207,26 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 								(VMUntouched mbHnt _ _) = (False, "", mbHintToString mbHnt)
 				= case ox of 
 					VBlank 
-						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = [], optional = optional, hasValue = False, errorMsg = err, hintMsg = hnt})]
+						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs"
+																				 , name = dp2s currentPath
+																				 , title = label
+																				 , items = []
+																				 , optional = optional
+																				 , hasValue = False
+																				 , errorMsg = err
+																				 , hintMsg = hnt})]
 						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
 					_
-						# (viz,vst) = fx ox nx {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False, valid = valid}
-						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs", name = dp2s currentPath, title = label, items = coerceToTUIDefs viz, optional = optional, hasValue = True, errorMsg = err, hintMsg = hnt})]
-						 , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
+						# (viz,vst) = fx ox nx {vst & currentPath = shiftDataPath currentPath, useLabels = True, optional = False, valid = valid}
+						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs"
+																				, name = dp2s currentPath
+																				, title = label
+																				, items = coerceToTUIDefs viz
+																				, optional = optional
+																				, hasValue = True
+																				, errorMsg = err
+																				, hintMsg = hnt})]
+						 , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
 			//ADT's
 			| otherwise
 				# (viz,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath}
@@ -430,7 +444,13 @@ gVisualize{|Bool|} old new vst=:{VSt | vizType,currentPath}
 			# (ctl,vst) = visualizeBasicControl old vst	
 			= ([TUIFragment (TUIBoolControl ctl)],vst)
 		VEditorUpdate
-			= updateBasicControl old new vst //!!: Could be wrong..
+			= updateBasicControl old new vst
+		VHtmlDisplay
+			= ([HtmlFragment [DivTag [ClassAttr ("bool-htmllabel-icon bool-htmllabel-icon-"+++(toLowerCase (toString old)))] [SpanTag [ClassAttr "bool-htmllabel-text"] [(Text (toString old))]]]]
+				, {VSt|vst & currentPath = stepDataPath currentPath})
+		VHtmlLabel
+			= ([HtmlFragment [DivTag [ClassAttr ("bool-htmllabel-icon bool-htmllabel-icon-"+++(toLowerCase (toString old)))] [SpanTag [ClassAttr "bool-htmllabel-text"] [(Text (toString old))]]]]
+				, {VSt|vst & currentPath = stepDataPath currentPath})
 		_	
 			= ([TextFragment (toString old)]
 				, {VSt|vst & currentPath = stepDataPath currentPath})		

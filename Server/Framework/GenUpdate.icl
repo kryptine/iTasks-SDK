@@ -137,9 +137,13 @@ gUpdate{|OBJECT of d|} fx o ust=:{mode=UDSearch,searchPath,currentPath,update,ol
 	| currentPath == searchPath
 		# (nx,ust) = fx (abort "OBJECT create with undef") {USt|ust & mode = UDCreate, consPath = path}
 		= (OBJECT nx, {USt|ust & oldMask = om, currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), mode = UDSearch}) 
+	| (dataPathList searchPath) <== (dataPathList currentPath)
+		# (nx,ust=:{newMask=childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = cm, newMask = objectMask}
+		# children = getMaskChildren childMask
+		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched False children)})
 	| otherwise
 		# (nx,ust=:{newMask=childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = cm, newMask = objectMask}
-		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask childMask})
+		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask childMask}) 
 where
 	(OBJECT x) = o
 
@@ -513,3 +517,15 @@ isDirtyUM (UMList i _) = not (isEmpty i)
 
 initialUpdateMask :: UpdateMask
 initialUpdateMask = Untouched False []
+
+allUntouched :: ![UpdateMask] -> Bool
+allUntouched children = and [isUntouched c \\ c <- children]
+where
+	isUntouched (Untouched _ _) = True
+	isUntouched _				= False
+
+allBlanked :: ![UpdateMask] -> Bool
+allBlanked children = and [isBlanked c \\ c <- children]
+where
+	isBlanked (Blanked _ _) = True
+	isBlanked _				= False

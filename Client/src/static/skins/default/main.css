@@ -14,6 +14,29 @@ body {
 	font-weight: bold;
 	color: red;
 }
+
+.bool-htmllabel-icon{
+	width: 16px;
+	height: 16px;
+	float: left;
+	display: inline;
+	background-repeat: no-repeat;
+	background-position: center center;
+	margin-right: 4px;
+}
+
+.bool-htmllabel-icon-true{
+	background-image: url('img/icons/tick.png') !important;
+}
+
+.bool-htmllabel-icon-false{
+	background-image: url('img/icons/cancel.png') !important;
+}
+
+.bool-htmllabel-icon .bool-htmllabel-text{
+	display: none;
+}
+
 button.icon-logout, .icon-logout {
 	background-image: url('img/icons/door_in.png');
 }

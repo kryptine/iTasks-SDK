@@ -18,17 +18,15 @@ verifyValue val updateMask
 //Generic Verify
 gVerify{|UNIT|} 			  _ 					vst = vst
 
-gVerify{|PAIR|} 		_  _  Nothing				vst = vst
+gVerify{|PAIR|} 		fx fy  Nothing				vst = fy Nothing (fx Nothing vst)
 gVerify{|PAIR|} 		fx fy (Just (PAIR x y))		vst = fy (Just y) (fx (Just x) vst)
 
 gVerify{|EITHER|} 		_  _  Nothing				vst = vst
 gVerify{|EITHER|}		fx _  (Just (LEFT x))		vst	= fx (Just x) vst
 gVerify{|EITHER|}		_  fy (Just (RIGHT y))		vst = fy (Just y) vst 
 
-import StdDebug
-
-gVerify{|CONS of d|}    _     Nothing				vst = vst
-gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,updateMask,optional}
+gVerify{|CONS of d|} 	_ 	  Nothing 			vst = vst
+gVerify{|CONS of d|}	fx    (Just (CONS x))	vst=:{VerSt | verifyMask,updateMask,optional}
 	# (cm,um) = popMask updateMask
 	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & optional = False, updateMask = cm, verifyMask = (VMValid Nothing Nothing [])}
 	# children = getMaskChildren childMask
@@ -59,10 +57,10 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,updateMask,
 						| otherwise				= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
 
-gVerify{|FIELD of d|}   _	  Nothing				vst = vst
+gVerify{|FIELD of d|}   fx	  Nothing				vst = fx Nothing vst
 gVerify{|FIELD of d|}   fx    (Just (FIELD x))		vst = fx (Just x) vst
 
-gVerify{|OBJECT of d|}  _     Nothing				vst = vst
+gVerify{|OBJECT of d|}  fx     Nothing				vst = fx Nothing vst
 gVerify{|OBJECT of d|}  fx	  (Just (OBJECT x))		vst
 	= fx (Just x) vst
 	
@@ -136,7 +134,7 @@ gVerify{|Display|} fx (Just (Display x)) vst=:{VerSt | verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
 
-gVerify{|VisualizationHint|} fx Nothing vst = vst
+gVerify{|VisualizationHint|} fx Nothing vst = fx Nothing vst
 gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst=:{VerSt | verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
