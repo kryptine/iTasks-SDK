@@ -38,25 +38,25 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))		vst=:{VerSt | verifyMask,updateMask,
 		| allValid children
 			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional, updateMask = um}
 		| otherwise
-			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMInvalid IsBlankError Nothing children), optional = optional, updateMask = um}
+			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children), optional = optional, updateMask = um}
 	| otherwise //adt
 		# consMask = case optional of
 			True
 				= case cm of
-					(Untouched _ _) = VMValid Nothing Nothing children
-					(Blanked _ _)	= VMValid Nothing Nothing children
+					(Untouched _ _) = VMValid (Just "Select an option") Nothing children
+					(Blanked _ _)	= VMValid (Just "Select an option") Nothing children
 					(Touched _ _)
-						| allValid children 	= VMValid Nothing Nothing children
-						| allUntouched children	= VMValid Nothing Nothing children
-						| otherwise				= VMInvalid (ErrorMessage "One or more item(s) contain errors or is still required") Nothing children
+						| allValid children 	= VMValid (Just "Select an option") Nothing children
+						| allUntouched children	= VMValid (Just "Select an option") Nothing children
+						| otherwise				= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
 			False
 				= case cm of
-					(Untouched _ _)	= VMUntouched Nothing Nothing children
+					(Untouched _ _)	= VMUntouched (Just "Select an option") Nothing children
 					(Blanked _ _)	= VMInvalid IsBlankError Nothing children
 					(Touched _ _)
-						| allValid children 	= VMValid Nothing Nothing children
-						| allUntouched children	= VMUntouched Nothing Nothing children
-						| otherwise				= VMInvalid (ErrorMessage "One or more item(s) contain errors or is still required") Nothing children
+						| allValid children 	= VMValid (Just "Select an option") Nothing children
+						| allUntouched children	= VMUntouched (Just "Select an option") Nothing children
+						| otherwise				= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
 
 gVerify{|FIELD of d|}   _	  Nothing				vst = vst
@@ -119,17 +119,25 @@ gVerify{|Dynamic|} _ vst = vst
 gVerify{|Document|} _ vst = basicVerify "Upload a document" vst
 
 gVerify{|Hidden|} fx Nothing vst = vst
-gVerify{|Hidden|} fx (Just (Hidden x)) vst = vst //fx (Just x) vst
+gVerify{|Hidden|} fx (Just (Hidden x)) vst=:{VerSt | verifyMask,updateMask}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
 
 gVerify{|Editable|} fx Nothing vst = fx Nothing vst
 gVerify{|Editable|} fx (Just (Editable x)) vst = fx (Just x) vst
 
 gVerify{|Display|} fx Nothing vst = vst
-gVerify{|Display|} fx (Just (Display x)) vst = vst //fx (Just x) vst
+gVerify{|Display|} fx (Just (Display x)) vst=:{VerSt | verifyMask,updateMask}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
 
 gVerify{|VisualizationHint|} fx Nothing vst = vst
-gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst = vst
-gVerify{|VisualizationHint|} fx (Just (VHDisplay x)) vst = vst //fx (Just x) vst
+gVerify{|VisualizationHint|} fx (Just (VHHidden x)) vst=:{VerSt | verifyMask,updateMask}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
+gVerify{|VisualizationHint|} fx (Just (VHDisplay x)) vst=:{VerSt | verifyMask,updateMask}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
 gVerify{|VisualizationHint|} fx (Just (VHEditable x)) vst = fx (Just x) vst
 
 basicVerify :: String !*VerSt -> *VerSt

@@ -177,8 +177,7 @@ taskUser (Task p _ _ _) = p.worker
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties (Task p _ _ _) = p
 
-gVerify{|User|} Nothing vst=:{VerSt | updateMask, verifyMask, optional} = vst
-gVerify{|User|} (Just x) vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
+gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
 
 gVisualize{|User|} old new vst=:{vizType,currentPath,updateMask}
 	= case vizType of

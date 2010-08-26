@@ -221,7 +221,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 		VEditorUpdate
 			// records
 			| not (isEmpty d.gcd_fields)
-				# (valid,msg) = verifyElementUpd valid id updateMask verifyMask
+				# (valid,msg) = verifyElementUpd valid fsid updateMask verifyMask
 				= case (old,new) of 
 					(VValue (CONS ox), VBlank)
 						// remove components
@@ -700,8 +700,10 @@ where
 	buildLink document = "/services/json/documents/" +++ document.Document.documentId +++ "/download"
 
 //Hidden type
-gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath}
-	= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath, updateMask, verifyMask}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask	
+	= ([],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 
 gVisualize{|Display|} fx old new vst=:{VSt | origVizType, vizType, currentPath, renderAsStatic,valid}
 	= case origVizType of
@@ -722,12 +724,14 @@ where
 	oldV = case old of (VValue (Editable ov)) = (VValue ov); _ = VBlank
 	newV = case new of (VValue (Editable nv)) = (VValue nv); _ = VBlank
 
-gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVizType, currentPath, renderAsStatic,valid}
+gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVizType, currentPath, renderAsStatic,updateMask,verifyMask,valid}
 	= case origVizType of
 		VHtmlDisplay
 			= case old of
 				(VValue (VHHidden _)) 
-					= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+					# (cmu,um) = popMask updateMask
+					# (cmv,vm) = popMask verifyMask	
+					= ([],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 				(VValue (VHDisplay _))
 					# (viz,vst) = fx oldV newV {vst & vizType = VHtmlDisplay}
 					= (viz,{vst & currentPath = stepDataPath currentPath, vizType = vizType, valid = valid})
@@ -738,9 +742,10 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 			= case (old,new) of		
 				//_, hidden -> replace with hidden
 				(_,(VValue (VHHidden _)))
-					# path = shiftDataPath currentPath
+					# (cmu,um) = popMask updateMask
+					# (cmv,vm) = popMask verifyMask	
 					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s currentPath, id = dp2id idPrefix currentPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
-					  ,{VSt | vst & currentPath = stepDataPath currentPath})
+					  ,{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 				//hidden, html -> replace with static
 				((VValue (VHHidden _)),(VValue (VHDisplay _)))
 					# (viz,vst) = fx newV newV {vst & vizType = VEditorDefinition, renderAsStatic = True}
@@ -768,8 +773,10 @@ gVisualize{|VisualizationHint|} fx old new vst=:{VSt | idPrefix, vizType, origVi
 		_
 			= case old of
 				(VValue (VHHidden _))
+					# (cmu,um) = popMask updateMask
+					# (cmv,vm) = popMask verifyMask	
 					= ([TUIFragment (TUIHiddenControl {TUIBasicControl | name = dp2s currentPath, id = dp2id idPrefix currentPath, value = "", fieldLabel = Nothing, staticDisplay = False, optional = True, errorMsg = "", hintMsg = ""})]
-					  ,{VSt | vst & currentPath = stepDataPath currentPath})
+					  ,{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 				(VValue (VHDisplay _))
 					# (viz,vst) = fx oldV newV {vst & renderAsStatic = True}
 					= (viz,{vst & currentPath = stepDataPath currentPath, renderAsStatic = renderAsStatic})
