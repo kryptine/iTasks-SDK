@@ -5,9 +5,10 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 	initComponent: function(){
 		
 		this.unstyled = true;
-		this.hideLabel = this.fieldLabel == null;
-		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		this.autoHeight = true;
+				
+		if(this.fieldLabel == null) delete this.fieldLabel;
+		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 			
 		itasks.tui.TupleContainer.superclass.initComponent.apply(this,arguments);
 	},

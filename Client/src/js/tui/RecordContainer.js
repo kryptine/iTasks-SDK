@@ -3,19 +3,15 @@ Ext.ns('itasks.tui');
 itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 
 	initComponent : function(){
-	
-		this.hideLabel = true;
-		//this.width =  '100%';
-		//this.hideLabel = this.fieldLabel == null;
-		//this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
 		this.autoHeight = true;
-		this.layout = 'form';
 		this.boxMinWidth = 500;
 		this.autoWidth = true;
 		
 		if(this.title == null) delete this.title
 		else this.title = itasks.util.fieldLabel(this.optional,this.title);
+		
+		delete this.fieldLabel;
 		
 		this.checkboxName  = this.name+'-cb';
 		this.checkboxToggle = this.optional;

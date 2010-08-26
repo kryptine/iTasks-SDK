@@ -3,6 +3,10 @@ Ext.ns('itasks.tui');
 itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 {	
 	initComponent : function(){
+		
+		if(this.fieldLabel == null) delete this.fieldLabel;
+		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
+		
 		this.uploadPanel = new itasks.tui.document.UploadPanel({name: this.name});
 		this.downloadPanel = new itasks.tui.document.DownloadPanel();
 		

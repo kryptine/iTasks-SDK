@@ -3,9 +3,10 @@ Ext.ns('itasks.tui');
 itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 	
 	initComponent : function(){
-				
-		this.hideLabel = this.fieldLabel == null;
-		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
+
+		if(this.fieldLabel == null) delete this.fieldLabel;
+		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
+		
 		this.unstyled = true;
 		this.autoHeight = true;
 				
@@ -100,12 +101,14 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		this.itemPanel.on('add',function(){ this.showOrHide(); },this.itemPanel);
 		this.itemPanel.on('remove', function(){ this.showOrHide();  },this.itemPanel);
 		
-		this.itemPanel.showOrHide = function(){
-			if(this.items.length > 0 || (this.errorIcon && this.errorIcon.isVisible()) || (this.hintIcon && this.hintIcon.isVisible())){
-				this.show();
-			}else{
-				this.hide();
-			}
+		this.itemPanel.showOrHide = function(){			
+			(function() {
+				if((this.items && this.items.length > 0) || (this.errorIcon && this.errorIcon.isVisible()) || (this.hintIcon && this.hintIcon.isVisible())){
+					this.show();
+				}else{
+					this.hide();
+				}
+			}).defer(50,this);
 		};		
 		
 		this.items = [this.consField, this.itemPanel] //[this.consField].concat(this.items);	

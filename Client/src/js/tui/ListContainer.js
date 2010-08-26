@@ -4,8 +4,8 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 
 	initComponent: function(){
 		
-		this.hideLabel = this.fieldLabel == null;
-		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
+		if(this.fieldLabel == null) delete this.fieldLabel;
+		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
 		Ext.apply(this,
 		{ autoHeight: true

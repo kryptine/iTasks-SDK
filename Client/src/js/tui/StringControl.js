@@ -9,7 +9,7 @@ itasks.tui.StringControl = Ext.extend(Ext.form.TextField,{
 		
 		this.msgTarget = 'side';
 		
-		this.hideLabel = this.fieldLabel == null;
+		this.hideLabel = this.fieldLabel == null;	
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		//this.allowBlank = this.optional;
 		this.allowBlank = true;
