@@ -43,7 +43,13 @@ transform f x = mkInstantTask "Value transformation" "Value transformation with 
 	>>= \r1 -> 	case r1 of 
 					Nothing 	-> return Nothing
 					Just r`1 	-> t2 r`1
-					
+
+justdo :: !(Task (Maybe a)) -> Task a | iTask a
+justdo task
+= task >>= \r -> case r of
+	Just x	= return x
+	Nothing	= throw ("The task " +++ taskSubject task +++ " returned nothing.")
+
 (-||-) infixr 3 :: !(Task a) !(Task a) -> (Task a) | iTask a
 (-||-) taska taskb = group "-||-" "Done when either subtask is finished." orfunc hd [] [taska,taskb] emptyGActionL
 where

@@ -38,7 +38,7 @@ movingTask (label,task)
 where
 	newmove 
 	=				selectUser "Assign a user to perform the task"
-		>>= \who ->	spawnProcess who True False (task <<@ Subject label)
+		>>= \who ->	spawnProcess True False (task <<@ Subject label <<@ who)
 		>>= 		inspect
 
 	inspect wid

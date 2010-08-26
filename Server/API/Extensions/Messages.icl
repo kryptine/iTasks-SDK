@@ -60,10 +60,8 @@ where
 	
 	openMessages :: [Message] -> Task Void
 	openMessages messages
-		= 	getContextWorker
-		>>= \me ->
-			allTasks
-				[spawnProcess me True True
+		= 	allTasks
+				[spawnProcess True True
 				 ((Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) @>>
 				  msg.Message.priority @>>
 				   readMessage msg)
@@ -85,8 +83,8 @@ newGroupMessage = getCurrentUser
 			>>= \msg ->		sendMessage msg
 	
 sendMessage :: Message -> Task Void
-sendMessage msg = allProc [who @>> spawnProcess who True True
-					((readMessage msg <<@ Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.recipients ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
+sendMessage msg = allProc [who @>> spawnProcess True True
+					((readMessage msg <<@ who <<@ Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.recipients ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
 					>>| showMessageAbout "Message sent" "The following message has been sent:" msg >>| return Void
 
 writeMessage :: User String [User] [User] [Message] -> Task Message

@@ -149,7 +149,7 @@ assign :: !User !(Task a) -> Task a	| iTask a
 *
 * @return A reference to the newly created process
 */
-spawnProcess	:: !User !Bool !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
+spawnProcess	:: !Bool !Bool !(Task a)	-> Task (ProcessRef a) | iTask a
 
 /**
 * Kills a process disregarding any other references to this process.

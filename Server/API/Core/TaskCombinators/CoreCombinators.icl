@@ -353,16 +353,11 @@ clearSubTaskWorkers procId mbpartype tst
 		(Just Closed)	= tst
 		(Just Open)		= {TSt | tst & properties = {tst.TSt.properties & systemProperties = {tst.TSt.properties.systemProperties & subTaskWorkers = [(pId,u) \\ (pId,u) <- tst.TSt.properties.systemProperties.subTaskWorkers | not (startsWith procId pId)] }}}
 
-spawnProcess :: !User !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
-spawnProcess user activate gcWhenDone task = mkInstantTask "Spawn process" "Spawn a new task instance" spawnProcess`
+spawnProcess :: !Bool !Bool !(Task a) -> Task (ProcessRef a) | iTask a
+spawnProcess activate gcWhenDone task = mkInstantTask "Spawn process" "Spawn a new task instance" spawnProcess`
 where
 	spawnProcess` tst
-		# properties	=	{ initManagerProperties
-							& worker = user
-							, subject = taskSubject task
-							, description = taskDescription task
-							}
-		# (pid,_,_,tst)	= createTaskInstance (createThread (task <<@ properties)) True Nothing activate gcWhenDone tst
+		# (pid,_,_,tst)	= createTaskInstance (createThread task) True Nothing activate gcWhenDone tst
 		= (TaskFinished (ProcessRef pid), tst)
 
 killProcess :: !(ProcessRef a) -> Task Void | iTask a

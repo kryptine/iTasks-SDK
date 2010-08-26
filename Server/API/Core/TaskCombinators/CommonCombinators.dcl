@@ -49,6 +49,15 @@ transform			:: !(a -> b) !a 									-> Task b | iTask b
 */
 (>>?)	infixl 1	:: !(Task (Maybe a)) !(a -> Task (Maybe b))	-> Task (Maybe b) 		| iTask a & iTask b
 /**
+* Execute a Maybe task that you expect to always return Just.
+* Throw an exception if it returns nothing
+*
+* @param The task that could in theory return Nothing
+* @return The result of the task
+*/
+justdo	:: !(Task (Maybe a)) -> Task a | iTask a
+
+/**
 * Group two tasks in parallel of which only one needs to be completed.
 * -||-	: Done when one of the two tasks is done. It's result is returned.
 *  ||-	: Done when the right task is done.

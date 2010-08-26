@@ -43,18 +43,19 @@ removeMemberFromGroup group user
 		//Remove the user from the group
 		Just group=:{members}			= dbUpdateItem {Group|group & members = removeMember user members}
 		Nothing							= return group 
-inviteUserToGroup :: !User !Group -> Task Group
+inviteUserToGroup :: !User !Group -> Task (ProcessRef Group)
 inviteUserToGroup user group
 	=	getContextWorker
 	>>= \fromUser ->
-		assign user (invite fromUser group)
-	>>= \accept ->
-		if accept
-			(addMemberToGroup group user 
-			 >>= showMessage "Invitation accepted" (toString user +++ " accepted your invitation to join the group " +++ toString group)
-			)
-			(showMessage "Invitation declined" (toString user +++ " declined your invitation to join the group " +++ toString group) group)
-	>>= dbUpdateItem
+		spawnProcess True True (
+			assign user (invite fromUser group)
+		>>= \accept ->
+			if accept
+				(addMemberToGroup group user 
+				 >>= showMessage "Invitation accepted" (toString user +++ " accepted your invitation to join the group " +++ toString group)
+				)
+				(showMessage "Invitation declined" (toString user +++ " declined your invitation to join the group " +++ toString group) group)
+		)
 where
 	invite user group
 		= requestConfirmation
@@ -87,12 +88,16 @@ where
 					  		createGroup name user
 	
 manageGroup :: Group -> Task Void
-manageGroup group
-	= 	showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
+manageGroup igroup
+	= 	
+	(	justdo (dbReadItem (getItemId igroup))
+	>>= \group ->
+		showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
 	>>= \(action,_) -> case action of
-		ActionPrevious						= 					return Void
-		ActionLabel "Invite a new member"	= invite group	>>| return Void
-		ActionLabel "Leave group"			= leave group	>>| return Void
+		ActionPrevious						= 					return True
+		ActionLabel "Invite a new member"	= invite group	>>| return False
+		ActionLabel "Leave group"			= leave group	>>| return False
+	) <! id >>| stop
 where
 	aBack	= ButtonAction (ActionPrevious, Always)
 	aInvite	= ButtonAction (ActionLabel "Invite a new member", Always)

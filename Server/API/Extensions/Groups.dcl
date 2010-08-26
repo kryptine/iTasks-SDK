@@ -31,5 +31,5 @@ deleteGroup				:: !Group			->	Task Group
 addMemberToGroup		:: !Group !User 	->	Task Group
 removeMemberFromGroup	:: !Group !User 	->	Task Group
 
-inviteUserToGroup		:: !User !Group		->	Task Group
+inviteUserToGroup		:: !User !Group		->	Task (ProcessRef Group)
 

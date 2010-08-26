@@ -61,11 +61,10 @@ where
 
 //Merge Tests
 mergeTestList :: Task Void
-mergeTestList =
-				getCurrentUser
-	>>= \user.  createDB emptyL
-	>>= \sid.	spawnProcess user True True (Subject "1st View" @>> view sid)
-	>>|			spawnProcess user True True (Subject "2nd View" @>> view sid)
+mergeTestList =	
+				createDB emptyL
+	>>= \sid.	spawnProcess True True (Subject "1st View" @>> view sid)
+	>>|			spawnProcess True True (Subject "2nd View" @>> view sid)
 	>>|			stop
 where
 	view :: (DBId [String]) -> Task (Action,[String])
@@ -76,11 +75,10 @@ where
 	
 mergeTestDocuments :: Task Void
 mergeTestDocuments =
-				getCurrentUser
-	>>= \user.	createDB emptyL
-	>>= \sid.	spawnProcess user True True (Subject "1st View" @>> view sid idEditor)
-	>>|			spawnProcess user True True (Subject "2nd View" @>> view sid idEditor)
-	>>|			spawnProcess user True True (Subject "3rd View" @>> view sid idListener)
+				createDB emptyL
+	>>= \sid.	spawnProcess True True (Subject "1st View" @>> view sid idEditor)
+	>>|			spawnProcess True True (Subject "2nd View" @>> view sid idEditor)
+	>>|			spawnProcess True True (Subject "3rd View" @>> view sid idListener)
 	>>|			stop
 where
 	view :: (DBId [Document]) (View [Document]) -> Task (Action,[Document])

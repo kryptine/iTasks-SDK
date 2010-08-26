@@ -45,10 +45,9 @@ where
 
 	taskFound :: Dynamic -> Task Void
 	taskFound d=:(DT t:: DT a) 
-		= 					getCurrentUser
-		>>= \me ->			requestConfirmation "Start workflow" ("Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
+		=					requestConfirmation "Start workflow" ("Workflow of type :: " +++ showDynType d +++ "  can be started; Shall I ?")
 		>>= \ok ->			if ok (					updateInformation "Name" "Name of this workflow: " "workflow"
-									>>= \name -> 	spawnProcess me True True (t <<@ Subject name)
+									>>= \name -> 	spawnProcess True True (t <<@ Subject name)
 									>>| 			return Void)
 								  (return Void)	
 

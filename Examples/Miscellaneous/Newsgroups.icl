@@ -69,7 +69,7 @@ where
 	startup n dbid [] _
 		= return Void
 	startup n dbid [u:us] data
-		= spawnProcess u True True (Subject "Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
+		= spawnProcess True True (u @>> Subject "Meeting Request" @>> task n) >>| 	startup (n+1) dbid us data
 	where
 		task :: Int -> Task MeetingDB
 		task n 
@@ -134,8 +134,8 @@ chat
 	=				getCurrentUser
 	>>= \me ->		selectFriends
 	>>= \friends -> createChatBox me
-	>>= \chatbox ->	allTasks ([spawnProcess f True True (Subject "Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
-							++ [spawnProcess me True True (Subject "Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
+	>>= \chatbox ->	allTasks ([spawnProcess True True (f @>> Subject "Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
+							++ [spawnProcess True True (me @>> Subject "Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
 where
 	
 	createChatBox :: User -> (Task (DBId Chat))
@@ -241,7 +241,7 @@ where
 	addUsers chatbox
 		= 			 	enterInformation "Select users" "Select users to add to the chat"	
 		>>= \users -> 	readDB chatbox
-		>>= \chat ->	allTasks ([spawnProcess u True True (Subject "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
+		>>= \chat ->	allTasks ([spawnProcess True True (u @>> Subject "Chat Request" @>> (initiateChat chatbox u (chat.Chat.users++users))) \\ u <- users])
 		>>| 		 	return Void
 //===============================================
 
@@ -284,8 +284,8 @@ where
 	broadcast me msg [] 
 		=			return msg
 	broadcast me msg [u:us] 
-		=			spawnProcess u True True
-						(showMessageAbout "Broadcast message" ("You have received the following broadcast message from " <+++ displayName me) msg <<@ Subject msg.Broadcast.subject)
+		=			spawnProcess True True
+						(showMessageAbout "Broadcast message" ("You have received the following broadcast message from " <+++ displayName me) msg <<@ Subject msg.Broadcast.subject <<@ u)
 			>>|			broadcast me msg us 
 				
 
@@ -293,7 +293,7 @@ internalEmail :: (Task EMail)
 internalEmail
 =									enterInformation "Compose" "Type your email message ..."
 	>>= \msg ->						getCurrentUser
-	>>= \me ->						allProc [who @>> (spawnProcess who True True (mailMess me msg <<@ Subject msg.EMail.subject)) \\ who <- [msg.to:mbToList msg.cc]] Closed
+	>>= \me ->						allProc [who @>> (spawnProcess True True (mailMess me msg <<@ Subject msg.EMail.subject) <<@ who) \\ who <- [msg.to:mbToList msg.cc]] Closed
 	>>|								return msg
 
 mailMess :: User EMail -> Task Void
@@ -402,7 +402,7 @@ where
 		>>= \groups ->		requestConfirmationAbout "More groups?" "Do you want to add more?" groups 
 		>>= \yn ->			if yn addNewsGroup (return Void)
 	
-subscribeProcess me group = spawnProcess me True True (readNews 1 me group 0 <<@ Subject (group <+++ " newsgroup reader"))
+subscribeProcess me group = spawnProcess True True (readNews 1 me group 0 <<@ Subject (group <+++ " newsgroup reader") <<@ me)
 
 // news group reader
 
