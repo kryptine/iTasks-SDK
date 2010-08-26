@@ -71,14 +71,13 @@ where
 	getProcessForUser :: !User !TaskId !*IWorld -> (!Maybe Process,!*IWorld)
 	getProcessForUser user taskId iworld
 		# (procs,iworld) 	= processStore id iworld
-		#  users		= [p.Process.properties.managerProperties.ManagerProperties.worker \\ p <- procs | relevantProc taskId p]
-		= case [p \\ p <- procs | p.Process.taskId == taskId && isMember user users] of
+		= case [p\\ p <- procs |   p.Process.taskId == taskId
+							   && (user == p.Process.properties.managerProperties.ManagerProperties.worker
+							      || isMember user (map snd p.Process.properties.systemProperties.SystemProperties.subTaskWorkers)
+							      )] of
 			[entry]	= (Just entry, iworld)
 			_		= (Nothing, iworld)
-	where
-		relevantProc targetId {Process|taskId}		= taskId == targetId
-		relevantProc _ _							= False
-	
+		
 	getProcessForManager :: !User !TaskId !*IWorld -> (!Maybe Process, !*IWorld)
 	getProcessForManager manager taskId iworld
 		# (procs,iworld) = processStore id iworld
