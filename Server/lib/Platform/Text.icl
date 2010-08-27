@@ -23,7 +23,7 @@ instance Text String
 
     lastIndexOf :: !String !String -> Int
 	lastIndexOf "" haystack = -1
-	lastIndexOf needle haystack = `lastIndexOf needle haystack (size haystack - 1)
+	lastIndexOf needle haystack = `lastIndexOf needle haystack (size haystack - size needle)
 		where
 		`lastIndexOf needle haystack n
 			| n < 0																	= -1		
