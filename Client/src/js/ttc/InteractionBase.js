@@ -24,9 +24,7 @@ itasks.ttc.InteractionBase = Ext.extend(Ext.Panel, {
 		//attachTaskHandlers is moved to file 'TTCCommon.js'		
 		itasks.ttc.common.attachTaskHandlers(this);
 		
-		var tb = this.getTopToolbar();
-		this.setupToolbar(tb);
-		//this.setupHotkeys(this.hotkeys);
+		this.setupToolbar();
 	},
 	
 	addUpdate: function(name, value) {
@@ -46,15 +44,18 @@ itasks.ttc.InteractionBase = Ext.extend(Ext.Panel, {
 		}
 	},
 	
-	setupToolbar: function(tb) {
+	setupToolbar: function() {
+		var tb = this.getTopToolbar();
+		
 		tb.setVisible(tb.items.length > 0);
 		
 		var enabledPresent = false;
-		for(var i = 0; i < tb.items.length; i++)
+		for(var i = 0; i < tb.items.length; i++) {
 			if(!tb.get(i).disabled) {
 				enabledPresent = true;
 				break;
 			}
+		}
 		
 		var cls = 'ToolbarNoEnabledItems';
 		if(enabledPresent)
@@ -68,7 +69,7 @@ itasks.ttc.InteractionBase = Ext.extend(Ext.Panel, {
 			if(item.disabled)
 				return true;
 				
-			if(Ext.isDefined(item.topGroupAction)) {
+			if(Ext.isBoolean(item.topGroupAction)) {
 				return item.topGroupAction;
 			} else if (item.getXType() != 'menuseparator') {
 				var children =  item.items || item.menu.items;

@@ -170,10 +170,6 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 				cont.renderTo = this.getEl();
 				cont = Ext.create(cont);
 				
-				// hide menu items referring to top group actions
-				if(cont.get(0).getXType() == 'itasks.ttc.form' || cont.get(0).getXType() == 'itasks.ttc.message')
-					this.hideTopGroupActionMenuItems(cont.get(0).getTopToolbar());
-				
 				// fix size of window
 				var s = cont.getSize();
 				cont.setSize(s.width > cont.minWidth ? s.width : cont.minWidth, s.height);
@@ -187,6 +183,10 @@ itasks.ttc.GroupContainer = Ext.extend(Ext.Panel,{
 				// put created object into collection
 				this.floatingCont.replace(idx,cont);
 			}
+			
+			// hide menu items referring to top group actions
+			if(cont.get(0).getXType() == 'itasks.ttc.form' || cont.get(0).getXType() == 'itasks.ttc.message')
+				this.hideTopGroupActionMenuItems(cont.get(0).getTopToolbar());
 		}, this);
 		
 		// show modal dialogs after normal ones to make sure they are rendered in front
