@@ -48,7 +48,6 @@ itasks.Application = function () {
 			//Load skin
 			this.loadSkin();
 			
-			
 			//Create the login window
 			this.loginWindow = new itasks.LoginWindow({
 				errorMsg: this.errorMsg,
@@ -81,7 +80,10 @@ itasks.Application = function () {
 			this.scrollbarWidth = itasks.util.getScrollerWidth();
 			
 			//Remove the login window
-			this.loginWindow.hide();
+			//this.loginWindow.hide();
+			this.loginWindow.destroy();
+			delete this.loginWindow;
+		
 		
 			var startPanel = this.viewport.getComponent(0);
 		

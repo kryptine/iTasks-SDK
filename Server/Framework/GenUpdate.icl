@@ -243,7 +243,7 @@ gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
 
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate,newMask} 
-	= ([], {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+	= ([], {USt | ust & newMask = appendToMask newMask (UMList [] [])})
 gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	# (l,listMask,cm,ust) = case isNewElement (dataPathList currentPath) (dataPathList searchPath) (length l) of
@@ -312,7 +312,7 @@ where
 	= UMList [index+1..length c-1] (insertAt index cm c)
 	
 gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,newMask}
-# ust=:{newMask=childMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = Touched True []}
+# ust=:{newMask=childMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = UMList [0..(length l)] []}
 = (l,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask childMask})
 where
 	gMarkList fx [] ust = ust
