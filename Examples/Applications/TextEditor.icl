@@ -1,9 +1,9 @@
-implementation module textEditor
+implementation module TextEditor
 
 import iTasks, CommonDomain, StdMisc, Text
 
 textEditor :: [Workflow]
-textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ Subject "Text Editor")]
+textEditor = [workflow "Examples/Applications/Text Editor" (textEditorApp <<@ Subject "Text Editor")]
 
 // global workflows
 textEditorApp :: Task Void

@@ -1,4 +1,4 @@
-definition module textEditor
+definition module TextEditor
 
 import iTasks
 

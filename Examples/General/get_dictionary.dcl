@@ -1,1 +1,0 @@
-definition module get_dictionaryimport StdDynamic, StdClass:: TVD a 	= CVD a & get_dictionary a:: TD a 	= CD & get_dictionary aclass 		get_dictionary a | TC, Eq a :: ![Int] !(TD a) -> Dynamicinstance 	get_dictionary Int  instance 	get_dictionary (a,b) 	| get_dictionary a & get_dictionary binstance 	get_dictionary [a] 		| get_dictionary a
