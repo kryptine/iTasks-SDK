@@ -1,1 +1,0 @@
-java -jar build/rpcd.jar -u "http://localhost:80" -v

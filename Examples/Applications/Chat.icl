@@ -3,12 +3,14 @@ implementation module Chat
 import StdList, StdOrdList, StdTuple, StdMisc
 import iTasks
 import Text
+import CommonDomain
 
 derive class iTask	Chat, ChatMessage, ChatView, ChatMessageView
 derive gMerge		Chat, ChatMessage, ChatView, ChatMessageView
+derive bimap		(,), Maybe
 
 chatExample :: [Workflow]
-newsgroupsExample
+chatExample
 =	[ workflow	 "Examples/Applications/Chat" chat ]
 
 //Shared State	
