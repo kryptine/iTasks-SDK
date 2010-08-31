@@ -25,8 +25,8 @@ visualizeAsEditor name mbSubIdx umask vmask x
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (defs,vst=:{VSt | valid}) = gVisualize{|*|} val val vst
-	= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
-	//= (coerceToTUIDefs defs, valid)	
+	//= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
+	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x
 	
@@ -57,8 +57,8 @@ determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,vst=:{VSt | valid}) = (gVisualize{|*|} (VValue old) (VValue new) vst)
-	= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
-	//= (coerceToTUIUpdates updates, valid)
+	//= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
+	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue
@@ -384,7 +384,9 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType,currentPath}
 			= case vizType of
 				VHtmlDisplay
 					# (vizBody,vst) 	= fx (VValue ox) (VValue nx) {VSt |vst & label = Nothing}
-					= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
+					= case vizBody of
+					 [] = ([],vst)
+					 _  = ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
 				VTextDisplay
 					# (vizBody,vst) 	= fx (VValue ox) (VValue nx) {VSt |vst & label = Just (formatLabel d.gfd_name)}
 					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "], {VSt | vst & label = Nothing})
