@@ -9,14 +9,14 @@ derive bimap Maybe, (,)
 
 :: Message =
 	{ messageId			:: Hidden Int
+	, subject			:: String
 	, sender			:: Display User
 	, recipients 		:: [User]
-	, cc 				:: Maybe [User]
 	, priority 			:: TaskPriority
-	, subject			:: String
+	, needsReply		:: Bool	
 	, message			:: Note
 	, attachments		:: Maybe [Document]
-	, previousMessages 	:: Display [Message]
+	, thread 			:: Display [Message]
 	}
 
 instance DB Message
@@ -29,48 +29,70 @@ mkMsg :: User -> Message
 mkMsg me = { Message
 			| messageId		= toHidden 0
 			, sender 		= toDisplay me
+			, subject		= "New message"
 			, recipients 	= []
-			, cc 			= Nothing
 			, priority 		= NormalPriority
-			, subject		= ""
+			, needsReply	= False
 			, message		= Note ""
 		  	, attachments	= Nothing
-		   	, previousMessages = Display []
+		   	, thread		= Display []
 		   	}
 
 manageMessages :: Task Void
 manageMessages =
 	(	getMyMessages
 	>>= overview
-	>>= \(action,messages) -> case action of
-		ActionOpen						= openMessages messages	>>|	return False
+	>>= \(action,message) -> case action of
+		ActionOpen						= manageMessage message	>>|	return False
 		ActionLabel "New message"		= newMessage			>>|	return False
 		ActionLabel "New group message"	= newGroupMessage		>>| return False
 		ActionQuit						= 							return True
 	) <! id >>| stop
 where
-	overview :: [Message] -> Task (Action,[Message])
-	overview []		= showMessageA "My messages" "You have no messages" [aNew,aNewGroup,aQuit] []
-	overview msgs	= enterMultipleChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
+	overview :: [Message] -> Task (Action,Message)
+	overview []		= getDefaultValue >>= showMessageA "My messages" "You have no messages" [aNew,aNewGroup,aQuit] 
+	overview msgs	= enterChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
 	
 	aOpen		= ButtonAction (ActionOpen,IfValid)
 	aNew		= ButtonAction (ActionLabel "New message", Always)
 	aNewGroup	= ButtonAction (ActionLabel "New group message", Always)
 	aQuit		= ButtonAction (ActionQuit,Always)
-	
-	openMessages :: [Message] -> Task Void
-	openMessages messages
-		= 	allTasks
-				[spawnProcess True True
-				 ((Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) @>>
-				  msg.Message.priority @>>
-				   readMessage msg)
-				 \\ msg <- messages]
-		>>| stop
-	
+
+manageMessage :: Message -> Task Bool
+manageMessage msg=:{Message |subject} 
+	= 	showMessageAboutA subject "You received a message" [aClose,aReply,aReplyAll,aForward,aDelete] msg
+	>>= \act -> case act of
+		(ActionClose,_) 
+			= return False
+		(ActionLabel "Reply",message)
+			= 			getCurrentUser
+			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
+			>>= \msg -> sendMessage msg
+			>>| return True
+		(ActionLabel "Reply All",_)
+			= 			getCurrentUser
+			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
+			>>= \msg -> sendMessage msg
+			>>| return True
+		(ActionLabel "Forward",_)
+			= 			getCurrentUser 
+			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
+			>>= \msg -> sendMessage msg
+			>>| return False
+		(ActionLabel "Delete",msg)
+			=			dbDeleteItem (getItemId msg)
+			>>|			showMessage "Deleted" "Message deleted" False	
+where
+	aReply		= ButtonAction (ActionLabel "Reply",Always)
+	aReplyAll	= ButtonAction (ActionLabel "Reply All",Always)
+	aForward	= ButtonAction (ActionLabel "Forward",Always)
+	aDelete		= ButtonAction (ActionLabel "Delete", Always)
+	aClose		= ButtonAction (ActionClose, Always)
+
 newMessage :: Task Void
-newMessage = getCurrentUser
-	>>= \me -> 		writeMessage me "" [] [] []
+newMessage
+	=				getCurrentUser
+	>>= \me -> 		writeMessage me "" [] Nothing
 	>>= \msg -> 	sendMessage msg
 
 newGroupMessage :: Task Void
@@ -79,47 +101,63 @@ newGroupMessage = getCurrentUser
 	>>= \groups ->	case groups of
 		[]	=	showMessage "No groups" "You are not a member of any group" Void
 		_	=	enterChoice "Choose group" "Select group" groups
-			>>= \group ->	writeMessage me "" group.members [] []
+			>>= \group ->	writeMessage me "" group.members Nothing
 			>>= \msg ->		sendMessage msg
 	
 sendMessage :: Message -> Task Void
-sendMessage msg = allProc [who @>> spawnProcess True True
-					((readMessage msg <<@ who <<@ Subject ("Message from "+++toString (fromDisplay msg.Message.sender)+++": "+++msg.Message.subject)) <<@ msg.Message.priority) \\ who <- (msg.Message.recipients ++ if(isJust msg.cc) (fromJust msg.cc) [])] Closed
-					>>| showMessageAbout "Message sent" "The following message has been sent:" msg >>| return Void
+sendMessage msg
+	=	dbCreateItem msg
+	>>= \msg -> case msg.needsReply of
+			False	= allTasks [spawnProcess True True (notifyTask rcp msg) \\ rcp <- msg.Message.recipients] >>| stop
+			True	= spawnProcess True True (awaitReplies msg) >>| stop
+	>>| showMessageAbout "Message sent" "The following message has been sent:" msg
+	>>| stop
+where
+	notifyTask user msg =
+		user @>>
+		subject msg @>>
+		msg.Message.priority @>>
+		(manageMessage msg)
 
-writeMessage :: User String [User] [User] [Message] -> Task Message
-writeMessage me subj recipients cc thread = updateInformation "Compose" "Enter your message" {Message | (mkMsg me) & subject = subj, recipients = recipients, cc = if(isEmpty cc) Nothing (Just cc), previousMessages = (Display thread)}	
-
-readMessage :: Message -> Task Void
-readMessage msg=:{Message | previousMessages, subject} 
-	= showMessageAboutA subject "You received a message" [ButtonAction (ActionLabel "Reply",Always), 
-		ButtonAction (ActionLabel "Reply All",Always), ButtonAction (ActionLabel "Forward",Always), ButtonAction (ActionLabel "Delete", Always), ButtonAction (ActionLabel "Archive & Close",Always)] msg
-	>>= \act -> case act of
-		(ActionLabel "Reply",_)
-			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender)] []  [{Message | msg & previousMessages = (Display [])}:fromDisplay previousMessages]
-			>>= \msg -> sendMessage msg
-		(ActionLabel "Reply All",_)
-			= 			getCurrentUser
-			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (if(isJust msg.cc) (fromJust msg.cc) []) [{Message | msg & previousMessages = (Display [])}:fromDisplay previousMessages]
-			>>= \msg -> sendMessage msg
-		(ActionLabel "Forward",_)
-			= 			getCurrentUser 
-			>>= \me -> 	writeMessage me ("Fw: "+++msg.Message.subject) [] [] [{Message | msg & previousMessages = (Display [])}:fromDisplay previousMessages]
-			>>= \msg -> sendMessage msg
-		(ActionLabel "Archive & Close",_) 
-			=			dbCreateItem msg
-			>>| 		showMessage "Archived" "Message stored in archive" Void
-		(ActionLabel "Delete",_)
-			=			dbDeleteItem (getItemId msg)
-			>>|			showMessage "Deleted" "Message deleted" Void
-
+	awaitReplies msg =
+		Subject ("Waiting for reply on " +++ msg.Message.subject) @>>
+		case msg.Message.recipients of
+			[recipient]	= assign recipient (askReplyTask recipient msg) >>= \answer -> notifyNoReplies [recipient] [answer]
+			recipients	= allProc [askReplyTask rcp msg \\ rcp <- recipients] Closed >>=  notifyNoReplies recipients
+	
+	askReplyTask user msg =
+		user @>>
+		subject msg @>>
+		msg.Message.priority @>>
+		(showStickyMessage "Reply requested" "The sender would like to receive a reply to this message." False
+		 ||-
+		 manageMessage msg
+		 ) 
+	subject msg
+		= Subject ("Message from " +++ toString (fromDisplay msg.Message.sender)+++ ": "+++msg.Message.subject)
+	
+	notifyNoReplies recipients answers
+		= case [rcp \\ rcp <- recipients & ans <- answers | not ans] of
+			[]		= stop
+			users	= showMessageAbout "Reply request ignored" "The following users ignored your request for a reply:" users >>| stop
+			
+writeMessage :: User String [User] (Maybe Message) -> Task Message
+writeMessage sender subj recipients mbThread
+	= updateInformation "Compose" "Enter your message"
+		{Message | (mkMsg sender) & subject = subj, recipients = recipients,thread = updateThread mbThread}
+where
+	updateThread :: (Maybe Message) -> Display [Message] 
+	updateThread Nothing	= Display []
+	updateThread (Just msg)	= Display [{Message|msg & thread = Display []}:fromDisplay msg.Message.thread]
+	
 getMyMessages :: Task [Message]
 getMyMessages
 	=	getContextWorker
 	>>= \user ->
 		dbReadAll
-	>>= transform (filter (isRecipientOrCc user))
+	>>= transform (filter (isRecipient user))
 where
-	isRecipientOrCc user msg = isMember user msg.Message.recipients || case msg.Message.cc of Just cc = isMember user cc; _ = False  
+	isRecipient user msg = isMember user msg.Message.recipients
 
+getAllMessages ::Task [Message]
+getAllMessages = dbReadAll
