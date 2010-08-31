@@ -25,8 +25,8 @@ visualizeAsEditor name mbSubIdx umask vmask x
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (defs,vst=:{VSt | valid}) = gVisualize{|*|} val val vst
-	//= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
-	= (coerceToTUIDefs defs, valid)	
+	= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
+	//= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x
 	
@@ -57,8 +57,8 @@ determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,vst=:{VSt | valid}) = (gVisualize{|*|} (VValue old) (VValue new) vst)
-	//= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
-	= (coerceToTUIUpdates updates, valid)
+	= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
+	//= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue
@@ -593,6 +593,8 @@ where
 				VHtmlDisplay	= []
 				_				= [TextFragment ", "]
 
+import StdDebug
+
 gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,valid,renderAsStatic, updateMask,verifyMask}
 	# (cmu, um) = popMask updateMask
 	# (cmv, vm) = popMask verifyMask
@@ -603,7 +605,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, optional = optional, name = name, id = id, fieldLabel = label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})],
 			  {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm, useLabels = useLabels})	
 		VEditorUpdate
-			# (valid,msg) 					= verifyElementUpd valid id cmu cmv		
+			# (valid,msg) 					= (verifyElementUpd valid id cmu cmv)
 			# (upd,vst=:{valid=finalValid}) = TUIUpd fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = cmu, verifyMask = cmv, valid = valid}
 			# (newDefs,vst)					= TUIDef fx newV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}
 			# (oldDefs,vst)					= TUIDef fx oldV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}		
@@ -684,7 +686,7 @@ where
 	determineAddRem []     [n:ns] idx = [if(idx > 0) (TUIUpdate (TUIAdd (itemId (idx-1)) n)) (TUIUpdate (TUIAddTo id n)):determineAddRem [] ns (idx+1)]
 	determineAddRem [o:os] [n:ns] idx = determineAddRem os ns (idx+1)
 
-	determineReplacements defs idx	 = [TUIUpdate (TUIReplace (itemId i) (defs!!i)) \\ i <-idx]
+	determineReplacements defs idx	 = [TUIUpdate (TUIReplace (itemId i) (defs!!i)) \\ i <-idx | i < length defs]
 	
 	htmlLabel [i] = (flatten (coerceToHtml i))
 	htmlLabel [i:is] = (flatten (coerceToHtml i)) ++ [(Text ", ")] ++ htmlLabel is
