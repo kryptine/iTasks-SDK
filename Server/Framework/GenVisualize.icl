@@ -684,7 +684,7 @@ where
 	determineAddRem []     [n:ns] idx = [if(idx > 0) (TUIUpdate (TUIAdd (itemId (idx-1)) n)) (TUIUpdate (TUIAddTo id n)):determineAddRem [] ns (idx+1)]
 	determineAddRem [o:os] [n:ns] idx = determineAddRem os ns (idx+1)
 
-	determineReplacements defs idx	 = [TUIUpdate (TUIReplace (itemId i) (defs!!i)) \\ i <-idx]
+	determineReplacements defs idx	 = [TUIUpdate (TUIReplace (itemId i) (defs!!i)) \\ i <-idx | i < length defs]
 	
 	htmlLabel [i] = (flatten (coerceToHtml i))
 	htmlLabel [i:is] = (flatten (coerceToHtml i)) ++ [(Text ", ")] ++ htmlLabel is

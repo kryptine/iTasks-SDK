@@ -54,7 +54,7 @@ where
 	createChatBox me = createDB {Chat | initUser = me, users = [], messages = []}
 
 	selectFriends :: Task [User]
-	selectFriends = enterInformation "Select friends" "Whom do you want to chat with?"
+	selectFriends = enterInformation "Select friends" "Who do you want to chat with?"
 	
 	initiateChat :: (DBId Chat) User [User] -> Task Void
 	initiateChat chatbox friend friends
@@ -130,7 +130,7 @@ where
 						= []
 				
 			fromVizHint (VHEditable x) 		= x
-			fromVizHint (VHDisplay x) 	= x
+			fromVizHint (VHDisplay x) 		= x
 			fromVizHint (VHHidden x) 		= x
 	
 	newTopic :: (DBId Chat) User -> Task Void
