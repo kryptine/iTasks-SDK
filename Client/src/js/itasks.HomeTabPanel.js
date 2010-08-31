@@ -26,7 +26,7 @@ itasks.HomeTabPanel = Ext.extend(Ext.Panel, {
 				'<p>This application is powered by the iTask system. This system is developed by the <a href="http://wiki.clean.cs.ru.nl" target="_blank">Clean Team</a> in '+
 				'the context of several research projects on functional specifications of workflows. '+
 				'<p>To keep up with the latest developments, more information can be found on the Clean Wiki: <br />'+
-				'<a href="http://wiki.clean.cs.ru.nl/ITasks" target="_blank">http://wiki.clean.cs.ru.nl/ITasks</a>'+
+				'<a href="http://itasks.cs.ru.nl/" target="_blank">http://itasks.cs.ru.nl/</a>'+
 				'</div>'
 				
 		});
