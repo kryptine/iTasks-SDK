@@ -142,10 +142,10 @@ where
 			dbCreateItem {ListMeta| listId = 0, owner = owner, sharedWith =[]}
 			
 	makeList :: !String !String !(Maybe Note) !Int -> AnyList
-	makeList "Simple list" name	desc listId		= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	makeList "Todo list" name desc listId		= TodoList		{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	makeList "Date list" name desc listId		= DateList		{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	makeList "Document list" name desc listId	= DocumentList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
+	makeList _ name	desc listId					= SimpleList	{List|listId = (Hidden listId), name = name, description = desc, items = [] }
 	
 	storeList :: !Int !AnyList -> Task AnyList 
 	storeList listId list = writeDB (mkDBId ("List-" <+++ listId)) list
