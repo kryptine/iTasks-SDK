@@ -28,7 +28,7 @@ where
 			TaskException e
 				= (TaskException e,tst)
 
-	dotdot s	= if (endsWith s "...") s (s +++ "...")
+	dotdot s	= if (endsWith "..." s) s (s +++ "...")
 
 (>>|) infixl 1 :: !(Task a) (Task b) -> Task b | iTask a & iTask b
 (>>|) taska taskb = taska >>= \_ -> taskb
