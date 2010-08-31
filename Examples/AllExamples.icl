@@ -46,9 +46,9 @@ where
 						, guiDemoExample
 						, changeExamples
 						, sharedValueExamples
-						,	[workflow "General/View groups" manageGroups
-							,workflow "General/View lists" manageLists
-							,workflow "General/View messages" manageMessages
+						,	[workflow "General/Groups" manageGroups
+							,workflow "General/Lists" manageLists
+							,workflow "General/Messages" manageMessages
 							,workflow "General/Ask opinions" askOpinions
 							]
 						]

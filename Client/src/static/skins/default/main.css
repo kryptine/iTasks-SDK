@@ -328,6 +328,55 @@ div.task-context th {
 	font-weight: bold;
 	color: #1e3356;
 }
+/* Home Panel */
+.homePanel {
+	background: #fff url("img/welcome/bg.png") top repeat-x;
+	height:100%;
+	position: relative;
+	overflow: auto;
+}
+.homePanel-body{
+	padding: 10px;
+}
+
+.homePanel-text{
+	max-width: 700px;
+	z-index: 10;
+	position: absolute;
+}
+
+.homePanel p {
+	margin-bottom: 4px;
+}
+
+.homePanel h1 {
+	font-size: 16px;
+	font-weight: bold;
+	color: white;
+	margin: 10px 0px 5px 0px;
+}
+
+.homePanel h2 {
+	font-size: 14px;
+	margin: 10px 0px 5px 0px;
+}
+
+.homePanel a {
+	color: #2e72b6;
+	font-weight: bold;
+	text-decoration: none;
+}
+
+.homePanel-logo {
+	position: absolute;
+	top: 0px;
+	left: 100%;
+	margin-left: -243px;
+	width: 243px;
+	height: 197px;
+	background: url("img/welcome/logo.png") no-repeat;
+	z-index: 1;
+}
 
 /* DEBUG STYLES */
 .debug-button button.x-btn-text {

@@ -384,7 +384,9 @@ gVisualize{|FIELD of d|} fx old new vst=:{vizType,currentPath}
 			= case vizType of
 				VHtmlDisplay
 					# (vizBody,vst) 	= fx (VValue ox) (VValue nx) {VSt |vst & label = Nothing}
-					= ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
+					= case vizBody of
+					 [] = ([],vst)
+					 _  = ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
 				VTextDisplay
 					# (vizBody,vst) 	= fx (VValue ox) (VValue nx) {VSt |vst & label = Just (formatLabel d.gfd_name)}
 					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "], {VSt | vst & label = Nothing})

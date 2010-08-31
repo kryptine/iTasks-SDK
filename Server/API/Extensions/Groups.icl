@@ -8,14 +8,72 @@ derive bimap Maybe, (,)
 instance DB Group
 where
 	databaseId 					= mkDBId "Groups"
-	getItemId g					= DBRef g.Group.groupId
-	setItemId (DBRef groupId) g	= {Group| g & groupId = groupId}
+	getItemId g					= DBRef (fromHidden g.Group.groupId)
+	setItemId (DBRef groupId) g	= {Group| g & groupId = toHidden groupId}
 
 instance toString Group where toString g = g.Group.name
 
+manageGroups :: Task Void
+manageGroups
+	=	Subject "Manage groups" @>>
+	(	getMyGroups
+	>>=	overview 
+	>>= \(action,group) -> case action of
+		ActionNew	= newGroup >>= manageGroup 	>>| return False
+		ActionOpen	= manageGroup group			>>| return False
+		ActionQuit	= 								return True
+	) <! id
+	>>| return Void
+where
+	overview []		= getDefaultValue >>= showMessageA "My groups" startMsg [aNew,aQuit]
+	overview list	= enterChoiceA "My groups" listMsg [aOpen,aNew,aQuit] list
+	
+	aOpen 			= ButtonAction (ActionOpen, IfValid)
+	aNew			= ButtonAction (ActionNew, Always)
+	aQuit			= ButtonAction (ActionQuit, Always)
+	newGroup		= 		enterInformation "New group" "Please enter a name for the new group" 
+						>>= \name ->
+							getContextWorker
+						>>= \user -> 
+					  		createGroup name user
+	
+	startMsg		= [Text "You have no groups yet.",BrTag [], BrTag []
+					  ,Text "You can create your own user groups to which you can invite other users", BrTag []
+					  ,Text "Members of a group can easily send each other messages "
+					  ,Text "or ask each others opinions."
+					  ]
+					  
+	listMsg			= [Text "You are a member of the groups listed below.", BrTag [], BrTag []
+					  ,Text "You may select one to view it or create a new group."
+					  ]
+	
+manageGroup :: Group -> Task Void
+manageGroup igroup
+	= 	
+	(	justdo (dbReadItem (getItemId igroup))
+	>>= \group ->
+		showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
+	>>= \(action,_) -> case action of
+		ActionClose						= 					return True
+		ActionLabel "Invite new member"	= invite group	>>| return False
+		ActionLabel "Leave group"		= leave group	>>| return False
+	) <! id >>| stop
+where
+	aBack	= ButtonAction (ActionClose, Always)
+	aInvite	= ButtonAction (ActionLabel "Invite new member", Always)
+	aLeave	= ButtonAction (ActionLabel "Leave group", Always)
+		
+	invite group
+		= 	enterInformation ("Invite a someone to join " +++ toString group) "Please enter a user to invite to the group"
+		>>=	inviteUserToGroup group
+			
+	leave group
+		=	getContextWorker
+		>>= removeMemberFromGroup group
+
 createGroup :: !String !User  -> Task Group
 createGroup name user 
-	= dbCreateItem {Group | groupId = 0, name = name, members = [user]}
+	= dbCreateItem {Group | groupId = Hidden 0, name = name, members = [user]}
 		
 getAllGroups :: Task [Group]
 getAllGroups
@@ -32,7 +90,7 @@ deleteGroup group = dbDeleteItem (getItemId group) >>| return group
 addMemberToGroup :: !Group !User -> Task Group
 addMemberToGroup group user
 	= dbReadItem (getItemId group) >>= \mbGroup -> case mbGroup of
-		Just group	= dbUpdateItem {Group|group & members = group.members ++ [user]}
+		Just group	= dbUpdateItem {Group|group & members = removeDup (group.members ++ [user])}
 		Nothing		= return group
 
 removeMemberFromGroup :: !Group !User -> Task Group
@@ -42,9 +100,10 @@ removeMemberFromGroup group user
 		Just group=:{members=[user]}	= deleteGroup group
 		//Remove the user from the group
 		Just group=:{members}			= dbUpdateItem {Group|group & members = removeMember user members}
-		Nothing							= return group 
-inviteUserToGroup :: !User !Group -> Task (ProcessRef Group)
-inviteUserToGroup user group
+		Nothing							= return group
+		
+inviteUserToGroup :: !Group !User -> Task Group
+inviteUserToGroup group user
 	=	getContextWorker
 	>>= \fromUser ->
 		spawnProcess True True (
@@ -56,6 +115,7 @@ inviteUserToGroup user group
 				)
 				(showMessage "Invitation declined" (toString user +++ " declined your invitation to join the group " +++ toString group) group)
 		)
+	>>| showMessage "Invitation sent" ("An invitation to join the group has been sent to " +++ toString user) group
 where
 	invite user group
 		= requestConfirmation
@@ -63,53 +123,5 @@ where
 			[Text (toString user +++ " invites you to join the group " +++ toString group +++ "."),BrTag [], Text "Do you accept this invitation?"]
 
 
-manageGroups :: Task Void
-manageGroups
-	=	Subject "Manage groups" @>>
-	(	getMyGroups
-	>>=	overview 
-	>>= \(action,group) -> case action of
-		ActionNew	= newGroup >>= manageGroup 	>>| return False
-		ActionOpen	= manageGroup group			>>| return False
-		ActionQuit	= 								return True
-	) <! id
-	>>| return Void
-where
-	overview []		= getDefaultValue >>= showMessageA "My groups" "You have no groups." [aNew,aQuit]
-	overview list	= enterChoiceA "My groups" "Select a group..." [aOpen,aNew,aQuit] list
-	
-	aOpen 			= ButtonAction (ActionOpen, IfValid)
-	aNew			= ButtonAction (ActionNew, Always)
-	aQuit			= ButtonAction (ActionQuit, Always)
-	newGroup		= 		enterInformation "New group" "Please enter a name for the new group" 
-						>>= \name ->
-							getContextWorker
-						>>= \user -> 
-					  		createGroup name user
-	
-manageGroup :: Group -> Task Void
-manageGroup igroup
-	= 	
-	(	justdo (dbReadItem (getItemId igroup))
-	>>= \group ->
-		showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
-	>>= \(action,_) -> case action of
-		ActionPrevious						= 					return True
-		ActionLabel "Invite a new member"	= invite group	>>| return False
-		ActionLabel "Leave group"			= leave group	>>| return False
-	) <! id >>| stop
-where
-	aBack	= ButtonAction (ActionPrevious, Always)
-	aInvite	= ButtonAction (ActionLabel "Invite a new member", Always)
-	aLeave	= ButtonAction (ActionLabel "Leave group", Always)
-		
-	invite group
-		= 	enterInformation ("Invite a someone to join " +++ toString group) "Please enter a user to invite to the group"
-		>>=	\user ->
-			inviteUserToGroup user group
-			
-	leave group
-		=	getContextWorker
-		>>= removeMemberFromGroup group
 			
 
