@@ -187,7 +187,7 @@ where
 	//pathid					= dp2id idPrefix (dataPathSetConsFlag currentPath)
 	pathid					= dp2id idPrefix currentPath
 
-gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,optional,valid,verifyMask,updateMask}
+gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,optional,valid,verifyMask,updateMask,renderAsStatic}
 	= case vizType of
 		VEditorDefinition
 			# (ox,nx) = case (old,new) of (VValue (CONS ox),VValue (CONS nx))	= (VValue ox, VValue nx); _ = (VBlank,VBlank)
@@ -209,7 +209,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 																				 , name = dp2s currentPath
 																				 , title = label
 																				 , items = []
-																				 , optional = optional
+																				 , optional = (optional && (not renderAsStatic))
 																				 , hasValue = False
 																				 , errorMsg = err
 																				 , hintMsg = hnt})]
@@ -220,7 +220,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 																				, name = dp2s currentPath
 																				, title = label
 																				, items = coerceToTUIDefs viz
-																				, optional = optional
+																				, optional = (optional && (not renderAsStatic))
 																				, hasValue = True
 																				, errorMsg = err
 																				, hintMsg = hnt})]
