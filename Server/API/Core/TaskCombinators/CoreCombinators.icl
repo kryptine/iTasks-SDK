@@ -3,7 +3,7 @@ implementation module CoreCombinators
 import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
-from 	CommonDomain import :: DateTime
+from 	Types import :: DateTime
 
 derive class iTask SchedulerState
 
@@ -129,8 +129,8 @@ where
 							= case eventActions of
 								[Just eventAction:_] = case filter (\act -> (getAction act) == eventAction) groupActions of
 									[gActions:_]
-										# (nSt,act) = procFun (getResult eventAction gActions,-1) pst.state
-										# pst = {pst & state = nSt}
+										# (nSt,act) = procFun (getResult eventAction gActions,-1) pst.PSt.state
+										# pst = {PSt | pst & state = nSt}
 										= case act of
 											Stop			= (True,Nothing,pst)
 											Continue		= (False,Nothing,pst)
@@ -144,9 +144,9 @@ where
 			TaskException e = (TaskException e,tst)
 			TaskFinished  r = (TaskFinished (parseFun r),tst)
 			TaskBusy
-				| gActionStop	= (TaskFinished (parseFun pst.state),tst)
+				| gActionStop	= (TaskFinished (parseFun pst.PSt.state),tst)
 				| otherwise
-					# tst = setGroupActions (evaluateConditions groupActions pst.state) tst
+					# tst = setGroupActions (evaluateConditions groupActions pst.PSt.state) tst
 					# tst = case mbFocus of
 						Just (Tag t)	= setFocusCommand (toString t) tst
 						Nothing			= tst
@@ -161,10 +161,10 @@ where
 			TaskBusy		= processAllTasks pst (inc idx) tst mbFocus
 			TaskFinished a	
 				| done			= processAllTasks pst (inc idx) tst mbFocus
-				# (nSt,act)		= procFun (a,idx) pst.state
+				# (nSt,act)		= procFun (a,idx) pst.PSt.state
 				# pst			= markProcessed {PSt | pst & state = nSt} idx
 				= case act of
-					Stop 		= (TaskFinished pst.state,pst,tst,mbFocus)
+					Stop 		= (TaskFinished pst.PSt.state,pst,tst,mbFocus)
 					Continue	= processAllTasks pst (inc idx) tst mbFocus
 					Extend tlist
 						# pst = {PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]}

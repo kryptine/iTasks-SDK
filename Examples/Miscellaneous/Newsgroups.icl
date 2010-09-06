@@ -8,7 +8,6 @@ implementation module Newsgroups
 import StdList, StdOrdList, StdTuple, StdMisc
 import iTasks
 import Text
-import CommonDomain
 
 derive class iTask	EMail, Reply, DisplayNews, Broadcast, ReplyHdr
 derive bimap		Maybe, (,)

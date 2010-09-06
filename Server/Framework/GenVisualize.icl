@@ -2,7 +2,7 @@ implementation module GenVisualize
 
 import StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMaybe, StdGeneric, StdEnum
 import GenUpdate, GenEq
-import Void, Either
+import Void, Either, Util
 import Text, Html, JSON, TUIDefinition
 
 derive gEq Document
@@ -14,8 +14,6 @@ NEWLINE	:== "\n"		//The character sequence to use for new lines in text display 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, 
 		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, updateMask = Untouched False [], verifyMask = VMValid Nothing Nothing [], updates = []}
-
-import StdDebug
 
 //Wrapper functions
 visualizeAsEditor :: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool) | gVisualize{|*|} a
@@ -595,8 +593,6 @@ where
 				VHtmlDisplay	= []
 				_				= [TextFragment ", "]
 
-import StdDebug
-
 gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,valid,renderAsStatic, updateMask,verifyMask}
 	# (cmu, um) = popMask updateMask
 	# (cmv, vm) = popMask verifyMask
@@ -693,59 +689,6 @@ where
 	htmlLabel [i] = (flatten (coerceToHtml i))
 	htmlLabel [i:is] = (flatten (coerceToHtml i)) ++ [(Text ", ")] ++ htmlLabel is
 	
-//Document Type
-gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, updates, updateMask, verifyMask}
-= case vizType of
-	VEditorDefinition
-		# (cmu,um) = popMask updateMask
-		# (cmv,vm) = popMask verifyMask
-		# (valid,err,hnt) = verifyElementStr valid cmu cmv
-		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = id, name = dp2s currentPath, document = oval, fieldLabel = label, optional = optional, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})],
-		  {VSt | vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
-	VEditorUpdate
-		# (valid,msg,vst) = getMessageUpdates vst
-		| oval =!= nval //use 'dirty field'
-			= ([TUIUpdate (TUISetValue id (toString (toJSON nval))):msg],
-			  {VSt | vst & currentPath = stepDataPath currentPath, valid = valid})
-		| otherwise 
-			= ((restoreField currentPath updates id (toString (toJSON oval)))++msg,
-			  {VSt | vst & currentPath = stepDataPath currentPath})
-	VHtmlDisplay
-		= case old of
-			(VBlank) = noDocument vst
-			(VValue document)
-				| document.Document.size == 0
-					= noDocument vst
-				| otherwise
-					# downLink = ATag [HrefAttr (buildLink document)
-									  ,TargetAttr "_blank",IdAttr id
-									  ,NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
-					# prevLink = ATag [HrefAttr "#", IdAttr id
-									  ,NameAttr "x-form-document-preview-link" ] [ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
-					= ([HtmlFragment [(Text ( document.Document.name +++" ("+++printByteSize document.Document.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
-				  		{VSt | vst & currentPath = stepDataPath currentPath})
-	VTextDisplay
-		= case old of
-			(VBlank) = noDocument vst
-			(VValue document)
-				| document.Document.size == 0 = noDocument vst
-				| otherwise	= ([TextFragment document.Document.name],{VSt | vst & currentPath = stepDataPath currentPath})
-where
-	id = dp2id idPrefix currentPath
-	
-	oval = case old of (VValue o) = o; _ = {Document|documentId = "",name = "", mime = "", size = 0}
-	nval = case new of (VValue n) = n; _ = {Document|documentId = "",name = "", mime = "", size = 0}
-	
-	fixReal r = (toReal (toInt (r*100.0)))/100.0
-	
-	printByteSize size
-	| size >= 1048576 = toString (fixReal ((toReal size)/(toReal 1048576)))+++" Mbyte"
-	| size >= 1024    = toString (fixReal ((toReal size)/(toReal 1024)))+++" Kbyte"
-	| otherwise 	  = toString size +++ " byte"
-	
-	noDocument vst = ([TextFragment "No Document."],vst)
-	buildLink document = "/services/json/documents/" +++ document.Document.documentId +++ "/download"
-
 //Hidden type
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath, updateMask, verifyMask}
 	# (cmu,um) = popMask updateMask
@@ -847,13 +790,6 @@ where
 	newV = case new of (VValue (VHEditable nx)) = (VValue nx); (VValue (VHDisplay nx)) = (VValue nx); _ = VBlank
 	
 	id = dp2id idPrefix currentPath	
-	
-derive gVisualize Either, Void
-
-instance toString (VisualizationValue a) | toString a
-where
-	toString VBlank		= ""
-	toString (VValue x)	= toString x
 
 gVisualize{|Password|} old new vst=:{VSt | vizType,currentPath}
 	= case vizType of
@@ -896,8 +832,142 @@ gVisualize{|Time|} old new vst=:{VSt | vizType,currentPath,updateMask,idPrefix}
 		_					
 			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
 
-derive gVisualize DateTime
+gVisualize {|Document|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels,renderAsStatic, updates, updateMask, verifyMask}
+= case vizType of
+	VEditorDefinition
+		# (cmu,um) = popMask updateMask
+		# (cmv,vm) = popMask verifyMask
+		# (valid,err,hnt) = verifyElementStr valid cmu cmv
+		= ([TUIFragment (TUIDocumentControl {TUIDocumentControl |id = id, name = dp2s currentPath, document = oval, fieldLabel = label, optional = optional, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})],
+		  {VSt | vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
+	VEditorUpdate
+		# (valid,msg,vst) = getMessageUpdates vst
+		| oval =!= nval //use 'dirty field'
+			= ([TUIUpdate (TUISetValue id (toString (toJSON nval))):msg],
+			  {VSt | vst & currentPath = stepDataPath currentPath, valid = valid})
+		| otherwise 
+			= ((restoreField currentPath updates id (toString (toJSON oval)))++msg,
+			  {VSt | vst & currentPath = stepDataPath currentPath})
+	VHtmlDisplay
+		= case old of
+			(VBlank) = noDocument vst
+			(VValue document)
+				| document.Document.size == 0
+					= noDocument vst
+				| otherwise
+					# downLink = ATag [HrefAttr (buildLink document)
+									  ,TargetAttr "_blank",IdAttr id
+									  ,NameAttr "x-form-document-link"] [ImgTag [SrcAttr "skins/default/img/icons/page_white_put.png"]]
+					# prevLink = ATag [HrefAttr "#", IdAttr id
+									  ,NameAttr "x-form-document-preview-link" ] [ImgTag [SrcAttr "skins/default/img/icons/zoom.png"]]			
+					= ([HtmlFragment [(Text ( document.Document.name +++" ("+++printByteSize document.Document.size+++") ")),RawText "&nbsp;",downLink,prevLink]],
+				  		{VSt | vst & currentPath = stepDataPath currentPath})
+	VTextDisplay
+		= case old of
+			(VBlank) = noDocument vst
+			(VValue document)
+				| document.Document.size == 0 = noDocument vst
+				| otherwise	= ([TextFragment document.Document.name],{VSt | vst & currentPath = stepDataPath currentPath})
+where
+	id = dp2id idPrefix currentPath
 	
+	oval = case old of (VValue o) = o; _ = {Document|documentId = "",name = "", mime = "", size = 0}
+	nval = case new of (VValue n) = n; _ = {Document|documentId = "",name = "", mime = "", size = 0}
+	
+	fixReal r = (toReal (toInt (r*100.0)))/100.0
+	
+	printByteSize size
+	| size >= 1048576 = toString (fixReal ((toReal size)/(toReal 1048576)))+++" Mbyte"
+	| size >= 1024    = toString (fixReal ((toReal size)/(toReal 1024)))+++" Kbyte"
+	| otherwise 	  = toString size +++ " byte"
+	
+	noDocument vst = ([TextFragment "No Document."],vst)
+	buildLink document = "/services/json/documents/" +++ document.Document.documentId +++ "/download"
+
+gVisualize{|FormButton|} old new vst=:{vizType,label=fLabel,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,updateMask,verifyMask,updates}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask
+	= case vizType of
+		VEditorDefinition
+			# (valid, err, hnt) = verifyElementStr valid cmu cmv
+			= ([TUIFragment (TUIFormButtonControl {TUIButtonControl | label = label old, iconCls = icon old, name = dp2s currentPath, id = id, value = toString pressedOld, fieldLabel = labelAttr useLabels fLabel, optional = optional, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})]
+				, {VSt | vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
+		VEditorUpdate
+			# upd = if (pressedOld == pressedNew) (restoreField currentPath updates id (toString pressedOld)) [TUIUpdate (TUISetValue id (toString pressedNew))]
+			#(valid,msg) = verifyElementUpd valid id cmu cmv
+			= (upd ++ msg
+				, {VSt | vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
+		_
+			= ([TextFragment (label old)]
+				, {VSt | vst & currentPath = stepDataPath currentPath})
+where
+	id			= dp2id idPrefix currentPath
+	
+	label b		= case b of (VValue b) = b.FormButton.label; _ = ""
+	icon b		= case b of (VValue b) = b.icon; _ = ""	
+	
+	pressedOld	= case old of (VValue ob) = pressed ob; _ = False
+	pressedNew	= case new of (VValue nb) = pressed nb; _ = True
+	
+	pressed b	= case b.FormButton.state of
+		Pressed		= True
+		NotPressed	= False	
+
+gVisualize{|Currency|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,verifyMask,updateMask,updates}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask
+	# oldV = value old cmu
+	# newV = value new cmu
+	= case vizType of
+		VEditorDefinition	
+			# (valid,err,hnt) = verifyElementStr valid cmu cmv
+			= ([TUIFragment (TUICurrencyControl {TUICurrencyControl|id = id, name = dp2s currentPath
+												, value = oldV, fieldLabel = labelAttr useLabels label
+												, currencyLabel = curLabel old, optional = optional
+												, staticDisplay = renderAsStatic
+												, errorMsg = err, hintMsg = hnt})]
+								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
+		VEditorUpdate
+			# upd = if (oldV == newV) (restoreField currentPath updates id oldV) [TUIUpdate (TUISetValue id newV)]
+			# (valid,msg) = verifyElementUpd valid id cmu cmv
+			= (upd++msg
+				, {VSt|vst & currentPath = stepDataPath currentPath, valid = valid, updateMask = um, verifyMask = vm})
+		_					
+			= ([TextFragment (toString old)], {VSt|vst & currentPath = stepDataPath currentPath})
+where
+	curLabel (VValue (EUR _))	= "&euro;"
+	curLabel (VValue (GBP _))	= "&pound;"
+	curLabel (VValue (USD _))	= "$"
+	curLabel (VValue (JPY _)) = "&yen;"
+	curLabel _					= "&euro;" //Use the default currency
+	
+	value VBlank um			= ""
+	value (VValue v) um = case um of (Touched _ _) = (decFormat (toInt v)); _ = ""
+	
+	id = dp2id idPrefix currentPath
+
+gVisualize{|User|} old new vst=:{vizType,currentPath,updateMask}
+	= case vizType of
+		VEditorDefinition	
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUIUserControl ctl)], vst)
+		VEditorUpdate
+			= updateBasicControl old new vst
+		_					
+			= ([TextFragment (toString old)]
+				, {VSt|vst & currentPath = stepDataPath currentPath})
+
+gVisualize{|Task|} _ (VValue (Task props _ _ _)) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
+gVisualize{|Task|} _ _ _ vst = ([],vst)
+
+derive gVisualize DateTime, Either, Void, UserDetails
+
+//***** UTILITY FUNCTIONS *************************************************************************************************	
+instance toString (VisualizationValue a) | toString a
+where
+	toString VBlank		= ""
+	toString (VValue x)	= toString x
+
 value2s :: !UpdateMask !(VisualizationValue a) -> String | toString a
 value2s (Touched _ _) (VValue a) = toString a
 value2s _ _ = ""
@@ -926,7 +996,6 @@ determineAdditions consid editor = reverse [TUIUpdate (TUIAdd consid def) \\ def
 determineChildAdditions :: String [Visualization] -> [Visualization]
 determineChildAdditions consid editor = [TUIUpdate (TUIAddTo consid def) \\ def <- coerceToTUIDefs editor]
 
-//***** NEW STUFF *************************************************************************************************
 visualizeBasicControl :: !(VisualizationValue a) !*VSt -> (!TUIBasicControl, !*VSt) | toString a
 visualizeBasicControl old vst=:{vizType,idPrefix,label,currentPath,updates,useLabels,optional,valid,renderAsStatic,updateMask,verifyMask}
 	# (cmu,um) = popMask updateMask
@@ -1047,3 +1116,30 @@ where
 	coercable (TextFragment _)	= True
 	coercable (HtmlFragment _)	= True
 	coercable _					= False
+	
+// VisualizationHints etc..
+fromVisualizationHint :: !(VisualizationHint .a) -> .a
+fromVisualizationHint (VHEditable a) = a
+fromVisualizationHint (VHDisplay a) = a
+fromVisualizationHint (VHHidden a) = a
+
+toVisualizationHint :: !.a -> (VisualizationHint .a)
+toVisualizationHint a = (VHEditable a)
+
+fromEditable :: !(Editable .a) -> .a
+fromEditable (Editable a) = a
+
+toEditable :: !.a -> (Editable .a)
+toEditable a = (Editable a)
+
+fromDisplay :: !(Display .a) -> .a
+fromDisplay (Display a) = a
+
+toDisplay :: !.a -> (Display .a)
+toDisplay a = (Display a)
+
+fromHidden :: !(Hidden .a) -> .a
+fromHidden (Hidden x) = x
+
+toHidden :: !.a -> (Hidden .a)
+toHidden x = (Hidden x)

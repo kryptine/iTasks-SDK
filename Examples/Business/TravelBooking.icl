@@ -1,7 +1,6 @@
 implementation module TravelBooking
 
 import iTasks
-import CommonDomain
 
 // (c) 2007 MJP
 

@@ -7,11 +7,14 @@ import GenUpdate, GenVerify
 //Generic visualization function
 generic gVisualize a	:: (VisualizationValue a) (VisualizationValue a) *VSt -> ([Visualization], *VSt)
 
+//Bimap for visualization values
+derive bimap VisualizationValue
+
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
-derive gVisualize Int, Real, Char, Bool, String, Document
+derive gVisualize Int, Real, Char, Bool, String
 derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint
-derive gVisualize Note, Password, Date, Time, DateTime
+derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Task
 
 //Wrapper functions for visualization
 visualizeAsEditor		:: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
@@ -20,6 +23,26 @@ visualizeAsTextDisplay	:: a -> String																	| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: a -> [HtmlTag]																| gVisualize{|*|} a
 visualizeAsTextLabel	:: a -> String																	| gVisualize{|*|} a
 
+// Field behaviour extensions
+:: VisualizationHint a 	= VHEditable a
+					   	| VHDisplay a
+					   	| VHHidden a
+:: Editable a 			= Editable a		// Variable is always rendered within a form as editor field
+:: Display a 			= Display a			// Variable is always rendered within a form as a static element
+:: Hidden a 			= Hidden a			// Variable is never rendered
+
+fromVisualizationHint :: !(VisualizationHint .a) -> .a
+toVisualizationHint :: !.a -> (VisualizationHint .a)
+
+fromEditable :: !(Editable .a) -> .a
+toEditable :: !.a -> (Editable .a)
+
+fromDisplay :: !(Display .a) -> .a
+toDisplay :: !.a -> (Display .a)
+
+fromHidden :: !(Hidden .a) -> .a
+toHidden :: !.a -> (Hidden .a)
+
 //Wrapper function for calculating form delta's
 determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask VerifyMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 
@@ -27,9 +50,6 @@ determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask Ve
 :: VisualizationValue a
 	= VValue a
 	| VBlank
-
-//Bimap for visualization values
-derive bimap VisualizationValue
 
 :: *VSt =
 	{ vizType			:: !VisualizationType			// Type of preferred visualization

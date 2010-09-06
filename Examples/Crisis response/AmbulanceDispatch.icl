@@ -2,7 +2,6 @@ implementation module AmbulanceDispatch
 
 import iTasks
 import GenEq
-import CommonDomain
 
 ambulanceDispatchExamples :: [Workflow]
 ambulanceDispatchExamples = flows

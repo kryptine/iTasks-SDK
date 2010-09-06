@@ -1,7 +1,6 @@
 implementation module GUIDemo
 
 import iTasks
-import CommonDomain
 
 guiDemoExample :: [Workflow]
 guiDemoExample

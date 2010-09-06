@@ -1,23 +1,23 @@
 implementation module Types
 
 import StdInt, StdBool, StdClass, StdArray, StdTuple, StdMisc, StdList
-import GenVisualize, GenUpdate, JSON
+import GenVisualize, GenUpdate, GenLexOrd, JSON
 import Html
 import Text, Base64, Util
-import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
-derive gVisualize		UserDetails, Session
-derive gUpdate			UserDetails, Session
-derive gVerify			UserDetails, Session, DateTime
-derive gMerge			User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime
+derive gVisualize		EmailAddress, Session
+derive gUpdate			EmailAddress, Session
+derive gVerify			EmailAddress, Session
+derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime
 
 derive bimap			Maybe, (,)
 
-derive JSONEncode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
-derive JSONDecode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
+derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
+derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
 
+derive gLexOrd			Currency
 
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
@@ -37,20 +37,151 @@ initGroupedProperties =
 	| groupedBehaviour		= GBFixed
 	, groupActionsBehaviour	= IncludeGroupActions
 	}
-	
-instance toString TaskPriority
-where
-	toString LowPriority	= "LowPriority"
-	toString NormalPriority	= "NormalPriority"
-	toString HighPriority	= "HighPriority"
 
-instance toString TaskStatus
+// ******************************************************************************************************
+// Document
+// ******************************************************************************************************
+
+instance == Document
 where
-	toString Active		= "Active"
-	toString Suspended	= "Suspended"
-	toString Finished	= "Finished"
-	toString Excepted	= "Excepted"
-	toString Deleted	= "Deleted"
+	(==) doc0 doc1 = doc0.documentId == doc1.documentId
+
+// ******************************************************************************************************
+// Password
+// ******************************************************************************************************
+
+instance == Password
+where
+	(==) (Password a) (Password b) = a == b
+
+// ******************************************************************************************************
+// Note
+// ******************************************************************************************************
+
+instance toString Note
+where
+	toString (Note s)				= s
+
+instance toString Password
+where
+	toString (Password p) = p
+
+
+instance == Note
+where
+	(==) (Note x) (Note y) = x == y
+
+// ******************************************************************************************************
+// Date
+// ******************************************************************************************************
+		
+instance < Date
+where
+	(<) x y 
+		| x.Date.year < y.Date.year															= True
+		| x.Date.year == y.Date.year && x.Date.mon < y.Date.mon								= True
+		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
+		| otherwise																			= False
+
+instance + Date
+where
+	(+) x y = {Date|year = x.Date.year + y.Date.year, mon = x.Date.mon + y.Date.mon, day = x.Date.day + y.Date.day}
+
+instance - Date
+where
+	(-) x y = {Date|year = x.Date.year - y.Date.year, mon = x.Date.mon - y.Date.mon, day = x.Date.day - y.Date.day}
+
+instance toString Date
+where
+	toString {Date|year,mon,day}	= (pad 2 day) +++ "-" +++ (pad 2 mon) +++ "-" +++ (pad 4 year)
+
+instance fromString Date
+where
+	fromString s					= {Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
+
+// ******************************************************************************************************
+// Time
+// ******************************************************************************************************
+
+instance < Time
+where
+	(<) x y
+		| x.Time.hour < y.Time.hour															= True
+		| x.Time.hour == y.Time.hour && x.Time.min < y.Time.min								= True
+		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
+		| otherwise																			= False
+
+instance + Time
+where
+	(+) x y = {Time|hour = x.Time.hour + y.Time.hour, min = x.Time.min + y.Time.min, sec = x.Time.sec + y.Time.sec}
+
+instance - Time
+where
+	(-) x y = {Time|hour = x.Time.hour - y.Time.hour, min = x.Time.min - y.Time.min, sec = x.Time.sec - y.Time.sec}
+
+instance toString Time
+where
+	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
+
+instance fromString Time
+where
+	fromString s					= {Time|hour = toInt (s %(0,1)), min = toInt (s %(3,4)), sec = toInt (s %(6,7)) }
+
+// ******************************************************************************************************
+// DateTime
+// ******************************************************************************************************
+
+instance toString DateTime
+where
+	toString (DateTime d t) = toString d +++ " " +++ toString t
+
+// ******************************************************************************************************
+// Currency
+// ******************************************************************************************************
+
+instance toString Currency
+where
+	toString (EUR x) = "EUR " +++ decFormat x
+	toString (GBP x) = "GBP " +++ decFormat x
+	toString (USD x) = "USD " +++ decFormat x
+	toString (JPY x) = "JPY " +++ decFormat x
+
+instance toInt Currency
+where
+	toInt (EUR val) = val
+	toInt (GBP val) = val
+	toInt (USD val) = val
+	toInt (JPY val) = val
+		
+instance < Currency
+where
+	(<) x y = case x =?= y of
+		LT	= True
+		_	= False
+
+instance zero Currency
+where
+	zero = EUR 0
+
+instance + Currency
+where
+	(+) (EUR x) (EUR y) = EUR (x + y)
+	(+) (GBP x) (GBP y) = GBP (x + y)
+	(+) (USD x) (USD y) = USD (x + y)
+	(+) (JPY x) (JPY y) = JPY (x + y)
+	(+) _ _ = abort "Trying to add money of different currencies!"
+
+instance - Currency
+where
+	(-) (EUR x) (EUR y) = EUR (x - y)
+	(-) (GBP x) (GBP y) = GBP (x - y)
+	(-) (USD x) (USD y) = USD (x - y)
+	(-) (JPY x) (JPY y) = JPY (x - y)
+	(-) _ _ = abort "Trying to subtract money of different currencies!"
+
+// ******************************************************************************************************
+// User
+// ******************************************************************************************************
 
 instance toString User
 where
@@ -60,35 +191,6 @@ where
 	where
 		dname = displayName user
 		uname = userName user
-		
-instance toString Note
-where
-	toString (Note s)				= s
-
-instance toString Password
-where
-	toString (Password p) = p
-
-instance toString Time
-where
-	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
-
-instance toString Date
-where
-	toString {Date|year,mon,day}	= (pad 2 day) +++ "-" +++ (pad 2 mon) +++ "-" +++ (pad 4 year)
-
-instance toString DateTime
-where
-	toString (DateTime d t) = toString d +++ " " +++ toString t
-
-
-instance fromString Time
-where
-	fromString s					= {Time|hour = toInt (s %(0,1)), min = toInt (s %(3,4)), sec = toInt (s %(6,7)) }
-
-instance fromString Date
-where
-	fromString s					= {Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
 
 instance == User
 where
@@ -100,43 +202,6 @@ where
 	(==) (RegisteredUser a) (NamedUser b)		= a.userName == userName (NamedUser b)
 	(==) (SessionUser a) (SessionUser b)		= a == b
 	(==) _ _									= False
-
-instance == Note
-where
-	(==) (Note x) (Note y) = x == y
-		
-instance == Password
-where
-	(==) (Password a) (Password b) = a == b
-
-instance == TaskStatus
-where
-	(==) Active		Active		= True
-	(==) Suspended	Suspended	= True
-	(==) Finished	Finished	= True
-	(==) Excepted	Excepted	= True
-	(==) Deleted	Deleted		= True
-	(==) _			_			= False
-	
-instance == Document
-where
-	(==) doc0 doc1 = doc0.documentId == doc1.documentId
-
-instance < Time
-where
-	(<) x y
-		| x.Time.hour < y.Time.hour															= True
-		| x.Time.hour == y.Time.hour && x.Time.min < y.Time.min								= True
-		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
-		| otherwise																			= False
-		
-instance < Date
-where
-	(<) x y 
-		| x.Date.year < y.Date.year															= True
-		| x.Date.year == y.Date.year && x.Date.mon < y.Date.mon								= True
-		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
-		| otherwise																			= False
 
 instance < User
 where
@@ -153,48 +218,27 @@ where
 	(<) (RegisteredUser _) _					= False
 	(<)	_ _										= False
 
-instance + Time
+JSONEncode{|User|} AnyUser 					= [JSONString "Any User <>"]
+JSONEncode{|User|} RootUser 				= [JSONString "Root User <root>"]
+JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName+++"<"+++details.userName+++">")]
+JSONEncode{|User|} (NamedUser username)		= [JSONString username]
+JSONEncode{|User|} (SessionUser session)	= [JSONString ("Anonymous User <#"+++session+++">")]
+
+JSONDecode{|User|} [JSONString user:json]
+	# uname = extractUserName user
+	| uname == "root" 		= (Just RootUser, json)
+	| uname == ""	  		= (Just AnyUser, json)
+	| startsWith "#" uname 	= (Just (SessionUser (uname%(1,size uname))),json)
+	| otherwise				= (Just (NamedUser user), json)
 where
-	(+) x y = {Time|hour = x.Time.hour + y.Time.hour, min = x.Time.min + y.Time.min, sec = x.Time.sec + y.Time.sec}
-
-instance + Date
-where
-	(+) x y = {Date|year = x.Date.year + y.Date.year, mon = x.Date.mon + y.Date.mon, day = x.Date.day + y.Date.day}
-
-instance - Time
-where
-	(-) x y = {Time|hour = x.Time.hour - y.Time.hour, min = x.Time.min - y.Time.min, sec = x.Time.sec - y.Time.sec}
-
-instance - Date
-where
-	(-) x y = {Date|year = x.Date.year - y.Date.year, mon = x.Date.mon - y.Date.mon, day = x.Date.day - y.Date.day}
-	
-// VisualizationHints etc..
-fromVisualizationHint :: !(VisualizationHint .a) -> .a
-fromVisualizationHint (VHEditable a) = a
-fromVisualizationHint (VHDisplay a) = a
-fromVisualizationHint (VHHidden a) = a
-
-toVisualizationHint :: !.a -> (VisualizationHint .a)
-toVisualizationHint a = (VHEditable a)
-
-fromEditable :: !(Editable .a) -> .a
-fromEditable (Editable a) = a
-
-toEditable :: !.a -> (Editable .a)
-toEditable a = (Editable a)
-
-fromDisplay :: !(Display .a) -> .a
-fromDisplay (Display a) = a
-
-toDisplay :: !.a -> (Display .a)
-toDisplay a = (Display a)
-
-fromHidden :: !(Hidden .a) -> .a
-fromHidden (Hidden x) = x
-
-toHidden :: !.a -> (Hidden .a)
-toHidden x = (Hidden x)
+	extractUserName user
+		| end > start && start > -1 = trim (user % (start + 1, end - 1)) 
+		| otherwise					= user
+	where
+		start = indexOf "<" user
+		end = indexOf ">" user 
+		
+JSONDecode{|User|} json	= (Nothing,json)
 
 userName :: !User -> String
 userName RootUser = "root"
@@ -222,6 +266,37 @@ getRoles :: !User -> [Role]
 getRoles (RegisteredUser details) = mb2list details.roles
 getRoles _ = []
 
+// ******************************************************************************************************
+// Task specialization
+// ******************************************************************************************************
+	
+instance toString TaskPriority
+where
+	toString LowPriority	= "LowPriority"
+	toString NormalPriority	= "NormalPriority"
+	toString HighPriority	= "HighPriority"
+
+instance toString TaskStatus
+where
+	toString Active		= "Active"
+	toString Suspended	= "Suspended"
+	toString Finished	= "Finished"
+	toString Excepted	= "Excepted"
+	toString Deleted	= "Deleted"
+
+instance == TaskStatus
+where
+	(==) Active		Active		= True
+	(==) Suspended	Suspended	= True
+	(==) Finished	Finished	= True
+	(==) Excepted	Excepted	= True
+	(==) Deleted	Deleted		= True
+	(==) _			_			= False
+
+JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
+JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|Task|} _ c						= (Nothing,c) 
+
 taskSubject :: !(Task a) -> String
 taskSubject (Task p _ _ _) = p.subject
 
@@ -233,95 +308,3 @@ taskUser (Task p _ _ _) = p.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties (Task p _ _ _) = p
-
-
-gVerify{|Password|} _ vst = basicVerify "Enter a password" vst
-
-
-		
-
-
-gVerify{|Note|} _ vst = basicVerify "Enter a text" vst
-
-
-
-
-
-gVerify{|Date|} _ vst = basicVerify "Enter a date" vst
-
-
-
-
-
-gVerify{|Time|} _ vst = basicVerify "Enter a time of day" vst
-
-
-
-
-gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
-
-gVisualize{|User|} old new vst=:{vizType,currentPath,updateMask}
-	= case vizType of
-		VEditorDefinition	
-			# (ctl,vst) = visualizeBasicControl old vst
-			= ([TUIFragment (TUIUserControl ctl)], vst)
-		VEditorUpdate
-			= updateBasicControl old new vst
-		_					
-			= ([TextFragment (toString old)]
-				, {VSt|vst & currentPath = stepDataPath currentPath})
-
-gUpdate{|User|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (AnyUser,{USt | ust & newMask = appendToMask newMask (Untouched False [])})
-gUpdate{|User|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
-	# (cm, om) = popMask oldMask
-	| currentPath == searchPath
-		| userName (NamedUser update) == "root"
-			= (RootUser, {USt | ust & newMask = appendToMask newMask (toggleMask update), oldMask = om})
-		| otherwise
-			= (NamedUser update,  {USt | ust & newMask = appendToMask newMask (toggleMask update), oldMask = om})
-	| otherwise
-		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
-gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
-gUpdate{|User|} s ust = (s, ust)
-
-JSONEncode{|User|} AnyUser 					= [JSONString "Any User <>"]
-JSONEncode{|User|} RootUser 				= [JSONString "Root User <root>"]
-JSONEncode{|User|} (RegisteredUser details) = [JSONString (details.displayName+++"<"+++details.userName+++">")]
-JSONEncode{|User|} (NamedUser username)		= [JSONString username]
-JSONEncode{|User|} (SessionUser session)	= [JSONString ("Anonymous User <#"+++session+++">")]
-
-JSONDecode{|User|} [JSONString user:json]
-	# uname = extractUserName user
-	| uname == "root" 		= (Just RootUser, json)
-	| uname == ""	  		= (Just AnyUser, json)
-	| startsWith "#" uname 	= (Just (SessionUser (uname%(1,size uname))),json)
-	| otherwise				= (Just (NamedUser user), json)
-where
-	extractUserName user
-		| end > start && start > -1 = trim (user % (start + 1, end - 1)) 
-		| otherwise					= user
-	where
-		start = indexOf "<" user
-		end = indexOf ">" user 
-		
-JSONDecode{|User|} json	= (Nothing,json)
-
-// ******************************************************************************************************
-// Task specialization
-// ******************************************************************************************************
-
-JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
-JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
-JSONDecode{|Task|} _ c						= (Nothing,c) 
-
-gVisualize{|Task|} _ (VValue (Task props _ _ _)) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
-gVisualize{|Task|} _ _ _ vst = ([],vst)
-
-gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
-	# (a,ust) = fx (abort "Task create with undef") ust
-	= (Task {initManagerProperties & subject = "return"} initGroupedProperties Nothing (\tst -> (TaskFinished a,tst)), ust)
-gUpdate{|Task|} _ x ust = (x,ust)
-
-gVerify{|Task|} _ _ vst = vst

@@ -1,6 +1,6 @@
 implementation module textEditor
 
-import iTasks, CommonDomain, StdMisc, Text
+import iTasks, StdMisc, Text
 
 textEditor :: [Workflow]
 textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ Subject "Text Editor")]

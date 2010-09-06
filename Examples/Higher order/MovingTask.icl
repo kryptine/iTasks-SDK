@@ -1,7 +1,6 @@
 implementation module MovingTask
 
 import iTasks
-import CommonDomain
 
 derive class iTask	QForm, Person, Gender
 derive bimap (,), Maybe

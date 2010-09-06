@@ -3,7 +3,6 @@ implementation module Util
 import StdBool, StdArray, StdOverloaded, StdList, StdTuple, StdMisc, StdFile
 import Time, Text, Base64
 import TSt, Types
-import CommonDomain
 
 import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 

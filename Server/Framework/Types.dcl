@@ -14,14 +14,14 @@ from Config			import :: Config
 
 import GenVisualize, GenUpdate, JSON, StoreTasks
 
-derive gVisualize		User, UserDetails, Session, Task
-derive gUpdate			User, UserDetails, Session, Task 
-derive gVerify			User, UserDetails, Session, Task, Note, Password, Date, Time, DateTime
+derive gVisualize		EmailAddress, Session
+derive gUpdate			EmailAddress, Session 
+derive gVerify			EmailAddress, Session
 
-derive gMerge			User, Session, VisualizationHint, Note, Password, Date, Time, DateTime
+derive gMerge			FormButton, User, Session, VisualizationHint, Note, Password, Date, Time, DateTime
 
-derive JSONEncode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
-derive JSONDecode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
+derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
+derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
 		
 instance toString User
 instance toString TaskPriority
@@ -32,6 +32,7 @@ instance toString Password
 instance toString Date
 instance toString Time
 instance toString DateTime
+instance toString Currency
 
 instance fromString Date
 instance fromString Time
@@ -45,13 +46,42 @@ instance == Password
 instance < Time
 instance < Date
 instance < User
+instance < Currency
 
 instance + Time		//Naive fieldwise addition
 instance + Date		//Naive fieldwise addition
+instance + Currency 
 
 instance - Time		//Naive fieldwise subtraction
 instance - Date		//Naive fieldwise subtraction
-		
+instance - Currency
+
+instance toInt Currency
+instance zero Currency
+
+// Strings with special meanings
+:: EmailAddress	= EmailAddress String
+:: URL			= URL String
+:: PhoneNr		= PhoneNr String
+:: Password		= Password !String
+
+// Form buttons
+:: FormButton 		= 
+	{ label			:: String
+	, icon			:: String
+	, state			:: ButtonState
+	}
+	
+:: ButtonState		= NotPressed | Pressed
+
+// Money
+:: Currency		// Type of currency and amount in cents. ISO4217 currency codes are used
+	= EUR Int
+	| GBP Int
+	| USD Int
+	| JPY Int
+	
+// Users	
 :: User
 	= AnyUser						// Any not further specified person
 	| RootUser						// The system super user
@@ -69,8 +99,7 @@ instance - Date		//Naive fieldwise subtraction
 :: UserId			:== String
 :: Role				:== String
 
-:: Password			= Password !String
-
+// Session
 :: SessionId		:== String
 :: Session			=
 	{ sessionId	::	!String
@@ -181,27 +210,6 @@ initGroupedProperties :: GroupedProperties
 
 //A labeled new change
 :: ChangeInjection :== (!ChangeLifeTime,!ChangeDyn)
-
-
-// Field behaviour extensions
-:: VisualizationHint a = VHEditable a
-					   | VHDisplay a
-					   | VHHidden a
-:: Editable a = Editable a					// Variable is always rendered within a form as editor field
-:: Display a = Display a			// Variable is always rendered within a form as a HTML-fragment
-:: Hidden a = Hidden a						// Variable is never rendered
-
-fromVisualizationHint :: !(VisualizationHint .a) -> .a
-toVisualizationHint :: !.a -> (VisualizationHint .a)
-
-fromEditable :: !(Editable .a) -> .a
-toEditable :: !.a -> (Editable .a)
-
-fromDisplay :: !(Display .a) -> .a
-toDisplay :: !.a -> (Display .a)
-
-fromHidden :: !(Hidden .a) -> .a
-toHidden :: !.a -> (Hidden .a)
 
 // Data types for which the framework provides special visualizations and support
 // Plain text notes

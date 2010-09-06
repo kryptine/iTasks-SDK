@@ -1,7 +1,6 @@
 implementation module BugReport
 
 import iTasks
-import CommonDomain
 
 :: BugReport =
 	{ application	:: String

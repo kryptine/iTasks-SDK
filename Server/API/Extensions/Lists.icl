@@ -1,6 +1,6 @@
 implementation module Lists
 
-import iTasks, CommonDomain, Groups
+import iTasks, Groups
 
 derive class iTask	List, ListMeta, ListDescription, AnyList
 derive gMerge		List, ListMeta, ListDescription, AnyList

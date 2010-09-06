@@ -1,7 +1,6 @@
 implementation module ReviewTask
 
 import iTasks
-import CommonDomain
 
 // (c) 2007 MJP
 

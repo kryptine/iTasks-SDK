@@ -1,7 +1,6 @@
 implementation module Coffeemachine
 
 import iTasks
-import CommonDomain
 
 coffeemachineExample :: [Workflow]
 coffeemachineExample = [ workflow "Examples/Miscellaneous/Coffeemachine" coffeemachine ]

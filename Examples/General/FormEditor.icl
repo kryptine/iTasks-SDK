@@ -1,6 +1,6 @@
 implementation module FormEditor
  
-import 	iTasks, CommonDomain
+import 	iTasks
 from	EstherBackend import toStringDynamic
 from	StdFunc	import o				
 import 	FormData, FormFlowStorage, TaskContainer, GenEq

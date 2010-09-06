@@ -1,7 +1,6 @@
 implementation module DeadlineTask
 
 import iTasks
-import CommonDomain
 import StdClass, StdEnum, StdList
 
 // (c) MJP 2007

@@ -9,7 +9,7 @@ from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
 from ProcessDB			import :: Action
 from TuningCombinators	import :: Tag
 from iTasks				import class iTask(..)
-from CommonDomain		import :: DateTime
+from Types				import :: DateTime
 
 import GenVisualize, GenUpdate
 

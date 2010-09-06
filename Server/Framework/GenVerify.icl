@@ -5,7 +5,7 @@ import GenUpdate, StdMisc
 
 derive bimap (,), Maybe
 
-derive gVerify (,), (,,), (,,,), Void, Either
+derive gVerify (,), (,,), (,,,), Void, Either, UserDetails, DateTime
 derive JSONEncode VerifyMask, ErrorMessage
 
 generic gVerify a :: (Maybe a) *VerSt -> *VerSt
@@ -119,8 +119,6 @@ gVerify{|Maybe|} _ Nothing vst=:{VerSt | updateMask,verifyMask,optional}
 
 gVerify{|Dynamic|} _ vst = vst
 
-gVerify{|Document|} _ vst = basicVerify "Upload a document" vst
-
 gVerify{|Hidden|} fx Nothing vst = vst
 gVerify{|Hidden|} fx (Just (Hidden x)) vst=:{VerSt | verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
@@ -143,6 +141,25 @@ gVerify{|VisualizationHint|} fx (Just (VHDisplay x)) vst=:{VerSt | verifyMask,up
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
 gVerify{|VisualizationHint|} fx (Just (VHEditable x)) vst = fx (Just x) vst
 
+gVerify{|Document|} _ vst = basicVerify "Upload a document" vst
+
+gVerify{|Password|} _ vst = basicVerify "Enter a password" vst
+
+gVerify{|Date|} _ vst = basicVerify "Enter a date" vst
+
+gVerify{|Time|} _ vst = basicVerify "Enter a time of day" vst
+
+gVerify{|Note|} _ vst = basicVerify "Enter a long text" vst
+
+gVerify{|FormButton|} _ vst = vst
+
+gVerify{|Currency|} _ vst = basicVerify "Enter a currency value" vst
+
+gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
+
+gVerify{|Task|} _ _ vst = vst
+
+//********************************************************************************************************
 basicVerify :: String !*VerSt -> *VerSt
 basicVerify msg vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)   = popMask updateMask
