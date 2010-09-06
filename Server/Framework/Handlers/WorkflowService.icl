@@ -1,6 +1,6 @@
 implementation module WorkflowService
 
-import Http, TSt
+import Http, TSt, UserDB
 import HtmlUtil, Text
 import StdArray, StdString, StdInt, StdList, StdBool, StdClass
 import GenEq
@@ -27,8 +27,9 @@ workflowService url html path req tst
 		= (serviceResponse html "workflows" description url params json, tst)
 	// List available flows
 	# (session,tst)		= getCurrentSession tst
+	# (mbDetails,tst)	= getUserDetails session.Session.user tst
 	# (workflows,tst)	= getWorkflows tst
-	# items				= workflowItems path (session.Session.user) workflows
+	# items				= workflowItems path (session.Session.user,mbDetails) workflows
 	# json 				= JSONObject [("success",JSONBool True),("workflows",toJSON items)]
 	= (serviceResponse html "workflows" description url params json, tst)
 where
@@ -39,11 +40,11 @@ where
 	onPath paths wf = paths == "" || (wf.Workflow.path % (0, (size paths))) == paths +++ "/"
 	
 	//Allow the root user
-	isAllowed RootUser	_					= True
+	isAllowed (RootUser,_)	_		= True
 	//Allow workflows for which the user has permission
-	isAllowed (RegisteredUser details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles] || isEmpty wf.Workflow.roles
+	isAllowed (_,Just details) wf	= or [isMember role (mb2list details.UserDetails.roles) \\ role <- wf.Workflow.roles] || isEmpty wf.Workflow.roles
 	//Allow workflows without required roles
-	isAllowed _ wf							= isEmpty wf.Workflow.roles		
+	isAllowed _ wf					= isEmpty wf.Workflow.roles		
 	
 	workflowItems path user workflows
 		# paths				= join "/" path
