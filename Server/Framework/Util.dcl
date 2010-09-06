@@ -31,3 +31,11 @@ baseName			:: !String -> String
 
 mb2list				:: !(Maybe [a]) -> [a]
 list2mb				:: ![a] -> (Maybe [a])
+
+pad					:: Int Int -> String
+decFormat			:: Int -> String
+
+// Functions for accessing dates and times
+currentTime 	:: !*World -> (!Time,!*World)
+currentDate 	:: !*World -> (!Date,!*World)
+currentDateTime :: !*World -> (!DateTime,!*World)

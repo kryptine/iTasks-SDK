@@ -7,7 +7,6 @@ definition module Types
 from TSt 			import :: TSt
 from TaskTree		import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
 from Html 			import :: HtmlTag
-from CommonDomain	import :: Note, :: Password
 from Time			import :: Timestamp
 from StdString		import class toString
 from iTasks			import class iTask
@@ -16,25 +15,42 @@ from Config			import :: Config
 import GenVisualize, GenUpdate, JSON, StoreTasks
 
 derive gVisualize		User, UserDetails, Session, Task
-derive gUpdate			User, UserDetails, Session, Task
-derive gVerify			User, UserDetails, Session, Task
+derive gUpdate			User, UserDetails, Session, Task 
+derive gVerify			User, UserDetails, Session, Task, Note, Password, Date, Time, DateTime
 
-derive gMerge			User, Session, VisualizationHint
+derive gMerge			User, Session, VisualizationHint, Note, Password, Date, Time, DateTime
 
-derive JSONEncode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
+derive JSONDecode		User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
 		
 instance toString User
 instance toString TaskPriority
-instance toString Password
 instance toString TaskStatus
 
+instance toString Note
+instance toString Password
+instance toString Date
+instance toString Time
+instance toString DateTime
+
+instance fromString Date
+instance fromString Time
+
 instance == User
-instance == Password
 instance == TaskStatus
 instance == Document
+instance == Note
+instance == Password
 
+instance < Time
+instance < Date
 instance < User
+
+instance + Time		//Naive fieldwise addition
+instance + Date		//Naive fieldwise addition
+
+instance - Time		//Naive fieldwise subtraction
+instance - Date		//Naive fieldwise subtraction
 		
 :: User
 	= AnyUser						// Any not further specified person
@@ -186,6 +202,24 @@ toDisplay :: !.a -> (Display .a)
 
 fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
+
+// Data types for which the framework provides special visualizations and support
+// Plain text notes
+
+:: Note			= Note String
+
+:: Date	=
+	{ day	:: Int
+	, mon	:: Int
+	, year	:: Int
+	}
+:: Time =
+	{ hour	:: Int
+	, min	:: Int
+	, sec	:: Int
+	}
+
+:: DateTime = DateTime Date Time
 
 // Documents
 :: Document =

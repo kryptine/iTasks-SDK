@@ -3,6 +3,9 @@ implementation module CoreCombinators
 import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
+from 	CommonDomain import :: DateTime
+
+derive class iTask SchedulerState
 
 import	TSt
 import	Util, Http
@@ -385,3 +388,6 @@ where
 						= (TaskBusy, tst)		// We are not done yet...
 			_	
 				= (TaskFinished Nothing, tst)	//We could not find the process in our database, we are done
+
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (DBId (SchedulerState,[ProcessRef a])) | iTask a
+scheduledSpawn when task = return (DBId "Nothing here")

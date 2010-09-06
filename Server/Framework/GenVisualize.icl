@@ -854,6 +854,49 @@ instance toString (VisualizationValue a) | toString a
 where
 	toString VBlank		= ""
 	toString (VValue x)	= toString x
+
+gVisualize{|Password|} old new vst=:{VSt | vizType,currentPath}
+	= case vizType of
+		VEditorDefinition	
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUIPasswordControl ctl)],vst)
+		VEditorUpdate
+			= updateBasicControl old new vst
+		_					
+			= ([TextFragment ("********")],{VSt | vst & currentPath = stepDataPath currentPath})
+
+gVisualize{|Note|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,renderAsStatic,verifyMask,updateMask,updates}
+	= case vizType of
+		VEditorDefinition	
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUINoteControl ctl)],vst)
+		VEditorUpdate
+			= updateBasicControl old new vst
+		_					
+			= ([HtmlFragment (flatten [[Text line,BrTag []] \\ line <- split "\n" (toString old)])]
+					, {VSt|vst & currentPath = stepDataPath currentPath})
+
+gVisualize{|Date|} old new vst=:{VSt | vizType,currentPath}
+	= case vizType of
+		VEditorDefinition	
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUIDateControl ctl)],vst)
+		VEditorUpdate
+			= updateBasicControl old new vst
+		_					
+			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+
+gVisualize{|Time|} old new vst=:{VSt | vizType,currentPath,updateMask,idPrefix}
+	= case vizType of
+		VEditorDefinition	
+			# (ctl,vst) = visualizeBasicControl old vst
+			= ([TUIFragment (TUITimeControl ctl)],vst)
+		VEditorUpdate
+			= updateBasicControl old new vst
+		_					
+			= ([TextFragment (toString old)],{VSt|vst & currentPath = stepDataPath currentPath})
+
+derive gVisualize DateTime
 	
 value2s :: !UpdateMask !(VisualizationValue a) -> String | toString a
 value2s (Touched _ _) (VValue a) = toString a

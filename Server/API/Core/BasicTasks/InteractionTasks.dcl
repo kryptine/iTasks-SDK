@@ -380,4 +380,5 @@ where
 	
 instance html String
 instance html [HtmlTag]
+instance html Note
 instance html (Maybe a) | html a

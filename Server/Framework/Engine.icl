@@ -3,21 +3,22 @@ implementation module Engine
 import StdMisc, StdArray, StdList, StdChar, StdFile, StdBool
 
 from StdFunc import o
-from StdLibMisc import ::Date{..}, ::Time{..}
 
-import Store, UserDB, ProcessDB, SessionDB
-import Text, Util
-import CoreCombinators, TuningCombinators
-import CommandLine
-import Directory
+from StdLibMisc import qualified ::Date{..}, ::Time{..}
+from Directory import qualified pd_StringToPath, createDirectory, getFileInfo, ::DirError(..), ::FileInfo(..), ::PI_FileInfo(..), instance == DirError
 
-import Http, HttpUtil
-from HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
+import	Store, UserDB, ProcessDB, SessionDB
+import	Text, Util, HtmlUtil
 
-import Setup
+import	CommandLine
+import	TuningCombinators
+
+import	Http, HttpUtil
+from	HttpServer import :: HTTPServerControl(..), :: HTTPServerOption(..)
+
+import	Setup
 
 import ApplicationService, SessionService, WorkflowService, TaskService, UserService, DocumentService
-import HtmlUtil
 
 import Config, TSt
 
@@ -128,16 +129,22 @@ initTSt :: !HTTPRequest !Config ![Workflow] !*World -> *TSt
 initTSt request config flows world
 	# (appName,world) 			= determineAppName world
 	# (pathstr,world)			= determineAppPath world
-	# ((ok, path),world)		= pd_StringToPath (pathstr) world
+	# ((ok, path),world)		= 'Directory'.pd_StringToPath (pathstr) world
 	| not ok					= abort "Cannot find the executable."
-	# ((err,info),world)		= getFileInfo path world
-	| err <> NoDirError			= abort "Cannot get executable info."
-	# (date,time)				= info.pi_fileInfo.lastModified
-	# datestr					= (toString date.Date.year)+++"."+++(padZero date.Date.month)+++"."+++(padZero date.Date.day)+++"-"+++(padZero time.Time.hours)+++"."+++(padZero time.Time.minutes)+++"."+++(padZero time.Time.seconds)
-	# ((ok,datapath),world)		= pd_StringToPath appName world
-	# (err,world)				= createDirectory datapath world
-	| err <> NoDirError 
-		&& err <> AlreadyExists	= abort "Cannot create data directory"
+	# ((err,info),world)		= 'Directory'.getFileInfo path world
+	| err <> 'Directory'.NoDirError			= abort "Cannot get executable info."
+	# (date,time)				= info.'Directory'.pi_fileInfo.'Directory'.lastModified
+	# datestr					= (toString date.'StdLibMisc'.Date.'StdLibMisc'.year)+++"."+++
+								   (padZero date.'StdLibMisc'.Date.'StdLibMisc'.month)+++"."+++
+								   (padZero date.'StdLibMisc'.Date.'StdLibMisc'.day)+++"-"+++
+								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.hours)+++"."+++
+								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.minutes)+++"."+++
+								   (padZero time.'StdLibMisc'.Time.'StdLibMisc'.seconds
+								  )
+	# ((ok,datapath),world)		= 'Directory'.pd_StringToPath appName world
+	# (err,world)				= 'Directory'.createDirectory datapath world
+	| err <> 'Directory'.NoDirError && err <> 'Directory'.AlreadyExists
+		= abort "Cannot create data directory"
 	= mkTSt appName config request flows (createStore (appName +++ "\\" +++ datestr)) world
 where 
 	padZero number = (if (number < 10) "0" "") +++ toString number

@@ -1,7 +1,6 @@
 implementation module Messages
 
 import iTasks
-import CommonDomain
 import Groups
 
 derive class iTask Message

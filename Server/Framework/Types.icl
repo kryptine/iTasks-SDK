@@ -10,13 +10,13 @@ import dynamic_string, graph_to_string_with_descriptors, graph_to_sapl_string
 
 derive gVisualize		UserDetails, Session
 derive gUpdate			UserDetails, Session
-derive gVerify			UserDetails, Session
-derive gMerge			User, Session, VisualizationHint, UserDetails
+derive gVerify			UserDetails, Session, DateTime
+derive gMerge			User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime
 
 derive bimap			Maybe, (,)
 
-derive JSONEncode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
-derive JSONDecode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint
+derive JSONEncode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
+derive JSONDecode		UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
 
 
 initManagerProperties :: ManagerProperties
@@ -44,10 +44,6 @@ where
 	toString NormalPriority	= "NormalPriority"
 	toString HighPriority	= "HighPriority"
 
-instance toString Password
-where
-	toString (Password p) = p
-
 instance toString TaskStatus
 where
 	toString Active		= "Active"
@@ -64,7 +60,36 @@ where
 	where
 		dname = displayName user
 		uname = userName user
-	
+		
+instance toString Note
+where
+	toString (Note s)				= s
+
+instance toString Password
+where
+	toString (Password p) = p
+
+instance toString Time
+where
+	toString {Time|hour,min,sec}	= (pad 2 hour) +++ ":" +++ (pad 2 min) +++ ":" +++ (pad 2 sec)
+
+instance toString Date
+where
+	toString {Date|year,mon,day}	= (pad 2 day) +++ "-" +++ (pad 2 mon) +++ "-" +++ (pad 4 year)
+
+instance toString DateTime
+where
+	toString (DateTime d t) = toString d +++ " " +++ toString t
+
+
+instance fromString Time
+where
+	fromString s					= {Time|hour = toInt (s %(0,1)), min = toInt (s %(3,4)), sec = toInt (s %(6,7)) }
+
+instance fromString Date
+where
+	fromString s					= {Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
+
 instance == User
 where
 	(==) AnyUser AnyUser						= True
@@ -75,7 +100,11 @@ where
 	(==) (RegisteredUser a) (NamedUser b)		= a.userName == userName (NamedUser b)
 	(==) (SessionUser a) (SessionUser b)		= a == b
 	(==) _ _									= False
-	
+
+instance == Note
+where
+	(==) (Note x) (Note y) = x == y
+		
 instance == Password
 where
 	(==) (Password a) (Password b) = a == b
@@ -93,6 +122,22 @@ instance == Document
 where
 	(==) doc0 doc1 = doc0.documentId == doc1.documentId
 
+instance < Time
+where
+	(<) x y
+		| x.Time.hour < y.Time.hour															= True
+		| x.Time.hour == y.Time.hour && x.Time.min < y.Time.min								= True
+		| x.Time.hour == y.Time.hour && x.Time.min == y.Time.min && x.Time.sec < y.Time.sec	= True
+		| otherwise																			= False
+		
+instance < Date
+where
+	(<) x y 
+		| x.Date.year < y.Date.year															= True
+		| x.Date.year == y.Date.year && x.Date.mon < y.Date.mon								= True
+		| x.Date.year == y.Date.year && x.Date.mon == y.Date.mon && x.Date.day < y.Date.day	= True
+		| otherwise																			= False
+
 instance < User
 where
 	(<) (AnyUser) _								= True
@@ -108,9 +153,21 @@ where
 	(<) (RegisteredUser _) _					= False
 	(<)	_ _										= False
 
+instance + Time
+where
+	(+) x y = {Time|hour = x.Time.hour + y.Time.hour, min = x.Time.min + y.Time.min, sec = x.Time.sec + y.Time.sec}
 
+instance + Date
+where
+	(+) x y = {Date|year = x.Date.year + y.Date.year, mon = x.Date.mon + y.Date.mon, day = x.Date.day + y.Date.day}
 
+instance - Time
+where
+	(-) x y = {Time|hour = x.Time.hour - y.Time.hour, min = x.Time.min - y.Time.min, sec = x.Time.sec - y.Time.sec}
 
+instance - Date
+where
+	(-) x y = {Date|year = x.Date.year - y.Date.year, mon = x.Date.mon - y.Date.mon, day = x.Date.day - y.Date.day}
 	
 // VisualizationHints etc..
 fromVisualizationHint :: !(VisualizationHint .a) -> .a
@@ -176,6 +233,30 @@ taskUser (Task p _ _ _) = p.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
 taskProperties (Task p _ _ _) = p
+
+
+gVerify{|Password|} _ vst = basicVerify "Enter a password" vst
+
+
+		
+
+
+gVerify{|Note|} _ vst = basicVerify "Enter a text" vst
+
+
+
+
+
+gVerify{|Date|} _ vst = basicVerify "Enter a date" vst
+
+
+
+
+
+gVerify{|Time|} _ vst = basicVerify "Enter a time of day" vst
+
+
+
 
 gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
 

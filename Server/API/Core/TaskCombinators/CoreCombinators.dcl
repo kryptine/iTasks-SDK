@@ -9,6 +9,7 @@ from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
 from ProcessDB			import :: Action
 from TuningCombinators	import :: Tag
 from iTasks				import class iTask(..)
+from CommonDomain		import :: DateTime
 
 import GenVisualize, GenUpdate
 
@@ -169,3 +170,17 @@ killProcess 	:: !(ProcessRef a) -> Task Void | iTask a
 *         When a process is prematurely deleted, the task yields Nothing
 */
 waitForProcess	:: (ProcessRef a)				-> Task (Maybe a)	| iTask a
+
+/**
+* Spawn a process at regular times
+*
+* @param A function that computes the next time a new instance to be spawned
+* @param The task to spawn as process
+*
+* @return A reference to a control memory this contains a schedulerstate to control the scheduler and a list of active processes.
+*/
+scheduledSpawn	:: (DateTime -> DateTime) (Task a) -> Task (DBId (SchedulerState,[ProcessRef a])) | iTask a
+
+:: SchedulerState = SSActive //Keep monitoring time and spawn new tasks
+				  | SSFinish //Let the already running tasks finish, but don't start new ones anymore
+				  | SSCancel //Stop immediately, cancel all active tasks.

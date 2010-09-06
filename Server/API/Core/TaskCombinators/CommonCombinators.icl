@@ -8,11 +8,10 @@ import StdBool, StdList,StdOrdList, StdTuple, StdGeneric, StdMisc, StdInt, StdCl
 from StdFunc	import id, const
 from TSt		import :: Task(..), :: TSt{..}, :: IWorld(..), :: TaskInfo{..}, :: StaticInfo{..}, :: Workflow, :: ChangeLifeTime,:: HTTPRequest, :: Config
 from TSt		import applyTask, mkSequenceTask, mkParallelTask, mkInstantTask
-from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..)
+from Types		import :: ProcessId, :: TaskId, :: TaskPriority(..), :: User(..), :: Note(..)
 from Store		import :: Store
 from SessionDB	import :: Session
 from TaskTree	import :: TaskTree, :: TaskParallelType{..}
-from CommonDomain	import :: Note
 
 import TaskTree
 import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombinators, LiftingCombinators, ExceptionCombinators

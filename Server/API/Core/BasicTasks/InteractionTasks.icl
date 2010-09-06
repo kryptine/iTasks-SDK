@@ -20,7 +20,11 @@ instance html [HtmlTag]
 where
 	html [h]	= h
 	html h		= SpanTag [] h
-	
+
+instance html Note
+where
+	html (Note msg) = Text msg
+		
 instance html (Maybe a) | html a
 where
 	html Nothing	= SpanTag [] []

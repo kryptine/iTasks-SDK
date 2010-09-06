@@ -4,7 +4,7 @@ import StdString, StdBool, StdChar, StdList, StdArray, StdTuple, StdMisc, StdMay
 import Void, Either
 import Text
 import JSON
-import Types
+import Types, Util
 import DocumentDB
 
 from StdFunc import id
@@ -405,7 +405,55 @@ gUpdate {|VisualizationHint|} fx (VHHidden s) ust=:{USt | currentPath}
 	# (s,ust) = fx s ust
 	= (VHHidden s,{USt | ust & currentPath = stepDataPath currentPath})
 
-derive gUpdate Either, (,), (,,), (,,,), Void
+gUpdate{|Note|} _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Note "", {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Note|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
+	| currentPath == searchPath
+		= (Note update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Note|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
+
+gUpdate{|Password|} _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Password "", {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Password|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
+	| currentPath == searchPath
+		= (Password update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Password|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
+
+gUpdate{|Date|} _ ust=:{USt|mode=UDCreate,newMask,iworld=iworld=:{IWorld|world}}
+	# (date,world) = currentDate world
+	= (date, {USt|ust & iworld = {IWorld|iworld & world = world}, newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Date|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
+	| currentPath == searchPath
+		= (fromString update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Date|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
+gUpdate{|Date|} s ust = (s, ust)
+
+gUpdate{|Time|} _ ust=:{USt|mode=UDCreate,newMask,iworld=iworld=:{IWorld|world}}
+	# (time,world) = currentTime world
+	= (time, {USt|ust & iworld = {IWorld|iworld & world = world}, newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Time|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
+	| currentPath == searchPath
+		= (fromString update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Time|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
+gUpdate{|Time|} s ust = (s, ust)
+
+derive gUpdate Either, (,), (,,), (,,,), Void, DateTime
 
 //Utility functions
 dp2s :: DataPath -> String
