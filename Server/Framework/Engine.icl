@@ -22,13 +22,16 @@ import ApplicationService, SessionService, WorkflowService, TaskService, UserSer
 
 import Config, TSt
 
-from UserAdmin import userAdministration
+from UserAdmin	import manageUsers
+from Messages	import manageMessages
+from Lists		import manageLists
+from Groups		import manageGroups
 
 PATH_SEP :== "\\"
 
 // The iTasks engine consist of a set of HTTP request handlers
 engine :: !(Maybe Config) [Workflow] -> [(!String -> Bool, HTTPRequest *World -> (!HTTPResponse, !HTTPServerControl, !*World))] 
-engine mbConfig userFlows	
+engine mbConfig userWorkflows	
 	= case mbConfig of
 		Just config
 			= handlers config
@@ -36,16 +39,21 @@ engine mbConfig userFlows
 			= [(\_ -> True, setupHandler handlers)]
 where
 	handlers config
+		# flows = adminWorkflows ++ (if config.generalWorkflows generalWorkflows [] ) ++ userWorkflows
 		= [
 		  // Handler to stop the server nicely
 		   ((==) "/stop", handleStopRequest)
 		  // Webservices
 		  ,(startsWith config.serverPath, serviceDispatch config flows)
 		  ,(\_ -> True, handleStaticResourceRequest config)
-		  ]	
-	//Always add the workflows for administering the itask system
-	flows = userAdministration ++ userFlows
+		  ]
 
+	adminWorkflows		= [restrictedWorkflow "Admin/Users" ["admin"] manageUsers]
+	generalWorkflows	= [workflow "Messages" manageMessages
+						  ,workflow "Lists" manageLists
+						  ,workflow "Groups" manageGroups
+						  ]
+	
 	serviceDispatch config flows req world
 		# tst				= initTSt req config flows world
 		# reqpath			= (http_urldecode req.req_path)

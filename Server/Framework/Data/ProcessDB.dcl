@@ -50,6 +50,8 @@ derive JSONDecode Action
 	| ActionHelp
 	| ActionShowAbout
 	| ActionFind
+	| ActionDelete
+	| ActionEdit
 	
 getActionIcon :: !Action -> String
 

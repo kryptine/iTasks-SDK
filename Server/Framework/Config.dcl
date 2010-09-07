@@ -6,13 +6,15 @@ definition module Config
 import StdMaybe
 
 :: Config =
-	{ clientPath	:: !String	// Where is the client located.
-	, staticPath	:: !String	// Additional location where statically served content may be placed
-	, rootPassword	:: !String	// Password for the 'root' superuser (default 'root').
-	, sessionTime	:: !Int		// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
-	, serverPort	:: !Int		// The TCP port the server runs on. Default is 80.
-	, serverPath	:: !String	// The path at which the services are served (default /services)
-	, debug			:: !Bool	// Run the server in debug mode.
+	{ clientPath		:: !String			// Where is the client located.
+	, staticPath		:: !String			// Additional location where statically served content may be placed
+	, rootPassword		:: !String			// Password for the 'root' superuser (default 'root').
+	, sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
+	, serverPort		:: !Int				// The TCP port the server runs on. Default is 80.
+	, serverPath		:: !String			// The path at which the services are served (default /services)
+	, debug				:: !Bool			// Run the server in debug mode (default False).
+	, smtpServer		:: !String			// The smtp server to use for sending e-mails
+	, generalWorkflows	:: !Bool			// Enable the "general" workflows for managing ad-hoc work
 	}
 
 /**

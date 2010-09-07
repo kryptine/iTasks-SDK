@@ -9,13 +9,15 @@ derive bimap Maybe, (,)
 
 defaultConfig :: Config
 defaultConfig =
-	{ clientPath	= "Client"
-	, staticPath	= ".\\Static"
-	, rootPassword	= "root"
-	, sessionTime	= 3600
-	, serverPort	= 80
-	, serverPath	= "/services"
-	, debug			= False
+	{ clientPath		= "Client"
+	, staticPath		= ".\\Static"
+	, rootPassword		= "root"
+	, sessionTime		= 3600
+	, serverPort		= 80
+	, serverPath		= "/services"
+	, debug				= False
+	, smtpServer		= "smtp.ru.nl"
+	, generalWorkflows	= True
 	}
 
 loadConfig :: !String !*World -> (!Maybe Config, !*World)

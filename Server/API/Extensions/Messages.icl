@@ -78,14 +78,14 @@ manageMessage msg=:{Message |subject}
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return False
-		(ActionLabel "Delete",msg)
+		(ActionDelete,msg)
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage "Deleted" "Message deleted" False	
 where
 	aReply		= ButtonAction (ActionLabel "Reply",Always)
 	aReplyAll	= ButtonAction (ActionLabel "Reply All",Always)
 	aForward	= ButtonAction (ActionLabel "Forward",Always)
-	aDelete		= ButtonAction (ActionLabel "Delete", Always)
+	aDelete		= ButtonAction (ActionDelete, Always)
 	aClose		= ButtonAction (ActionClose, Always)
 
 newMessage :: Task Void

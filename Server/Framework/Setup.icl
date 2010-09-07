@@ -46,19 +46,27 @@ postedConfig req =
 	, serverPort = toInt (http_getValue "serverPort" req.arg_post "0")
 	, serverPath = http_getValue "serverPath" req.arg_post "0"
 	, debug = http_getValue "debug" req.arg_post "false" <> "false"
+	, smtpServer = http_getValue "smtpServer" req.arg_post ""
+	, generalWorkflows = http_getValue "generalWorkflows" req.arg_post "false" <> "false"
 	} 
 			 		 
 checkConfig :: !Config !*World -> (![Maybe String],!*World)
 checkConfig config world
 	# (clientPathOk,world) = checkClientPath config.clientPath world
-	= 	([if clientPathOk Nothing (Just "The client framework could not be found at this location")
+	= 	([if clientPathOk Nothing (Just CLIENT_ERROR)
 		 ,Nothing
 		 ,Nothing
 		 ,if (config.sessionTime < 60) (Just "Session time should be at least 60 seconds") Nothing
 		 ,if ((config.serverPort < 0) || (config.serverPort > 60000)) (Just "Server port should be between 1 and 60000") Nothing
 		 ,Nothing
 		 ,Nothing
+		 ,Nothing
+		 ,Nothing
 		 ],world)
+
+CLIENT_ERROR :== "The client framework could not be found at this location.<br />"
+			 +++ "Please fill in the full path where the client framework can be found.<br />"
+			 +++ "It can normally be found in the \"Client\\build\" folder of the SDK. For example C:\\iTasks-SDK\\Client\\build."
 
 checkClientPath :: !String !*World -> (!Bool,!*World)
 checkClientPath clientPath world
@@ -123,6 +131,8 @@ where
 			 ,("Server port", toString config.serverPort)
 			 ,("Server path", config.serverPath)
 			 ,("Debug", toString config.debug)
+			 ,("Smtp server", config.smtpServer)
+			 ,("Enable general workflows", toString config.generalWorkflows)
 			 ]
 editConfig :: !Config ![Maybe String] -> HtmlTag
 editConfig config errors = TableTag []
@@ -135,9 +145,11 @@ where
 			 ,("Server port",InputTag [TypeAttr "text",NameAttr "serverPort",SizeAttr "2", ValueAttr (toString config.serverPort)])
 			 ,("Server path",InputTag [TypeAttr "text",NameAttr "serverPath", ValueAttr config.serverPath])
 			 ,("Debug",InputTag [TypeAttr "checkbox",NameAttr "debug":if config.debug [CheckedAttr] [] ])
+			 ,("Smtp server",InputTag [TypeAttr "text",NameAttr "smtpServer", ValueAttr config.smtpServer])
+			 ,("Enable general workflows",InputTag [TypeAttr "checkbox",NameAttr "generalWorkflows":if config.generalWorkflows [CheckedAttr] [] ])
 			 ]
 
 errclass error = if (isNothing error) "field-ok" "field-error"
 errmsg Nothing = []
-errmsg (Just msg) = [EmTag [] [Text msg]]
+errmsg (Just msg) = [EmTag [] [RawText msg]]
 

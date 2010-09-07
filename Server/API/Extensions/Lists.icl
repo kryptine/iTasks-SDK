@@ -33,7 +33,7 @@ manageLists
 	>>= \(action,list) -> case action of
 		ActionNew				= newList >>= manageList	>>| return False
 		ActionOpen				= manageList list			>>| return False
-		ActionLabel	"Delete"	= delList list				>>| return False
+		ActionDelete			= delList list				>>| return False
 		ActionQuit				=								return True
 	) <! id
 	>>| stop
@@ -44,7 +44,7 @@ where
 	aOpen 			= ButtonAction (ActionOpen, IfValid)
 	aNew			= ButtonAction (ActionNew, Always)
 	aQuit			= ButtonAction (ActionQuit, Always)
-	aDelete			= ButtonAction (ActionLabel "Delete", Always)
+	aDelete			= ButtonAction (ActionDelete, IfValid)
 	
 	newList			=	enterChoice "List type" "What type of list do you want to create?"
 						["Simple list", "Todo list", "Date list","Document list"]
