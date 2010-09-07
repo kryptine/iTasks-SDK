@@ -44,7 +44,7 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))	vst=:{VerSt | verifyMask,updateMask,o
 					(Untouched _ _) = VMValid (Just "Select an option") Nothing children
 					(Blanked _ _)	= VMValid (Just "Select an option") Nothing children
 					(Touched _ _)
-						| anyError children		= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
+						| anyError children		= VMInvalid (ErrorMessage "One or more items contain errors") Nothing children
 						| allValid children 	= VMValid (Just "Select an option") Nothing children
 						| otherwise				= VMValid (Just "Select an option") Nothing children
 						
@@ -53,7 +53,7 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))	vst=:{VerSt | verifyMask,updateMask,o
 					(Untouched _ _)	= VMUntouched (Just "Select an option") Nothing children
 					(Blanked _ _)	= VMInvalid IsBlankError Nothing children
 					(Touched _ _)
-						| anyError children		= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
+						| anyError children		= VMInvalid (ErrorMessage "One or more items contain errors") Nothing children
 						| allValid children 	= VMValid (Just "Select an option") Nothing children
 						| otherwise				= VMUntouched (Just "Select an option") Nothing children
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	

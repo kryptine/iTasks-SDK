@@ -61,49 +61,12 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		, baseCls: 'x-constructor-panel'
 		});
 		
-		
-		this.itemPanel.markHint = function (msg){
-			if(this.errorIcon && this.errorIcon.isVisible()) return;
-		
-			if(this.rendered){
-				if(!this.hintIcon){				
-					this.hintIcon = this.el.createChild({cls: 'x-record-hint-icon'}, this.body.dom);	
-					this.hintIcon.setVisibilityMode(Ext.Element.DISPLAY);
-				}
-
-				this.hintIcon.dom.innerHTML = msg;
-				this.hintIcon.setVisible(true);					
-			}
-		};
-		
-		this.itemPanel.markError = function(msg){
-			if(this.rendered){
-				if(this.hintIcon) this.hintIcon.hide();
-			}	
-			
-			if(!this.errorIcon){			
-				this.errorIcon = this.el.createChild({cls: 'x-record-invalid-icon'}, this.body.dom);
-				this.errorIcon.setVisibilityMode(Ext.Element.DISPLAY);
-			}
-			
-			this.errorIcon.dom.innerHTML = msg;
-			this.errorIcon.setVisible(true);
-		};
-		
-		this.itemPanel.clearHint = function(){
-			if(this.hintIcon) this.hintIcon.setVisible(false);
-		};
-		
-		this.itemPanel.clearError = function(){
-			if(this.errorIcon) this.errorIcon.setVisible(false);
-		};
-			
 		this.itemPanel.on('add',function(){ this.showOrHide(); },this.itemPanel);
 		this.itemPanel.on('remove', function(){ this.showOrHide();  },this.itemPanel);
 		
 		this.itemPanel.showOrHide = function(){			
 			(function() {
-				if((this.items && this.items.length > 0) || (this.errorIcon && this.errorIcon.isVisible()) || (this.hintIcon && this.hintIcon.isVisible())){
+				if((this.items && this.items.length > 0)){
 					this.show();
 				}else{
 					this.hide();
@@ -135,9 +98,9 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		if(this.staticDisplay) return;
 		
 		(function(){
-			if(msg == "") this.itemPanel.clearError();
-			else this.itemPanel.markError(msg);
-			this.itemPanel.showOrHide();
+			if(msg == "") itasks.tui.common.clearError(this.consField)//this.itemPanel.clearError();
+			else itasks.tui.common.markError(this.consField,msg);
+			//this.itemPanel.showOrHide();
 		}).defer(50,this);
 	},
 	
@@ -145,9 +108,9 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		if(this.staticDisplay) return;
 		
 		(function(){
-			if(msg == "") this.itemPanel.clearHint();
-			else this.itemPanel.markHint(msg);
-			this.itemPanel.showOrHide();
+			if(msg == "") itasks.tui.common.clearHint(this.consField);
+			else itasks.tui.common.markHint(this.consField,msg);
+			//this.itemPanel.showOrHide();
 		}).defer(50,this);
 	}
 });
