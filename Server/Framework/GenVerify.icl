@@ -31,12 +31,12 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))	vst=:{VerSt | verifyMask,updateMask,o
 	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & optional = False, updateMask = cm, verifyMask = (VMValid Nothing Nothing [])}
 	# children = getMaskChildren childMask
 	| not (isEmpty d.gcd_fields) //record
-		| allUntouched children
-			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children), optional = optional, updateMask = um}
+		| anyError children
+			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more items contain errors") Nothing children), optional = optional, updateMask = um}
 		| allValid children
 			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional, updateMask = um}
 		| otherwise
-			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children), optional = optional, updateMask = um}
+			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMUntouched (Just "Please fill out all required items") Nothing children), optional = optional, updateMask = um}
 	| otherwise //adt
 		# consMask = case optional of
 			True
@@ -44,17 +44,18 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))	vst=:{VerSt | verifyMask,updateMask,o
 					(Untouched _ _) = VMValid (Just "Select an option") Nothing children
 					(Blanked _ _)	= VMValid (Just "Select an option") Nothing children
 					(Touched _ _)
+						| anyError children		= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
 						| allValid children 	= VMValid (Just "Select an option") Nothing children
-						| allUntouched children	= VMValid (Just "Select an option") Nothing children
-						| otherwise				= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
+						| otherwise				= VMValid (Just "Select an option") Nothing children
+						
 			False
 				= case cm of
 					(Untouched _ _)	= VMUntouched (Just "Select an option") Nothing children
 					(Blanked _ _)	= VMInvalid IsBlankError Nothing children
 					(Touched _ _)
+						| anyError children		= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
 						| allValid children 	= VMValid (Just "Select an option") Nothing children
-						| allUntouched children	= VMUntouched (Just "Select an option") Nothing children
-						| otherwise				= VMInvalid (ErrorMessage "One or more items contain errors or are still required") Nothing children
+						| otherwise				= VMUntouched (Just "Select an option") Nothing children
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
 
 gVerify{|FIELD of d|}   fx	  Nothing				vst = fx Nothing vst
@@ -81,9 +82,11 @@ gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
 	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx [] {VerSt | vst & verifyMask = listMask, updateMask = cm, optional = False}
 	# children  = getMaskChildren childMask
 	| optional
-		={VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing children)}	
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing children)}	
 	# listMask  = case cm of 
 					(Untouched _ _) 
+						= (VMUntouched (Just "Create at least one list item") Nothing children)
+					(UMList _ _ True)
 						= (VMUntouched (Just "Create at least one list item") Nothing children)
 					_ 
 						= (VMInvalid (ErrorMessage "Create at least one list item") Nothing children) //Empty lists are invalid
@@ -93,12 +96,12 @@ gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)	= popMask updateMask
 	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx x {VerSt | vst & verifyMask = listMask, updateMask = cm, optional = False}
 	# children  = getMaskChildren childMask
-	| allUntouched children
-		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children), optional = optional}
+	| anyError children
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more elements contain errors.") Nothing children), optional = optional}
 	| allValid children
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional}
 	| otherwise
-		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more elements contain errors.") Nothing children), optional = optional}
+		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing children), optional = optional}
 
 verifyItems fx [] vst=:{VerSt | optional}
 	# vst = fx Nothing {VerSt | vst & optional = True}
@@ -171,9 +174,20 @@ basicVerify msg vst=:{VerSt | updateMask,verifyMask,optional}
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched (Just msg) Nothing [])}
 		(Blanked _ _)
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMInvalid IsBlankError Nothing [])}
-		(UMList _ _)
+		(UMList _ _ _)
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just msg) Nothing [])}
 
+anyError :: ![VerifyMask] -> Bool
+anyError children = or [isError c \\ c <- children]
+where
+	isError (VMInvalid _ _ _) = True
+	isError _				  = False
+
+anyUntouched :: ![VerifyMask] -> Bool
+anyUntouched children = or [isUntouched c \\ c <- children]
+where
+	isUntouched (VMUntouched _ _ _) = True
+	isUntouched _					= False
 
 allUntouched :: ![VerifyMask] -> Bool
 allUntouched children = and [isUntouched c \\ c <- children]

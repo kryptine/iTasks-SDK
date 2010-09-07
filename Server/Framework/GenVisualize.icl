@@ -609,7 +609,7 @@ gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,
 			# (oldDefs,vst)					= TUIDef fx oldV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}		
 			# (addrem)						= determineAddRem oldDefs newDefs 0
 			= case cmu of
-				(UMList [i:is] c)
+				(UMList [i:is] c _)
 					# (replacements)		= determineReplacements newDefs [i:is]	
 					= (addrem++replacements++upd++msg,
 			 		  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=finalValid, optional = optional, updateMask = um, verifyMask = vm})

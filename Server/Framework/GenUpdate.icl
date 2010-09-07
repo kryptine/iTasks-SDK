@@ -243,46 +243,55 @@ gUpdate{|Dynamic|} _ ust=:{USt|mode=UDCreate}	= (dynamic 42, ust)
 gUpdate{|Dynamic|} d ust						= (d, ust)
 
 gUpdate{|[]|} fx _ ust=:{USt|mode=UDCreate,newMask} 
-	= ([], {USt | ust & newMask = appendToMask newMask (UMList [] [])})
+	= ([], {USt | ust & newMask = appendToMask newMask (UMList [] [] True)})
 gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	# (l,listMask,cm,ust) = case isNewElement (dataPathList currentPath) (dataPathList searchPath) (length l) of
 							True
 								# (child,ust=:{newMask=childMask}) = fx (abort "LIST - new element accessed during create") {USt | ust & mode=UDCreate}
-								=(l++[child], UMList[length l][], appendToMask cm childMask, {USt | ust & newMask = childMask})
+								=(l++[child], UMList [length l] [] False, appendToMask cm childMask, {USt | ust & newMask = childMask})
 							False
-								= (l,UMList [] [],cm,ust)
+								= (l,UMList [] [] True,cm,ust)
 	# (lx,ust=:{newMask=listMask}) = applyListUpdates fx l {USt|ust & mode = UDSearch, currentPath = shiftDataPath currentPath, oldMask = cm, newMask = listMask}
 	| currentPath == searchPath
-	# split = split "_" update
-	# index = toInt (last split)
-	= case hd split of	
-		"mup"
-			| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
-			# upd   = swapList lx index
-			# nm    = swapMask index listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask nm, oldMask = om}) 
-		"mdn"
-			| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
-			# upd	= swapList lx (index+1) //down idx == up (idx+1)
-			# nm	= swapMask (index+1) listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask nm, oldMask = om})
-		"rem"
-			# upd   = removeAt index lx
-			# nm	= maskRemove index listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask nm, oldMask = om})	
-		"add"
-			# (nv,ust=:{newMask=childMask}) 
-					   = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
-			# upd	   = insertAt (index+1) nv lx
-			# nm	   = maskInsert (index+1) childMask listMask
-			= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask nm, oldMask = om})
-		_ 	
-			= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
+		# split = split "_" update
+		# index = toInt (last split)
+		= case hd split of	
+			"mup"
+				| index == 0 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
+				# upd   = swapList lx index
+				# nm    = swapMask index listMask
+				= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched nm om upd), oldMask = om}) 
+			"mdn"
+				| index >= (length lx)-1 = (lx, {USt | ust & currentPath = stepDataPath currentPath})
+				# upd	= swapList lx (index+1) //down idx == up (idx+1)
+				# nm	= swapMask (index+1) listMask
+				= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched nm om upd), oldMask = om})
+			"rem"
+				# upd   = removeAt index lx
+				# nm	= maskRemove index listMask
+				= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched nm om upd), oldMask = om})	
+			"add"
+				# (nv,ust=:{newMask=childMask}) 
+						   = fx (abort "LIST create with undef") {USt | ust & mode=UDCreate}
+				# upd	   = insertAt (index+1) nv lx
+				# nm	   = maskInsert (index+1) childMask listMask
+				= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched nm om upd), oldMask = om})
+			_ 	
+				//= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
+				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched listMask om lx), oldMask = om})
 	| otherwise 
-		= (lx, {USt | ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
+		= (lx, {USt | ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched listMask om lx), oldMask = om})
 where
 	isNewElement cp sp l = sp <== [l:cp] //search path is equal or below [datapath:(length list)]
+
+	isLmUntouched (UMList dirty children untouched) oldMask lx =
+		case lx of
+			[]	= case oldMask of
+				(Untouched _ _)		= (UMList dirty children True)
+				(UMList _ _ unt) 	= (UMList dirty children unt)
+				_					= (UMList dirty children False)
+			_	= (UMList dirty children False)
 
 	applyListUpdates fx []     ust 
 		= ([],ust)
@@ -300,19 +309,19 @@ where
 		# l = list !! (index)
 		= updateAt (index-1) l (updateAt index f list)
 	
-	swapMask index (UMList _ c)
+	swapMask index (UMList _ c unt)
 	# f = c !! (index-1)
 	# l = c !! (index)
-	= UMList [index-1,index] (updateAt (index-1) l (updateAt index f c))
+	= UMList [index-1,index] (updateAt (index-1) l (updateAt index f c)) unt
 	
-	maskRemove index (UMList _ c)
-	= UMList [index..length c-1] (removeAt index c)
+	maskRemove index (UMList _ c unt)
+	= UMList [index..length c-1] (removeAt index c) unt
 	
-	maskInsert index cm (UMList _ c)
-	= UMList [index+1..length c-1] (insertAt index cm c)
+	maskInsert index cm (UMList _ c unt)
+	= UMList [index+1..length c-1] (insertAt index cm c) unt
 	
 gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,newMask}
-# ust=:{newMask=childMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = UMList [0..(length l)] []}
+# ust=:{newMask=childMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = UMList [0..(length l)] [] False}
 = (l,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask childMask})
 where
 	gMarkList fx [] ust = ust
@@ -583,7 +592,7 @@ markUpdMask :: !UpdateMask !Bool -> UpdateMask
 markUpdMask (Untouched _ u) d = Untouched d u
 markUpdMask (Touched _ u)	d = Touched d u
 markUpdMask (Blanked _ u)	d = Blanked d u
-markUpdMask (UMList i u) 	d = UMList i u
+markUpdMask (UMList i u t) 	d = UMList i u t
 
 instance GenMask UpdateMask
 where
@@ -591,20 +600,20 @@ where
 	popMask (Untouched d [c:cm])	= (c, Untouched d cm)
 	popMask (Touched d [c:cm])		= (c, Touched d cm)
 	popMask (Blanked d [c:cm])		= (c, Blanked d cm)
-	popMask (UMList i [c:cm])		= (c, UMList i cm)
+	popMask (UMList i [c:cm] t)		= (c, UMList i cm t)
 	popMask m				 		= (Untouched False [], m)
 
 	appendToMask :: !UpdateMask !UpdateMask -> UpdateMask
 	appendToMask (Untouched d m) cm = (Untouched (isDirty d cm) (m++[cm]))
 	appendToMask (Touched d m)   cm = (Touched (isDirty d cm) (m++[cm]))
 	appendToMask (Blanked d m)   cm = (Blanked (isDirty d cm) (m++[cm]))
-	appendToMask (UMList i m)	 cm = (UMList i (m++[cm]))
+	appendToMask (UMList i m t)	 cm = (UMList i (m++[cm]) t)
 		
 	getMaskChildren :: !UpdateMask -> [UpdateMask]
 	getMaskChildren (Untouched _ c) = c
 	getMaskChildren (Touched _ c) = c
 	getMaskChildren (Blanked _ c) = c
-	getMaskChildren (UMList _ c) = c
+	getMaskChildren (UMList _ c _) = c
 
 isDirty d cm 
 | isDirtyUM cm = True
@@ -614,7 +623,7 @@ isDirtyUM :: !UpdateMask -> Bool
 isDirtyUM (Untouched d _) = d
 isDirtyUM (Touched d _) = d
 isDirtyUM (Blanked d _) = d
-isDirtyUM (UMList i _) = not (isEmpty i)
+isDirtyUM (UMList i _ _) = not (isEmpty i)
 
 initialUpdateMask :: UpdateMask
 initialUpdateMask = Untouched False []

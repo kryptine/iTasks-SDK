@@ -12,8 +12,8 @@ import Types, Store
 :: UpdateMask = Untouched 	Bool 			[UpdateMask]
 			  | Touched		Bool			[UpdateMask]
 			  | Blanked		Bool			[UpdateMask]
-//							Dirty Children	Child Components
-			  | UMList		[Int]			[UpdateMask]
+//							Dirty Children	Child Components	Untouched
+			  | UMList		[Int]			[UpdateMask]		Bool
 
 :: *USt =
 	{ mode				:: UpdateMode
