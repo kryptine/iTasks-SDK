@@ -88,8 +88,10 @@ restrictedWorkflow path roles task =
 	{ Workflow
 	| path	= path
 	, roles	= roles
-	, thread = createThread task
+	, thread = createThread (task <<@ Subject name)
 	}
+where
+	name = last (split "/" path)
 
 config :: !*World -> (!Maybe Config,!*World)
 config world
