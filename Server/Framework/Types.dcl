@@ -36,6 +36,7 @@ instance toString Currency
 
 instance fromString Date
 instance fromString Time
+instance fromString DateTime
 
 instance == User
 instance == TaskStatus

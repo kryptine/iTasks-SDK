@@ -135,6 +135,11 @@ instance toString DateTime
 where
 	toString (DateTime d t) = toString d +++ " " +++ toString t
 
+instance fromString DateTime
+where
+	fromString s	= DateTime
+						{Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
+						{Time|hour = toInt (s %(11,12)), min = toInt (s %(14,15)), sec = toInt (s %(17,18)) }
 // ******************************************************************************************************
 // Currency
 // ******************************************************************************************************
