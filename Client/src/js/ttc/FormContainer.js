@@ -33,9 +33,7 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 	
 	update: function(data) {
 		if(data.updates) {
-			//clear the form from any hints and errors
-			this.clearErrorsNHints();	
-		
+			//errors and hints are updated separately
 			var num = data.updates.length;
 			for (i = 0; i < num; i++) {
 				var update = data.updates[i];
@@ -61,16 +59,11 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 					case "TUIReplaceMenu":
 						this.replaceToolbar(update[1]);
 						break;
-					case "TUISetError":
-						var ct = Ext.getCmp(update[1]);
-						if(ct && ct.setError) ct.setError(update[2]);					
-					break;
-					case "TUISetHint":
-						var ct = Ext.getCmp(update[1]);
-						if(ct && ct.setHint) ct.setHint(update[2]);
-					break;
 				}
-			}				
+			}
+			
+			//cascade through the structure and update errors and hints
+			this.updateErrorsNHints(data.updates);
 		} else {
 		
 			//Completely replace form
@@ -199,12 +192,45 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 		this.setupToolbar(tb);
 	},
 	
-	clearErrorsNHints : function(){		
+	updateErrorsNHints : function(updates){		
+		/* Cascade through the structure and determine for each form item
+		   whether it is hinted, errorred or does not have an icon
+		*/
+		var setHint = function(ct,msg){
+			ct.setError(''); //empty string == clear
+			ct.setHint(msg);
+		}
+		
+		var setError = function(ct,msg){
+			ct.setHint('');
+			ct.setError(msg);
+		}
+		
 		var f = function(ct){
-			if(!ct) return true;
+			if(!ct || !ct.setHint || !ct.setError) return true;
 			
-			if(ct.setHint) ct.setHint(''); //empty string == clear
-			if(ct.setError) ct.setError('');
+			for(var i=0; i<updates.length; i++){
+				var update = updates[i];
+				
+				switch(update[0]) {
+					case "TUISetHint":
+						if(update[1] == ct.id){
+							setHint(ct,update[2]);	
+							return true;
+						}
+					break;
+					case "TUISetError":
+						if(update[1] == ct.id){
+							setError(ct,update[2]);
+							return true;
+						}
+					break;
+				}
+			}
+			
+			// in case none of the updates applies, clear all icons
+			ct.setHint(''); //empty string == clear
+			ct.setError('');
 			
 			return true;
 		}

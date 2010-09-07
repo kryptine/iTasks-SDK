@@ -337,7 +337,7 @@ gUpdate{|Maybe|} fx _ ust=:{USt|mode=UDCreate,newMask}
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath && update == ""	
-		= (Nothing, {USt | ust & newMask = appendToMask newMask (Blanked True []), oldMask = om}) //Reset
+		= (Nothing, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Blanked True []), oldMask = om}) //Reset
 	| otherwise
 		= case m of
 			Nothing
