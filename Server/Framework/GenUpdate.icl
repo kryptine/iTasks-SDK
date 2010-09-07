@@ -109,7 +109,7 @@ gUpdate{|CONS|} fx _ ust=:{mode=UDCreate}
 	= (CONS nx, ust)
 		
 gUpdate{|CONS|} fx c ust=:{mode=UDSearch}
-	# (nx,ust) = fx x ust
+	# (nx,ust) = (fx x ust)
 	= (CONS nx, ust)
 where
 	(CONS x) = c
@@ -140,7 +140,7 @@ gUpdate{|OBJECT of d|} fx o ust=:{mode=UDSearch,searchPath,currentPath,update,ol
 	| (dataPathList searchPath) <== (dataPathList currentPath)
 		# (nx,ust=:{newMask=childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = cm, newMask = objectMask}
 		# children = getMaskChildren childMask
-		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched False children)})
+		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask (Touched True children)})
 	| otherwise
 		# (nx,ust=:{newMask=childMask}) = fx x {USt|ust & currentPath = shiftDataPath currentPath, oldMask = cm, newMask = objectMask}
 		= (OBJECT nx, {USt|ust & currentPath = stepDataPath currentPath, oldMask = om, newMask = appendToMask newMask childMask}) 
@@ -278,7 +278,6 @@ gUpdate{|[]|} fx l ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask
 				# nm	   = maskInsert (index+1) childMask listMask
 				= (upd, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched nm om upd), oldMask = om})
 			_ 	
-				//= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask listMask, oldMask = om})
 				= (lx, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched listMask om lx), oldMask = om})
 	| otherwise 
 		= (lx, {USt | ust & currentPath  = stepDataPath currentPath, newMask = appendToMask newMask (isLmUntouched listMask om lx), oldMask = om})
@@ -342,9 +341,10 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update,oldM
 		= case m of
 			Nothing
 				| (dataPathList searchPath) <== (dataPathList currentPath)
-					# (x,ust=:{newMask=nmCreate}) 	= fx (abort "Maybe create with undef") {ust & mode = UDCreate}
+					# (x,ust=:{newMask=nmCreate}) 	= (fx (abort "Maybe create with undef") {ust & mode = UDCreate})
 					# (x,ust=:{newMask=nmSearch}) 	= fx x {ust & mode = UDSearch, currentPath = currentPath, searchPath = searchPath, update = update, oldMask = oldMask, newMask = newMask}
 					# children						= getMaskChildren nmSearch
+					# children						= children
 					| or (map isDirtyUM children)	= (Just x, ust)
 					| otherwise						= (Nothing, {USt | ust & newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 				| otherwise

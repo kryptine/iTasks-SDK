@@ -29,3 +29,15 @@ derive JSONEncode VerifyMask
 verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 basicVerify :: String !*VerSt -> *VerSt
 
+/**
+* Verifies a custom ADT
+* 
+* @param 	An optional hint message
+* @param	The predicate function
+* @param	A function for error message generation, in case the predicate fails
+* @param	The actual value (if present)
+* @param	The verify-state
+*
+* @return	The modified verify-state
+*/
+verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) *VerSt -> *VerSt

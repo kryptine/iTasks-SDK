@@ -1,6 +1,6 @@
 implementation module GenVerify
 
-import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList
+import StdMaybe, StdGeneric, StdBool, StdInt, Text, StdList, StdTuple
 import GenUpdate, StdMisc
 
 derive bimap (,), Maybe
@@ -116,9 +116,11 @@ gVerify{|Maybe|} fx (Just (Just x)) vst=:{VerSt | optional}
 gVerify{|Maybe|} fx (Just Nothing) vst=:{VerSt | optional} 
 	# vst = fx Nothing {VerSt | vst & optional = True}
 	= {VerSt | vst & optional = optional}
-gVerify{|Maybe|} _ Nothing vst=:{VerSt | updateMask,verifyMask,optional}
-	# (cm,um) = popMask updateMask
-	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
+gVerify{|Maybe|} fx Nothing vst=:{VerSt | updateMask,verifyMask,optional}
+	//# (cm,um) = popMask updateMask
+	//= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
+	# vst = fx Nothing {VerSt | vst & optional = True}
+	= {VerSt | vst & optional = optional}
 
 gVerify{|Dynamic|} _ vst = vst
 
@@ -223,3 +225,34 @@ where
 	getMaskChildren (VMValid _ _ cm)   		= cm
 	getMaskChildren (VMInvalid _ _ cm) 		= cm
 	getMaskChildren (VMUntouched _ _ cm) 	= cm
+	
+//********************************************************************************************************
+
+verifyConstructor :: (Maybe String) (a -> Bool) (a -> String) (Maybe a) *VerSt -> *VerSt
+verifyConstructor mbHint pred parseErr mbVal vst=:{VerSt | updateMask, verifyMask, optional} 
+	# (cm,um) = popMask updateMask
+	# cm	  = fst (popMask cm) //step past the constructor
+	# vmask = case mbVal of
+		(Just val)
+			| optional
+				= case cm of
+					(Touched _ _) 
+						= validateValue val
+					_
+						= VMValid Nothing Nothing [VMValid mbHint Nothing []]			
+			| otherwise
+				= case cm of
+					(Untouched _ _)
+						= VMUntouched Nothing Nothing [VMUntouched mbHint Nothing []]
+					(Blanked _ _)
+						= VMInvalid IsBlankError Nothing [VMInvalid IsBlankError Nothing []]
+					(Touched _ _)
+						= validateValue val		
+		Nothing
+			| optional 	= VMValid Nothing Nothing [VMValid mbHint Nothing []]
+			| otherwise = VMUntouched Nothing Nothing [VMUntouched mbHint Nothing []]
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask vmask}
+where
+	validateValue val
+	| pred val 	= VMValid Nothing Nothing [VMValid mbHint Nothing []]
+	| otherwise	= VMInvalid (ErrorMessage "") Nothing [VMInvalid (ErrorMessage (parseErr val)) Nothing []]
