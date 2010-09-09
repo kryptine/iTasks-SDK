@@ -47,7 +47,7 @@ itasks.NewWorkPanel = Ext.extend(Ext.Panel, {
 		var wdpanel = new itasks.WorkDescriptionPanel({bbar: ['->',startButton]});
 	
 		Ext.apply(this, {
-			title: "New task",
+			title: "Tasks",
 			iconCls: "icon-newwork",
 			layout: "border",
 			border: false,
@@ -104,6 +104,7 @@ itasks.WorkTreePanel = Ext.extend(Ext.tree.TreePanel ,{
 			region: "center",
 			id: 'newpanel',
 			header: false,
+			autoScroll: true,
 			loader: new itasks.NewWorkTreeLoader({
 				baseParams: {session: itasks.app.session}
 			}),
