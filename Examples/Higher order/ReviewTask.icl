@@ -40,7 +40,7 @@ derive bimap (,), Maybe
 
 reviewTaskExample :: [Workflow]
 reviewTaskExample
-= [workflow "Examples/Higher order/Review task" (Subject "Review the results of a task" @>> reviewtask) ]
+= [workflow "Examples/Higher order/Review task" "Demo of an iterative process" (Subject "Review the results of a task" @>> reviewtask) ]
 
 reviewtask :: Task (QForm,Review)
 reviewtask = getDefaultValue >>= \def -> taskToReview AnyUser (def, mytask)

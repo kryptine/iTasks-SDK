@@ -3,7 +3,7 @@ implementation module textEditor
 import iTasks, StdMisc, Text
 
 textEditor :: [Workflow]
-textEditor = [workflow "Examples/Miscellaneous/Text Editor" (textEditorApp <<@ Subject "Text Editor")]
+textEditor = [workflow "Examples/Miscellaneous/Text Editor" "A simple text editor, demonstrating the 'application'-like capabilities of iTasks" (textEditorApp <<@ Subject "Text Editor")]
 
 // global workflows
 textEditorApp :: Task Void

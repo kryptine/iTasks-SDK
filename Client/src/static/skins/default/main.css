@@ -163,6 +163,12 @@ button.icon-expand-tree, .icon-expand-tree {
 .icon-trash {
 	background-image: url('img/icons/trash.png') !important;
 }
+.icon-description {
+	background-image: url('img/icons/page_white_text.png') !important;
+}
+.icon-play {
+	background-image: url('img/icons/control_play_blue.png') !important;
+}
 
 #userdisplay {
 	color: #3a81ad;
@@ -202,9 +208,19 @@ div.work-list-high-priority {
 
 /* NEW TASK PANEL STYLES */
 
-div.newtask-container .x-panel-body {
-	background: #fff url('img/itasks-logo.png') left bottom no-repeat;
+div.newtask-description-container x-panel-body{
+	font-family:tahoma,arial,verdana,sans-serif;
+	font-size:11px;
 }
+
+div.newtask-description-container h3 {
+	margin-bottom: 4px;
+	color:#15428B;
+	font-family:tahoma,arial,verdana,sans-serif;
+	font-size:11px;
+	font-weight:bold;
+}
+
 
 /* WORK TAB PANEL STYLES */
 /*div.worktab-container .x-panel-body, div.worktab-container .x-tab-panel-body {

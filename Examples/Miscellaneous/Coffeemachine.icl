@@ -3,7 +3,7 @@ implementation module Coffeemachine
 import iTasks
 
 coffeemachineExample :: [Workflow]
-coffeemachineExample = [ workflow "Examples/Miscellaneous/Coffeemachine" coffeemachine ]
+coffeemachineExample = [ workflow "Examples/Miscellaneous/Coffeemachine" "A coffee machine demo" coffeemachine ]
 
 coffeemachine :: Task (String,Currency)
 coffeemachine  =				enterChoice "Product" "Choose your product"

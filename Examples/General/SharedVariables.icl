@@ -151,13 +151,13 @@ where
 	actions = [GroupAction ActionQuit GOStop GroupAlways]
 								
 sharedValueExamples :: [Workflow]
-sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	(Subject "Text-Lines (grouped tasks)"	@>> linesPar)
-						, workflow "Examples/Shared Variables/Text-Lines (single editor)"	(Subject "Text-Lines (single editor)"	@>> linesSingle)
-						, workflow "Examples/Shared Variables/Calculate Sum"				(Subject "Calculate Sum"				@>> calculateSum)
-						, workflow "Examples/Shared Variables/Balanced Binary Tree"			(Subject "Balanced Binary Tree"			@>> tree)
-						, workflow "Examples/Shared Variables/Merge Test (List)"			(Subject "Merge Test (List)"			@>> mergeTestList)
-						, workflow "Examples/Shared Variables/Merge Test (Documents)"		(Subject "Merge Test (Documents)"		@>> mergeTestDocuments)
-						, workflow "Examples/Shared Variables/Google Maps Example"			(Subject "Google Maps Example"			@>> googleMaps)
-						, workflow "Examples/Shared Variables/Sorted List"					(Subject "Sorted List"					@>> autoSortedList)
-						, workflow "Examples/Shared Variables/Formatted Text"				(Subject "Formatted Text"				@>> formattedText)
+sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	"" (Subject "Text-Lines (grouped tasks)"	@>> linesPar)
+						, workflow "Examples/Shared Variables/Text-Lines (single editor)"	"" (Subject "Text-Lines (single editor)"	@>> linesSingle)
+						, workflow "Examples/Shared Variables/Calculate Sum"				"" (Subject "Calculate Sum"				@>> calculateSum)
+						, workflow "Examples/Shared Variables/Balanced Binary Tree"			"" (Subject "Balanced Binary Tree"			@>> tree)
+						, workflow "Examples/Shared Variables/Merge Test (List)"			"" (Subject "Merge Test (List)"			@>> mergeTestList)
+						, workflow "Examples/Shared Variables/Merge Test (Documents)"		"" (Subject "Merge Test (Documents)"		@>> mergeTestDocuments)
+						, workflow "Examples/Shared Variables/Google Maps Example"			"" (Subject "Google Maps Example"			@>> googleMaps)
+						, workflow "Examples/Shared Variables/Sorted List"					"" (Subject "Sorted List"					@>> autoSortedList)
+						, workflow "Examples/Shared Variables/Formatted Text"				"" (Subject "Formatted Text"				@>> formattedText)
 						]

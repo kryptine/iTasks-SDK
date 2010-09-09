@@ -11,7 +11,7 @@ derive bimap (,), Maybe
 ambulanceDispatchMapExamples :: [Workflow]
 ambulanceDispatchMapExamples = flows
 where
-	flows = [ workflow "Examples/Crisis response/Report incident (Map)" (reportIncident -|| showSources)]
+	flows = [ workflow "Examples/Crisis response/Report incident (Map)" "" reportIncident]
 
 :: Incident =
 	{ location		:: Coordinate

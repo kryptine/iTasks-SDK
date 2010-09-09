@@ -4,7 +4,7 @@ import iTasks
 
 guiDemoExample :: [Workflow]
 guiDemoExample
-	= [ workflow "Examples/Miscellaneous/GUI Demo" guiDemo]
+	= [ workflow "Examples/Miscellaneous/GUI Demo" "Demo of user interface elements" guiDemo]
 
 :: Address =
 	{ street		:: String

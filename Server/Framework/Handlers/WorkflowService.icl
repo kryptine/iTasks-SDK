@@ -8,9 +8,10 @@ import GenEq
 from Util import mb2list
 
 :: WorkflowItem =
-	{ name 		:: !String 	//Full name of the workflow
-	, label		:: !String	//Displayed label of the workflow
-	, folder	:: !Bool	//Is the item a folder of other workflows
+	{ name 			:: !String 	//Full name of the workflow
+	, label			:: !String	//Displayed label of the workflow
+	, description	:: !String	//Description of the workflow
+	, folder		:: !Bool	//Is the item a folder of other workflows
 	}
 
 derive JSONEncode WorkflowItem
@@ -48,15 +49,18 @@ where
 	
 	workflowItems path user workflows
 		# paths				= join "/" path
-		= removeDup [workflowItem paths wf \\ wf <- workflows | onPath paths wf && isAllowed user wf]
+		= sortWorkflowItems (removeDup [workflowItem paths wf \\ wf <- workflows | onPath paths wf && isAllowed user wf])
 	workflowItem paths wf
 		# shortPath = wf.Workflow.path % (if (paths == "") 0 (size paths + 1), size wf.Workflow.path)
 		# slashPos	= indexOf "/" shortPath
 		| slashPos == -1
-			= {WorkflowItem | name = wf.Workflow.path, label = shortPath, folder = False}
+			= {WorkflowItem | name = wf.Workflow.path, label = shortPath, description = wf.Workflow.description, folder = False}
 		| otherwise
 			# label = shortPath % (0, slashPos - 1)
-			= {WorkflowItem | name = if (paths == "") label (paths +++ "/" +++ label), label = label, folder = True}
+			= {WorkflowItem | name = if (paths == "") label (paths +++ "/" +++ label), label = label, description = "", folder = True}
+
+	//Move the leafs to the end of the tree
+	sortWorkflowItems items = [item \\ item <- items | item.folder == True] ++ [item \\ item <- items | item.folder == False]
 
 description :== "This service provides a directory of available workflows that can be started.<br />"
 			+++ "Only workflows are given that are allowed for the current session.<br />"

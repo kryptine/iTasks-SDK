@@ -4,7 +4,7 @@ import 	iTasks
 import	FlowData, FormFlowStorage, TaskContainer
 				
 flowEditor :: Workflow
-flowEditor = workflow "Examples/Interactive Workflows/Flow Editor" handleMenu
+flowEditor = workflow "Examples/Interactive Workflows/Flow Editor" "Create or edit workflows" handleMenu
 
 emptyState = (("",emptyFlow),False)
 

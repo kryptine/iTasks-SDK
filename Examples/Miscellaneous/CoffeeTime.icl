@@ -3,7 +3,7 @@ implementation module CoffeeTime
 import iTasks
 
 coffeeTimeExample :: [Workflow]
-coffeeTimeExample = [workflow "Examples/Miscellaneous/Coffee time" coffeeTime]
+coffeeTimeExample = [workflow "Examples/Miscellaneous/Coffee time" "Determine who needs to go and get coffee" coffeeTime]
 
 /*
 * Main workflow:

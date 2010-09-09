@@ -4,7 +4,7 @@ import 	iTasks
 import	FormFlowStorage, TaskContainer, FlowEditor
 
 launchFlow :: Workflow
-launchFlow = workflow "Examples/Interactive Workflows/Run a stored workflow" handleMenu
+launchFlow = workflow "Examples/Interactive Workflows/Run workflow" "Run a stored workflow" handleMenu
 
 // ****************************
 

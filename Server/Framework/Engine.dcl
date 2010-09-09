@@ -35,19 +35,22 @@ config :: !*World -> (!Maybe Config,!*World)
 * Wraps any task as a workflow with no access restrictions
 *
 * @param A label for the workflow. This may contain slashes to group workflows
+* @param A description of the workflow
 * @param The task
 */
-workflow :: !String !(Task a) -> Workflow | iTask a
+workflow :: !String !String !(Task a) -> Workflow | iTask a
+
 
 /**
 *
 * Wraps any task as a workflow that is only available to specified roles
 *
 * @param A label for the workflow. This may contain slashes to group workflows
+* @param A description of the workflow
 * @param A list of roles. The workflow will be available to users with any of the specified roles
 * @param The task
 */
-restrictedWorkflow :: !String ![Role] !(Task a) -> Workflow | iTask a
+restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
 
 /**
 * Determine the name of the application based on the executable's name

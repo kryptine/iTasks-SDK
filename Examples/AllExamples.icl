@@ -59,7 +59,7 @@ where
 						, exceptionHandlingExample
 						, changeHandlingExample
 						, ambulanceDispatchExamples
-						, ambulanceDispatchMapExamples
+						//, ambulanceDispatchMapExamples
 						, changeExamples
 						,	[ formEditor
 							, flowEditor
@@ -67,9 +67,6 @@ where
 							, launchFlow
 							]
 						, sharedValueExamples
-						,	[workflow "General/Groups" manageGroups
-							,workflow "General/Lists" manageLists
-							,workflow "General/Messages" manageMessages
-							,workflow "General/Ask opinions" askOpinions
+						,	[workflow "General/Ask opinions" "Gather opinions regarding a specific subject" askOpinions
 							]
 						]

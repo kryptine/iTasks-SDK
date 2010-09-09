@@ -44,10 +44,10 @@ instance DB Bug where
 
 bugReportExample :: [Workflow]
 bugReportExample
-	= [ workflow "Examples/Miscellaneous/Bug report (simple)" reportBugVerySimple
-	  , workflow "Examples/Miscellaneous/Bug report (simple 2)" reportBugSimple
-	  , workflow "Examples/Miscellaneous/Bug report (simple 3)" bugReport
-	  , workflow "Examples/Miscellaneous/Bug report (advanced)" reportBug
+	= [ workflow "Examples/Miscellaneous/Bug report (simple)" "A simple bug submission form" reportBugVerySimple
+	  , workflow "Examples/Miscellaneous/Bug report (simple 2)" "A more complex bug submission form" reportBugSimple
+	  , workflow "Examples/Miscellaneous/Bug report (simple 3)" "A more complex bug submission form" bugReport
+	  , workflow "Examples/Miscellaneous/Bug report (advanced)" "A workflow for reporting and handling bugs" reportBug
 	  ]
 	 
 reportBugVerySimple :: Task Note

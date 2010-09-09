@@ -14,14 +14,14 @@ derive bimap		Maybe, (,)
 
 newsgroupsExample :: [Workflow]
 newsgroupsExample
-=	[	workflow	 "Examples/Communication/Newsgroups" handleMenu
-	,	workflow	 "Examples/Communication/Mail" internalEmail
-	,	workflow	 "Examples/Communication/Broadcast" internalBroadcast
-	,	workflow	 "Examples/Communication/Mail with confirmation" internalEmailConf
-	,	workflow	 "Examples/Communication/Mail with forced reply" internalEmailReply
-	,	workflow	 "Examples/Communication/Make appointment" mkAppointment
-	,	workflow	 "Examples/Communication/Delegate Instruction" mkInstruction
-	,	workflow	 "Examples/Communication/Chat with someone" chat
+=	[	workflow	 "Examples/Communication/Newsgroups" "Set-up and read newsgroups" handleMenu
+	,	workflow	 "Examples/Communication/Mail" "Send a message" internalEmail
+	,	workflow	 "Examples/Communication/Broadcast" "Send a message to all users" internalBroadcast
+	,	workflow	 "Examples/Communication/Mail with confirmation" "Send a message with read confirmation" internalEmailConf
+	,	workflow	 "Examples/Communication/Mail with forced reply" "Send a message with a forced reply from the recipient" internalEmailReply
+//	,	workflow	 "Examples/Communication/Make appointment"  mkAppointment
+	,	workflow	 "Examples/Communication/Delegate Instruction" "Delegate work outside the system to a user" mkInstruction
+	,	workflow	 "Examples/Communication/Chat with someone" "Set up a chat" chat
 	]
 
 derive class iTask	InstructionMsg

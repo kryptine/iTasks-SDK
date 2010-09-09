@@ -6,14 +6,14 @@ from TaskTree import :: TaskProperties(..),::WorkerProperties(..),::ManagerPrope
 
 changeExamples :: [Workflow]
 changeExamples =
-	[ 	workflow "Examples/Changes/Change priority" (Subject "Change priority" @>> (try changePrio catch))
-	,	workflow "Examples/Changes/Add warning" (Subject "Add warning" @>> (try changeWarningTask catch))
-	,	workflow "Examples/Changes/Duplicate task" (Subject "Duplicate task" @>> (try duplicateTask catch))
-	,	workflow "Examples/Changes/Show result when task finishes" (Subject "Show result when task finishes" @>> (try informTask catch))
-	,	workflow "Examples/Changes/Check task when finished" (Subject "Check task when finished" @>> (try checkTask catch))
-	,	workflow "Examples/Changes/Cancel task" (Subject "Cancel task" @>> (try cancelTask catch))
- 	,	workflow "Examples/Changes/Reassign task" (Subject "Reassign task" @>> (try reassignTask catch))
- 	,	workflow "Examples/Changes/Restart task" (Subject "Restart task" @>> (try restartTask catch))
+	[ 	workflow "Examples/Changes/Change priority" "Change the priority of a task" (Subject "Change priority" @>> (try changePrio catch))
+	,	workflow "Examples/Changes/Add warning" "Add a warning message to a task" (Subject "Add warning" @>> (try changeWarningTask catch))
+	,	workflow "Examples/Changes/Duplicate task" "Duplicate a task" (Subject "Duplicate task" @>> (try duplicateTask catch))
+	,	workflow "Examples/Changes/Show result" "Show result when task finishes" (Subject "Show result when task finishes" @>> (try informTask catch))
+	,	workflow "Examples/Changes/Check task when finished" "Wait until a task is finished" (Subject "Check task when finished" @>> (try checkTask catch))
+	,	workflow "Examples/Changes/Cancel task" "Cancel a task" (Subject "Cancel task" @>> (try cancelTask catch))
+ 	,	workflow "Examples/Changes/Reassign task" "Reassing the task to another user" (Subject "Reassign task" @>> (try reassignTask catch))
+ 	,	workflow "Examples/Changes/Restart task" "Restart a task from the beginning" (Subject "Restart task" @>> (try restartTask catch))
   	]
 where
 	catch :: String -> Task Void

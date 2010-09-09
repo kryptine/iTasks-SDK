@@ -12,7 +12,7 @@ derive bimap (,), Maybe
 
 exceptionHandlingExample :: [Workflow]
 exceptionHandlingExample
-= [workflow "Examples/Higher order/Exception handling" exceptionTask]
+= [workflow "Examples/Higher order/Exception handling" "Exception handling demo" exceptionTask]
 
 exceptionTask :: Task Int
 exceptionTask = Subject "Exception example" @>> (try (try normalTask (catchNegativeValueTask normalTask)) (catchTooLargeValueTask normalTask))

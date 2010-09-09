@@ -56,6 +56,7 @@ import	GenVisualize, GenUpdate
 :: Workflow		=	{ path			:: !String											// a unique name of this workflow
 					, roles			:: ![String]										// the roles that are allowed to initate this workflow
 					, thread		:: !Dynamic											// the thread of the main task of the workflow
+					, description	:: !String											// a description of the workflow
 					}
 /**
 * Creates an initial task state.

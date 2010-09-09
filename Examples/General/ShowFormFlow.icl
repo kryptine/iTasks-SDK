@@ -8,7 +8,7 @@ ShowAll		:== ActionLabel "Show All"
 Refresh		:== ActionLabel "Refresh"
 
 showStoredDefinitions :: Workflow
-showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Definitions" handleMenu
+showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Definitions" "Show stored form or workflow definitions" handleMenu
 
 initMenu :: Task Void
 initMenu 

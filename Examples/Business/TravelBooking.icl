@@ -35,7 +35,7 @@ BookTrip
 
 
 travelBookingExample :: [Workflow]
-travelBookingExample = [workflow "Examples/Business/Delegate book a trip" BookTrip]
+travelBookingExample = [workflow "Examples/Business/Delegate book a trip" "Book a trip" BookTrip]
 
 :: Booking :== (String,String,String,Currency)
 

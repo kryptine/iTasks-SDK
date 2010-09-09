@@ -15,8 +15,6 @@ mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, 
 		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, updateMask = Untouched False [], verifyMask = VMValid Nothing Nothing [], updates = []}
 
-import StdDebug
-
 //Wrapper functions
 visualizeAsEditor :: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool) | gVisualize{|*|} a
 visualizeAsEditor name mbSubIdx umask vmask x
@@ -25,8 +23,8 @@ visualizeAsEditor name mbSubIdx umask vmask x
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (defs,vst=:{VSt | valid}) = gVisualize{|*|} val val vst
-	= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
-	//= (coerceToTUIDefs defs, valid)	
+	//= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
+	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x
 	
@@ -57,8 +55,8 @@ determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,vst=:{VSt | valid}) = (gVisualize{|*|} (VValue old) (VValue new) vst)
-	= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
-	//= (coerceToTUIUpdates updates, valid)
+	//= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
+	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
 derive bimap VisualizationValue

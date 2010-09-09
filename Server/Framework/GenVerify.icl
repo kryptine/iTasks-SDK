@@ -117,10 +117,10 @@ gVerify{|Maybe|} fx (Just Nothing) vst=:{VerSt | optional}
 	# vst = fx Nothing {VerSt | vst & optional = True}
 	= {VerSt | vst & optional = optional}
 gVerify{|Maybe|} fx Nothing vst=:{VerSt | updateMask,verifyMask,optional}
-	//# (cm,um) = popMask updateMask
-	//= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
-	# vst = fx Nothing {VerSt | vst & optional = True}
-	= {VerSt | vst & optional = optional}
+	# (cm,um) = popMask updateMask
+	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing [])}
+	//# vst = fx Nothing {VerSt | vst & optional = True}
+	//= {VerSt | vst & optional = optional}
 
 gVerify{|Dynamic|} _ vst = vst
 

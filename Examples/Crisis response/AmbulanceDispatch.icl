@@ -6,8 +6,8 @@ import GenEq
 ambulanceDispatchExamples :: [Workflow]
 ambulanceDispatchExamples = flows
 where
-	flows =	[ workflow "Examples/Crisis response/Report incident" reportIncident
-			, workflow "Examples/Crisis response/Dispatch ambulances" dispatchAmbulances
+	flows =	[ workflow "Examples/Crisis response/Report incident" "Report an incident" reportIncident
+			, workflow "Examples/Crisis response/Dispatch ambulances" "Dispatch ambulances to an incident" dispatchAmbulances
 			]
 			
 //Crisis management data domain

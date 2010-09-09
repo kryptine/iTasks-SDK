@@ -48,10 +48,10 @@ where
 		  ,(\_ -> True, handleStaticResourceRequest config)
 		  ]
 
-	adminWorkflows		= [restrictedWorkflow "Admin/Users" ["admin"] manageUsers]
-	generalWorkflows	= [workflow "Messages" manageMessages
-						  ,workflow "Lists" manageLists
-						  ,workflow "Groups" manageGroups
+	adminWorkflows		= [restrictedWorkflow "Admin/Users" "Manage system users" ["admin"] manageUsers]
+	generalWorkflows	= [workflow "Messages" "Send and receive messages" manageMessages
+						  ,workflow "Lists" "Create and manage various lists" manageLists
+						  ,workflow "Groups" "Manage user groups" manageGroups
 						  ]
 	
 	serviceDispatch config flows req world
@@ -81,22 +81,24 @@ where
 		# tst		= flushStore tst
 		= (response, HTTPServerContinue, finalizeTSt tst)
 
-workflow :: !String !(Task a) -> Workflow | iTask a
-workflow path task =
+workflow :: !String !String !(Task a) -> Workflow | iTask a
+workflow path description task =
 	{ Workflow
 	| path	= path
 	, roles	= []
 	, thread = createThread (task <<@ Subject name)
+	, description = description
 	}
 where
 	name = last (split "/" path)
 	
-restrictedWorkflow :: !String ![Role] !(Task a) -> Workflow | iTask a
-restrictedWorkflow path roles task =
+restrictedWorkflow :: !String !String ![Role] !(Task a) -> Workflow | iTask a
+restrictedWorkflow path description roles task =
 	{ Workflow
 	| path	= path
 	, roles	= roles
 	, thread = createThread (task <<@ Subject name)
+	, description = description
 	}
 where
 	name = last (split "/" path)
