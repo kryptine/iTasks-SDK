@@ -9,6 +9,7 @@ import StdMaybe
 	{ clientPath		:: !String			// Where is the client located.
 	, staticPath		:: !String			// Additional location where statically served content may be placed
 	, rootPassword		:: !String			// Password for the 'root' superuser (default 'root').
+	, rootEmail			:: !String			// E-mail address for the 'root' superuser (default root@localhost).
 	, sessionTime		:: !Int				// Time (in seconds) before inactive sessions are garbage collected. Default is 3600 (one hour).
 	, serverPort		:: !Int				// The TCP port the server runs on. Default is 80.
 	, serverPath		:: !String			// The path at which the services are served (default /services)

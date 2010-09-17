@@ -1,6 +1,6 @@
 implementation module Email
 
-import StdTCPChannels
+import TCPChannels
 import StdIO, StdTuple, StdInt, StdList
 
 // Send function which sends the e-mail out

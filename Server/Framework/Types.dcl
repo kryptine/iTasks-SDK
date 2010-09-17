@@ -94,6 +94,7 @@ instance zero Currency
 	{ userName		:: !UserId
 	, password		:: !Password
 	, displayName	:: !String
+	, emailAddress	:: !EmailAddress
 	, roles			:: !Maybe [Role]
 	}
 

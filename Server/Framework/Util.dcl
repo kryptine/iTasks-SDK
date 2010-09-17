@@ -35,6 +35,8 @@ list2mb				:: ![a] -> (Maybe [a])
 pad					:: Int Int -> String
 decFormat			:: Int -> String
 
+mapSt				:: (a *st -> (b,*st)) [a] *st -> ([b],*st)
+
 // Functions for accessing dates and times
 currentTime 	:: !*World -> (!Time,!*World)
 currentDate 	:: !*World -> (!Date,!*World)

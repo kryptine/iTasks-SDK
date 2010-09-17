@@ -12,11 +12,12 @@ defaultConfig =
 	{ clientPath		= "Client"
 	, staticPath		= ".\\Static"
 	, rootPassword		= "root"
+	, rootEmail			= "root@localhost"
 	, sessionTime		= 3600
 	, serverPort		= 80
 	, serverPath		= "/services"
 	, debug				= False
-	, smtpServer		= "smtp.ru.nl"
+	, smtpServer		= "localhost"
 	, generalWorkflows	= True
 	}
 

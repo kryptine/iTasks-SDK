@@ -8,6 +8,11 @@ from Types		import :: User, :: ProcessId, :: ProcessRef
 from	iTasks		import class iTask
 import	GenVisualize, GenUpdate
 
+class emailOf r where emailOf :: r -> EmailAddress
+instance emailOf EmailAddress
+instance emailOf String
+instance emailOf User
+
 /**
 * Returns the user currently logged in the iTask system
 *
@@ -44,3 +49,18 @@ getDefaultValue 		:: Task a | iTask a
 * @return The random number
 */ 
 getRandomInt 			:: Task Int
+
+/**
+* Send an e-mail
+*
+* @param The subject line of the e-mail
+* @param The body of the e-mail
+* @param The list of recipients. This can be either e-mail addresses or existing system users.
+*
+* @return The recipients to which the email was sent
+*/
+sendEmail :: !String !Note ![recipient] -> Task [recipient]	| emailOf recipient & iTask recipient
+
+
+
+

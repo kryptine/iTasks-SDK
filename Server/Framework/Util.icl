@@ -63,6 +63,14 @@ fileExtension filename = case (split "." filename) of
 baseName :: !String -> String
 baseName path = last (split "\\" path)
 
+mapSt :: (a *st -> (b,*st)) [a] *st -> ([b],*st)
+mapSt f [] st = ([], st)
+mapSt f [x:xs] st
+	# (y, st) = f x st
+	# (ys, st) = mapSt f xs st
+	= ([y:ys], st)
+
+
 // ******************************************************************************************************
 
 mb2list	:: !(Maybe [a]) -> [a]

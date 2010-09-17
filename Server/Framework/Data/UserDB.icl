@@ -20,6 +20,14 @@ where
 			_	= (Nothing,iworld)
 	
 	getUserDetails :: !User !*IWorld -> (!Maybe UserDetails,!*IWorld)
+	getUserDetails RootUser iworld=:{IWorld|config}
+		= (Just {UserDetails
+			|userName = "root"
+			,password = Password config.rootPassword
+			,displayName = "Root User"
+			,emailAddress = EmailAddress config.rootEmail
+			,roles = Nothing},iworld)
+			
 	getUserDetails (RegisteredUser details) iworld = (Just details,iworld)
 	getUserDetails (NamedUser username) iworld
 		# (details, iworld) = userStore id iworld

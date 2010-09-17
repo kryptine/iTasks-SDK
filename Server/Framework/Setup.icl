@@ -42,6 +42,7 @@ postedConfig req =
 	{ clientPath = http_getValue "clientPath" req.arg_post ""
 	, staticPath = http_getValue "staticPath" req.arg_post ""
 	, rootPassword = http_getValue "rootPassword" req.arg_post ""
+	, rootEmail	= http_getValue "rootEmail" req.arg_post ""
 	, sessionTime = toInt (http_getValue "sessionTime" req.arg_post "0")
 	, serverPort = toInt (http_getValue "serverPort" req.arg_post "0")
 	, serverPath = http_getValue "serverPath" req.arg_post "0"
@@ -54,6 +55,7 @@ checkConfig :: !Config !*World -> (![Maybe String],!*World)
 checkConfig config world
 	# (clientPathOk,world) = checkClientPath config.clientPath world
 	= 	([if clientPathOk Nothing (Just CLIENT_ERROR)
+		 ,Nothing
 		 ,Nothing
 		 ,Nothing
 		 ,if (config.sessionTime < 60) (Just "Session time should be at least 60 seconds") Nothing
@@ -127,6 +129,7 @@ where
 	fields = [("Client path", config.clientPath)
 			 ,("Static path", config.staticPath)
 			 ,("Root password", config.rootPassword)
+			 ,("Root e-mail", config.rootEmail)
 			 ,("Session time", toString config.sessionTime)
 			 ,("Server port", toString config.serverPort)
 			 ,("Server path", config.serverPath)
@@ -141,6 +144,7 @@ where
 	fields = [("Client path",InputTag [TypeAttr "text",NameAttr "clientPath", ValueAttr config.clientPath])
 			 ,("Static path",InputTag [TypeAttr "text",NameAttr "staticPath", ValueAttr config.staticPath])
 			 ,("Root password",InputTag [TypeAttr "text",NameAttr "rootPassword", ValueAttr config.rootPassword])
+			 ,("Root e-mail",InputTag [TypeAttr "text",NameAttr "rootEmail", ValueAttr config.rootEmail])
 			 ,("Session time",InputTag [TypeAttr "text",NameAttr "sessionTime",SizeAttr "2", ValueAttr (toString config.sessionTime)])
 			 ,("Server port",InputTag [TypeAttr "text",NameAttr "serverPort",SizeAttr "2", ValueAttr (toString config.serverPort)])
 			 ,("Server path",InputTag [TypeAttr "text",NameAttr "serverPath", ValueAttr config.serverPath])

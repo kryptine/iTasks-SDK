@@ -227,6 +227,10 @@ getCurrentProcess :: !*TSt -> (!ProcessId, !*TSt)
 */
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 
+/**
+* Get a value from the configuration data
+*/
+getConfigSetting :: !(Config -> a) !*TSt -> (!a,!*TSt)
 //// TASK CREATION
 
 /**

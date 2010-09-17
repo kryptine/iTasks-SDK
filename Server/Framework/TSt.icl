@@ -480,13 +480,7 @@ where
 	
 	//All other leaf cases
 	normalizeInteractiveTasks tree tst = (tree,tst)
-	
-mapSt f [] st = ([], st)
-mapSt f [x:xs] st
-	# (y, st) = f x st
-	# (ys, st) = mapSt f xs st
-	= ([y:ys], st)
-	
+
 applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInfo,currentChange,pendingChanges, properties, menus}
 	# (mbProcess,tst) = getProcess pid tst
@@ -574,6 +568,13 @@ getCurrentWorker tst =: {TSt | properties}
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
 	= (tree, {tst & tree = tree})
+
+getConfigSetting :: !(Config -> a) !*TSt -> (!a,!*TSt)
+getConfigSetting f tst
+	= accIWorldTSt getFromIWorld tst
+where
+	getFromIWorld iworld=:{IWorld|config}
+		= (f config, {IWorld|iworld & config = config})
 
 getWorkflows :: !*TSt -> (![Workflow],!*TSt)
 getWorkflows tst=:{staticInfo = staticInfo =:{staticWorkflows}}
