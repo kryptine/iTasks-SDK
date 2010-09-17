@@ -177,7 +177,7 @@ stop = return Void
 
 randomChoice :: ![a] -> Task a | iTask a
 randomChoice [] = throw "Cannot make a choice from an empty list"
-randomChoice list = getRandomInt >>= \i -> return (list !! (i rem (length list)))
+randomChoice list = getRandomInt >>= \i -> return (list !! ((abs i) rem (length list)))
 
 repeatTask :: !(a -> Task a) !(a -> Bool) a -> Task a | iTask a
 repeatTask task pred a =
