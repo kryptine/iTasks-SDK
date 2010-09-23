@@ -24,7 +24,7 @@ where
 					              ] actions coins 
 		>>= 	handleMoney
 
-	actions = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, Always)]
+	actions = [(ActionCancel, always, AsButton), (ActionOk, always, AsButton)]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 
 	handleMoney (ActionCancel, coin)

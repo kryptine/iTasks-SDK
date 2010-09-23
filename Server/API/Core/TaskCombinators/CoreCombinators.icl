@@ -4,7 +4,7 @@ import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
 from 	Types import :: DateTime
-
+from	InteractionTasks import :: Action(..), instance == Action
 derive class iTask SchedulerState
 
 import	TSt

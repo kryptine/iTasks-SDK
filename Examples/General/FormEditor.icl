@@ -44,21 +44,18 @@ initMenu
 		]
 
 actions state=:((name,form),mode)
-	=	map MenuAction	[ (ActionNew,		Always)
-						, (ActionOpen,		Always)
-						, (ActionOpenValue,	Always)
-						, (ActionSave,		ifValid (name <> ""))
-						, (ActionSaveAs,	ifValid (name <> ""))
-						, (ActionQuit,		Always)
-						, (ActionShowAbout,	Always)
-						, (ActionEditType,	(Predicate (\_ -> mode === EditValue)))
-						, (ActionEditValue,	(Predicate (\_ -> mode === EditType && not (isEmpty form.formShape))))
-						] 
+	=	[ (ActionNew,		always, InMenu)
+		, (ActionOpen,		always, InMenu)
+		, (ActionOpenValue,	always, InMenu)
+		, (ActionSave,		ifValid (name <> ""), InMenu)
+		, (ActionSaveAs,	ifValid (name <> ""), InMenu)
+		, (ActionQuit,		always, InMenu)
+		, (ActionShowAbout,	always, InMenu)
+		, (ActionEditType,	(\_ -> mode === EditValue),InMenu)
+		, (ActionEditValue,	(\_ -> mode === EditType && not (isEmpty form.formShape)),InMenu)
+		] 
 
-ifValid expr = Predicate (\val -> case val of
-									Invalid -> False
-									_ -> expr)
-
+ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
 handleMenu :: Task Void
 handleMenu 
@@ -69,8 +66,8 @@ doMenu state=:((name,form), mode)
 				NoEdit 		->							updateInformationA "No edit" title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
 				EditType 	->							updateInformationA "Edit" title2
-																					[ ButtonAction (ActionEditValue, ifValid (not (isEmpty form.formShape)))
-																					, ButtonAction (ActionOk, IfValid)
+																					[ (ActionEditValue, ifValid (not (isEmpty form.formShape)), AsButton)
+																					, (ActionOk, ifvalid, AsButton)
 																					: actions state] form.formShape
 								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
 				EditValue 	->							editValue state
@@ -78,8 +75,8 @@ doMenu state=:((name,form), mode)
 where
 	editValue state=:((name,form=:{formDyn = DV0 v :: DV0 a}), mode)  
 		=							updateInformationA "Edit" title3
-																[ ButtonAction (ActionSave, ifValid (name <> ""))
-																, ButtonAction (ActionEditType, Always)
+																[ (ActionSave, ifValid (name <> ""),AsButton)
+																, (ActionEditType, always, AsButton)
 																: actions state
 																] (Just v)
 			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic DV0 (if (isJust nv) (fromJust nv) v) :: DV0 a^}),mode))

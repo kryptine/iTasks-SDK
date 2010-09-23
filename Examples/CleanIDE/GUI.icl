@@ -1,19 +1,19 @@
 implementation module GUI
 
-import iTasks, CommonDomain
+import iTasks
 
 derive class iTask	WizardAction
 derive bimap		Maybe, (,)
 
-wizard :: !question ![WizardStep state] !state -> Task (Maybe state) | html question & iTask state & SharedVariable state
-wizard question [] initSt = return (Just initSt)
-wizard question views initSt =
+wizard :: !String !question ![WizardStep state] !state -> Task (Maybe state) | html question & iTask state & SharedVariable state
+wizard title question [] initSt = return (Just initSt)
+wizard title question views initSt =
 					createDB initSt
 	>>= \sid.		wizard` [] views GotoNext sid			
 where
 	wizard` prev [current:next] previousAction sid = case current of
 		ViewOnState instr views =
-								updateShared question actions sid [listener {listenerFrom = \_ -> (Note instr)}:views]
+								updateShared title question actions sid [listener {listenerFrom = \_ -> (Note instr)}:views]
 			>>= \(action,_).	case action of
 									ActionNext = wizard` [current:prev] next GotoNext sid
 									ActionPrevious
@@ -39,10 +39,10 @@ where
 			| isEmpty next		= [cancelAction, prevAction, finAction]
 			| isEmpty prev		= [cancelAction, nextAction]
 			| otherwise			= [cancelAction, prevAction, nextAction]
-		nextAction				= ButtonAction (ActionNext,		IfValid)
-		prevAction				= ButtonAction (ActionPrevious,	Always)
-		finAction				= ButtonAction (ActionFinish,	IfValid)
-		cancelAction			= ButtonAction (ActionCancel,	Always)
+		nextAction				= (ActionNext,		ifvalid, AsButton)
+		prevAction				= (ActionPrevious,	always, AsButton)
+		finAction				= (ActionFinish,	ifvalid, AsButton)
+		cancelAction			= (ActionCancel,	always, AsButton)
 		getResult sid =
 							readDB sid
 			>>= \result.	deleteDB sid
@@ -51,7 +51,7 @@ where
 editOptions :: !description !state !(state -> opts) !(opts state -> state) -> Task state | html description & iTask state & iTask opts
 editOptions description st getOpts putbackOpts =
 						ExcludeGroupActions @>>
-						updateInformationA "Edit options" description [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)] (getOpts st)
+						updateInformationA "Edit options" description [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)] (getOpts st)
 	>>= \(action,opts).	case action of
 							ActionOk		= return (putbackOpts opts st)
 							ActionCancel	= return st

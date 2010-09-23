@@ -1,8 +1,9 @@
 implementation module TaskPanel
 
-import JSON, TUIDefinition, TSt, ProcessDB
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
-import Html
+import JSON, Html, TSt, TUIDefinition
+
+from InteractionTasks	import :: Menu(..), :: MenuItem(..), getActionIcon, instance == Action
 
 derive JSONEncode SubtaskInfo
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer

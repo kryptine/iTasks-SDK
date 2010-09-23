@@ -10,4 +10,4 @@ derive class iTask			IDEConfig
 derive class SharedVariable	IDEConfig
 				
 loadConfig :: Task (Maybe IDEConfig)
-getConfig :: !(DBid AppState) -> Task IDEConfig
+getConfig :: !(DBId AppState) -> Task IDEConfig

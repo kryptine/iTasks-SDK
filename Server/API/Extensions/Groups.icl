@@ -28,9 +28,9 @@ where
 	overview []		= getDefaultValue >>= showMessageA "My groups" startMsg [aNew,aQuit]
 	overview list	= enterChoiceA "My groups" listMsg [aOpen,aNew,aQuit] list
 	
-	aOpen 			= ButtonAction (ActionOpen, IfValid)
-	aNew			= ButtonAction (ActionNew, Always)
-	aQuit			= ButtonAction (ActionQuit, Always)
+	aOpen 			= (ActionOpen, ifvalid, AsButton)
+	aNew			= (ActionNew, always, AsButton)
+	aQuit			= (ActionQuit, always, AsButton)
 	newGroup		= 		enterInformation "New group" "Please enter a name for the new group" 
 						>>= \name ->
 							getContextWorker
@@ -59,9 +59,9 @@ manageGroup igroup
 		ActionLabel "Leave group"		= leave group	>>| return False
 	) <! id >>| stop
 where
-	aBack	= ButtonAction (ActionClose, Always)
-	aInvite	= ButtonAction (ActionLabel "Invite new member", Always)
-	aLeave	= ButtonAction (ActionLabel "Leave group", Always)
+	aBack	= (ActionClose, always, AsButton)
+	aInvite	= (ActionLabel "Invite new member", always, AsButton)
+	aLeave	= (ActionLabel "Leave group", always, AsButton)
 		
 	invite group
 		= 	enterInformation ("Invite a someone to join " +++ toString group) "Please enter a user to invite to the group"

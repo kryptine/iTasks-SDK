@@ -52,10 +52,10 @@ where
 	overview []		= getDefaultValue >>= showMessageA "My messages" "You have no messages" [aNew,aNewGroup,aQuit] 
 	overview msgs	= enterChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
 	
-	aOpen		= ButtonAction (ActionOpen,IfValid)
-	aNew		= ButtonAction (ActionLabel "New message", Always)
-	aNewGroup	= ButtonAction (ActionLabel "New group message", Always)
-	aQuit		= ButtonAction (ActionQuit,Always)
+	aOpen		= (ActionOpen,ifvalid,AsButton)
+	aNew		= (ActionLabel "New message", always,AsButton)
+	aNewGroup	= (ActionLabel "New group message", always,AsButton)
+	aQuit		= (ActionQuit,always,AsButton)
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
@@ -82,11 +82,11 @@ manageMessage msg=:{Message |subject}
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage "Deleted" "Message deleted" False	
 where
-	aReply		= ButtonAction (ActionLabel "Reply",Always)
-	aReplyAll	= ButtonAction (ActionLabel "Reply All",Always)
-	aForward	= ButtonAction (ActionLabel "Forward",Always)
-	aDelete		= ButtonAction (ActionDelete, Always)
-	aClose		= ButtonAction (ActionClose, Always)
+	aReply		= (ActionLabel "Reply",always,AsButton)
+	aReplyAll	= (ActionLabel "Reply All",always,AsButton)
+	aForward	= (ActionLabel "Forward",always,AsButton)
+	aDelete		= (ActionDelete, always,AsButton)
+	aClose		= (ActionClose, always,AsButton)
 
 newMessage :: Task Void
 newMessage

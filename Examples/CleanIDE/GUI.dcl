@@ -7,6 +7,6 @@ import iTasks
 
 derive class iTask WizardAction
 
-wizard :: !description ![WizardStep state] !state -> Task (Maybe state) | html description & iTask state & SharedVariable state
+wizard :: !String !description ![WizardStep state] !state -> Task (Maybe state) | html description & iTask state & SharedVariable state
 
 editOptions :: !description !state !(state -> opts) !(opts state -> state) -> Task state | html description & iTask state & iTask opts

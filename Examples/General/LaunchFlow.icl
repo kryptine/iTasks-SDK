@@ -20,9 +20,9 @@ initMenu
 		]
 
 actions 
-	=	map MenuAction	[ (ActionStartFlow,		Always)
-						, (ActionQuit,			Always)
-						]
+	=	[ (ActionStartFlow,		always, InMenu)
+		, (ActionQuit,			always, InMenu)
+		]
 
 handleMenu :: Task Void
 handleMenu 

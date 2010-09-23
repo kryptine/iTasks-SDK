@@ -72,7 +72,7 @@ where
 	where
 		task :: Int -> Task MeetingDB
 		task n 
-			= 		updateShared "Request" "Meeting requested" [ButtonAction (ActionOk,IfValid)] dbid [appointEditor]
+			= 		updateShared "Request" "Meeting requested" [(ActionOk,ifvalid,AsButton)] dbid [appointEditor]
 				>>= switch 
 		where
 			switch   (ActionOk,_) = task n
@@ -358,18 +358,18 @@ initMenu groups
 		]
 
 actions groups
-	=	map MenuAction	[ (ActionNew,		 Always)
-						, (ActionQuit,		 Always)
-						, (ActionShowAbout,	 Always)
-						: [(ActionParam "SubscribeTo" group ,valid) \\ group <- groups]
-						] 
+	=	[ (ActionNew,		 always, InMenu)
+		, (ActionQuit,		 always, InMenu)
+		, (ActionShowAbout,	 always, InMenu)
+		: [(ActionParam "SubscribeTo" group ,valid, InMenu) \\ group <- groups]
+		] 
 where
-	valid 			= Predicate (\_ -> lengthGroups > 0)
+	valid 			= (\_ -> lengthGroups > 0)
 	lengthGroups 	= length groups
 
 okCancel
-	=	[ ButtonAction	(ActionCancel,	Always)
-		, ButtonAction	(ActionOk,	IfValid)
+	=	[(ActionCancel,	always, AsButton)
+		,(ActionOk,	ifvalid, AsButton)
 		]
 
 handleMenu :: Task Void
@@ -416,14 +416,13 @@ readMenu
 		]
 
 readactions nmessage index nmsg
-	= map ButtonAction
-		[ (ActionPrevious, 	Predicate (\_ -> (index > 0)))
-		, (ActionRefresh, 	Always)
-		, (ActionNext, 		Predicate (\_ -> (index + nmessage < nmsg)))
-		, (ActionCommit, 	Always)
-		, (ActionQuit, 		Always)
-		] ++
-		[MenuAction (ActionParam "nmessage" (toString i), Always) \\ i <- [1,5,10,30,50]]
+	=	[ (ActionPrevious, 	(\_ -> (index > 0)), AsButton)
+		, (ActionRefresh, 	always, AsButton)
+		, (ActionNext, 		(\_ -> (index + nmessage < nmsg)), AsButton)
+		, (ActionCommit, 	always, AsButton)
+		, (ActionQuit, 		always, AsButton)
+		: [(ActionParam "nmessage" (toString i), always, InMenu) \\ i <- [1,5,10,30,50]]
+		]
 
 readNews :: Int User String Int -> Task Void
 readNews nmessage me group index

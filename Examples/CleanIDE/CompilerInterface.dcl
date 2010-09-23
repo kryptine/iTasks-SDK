@@ -6,4 +6,4 @@ import iTasks, AppState
 
 derive class iTask CompilerException
 
-compileToExe :: !(DBid AppState) -> Task Document
+compileToExe :: !(DBId AppState) -> Task Document

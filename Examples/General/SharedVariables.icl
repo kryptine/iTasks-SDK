@@ -4,7 +4,7 @@ import iTasks, GoogleMaps, Text, ExperimentalDomain
 
 derive bimap Maybe, (,)
 
-quitButton = ButtonAction (ActionQuit, Always)
+quitButton = (ActionQuit, always, AsButton)
 
 //Text-Lines Examples
 noteEditor = editor {editorFrom = \txt -> Note txt,	editorTo = \(Note txt) _ -> txt}
@@ -20,7 +20,7 @@ linesPar =
 	>>|			return Void
 where
 	noteE sid = 
-							updateShared "Text" "Edit text" [ButtonAction (TrimAction, Always), quitButton] sid [noteEditor]
+							updateShared "Text" "Edit text" [(TrimAction, always, AsButton), quitButton] sid [noteEditor]
 		>>= \(action,txt).	case action of
 								TrimAction	=			writeDB sid (trim txt)
 												>>|		noteE sid
@@ -108,7 +108,7 @@ googleMaps = googleMaps` mkMap
 where
 	googleMaps` map =
 							updateSharedLocal "Google Map, Overview & Markers" "Edit in one map. The others are updated automatically."
-								[ButtonAction (RemoveMarkersAction, Always), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
+								[(RemoveMarkersAction, always, AsButton), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
 		>>= \(action,map).	case action of
 								RemoveMarkersAction	= googleMaps` {GoogleMap| map & markers = []}
 								_					= stop

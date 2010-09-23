@@ -1,7 +1,8 @@
 implementation module MenuTasks
 
 
-from ProcessDB	import ::Menu(..), ::MenuItem(..), ::Hotkey, ::Key, ::Process{..}
+from InteractionTasks	import ::Menu(..), ::MenuItem(..), ::Hotkey, ::Key
+from ProcessDB			import ::Process{..}
 from TSt		import ::Task
 from Void		import :: Void
 import TSt, CoreCombinators, StdMisc

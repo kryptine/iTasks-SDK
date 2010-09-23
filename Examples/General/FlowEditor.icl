@@ -10,9 +10,8 @@ emptyState = (("",emptyFlow),False)
 
 // ****************************
 
-ifValid expr = Predicate (\val -> case val of
-									Invalid -> False
-									_ -> expr)
+ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
+
 initMenu :: Task Void
 initMenu 
 	= setMenus
@@ -29,14 +28,13 @@ initMenu
 		]
 
 actions ((name,flow), mode)
-	=	map MenuAction	[ (ActionNew,		Always)
-						, (ActionOpen,		Always)
-						, (ActionSave,		ifValid (validFlow name flow.flowDyn))
-						, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn))
-						, (ActionQuit,		Always)
-						, (ActionShowAbout,	Always)
-						]
-
+	=	[ (ActionNew,		always, InMenu)
+		, (ActionOpen,		always, InMenu)
+		, (ActionSave,		ifValid (validFlow name flow.flowDyn), InMenu)
+		, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn), InMenu)
+		, (ActionQuit,		always, InMenu)
+		, (ActionShowAbout,	always, InMenu)
+		]
 validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDyn)
 
 
@@ -49,8 +47,8 @@ doMenu state=:((name,flow), mode)
 				False 		->							updateInformationA "No flow" title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
 				True 	->								updateInformationA "Flow" title2
-																					[ ButtonAction (ActionSave, ifValid (validFlow name flow.flowDyn))
-																					, ButtonAction (ActionOk, IfValid)
+																					[ (ActionSave, ifValid (validFlow name flow.flowDyn), AsButton)
+																					, (ActionOk, ifvalid, AsButton)
 																					: actions state
 																					] flow.flowShape
 								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))

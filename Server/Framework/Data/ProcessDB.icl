@@ -3,34 +3,8 @@ implementation module ProcessDB
 import StdEnv, StdGeneric, StdMaybe, GenEq
 import TSt, Store, Util, Text
 
-derive gVisualize	Action
-derive gUpdate		Action
-derive gEq			Action
-derive gVerify		Action
-derive JSONEncode	Action
-derive JSONDecode	Action
 
 derive bimap Maybe, (,)
-
-getActionIcon :: !Action -> String
-getActionIcon (ActionIcon _ icon)	= icon
-getActionIcon ActionOk				= "icon-ok"
-getActionIcon ActionCancel			= "icon-cancel"
-getActionIcon ActionYes				= "icon-yes"
-getActionIcon ActionNo				= "icon-no"
-getActionIcon ActionNext			= "icon-next"
-getActionIcon ActionPrevious		= "icon-previous"
-getActionIcon ActionFinish			= "icon-finish"
-getActionIcon ActionNew				= "icon-new"
-getActionIcon ActionOpen			= "icon-open"
-getActionIcon ActionSaveAs			= "icon-save-as"
-getActionIcon ActionSave			= "icon-save"
-getActionIcon ActionQuit			= "icon-exit"
-getActionIcon ActionClose			= "icon-cancel"
-getActionIcon ActionHelp			= "icon-help"
-getActionIcon ActionShowAbout		= "icon-help"
-getActionIcon ActionFind			= "icon-find"
-getActionIcon _						= ""
 
 instance ProcessDB IWorld
 where
@@ -254,9 +228,3 @@ where
 	deleteSubProcesses prefix tst = appIWorldTSt (deleteSubProcesses prefix) tst
 	
 
-instance == Action
-where
-	(==) :: !Action !Action -> Bool
-	(==) (ActionParam label0 param0) (ActionParam label1 param1)
-		= label0 == label1 && (param0 == param1 || param0 == "?")
-	(==) a b = gEq{|*|} a b

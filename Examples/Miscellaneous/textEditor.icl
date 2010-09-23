@@ -61,7 +61,7 @@ openDialog mdiTasks =
 					 										_			=	continue
 					)
 where
-	buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
+	buttons = [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)]
 					
 open :: !(DBRef TextFile) !(MDITasks EditorState a) !Bool -> Task GAction
 open fid {createEditor, existsEditor} addToRecOpened =
@@ -156,7 +156,7 @@ saveAs eid =
 								>>|								continue
 							_ = continue
 where
-	buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]
+	buttons = [(ActionCancel, always, AsButton),(ActionOk, ifvalid, AsButton)]
 							
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
@@ -174,7 +174,7 @@ where
 										>>|	replaceT` repl
 									_ = continue
 									
-	buttons = [ButtonAction (ActionClose, Always), ButtonAction (ActionReplaceAll, IfValid)]
+	buttons = [(ActionClose, always, AsButton), (ActionReplaceAll, ifvalid, AsButton)]
 	
 	dbReplaceFunc repl (EditorState (Note txt) file) = EditorState (Note (replaceSubString repl.searchFor repl.replaceWith txt)) file
 								
@@ -187,7 +187,7 @@ ActionReplaceAll :== ActionLabel "Replace all"
 
 statistics :: !EditorStateRef  -> Task GAction
 statistics eid = 
-		updateShared "Statistics" "Statistics of your document" [ButtonAction (ActionOk, Always)] eid [titleListener, statsListener] <<@ ExcludeGroupActions
+		updateShared "Statistics" "Statistics of your document" [(ActionOk, always, AsButton)] eid [titleListener, statsListener] <<@ ExcludeGroupActions
 	>>|	continue
 where
 	statsListener = listener {listenerFrom =  \(EditorState (Note text) _) ->
@@ -232,7 +232,7 @@ requestClosingFile eid =
 										)
 										(return False)
 where
-	buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionNo, Always), ButtonAction (ActionYes, Always)]
+	buttons = [(ActionCancel, always, AsButton), (ActionNo, always, AsButton), (ActionYes, always, AsButton)]
 	question file = "Save changes to '" +++ getFileName file +++ "'?"
 	
 // global application state

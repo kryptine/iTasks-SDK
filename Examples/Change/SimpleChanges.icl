@@ -174,7 +174,7 @@ chooseProcess question
 										ActionCancel -> throw "choosing a process has been cancelled"
 										_ ->			return pid
 
-buttons = [ButtonAction (ActionCancel, Always), ButtonAction (ActionOk, IfValid)]	
+buttons = [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)]	
 	
 	
 	

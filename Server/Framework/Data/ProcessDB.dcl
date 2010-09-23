@@ -5,15 +5,9 @@ definition module ProcessDB
 */
 import StdMaybe
 import Types, TSt
-from TaskTree	import :: TaskProperties, :: TaskParallelType
-from Time		import :: Timestamp
-
-derive gVisualize Action
-derive gUpdate Action
-derive gVerify Action
-
-derive JSONEncode Action
-derive JSONDecode Action
+from TaskTree			import :: TaskProperties, :: TaskParallelType
+from Time				import :: Timestamp
+from InteractionTasks	import :: Menu
 
 /**
 * Our local process type
@@ -27,47 +21,6 @@ derive JSONDecode Action
 				  , menus			:: !(Maybe [Menu])
 				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
 				  }				
-
-
-				 
-:: Action
-	= ActionLabel !String
-	| ActionParam !String !String
-	| ActionIcon !String !String
-	| ActionOk
-	| ActionCancel
-	| ActionYes
-	| ActionNo
-	| ActionNext
-	| ActionPrevious
-	| ActionFinish
-	| ActionNew
-	| ActionOpen
-	| ActionSaveAs
-	| ActionSave
-	| ActionQuit
-	| ActionClose
-	| ActionHelp
-	| ActionShowAbout
-	| ActionFind
-	| ActionDelete
-	| ActionEdit
-	
-getActionIcon :: !Action -> String
-
-:: Menu 		= Menu !String ![MenuItem]
-:: MenuItem 	= SubMenu !String ![MenuItem] 
-				| MenuItem !String !Action !(Maybe Hotkey)
-				| MenuSeparator 
-				| MenuName !String !MenuItem
-				
-:: Hotkey =	{ key	:: !Key
-			, ctrl	:: !Bool
-			, alt	:: !Bool
-			, shift	:: !Bool
-			}
-			
-:: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
 
 class ProcessDB st
 where
@@ -95,8 +48,3 @@ where
 
 instance ProcessDB IWorld
 instance ProcessDB TSt
-
-
-instance == Action
-
-

@@ -6,8 +6,94 @@ from TSt		import :: Task
 from Types		import :: Role
 from Html		import :: HtmlTag
 from iTasks		import class iTask(..)
-from ProcessDB	import :: Action
+
 import GenVisualize, GenUpdate, GenMerge, StoreTasks
+
+derive gVisualize Action
+derive gUpdate Action
+derive gVerify Action
+
+derive JSONEncode Action
+derive JSONDecode Action
+
+instance == Action
+
+/*
+* To allow users to specify a followup action to their current task
+* most interactive tasks allow you to specify actions that can be chosen.
+* These actions are either available as a button on the bottom of the task interface
+* or as an item in the task menu, or both.
+* Additionally conditions can be specified when the action is allowed to be performed.
+*/
+:: Action	= ActionLabel !String
+			| ActionParam !String !String
+			| ActionIcon !String !String
+			| ActionOk
+			| ActionCancel
+			| ActionYes
+			| ActionNo
+			| ActionNext
+			| ActionPrevious
+			| ActionFinish
+			| ActionNew
+			| ActionOpen
+			| ActionSaveAs
+			| ActionSave
+			| ActionQuit
+			| ActionClose
+			| ActionHelp
+			| ActionShowAbout
+			| ActionFind
+			| ActionDelete
+			| ActionEdit
+
+:: Menu 		= Menu !String ![MenuItem]
+:: MenuItem 	= SubMenu !String ![MenuItem] 
+				| MenuItem !String !Action !(Maybe Hotkey)
+				| MenuSeparator 
+				| MenuName !String !MenuItem
+				
+:: Hotkey =	{ key	:: !Key
+			, ctrl	:: !Bool
+			, alt	:: !Bool
+			, shift	:: !Bool
+			}
+			
+:: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
+
+	
+getActionIcon :: !Action -> String
+
+// This triple is used to link actions to user interfaces.
+// Its three parts represent the (what , when, where) aspects of actions.
+// What: The conceptual action to be taken
+// When: The conditions that determine if the action can be taken
+// Where: The place of an actions gui component in the interface (button, menu or both)
+:: TaskAction a		:== (!Action, !(Verified a) -> Bool, !ActionPlacement)
+
+// Locations for placing an action
+:: ActionPlacement	= AsButton | InMenu
+
+//Wrapper for task values that indicates if value passes the verification step
+:: Verified a 		= 	Invalid
+					|	Valid !a
+						
+//Default predicates on editor values to use with actions
+always		:: (Verified a) -> Bool
+ifvalid		:: (Verified a) -> Bool
+ifinvalid	:: (Verified a) -> Bool
+
+/*
+* This html class makes it possible to use either strings, or html as description/message/instruction
+*/
+class html a  
+where
+	html :: a -> HtmlTag
+	
+instance html String
+instance html [HtmlTag]
+instance html Note
+instance html (Maybe a) | html a
 
 //*** Input collection tasks ***//
 
@@ -351,34 +437,3 @@ updateShared			:: !String description ![TaskAction s] !(DBId s) ![View s] -> Tas
 */
 updateSharedLocal		:: !String description ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html description & iTask s & SharedVariable s
 
-/*
-* To allow users to specify a followup action to their current task
-* most interactive tasks allow you to specify actions that can be chosen.
-* These actions are either available as a button on the bottom of the task interface
-* or as an item in the task menu, or both.
-* Additionally conditions can be specified when the action is allowed to be performed.
-*/
-
-:: TaskAction a 		= 	ButtonAction		!(!Action, ActionCondition a) 
-						| 	MenuAction			!(!Action, ActionCondition a)
-						| 	ButtonAndMenuAction !(!Action, ActionCondition a) 
-						| 	MenuParamAction		!(!String, ActionCondition a)
-
-:: ActionCondition a 	= 	Always 
-						| 	IfValid 
-						| 	Predicate ((EditorValue a) -> Bool)
-
-:: EditorValue a 		= 	Invalid 
-						| 	Valid !a
-
-/*
-* This html class makes it possible to use either strings, or html as description/message/instruction
-*/
-class html a  
-where
-	html :: a -> HtmlTag
-	
-instance html String
-instance html [HtmlTag]
-instance html Note
-instance html (Maybe a) | html a

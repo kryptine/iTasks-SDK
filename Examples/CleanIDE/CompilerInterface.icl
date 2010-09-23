@@ -1,12 +1,12 @@
 implementation module CompilerInterface
 
-import iTasks, DocumentDomain, Text
+import iTasks, Text
 import Configuration
 
 derive class iTask	CompilerException
 derive bimap		Maybe, (,)
 
-compileToExe :: !(DBid AppState) -> Task Document
+compileToExe :: !(DBId AppState) -> Task Document
 compileToExe sid
 	# compileToExe` = try compileToExe` handleCallException
 	# compileToExe` = try compileToExe` handleReadLogException

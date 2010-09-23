@@ -30,7 +30,7 @@ writeConfig config world
 	
 configFileName = "cleanIDE-globalConfig.json"
 
-configWizard = wizard "Configuration Wizard" steps initConfig
+configWizard = wizard "Configuration Wizard" "Configuration Wizard" steps initConfig
 where
 	steps =	[	ViewOnState	"Welcome to the Clean IDE configuration wizard!" []
 			,	ViewOnState	"Choose the path where your projects are stored:"
@@ -81,7 +81,7 @@ where
 					, projectsPath	= RelativePath [PathDown "projects"]
 					}
 					
-getConfig :: !(DBid AppState) -> Task IDEConfig
+getConfig :: !(DBId AppState) -> Task IDEConfig
 getConfig sid =
 					readDB sid
 	>>= \state.		return state.ideConfig

@@ -1,13 +1,13 @@
 module CleanIDE
 
-import iTasks, CommonDomain, Text
+import iTasks, Text
 from StdFunc import flip
 import PmProject, UtilStrictLists
 import CompilerInterface, AppState, Configuration, GUI, StdMisc
 from Directory import pathToPD_String
 
-Start world = startEngine	[ workflow "Clean IDE (using formatted text type)"	(cleanIDEFT <<@ Subject "Clean IDE (using formatted text type)")
-							, workflow "Clean IDE (using source code type)"		(cleanIDESC <<@ Subject "Clean IDE (using source code type)")
+Start world = startEngine	[ workflow "Clean IDE (using formatted text type)" "Clean IDE (using formatted text type)"	(cleanIDEFT <<@ Subject "Clean IDE (using formatted text type)")
+							, workflow "Clean IDE (using source code type)"	"Clean IDE (using source code type)" (cleanIDESC <<@ Subject "Clean IDE (using source code type)")
 							] world
 
 cleanIDEFT :: Task Void
@@ -24,9 +24,10 @@ where
 								>>|				openFile (config.projectsPath +< [PathDown "test", PathDown "test.icl"]) sid
 								>>|				dynamicGroupAOnly [srcEditor sid] (actions sid)
 								>>|				deleteDB sid
+								>>|				stop
 							Nothing = stop
 							
-	actions :: !(DBid AppState) -> [GroupAction GOnlyAction Void Void]
+	actions :: !(DBId AppState) -> [GroupAction GOnlyAction Void Void]
 	actions sid =	[ GroupAction ActionQuit					GOStop GroupAlways
 					, GroupAction ActionSave					(GOExtend [save sid]) GroupAlways
 					, GroupAction ActionCompile					(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
@@ -38,9 +39,9 @@ where
 					, GroupAction ActionEditSyntaxColOptions	(GOExtend [editAppStateOptions	"Syntax Highlighter Colours"	(\s -> s.syntaxHighlColors)	(\c s -> {s & syntaxHighlColors = c})	sid <<@ GBAlwaysFloating]) GroupAlways
 					]
 					
-	srcEditor :: !(DBid AppState) -> Task Void
+	srcEditor :: !(DBId AppState) -> Task Void
 	srcEditor sid =
-			updateShared "Clean Source" [] sid [srcEditorView]
+			updateShared "Clean Source" "Clean Source" [] sid [srcEditorView]
 		>>|	return Void
 	where
 		srcEditorView = editor	{ editorFrom	= \state		-> highlightSyntax state.srcEditorContent state.syntaxHighlColors
@@ -61,9 +62,10 @@ where
 								>>|				openFile (config.projectsPath +< [PathDown "test", PathDown "test.icl"]) sid
 								>>|				dynamicGroupAOnly [srcEditor sid] (actions sid)
 								>>|				deleteDB sid
+								>>|				stop
 							Nothing = stop
 							
-	actions :: !(DBid AppState) -> [GroupAction GOnlyAction Void Void]
+	actions :: !(DBId AppState) -> [GroupAction GOnlyAction Void Void]
 	actions sid =	[ GroupAction ActionQuit					GOStop GroupAlways
 					, GroupAction ActionSave					(GOExtend [save sid]) GroupAlways
 					, GroupAction ActionCompile					(GOExtend [saveAndCompile sid <<@ GBModal]) GroupAlways
@@ -75,9 +77,9 @@ where
 					//, GroupAction ActionEditSyntaxColOptions	(GOExtend [editAppStateOptions	"Syntax Highlighter Colours"	(\s -> s.syntaxHighlColors)	(\c s -> {s & syntaxHighlColors = c})	sid <<@ GBAlwaysFloating]) GroupAlways
 					]
 					
-	srcEditor :: !(DBid AppState) -> Task Void
+	srcEditor :: !(DBId AppState) -> Task Void
 	srcEditor sid =
-			updateShared "Clean Source" [] sid [srcEditorView]
+			updateShared "Clean Source" "Clean Source" [] sid [srcEditorView]
 		>>|	return Void
 	where
 		srcEditorView = editor	{ editorFrom	= \state		-> mkSourceCode state.srcEditorContent Clean
@@ -193,12 +195,12 @@ where
 			| otherwise									= Text word
 		keywords = ["where", "import", "from", "let", "in", "module", "definition", "implementation", "derive", "class", "True", "False"]
 
-save :: !(DBid AppState) -> Task Void
+save :: !(DBId AppState) -> Task Void
 save sid =
 				readDB sid
 	>>= \state.	writeTextFile (removeMarkers state.srcEditorContent) (state.ideConfig.projectsPath +< [PathDown "test", PathDown "test.icl"])
 
-saveAndCompile :: !(DBid AppState) -> Task Void
+saveAndCompile :: !(DBId AppState) -> Task Void
 saveAndCompile sid
 	# compile` = try compile` handleCompilerExceptions
 	# compile` = try compile` handleFileExceptions
@@ -217,14 +219,14 @@ where
 			
 	handleFileExceptions (FileException path _) = showMessageAbout "Save Error" "Save Error" ("Unnable to write to '" +++ path +++ "'") >>| return Void
 
-openFile :: !Path !(DBid AppState) -> Task Void
+openFile :: !Path !(DBId AppState) -> Task Void
 openFile path sid =
 				readDB sid
 	>>= \state.	readTextFile path
 	>>= \src.	writeDB sid {state & srcEditorContent = src}
 	>>|			stop
 
-createTestPrj :: !(DBid AppState) -> Task Void
+createTestPrj :: !(DBId AppState) -> Task Void
 createTestPrj sid =
 				readDB sid
 	>>= \state.	createDirectory (state.ideConfig.projectsPath +< [PathDown "test"])
@@ -252,12 +254,12 @@ derive bimap		Maybe, (,)
 
 ActionReplaceAll	:== ActionLabel "Replace All"
 		
-findAndReplace :: !(DBid AppState) -> Task Void
+findAndReplace :: !(DBId AppState) -> Task Void
 findAndReplace sid = findAndReplace` {searchFor = "", replaceWith = ""}
 where
 	findAndReplace` replace =
 								ExcludeGroupActions @>>
-								updateInformationA "Find & Replace" "Find & Replace" [ButtonAction (ActionCancel, Always), ButtonAction (ActionReplaceAll, IfValid), ButtonAction (ActionFind, IfValid)] replace
+								updateInformationA "Find & Replace" "Find & Replace" [(ActionCancel, always, AsButton), (ActionReplaceAll, ifvalid, AsButton), (ActionFind, ifvalid, AsButton)] replace
 		>>= \(action, replace).	case action of
 									ActionReplaceAll =
 													readDB sid

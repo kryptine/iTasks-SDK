@@ -41,10 +41,10 @@ where
 	overview []		= getDefaultValue >>= showMessageA "My lists" "You have no lists." [aNew,aQuit]
 	overview list	= enterChoiceA "My lists" "Select a list..." [aOpen,aDelete,aNew,aQuit] list
 	
-	aOpen 			= ButtonAction (ActionOpen, IfValid)
-	aNew			= ButtonAction (ActionNew, Always)
-	aQuit			= ButtonAction (ActionQuit, Always)
-	aDelete			= ButtonAction (ActionDelete, IfValid)
+	aOpen 			= (ActionOpen, ifvalid, AsButton)
+	aNew			= (ActionNew, always, AsButton)
+	aQuit			= (ActionQuit, always, AsButton)
+	aDelete			= (ActionDelete, ifvalid, AsButton)
 	
 	newList			=	enterChoice "List type" "What type of list do you want to create?"
 						["Simple list", "Todo list", "Date list","Document list"]
@@ -70,16 +70,16 @@ manageList list
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = simpleFrom}]
-		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = todoFrom}]
-		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = dateFrom}]
-		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionClose,Always),ButtonAction (ActionLabel "Edit", Always),ButtonAction (ActionLabel "Share", Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = documentFrom}]
+		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = simpleFrom}]
+		(TodoList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = todoFrom}]
+		(DateList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = dateFrom}]
+		(DocumentList l)= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = documentFrom}]
 
 	editItems list = case list of
-		(SimpleList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
-		(TodoList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = todoFrom, editorTo = todoTo}]
-		(DateList l)	= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = dateFrom, editorTo = dateTo}]
-		(DocumentList l)= updateShared l.List.name l.List.description [ButtonAction (ActionFinish,Always)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = documentFrom, editorTo = documentTo}]
+		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionFinish,always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
+		(TodoList l)	= updateShared l.List.name l.List.description [(ActionFinish,always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = todoFrom, editorTo = todoTo}]
+		(DateList l)	= updateShared l.List.name l.List.description [(ActionFinish,always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = dateFrom, editorTo = dateTo}]
+		(DocumentList l)= updateShared l.List.name l.List.description [(ActionFinish,always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = documentFrom, editorTo = documentTo}]
 
 	simpleFrom (SimpleList l) 		= l.List.items
 	simpleTo i (SimpleList l)		= SimpleList {List|l & items = i}
@@ -113,10 +113,10 @@ manageListSharing list
 	) <! id >>| stop
 
 where
-	aPrevious	= ButtonAction (ActionPrevious, Always)
-	aRemove		= ButtonAction (ActionLabel "Delete", IfValid)
-	aAddPerson	= ButtonAction (ActionLabel "Add person(s)", IfValid)
-	aAddGroup	= ButtonAction (ActionLabel "Add group", IfValid)
+	aPrevious	= (ActionPrevious, always, AsButton)
+	aRemove		= (ActionLabel "Delete", ifvalid, AsButton)
+	aAddPerson	= (ActionLabel "Add person(s)", ifvalid, AsButton)
+	aAddGroup	= (ActionLabel "Add group", ifvalid, AsButton)
 
 	removeUsers users	= 	removeSharingForList list users
 	addUsers list		=	enterInformation "Add person(s)" "Enter the person(s) you want to share this list with"

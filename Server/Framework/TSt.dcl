@@ -9,13 +9,13 @@ import Types, Void
 import TaskTree
 import RPC
 
-from SessionDB	import :: Session
-from ProcessDB	import :: Process, :: Menu
-from Config		import :: Config(..)
-from Store		import :: Store(..)
-from Time		import :: Timestamp(..)
-from Http		import :: HTTPRequest
-from ProcessDB	import :: Action
+from SessionDB			import :: Session
+from ProcessDB			import :: Process, :: Menu
+from Config				import :: Config(..)
+from Store				import :: Store(..)
+from Time				import :: Timestamp(..)
+from Http				import :: HTTPRequest
+from InteractionTasks	import :: Action
 
 from	iTasks import class iTask(..)
 import	GenVisualize, GenUpdate
@@ -27,7 +27,7 @@ import	GenVisualize, GenUpdate
 					, treeType		:: !TreeType										// the type of task tree that is to be constructed
 					, newTask		:: !Bool											// does the task run for the first time
 					
-					, events		:: ![TaskEvent]									// The update events for interactive tasks
+					, events		:: ![TaskEvent]										// The update events for interactive tasks
 																						// (task id, name, value)
 																						
 					, properties	:: !TaskProperties									// Properties of the current evaluated process		
