@@ -271,4 +271,4 @@ sortByIndex [] = []
 sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]
 
 getGroupedBehaviour :: !(Task a) -> GroupedBehaviour
-getGroupedBehaviour (Task _ {GroupedProperties | groupedBehaviour} _ _) = groupedBehaviour
+getGroupedBehaviour (Task _ {GroupedProperties | groupedBehaviour} _ _ _) = groupedBehaviour

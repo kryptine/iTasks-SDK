@@ -89,6 +89,7 @@ itasks.ttc.InteractionBase = Ext.extend(Ext.Panel, {
 			tb.removeClass(cls);
 		}
 		
+		itasks.ttc.common.attachTaskHandlers(this);
 		itasks.ttc.common.setupHotkeys(tb, this);
 	}
 });

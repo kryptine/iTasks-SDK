@@ -957,7 +957,7 @@ gVisualize{|User|} old new vst=:{vizType,currentPath,updateMask}
 			= ([TextFragment (toString old)]
 				, {VSt|vst & currentPath = stepDataPath currentPath})
 
-gVisualize{|Task|} _ (VValue (Task props _ _ _)) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
+gVisualize{|Task|} _ (VValue (Task props _ _ _ _)) _ vst = ([TextFragment props.ManagerProperties.subject],vst)
 gVisualize{|Task|} _ _ _ vst = ([],vst)
 
 derive gVisualize DateTime, Either, Void, UserDetails

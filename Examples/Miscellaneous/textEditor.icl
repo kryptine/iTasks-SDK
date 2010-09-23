@@ -8,25 +8,25 @@ textEditor = [workflow "Examples/Miscellaneous/Text Editor" "A simple text edito
 // global workflows
 textEditorApp :: Task Void
 textEditorApp = 
-				setMenus
-					[ Menu "File"	[ MenuItem "New"			ActionNew		(hotkey N)
-									, MenuItem "Open..."		ActionOpen		(hotkey O)
-									, MenuName recOpenedMenu	(SubMenu "Recently Opened" [])
-									, MenuSeparator
-									, MenuItem "Save"			ActionSave		(hotkey S)
-									, MenuItem "Save As..."		ActionSaveAs	(hotkey A)
-									, MenuSeparator
-									, MenuItem "Close"			ActionClose		(hotkey C)
-									, MenuItem "Quit"			ActionQuit		(hotkey Q)
-									]
-					, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey R)
-									]
-					, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey T)
-									]
-					, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
-									]
+	[ Menu "File"	[ MenuItem "New"			ActionNew		(hotkey N)
+					, MenuItem "Open..."		ActionOpen		(hotkey O)
+					//, MenuName recOpenedMenu	(SubMenu "Recently Opened" [])
+					, MenuSeparator
+					, MenuItem "Save"			ActionSave		(hotkey S)
+					, MenuItem "Save As..."		ActionSaveAs	(hotkey A)
+					, MenuSeparator
+					, MenuItem "Close"			ActionClose		(hotkey C)
+					, MenuItem "Quit"			ActionQuit		(hotkey Q)
 					]
-	>>|			mdiApplication 0 groupActions
+	, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey R)
+					]
+	, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey T)
+					]
+	, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+					]
+	]
+	@>>
+	mdiApplication 0 groupActions
 where
 	groupActions :: !(DBId Int) !(MDITasks EditorState Bool) -> [GroupAction GAction Void Int]
 	groupActions gid mdiTasks=:{createEditor, iterateEditors} =
@@ -81,13 +81,13 @@ where
 		OpenedFile file	= (fid == file.fileId)
 					
 	addToRecentlyOpened :: !String !(DBRef TextFile) -> Task Void
-	addToRecentlyOpened name (DBRef id) =
-					getMenuItem recOpenedMenu
+	addToRecentlyOpened name (DBRef id) = stop
+					/*getMenuItem recOpenedMenu
 		>>= \item.	case item of
 						Just (SubMenu label entries)	= setMenuItem recOpenedMenu (newSubMenu label entries)
 						_								= stop
 	where
-		newSubMenu label entries = SubMenu label (take 5 [MenuItem name (ActionParam actionOpenFile (toString id)) Nothing : entries])
+		newSubMenu label entries = SubMenu label (take 5 [MenuItem name (ActionParam actionOpenFile (toString id)) Nothing : entries])*/
 	
 	editor :: !TextFile -> Task GAction					
 	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
@@ -147,7 +147,7 @@ save eid =
 
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
-						enterInformationA "Save as" "Save As: enter name" buttons <<@ ExcludeGroupActions
+						enterInformationA "Save as" "Save As: enter name" buttons <<@ NoMenus
 	>>= \(action,name).	case action of
 							ActionOk =
 																readDB eid
@@ -167,7 +167,7 @@ replaceT eid = replaceT` {searchFor = "", replaceWith = ""}
 where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
-								updateInformationA "Replace" "Replace" buttons repl <<@ ExcludeGroupActions
+								updateInformationA "Replace" "Replace" buttons repl <<@ NoMenus
 		>>= \(action, repl).	case action of
 									ActionReplaceAll =
 											modifyDB eid (dbReplaceFunc repl)
@@ -187,7 +187,7 @@ ActionReplaceAll :== ActionLabel "Replace all"
 
 statistics :: !EditorStateRef  -> Task GAction
 statistics eid = 
-		updateShared "Statistics" "Statistics of your document" [(ActionOk, always, AsButton)] eid [titleListener, statsListener] <<@ ExcludeGroupActions
+		updateShared "Statistics" "Statistics of your document" [(ActionOk, always, AsButton)] eid [titleListener, statsListener] <<@ NoMenus
 	>>|	continue
 where
 	statsListener = listener {listenerFrom =  \(EditorState (Note text) _) ->
@@ -224,7 +224,7 @@ requestClosingFile :: !EditorStateRef -> Task Bool
 requestClosingFile eid =
 	readDB eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
-										(					showMessageAboutA "Save changes" "Save changes?" buttons (question file) <<@ ExcludeGroupActions
+										(					showMessageAboutA "Save changes" "Save changes?" buttons (question file) <<@ NoMenus
 											>>= \action.	case action of
 																(ActionCancel,_)	= return True
 																(ActionNo,_)		= return False
@@ -279,5 +279,5 @@ getAllFileNames =
 	>>= \files.	return (map (\f -> (f.TextFile.name, Hidden f.fileId)) files)
 	
 derive class iTask			EditorState, EditorFile, TextFile, TextStatistics, Replace
-derive class SharedVariable	EditorState, EditorFile, TextFile, TextStatistics, Replace
+derive class SharedVariable	EditorState, EditorFile, TextFile
 derive bimap				Maybe, (,)

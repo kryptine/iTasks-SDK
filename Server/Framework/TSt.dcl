@@ -10,7 +10,7 @@ import TaskTree
 import RPC
 
 from SessionDB			import :: Session
-from ProcessDB			import :: Process, :: Menu
+from ProcessDB			import :: Process
 from Config				import :: Config(..)
 from Store				import :: Store(..)
 from Time				import :: Timestamp(..)
@@ -30,15 +30,12 @@ import	GenVisualize, GenUpdate
 					, events		:: ![TaskEvent]										// The update events for interactive tasks
 																						// (task id, name, value)
 																						
-					, properties	:: !TaskProperties									// Properties of the current evaluated process		
-					, menus			:: !Maybe [Menu]									// Menu structure of the current task
-					, menusChanged	:: !Bool											// Has the menu structure been changed
+					, properties	:: !TaskProperties									// Properties of the current evaluated process
 					
 					, staticInfo	:: !StaticInfo										// info which does not change during a run
 										
 					, currentChange	:: !Maybe (!ChangeLifeTime,!ChangeDyn)				// An active change
 					, pendingChanges:: ![(!ChangeLifeTime,!ChangeDyn)]					// Pending persistent changes
-					
 					
 					, request		:: !HTTPRequest										// The current http request
 					

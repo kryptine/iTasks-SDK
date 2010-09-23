@@ -4,13 +4,14 @@ definition module Types
 * of the iTasks framework.
 */
 
-from TSt 			import :: TSt
-from TaskTree		import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
-from Html 			import :: HtmlTag
-from Time			import :: Timestamp
-from StdString		import class toString
-from iTasks			import class iTask
-from Config			import :: Config
+from TSt 				import :: TSt
+from TaskTree			import :: TaskProperties, :: GroupedBehaviour(..), :: GroupActionsBehaviour(..)
+from Html 				import :: HtmlTag
+from Time				import :: Timestamp
+from StdString			import class toString
+from iTasks				import class iTask
+from Config				import :: Config
+from InteractionTasks	import :: Menus, :: Menu
 
 import GenVisualize, GenUpdate, JSON, StoreTasks
 
@@ -117,7 +118,7 @@ instance zero Currency
 :: TaskId			:== String		// String serialization of TaskNr values
 :: MenuId			:== Int
 
-:: Task a 			= Task !ManagerProperties !GroupedProperties !(Maybe TaskNr) !(*TSt -> *(!TaskResult a,!*TSt))
+:: Task a 			= Task !ManagerProperties !GroupedProperties !(Maybe TaskNr) !(Maybe MenuGenFunc) !(*TSt -> *(!TaskResult a,!*TSt))
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
 					| TaskException !Dynamic
@@ -178,6 +179,8 @@ initManagerProperties :: ManagerProperties
 	}
 
 initGroupedProperties :: GroupedProperties
+
+:: MenuGenFunc :== *IWorld -> *(Menus, *IWorld)
 					
 :: TaskProgress		= TPActive			//Worker is happily working on the task
 					| TPStuck			//Worker is stuck and needs assistence

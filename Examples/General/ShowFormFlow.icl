@@ -10,16 +10,15 @@ Refresh		:== ActionLabel "Refresh"
 showStoredDefinitions :: Workflow
 showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Definitions" "Show stored form or workflow definitions" handleMenu
 
-initMenu :: Task Void
-initMenu 
-	= setMenus
-		[ Menu "File"	[ MenuItem "Show Forms..."	ShowForms	Nothing
-						, MenuItem "Show Flows..."	ShowFlows	Nothing
-						, MenuItem "Show All..."	ShowAll		Nothing
-						, MenuSeparator
-						, MenuItem "Quit"			ActionQuit	Nothing
-						]
-		]
+initMenu :: Menus
+initMenu =
+	[ Menu "File"	[ MenuItem "Show Forms..."	ShowForms	Nothing
+					, MenuItem "Show Flows..."	ShowFlows	Nothing
+					, MenuItem "Show All..."	ShowAll		Nothing
+					, MenuSeparator
+					, MenuItem "Quit"			ActionQuit	Nothing
+					]
+	]
 
 actions 
 	=	[ (ShowForms,	always, InMenu)
@@ -30,7 +29,7 @@ actions
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu >>| doMenu "Select store to view..." (Hidden Void)
+	=	initMenu @>> doMenu "Select store to view..." (Hidden Void)
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val

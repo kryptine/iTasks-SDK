@@ -24,24 +24,23 @@ ActionEditType	:== ActionLabel "Edit Type"
 ActionEditValue	:== ActionLabel "Edit Value"
 ActionOpenValue	:== ActionLabel "Open Value"
 
-initMenu :: Task Void
-initMenu 
-	= setMenus
-		[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
-						, MenuItem "Open..."		ActionOpen		Nothing
-						, MenuItem "Open Value..."	ActionOpenValue	Nothing
-						, MenuSeparator
-						, MenuItem "Save"			ActionSave		Nothing
-						, MenuItem "Save As..."		ActionSaveAs	Nothing
-						, MenuSeparator
-						, MenuItem "Quit"			ActionQuit		Nothing
-						]
-		, Menu "Edit"	[ MenuItem "Edit Type"		ActionEditType	Nothing
-						, MenuItem "Edit Value"		ActionEditValue	Nothing
-						]
-		, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
-						]
-		]
+initMenu :: Menus
+initMenu  =
+	[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
+					, MenuItem "Open..."		ActionOpen		Nothing
+					, MenuItem "Open Value..."	ActionOpenValue	Nothing
+					, MenuSeparator
+					, MenuItem "Save"			ActionSave		Nothing
+					, MenuItem "Save As..."		ActionSaveAs	Nothing
+					, MenuSeparator
+					, MenuItem "Quit"			ActionQuit		Nothing
+					]
+	, Menu "Edit"	[ MenuItem "Edit Type"		ActionEditType	Nothing
+					, MenuItem "Edit Value"		ActionEditValue	Nothing
+					]
+	, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+					]
+	]
 
 actions state=:((name,form),mode)
 	=	[ (ActionNew,		always, InMenu)
@@ -59,7 +58,7 @@ ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu >>| doMenu emptyState
+	=	initMenu @>> doMenu emptyState
 
 doMenu state=:((name,form), mode)
 		=	case mode of

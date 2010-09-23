@@ -22,11 +22,17 @@ JSONEncode{|TaskPanel|} (TTCProcessControlContainer x)	 	= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)			= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCGroupContainer x)				= JSONEncode{|*|} x
 
-buildTaskPanel :: !TaskTree !(Maybe [Menu]) !Bool !User -> TaskPanel
-buildTaskPanel tree menus menusChanged currentUser = buildTaskPanel` tree menus menusChanged [] currentUser
+buildTaskPanel :: !TaskTree !User -> TaskPanel
+buildTaskPanel tree currentUser = buildTaskPanel` tree [] [] currentUser
 
-buildTaskPanel` :: !TaskTree !(Maybe [Menu]) !Bool ![(Action, Bool, Bool)] !User -> TaskPanel
-buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
+buildTaskPanel` :: !TaskTree !Menus ![(Action, Bool, Bool)] !User -> TaskPanel
+buildTaskPanel` tree menus gActions currentUser
+	# taskInfo	= getTaskInfo tree
+	# menus = case taskInfo.menus of
+		Nothing				= menus		// inherit menus from parent
+		Just (Menus nMenus)	= nMenus	// use new menu structure
+		_					= abort "Non-normalized menu structure left in task tree"
+	= case tree of
 	(TTFinishedTask _ _)
 		= TaskDone
 	(TTInteractiveTask ti (UIOutput (Definition (def,buttons) acceptedA)))
@@ -48,7 +54,7 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, subject		= ti.TaskInfo.subject
 			, description	= ti.TaskInfo.description
 			, content 		= Nothing
-			, updates 		= Just (determineUpdates upd menus menusChanged acceptedA (if (includeGroupActions ti) gActions []) ti)
+			, updates 		= Just (determineUpdates upd menus acceptedA (if (includeGroupActions ti) gActions []) ti)
 			, subtaskId 	= Nothing
 			}
 	(TTInteractiveTask ti (UIOutput (Func f)))
@@ -93,7 +99,7 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 			, html 			= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
 			, subtaskId		= Nothing
 			}
-	(TTMainTask ti mti menus _ _)
+	(TTMainTask ti mti _ _)
 		= TTCProcessControlContainer {TTCProcessControlContainer 
 			| xtype = "itasks.ttc.proc-control"
 			, taskId = ti.TaskInfo.taskId
@@ -103,13 +109,13 @@ buildTaskPanel` tree menus menusChanged gActions currentUser = case tree of
 	(TTSequenceTask ti tasks)
 		= case [t \\ t <- tasks | not (isFinished t)] of
 			[]	= if (allFinished tasks) TaskDone TaskRedundant
-			[t]	= buildTaskPanel` t menus menusChanged gActions currentUser
+			[t]	= buildTaskPanel` t menus gActions currentUser
 			_	= (abort "Multiple simultaneously active tasks in a sequence!")
 	(TTGroupedTask ti tasks gActions mbFocus)
 		= TTCGroupContainer {TTCGroupContainer 
 					 		 | xtype = "itasks.ttc.group"
 							 , taskId = ti.TaskInfo.taskId
-							 , content = filter filterFinished (buildGroupElements tasks currentUser gActions menus menusChanged mbFocus)
+							 , content = filter filterFinished (buildGroupElements tasks currentUser gActions menus mbFocus)
 							 , subtaskId = Nothing
 							 , groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, Left b) <- gActions] ti
 							 }
@@ -128,7 +134,7 @@ where
 		ExcludeGroupActions	= False
 
 buildSubtaskInfo :: !TaskTree -> SubtaskInfo
-buildSubtaskInfo (TTMainTask _ p _ _ _)
+buildSubtaskInfo (TTMainTask _ p _ _)
 		= {SubtaskInfo	| taskId		= p.systemProperties.SystemProperties.taskId
 						, subject		= p.managerProperties.ManagerProperties.subject
 						, description	= p.managerProperties.ManagerProperties.description
@@ -150,7 +156,7 @@ buildResultPanel tree = case tree of
 								, result	= (foldl (+++) "" (map toString result))
 								, subtaskId	= Nothing
 								})
-	(TTMainTask ti p _ _ tt) //Pass through any finished main tasks, in case there is a finished task below (e.g. in case of a parallel)
+	(TTMainTask ti p _ tt) //Pass through any finished main tasks, in case there is a finished task below (e.g. in case of a parallel)
 		| p.systemProperties.SystemProperties.status == Finished = buildResultPanel tt
 		| otherwise = TaskNotDone
 	_	
@@ -160,8 +166,8 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !User ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !(Maybe [Menu]) !Bool !(Maybe String) -> [GroupContainerElement]
-buildGroupElements tasks currentUser gActions menus menusChanged mbFocus
+buildGroupElements :: ![TaskTree] !User ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !Menus !(Maybe String) -> [GroupContainerElement]
+buildGroupElements tasks currentUser gActions menus mbFocus
 	= flatten [buildGroupElements` t [nr] [(a, b, True) \\ (a, Left b) <- gActions] Nothing mbFocus \\ t <- tasks & nr <- [1..]]
 where
 	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) -> [GroupContainerElement]
@@ -177,7 +183,7 @@ where
 			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) mbFocus
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
 	buildGroupElements` t stnr gActions mbBehaviour mbFocus
-		# panel		= buildTaskPanel` t menus menusChanged gActions currentUser
+		# panel		= buildTaskPanel` t menus gActions currentUser
 		# info		= getTaskInfo t
 		= [	{ panel = panel
 			, behaviour = getGroupedBehaviour info mbBehaviour
@@ -191,27 +197,25 @@ where
 	getGroupedBehaviour info mbFixedBehaviour = case mbFixedBehaviour of
 		Just fixedBehaviour	= fixedBehaviour
 		Nothing				= info.TaskInfo.groupedBehaviour
-		
-	getTaskInfo task
-		# info = case task of
-			TTInteractiveTask ti _	 	= ti
-			TTMonitorTask ti _			= ti
-			TTRpcTask ti _				= ti
-			TTFinishedTask ti _			= ti
-			TTParallelTask ti _ _		= ti
-			TTSequenceTask ti _			= ti
-			TTMainTask ti _ _ _ _		= ti
-			TTGroupedTask ti _ _ _		= ti
-			TTInstructionTask ti _ 		= ti
-			_ 							= abort "Unknown panel type in group"
-		= info
+
+getTaskInfo :: !TaskTree -> TaskInfo
+getTaskInfo task
+	# info = case task of
+		TTInteractiveTask ti _	 	= ti
+		TTMonitorTask ti _			= ti
+		TTRpcTask ti _				= ti
+		TTFinishedTask ti _			= ti
+		TTParallelTask ti _ _		= ti
+		TTSequenceTask ti _			= ti
+		TTMainTask ti _ _ _			= ti
+		TTGroupedTask ti _ _ _		= ti
+		TTInstructionTask ti _ 		= ti
+		_ 							= abort "Unknown panel type in group"
+	= info
 
 // === Menu Functions
-makeMenuBar :: !(Maybe [Menu]) ![(Action,Bool)] ![(Action,Bool,Bool)] !TaskInfo -> [TUIDef]
-makeMenuBar menus acceptedA gActions ti
-	= case menus of
-		Nothing		= []
-		Just menus	= (fst (mkMenus [] menus 0))
+makeMenuBar :: !Menus ![(Action,Bool)] ![(Action,Bool,Bool)] !TaskInfo -> [TUIDef]
+makeMenuBar menus acceptedA gActions ti = (fst (mkMenus [] menus 0))
 where
 	mkMenus defs [Menu label items:menus] id
 		#(children,id) = mkMenuItems [] items id
@@ -287,7 +291,6 @@ where
 			[TUIMenuSeparator:_]	= defs
 			_						= [TUIMenuSeparator:defs]
 			_						= defs
-	mkMenuItems defs [MenuName _ item:items] id = mkMenuItems defs [item:items] id
 	mkMenuItems	defs [] id = (reverse defs`,id)
 	where
 		// remove superfluous separator at end
@@ -295,13 +298,12 @@ where
 			[TUIMenuSeparator:defs]	= defs
 			defs					= defs
 
-determineUpdates :: ![TUIUpdate] !(Maybe [Menu]) !Bool ![(Action,Bool)] ![(Action,Bool,Bool)] !TaskInfo -> [TUIUpdate]
-determineUpdates upd mbMenus menusChanged acceptedA gActions ti
-	= case mbMenus of
-		Nothing		= upd
-		Just menus
-			| menusChanged	= [TUIReplaceMenu (makeMenuBar mbMenus acceptedA gActions ti):upd]
-			| otherwise		= fst (determineMenuUpd upd menus 0)
+determineUpdates :: ![TUIUpdate] !Menus ![(Action,Bool)] ![(Action,Bool,Bool)] !TaskInfo -> [TUIUpdate]
+determineUpdates upd menus acceptedA gActions ti
+	// TODO: find new way to detect changes in menu, for now always replace entire menu
+	= [TUIReplaceMenu (makeMenuBar menus acceptedA gActions ti):upd]
+	//| menusChanged	= [TUIReplaceMenu (makeMenuBar mbMenus acceptedA gActions ti):upd]
+	//| otherwise		= fst (determineMenuUpd upd menus 0)
 where
 	determineMenuUpd upd [Menu _ items:menus] id
 		# (upd,id) = determineItemUpd upd items id
@@ -315,7 +317,6 @@ where
 		| isEmpty accAction	= determineItemUpd upd items (id + 1)
 		| otherwise			= determineItemUpd [TUISetEnabled (ti.TaskInfo.taskId +++ "-menu-" +++ toString id) (hd accAction):upd] items (id + 1)
 	determineItemUpd upd [MenuSeparator:items] id = determineItemUpd upd items id
-	determineItemUpd upd [MenuName _ item:items] id = determineItemUpd upd [item:items] id
 	determineItemUpd upd [] id = (upd,id)
 
 /*

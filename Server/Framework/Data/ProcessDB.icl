@@ -1,10 +1,7 @@
 implementation module ProcessDB
 
-import StdEnv, StdGeneric, StdMaybe, GenEq
+import StdEnv, StdMaybe
 import TSt, Store, Util, Text
-
-
-derive bimap Maybe, (,)
 
 instance ProcessDB IWorld
 where
@@ -188,8 +185,6 @@ getNewPid :: ![Process] !Process -> TaskId
 getNewPid db entry = (toString(inc(maxPid db)))
 */
 
-
-
 instance ProcessDB TSt
 where
 	createProcess :: !Process !*TSt -> (!ProcessId,!*TSt)
@@ -226,5 +221,3 @@ where
 	copySubProcesses fromprefix toprefix tst = appIWorldTSt (copySubProcesses fromprefix toprefix) tst
 	deleteSubProcesses :: !TaskId !*TSt -> *TSt
 	deleteSubProcesses prefix tst = appIWorldTSt (deleteSubProcesses prefix) tst
-	
-

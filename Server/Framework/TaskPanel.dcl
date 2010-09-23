@@ -122,5 +122,5 @@ derive JSONEncode TaskPanel
 	, delegatedTo	:: !String
 	}
 
-buildTaskPanel 		:: !TaskTree !(Maybe [Menu]) !Bool !User	-> TaskPanel
-buildResultPanel 	:: !TaskTree 					 			-> TaskPanel
+buildTaskPanel 		:: !TaskTree !User	-> TaskPanel
+buildResultPanel 	:: !TaskTree 		-> TaskPanel

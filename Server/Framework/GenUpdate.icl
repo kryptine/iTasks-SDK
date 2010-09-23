@@ -512,7 +512,7 @@ gUpdate{|User|} s ust = (s, ust)
 
 gUpdate{|Task|} fx _ ust=:{mode=UDCreate}
 	# (a,ust) = fx (abort "Task create with undef") ust
-	= (Task {ManagerProperties | initManagerProperties & subject = "return"} initGroupedProperties Nothing (\tst -> (TaskFinished a,tst)), ust)
+	= (Task {ManagerProperties | initManagerProperties & subject = "return"} initGroupedProperties Nothing Nothing (\tst -> (TaskFinished a,tst)), ust)
 gUpdate{|Task|} _ x ust = (x,ust)
 
 derive gUpdate Either, (,), (,,), (,,,), Void, DateTime, UserDetails

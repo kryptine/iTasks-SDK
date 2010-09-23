@@ -12,20 +12,19 @@ emptyState = (("",emptyFlow),False)
 
 ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
-initMenu :: Task Void
-initMenu 
-	= setMenus
-		[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
-						, MenuItem "Open..."		ActionOpen		Nothing
-						, MenuSeparator
-						, MenuItem "Save"			ActionSave		Nothing
-						, MenuItem "Save As..."		ActionSaveAs	Nothing
-						, MenuSeparator
-						, MenuItem "Quit"			ActionQuit		Nothing
-						]
-		, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
-						]
-		]
+initMenu :: Menus
+initMenu =
+	[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
+					, MenuItem "Open..."		ActionOpen		Nothing
+					, MenuSeparator
+					, MenuItem "Save"			ActionSave		Nothing
+					, MenuItem "Save As..."		ActionSaveAs	Nothing
+					, MenuSeparator
+					, MenuItem "Quit"			ActionQuit		Nothing
+					]
+	, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+					]
+	]
 
 actions ((name,flow), mode)
 	=	[ (ActionNew,		always, InMenu)
@@ -40,7 +39,7 @@ validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDy
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu >>| doMenu emptyState
+	=	initMenu @>> doMenu emptyState
 
 doMenu state=:((name,flow), mode)
 		=	case mode of

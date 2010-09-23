@@ -6,18 +6,19 @@ import StdList
 
 import ProcessDB
 import TaskPanel
+from InteractionTasks import :: MenuItem
 
 derive bimap (,), Maybe
 
 //Additional derives for debugging
-derive JSONEncode TaskInfo
+derive JSONEncode TaskInfo, Menu, MenuItem, Hotkey, Key
 derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
 derive JSONEncode HtmlTag, HtmlAttr
 
 //Can't derive TaskTree serialization because the damn thing contains functions
 //on unique states @!#$%!!
-JSONEncode{|TaskTree|} (TTMainTask a0 a1 a2 a3 a4)
-	= [JSONArray [JSONString "TTMainTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2 ++ JSONEncode{|*|} a3 ++ JSONEncode{|*|} a4]]
+JSONEncode{|TaskTree|} (TTMainTask a0 a1 a2 a3)
+	= [JSONArray [JSONString "TTMainTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1 ++ JSONEncode{|*|} a2 ++ JSONEncode{|*|} a3]]
 JSONEncode{|TaskTree|} (TTSequenceTask a0 a1)
 	= [JSONArray [JSONString "TTSequenceTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTParallelTask a0 a1 a2)
@@ -36,6 +37,9 @@ JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
 	= [JSONArray [JSONString "TTFinishedTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
 	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
+	
+JSONEncode{|TaskInfoMenus|} (Menus menus)
+	= [JSONArray [JSONString "Menus":JSONEncode{|*|} menus]]
 	
 JSONEncode{|TaskOutput|} fx NoOutput		= [JSONNull]
 JSONEncode{|TaskOutput|} fx (UIOutput _)	= [JSONString "User Interface Definition"]
@@ -130,18 +134,15 @@ taskService url html path req tst
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
-					//The menusChanged parameter is a global flag that is set when any task in the tree has
-					//changed the menu and thus the menu needs to be replaced
-					# (tree,tst=:{TSt|menusChanged}) 
-									= calculateTaskTree taskId UITree events tst
+					# (tree,tst)	= calculateTaskTree taskId UITree events tst
 					= case tree of
-						(TTMainTask ti properties menus _ content)
-							# tui			= buildTaskPanel content menus menusChanged session.Session.user
-							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",toJSON menus),("tui",toJSON tui)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+						(TTMainTask ti properties _ content)
+							# tui			= buildTaskPanel content session.Session.user
+							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
 						_
-							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("menu",JSONNull),("tui",JSONNull)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, {TSt|tst & menusChanged = menusChanged})
+							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",JSONNull)]
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
 			| isJust mbSessionErr
@@ -286,7 +287,7 @@ where
 	taskProperties proc = case (toJSON proc.Process.properties) of (JSONObject fields) = fields
 
 	taskParts :: TaskTree -> [JSONNode]
-	taskParts (TTMainTask _ _ _ _ tree)		= taskParts tree
+	taskParts (TTMainTask _ _ _ tree)		= taskParts tree
 	taskParts (TTSequenceTask _ trees)		= flatten (map taskParts trees)
 	taskParts (TTParallelTask _ _ trees)	= flatten (map taskParts trees)	
 	taskParts (TTGroupedTask _ trees _ _)	= flatten (map taskParts trees)

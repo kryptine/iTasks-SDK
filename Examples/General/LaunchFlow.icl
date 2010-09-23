@@ -10,14 +10,13 @@ launchFlow = workflow "Examples/Interactive Workflows/Run workflow" "Run a store
 
 ActionStartFlow 	:== ActionLabel "Start Flow"
 
-initMenu :: Task Void
-initMenu 
-	= setMenus
-		[ Menu "File"	[ MenuItem "Start Workflow..."	ActionStartFlow	Nothing
-						, MenuSeparator
-						, MenuItem "Quit"				ActionQuit		Nothing
-						]
-		]
+initMenu :: Menus
+initMenu =
+	[ Menu "File"	[ MenuItem "Start Workflow..."	ActionStartFlow	Nothing
+					, MenuSeparator
+					, MenuItem "Quit"				ActionQuit		Nothing
+					]
+	]
 
 actions 
 	=	[ (ActionStartFlow,		always, InMenu)
@@ -26,7 +25,7 @@ actions
 
 handleMenu :: Task Void
 handleMenu 
-	=	initMenu >>| doMenu
+	=	initMenu @>> doMenu
 where
 	doMenu
 		=							enterInformationA "Stored flow" "Select \"File/Start Workflow... \" to run a stored workflow..." actions

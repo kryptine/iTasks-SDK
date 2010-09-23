@@ -7,7 +7,6 @@ import StdMaybe
 import Types, TSt
 from TaskTree			import :: TaskProperties, :: TaskParallelType
 from Time				import :: Timestamp
-from InteractionTasks	import :: Menu
 
 /**
 * Our local process type
@@ -18,9 +17,8 @@ from InteractionTasks	import :: Menu
 				  //System internal information
 				  , changeCount		:: !Int							// The number of task changes that have been applied
 				  , mutable			:: !Bool						// May the process be evaluated further (required for duplication of processes by changes)
-				  , menus			:: !(Maybe [Menu])
 				  , inParallelType	:: !(Maybe TaskParallelType)	// The type of parallel, if the process is part of one
-				  }				
+				  }
 
 class ProcessDB st
 where

@@ -47,11 +47,11 @@ instance == Action
 			| ActionDelete
 			| ActionEdit
 
+:: Menus		:== [Menu]
 :: Menu 		= Menu !String ![MenuItem]
 :: MenuItem 	= SubMenu !String ![MenuItem] 
 				| MenuItem !String !Action !(Maybe Hotkey)
 				| MenuSeparator 
-				| MenuName !String !MenuItem
 				
 :: Hotkey =	{ key	:: !Key
 			, ctrl	:: !Bool
@@ -60,7 +60,6 @@ instance == Action
 			}
 			
 :: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
-
 	
 getActionIcon :: !Action -> String
 

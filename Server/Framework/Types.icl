@@ -12,10 +12,10 @@ derive gUpdate			EmailAddress, Session
 derive gVerify			EmailAddress, Session
 derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime
 
-derive bimap			Maybe, (,)
-
 derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
 derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
+
+derive bimap			Maybe, (,)
 
 derive gLexOrd			Currency
 
@@ -303,13 +303,13 @@ JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ 
 JSONDecode{|Task|} _ c						= (Nothing,c) 
 
 taskSubject :: !(Task a) -> String
-taskSubject (Task p _ _ _) = p.subject
+taskSubject (Task p _ _ _ _) = p.subject
 
 taskDescription	:: !(Task a) -> String
-taskDescription (Task p _ _ _) = p.ManagerProperties.description
+taskDescription (Task p _ _ _ _) = p.ManagerProperties.description
 
 taskUser :: !(Task a) -> User
-taskUser (Task p _ _ _) = p.worker
+taskUser (Task p _ _ _ _) = p.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
-taskProperties (Task p _ _ _) = p
+taskProperties (Task p _ _ _ _) = p

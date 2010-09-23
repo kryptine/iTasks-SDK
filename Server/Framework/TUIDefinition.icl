@@ -2,15 +2,14 @@ implementation module TUIDefinition
 
 import JSON,StdList,StdBool,GenEq
 
-from Types import :: Document, :: DocumentId
-from ProcessDB import :: Hotkey, :: Key
+from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 
 derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
 derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
 derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey, Key
 
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Key
+derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Key, Hotkey
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl
 derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer

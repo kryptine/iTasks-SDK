@@ -10,16 +10,15 @@ import Types
 import Html, Time
 import RPC
 
-from   InteractionTasks		import :: Action, :: Menu, :: MenuItem
-from   JSON 				import :: JSONNode
-from   TUIDefinition		import :: TUIDef, :: TUIUpdate
-
+from JSON 				import :: JSONNode
+from TUIDefinition		import :: TUIDef, :: TUIUpdate
+from InteractionTasks	import :: Action
 
 :: TaskTree
 	//NODE CONSTRUCTORS
 	
 	//A task that is treated as a main chunk of work
-	= TTMainTask		TaskInfo TaskProperties (Maybe [Menu]) !(Maybe TaskParallelType) TaskTree				
+	= TTMainTask		TaskInfo TaskProperties !(Maybe TaskParallelType) TaskTree
 	//A task that is composed of a number of sequentially executed subtasks
 	| TTSequenceTask	TaskInfo [TaskTree]	
 	//A task that is composed of a number of parallel executed main tasks (a division of big chunks of work)
@@ -59,7 +58,10 @@ from   TUIDefinition		import :: TUIDef, :: TUIUpdate
 					, tags					:: [String]
 					, groupedBehaviour		:: GroupedBehaviour
 					, groupActionsBehaviour	:: GroupActionsBehaviour
+					, menus					:: !(Maybe TaskInfoMenus)
 					}
+					
+:: TaskInfoMenus = Menus !Menus | GenFunc !MenuGenFunc
 
 :: TaskParallelType = Open 				//Everybody to whom a subtask is assigned can see the full status of this parallel, including the results of others
 					| Closed			//Only the manager can see the overview. For assigned users, it just looks like an ordinary task.

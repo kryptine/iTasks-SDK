@@ -134,7 +134,7 @@ chat
 	>>= \me ->		selectFriends
 	>>= \friends -> createChatBox me
 	>>= \chatbox ->	allTasks ([spawnProcess True True (f @>> Subject "Chat Request" @>> (initiateChat chatbox f [me:friends])) \\ f <- friends]
-							++ [spawnProcess True True (me @>> Subject "Chat Request" @>> (initSession >>| chatSession chatbox (me)))]) 						
+							++ [spawnProcess True True (me @>> Subject "Chat Request" @>> menus @>> chatSession chatbox (me))]) 						
 where
 	
 	createChatBox :: User -> (Task (DBId Chat))
@@ -147,13 +147,13 @@ where
 	initiateChat chatbox friend friends
 		=	requestConfirmation "Confirm" ("Do you want to initiate a chat with "+++printFriends+++"?")
 		>>= \yes -> if yes
-						(initSession >>| chatSession chatbox friend)
+						(menus @>> chatSession chatbox friend)
 						(return Void)
 	where
 		printFriends = join ", " (map toString friends)
 
-	initSession :: Task Void
-	initSession = setMenus
+	menus :: Menus
+	menus =
 		[ Menu "File" [ MenuItem "New Topic" ActionNew		Nothing
 					  , MenuItem "Add Users" ActionAddUser	Nothing
 					  , MenuItem "Quit"		 ActionQuit		Nothing
@@ -345,9 +345,9 @@ ActionSubscribe		:== ActionLabel "Subscribe"
 ActionSubscribeTo	:== ActionLabel "SubscribeTo"
 ActionCommit		:== ActionLabel "Commit"
 
-initMenu :: NewsGroupNames -> Task Void
+initMenu :: NewsGroupNames -> Menus
 initMenu groups
-	= setMenus
+	=
 		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew		Nothing
 						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "SubscribeTo" group) Nothing \\ group <- groups]
 						, MenuSeparator
@@ -376,7 +376,7 @@ handleMenu :: Task Void
 handleMenu 
 	=					readNewsGroups
 		>>= \groups -> 	getCurrentUser
-		>>= \me ->		initMenu groups >>| doMenu me groups
+		>>= \me ->		initMenu groups @>> doMenu me groups
 where
 	doMenu me groups
 		=						showMessageA "Newsgroup reader" "Newsgroup reader, select from menu..." (actions groups) Void
@@ -407,13 +407,12 @@ subscribeProcess me group = spawnProcess True True (readNews 1 me group 0 <<@ Su
 
 ActionRefresh :== ActionLabel "Refresh"
 
-readMenu :: Task Void
-readMenu 
-	= setMenus
-		[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (toString i)) Nothing \\ i <- [1,5,10,30,50]]
-						, MenuItem "Quit"	ActionQuit Nothing
-						]
-		]
+readMenu :: Menus
+readMenu =
+	[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (toString i)) Nothing \\ i <- [1,5,10,30,50]]
+					, MenuItem "Quit"	ActionQuit Nothing
+					]
+	]
 
 readactions nmessage index nmsg
 	=	[ (ActionPrevious, 	(\_ -> (index > 0)), AsButton)
@@ -426,7 +425,7 @@ readactions nmessage index nmsg
 
 readNews :: Int User String Int -> Task Void
 readNews nmessage me group index
-	= 	readMenu >>| readNews` nmessage me group index
+	= 	readMenu @>> readNews` nmessage me group index
 where
 	readNews` nmessage me group index	
 	=						readNewsGroup group 
