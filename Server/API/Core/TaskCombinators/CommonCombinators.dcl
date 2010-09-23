@@ -230,7 +230,7 @@ dynamicGroupAOnly	:: ![Task Void] ![GroupAction GOnlyAction Void s]	-> Task Void
 *        The first parameter is a reference to the global state store.
 *        The second parameter is a collection of tasks for dealing with editors.
 */
-mdiApplication :: !globalState !((DBId globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) -> Task Void | iTask, SharedVariable globalState & iTask, SharedVariable editorState & iTask iterationState
+mdiApplication :: !globalState !((DBId globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 
 // A collection of tasks for dealing with editors within an MDI application.
 :: MDITasks editorState iterationState = {

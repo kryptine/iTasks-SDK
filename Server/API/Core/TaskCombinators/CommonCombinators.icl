@@ -212,11 +212,11 @@ where
 		GOFocus tag		= (Void, Focus (Tag tag))
 	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ getGroupedBehaviour t) tasks
 		
-mdiApplication :: !globalState !((DBId globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) -> Task Void | iTask, SharedVariable globalState & iTask, SharedVariable editorState & iTask iterationState
-mdiApplication initAppState gActions =
+mdiApplication :: !globalState !((DBId globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication initAppState gActions menuGenFunc =
 				createDB initAppState
 	>>= \aid.	createDB initMDIState
-	>>= \sid.	dynamicGroupA [] (gActions aid (globalTasks sid))
+	>>= \sid.	dynamicGroupA [] (gActions aid (globalTasks sid)) <<@ DynamicMenus aid menuGenFunc
 	>>|			deleteDB aid
 	>>|			deleteDB sid
 	>>|			return Void
