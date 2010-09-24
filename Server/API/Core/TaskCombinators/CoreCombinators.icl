@@ -4,7 +4,7 @@ import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
 from 	Types import :: DateTime
-from	InteractionTasks import :: Action(..), instance == Action
+from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action
 derive class iTask SchedulerState
 
 import	TSt
@@ -204,12 +204,12 @@ where
 				Nothing		= (p SharedDeleted, tst)
 				
 	getAction	(GroupAction a _ _)			= a
-	getAction	(GroupActionParam name _ _)	= ActionParam name "?"
+	getAction	(GroupActionParam name _ _)	= ActionParam name name "?"
 	
 	getCond		(GroupAction _ _ cond)		= cond
 	getCond		(GroupActionParam _ _ cond)	= cond
 	
-	getResult	(ActionParam _ param)	(GroupActionParam _ f _)	= f param
+	getResult	(ActionParam _ _ param)	(GroupActionParam _ f _)	= f param
 	getResult	_						(GroupAction _ res _)		= res
 
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c

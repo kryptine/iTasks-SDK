@@ -25,9 +25,8 @@ instance == Action
 * or as an item in the task menu, or both.
 * Additionally conditions can be specified when the action is allowed to be performed.
 */
-:: Action	= ActionLabel !String
-			| ActionParam !String !String
-			| ActionIcon !String !String
+:: Action	= Action !ActionName !ActionLabel 
+			| ActionParam !ActionName !ActionLabel !ActionData 
 			| ActionOk
 			| ActionCancel
 			| ActionYes
@@ -37,15 +36,19 @@ instance == Action
 			| ActionFinish
 			| ActionNew
 			| ActionOpen
-			| ActionSaveAs
 			| ActionSave
+			| ActionSaveAs
 			| ActionQuit
 			| ActionClose
 			| ActionHelp
-			| ActionShowAbout
+			| ActionAbout
 			| ActionFind
 			| ActionDelete
 			| ActionEdit
+			
+:: ActionName	:== String 	//Locally unique identifier for actions
+:: ActionLabel	:== String	//Textual label for the action
+:: ActionData	:== String	//Extra data to pass along with an action
 
 :: Menus		:== [Menu]
 :: Menu 		= Menu !String ![MenuItem]
@@ -61,7 +64,9 @@ instance == Action
 			
 :: Key = A | B | C | D | E | F | G | H | I | J | K | L | M | N | O | P | Q | R | S | T | U | V | W | X | Y | Z
 	
-getActionIcon :: !Action -> String
+actionIcon 	:: !Action -> String
+actionLabel	:: !Action -> String
+actionName	:: !Action -> String
 
 // This triple is used to link actions to user interfaces.
 // Its three parts represent the (what , when, where) aspects of actions.

@@ -14,7 +14,7 @@ where
 		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])							GroupAlways
 		, GroupAction		ActionOpen		(GExtend [openDialog gid mdiTasks <<@ GBFloating])				GroupAlways
 		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks Nothing])	GroupAlways
-		, GroupAction		ActionShowAbout	(GExtend [about <<@ GBAlwaysFloating])							GroupAlways
+		, GroupAction		ActionAbout		(GExtend [about <<@ GBAlwaysFloating])							GroupAlways
 		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])						GroupAlways
 		]
 		
@@ -37,14 +37,14 @@ where
 						]
 		, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey T)
 						]
-		, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+		, Menu "Help"	[ MenuItem "About"			ActionAbout		Nothing
 						]
 		]
 	where
-		recentlyOpenedMenu = [MenuItem name (ActionParam actionOpenFile (toString id)) Nothing \\ (DBRef id, name) <- recOpenedFiles]
+		recentlyOpenedMenu = [MenuItem name (ActionParam "openFile" actionOpenFile (toString id)) Nothing \\ (DBRef id, name) <- recOpenedFiles]
 						
-ActionReplace	:== ActionLabel "replace"
-ActionStats		:== ActionLabel "stats"
+ActionReplace	:== Action "replace" "replace"
+ActionStats		:== Action "stats" "stats"
 recOpenedMenu	:== "recOpened"
 actionOpenFile	:== "openFile"
 
@@ -174,7 +174,7 @@ where
 	
 	dbReplaceFunc repl (EditorState (Note txt) file) = EditorState (Note (replaceSubString repl.searchFor repl.replaceWith txt)) file
 								
-ActionReplaceAll :== ActionLabel "Replace all"
+ActionReplaceAll :== Action "replace-all" "Replace all"
 												
 :: TextStatistics =	{ lines			:: Int
 					, words			:: Int

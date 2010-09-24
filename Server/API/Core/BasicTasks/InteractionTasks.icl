@@ -17,8 +17,9 @@ derive bimap (,), Maybe
 instance == Action
 where
 	(==) :: !Action !Action -> Bool
-	(==) (ActionParam label0 param0) (ActionParam label1 param1)
-		= label0 == label1 && (param0 == param1 || param0 == "?")
+	(==) (Action name0 _) (Action name1 _) = name0 == name1
+	(==) (ActionParam name0 label0 param0) (ActionParam name1 label1 param1)
+		= name0 == name1 && (param0 == param1 || param0 == "?")
 	(==) a b = gEq{|*|} a b
 
 class html a 
@@ -43,25 +44,7 @@ where
 	html Nothing	= SpanTag [] []
 	html (Just h)	= html h
 
-getActionIcon :: !Action -> String
-getActionIcon (ActionIcon _ icon)	= icon
-getActionIcon ActionOk				= "icon-ok"
-getActionIcon ActionCancel			= "icon-cancel"
-getActionIcon ActionYes				= "icon-yes"
-getActionIcon ActionNo				= "icon-no"
-getActionIcon ActionNext			= "icon-next"
-getActionIcon ActionPrevious		= "icon-previous"
-getActionIcon ActionFinish			= "icon-finish"
-getActionIcon ActionNew				= "icon-new"
-getActionIcon ActionOpen			= "icon-open"
-getActionIcon ActionSaveAs			= "icon-save-as"
-getActionIcon ActionSave			= "icon-save"
-getActionIcon ActionQuit			= "icon-exit"
-getActionIcon ActionClose			= "icon-cancel"
-getActionIcon ActionHelp			= "icon-help"
-getActionIcon ActionShowAbout		= "icon-help"
-getActionIcon ActionFind			= "icon-find"
-getActionIcon _						= ""
+
 
 //Input tasks
 enterInformation :: !String !description -> Task a | html description & iTask a
@@ -603,16 +586,8 @@ where
 	taskButtons buttons = [toTUIButton button id name value enable \\ (button,id,name,value,enable) <- buttons]
 
 	toTUIButton :: !Action !String !String !String !Bool -> TUIButton
-	toTUIButton action id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = actionText, iconCls = getActionIcon action}
-	where
-		actionText =	case action of
-							ActionLabel text	= text
-							ActionIcon text _	= text
-							ActionParam text _	= text
-							action				#str = (toString (toJSON action))
-												| startsWith "\"Action" str	= subString 7 ((textSize str)-8) str
-												| otherwise					= str
-
+	toTUIButton action id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = actionLabel action, iconCls = actionIcon action}
+	
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
 makeButtons :: !String ![(Action, Bool)] -> [(!Action,!String,!String,!String,!Bool)]	
 makeButtons editorId actions
@@ -659,6 +634,37 @@ evaluateConditions actions valid value = [(action,evaluateCondition cond valid v
 evaluateCondition :: !((Verified a) -> Bool) !Bool !a -> Bool
 evaluateCondition pred valid value = pred (if valid (Valid value) Invalid)
 	
+actionName :: !Action -> String
+actionName (Action name _)		= name
+actionName (ActionParam name _ _)= name
+actionName ActionOk				= "ok"
+actionName ActionCancel			= "cancel"
+actionName ActionYes			= "yes"
+actionName ActionNo				= "no"
+actionName ActionNext			= "next"
+actionName ActionPrevious		= "previous"
+actionName ActionFinish			= "finish"
+actionName ActionNew			= "new"
+actionName ActionOpen			= "open"
+actionName ActionSave			= "save"
+actionName ActionSaveAs			= "save-as"
+actionName ActionClose			= "close"
+actionName ActionQuit			= "quit"
+actionName ActionHelp			= "help"
+actionName ActionAbout			= "about"
+actionName ActionFind			= "find"
+actionName ActionEdit			= "edit"
+actionName ActionDelete			= "delete"
+
+actionIcon :: !Action -> String
+actionIcon action = "icon-" +++ (actionName action) 
+
+actionLabel :: !Action -> String
+actionLabel (Action _ label)		= label
+actionLabel (ActionParam _ label _)	= label
+actionLabel (ActionSaveAs)			= "Save as"
+actionLabel action					= upperCaseFirst (actionName action)
+
 			
 //Throw away the chosen action part of the result
 ignoreActionA :: (*TSt -> (!TaskResult (!Action,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))

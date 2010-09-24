@@ -20,9 +20,9 @@ derive class iTask	Mode
 derive gEq 			Mode
 derive bimap		Maybe, (,)
 
-ActionEditType	:== ActionLabel "Edit Type"
-ActionEditValue	:== ActionLabel "Edit Value"
-ActionOpenValue	:== ActionLabel "Open Value"
+ActionEditType	:== Action "edit-type" "Edit Type"
+ActionEditValue	:== Action "edit-value" "Edit Value"
+ActionOpenValue	:== Action "open-value" "Open Value"
 
 initMenu :: Menus
 initMenu  =
@@ -38,7 +38,7 @@ initMenu  =
 	, Menu "Edit"	[ MenuItem "Edit Type"		ActionEditType	Nothing
 					, MenuItem "Edit Value"		ActionEditValue	Nothing
 					]
-	, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+	, Menu "Help"	[ MenuItem "About"			ActionAbout	Nothing
 					]
 	]
 
@@ -49,7 +49,7 @@ actions state=:((name,form),mode)
 		, (ActionSave,		ifValid (name <> ""), InMenu)
 		, (ActionSaveAs,	ifValid (name <> ""), InMenu)
 		, (ActionQuit,		always, InMenu)
-		, (ActionShowAbout,	always, InMenu)
+		, (ActionAbout,		always, InMenu)
 		, (ActionEditType,	(\_ -> mode === EditValue),InMenu)
 		, (ActionEditValue,	(\_ -> mode === EditType && not (isEmpty form.formShape)),InMenu)
 		] 
@@ -101,7 +101,7 @@ switchAction (action, (nameform=:(name,form),mode))
 			ActionSaveAs	->							newFormName form 		
 								>>= \nameform -> 		doMenu (nameform,mode)
 			ActionQuit		->							return Void
-			ActionShowAbout	->							showAbout 				
+			ActionAbout		->							showAbout 				
 								>>| 					doMenu (nameform,mode)
 			ActionEditType	->							doMenu (nameform, EditType)
 			ActionEditValue	->							formShapeToFormDyn form.formShape 

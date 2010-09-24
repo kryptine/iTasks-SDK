@@ -43,8 +43,8 @@ manageMessages =
 	>>= overview
 	>>= \(action,message) -> case action of
 		ActionOpen						= manageMessage message	>>|	return False
-		ActionLabel "New message"		= newMessage			>>|	return False
-		ActionLabel "New group message"	= newGroupMessage		>>| return False
+		Action "new-msg" _ 				= newMessage			>>|	return False
+		Action "new-group-msg" _		= newGroupMessage		>>| return False
 		ActionQuit						= 							return True
 	) <! id >>| stop
 where
@@ -53,8 +53,8 @@ where
 	overview msgs	= enterChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
 	
 	aOpen		= (ActionOpen,ifvalid,AsButton)
-	aNew		= (ActionLabel "New message", always,AsButton)
-	aNewGroup	= (ActionLabel "New group message", always,AsButton)
+	aNew		= (Action "new-msg" "New message", always,AsButton)
+	aNewGroup	= (Action "new-group-msg" "New group message", always,AsButton)
 	aQuit		= (ActionQuit,always,AsButton)
 
 manageMessage :: Message -> Task Bool
@@ -63,17 +63,17 @@ manageMessage msg=:{Message |subject}
 	>>= \act -> case act of
 		(ActionClose,_) 
 			= return False
-		(ActionLabel "Reply",message)
+		(Action "reply" _,message)
 			= 			getCurrentUser
 			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(ActionLabel "Reply All",_)
+		(Action "reply-all" _,_)
 			= 			getCurrentUser
 			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(ActionLabel "Forward",_)
+		(Action "forward" _,_)
 			= 			getCurrentUser 
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
@@ -82,9 +82,9 @@ manageMessage msg=:{Message |subject}
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage "Deleted" "Message deleted" False	
 where
-	aReply		= (ActionLabel "Reply",always,AsButton)
-	aReplyAll	= (ActionLabel "Reply All",always,AsButton)
-	aForward	= (ActionLabel "Forward",always,AsButton)
+	aReply		= (Action "reply" "Reply",always,AsButton)
+	aReplyAll	= (Action "reply-all" "Reply All",always,AsButton)
+	aForward	= (Action "forward" "Forward",always,AsButton)
 	aDelete		= (ActionDelete, always,AsButton)
 	aClose		= (ActionClose, always,AsButton)
 

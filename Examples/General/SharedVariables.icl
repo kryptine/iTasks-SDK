@@ -10,7 +10,7 @@ quitButton = (ActionQuit, always, AsButton)
 noteEditor = editor {editorFrom = \txt -> Note txt,	editorTo = \(Note txt) _ -> txt}
 listEditor = editor {editorFrom = split "\n" ,		editorTo = \l _ -> join "\n" l}
 
-TrimAction :== ActionLabel "Trim"
+TrimAction :== Action "trim" "Trim"
 
 linesPar :: Task Void
 linesPar =
@@ -101,7 +101,7 @@ where
 
 derive class iTask MarkerInfo, MapSize, MapOptions
 
-RemoveMarkersAction :== ActionLabel "Remove Markers"
+RemoveMarkersAction :== Action "remove-markers" "Remove Markers"
 
 googleMaps :: Task Void
 googleMaps = googleMaps` mkMap

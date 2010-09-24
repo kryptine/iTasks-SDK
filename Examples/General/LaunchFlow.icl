@@ -8,7 +8,7 @@ launchFlow = workflow "Examples/Interactive Workflows/Run workflow" "Run a store
 
 // ****************************
 
-ActionStartFlow 	:== ActionLabel "Start Flow"
+ActionStartFlow 	:== Action "start" "Start Flow"
 
 initMenu :: Menus
 initMenu =

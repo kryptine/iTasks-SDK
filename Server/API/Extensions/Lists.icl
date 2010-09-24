@@ -63,17 +63,17 @@ manageList list
 	=	
 	(	showItems list
 	>>= \(action,_) -> case action of
-		ActionLabel "Edit"	= editItems	list			>>| return False
-		ActionLabel "Share"	= manageListSharing list	>>| return False
+		ActionEdit			= editItems	list			>>| return False
+		Action "share" _	= manageListSharing list	>>| return False
 		ActionClose			=								return True
 	) <! id
 	>>| stop
 where
 	showItems l = case l of
-		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = simpleFrom}]
-		(TodoList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = todoFrom}]
-		(DateList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = dateFrom}]
-		(DocumentList l)= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionLabel "Edit",always,AsButton),(ActionLabel "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = documentFrom}]
+		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionEdit,always,AsButton),(Action "share" "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = simpleFrom}]
+		(TodoList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionEdit,always,AsButton),(Action "share" "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = todoFrom}]
+		(DateList l)	= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionEdit,always,AsButton),(Action "share" "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = dateFrom}]
+		(DocumentList l)= updateShared l.List.name l.List.description [(ActionClose,always,AsButton),(ActionEdit,always,AsButton),(Action "share" "Share",always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [listener {listenerFrom = documentFrom}]
 
 	editItems list = case list of
 		(SimpleList l)	= updateShared l.List.name l.List.description [(ActionFinish,always,AsButton)] (mkDBId ("List-" <+++ (fromHidden l.List.listId))) [editor {editorFrom = simpleFrom, editorTo = simpleTo}]
@@ -107,16 +107,16 @@ manageListSharing list
 			  )
 			>>= \(action,users) -> case action of
 				ActionPrevious				=						return True
-				ActionLabel "Delete"		= removeUsers users >>| return False
-				ActionLabel "Add person(s)"	= addUsers list		>>| return False
-				ActionLabel "Add group"		= addGroup list		>>| return False
+				ActionDelete				= removeUsers users >>| return False
+				Action "add-person" _		= addUsers list		>>| return False
+				Action "add-group" _		= addGroup list		>>| return False
 	) <! id >>| stop
 
 where
 	aPrevious	= (ActionPrevious, always, AsButton)
-	aRemove		= (ActionLabel "Delete", ifvalid, AsButton)
-	aAddPerson	= (ActionLabel "Add person(s)", ifvalid, AsButton)
-	aAddGroup	= (ActionLabel "Add group", ifvalid, AsButton)
+	aRemove		= (ActionDelete, ifvalid, AsButton)
+	aAddPerson	= (Action "add-person" "Add person(s)", ifvalid, AsButton)
+	aAddGroup	= (Action "add-group" "Add group", ifvalid, AsButton)
 
 	removeUsers users	= 	removeSharingForList list users
 	addUsers list		=	enterInformation "Add person(s)" "Enter the person(s) you want to share this list with"

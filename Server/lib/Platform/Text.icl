@@ -84,3 +84,7 @@ instance Text String
 
     toUpperCase :: !String -> String
 	toUpperCase s = {toUpper c \\ c <-: s}
+	
+	upperCaseFirst :: !String -> String
+	upperCaseFirst "" = ""
+	upperCaseFirst s = {if (i == 0) (toUpper c) c \\ c <-: s & i <- [0..]}

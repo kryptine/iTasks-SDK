@@ -22,7 +22,7 @@ initMenu =
 					, MenuSeparator
 					, MenuItem "Quit"			ActionQuit		Nothing
 					]
-	, Menu "Help"	[ MenuItem "About"			ActionShowAbout	Nothing
+	, Menu "Help"	[ MenuItem "About"			ActionAbout		Nothing
 					]
 	]
 
@@ -32,7 +32,7 @@ actions ((name,flow), mode)
 		, (ActionSave,		ifValid (validFlow name flow.flowDyn), InMenu)
 		, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn), InMenu)
 		, (ActionQuit,		always, InMenu)
-		, (ActionShowAbout,	always, InMenu)
+		, (ActionAbout,		always, InMenu)
 		]
 validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDyn)
 
@@ -72,7 +72,7 @@ switchAction (action, (nameflow=:(name,flow),mode))
 			ActionSaveAs	->						newFlowName flow 
 								>>= \nameflow -> 	doMenu (nameflow,mode)
 			ActionQuit		->						return Void
-			ActionShowAbout	->						showAbout 
+			ActionAbout		->						showAbout 
 								>>| 				doMenu (nameflow,mode)
 			ActionOk		->						try (flowShapeToFlow flow.flowShape) 
 														(errorRaised flow.flowShape) 

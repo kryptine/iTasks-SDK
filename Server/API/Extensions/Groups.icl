@@ -55,13 +55,13 @@ manageGroup igroup
 		showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
 	>>= \(action,_) -> case action of
 		ActionClose						= 					return True
-		ActionLabel "Invite new member"	= invite group	>>| return False
-		ActionLabel "Leave group"		= leave group	>>| return False
+		Action "invite" _				= invite group	>>| return False
+		Action "leave" _				= leave group	>>| return False
 	) <! id >>| stop
 where
 	aBack	= (ActionClose, always, AsButton)
-	aInvite	= (ActionLabel "Invite new member", always, AsButton)
-	aLeave	= (ActionLabel "Leave group", always, AsButton)
+	aInvite	= (Action "invite" "Invite new member", always, AsButton)
+	aLeave	= (Action "leave" "Leave group", always, AsButton)
 		
 	invite group
 		= 	enterInformation ("Invite a someone to join " +++ toString group) "Please enter a user to invite to the group"

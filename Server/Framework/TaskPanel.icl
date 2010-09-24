@@ -3,7 +3,7 @@ implementation module TaskPanel
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, Html, TSt, TUIDefinition
 
-from InteractionTasks	import :: Menu(..), :: MenuItem(..), getActionIcon, instance == Action
+from InteractionTasks	import :: Menu(..), :: MenuItem(..), actionIcon, instance == Action
 
 derive JSONEncode SubtaskInfo
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
@@ -236,7 +236,7 @@ where
 																	, value = Just (toString (toJSON action))
 																	, disabled = not (taskAEnabled || groupAEnabled)
 																	, menu = Nothing
-																	, iconCls = Just (getActionIcon action)
+																	, iconCls = Just (actionIcon action)
 																	, topGroupAction = Just False
 																	, hotkey = mbHotkey
 																	}
@@ -248,7 +248,7 @@ where
 																	, value = Just (toString (toJSON action))
 																	, disabled = not taskAEnabled
 																	, menu = Nothing
-																	, iconCls = Just (getActionIcon action)
+																	, iconCls = Just (actionIcon action)
 																	, topGroupAction = Just False
 																	, hotkey = mbHotkey
 																	}
@@ -261,7 +261,7 @@ where
 																	, value = Just (toString (toJSON action))
 																	, disabled = not groupAEnabled
 																	, menu = Nothing
-																	, iconCls = Just (getActionIcon action)
+																	, iconCls = Just (actionIcon action)
 																	, topGroupAction = Just topLevel
 																	, hotkey = mbHotkey
 																	}

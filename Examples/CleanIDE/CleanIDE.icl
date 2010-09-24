@@ -118,11 +118,11 @@ editAppStateOptions desc get putback sid =
 handleErrors :: !FileException -> Task Void
 handleErrors (FileException path _) = (showMessageAbout "Error" "Error" ("Could not open '" +++ path +++ "'!") >>| return Void )<<@ ExcludeGroupActions
 	
-ActionCompile				:== ActionLabel "compile"
-ActionEditCodeGenOptions	:== ActionLabel "codeGenOpts"
-ActionEditAppOptions		:== ActionLabel "appOpts"
-ActionEditLinkOptions		:== ActionLabel "linkOpts"
-ActionEditSyntaxColOptions	:==	ActionLabel "syntColOpts"
+ActionCompile				:== Action "compile" "compile"
+ActionEditCodeGenOptions	:== Action "code-gen-opts" "codeGenOpts"
+ActionEditAppOptions		:== Action "app-opts" "appOpts"
+ActionEditLinkOptions		:== Action "link-opts" "linkOpts"
+ActionEditSyntaxColOptions	:==	Action "synt-col-opts" "syntColOpts"
 
 :: Mode = InCode | InString | InChar | InMLComment |InSLComment | InNum
 						
@@ -252,7 +252,7 @@ where
 derive class iTask	Replace
 derive bimap		Maybe, (,)
 
-ActionReplaceAll	:== ActionLabel "Replace All"
+ActionReplaceAll	:== Action "replace-all" "Replace All"
 		
 findAndReplace :: !(DBId AppState) -> Task Void
 findAndReplace sid = findAndReplace` {searchFor = "", replaceWith = ""}

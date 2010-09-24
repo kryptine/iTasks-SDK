@@ -97,7 +97,11 @@ taskService url html path req tst
 				Nothing
 					= (notFoundResponse req, tst)
 				Just proc
-					# (tree,tst) = calculateTaskTree taskId JSONTree [] tst
+					//Events are posted as a list of triplets
+					# events		= case (fromJSON (fromString eventsParam)) of
+						Just events		= events
+						Nothing			= []
+					# (tree,tst) = calculateTaskTree taskId JSONTree events tst
 					# task = JSONObject (taskProperties proc ++ [("parts", JSONArray (taskParts tree))]) 
 					# json = JSONObject [("success",JSONBool True),("task",task)]
 					= (serviceResponse html "Task details" detailsDescription url detailsParams json, tst)
@@ -120,7 +124,7 @@ taskService url html path req tst
 		//Show / Update task user interface definition
 		[taskId,"tui"]
 			| isJust mbSessionErr
-				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Task user interface" tuiDescription url detailsParams (jsonSessionErr mbSessionErr), tst)	
 			# (mbProcess, tst)	= case session.Session.user of
 				RootUser
 								= getProcess taskId tst
@@ -130,7 +134,7 @@ taskService url html path req tst
 					= (notFoundResponse req, tst)
 				Just proc
 					# task			= taskItem proc
-					//Updates are posted as a list of triplets
+					//Events are posted as a list of triplets
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
@@ -139,14 +143,14 @@ taskService url html path req tst
 						(TTMainTask ti properties _ content)
 							# tui			= buildTaskPanel content session.Session.user
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
+							= (serviceResponse html "Task user interface" tuiDescription url detailsParams json, tst)
 						_
 							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",JSONNull)]
-							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
+							= (serviceResponse html "Task user interface" tuiDescription url detailsParams json, tst)
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
 			| isJust mbSessionErr
-				= (serviceResponse html "Cancel task" cancelDescription url tuiParams (jsonSessionErr mbSessionErr), tst)
+				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (jsonSessionErr mbSessionErr), tst)
 			# (mbProcess, tst) = getProcessForTask taskId tst
 			= case mbProcess of
 				Nothing
@@ -157,9 +161,9 @@ taskService url html path req tst
 						RootUser = (Just proc,tst)
 						user	 = getProcessForManager user proc.Process.taskId tst
 					| not (isJust mbUProcess) 
-						= (serviceResponse html "Cancel task" cancelDescription url tuiParams (JSONObject [("success",JSONBool False),("error",JSONString "You do not have permission to cancel this task")]), tst)		
+						= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool False),("error",JSONString "You do not have permission to cancel this task")]), tst)		
 					# tst = deleteTaskInstance proc.Process.taskId tst
-					= (serviceResponse html "Cancel task" cancelDescription url tuiParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
+					= (serviceResponse html "Cancel task" cancelDescription url detailsParams (JSONObject [("success",JSONBool True),("message",JSONString "Task deleted")]), tst)	
 					
 		//Show / update Manager properties
 		[taskId,"managerProperties"]
@@ -208,7 +212,7 @@ taskService url html path req tst
 		//TODO: Prevent access in case of a faulty user
 		[taskId,"result","tui"]
 		| isJust mbSessionErr
-				= (serviceResponse html "Task result user interface" tuiResDescription url tuiParams (jsonSessionErr mbSessionErr), tst)
+				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams (jsonSessionErr mbSessionErr), tst)
 		# (mbProcess, tst) = getProcessForTask taskId tst
 		= case mbProcess of
 			Nothing 
@@ -218,7 +222,7 @@ taskService url html path req tst
 				# (tree,tst)	= calculateTaskResult taskId tst
 				# tui			= buildResultPanel tree
 				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
-				= (serviceResponse html "Task result user interface" tuiResDescription url tuiParams json, tst)
+				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams json, tst)
 		_
 			= (notFoundResponse req, tst)		
 where
@@ -233,8 +237,7 @@ where
 	debugParams		= [("session",sessionParam,True),("type",typeParam,False)]
 	typeParam		= paramValue "type" req
 	
-	detailsParams	= [("session",sessionParam,True)]
-	tuiParams		= [("session",sessionParam,True),("events",eventsParam,False)]
+	detailsParams	= [("session",sessionParam,True),("events",eventsParam,False)]
 	eventsParam		= paramValue "events" req
 
 	propParams		= [("session",sessionParam,True),("update",updateParam,False)]

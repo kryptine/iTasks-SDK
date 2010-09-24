@@ -127,7 +127,7 @@ derive gMerge		Chat, ChatMessage, ChatView, ChatMessageView
 	, addReply	:: Editable FormButton
 	}
 	
-ActionAddUser :== ActionLabel "Add User" 
+ActionAddUser :== Action "add-user" "Add User" 
 
 chat
 	=				getCurrentUser
@@ -340,28 +340,28 @@ mailMess2 me msg
 
 // news group manager
 
-ActionShowGroups	:== ActionLabel "ShowGroups"
-ActionSubscribe		:== ActionLabel "Subscribe"
-ActionSubscribeTo	:== ActionLabel "SubscribeTo"
-ActionCommit		:== ActionLabel "Commit"
+ActionShowGroups	:== Action "show-groups" "ShowGroups"
+ActionSubscribe		:== Action "subscribe" "Subscribe"
+ActionSubscribeTo	:== Action "subscribe-to" "SubscribeTo"
+ActionCommit		:== Action "commit" "Commit"
 
 initMenu :: NewsGroupNames -> Menus
 initMenu groups
 	=
 		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew		Nothing
-						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "SubscribeTo" group) Nothing \\ group <- groups]
+						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "subscribe-to" "Subscribe to" group) Nothing \\ group <- groups]
 						, MenuSeparator
 						, MenuItem "Quit"					ActionQuit		Nothing
 						]
-		, Menu "Help"	[ MenuItem "About"					ActionShowAbout	Nothing
+		, Menu "Help"	[ MenuItem "About"					ActionAbout		Nothing
 						]
 		]
 
 actions groups
-	=	[ (ActionNew,		 always, InMenu)
-		, (ActionQuit,		 always, InMenu)
-		, (ActionShowAbout,	 always, InMenu)
-		: [(ActionParam "SubscribeTo" group ,valid, InMenu) \\ group <- groups]
+	=	[ (ActionNew,		always, InMenu)
+		, (ActionQuit,		always, InMenu)
+		, (ActionAbout,	 	always, InMenu)
+		: [(ActionParam "subscribe-to" "Subscribe to" group ,valid, InMenu) \\ group <- groups]
 		] 
 where
 	valid 			= (\_ -> lengthGroups > 0)
@@ -382,11 +382,11 @@ where
 		=						showMessageA "Newsgroup reader" "Newsgroup reader, select from menu..." (actions groups) Void
 			>>= switch
 	where
-		switch (ActionCancel,_) 					= 															doMenu me groups
-		switch (ActionNew,_) 						= addNewsGroup 											>>| handleMenu
-		switch (ActionParam "SubscribeTo" group,_)	= subscribeProcess me group								>>| doMenu me groups
-		switch (ActionShowAbout,_) 					= showMessage "About" "Newsgroup Reader vrs. 2.0" Void 	>>| doMenu me groups
-		switch 	_ 									= return Void
+		switch (ActionCancel,_) 						= 															doMenu me groups
+		switch (ActionNew,_) 							= addNewsGroup 											>>| handleMenu
+		switch (ActionParam "subscribe-to" _ group,_)	= subscribeProcess me group								>>| doMenu me groups
+		switch (ActionAbout,_) 							= showMessage "About" "Newsgroup Reader vrs. 2.0" Void 	>>| doMenu me groups
+		switch 	_ 										= return Void
 
 addNewsGroup :: (Task Void)
 addNewsGroup	
@@ -405,11 +405,11 @@ subscribeProcess me group = spawnProcess True True (readNews 1 me group 0 <<@ Su
 
 // news group reader
 
-ActionRefresh :== ActionLabel "Refresh"
+ActionRefresh :== Action "refresh" "Refresh"
 
 readMenu :: Menus
 readMenu =
-	[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (toString i)) Nothing \\ i <- [1,5,10,30,50]]
+	[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (i +++> " messages") (toString i)) Nothing \\ i <- [1,5,10,30,50]]
 					, MenuItem "Quit"	ActionQuit Nothing
 					]
 	]
@@ -420,7 +420,7 @@ readactions nmessage index nmsg
 		, (ActionNext, 		(\_ -> (index + nmessage < nmsg)), AsButton)
 		, (ActionCommit, 	always, AsButton)
 		, (ActionQuit, 		always, AsButton)
-		: [(ActionParam "nmessage" (toString i), always, InMenu) \\ i <- [1,5,10,30,50]]
+		: [(ActionParam "nmessage" (i +++> " messages") (toString i), always, InMenu) \\ i <- [1,5,10,30,50]]
 		]
 
 readNews :: Int User String Int -> Task Void
@@ -436,7 +436,7 @@ where
 		switch (ActionRefresh,_) 	= 								readNews` nmessage me group index
 		switch (ActionNext,_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
 		switch (ActionCommit,_) 	= commitItem group 			>>| readNews` nmessage me group index
-		switch (ActionParam _ n,_)	= 								readNews (toInt n) me group index
+		switch (ActionParam _ _ n,_)= 								readNews (toInt n) me group index
 		switch _ 					= return Void
 
 		readMoreNews offset

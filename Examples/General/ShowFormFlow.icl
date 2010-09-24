@@ -2,10 +2,10 @@ implementation module ShowFormFlow
  
 import 	iTasks, FormFlowStorage
 
-ShowForms	:== ActionLabel "Show Forms"
-ShowFlows	:== ActionLabel "Show Flows"
-ShowAll		:== ActionLabel "Show All"
-Refresh		:== ActionLabel "Refresh"
+ShowForms	:== Action "show-forms" "Show Forms"
+ShowFlows	:== Action "show-flows" "Show Flows"
+ShowAll		:== Action "show-all" "Show All"
+Refresh		:== Action "refresh" "Refresh"
 
 showStoredDefinitions :: Workflow
 showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Definitions" "Show stored form or workflow definitions" handleMenu
