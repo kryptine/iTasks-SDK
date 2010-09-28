@@ -61,6 +61,11 @@ button.icon-ok, button.icon-yes, button.icon-finish, .icon-ok, .icon-yes, .icon-
 button.icon-no, button.icon-cancel, .icon-no, .icon-cancel {
 	background-image: url('img/icons/cancel.png');
 }
+
+button.icon-close, .icon-close {
+	background-image: url('img/icons/cancel.png');
+}
+
 button.icon-previous, .icon-previous {
 	background-image: url('img/icons/arrow_left.png');
 }
@@ -94,7 +99,15 @@ button.icon-exit, .icon-exit {
 	background-image: url('img/icons/exit.png');
 }
 
+button.icon-quit, .icon-quit {
+	background-image: url('img/icons/exit.png');
+}
+
 button.icon-help, .icon-help {
+	background-image: url('img/icons/help.png');
+}
+
+button.icon-about, .icon-about {
 	background-image: url('img/icons/help.png');
 }
 
