@@ -261,33 +261,45 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 		VHtmlDisplay
 			= case (old,new) of
 				(VValue (CONS ox), VValue (CONS nx))
-					# (vizBody,vst) = fx (VValue ox) (VValue nx) {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
+					# (viz,vst) = fx (VValue ox) (VValue nx) {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
 					//Records
 					| not (isEmpty d.gcd_fields) 
-						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml vizBody))]], {VSt|vst & currentPath = stepDataPath currentPath})
-					//Normal ADT's
+						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml viz))]], {VSt|vst & currentPath = stepDataPath currentPath})
+					//When there are multiple constructors, also show the name of the constructor
+					| d.gcd_type_def.gtd_num_conses > 1
+						= ([TextFragment d.gcd_name, TextFragment " " :viz], {VSt|vst & currentPath = stepDataPath currentPath})
 					| otherwise
-						= (vizCons ++ [TextFragment " "] ++ vizBody, {VSt|vst & currentPath = stepDataPath currentPath})
+						= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
 				_
 					= ([],{VSt|vst & currentPath = stepDataPath currentPath})
 		//Other visualizations
 		VHtmlLabel
 			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			//For records only show the first field
 			| not (isEmpty d.gcd_fields) 
 				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+			//When there are multiple constructors, also show the name of the constructor
+			| d.gcd_type_def.gtd_num_conses > 1
+				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath})
 			| otherwise
 				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
 		VTextLabel
+			//For records only show the first field
 			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
 			| not (isEmpty d.gcd_fields) 
 				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+			//When there are multiple constructors, also show the name of the constructor
+			| d.gcd_type_def.gtd_num_conses > 1
+				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath})
 			| otherwise
-				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
-		
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})		
 		VTextDisplay
 			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
 			| not (isEmpty d.gcd_fields) 
-				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+			//When there are multiple constructors, also show the name of the constructor
+			| d.gcd_type_def.gtd_num_conses > 1
+				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath})
 			| otherwise
 				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
 		_	
@@ -301,9 +313,6 @@ where
 	cId = (dp2id idPrefix currentPath)+++"c"
 	id = (dp2id idPrefix currentPath)
 	
-	//Do not show constructors that start with an underscore (_Tuple2,_Cons etc.)
-	vizCons = if (d.gcd_name.[0] == '_') [] [TextFragment d.gcd_name]
-
 	//Only show a body when you have a value and it is masked
 	//showBody dp VBlank			= False
 	//showBody dp (VValue _ dm)	= isMasked dp dm
