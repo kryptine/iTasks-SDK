@@ -34,6 +34,7 @@
 		,{"text":"RecordContainer.js","path":"src/js/tui/"}
 		,{"text":"TupleContainer.js","path":"src/js/tui/"}
 		,{"text":"AppletContainer.js","path":"src/js/tui/"}
+		,{"text":"HtmlContainer.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}
 		,{"text":"TTCBase.js","path":"src/js/ttc/"}

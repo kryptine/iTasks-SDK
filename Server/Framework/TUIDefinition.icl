@@ -5,18 +5,18 @@ import JSON,StdList,StdBool,GenEq
 from Types import :: Document, :: DocumentId, :: Hotkey, :: Key
 
 derive gEq TUIDef, TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl, TUIButtonControl, TUIListItemControl
-derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, JSONNode, Maybe, Document
-derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Hotkey, Key
+derive gEq TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer, JSONNode, Maybe, Document
+derive gEq TUIButton, TUIUpdate, TUIChoiceControl, TUIMenuButton, TUIMenu, TUIMenuItem, Hotkey, Key
 
 //JSON Encoding of TUI definitions is directly encoded as JSON data.
-derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, TUIHtmlPanel, Key, Hotkey
+derive JSONEncode TUIButton, TUIUpdate, TUIMenuButton, TUIMenu, TUIMenuItem, Key, Hotkey
 derive JSONEncode TUIBasicControl, TUICurrencyControl, TUIDocumentControl, TUIConstructorControl
 derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl
-derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer
+derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer, TUIHtmlContainer
 
 //TODO: Separate control elements from form-widgets
 JSONEncode{|TUIDef|} (TUIButton r)				= addXType "itasks.ttc.Button" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIHtmlPanel r)			= addXType "panel" (JSONEncode{|*|} r)
+
 JSONEncode{|TUIDef|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuItem r)			= addXType "itasks.ttc.MenuItem" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuSeparator)			= [JSONRaw "{\"xtype\":\"menuseparator\"}"]
@@ -43,6 +43,7 @@ JSONEncode{|TUIDef|} (TUIListItemControl r) 	= addXType "itasks.tui.list.Item" (
 JSONEncode{|TUIDef|} (TUITupleContainer r)		= addXType "itasks.tui.Tuple" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIRecordContainer r)		= addXType "itasks.tui.Record" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIListContainer r) 		= addXType "itasks.tui.List" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIHtmlContainer r)		= addXType "itasks.tui.Html" (JSONEncode{|*|} r)
 
 addXType :: !String ![JSONNode] -> [JSONNode]
 addXType xtype [JSONObject fields: xs]	= [JSONObject [("xtype", JSONString xtype):fields] : xs]
@@ -70,9 +71,10 @@ where
 	(==) (TUITupleContainer a) 		(TUITupleContainer b) 		= a == b
 	(==) (TUIRecordContainer a) 	(TUIRecordContainer b) 		= a == b
 	(==) (TUIListContainer a) 		(TUIListContainer b) 		= a == b
+	(==) (TUIHtmlContainer a)		(TUIHtmlContainer b)		= a == b
 	
 	(==) (TUIButton a) 				(TUIButton b) 				= True //a == b
-	(==) (TUIHtmlPanel a)			(TUIHtmlPanel b)			= True //a == b
+
 	(==) (TUIMenuButton a) 			(TUIMenuButton b) 			= True //a == b
 	(==) (TUIMenuItem a) 			(TUIMenuItem b) 			= True //a == b
 	(==) (TUIMenuSeparator) 		(TUIMenuSeparator)			= True
@@ -148,6 +150,10 @@ instance == TUITupleContainer
 where
 	(==) a b = (a.TUITupleContainer.id == b.TUITupleContainer.id) 
 			&& (a.TUITupleContainer.items == b.TUITupleContainer.items)
+
+instance == TUIHtmlContainer
+where
+	(==) a b = (a.TUIHtmlContainer.id == b.TUIHtmlContainer.id)
 
 instance == TUIMenu
 where

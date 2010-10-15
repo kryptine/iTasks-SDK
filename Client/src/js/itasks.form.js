@@ -162,6 +162,6 @@ fireTaskEvent = function(taskid, field, value) {
 	
 	var ct = Ext.getCmp("taskform-" + taskid);
 	if(ct != null && ct.fireEvent) {
-		ct.fireEvent('tuievent',taskid,field,value);
+		ct.fireEvent('tuievent',taskid,field,value,'');
 	}
 }

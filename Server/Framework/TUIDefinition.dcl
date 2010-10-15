@@ -50,9 +50,9 @@ instance == TUIDef
 	
 	| TUITupleContainer TUITupleContainer
 	| TUIRecordContainer TUIRecordContainer
-	| TUIListContainer TUIListContainer
-		
-	| TUIHtmlPanel TUIHtmlPanel
+	| TUIListContainer TUIListContainer		
+	| TUIHtmlContainer TUIHtmlContainer
+	
 	| TUIMenuButton TUIMenuButton
 	| TUIMenuItem TUIMenuItem
 	| TUIMenuSeparator
@@ -170,14 +170,9 @@ instance == TUIDef
 	, hintMsg		:: !String
 	, optional		:: !Bool
 	}
-:: TUIHtmlPanel =
-	{ html			:: !String
-	, border		:: !Bool
-	, bodyCssClass	:: !String
-	, id			:: !TUIId
-	, fieldLabel	:: !Maybe String
-	, hideLabel		:: !Bool
-	, unstyled		:: !Bool
+:: TUIHtmlContainer =
+	{ id			:: !TUIId
+	, html			:: !String
 	}
 
 :: TUIButton =

@@ -556,13 +556,11 @@ where
 	updateSharedForView _ (cvalue,n,tst) (Listener _) = (cvalue,n + 1,tst)
 	
 	listenerPanel :: !a !(Listener` a b) !Int -> TUIDef
-	listenerPanel value listener n = TUIHtmlPanel	{ TUIHtmlPanel
-													| id = (editorId taskNr n)
-													, html = toString (html (listener.Listener`.visualize value))
-													, border = True, bodyCssClass = "task-context"
-													, fieldLabel = Nothing
-													, hideLabel = True
-													, unstyled=True}
+	listenerPanel value listener n = TUIHtmlContainer
+										{ TUIHtmlContainer
+										| id = (editorId taskNr n)
+										, html = toString (html (listener.Listener`.visualize value))
+										}
 	
 	readLocalValue :: !a !*TSt -> *(b,*TSt) | iTask b & toString a	
 	readLocalValue n tst
@@ -595,7 +593,11 @@ where
 			(case mbForm of Just form = form; Nothing = [])
 			
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
-	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (html context), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
+	taskContextPanel panelid context = TUIHtmlContainer
+										{ TUIHtmlContainer
+										| id = panelid
+										, html = toString (html context)
+										}
 	
 	taskButtons	:: [(Action,String,String,Bool)] -> [TUIButton]
 	taskButtons buttons = [toTUIButton button id name enable \\ (button,id,name,enable) <- buttons]
