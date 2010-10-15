@@ -36,7 +36,9 @@
 		,{"text":"AppletContainer.js","path":"src/js/tui/"}
 		
 		,{"text":"TTCCommon.js","path":"src/js/ttc/"}
-		,{"text":"InteractionBase.js","path":"src/js/ttc/"}
+		,{"text":"TTCBase.js","path":"src/js/ttc/"}
+		,{"text":"Button.js","path":"src/js/ttc/"}
+		,{"text":"MenuItem.js","path":"src/js/ttc/"}
 		,{"text":"FormContainer.js","path":"src/js/ttc/"}
 		,{"text":"FinishedContainer.js","path":"src/js/ttc/"}
 		,{"text":"MessageContainer.js","path":"src/js/ttc/"}

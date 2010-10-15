@@ -41,52 +41,52 @@ manageMessages :: Task Void
 manageMessages =
 	(	getMyMessages
 	>>= overview
-	>>= \(action,message) -> case action of
+	>>= \(action,message) -> case fst action of
 		ActionOpen						= manageMessage message	>>|	return False
 		Action "new-msg" _ 				= newMessage			>>|	return False
 		Action "new-group-msg" _		= newGroupMessage		>>| return False
 		ActionQuit						= 							return True
 	) <! id >>| stop
 where
-	overview :: [Message] -> Task (Action,Message)
+	overview :: [Message] -> Task (ActionEvent,Message)
 	overview []		= getDefaultValue >>= showMessageA "My messages" "You have no messages" [aNew,aNewGroup,aQuit] 
 	overview msgs	= enterChoiceA "My messages" "Your messages:" [aOpen,aNew,aNewGroup,aQuit] msgs
 	
-	aOpen		= (ActionOpen,ifvalid,AsButton)
-	aNew		= (Action "new-msg" "New message", always,AsButton)
-	aNewGroup	= (Action "new-group-msg" "New group message", always,AsButton)
-	aQuit		= (ActionQuit,always,AsButton)
+	aOpen		= (ActionOpen,ifvalid)
+	aNew		= (Action "new-msg" "New message", always)
+	aNewGroup	= (Action "new-group-msg" "New group message", always)
+	aQuit		= (ActionQuit,always)
 
 manageMessage :: Message -> Task Bool
 manageMessage msg=:{Message |subject} 
 	= 	showMessageAboutA subject "You received a message" [aClose,aReply,aReplyAll,aForward,aDelete] msg
 	>>= \act -> case act of
-		(ActionClose,_) 
+		((ActionClose,_),_) 
 			= return False
-		(Action "reply" _,message)
+		((Action "reply" _,_),message)
 			= 			getCurrentUser
 			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender)] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(Action "reply-all" _,_)
+		((Action "reply-all" _,_),_)
 			= 			getCurrentUser
 			>>= \me	->	writeMessage me ("Re: "+++msg.Message.subject) [(fromDisplay msg.sender):[u \\ u <- msg.recipients | u <> me]] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return True
-		(Action "forward" _,_)
+		((Action "forward" _,_),_)
 			= 			getCurrentUser 
 			>>= \me -> 	writeMessage me ("Fw: " +++ msg.Message.subject) [] (Just msg)
 			>>= \msg -> sendMessage msg
 			>>| return False
-		(ActionDelete,msg)
+		((ActionDelete,_),msg)
 			=			dbDeleteItem (getItemId msg)
 			>>|			showMessage "Deleted" "Message deleted" False	
 where
-	aReply		= (Action "reply" "Reply",always,AsButton)
-	aReplyAll	= (Action "reply-all" "Reply All",always,AsButton)
-	aForward	= (Action "forward" "Forward",always,AsButton)
-	aDelete		= (ActionDelete, always,AsButton)
-	aClose		= (ActionClose, always,AsButton)
+	aReply		= (Action "reply" "Reply",always)
+	aReplyAll	= (Action "reply-all" "Reply All",always)
+	aForward	= (Action "forward" "Forward",always)
+	aDelete		= (ActionDelete, always)
+	aClose		= (ActionClose, always)
 
 newMessage :: Task Void
 newMessage

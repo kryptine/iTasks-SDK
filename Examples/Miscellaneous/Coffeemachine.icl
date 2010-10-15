@@ -24,10 +24,10 @@ where
 					              ] actions coins 
 		>>= 	handleMoney
 
-	actions = [(ActionCancel, always, AsButton), (ActionOk, always, AsButton)]
+	actions = [(ActionCancel, always), (ActionOk, always)]
 	coins	= [EUR 5,EUR 10,EUR 20,EUR 50,EUR 100,EUR 200]
 
-	handleMoney (ActionCancel, coin)
+	handleMoney ((ActionCancel,_), coin)
 					= show "Cancelled" paid
 	handleMoney (_, coin) 
 	| cost > coin	= getCoins product (cost-coin, paid+coin)

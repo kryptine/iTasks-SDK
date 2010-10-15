@@ -10,7 +10,6 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	properties: null,
 	
 	debug: false,
-	initialized: false,
 	
 	initComponent: function() {
 		Ext.apply(this, {
@@ -20,6 +19,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			iconCls: "icon-task",
 			url: itasks.config.serviceUrl + "/json/tasks/" + this.taskId + "/tui",
 			params: {session: itasks.app.session},
+			listeners: {tuievent: {fn: this.onTuiEvent, scope: this}},
 			layout: "border",
 			items: [{
 				xtype: "itasks.work-header",
@@ -69,7 +69,8 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				}]
 			}]
 		});
-		
+			
+	
 		itasks.WorkPanel.superclass.initComponent.apply(this, arguments);
 	
 		this.addEvents("taskRedundant","taskDone","propertyChanged","afterUpdateContent");
@@ -82,8 +83,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		},this);
 		
 		this.on("afterUpdateContent",function(){
-			var me = this;
-			(function(){me.doLayout(false,true)}).defer(100);
+			this.doLayout(false,true);
 		});
 		
 		//Attach event handlers for the loading indicator
@@ -93,6 +93,13 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		this.on("remoteCallEnd",function() {
 			this.getComponent(0).setBusy(false);
 		},this);
+	},
+	onTuiEvent: function(taskId, name, value, extra) {
+		//TODO: reinstate slight delay between receive of task and sync
+		//      needed to capture edit->click sequences.
+		this.params["events"] = Ext.encode([[taskId,name,value,extra]]);
+		this.refresh();
+		delete(this.params["events"]);
 	},
 	update: function(data,success) {
 		//Check if the task is finished or became redundant
@@ -113,14 +120,16 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			}
 			
 			ct.add({
-				xtype: 'itasks.ttc.finished',
-				msg: msg
+				xtype: "itasks.ttc.finished",
+				subject: "Task completed",
+				description: msg
 			});
 		
 			ct.doLayout();			
 			
 			var tp = this.findParentByType("itasks.worktabs");
 			var tab = this;
+		
 			this.getEl().fadeOut(
 				{ scope: this
 				, duration: .75
@@ -148,7 +157,7 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 	updateContent: function(content) {
 		var ct = this.getComponent(1);
 
-		if(this.initialized) {
+		if(ct.items.getCount() > 0) {
 			//Recursively update tab content
 			var cur = ct.getComponent(0);
 			
@@ -163,18 +172,20 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			//Build initial content
 			ct.add(content);
 			ct.doLayout();
-			this.initialized = true;
-		}			
-	},
-	sendTaskUpdates: function(target, updates) {
-		//Build event list
-		var events = [];
-		for(var k in updates) {
-			events[events.length] = [target,k,updates[k].toString()];
+		}	
+		
+		//If the toplevel component has a menu, add it to the toolbar
+		var tbar = ct.getTopToolbar();
+		while(tbar.items.getCount() > 1) {
+			tbar.remove(tbar.get(1));
 		}
-		//Set events and refresh
-		this.params["events"]	= Ext.encode(events);
-		this.refresh();
+		if(content.menu) {
+			for(var i = 0; i < content.menu.length; i++) {
+				tbar.add(content.menu[i]);
+			}
+			tbar.doLayout();
+		}
+				
 	},
 	updateToolbar: function(properties) {		
 		var getUserName = function(name){
@@ -191,18 +202,16 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			cancelMI.disable();
 		}
 	},
-	cancel : function(){
+	cancel: function(){
 		var me = this;
 		
-		var  doCancel = function(btn){	
+		var doCancel = function(btn){	
 			if(btn == "yes"){
 				var url = itasks.config.serviceUrl + "/json/tasks/" + me.taskId + "/cancel";
 				var params = {};
 				var cb = function(data){
 					if(data.success)
-						(function(){
-							me.update({},false); //send a blank update, this will mark the tab as redundant.						
-						}).defer(50);
+						me.update({},false);
 					else
 						Ext.Msg.alert('Error','Failed to cancel task: '+data.error);
 				};		
@@ -236,14 +245,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 				, layout: 'form'
 				, defaultType: "staticfield"
 				, items: [{
-					//xtype: "itasks.progress",
 					name: "progress",
 					fieldLabel: "Progress",
 					format: itasks.util.formatProgress,
 					value: p.workerProperties.progress
-					//listeners: {
-					//	"change" : function(ov,nv) {var wt = this.findParentByType(itasks.WorkPanel); wt.sendPropertyEvent(wt.properties.systemProperties.taskId,"progress",nv); }
-					//}
 				},{
 					name: "priority",
 					fieldLabel: "Priority",

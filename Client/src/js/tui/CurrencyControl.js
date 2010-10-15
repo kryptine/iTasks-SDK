@@ -14,12 +14,16 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		}
 		
 		this.msgTarget = 'side';
+		this.listeners = {change: {fn: this.onChange, scope: this}};
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		//this.allowBlank = this.optional;
+
 		if(this.value == "") delete this.value;
 		itasks.tui.CurrencyControl.superclass.initComponent.apply(this,arguments);
+	
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
 	onRender: function(ct, position) {
 		itasks.tui.CurrencyControl.superclass.onRender.call(this,ct,position);
@@ -27,13 +31,16 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 		var cl = ct.createChild({tag: 'span', style: 'position: absolute;', cn: this.currencyLabel});
 		cl.setLocation(this.getEl().getLeft() + 5, this.getEl().getTop() + 5);
 	},
+	onChange: function() {
+		this.fireEvent('tuichange',this.name,this.getValue());
+	},
 	afterRender: function(){
 		itasks.tui.CurrencyControl.superclass.afterRender.call(this,arguments);
-		
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
+	
+		if(this.errorMsg)
+			this.markInvalid(this.errorMsg);
+		else if(this.hintMsg)
+			itasks.tui.common.markHint(this,this.hintMsg);
 	},
 	normalize: function(s) {
 		if(s == "")
@@ -64,21 +71,22 @@ itasks.tui.CurrencyControl = Ext.extend(Ext.form.TextField,{
 			this.update(value);
 		}else{
 			itasks.tui.CurrencyControl.superclass.setValue.call(this,value);
-		}
 		
-		if(this.activeError) this.setError(this.activeError);
+			if(this.activeError)
+				this.setError(this.activeError);
+		}	
 	},
 	setError: function(msg){		
-		(function() {
-			if(msg == "") this.clearInvalid();
-			else this.markInvalid(msg);
-		}).defer(50,this);
+		if(msg == "")
+			this.clearInvalid();
+		else
+			this.markInvalid(msg);
 	},
 	setHint: function(msg){
-		(function() {
-			if(msg == "") itasks.tui.common.clearHint(this);
-			else itasks.tui.common.markHint(this,msg);
-		}).defer(50,this);
+		if(msg == "")
+			itasks.tui.common.clearHint(this);
+		else
+			itasks.tui.common.markHint(this,msg);
 	}
 });
 

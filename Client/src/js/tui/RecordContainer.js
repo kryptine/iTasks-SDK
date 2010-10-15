@@ -8,15 +8,18 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 		this.boxMinWidth = 500;
 		this.autoWidth = true;
 		
-		if(this.title == null) delete this.title
-		else this.title = itasks.util.fieldLabel(this.optional,this.title);
-		
+		if(this.title == null)
+			delete this.title
+	
 		delete this.fieldLabel;
 		
 		this.checkboxName  = this.name+'-cb';
 		this.checkboxToggle = this.optional;
 		
 		itasks.tui.RecordContainer.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
 	
 	afterRender: function(){
@@ -26,43 +29,42 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 			this[this.hasValue?'expand':'collapse']();
 			this.checkbox.dom.checked = this.hasValue;
 		}
-		
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
+		if(this.errorMsg)
+			this.markError(this.errorMsg);
+		else if(this.hintMsg)
+			this.markHint(this.hintMsg);
 	},
-	
 	onCheckClick : function() {
-		this[this.checkbox.dom.checked?'expand':'collapse']();
+		if(this.checkbox.dom.checked)
+			this.expand();
+		else
+			this.collapse();
 	
-		var formCt = this.findParentByType(itasks.ttc.FormContainer);
-		formCt.addUpdate(this.name,(this.checkbox.dom.checked)?'create':'');
-		formCt.sendUpdates(false);	
+		this.fireEvent('tuichange',this.name,(this.checkbox.dom.checked ? 'create' : ''));
 	},
-	
 	setError: function(msg){		
-		if(this.staticDisplay) return;
+		if(this.staticDisplay)
+			return;
 		
-		(function() {
-			if(msg == "") this.clearError();
-			else this.markError(msg);
-		}).defer(50,this);
+		if(msg == "")
+			this.clearError();
+		else
+			this.markError(msg);
 	},
-	
 	setHint: function(msg){
-		if(this.staticDisplay) return;
+		if(this.staticDisplay)
+			return;
 		
-		(function() {
-			if(msg == "") this.clearHint();
-			else this.markHint(msg);
-		}).defer(50,this);
+		if(msg == "")
+			this.clearHint();
+		else
+			this.markHint(msg);
 	},
-	
 	markHint : function (msg){
-		if(this.errorIcon && this.errorIcon.isVisible()) return;
-	
 		if(this.rendered){
+			if(this.errorIcon) {
+				this.errorIcon.hide();
+			}
 			if(!this.hintIcon){
 				this.hintIcon = this.el.insertFirst({cls: 'x-record-hint-icon'});	
 				this.hintIcon.setVisibilityMode(Ext.Element.DISPLAY);
@@ -72,7 +74,6 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 			this.hintIcon.setVisible(true);					
 		}
 	},
-	
 	markError : function(msg){
 		if(this.rendered){
 			if(this.hintIcon){
@@ -88,13 +89,13 @@ itasks.tui.RecordContainer = Ext.extend(Ext.form.FieldSet,{
 			this.errorIcon.setVisible(true);
 		}
 	},
-	
 	clearHint : function(){
-		if(this.hintIcon) this.hintIcon.setVisible(false);
-	},
-	
+		if(this.hintIcon)
+			this.hintIcon.setVisible(false);
+	},	
 	clearError: function(){
-		if(this.errorIcon) this.errorIcon.setVisible(false);
+		if(this.errorIcon)
+			this.errorIcon.setVisible(false);
 	}
 });
 

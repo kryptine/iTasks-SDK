@@ -4,7 +4,7 @@ import iTasks, GoogleMaps, Text, ExperimentalDomain
 
 derive bimap Maybe, (,)
 
-quitButton = (ActionQuit, always, AsButton)
+quitButton = (ActionQuit, always)
 
 //Text-Lines Examples
 noteEditor = editor {editorFrom = \txt -> Note txt,	editorTo = \(Note txt) _ -> txt}
@@ -20,8 +20,8 @@ linesPar =
 	>>|			return Void
 where
 	noteE sid = 
-							updateShared "Text" "Edit text" [(TrimAction, always, AsButton), quitButton] sid [noteEditor]
-		>>= \(action,txt).	case action of
+							updateShared "Text" "Edit text" [(TrimAction, always), quitButton] sid [noteEditor]
+		>>= \(action,txt).	case fst action of
 								TrimAction	=			writeDB sid (trim txt)
 												>>|		noteE sid
 								_			= 			stop
@@ -67,7 +67,7 @@ mergeTestList =
 	>>|			spawnProcess True True (Subject "2nd View" @>> view sid)
 	>>|			stop
 where
-	view :: (DBId [String]) -> Task (Action,[String])
+	view :: (DBId [String]) -> Task (ActionEvent,[String])
 	view sid = updateShared "List" "Merging the lists" [quitButton] sid [idEditor]
 	
 	emptyL :: [String]
@@ -81,7 +81,7 @@ mergeTestDocuments =
 	>>|			spawnProcess True True (Subject "3rd View" @>> view sid idListener)
 	>>|			stop
 where
-	view :: (DBId [Document]) (View [Document]) -> Task (Action,[Document])
+	view :: (DBId [Document]) (View [Document]) -> Task (ActionEvent,[Document])
 	view sid v = updateShared "List" "Merging the documents" [quitButton] sid [v]
 	
 	emptyL :: [Document]
@@ -108,8 +108,8 @@ googleMaps = googleMaps` mkMap
 where
 	googleMaps` map =
 							updateSharedLocal "Google Map, Overview & Markers" "Edit in one map. The others are updated automatically."
-								[(RemoveMarkersAction, always, AsButton), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
-		>>= \(action,map).	case action of
+								[(RemoveMarkersAction, always), quitButton] map [optionsEditor, idEditor, overviewEditor, markersListener]
+		>>= \(action,map).	case fst action of
 								RemoveMarkersAction	= googleMaps` {GoogleMap| map & markers = []}
 								_					= stop
 

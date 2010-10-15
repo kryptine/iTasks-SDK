@@ -8,13 +8,19 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		if(this.staticDisplay) {
 			//...
 		}
-		
+	
+		this.listeners = {change: {fn: this.onChange, scope: this}};
+
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
-		itasks.tui.ChoiceControl.superclass.initComponent.call(this);
+		itasks.tui.ChoiceControl.superclass.initComponent.apply(this,arguments);
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
-	
+	onChange: function() {
+		this.fireEvent('tuichange',this.name,Ext.encode(this.getValue()));
+	},
 	onRender: function(ct, position){
 		var me = this;
 		
@@ -88,7 +94,6 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 			item.inGroup = true;
 		});
 	},
-	
 	//buffer to prevent radio group buttons firing twice (uncheck of previous -> check of new)
 	fireChecked : function() {
 		if(!this.checkTask){
@@ -96,7 +101,6 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
 		}
 		this.checkTask.delay(10);
 	},
-	
 	bufferChecked : function(){
 		var arr = [];
         this.eachItem(function(item){
@@ -106,26 +110,25 @@ itasks.tui.ChoiceControl = Ext.extend(Ext.form.CheckboxGroup,{
         });
         this.fireEvent('change', this, arr);
 	},
-	
 	doLayout: function(){
 		if(this.rendered){
 			this.panel.forceLayout = this.ownerCt.forceLayout;
 			this.panel.doLayout();
 		}
 	},
-	
-//returns a list of checked indices	
+	//returns a list of checked indices	
 	getValue : function(){	
+		
 		var out = [];
 		var multiple = this.allowMultiple;
-		
+			
 		this.eachItem(function(item){
 			if(item.checked){
 				out.push(item.value);
 				if(!multiple) return false;
 			}
 		});
-		
+				
 		return out;
 	}
 });

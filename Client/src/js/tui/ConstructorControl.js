@@ -4,8 +4,10 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 	
 	initComponent : function(){
 
-		if(this.fieldLabel == null) delete this.fieldLabel;
-		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
+		if(this.fieldLabel == null)
+			delete this.fieldLabel;
+		else
+			this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
 		
 		this.unstyled = true;
 		this.autoHeight = true;
@@ -27,7 +29,8 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 				hideLabel: true,
 				style: 'margin-bottom: 4px',
 				msgTarget: 'side',
-				valueNotFoundText: 'Value not found...'
+				valueNotFoundText: 'Value not found...',
+				listeners: {select: {fn: this.onChange, scope: this}}
 			});
 		}else{
 			this.consField = {
@@ -59,59 +62,61 @@ itasks.tui.ConstructorControl = Ext.extend(Ext.Panel,{
 		, items: panelItems
 		, frame: true
 		, baseCls: 'x-constructor-panel'
+		, hidden: panelItems.length == 0	//Initially hide the itemPanel if there are no items 
 		});
-		
+				
 		this.itemPanel.on('add',function(){ this.showOrHide(); },this.itemPanel);
 		this.itemPanel.on('remove', function(){ this.showOrHide();  },this.itemPanel);
 		
 		this.itemPanel.showOrHide = function(){			
-			(function() {
-				if((this.items && this.items.length > 0)){
-					this.show();
-				}else{
-					this.hide();
-				}
-			}).defer(50,this);
+			if(this.items && this.items.length > 0){
+				this.show();
+			}else{
+				this.hide();
+			}
 		};		
 		
-		this.items = [this.consField, this.itemPanel] //[this.consField].concat(this.items);	
+		this.items = [this.consField, this.itemPanel];	
 			
 		itasks.tui.ConstructorControl.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
-	
+	onChange: function() {
+		this.fireEvent('tuichange',this.name, this.consField.getValue());
+	},
 	afterRender: function(){
 		itasks.tui.ConstructorControl.superclass.afterRender.call(this,arguments);
 	
-		(function(){
-			this.itemPanel.showOrHide();			
-			
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-			
-			this.add = function(obj){
-				return this.itemPanel.add(obj);
-			}
-		}).defer(50,this);
+		//Redirect addition method to the child panel
+		this.add = function(c) {
+			return this.itemPanel.add(c);
+		}
+	
+		if(this.errorMsg)
+			itasks.tui.common.markError(this.consField,this.errorMsg);
+		else if(this.hintMsg)
+			itasks.tui.common.markHint(this.consField,this.hintMsg);
 	},
 	
 	setError: function(msg){
-		if(this.staticDisplay) return;
-		
-		(function(){
-			if(msg == "") itasks.tui.common.clearError(this.consField)//this.itemPanel.clearError();
-			else itasks.tui.common.markError(this.consField,msg);
-			//this.itemPanel.showOrHide();
-		}).defer(50,this);
-	},
+		if(this.staticDisplay)
+			return;
 	
+		if(msg == "")
+			itasks.tui.common.clearError(this.consField);
+		else
+			itasks.tui.common.markError(this.consField,msg);
+	},
 	setHint: function(msg){
-		if(this.staticDisplay) return;
+		if(this.staticDisplay)
+			return;
 		
-		(function(){
-			if(msg == "") itasks.tui.common.clearHint(this.consField);
-			else itasks.tui.common.markHint(this.consField,msg);
-			//this.itemPanel.showOrHide();
-		}).defer(50,this);
+		if(msg == "")
+			itasks.tui.common.clearHint(this.consField);
+		else
+			itasks.tui.common.markHint(this.consField,msg);
 	}
 });
 

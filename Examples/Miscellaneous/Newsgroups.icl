@@ -72,11 +72,11 @@ where
 	where
 		task :: Int -> Task MeetingDB
 		task n 
-			= 		updateShared "Request" "Meeting requested" [(ActionOk,ifvalid,AsButton)] dbid [appointEditor]
+			= 		updateShared "Request" "Meeting requested" [(ActionOk,ifvalid)] dbid [appointEditor]
 				>>= switch 
 		where
-			switch   (ActionOk,_) = task n
-			switch  (_,result)	  = return result
+			switch  ((ActionOk,_),_)	= task n
+			switch  (_,result)	  		= return result
 
 			appointEditor = editor {editorFrom = editorFrom, editorTo = editorTo}
 			
@@ -164,7 +164,7 @@ where
 	chatSession chatbox user 
 		= 			readDB chatbox
 		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
-		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBAlwaysFixed] (chatActions chatbox user)
+		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBFixed] (chatActions chatbox user)
 	where
 		chatActions :: (DBId Chat) User -> [GroupAction GOnlyAction Void Chat]
 		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [newTopic chatbox user >>| stop]) 	GroupAlways
@@ -358,18 +358,18 @@ initMenu groups
 		]
 
 actions groups
-	=	[ (ActionNew,		always, InMenu)
-		, (ActionQuit,		always, InMenu)
-		, (ActionAbout,	 	always, InMenu)
-		: [(ActionParam "subscribe-to" "Subscribe to" group ,valid, InMenu) \\ group <- groups]
+	=	[ (ActionNew,		always)
+		, (ActionQuit,		always)
+		, (ActionAbout,	 	always)
+		: [(ActionParam "subscribe-to" "Subscribe to" group ,valid) \\ group <- groups]
 		] 
 where
 	valid 			= (\_ -> lengthGroups > 0)
 	lengthGroups 	= length groups
 
 okCancel
-	=	[(ActionCancel,	always, AsButton)
-		,(ActionOk,	ifvalid, AsButton)
+	=	[(ActionCancel,	always)
+		,(ActionOk,	ifvalid)
 		]
 
 handleMenu :: Task Void
@@ -382,11 +382,11 @@ where
 		=						showMessageA "Newsgroup reader" "Newsgroup reader, select from menu..." (actions groups) Void
 			>>= switch
 	where
-		switch (ActionCancel,_) 						= 															doMenu me groups
-		switch (ActionNew,_) 							= addNewsGroup 											>>| handleMenu
-		switch (ActionParam "subscribe-to" _ group,_)	= subscribeProcess me group								>>| doMenu me groups
-		switch (ActionAbout,_) 							= showMessage "About" "Newsgroup Reader vrs. 2.0" Void 	>>| doMenu me groups
-		switch 	_ 										= return Void
+		switch ((ActionCancel,_),_) 						= 															doMenu me groups
+		switch ((ActionNew,_),_) 							= addNewsGroup 											>>| handleMenu
+		switch ((ActionParam "subscribe-to" _ group,_),_)	= subscribeProcess me group								>>| doMenu me groups
+		switch ((ActionAbout,_),_) 							= showMessage "About" "Newsgroup Reader vrs. 2.0" Void 	>>| doMenu me groups
+		switch 	_ 											= return Void
 
 addNewsGroup :: (Task Void)
 addNewsGroup	
@@ -394,7 +394,7 @@ addNewsGroup
 		>>= \groups ->		enterInformationAboutA "New group" "Enter new news group name to add:"  okCancel groups 
 		>>= switch
 where
-	switch 	(ActionCancel,_) = return Void
+	switch 	((ActionCancel,_),_) = return Void
 	switch 	(_,newName) 	
 		= 					readNewsGroups
 		>>= \groups ->		writeNewsGroups (removeDup (sort [newName:groups])) 
@@ -415,12 +415,12 @@ readMenu =
 	]
 
 readactions nmessage index nmsg
-	=	[ (ActionPrevious, 	(\_ -> (index > 0)), AsButton)
-		, (ActionRefresh, 	always, AsButton)
-		, (ActionNext, 		(\_ -> (index + nmessage < nmsg)), AsButton)
-		, (ActionCommit, 	always, AsButton)
-		, (ActionQuit, 		always, AsButton)
-		: [(ActionParam "nmessage" (i +++> " messages") (toString i), always, InMenu) \\ i <- [1,5,10,30,50]]
+	=	[ (ActionPrevious, 	(\_ -> (index > 0)))
+		, (ActionRefresh, 	always)
+		, (ActionNext, 		(\_ -> (index + nmessage < nmsg)))
+		, (ActionCommit, 	always)
+		, (ActionQuit, 		always)
+		: [(ActionParam "nmessage" (i +++> " messages") (toString i), always) \\ i <- [1,5,10,30,50]]
 		]
 
 readNews :: Int User String Int -> Task Void
@@ -432,12 +432,12 @@ where
 		>>= \newsItems ->	showMessageAboutA "Read news" ("Newsgroup " <+++ group) (readactions nmessage index (length newsItems)) (messageList nmessage newsItems)
 		>>= switch
 	where
-		switch (ActionPrevious,_) 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
-		switch (ActionRefresh,_) 	= 								readNews` nmessage me group index
-		switch (ActionNext,_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
-		switch (ActionCommit,_) 	= commitItem group 			>>| readNews` nmessage me group index
-		switch (ActionParam _ _ n,_)= 								readNews (toInt n) me group index
-		switch _ 					= return Void
+		switch ((ActionPrevious,_),_) 	= readMoreNews (~nmessage) 	>>= readNews` nmessage me group
+		switch ((ActionRefresh,_),_) 	= 								readNews` nmessage me group index
+		switch ((ActionNext,_),_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
+		switch ((ActionCommit,_),_) 	= commitItem group 			>>| readNews` nmessage me group index
+		switch ((ActionParam _ _ n,_),_)= 								readNews (toInt n) me group index
+		switch _ 						= return Void
 
 		readMoreNews offset
 		=					readIndex me group
@@ -458,7 +458,7 @@ where
 			=							enterInformationA "Message" "Type your message ..." okCancel
 			 	>>= switch
 			where
-				switch (ActionCancel,_) = return Void
+				switch ((ActionCancel,_),_) = return Void
 				switch (_,note)
 					=					readNewsGroup  group 
 						>>= \news ->	writeNewsGroup group (news ++ [(me,note)]) 

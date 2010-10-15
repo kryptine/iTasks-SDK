@@ -26,16 +26,19 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 			
 			if(this.sbExpanded) this.expandSidebar(); //redo opening of sidebar, so the new toolboxes are shown as well..
 		});
+		
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
 	
 	afterRender : function(ct,position){
 		itasks.tui.ListContainer.superclass.afterRender.call(this,ct,position);
 		this.initSidebar();
 		
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
+		if(this.errorMsg)
+			this.markError(this.errorMsg);
+		else if(this.hintMsg)
+			this.markHint(this.hintMsg);
 	},
 	
 	getSidebarEl : function(){		
@@ -120,21 +123,20 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 		
 		this.sbExpanded = true;
 	},
-	
 	setError: function(msg){
 		if(this.staticDisplay) return;
 		
-		(function() {
-			if(msg == "") this.clearError();
-			else this.markError(msg);
-		}).defer(50,this);
+		if(msg == "")
+			this.clearError();
+		else
+			this.markError(msg);
 	},
-	
 	setHint: function(msg){
-		if(msg == "") this.clearHint();
-		else this.markHint(msg);
+		if(msg == "")
+			this.clearHint();
+		else
+			this.markHint(msg);
 	},
-	
 	makeMessageField : function(){
 		this.msgField = this.el.insertSibling({tag:'div'},'after');
 		this.msgField.createChild({cls: 'x-constructor-panel-tc'});
@@ -198,20 +200,21 @@ itasks.tui.ListContainer = Ext.extend(Ext.Panel,{
 
 Ext.ns('itasks.tui.list');
 
-var T = itasks.tui.list;
-
-T.ListItemControl = Ext.extend(Ext.Panel,{
+itasks.tui.list.ListItemControl = Ext.extend(Ext.Panel,{
 
 	initComponent : function(){	
 		Ext.apply(this,
 		{ unstyled: true
 		, autoHeight: true
 		, autoWidth: true
-		//, layout: 'form'
-		, cls: ((this.index%2) == 0)?"list-item-light":"list-item-dark"
+		, layout: 'form'
+		, cls: ((this.index % 2) == 0)? "list-item-light" : "list-item-dark"
 		});
 			
-		T.ListItemControl.superclass.initComponent.apply(this,arguments);
+		itasks.tui.list.ListItemControl.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
 	
 	expandToolbox : function(){
@@ -243,9 +246,7 @@ T.ListItemControl = Ext.extend(Ext.Panel,{
 	},
 	
 	handleClick: function(action,name,index){
-		var formCt = this.findParentByType(itasks.ttc.FormContainer);
-		formCt.addUpdate(name,action+"_"+index);
-		formCt.sendUpdates(false);	
+		this.fireEvent('tuichange',name, action + "_" + index);
 	},
 	
 	toggleLastItem : function(isLast){

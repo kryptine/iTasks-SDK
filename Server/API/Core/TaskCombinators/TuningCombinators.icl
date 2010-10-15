@@ -15,10 +15,8 @@ instance tune (Description s)
 where tune (Description s) (Task props gprops mbTn mbMGF tf)	= Task {ManagerProperties|props & description = toString s} gprops mbTn mbMGF tf
 instance tune TaskPriority
 where tune p (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & priority = p} gprops mbTn mbMGF tf
-instance tune Timestamp
-where tune d (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & deadline = Just d} gprops mbTn mbMGF tf
 instance tune DateTime
-where tune d (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & deadline = Just (dt2ts d)} gprops mbTn mbMGF tf
+where tune d (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & deadline = Just d} gprops mbTn mbMGF tf
 instance tune (Tag s)
 where tune (Tag t) (Task props gprops mbTn mbMGF tf)			= Task {ManagerProperties|props & tags = [toString t : props.tags]} gprops mbTn mbMGF tf
 instance tune (Tags s)
@@ -49,19 +47,3 @@ where tune menus task = tune (StaticMenus menus) task
 
 (@>>) infixr 2 :: !b !(Task a)	-> Task a | tune b
 (@>>) a t = tune a t
-
-
-dt2ts :: DateTime -> Timestamp
-dt2ts (DateTime date time) = mkTime tm
-where
-	tm = {Tm
-		 | sec = time.Time.sec
-	     , min = time.Time.min
-	     , hour = time.Time.hour
-	     , mday = date.Date.day
-	     , mon = date.Date.mon - 1
-	     , year = date.Date.year - 1900
-	     , wday = -1
-	     , yday = -1
-	     , isdst = True
-	     }

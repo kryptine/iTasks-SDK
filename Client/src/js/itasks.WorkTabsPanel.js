@@ -11,7 +11,8 @@ itasks.WorkTabsPanel = Ext.extend(Ext.TabPanel, {
 			activeItem: 0,
 			layoutOnTabChange: true,
 			items: {xtype: "itasks.hometab"},
-			bodyCssClass: "worktabs-body"
+			bodyCssClass: "worktabs-body",
+			listeners: {taskresult: {fn: this.openResultTab, scope: this}}
 		});
 		
 		this.addEvents("taskOpened");

@@ -1,5 +1,6 @@
 Ext.ns('itasks.ttc.common');
 
+/*
 itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 
 	// Scary hack! Don't look below!
@@ -53,7 +54,8 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 		if(!ct) return;
 			
 		var taskId = (comp.taskId)? comp.taskId : ct.taskId
-			
+		
+		console.log("CLICK: " + this.name + ", " + this.value);
 		ct.addUpdate(this.name, this.value);
 		ct.sendUpdates();
 	};	
@@ -67,7 +69,6 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 		if (!ct)
 			ct = this.findParentByType(itasks.ttc.GroupContainer);
 		if(!ct) return;
-		
 		
 		ct.addUpdate(this.name, Ext.encode(comp.getValue()));
 		ct.sendUpdates(true);
@@ -124,9 +125,11 @@ itasks.ttc.common.attachTaskHandlers = function(comp,taskId){
 			comp.buttons[i].on("click",clickTaskEvent);
 		}
 	}
+	console.log("ATTACHING: " + comp.id);
+
 	//attach recursively
 	if(comp.items && comp.items.each)
-		comp.items.each(itasks.ttc.common.attachTaskHandlers, comp, taskId);
+		comp.items.each(itasks.ttc.common.attachTaskHandlers, comp, taskId); 
 	if(comp.menu)
 		itasks.ttc.common.attachTaskHandlers(comp.menu,taskId);
 	if(comp.topToolbar)
@@ -154,11 +157,13 @@ itasks.ttc.common.attachDocumentLinkInformation = function() {
 		}
 	}
 };
-
+*/
 itasks.ttc.common.SubjectPanel = Ext.extend(Ext.Panel,{
 	initComponent : function(){
 		
 		Ext.apply(this,{
+			cls: 'TTCSubject',
+			width: 720,
 			unstyled: true
 		});
 		
@@ -172,6 +177,19 @@ itasks.ttc.common.SubjectPanel = Ext.extend(Ext.Panel,{
 		itasks.ttc.common.SubjectPanel.superclass.initComponent.apply(this,arguments);
 	}
 });
+
+itasks.ttc.common.DescriptionPanel = Ext.extend(Ext.Panel,{
+	initComponent : function(){
+		Ext.apply(this,{
+			cls: 'TTCDescription',
+			width: 720,
+			unstyled: true,
+			html: this.description
+		});
+		itasks.ttc.common.DescriptionPanel.superclass.initComponent.apply(this,arguments);
+	}
+});
+
 
 itasks.ttc.common.setFullscreen = function(ct){
 	ct.fullscreen = true;
@@ -222,6 +240,7 @@ itasks.ttc.common.setupHotkeys = function(tb, parent) {
 				var item = hk.menuitem;
 				// only fire hotkey-event if item is not disabled
 				if (!item.disabled) {
+					console.log("HOTKEY");
 					parent.addUpdate(item.name, item.value);
 					parent.sendUpdates();
 				}
@@ -233,3 +252,4 @@ itasks.ttc.common.setupHotkeys = function(tb, parent) {
 };
 
 Ext.reg('itasks.ttc.common.subject', itasks.ttc.common.SubjectPanel);
+Ext.reg('itasks.ttc.common.description', itasks.ttc.common.DescriptionPanel);

@@ -7,27 +7,28 @@ itasks.tui.BoolControl = Ext.extend(Ext.form.Checkbox,{
 		}
 		
 		this.msgTarget = 'side';
+		this.listeners = {check: {fn: this.onCheck, scope : this}};
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		
-	//	this.allowBlank = this.optional;
+				
 		this.checked = this.value == "True";
 		
 		if(this.value == "") delete this.value;
 	
 		itasks.tui.BoolControl.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
-	
+	onCheck: function(checked) {
+		this.fireEvent('tuichange',this.name, this.getValue() ? "true" : "false");
+	},
 	afterRender: function(){
 		itasks.tui.BoolControl.superclass.afterRender.call(this,arguments);
-		
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
+		this.setError(this.errorMsg);
+		this.setHint(this.hintMsg);
 	},
-	
 	setValue: function(value){
 		if(this.staticDisplay){
 			this.update(value);
@@ -38,22 +39,19 @@ itasks.tui.BoolControl = Ext.extend(Ext.form.Checkbox,{
 		
 		if(this.activeError) this.setError(this.activeError);
 	},
-	
 	setError: function(msg){		
-		(function() {
-			if(msg == "") itasks.tui.common.clearError(this);
-			else itasks.tui.common.markError(this,msg);
-		}).defer(50,this);
+		if(msg == "")
+			itasks.tui.common.clearError(this);
+		else
+			itasks.tui.common.markError(this,msg);
 	},
-	
 	setHint: function(msg){
-		(function() {
-			if(msg == "") itasks.tui.common.clearHint(this);
-			else itasks.tui.common.markHint(this,msg);
-		}).defer(50,this);
-	},
-	
-	markError : function(msg){		
+		if(msg == "")
+			itasks.tui.common.clearHint(this);
+		else
+			itasks.tui.common.markHint(this,msg);
+	},	
+	markError: function(msg){		
 		if(this.rendered){
 			if(!this.errorIcon){
 				this.activeError = msg;

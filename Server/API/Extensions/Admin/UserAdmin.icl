@@ -6,7 +6,7 @@ manageUsers :: Task Void
 manageUsers = 
 	(		getUsers
 		>>= overview
-		>>= \(action,item) -> case action of
+		>>= \(action,item) -> case fst action of
 			ActionNew		= createUserFlow				>>| return False
 			ActionOpen		= updateUserFlow (fromJust item)>>| return False
 			ActionDelete	= deleteUserFlow (fromJust item)>>|	return False
@@ -14,15 +14,15 @@ manageUsers =
 	) <! id >>| stop
 where
 	overview []		= showMessageA "Users" "There are no users yet"
-							[(ActionNew,always,AsButton),(ActionQuit,always,AsButton)] Nothing
+							[(ActionNew,always),(ActionQuit,always)] Nothing
 	overview list	= enterChoiceA "Users" "The following users are available"
-						[(ActionOpen,ifvalid,AsButton),(ActionDelete,ifvalid,AsButton),(ActionNew,always,AsButton), (ActionQuit,always,AsButton)] list
+						[(ActionOpen,ifvalid),(ActionDelete,ifvalid),(ActionNew,always), (ActionQuit,always)] list
 					>>= transform (\(a,i) -> (a,Just i))
 
 createUserFlow :: Task Void
 createUserFlow = Subject "Create user"
-	@>>	enterInformationA "Create user" "Enter user information" [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)]
-	>>=	\(action,user) -> case action of
+	@>>	enterInformationA "Create user" "Enter user information" [(ActionCancel, always), (ActionOk, ifvalid)]
+	>>=	\(action,user) -> case fst action of
 		ActionCancel	=	stop
 		ActionOk		=	createUser user
 						>>|	showMessage "User created" "Successfully added new user" Void
@@ -35,8 +35,8 @@ updateUserFlow user
 			= showMessage "Error" "Cannot update this user" user
 		Just oldDetails 						
 			= updateInformationA ("Editing " +++ displayName user)
-			 	"Please make your changes" [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)] oldDetails
-			>>= \(action,newDetails) -> case action of
+			 	"Please make your changes" [(ActionCancel, always), (ActionOk, ifvalid)] oldDetails
+			>>= \(action,newDetails) -> case fst action of
 				ActionCancel	=	return user
 				ActionOk		=	updateUser user newDetails >>= showMessage "User updated" ("Successfully updated " +++ newDetails.displayName)
 									

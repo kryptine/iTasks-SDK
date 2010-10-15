@@ -19,8 +19,8 @@ initMenu =
 	]
 
 actions 
-	=	[ (ActionStartFlow,		always, InMenu)
-		, (ActionQuit,			always, InMenu)
+	=	[ (ActionStartFlow,		always)
+		, (ActionQuit,			always)
 		]
 
 handleMenu :: Task Void
@@ -31,8 +31,8 @@ where
 		=							enterInformationA "Stored flow" "Select \"File/Start Workflow... \" to run a stored workflow..." actions
 			>>= \(actions,Void) ->	doActions actions
 
-	doActions ActionStartFlow	= startFlow	>>| doMenu 
-	doActions ActionQuit		= return Void
+	doActions (ActionStartFlow,_)	= startFlow	>>| doMenu 
+	doActions (ActionQuit,_)		= return Void
 
 startFlow :: Task Void
 startFlow

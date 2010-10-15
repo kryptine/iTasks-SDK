@@ -18,7 +18,7 @@ manageGroups
 	=	Subject "Manage groups" @>>
 	(	getMyGroups
 	>>=	overview 
-	>>= \(action,group) -> case action of
+	>>= \(action,group) -> case fst action of
 		ActionNew	= newGroup >>= manageGroup 	>>| return False
 		ActionOpen	= manageGroup group			>>| return False
 		ActionQuit	= 								return True
@@ -28,9 +28,9 @@ where
 	overview []		= getDefaultValue >>= showMessageA "My groups" startMsg [aNew,aQuit]
 	overview list	= enterChoiceA "My groups" listMsg [aOpen,aNew,aQuit] list
 	
-	aOpen 			= (ActionOpen, ifvalid, AsButton)
-	aNew			= (ActionNew, always, AsButton)
-	aQuit			= (ActionQuit, always, AsButton)
+	aOpen 			= (ActionOpen, ifvalid)
+	aNew			= (ActionNew, always)
+	aQuit			= (ActionQuit, always)
 	newGroup		= 		enterInformation "New group" "Please enter a name for the new group" 
 						>>= \name ->
 							getContextWorker
@@ -53,15 +53,15 @@ manageGroup igroup
 	(	justdo (dbReadItem (getItemId igroup))
 	>>= \group ->
 		showMessageAboutA (toString group) "This group contains the following members:" [aBack,aInvite,aLeave] group.Group.members
-	>>= \(action,_) -> case action of
-		ActionClose						= 					return True
-		Action "invite" _				= invite group	>>| return False
-		Action "leave" _				= leave group	>>| return False
+	>>= \(action,_) -> case fst action of
+		ActionClose					= 					return True
+		Action "invite" _			= invite group	>>| return False
+		Action "leave" _			= leave group	>>| return False
 	) <! id >>| stop
 where
-	aBack	= (ActionClose, always, AsButton)
-	aInvite	= (Action "invite" "Invite new member", always, AsButton)
-	aLeave	= (Action "leave" "Leave group", always, AsButton)
+	aBack	= (ActionClose, always)
+	aInvite	= (Action "invite" "Invite new member", always)
+	aLeave	= (Action "leave" "Leave group", always)
 		
 	invite group
 		= 	enterInformation ("Invite a someone to join " +++ toString group) "Please enter a user to invite to the group"

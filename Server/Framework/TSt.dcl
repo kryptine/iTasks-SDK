@@ -166,16 +166,6 @@ applyChangeToTaskTree :: !ProcessId !ChangeInjection !*TSt -> *TSt
 */
 calculateTaskTree :: !TaskId !TreeType ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 /**
-* Render resultpanel from a task which is not process
-*
-* @param The task id
-* @param The task state
-*
-* @ return The task tree
-* @ return The modified task state
-**/
-calculateTaskResult :: !TaskId !*TSt -> (!TaskTree, !*TSt)
-/**
 * Lists which workflows are available
 *
 * @param The task state
@@ -400,17 +390,6 @@ setJSONValue		:: !JSONNode !*TSt												-> *TSt
 * @return The modified task state
 */
 getEvents			:: !*TSt						-> ([(!String,!String)],!*TSt)
-/**
-* Get the group events for a group of tasks
-* These events are removed from the task state
-*
-* @param The task id of the group
-* @param The task state
-*
-* @return The matched group events
-* @return The modified task state
-*/
-getGroupEvents 		:: !TaskId !*TSt				-> ([(!String,!String)],!*TSt)
 /**
 * Test if there are events for any task during this run.
 *

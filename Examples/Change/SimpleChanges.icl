@@ -156,7 +156,7 @@ chooseUserA :: !question -> Task User | html question
 chooseUserA question
 	= 						getUsers
 	>>= \users ->			enterChoiceA "Choose user" question buttons users
-	>>= \(action,user) ->	case action of
+	>>= \(action,user) ->	case fst action of
 										ActionCancel -> throw "choosing a user has been cancelled"
 										_ ->			return user
 
@@ -170,11 +170,11 @@ chooseProcess question
 											, proc.Process.properties.managerProperties.priority
 											, proc.Process.properties.managerProperties.ManagerProperties.worker)
 											\\ proc <- procs | proc.Process.taskId <> mypid]
-	>>= \(action,(pid,_,_,_)) ->	case action of
+	>>= \(action,(pid,_,_,_)) ->	case fst action of
 										ActionCancel -> throw "choosing a process has been cancelled"
 										_ ->			return pid
 
-buttons = [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)]	
+buttons = [(ActionCancel, always), (ActionOk, ifvalid)]	
 	
 	
 	

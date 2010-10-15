@@ -19,18 +19,8 @@ derive JSONEncode TaskPanel
 	
 :: SubtaskNr :== [Int]
 
-:: SubtaskContainer =
-	{ subtaskNr				:: !SubtaskNr
-	, inClosedPar			:: !Bool
-	, tasktree				:: !TaskTree
-	, taskpanel				:: !TaskPanel
-	, manager				:: !User
-	, processProperties		:: !(Maybe TaskProperties)
-	}
-
 :: FormContent =
 	{ form		:: ![TUIDef]
-	, tbar		:: ![TUIDef]
 	, buttons	:: ![TUIDef]
 	}
 
@@ -40,9 +30,9 @@ derive JSONEncode TaskPanel
 	, taskId		:: !String
 	, content		:: !(Maybe FormContent)
 	, updates		:: !(Maybe [TUIUpdate])
-	, subtaskId		:: !(Maybe String)
 	, subject		:: !String
 	, description	:: !String
+	, menu			:: !Maybe [TUIDef]
 	}
 	
 :: TTCMessageContainer =
@@ -50,9 +40,9 @@ derive JSONEncode TaskPanel
 	, id			:: !String
 	, taskId		:: !String
 	, content		:: !FormContent
-	, subtaskId		:: !(Maybe String)
 	, subject		:: !String
 	, description	:: !String
+	, menu			:: !Maybe [TUIDef]
 	}
 
 :: TTCMonitorContainer =
@@ -60,9 +50,9 @@ derive JSONEncode TaskPanel
 	, id 			:: !String 
 	, taskId		:: !String
 	, html			:: !String 
-	, subtaskId 	:: !(Maybe String)
 	, subject		:: !String
 	, description	:: !String 
+	, menu			:: !Maybe [TUIDef]
 	}
 	
 :: TTCInstructionContainer =
@@ -70,9 +60,9 @@ derive JSONEncode TaskPanel
 	, id			:: !String
 	, taskId		:: !String
 	, context		:: !(Maybe String)
-	, subtaskId		:: !(Maybe String)
 	, subject		:: !String
 	, description	:: !String
+	, menu			:: !Maybe [TUIDef]
 	}
 	
 :: TTCResultContainer =
@@ -81,14 +71,13 @@ derive JSONEncode TaskPanel
 	, taskId		:: !String
 	, subject		:: !String
 	, result		:: !String
-	, subtaskId		:: !(Maybe String)
 	}
 	
 :: TTCProcessControlContainer =
 	{ xtype			:: !String
 	, taskId		:: !String
 	, properties	:: !TaskProperties
-	, subtaskId		:: !(Maybe String)
+	, menu			:: !Maybe [TUIDef]
 	}
 	
 :: TTCParallelContainer =
@@ -96,30 +85,34 @@ derive JSONEncode TaskPanel
 	, taskId		:: !String
 	, subject		:: !String
 	, description	:: !String
-	, subtaskInfo	:: ![SubtaskInfo]
+	, subtaskInfo	:: ![TTCParallelContainerElement]
+	, menu			:: !Maybe [TUIDef]
 	}
 
-:: TTCGroupContainer =
-	{ xtype			:: !String
-	, taskId		:: !String
-	, content		:: ![GroupContainerElement]
-	, subtaskId		:: !(Maybe String)
-	, groupAMenu	:: ![TUIDef]
-	}
-
-:: GroupContainerElement =
-	{ panel		:: !TaskPanel
-	, behaviour	:: !GroupedBehaviour
-	, index		:: !String
-	, focus		:: !Bool
-	}
-
-:: SubtaskInfo =
+:: TTCParallelContainerElement =
 	{ finished		:: !Bool
 	, taskId		:: !String
 	, subject		:: !String
 	, description	:: !String
 	, delegatedTo	:: !String
+	}
+	
+:: TTCGroupContainer =
+	{ xtype			:: !String
+	, taskId		:: !String
+	, subject		:: !String
+	, description	:: !String
+	, content		:: ![TTCGroupContainerElement]
+	, subtaskId		:: !(Maybe String)
+	, groupAMenu	:: !Maybe [TUIDef]
+	, menu			:: !Maybe [TUIDef]
+	}
+
+:: TTCGroupContainerElement =
+	{ panel		:: !TaskPanel
+	, behaviour	:: !GroupedBehaviour
+	, index		:: !String
+	, focus		:: !Bool
 	}
 
 buildTaskPanel 		:: !TaskTree !User	-> TaskPanel

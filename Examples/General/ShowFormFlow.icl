@@ -21,10 +21,10 @@ initMenu =
 	]
 
 actions 
-	=	[ (ShowForms,	always, InMenu)
-		, (ShowFlows,	always, InMenu)
-		, (ShowAll,		always, InMenu)
-		, (ActionQuit,	always, InMenu)
+	=	[ (ShowForms,	always)
+		, (ShowFlows,	always)
+		, (ShowAll,		always)
+		, (ActionQuit,	always)
 		]
 
 handleMenu :: Task Void
@@ -33,10 +33,10 @@ handleMenu
 where
 	doMenu :: String a -> Task Void | iTask a
 	doMenu title val
-		=						showMessageAboutA title title [(Refresh, always, AsButton):actions] val 
+		=						showMessageAboutA title title [(Refresh, always):actions] val 
 			>>= \choice ->		readAllForms
 			>>= \allForms 	->	readAllFlows
-			>>= \allFlows	->	case choice of
+			>>= \allFlows	->	case fst choice of
 									(ShowForms,_)	-> doMenu "Stored Forms" 				(myForm allForms)
 									(ShowFlows,_)	-> doMenu "Stored Workflows" 			(myFlows allFlows)
 									(ShowAll,_)		-> doMenu "Stored Forms and Workflows" 	(myForm allForms ++ myFlows allFlows)

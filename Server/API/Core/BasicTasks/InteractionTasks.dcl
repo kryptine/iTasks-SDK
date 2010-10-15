@@ -46,9 +46,11 @@ instance == Action
 			| ActionDelete
 			| ActionEdit
 			
-:: ActionName	:== String 	//Locally unique identifier for actions
-:: ActionLabel	:== String	//Textual label for the action
-:: ActionData	:== String	//Extra data to pass along with an action
+:: ActionName	:== String 				//Locally unique identifier for actions
+:: ActionLabel	:== String				//Textual label for the action
+:: ActionData	:== String				//Extra data to pass along with an action
+:: ActionEvent	:== (Action, ActionData)
+
 
 :: Menus		:== [Menu]
 :: Menu 		= Menu !String ![MenuItem]
@@ -73,10 +75,7 @@ actionName	:: !Action -> String
 // What: The conceptual action to be taken
 // When: The conditions that determine if the action can be taken
 // Where: The place of an actions gui component in the interface (button, menu or both)
-:: TaskAction a		:== (!Action, !(Verified a) -> Bool, !ActionPlacement)
-
-// Locations for placing an action
-:: ActionPlacement	= AsButton | InMenu
+:: TaskAction a		:== (!Action, !(Verified a) -> Bool)
 
 //Wrapper for task values that indicates if value passes the verification step
 :: Verified a 		= 	Invalid
@@ -111,8 +110,8 @@ instance html (Maybe a) | html a
 *
 * @return 					A task-form which allows the user to enter information
 */
-enterInformation			:: !String !description -> Task a											| html description & iTask a
-enterInformationA			:: !String !description ![TaskAction a] -> Task (!Action,!a)				| html description & iTask a
+enterInformation			:: !String !description -> Task a									| html description & iTask a
+enterInformationA			:: !String !description ![TaskAction a] -> Task (!ActionEvent,!a)	| html description & iTask a
 
 /*
 * Ask the user to update predefined information. 
@@ -125,8 +124,8 @@ enterInformationA			:: !String !description ![TaskAction a] -> Task (!Action,!a)
 *
 * @return 					A task-form which allows the user to enter information
 */
-updateInformation			:: !String !description a -> Task a											| html description & iTask a
-updateInformationA			:: !String !description ![TaskAction a] a  -> Task (!Action,!a)				| html description & iTask a
+updateInformation			:: !String !description a -> Task a										| html description & iTask a
+updateInformationA			:: !String !description ![TaskAction a] a  -> Task (!ActionEvent,!a)	| html description & iTask a
 
 /*
 * Ask the user to enter information, given some additional context information
@@ -139,8 +138,8 @@ updateInformationA			:: !String !description ![TaskAction a] a  -> Task (!Action
 *
 * @return 					A task-form which allows the user to enter information and displays the context information
 */
-enterInformationAbout		:: !String !description  b -> Task a										| html description & iTask a & iTask b
-enterInformationAboutA		:: !String !description ![TaskAction a] b -> Task (!Action,!a)				| html description & iTask a & iTask b
+enterInformationAbout		:: !String !description  b -> Task a								| html description & iTask a & iTask b
+enterInformationAboutA		:: !String !description ![TaskAction a] b -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
 
 /*
 * Ask the user to update predefined information, given some additonal context information
@@ -154,8 +153,8 @@ enterInformationAboutA		:: !String !description ![TaskAction a] b -> Task (!Acti
 *
 * @return 					A task-form which allows the user to enter information and displays the context information
 */
-updateInformationAbout		:: !String !description b a -> Task a										| html description & iTask a & iTask b
-updateInformationAboutA		:: !String !description ![TaskAction a] b a  -> Task (!Action,!a)			| html description & iTask a & iTask b
+updateInformationAbout		:: !String !description b a -> Task a									| html description & iTask a & iTask b
+updateInformationAboutA		:: !String !description ![TaskAction a] b a  -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
 
 /*
 * Asks the user to confirm or decline a question.
@@ -165,7 +164,7 @@ updateInformationAboutA		:: !String !description ![TaskAction a] b a  -> Task (!
 *
 * @return 					A boolean indicating 'accepted' (True) or 'declined' (False)
 */
-requestConfirmation			:: !String !description -> Task Bool										| html description
+requestConfirmation			:: !String !description -> Task Bool	| html description
 
 /*
 * Asks the user to accept or decline a question, given some additional context information
@@ -176,7 +175,7 @@ requestConfirmation			:: !String !description -> Task Bool										| html descr
 *
 * @return 					A boolean indiciating 'accepted' (True) or 'declined' (False) and displays the context information
 */
-requestConfirmationAbout	:: !String !description a -> Task Bool										| html description & iTask a
+requestConfirmationAbout	:: !String !description a -> Task Bool	| html description & iTask a
 
 /*
 * Ask the user to select one item from a list of options
@@ -189,8 +188,8 @@ requestConfirmationAbout	:: !String !description a -> Task Bool										| html 
 *
 * @return 					A task-form which allows the user to choose an item
 */
-enterChoice					:: !String !description [a] -> Task a										| html description & iTask a
-enterChoiceA				:: !String !description ![TaskAction a] [a] -> Task (!Action,!a)			| html description & iTask a
+enterChoice					:: !String !description [a] -> Task a									| html description & iTask a
+enterChoiceA				:: !String !description ![TaskAction a] [a] -> Task (!ActionEvent,!a)	| html description & iTask a
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected
@@ -205,7 +204,7 @@ enterChoiceA				:: !String !description ![TaskAction a] [a] -> Task (!Action,!a)
 * @return 					A task-form which allows the user to choose an item
 */
 updateChoice				:: !String !description [a] Int -> Task a									| html description & iTask a
-updateChoiceA 				:: !String !description ![TaskAction a] [a] Int -> Task (!Action,!a)		| html description & iTask a 
+updateChoiceA 				:: !String !description ![TaskAction a] [a] Int -> Task (!ActionEvent,!a)	| html description & iTask a 
 
 /*
 * Ask the user to select one item from a list of options, given some context information
@@ -219,8 +218,8 @@ updateChoiceA 				:: !String !description ![TaskAction a] [a] Int -> Task (!Acti
 *
 * @return 					A task-form which allows the user to choose an item and displays the context information
 */
-enterChoiceAbout			:: !String !description b [a] -> Task a										| html description & iTask a & iTask b
-enterChoiceAboutA			:: !String !description ![TaskAction a] b [a] -> Task (!Action,!a)			| html description & iTask a & iTask b
+enterChoiceAbout			:: !String !description b [a] -> Task a									| html description & iTask a & iTask b
+enterChoiceAboutA			:: !String !description ![TaskAction a] b [a] -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
 
 /*
 * Ask the user to select one item from a list of options with already one option pre-selected, given some context information
@@ -236,7 +235,7 @@ enterChoiceAboutA			:: !String !description ![TaskAction a] b [a] -> Task (!Acti
 * @return 					A task-form which allows the user to choose an item and displays the context information
 */
 updateChoiceAbout			:: !String !description b [a] Int -> Task a									| html description & iTask a & iTask b
-updateChoiceAboutA			:: !String !description ![TaskAction a] b [a] Int -> Task (!Action,!a)		| html description & iTask a & iTask b
+updateChoiceAboutA			:: !String !description ![TaskAction a] b [a] Int -> Task (!ActionEvent,!a)	| html description & iTask a & iTask b
 
 /*
 * Ask the user to select one or more items from a list of options
@@ -250,7 +249,7 @@ updateChoiceAboutA			:: !String !description ![TaskAction a] b [a] Int -> Task (
 * @return 					A task-form which allows the user to choose items
 */
 enterMultipleChoice			:: !String !description [a] -> Task [a]										| html description & iTask a
-enterMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] -> Task (!Action,![a])		| html description & iTask a
+enterMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] -> Task (!ActionEvent,![a])	| html description & iTask a
 
 /*
 * Ask the user to select one or more items from a list of options with already some options pre-selected
@@ -264,8 +263,8 @@ enterMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] -> Task (!Ac
 *
 * @return 					A task-form which allows the user to choose items
 */
-updateMultipleChoice		:: !String !description [a] [Int] -> Task [a]								| html description & iTask a
-updateMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] [Int] -> Task (!Action,![a])	| html description & iTask a
+updateMultipleChoice		:: !String !description [a] [Int] -> Task [a]									| html description & iTask a
+updateMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] [Int] -> Task (!ActionEvent,![a])	| html description & iTask a
 
 /*
 * Ask the user to select one or more items from a list of options, given additional context information
@@ -280,7 +279,7 @@ updateMultipleChoiceA		:: !String !description ![TaskAction [a]] [a] [Int] -> Ta
 * @return 					A task-form which allows the user to choose items and displays the context information
 */
 enterMultipleChoiceAbout	:: !String !description b [a] -> Task [a]									| html description & iTask a & iTask b
-enterMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] -> Task (!Action,![a])		| html description & iTask a & iTask b
+enterMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] -> Task (!ActionEvent,![a])	| html description & iTask a & iTask b
 
 /*
 * Ask the user to select one or more items from a list of options with already some options pre-selected, given additional context information
@@ -295,8 +294,8 @@ enterMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] -> Tas
 *
 * @return 					A task-form which allows the user to choose items and displays the context information
 */
-updateMultipleChoiceAbout	:: !String !description b [a] [Int] -> Task [a]								| html description & iTask a & iTask b
-updateMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] [Int] -> Task (!Action,![a])| html description & iTask a & iTask b
+updateMultipleChoiceAbout	:: !String !description b [a] [Int] -> Task [a]										| html description & iTask a & iTask b
+updateMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] [Int] -> Task (!ActionEvent,![a])	| html description & iTask a & iTask b
 
 //*** Output tasks ***//
 
@@ -310,8 +309,8 @@ updateMultipleChoiceAboutA	:: !String !description ![TaskAction [a]] b [a] [Int]
 *
 * @return					a or an Action if [TaskAction a] is specified
 */
-showMessage					:: !String !message a -> Task a										| html message & iTask a
-showMessageA				:: !String !message ![TaskAction a] a -> Task (!Action,!a)			| html message & iTask a
+showMessage					:: !String !message a -> Task a									| html message & iTask a
+showMessageA				:: !String !message ![TaskAction a] a -> Task (!ActionEvent,!a)	| html message & iTask a
 
 /*
 * Show a basic message and additional context information to the user. The user can end the task after reading the message. 
@@ -324,8 +323,8 @@ showMessageA				:: !String !message ![TaskAction a] a -> Task (!Action,!a)			| h
 *
 * @return					a or an Action if [TaskAction a] is specified
 */
-showMessageAbout			:: !String !message a -> Task a										| html message & iTask a
-showMessageAboutA			:: !String !message ![TaskAction a] a -> Task (!Action,!a)			| html message & iTask a
+showMessageAbout			:: !String !message a -> Task a									| html message & iTask a
+showMessageAboutA			:: !String !message ![TaskAction a] a -> Task (!ActionEvent,!a)	| html message & iTask a
 
 /*
 * Show a basic message to the user. The user cannot end the task after reading the message. 
@@ -336,7 +335,7 @@ showMessageAboutA			:: !String !message ![TaskAction a] a -> Task (!Action,!a)		
 *
 * @return					a
 */
-showStickyMessage			:: !String !message a -> Task a										| html message & iTask a
+showStickyMessage			:: !String !message a -> Task a	| html message & iTask a
 
 /*
 * Show a basic message and some context information to the user. The user cannot end the task after reading the message. 
@@ -347,7 +346,7 @@ showStickyMessage			:: !String !message a -> Task a										| html message & iT
 *
 * @return					a
 */
-showStickyMessageAbout		:: !String !message a -> Task a										| html message & iTask a
+showStickyMessageAbout		:: !String !message a -> Task a	| html message & iTask a
 
 
 //*** Instruction tasks ***//
@@ -361,7 +360,7 @@ showStickyMessageAbout		:: !String !message a -> Task a										| html message 
 *
 * @return					a
 */
-showInstruction 			:: !String !instruction	a	-> Task a								| html instruction & iTask a
+showInstruction 			:: !String !instruction	a	-> Task a	| html instruction & iTask a
 
 /* 
 * Shows a instruction and additional context information to the user. The user can dismiss the instruction.
@@ -372,7 +371,7 @@ showInstruction 			:: !String !instruction	a	-> Task a								| html instruction
 *
 * @return					a
 */
-showInstructionAbout 		:: !String !instruction a 	-> Task a								| html instruction & iTask a
+showInstructionAbout 		:: !String !instruction a 	-> Task a	| html instruction & iTask a
 
 //*** Shared variable tasks ***//
 
@@ -426,7 +425,7 @@ idListener	:: View s	| iTask s & SharedVariable s
 * @return Action			The action the user performed
 * @return s					The value/state of the shared data at the time this function is evaluated
 */
-updateShared			:: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s)	| html description & iTask s & SharedVariable s
+updateShared			:: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!ActionEvent, !s)	| html description & iTask s & SharedVariable s
 
 /*
 * Creates a task from a specified set of views using shared data which is only available to this specific task.
@@ -439,5 +438,5 @@ updateShared			:: !String description ![TaskAction s] !(DBId s) ![View s] -> Tas
 * @return Action			The action the user performed
 * @return s					The value/state of the shared data at the time this function is evaluated
 */
-updateSharedLocal		:: !String description ![TaskAction s] !s ![View s] -> Task (!Action, !s)			| html description & iTask s & SharedVariable s
+updateSharedLocal		:: !String description ![TaskAction s] !s ![View s] -> Task (!ActionEvent, !s)	| html description & iTask s & SharedVariable s
 

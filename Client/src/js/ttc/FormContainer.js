@@ -1,37 +1,25 @@
 Ext.ns('itasks.ttc');
 
-itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
+itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 
 	initComponent : function() {
-		this.cls = 'FormContainer';	
+		this.cls = 'TTCFormContainer';	
 		itasks.ttc.FormContainer.superclass.initComponent.apply(this,arguments);
 	},
-	
 	buildComponents: function(data){
-	
-		this.panel = new itasks.ttc.form.FormPanel({
-			xtype: 'itasks.ttc.form.panel',
-			items: data.content.form,
-			buttons: data.content.buttons,
-			width: 720
-		});
-		this.subjectpanel = {
-			xtype: 'itasks.ttc.common.subject',
-			cls: 'TTCSubject',
-			subject: data.subject,
-			headerButton: this.headerButton,
-			width: 720
-		};
-		this.descriptionpanel = {
+		this.interactionpanel = {
 			xtype: 'panel',
-			cls: 'TTCDescription',
+			cls: 'TTCFormPanel',
+			width: 720,
+			layout: 'form',
 			unstyled: true,
-			html: data.description,
-			width: 720
+			autoScroll: true,
+			items: data.content.form,
+			buttons: data.content.buttons
 		};
 	},
-	
 	update: function(data) {
+	
 		if(data.updates) {
 			//errors and hints are updated separately
 			var num = data.updates.length;
@@ -59,30 +47,22 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 					case "TUIReplaceMenu":
 						this.replaceToolbar(update[1]);
 						break;
+					case "TUISetHint":
+						this.setComponentHint(update[1],update[2]);
+						break;
+					case "TUISetError":
+						this.setComponentError(update[1],update[2]);
+						break;
 				}
 			}
 			
 			//cascade through the structure and update errors and hints
-			this.updateErrorsNHints(data.updates);
+			//this.updateErrorsNHints(data.updates);
 		} else {
-		
 			//Completely replace form
-			this.taskId = data.taskId;
-			this.removeAll();
-			this.buildComponents(data);
-			
-		
-			this.add(this.subjectpanel);
-			this.add(this.descriptionpanel);
-			this.add(this.panel);
-			
-			this.doLayout();
-			
+			this.rebuildComponents(data);
 			this.replaceToolbar(data.content.tbar);
-			itasks.ttc.common.attachTaskHandlers(this);
 		}
-		
-		//this.setupHotkeys(data.hotkeys);
 	},
 		
 	addComponent :  function (id, cmp){
@@ -100,12 +80,8 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 
 		var index = find(ct, ct.ownerCt, 0) + 1;
 		var newct = ct.ownerCt.insert(index, cmp);
-		
-		//ct.ownerCt.doLayout();
-		//ct.ownerCt.syncSize();
+
 		ct.ownerCt.ownerCt.doLayout();
-		
-		itasks.ttc.common.attachTaskHandlers(newct);
 	},
 	
 	addComponentTo : function(parent, cmp){
@@ -114,8 +90,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 		
 		ct.add(cmp);
 		ct.doLayout();
-		
-		itasks.ttc.common.attachTaskHandlers(ct);		
 	},
 	
 	removeComponent: function(id){
@@ -147,12 +121,9 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 		var index = find(ct, ct.ownerCt, 0);
 		
 		oct.remove(index);
-		//oct.doLayout();
-		
-		var newct = oct.insert(index, cmp);
-		
-		var f = function(){ this.doLayout(); itasks.ttc.common.attachTaskHandlers(this); };
-		f.defer(50,oct);
+		oct.insert(index, cmp);
+	
+		oct.doLayout();	
 	},
 	
 	enableComponent : function(id,enabled){
@@ -183,79 +154,32 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.InteractionBase, {
 		}
 		ct.resumeEvents();					
 	},
+	setComponentHint: function (id, value) {
+		var ct = Ext.getCmp(id);
 		
+		if(!ct || !ct.setHint) {
+			console.log("can't set hint on item " + id);
+			return;
+		} else
+			ct.setHint(value);
+	},
+	setComponentError: function (id, value) {
+		var ct = Ext.getCmp(id);
+		
+		if(!ct || !ct.setError)
+			return;
+		else
+			ct.setError(value);
+	},
 	replaceToolbar: function(newTb) {
 		var tb = this.getTopToolbar();
-		tb.removeAll();
-		if(newTb)
-			tb.add(newTb);
-		this.setupToolbar(tb);
-	},
-	
-	updateErrorsNHints : function(updates){		
-		/* Cascade through the structure and determine for each form item
-		   whether it is hinted, errorred or does not have an icon
-		*/
-		var setHint = function(ct,msg){
-			ct.setError(''); //empty string == clear
-			ct.setHint(msg);
+		if(tb) {
+			tb.removeAll();
+			if(newTb)
+				tb.add(newTb);
+			this.setupToolbar(tb);
 		}
-		
-		var setError = function(ct,msg){
-			ct.setHint('');
-			ct.setError(msg);
-		}
-		
-		var f = function(ct){
-			if(!ct || !ct.setHint || !ct.setError) return true;
-			
-			for(var i=0; i<updates.length; i++){
-				var update = updates[i];
-				
-				switch(update[0]) {
-					case "TUISetHint":
-						if(update[1] == ct.id){
-							setHint(ct,update[2]);	
-							return true;
-						}
-					break;
-					case "TUISetError":
-						if(update[1] == ct.id){
-							setError(ct,update[2]);
-							return true;
-						}
-					break;
-				}
-			}
-			
-			// in case none of the updates applies, clear all icons
-			ct.setHint(''); //empty string == clear
-			ct.setError('');
-			
-			return true;
-		}
-		
-		this.panel.cascade(f);
-	}
-});
-
-Ext.ns('itasks.ttc.form');
-
-itasks.ttc.form.FormPanel = Ext.extend(Ext.Panel, {
-
-	initComponent : function(){
-	
-		Ext.apply(this,
-		{ unstyled: true
-		, cls: 'FormPanel'
-		, width: 720
-		, layout: 'form'
-		, autoScroll: true
-		});
-		
-		itasks.ttc.form.FormPanel.superclass.initComponent.apply(this,arguments);
 	}
 });
 
 Ext.reg('itasks.ttc.form',itasks.ttc.FormContainer);
-Ext.reg('itasks.ttc.form.panel', itasks.ttc.form.FormPanel);

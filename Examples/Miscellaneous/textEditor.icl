@@ -14,7 +14,7 @@ where
 		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])							GroupAlways
 		, GroupAction		ActionOpen		(GExtend [openDialog gid mdiTasks <<@ GBFloating])				GroupAlways
 		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks Nothing])	GroupAlways
-		, GroupAction		ActionAbout		(GExtend [about <<@ GBAlwaysFloating])							GroupAlways
+		, GroupAction		ActionAbout		(GExtend [about <<@ GBFloating])								GroupAlways
 		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])						GroupAlways
 		]
 		
@@ -32,6 +32,7 @@ where
 						, MenuSeparator
 						, MenuItem "Close"			ActionClose		(hotkey C)
 						, MenuItem "Quit"			ActionQuit		(hotkey Q)
+						, MenuItem "Ok"				ActionOk		Nothing
 						]
 		, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey R)
 						]
@@ -59,12 +60,12 @@ openDialog gid mdiTasks =
 	>>= \files.	if (isEmpty files)
 					(showMessage "Open File" "No files to open!" GContinue)
 					(										enterChoiceA "Open file" "Open File" buttons files
-						>>= \(action,(name, Hidden fid)).	case action of
+						>>= \(action,(name, Hidden fid)).	case fst action of
 					 										ActionOk	=	open fid mdiTasks (Just gid)
 					 										_			=	continue
 					)
 where
-	buttons = [(ActionCancel, always, AsButton), (ActionOk, ifvalid, AsButton)]
+	buttons = [(ActionCancel, always), (ActionOk, ifvalid)]
 					
 open :: !(DBRef TextFile) !(MDITasks EditorState a) !(Maybe AppStateRef) -> Task GAction
 open fid {createEditor, existsEditor} mbGid =
@@ -89,7 +90,7 @@ where
 	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
 
 about :: Task GAction
-about = showMessage "About" "iTextEditor July 2010" GContinue
+about = showMessageA "About" "iTextEditor July 2010" [(ActionOk,always)] GContinue >>= transform snd
 
 quit :: !(MDIIterateEditors EditorState Bool) -> Task GAction	
 quit iterateEditors =
@@ -144,7 +145,7 @@ save eid =
 saveAs :: !EditorStateRef -> Task GAction
 saveAs eid =
 						enterInformationA "Save as" "Save As: enter name" buttons <<@ NoMenus
-	>>= \(action,name).	case action of
+	>>= \(action,name).	case fst action of
 							ActionOk =
 																readDB eid
 								>>= \(EditorState txt _).		storeFile name txt
@@ -152,7 +153,7 @@ saveAs eid =
 								>>|								continue
 							_ = continue
 where
-	buttons = [(ActionCancel, always, AsButton),(ActionOk, ifvalid, AsButton)]
+	buttons = [(ActionCancel, always),(ActionOk, ifvalid)]
 							
 :: Replace =	{ searchFor		:: String
 				, replaceWith	:: String
@@ -164,13 +165,13 @@ where
 	replaceT` :: !Replace -> Task GAction
 	replaceT` repl =
 								updateInformationA "Replace" "Replace" buttons repl <<@ NoMenus
-		>>= \(action, repl).	case action of
+		>>= \(action, repl).	case fst action of
 									ActionReplaceAll =
 											modifyDB eid (dbReplaceFunc repl)
 										>>|	replaceT` repl
 									_ = continue
 									
-	buttons = [(ActionClose, always, AsButton), (ActionReplaceAll, ifvalid, AsButton)]
+	buttons = [(ActionClose, always), (ActionReplaceAll, ifvalid)]
 	
 	dbReplaceFunc repl (EditorState (Note txt) file) = EditorState (Note (replaceSubString repl.searchFor repl.replaceWith txt)) file
 								
@@ -183,7 +184,7 @@ ActionReplaceAll :== Action "replace-all" "Replace all"
 
 statistics :: !EditorStateRef  -> Task GAction
 statistics eid = 
-		updateShared "Statistics" "Statistics of your document" [(ActionOk, always, AsButton)] eid [titleListener, statsListener] <<@ NoMenus
+		updateShared "Statistics" "Statistics of your document" [(ActionOk, always)] eid [titleListener, statsListener] <<@ NoMenus
 	>>|	continue
 where
 	statsListener = listener {listenerFrom =  \(EditorState (Note text) _) ->
@@ -221,14 +222,14 @@ requestClosingFile eid =
 	readDB eid
 	>>= \state=:(EditorState _ file).	if (hasUnsavedData state)
 										(					showMessageAboutA "Save changes" "Save changes?" buttons (question file) <<@ NoMenus
-											>>= \action.	case action of
+											>>= \action.	case fst action of
 																(ActionCancel,_)	= return True
 																(ActionNo,_)		= return False
 																(ActionYes,_)		= save eid >>| return False
 										)
 										(return False)
 where
-	buttons = [(ActionCancel, always, AsButton), (ActionNo, always, AsButton), (ActionYes, always, AsButton)]
+	buttons = [(ActionCancel, always), (ActionNo, always), (ActionYes, always)]
 	question file = "Save changes to '" +++ getFileName file +++ "'?"
 	
 // global application state

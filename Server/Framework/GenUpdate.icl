@@ -211,7 +211,7 @@ gUpdate{|Char|} c ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,
 	| otherwise
 		= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 gUpdate{|Char|} c ust=:{USt|mode=UDMask,currentPath,newMask}
-	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = Touched True []}) 
+	= (c, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 gUpdate{|Char|} c ust = (c, ust)
 //***
 gUpdate{|Bool|} _ ust=:{USt|mode=UDCreate,newMask} 
@@ -320,8 +320,8 @@ where
 	= UMList [index+1..length c-1] (insertAt index cm c) unt
 	
 gUpdate{|[]|} fx l ust=:{USt|mode=UDMask,currentPath,newMask}
-# ust=:{newMask=childMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = UMList [0..(length l)] [] False}
-= (l,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask childMask})
+	# ust=:{newMask=childMask} = gMarkList fx l {USt | ust & currentPath = shiftDataPath currentPath, newMask = UMList [0..(length l)] [] False}
+	= (l,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask childMask})
 where
 	gMarkList fx [] ust = ust
 	gMarkList fx [x:xs] ust
@@ -397,7 +397,7 @@ gUpdate {|VisualizationHint|} fx (VHHidden s) ust=:{USt | currentPath}
 gUpdate {|Document|} _ ust =: {USt | mode=UDCreate,newMask} 
 	= ({Document|documentId = "", name="", mime="", size = 0},{USt | ust & newMask = appendToMask newMask (Untouched False [])})
 gUpdate {|Document|} s ust =: {USt | mode=UDMask,currentPath,newMask}
-	= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
+	= (s,{USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
 gUpdate {|Document|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update, oldMask, newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
@@ -501,9 +501,9 @@ gUpdate{|User|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,
 	# (cm, om) = popMask oldMask
 	| currentPath == searchPath
 		| userName (NamedUser update) == "root"
-			= (RootUser, {USt | ust & newMask = appendToMask newMask (toggleMask update), oldMask = om})
+			= (RootUser, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
 		| otherwise
-			= (NamedUser update,  {USt | ust & newMask = appendToMask newMask (toggleMask update), oldMask = om})
+			= (NamedUser update,  {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om})
 	| otherwise
 		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 gUpdate{|User|} s ust=:{USt|mode=UDMask,currentPath,newMask}

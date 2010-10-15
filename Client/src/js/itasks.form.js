@@ -161,15 +161,7 @@ Ext.reg("itasks.userfield", itasks.form.UserField);
 fireTaskEvent = function(taskid, field, value) {
 	
 	var ct = Ext.getCmp("taskform-" + taskid);
-	if(!ct)
-		return;
-	
-	var wp = ct.findParentByType("itasks.work");
-	if(!wp)
-		return;
-	
-	var updates = {}
-	updates[field] = value;
-	
-	wp.sendTaskUpdates(taskid, updates);	
+	if(ct != null && ct.fireEvent) {
+		ct.fireEvent('tuievent',taskid,field,value);
+	}
 }

@@ -15,10 +15,10 @@ derive JSONEncode TUIButtonControl, TUIListItemControl, TUIChoiceControl
 derive JSONEncode TUITupleContainer, TUIRecordContainer, TUIListContainer
 
 //TODO: Separate control elements from form-widgets
-JSONEncode{|TUIDef|} (TUIButton r)				= addXType "button" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIButton r)				= addXType "itasks.ttc.Button" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIHtmlPanel r)			= addXType "panel" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuButton r)			= addXType "button" (JSONEncode{|*|} r)
-JSONEncode{|TUIDef|} (TUIMenuItem r)			= addXType "menuitem" (JSONEncode{|*|} r)
+JSONEncode{|TUIDef|} (TUIMenuItem r)			= addXType "itasks.ttc.MenuItem" (JSONEncode{|*|} r)
 JSONEncode{|TUIDef|} (TUIMenuSeparator)			= [JSONRaw "{\"xtype\":\"menuseparator\"}"]
 JSONEncode{|TUIDef|} (TUICustom r)				= JSONEncode{|*|} r
 

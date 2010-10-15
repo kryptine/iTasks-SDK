@@ -12,8 +12,8 @@ derive gUpdate			EmailAddress, Session
 derive gVerify			EmailAddress, Session
 derive gMerge			EmailAddress, Currency, FormButton, ButtonState, User, Session, VisualizationHint, UserDetails, Password, Note, Date, Time, DateTime
 
-derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
-derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note, Date, Time, DateTime
+derive JSONEncode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note
+derive JSONDecode		EmailAddress, Currency, FormButton, ButtonState, UserDetails, Session, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Password, Note
 
 derive bimap			Maybe, (,)
 
@@ -93,11 +93,11 @@ where
 
 instance toString Date
 where
-	toString {Date|year,mon,day}	= (pad 2 day) +++ "-" +++ (pad 2 mon) +++ "-" +++ (pad 4 year)
+	toString {Date|year,mon,day}	= (pad 4 year) +++ "-" +++ (pad 2 mon) +++ "-" +++ (pad 2 day)
 
 instance fromString Date
 where
-	fromString s					= {Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
+	fromString s					= {Date|day = toInt (s %(8,9)), mon = toInt (s %(5,6)), year = toInt (s %(0,3))}
 
 // ******************************************************************************************************
 // Time
@@ -138,7 +138,7 @@ where
 instance fromString DateTime
 where
 	fromString s	= DateTime
-						{Date|day = toInt (s %(0,1)), mon = toInt (s %(3,4)), year = toInt (s %(6,9))}
+						{Date|day = toInt (s %(8,9)), mon = toInt (s %(5,6)), year = toInt (s %(0,3))}
 						{Time|hour = toInt (s %(11,12)), min = toInt (s %(14,15)), sec = toInt (s %(17,18)) }
 // ******************************************************************************************************
 // Currency
@@ -301,6 +301,17 @@ where
 JSONEncode{|Task|} _ t						= [JSONString (base64Encode (copy_to_string t))]
 JSONDecode{|Task|} _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
 JSONDecode{|Task|} _ c						= (Nothing,c) 
+
+JSONEncode{|Time|} t		= [JSONString (toString t)]
+JSONEncode{|Date|} d		= [JSONString (toString d)]
+JSONEncode{|DateTime|} dt	= [JSONString (toString dt)]
+
+JSONDecode{|Time|} [JSONString s:c]		= (Just (fromString s), c)
+JSONDecode{|Time|} c					= (Nothing, c)
+JSONDecode{|Date|} [JSONString s:c] 	= (Just (fromString s), c)
+JSONDecode{|Date|} c					= (Nothing, c)
+JSONDecode{|DateTime|} [JSONString s:c]	= (Just (fromString s), c)
+JSONDecode{|DateTime|} c				= (Nothing, c)
 
 taskSubject :: !(Task a) -> String
 taskSubject (Task p _ _ _ _) = p.subject

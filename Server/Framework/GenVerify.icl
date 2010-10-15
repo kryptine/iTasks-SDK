@@ -31,12 +31,15 @@ gVerify{|CONS of d|}	fx    (Just (CONS x))	vst=:{VerSt | verifyMask,updateMask,o
 	# vst=:{VerSt | verifyMask=childMask} = fx (Just x) {VerSt | vst & optional = False, updateMask = cm, verifyMask = (VMValid Nothing Nothing [])}
 	# children = getMaskChildren childMask
 	| not (isEmpty d.gcd_fields) //record
+		/*
 		| anyError children
 			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMInvalid (ErrorMessage "One or more items contain errors") Nothing children), optional = optional, updateMask = um}
 		| allValid children
 			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional, updateMask = um}
 		| otherwise
 			= {VerSt | vst & verifyMask = appendToMask verifyMask (VMUntouched (Just "Please fill out all required items") Nothing children), optional = optional, updateMask = um}
+		*/
+		= {VerSt | vst & verifyMask = appendToMask verifyMask (VMValid Nothing Nothing children), optional = optional, updateMask = um}
 	| otherwise //adt
 		# consMask = case optional of
 			True
@@ -85,9 +88,11 @@ gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing children)}	
 	# listMask  = case cm of 
 					(Untouched _ _) 
-						= (VMUntouched (Just "Create at least one list item") Nothing children)
+						//= (VMUntouched (Just "Create at least one list item") Nothing children)
+						= (VMUntouched Nothing Nothing children)
 					(UMList _ _ True)
-						= (VMUntouched (Just "Create at least one list item") Nothing children)
+						//= (VMUntouched (Just "Create at least one list item") Nothing children)
+						= (VMUntouched Nothing Nothing children)
 					_ 
 						= (VMInvalid (ErrorMessage "Create at least one list item") Nothing children) //Empty lists are invalid
 	= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask listMask}

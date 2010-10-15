@@ -15,7 +15,7 @@ orTest :: Task Int
 orTest = (enterInformation "Value1" "Enter value 1" -||- enterInformation "Value2" "Enter value 2")
 
 andTest :: Task (Int,String)
-andTest = (enterInformation "Value 1" "Enter value 1" -&&- enterInformation "Value 2" "Enter value 2")
+andTest = (enterInformation "Value 1" "Enter value 1" -&&- (enterInformation "Value 2" "Enter value 2" <<@ GBFloating))
 
 anyTest :: Task Note
 anyTest = anyTask [enterInformation "Value 1" "Enter value 1" ,enterInformation "Value 2" "Enter value 2",enterInformation "Value 3" "Enter value 3"]
@@ -81,18 +81,17 @@ parNestedTest5 =
 
 Start :: *World -> *World
 Start world = startEngine [
-			workflow "Simple Test" (simpleTest >>= showMessageAbout "Result" "The result is:"),
-			workflow "Or Test" (orTest  >>= showMessageAbout "Result" "The result is:"),
-			workflow "And Test" (andTest  >>= showMessageAbout "Result" "The result is:"),
-			workflow "Any Test" (anyTest  >>= showMessageAbout "Result" "The result is:"),
-			workflow "All Test" (allTest  >>= showMessageAbout "Result" "The result is:"),
-			workflow "Either Test" (eitherTest  >>= showMessageAbout "Result" "The result is:"),
-			workflow "Maybe Test" (maybeTest >>= showMessageAbout "Result" "The result is:"),
-			//workflow "Extender Test" (parExtendTest >>= showMessageAbout "You created this many additional tasks:"),
-			workflow "Open Test" (parOpenTest >>= showMessageAbout "Result" "The result is:"),
-			workflow "Closed Test" (parClosedTest >>= showMessageAbout "Result" "The result is:"),
-			workflow "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result" "The result is:"),
-			workflow "Nested Test 2" (parNestedTest2 >>= showMessageAbout "Result" "The result is:"),
-			workflow "Nested Test 4" (parNestedTest4 >>= showMessageAbout "Result" "The result is:"),
-			workflow "Nested Test 5" (parNestedTest5 >>= showMessageAbout "Result" "The result is:")
+			workflow "Simple Test" "Simple Test" (simpleTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Or Test" "Or Test" (orTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "And Test" "And Test" (andTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "Any Test" "Any Test" (anyTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "All Test" "All Test" (allTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "Either Test" "Either Test" (eitherTest  >>= showMessageAbout "Result" "The result is:"),
+			workflow "Maybe Test" "Maybe Test" (maybeTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Open Test" "Open Test" (parOpenTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Closed Test" "Closed Test" (parClosedTest >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 1" "Nested Test 1" (parNestedTest1 >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 2" "Nested Test 2" (parNestedTest2 >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 4" "Nested Test 4" (parNestedTest4 >>= showMessageAbout "Result" "The result is:"),
+			workflow "Nested Test 5" "Nested Test 5" (parNestedTest5 >>= showMessageAbout "Result" "The result is:")
 		] world 

@@ -28,7 +28,6 @@ instance tune	User					//Set initial worker
 instance tune	(Subject s)				//Set initial subject
 instance tune	(Description s)			//Set initial subject
 instance tune	TaskPriority			//Set initial priority
-instance tune	Timestamp				//Set initial deadline
 instance tune	DateTime				//Set initial deadline
 instance tune	(Tag s)					//Append Tag
 instance tune	(Tags s)				//Append List of Tags	

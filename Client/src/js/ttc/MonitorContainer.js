@@ -1,6 +1,6 @@
 Ext.ns('itasks.ttc');
 
-itasks.ttc.MonitorContainer = Ext.extend(Ext.Panel,{
+itasks.ttc.MonitorContainer = Ext.extend(itasks.ttc.TTCBase,{
 	initComponent: function() {
 		Ext.apply(this,{
 			defaults: {

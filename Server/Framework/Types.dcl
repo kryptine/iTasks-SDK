@@ -157,7 +157,7 @@ instance zero Currency
 	, description		:: !String					// Description of the task (html)
 	, context			:: !Maybe String			// Optional context information for doing the task (html)
 	, priority			:: !TaskPriority			// What is the current priority of this task?
-	, deadline			:: !Maybe Timestamp			// When is the task due?
+	, deadline			:: !Maybe DateTime			// When is the task due?
 	, tags				:: ![String]				// A list of tags
 	}
 	
@@ -190,7 +190,7 @@ initGroupedProperties :: GroupedProperties
 
 :: Container a c	= Container a & iTask c		// container for context restrictions
 
-:: TaskEvent	:== (!TaskId,!String,!String)	// taskid, name, value			
+:: TaskEvent	:== (!TaskId,!String,!String,!String)	// taskid, name, value, data			
 
 :: *IWorld		=	{ application	:: !String											// The name of the application	
 					, store			:: !Store											// The generic data store

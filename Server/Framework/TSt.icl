@@ -255,6 +255,8 @@ evaluateTaskInstance process=:{Process | taskId, properties, changeCount, inPara
 		TaskFinished dyn
 			//Store result
 			# tst 			= storeProcessResult (taskNrFromString taskId) result tst
+			//Store result container
+			# tst			= storeProcessContainer taskId result thread tst
 			//Update process table (status, changeCount & properties)
 			# properties	= {properties & systemProperties = {SystemProperties|properties.systemProperties & status = Finished}}
 			# (_,tst)		= updateProcess taskId (\p -> {Process|p & properties = properties, changeCount = changeCount}) tst
@@ -512,30 +514,6 @@ applyChangeToTaskTree pid (lifetime,change) tst=:{taskNr,taskInfo,tree,staticInf
 		Nothing		
 			= tst
 
-calculateTaskResult :: !TaskId !*TSt -> (!TaskTree, !*TSt)
-calculateTaskResult taskId tst
-	# (mbProcess,tst) = getProcessForTask taskId tst
-	= case mbProcess of
-		Nothing
-			# info =	{ TaskInfo| initTaskInfo
-						& taskId			= taskId
-						, subject			= "Unknown Process"
-						, description		= "Task Result"
-						}
-			= (TTFinishedTask info NoOutput, tst)
-		Just process=:{Process|properties}
-			# tst=:{TSt | iworld=iworld=:{store,world}} = tst
-			# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world
-			# result = case mbContainer of
-				(Just dyn) = UIOutput (renderResult dyn)
-				(Nothing)  = UIOutput [Text "Cannot load result."]
-			# info = { TaskInfo|initTaskInfo
-			 		 & taskId = taskId
-			 		 , subject = properties.managerProperties.ManagerProperties.subject
-			 		 , description = "Task Result"
-			 		 }
-			= (TTFinishedTask info result, {TSt | tst & iworld = {IWorld | iworld & store = store, world = world}})
-
 calculateTaskTree :: !TaskId !TreeType ![TaskEvent] !*TSt -> (!TaskTree, !*TSt)
 calculateTaskTree taskId treeType events tst
 	# (mbProcess,tst) = getProcess taskId tst
@@ -556,7 +534,7 @@ calculateTaskTree taskId treeType events tst
 				_		
 					//retrieve process result from store and show it??
 					# tst=:{TSt | iworld=iworld=:{store,world}} = tst
-					# (mbContainer,store,world) = loadValue (iTaskId taskId "container") store world				
+					# (mbContainer,store,world) = loadValue (taskId +++ "-container") store world				
 					# result = case mbContainer of
 						(Just dyn)	= UIOutput (renderResult dyn)
 						(Nothing)	= UIOutput [Text "Cannot load result."]
@@ -726,8 +704,8 @@ where
 mkGroupedTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
 mkGroupedTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkGroupedTask`
 where
-	mkGroupedTask` tst=:{TSt|taskNr,taskInfo}
-		# tst = {tst & tree = TTGroupedTask taskInfo [] [] Nothing, taskNr = [0:taskNr]}
+	mkGroupedTask` tst=:{TSt|taskInfo}
+		# tst = {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
 		= taskfun tst
 			
 mkMainTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
@@ -777,8 +755,6 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr mbMenuGenFunc task
 					# tst=:{TSt|iworld =iworld=:{IWorld|store}}	= deleteTaskStates taskNr tst					
 					// Store final value if the process is not garbage collected
 					# store					= if(gc) store (storeValue taskId result store)
-					// Store the final value and it's type as a dynamic value, so it can be visualized by the task-result service later.
-					# store					= if(gc) store (storeValueAs SFDynamic (taskId+++"-container") (dynamic (Container a) :: Container a^ a^) store)
 					# tst					= addTaskNode (TTFinishedTask taskInfo (UIOutput (visualizeAsHtmlDisplay a)))
 												{tst & taskNr = incTaskNr taskNr, tree = tree, iworld = {IWorld|iworld & store = store}}
 					= (TaskFinished a, tst)
@@ -891,8 +867,21 @@ where
 	storeResult tst 
 		# (mbproc,tst) = getProcess (taskNrToString taskNr) tst
 		= (isJust mbproc, tst) 
-		
-	
+
+// Store the final value and it's type as a dynamic value, so it can be visualized by the task-result service later.		
+storeProcessContainer :: !TaskId !(TaskResult Dynamic) !Dynamic !*TSt -> *TSt
+storeProcessContainer taskId result thread tst
+	= case (result,thread) of
+		(TaskFinished (x :: a), (Container t) :: Container (TaskThread a) a )
+			= storeContainer taskId x tst
+		_
+			= tst
+where
+	storeContainer :: !TaskId !a !*TSt -> *TSt | iTask a	
+	storeContainer taskId value tst=:{TSt|iworld=iworld=:{IWorld|store}}
+		# store	= storeValueAs SFDynamic (taskId+++"-container") (dynamic (Container value) :: Container a^ a^) store
+		= {TSt|tst & iworld = {IWorld|iworld & store = store}}
+
 setTaskStore :: !String !a !*TSt -> *TSt | JSONEncode{|*|}, JSONDecode{|*|}, TC a
 setTaskStore key value tst=:{taskNr}
 	= setTaskStoreFor taskNr key value tst
@@ -916,34 +905,16 @@ where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
 getEvents :: !*TSt -> ([(!String,!String)],!*TSt)
-getEvents tst=:{taskNr,events}
-	# (matched, rest)	= getEvents` events
-	= (matched, {TSt|tst & events = rest})
+getEvents tst=:{taskNr,events} = (match, {TSt|tst & events = rest})
 where
+	(match,rest) = splitEvents events
+	
+	splitEvents [] = ([],[])
+	splitEvents [event=:(t,n,v,d):events]
+		= let (match,rest) = splitEvents events in
+			if (t == taskId) ([(n,v):match],rest) (match, [event:rest])
+
 	taskId = taskNrToString taskNr
-
-	getEvents` [] = ([],[])
-	getEvents` [event=:(task,name,value):events]
-		# (matched,rest) = getEvents` events
-		| task == taskId
-			| name == "menuAndGroup"	= ([(name,value):matched], [(task,"group",value):rest]) 
-			| name <> "group"			= ([(name,value):matched], rest)
-			| otherwise					= (matched, [event:rest])
-		| otherwise						= (matched, [event:rest])
-
-getGroupEvents :: !TaskId !*TSt -> ([(!String,!String)],!*TSt)
-getGroupEvents taskId tst=:{TSt|events}
-	# (matched, rest) = getGroupEvents` events
-	= (matched, {TSt|tst & events = rest})
-where
-	getGroupEvents` []
-		= ([],[])											
-	getGroupEvents` [event=:(task,name,value):events]
-		# (matched,rest) = getGroupEvents` events
-		| (startsWith taskId task) && (name == "group" || name == "menuAndGroup")
-			= ([(name,value):matched], [event:rest])
-		| otherwise
-			= (matched, [event:rest])
 
 anyEvents :: !*TSt -> (!Bool,!*TSt)
 anyEvents tst=:{TSt|events} = (not (isEmpty events),tst)

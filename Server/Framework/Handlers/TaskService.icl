@@ -124,7 +124,7 @@ taskService url html path req tst
 		//Show / Update task user interface definition
 		[taskId,"tui"]
 			| isJust mbSessionErr
-				= (serviceResponse html "Task user interface" tuiDescription url detailsParams (jsonSessionErr mbSessionErr), tst)	
+				= (serviceResponse html "Task user interface" tuiDescription url tuiParams (jsonSessionErr mbSessionErr), tst)	
 			# (mbProcess, tst)	= case session.Session.user of
 				RootUser
 								= getProcess taskId tst
@@ -138,20 +138,21 @@ taskService url html path req tst
 					# events		= case (fromJSON (fromString eventsParam)) of
 						Just events		= events
 						Nothing			= []
-					# (tree,tst)	= calculateTaskTree taskId UITree events tst
+					# (tree,tst)		= calculateTaskTree taskId UITree events tst
+					# (timestamp,tst)	= accWorldTSt time tst
 					= case tree of
 						(TTMainTask ti properties _ content)
 							# tui			= buildTaskPanel content session.Session.user
-							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
-							= (serviceResponse html "Task user interface" tuiDescription url detailsParams json, tst)
+							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",toJSON tui)]
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
 						_
-							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",JSONNull)]
-							= (serviceResponse html "Task user interface" tuiDescription url detailsParams json, tst)
+							# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("timestamp",toJSON timestamp),("tui",JSONNull)]
+							= (serviceResponse html "Task user interface" tuiDescription url tuiParams json, tst)
 		//Cancel / Abort / Delete the current task
 		[taskId,"cancel"]
 			| isJust mbSessionErr
 				= (serviceResponse html "Cancel task" cancelDescription url detailsParams (jsonSessionErr mbSessionErr), tst)
-			# (mbProcess, tst) = getProcessForTask taskId tst
+			# (mbProcess, tst) = getProcess taskId tst
 			= case mbProcess of
 				Nothing
 					= (notFoundResponse req, tst)
@@ -213,13 +214,13 @@ taskService url html path req tst
 		[taskId,"result","tui"]
 		| isJust mbSessionErr
 				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams (jsonSessionErr mbSessionErr), tst)
-		# (mbProcess, tst) = getProcessForTask taskId tst
+		# (mbProcess, tst) = getProcess taskId tst
 		= case mbProcess of
 			Nothing 
 				= (notFoundResponse req, tst)
 			Just proc
 				# task			= taskItem proc
-				# (tree,tst)	= calculateTaskResult taskId tst
+				# (tree,tst)	= calculateTaskTree taskId UITree [] tst
 				# tui			= buildResultPanel tree
 				# json			= JSONObject [("success",JSONBool True),("task",toJSON task),("tui",toJSON tui)]
 				= (serviceResponse html "Task result user interface" tuiResDescription url detailsParams json, tst)
@@ -239,7 +240,10 @@ where
 	
 	detailsParams	= [("session",sessionParam,True),("events",eventsParam,False)]
 	eventsParam		= paramValue "events" req
-
+	
+	tuiParams		= [("session",sessionParam,True),("events",eventsParam,False),("since",sinceParam,False)]
+	sinceParam		= paramValue "since" req
+	
 	propParams		= [("session",sessionParam,True),("update",updateParam,False)]
 	updateParam		= paramValue "update" req
 	
@@ -297,7 +301,7 @@ where
 	taskParts (TTInteractiveTask ti val)
 		= [JSONObject [("taskId",JSONString ti.TaskInfo.taskId),("type",JSONString "interactive"),("value",case val of JSONOutput json = json; _ = JSONNull)]]
 	taskParts _								= []
-	
+
 listDescription			:== "This service lists all tasks for the user of the provided session."
 listDebugDescription	:== "This service dumps all information currently in the process database of running instances."
 detailsDescription		:== "This service provides all meta-properties of a running task instance."

@@ -23,8 +23,10 @@ itasks.tui.DocumentControl = Ext.extend(Ext.Panel,
 		});
 	
 		itasks.tui.DocumentControl.superclass.initComponent.apply(this,arguments);
-	},
 	
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
+	},
 	afterRender : function(arguments){
 		itasks.tui.DocumentControl.superclass.afterRender.call(this,arguments);
 		
@@ -317,8 +319,7 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 		
 		this.doLayout();
 	},
-	
-	setHint : function(msg){
+	setHint: function(msg){
 		if(this.rendered){
 			if(msg == '' || msg == null || this.errorIcon.isVisible()){
 				this.hintIcon.hide();
@@ -331,15 +332,12 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 		
 		this.doLayout();
 	},
-	
 	showCancel: function(cancel){
 		this.cancelButton.setVisible(cancel);
 	},
-	
-	uplHandler : function(src,evt){
+	uplHandler: function(src,evt){
 	
 		var form = this.findParentByType("itasks.tui.document.Upload");
-		var tf = this.findParentByType(itasks.ttc.FormContainer);
 		var dp = this.findParentByType("itasks.tui.Document");
 						
 		if(form.getForm().isValid()){				
@@ -351,9 +349,8 @@ itasks.tui.document.UploadPanel = Ext.extend(Ext.form.FormPanel,{
 				success: function(form,response) {
 						try {
 							var resp = Ext.decode(response.response.responseText);
-							
-							tf.addUpdate(dp.name, resp.documents[0].documentId);
-							tf.sendUpdates(false);
+	
+							dp.fireEvent('tuichange',dp.name, resp.documents[0].documentId);
 						} catch(e) {
 							itasks.app.restart("Document transaction failed");
 							return;

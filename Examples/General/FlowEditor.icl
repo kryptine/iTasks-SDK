@@ -27,12 +27,12 @@ initMenu =
 	]
 
 actions ((name,flow), mode)
-	=	[ (ActionNew,		always, InMenu)
-		, (ActionOpen,		always, InMenu)
-		, (ActionSave,		ifValid (validFlow name flow.flowDyn), InMenu)
-		, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn), InMenu)
-		, (ActionQuit,		always, InMenu)
-		, (ActionAbout,		always, InMenu)
+	=	[ (ActionNew,		always)
+		, (ActionOpen,		always)
+		, (ActionSave,		ifValid (validFlow name flow.flowDyn))
+		, (ActionSaveAs,	ifValid (validFlow name flow.flowDyn))
+		, (ActionQuit,		always)
+		, (ActionAbout,		always)
 		]
 validFlow name flowDyn = name <> "" && (validTaskFun flowDyn || validTask flowDyn)
 
@@ -46,8 +46,8 @@ doMenu state=:((name,flow), mode)
 				False 		->							updateInformationA "No flow" title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
 				True 	->								updateInformationA "Flow" title2
-																					[ (ActionSave, ifValid (validFlow name flow.flowDyn), AsButton)
-																					, (ActionOk, ifvalid, AsButton)
+																					[ (ActionSave, ifValid (validFlow name flow.flowDyn))
+																					, (ActionOk, ifvalid)
 																					: actions state
 																					] flow.flowShape
 								>>= \(action,shape) ->  return (action,((name,{flow & flowShape = shape}),mode))
@@ -60,7 +60,7 @@ where
 					(" :: " +++ typeErrorMess "Invalid Type, " flow.flowDyn)
 
 switchAction (action, (nameflow=:(name,flow),mode))
-	=	case action of
+	=	case fst action of
 			ActionNew		-> 						newFlowName emptyFlow 	
 								>>= \nameflow -> 	doMenu (nameflow,True)	
 			ActionOpen		->						chooseFlow 	

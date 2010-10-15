@@ -17,11 +17,6 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 
 	afterRender: function(){
 		itasks.tui.TupleContainer.superclass.afterRender.call(this,arguments);
-		
-		/*for(var i=0; i < this.items.length; i++){
-			var itm = this.items.get(i);
-			itm.addClass('tuple-item');
-		}*/
 	},
 	getPreferredWidth : function(){
 		var w = 0;
@@ -33,7 +28,6 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 		
 		return (w>700)?700:w
 	},
-	
 	setPreferredWidth : function(width){
 		this.setWidth(width);
 		

@@ -143,8 +143,7 @@ instance == TUIDef
 	, id				:: !TUIId
 	, items				:: ![TUIDef]
 	, index				:: !Int
-	}
-	
+	}	
 :: TUITupleContainer =
 	{ id			:: !TUIId
 	, items			:: ![[TUIDef]]
@@ -185,7 +184,7 @@ instance == TUIDef
 	{ name			:: !String
 	, id			:: !TUIId
 	, text			:: !String
-	, value			:: !String
+	, action		:: !String
 	, disabled		:: !Bool
 	, iconCls		:: !String
 	}
@@ -200,8 +199,8 @@ instance == TUIDef
 :: TUIMenuItem =
 	{ id			:: !Maybe TUIId
 	, text			:: !String
-	, name			:: !Maybe String
-	, value			:: !Maybe String
+	, target		:: !Maybe String
+	, action		:: !Maybe String
 	, menu			:: !Maybe TUIMenu
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String

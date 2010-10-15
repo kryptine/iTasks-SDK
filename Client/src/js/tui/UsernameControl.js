@@ -12,74 +12,78 @@ itasks.tui.UsernameReader.readRecords = function(o) {
 }
 
 itasks.tui.UsernameControl = Ext.extend(Ext.form.ComboBox,{
-	store: {
-		url: "/services/json/users/names",
-		reader: itasks.tui.UsernameReader
-	},
-	valueField: "username",
-	displayField: "username",
-	tpl: new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{username:htmlEncode}</div></tpl>'),
-	triggerAction: "all",
-	listeners: {
-		"beforequery": function(e) {
-			e.combo.store.baseParams["session"] = itasks.app.session;
-			delete e.combo.lastQuery;
-		}
-	},
+	
 	initComponent: function() {
 		if(this.staticDisplay){
 			this.autoCreate = {tag: "span", html: this.value};
 		}
-		
 		this.msgTarget = "side";
+		this.listeners = {
+			change: {fn: this.onChange, scope: this},
+			beforequery: function(e) {
+				e.combo.store.baseParams["session"] = itasks.app.session;
+				delete e.combo.lastQuery;
+			}
+		};
+		this.triggerAction = "all";
+		this.valueField = "username";
+		this.displayField = "username";
+		
+		this.store = {
+			url: itasks.config.serviceUrl + "/json/users/names",
+			reader: itasks.tui.UsernameReader
+		};
+		this.tpl = new Ext.XTemplate('<tpl for="."><div class="x-combo-list-item">{username:htmlEncode}</div></tpl>');
 		
 		this.hideLabel = this.fieldLabel == null;
 		this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-		//this.allowBlank = this.optional;
+		
 		if(this.value == "") delete this.value;
 		itasks.tui.UsernameControl.superclass.initComponent.apply(this,arguments);
+		
+		this.addEvents('tuichange');
+		this.enableBubble('tuichange');
 	},
-	
+	onChange: function() {
+		this.fireEvent('tuichange', this.name, this.getValue());	
+	},
 	afterRender: function(ct,position){		
-		itasks.tui.TimeControl.superclass.afterRender.call(this,ct,position);
+		itasks.tui.UsernameControl.superclass.afterRender.call(this,ct,position);
 
 		if(this.staticDisplay){
 			this.el.next().remove();		
-		}	
-		
-		(function(){
-			this.setError(this.errorMsg);
-			this.setHint(this.hintMsg);
-		}).defer(50,this);
+		}		
+		if(this.errorMsg)
+			itasks.tui.common.markError(this,this.errorMsg);
+		else if(this.hintMsg)
+			itasks.tui.common.markHint(this,this.hintMsg);
 	},	
-	
 	setValue: function(value){
 		if(this.staticDisplay){
 			if(this.el) this.el.dom.innerHTML = value;
 		}else{
 			itasks.tui.UsernameControl.superclass.setValue.call(this,value);
 		}
-		if(this.activeError) this.setError(this.activeError);
+		if(this.activeError)
+			this.setError(this.activeError);
 	},
 	
-	setError: function(msg){		
-		(function() {
-			if(msg == "") itasks.tui.common.clearError(this);
-			else itasks.tui.common.markError(this,msg);
-		}).defer(50,this);
+	setError: function(msg){
+		if(msg == "")
+			itasks.tui.common.clearError(this);
+		else
+			itasks.tui.common.markError(this,msg);
 	},
 	
 	setHint: function(msg){
-		(function() {
-			if(msg == "") itasks.tui.common.clearHint(this);
-			else itasks.tui.common.markHint(this,msg);
-		}).defer(50,this);
+		if(msg == "")
+			itasks.tui.common.clearHint(this);
+		else
+			itasks.tui.common.markHint(this,msg);
 	},
-	
 	getPreferredWidth : function(){
 		return 150;
 	},
-	
 	setPreferredWidth : function(width){
 		this.setWidth(width);
 	}

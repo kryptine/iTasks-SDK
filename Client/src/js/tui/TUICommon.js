@@ -1,27 +1,23 @@
 Ext.ns('itasks.tui.common');
 
 itasks.tui.common.markError = function(field,msg){
-	field.msgTarget = 'side';
-	
-	(function(){
-		if(field.rendered && !field.preventMark){
-			msg = msg || field.errorText;
-			
-			var mt = field.getMessageHandler();
-			
-			if(mt && mt.markError){
-				mt.markError(field, msg);
-			}else if(field.errorTarget){
-				var t = Ext.getDom(field.errorTarget);
-				if(t){
-					t.innerHTML = msg;
-					t.style.display = field.msgDisplay;
-				}
+	itasks.tui.common.clearHint(field);
+	if(field.rendered && !field.preventMark){
+		msg = msg || field.errorText;
+		
+		var mt = field.getMessageHandler();
+		
+		if(mt && mt.markError){
+			mt.markError(field, msg);
+		}else if(field.errorTarget){
+			var t = Ext.getDom(field.errorTarget);
+			if(t){
+				t.innerHTML = msg;
+				t.style.display = field.msgDisplay;
 			}
 		}
-	
-		field.activeError = msg;
-	}).defer(50,this);
+	}
+	field.activeError = msg;
 };
 
 itasks.tui.common.clearError = function(field){
@@ -37,34 +33,28 @@ itasks.tui.common.clearError = function(field){
 			}		
 		}
 	}
-	
 	delete field.activeError;
 };
 
-itasks.tui.common.markHint = function(field,msg){
-	field.msgTarget = 'side';
-	
-	(function(){
-		if(field.rendered && !field.preventMark){
-			msg = msg || field.hintText;
-			
-			var mt = field.getMessageHandler();
-			
-			if(mt && mt.markHint){
-				mt.markHint(field, msg);
-			}else if(field.hintTarget){
-				var t = Ext.getDom(field.hintTarget);
-				if(t){
-					t.innerHTML = msg;
-					t.style.display = field.msgDisplay;
-				}
+itasks.tui.common.markHint = function(field,msg) {
+	itasks.tui.common.clearError(field);
+	if(field.rendered && !field.preventMark) {
+		var msg = msg || field.hintText;
+		
+		var mh = field.getMessageHandler();
+		if(mh && mh.markHint)
+			mh.markHint(field,msg);
+		else if(field.hitTarget) {
+			var target = Ext.getDom(field.hintTarget);
+			if(target) {
+				target.innerHTML = msg;
+				target.style.display = field.msgDisplay;
 			}
 		}
-
+		
 		field.activeHint = msg;
-	}).defer(50,this);
+	}
 };
-	
 itasks.tui.common.clearHint = function(field){
 	if(field.rendered && !field.preventMark){
 		var mt = field.getMessageHandler();
@@ -78,7 +68,6 @@ itasks.tui.common.clearHint = function(field){
 			}
 		}
 	}
-	
 	delete field.activeHint;
 };
 

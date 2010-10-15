@@ -43,15 +43,15 @@ initMenu  =
 	]
 
 actions state=:((name,form),mode)
-	=	[ (ActionNew,		always, InMenu)
-		, (ActionOpen,		always, InMenu)
-		, (ActionOpenValue,	always, InMenu)
-		, (ActionSave,		ifValid (name <> ""), InMenu)
-		, (ActionSaveAs,	ifValid (name <> ""), InMenu)
-		, (ActionQuit,		always, InMenu)
-		, (ActionAbout,		always, InMenu)
-		, (ActionEditType,	(\_ -> mode === EditValue),InMenu)
-		, (ActionEditValue,	(\_ -> mode === EditType && not (isEmpty form.formShape)),InMenu)
+	=	[ (ActionNew,		always)
+		, (ActionOpen,		always)
+		, (ActionOpenValue,	always)
+		, (ActionSave,		ifValid (name <> ""))
+		, (ActionSaveAs,	ifValid (name <> ""))
+		, (ActionQuit,		always)
+		, (ActionAbout,		always)
+		, (ActionEditType,	(\_ -> mode === EditValue))
+		, (ActionEditValue,	(\_ -> mode === EditType && not (isEmpty form.formShape)))
 		] 
 
 ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
@@ -65,8 +65,8 @@ doMenu state=:((name,form), mode)
 				NoEdit 		->							updateInformationA "No edit" title1 (actions state) Void 
 								>>= \(action,_) ->		return (action,state)
 				EditType 	->							updateInformationA "Edit" title2
-																					[ (ActionEditValue, ifValid (not (isEmpty form.formShape)), AsButton)
-																					, (ActionOk, ifvalid, AsButton)
+																					[ (ActionEditValue, ifValid (not (isEmpty form.formShape)))
+																					, (ActionOk, ifvalid)
 																					: actions state] form.formShape
 								>>= \(action,shape) ->  return (action,((name,{form & formShape = shape}),mode))
 				EditValue 	->							editValue state
@@ -74,8 +74,8 @@ doMenu state=:((name,form), mode)
 where
 	editValue state=:((name,form=:{formDyn = DV0 v :: DV0 a}), mode)  
 		=							updateInformationA "Edit" title3
-																[ (ActionSave, ifValid (name <> ""),AsButton)
-																, (ActionEditType, always, AsButton)
+																[ (ActionSave, ifValid (name <> ""))
+																, (ActionEditType, always)
 																: actions state
 																] (Just v)
 			>>= \(action,nv) ->  	return (action,((name,{form & formDyn = dynamic DV0 (if (isJust nv) (fromJust nv) v) :: DV0 a^}),mode))
@@ -85,7 +85,7 @@ where
 	title3 = "Define the initial value of form: \"" +++ name +++ "\""
 	
 switchAction (action, (nameform=:(name,form),mode))
-	=	case action of
+	=	case fst action of
 			ActionNew		-> 							newFormName emptyForm 	
 								>>= \nameform -> 		doMenu (nameform,EditType)	
 			ActionOpen		->							chooseForm 				

@@ -44,49 +44,58 @@ where
 	html Nothing	= SpanTag [] []
 	html (Just h)	= html h
 
-
-
 //Input tasks
 enterInformation :: !String !description -> Task a | html description & iTask a
-enterInformation subject description = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask Nothing Nothing [(ActionOk, ifvalid, AsButton)] False))
+enterInformation subject description = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask Nothing Nothing [(ActionOk, ifvalid)] False))
 
-enterInformationA :: !String !description ![TaskAction a] -> Task (!Action,!a) | html description & iTask a
+enterInformationA :: !String !description ![TaskAction a] -> Task (!ActionEvent,!a) | html description & iTask a
 enterInformationA subject description actions = mkInteractiveTask subject (toString (html description)) (makeInformationTask Nothing Nothing actions True)
 
 updateInformation :: !String !description a -> Task a | html description & iTask a
-updateInformation subject description initial = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask (Just initial) Nothing [(ActionOk, ifvalid, AsButton)] False)) 
+updateInformation subject description initial = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask (Just initial) Nothing [(ActionOk, ifvalid)] False)) 
 
-updateInformationA :: !String !description ![TaskAction a] a -> Task (!Action,!a) | html description & iTask a
+updateInformationA :: !String !description ![TaskAction a] a -> Task (!ActionEvent,!a) | html description & iTask a
 updateInformationA subject description actions initial = mkInteractiveTask subject (toString (html description)) (makeInformationTask (Just initial) Nothing actions True)
 
 enterInformationAbout :: !String !description b -> Task a | html description & iTask a & iTask b
-enterInformationAbout subject description about = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask Nothing (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)] False))
+enterInformationAbout subject description about = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask Nothing (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)] False))
 
-enterInformationAboutA :: !String !description ![TaskAction a] b -> Task (!Action,!a) | html description & iTask a & iTask b
+enterInformationAboutA :: !String !description ![TaskAction a] b -> Task (!ActionEvent,!a) | html description & iTask a & iTask b
 enterInformationAboutA subject description actions about = mkInteractiveTask subject (toString (html description)) (makeInformationTask Nothing (Just (visualizeAsHtmlDisplay about)) actions True)
 	
 updateInformationAbout :: !String !description b a -> Task a | html description & iTask a & iTask b 
-updateInformationAbout subject description about initial = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask (Just initial) (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)] False))
+updateInformationAbout subject description about initial = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeInformationTask (Just initial) (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)] False))
 
-updateInformationAboutA	:: !String !description ![TaskAction a] b a -> Task (!Action,!a) | html description & iTask a & iTask b
+updateInformationAboutA	:: !String !description ![TaskAction a] b a -> Task (!ActionEvent,!a) | html description & iTask a & iTask b
 updateInformationAboutA subject description actions about initial = mkInteractiveTask subject (toString (html description)) (makeInformationTask (Just initial) (Just (visualizeAsHtmlDisplay about)) actions True)
 
-makeInformationTask :: (Maybe a) (Maybe [HtmlTag]) ![TaskAction a] !Bool !*TSt -> (!TaskResult (!Action,!a),!*TSt) | iTask a
+makeInformationTask :: (Maybe a) (Maybe [HtmlTag]) ![TaskAction a] !Bool !*TSt -> (!TaskResult (!ActionEvent,!a),!*TSt) | iTask a
 makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, treeType}
 	# taskId			= taskNrToString taskNr
 	# editorId			= "tf-" +++ taskNrToString taskNr
 	# (ovalue,tst)		= readValue initial tst
 	# (oumask,tst)		= readMask initial tst
+	# (events,tst)		= getEvents tst
 	# buttonActions		= getButtonActions actions
 	= case treeType of
 		SpineTree
 			= (TaskBusy,tst)
 		JSONTree
-			# tst = setJSONValue (toJSON ovalue) tst
-			= (TaskBusy,tst)
+			# (nvalue,tst) = case (valueEvent events) of //Check action
+				Just nvalue
+					# (nmask,tst)	= accIWorldTSt (defaultMask nvalue) tst
+					# tst			= setTaskStore "value" nvalue tst	
+					# tst			= setTaskStore "mask" nmask tst
+					= (nvalue,tst)
+				Nothing
+					= (ovalue,tst)
+			# tst = setJSONValue (toJSON nvalue) tst
+			= case (actionEvent events actions) of
+				Just action = (TaskFinished ((action,"TODO"),nvalue),tst)
+				Nothing		= (TaskBusy,tst)
 		UITree
 			# (anyEvent,tst)	= anyEvents tst
-			| newTask || not anyEvent
+			| newTask || (isEmpty events && not anyEvent)
 				// generate TUI definition
 				# ovmask		= verifyValue ovalue oumask			
 				# (form,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
@@ -96,16 +105,15 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 				= (TaskBusy,tst)
 			| otherwise
 				//Check for events
-				# (events,tst) = getEvents tst
 				| isEmpty events
 					// no change for this task
 					# tst = setTUIUpdates [] [] tst
 					= (TaskBusy,tst)
 				| otherwise		
 					# (nvalue,numask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue oumask tst
-					# (action,tst) = getAction events (map fst buttonActions) tst
+					# action = actionEvent events actions
 					| isJust action
-						= (TaskFinished (fromJust action,nvalue),tst)
+						= (TaskFinished ((fromJust action,"TODO"),nvalue),tst)
 					| otherwise
 						# tst				= setTaskStore "value" nvalue tst
 						# tst				= setTaskStore "mask" numask tst
@@ -149,37 +157,37 @@ where
 
 enterChoice :: !String !description [a] -> Task a | html description & iTask a
 enterChoice subject description  []		= throw (subject +++ ": cannot choose from empty option list")
-enterChoice subject description options	= mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options -1 Nothing [(ActionOk, ifvalid, AsButton)]))
+enterChoice subject description options	= mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options -1 Nothing [(ActionOk, ifvalid)]))
 
-enterChoiceA :: !String !description ![TaskAction a] [a] -> Task (!Action,!a) | html description & iTask a
+enterChoiceA :: !String !description ![TaskAction a] [a] -> Task (!ActionEvent,!a) | html description & iTask a
 enterChoiceA subject description actions []		= throw (subject +++ ": cannot choose from empty option list")
 enterChoiceA subject description actions options	= mkInteractiveTask subject (toString (html description)) (makeChoiceTask options -1 Nothing actions)
 
 updateChoice :: !String !description [a] Int -> Task a | html description & iTask a 
 updateChoice subject description [] index		= throw (subject +++ ": cannot choose from empty option list")
-updateChoice subject description options index = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options index Nothing [(ActionOk, ifvalid, AsButton)]))
+updateChoice subject description options index = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options index Nothing [(ActionOk, ifvalid)]))
 
-updateChoiceA :: !String !description ![TaskAction a] [a] Int -> Task (!Action,!a) | html description & iTask a 
+updateChoiceA :: !String !description ![TaskAction a] [a] Int -> Task (!ActionEvent,!a) | html description & iTask a 
 updateChoiceA subject description actions [] index		= throw (subject +++ ": cannot choose from empty option list")
 updateChoiceA subject description actions options index	= mkInteractiveTask subject (toString (html description)) (makeChoiceTask options index Nothing actions)
 
 enterChoiceAbout :: !String !description b [a] -> Task a | html description & iTask a & iTask b
 enterChoiceAbout subject description about []			= throw (subject +++ ": cannot choose from empty option list")
-enterChoiceAbout subject description about options		= mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)]))
+enterChoiceAbout subject description about options		= mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
 
-enterChoiceAboutA :: !String !description ![TaskAction a] b [a] -> Task (!Action,!a) | html description & iTask a & iTask b
+enterChoiceAboutA :: !String !description ![TaskAction a] b [a] -> Task (!ActionEvent,!a) | html description & iTask a & iTask b
 enterChoiceAboutA subject description actions about []		= throw (subject +++ ": cannot choose from empty option list")
 enterChoiceAboutA subject description actions about options	= mkInteractiveTask subject (toString (html description)) (makeChoiceTask options -1 (Just (visualizeAsHtmlDisplay about)) actions)
 
 updateChoiceAbout :: !String !description b [a] Int -> Task a | html description & iTask a & iTask b
 updateChoiceAbout subject description about [] index		= throw (subject +++ ": cannot choose from empty option list")
-updateChoiceAbout subject description about options index  = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options index (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)]))
+updateChoiceAbout subject description about options index  = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeChoiceTask options index (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
 
-updateChoiceAboutA :: !String !description ![TaskAction a] b [a] Int-> Task (!Action,!a) | html description & iTask a & iTask b
+updateChoiceAboutA :: !String !description ![TaskAction a] b [a] Int-> Task (!ActionEvent,!a) | html description & iTask a & iTask b
 updateChoiceAboutA subject description actions about [] index			= throw (subject +++ ": cannot choose from empty option list")
 updateChoiceAboutA subject description actions about options index		= mkInteractiveTask subject (toString (html description)) (makeChoiceTask options index (Just (visualizeAsHtmlDisplay about)) actions)
 
-makeChoiceTask :: ![a] !Int (Maybe [HtmlTag]) ![TaskAction a] !*TSt -> (!TaskResult (!Action,!a),!*TSt) | iTask a
+makeChoiceTask :: ![a] !Int (Maybe [HtmlTag]) ![TaskAction a] !*TSt -> (!TaskResult (!ActionEvent,!a),!*TSt) | iTask a
 makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 	# taskId		= taskNrToString taskNr
 	# editorId		= "tf-" +++ taskId
@@ -218,10 +226,10 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 					# tst = setTUIUpdates [] [] tst
 					= (TaskBusy,tst)
 				| otherwise
-					# (action,tst) = getAction events (map fst buttonActions) tst
+					# action = actionEvent events actions
 					= case action of
 						// One of the buttons was pressed
-						Just action	= (TaskFinished (action, if valid (options !! selection) (hd options)),tst)
+						Just action	= (TaskFinished ((action,"TODO"), if valid (options !! selection) (hd options)),tst)
 						// The selection was updated
 						Nothing
 							// The selection was updated
@@ -245,30 +253,30 @@ where
 		= case mbList of Nothing = []; Just list = list
 
 enterMultipleChoice :: !String !description [a] -> Task [a] | html description & iTask a
-enterMultipleChoice subject description options = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options [] Nothing [(ActionOk, ifvalid, AsButton)]))
+enterMultipleChoice subject description options = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options [] Nothing [(ActionOk, ifvalid)]))
 
-enterMultipleChoiceA :: !String !description ![TaskAction [a]] [a] -> Task (!Action,![a]) | html description & iTask a
+enterMultipleChoiceA :: !String !description ![TaskAction [a]] [a] -> Task (!ActionEvent,![a]) | html description & iTask a
 enterMultipleChoiceA subject description actions options = mkInteractiveTask subject (toString (html description)) (makeMultipleChoiceTask options [] Nothing actions)
 
 updateMultipleChoice :: !String !description [a] [Int] -> Task [a] | html description & iTask a
-updateMultipleChoice subject description options indices = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options indices Nothing [(ActionOk, ifvalid, AsButton)]))
+updateMultipleChoice subject description options indices = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options indices Nothing [(ActionOk, ifvalid)]))
 
-updateMultipleChoiceA :: !String !description ![TaskAction [a]] [a] [Int] -> Task (!Action,![a]) | html description & iTask a
+updateMultipleChoiceA :: !String !description ![TaskAction [a]] [a] [Int] -> Task (!ActionEvent,![a]) | html description & iTask a
 updateMultipleChoiceA subject description actions options indices = mkInteractiveTask subject (toString (html description)) (makeMultipleChoiceTask options indices Nothing actions)
 
 enterMultipleChoiceAbout :: !String !description b [a] -> Task [a] | html description & iTask a & iTask b
-enterMultipleChoiceAbout subject description about options = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options [] (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)]))
+enterMultipleChoiceAbout subject description about options = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options [] (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
 
-enterMultipleChoiceAboutA :: !String !description ![TaskAction [a]] b [a] -> Task (!Action,![a]) | html description & iTask a & iTask b
+enterMultipleChoiceAboutA :: !String !description ![TaskAction [a]] b [a] -> Task (!ActionEvent,![a]) | html description & iTask a & iTask b
 enterMultipleChoiceAboutA subject description actions about options = mkInteractiveTask subject (toString (html description)) (makeMultipleChoiceTask options [] (Just (visualizeAsHtmlDisplay about)) actions)
 
 updateMultipleChoiceAbout :: !String !description b [a] [Int] -> Task [a] | html description & iTask a & iTask b
-updateMultipleChoiceAbout subject description about options indices = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options indices (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)]))
+updateMultipleChoiceAbout subject description about options indices = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options indices (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)]))
 
-updateMultipleChoiceAboutA :: !String !description ![TaskAction [a]] b [a] [Int] -> Task (!Action,![a]) | html description & iTask a & iTask b
+updateMultipleChoiceAboutA :: !String !description ![TaskAction [a]] b [a] [Int] -> Task (!ActionEvent,![a]) | html description & iTask a & iTask b
 updateMultipleChoiceAboutA subject description actions about options indices = mkInteractiveTask subject (toString (html description)) (makeMultipleChoiceTask options indices (Just (visualizeAsHtmlDisplay about)) actions)
 
-makeMultipleChoiceTask :: [a] [Int] (Maybe [HtmlTag]) ![TaskAction [a]] !*TSt -> (!TaskResult (!Action,![a]),!*TSt) | iTask a
+makeMultipleChoiceTask :: [a] [Int] (Maybe [HtmlTag]) ![TaskAction [a]] !*TSt -> (!TaskResult (!ActionEvent,![a]),!*TSt) | iTask a
 makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 	# taskId		= taskNrToString taskNr
 	# editorId		= "tf-" +++ taskId
@@ -286,7 +294,7 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 			# (anyEvent,tst)= anyEvents tst
 			// finish the task in case of an empty options list. As no options are selectable, the result is -of course- an empty list.
 			| isEmpty options
-			= (TaskFinished (ActionOk,[]),tst)
+			= (TaskFinished ((ActionOk,"TODO"),[]),tst)
 			| newTask || not anyEvent
 				// generate TUI definition
 				# checks		= [isMember i selection \\ i <- [0..(length options) - 1]]
@@ -311,9 +319,9 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 					= (TaskBusy,tst)
 				| otherwise
 					// One of the buttons was pressed
-					# (action,tst) = getAction events (map fst buttonActions) tst
+					# action = actionEvent events actions
 					= case action of
-						Just action	= (TaskFinished (action, select selection options),tst)
+						Just action	= (TaskFinished ((action,"TODO"), select selection options),tst)
 						Nothing
 							// Perhaps the selection was changed
 							# mbSel		= parseSelection events
@@ -330,15 +338,15 @@ where
 	
 //Output tasks
 showMessage	:: !String !message a -> Task a	| html message & iTask a
-showMessage subject message value = mkInteractiveTask subject (toString (html message)) (ignoreActionA (makeMessageTask Nothing [(ActionOk, ifvalid, AsButton)] value))
+showMessage subject message value = mkInteractiveTask subject (toString (html message)) (ignoreActionA (makeMessageTask Nothing [(ActionOk, ifvalid)] value))
 
-showMessageA :: !String !message ![TaskAction a] a -> Task (!Action, !a) | html message & iTask a
+showMessageA :: !String !message ![TaskAction a] a -> Task (!ActionEvent, !a) | html message & iTask a
 showMessageA subject message actions value = mkInteractiveTask subject (toString (html message)) (makeMessageTask Nothing actions value)
 
 showMessageAbout :: !String !message a -> Task a | html message & iTask a
-showMessageAbout subject message about = mkInteractiveTask subject (toString (html message)) (ignoreActionA (makeMessageTask (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid, AsButton)] about))
+showMessageAbout subject message about = mkInteractiveTask subject (toString (html message)) (ignoreActionA (makeMessageTask (Just (visualizeAsHtmlDisplay about)) [(ActionOk, ifvalid)] about))
 
-showMessageAboutA :: !String !message ![TaskAction a] a -> Task (!Action, !a) | html message & iTask a
+showMessageAboutA :: !String !message ![TaskAction a] a -> Task (!ActionEvent, !a) | html message & iTask a
 showMessageAboutA subject message actions about = mkInteractiveTask subject (toString (html message)) (makeMessageTask (Just (visualizeAsHtmlDisplay about)) actions about)
 	
 showStickyMessage :: !String !message a -> Task a | html message & iTask a
@@ -351,39 +359,46 @@ requestConfirmation	:: !String !description -> Task Bool | html description
 requestConfirmation subject description = mkInteractiveTask subject (toString (html description)) requestConfirmation`
 where
 	requestConfirmation` tst 
-		# (result,tst) = (makeMessageTask Nothing [(ActionNo, always, AsButton),(ActionYes, always, AsButton)] False) tst
-		= (mapTaskResult (\a -> case a of (ActionYes,_) = True; _ = False) result, tst)
+		# (result,tst) = (makeMessageTask Nothing [(ActionNo, always),(ActionYes, always)] False) tst
+		= (mapTaskResult (\a -> case a of ((ActionYes,_),_) = True; _ = False) result, tst)
 								
 requestConfirmationAbout :: !String !description a -> Task Bool | html description & iTask a
 requestConfirmationAbout subject description about = mkInteractiveTask subject (toString (html description)) requestConfirmationAbout`
 where
 	requestConfirmationAbout` tst
-		# (result,tst) = (makeMessageTask (Just (visualizeAsHtmlDisplay about)) [(ActionNo, always, AsButton),(ActionYes, ifvalid, AsButton)] False) tst
-		= (mapTaskResult (\a -> case a of (ActionYes,_) = True; _ = False) result, tst)
+		# (result,tst) = (makeMessageTask (Just (visualizeAsHtmlDisplay about)) [(ActionNo, always),(ActionYes, ifvalid)] False) tst
+		= (mapTaskResult (\a -> case a of ((ActionYes,_),_) = True; _ = False) result, tst)
 
-makeMessageTask :: (Maybe [HtmlTag]) ![TaskAction a] a *TSt -> (!TaskResult (!Action, !a),!*TSt) | iTask a
+makeMessageTask :: (Maybe [HtmlTag]) ![TaskAction a] a *TSt -> (!TaskResult (!ActionEvent, !a),!*TSt) | iTask a
 makeMessageTask context actions value tst=:{taskNr,treeType}
 	# taskId	= taskNrToString taskNr
 	# editorId	= "tf-" +++ taskId
+	# (events,tst) = getEvents tst
 	= case treeType of
 		SpineTree
 			= (TaskBusy,tst)
 		JSONTree
 			# tst = setJSONValue (toJSON value) tst
-			= (TaskBusy,tst)
+			= case (actionEvent events actions) of
+				Just action	= (TaskFinished ((action,"TODO"),value), tst)
+				Nothing		= (TaskBusy,tst)
 		UITree
 			# buttonActions	= getButtonActions actions
-			# (events,tst) = getEvents tst
 			| isEmpty events
 				# menuActions	= evaluateConditions (getMenuActions actions) True value
 				# buttonActions	= evaluateConditions buttonActions True value
 				# tst			= setTUIMessage (taskPanel taskId context Nothing (makeButtons editorId buttonActions)) menuActions tst
 				= (TaskBusy, tst)
 			| otherwise
-				# (action,tst) = getAction events (map fst buttonActions) tst
+				# action		= actionEvent events actions
+				
+				# tst			= setTUIUpdates [] [] tst
 				= case action of
-					Just action	=	(TaskFinished (action,value), tst)
-					Nothing =		(TaskBusy, tst)
+					Just action
+						= (TaskFinished ((action,"TODO"),value), tst)
+					Nothing
+						# tst	= setTUIUpdates [] [] tst
+						= (TaskBusy, tst)
 
 showInstruction :: !String !instruction a -> Task a | html instruction & iTask a
 showInstruction subject instruction value = mkInstructionTask subject (toString (html instruction)) (makeInstructionTask Nothing value)
@@ -457,17 +472,17 @@ idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
 idListener	:: View s	| iTask s & SharedVariable s
 idListener = listener {listenerFrom = id}
 
-updateShared :: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!Action, !s) | html description & iTask s & SharedVariable s
+updateShared :: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!ActionEvent, !s) | html description & iTask s & SharedVariable s
 updateShared subject description actions sharedId views = mkInteractiveTask subject (toString (html description)) (makeSharedTask description actions sharedId views False)
 
-updateSharedLocal :: !String description ![TaskAction s] !s ![View s] -> Task (!Action, !s) | html description & iTask s & SharedVariable s
+updateSharedLocal :: !String description ![TaskAction s] !s ![View s] -> Task (!ActionEvent, !s) | html description & iTask s & SharedVariable s
 updateSharedLocal subject description actions initial views =
 				createDB initial
 	>>= \sid.	mkInteractiveTask subject (toString (html description)) (makeSharedTask description actions sid views False)
 	>>= \res.	deleteDB sid
 	>>|			return res
 
-makeSharedTask :: description ![TaskAction s] !(DBId s) ![View s] !Bool !*TSt -> (!TaskResult (!Action,!s),!*TSt) | html description & iTask s & SharedVariable s
+makeSharedTask :: description ![TaskAction s] !(DBId s) ![View s] !Bool !*TSt -> (!TaskResult (!ActionEvent,!s),!*TSt) | html description & iTask s & SharedVariable s
 makeSharedTask description actions (DBId sharedId) views actionStored tst=:{taskNr, newTask}
 	# (mbcvalue,tst) = readShared sharedId tst
 	= case mbcvalue of
@@ -489,10 +504,10 @@ makeSharedTask description actions (DBId sharedId) views actionStored tst=:{task
 				# store				= storeValue sharedId nvalue store
 				# tst				= {TSt|tst & iworld = {IWorld|iworld & store = store}}
 				// check if action is triggered
-				# (mbAction,tst)	= getAction events (map fst buttonActions) tst
-				= case mbAction of
+				# action			= actionEvent events actions
+				= case action of
 					Just action
-						= (TaskFinished (action,fromJust mbcvalue),tst)
+						= (TaskFinished ((action,"TODO"),fromJust mbcvalue),tst)
 					Nothing
 						// updates are calculated after tree is build, shared value maybe changed by other tasks
 						# tst = setTUIFunc (createUpdates events) tst
@@ -572,7 +587,7 @@ where
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
 		
-taskPanel :: String (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,String,Bool)] -> ([TUIDef],[TUIButton])
+taskPanel :: String (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,Bool)] -> ([TUIDef],[TUIButton])
 taskPanel taskid mbContext mbForm buttons
 	= (items,taskButtons buttons) 
 where
@@ -582,40 +597,50 @@ where
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
 	taskContextPanel panelid context = TUIHtmlPanel {TUIHtmlPanel| id = panelid, html = toString (html context), border = False, bodyCssClass = "task-context", fieldLabel = Nothing, hideLabel = True, unstyled=True} 
 	
-	taskButtons	:: [(Action,String,String,String,Bool)] -> [TUIButton]
-	taskButtons buttons = [toTUIButton button id name value enable \\ (button,id,name,value,enable) <- buttons]
+	taskButtons	:: [(Action,String,String,Bool)] -> [TUIButton]
+	taskButtons buttons = [toTUIButton button id name enable \\ (button,id,name,enable) <- buttons]
 
-	toTUIButton :: !Action !String !String !String !Bool -> TUIButton
-	toTUIButton action id name value enable = {TUIButton| name = name, id = id, value = value, disabled = not enable, text = actionLabel action, iconCls = actionIcon action}
+	toTUIButton :: !Action !String !String !Bool -> TUIButton
+	toTUIButton action id name enable = {TUIButton| name = name, id = id, action = actionName action, disabled = not enable, text = actionLabel action, iconCls = actionIcon action}
 	
 //Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
-makeButtons :: !String ![(Action, Bool)] -> [(!Action,!String,!String,!String,!Bool)]	
+makeButtons :: !String ![(Action, Bool)] -> [(!Action,!String,!String,!Bool)]	
 makeButtons editorId actions
-	= [(b,editorId +++ "-action-" +++ toString i, "action",toString i, p) \\ (b, p) <- actions & i <- [0..] ]
+	= [(b,editorId +++ "-action-" +++ toString i, "action", p) \\ (b, p) <- actions & i <- [0..] ]
 
 //Generate the TUIUpdates for the buttons that are active when valid
 enables :: !String ![(Action, Bool)] -> [TUIUpdate]	
 enables editorId actions
 	= [TUISetEnabled (editorId +++ "-action-" +++ toString i) p \\ (_,p) <- actions & i <- [0..]]
 
-//Get button or menu action given by updates.
-getAction :: [(String, String)] ![Action] !*TSt -> (!Maybe Action, !*TSt)
-getAction events buttonActions tst
-		# index = toInt (http_getValue "action" events "-1")
-		| index <> -1
-			= (Just (buttonActions !! index),tst)
-		| otherwise
-			= case fromJSON (fromString (http_getValue "menu" events "")) of
-				Nothing	= case fromJSON (fromString (http_getValue "menuAndGroup" events "")) of
-					Nothing	= (fromJSON (fromString (http_getValue "hotkey" events "")) ,tst)
-					res		= (res, tst)
-				res			= (res ,tst)
-			
+//Filter out the actions represented as buttons
+//TODO: CHANGE TO RETURN ONLY ACTIONS NOT IN MENU
 getButtonActions :: ![TaskAction a] -> [(!Action, (Verified a) -> Bool)]
-getButtonActions actions = [(action,pred) \\ (action,pred,AsButton) <- actions]
-	
+getButtonActions actions = [(action,pred) \\ (action,pred) <- actions]
+
+//Filter out the actions activated in the menu
+//TODO: ONLY RETURN THE ACTIONS THAT HAVE A MENU POSITION DEFINED
 getMenuActions :: ![TaskAction a] -> [(!Action, (Verified a) -> Bool)]
-getMenuActions actions = [(action,pred) \\ (action,pred,InMenu) <- actions]
+getMenuActions actions = [(action,pred) \\ (action,pred) <- actions]
+
+//Check if there is an action event among the events 
+actionEvent :: [(String,String)] [TaskAction a] -> Maybe Action
+actionEvent events actions	
+	| key == ""		= Nothing
+	| otherwise		= case [action \\ (action,pred) <- actions | actionName action == key] of
+						[action]	= Just action
+						_			= Nothing
+where
+	key = http_getValue "action" events ""
+
+//Check if there is a value event among the events
+valueEvent :: [(String,String)] -> Maybe a | JSONDecode{|*|} a
+valueEvent events
+	| raw == "" 	= Nothing
+	| otherwise		= fromJSON (fromString raw)
+where
+	raw = http_getValue "value" events ""
+
 
 always :: (Verified a) -> Bool
 always _ = True
@@ -667,7 +692,7 @@ actionLabel action					= upperCaseFirst (actionName action)
 
 			
 //Throw away the chosen action part of the result
-ignoreActionA :: (*TSt -> (!TaskResult (!Action,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
+ignoreActionA :: (*TSt -> (!TaskResult (!ActionEvent,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 ignoreActionA f = \tst -> let (res,tst`) = f tst in (mapTaskResult snd res,tst`)
 			
 mapTaskResult :: !(a -> b) !(TaskResult a) -> TaskResult b

@@ -4,7 +4,7 @@ import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
 from 	Types import :: DateTime
-from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action
+from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action, actionName
 derive class iTask SchedulerState
 
 import	TSt
@@ -121,25 +121,24 @@ group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![
 group label description procFun parseFun initState initTasks groupActions = mkGroupedTask label description execInGroup
 where
 	execInGroup tst=:{taskNr,request}
-		# grTaskNr			= drop 1 taskNr // get taskNr of group-task
-		# (events,tst)		= getGroupEvents (taskNrToString grTaskNr) tst
-		# eventActions		= [fromJSON (fromString value) \\ (_, value) <- events]
-		# (pst,tst)   		= loadPSt grTaskNr tst
+		# (pst,tst)   		= loadPSt taskNr tst
+		# (events,tst)		= getEvents tst
+		# mbAction			= getEventGroupAction events groupActions
 		# (gActionStop,mbFocus,pst) 
-							= case eventActions of
-								[Just eventAction:_] = case filter (\act -> (getAction act) == eventAction) groupActions of
-									[gActions:_]
-										# (nSt,act) = procFun (getResult eventAction gActions,-1) pst.PSt.state
-										# pst = {PSt | pst & state = nSt}
-										= case act of
-											Stop			= (True,Nothing,pst)
-											Continue		= (False,Nothing,pst)
-											Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]})
-											Focus tag		= (False,Just tag,pst)
-									_ = (False,Nothing,pst)
-								_ = (False,Nothing,pst)
+			= case mbAction of
+				Nothing
+					= (False,Nothing,pst)
+				Just gAction
+					# (nSt,act) = procFun (getResult gAction, -1) pst.PSt.state
+					# pst = {PSt | pst & state = nSt}
+					= case act of
+						Stop			= (True,Nothing,pst)
+						Continue		= (False,Nothing,pst)
+						Extend tlist	= (False,Nothing,{PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]})
+						Focus tag		= (False,Just tag,pst)
+				
 		# (result,pst,tst,mbFocus) 	= processAllTasks pst 0 tst mbFocus
-		# tst						= setTaskStoreFor grTaskNr "pst" pst tst
+		# tst						= setTaskStoreFor taskNr "pst" pst tst
 		= case result of
 			TaskException e = (TaskException e,tst)
 			TaskFinished  r = (TaskFinished (parseFun r),tst)
@@ -152,24 +151,24 @@ where
 						Nothing			= tst
 					= (TaskBusy,tst)
 
-	processAllTasks pst idx tst mbFocus
+	processAllTasks pst idx tst=:{taskNr} mbFocus
 		| (length pst.tasks) == idx = (TaskBusy,pst,tst,mbFocus)
 		# (task,done)				= pst.tasks !! idx
-		# (res,tst)					= applyTask task tst
+		# (res,tst)					= applyTask task {tst & taskNr = [idx:taskNr]} 
 		= case res of
-			TaskException e = (TaskException e,pst,tst,mbFocus)
-			TaskBusy		= processAllTasks pst (inc idx) tst mbFocus
+			TaskException e = (TaskException e,pst,{tst & taskNr = taskNr},mbFocus)
+			TaskBusy		= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
 			TaskFinished a	
-				| done			= processAllTasks pst (inc idx) tst mbFocus
+				| done			= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
 				# (nSt,act)		= procFun (a,idx) pst.PSt.state
 				# pst			= markProcessed {PSt | pst & state = nSt} idx
 				= case act of
-					Stop 		= (TaskFinished pst.PSt.state,pst,tst,mbFocus)
-					Continue	= processAllTasks pst (inc idx) tst mbFocus
+					Stop 		= (TaskFinished pst.PSt.state,pst,{tst & taskNr = taskNr},mbFocus)
+					Continue	= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
 					Extend tlist
 						# pst = {PSt | pst & tasks = pst.tasks ++ [(task,False) \\ task <- tlist]}
-						= processAllTasks pst (inc idx) tst mbFocus
-					Focus tag	= processAllTasks pst (inc idx) tst (Just tag)
+						= processAllTasks pst (inc idx) {tst & taskNr = taskNr} mbFocus
+					Focus tag	= processAllTasks pst (inc idx) {tst & taskNr = taskNr} (Just tag)
 
 	loadPSt taskNr tst
 		# (mbPSt,tst) = getTaskStoreFor taskNr "pst" tst
@@ -203,14 +202,22 @@ where
 				Just val	= (p (SharedValue val), tst)
 				Nothing		= (p SharedDeleted, tst)
 				
+	
+	getEventGroupAction events groupActions
+		# name = http_getValue "action" events ""
+		= case [ga \\ ga <- groupActions | actionName (getAction ga) == name] of
+			[action]	= Just action
+			_			= Nothing
+
+	//De-wrap the group action components
 	getAction	(GroupAction a _ _)			= a
 	getAction	(GroupActionParam name _ _)	= ActionParam name name "?"
 	
 	getCond		(GroupAction _ _ cond)		= cond
 	getCond		(GroupActionParam _ _ cond)	= cond
-	
-	getResult	(ActionParam _ _ param)	(GroupActionParam _ f _)	= f param
-	getResult	_						(GroupAction _ res _)		= res
+
+	getResult	(GroupActionParam _ f _)	= f "???" //Hoe kom ik aan die parameter. Hij mag niet van de client komen.
+	getResult	(GroupAction _ res _)		= res
 
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel parType label description procFun parseFun initState initTasks

@@ -947,7 +947,7 @@ where
 	curLabel (VValue (EUR _))	= "&euro;"
 	curLabel (VValue (GBP _))	= "&pound;"
 	curLabel (VValue (USD _))	= "$"
-	curLabel (VValue (JPY _)) = "&yen;"
+	curLabel (VValue (JPY _)) 	= "&yen;"
 	curLabel _					= "&euro;" //Use the default currency
 	
 	value VBlank um			= ""

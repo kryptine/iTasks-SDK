@@ -3,11 +3,10 @@ implementation module TaskPanel
 import StdList, StdMisc, StdTuple, StdEnum, StdBool, StdFunc
 import JSON, Html, TSt, TUIDefinition
 
-from InteractionTasks	import :: Menu(..), :: MenuItem(..), actionIcon, instance == Action
+from InteractionTasks	import :: Menu(..), :: MenuItem(..), actionIcon, actionName, instance == Action
 
-derive JSONEncode SubtaskInfo
 derive JSONEncode TTCFormContainer, FormContent, TTCMonitorContainer, TTCMessageContainer, TTCResultContainer, TTCProcessControlContainer, TTCInstructionContainer
-derive JSONEncode TTCParallelContainer, TTCGroupContainer, GroupedBehaviour, GroupContainerElement
+derive JSONEncode TTCParallelContainer,TTCParallelContainerElement, TTCGroupContainer, TTCGroupContainerElement, GroupedBehaviour
 
 //JSON specialization for TaskPanel: Ignore the union constructor
 JSONEncode{|TaskPanel|} (TaskDone)							= [JSONString "done"]
@@ -33,118 +32,127 @@ buildTaskPanel` tree menus gActions currentUser
 		Just (Menus nMenus)	= nMenus	// use new menu structure
 		_					= abort "Non-normalized menu structure left in task tree"
 	= case tree of
-	(TTFinishedTask _ _)
-		= TaskDone
-	(TTInteractiveTask ti (UIOutput (Definition (def,buttons) acceptedA)))
-		= TTCFormContainer {TTCFormContainer 
-			| xtype 		= "itasks.ttc.form"
-			, id 			= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 		= ti.TaskInfo.taskId
-			, subject		= ti.TaskInfo.subject
-			, description	= ti.TaskInfo.description
-			, content 		= Just {form = def, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
-			, updates 		= Nothing
-			, subtaskId 	= Nothing	
-			}
-	(TTInteractiveTask ti (UIOutput (Updates upd acceptedA)))
-		= TTCFormContainer {TTCFormContainer 
-			| xtype 		= "itasks.ttc.form"
-			, id 			= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 		= ti.TaskInfo.taskId
-			, subject		= ti.TaskInfo.subject
-			, description	= ti.TaskInfo.description
-			, content 		= Nothing
-			, updates 		= Just (determineUpdates upd menus acceptedA (if (includeGroupActions ti) gActions []) ti)
-			, subtaskId 	= Nothing
-			}
-	(TTInteractiveTask ti (UIOutput (Func f)))
-		= abort "Non-normalized interactive task left in task tree"
-	(TTInteractiveTask ti (UIOutput (Message (msg,buttons) acceptedA)))
-		= TTCMessageContainer {TTCMessageContainer
-			| xtype		= "itasks.ttc.message"
-			, id		= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId	= ti.TaskInfo.taskId
-			, subject	= ti.TaskInfo.subject
-			, description = ti.TaskInfo.description
-			, content	= {form = msg, tbar = makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti, buttons = map TUIButton buttons}
-			, subtaskId = Nothing
-			}
-	(TTMonitorTask ti (UIOutput html))
-		= TTCMonitorContainer {TTCMonitorContainer 
-			| xtype 		= "itasks.ttc.monitor"
-			, id 			= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 		= ti.TaskInfo.taskId
-			, subject		= ti.TaskInfo.subject
-			, description	= ti.TaskInfo.description
-			, html 			= toString (DivTag [] html)
-			, subtaskId		= Nothing
-			}
-	(TTInstructionTask ti (UIOutput context))
-		= TTCInstructionContainer {TTCInstructionContainer 
-			| xtype 		= "itasks.ttc.instruction"
-			, id 			= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 		= ti.TaskInfo.taskId
-			, subject		= ti.TaskInfo.subject
-			, description 	= ti.TaskInfo.description
-			, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
-			, subtaskId 	= Nothing
-			}
-	(TTRpcTask ti rpc) 
-		= TTCMonitorContainer {TTCMonitorContainer 
-			| xtype 		= "itasks.ttc.monitor"
-			, id 			= "taskform-" +++ ti.TaskInfo.taskId
-			, taskId 		= ti.TaskInfo.taskId
-			, subject		= ti.TaskInfo.subject
-			, description	= ti.TaskInfo.description
-			, html 			= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
-			, subtaskId		= Nothing
-			}
-	(TTMainTask ti mti _ _)
-		= TTCProcessControlContainer {TTCProcessControlContainer 
-			| xtype = "itasks.ttc.proc-control"
-			, taskId = ti.TaskInfo.taskId
-			, properties = mti
-			, subtaskId	= Nothing
-			}
-	(TTSequenceTask ti tasks)
-		= case [t \\ t <- tasks | not (isFinished t)] of
-			[]	= if (allFinished tasks) TaskDone TaskRedundant
-			[t]	= buildTaskPanel` t menus gActions currentUser
-			_	= (abort "Multiple simultaneously active tasks in a sequence!")
-	(TTGroupedTask ti tasks gActions mbFocus)
-		= TTCGroupContainer {TTCGroupContainer 
-					 		 | xtype = "itasks.ttc.group"
-							 , taskId = ti.TaskInfo.taskId
-							 , content = filter filterFinished (buildGroupElements tasks currentUser gActions menus mbFocus)
-							 , subtaskId = Nothing
-							 , groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, Left b) <- gActions] ti
-							 }
-	(TTParallelTask ti tpi tasks)
-		= TTCParallelContainer {TTCParallelContainer 
-								| xtype = "itasks.ttc.parallel"
-								, taskId = ti.TaskInfo.taskId
-								, subject = ti.TaskInfo.subject
-								, description = ti.TaskInfo.description
-								, subtaskInfo = map buildSubtaskInfo tasks
-								}
+		(TTFinishedTask _ _)
+			= TaskDone
+		(TTInteractiveTask ti (UIOutput (Definition (def,buttons) acceptedA)))
+			= TTCFormContainer {TTCFormContainer 
+				| xtype 		= "itasks.ttc.form"
+				, id 			= "taskform-" +++ ti.TaskInfo.taskId
+				, taskId 		= ti.TaskInfo.taskId
+				, subject		= ti.TaskInfo.subject
+				, description	= ti.TaskInfo.description
+				, content 		= Just {form = def, buttons = map TUIButton buttons}
+				, updates 		= Nothing	
+				, menu			= Just (makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti)
+				}
+		(TTInteractiveTask ti (UIOutput (Updates upd acceptedA)))
+			= TTCFormContainer {TTCFormContainer 
+				| xtype 		= "itasks.ttc.form"
+				, id 			= "taskform-" +++ ti.TaskInfo.taskId
+				, taskId 		= ti.TaskInfo.taskId
+				, subject		= ti.TaskInfo.subject
+				, description	= ti.TaskInfo.description
+				, content 		= Nothing
+				, updates 		= Just (determineUpdates upd menus acceptedA (if (includeGroupActions ti) gActions []) ti)
+				, menu			= Nothing
+				}
+		(TTInteractiveTask ti (UIOutput (Func f)))
+			= abort "Non-normalized interactive task left in task tree"
+		(TTInteractiveTask ti (UIOutput (Message (msg,buttons) acceptedA)))
+			= TTCMessageContainer {TTCMessageContainer
+				| xtype		= "itasks.ttc.message"
+				, id		= "taskform-" +++ ti.TaskInfo.taskId
+				, taskId	= ti.TaskInfo.taskId
+				, subject	= ti.TaskInfo.subject
+				, description = ti.TaskInfo.description
+				, content	= {form = msg, buttons = map TUIButton buttons }
+				, menu		= Just (makeMenuBar menus acceptedA (if (includeGroupActions ti) gActions []) ti)
+				}
+		(TTInteractiveTask ti NoOutput)
+			= abort "No Output node in the task tree"
+		(TTInteractiveTask ti (JSONOutput _))
+			= abort "JSON Output in the task tree"
+		(TTMonitorTask ti (UIOutput html))
+			= TTCMonitorContainer {TTCMonitorContainer 
+				| xtype 		= "itasks.ttc.monitor"
+				, id 			= "taskform-" +++ ti.TaskInfo.taskId
+				, taskId 		= ti.TaskInfo.taskId
+				, subject		= ti.TaskInfo.subject
+				, description	= ti.TaskInfo.description
+				, html 			= toString (DivTag [] html)
+				, menu			= Nothing
+				}
+		(TTInstructionTask ti (UIOutput context))
+			= TTCInstructionContainer {TTCInstructionContainer 
+				| xtype 		= "itasks.ttc.instruction"
+				, id 			= "taskform-" +++ ti.TaskInfo.taskId
+				, taskId 		= ti.TaskInfo.taskId
+				, subject		= ti.TaskInfo.subject
+				, description 	= ti.TaskInfo.description
+				, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
+				, menu			= Nothing
+				}
+		(TTRpcTask ti rpc) 
+			= TTCMonitorContainer {TTCMonitorContainer 
+				| xtype 		= "itasks.ttc.monitor"
+				, id 			= "taskform-" +++ ti.TaskInfo.taskId
+				, taskId 		= ti.TaskInfo.taskId
+				, subject		= ti.TaskInfo.subject
+				, description	= ti.TaskInfo.description
+				, html 			= toString (DivTag [] [Text rpc.RPCExecute.operation.RPCOperation.name, Text ": ", Text rpc.RPCExecute.status])
+				, menu			= Nothing
+				}
+		(TTMainTask ti mti _ _)
+			= TTCProcessControlContainer {TTCProcessControlContainer 
+				| xtype = "itasks.ttc.proc-control"
+				, taskId = ti.TaskInfo.taskId
+				, properties = mti
+				, menu = Nothing
+				}
+		(TTSequenceTask ti tasks)
+			= case [t \\ t <- tasks | not (isFinished t)] of
+				[]	= if (allFinished tasks) TaskDone TaskRedundant
+				[t]	= buildTaskPanel` t menus gActions currentUser
+				_	= (abort "Multiple simultaneously active tasks in a sequence!")
+		(TTGroupedTask ti tasks gActions mbFocus)
+			= TTCGroupContainer {TTCGroupContainer 
+						 		 | xtype = "itasks.ttc.group"
+								 , taskId = ti.TaskInfo.taskId
+								 , subject = ti.TaskInfo.subject
+								 , description = ti.TaskInfo.description
+								 , content = filter filterFinished (buildGroupElements tasks currentUser gActions menus mbFocus)
+								 , subtaskId = Nothing
+								 , groupAMenu = Nothing
+								// , groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, Left b) <- gActions] ti
+								 , menu = Just (makeMenuBar menus [] [(a, b, True) \\ (a, Left b) <- gActions] ti)
+								 }
+		(TTParallelTask ti tpi tasks)
+			= TTCParallelContainer {TTCParallelContainer 
+									| xtype = "itasks.ttc.parallel"
+									, taskId = ti.TaskInfo.taskId
+									, subject = ti.TaskInfo.subject
+									, description = ti.TaskInfo.description
+									, subtaskInfo = map buildSubtaskInfo tasks
+									, menu = Nothing
+									}
 
 where		
 	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
 		IncludeGroupActions	= True
 		ExcludeGroupActions	= False
 
-buildSubtaskInfo :: !TaskTree -> SubtaskInfo
+buildSubtaskInfo :: !TaskTree -> TTCParallelContainerElement
 buildSubtaskInfo (TTMainTask _ p _ _)
-		= {SubtaskInfo	| taskId		= p.systemProperties.SystemProperties.taskId
-						, subject		= p.managerProperties.ManagerProperties.subject
-						, description	= p.managerProperties.ManagerProperties.description
-						, delegatedTo	= toString p.managerProperties.ManagerProperties.worker
-						, finished		= case p.systemProperties.SystemProperties.status of
+	= {TTCParallelContainerElement	| taskId		= p.systemProperties.SystemProperties.taskId
+									, subject		= p.managerProperties.ManagerProperties.subject
+									, description	= p.managerProperties.ManagerProperties.description
+									, delegatedTo	= toString p.managerProperties.ManagerProperties.worker
+									, finished		= case p.systemProperties.SystemProperties.status of
 											Finished	= True	//Possible improvement:			
 											Excepted	= True	//We could give more information to the client here!
 											_			= False
-						}
-
+									}
+									
 buildResultPanel :: !TaskTree -> TaskPanel
 buildResultPanel tree = case tree of 
 	(TTFinishedTask	ti (UIOutput result))
@@ -154,7 +162,6 @@ buildResultPanel tree = case tree of
 								, taskId	= ti.TaskInfo.taskId
 								, subject	= ti.TaskInfo.subject
 								, result	= (foldl (+++) "" (map toString result))
-								, subtaskId	= Nothing
 								})
 	(TTMainTask ti p _ tt) //Pass through any finished main tasks, in case there is a finished task below (e.g. in case of a parallel)
 		| p.systemProperties.SystemProperties.status == Finished = buildResultPanel tt
@@ -166,11 +173,11 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !User ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !Menus !(Maybe String) -> [GroupContainerElement]
+buildGroupElements :: ![TaskTree] !User ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !Menus !(Maybe String) -> [TTCGroupContainerElement]
 buildGroupElements tasks currentUser gActions menus mbFocus
 	= flatten [buildGroupElements` t [nr] [(a, b, True) \\ (a, Left b) <- gActions] Nothing mbFocus \\ t <- tasks & nr <- [1..]]
 where
-	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) -> [GroupContainerElement]
+	buildGroupElements` :: !TaskTree !SubtaskNr ![(Action,Bool,Bool)] !(Maybe GroupedBehaviour) !(Maybe String) -> [TTCGroupContainerElement]
 	buildGroupElements` (TTGroupedTask _ tasks gActions mbFocus) stnr parentGActions  _ mbFocusParent
 		# mbFocus = case mbFocus of
 			Nothing		= mbFocusParent
@@ -232,8 +239,8 @@ where
 				[(groupA,groupAEnabled,_):_]		= [TUIMenuItem	{ TUIMenuItem	
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
-																	, name = Just (if (taskAEnabled && groupAEnabled) "menuAndGroup" (if taskAEnabled "menu" "group"))
-																	, value = Just (toString (toJSON action))
+																	, target = Just ti.TaskInfo.taskId
+																	, action = Just (actionName action)
 																	, disabled = not (taskAEnabled || groupAEnabled)
 																	, menu = Nothing
 																	, iconCls = Just (actionIcon action)
@@ -244,8 +251,8 @@ where
 				_									= [TUIMenuItem	{ TUIMenuItem
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
-																	, name = Just "menu"
-																	, value = Just (toString (toJSON action))
+																	, target = Just ti.TaskInfo.taskId
+																	, action = Just (actionName action)
 																	, disabled = not taskAEnabled
 																	, menu = Nothing
 																	, iconCls = Just (actionIcon action)
@@ -257,8 +264,8 @@ where
 				[(groupA,groupAEnabled,topLevel):_]	= [TUIMenuItem	{ TUIMenuItem
 																	| id = Just (ti.TaskInfo.taskId +++ "-menu-" +++ toString id)
 																	, text = label
-																	, name = Just "group"
-																	, value = Just (toString (toJSON action))
+																	, target = Just ti.TaskInfo.taskId
+																	, action = Just (actionName action)
 																	, disabled = not groupAEnabled
 																	, menu = Nothing
 																	, iconCls = Just (actionIcon action)
@@ -276,8 +283,8 @@ where
 														, text = label
 														, menu = Just {TUIMenu | items = children}
 														, disabled = False
-														, name = Nothing
-														, value = Nothing
+														, action = Nothing
+														, target = Nothing
 														, iconCls = Nothing
 														, topGroupAction = Nothing
 														, hotkey = Nothing
