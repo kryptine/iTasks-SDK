@@ -7,16 +7,15 @@ textEditor = [workflow "Examples/Miscellaneous/Text Editor" "A simple text edito
 
 // global workflows
 textEditorApp :: Task Void
-textEditorApp = mdiApplication (AppState 0 []) groupActions menuGenFunc
+textEditorApp = mdiApplication (AppState 0 []) groupActions actionGenFunc menuGenFunc
 where
-	groupActions :: !(DBId AppState) !(MDITasks EditorState Bool) -> [GroupAction GAction Void AppState]
-	groupActions gid mdiTasks=:{createEditor, iterateEditors} =
-		[ GroupAction		ActionNew		(GExtend [newFile gid createEditor])							GroupAlways
-		, GroupAction		ActionOpen		(GExtend [openDialog gid mdiTasks <<@ GBFloating])				GroupAlways
-		, GroupActionParam	actionOpenFile	(\fid -> GExtend [open (DBRef (toInt fid)) mdiTasks Nothing])	GroupAlways
-		, GroupAction		ActionAbout		(GExtend [about <<@ GBFloating])								GroupAlways
-		, GroupAction		ActionQuit		(GExtend [quit iterateEditors <<@ GBModal])						GroupAlways
-		]
+	groupActions = [(ActionNew, Always), (ActionOpen, Always), (Action OpenFile "", Always), (ActionAbout, Always), (ActionQuit, Always)]
+	actionGenFunc gid mdiTasks=:{createEditor, iterateEditors} (action, data) = case action of
+		ActionNew			= GExtend [newFile gid createEditor]
+		ActionOpen			= GExtend [openDialog gid mdiTasks <<@ Floating]
+		Action OpenFile _	= GExtend [open (DBRef (toInt data)) mdiTasks Nothing]
+		ActionAbout			= GExtend [about <<@ Floating]
+		ActionQuit			= GExtend [quit iterateEditors <<@ Modal]
 		
 	hotkey :: !Key -> Maybe Hotkey
 	hotkey key = Just {ctrl = True, alt = False, shift = True, key = key}
@@ -34,20 +33,20 @@ where
 						, MenuItem "Quit"			ActionQuit		(hotkey Q)
 						, MenuItem "Ok"				ActionOk		Nothing
 						]
-		, Menu "Edit"	[ MenuItem "Replace..."		ActionReplace	(hotkey R)
+		, Menu "Edit"	[ MenuItem "Replace..."		(Action Replace "")	(hotkey R)
 						]
-		, Menu "Tools"	[ MenuItem "Statistics..."	ActionStats		(hotkey T)
+		, Menu "Tools"	[ MenuItem "Statistics..."	(Action Stats "")		(hotkey T)
 						]
 		, Menu "Help"	[ MenuItem "About"			ActionAbout		Nothing
 						]
 		]
 	where
-		recentlyOpenedMenu = [MenuItem name (ActionParam "openFile" actionOpenFile (toString id)) Nothing \\ (DBRef id, name) <- recOpenedFiles]
+		recentlyOpenedMenu = [MenuItem name (Action OpenFile "Open File"/*(toString id)*/) Nothing \\ (DBRef id, name) <- recOpenedFiles]
 						
-ActionReplace	:== Action "replace" "replace"
-ActionStats		:== Action "stats" "stats"
-recOpenedMenu	:== "recOpened"
-actionOpenFile	:== "openFile"
+Replace			:== "replace"
+Stats			:== "stats"
+RecOpenedMenu	:== "recOpened"
+OpenFile		:== "openFile"
 
 newFile :: !AppStateRef !(MDICreateEditor EditorState) -> Task GAction
 newFile aid createEditor =
@@ -79,7 +78,7 @@ open fid {createEditor, existsEditor} mbGid =
 									modifyDB gid (\(AppState n files) -> AppState n (take 5 [(fid, file.TextFile.name):files]))
 								>>| stop
 			>>|			return (GExtend [editor file])
-		Just (DBId eid) = return (GFocus eid)
+		Just eid = return (GFocus (Tag eid))
 where
 	isEditingOpenendFile :: !EditorState -> Bool
 	isEditingOpenendFile (EditorState _ file) =	case file of
@@ -87,7 +86,7 @@ where
 		OpenedFile file	= (fid == file.fileId)
 	
 	editor :: !TextFile -> Task GAction					
-	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ GBFloating
+	editor file = createEditor (EditorState file.TextFile.content (OpenedFile file)) textEditorFile  <<@ Floating
 
 about :: Task GAction
 about = showMessageA "About" "iTextEditor July 2010" [(ActionOk,always)] GContinue >>= transform snd
@@ -103,25 +102,28 @@ where
 	
 // editor workflows
 textEditorFile :: !EditorStateRef -> Task Void
-textEditorFile eid = dynamicGroupA [editorWindow eid <<@ GBFloating] (actions eid)
+textEditorFile eid = dynamicGroupA [editorWindow eid <<@ Floating] actions actionsGenFunc
 where
-	actions :: !EditorStateRef -> [GroupAction GAction Void EditorState]
-	actions eid =	[ GroupAction ActionSave	(GExtend [save eid])						(SharedPredicate eid noNewFile)
-					, GroupAction ActionSaveAs	(GExtend [saveAs eid <<@ GBModal])			GroupAlways
-					, GroupAction ActionReplace	(GExtend [replaceT eid  <<@ GBFloating])	(SharedPredicate eid contNotEmpty)
-					, GroupAction ActionStats	(GExtend [statistics eid  <<@ GBFloating])	GroupAlways
-					, GroupAction ActionClose	(GExtend [close eid <<@ GBModal])			GroupAlways
-					]
+	actions =	[ (ActionSave, SharedPredicate eid noNewFile), (ActionSaveAs, Always)
+				, (Action Replace "Replace", SharedPredicate eid contNotEmpty)
+				, (Action Stats "Statistics", Always), (ActionClose, Always)
+				]
+	actionsGenFunc (action, _) = case action of
+		ActionSave			= GExtend [save eid]
+		ActionSaveAs		= GExtend [saveAs eid <<@ Modal]
+		Action Replace _	= GExtend [replaceT eid  <<@ Floating]
+		Action Stats _		= GExtend [statistics eid  <<@ Floating]
+		ActionClose			= GExtend [close eid <<@ Modal]
 	
-	noNewFile :: !(SharedValue EditorState) -> Bool					
-	noNewFile SharedDeleted = abort "editor state deleted"
-	noNewFile (SharedValue (EditorState _ file)) = case file of
+	noNewFile :: !(Maybe EditorState) -> Bool					
+	noNewFile Nothing = abort "editor state deleted"
+	noNewFile (Just (EditorState _ file)) = case file of
 		(OpenedFile _)	= True
 		_				= False
 	
-	contNotEmpty :: !(SharedValue EditorState) -> Bool
-	contNotEmpty SharedDeleted = abort "editor state deleted"
-	contNotEmpty (SharedValue (EditorState (Note cont) _)) = cont <> ""
+	contNotEmpty :: !(Maybe EditorState) -> Bool
+	contNotEmpty Nothing = abort "editor state deleted"
+	contNotEmpty (Just (EditorState (Note cont) _)) = cont <> ""
 	
 editorWindow :: !EditorStateRef -> Task GAction
 editorWindow eid =

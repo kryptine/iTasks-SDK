@@ -11,8 +11,8 @@ from Types import :: User (..)
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
-:: GAction		= GStop | GContinue | GExtend [Task GAction] | GFocus String
-:: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void] | GOFocus String
+:: GAction		= GStop  | GContinue  | GExtend [Task GAction] | GFocus Tag
+:: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void]   | GOFocus Tag
 
 derive gVisualize	GAction, GOnlyAction
 derive gUpdate		GAction, GOnlyAction
@@ -207,30 +207,32 @@ repeatTask		:: !(a -> Task a) !(a -> Bool) a 			-> Task a					| iTask a
 *
 * @param List of initial tasks
 */
-dynamicGroup		:: ![Task GAction]									-> Task Void
+dynamicGroup		:: ![Task GAction]															-> Task Void
 /**
 * Tasks and group-actions can dynamically add other tasks or stop execution of group.
 *
 * @param List of initial tasks
 * @param List of group-actions
 */
-dynamicGroupA		:: ![Task GAction] ![GroupAction GAction Void s]	-> Task Void | iTask s
+dynamicGroupA		:: ![Task GAction]	![GroupAction Void] !(GroupActionGenFunc GAction)		-> Task Void
 /**
 * Only group-actions can dynamically add other tasks or stop execution of group.
 *
 * @param List of initial tasks
 * @param List of group-actions
 */
-dynamicGroupAOnly	:: ![Task Void] ![GroupAction GOnlyAction Void s]	-> Task Void | iTask s
+dynamicGroupAOnly	:: ![Task Void]		![GroupAction Void] !(GroupActionGenFunc GOnlyAction)	-> Task Void
 /**
 * Combinator for creating Multiple Document Interface (MDI) applications.
 *
 * @param An initial state for global application data
-* @param A function generating global application group actions.
+* @param A list of global application group actions
+* @param A function generating a global application group action generation function.
 *        The first parameter is a reference to the global state store.
 *        The second parameter is a collection of tasks for dealing with editors.
+* @param A global menu generation function, mapping the global state to a menu structure.
 */
-mdiApplication :: !globalState !((DBId globalState) (MDITasks editorState iterationState) -> [GroupAction GAction Void globalState]) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
+mdiApplication :: !globalState ![GroupAction Void] !((DBId globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 
 // A collection of tasks for dealing with editors within an MDI application.
 :: MDITasks editorState iterationState = {

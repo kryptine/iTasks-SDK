@@ -117,8 +117,8 @@ derive bimap Maybe, (,)
 	, tasks :: [(Task a,Bool)]
 	}
 
-group :: !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] ![GroupAction a b s] -> Task c | iTask a & iTask b & iTask c & iTask s
-group label description procFun parseFun initState initTasks groupActions = mkGroupedTask label description execInGroup
+group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] !(GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult
+group label description procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask label description execInGroup
 where
 	execInGroup tst=:{taskNr,request}
 		# (pst,tst)   		= loadPSt taskNr tst
@@ -129,7 +129,7 @@ where
 				Nothing
 					= (False,Nothing,pst)
 				Just gAction
-					# (nSt,act) = procFun (getResult gAction, -1) pst.PSt.state
+					# (nSt,act) = procFun (groupAGenFunc (gAction, "TODO"), -1) pst.PSt.state
 					# pst = {PSt | pst & state = nSt}
 					= case act of
 						Stop			= (True,Nothing,pst)
@@ -189,37 +189,24 @@ where
 		# tasks 	= updateAt idx (t,True) pst.tasks
 		= {PSt | pst & tasks = tasks}
 		
-	evaluateConditions actions state = [(getAction a,evaluateCondition (getCond a)) \\ a <-  actions]
+	evaluateConditions actions state = [(action, evaluateCondition condition) \\ (action, condition) <-  actions]
 	where
-		evaluateCondition GroupAlways				= Left	True
+		evaluateCondition Always					= Left	True
 		evaluateCondition (StatePredicate p)		= Left	(p state)
 		evaluateCondition (SharedPredicate id p)	= Right	(checkSharedPred id p)
 		
 		checkSharedPred (DBId id) p tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 			# (mbVal,store,world)	= loadValue id store world
 			# tst					= {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
-			= case mbVal of
-				Just val	= (p (SharedValue val), tst)
-				Nothing		= (p SharedDeleted, tst)
+			= (p mbVal, tst)
 				
-	
 	getEventGroupAction events groupActions
 		# name = http_getValue "action" events ""
-		= case [ga \\ ga <- groupActions | actionName (getAction ga) == name] of
+		= case [ga \\ (ga, _) <- groupActions | actionName ga == name] of
 			[action]	= Just action
 			_			= Nothing
 
-	//De-wrap the group action components
-	getAction	(GroupAction a _ _)			= a
-	getAction	(GroupActionParam name _ _)	= ActionParam name name "?"
-	
-	getCond		(GroupAction _ _ cond)		= cond
-	getCond		(GroupActionParam _ _ cond)	= cond
-
-	getResult	(GroupActionParam _ f _)	= f "???" //Hoe kom ik aan die parameter. Hij mag niet van de client komen.
-	getResult	(GroupAction _ res _)		= res
-
-parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a) tag)) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
+parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel parType label description procFun parseFun initState initTasks
 	= mkParallelTask label description parType parallel`
 where

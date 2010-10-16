@@ -74,9 +74,9 @@ from InteractionTasks	import :: Action
 					| Func (*TSt -> *(!InteractiveTask, !*TSt))																	//Function for delayed generation of an interface definition.
 																																//These functions are evaluated after the full tree has been built.
 					
-:: GroupedBehaviour = GBFixed 			//The editor is fixed in the main canvas of the parent task
-					| GBFloating		//The editor is shown in a floating window
-					| GBModal			//The editor is shown in a modal dialog
+:: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
+					| Floating		//The editor is shown in a floating window
+					| Modal			//The editor is shown in a modal dialog
 
 // Determines if group-actions are added to actions of interactive task
 :: GroupActionsBehaviour	= IncludeGroupActions

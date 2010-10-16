@@ -18,8 +18,6 @@ instance == Action
 where
 	(==) :: !Action !Action -> Bool
 	(==) (Action name0 _) (Action name1 _) = name0 == name1
-	(==) (ActionParam name0 label0 param0) (ActionParam name1 label1 param1)
-		= name0 == name1 && (param0 == param1 || param0 == "?")
 	(==) a b = gEq{|*|} a b
 
 class html a 
@@ -663,7 +661,6 @@ evaluateCondition pred valid value = pred (if valid (Valid value) Invalid)
 	
 actionName :: !Action -> String
 actionName (Action name _)		= name
-actionName (ActionParam name _ _)= name
 actionName ActionOk				= "ok"
 actionName ActionCancel			= "cancel"
 actionName ActionYes			= "yes"
@@ -688,7 +685,6 @@ actionIcon action = "icon-" +++ (actionName action)
 
 actionLabel :: !Action -> String
 actionLabel (Action _ label)		= label
-actionLabel (ActionParam _ label _)	= label
 actionLabel (ActionSaveAs)			= "Save as"
 actionLabel action					= upperCaseFirst (actionName action)
 

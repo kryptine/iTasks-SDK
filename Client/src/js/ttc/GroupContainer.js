@@ -17,7 +17,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 		for(var i=0; i < this.content.length; i++) {
 			var cont = this.createContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index);
 			
-			if(this.content[i].behaviour == 'GBFloating' || this.content[i].behaviour == 'GBModal') {
+			if(this.content[i].behaviour == 'Floating' || this.content[i].behaviour == 'GBModal') {
 				this.floatingCont.add(this.content[i].index, cont);
 			} else {
 				this.fixedCont.add(this.content[i].index, cont);
@@ -26,7 +26,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 	},
 	createContainer: function(cont, behaviour, idx) {
 		
-		if(behaviour == 'GBFloating' || behaviour == 'GBModal') {	
+		if(behaviour == 'Floating' || behaviour == 'Modal') {	
 			return this.add(new itasks.ttc.GroupItemWindow({
 				id: this.taskId + '_' + idx,
 				index: idx,
@@ -35,7 +35,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 				autoScroll: true,
 				maximizable: true,
 				constrainHeader: true,
-				modal: behaviour == 'GBModal',
+				modal: behaviour == 'Modal',
 				items: [cont],
 				title: cont.subject
 			}));
@@ -102,7 +102,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 				cont = this.addItem(panel, behaviour, index);
 				
 				// Add the component to this component's items			
-				if(behaviour == 'GBFloating' || behaviour == 'GBModal') {
+				if(behaviour == 'Floating' || behaviour == 'Modal') {
 					newFloating.add(index, cont);
 					this.doLayout();
 					cont.show();

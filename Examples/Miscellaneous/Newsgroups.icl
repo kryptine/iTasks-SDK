@@ -164,13 +164,15 @@ where
 	chatSession chatbox user 
 		= 			readDB chatbox
 		>>= \chat -> writeDB chatbox {Chat | chat & users = chat.Chat.users++[user]}
-		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ GBFixed] (chatActions chatbox user)
+		>>|	dynamicGroupAOnly [chatEditor chatbox user <<@ Fixed] chatActions chatActionsGenFunc
 	where
-		chatActions :: (DBId Chat) User -> [GroupAction GOnlyAction Void Chat]
-		chatActions chatbox user = [ GroupAction	ActionNew		(GOExtend [newTopic chatbox user >>| stop]) 	GroupAlways
-						 		   , GroupAction 	ActionQuit		GOStop											GroupAlways
-						 		   , GroupAction	ActionAddUser	(GOExtend [addUsers chatbox >>| stop])			(SharedPredicate chatbox (\(SharedValue chat) -> chat.Chat.initUser == user)) 
-						 		   ]
+		chatActions = [ (ActionNew, Always), (ActionQuit, Always)
+					, (ActionAddUser, SharedPredicate chatbox (\(Just chat) -> chat.Chat.initUser == user))
+					]
+		chatActionsGenFunc (action, _) = case action of
+			ActionNew		= GOExtend [newTopic chatbox user >>| stop]
+			ActionQuit		= GOStop
+			ActionAddUser	= GOExtend [addUsers chatbox >>| stop]
 						 		   	
 	chatEditor :: (DBId Chat) User -> Task Void
 	chatEditor chatbox user = getCurrentDateTime >>= \dt -> updateShared "Chat" "You can chat now" [] chatbox [mainEditor user dt] >>| return Void
@@ -349,7 +351,7 @@ initMenu :: NewsGroupNames -> Menus
 initMenu groups
 	=
 		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew		Nothing
-						, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "subscribe-to" "Subscribe to" group) Nothing \\ group <- groups]
+						//, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "subscribe-to" "Subscribe to" group) Nothing \\ group <- groups]
 						, MenuSeparator
 						, MenuItem "Quit"					ActionQuit		Nothing
 						]
@@ -361,7 +363,7 @@ actions groups
 	=	[ (ActionNew,		always)
 		, (ActionQuit,		always)
 		, (ActionAbout,	 	always)
-		: [(ActionParam "subscribe-to" "Subscribe to" group ,valid) \\ group <- groups]
+		//: [(ActionParam "subscribe-to" "Subscribe to" group ,valid) \\ group <- groups]
 		] 
 where
 	valid 			= (\_ -> lengthGroups > 0)
@@ -384,7 +386,7 @@ where
 	where
 		switch ((ActionCancel,_),_) 						= 															doMenu me groups
 		switch ((ActionNew,_),_) 							= addNewsGroup 											>>| handleMenu
-		switch ((ActionParam "subscribe-to" _ group,_),_)	= subscribeProcess me group								>>| doMenu me groups
+		//switch ((ActionParam "subscribe-to" _ group,_),_)	= subscribeProcess me group								>>| doMenu me groups
 		switch ((ActionAbout,_),_) 							= showMessage "About" "Newsgroup Reader vrs. 2.0" Void 	>>| doMenu me groups
 		switch 	_ 											= return Void
 
@@ -409,8 +411,8 @@ ActionRefresh :== Action "refresh" "Refresh"
 
 readMenu :: Menus
 readMenu =
-	[ Menu "Menu"	[ SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (i +++> " messages") (toString i)) Nothing \\ i <- [1,5,10,30,50]]
-					, MenuItem "Quit"	ActionQuit Nothing
+	[ Menu "Menu"	[ //SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (i +++> " messages") (toString i)) Nothing \\ i <- [1,5,10,30,50]]
+					 MenuItem "Quit"	ActionQuit Nothing
 					]
 	]
 
@@ -420,7 +422,7 @@ readactions nmessage index nmsg
 		, (ActionNext, 		(\_ -> (index + nmessage < nmsg)))
 		, (ActionCommit, 	always)
 		, (ActionQuit, 		always)
-		: [(ActionParam "nmessage" (i +++> " messages") (toString i), always) \\ i <- [1,5,10,30,50]]
+		//: [(ActionParam "nmessage" (i +++> " messages") (toString i), always) \\ i <- [1,5,10,30,50]]
 		]
 
 readNews :: Int User String Int -> Task Void
@@ -436,7 +438,7 @@ where
 		switch ((ActionRefresh,_),_) 	= 								readNews` nmessage me group index
 		switch ((ActionNext,_),_) 		= readMoreNews nmessage 	>>= readNews` nmessage me group
 		switch ((ActionCommit,_),_) 	= commitItem group 			>>| readNews` nmessage me group index
-		switch ((ActionParam _ _ n,_),_)= 								readNews (toInt n) me group index
+		//switch ((ActionParam _ _ n,_),_)= 								readNews (toInt n) me group index
 		switch _ 						= return Void
 
 		readMoreNews offset

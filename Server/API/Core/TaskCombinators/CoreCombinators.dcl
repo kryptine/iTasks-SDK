@@ -6,7 +6,7 @@ definition module CoreCombinators
 from Types 				import :: Task, :: TaskPriority
 from Time				import :: Timestamp
 from TaskTree			import :: TaskParallelType, :: GroupedBehaviour
-from ProcessDB			import :: Action
+from InteractionTasks	import :: Action, :: ActionEvent, :: ActionData
 from TuningCombinators	import :: Tag
 from iTasks				import class iTask(..)
 from Types				import :: DateTime
@@ -85,19 +85,20 @@ iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
-:: PAction x t	= Stop			// stop the entire parallel/grouped execution
+:: PAction x	= Stop			// stop the entire parallel/grouped execution
 				| Continue		// continue execution without change
 				| Extend .[x]	// dynamically extend list of tasks in parallel/group
-				| Focus (Tag t) // focus child-tasks with given tag
+				| Focus Tag		// focus child-tasks with given tag
 
-:: GroupAction taskResult gState shared		= GroupAction Action taskResult (GroupCondition gState shared)					// accept given menu-action for entire group and generate 'taskResult' which is given to accumulator function
-											| GroupActionParam String (String -> taskResult) (GroupCondition gState shared)	// accept given parameterized action and use parameter to compute 'taskResult' which is given to accumulator function
-:: GroupCondition gState shared				= GroupAlways																	// group action is always enabled
-											| StatePredicate (gState -> Bool)												// use predicate on internal state to determine if action is enabled
-											| SharedPredicate (DBId shared) ((SharedValue shared) -> Bool)					// use predicate on given shared variable to determine if action is enabled
-:: SharedValue shared						= SharedDeleted																	// shared variable was deleted
-											| SharedValue shared															// shared variable has stored value
-
+// This tuple is used to link actions to groups, similar to TaskAction.
+// Its two parts represent the (what , when) aspects of actions.
+// What: The conceptual action to be taken
+// When: The condition that determine if the action can be taken
+:: GroupAction gState			:== (Action, GroupCondition gState)
+:: GroupCondition gState		=			Always																	// group action is always enabled
+								| 			StatePredicate !(gState -> Bool)										// use predicate on internal state to determine if action is enabled
+								| E.shared:	SharedPredicate !(DBId shared) !((Maybe shared) -> Bool) & iTask shared	// use predicate on given shared variable to determine if action is enabled
+:: GroupActionGenFunc result	:== (Action, ActionData) -> result															// function mapping task action events to result applied to the group
 /**
 * Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
 * state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
@@ -111,7 +112,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param Initial value of the internal state
 * @param List of initial tasks
 */
-parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult) tag))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
+parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
 
 /**
 * Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
@@ -127,7 +128,7 @@ parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pSta
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult) tag)) (gState -> gResult) !gState ![Task taskResult] ![GroupAction taskResult gState shared]	-> Task gResult | iTask taskResult & iTask gState & iTask gResult & iTask shared
+group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] !(GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult
 
 // Multi-user workflows
 

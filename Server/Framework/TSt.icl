@@ -63,7 +63,7 @@ initTaskInfo
 		, description = ""
 		, context = Nothing
 		, tags = []
-		, groupedBehaviour = GBFixed
+		, groupedBehaviour = Fixed
 		, groupActionsBehaviour = IncludeGroupActions
 		, menus = Nothing
 		}

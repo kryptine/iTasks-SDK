@@ -10,13 +10,13 @@ from InteractionTasks	import :: Menus, :: Menu(..), :: MenuItem
 from iTasks				import class iTask
 import GenVisualize, GenUpdate
 
-:: Subject s		= Subject !s		& toString s
-:: Description s	= Description !s	& toString s
-:: Tag s			= Tag !s			& toString s
-:: Tags s			= Tags ![s]			& toString s
-:: MenuAnnotation s	= NoMenus
-					| StaticMenus	!Menus
-					| DynamicMenus	!(DBId s) !(s -> Menus) & iTask s
+:: Subject			= E.s: Subject !s		& toString s
+:: Description		= E.s: Description !s	& toString s
+:: Tag				= E.s: Tag !s			& toString s
+:: Tags				= E.s: Tags ![s]		& toString s
+:: MenuAnnotation	= 		NoMenus
+					| 		StaticMenus		!Menus
+					| E.s:	DynamicMenus	!(DBId s) !(s -> Menus) & iTask s
 
 //Annotation combinator
 class tune b :: !b !(Task a) -> Task a
@@ -25,13 +25,13 @@ class tune b :: !b !(Task a) -> Task a
 
 instance tune	ManagerProperties		//Set initial properties
 instance tune	User					//Set initial worker
-instance tune	(Subject s)				//Set initial subject
-instance tune	(Description s)			//Set initial subject
+instance tune	Subject					//Set initial subject
+instance tune	Description				//Set initial subject
 instance tune	TaskPriority			//Set initial priority
 instance tune	DateTime				//Set initial deadline
-instance tune	(Tag s)					//Append Tag
-instance tune	(Tags s)				//Append List of Tags	
+instance tune	Tag						//Append Tag
+instance tune	Tags					//Append List of Tags	
 instance tune	GroupedBehaviour		//Set grouped behaviour
 instance tune	GroupActionsBehaviour	//Set group actions behaviour
-instance tune	(MenuAnnotation s)		//Set menu structure for this tasks and all children
+instance tune	MenuAnnotation			//Set menu structure for this tasks and all children
 instance tune	Menus					//Abbreviation for StaticMenus

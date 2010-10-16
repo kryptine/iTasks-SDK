@@ -34,7 +34,7 @@ initManagerProperties =
 initGroupedProperties :: GroupedProperties
 initGroupedProperties =
 	{ GroupedProperties
-	| groupedBehaviour		= GBFixed
+	| groupedBehaviour		= Fixed
 	, groupActionsBehaviour	= IncludeGroupActions
 	}
 

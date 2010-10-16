@@ -134,7 +134,7 @@ formattedText :: Task Void
 formattedText =
 				[Menu "Example" [MenuItem "Quit" ActionQuit Nothing]]
 	@>>			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
-	>>= \sid.	dynamicGroupAOnly [(t <<@ ExcludeGroupActions) <<@ GBFloating >>| return Void \\ t <- tasks sid] actions
+	>>= \sid.	dynamicGroupAOnly [(t <<@ ExcludeGroupActions) <<@ Floating >>| return Void \\ t <- tasks sid] actions actionsGenFunc
 	>>|			deleteDB sid
 	>>|			return Void
 where
@@ -147,8 +147,8 @@ where
 		, updateShared "Unformatted Preview" ""	[] sid [listener	{listenerFrom	= \ft -> Note (toUnformattedString ft False)}]
 		]
 		
-	actions :: [GroupAction GOnlyAction Void Void]
-	actions = [GroupAction ActionQuit GOStop GroupAlways]
+	actions = [(ActionQuit, Always)]
+	actionsGenFunc (ActionQuit,_) = GOStop
 								
 sharedValueExamples :: [Workflow]
 sharedValueExamples =	[ workflow "Examples/Shared Variables/Text-Lines (grouped tasks)"	"" (Subject "Text-Lines (grouped tasks)"	@>> linesPar)
