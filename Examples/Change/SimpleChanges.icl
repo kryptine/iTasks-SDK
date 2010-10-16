@@ -25,7 +25,7 @@ changePriority priority =
 	dynamic change :: A.a: Change a | iTask a
 where
 	change :: TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
-	change props t t0 = (Just {TaskProperties| props & managerProperties = {props.managerProperties & priority = priority}},Nothing, Just (changePriority priority))
+	change props t t0 = (Just {props & managerProperties = {props.managerProperties & priority = priority}},Nothing, Just (changePriority priority))
 
 //Add a big red warning message prompt to the running task
 addWarning :: String -> ChangeDyn
@@ -44,9 +44,9 @@ duplicate me user topics =
 where
 	change :: User User String TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change me user topics props t t0 
-		= 	( Just {TaskProperties | props & managerProperties = {ManagerProperties | props.managerProperties & worker = me}}
+		= 	( Just {props & managerProperties = {props.managerProperties & worker = me}}
 			, Just (assign me
-							(anyProc 	[ props.managerProperties.ManagerProperties.worker @>> Subject topics @>> t 
+							(anyProc 	[ props.managerProperties.worker @>> Subject topics @>> t 
 										, user @>> Subject topics @>> t
 										] Open
 							)
@@ -87,7 +87,7 @@ reassign user procName pid  =
 where
 	change :: User TaskProperties (Task a) (Task a) -> (Maybe TaskProperties, Maybe (Task a), Maybe ChangeDyn) | iTask a
 	change user props t t0 
-		= (Just {TaskProperties | props & managerProperties = {ManagerProperties | props.managerProperties & worker = user}},Nothing, Nothing)
+		= (Just {props & managerProperties = {props.managerProperties & worker = user}},Nothing, Nothing)
 
 //restart starts the task from scratch and assigns it to the indicated user
 restart :: User String -> Dynamic
@@ -168,7 +168,7 @@ chooseProcess question
 										[	( proc.Process.taskId
 											, proc.Process.properties.managerProperties.subject
 											, proc.Process.properties.managerProperties.priority
-											, proc.Process.properties.managerProperties.ManagerProperties.worker)
+											, proc.Process.properties.managerProperties.worker)
 											\\ proc <- procs | proc.Process.taskId <> mypid]
 	>>= \(action,(pid,_,_,_)) ->	case fst action of
 										ActionCancel -> throw "choosing a process has been cancelled"

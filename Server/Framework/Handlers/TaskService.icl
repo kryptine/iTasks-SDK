@@ -254,12 +254,12 @@ where
 	taskItem process	= process.Process.properties	
 		
 	getManagerProperty :: !String !ManagerProperties -> JSONNode
-	getManagerProperty param manProps = case param of
-		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.worker)]
-		"subject"	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.subject)]  
-		"priority"	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.priority)]
-		"deadline"	= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.deadline)]
-		"tags"		= JSONObject [("success",JSONBool True),(param,toJSON manProps.ManagerProperties.tags)]
+	getManagerProperty param {worker,subject,priority,deadline,tags} = case param of
+		"worker" 	= JSONObject [("success",JSONBool True),(param,toJSON worker)]
+		"subject"	= JSONObject [("success",JSONBool True),(param,toJSON subject)]  
+		"priority"	= JSONObject [("success",JSONBool True),(param,toJSON priority)]
+		"deadline"	= JSONObject [("success",JSONBool True),(param,toJSON deadline)]
+		"tags"		= JSONObject [("success",JSONBool True),(param,toJSON tags)]
 		_		 	= JSONObject [("success",JSONBool False),("error",JSONString ("Property "+++param+++" does not exist"))]
 		
 	updateManagerProperty :: !String !String !Process !*TSt -> (JSONNode,*TSt)
@@ -268,16 +268,16 @@ where
 		# (ok,newProps) = case param of
 			"worker" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
-				Just upd = (True,{ManagerProperties | manProps & worker = upd})
+				Just upd = (True,{manProps & worker = upd})
 			"subject" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
 				Just upd = (True,{ManagerProperties | manProps & subject = upd})
 			"priority" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
-				Just upd = (True,{ManagerProperties | manProps & priority = upd})
+				Just upd = (True,{manProps & priority = upd})
 			"deadline" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
-				Just upd = (True,{ManagerProperties | manProps & deadline = upd})
+				Just upd = (True,{manProps & deadline = upd})
 			"tags" = case fromJSON(fromString update) of
 				Nothing = (False,manProps)
 				Just upd = (True,{ManagerProperties | manProps & tags = upd})

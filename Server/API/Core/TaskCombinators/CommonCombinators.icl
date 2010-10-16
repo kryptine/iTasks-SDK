@@ -73,7 +73,7 @@ where
 
 (||-) infixr 3 :: !(Task a) !(Task b) -> Task b | iTask a & iTask b
 (||-) taska taskb
-	= group "||-" "Done when the second subtask is finished." rorfunc hd [] [(taska >>= \a -> return (Left a)) <<@ getGroupedBehaviour taska, (taskb >>= \b -> return (Right b)) <<@ getGroupedBehaviour taskb] [] undef
+	= group "||-" "Done when the second subtask is finished." rorfunc hd [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
 	rorfunc (Right val,_) [] = ([val],Stop)
 	rorfunc (Left val, _) [] = ([],Continue)
@@ -81,14 +81,14 @@ where
 
 (-||) infixl 3 :: !(Task a) !(Task b) -> Task a | iTask a & iTask b
 (-||) taska taskb
-	= group "||-" "Done when the first subtask is finished" lorfunc hd [] [(taska >>= \a -> return (Left a)) <<@ getGroupedBehaviour taska,(taskb >>= \b -> return (Right b)) <<@ getGroupedBehaviour taskb] [] undef
+	= group "||-" "Done when the first subtask is finished" lorfunc hd [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour,(taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
 	lorfunc (Right val,_) [] = ([],Continue)
 	lorfunc (Left val, _) [] = ([val],Stop)
 	lorfunc _ _				 = abort "Illegal result in -||"					
 
 (-&&-) infixr 4 :: !(Task a) !(Task b) -> (Task (a,b)) | iTask a & iTask b
-(-&&-) taska taskb = group "-&&-" "Done when both subtasks are finished" andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ getGroupedBehaviour taska, (taskb >>= \b -> return (Right b)) <<@ getGroupedBehaviour taskb] [] undef
+(-&&-) taska taskb = group "-&&-" "Done when both subtasks are finished" andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
 	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
 	andfunc (val,_) (left,right)
@@ -109,7 +109,7 @@ where
 
 (-&?&-) infixr 4 :: !(Task (Maybe a)) !(Task (Maybe b)) -> Task (Maybe (a,b)) | iTask a & iTask b
 (-&?&-) taska taskb 
-= group "-&?&-" "Done when both subtasks are finished. Yields only a result of both subtasks have a result" mbandfunc parsefunc (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ getGroupedBehaviour taska, (taskb >>= \b -> return (Right b)) <<@ getGroupedBehaviour taskb] [] undef
+= group "-&?&-" "Done when both subtasks are finished. Yields only a result of both subtasks have a result" mbandfunc parsefunc (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
 	mbandfunc (val,_) (left,right)
 		= case val of
@@ -142,7 +142,7 @@ where
 		| otherwise = (st,Continue)
 			
 eitherTask :: !(Task a) !(Task b) -> Task (Either a b) | iTask a & iTask b
-eitherTask taska taskb = group "either" "Done when either subtask is finished" eitherfunc hd [] [(taska >>= \a -> return (Left a)) <<@ getGroupedBehaviour taska, (taskb >>= \b -> return (Right b)) <<@ getGroupedBehaviour taskb] [] undef
+eitherTask taska taskb = group "either" "Done when either subtask is finished" eitherfunc hd [] [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour] [] undef
 where
 	eitherfunc (val,idx) [] = ([val],Stop)
 	eitherfunc (val,idx) _  = abort "Multiple results in Either"
@@ -154,7 +154,7 @@ where
 	orfunc (val,_) _  = abort "Multiple results in -|@|-"
 
 andProc :: !(Task a) !(Task b) !TaskParallelType -> Task (a,b) | iTask a & iTask b
-andProc taska taskb type = parallel type "AndProc" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ getGroupedBehaviour taska, (taskb >>= \b -> return (Right b)) <<@ getGroupedBehaviour taskb]
+andProc taska taskb type = parallel type "AndProc" "Done if both subtasks are finished." andfunc parseresult (Nothing,Nothing) [(taska >>= \a -> return (Left a)) <<@ taska.groupedProperties.GroupedProperties.groupedBehaviour, (taskb >>= \b -> return (Right b)) <<@ taskb.groupedProperties.GroupedProperties.groupedBehaviour]
 where
 	andfunc :: ((Either a b),Int) (Maybe a, Maybe b) -> ((Maybe a, Maybe b),PAction (Task (Either a b)))
 	andfunc (val,_) (left,right)
@@ -226,7 +226,7 @@ where
 		GOContinue		= (Void, Continue)
 		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
 		GOFocus tag		= (Void, Focus tag)
-	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ getGroupedBehaviour t) tasks
+	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
 mdiApplication :: !globalState ![GroupAction Void] !((DBId globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
@@ -282,6 +282,3 @@ where
 sortByIndex :: ![(Int,a)] -> [a]
 sortByIndex [] = []
 sortByIndex [(i,v):ps] = sortByIndex [(is,vs) \\ (is,vs) <- ps | is < i] ++ [v] ++ sortByIndex [(is,vs) \\ (is,vs) <- ps | is > i]
-
-getGroupedBehaviour :: !(Task a) -> GroupedBehaviour
-getGroupedBehaviour (Task _ {GroupedProperties | groupedBehaviour} _ _ _) = groupedBehaviour

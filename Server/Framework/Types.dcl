@@ -118,7 +118,14 @@ instance zero Currency
 :: TaskId			:== String		// String serialization of TaskNr values
 :: MenuId			:== Int
 
-:: Task a 			= Task !ManagerProperties !GroupedProperties !(Maybe TaskNr) !(Maybe MenuGenFunc) !(*TSt -> *(!TaskResult a,!*TSt))
+:: Task a =
+	{ taskProperties	:: !ManagerProperties					// the task's manager properties
+	, groupedProperties	:: !GroupedProperties					// properties about how the tasks behaves inside of a group
+	, mbTaskNr			:: !(Maybe TaskNr)						// the task's identifier
+	, mbMenuGenFunc		:: !(Maybe MenuGenFunc)					// a function generating a menu structure
+	, taskFunc			:: !(*TSt -> *(!TaskResult a,!*TSt))	// a function on TSt implementing the task
+	}
+
 :: TaskResult a		= TaskBusy
 					| TaskFinished !a
 					| TaskException !Dynamic

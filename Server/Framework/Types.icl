@@ -21,8 +21,7 @@ derive gLexOrd			Currency
 
 initManagerProperties :: ManagerProperties
 initManagerProperties = 
-	{ManagerProperties
-	| worker = AnyUser
+	{ worker = AnyUser
 	, subject = ""
 	, description = ""
 	, context = Nothing
@@ -33,8 +32,7 @@ initManagerProperties =
 	
 initGroupedProperties :: GroupedProperties
 initGroupedProperties =
-	{ GroupedProperties
-	| groupedBehaviour		= Fixed
+	{ groupedBehaviour		= Fixed
 	, groupActionsBehaviour	= IncludeGroupActions
 	}
 
@@ -314,13 +312,13 @@ JSONDecode{|DateTime|} [JSONString s:c]	= (Just (fromString s), c)
 JSONDecode{|DateTime|} c				= (Nothing, c)
 
 taskSubject :: !(Task a) -> String
-taskSubject (Task p _ _ _ _) = p.subject
+taskSubject task = task.taskProperties.subject
 
 taskDescription	:: !(Task a) -> String
-taskDescription (Task p _ _ _ _) = p.ManagerProperties.description
+taskDescription task = task.taskProperties.description
 
 taskUser :: !(Task a) -> User
-taskUser (Task p _ _ _ _) = p.worker
+taskUser task = task.taskProperties.worker
 
 taskProperties :: !(Task a) -> ManagerProperties
-taskProperties (Task p _ _ _ _) = p
+taskProperties task = task.taskProperties

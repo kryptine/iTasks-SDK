@@ -6,28 +6,28 @@ from TaskTree	import :: GroupedBehaviour, :: GroupActionsBehaviour
 
 class tune b :: !b !(Task a) -> Task a
 instance tune ManagerProperties
-where tune props (Task _ gprops mbTn mbMGF tf)					= Task props gprops mbTn mbMGF tf
+where tune props task								= {task & taskProperties = props}
 instance tune User
-where tune u (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & worker = u} gprops mbTn mbMGF tf
+where tune u task=:{taskProperties}					= {task & taskProperties = {taskProperties & worker = u}}
 instance tune Subject
-where tune (Subject s) (Task props gprops mbTn mbMGF tf)		= Task {ManagerProperties|props & subject = toString s} gprops mbTn mbMGF tf
+where tune (Subject s) task=:{taskProperties}		= {task & taskProperties = {taskProperties & subject = toString s}}
 instance tune Description
-where tune (Description s) (Task props gprops mbTn mbMGF tf)	= Task {ManagerProperties|props & description = toString s} gprops mbTn mbMGF tf
+where tune (Description s) task=:{taskProperties}	= {task & taskProperties = {taskProperties & description = toString s}}
 instance tune TaskPriority
-where tune p (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & priority = p} gprops mbTn mbMGF tf
+where tune p task=:{taskProperties}					= {task & taskProperties = {taskProperties & priority = p}}
 instance tune DateTime
-where tune d (Task props gprops mbTn mbMGF tf)					= Task {ManagerProperties|props & deadline = Just d} gprops mbTn mbMGF tf
+where tune d task=:{taskProperties}					= {task & taskProperties = {taskProperties & deadline = Just d}}
 instance tune Tag
-where tune (Tag t) (Task props gprops mbTn mbMGF tf)			= Task {ManagerProperties|props & tags = [toString t : props.tags]} gprops mbTn mbMGF tf
+where tune (Tag t) task=:{taskProperties}			= {task & taskProperties = {taskProperties & tags = [toString t : taskProperties.tags]}}
 instance tune Tags
-where tune (Tags ts) (Task props gprops mbTn mbMGF tf)			= Task {ManagerProperties|props & tags = (map toString ts) ++ props.tags} gprops mbTn mbMGF tf
+where tune (Tags ts) task=:{taskProperties}			= {task & taskProperties = {taskProperties & tags = (map toString ts) ++ taskProperties.tags}}
 instance tune GroupedBehaviour
-where tune gb (Task props gprops mbTn mbMGF tf)					= Task props {gprops & groupedBehaviour = gb} mbTn mbMGF tf
+where tune gb task=:{groupedProperties}				= {task & groupedProperties = {groupedProperties & groupedBehaviour = gb}}
 instance tune GroupActionsBehaviour
-where tune ga (Task props gprops mbTn mbMGF tf)					= Task props {gprops & groupActionsBehaviour = ga} mbTn mbMGF tf
+where tune ga task=:{groupedProperties}				= {task & groupedProperties = {groupedProperties & groupActionsBehaviour = ga}}
 instance tune MenuAnnotation
 where
-	tune ma (Task props gprops mbTn _ tf)						= Task props gprops mbTn (Just menuGenFunc) tf
+	tune ma task									= {task & mbMenuGenFunc = (Just menuGenFunc)}
 	where
 		menuGenFunc = case ma of
 			NoMenus							= \iworld -> ([], iworld)

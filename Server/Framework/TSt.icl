@@ -93,7 +93,7 @@ initTaskProperties :: TaskProperties
 initTaskProperties
 	= { systemProperties	= initSystemProperties
 	  , managerProperties	= initManagerProperties
-	  , workerProperties		= initWorkerProperties
+	  , workerProperties	= initWorkerProperties
 	  }
 
 initSession :: !SessionId !*TSt -> (!Maybe String, !*TSt)
@@ -115,10 +115,8 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	# parent				= if toplevel Nothing (Just properties.systemProperties.SystemProperties.taskId)
 	# managerProperties		= setUser manager (taskProperties originalTask)
 	# properties =
-		{TaskProperties
-		| systemProperties =
-			{SystemProperties
-			| taskId		= taskId
+		{systemProperties =
+			{ taskId		= taskId
 			, parent		= parent
 			, status		= if activate Active Suspended
 			, manager		= manager
@@ -131,8 +129,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 			}
 		, managerProperties = managerProperties
 		, workerProperties =
-			{WorkerProperties
-			| progress	= TPActive
+			{ progress	= TPActive
 			}
 		}
 	# process =
@@ -157,7 +154,7 @@ createTaskInstance thread=:(Container {TaskThread|originalTask} :: Container (Ta
 	| otherwise
 		= (processId, TaskBusy, node properties processId, tst)
 where
-	setUser manager props=:{ManagerProperties|worker=AnyUser} = {ManagerProperties|props & worker = manager}
+	setUser manager props=:{worker=AnyUser} = {props & worker = manager}
 	setUser manager props = props
 
 	node properties taskId
@@ -421,7 +418,7 @@ where
 	* Adds the task number at which it has run before to a task
 	*/
 	setTaskContext :: !TaskNr !(Task a) -> (Task a)
-	setTaskContext cxt (Task props gprops _ mbMenuGenFunc tf) = Task props gprops (Just cxt) mbMenuGenFunc tf
+	setTaskContext cxt task = {task & mbTaskNr = Just cxt}
 	
 	/*
 	* Store the changes that are still active after  a run.
@@ -561,7 +558,7 @@ getCurrentProcess tst =: {staticInfo}
 
 getCurrentWorker :: !*TSt -> (!User, !*TSt)
 getCurrentWorker tst =: {TSt | properties}
-	= (properties.managerProperties.ManagerProperties.worker,{TSt | tst & properties = properties})
+	= (properties.managerProperties.worker,{TSt | tst & properties = properties})
 
 getTaskTree :: !*TSt	-> (!TaskTree, !*TSt)
 getTaskTree tst =: {tree}
@@ -608,31 +605,61 @@ mkTaskFunction :: (*TSt -> (!a,!*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))
 mkTaskFunction f = \tst -> let (a,tst`) = f tst in (TaskFinished a,tst`)
 		
 mkInteractiveTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a 
-mkInteractiveTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkInteractiveTask`	
+mkInteractiveTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkInteractiveTask`
+	}	
 where
 	mkInteractiveTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTInteractiveTask taskInfo NoOutput}
 
 mkInstantTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkInstantTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkInstantTask`
+mkInstantTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkInstantTask`
+	}
 where
 	mkInstantTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTFinishedTask taskInfo NoOutput} //We use a FinishedTask node because the task is finished after one evaluation
 
 mkMonitorTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMonitorTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkMonitorTask`
+mkMonitorTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkMonitorTask`
+	}
 where
 	mkMonitorTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTMonitorTask taskInfo NoOutput}
 
 mkInstructionTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkInstructionTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkInstructionTask`
+mkInstructionTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkInstructionTask`
+	}
 where
 	mkInstructionTask` tst =:{TSt | taskInfo}
 		= taskfun {tst & tree = TTInstructionTask taskInfo NoOutput}
 
 mkRpcTask :: !String !RPCExecute !(String -> a) -> Task a | gUpdate{|*|} a
-mkRpcTask taskname rpce parsefun = Task {ManagerProperties|initManagerProperties & subject = taskname} initGroupedProperties Nothing Nothing mkRpcTask`
+mkRpcTask taskname rpce parsefun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = taskname}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkRpcTask`
+	}
 where
 	mkRpcTask` tst=:{TSt | taskNr, taskInfo}
 		# rpce				= {RPCExecute | rpce & taskId = taskNrToString taskNr}
@@ -689,42 +716,66 @@ where
 	setStatus status tst	= setTaskStore "status" status tst
 		
 mkSequenceTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkSequenceTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkSequenceTask`
+mkSequenceTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkSequenceTask`
+	}
 where
 	mkSequenceTask` tst=:{TSt|taskNr,taskInfo}
 		= taskfun {tst & tree = TTSequenceTask taskInfo [], taskNr = [0:taskNr]}
 			
 mkParallelTask :: !String !String !TaskParallelType !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkParallelTask subject description tpt taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkParallelTask`
+mkParallelTask subject description tpt taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkParallelTask`
+	}
 where
 	mkParallelTask` tst=:{TSt|taskNr,taskInfo}
 		# tst = {tst & tree = TTParallelTask taskInfo tpt []}												
 		= taskfun tst
 
 mkGroupedTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkGroupedTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkGroupedTask`
+mkGroupedTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkGroupedTask`
+	}
 where
 	mkGroupedTask` tst=:{TSt|taskInfo}
 		# tst = {tst & tree = TTGroupedTask taskInfo [] [] Nothing}
 		= taskfun tst
 			
 mkMainTask :: !String !String !(*TSt -> *(!TaskResult a,!*TSt)) -> Task a
-mkMainTask subject description taskfun = Task {ManagerProperties|initManagerProperties & subject = subject, description = description} initGroupedProperties Nothing Nothing mkMainTask`
+mkMainTask subject description taskfun =
+	{ taskProperties	= {ManagerProperties|initManagerProperties & subject = subject, description = description}
+	, groupedProperties	= initGroupedProperties
+	, mbTaskNr			= Nothing
+	, mbMenuGenFunc		= Nothing
+	, taskFunc			= mkMainTask`
+	}
 where
 	mkMainTask` tst=:{taskNr,taskInfo}
 		= taskfun {tst & tree = TTMainTask taskInfo initTaskProperties Nothing (TTFinishedTask taskInfo NoOutput)}
 
 applyTask :: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
-applyTask (Task initProperties groupedProperties mbInitTaskNr mbMenuGenFunc taskfun) tst=:{taskNr,tree,properties,iworld=iworld=:{IWorld|store,world}}
+applyTask {taskProperties, groupedProperties, mbMenuGenFunc, mbTaskNr, taskFunc} tst=:{taskNr,tree,properties,iworld=iworld=:{IWorld|store,world}}
 	# taskId								= iTaskId taskNr ""
 	# (taskVal,store,world)					= loadValue taskId store world
 	# iworld								= {iworld & store = store, world = world}
 	# taskInfo =	{ TaskInfo
 					| taskId				= taskNrToString taskNr
-					, subject				= initProperties.ManagerProperties.subject
-					, description			= initProperties.ManagerProperties.description
+					, subject				= taskProperties.ManagerProperties.subject
+					, description			= taskProperties.ManagerProperties.description
 					, context				= Nothing
-					, tags					= initProperties.ManagerProperties.tags
+					, tags					= taskProperties.ManagerProperties.tags
 					, groupedBehaviour 		= groupedProperties.GroupedProperties.groupedBehaviour
 					, groupActionsBehaviour	= groupedProperties.GroupedProperties.groupActionsBehaviour
 					, menus					= case mbMenuGenFunc of
@@ -738,11 +789,11 @@ applyTask (Task initProperties groupedProperties mbInitTaskNr mbMenuGenFunc task
 			= (TaskFinished a, {tst & taskNr = incTaskNr taskNr})
 		_
 			// If the task is new, but has run in a different context, initialize the states of the task and its subtasks
-			# tst	= case (taskVal,mbInitTaskNr) of
+			# tst	= case (taskVal,mbTaskNr) of
 						(Nothing, Just initTaskNr)	= copyTaskStates initTaskNr taskNr tst
 						_							= tst
 			// Execute task function
-			# (result, tst=:{tree=node,iworld=iworld=:{IWorld|store}})	= taskfun tst
+			# (result, tst=:{tree=node,iworld=iworld=:{IWorld|store}})	= taskFunc tst
 			// Update task state
 			= case result of
 				(TaskFinished a)

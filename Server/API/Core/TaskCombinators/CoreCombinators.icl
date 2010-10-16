@@ -309,7 +309,7 @@ createOrEvaluateTaskInstance mbpartype task tst=:{TSt|taskNr,events,treeType}
 		//When found, evaluate
 		Just proc
 			//add temp users before(!) the new proc is evaluated, because then the tst still contains the parent info
-			# user				= proc.Process.properties.managerProperties.ManagerProperties.worker
+			# user				= proc.Process.properties.managerProperties.worker
 			# tst				= addSubTaskWorker taskId user mbpartype tst
 			// -> TSt in subprocess
 			# (result,tree,tst)	= evaluateTaskInstance proc treeType events Nothing False False tst
