@@ -128,7 +128,7 @@ parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pSta
 * @param List of initial tasks
 * @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
 */
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] !(GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult
+group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult
 
 // Multi-user workflows
 

@@ -117,7 +117,7 @@ derive bimap Maybe, (,)
 	, tasks :: [(Task a,Bool)]
 	}
 
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] !(GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult
+group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult
 group label description procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask label description execInGroup
 where
 	execInGroup tst=:{taskNr,request}
