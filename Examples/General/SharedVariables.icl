@@ -132,7 +132,7 @@ where
 //Different Views on Formatted Text
 formattedText :: Task Void
 formattedText =
-				[Menu "Example" [MenuItem "Quit" ActionQuit Nothing]]
+				[Menu "Example" [MenuItem ActionQuit Nothing]]
 	@>>			createDB (mkEmptyFormattedText {allControls & sourceEditControl = False})
 	>>= \sid.	dynamicGroupAOnly [(t <<@ ExcludeGroupActions) <<@ Floating >>| return Void \\ t <- tasks sid] actions actionsGenFunc
 	>>|			deleteDB sid

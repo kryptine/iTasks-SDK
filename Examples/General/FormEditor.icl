@@ -26,19 +26,19 @@ ActionOpenValue	:== Action "open-value" "Open Value"
 
 initMenu :: Menus
 initMenu  =
-	[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
-					, MenuItem "Open..."		ActionOpen		Nothing
-					, MenuItem "Open Value..."	ActionOpenValue	Nothing
+	[ Menu "File"	[ MenuItem ActionNew		Nothing
+					, MenuItem ActionOpen		Nothing
+					, MenuItem ActionOpenValue	Nothing
 					, MenuSeparator
-					, MenuItem "Save"			ActionSave		Nothing
-					, MenuItem "Save As..."		ActionSaveAs	Nothing
+					, MenuItem ActionSave		Nothing
+					, MenuItem ActionSaveAs		Nothing
 					, MenuSeparator
-					, MenuItem "Quit"			ActionQuit		Nothing
+					, MenuItem ActionQuit		Nothing
 					]
-	, Menu "Edit"	[ MenuItem "Edit Type"		ActionEditType	Nothing
-					, MenuItem "Edit Value"		ActionEditValue	Nothing
+	, Menu "Edit"	[ MenuItem ActionEditType	Nothing
+					, MenuItem ActionEditValue	Nothing
 					]
-	, Menu "Help"	[ MenuItem "About"			ActionAbout	Nothing
+	, Menu "Help"	[ MenuItem ActionAbout		Nothing
 					]
 	]
 

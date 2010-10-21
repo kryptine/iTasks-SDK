@@ -22,26 +22,25 @@ where
 	
 	menuGenFunc :: AppState -> Menus
 	menuGenFunc (AppState _ recOpenedFiles) =
-		[ Menu "File"	[ MenuItem "New"			ActionNew		(hotkey N)
-						, MenuItem "Open..."		ActionOpen		(hotkey O)
-						, SubMenu "Recently Opened" recentlyOpenedMenu
+		[ Menu "File"	[ MenuItem ActionNew		(hotkey N)
+						, MenuItem ActionOpen		(hotkey O)
+						, SubMenu "Recently Opened"	recentlyOpenedMenu
 						, MenuSeparator
-						, MenuItem "Save"			ActionSave		(hotkey S)
-						, MenuItem "Save As..."		ActionSaveAs	(hotkey A)
+						, MenuItem ActionSave		(hotkey S)
+						, MenuItem ActionSaveAs		(hotkey A)
 						, MenuSeparator
-						, MenuItem "Close"			ActionClose		(hotkey C)
-						, MenuItem "Quit"			ActionQuit		(hotkey Q)
-						, MenuItem "Ok"				ActionOk		Nothing
+						, MenuItem ActionClose		(hotkey C)
+						, MenuItem ActionQuit		(hotkey Q)
 						]
-		, Menu "Edit"	[ MenuItem "Replace..."		(Action Replace "")	(hotkey R)
+		, Menu "Edit"	[ MenuItem Replace			(hotkey R)
 						]
-		, Menu "Tools"	[ MenuItem "Statistics..."	(Action Stats "")		(hotkey T)
+		, Menu "Tools"	[ MenuItem Stats			(hotkey T)
 						]
-		, Menu "Help"	[ MenuItem "About"			ActionAbout		Nothing
+		, Menu "Help"	[ MenuItem ActionAbout		Nothing
 						]
 		]
 	where
-		recentlyOpenedMenu = [MenuItem name (Action OpenFile "Open File"/*(toString id)*/) Nothing \\ (DBRef id, name) <- recOpenedFiles]
+		recentlyOpenedMenu = [MenuItem (OpenFile, toString name, toString id) Nothing \\ (DBRef id, name) <- recOpenedFiles]
 						
 Replace			:== "replace"
 Stats			:== "stats"

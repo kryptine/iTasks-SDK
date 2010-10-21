@@ -154,9 +154,9 @@ where
 
 	menus :: Menus
 	menus =
-		[ Menu "File" [ MenuItem "New Topic" ActionNew		Nothing
-					  , MenuItem "Add Users" ActionAddUser	Nothing
-					  , MenuItem "Quit"		 ActionQuit		Nothing
+		[ Menu "File" [ MenuItem (Action "new" "New Topic") Nothing
+					  , MenuItem ActionAddUser				Nothing
+					  , MenuItem ActionQuit					Nothing
 					  ]
 		]
 	
@@ -350,12 +350,12 @@ ActionCommit		:== Action "commit" "Commit"
 initMenu :: NewsGroupNames -> Menus
 initMenu groups
 	=
-		[ Menu "File"	[ MenuItem "Add New Newsgroup..."	ActionNew		Nothing
+		[ Menu "File"	[ MenuItem (Action "Add New Newsgroup..." "new")	Nothing
 						//, SubMenu  "Subscribe to"			[MenuItem group (ActionParam "subscribe-to" "Subscribe to" group) Nothing \\ group <- groups]
 						, MenuSeparator
-						, MenuItem "Quit"					ActionQuit		Nothing
+						, MenuItem ActionQuit								Nothing
 						]
-		, Menu "Help"	[ MenuItem "About"					ActionAbout		Nothing
+		, Menu "Help"	[ MenuItem ActionAbout								Nothing
 						]
 		]
 
@@ -412,7 +412,7 @@ ActionRefresh :== Action "refresh" "Refresh"
 readMenu :: Menus
 readMenu =
 	[ Menu "Menu"	[ //SubMenu  "Show"	[MenuItem (i +++> " messages") (ActionParam "nmessage" (i +++> " messages") (toString i)) Nothing \\ i <- [1,5,10,30,50]]
-					 MenuItem "Quit"	ActionQuit Nothing
+					 MenuItem ActionQuit Nothing
 					]
 	]
 

@@ -4,7 +4,7 @@ import	StdList, StdArray, StdTuple, StdMisc, StdBool
 from	StdFunc import id, const
 from	TaskTree import :: TaskParallelType
 from 	Types import :: DateTime
-from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action, actionName
+from	InteractionTasks import :: Action(..), ::ActionName, ::ActionLabel, ::ActionData, instance == Action, class ActionName(..), instance ActionName Action
 derive class iTask SchedulerState
 
 import	TSt
@@ -117,19 +117,19 @@ derive bimap Maybe, (,)
 	, tasks :: [(Task a,Bool)]
 	}
 
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult
+group :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult) -> Task gResult | iTask taskResult & iTask gState & iTask gResult
 group label description procFun parseFun initState initTasks groupActions groupAGenFunc = mkGroupedTask label description execInGroup
 where
 	execInGroup tst=:{taskNr,request}
 		# (pst,tst)   		= loadPSt taskNr tst
 		# (events,tst)		= getEvents tst
-		# mbAction			= getEventGroupAction events groupActions
+		# mbAction			= getEventGroupActionEvent events groupActions
 		# (gActionStop,mbFocus,pst) 
 			= case mbAction of
 				Nothing
 					= (False,Nothing,pst)
-				Just gAction
-					# (nSt,act) = procFun (groupAGenFunc (gAction, "TODO"), -1) pst.PSt.state
+				Just (action,data)
+					# (nSt,act) = procFun (groupAGenFunc (action, data), -1) pst.PSt.state
 					# pst = {PSt | pst & state = nSt}
 					= case act of
 						Stop			= (True,Nothing,pst)
@@ -200,13 +200,11 @@ where
 			# tst					= {TSt|tst & iworld = {IWorld|iworld & store = store, world = world}}
 			= (p mbVal, tst)
 				
-	getEventGroupAction events groupActions
-		= case [value \\ (name, JSONString value) <- events | name == "action"] of
-			[gaction] = case [ga \\ (ga, _) <- groupActions | actionName ga == gaction] of
-				[action]	= Just action
-				_			= Nothing
-			_	= Nothing
-
+	getEventGroupActionEvent events groupActions
+		= case [(action, data) \\ (action,pred) <- groupActions, ("action",JSONArray [JSONString name,JSONString data]) <- events | actionName action == name] of
+			[actionEvent]	= Just actionEvent
+			_				= Nothing
+		
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel parType label description procFun parseFun initState initTasks
 	= mkParallelTask label description parType parallel`

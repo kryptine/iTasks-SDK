@@ -368,10 +368,10 @@ applyTask			:: !(Task a) !*TSt -> (!TaskResult a,!*TSt) | iTask a
 addTaskNode 		:: !TaskTree !*TSt -> *TSt
 
 //// TASK CONTENT
-setTUIDef			:: !([TUIDef],[TUIButton]) ![(Action,Bool)] !*TSt 				-> *TSt //Only for interactive tasks
+setTUIDef			:: ![TUIDef] ![(Action,Bool)] !*TSt 							-> *TSt //Only for interactive tasks
 setTUIUpdates		:: ![TUIUpdate] ![(Action,Bool)] !*TSt							-> *TSt //Only for interactive tasks
 setTUIFunc			:: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt					-> *TSt //Only for interactive tasks
-setTUIMessage 		:: !([TUIDef],[TUIButton]) ![(Action,Bool)] !*TSt				-> *TSt //Only for interactive tasks
+setTUIMessage 		:: ![TUIDef] ![(Action,Bool)] !*TSt								-> *TSt //Only for interactive tasks
 setStatus			:: ![HtmlTag] !*TSt												-> *TSt	//Only for monitor tasks
 setInstruction		:: !(Maybe [HtmlTag]) !*TSt										-> *TSt //Only for instruction tasks
 setGroupActions		:: ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !*TSt	-> *TSt //Only for group tasks

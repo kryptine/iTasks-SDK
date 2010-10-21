@@ -5,7 +5,7 @@ definition module Map
 * such that lookup, insert and delete operations can be performed in O(log n).
 */
 
-from StdMaybe			import :: Maybe
+from StdMaybe		import :: Maybe
 from StdClass		import class Eq, class Ord
 from StdOverloaded	import class ==, class <
 
@@ -94,3 +94,21 @@ toList		:: 		w:(Map k u:v)	-> x:[y:(k,u:v)] , [w y <= u, x <= y, w <= x]
 * @return A mapping containing all the tuples in the list
 */
 fromList	:: w:[x:(k,u:v)]		-> y:(Map k u:v) | Eq k & Ord k, [x y <= u, w <= x, w <= y]
+
+/**
+* Adds or replaces a list of key/value pairs.
+*
+* @param A list of key/value tuples
+* @param The original mapping
+* @return The modified mapping with the added values
+*/
+putList		:: w:[x:(k,u:v)] w:(Map k u:v) -> y:(Map k u:v) | Eq k & Ord k, [x y <= u, w <= x, w <= y]
+
+/**
+* Removes the values at given key positions. The mapping itself can be spine unique.
+*
+* @param The list of keys to remove
+* @param The original mapping
+* @return The modified mapping with the values/keys removed
+*/
+delList 	:: [k] w:(Map k u:v) -> y:(Map k u:v) | Eq k & Ord k, [w y <= u, w <= y]

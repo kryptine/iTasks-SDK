@@ -14,15 +14,15 @@ ifValid expr = (\val -> case val of Invalid -> False; _ -> expr)
 
 initMenu :: Menus
 initMenu =
-	[ Menu "File"	[ MenuItem "New"			ActionNew		Nothing
-					, MenuItem "Open..."		ActionOpen		Nothing
+	[ Menu "File"	[ MenuItem ActionNew		Nothing
+					, MenuItem ActionOpen		Nothing
 					, MenuSeparator
-					, MenuItem "Save"			ActionSave		Nothing
-					, MenuItem "Save As..."		ActionSaveAs	Nothing
+					, MenuItem ActionSave		Nothing
+					, MenuItem ActionSaveAs		Nothing
 					, MenuSeparator
-					, MenuItem "Quit"			ActionQuit		Nothing
+					, MenuItem ActionQuit		Nothing
 					]
-	, Menu "Help"	[ MenuItem "About"			ActionAbout		Nothing
+	, Menu "Help"	[ MenuItem ActionAbout		Nothing
 					]
 	]
 

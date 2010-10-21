@@ -6,7 +6,7 @@ from Types				import :: Task, :: ManagerProperties, :: User, :: TaskPriority, ::
 from Time				import :: Timestamp
 from TaskTree			import :: GroupedBehaviour, :: GroupActionsBehaviour
 from StoreTasks			import :: DBId
-from InteractionTasks	import :: Menus, :: Menu(..), :: MenuItem
+from InteractionTasks	import :: Menus, :: Menu(..), :: MenuItem, :: MenuLabel
 from iTasks				import class iTask
 import GenVisualize, GenUpdate
 

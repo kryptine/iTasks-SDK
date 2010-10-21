@@ -12,9 +12,9 @@ ActionStartFlow 	:== Action "start" "Start Flow"
 
 initMenu :: Menus
 initMenu =
-	[ Menu "File"	[ MenuItem "Start Workflow..."	ActionStartFlow	Nothing
+	[ Menu "File"	[ MenuItem ActionStartFlow	Nothing
 					, MenuSeparator
-					, MenuItem "Quit"				ActionQuit		Nothing
+					, MenuItem ActionQuit		Nothing
 					]
 	]
 

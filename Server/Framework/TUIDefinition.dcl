@@ -25,7 +25,8 @@ instance == TUIDef
 	| TUISetEnabled		TUIId Bool		// Enable/disable form elements
 	| TUISetError		TUIId String	// Set the error messages on a component
 	| TUISetHint		TUIId String	// Set the hint messages on a component
-	| TUIReplaceMenu	[TUIDef]
+	| TUIReplaceMenu	[TUIDef]		// Replace the task's menu bar
+	| TUIReplaceButtons	[TUIDef]		// Replace all task's buttons
 
 :: TUIDef
 	= TUILabel
@@ -199,6 +200,6 @@ instance == TUIDef
 	, menu			:: !Maybe TUIMenu
 	, disabled		:: !Bool
 	, iconCls		:: !Maybe String
-	, topGroupAction:: !Maybe Bool
 	, hotkey		:: !Maybe Hotkey
+	, actionData	:: !Maybe String
 	}

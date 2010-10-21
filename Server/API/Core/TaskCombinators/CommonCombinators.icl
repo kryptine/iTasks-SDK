@@ -18,20 +18,27 @@ import SystemTasks, InteractionTasks, UserDBTasks, CoreCombinators, TuningCombin
 import Util, Either
 import GenVisualize, GenUpdate
 
-derive gVisualize	GAction, GOnlyAction, GroupedBehaviour
-derive gUpdate		GAction, GOnlyAction, GroupedBehaviour
-derive gVerify		GAction, GOnlyAction, GroupedBehaviour
-derive JSONEncode	GAction, GOnlyAction, GroupedBehaviour
-derive JSONDecode	GAction, GOnlyAction, GroupedBehaviour
+derive gVisualize	GAction, GOnlyAction
+derive gUpdate		GAction, GOnlyAction
+derive gVerify		GAction, GOnlyAction
+derive JSONEncode	GAction, GOnlyAction
+derive JSONDecode	GAction, GOnlyAction
 
 // use string instances of generic function for Tag values 
 gVisualize{|Tag|} old new vst = gVisualize{|*|} (toStr old) (toStr new) vst
 where
 	toStr VBlank			= VBlank
 	toStr (VValue (Tag t))	= VValue (toString t)
-gUpdate{|Tag|} (Tag t) ust
-	#(str, ust) = gUpdate{|*|} (toString t) ust
-	= (Tag str, ust)
+gUpdate{|Tag|} _ ust=:{USt|mode=UDCreate,newMask} 
+	= (Tag "", {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+gUpdate{|Tag|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
+	# (cm,om) = popMask oldMask
+	| currentPath == searchPath
+		= (Tag update, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (toggleMask update), oldMask = om}) 
+	| otherwise
+		= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
+gUpdate{|Tag|} s ust=:{USt|mode=UDMask,currentPath,newMask}
+	= (s, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])}) 
 gVerify{|Tag|} mbTag vst = gVerify{|*|} (toStr mbTag) vst
 where
 	toStr Nothing			= Nothing

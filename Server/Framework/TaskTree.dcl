@@ -68,11 +68,11 @@ from InteractionTasks	import :: Action
 
 
 // give definition/updates or determine it after entire tree is build, needed for updateShared, ...
-:: InteractiveTask	= Definition ([TUIDef],[TUIButton]) [(Action,Bool)]															//Definition for rendering a user interface
-					| Updates [TUIUpdate] [(Action,Bool)]																		//Update an already rendered user interface
-					| Message ([TUIDef],[TUIButton]) [(Action,Bool)]															//Just show a message
-					| Func (*TSt -> *(!InteractiveTask, !*TSt))																	//Function for delayed generation of an interface definition.
-																																//These functions are evaluated after the full tree has been built.
+:: InteractiveTask	= Definition	[TUIDef]	[(Action,Bool)]				//Definition for rendering a user interface
+					| Updates		[TUIUpdate]	[(Action,Bool)]				//Update an already rendered user interface
+					| Message		[TUIDef]	[(Action,Bool)]				//Just show a message
+					| Func 			(*TSt -> *(!InteractiveTask, !*TSt))	//Function for delayed generation of an interface definition.
+																			//These functions are evaluated after the full tree has been built.
 					
 :: GroupedBehaviour = Fixed 		//The editor is fixed in the main canvas of the parent task
 					| Floating		//The editor is shown in a floating window

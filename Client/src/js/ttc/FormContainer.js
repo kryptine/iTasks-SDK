@@ -47,6 +47,12 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 					case "TUIReplaceMenu":
 						this.replaceToolbar(update[1]);
 						break;
+					case "TUIReplaceButtons":
+						var fbar = this.interactionpanel.getFooterToolbar();
+						fbar.removeAll();
+						fbar.addButton(update[1]);
+						this.doLayout();
+						break;
 					case "TUISetHint":
 						this.setComponentHint(update[1],update[2]);
 						break;

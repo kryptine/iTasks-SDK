@@ -14,12 +14,12 @@ from Types import :: User (..)
 :: GAction		= GStop  | GContinue  | GExtend [Task GAction] | GFocus Tag
 :: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void]   | GOFocus Tag
 
-derive gVisualize	GAction, GOnlyAction
-derive gUpdate		GAction, GOnlyAction
-derive gVerify		GAction, GOnlyAction
+derive gVisualize	GAction, GOnlyAction, Tag
+derive gUpdate		GAction, GOnlyAction, Tag
+derive gVerify		GAction, GOnlyAction, Tag
 
-derive JSONEncode	GAction, GOnlyAction
-derive JSONDecode	GAction, GOnlyAction
+derive JSONEncode	GAction, GOnlyAction, Tag
+derive JSONDecode	GAction, GOnlyAction, Tag
 
 /**
 * Transform a value with a custom function

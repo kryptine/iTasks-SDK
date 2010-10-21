@@ -74,12 +74,11 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 	# (ovalue,tst)		= readValue initial tst
 	# (oumask,tst)		= readMask initial tst
 	# (events,tst)		= getEvents tst
-	# buttonActions		= getButtonActions actions
 	= case treeType of
 		SpineTree
 			= (TaskBusy,tst)
 		JSONTree
-			# (nvalue,tst) = case (valueEvent events) of //Check action
+			# (nvalue,tst) = case valueEvent events of //Check action
 				Just nvalue
 					# (nmask,tst)	= accIWorldTSt (defaultMask nvalue) tst
 					# tst			= setTaskStore "value" nvalue tst	
@@ -88,9 +87,9 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 				Nothing
 					= (ovalue,tst)
 			# tst = setJSONValue (toJSON nvalue) tst
-			= case (actionEvent events actions) of
-				Just action = (TaskFinished (action,nvalue),tst)
-				Nothing		= (TaskBusy,tst)
+			= case actionEvent events actions of
+				Just actionEvent	= (TaskFinished (actionEvent,nvalue),tst)
+				Nothing				= (TaskBusy,tst)
 		UITree
 			# (anyEvent,tst)	= anyEvents tst
 			# edits				= editEvents events
@@ -98,9 +97,8 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 				// generate TUI definition
 				# ovmask		= verifyValue ovalue oumask			
 				# (form,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
-				# menuActions	= evaluateConditions (getMenuActions actions) valid ovalue
-				# buttonActions	= evaluateConditions buttonActions valid ovalue
-				# tst			= setTUIDef (taskPanel taskId context (Just form) (makeButtons editorId buttonActions)) menuActions tst
+				# evalActions	= evaluateConditions actions valid ovalue
+				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
 				= (TaskBusy,tst)
 			| otherwise
 				//Check for events
@@ -110,17 +108,16 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 					= (TaskBusy,tst)
 				| otherwise		
 					# (nvalue,numask,tst) = applyUpdates edits ovalue oumask tst
-					# action = actionEvent events actions
-					| isJust action
-						= (TaskFinished (fromJust action,nvalue),tst)
+					# actionEvent			= actionEvent events actions
+					| isJust actionEvent
+						= (TaskFinished (fromJust actionEvent,nvalue),tst)
 					| otherwise
 						# tst				= setTaskStore "value" nvalue tst
 						# tst				= setTaskStore "mask" numask tst
 						# nvmask			= verifyValue nvalue numask
 						# (updates,valid)	= determineEditorUpdates editorId Nothing (map fst edits) numask nvmask ovalue nvalue
-						# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
-						# buttonActions		= evaluateConditions buttonActions valid nvalue
-						# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
+						# evalActions		= evaluateConditions actions valid ovalue
+						# tst				= setTUIUpdates updates evalActions tst
 						= (TaskBusy, tst)
 where
 	readValue initial tst
@@ -200,7 +197,6 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 			# tst = setJSONValue (if valid (toJSON (options !! selection)) JSONNull) tst
 			= (TaskBusy,tst)
 		UITree
-			# buttonActions = getButtonActions actions
 			# (anyEvent,tst)	= anyEvents tst
 			| newTask || not anyEvent
 				# form			= [TUIChoiceControl {TUIChoiceControl
@@ -212,9 +208,8 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 													, options = [toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)) \\ option <- options]
 													, selection = [selection]
 													}]
-				# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! selection) (hd options))
-				# buttonActions	= evaluateConditions buttonActions valid (if valid (options !! selection) (hd options))
-				# tst			= setTUIDef (taskPanel taskId context (Just form) (makeButtons editorId buttonActions)) menuActions tst
+				# evalActions	= evaluateConditions actions valid (if valid (options !! selection) (hd options))
+				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
 				= (TaskBusy, tst)
 			| otherwise
 				//Check for user updates
@@ -224,10 +219,9 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 					# tst = setTUIUpdates [] [] tst
 					= (TaskBusy,tst)
 				| otherwise
-					# action = actionEvent events actions
-					= case action of
+					= case actionEvent events actions of
 						// One of the buttons was pressed
-						Just action	= (TaskFinished (action, if valid (options !! selection) (hd options)),tst)
+						Just actionEvent	= (TaskFinished (actionEvent, if valid (options !! selection) (hd options)),tst)
 						// The selection was updated
 						Nothing
 							// The selection was updated
@@ -236,9 +230,8 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 							| index <> -1
 								# valid			= index >= 0 && index < length options	//Recompute validity
 								# tst			= setTaskStore "selection" index tst
-								# menuActions	= evaluateConditions (getMenuActions actions) valid (if valid (options !! index) (hd options))
-								# buttonActions = evaluateConditions buttonActions valid (if valid (options !! index) (hd options))
-								# tst			= setTUIUpdates (enables editorId buttonActions) menuActions tst
+								# evalActions 	= evaluateConditions actions valid (if valid (options !! index) (hd options))
+								# tst			= setTUIUpdates [] evalActions tst
 								= (TaskBusy, tst)	
 							// Fallback case (shouldn't really happen)
 							| otherwise
@@ -291,11 +284,10 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 			# tst = setJSONValue (toJSON (select selection options)) tst
 			= (TaskBusy,tst)
 		UITree
-			# buttonActions	= evaluateConditions (getButtonActions actions) True (select selection options)
 			# (anyEvent,tst)= anyEvents tst
 			// finish the task in case of an empty options list. As no options are selectable, the result is -of course- an empty list.
 			| isEmpty options
-				= (TaskFinished ((ActionOk,"TODO"),[]),tst)
+			= (TaskFinished ((ActionOk,""),[]),tst)
 			| newTask || not anyEvent
 				// generate TUI definition
 				# checks		= [isMember i selection \\ i <- [0..(length options) - 1]]
@@ -308,8 +300,8 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 													, options = [toString (SpanTag [ClassAttr "task-choice"] (visualizeAsHtmlLabel option)) \\ option <- options]
 													, selection = selection
 													}]
-				# menuActions	= evaluateConditions (getMenuActions actions) True (select selection options)
-				# tst			= setTUIDef (taskPanel taskId context (Just form) (makeButtons editorId buttonActions)) menuActions tst
+				# evalActions	= evaluateConditions actions True (select selection options)
+				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
 				= (TaskBusy, tst)
 			| otherwise
 				//Check for events
@@ -320,15 +312,14 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 					= (TaskBusy,tst)
 				| otherwise
 					// One of the buttons was pressed
-					# action = actionEvent events actions
-					= case action of
-						Just action	= (TaskFinished (action, select selection options),tst)
+					= case actionEvent events actions of
+						Just actionEvent	= (TaskFinished (actionEvent, select selection options),tst)
 						Nothing
 							// Perhaps the selection was changed
 							# mbSel		= parseSelection events
 							# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
 							# tst		= setTaskStore "selection" (sort selection) tst
-							# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
+							# evalActions	= evaluateConditions actions True (select selection options)
 							= (TaskBusy, tst)
 where
 	parseSelection :: [(String,JSONNode)] -> Maybe [Int]
@@ -383,22 +374,19 @@ makeMessageTask context actions value tst=:{taskNr,treeType}
 			= (TaskBusy,tst)
 		JSONTree
 			# tst = setJSONValue (toJSON value) tst
-			= case (actionEvent events actions) of
-				Just action	= (TaskFinished (action,value), tst)
-				Nothing		= (TaskBusy,tst)
+			= case actionEvent events actions of
+				Just actionEvent	= (TaskFinished (actionEvent,value), tst)
+				Nothing				= (TaskBusy,tst)
 		UITree
-			# buttonActions	= getButtonActions actions
 			| isEmpty events
-				# menuActions	= evaluateConditions (getMenuActions actions) True value
-				# buttonActions	= evaluateConditions buttonActions True value
-				# tst			= setTUIMessage (taskPanel taskId context Nothing (makeButtons editorId buttonActions)) menuActions tst
+				# evalActions	= evaluateConditions actions True value
+				# tst			= setTUIMessage (taskPanel taskId context Nothing) evalActions tst
 				= (TaskBusy, tst)
 			| otherwise
-				# action		= actionEvent events actions	
 				# tst			= setTUIUpdates [] [] tst
-				= case action of
-					Just action
-						= (TaskFinished (action,value), tst)
+				= case actionEvent events actions of
+					Just actionEvent
+						= (TaskFinished (actionEvent,value), tst)
 					Nothing
 						# tst	= setTUIUpdates [] [] tst
 						= (TaskBusy, tst)
@@ -507,10 +495,9 @@ makeSharedTask description actions (DBId sharedId) views actionStored tst=:{task
 				# store				= storeValue sharedId nvalue store
 				# tst				= {TSt|tst & iworld = {IWorld|iworld & store = store}}
 				// check if action is triggered
-				# action			= actionEvent events actions
-				= case action of
-					Just action
-						= (TaskFinished (action,fromJust mbcvalue),tst)
+				= case actionEvent events actions of
+					Just actionEvent
+						= (TaskFinished (actionEvent,fromJust mbcvalue),tst)
 					Nothing
 						// updates are calculated after tree is build, shared value maybe changed by other tasks
 						# tst = setTUIFunc (createUpdates events) tst
@@ -521,9 +508,8 @@ where
 	createDefs tst
 		# (Just svalue,tst)		= readShared sharedId tst
 		# (form,valid,_,tst)	= foldl (createDef svalue) ([],True,0,tst) views
-		# menuActions			= evaluateConditions menuActions valid svalue
-		# buttonActions			= evaluateConditions buttonActions valid svalue
-		= (Definition (taskPanel taskId Nothing (Just form) (makeButtons baseEditorId buttonActions)) menuActions,tst)
+		# evalActions			= evaluateConditions actions valid svalue
+		= (Definition (taskPanel taskId Nothing (Just form)) evalActions,tst)
 	where
 		createDef :: !a !*([TUIDef],Bool,ViewNr,*TSt) !(View a) -> *([TUIDef],Bool,ViewNr,*TSt) | iTask a
 		createDef svalue (def,valid,n,tst) (Editor editor)
@@ -538,9 +524,8 @@ where
 		# (mbcvalue,tst)	= readShared sharedId tst
 		# cvalue			= fromJust mbcvalue
 		# (upd,valid,_,tst)	= foldl (detUpd cvalue postValues) ([],True,0,tst) views
-		# menuActions		= evaluateConditions menuActions valid cvalue
-		# buttonActions		= evaluateConditions buttonActions valid cvalue
-		= (Updates (enables baseEditorId buttonActions ++ upd) menuActions,tst)
+		# evalActions		= evaluateConditions actions valid cvalue
+		= (Updates upd evalActions,tst)
 	where
 		detUpd :: !a ![(String,JSONNode)] !*([TUIUpdate],Bool,ViewNr,*TSt) !(View a) -> *([TUIUpdate],Bool,ViewNr,*TSt) | iTask a
 		detUpd nvalue events (upd,valid,n,tst) (Editor editor)
@@ -582,54 +567,24 @@ where
 			
 	taskId			= taskNrToString taskNr
 	baseEditorId	= "tf-" +++ taskId
-	menuActions		= getMenuActions actions
-	buttonActions	= getButtonActions actions
 			
 addStorePrefix n key	= (toString n) +++ "_" +++ key
 editorId taskNr n		= "tf-" +++ (taskNrToString taskNr) +++ "_" +++ (toString n)
 		
-taskPanel :: String (Maybe [HtmlTag]) (Maybe [TUIDef]) [(Action,String,String,Bool)] -> ([TUIDef],[TUIButton])
-taskPanel taskid mbContext mbForm buttons
-	= (items,taskButtons buttons) 
-where
-	items = (case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
-			(case mbForm of Just form = form; Nothing = [])
-			
+taskPanel :: String (Maybe [HtmlTag]) (Maybe [TUIDef]) -> [TUIDef]
+taskPanel taskid mbContext mbForm =
+	(case mbContext of Just context = [taskContextPanel ("context-"+++taskid) context]; Nothing = []) ++
+	(case mbForm of Just form = form; Nothing = [])
+where			
 	taskContextPanel :: !String ![HtmlTag] -> TUIDef
 	taskContextPanel panelid context = TUIHtmlContainer
 										{ TUIHtmlContainer
 										| id = panelid
 										, html = toString (html context)
 										}
-	
-	taskButtons	:: [(Action,String,String,Bool)] -> [TUIButton]
-	taskButtons buttons = [toTUIButton button id name enable \\ (button,id,name,enable) <- buttons]
-
-	toTUIButton :: !Action !String !String !Bool -> TUIButton
-	toTUIButton action id name enable = {TUIButton| name = name, id = id, action = actionName action, disabled = not enable, text = actionLabel action, iconCls = actionIcon action}
-	
-//Generate a set of action buttons by joining the buttons that are always shown and those only active when valid
-makeButtons :: !String ![(Action, Bool)] -> [(!Action,!String,!String,!Bool)]	
-makeButtons editorId actions
-	= [(b,editorId +++ "-action-" +++ toString i, "action", p) \\ (b, p) <- actions & i <- [0..] ]
-
-//Generate the TUIUpdates for the buttons that are active when valid
-enables :: !String ![(Action, Bool)] -> [TUIUpdate]	
-enables editorId actions
-	= [TUISetEnabled (editorId +++ "-action-" +++ toString i) p \\ (_,p) <- actions & i <- [0..]]
-
-//Filter out the actions represented as buttons
-//TODO: CHANGE TO RETURN ONLY ACTIONS NOT IN MENU
-getButtonActions :: ![TaskAction a] -> [(!Action, (Verified a) -> Bool)]
-getButtonActions actions = [(action,pred) \\ (action,pred) <- actions]
-
-//Filter out the actions activated in the menu
-//TODO: ONLY RETURN THE ACTIONS THAT HAVE A MENU POSITION DEFINED
-getMenuActions :: ![TaskAction a] -> [(!Action, (Verified a) -> Bool)]
-getMenuActions actions = [(action,pred) \\ (action,pred) <- actions]
 
 //Check if there is an action event among the events 
-actionEvent :: [(String,JSONNode)] [TaskAction a] -> Maybe (Action,String)
+actionEvent :: ![(!String,!JSONNode)] ![TaskAction a] -> Maybe ActionEvent
 actionEvent events actions	
 	= case [value \\ (name,value) <- events | name == "action"] of
 		[JSONString key]							= addData "" (mbAction key)
@@ -642,8 +597,9 @@ where
 		
 	addData data (Just action)	= Just (action,data)
 	addData data Nothing		= Nothing
+	
 //Check if there is a value event among the events
-valueEvent :: [(String,JSONNode)] -> Maybe a | JSONDecode{|*|} a
+valueEvent :: ![(!String,!JSONNode)] -> Maybe a | JSONDecode{|*|} a
 valueEvent events
 	= case [value \\ (name,value) <- events | name == "value"] of
 		[value]	= fromJSON value
@@ -671,26 +627,31 @@ evaluateConditions actions valid value = [(action,evaluateCondition cond valid v
 evaluateCondition :: !((Verified a) -> Bool) !Bool !a -> Bool
 evaluateCondition pred valid value = pred (if valid (Valid value) Invalid)
 	
-actionName :: !Action -> String
-actionName (Action name _)		= name
-actionName ActionOk				= "ok"
-actionName ActionCancel			= "cancel"
-actionName ActionYes			= "yes"
-actionName ActionNo				= "no"
-actionName ActionNext			= "next"
-actionName ActionPrevious		= "previous"
-actionName ActionFinish			= "finish"
-actionName ActionNew			= "new"
-actionName ActionOpen			= "open"
-actionName ActionSave			= "save"
-actionName ActionSaveAs			= "save-as"
-actionName ActionClose			= "close"
-actionName ActionQuit			= "quit"
-actionName ActionHelp			= "help"
-actionName ActionAbout			= "about"
-actionName ActionFind			= "find"
-actionName ActionEdit			= "edit"
-actionName ActionDelete			= "delete"
+instance ActionName Action
+where
+	actionName (Action name _)		= name
+	actionName ActionOk				= "ok"
+	actionName ActionCancel			= "cancel"
+	actionName ActionYes			= "yes"
+	actionName ActionNo				= "no"
+	actionName ActionNext			= "next"
+	actionName ActionPrevious		= "previous"
+	actionName ActionFinish			= "finish"
+	actionName ActionNew			= "new"
+	actionName ActionOpen			= "open"
+	actionName ActionSave			= "save"
+	actionName ActionSaveAs			= "save-as"
+	actionName ActionClose			= "close"
+	actionName ActionQuit			= "quit"
+	actionName ActionHelp			= "help"
+	actionName ActionAbout			= "about"
+	actionName ActionFind			= "find"
+	actionName ActionEdit			= "edit"
+	actionName ActionDelete			= "delete"
+	
+instance ActionName ActionName	
+where
+	actionName name = name
 
 actionIcon :: !Action -> String
 actionIcon action = "icon-" +++ (actionName action) 
@@ -700,6 +661,17 @@ actionLabel (Action _ label)		= label
 actionLabel (ActionSaveAs)			= "Save as"
 actionLabel action					= upperCaseFirst (actionName action)
 
+instance MenuAction Action
+where
+	menuAction action = (actionName action, "", "")
+	
+instance MenuAction ActionName
+where
+	menuAction name = (name, "", "")
+	
+instance MenuAction (actionName, ActionLabel, ActionData) | ActionName actionName
+where
+	menuAction (name, label, data) = (actionName name, label, data)
 			
 //Throw away the chosen action part of the result
 ignoreActionA :: (*TSt -> (!TaskResult (!ActionEvent,!a),*TSt)) -> (*TSt -> (!TaskResult a,!*TSt))

@@ -11,7 +11,7 @@ from InteractionTasks import :: MenuItem
 derive bimap (,), Maybe
 
 //Additional derives for debugging
-derive JSONEncode TaskInfo, Menu, MenuItem, Hotkey, Key
+derive JSONEncode TaskInfo, Hotkey, Key
 derive JSONEncode GroupActionsBehaviour, GroupedBehaviour
 derive JSONEncode HtmlTag, HtmlAttr
 
@@ -38,8 +38,7 @@ JSONEncode{|TaskTree|} (TTFinishedTask a0 a1)
 JSONEncode{|TaskTree|} (TTRpcTask a0 a1)
 	= [JSONArray [JSONString "TTRpcTask":JSONEncode{|*|} a0 ++ JSONEncode{|*|} a1]]
 	
-JSONEncode{|TaskInfoMenus|} (Menus menus)
-	= [JSONArray [JSONString "Menus":JSONEncode{|*|} menus]]
+JSONEncode{|TaskInfoMenus|} (Menus menus) = []
 	
 JSONEncode{|TaskOutput|} fx NoOutput		= [JSONNull]
 JSONEncode{|TaskOutput|} fx (UIOutput _)	= [JSONString "User Interface Definition"]

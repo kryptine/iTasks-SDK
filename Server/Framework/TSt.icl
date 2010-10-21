@@ -843,16 +843,16 @@ addTaskNode node tst=:{tree} = case tree of
 	(TTGroupedTask ti tasks gActions mbFocus)	= {tst & tree = TTGroupedTask ti [node:tasks] gActions mbFocus}	//Add the node to the grouped set
 	_											= {tst & tree = tree}
 		
-setTUIDef	:: !([TUIDef],[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt
+setTUIDef :: ![TUIDef] ![(Action,Bool)] !*TSt -> *TSt
 setTUIDef def accActions tst=:{tree}
 	= case tree of
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Definition def accActions))}
 		_								= tst
 
 setTUIUpdates :: ![TUIUpdate] ![(Action,Bool)] !*TSt -> *TSt
-setTUIUpdates upd accActions tst=:{tree}
+setTUIUpdates upd actions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Updates upd accActions))}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Updates upd actions))}
 		_								= tst
 		
 setTUIFunc :: (*TSt -> *(!InteractiveTask, !*TSt)) !*TSt -> *TSt
@@ -861,10 +861,10 @@ setTUIFunc func tst=:{tree}
 		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Func func))}
 		_								= tst
 
-setTUIMessage :: !([TUIDef],[TUIButton]) ![(Action,Bool)] !*TSt -> *TSt
-setTUIMessage msg accActions tst=:{tree}
+setTUIMessage :: ![TUIDef] ![(Action,Bool)] !*TSt -> *TSt
+setTUIMessage msg actions tst=:{tree}
 	= case tree of
-		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Message msg accActions))}
+		(TTInteractiveTask info _)		= {tst & tree = TTInteractiveTask info (UIOutput (Message msg actions))}
 		_								= tst
 
 setStatus :: ![HtmlTag] !*TSt -> *TSt

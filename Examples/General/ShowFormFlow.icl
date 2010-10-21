@@ -12,11 +12,11 @@ showStoredDefinitions = workflow "Examples/Interactive Workflows/Show Stored Def
 
 initMenu :: Menus
 initMenu =
-	[ Menu "File"	[ MenuItem "Show Forms..."	ShowForms	Nothing
-					, MenuItem "Show Flows..."	ShowFlows	Nothing
-					, MenuItem "Show All..."	ShowAll		Nothing
+	[ Menu "File"	[ MenuItem ShowForms	Nothing
+					, MenuItem ShowFlows	Nothing
+					, MenuItem ShowAll		Nothing
 					, MenuSeparator
-					, MenuItem "Quit"			ActionQuit	Nothing
+					, MenuItem ActionQuit	Nothing
 					]
 	]
 
