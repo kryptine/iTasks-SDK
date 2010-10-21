@@ -29,13 +29,13 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 	},
 	onTuiChange: function(name,value) {
 		//Re-fire 'tuichange' events as 'tuievent' with the task number added
-		this.fireEvent('tuievent',this.taskId,name,value,'');
+		this.fireEvent('tuievent',this.taskId,name,value);
 		//Return such that 'higher' containers can't also try to handle this event.
 		return false;	
 	},
 	onTuiAction: function(value) {
 		//Re-fire 'tuiaction' events as 'tuievent' with name and task number added
-		this.fireEvent('tuievent',this.taskId,'action',value,'');
+		this.fireEvent('tuievent',this.taskId,'action',value);
 		return false;
 	},
 	afterRender: function(){

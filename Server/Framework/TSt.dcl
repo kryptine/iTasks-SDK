@@ -389,7 +389,7 @@ setJSONValue		:: !JSONNode !*TSt												-> *TSt
 * @return The matched events
 * @return The modified task state
 */
-getEvents			:: !*TSt						-> ([(!String,!String)],!*TSt)
+getEvents			:: !*TSt						-> ([(!String,!JSONNode)],!*TSt)
 /**
 * Test if there are events for any task during this run.
 *

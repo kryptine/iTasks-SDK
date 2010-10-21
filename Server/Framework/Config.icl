@@ -18,7 +18,7 @@ defaultConfig =
 	, serverPath		= "/services"
 	, debug				= False
 	, smtpServer		= "localhost"
-	, generalWorkflows	= True
+	, generalWorkflows	= False
 	}
 
 loadConfig :: !String !*World -> (!Maybe Config, !*World)

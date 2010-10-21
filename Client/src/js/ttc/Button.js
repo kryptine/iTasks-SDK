@@ -13,7 +13,7 @@ itasks.ttc.Button = Ext.extend(Ext.Button, {
 	},
 	onActionClick: function() {
 		if(this.action) {
-			this.fireEvent('tuiaction',this.action,'');
+			this.fireEvent('tuiaction',this.action);
 		}
 	}
 

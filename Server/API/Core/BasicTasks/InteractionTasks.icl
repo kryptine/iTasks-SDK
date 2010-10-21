@@ -89,10 +89,11 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 					= (ovalue,tst)
 			# tst = setJSONValue (toJSON nvalue) tst
 			= case (actionEvent events actions) of
-				Just action = (TaskFinished ((action,"TODO"),nvalue),tst)
+				Just action = (TaskFinished (action,nvalue),tst)
 				Nothing		= (TaskBusy,tst)
 		UITree
 			# (anyEvent,tst)	= anyEvents tst
+			# edits				= editEvents events
 			| newTask || (isEmpty events && not anyEvent)
 				// generate TUI definition
 				# ovmask		= verifyValue ovalue oumask			
@@ -108,16 +109,15 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 					# tst = setTUIUpdates [] [] tst
 					= (TaskBusy,tst)
 				| otherwise		
-					# (nvalue,numask,tst) = applyUpdates [(s2dp key,value) \\ (key,value) <- events | isdps key] ovalue oumask tst
+					# (nvalue,numask,tst) = applyUpdates edits ovalue oumask tst
 					# action = actionEvent events actions
 					| isJust action
-						= (TaskFinished ((fromJust action,"TODO"),nvalue),tst)
+						= (TaskFinished (fromJust action,nvalue),tst)
 					| otherwise
 						# tst				= setTaskStore "value" nvalue tst
 						# tst				= setTaskStore "mask" numask tst
-						# updpaths			= events2Paths events
 						# nvmask			= verifyValue nvalue numask
-						# (updates,valid)	= determineEditorUpdates editorId Nothing updpaths numask nvmask ovalue nvalue
+						# (updates,valid)	= determineEditorUpdates editorId Nothing (map fst edits) numask nvmask ovalue nvalue
 						# menuActions		= evaluateConditions (getMenuActions actions) valid nvalue
 						# buttonActions		= evaluateConditions buttonActions valid nvalue
 						# tst				= setTUIUpdates (enables editorId buttonActions ++ updates) menuActions tst
@@ -227,7 +227,7 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 					# action = actionEvent events actions
 					= case action of
 						// One of the buttons was pressed
-						Just action	= (TaskFinished ((action,"TODO"), if valid (options !! selection) (hd options)),tst)
+						Just action	= (TaskFinished (action, if valid (options !! selection) (hd options)),tst)
 						// The selection was updated
 						Nothing
 							// The selection was updated
@@ -245,10 +245,13 @@ makeChoiceTask options initsel context actions tst=:{taskNr,newTask,treeType}
 								# tst = setTUIUpdates [] [] tst
 								= (TaskBusy, tst)
 where
-	parseUpdate :: !String ![(String,String)] -> [Int]
+	parseUpdate :: !String ![(String,JSONNode)] -> [Int]
 	parseUpdate	selectionId events
-		# mbList = fromJSON(fromString (http_getValue selectionId events "[]"))
-		= case mbList of Nothing = []; Just list = list
+		= case [(name,value) \\ (name,value) <- events | name == selectionId] of
+			[(name,value)]	= case fromJSON value of
+								Just l	= l
+								Nothing	= []
+			_				= []
 
 enterMultipleChoice :: !String !description [a] -> Task [a] | html description & iTask a
 enterMultipleChoice subject description options = mkInteractiveTask subject (toString (html description)) (ignoreActionA (makeMultipleChoiceTask options [] Nothing [(ActionOk, ifvalid)]))
@@ -292,7 +295,7 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 			# (anyEvent,tst)= anyEvents tst
 			// finish the task in case of an empty options list. As no options are selectable, the result is -of course- an empty list.
 			| isEmpty options
-			= (TaskFinished ((ActionOk,"TODO"),[]),tst)
+				= (TaskFinished ((ActionOk,"TODO"),[]),tst)
 			| newTask || not anyEvent
 				// generate TUI definition
 				# checks		= [isMember i selection \\ i <- [0..(length options) - 1]]
@@ -319,7 +322,7 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 					// One of the buttons was pressed
 					# action = actionEvent events actions
 					= case action of
-						Just action	= (TaskFinished ((action,"TODO"), select selection options),tst)
+						Just action	= (TaskFinished (action, select selection options),tst)
 						Nothing
 							// Perhaps the selection was changed
 							# mbSel		= parseSelection events
@@ -328,8 +331,11 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 							# tst		= setTUIUpdates [] (evaluateConditions (getMenuActions actions) True (select selection options)) tst
 							= (TaskBusy, tst)
 where
-	parseSelection :: [(String,String)] -> Maybe [Int]
-	parseSelection events = fromJSON (fromString (http_getValue "selection" events "[]"))	
+	parseSelection :: [(String,JSONNode)] -> Maybe [Int]
+	parseSelection events =
+		case [value \\ (name,value) <- events | name == "selection"] of
+			[value] = fromJSON value
+			_		= Nothing
 
 	select :: [Int] [a] -> [a]
 	select indices options = [options !! index \\ index <- indices]
@@ -378,7 +384,7 @@ makeMessageTask context actions value tst=:{taskNr,treeType}
 		JSONTree
 			# tst = setJSONValue (toJSON value) tst
 			= case (actionEvent events actions) of
-				Just action	= (TaskFinished ((action,"TODO"),value), tst)
+				Just action	= (TaskFinished (action,value), tst)
 				Nothing		= (TaskBusy,tst)
 		UITree
 			# buttonActions	= getButtonActions actions
@@ -388,12 +394,11 @@ makeMessageTask context actions value tst=:{taskNr,treeType}
 				# tst			= setTUIMessage (taskPanel taskId context Nothing (makeButtons editorId buttonActions)) menuActions tst
 				= (TaskBusy, tst)
 			| otherwise
-				# action		= actionEvent events actions
-				
+				# action		= actionEvent events actions	
 				# tst			= setTUIUpdates [] [] tst
 				= case action of
 					Just action
-						= (TaskFinished ((action,"TODO"),value), tst)
+						= (TaskFinished (action,value), tst)
 					Nothing
 						# tst	= setTUIUpdates [] [] tst
 						= (TaskBusy, tst)
@@ -494,9 +499,9 @@ makeSharedTask description actions (DBId sharedId) views actionStored tst=:{task
 				= (TaskBusy, tst)
 			| otherwise
 				# (events,tst)		= getEvents tst
-				# dpEvents			= [(s2dp key,value) \\ (key,value) <- events | isdps key]
+				# edits				= editEvents events
 				// determine new shared value by accumulating updates of all views
-				# (nvalue,_,tst)	= foldl (updateSharedForView dpEvents) (cvalue,0,tst) views
+				# (nvalue,_,tst)	= foldl (updateSharedForView edits) (cvalue,0,tst) views
 				# tst=:{TSt|iworld=iworld=:{IWorld|store}}
 									= tst
 				# store				= storeValue sharedId nvalue store
@@ -505,7 +510,7 @@ makeSharedTask description actions (DBId sharedId) views actionStored tst=:{task
 				# action			= actionEvent events actions
 				= case action of
 					Just action
-						= (TaskFinished ((action,"TODO"),fromJust mbcvalue),tst)
+						= (TaskFinished (action,fromJust mbcvalue),tst)
 					Nothing
 						// updates are calculated after tree is build, shared value maybe changed by other tasks
 						# tst = setTUIFunc (createUpdates events) tst
@@ -528,7 +533,7 @@ where
 		createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
 	
 	// create TUI updates for all views
-	createUpdates :: ![(String,String)] !*TSt -> *(InteractiveTask,*TSt)
+	createUpdates :: ![(String,JSONNode)] !*TSt -> *(InteractiveTask,*TSt)
 	createUpdates postValues tst
 		# (mbcvalue,tst)	= readShared sharedId tst
 		# cvalue			= fromJust mbcvalue
@@ -537,9 +542,9 @@ where
 		# buttonActions		= evaluateConditions buttonActions valid cvalue
 		= (Updates (enables baseEditorId buttonActions ++ upd) menuActions,tst)
 	where
-		detUpd :: !a ![(String,String)] !*([TUIUpdate],Bool,ViewNr,*TSt) !(View a) -> *([TUIUpdate],Bool,ViewNr,*TSt) | iTask a
-		detUpd nvalue postValues (upd,valid,n,tst) (Editor editor)
-			# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue postValues tst
+		detUpd :: !a ![(String,JSONNode)] !*([TUIUpdate],Bool,ViewNr,*TSt) !(View a) -> *([TUIUpdate],Bool,ViewNr,*TSt) | iTask a
+		detUpd nvalue events (upd,valid,n,tst) (Editor editor)
+			# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue [(name,value) \\ (name,JSONString value) <- events] tst
 			# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
 			= (upd ++ nupd,	valid && nvalid, inc n, tst)
 		detUpd nvalue _ (upd,valid,n,tst) (Listener listener) 
@@ -624,24 +629,31 @@ getMenuActions :: ![TaskAction a] -> [(!Action, (Verified a) -> Bool)]
 getMenuActions actions = [(action,pred) \\ (action,pred) <- actions]
 
 //Check if there is an action event among the events 
-actionEvent :: [(String,String)] [TaskAction a] -> Maybe Action
+actionEvent :: [(String,JSONNode)] [TaskAction a] -> Maybe (Action,String)
 actionEvent events actions	
-	| key == ""		= Nothing
-	| otherwise		= case [action \\ (action,pred) <- actions | actionName action == key] of
-						[action]	= Just action
-						_			= Nothing
+	= case [value \\ (name,value) <- events | name == "action"] of
+		[JSONString key]							= addData "" (mbAction key)
+		[JSONArray [JSONString key,JSONString data]]= addData data (mbAction key)
+		_											= Nothing
 where
-	key = http_getValue "action" events ""
-
+	mbAction key = case [action \\ (action,pred) <- actions | actionName action == key] of
+		[action]	= Just action
+		_			= Nothing
+		
+	addData data (Just action)	= Just (action,data)
+	addData data Nothing		= Nothing
 //Check if there is a value event among the events
-valueEvent :: [(String,String)] -> Maybe a | JSONDecode{|*|} a
+valueEvent :: [(String,JSONNode)] -> Maybe a | JSONDecode{|*|} a
 valueEvent events
-	| raw == "" 	= Nothing
-	| otherwise		= fromJSON (fromString raw)
-where
-	raw = http_getValue "value" events ""
+	= case [value \\ (name,value) <- events | name == "value"] of
+		[value]	= fromJSON value
+		_		= Nothing
+		
+//Edit events of which the name is a datapath
+editEvents :: [(String,JSONNode)] -> [(DataPath,String)]
+editEvents events = [(s2dp name,value) \\ (name,JSONString value) <- events| isdps name]
 
-
+		
 always :: (Verified a) -> Bool
 always _ = True
 

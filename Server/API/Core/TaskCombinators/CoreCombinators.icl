@@ -201,10 +201,11 @@ where
 			= (p mbVal, tst)
 				
 	getEventGroupAction events groupActions
-		# name = http_getValue "action" events ""
-		= case [ga \\ (ga, _) <- groupActions | actionName ga == name] of
-			[action]	= Just action
-			_			= Nothing
+		= case [value \\ (name, JSONString value) <- events | name == "action"] of
+			[gaction] = case [ga \\ (ga, _) <- groupActions | actionName ga == gaction] of
+				[action]	= Just action
+				_			= Nothing
+			_	= Nothing
 
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel parType label description procFun parseFun initState initTasks

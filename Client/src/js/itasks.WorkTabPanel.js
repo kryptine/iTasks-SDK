@@ -94,10 +94,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 			this.getComponent(0).setBusy(false);
 		},this);
 	},
-	onTuiEvent: function(taskId, name, value, extra) {
+	onTuiEvent: function(taskId, name, value) {
 		//TODO: reinstate slight delay between receive of task and sync
 		//      needed to capture edit->click sequences.
-		this.params["events"] = Ext.encode([[taskId,name,value,extra]]);
+		this.params["events"] = Ext.encode([[taskId,name,value]]);
 		this.refresh();
 		delete(this.params["events"]);
 	},

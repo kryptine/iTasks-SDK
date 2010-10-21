@@ -955,13 +955,13 @@ getTaskStoreFor taskNr key tst=:{TSt|iworld=iworld=:{IWorld|store,world}}
 where
 	storekey = "iTask_" +++ (taskNrToString taskNr) +++ "-" +++ key
 
-getEvents :: !*TSt -> ([(!String,!String)],!*TSt)
+getEvents :: !*TSt -> ([(!String,!JSONNode)],!*TSt)
 getEvents tst=:{taskNr,events} = (match, {TSt|tst & events = rest})
 where
 	(match,rest) = splitEvents events
 	
 	splitEvents [] = ([],[])
-	splitEvents [event=:(t,n,v,d):events]
+	splitEvents [event=:(t,n,v):events]
 		= let (match,rest) = splitEvents events in
 			if (t == taskId) ([(n,v):match],rest) (match, [event:rest])
 

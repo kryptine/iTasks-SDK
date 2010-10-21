@@ -3,8 +3,8 @@ definition module iTasks
 * Main iTask module exporting all end user iTask modules 
 */
 import	Engine						// basic iTask system creator
-	,	EngineWrapperStandalone		// standalone wrapper
-	//,	EngineWrapperCGI			// CGI wrapper
+	//,	EngineWrapperStandalone		// standalone wrapper
+	,	EngineWrapperCGI			// CGI wrapper
 
 	//	Basic tasks
 	,	InteractionTasks			// tasks for interaction with users
