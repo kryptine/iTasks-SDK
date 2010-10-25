@@ -316,10 +316,11 @@ makeMultipleChoiceTask options initsel context actions tst=:{taskNr,newTask,tree
 						Just actionEvent	= (TaskFinished (actionEvent, select selection options),tst)
 						Nothing
 							// Perhaps the selection was changed
-							# mbSel		= parseSelection events
-							# selection	= case mbSel of Nothing = selection; Just sel = map toInt sel
-							# tst		= setTaskStore "selection" (sort selection) tst
+							# mbSel			= parseSelection events
+							# selection		= case mbSel of Nothing = selection; Just sel = sel
+							# tst			= setTaskStore "selection" (sort selection) tst
 							# evalActions	= evaluateConditions actions True (select selection options)
+							# tst			= setTUIUpdates [] evalActions tst
 							= (TaskBusy, tst)
 where
 	parseSelection :: [(String,JSONNode)] -> Maybe [Int]
