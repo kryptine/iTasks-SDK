@@ -11,8 +11,8 @@ from Types import :: User (..)
 
 // Additional types for grouping
 // These types are similar to PAction but are needed to avoid circular definitions
-:: GAction		= GStop  | GContinue  | GExtend [Task GAction] | GFocus Tag
-:: GOnlyAction	= GOStop | GOContinue | GOExtend [Task Void]   | GOFocus Tag
+:: GAction		= GStop  | GContinue | GExtend [Task GAction] | GFocus Tag
+:: GOnlyAction	= GOStop | GOExtend [Task Void] | GOFocus Tag
 
 derive gVisualize	GAction, GOnlyAction, Tag
 derive gUpdate		GAction, GOnlyAction, Tag

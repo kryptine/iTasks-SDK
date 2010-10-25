@@ -230,10 +230,9 @@ dynamicGroupAOnly initTasks gActions genFunc = group "dynamicGroup" "A simple gr
 where
 	procfun (action,_) _ = case action of
 		GOStop			= (Void, Stop)
-		GOContinue		= (Void, Continue)
 		GOExtend tasks	= (Void, Extend (changeTasksType tasks))
 		GOFocus tag		= (Void, Focus tag)
-	changeTasksType tasks = map (\t -> (t >>| return GOContinue) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
+	changeTasksType tasks = map (\t -> (t >>| return (GOExtend [])) <<@ t.groupedProperties.GroupedProperties.groupedBehaviour) tasks
 		
 mdiApplication :: !globalState ![GroupAction Void] !((DBId globalState) (MDITasks editorState iterationState) -> (GroupActionGenFunc GAction)) !(globalState -> Menus) -> Task Void | iTask globalState & iTask editorState & iTask iterationState
 mdiApplication initAppState gActions gActionsGenFunc menuGenFunc =
