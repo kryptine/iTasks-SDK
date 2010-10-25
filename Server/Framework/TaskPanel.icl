@@ -21,15 +21,14 @@ JSONEncode{|TaskPanel|} (TTCProcessControlContainer x)	 	= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCParallelContainer x)			= JSONEncode{|*|} x
 JSONEncode{|TaskPanel|} (TTCGroupContainer x)				= JSONEncode{|*|} x
 
-//Maps mapping action names to task/group-actions
-:: TaskActionMap	:== Map ActionName (Action, Bool)
-:: GroupActionMap	:== Map ActionName (Action, TaskId, Bool, Bool)
+//Map mapping action names to (action, target task, enabled)
+:: ActionMap :== Map ActionName (Action, TaskId, Bool)
 
 buildTaskPanel :: !TaskTree !User -> TaskPanel
-buildTaskPanel tree currentUser = buildTaskPanel` tree [] newMap currentUser
+buildTaskPanel tree currentUser = buildTaskPanel` tree [] currentUser False
 
-buildTaskPanel` :: !TaskTree !Menus !GroupActionMap !User -> TaskPanel
-buildTaskPanel` tree menus groupActions currentUser
+buildTaskPanel` :: !TaskTree !Menus !User !Bool -> TaskPanel
+buildTaskPanel` tree menus currentUser fixedInGroup
 	# taskInfo	= getTaskInfo tree
 	# menus = case taskInfo.menus of
 		Nothing				= menus		// inherit menus from parent
@@ -39,7 +38,10 @@ buildTaskPanel` tree menus groupActions currentUser
 		(TTFinishedTask _ _)
 			= TaskDone
 		(TTInteractiveTask ti (UIOutput (Definition def taskActions)))
-			# (buttons, menuBar) = makeButtonsAndMenus ti.TaskInfo.taskId menus (mkTaskActionMap taskActions) groupActions
+			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
+			# (buttons, mbMenuBar) = case fixedInGroup of
+				True	= (mkButtons taskActions, Nothing)
+				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
 			= TTCFormContainer {TTCFormContainer 
 				| xtype 		= "itasks.ttc.form"
 				, id 			= "taskform-" +++ ti.TaskInfo.taskId
@@ -48,9 +50,13 @@ buildTaskPanel` tree menus groupActions currentUser
 				, description	= ti.TaskInfo.description
 				, content 		= Just {form = def, buttons = buttons}
 				, updates 		= Nothing	
-				, menu			= Just menuBar
+				, menu			= mbMenuBar
 				}
 		(TTInteractiveTask ti (UIOutput (Updates upd taskActions)))
+			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
+			# (buttons, mbMenuBar) = case fixedInGroup of
+				True	= (mkButtons taskActions, Nothing)
+				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
 			= TTCFormContainer {TTCFormContainer 
 				| xtype 		= "itasks.ttc.form"
 				, id 			= "taskform-" +++ ti.TaskInfo.taskId
@@ -58,13 +64,16 @@ buildTaskPanel` tree menus groupActions currentUser
 				, subject		= ti.TaskInfo.subject
 				, description	= ti.TaskInfo.description
 				, content 		= Nothing
-				, updates 		= Just (upd ++ (determineButtonAndMenuUpdates ti.TaskInfo.taskId menus (mkTaskActionMap taskActions) groupActions))
+				, updates 		= Just (upd ++ [TUIReplaceButtons buttons] ++ case mbMenuBar of Just menuBar = [TUIReplaceMenu menuBar]; Nothing = [])
 				, menu			= Nothing
 				}
 		(TTInteractiveTask ti (UIOutput (Func f)))
 			= abort "Non-normalized interactive task left in task tree"
 		(TTInteractiveTask ti (UIOutput (Message msg taskActions)))
-			# (buttons, menuBar) = makeButtonsAndMenus ti.TaskInfo.taskId menus (mkTaskActionMap taskActions) groupActions
+			# taskActions = mkTaskActionMap ti.TaskInfo.taskId taskActions
+			# (buttons, mbMenuBar) = case fixedInGroup of
+				True	= (mkButtons taskActions, Nothing)
+				False	= app2 (id, Just) (makeButtonsAndMenus taskActions menus)
 			= TTCMessageContainer {TTCMessageContainer
 				| xtype		= "itasks.ttc.message"
 				, id		= "taskform-" +++ ti.TaskInfo.taskId
@@ -72,7 +81,7 @@ buildTaskPanel` tree menus groupActions currentUser
 				, subject	= ti.TaskInfo.subject
 				, description = ti.TaskInfo.description
 				, content	= {form = msg, buttons = buttons }
-				, menu		= Just menuBar
+				, menu		= mbMenuBar
 				}
 		(TTInteractiveTask ti NoOutput)
 			= abort "No Output node in the task tree"
@@ -96,7 +105,6 @@ buildTaskPanel` tree menus groupActions currentUser
 				, subject		= ti.TaskInfo.subject
 				, description 	= ti.TaskInfo.description
 				, context		= if(isJust context) (Just (toString (DivTag [] (fromJust context)))) Nothing
-				, menu			= Nothing
 				}
 		(TTRpcTask ti rpc) 
 			= TTCMonitorContainer {TTCMonitorContainer 
@@ -118,19 +126,20 @@ buildTaskPanel` tree menus groupActions currentUser
 		(TTSequenceTask ti tasks)
 			= case [t \\ t <- tasks | not (isFinished t)] of
 				[]	= if (allFinished tasks) TaskDone TaskRedundant
-				[t]	= buildTaskPanel` t menus groupActions currentUser
+				[t]	= buildTaskPanel` t menus currentUser fixedInGroup
 				_	= (abort "Multiple simultaneously active tasks in a sequence!")
-		(TTGroupedTask ti tasks gActions mbFocus)
+		(TTGroupedTask ti tasks actionList mbFocus)
+			# groupActions			= fromList [(actionName action, (action, ti.TaskInfo.taskId, enabled)) \\ el=:(action, Left enabled) <- actionList]
+			# (buttons, menuBar)	= makeButtonsAndMenus groupActions menus
 			= TTCGroupContainer {TTCGroupContainer 
 						 		 | xtype = "itasks.ttc.group"
 								 , taskId = ti.TaskInfo.taskId
 								 , subject = ti.TaskInfo.subject
 								 , description = ti.TaskInfo.description
-								 , content = filter filterFinished (buildGroupElements tasks currentUser ti.TaskInfo.taskId gActions menus mbFocus)
+								 , content = filter filterFinished (buildGroupElements tasks currentUser ti.TaskInfo.taskId menus mbFocus)
 								 , subtaskId = Nothing
-								 , groupAMenu = Nothing
-								// , groupAMenu = makeMenuBar menus [] [(a, b, True) \\ (a, Left b) <- gActions] ti
-								 , menu = Just (fst (mkMenuBar undef menus newMap (fromList [(actionName a, (a, ti.TaskInfo.taskId, enabled, True)) \\ (a, Left enabled) <- gActions])))
+								 , menu = Just menuBar
+								 , bbar = Just buttons
 								 }
 		(TTParallelTask ti tpi tasks)
 			= TTCParallelContainer {TTCParallelContainer 
@@ -142,13 +151,9 @@ buildTaskPanel` tree menus groupActions currentUser
 									, menu = Nothing
 									}
 
-where		
-	includeGroupActions info = case info.TaskInfo.groupActionsBehaviour of
-		IncludeGroupActions	= True
-		ExcludeGroupActions	= False
-	
-	mkTaskActionMap :: ![(Action, Bool)] -> TaskActionMap
-	mkTaskActionMap actionList = fromList[(actionName action, el) \\ el=:(action, enabled) <- actionList]
+where			
+	mkTaskActionMap :: !TaskId ![(Action, Bool)] -> ActionMap
+	mkTaskActionMap taskId actionList = fromList [(actionName action, (action, taskId, enabled)) \\ (action, enabled) <- actionList]
 
 buildSubtaskInfo :: !TaskTree -> TTCParallelContainerElement
 buildSubtaskInfo (TTMainTask _ p _ _)
@@ -182,27 +187,28 @@ filterFinished container = case container.panel of
 	TaskDone	= False
 	_			= True
 
-buildGroupElements :: ![TaskTree] !User !TaskId ![(Action, (Either Bool (*TSt -> *(!Bool,!*TSt))))] !Menus !(Maybe String) -> [TTCGroupContainerElement]
-buildGroupElements tasks currentUser parentId gActions menus mbFocus
-	= flatten [buildGroupElements` t [nr] (fromList [(actionName action, (action, parentId, enabled, True)) \\ (action, Left enabled) <- gActions]) Nothing mbFocus \\ t <- tasks & nr <- [1..]]
+buildGroupElements :: ![TaskTree] !User !TaskId !Menus !(Maybe String) -> [TTCGroupContainerElement]
+buildGroupElements tasks currentUser parentId menus mbFocus
+	= flatten [buildGroupElements` t [nr] Nothing mbFocus \\ t <- tasks & nr <- [1..]]
 where
-	buildGroupElements` :: !TaskTree !SubtaskNr !GroupActionMap !(Maybe GroupedBehaviour) !(Maybe String) -> [TTCGroupContainerElement]
-	buildGroupElements` (TTGroupedTask {TaskInfo|taskId} tasks gActions mbFocus) stnr parentGActions  _ mbFocusParent
+	buildGroupElements` :: !TaskTree !SubtaskNr !(Maybe GroupedBehaviour) !(Maybe String) -> [TTCGroupContainerElement]
+	buildGroupElements` (TTGroupedTask {TaskInfo|taskId} tasks gActions mbFocus) stnr  _ mbFocusParent
 		# mbFocus = case mbFocus of
 			Nothing		= mbFocusParent
 			_			= mbFocus
-		# gActions		= putList [(actionName action, (action, taskId, enabled, False)) \\ (action, Left enabled) <- gActions] parentGActions
-		= flatten [buildGroupElements` t [nr:stnr] gActions Nothing mbFocus \\ t <- tasks & nr <- [1..]]
-	buildGroupElements` (TTSequenceTask ti tasks) stnr gActions mbBehaviour mbFocus
+		//# gActions		= putList [(actionName action, (action, taskId, enabled, False)) \\ (action, Left enabled) <- gActions] parentGActions
+		= flatten [buildGroupElements` t [nr:stnr] Nothing mbFocus \\ t <- tasks & nr <- [1..]]
+	buildGroupElements` (TTSequenceTask ti tasks) stnr mbBehaviour mbFocus
 		= case filter (not o isFinished) tasks of
 			[]  = []
-			[t] = buildGroupElements` t stnr gActions (Just (getGroupedBehaviour ti mbBehaviour)) mbFocus
+			[t] = buildGroupElements` t stnr (Just (getGroupedBehaviour ti mbBehaviour)) mbFocus
 			_	= abort "Multiple simultaneously active tasks in a sequence!"
-	buildGroupElements` t stnr gActions mbBehaviour mbFocus
-		# panel		= buildTaskPanel` t menus gActions currentUser
+	buildGroupElements` t stnr mbBehaviour mbFocus
 		# info		= getTaskInfo t
+		# behaviour	= getGroupedBehaviour info mbBehaviour
+		# panel		= buildTaskPanel` t menus currentUser (case behaviour of Fixed = True; _ = False)
 		= [	{ panel = panel
-			, behaviour = getGroupedBehaviour info mbBehaviour
+			, behaviour = behaviour
 			, index = subtaskNrToString stnr
 			, focus = case mbFocus of
 				Nothing		= False
@@ -233,46 +239,44 @@ getTaskInfo task
 
 /**
 * Generates buttons and menu definitions.
-* Buttons are generated for task actions not triggered by the menu.
+* Buttons are generated for actions not triggered by the menu.
 *
-* @param The id of the tasks definitions are generated for
+* @param A map including the actions
 * @param The menu structure from which the actual definition is generated
-* @param A map including the task's actions
-* @param A map including the actions of the groups in which the task is included
 * @return (button definitions, menu bar definition)
 */
-makeButtonsAndMenus :: !TaskId !Menus !TaskActionMap !GroupActionMap -> ([TUIDef], [TUIDef])
-makeButtonsAndMenus taskId menus taskActions groupActions
-	# (menuBar, usedActions)	= mkMenuBar taskId menus taskActions groupActions
-	# taskActions				= delList usedActions taskActions
-	= (mkButtons taskId taskActions, menuBar)
+makeButtonsAndMenus :: !ActionMap !Menus -> ([TUIDef], [TUIDef])
+makeButtonsAndMenus actions menus
+	# (menuBar, usedActions)	= mkMenuBar actions menus
+	# actions					= delList usedActions actions
+	= (mkButtons actions, menuBar)
 
 /**
 * Generates buttons and menu definitions.
-* Buttons are generated for task actions not triggered by the menu.
+* Buttons are generated for actions not triggered by the menu.
 */
-determineButtonAndMenuUpdates :: !TaskId !Menus !TaskActionMap !GroupActionMap -> [TUIUpdate]
-determineButtonAndMenuUpdates taskId menus taskActions groupActions
+/*determineButtonAndMenuUpdates :: !ActionMap !Menus -> [TUIUpdate]
+determineButtonAndMenuUpdates actions menus
 	// for now: always replace buttons & menus
 	// TODO: only update when needed
-	# (menuBar, usedActions)	= mkMenuBar taskId menus taskActions groupActions
-	# taskActions				= delList usedActions taskActions
-	# buttons					= mkButtons taskId taskActions
-	= [TUIReplaceMenu menuBar, TUIReplaceButtons buttons]
+	# (menuBar, usedActions)	= mkMenuBar actions menus
+	# actions					= delList usedActions actions
+	# buttons					= mkButtons actions
+	= [TUIReplaceMenu menuBar, TUIReplaceButtons buttons]*/
 	
-mkButtons :: !TaskId !TaskActionMap -> [TUIDef]
-mkButtons taskId taskActions = [TUIButton	{ TUIButton
-											| name = "action"
-											, id = taskId +++ "-action-" +++ toString i
-											, action = actionName action
-											, disabled = not enabled
-											, text = actionLabel action
-											, iconCls = actionIcon action
-											}
-								\\ (_, (action, enabled)) <- toList taskActions & i <- [0..] ]
+mkButtons :: !ActionMap -> [TUIDef]
+mkButtons actions = [TUIButton	{ TUIButton
+								| name = "action"
+								, id = taskId +++ "-action-" +++ toString i
+								, action = actionName action
+								, disabled = not enabled
+								, text = actionLabel action
+								, iconCls = actionIcon action
+								}
+					\\ (_, (action, taskId, enabled)) <- toList actions & i <- [0..] ]
 	
-mkMenuBar :: TaskId !Menus !TaskActionMap !GroupActionMap -> (![TUIDef], ![ActionName])
-mkMenuBar taskId menus taskActions groupActions
+mkMenuBar :: !ActionMap !Menus -> (![TUIDef], ![ActionName])
+mkMenuBar actions menus
 	# (def, _, usedActions) = mkMenus [] menus 0 []
 	= (def, usedActions)
 where
@@ -285,11 +289,9 @@ where
 	mkMenuItems :: ![TUIDef] ![MenuItem] !Int ![ActionName] -> (![TUIDef], !Int, [ActionName])
 	mkMenuItems defs [MenuItem mAction mbHotkey : items] id usedActions
 		# (actionName, actionLabel, actionData) = menuAction mAction
-		# (defs, usedActions) = case get actionName groupActions of
-			Nothing = case get actionName taskActions of
-				Nothing							= (defs, usedActions)
-				Just (action, enabled)			= ([mkMenuItem taskId actionName (mkLabel action actionLabel) (actionIcon action) actionData enabled:defs], [actionName:usedActions])
-			Just (action, gId, enabled, top)	= ([mkMenuItem gId    actionName (mkLabel action actionLabel) (actionIcon action) actionData enabled:defs], [actionName:usedActions])
+		# (defs, usedActions) = case get actionName actions of
+			Nothing							= (defs, usedActions)
+			Just (action, taskId, enabled)	= ([mkMenuItem taskId actionName (mkLabel action actionLabel) (actionIcon action) actionData enabled:defs], [actionName:usedActions])
 		= mkMenuItems defs items (inc id) usedActions
 	where
 		mkMenuItem :: !TaskId !ActionName !ActionLabel !String !ActionData !Bool -> TUIDef

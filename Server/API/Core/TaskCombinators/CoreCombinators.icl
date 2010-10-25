@@ -201,9 +201,14 @@ where
 			= (p mbVal, tst)
 				
 	getEventGroupActionEvent events groupActions
-		= case [(action, data) \\ (action,pred) <- groupActions, ("action",JSONArray [JSONString name,JSONString data]) <- events | actionName action == name] of
+		# actionEvents = [getNameAndData event \\ ("action", event) <- events]
+		= case [(action, data) \\ (action,pred) <- groupActions, (name, data) <- actionEvents | actionName action == name] of
 			[actionEvent]	= Just actionEvent
 			_				= Nothing
+	where
+		getNameAndData (JSONString key) 							= (key, "")
+		getNameAndData (JSONArray [JSONString key,JSONString data])	= (key, data)
+		getNameAndData _											= abort "invalid group event!"
 		
 parallel :: !TaskParallelType !String !String !((a,Int) b -> (b,PAction (Task a))) (b -> c) !b ![Task a] -> Task c | iTask a & iTask b & iTask c
 parallel parType label description procFun parseFun initState initTasks

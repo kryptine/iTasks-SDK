@@ -77,6 +77,7 @@ itasks.ttc.TTCBase = Ext.extend(Ext.Panel, {
 	},
 	update: function(data) {
 		//Default update is to reconstruct the component
+		this.menu = data.menu;
 		this.rebuildComponents(data);
 	}
 });

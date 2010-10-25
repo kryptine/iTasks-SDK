@@ -104,10 +104,13 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 				//Check for events
 				| isEmpty events
 					// no change for this task
-					# tst = setTUIUpdates [] [] tst
+					# ovmask		= verifyValue ovalue oumask
+					# (_,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
+					# evalActions	= evaluateConditions actions valid ovalue
+					# tst			= setTUIUpdates [] evalActions tst
 					= (TaskBusy,tst)
 				| otherwise		
-					# (nvalue,numask,tst) = applyUpdates edits ovalue oumask tst
+					# (nvalue,numask,tst)	= applyUpdates edits ovalue oumask tst
 					# actionEvent			= actionEvent events actions
 					| isJust actionEvent
 						= (TaskFinished (fromJust actionEvent,nvalue),tst)

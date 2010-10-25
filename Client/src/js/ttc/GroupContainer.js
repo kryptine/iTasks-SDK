@@ -126,6 +126,10 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 			c.toFront();
 		}, this);
 		
+		var bbar = this.getBottomToolbar();
+		bbar.removeAll();
+		bbar.add(data.bbar);
+		this.doLayout();
 	},
 	addItem: function(panel, behaviour, index) {
 		return this.createContainer(panel, behaviour, index);
@@ -136,6 +140,11 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 		if(oldPanel.getXType() == panel.xtype && oldPanel.taskId == panel.taskId) {
 			// update container contents
 			oldPanel.update(panel);
+			var tbar = container.getTopToolbar();
+			if (tbar) {
+				tbar.removeAll();
+				tbar.add(oldPanel.menu);
+			}
 		} else {
 			//if not same xtype or taskId - completely replace container contents
 			container.removeAll();

@@ -62,7 +62,6 @@ derive JSONEncode TaskPanel
 	, context		:: !(Maybe String)
 	, subject		:: !String
 	, description	:: !String
-	, menu			:: !Maybe [TUIDef]
 	}
 	
 :: TTCResultContainer =
@@ -104,8 +103,8 @@ derive JSONEncode TaskPanel
 	, description	:: !String
 	, content		:: ![TTCGroupContainerElement]
 	, subtaskId		:: !(Maybe String)
-	, groupAMenu	:: !Maybe [TUIDef]
 	, menu			:: !Maybe [TUIDef]
+	, bbar			:: !Maybe [TUIDef]
 	}
 
 :: TTCGroupContainerElement =
