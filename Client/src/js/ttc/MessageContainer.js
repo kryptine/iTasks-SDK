@@ -18,15 +18,11 @@ itasks.ttc.MessageContainer = Ext.extend(itasks.ttc.TTCBase, {
 		};		
 	},
 	update: function(data) {
-		var tbar = this.getTopToolbar();
-		if (Ext.isDefined(tbar)) {
-			tbar.removeAll();
-			tbar.add(data.content.menu);
-		}
+		this.menu = data.menu;
 		var fbar = this.interactionpanel.getFooterToolbar();
 		fbar.removeAll();
 		fbar.add(data.content.buttons);
-		this.doLayout();
+		fbar.doLayout();
 		itasks.ttc.MessageContainer.superclass.update.apply(this,arguments);
 	}
 });

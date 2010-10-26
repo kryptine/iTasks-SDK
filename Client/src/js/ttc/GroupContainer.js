@@ -17,7 +17,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 		for(var i=0; i < this.content.length; i++) {
 			var cont = this.createContainer(this.content[i].panel,this.content[i].behaviour,this.content[i].index);
 			
-			if(this.content[i].behaviour == 'Floating' || this.content[i].behaviour == 'GBModal') {
+			if(this.content[i].behaviour == 'Floating' || this.content[i].behaviour == 'Modal') {
 				this.floatingCont.add(this.content[i].index, cont);
 			} else {
 				this.fixedCont.add(this.content[i].index, cont);
@@ -25,7 +25,6 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 		}
 	},
 	createContainer: function(cont, behaviour, idx) {
-		
 		if(behaviour == 'Floating' || behaviour == 'Modal') {	
 			return this.add(new itasks.ttc.GroupItemWindow({
 				id: this.taskId + '_' + idx,
@@ -71,7 +70,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 		
 		var focusFloating = new Ext.util.MixedCollection();
 				
-		//Loop over content and update/add child itesm	
+		//Loop over content and update/add child items	
 		for(var i=0; i < content.length; i++) {
 		
 			var cont;
@@ -99,7 +98,7 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 					
 			} else {
 				// Create a new item new container
-				cont = this.addItem(panel, behaviour, index);
+				cont = this.createContainer(panel, behaviour, index);
 				
 				// Add the component to this component's items			
 				if(behaviour == 'Floating' || behaviour == 'Modal') {
@@ -126,20 +125,18 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 			c.toFront();
 		}, this);
 		
+		this.menu = data.menu;
 		var bbar = this.getBottomToolbar();
 		bbar.removeAll();
 		bbar.add(data.bbar);
 		this.doLayout();
 	},
-	addItem: function(panel, behaviour, index) {
-		return this.createContainer(panel, behaviour, index);
-	},
 	updateItem: function(container, panel, behaviour, index) {
-	
 		var oldPanel = container.get(0);
 		if(oldPanel.getXType() == panel.xtype && oldPanel.taskId == panel.taskId) {
 			// update container contents
 			oldPanel.update(panel);
+			
 			var tbar = container.getTopToolbar();
 			if (tbar) {
 				tbar.removeAll();
@@ -151,128 +148,13 @@ itasks.ttc.GroupContainer = Ext.extend(itasks.ttc.TTCBase,{
 			container.add(panel);
 		}
 		return container;
-	},
-	
-	mkSharedTbar: function(cont) {
-		var groupTbar = this.getTopToolbar();
-		groupTbar.removeAll();
-		
-		// only copy toolbar of form and message containers
-		if (cont.get(0).getXType() == 'itasks.ttc.form' || cont.get(0).getXType() == 'itasks.ttc.message') {
-			// copy top toolbar to shared group toolbar
-			var taskTbar = cont.get(0).getTopToolbar();
-			if(taskTbar) {
-				this.copyTbar(taskTbar, groupTbar);
-			}
-			
-			groupTbar.cascade(function(){
-				Ext.apply(this,{
-					taskId : cont.get(0).taskId
-				});
-			});
-		}
-		
-		groupTbar.setVisible(groupTbar.items.length > 0);
-	},
-	mkGroupAToolbar: function() {
-		var groupTbar = this.getTopToolbar();
-		groupTbar.removeAll();
-		groupTbar.add(this.groupAMenu);
-		groupTbar.setVisible(groupTbar.items.length > 0);
-	
-		itasks.ttc.common.setupHotkeys(groupTbar, this);
-		groupTbar.doLayout();
-	},
-	copyTbar: function(src,dst) {
-		var items = src.items.getRange();
-		src.removeAll(false);
-		dst.removeAll();
-		dst.add(items);
-		src.doLayout();
-		dst.doLayout();
-	},
-	hideTopGroupActionMenuItems: function(item, options) {
-		if(Ext.isBoolean(item.topGroupAction)) {
-			// items is a normal menu item
-			if (item.topGroupAction) {
-				// hide top group actions
-				item.hide();
-			} else {
-				// there is a non-hidden item
-				// no separator has to be hidden and the menu can stay enabled
-				options.hideNextSeparator = false;
-				options.hideSeparatorOnEnd = false;
-				options.disableMenu = false;
-			}
-		} else if (item.getXType() == 'menuseparator') {
-			if (options.hideNextSeparator)
-				// hide separator
-				item.hide();
-			else
-				// do not hide separator at the moment,
-				// but possibly later if it would be the last item of the menu
-				options.hideSeparatorOnEnd = item;
-				
-			// no two consecutive separators
-			options.hideNextSeparator = true;
-		} else {
-			// start of new (sub menu)
-			var newOpts = {
-				disableMenu: true,
-				hideNextSeparator: true,
-				hideSeparatorOnEnd: false
-			};
-				
-			var children =  item.items || item.menu.items;
-
-			for(var i = 0; i < children.length; i++) {
-				this.hideTopGroupActionMenuItems(children.get(i), newOpts);
-			}
-
-			if (item.getXType() != 'toolbar') {
-				// possibly hide last separator
-				if (newOpts.hideSeparatorOnEnd)
-					newOpts.hideSeparatorOnEnd.hide();
-				
-				// disable empty main and hide empty submenus
-				if (newOpts.disableMenu)
-					if (item.getXType() == 'button')
-						item.disable();
-					else
-						item.hide();
-			}
-		}
-	},
-	
-	showAllMenuItems: function(item) {
-		if(item.name || item.getXType() == 'menuseparator') {
-			// show all normal item & separators
-			item.show();
-		} else {
-			if (item.getXType() == 'button' && item.menu.items.length == 0) {
-				// disable empty main menus
-				item.disable();
-				return;
-			} else {
-				// show & enable all non-empty main and all submenus
-				item.enable();
-				item.show();
-			}
-			
-			var children =  item.items || item.menu.items;
-			for(var i = 0; i < children.length; i++) {
-				this.showAllMenuItems(children.get(i));
-			}
-		}
 	}
 });
 
 itasks.ttc.GroupItemWindow = Ext.extend(Ext.Window,{
-
 	initComponent: function() {
 		this.width = 750;
 		this.height = 300;
-	
 	
 		if(this.items.length > 0 && this.items[0].menu) {
 			this.tbar = this.items[0].menu;

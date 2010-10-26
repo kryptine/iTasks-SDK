@@ -179,9 +179,10 @@ itasks.WorkPanel = Ext.extend(itasks.RemoteDataPanel, {
 		while(tbar.items.getCount() > 1) {
 			tbar.remove(tbar.get(1));
 		}
-		if(content.menu) {
-			for(var i = 0; i < content.menu.length; i++) {
-				tbar.add(content.menu[i]);
+		var menu = ct.getComponent(0).menu;
+		if(menu) {
+			for(var i = 0; i < menu.length; i++) {
+				tbar.add(menu[i]);
 			}
 			tbar.doLayout();
 		}

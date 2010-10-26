@@ -19,7 +19,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 		};
 	},
 	update: function(data) {
-	
 		if(data.updates) {
 			//errors and hints are updated separately
 			var num = data.updates.length;
@@ -45,13 +44,13 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 						this.setComponentValue(update[1],update[2]);
 						break;
 					case "TUIReplaceMenu":
-						this.replaceToolbar(update[1]);
+						this.menu = update[1];
 						break;
 					case "TUIReplaceButtons":
 						var fbar = this.interactionpanel.getFooterToolbar();
 						fbar.removeAll();
 						fbar.add(update[1]);
-						this.doLayout();
+						fbar.doLayout();
 						break;
 					case "TUISetHint":
 						this.setComponentHint(update[1],update[2]);
@@ -61,13 +60,11 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 						break;
 				}
 			}
-			
 			//cascade through the structure and update errors and hints
 			//this.updateErrorsNHints(data.updates);
 		} else {
 			//Completely replace form
-			this.rebuildComponents(data);
-			this.replaceToolbar(data.content.tbar);
+			itasks.ttc.FormContainer.superclass.update.apply(this,arguments);
 		}
 	},
 		
@@ -176,16 +173,6 @@ itasks.ttc.FormContainer = Ext.extend(itasks.ttc.TTCBase, {
 			return;
 		else
 			ct.setError(value);
-	},
-	replaceToolbar: function(newTb) {
-		this.menu = newTb;
-		var tb = this.getTopToolbar();
-		if(tb) {
-			tb.removeAll();
-			if(newTb)
-				tb.add(newTb);
-			this.setupToolbar(tb);
-		}
 	}
 });
 
