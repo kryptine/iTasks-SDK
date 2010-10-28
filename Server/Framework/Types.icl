@@ -311,6 +311,10 @@ JSONDecode{|Date|} c					= (Nothing, c)
 JSONDecode{|DateTime|} [JSONString s:c]	= (Just (fromString s), c)
 JSONDecode{|DateTime|} c				= (Nothing, c)
 
+JSONEncode{|(->)|} _ _ f						= [JSONString (base64Encode (copy_to_string f))]
+JSONDecode{|(->)|} _ _ [JSONString string:c]	= (Just (fst(copy_from_string {s` \\ s` <-: base64Decode string})) ,c) 
+JSONDecode{|(->)|} _ _ c						= (Nothing,c)
+
 taskSubject :: !(Task a) -> String
 taskSubject task = task.taskProperties.subject
 

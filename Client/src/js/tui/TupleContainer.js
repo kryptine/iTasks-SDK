@@ -7,14 +7,15 @@ itasks.tui.TupleContainer = Ext.extend(Ext.Container,{
 		this.unstyled = true;
 		this.autoHeight = true;
 		
-		this.layout = 'form'
+		this.layout = 'form';
 				
-		if(this.fieldLabel == null) delete this.fieldLabel;
-		else this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
-			
+		if(this.fieldLabel == null) {
+			delete this.fieldLabel;
+		} else {
+			this.fieldLabel = itasks.util.fieldLabel(this.optional,this.fieldLabel);
+		}	
 		itasks.tui.TupleContainer.superclass.initComponent.apply(this,arguments);
 	},
-
 	afterRender: function(){
 		itasks.tui.TupleContainer.superclass.afterRender.call(this,arguments);
 	},

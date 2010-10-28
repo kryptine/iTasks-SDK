@@ -23,6 +23,9 @@ derive gMerge			FormButton, User, Session, VisualizationHint, Note, Password, Da
 
 derive JSONEncode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
 derive JSONDecode		EmailAddress, Currency, FormButton, User, UserDetails, Session, Task, TaskResult, Document, Hidden, Display, Editable, VisualizationHint, Note, Password, Date, Time, DateTime
+
+derive JSONEncode		(->)
+derive JSONDecode		(->)
 		
 instance toString User
 instance toString TaskPriority

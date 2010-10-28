@@ -19,13 +19,14 @@ import iTasks
 	, lastSeen		:: DateTime			//Date + Time
 	, products		:: Maybe [Product]	//Optional list of composed items
 	, hobby			:: HasHobby			//Constructor with field
+	, car			:: String			//String (to test constructor above)
 	, account		:: Maybe Account	//Optional record
 	}
 
 :: Gender = Male | Female
 
 :: Looks =
-	{ eyeColor		:: (Int,Int,Int)
+	{ eyeColor		:: Maybe (Int,Int,Int)
 	, moustache		:: Bool
 	}
 	
@@ -54,11 +55,12 @@ testValue =
 	, initial = 'J'
 	, gender = Male
 	, contact = RootUser
-	, looks = { eyeColor = (255,23,0), moustache = False}
+	, looks = { eyeColor = Just (255,23,0), moustache = False}
 	, description = Note "Weird fella"
 	, lastSeen = fromString "2008-09-12 10:42:00"
 	, products = Just [testProduct]
 	, hobby = HasNoHobby
+	, car = "Ford Mustang"
 	, account = Just { username = "John", password = Password "test123"}
 	}
 

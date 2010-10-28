@@ -149,6 +149,7 @@ instance == TUIDef
 	{ id			:: !TUIId
 	, items			:: ![[TUIDef]]
 	, fieldLabel	:: !Maybe String
+	, optional		:: !Bool
 	}
 :: TUIRecordContainer = 
 	{ id			:: !TUIId

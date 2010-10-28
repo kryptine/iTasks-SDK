@@ -500,7 +500,7 @@ where
 gVisualize{|Dynamic|} old new vst
 	= ([],vst)
 
-gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, label,optional,updateMask,verifyMask}
+gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,updateMask,verifyMask}
 	# (cmu,um) = popMask updateMask
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of
@@ -508,7 +508,7 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels, la
 			# (v1,v2) = case old of (VValue (o1,o2)) = (VValue o1, VValue o2) ; _ = (VBlank,VBlank)
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
 			# (viz2,vst) = f2 v2 v2 vst
-			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, items = map coerceToTUIDefs [viz1,viz2]})]		 
+			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = map coerceToTUIDefs [viz1,viz2]})]		 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = useLabels, updateMask = um, verifyMask = vm})		
 		_
 			= case (old,new) of
@@ -540,7 +540,7 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
-			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, items = map coerceToTUIDefs [viz1,viz2,viz3]})]			 
+			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = map coerceToTUIDefs [viz1,viz2,viz3]})]			 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels=oldLabels, updateMask = um, verifyMask = vm})		
 		_
 			= case (old,new) of
@@ -576,7 +576,7 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			# (viz4,vst) = f4 v4 v4 vst
-			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, items = map coerceToTUIDefs [viz1,viz2,viz3,viz4]})]			 
+			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = map coerceToTUIDefs [viz1,viz2,viz3,viz4]})]			 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})		
 		_
 			= case (old,new) of
@@ -697,6 +697,12 @@ where
 	
 	htmlLabel [i] = (flatten (coerceToHtml i))
 	htmlLabel [i:is] = (flatten (coerceToHtml i)) ++ [(Text ", ")] ++ htmlLabel is
+
+//Functions (Don't visualize)
+gVisualize{|(->)|} fx fy old new vst=:{VSt | currentPath, updateMask, verifyMask}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask	
+	= ([],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 	
 //Hidden type
 gVisualize{|Hidden|} fx old new vst=:{VSt | currentPath, updateMask, verifyMask}

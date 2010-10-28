@@ -13,7 +13,7 @@ derive bimap VisualizationValue
 //Default available instances
 derive gVisualize UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gVisualize Int, Real, Char, Bool, String
-derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint
+derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint
 derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Task
 
 //Wrapper functions for visualization

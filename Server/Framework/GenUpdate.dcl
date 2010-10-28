@@ -35,7 +35,7 @@ generic gUpdate a		:: a 		*USt -> (a, *USt)
 
 derive gUpdate UNIT, PAIR, EITHER, CONS, OBJECT, FIELD
 derive gUpdate Int, Real, Char, Bool, String
-derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), Void, Display, Editable, Hidden, VisualizationHint
+derive gUpdate Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Display, Editable, Hidden, VisualizationHint
 derive gUpdate Note, DateTime, Document, FormButton, Password, Currency, Date, Time, User, UserDetails, Task
 
 derive JSONEncode UpdateMask

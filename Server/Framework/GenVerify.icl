@@ -129,6 +129,8 @@ gVerify{|Maybe|} fx Nothing vst=:{VerSt | updateMask,verifyMask,optional}
 
 gVerify{|Dynamic|} _ vst = vst
 
+gVerify{|(->)|} _ _ _ vst = vst
+
 gVerify{|Hidden|} fx Nothing vst = vst
 gVerify{|Hidden|} fx (Just (Hidden x)) vst=:{VerSt | verifyMask,updateMask}
 	# (cm,um) = popMask updateMask
@@ -168,6 +170,7 @@ gVerify{|Currency|} _ vst = basicVerify "Enter a currency value" vst
 gVerify{|User|} _ vst=:{VerSt | updateMask, verifyMask, optional} = basicVerify "Select a username" vst 
 
 gVerify{|Task|} _ _ vst = vst
+
 
 //********************************************************************************************************
 basicVerify :: String !*VerSt -> *VerSt

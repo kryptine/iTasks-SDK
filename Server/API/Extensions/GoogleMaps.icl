@@ -118,7 +118,7 @@ where
 gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (
 	{ GoogleMap
 	| center 			= (51.82,5.86)
-	, width	 			= 400
+	, width	 			= 700
 	, height 			= 300
 	, mapTypeControl 	= True
 	, navigationControl = True
@@ -159,7 +159,7 @@ gUpdate {|GoogleMap|} s ust = (s,ust)
 mkMap :: GoogleMap
 mkMap = { GoogleMap
 		| center 			= (51.82,5.86)
-		, width 			= 400
+		, width 			= 700
 		, height 			= 300
 		, mapTypeControl	= True
 		, navigationControl = True

@@ -34,7 +34,10 @@ updateValue path update a iworld
 updateValueAndMask :: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
 	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, oldMask = oldMask, newMask = initialUpdateMask, iworld = iworld}
+	# iworld = trace_n (toString (toJSON newMask)) iworld
 	= (a,newMask,iworld)
+
+import StdDebug
 
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
 appIWorldUSt f ust=:{USt|iworld}
@@ -354,7 +357,7 @@ gUpdate{|Maybe|} fx m ust=:{USt|mode=UDSearch,currentPath,searchPath,update,oldM
 				= (Just x,ust)
 gUpdate{|Maybe|} fx m ust=:{USt|mode=UDMask,currentPath,newMask}
 	= case m of
-		Nothing	= (m, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Blanked True [])}) //Untouched or Blanked??
+		Nothing	= (m, {USt|ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Untouched True [])}) //Untouched or Blanked??
 		Just x
 			# (_,ust) = fx x ust //all mask transformations are made here..
 			= (m,ust)
@@ -373,6 +376,11 @@ gUpdate {|Editable|} fx _ ust=:{USt | mode=UDCreate, currentPath}
 gUpdate {|Editable|} fx (Editable s) ust=:{USt | currentPath} 
 	# (s,ust) = fx s ust
 	= (Editable s,{USt | ust & currentPath = stepDataPath currentPath})
+
+gUpdate {|(->)|} fx fy _ ust=:{USt | mode=UDCreate, currentPath} 
+	= (abort "default function",{USt | ust & currentPath = stepDataPath currentPath})
+gUpdate {|(->)|} fx fy f ust=:{USt | currentPath} 
+	= (f,{USt | ust & currentPath = stepDataPath currentPath})
 
 gUpdate {|Hidden|} fx _ ust=:{USt | mode=UDCreate, currentPath} 
 	# (nx,ust) = fx (abort "Hidden created with undef") ust
