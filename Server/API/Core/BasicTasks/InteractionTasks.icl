@@ -456,7 +456,7 @@ where
 		# (vmask)				= verifyValue editV umask
 		= (visualizeAsEditor (editorId taskNr n) (Just n) umask vmask editV,{TSt|tst & iworld = iworld})
 				
-listener :: !(Listener s a) -> View s | iTask a & iTask s & SharedVariable s
+listener :: !(Listener s a) -> View s | iTask a & iTask s
 listener {listenerFrom} = Listener {Listener`|visualize = visualize}
 where
 	visualize v = visualizeAsHtmlDisplay (listenerFrom v)
@@ -464,7 +464,7 @@ where
 idEditor	:: View s	| iTask s & SharedVariable s
 idEditor = editor {editorFrom = id, editorTo = (\a _ -> a)}
 
-idListener	:: View s	| iTask s & SharedVariable s
+idListener	:: View s	| iTask s
 idListener = listener {listenerFrom = id}
 
 updateShared :: !String description ![TaskAction s] !(DBId s) ![View s] -> Task (!ActionEvent, !s) | html description & iTask s & SharedVariable s

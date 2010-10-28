@@ -407,7 +407,7 @@ class SharedVariable a | gMerge{|*|} a
 *
 * @return (View s)			A view of the shared data which is read-only
 */
-listener	:: !(Listener s a)	-> View s | iTask a & iTask s & SharedVariable s
+listener	:: !(Listener s a)	-> View s | iTask a & iTask s
 
 /*
 * Creates a view from an Editor specification. Editors can be used to both view and update the shared data.
@@ -424,7 +424,7 @@ editor		:: !(Editor s a)	-> View s | iTask a & iTask s & SharedVariable s
 * @return View s			A view of the shared data
 */
 idEditor	:: View s	| iTask s & SharedVariable s
-idListener	:: View s	| iTask s & SharedVariable s
+idListener	:: View s	| iTask s
 
 /*
 * Creates a task from a specified set of views using shared data which is stored in a database.
