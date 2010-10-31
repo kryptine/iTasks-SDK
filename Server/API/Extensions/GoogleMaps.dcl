@@ -23,6 +23,7 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 	, mapTypeControl		:: Bool		  				// Show the control for switching between map types
 	, navigationControl		:: Bool		  				// Show the control for panning
 	, scaleControl			:: Bool		  				// Show the control for zooming
+	, streetViewControl		:: Bool						// Show the control for street view
 	, scrollwheel			:: Bool						// Scrollwheel zooming on the map
 	, draggable				:: Bool						// Map can be dragged
 	, zoom					:: Int	      				// The zoom level (Required by maps)
@@ -68,11 +69,17 @@ GOOGLE_API_KEY :== "ABQIAAAAaZ6XgbNqm4h_DL45IQMnSRT2yXp_ZAY8_ufC3CFXhHIE1NvwkxT4
 */
 convertToStaticMap :: GoogleMap -> GoogleStaticMap
 
-/*
+/**
 * Create a default map
 *
 * @return A default map
 */
 mkMap :: GoogleMap
+/**
+* Create a default map without any control options switched on
+*
+* @return A minimal default map 
+*/
+minimalMap :: GoogleMap
 
 instance toString GoogleMapType

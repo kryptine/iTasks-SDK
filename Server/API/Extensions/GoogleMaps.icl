@@ -33,6 +33,7 @@ derive bimap	Maybe, (,)
 	{ mapTypeControl 	:: Bool
 	, navigationControl :: Bool
 	, scaleControl		:: Bool
+	, streetViewControl	:: Bool
 	, scrollwheel		:: Bool
 	, draggable			:: Bool
 	, zoom				:: Int
@@ -79,7 +80,7 @@ where
 		, height = map.GoogleMap.height
 		, mapType = map.GoogleMap.mapType
 		, markers = map.GoogleMap.markers
-		, xtype = "itasks.gmappanel"
+		, xtype = "itasks.tui.GMapControl"
 		, name = dp2s cp
 		, id = dp2id idp cp
 		, fieldLabel = fl
@@ -90,6 +91,7 @@ where
 			| mapTypeControl = map.GoogleMap.mapTypeControl
 			, navigationControl = map.GoogleMap.navigationControl
 			, scaleControl = map.GoogleMap.scaleControl
+			, streetViewControl = map.GoogleMap.streetViewControl
 			, scrollwheel = map.GoogleMap.scrollwheel
 			, draggable = map.GoogleMap.draggable
 			, zoom = map.GoogleMap.zoom
@@ -123,12 +125,13 @@ gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (
 	, mapTypeControl 	= True
 	, navigationControl = True
 	, scaleControl 		= True
+	, streetViewControl	= True
 	, scrollwheel		= True
 	, draggable			= True
 	, zoom				= 10
 	, mapType			= ROADMAP
 	, markers			= []
-	}, {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+	}, {USt | ust & newMask = appendToMask newMask Untouched})
 	
 gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
@@ -138,16 +141,16 @@ gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, up
 		= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (cleanUpdMask cm), oldMask = om})
 where
 	parseUpdate orig update
-	# mbMVC		= fromJSON (fromString update)
-	| isJust mbMVC
-		# mvc = fromJust mbMVC
-		= {GoogleMap | orig & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, mapType = mvc.MVCUpdate.type}
-	# mbClick 	= fromJSON (fromString update)
-	| isJust mbClick
-		# click = fromJust mbClick
-		# marker = {GoogleMapMarker | position = click.ClickUpdate.point, infoWindow = {GoogleMapInfoWindow | content = "", width=0}} 
-		= {GoogleMap | orig & markers = [marker:orig.GoogleMap.markers]}
-	| otherwise = orig
+		# mbMVC		= fromJSON (fromString update)
+		| isJust mbMVC
+			# mvc = fromJust mbMVC
+			= {GoogleMap | orig & center = mvc.MVCUpdate.center, zoom = mvc.MVCUpdate.zoom, mapType = mvc.MVCUpdate.type}
+		# mbClick 	= fromJSON (fromString update)
+		| isJust mbClick
+			# click = fromJust mbClick
+			# marker = {GoogleMapMarker | position = click.ClickUpdate.point, infoWindow = {GoogleMapInfoWindow | content = "", width=0}} 
+			= {GoogleMap | orig & markers = [marker:orig.GoogleMap.markers]}
+		| otherwise = orig
 
 gUpdate {|GoogleMap|} s ust =: {USt | mode = UDMask, currentPath, newMask}
 	= (s, {USt | ust & currentPath = stepDataPath currentPath, newMask = appendToMask newMask (Touched True [])})
@@ -164,12 +167,30 @@ mkMap = { GoogleMap
 		, mapTypeControl	= True
 		, navigationControl = True
 		, scaleControl		= True
+		, streetViewControl	= True
 		, scrollwheel		= True
 		, draggable			= True
 		, zoom				= 10
 		, mapType			= ROADMAP
 		, markers			= []
 		}
+
+minimalMap :: GoogleMap
+minimalMap = { GoogleMap
+		| center 			= (51.82,5.86)
+		, width 			= 700
+		, height 			= 300
+		, mapTypeControl	= False
+		, navigationControl = False
+		, scaleControl		= False
+		, streetViewControl	= False
+		, scrollwheel		= False
+		, draggable			= False
+		, zoom				= 10
+		, mapType			= ROADMAP
+		, markers			= []
+		}
+
 
 convertToStaticMap :: GoogleMap -> GoogleStaticMap
 convertToStaticMap map =:{GoogleMap | center = (lat,lng), width, height, zoom, mapType, markers}

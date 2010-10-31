@@ -34,10 +34,7 @@ updateValue path update a iworld
 updateValueAndMask :: DataPath String a UpdateMask !*IWorld -> (a,UpdateMask,!*IWorld) | gUpdate{|*|} a
 updateValueAndMask path update a oldMask iworld	
 	# (a,ust=:{newMask,iworld}) = gUpdate{|*|} a {USt| mode = UDSearch, searchPath = path, currentPath = shiftDataPath initialDataPath, consPath = [], update = update, oldMask = [oldMask], newMask = [], iworld = iworld}
-//	# iworld = trace_n ("Update mask: " +++ toString (toJSON (hd newMask))) iworld
 	= (a,hd newMask,iworld)
-
-import StdDebug
 
 appIWorldUSt :: !.(*IWorld -> *IWorld)!*USt -> *USt
 appIWorldUSt f ust=:{USt|iworld}

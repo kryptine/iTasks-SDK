@@ -62,7 +62,6 @@
 		,{"text":"itasks.WorkTabsPanel.js","path":"src/js/"}
 		,{"text":"itasks.ApplicationPanel.js","path":"src/js/"}
 		,{"text":"itasks.Application.js","path":"src/js/"}
-		,{"text":"itasks.GMapPanel.js","path":"src/js/"}
 		,{"text":"itasks.GStaticMapPanel.js","path":"src/js/"}
 		,{"text":"itasks.js","path":"src/js/"}]
 	,"pkgDeps" : ["ext-ux-all.js"]

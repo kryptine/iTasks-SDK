@@ -13,10 +13,7 @@ generic gVerify a :: (Maybe a) VerSt -> VerSt
 verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 verifyValue val updateMask
 	# verSt = gVerify{|*|} (Just val) {VerSt | updateMask = [updateMask], verifyMask = [], optional = False}
-//	# verSt = trace_n ("Verify mask: " +++ toString (toJSON (hd verSt.VerSt.verifyMask))) verSt
 	= hd verSt.VerSt.verifyMask
-
-import StdDebug
 
 //Generic Verify
 gVerify{|UNIT|} 			  _ 					vst = vst
