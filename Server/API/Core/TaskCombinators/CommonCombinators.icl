@@ -30,7 +30,7 @@ where
 	toStr VBlank			= VBlank
 	toStr (VValue (Tag t))	= VValue (toString t)
 gUpdate{|Tag|} _ ust=:{USt|mode=UDCreate,newMask} 
-	= (Tag "", {USt | ust & newMask = appendToMask newMask (Untouched False [])})
+	= (Tag "", {USt | ust & newMask = appendToMask newMask (Untouched False)})
 gUpdate{|Tag|} s ust=:{USt|mode=UDSearch,searchPath,currentPath,update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath

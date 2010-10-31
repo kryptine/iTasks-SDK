@@ -9,11 +9,13 @@ import Types, Store
 //:: DataMask :== [[Int]]
 
 //				Mode		Dirty			Child Components
-:: UpdateMask = Untouched 	Bool 			[UpdateMask]
+:: UpdateMask = Untouched 	Bool 			
 			  | Touched		Bool			[UpdateMask]
-			  | Blanked		Bool			[UpdateMask]
+			  | TouchedList	[Int]			[UpdateMask] //For lists, a mask 
+			  | Blanked		Bool			
+				
 //							Dirty Children	Child Components	Untouched
-			  | UMList		[Int]			[UpdateMask]		Bool
+//			  | UMList		[Int]			[UpdateMask]		Bool
 
 :: *USt =
 	{ mode				:: UpdateMode
@@ -21,8 +23,8 @@ import Types, Store
 	, currentPath		:: DataPath
 	, update			:: String
 	, consPath			:: [ConsPos]
-	, oldMask			:: UpdateMask
-	, newMask			:: UpdateMask
+	, oldMask			:: [UpdateMask]
+	, newMask			:: [UpdateMask]
 	, iworld			:: *IWorld
 	}
 
@@ -67,14 +69,14 @@ isdps			:: String			-> Bool
 
 class GenMask m
 where
-	popMask 			:: !m -> (!m, !m)
-	appendToMask 		:: !m !m -> m
-	getMaskChildren		:: !m -> [m] 
+	popMask 			:: ![m] -> (!m, ![m])
+	appendToMask 		:: ![m] !m -> [m]
+	childMasks			:: !m -> [m]
 
 instance == DataPath
 instance GenMask UpdateMask
 
-isDirtyUM 			:: !UpdateMask 	-> Bool
+isDirty 			:: !UpdateMask 	-> Bool
 
 toggleMask 			:: !String 		-> UpdateMask
 cleanUpdMask 		:: !UpdateMask 	-> UpdateMask

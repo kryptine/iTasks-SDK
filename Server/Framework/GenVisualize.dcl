@@ -62,8 +62,8 @@ determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask Ve
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
 	, valid				:: !Bool						// Is the form valid
-	, updateMask		:: !UpdateMask
-	, verifyMask		:: !VerifyMask
+	, updateMask		:: ![UpdateMask]
+	, verifyMask		:: ![VerifyMask]
 	, updates			:: ![DataPath]
 	, renderAsStatic	:: !Bool						// If true, flag the form items as being static
 	}

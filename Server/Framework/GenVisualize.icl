@@ -7,23 +7,20 @@ import Text, Html, JSON, TUIDefinition
 
 derive gEq Document
 
-MAX_CONS_RADIO :== 3	//When the number of constructors is upto this number, the choice is made
-						//with radio buttons. When it exceeds this, a combobox is used.
 NEWLINE	:== "\n"		//The character sequence to use for new lines in text display visualization
 
 mkVSt :: *VSt
 mkVSt = {VSt| origVizType = VTextDisplay, vizType = VTextDisplay, idPrefix = "", currentPath = shiftDataPath initialDataPath, label = Nothing, 
-		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, updateMask = Untouched False [], verifyMask = VMValid Nothing Nothing [], updates = []}
+		useLabels = False, selectedConsIndex = -1, optional = False, valid = True, renderAsStatic = False, updateMask = [], verifyMask = [], updates = []}
 
 //Wrapper functions
 visualizeAsEditor :: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool) | gVisualize{|*|} a
 visualizeAsEditor name mbSubIdx umask vmask x
-	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, idPrefix = name, updateMask = umask, verifyMask = vmask}
+	# vst = {mkVSt & origVizType = VEditorDefinition, vizType  = VEditorDefinition, idPrefix = name, updateMask = [umask], verifyMask = [vmask]}
 	# vst = case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (defs,vst=:{VSt | valid}) = gVisualize{|*|} val val vst
-	//= trace_n("==UpdateMask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIDefs defs, valid)
 	= (coerceToTUIDefs defs, valid)	
 where
 	val = VValue x
@@ -50,12 +47,11 @@ where
 
 determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask VerifyMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
 determineEditorUpdates name mbSubIdx updatedPaths umask vmask old new
-	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, updateMask = umask, verifyMask = vmask, updates = updatedPaths}
+	# vst 	= {mkVSt & vizType = VEditorUpdate, idPrefix = name, updateMask = [umask], verifyMask = [vmask], updates = updatedPaths}
 	# vst 	= case mbSubIdx of
 		Nothing		= vst
 		Just idx	= {VSt| vst & currentPath = dataPathSetSubEditorIdx vst.VSt.currentPath idx}
 	# (updates,vst=:{VSt | valid}) = (gVisualize{|*|} (VValue old) (VValue new) vst)
-	//= trace_n("==Update Mask==\n"+++toString (toJSON umask) +++ "\n==VerifyMask==\n" +++ toString (toJSON vmask)+++"\n") (coerceToTUIUpdates updates, valid)
 	= (coerceToTUIUpdates updates, valid)
 
 //Bimap for visualization values
@@ -68,17 +64,13 @@ gVisualize{|UNIT|} _ _ vst
 	= ([],vst)
 
 gVisualize{|PAIR|} fx fy old new vst
-	= case (old,new) of
-		(VValue (PAIR ox oy), VValue (PAIR nx ny))
-			# (vizx, vst) = fx (VValue ox) (VValue nx) vst
-			# (vizy, vst) = fy (VValue oy) (VValue ny) vst
-			= (vizx ++ vizy, vst)
-		_
-			# (vizx, vst) = fx VBlank VBlank vst
-			# (vizy, vst) = fy VBlank VBlank vst
-			= (vizx ++ vizy, vst)
+	# (ox,oy)		= case old of (VValue (PAIR ox oy)) = (VValue ox, VValue oy) ; _ = (VBlank,VBlank)
+	# (nx,ny)		= case new of (VValue (PAIR nx ny)) = (VValue nx, VValue ny) ; _ = (VBlank,VBlank)	
+	# (vizx, vst)	= fx ox nx vst
+	# (vizy, vst)	= fy oy ny vst
+	= (vizx ++ vizy, vst)
 
-gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid,verifyMask,updateMask}
+gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid,updateMask,verifyMask}
 	= case (old,new) of
 		//Same structure:
 		(VValue (LEFT ox), VValue (LEFT nx))
@@ -86,14 +78,15 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid,veri
 			# nval = VValue nx
 			= case vizType of
 				VEditorUpdate
-					| isDirtyUM updateMask
+					//Peek at the update mask to see if we need to refresh the content
+					# (cmu,_)	= popMask updateMask
+					| isDirty cmu
 						# (consSelUpd,vst)	= fx nval nval {vst & vizType = VConsSelectorUpdate}
 						# (old,vst)			= fx oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid, verifyMask = verifyMask, updateMask = updateMask}
 						# (new,vst)			= fx nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid, verifyMask = verifyMask, updateMask = updateMask}
 						= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})			
 					| otherwise
-						# (upd,vst) = fx oval nval {vst & vizType = VEditorUpdate}
-						= (upd,vst)
+						= fx oval nval vst
 				_
 					= fx oval nval vst
 		(VValue (RIGHT oy), VValue (RIGHT ny))
@@ -101,14 +94,15 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid,veri
 			# nval = VValue ny
 			= case vizType of
 				VEditorUpdate
-					| isDirtyUM updateMask
+					//Peek at the update mask to see if we need to refresh the content
+					# (cmu,_)	= popMask updateMask
+					| isDirty cmu
 						# (consSelUpd,vst)	= fy nval nval {vst & vizType = VConsSelectorUpdate}
 						# (old,vst)			= fy oval oval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid, verifyMask = verifyMask, updateMask = updateMask}
 						# (new,vst)			= fy nval nval {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid, verifyMask = verifyMask, updateMask = updateMask}
 						= (determineRemovals old ++ determineChildAdditions pathid new ++ consSelUpd, {vst & vizType = VEditorUpdate})
 					| otherwise
-						# (upd,vst) = fy oval nval {vst & vizType = VEditorUpdate}
-						= (upd,vst)
+						= fy oval nval vst
 				_
 					= fy oval nval vst
 		//Different structure:
@@ -184,26 +178,79 @@ gVisualize{|EITHER|} fx fy old new vst=:{vizType,idPrefix,currentPath,valid,veri
 		_
 			= fx VBlank VBlank vst		
 where
-	//pathid					= dp2id idPrefix (dataPathSetConsFlag currentPath)
 	pathid					= dp2id idPrefix currentPath
 
+
+gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,valid,optional,renderAsStatic,updateMask,verifyMask}
+	//For objects we only peek at the update & verify mask, but don't take it out of the state yet.
+	//The masks are removed from the states when processing the CONS.
+	# (cmu,_) = popMask updateMask
+	# (cmv,_) = popMask verifyMask
+	//ADT's with multiple constructors: Add the creation/updating of a control for choosing the constructor
+	| d.gtd_num_conses > 1
+		= case vizType of 
+			VEditorDefinition
+				# (valid,err,hnt) = verifyElementStr valid cmu cmv
+				# (items, vst=:{selectedConsIndex}) = fx oldV newV {vst & useLabels = False, optional = False, valid = valid}
+				= ([TUIFragment (TUIConstructorControl {TUIConstructorControl
+														| id = id
+														, name = dp2s currentPath
+														, fieldLabel = label
+														, consSelIdx = case cmu of (Touched _ _) = selectedConsIndex; _ = -1
+														, consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
+														, items = case cmu of (Touched _ _) = (coerceToTUIDefs items); _ = []
+														, staticDisplay = renderAsStatic
+														, errorMsg = err
+														, hintMsg = hnt
+														})]
+				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})
+			VEditorUpdate
+				# (valid,msg) = verifyElementUpd valid id cmu cmv
+				= case cmu of
+					(Touched _ _)
+						# (upd, vst=:{valid}) = fx oldV newV {vst & useLabels = False, optional = False, valid = valid}
+						= (msg ++ upd
+							,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional})			
+					_
+						# (rem,vst=:{valid}) = fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath, valid = valid}
+						= (msg ++ [TUIUpdate (TUISetValue cId ""):determineRemovals rem]
+							,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, valid = valid})						
+			_
+				# (viz,vst) = fx oldV newV vst
+				= (viz,{VSt | vst & currentPath = stepDataPath currentPath})
+	//Everything else, just strip of the OBJECT constructor and pass through
+	| otherwise
+		= case (old,new) of
+			(VValue (OBJECT ox), VValue (OBJECT nx))	= fx (VValue ox) (VValue nx) vst
+			(VValue (OBJECT ox), VBlank)				= fx(VValue ox) VBlank vst
+			(VBlank, VValue (OBJECT nx))				= fx VBlank (VValue nx) vst
+			_											= fx VBlank VBlank vst				
+where
+	id		= dp2id idPrefix currentPath
+	cId 	= (dp2id idPrefix currentPath) +++ "c"
+	oldV 	= case old of (VValue (OBJECT ox)) = (VValue ox); _ = VBlank
+	newV 	= case new of (VValue (OBJECT nx)) = (VValue nx); _ = VBlank
+
 gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useLabels,optional,valid,verifyMask,updateMask,renderAsStatic}
+	# (cmu,um) = popMask updateMask
+	# (cmv,vm) = popMask verifyMask
 	= case vizType of
 		VEditorDefinition
 			# (ox,nx) = case (old,new) of (VValue (CONS ox),VValue (CONS nx))	= (VValue ox, VValue nx); _ = (VBlank,VBlank)
 			//records
 			| not (isEmpty d.gcd_fields)
-				# (valid,err,hnt) = case updateMask of
-							(Untouched _ _) = case verifyMask of
+				# (valid,err,hnt) = case cmu of
+							(Untouched _ ) = case cmv of
 								(VMInvalid IsBlankError _ _) = (False, "", "")
 								(VMInvalid (ErrorMessage s) _ _) = (False, s, "")
 								(VMValid mbHnt _ _) = (valid, "", mbHintToString mbHnt)
 								(VMUntouched mbHnt _ _) = (False, "", mbHintToString mbHnt)
-							_				= case verifyMask of
+							_				= case cmv of
 								(VMInvalid err _ _) = (False, toString err, "")
 								(VMValid mbHnt _ _) = (valid, "", mbHintToString mbHnt)
 								(VMUntouched mbHnt _ _) = (False, "", mbHintToString mbHnt)
 				= case ox of 
+					//Create an empty record container that can be expanded later
 					VBlank 
 						= ([TUIFragment (TUIRecordContainer  {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs"
 																				 , name = dp2s currentPath
@@ -213,9 +260,10 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 																				 , hasValue = False
 																				 , errorMsg = err
 																				 , hintMsg = hnt})]
-						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional})
+						  , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, updateMask = um, verifyMask = vm})
 					_
-						# (viz,vst) = fx ox nx {vst & currentPath = shiftDataPath currentPath, useLabels = True, optional = False, valid = valid}
+						# (viz,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = True, optional = False
+													, valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 						= ([TUIFragment (TUIRecordContainer {TUIRecordContainer | id = (dp2id idPrefix currentPath) +++ "-fs"
 																				, name = dp2s currentPath
 																				, title = label
@@ -224,98 +272,109 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 																				, hasValue = True
 																				, errorMsg = err
 																				, hintMsg = hnt})]
-						 , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
-			//ADT's
+						 , {VSt|vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels, updateMask = um, verifyMask = vm})
+			
+			//ADT's with multiple fields are essentially tuples
+			| d.gcd_arity > 1			
+				# (viz,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+				# items = [coerceToTUIDefs [item] \\ item <- viz]
+				= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = items})]
+				  ,	{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex= d.gcd_index, useLabels = useLabels, updateMask = um, verifyMask = vm})
 			| otherwise
-				# (viz,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath}
-				= (viz,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex= d.gcd_index})
+				# (viz,vst) = fx ox nx {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+				= (viz,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, selectedConsIndex= d.gcd_index, updateMask = um, verifyMask = vm})
 		//Structure update
 		VEditorUpdate
 			// records
 			| not (isEmpty d.gcd_fields)
-				# (valid,msg) = verifyElementUpd valid fsid updateMask verifyMask
+				# (valid,msg) = verifyElementUpd valid fsid cmu cmv
 				= case (old,new) of 
 					(VValue (CONS ox), VBlank)
 						// remove components
-						# (viz,vst) = fx (VValue ox) (VValue ox) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False, valid = valid}
+						# (viz,vst) = fx (VValue ox) (VValue ox)
+										{VSt| vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath
+										,useLabels = True, optional = False, valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 						= (msg ++ determineRemovals viz
-						  , {VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
+						  , {VSt | vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels, updateMask = um, verifyMask = vm})
 					(VBlank, VValue (CONS nx))
 						// add components
-						# (viz,vst) = fx (VValue nx) (VValue nx) {vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False, valid = valid}
+						# (viz,vst) = fx (VValue nx) (VValue nx)
+										{VSt| vst & vizType = VEditorDefinition, label = Nothing, currentPath = shiftDataPath currentPath
+										,useLabels = True, optional = False, valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 						= (msg ++ (determineChildAdditions ((dp2id idPrefix currentPath) +++ "-fs") viz)
-						  , {VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels});				
+						  , {VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels, updateMask = um, verifyMask = vm})				
 					(VValue (CONS ox), VValue (CONS nx)) 
-						# (vizBody,vst) = fx (VValue ox) (VValue nx) {vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False, valid = valid} 
-						= (msg ++ vizBody
-						  , {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels})
+						# (viz,vst) = fx (VValue ox) (VValue nx)
+										{VSt| vst & label = Nothing, currentPath = shiftDataPath currentPath, useLabels = True, optional = False
+										,valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv} 
+						= (msg ++ viz
+						  , {VSt|vst & vizType = vizType, currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels, updateMask = um, verifyMask = vm})
 					_
-						= ([],{VSt | vst & currentPath = stepDataPath currentPath})
+						= ([],{VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			//ADT's
 			| otherwise
-				# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
-				= (viz,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional})
+				# (viz,vst) = fx oldV newV {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+				= (viz,{VSt | vst & currentPath = stepDataPath currentPath, optional = optional, useLabels = useLabels, updateMask = um, verifyMask = vm})
+			
 		//Cons selector	update	
-		VConsSelectorUpdate = (consSelectorUpdate new updateMask, vst)
+		VConsSelectorUpdate
+			= (consSelectorUpdate new cmu, {VSt| vst & updateMask = um, verifyMask = vm})
 		//Html display vizualization
 		VHtmlDisplay
 			= case (old,new) of
 				(VValue (CONS ox), VValue (CONS nx))
-					# (viz,vst) = fx (VValue ox) (VValue nx) {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
+					# (viz,vst) = fx (VValue ox) (VValue nx)
+									{VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 					//Records
 					| not (isEmpty d.gcd_fields) 
-						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml viz))]], {VSt|vst & currentPath = stepDataPath currentPath})
+						= ([HtmlFragment [TableTag [] (flatten (coerceToHtml viz))]], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 					//When there are multiple constructors, also show the name of the constructor
 					| d.gcd_type_def.gtd_num_conses > 1
-						= ([TextFragment d.gcd_name, TextFragment " " :viz], {VSt|vst & currentPath = stepDataPath currentPath})
+						= ([TextFragment d.gcd_name, TextFragment " " :viz], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 					| otherwise
-						= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+						= (viz, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 				_
-					= ([],{VSt|vst & currentPath = stepDataPath currentPath})
+					= ([],{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		//Other visualizations
 		VHtmlLabel
-			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			//For records only show the first field
 			| not (isEmpty d.gcd_fields) 
-				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			//When there are multiple constructors, also show the name of the constructor
 			| d.gcd_type_def.gtd_num_conses > 1
-				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath})
+				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			| otherwise
-				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		VTextLabel
 			//For records only show the first field
-			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			| not (isEmpty d.gcd_fields) 
-				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath})
+				= ([hd viz], {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			//When there are multiple constructors, also show the name of the constructor
 			| d.gcd_type_def.gtd_num_conses > 1
-				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath})
+				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			| otherwise
-				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})		
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})		
 		VTextDisplay
-			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath}
+			# (viz,vst) = fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			| not (isEmpty d.gcd_fields) 
-				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			//When there are multiple constructors, also show the name of the constructor
 			| d.gcd_type_def.gtd_num_conses > 1
-				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath})
+				= ([TextFragment d.gcd_name,TextFragment " " :viz],{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 			| otherwise
-				= (viz, {VSt|vst & currentPath = stepDataPath currentPath})
+				= (viz, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		_	
-			# (viz,vst) = fx oldV newV {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath}
-			= (viz,{VSt|vst & currentPath = stepDataPath currentPath})
+			# (viz,vst) = fx oldV newV {VSt | vst & label = Nothing, currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+			= (viz,{VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 where
 	oldV 	= case old of (VValue (CONS ox)) = VValue ox; _ = VBlank
 	newV 	= case new of (VValue (CONS nx)) = VValue nx; _ = VBlank  
 	
-	fsid = (dp2id idPrefix currentPath)+++"-fs"
-	cId = (dp2id idPrefix currentPath)+++"c"
-	id = (dp2id idPrefix currentPath)
-	
-	//Only show a body when you have a value and it is masked
-	//showBody dp VBlank			= False
-	//showBody dp (VValue _ dm)	= isMasked dp dm
+	id		= (dp2id idPrefix currentPath)
+	fsid	= id +++ "-fs"
+	cId		= id +++ "c"
 	
 	consSelectorUpdate VBlank um = []
 	consSelectorUpdate (VValue _) um
@@ -327,83 +386,24 @@ where
 					= []
 			_ = []
 
-gVisualize{|OBJECT of d|} fx old new vst=:{vizType,idPrefix,label,currentPath,selectedConsIndex = oldSelectedConsIndex,useLabels,valid,optional,renderAsStatic,updateMask,verifyMask}
-	# (cmu,um) = popMask updateMask
-	# (cmv,vm) = popMask verifyMask
-	//ADT's with multiple constructors
-	| d.gtd_num_conses > 1
-		= case vizType of 
-			VEditorDefinition
-				# (valid,err,hnt) = verifyElementStr valid cmu cmv
-				# (items,vst=:{selectedConsIndex}) 	= fx oldV newV {vst & useLabels = False, optional = False, valid = valid, updateMask = cmu, verifyMask = cmv}
-				# consValues = [gdc.gcd_name \\ gdc <- d.gtd_conses]
-				= ([TUIFragment (TUIConstructorControl {TUIConstructorControl
-														| id = id
-														, name = dp2s currentPath
-														, fieldLabel = label
-														, consSelIdx = case cmu of (Touched _ _) = selectedConsIndex; _ = -1
-														, consValues = consValues
-														, items = case cmu of (Touched _ _) = (coerceToTUIDefs items); _ = []
-														, staticDisplay = renderAsStatic
-														, errorMsg = err
-														, hintMsg = hnt
-														})]
-				  ,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional, updateMask = um, verifyMask = vm})
-			VEditorUpdate
-				# (valid,msg) = verifyElementUpd valid id cmu cmv
-				= case cmu of
-					(Touched _ _)
-						# (upd,vst=:{valid}) = fx oldV newV {vst & useLabels = False, optional = False, updateMask = cmu, verifyMask = cmv, valid = valid}
-						= (msg ++ upd
-							,{VSt | vst & currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, useLabels = useLabels, optional = optional, updateMask = um, verifyMask = vm})			
-					_
-						# (rem,vst=:{valid}) = fx oldV oldV {vst & vizType = VEditorDefinition, currentPath = currentPath, updateMask = cmu, verifyMask = cmv, valid = valid}
-						= (msg ++ [TUIUpdate (TUISetValue cId ""):determineRemovals rem]
-							,{vst & vizType = vizType, currentPath = stepDataPath currentPath, selectedConsIndex = oldSelectedConsIndex, valid = valid, updateMask = um, verifyMask = vm})						
-			_
-				# (viz,vst) = fx oldV newV vst
-				= (viz,{VSt | vst & currentPath = stepDataPath currentPath})
-	//Everything else
-	| otherwise
-		= case (old,new) of
-			(VValue (OBJECT ox), VValue (OBJECT nx))
-				#(v,vst) = fx (VValue ox) (VValue nx) {VSt | vst & verifyMask = cmv, updateMask = cmu}
-				= (v,{VSt | vst & verifyMask = vm, updateMask = um})
-			(VValue (OBJECT ox), VBlank)
-				#(v,vst) = fx(VValue ox) VBlank {VSt | vst & verifyMask = cmv, updateMask = cmu}
-				= (v,{VSt | vst & verifyMask = vm, updateMask = um})
-			(VBlank, VValue (OBJECT nx))
-				#(v,vst) = fx VBlank (VValue nx) {VSt | vst & verifyMask = cmv, updateMask = cmu}
-				= (v,{VSt | vst & verifyMask = vm, updateMask = um})
-			_
-				#(v,vst) = fx VBlank VBlank {VSt | vst & verifyMask = cmv, updateMask = cmu}
-				= (v,{VSt | vst & verifyMask = vm, updateMask = um})
-where
-	id		= dp2id idPrefix currentPath
-	cId 	= (dp2id idPrefix currentPath)+++"c"
-	oldV 	= case old of (VValue (OBJECT ox)) = (VValue ox); _ = VBlank
-	newV 	= case new of (VValue (OBJECT nx)) = (VValue nx); _ = VBlank
-	
 gVisualize{|FIELD of d|} fx old new vst=:{vizType,currentPath}
 	//# vst = determineIndexOfLabels d.gfd_name vst	
-	= case (old,new) of
-		(VValue (FIELD ox), VValue (FIELD nx))
-			= case vizType of
-				VHtmlDisplay
-					# (vizBody,vst) 	= fx (VValue ox) (VValue nx) {VSt |vst & label = Nothing}
-					= case vizBody of
-					 [] = ([],vst)
-					 _  = ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
-				VTextDisplay
-					# (vizBody,vst) 	= fx (VValue ox) (VValue nx) {VSt |vst & label = Just (formatLabel d.gfd_name)}
-					= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "], {VSt | vst & label = Nothing})
-				_
-					# (vizBody,vst)	= fx (VValue ox) (VValue nx) {VSt |vst & label = Just (formatLabel d.gfd_name)}
-					= (vizBody, {VSt | vst & label = Nothing})
+	# ox = case old of (VValue (FIELD ox)) = (VValue ox) ; _ = VBlank
+	# nx = case new of (VValue (FIELD nx)) = (VValue nx) ; _ = VBlank
+	= case vizType of
+		VHtmlDisplay
+			# (vizBody,vst) 	= fx ox nx {VSt |vst & label = Nothing}
+			= case vizBody of
+			 [] = ([],vst)
+			 _  = ([HtmlFragment [TrTag [] [ThTag [] [Text (formatLabel d.gfd_name),Text ": "],TdTag [] (flatten (coerceToHtml vizBody))]]],{VSt | vst & label = Nothing})
+		VTextDisplay
+			# (vizBody,vst) 	= fx ox nx {VSt |vst & label = Just (formatLabel d.gfd_name)}
+			= ([TextFragment (formatLabel d.gfd_name),TextFragment ": " : vizBody]++[TextFragment " "], {VSt | vst & label = Nothing})
 		_
-			= fx VBlank VBlank {VSt |vst & label = Just (formatLabel d.gfd_name)}
-
-//********************************************************************************************************************************************************
+			# (vizBody,vst)		= fx ox nx {VSt |vst & label = Just (formatLabel d.gfd_name)}
+			= (vizBody, {VSt | vst & label = Nothing})
+			
+//***
 gVisualize{|Int|} old new vst=:{VSt | vizType,currentPath}
 	= case vizType of
 		VEditorDefinition
@@ -506,22 +506,16 @@ gVisualize{|(,)|} f1 f2 old new vst=:{vizType,idPrefix,currentPath,useLabels,lab
 	= case vizType of
 		VEditorDefinition
 			# (v1,v2) = case old of (VValue (o1,o2)) = (VValue o1, VValue o2) ; _ = (VBlank,VBlank)
-			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			# (viz2,vst) = f2 v2 v2 vst
 			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = map coerceToTUIDefs [viz1,viz2]})]		 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = useLabels, updateMask = um, verifyMask = vm})		
 		_
-			= case (old,new) of
-				(VValue (o1,o2), VValue(n1,n2))
-					# oldLabels = useLabels
-					# (viz1,vst) = f1 (VValue o1) (VValue n1) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
-					# (viz2,vst) = f2 (VValue o2) (VValue n2) vst
-					= (viz1 ++ separator viz2 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})
-				_
-					# oldLabels = useLabels
-					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath}
-					# (viz2,vst) = f2 VBlank VBlank vst
-					= (viz1 ++ separator viz2 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels})
+			# (o1,o2) = case old of (VValue (o1,o2)) = (VValue o1, VValue o2) ; _ = (VBlank,VBlank)
+			# (n1,n2) = case new of (VValue (n1,n2)) = (VValue n1, VValue n2) ; _ = (VBlank,VBlank)
+			# (viz1,vst) = f1 o1 n1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+			# (viz2,vst) = f2 o2 n2 vst
+			= (viz1 ++ separator viz2 ++ viz2,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = useLabels, updateMask = um, verifyMask = vm})
 where
 	separator v = case v of
 		[] = []
@@ -537,25 +531,18 @@ gVisualize{|(,,)|} f1 f2 f3 old new vst=:{vizType,idPrefix,currentPath,useLabels
 		VEditorDefinition
 			# oldLabels = useLabels
 			# (v1,v2,v3) = case old of (VValue (o1,o2,o3)) = (VValue o1, VValue o2, VValue o3) ; _ = (VBlank,VBlank,VBlank)
-			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = map coerceToTUIDefs [viz1,viz2,viz3]})]			 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels=oldLabels, updateMask = um, verifyMask = vm})		
 		_
-			= case (old,new) of
-				(VValue (o1,o2,o3), VValue(n1,n2,n3))
-					# oldLabels = useLabels
-					# (viz1,vst) = f1 (VValue o1) (VValue n1) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
-					# (viz2,vst) = f2 (VValue o2) (VValue n2) vst
-					# (viz3,vst) = f3 (VValue o3) (VValue n3) vst
-					= (viz1 ++ separator viz2 ++ viz2 ++ separator viz3 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})
-				_
-					# oldLabels = useLabels
-					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath, updateMask = cmu, verifyMask = cmv}
-					# (viz2,vst) = f2 VBlank VBlank vst
-					# (viz3,vst) = f3 VBlank VBlank vst
-					= (viz1 ++ separator viz2 ++ viz2 ++ separator viz3 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})
+			# (o1,o2,o3) = case old of (VValue (o1,o2,o3)) = (VValue o1, VValue o2, VValue o3) ; _ = (VBlank,VBlank,VBlank)
+			# (n1,n2,n3) = case new of (VValue (n1,n2,n3)) = (VValue n1, VValue n2, VValue n3) ; _ = (VBlank,VBlank,VBlank)
+			# (viz1,vst) = f1 o1 n1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+			# (viz2,vst) = f2 o2 n2 vst
+			# (viz3,vst) = f3 o3 n3 vst
+			= (viz1 ++ separator viz2 ++ viz2 ++ separator viz3 ++ viz3,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = useLabels, updateMask = um, verifyMask = vm})
 where
 	separator v = case v of
 		[] = []
@@ -572,28 +559,20 @@ gVisualize{|(,,,)|} f1 f2 f3 f4 old new vst=:{vizType,idPrefix,currentPath,useLa
 		VEditorDefinition
 			# oldLabels = useLabels
 			# (v1,v2,v3,v4) = case old of (VValue (o1,o2,o3,o4)) = (VValue o1, VValue o2, VValue o3,VValue o4) ; _ = (VBlank,VBlank,VBlank,VBlank)
-			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
+			# (viz1,vst) = f1 v1 v1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			# (viz2,vst) = f2 v2 v2 vst
 			# (viz3,vst) = f3 v3 v3 vst
 			# (viz4,vst) = f4 v4 v4 vst
 			= ([TUIFragment (TUITupleContainer {TUITupleContainer | id=dp2id idPrefix currentPath, fieldLabel = label, optional = optional, items = map coerceToTUIDefs [viz1,viz2,viz3,viz4]})]			 
 			  , {VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})		
 		_
-			= case (old,new) of
-				(VValue (o1,o2,o3,o4), VValue(n1,n2,n3,n4))
-					# oldLabels = useLabels
-					# (viz1,vst) = f1 (VValue o1) (VValue n1) {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = cmu, verifyMask = cmv}
-					# (viz2,vst) = f2 (VValue o2) (VValue n2) vst
-					# (viz3,vst) = f3 (VValue o3) (VValue n3) vst
-					# (viz4,vst) = f4 (VValue o4) (VValue n4) vst
-					= (viz1 ++ separator viz2 ++ viz2 ++ separator viz3 ++ viz3 ++ separator viz4 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})
-				_
-					# oldLabels = useLabels
-					# (viz1,vst) = f1 VBlank VBlank {VSt| vst & currentPath = shiftDataPath currentPath, updateMask = cmu, verifyMask = cmv}
-					# (viz2,vst) = f2 VBlank VBlank vst
-					# (viz3,vst) = f3 VBlank VBlank vst
-					# (viz4,vst) = f4 VBlank VBlank vst
-					= (viz1 ++ separator viz2 ++ viz2 ++ separator viz3 ++ viz3 ++ separator viz4 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = oldLabels, updateMask = um, verifyMask = vm})
+			# (o1,o2,o3,o4) = case old of (VValue (o1,o2,o3,o4)) = (VValue o1, VValue o2, VValue o3,VValue o4) ; _ = (VBlank,VBlank,VBlank,VBlank)
+			# (n1,n2,n3,n4) = case new of (VValue (n1,n2,n3,n4)) = (VValue n1, VValue n2, VValue n3,VValue n4) ; _ = (VBlank,VBlank,VBlank,VBlank)
+			# (viz1,vst)	= f1 o1 n1 {VSt| vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+			# (viz2,vst)	= f2 o2 n2 vst
+			# (viz3,vst)	= f3 o3 n3 vst
+			# (viz4,vst)	= f4 o4 n4 vst
+			= (viz1 ++ separator viz2 ++ viz2 ++ separator viz3 ++ viz3 ++ separator viz4 ++ viz4,{VSt|vst & currentPath = stepDataPath currentPath, useLabels = useLabels, updateMask = um, verifyMask = vm})
 where
 	separator v = case v of
 		[] = []
@@ -602,25 +581,26 @@ where
 				VHtmlDisplay	= []
 				_				= [TextFragment ", "]
 
-gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,valid,renderAsStatic, updateMask,verifyMask}
+gVisualize {|[]|} fx old new vst=:{vizType,idPrefix,currentPath,useLabels,label,optional,valid,renderAsStatic,updateMask,verifyMask}
 	# (cmu, um) = popMask updateMask
 	# (cmv, vm) = popMask verifyMask
 	= case vizType of
 		VEditorDefinition
 			# (valid,err,hnt) = verifyElementStr valid cmu cmv 
-			# (items,vst) = TUIDef fx oldV 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}
+			# (items,vst) = TUIDef fx oldV 0 {VSt | vst & currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv}
 			= ([TUIFragment (TUIListContainer {TUIListContainer | items = items, optional = optional, name = name, id = id, fieldLabel = label, hideLabel = not useLabels, staticDisplay = renderAsStatic, errorMsg = err, hintMsg = hnt})],
 			  {VSt | vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm, useLabels = useLabels})	
 		VEditorUpdate
 			# (valid,msg) 					= (verifyElementUpd valid id cmu cmv)
-			# (upd,vst=:{valid=finalValid}) = TUIUpd fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = cmu, verifyMask = cmv, valid = valid}
-			# (newDefs,vst)					= TUIDef fx newV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}
-			# (oldDefs,vst)					= TUIDef fx oldV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = cmu, verifyMask = cmv}		
+			# (upd,vst=:{valid=finalValid}) = TUIUpd fx oldV newV {VSt | vst & currentPath = shiftDataPath currentPath, updateMask = childMasks cmu, verifyMask = childMasks cmv, valid = valid}
+			# (newDefs,vst)					= TUIDef fx newV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv}
+			# (oldDefs,vst)					= TUIDef fx oldV 0 {VSt | vst & vizType = VEditorDefinition, currentPath = shiftDataPath currentPath, useLabels = False, label = Nothing, valid = valid, updateMask = childMasks cmu, verifyMask = childMasks cmv}		
 			# (addrem)						= determineAddRem oldDefs newDefs 0
 			= case cmu of
-				(UMList [i:is] c _)
-					# (replacements)		= determineReplacements newDefs [i:is]	
-					= (addrem++replacements++upd++msg,
+				(TouchedList dirty c)
+					# (replacements)		= determineReplacements newDefs dirty	
+			 		= (addrem ++ replacements ++ msg,	//Ugly because too much is replaced. We need a better list update strategy
+			 		//= (addrem ++ upd ++ msg,			//It should be this alternative, but would require optional to non-optional updating of components
 			 		  {VSt | vst & currentPath = stepDataPath currentPath, vizType=VEditorUpdate, label = label, useLabels = useLabels, valid=finalValid, optional = optional, updateMask = um, verifyMask = vm})
 				_ 
 					= (addrem++upd++msg,
@@ -1029,16 +1009,14 @@ updateBasicControl old new vst=:{vizType,idPrefix,label,currentPath,updates,useL
 	# newV = value2s cmu new
 	# (upd,vst) = updateVizValue oldV newV vst
 	# (valid,msg) = verifyElementUpd valid id cmu cmv
-	= (upd++msg, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, verifyMask = vm, updateMask = um})
+	= (upd++msg,{VSt|vst & currentPath = stepDataPath currentPath, valid= valid, verifyMask = vm, updateMask = um})
 
 mbHintToString :: (Maybe HintMessage) -> String
 mbHintToString Nothing = ""
 mbHintToString (Just h) = h
 
-//TODO: incorporate 'dirty' from updatemask..	
 updateVizValue:: !String !String !*VSt -> (![Visualization],!*VSt)
 updateVizValue old new vst=:{currentPath, updates, idPrefix}
-	| old == new = (restoreField currentPath updates (dp2id idPrefix currentPath) old,vst)
 	= ([TUIUpdate (TUISetValue (dp2id idPrefix currentPath) new)],vst)
 
 getMessageUpdates:: *VSt -> (!Bool,![Visualization], !*VSt)
@@ -1051,32 +1029,32 @@ where
 	id = dp2id idPrefix currentPath
 
 verifyElementStr :: !Bool !UpdateMask !VerifyMask -> (!Bool, !String, !String)
-verifyElementStr valid cmu cmv = case cmu of
-				(Untouched _ _) = case cmv of
-					(VMValid mbHnt _ _) 				= (valid,"",mbHintToString mbHnt)
-					(VMUntouched mbHnt _ _) 			= (False,"",mbHintToString mbHnt)
-					(VMInvalid IsBlankError _ _)		= (False,"","")
-					(VMInvalid (ErrorMessage s) _ _)	= (False,s,"")
-				_ = case cmv of
-					(VMValid mbHnt _ _)				= (valid,"",mbHintToString mbHnt)
-					(VMUntouched mbHnt _ _) 		= (False,"",mbHintToString mbHnt)
-					(VMInvalid err _ _)				= (False,toString err,"")
+verifyElementStr valid cmu cmv
+	= case cmu of
+		(Untouched _ ) = case cmv of
+			(VMValid mbHnt _ _) 				= (valid,"",mbHintToString mbHnt)
+			(VMUntouched mbHnt _ _) 			= (valid,"",mbHintToString mbHnt)
+			(VMInvalid IsBlankError _ _)		= (False,"","")
+			(VMInvalid (ErrorMessage s) _ _)	= (False,s,"")
+		_ = case cmv of
+			(VMValid mbHnt _ _)					= (valid,"",mbHintToString mbHnt)
+			(VMUntouched mbHnt _ _) 			= (valid,"",mbHintToString mbHnt)
+			(VMInvalid err _ _)					= (False,toString err,"")
 
 verifyElementUpd :: !Bool !String !UpdateMask !VerifyMask -> (!Bool, ![Visualization])
 verifyElementUpd valid id cmu cmv = case cmu of
-		(Untouched _ _) = case cmv of
+		(Untouched _ ) = case cmv of
 			(VMInvalid IsBlankError _ _)   		= (False, []) //filter only isblankerrors or all errors?
 			(VMInvalid (ErrorMessage s) _ _) 	= (False, [TUIUpdate (TUISetError id s)])
-			(VMUntouched mbHnt _ _)				= (False, hntMsg mbHnt id)
+			(VMUntouched mbHnt _ _)				= (valid, hntMsg mbHnt id)
 			(VMValid mbHnt _ _) 				= (valid, hntMsg mbHnt id)
 		_ = case cmv of
 			(VMInvalid err _ _) 				= (False,[TUIUpdate (TUISetError id (toString err))])
-			(VMUntouched mbHnt _ _)				= (False, hntMsg mbHnt id)
+			(VMUntouched mbHnt _ _)				= (valid, hntMsg mbHnt id)
 			(VMValid mbHnt _ _) 				= (valid, hntMsg mbHnt id)
 where
 	hntMsg h id = case mbHintToString h of "" = []; s = [TUIUpdate (TUISetHint id s)]
-	
-	
+		
 //*********************************************************************************************************************
 
 //Sends the 'old' value if a field has received an update, but it should not be updated.
