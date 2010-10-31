@@ -145,7 +145,7 @@ where
 					# tst					= setTaskStore "mask" mask
 												{TSt|tst & iworld = iworld} // <- store the initial mask
 					= (mask,tst)
-				Nothing	= ((Untouched True),tst) 
+				Nothing	= (Untouched,tst) 
 
 
 	applyUpdates [] val umask tst = (val,umask,tst)

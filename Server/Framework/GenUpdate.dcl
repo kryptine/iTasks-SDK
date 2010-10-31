@@ -9,7 +9,7 @@ import Types, Store
 //:: DataMask :== [[Int]]
 
 //				Mode		Dirty			Child Components
-:: UpdateMask = Untouched 	Bool 			
+:: UpdateMask = Untouched 			
 			  | Touched		Bool			[UpdateMask]
 			  | TouchedList	[Int]			[UpdateMask] //For lists, a mask 
 			  | Blanked		Bool			
@@ -81,5 +81,3 @@ isDirty 			:: !UpdateMask 	-> Bool
 toggleMask 			:: !String 		-> UpdateMask
 cleanUpdMask 		:: !UpdateMask 	-> UpdateMask
 dirtyUpdMask 		:: !UpdateMask 	-> UpdateMask
-
-initialUpdateMask 	:: UpdateMask

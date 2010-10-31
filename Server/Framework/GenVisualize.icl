@@ -240,7 +240,7 @@ gVisualize{|CONS of d|} fx old new vst=:{vizType,idPrefix,currentPath,label,useL
 			//records
 			| not (isEmpty d.gcd_fields)
 				# (valid,err,hnt) = case cmu of
-							(Untouched _ ) = case cmv of
+							(Untouched) = case cmv of
 								(VMInvalid IsBlankError _ _) = (False, "", "")
 								(VMInvalid (ErrorMessage s) _ _) = (False, s, "")
 								(VMValid mbHnt _ _) = (valid, "", mbHintToString mbHnt)
@@ -1031,7 +1031,7 @@ where
 verifyElementStr :: !Bool !UpdateMask !VerifyMask -> (!Bool, !String, !String)
 verifyElementStr valid cmu cmv
 	= case cmu of
-		(Untouched _ ) = case cmv of
+		(Untouched) = case cmv of
 			(VMValid mbHnt _ _) 				= (valid,"",mbHintToString mbHnt)
 			(VMUntouched mbHnt _ _) 			= (valid,"",mbHintToString mbHnt)
 			(VMInvalid IsBlankError _ _)		= (False,"","")
@@ -1043,7 +1043,7 @@ verifyElementStr valid cmu cmv
 
 verifyElementUpd :: !Bool !String !UpdateMask !VerifyMask -> (!Bool, ![Visualization])
 verifyElementUpd valid id cmu cmv = case cmu of
-		(Untouched _ ) = case cmv of
+		(Untouched) = case cmv of
 			(VMInvalid IsBlankError _ _)   		= (False, []) //filter only isblankerrors or all errors?
 			(VMInvalid (ErrorMessage s) _ _) 	= (False, [TUIUpdate (TUISetError id s)])
 			(VMUntouched mbHnt _ _)				= (valid, hntMsg mbHnt id)

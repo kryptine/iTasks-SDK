@@ -13,7 +13,7 @@ generic gVerify a :: (Maybe a) VerSt -> VerSt
 verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
 verifyValue val updateMask
 	# verSt = gVerify{|*|} (Just val) {VerSt | updateMask = [updateMask], verifyMask = [], optional = False}
-	# verSt = trace_n ("Verify mask: " +++ toString (toJSON (hd verSt.VerSt.verifyMask))) verSt
+//	# verSt = trace_n ("Verify mask: " +++ toString (toJSON (hd verSt.VerSt.verifyMask))) verSt
 	= hd verSt.VerSt.verifyMask
 
 import StdDebug
@@ -51,7 +51,7 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 	| d.gcd_type_def.gtd_num_conses == 1
 		# vst=:{VerSt | verifyMask = childMask} = fx val {VerSt | vst & updateMask = childMasks cmu, verifyMask = []}
 		= case cmu of
-			(Untouched _)
+			(Untouched)
 				= {VerSt| vst & verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing childMask), optional = optional, updateMask = um}
 			_
 				= {VerSt| vst & verifyMask = appendToMask verifyMask (VMValid Nothing Nothing childMask), optional = optional, updateMask = um}	
@@ -64,7 +64,7 @@ gVerify{|CONS of d|}	fx    cons					vst=:{VerSt|updateMask,verifyMask,optional}
 				= VMValid (Just "Select an option") Nothing childMask
 			False
 				= case cmu of
-					(Untouched _)	= VMUntouched (Just "Select an option") Nothing childMask
+					(Untouched)		= VMUntouched (Just "Select an option") Nothing childMask
 					(Blanked _)		= VMInvalid IsBlankError Nothing childMask
 					(Touched _ _)	= VMValid (Just "Select an option") Nothing childMask
 		= {VerSt | vst & updateMask = um, optional = optional, verifyMask = appendToMask verifyMask consMask}	
@@ -103,7 +103,7 @@ gVerify{|[]|} fx (Just []) vst=:{VerSt | updateMask,verifyMask,optional}
 	| optional
 		= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just "You may add list elements") Nothing childMask)}	
 	# listMask  = case cm of 
-					(Untouched _) 
+					(Untouched) 
 						= (VMUntouched Nothing Nothing childMask)
 					(TouchedList _ _)
 						= (VMValid Nothing Nothing childMask)
@@ -112,7 +112,7 @@ gVerify{|[]|} fx (Just x)  vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)	= popMask updateMask
 	# vst=:{VerSt | verifyMask=childMask} = verifyItems fx x {VerSt | vst & verifyMask = [], updateMask = childMasks cm, optional = False}
 	= case cm of
-		(Untouched _)
+		(Untouched)
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched Nothing Nothing childMask), optional = optional}
 		_
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid Nothing Nothing childMask), optional = optional}
@@ -175,12 +175,12 @@ basicVerify :: String !VerSt -> VerSt
 basicVerify msg vst=:{VerSt | updateMask,verifyMask,optional}
 	# (cm,um)   = popMask updateMask
 	| optional  = case cm of
-		(Untouched _)
+		(Untouched)
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched (Just msg) Nothing [])}
 		_
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just msg) Nothing [])}	
 	| otherwise = case cm of
-		(Untouched _)
+		(Untouched)
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMUntouched (Just msg) Nothing [])}
 		(Touched _ _)
 			= {VerSt | vst & updateMask = um, verifyMask = appendToMask verifyMask (VMValid (Just msg) Nothing [])}
@@ -247,7 +247,7 @@ verifyConstructor mbHint pred parseErr mbVal vst=:{VerSt | updateMask, verifyMas
 						= VMValid Nothing Nothing [VMValid mbHint Nothing []]			
 			| otherwise
 				= case cm of
-					(Untouched _)
+					(Untouched)
 						= VMUntouched Nothing Nothing [VMUntouched mbHint Nothing []]
 					(Blanked _)
 						= VMInvalid IsBlankError Nothing [VMInvalid IsBlankError Nothing []]
