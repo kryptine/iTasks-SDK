@@ -71,10 +71,10 @@ noControls =	{ alignmentControls	= False
 	, enableSourceEdit	:: !Bool
 	}
 
-gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid,updateMask,verifyMask}
+gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,updateMask,verifyMask}
 	#(cmu,um) = popMask updateMask
 	#(cmv,vm) = popMask verifyMask
-	#(valid,err,hnt) = verifyElementStr valid cmu cmv
+	#(err,hnt) = verifyElementStr cmu cmv
 	# oldV		= value2s (fst (popMask (childMasks cmu))) old
 	# newV		= value2s (fst (popMask (childMasks cmu))) new
 	= case vizType of
@@ -96,10 +96,10 @@ gVisualize{|FormattedText|} old new vst=:{vizType,label,idPrefix,currentPath,use
 									, enableSourceEdit	= controls.sourceEditControl
 									}
 								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
+								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id (replaceMarkers newV))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
+								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		_					# htmlFrag = case old of
 								VBlank		= Text ""
 								VValue v	= html v
@@ -197,12 +197,12 @@ getSource (SourceCode src _) = src
 	, optional		:: !Bool
 	}
 	
-gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,updateMask,verifyMask}
+gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,renderAsStatic,updateMask,verifyMask}
 	#(cmu,um) = popMask updateMask
 	#(cmv,vm) = popMask verifyMask
 	# oldV		= value2s (fst (popMask (childMasks cmu))) old
 	# newV		= value2s (fst (popMask (childMasks cmu))) new
-	#(valid,err,hnt) = verifyElementStr valid cmu cmv
+	#(err,hnt) = verifyElementStr cmu cmv
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUISourceCode
@@ -216,7 +216,7 @@ gVisualize{|SourceCode|} old new vst=:{vizType,label,idPrefix,currentPath,useLab
 									, language		= language
 									}
 								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
+								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
 								, {VSt|vst & currentPath = stepDataPath currentPath})
@@ -248,12 +248,12 @@ instance toString SourceCode
 where
 	toString (SourceCode src _) = src
 
-gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional,valid, renderAsStatic,updateMask,verifyMask}
+gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,optional, renderAsStatic,updateMask,verifyMask}
 	#(cmu,um) = popMask updateMask
 	#(cmv,vm) = popMask verifyMask
 	# oldV		= value2s (fst (popMask (childMasks cmu))) old
 	# newV		= value2s (fst (popMask (childMasks cmu))) new
-	#(valid,err,hnt) = verifyElementStr valid cmu cmv
+	#(err,hnt) = verifyElementStr cmu cmv
 	= case vizType of
 		VEditorDefinition	=	([TUIFragment (TUICustom (toJSON
 									{ TUIColorChooser
@@ -266,10 +266,10 @@ gVisualize{|Color|} old new vst=:{vizType,label,idPrefix,currentPath,useLabels,o
 									, staticDisplay = renderAsStatic
 									}
 								))]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
+								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		VEditorUpdate
 			| oldV <> newV	= ([TUIUpdate (TUISetValue id newV)]
-								, {VSt|vst & currentPath = stepDataPath currentPath, valid= valid, updateMask = um, verifyMask = vm})
+								, {VSt|vst & currentPath = stepDataPath currentPath, updateMask = um, verifyMask = vm})
 		_					# htmlFrag = case old of
 								VBlank		= Text ""
 								VValue v 	= html v

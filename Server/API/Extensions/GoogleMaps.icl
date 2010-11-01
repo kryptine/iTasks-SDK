@@ -55,7 +55,7 @@ where
 	toString HYBRID 	= "HYBRID"
 	toString TERRAIN 	= "TERRAIN"
 
-gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, valid, optional, useLabels, updateMask, verifyMask}
+gVisualize {|GoogleMap|} old new vst=:{vizType, label, idPrefix, currentPath, optional, useLabels, updateMask, verifyMask}
 	# (cmu,um) = popMask updateMask
 	# (cmv,vm) = popMask verifyMask
 	= case vizType of

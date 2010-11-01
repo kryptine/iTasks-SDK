@@ -17,7 +17,7 @@ derive gVisualize Dynamic, [], Maybe, Either, (,), (,,), (,,,), (->), Void, Disp
 derive gVisualize Note, Password, Date, Time, DateTime, Document, FormButton, Currency, User, UserDetails, Task
 
 //Wrapper functions for visualization
-visualizeAsEditor		:: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> ([TUIDef],Bool)		| gVisualize{|*|} a
+visualizeAsEditor		:: String (Maybe SubEditorIndex) UpdateMask VerifyMask a -> [TUIDef]			| gVisualize{|*|} a
 visualizeAsHtmlDisplay	:: a -> [HtmlTag]																| gVisualize{|*|} a
 visualizeAsTextDisplay	:: a -> String																	| gVisualize{|*|} a
 visualizeAsHtmlLabel	:: a -> [HtmlTag]																| gVisualize{|*|} a
@@ -44,7 +44,7 @@ fromHidden :: !(Hidden .a) -> .a
 toHidden :: !.a -> (Hidden .a)
 
 //Wrapper function for calculating form delta's
-determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask VerifyMask a a -> ([TUIUpdate],Bool)	| gVisualize{|*|} a
+determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask VerifyMask a a -> [TUIUpdate]	| gVisualize{|*|} a
 
 //Type definitions for visualization
 :: VisualizationValue a
@@ -61,7 +61,6 @@ determineEditorUpdates	:: String (Maybe SubEditorIndex) [DataPath] UpdateMask Ve
 	, selectedConsIndex	:: !Int							// Index of the selected constructor in an Object
 	, useLabels			:: !Bool						// Indent for labels, whether there is a label or not
 	, optional			:: !Bool						// Create optional form fields
-	, valid				:: !Bool						// Is the form valid
 	, updateMask		:: ![UpdateMask]
 	, verifyMask		:: ![VerifyMask]
 	, updates			:: ![DataPath]
@@ -93,8 +92,8 @@ restoreField :: DataPath [DataPath] String String -> [Visualization]
 visualizeBasicControl :: !(VisualizationValue a) !*VSt -> (!TUIBasicControl, !*VSt) | toString a
 updateBasicControl :: !(VisualizationValue a) !(VisualizationValue a) !*VSt -> (![Visualization],!*VSt) | toString a
 
-verifyElementStr :: !Bool !UpdateMask !VerifyMask -> (!Bool, !String, !String)
-verifyElementUpd :: !Bool !String !UpdateMask !VerifyMask -> (!Bool, ![Visualization])
+verifyElementStr :: !UpdateMask !VerifyMask -> (!String, !String)
+verifyElementUpd :: !String !UpdateMask !VerifyMask -> [Visualization]
 
 value2s 		:: !UpdateMask !(VisualizationValue a) 								-> String | toString a
 labelAttr 		:: !Bool !(Maybe String)									-> Maybe String

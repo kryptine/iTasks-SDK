@@ -4,8 +4,9 @@ import GenUpdate
 :: ErrorMessage = ErrorMessage String | IsBlankError
 :: HintMessage :== String
 :: FieldLabel :== String
+:: Optional :== Bool
 
-:: VerifyMask = VMUntouched (Maybe HintMessage) (Maybe FieldLabel) [VerifyMask]
+:: VerifyMask = VMUntouched (Maybe HintMessage) (Maybe FieldLabel) !Optional [VerifyMask] 
 			  | VMValid (Maybe HintMessage) (Maybe FieldLabel) [VerifyMask]
 			  | VMInvalid ErrorMessage (Maybe FieldLabel) [VerifyMask]
 			  
@@ -27,7 +28,17 @@ derive gVerify Maybe, Dynamic, Void, Document, Either, Editable, Hidden, Display
 derive gVerify Password, Date, Time, FormButton, Currency, User, UserDetails, Task, Note, DateTime
 derive JSONEncode VerifyMask
 
+/**
+* Verify a value based on the value and its update mask.
+*/
 verifyValue :: !a !UpdateMask -> VerifyMask | gVerify{|*|} a
+
+/**
+* Based on the verify mask of a value, determine if it is valid.
+* A value is valid if the verify mask contains no invalid fields and all untouched fields are optional
+*/
+isValidValue :: !VerifyMask -> Bool
+
 basicVerify :: String !VerSt -> VerSt
 
 /**

@@ -96,7 +96,8 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 			| newTask || (isEmpty events && not anyEvent)
 				// generate TUI definition
 				# ovmask		= verifyValue ovalue oumask			
-				# (form,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
+				# valid			= isValidValue ovmask
+				# form 			= visualizeAsEditor editorId Nothing oumask ovmask ovalue
 				# evalActions	= evaluateConditions actions valid ovalue
 				# tst			= setTUIDef (taskPanel taskId context (Just form)) evalActions tst
 				= (TaskBusy,tst)
@@ -105,7 +106,8 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 				| isEmpty events
 					// no change for this task
 					# ovmask		= verifyValue ovalue oumask
-					# (_,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
+					# valid			= isValidValue ovmask
+					//# (_,valid) 	= visualizeAsEditor editorId Nothing oumask ovmask ovalue
 					# evalActions	= evaluateConditions actions valid ovalue
 					# tst			= setTUIUpdates [] evalActions tst
 					= (TaskBusy,tst)
@@ -118,7 +120,8 @@ makeInformationTask initial context actions actionStored tst=:{taskNr, newTask, 
 						# tst				= setTaskStore "value" nvalue tst
 						# tst				= setTaskStore "mask" numask tst
 						# nvmask			= verifyValue nvalue numask
-						# (updates,valid)	= determineEditorUpdates editorId Nothing (map fst edits) numask nvmask ovalue nvalue
+						# valid				= isValidValue nvmask
+						# updates			= determineEditorUpdates editorId Nothing (map fst edits) numask nvmask ovalue nvalue
 						# evalActions		= evaluateConditions actions valid ovalue
 						# tst				= setTUIUpdates updates evalActions tst
 						= (TaskBusy, tst)
@@ -414,8 +417,8 @@ makeInstructionTask context value tst
 :: View s = E.a: Listener (Listener` s a) | E.a: Editor (Editor` s a)
 :: Listener` s a =	{ visualize :: !s -> [HtmlTag] }
 :: Editor` s a =	{ getNewValue :: !ViewNr [(DataPath,String)] s s *TSt -> *(s,*TSt)
-					, determineUpdates :: !TaskNr ViewNr s [(String,String)] *TSt -> *(([TUIUpdate],Bool),*TSt)
-					, visualize :: !TaskNr ViewNr s *TSt -> *(([TUIDef],Bool),*TSt)
+					, determineUpdates :: !TaskNr ViewNr s [(String,String)] *TSt -> *([TUIUpdate],*TSt)
+					, visualize :: !TaskNr ViewNr s *TSt -> *([TUIDef],*TSt)
 					}
 :: ViewNr :== Int
 
@@ -518,7 +521,8 @@ where
 		createDef :: !a !*([TUIDef],Bool,ViewNr,*TSt) !(View a) -> *([TUIDef],Bool,ViewNr,*TSt) | iTask a
 		createDef svalue (def,valid,n,tst) (Editor editor)
 			# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") svalue tst
-			# ((ndef,nvalid),tst)	= editor.Editor`.visualize taskNr n svalue tst
+			# (ndef,tst)			= editor.Editor`.visualize taskNr n svalue tst
+			# nvalid				= True //TODO Where is the update mask?
 			= (def ++ ndef,valid && nvalid,n + 1,tst)
 		createDef svalue (def,valid,n,tst) (Listener listener) = (def ++ [listenerPanel svalue listener n],valid,n + 1,tst)
 	
@@ -533,8 +537,9 @@ where
 	where
 		detUpd :: !a ![(String,JSONNode)] !*([TUIUpdate],Bool,ViewNr,*TSt) !(View a) -> *([TUIUpdate],Bool,ViewNr,*TSt) | iTask a
 		detUpd nvalue events (upd,valid,n,tst) (Editor editor)
-			# ((nupd,nvalid),tst)	= editor.determineUpdates taskNr n nvalue [(name,value) \\ (name,JSONString value) <- events] tst
-			# tst					= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
+			# (nupd,tst)		= editor.determineUpdates taskNr n nvalue [(name,value) \\ (name,JSONString value) <- events] tst
+			# nvalid 			= True //TODO Where is the update mask?
+			# tst				= setTaskStoreFor taskNr (addStorePrefix n "value") nvalue tst
 			= (upd ++ nupd,	valid && nvalid, inc n, tst)
 		detUpd nvalue _ (upd,valid,n,tst) (Listener listener) 
 			= ([TUIReplace (editorId taskNr n) (listenerPanel nvalue listener n):upd],valid,n + 1,tst)
