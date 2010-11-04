@@ -21,7 +21,7 @@ They are divided over multiple folders as follows:
              default AJAX web client which your server application will serve at run time.
 
              IMPORTANT: If you obtained iTasks directly from the subversion repository
-                        you need no run Client/build.bat to compile the client application.
+                        you need to run Client/build.bat to compile the client application.
 
 - Examples : Example workflow suites.
 
