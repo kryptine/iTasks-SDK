@@ -1,7 +1,6 @@
 implementation module TaskContainer
  
 import iTasks
-from	EstherBackend import toStringDynamic
 
 
 validTaskVal :: Dynamic -> Bool
@@ -46,3 +45,14 @@ typeErrorMess s d1 					= s +++ ": Type Error: " +++ showDynType d1
 typeErrorMess2 :: !String !Dynamic !Dynamic -> String 
 typeErrorMess2 s d1 d2 = s +++ ": Cannot Unify: " +++ showDynType d1 +++ " with "  +++ showDynType d2
 
+import Debug
+
+toStringDynamic :: !Dynamic -> ([String], String)
+toStringDynamic d = (v, t)
+where
+	v = case d of (x :: a) -> debugShowWithOptions [DebugTerminator "", DebugMaxChars 79] x
+
+	t = removeForAll (typeCodeOfDynamic d)
+	where
+		removeForAll (TypeScheme _ t) = toString t
+		removeForAll t = toString t

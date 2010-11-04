@@ -21,3 +21,6 @@ showDynValType 	:: !String !Dynamic -> String
 
 typeErrorMess 	:: !String !Dynamic -> String 
 typeErrorMess2 	:: !String !Dynamic !Dynamic -> String 
+
+
+toStringDynamic :: !Dynamic -> ([String], String)
