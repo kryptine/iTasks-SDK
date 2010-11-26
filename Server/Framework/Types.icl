@@ -129,6 +129,14 @@ where
 // DateTime
 // ******************************************************************************************************
 
+instance + DateTime
+where
+	(+) (DateTime dx tx) (DateTime dy ty) = DateTime (dx + dy) (tx + ty)
+
+instance - DateTime
+where
+	(-) (DateTime dx tx) (DateTime dy ty) = DateTime (dx - dy) (tx - ty)
+
 instance toString DateTime
 where
 	toString (DateTime d t) = toString d +++ " " +++ toString t

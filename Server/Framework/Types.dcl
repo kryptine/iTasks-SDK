@@ -55,10 +55,12 @@ instance < Currency
 
 instance + Time		//Naive fieldwise addition
 instance + Date		//Naive fieldwise addition
+instance + DateTime	//Naive fieldwise addition
 instance + Currency 
 
 instance - Time		//Naive fieldwise subtraction
 instance - Date		//Naive fieldwise subtraction
+instance - DateTime	//Naive fieldwise subtraction
 instance - Currency
 
 instance toInt Currency

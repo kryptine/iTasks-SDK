@@ -117,22 +117,8 @@ where
 		, url		= u
 		}	
 		
-gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (
-	{ GoogleMap
-	| center 			= (51.82,5.86)
-	, width	 			= 700
-	, height 			= 300
-	, mapTypeControl 	= True
-	, navigationControl = True
-	, scaleControl 		= True
-	, streetViewControl	= True
-	, scrollwheel		= True
-	, draggable			= True
-	, zoom				= 10
-	, mapType			= ROADMAP
-	, markers			= []
-	}, {USt | ust & newMask = appendToMask newMask Untouched})
-	
+gUpdate {|GoogleMap|} _ ust =: {USt | mode=UDCreate,newMask} = (mkMap,{USt | ust & newMask = appendToMask newMask Untouched})
+
 gUpdate {|GoogleMap|} s ust =: {USt | mode=UDSearch, searchPath, currentPath, update,oldMask,newMask}
 	# (cm,om) = popMask oldMask
 	| currentPath == searchPath
@@ -162,7 +148,7 @@ gUpdate {|GoogleMap|} s ust = (s,ust)
 mkMap :: GoogleMap
 mkMap = { GoogleMap
 		| center 			= (51.82,5.86)
-		, width 			= 700
+		, width 			= 710
 		, height 			= 300
 		, mapTypeControl	= True
 		, navigationControl = True
@@ -178,7 +164,7 @@ mkMap = { GoogleMap
 minimalMap :: GoogleMap
 minimalMap = { GoogleMap
 		| center 			= (51.82,5.86)
-		, width 			= 700
+		, width 			= 710
 		, height 			= 300
 		, mapTypeControl	= False
 		, navigationControl = False
