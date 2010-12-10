@@ -85,6 +85,57 @@ iterateUntil :: !(Task a) !(a -> Task a) !(a -> .Bool) -> Task a | iTask a
 */
 sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 
+
+///////////////// BEGIN EXPERIMENTAL PARALLEL DEFINITION /////////////////////////
+
+/**
+* All-in-one parallel combination
+*
+* @param The task subject
+* @param The task description
+* @param The handler function that acts upon new results / control signals
+* @param The action merge function that merges the menu-actions of tasks into the set of the combination
+* @param The interface merge function that layouts the user interfaces of tasks that are placed in the body
+* @param The list of tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
+*/
+parallel ::	!String !desc !s (HandlerFun a s) (FinalizeFun s b) ActionMergeFun InterfaceMergeFun
+			![(DBId PControl) -> Task (PResult a)]-> Task b | iTask a, b, s & html desc 
+
+//Results of a task in a group can either be a result or a control signal
+:: PResult a		= Result a
+					| Control	[PAction (Task (PResult a)]
+					
+:: PAction a		= Stop											// stop the entire parallel execution
+					| Continue										// continue execution without change
+					| Reset Int										// reset state and restart task with index i
+					| Extend .[(DBId PControl) -> Task (PResult a)]	// dynamically extend list of tasks in parallel
+					| Focus Tag										// focus task with given tag
+
+
+:: HandlerFun a s	:==	(PResult a) Int s -> (s, PAction a)
+:: FinalizeFun s b	:== s -> b
+
+//Should be part of task properties
+:: PPlacement		= Body				//Show in the 'body' of the task
+					| Dialog			//Show in a dialog
+					| ModalDialog		//Show in a modal dialog
+					| Window			//Show in a window
+					| Detached			//Show in a new main task
+					| Hidden			//Do not show at all (for pure control tasks, replacing group actions)
+
+// The control data consists of the properties of all tasks in the parallel set
+:: ParallelControl		:== [TaskProperties]
+
+//TODO: Menu action / layout combination of tasks
+:: ActionMergeFun		:== [Action] -> ???
+
+//TODO: Layout combination of tasks
+:: InterfaceMergeFun	:== [(TaskProperties,TUIDefinition)] -> TUIDefinition
+
+///////////////// END EXPERIMENTAL PARALLEL DEFINITION /////////////////////////
+
+
+
 :: PAction x	= Stop			// stop the entire parallel/grouped execution
 				| Continue		// continue execution without change
 				| Extend .[x]	// dynamically extend list of tasks in parallel/group
