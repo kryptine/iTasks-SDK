@@ -89,31 +89,79 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 ///////////////// BEGIN EXPERIMENTAL PARALLEL DEFINITION /////////////////////////
 
 /**
-* All-in-one parallel combination
+* All-in-one swiss-army-knife parallel task creation
 *
-* @param The task subject
-* @param The task description
-* @param The handler function that acts upon new results / control signals
-* @param The action merge function that merges the menu-actions of tasks into the set of the combination
-* @param The interface merge function that layouts the user interfaces of tasks that are placed in the body
+* @param The (overloaded) task description
+* @param ValueMerger
+* @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
 * @param The list of tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
+* @return The resulting value
 */
-parallel ::	!String !desc !s (HandlerFun a s) (FinalizeFun s b) ActionMergeFun InterfaceMergeFun
-			![(DBId PControl) -> Task (PResult a)]-> Task b | iTask a, b, s & html desc 
+parallel ::	!d !(ValueMerger a acc b) !LayoutMerger ![PTask a acc] -> Task b | iTask a, acc, b & descr d 
 
-//Results of a task in a group can either be a result or a control signal
-:: PResult a		= Result a
-					| Control	[PAction (Task (PResult a)]
-					
-:: PAction a		= Stop											// stop the entire parallel execution
-					| Continue										// continue execution without change
-					| Reset Int										// reset state and restart task with index i
-					| Extend .[(DBId PControl) -> Task (PResult a)]	// dynamically extend list of tasks in parallel
-					| Focus Tag										// focus task with given tag
+// Task Description - to be defined elsewhere
+:: TaskDescription d	=	{ longDescription	:: !String
+							, subject			:: !d
+							}
+							
+class descr d
+	where	toDescr :: d -> TaskDescription d 
+								
+// The accumulator, the function defining how to add a new result to the accumulator, the function defining how to convert acc tot he final result
+:: ValueMerger a acc b	:== (!acc, !AccuFun a acc, !ResultFun acc b)
 
+/**
+* AccuFun is called when a parallel task terminates returning a value of type a
+* 
+* @param The index of the terminated task
+* @param The value returned by the terminated task
+* @param The current value of the accumulator 
+* @return Tuple with new value of the accumulator, and possibly an action
+*/
+:: AccuFun a acc		:== !Index !a !acc -> (!acc, !Maybe (PAction a acc))
 
-:: HandlerFun a s	:==	(PResult a) Int s -> (s, PAction a)
-:: FinalizeFun s b	:== s -> b
+// Index in list of parallel executing processes, [0..length list -1]; number of processes can dynamically increase
+:: Index				:== Int
+
+// ControlTasks can perform the following actions:					
+:: PAction a acc		= StopParallel											// stop the entire parallel execution
+						| ExtendParallel [PTask a acc]							// add additional parallel tasks
+						| StopTasks [Index]										// kill tasks with indicated id
+						| SuspendTask [Index]									// suspend tasks with indicated id
+						| ResumeTask [Index]									// resume tasks with indicated id
+						| ResetTask [Index]										// start tasks with indicated id from scratch
+						| UpdateProperties [(Index, Properties -> Properties)]	// change properties of indicated tasks
+						| ReplaceTasks [(Index, Task a)]						// replace indicated task by new one
+						| Focus Index											// set the window focus of indicated task 
+
+/**
+* ResultFun  is called when the parallel task is stopped
+* 
+* @param The termination status: why was the parallel task ended
+* @param The current value of the accumulator 
+* @return The resulting value of type b
+*/
+:: ResultFun acc b		:== TerminationStatus acc -> b							
+:: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
+						|	Stopped				// the control signal StopParallel has been commited
+
+// A PTask can be an ordinary iTask Task or it can be a ControlTask
+:: PTask a acc			=	ResultTask  (Task a)
+						|	ControlTask (CTask a acc)
+						
+/**
+* CTask is a special task
+* 
+* @param The ControlView enabling to view the current state of the accumulator and the properties of all subtasks
+* @param The current value of the accumulator 
+* @return The action to do
+*/
+:: CTask a acc			:== ControlView acc -> Task (PAction a acc)
+
+// A ControlView is a read-only DBId storage
+:: ControlView acc		:== ListenerDBId (acc, [TaskProperties])
+:: ListenerDBId	a		:==	DBId a
+
 
 //Should be part of task properties
 :: PPlacement		= Body				//Show in the 'body' of the task
@@ -123,14 +171,14 @@ parallel ::	!String !desc !s (HandlerFun a s) (FinalizeFun s b) ActionMergeFun I
 					| Detached			//Show in a new main task
 					| Hidden			//Do not show at all (for pure control tasks, replacing group actions)
 
-// The control data consists of the properties of all tasks in the parallel set
-:: ParallelControl		:== [TaskProperties]
-
-//TODO: Menu action / layout combination of tasks
-:: ActionMergeFun		:== [Action] -> ???
-
 //TODO: Layout combination of tasks
-:: InterfaceMergeFun	:== [(TaskProperties,TUIDefinition)] -> TUIDefinition
+:: LayoutMerger	:== [(Properties, TUIDefinition)] -> TUIDefinition
+
+
+//TODO: ActionMerger / MenuMerger
+
+// Tomorrow......
+
 
 ///////////////// END EXPERIMENTAL PARALLEL DEFINITION /////////////////////////
 
