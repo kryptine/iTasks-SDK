@@ -92,7 +92,7 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * All-in-one swiss-army-knife parallel task creation
 *
 * @param The (overloaded) task description
-* @param ValueMerger
+* @param The Value merger: a set of functions defining how subtasks values are accumulated 
 * @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
 * @param The list of tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
 * @return The resulting value
@@ -100,20 +100,20 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 parallel ::	!d !(ValueMerger a acc b) !LayoutMerger ![PTask a acc] -> Task b | iTask a, acc, b & descr d 
 
 // Task Description - to be defined elsewhere
+class descr d
+	where	toDescr :: d -> TaskDescription d 
+
 :: TaskDescription d	=	{ longDescription	:: !String
 							, subject			:: !d
 							}
-							
-class descr d
-	where	toDescr :: d -> TaskDescription d 
 								
-// The accumulator, the function defining how to add a new result to the accumulator, the function defining how to convert acc tot he final result
+// The accumulator, a function defining how a new result is added to the accumulator, a function defining how to convert acc tot the final result
 :: ValueMerger a acc b	:== (!acc, !AccuFun a acc, !ResultFun acc b)
 
 /**
-* AccuFun is called when a parallel task terminates returning a value of type a
+* AccuFun is called when an ordinary parallel iTask task (i.e. not a control task) terminates returning a value of type a 
 * 
-* @param The index of the terminated task
+* @param The index of the terminated task 
 * @param The value returned by the terminated task
 * @param The current value of the accumulator 
 * @return Tuple with new value of the accumulator, and possibly an action
@@ -131,7 +131,7 @@ class descr d
 						| ResumeTask [Index]									// resume tasks with indicated id
 						| ResetTask [Index]										// start tasks with indicated id from scratch
 						| UpdateProperties [(Index, Properties -> Properties)]	// change properties of indicated tasks
-						| ReplaceTasks [(Index, Task a)]						// replace indicated task by new one
+						| ReplaceTasks [(Index, Task a)]						// replace indicated tasks by new ones
 						| Focus Index											// set the window focus of indicated task 
 
 /**
@@ -162,84 +162,59 @@ class descr d
 :: ControlView acc		:== ListenerDBId (acc, [TaskProperties])
 :: ListenerDBId	a		:==	DBId a
 
-
-//Should be part of task properties
-:: PPlacement		= Body				//Show in the 'body' of the task
-					| Dialog			//Show in a dialog
-					| ModalDialog		//Show in a modal dialog
-					| Window			//Show in a window
-					| Detached			//Show in a new main task
-					| Hidden			//Do not show at all (for pure control tasks, replacing group actions)
-
-//TODO: Layout combination of tasks
-:: LayoutMerger	:== [(Properties, TUIDefinition)] -> TUIDefinition
-
-
-//TODO: ActionMerger / MenuMerger
-
-// Tomorrow......
-
+// Layout combination of tasks
+// typically horizontal or vertical, no yet defined in TUIdefinition.dcl !
+:: LayoutMerger	:== [TUIDefinition] -> TUIDefinition
 
 ///////////////// END EXPERIMENTAL PARALLEL DEFINITION /////////////////////////
 
-
-
-:: PAction x	= Stop			// stop the entire parallel/grouped execution
-				| Continue		// continue execution without change
-				| Extend .[x]	// dynamically extend list of tasks in parallel/group
-				| Focus Tag		// focus child-tasks with given tag
-
-// This tuple is used to link actions to groups, similar to TaskAction.
-// Its two parts represent the (what , when) aspects of actions.
-// What: The conceptual action to be taken
-// When: The condition that determine if the action can be taken
-:: GroupAction gState			:== (Action, GroupCondition gState)
-:: GroupCondition gState		=			Always																	// group action is always enabled
-								| 			StatePredicate !(gState -> Bool)										// use predicate on internal state to determine if action is enabled
-								| E.shared:	SharedPredicate !(DBId shared) !((Maybe shared) -> Bool) & iTask shared	// use predicate on given shared variable to determine if action is enabled
-:: GroupActionGenFunc result	:== (Action, ActionData) -> result															// function mapping task action events to result applied to the group
-/**
-* Execute a list of parallel tasks, assigned to different users. The combinator keeps an internal
-* state of type 'pState' and uses the accumulator function to alter this state and dynamically add new tasks
-* or stop execution of the entire parallel using the result of a subtask as soon as it is finished.
-*
-* @param Type of the parallel, defines who is allowed to see the status of the parallel
-* @param Label
-* @param Description
-* @param An accumulator function which alters the internal state
-* @param A function which transforms the internal state to the desired output
-* @param Initial value of the internal state
-* @param List of initial tasks
-*/
-parallel :: !TaskParallelType !String !String !((taskResult,Int) pState -> (pState,PAction (Task taskResult)))	(pState -> pResult) !pState ![Task taskResult]									-> Task pResult | iTask taskResult & iTask pState & iTask pResult
+///////////////// BEGIN EXPERIMENTAL ASSIGN DEFINITION /////////////////////////
 
 /**
-* Execute a list of grouped tasks, assigned to the same user. How tasks are combined in the user interface can
-* be influenced by assigning a GroupedBehaviour to sub-tasks using the annotation combinator. The group-combinator
-* keeps an internal state of type 'gState' and uses the accumulator function to alter this state and dynamically
-* add new tasks or stop execution of the entire group using the result of a subtask as soon as it is finished.
+* Assign a new property to a task thus creating a new Main Task
 *
-* @param Label
-* @param Description
-* @param An accumulator function which alters the internal state
-* @param A function which transforms the internal state to the desired output
-* @param Initial value of the internal state
-* @param List of initial tasks
-* @param List of group-actions generating a 'taskResult', makes it possible to change internal state & add tasks without finishing tasks already running
-*/
-group 	 :: !String !String !((taskResult,Int) gState -> (gState,PAction (Task taskResult))) (gState -> gResult) !gState ![Task taskResult] ![GroupAction gState] (GroupActionGenFunc taskResult)	-> Task gResult | iTask taskResult & iTask gState & iTask gResult
-
-// Multi-user workflows
-
-/**
-* Assign a task to a(nother) user.
-*
-* @param The initial UserId of the user to which the task is delegated
-* @param The task that is to be delegated.
+* @param The property of the task
+* @param The task 
 *
 * @return The combined task
 */ 
-assign :: !User !(Task a) -> Task a	| iTask a
+assign :: !Properties !(Task a) -> Task a	| iTask a
+
+:: Properties 			= NewMainTask TaskProperties ActionMenuSink		// task in tab 
+						| WindowTask Title ActionMenu 					// task in window 							
+						| DialogTask Title								// task as dialogue
+
+// Task properties to be assigned by the programmer
+
+:: TaskProperties =
+	{ worker			:: !User							// Who has to do the task? 
+	, subject			:: !String 							// The subject of the task
+	, description		:: !String							// Description of the task (html)
+	, context			:: !Maybe String					// Optional context information for doing the task (html)
+	, priority			:: !TaskPriority					// What is the current priority of this task?
+	, deadline			:: !Deadline						// When is the task due?
+	, tags				:: ![String]						// A list of tags ??????? STIL NEEDED ??
+	}
+:: TaskPriority			= HighPriority						// tasks can have three levels of priority
+						| NormalPriority
+						| LowPriority
+:: Deadline =
+	{ whenToStart		:: !DateTime						// When should the worker really start doing something
+	, whenToFinish		:: !DateTime						// When should the task be done
+	}
+
+:: ActionMenuSink		:== MenuAction -> MenuDefinition	// Define which actions are shown in the menu, others become buttons...   
+:: ActionMenu			:== MenuAction -> MenuDefinition	// Define which actions are shown in the menu, others passed upwards...   
+:: MenuDefinition		:== [Menu]							// As usual
+:: MenuAction 			:== (ActionName, ActionLabel)
+:: ActionName			:== !String							// Name used as identifier
+:: ActionLabel			:== !String							// Label shown in button or menu
+
+
+///////////////// END EXPERIMENTAL ASSIGN DEFINITION /////////////////////////
+
+
+// Multi-user workflows
 
 /**
 * Create a new process.
