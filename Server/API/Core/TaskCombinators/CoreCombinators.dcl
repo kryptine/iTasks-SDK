@@ -94,20 +94,24 @@ sequence	:: !String ![Task a] 						-> Task [a]		| iTask a
 * @param The (overloaded) task description
 * @param The Value merger: a set of functions defining how subtasks values are accumulated 
 * @param Layout merge function that layouts the user interfaces of tasks that are placed in the body
-* @param The list of tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
+* @param The list of Control tasks to run in parallel, each task is given a read-only view on the status of all tasks in the set
+* @param The list of ordinary tasks to run in parallel
 * @return The resulting value
 */
-parallel ::	!d !(ValueMerger a acc b) !LayoutMerger ![PTask a acc] -> Task b | iTask a, acc, b & descr d 
+parallel ::	!d !(ValueMerger a acc b) !LayoutMerger ![CTask a acc] ![Task a] -> Task b | iTask a, acc, b & descr d 
 
 // Task Description - to be defined elsewhere
 class descr d
-	where	toDescr :: d -> TaskDescription d 
+	where	toDescr :: d -> TaskDescription
 
-:: TaskDescription d	=	{ longDescription	:: !String
-							, subject			:: !d
+:: TaskDescription 		=	{ title			:: !String
+							, description	:: !Html
 							}
 								
-// The accumulator, a function defining how a new result is added to the accumulator, a function defining how to convert acc tot the final result
+// The ValueMerger consists of 
+// - an accumulator
+// - a function AccuFun which is called whn a ordinary task finishes defining how its result is added to the accumulator
+// - a function defining how to convert the accumulator tot the final result when the parallel task finishes
 :: ValueMerger a acc b	:== (!acc, !AccuFun a acc, !ResultFun acc b)
 
 /**
@@ -123,16 +127,19 @@ class descr d
 // Index in list of parallel executing processes, [0..length list -1]; number of processes can dynamically increase
 :: Index				:== Int
 
-// ControlTasks can perform the following actions:					
+// The following actions are possible:					
 :: PAction a acc		= StopParallel											// stop the entire parallel execution
-						| ExtendParallel [PTask a acc]							// add additional parallel tasks
-						| StopTasks [Index]										// kill tasks with indicated id
-						| SuspendTask [Index]									// suspend tasks with indicated id
-						| ResumeTask [Index]									// resume tasks with indicated id
-						| ResetTask [Index]										// start tasks with indicated id from scratch
-						| UpdateProperties [(Index, Properties -> Properties)]	// change properties of indicated tasks
-						| ReplaceTasks [(Index, Task a)]						// replace indicated tasks by new ones
-						| Focus Index											// set the window focus of indicated task 
+						| AppendTasks  ![CTask a acc] ![Task a]  				// append additional control and ordinary tasks to be run in parallel as well
+						| StopTasks    ![Index]       ![Index]					// kill control tasks and ordinary tasks with indicated index in list
+						| SuspendTasks ![Index]       ![Index]					// suspend control tasks and ordinary tasks with indicated index in list
+						| ResumeTasks  ![Index]       ![Index]					// resume control tasks and ordinary tasks with indicated index in list
+						| ResetTasks   ![Index]       ![Index]					// start from scratch control tasks and ordinary tasks with indicated index in list
+						| UpdateProperties [(Index, TaskProperties -> TaskProperties)]	
+																				// change task properties of indicated tasks
+						| ReplaceTasks ![(Index, CTask a acca)] ![(Index, Task a)]						
+																				// replace indicated control tasks and ordinary tasks by new ones
+						| FocusCTask Index										// set the window focus of indicated control task 
+						| FocusTask Index										// set the window focus of indicated task 
 
 /**
 * ResultFun  is called when the parallel task is stopped
@@ -145,12 +152,10 @@ class descr d
 :: TerminationStatus	=	AllRunToCompletion	// all parallel processes have ended their execution
 						|	Stopped				// the control signal StopParallel has been commited
 
-// A PTask can be an ordinary iTask Task or it can be a ControlTask
-:: PTask a acc			=	ResultTask  (Task a)
-						|	ControlTask (CTask a acc)
 						
 /**
-* CTask is a special task
+* a Control task is a special task use to control and view the other tasks
+* It can generate actions, after which it will re-incarnate itself
 * 
 * @param The ControlView enabling to view the current state of the accumulator and the properties of all subtasks
 * @param The current value of the accumulator 
@@ -171,25 +176,24 @@ class descr d
 ///////////////// BEGIN EXPERIMENTAL ASSIGN DEFINITION /////////////////////////
 
 /**
-* Assign a new property to a task thus creating a new Main Task
+* main turns a task into a Main Task
 *
 * @param The property of the task
 * @param The task 
 *
 * @return The combined task
 */ 
-assign :: !Properties !(Task a) -> Task a	| iTask a
+main :: !MainTaskType !(Task a) -> Task a	| iTask a
 
-:: Properties 			= NewMainTask TaskProperties ActionMenuSink		// task in tab 
-						| WindowTask Title ActionMenu 					// task in window 							
+:: MainTaskType 		= DetachedTask TaskProperties ActionMenu		// task tyically shown in tab 
+						| WindowTask Title ActionMenu 					// task shown in a new window 							
 						| DialogTask Title								// task as dialogue
 
 // Task properties to be assigned by the programmer
 
 :: TaskProperties =
 	{ worker			:: !User							// Who has to do the task? 
-	, subject			:: !String 							// The subject of the task
-	, description		:: !String							// Description of the task (html)
+	, information		:: !TaskDescription					// Description of the task
 	, context			:: !Maybe String					// Optional context information for doing the task (html)
 	, priority			:: !TaskPriority					// What is the current priority of this task?
 	, deadline			:: !Deadline						// When is the task due?
@@ -203,8 +207,7 @@ assign :: !Properties !(Task a) -> Task a	| iTask a
 	, whenToFinish		:: !DateTime						// When should the task be done
 	}
 
-:: ActionMenuSink		:== MenuAction -> MenuDefinition	// Define which actions are shown in the menu, others become buttons...   
-:: ActionMenu			:== MenuAction -> MenuDefinition	// Define which actions are shown in the menu, others passed upwards...   
+:: ActionMenu			:== [MenuAction] -> MenuDefinition	// Define which actions are shown in the menu, others passed upwards...   
 :: MenuDefinition		:== [Menu]							// As usual
 :: MenuAction 			:== (ActionName, ActionLabel)
 :: ActionName			:== !String							// Name used as identifier
